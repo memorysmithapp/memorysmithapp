@@ -1,13 +1,16 @@
 # MemoryVault.guru
 
 > SaaS de gestão de conhecimento em **Markdown**, organizado por uma **hierarquia
-> organizacional multinível** com herança de configuração e templates.
+> organizacional multinível**.
 
-O MemoryVault.guru não é "mais um editor de notas". A proposta central é
-**padronizar o jeito de fazer** de cada estrutura organizacional: cada nível da
-hierarquia declara convenções — templates, frontmatter obrigatório, convenções de
-nome, ciclo de vida das notas — que os níveis abaixo **herdam** e podem (ou não)
-sobrescrever.
+O MemoryVault.guru não é "mais um editor de notas". A proposta é **organizar
+estrutura e contexto em Markdown para leitura de agentes**: tenant → nó → vault →
+pasta → nota formam uma grande árvore navegável de arquivos `.md`. Dentro dela,
+`README.md` (no vault) e `TEMPLATE.md` (na pasta) são apenas **palavras reservadas**
+— opcionais — que servem de contexto ao agente.
+
+No fim, o backend é **um conjunto de `.md` no S3 + um índice no DynamoDB** que os
+organiza. O conteúdo são os arquivos; a estrutura é ponteiro.
 
 📄 A arquitetura completa está em **[DESIGN.md](DESIGN.md)**.
 
@@ -15,17 +18,24 @@ sobrescrever.
 
 ## A ideia em uma linha
 
-Todo o produto se apoia em **uma única primitiva**: uma cadeia de nós onde cada
-nível pode declarar convenções herdáveis.
-
 ```
-Raiz (Tenant) → Organização → Departamento → Divisão → Projeto → Vault → Pasta → Nota
-└──────────────── cadeia única de herança de configuração ────────────────┘
+Tenant → Organização → Departamento → Divisão → Projeto → Vault → Pasta → Nota
+└──────── hierarquia = organização e escopo de acesso ────────┘   └── conteúdo Markdown ──┘
 ```
 
-Reconhecer que **Vault, Pasta e até a Nota participam da mesma cadeia** é a decisão
-de design mais importante do projeto: existe **um só algoritmo de resolução**, não
-quatro.
+- **Vault** = pode ter um `README.md` (palavra reservada, opcional) que o descreve.
+- **Pasta** = pode conter um `TEMPLATE.md` — molde **sugerido**, não uma trava.
+- **Nota** = Markdown + YAML frontmatter livre.
+- **Agente** (Fase 3) pede o `README.md` e o `TEMPLATE.md` via MCP **antes** de escrever.
+
+Cada entidade tem uma **chave opaca estável**; o conteúdo vive no S3 sob essa chave
+(`{vaultId}/README.md`, `{folderId}/{nota}.md`), com a hierarquia como ponteiro no
+DynamoDB. Consequência: renomear e **mover são baratos** (só banco); só *apagar*
+propaga para o S3 (ADR-021). O export reconstrói a árvore legível para abrir no
+Obsidian.
+
+Não há motor de configuração tipado, herança, procedência nem locks — removido de
+propósito (ADR-017). Cada vault é autônomo (ADR-018).
 
 ---
 
@@ -33,13 +43,14 @@ quatro.
 
 | # | Princípio | Consequência prática |
 |---|---|---|
-| P1 | **Hierarquia genérica, não fixa** | Uma tabela `Node` recursiva com `type`, não cinco tabelas |
-| P2 | **Configuração é dado, não schema** | Registry de chaves; adicionar propriedade ≠ migração |
-| P3 | **Herança explícita e rastreável** | Todo valor efetivo carrega sua origem (`provenance`) |
-| P4 | **Governança > conveniência** | Ancestral pode *travar* (`locked`) valores que descendentes não sobrescrevem |
-| P5 | **Conteúdo portável** | Markdown + YAML frontmatter puro; export/import nativo, sem lock-in |
-| P6 | **Simples na Fase 1, escalável por design** | Resolução em tempo de leitura agora; materialização depois |
-| P7 | **Isolamento por chave-líder** | Todo item começa com `T#{tenant_id}` |
+| P1 | **No fim é tudo Markdown** | O backend organiza e serve; não gera Markdown de schema tipado |
+| P2 | **Vault autônomo** | Cada vault se descreve no seu README; sem herança entre níveis |
+| P3 | **Molde é sugestão, não contrato** | `TEMPLATE.md` orienta; a nota não precisa preencher tudo (seed) |
+| P4 | **Hierarquia genérica, não fixa** | Uma tabela `Node` recursiva com `type`, não cinco tabelas |
+| P5 | **Conteúdo portável** | Markdown + YAML puro; export reconstrói a árvore legível, abre no Obsidian |
+| P6 | **Simples na Fase 1, escalável por design** | Leitura agora; escrita por agente e importador depois |
+| P7 | **Isolamento por chave-líder** | Todo item de tenant começa com `T#{tenant_id}` |
+| P8 | **Storage por ID opaco** | Conteúdo no S3 sob a chave estável da entidade; mover/renomear não toca no S3 |
 
 ---
 
@@ -49,29 +60,21 @@ A Fase 1 é uma **demo somente-leitura** sobre vaults reais, carregados por um s
 de seed (ADR-014). O objetivo é validar o **núcleo do modelo** — não construir todas
 as telas.
 
-- **Motor de herança** com procedência e locks (`§4` do DESIGN)
-- **Config Key Registry** — propriedades como dado, não schema (`§3.2`)
-- **Templates** versionados, com visibilidade pela cadeia de ancestrais (`§5`)
-- **Vault / Pasta / Nota** na mesma cadeia de herança (`§6`)
-- **README gerado** a partir da config resolvida — não escrito à mão (`§12.2`)
-- **UI de leitura**: árvore, navegador de pastas, visualizador de nota, config com
-  "herdado de", cadeados e conflitos
-- **Export** do vault em Markdown puro
-- **Autenticação mínima** via Cognito com tenant e usuários semeados
+- Hierarquia de nós (organização + escopo de acesso)
+- Vaults com `README.md` e pastas com `TEMPLATE.md` (convenções, opcionais)
+- Notas em Markdown + frontmatter, com IDs estruturados preservados da fonte
+- Storage no S3 por chave opaca; DynamoDB como índice navegável (`§6.1`)
+- `GET /vaults/{id}/readme` e `/agent-context` servindo o contexto
+- UI de leitura: árvore navegável, navegador de pastas, visualizador de nota e de template
+- Export reconstruindo a árvore legível
+- Autenticação mínima via Cognito com tenant e usuários semeados
 
 ### Critério de pronto
 
-Não é "as telas funcionam", e sim **"o README volta igual"**:
-
-```
-README.md original (escrito à mão)   ─┐
-                                      ├── diff
-README.md renderizado da config      ─┘
-```
-
-Se o documento gerado a partir da config importada reproduz o original — taxonomia,
-tipos, frontmatter, ciclo de vida, convenções, contagens — então o modelo capturou a
-realidade daquele vault (`§13.2`).
+Os vaults reais carregam sem forçar o modelo e ficam **navegáveis** como uma árvore
+de pastas e notas; onde há `README.md`/`TEMPLATE.md`, eles descrevem o vault de forma
+que um agente conseguiria operar ali (`§11.2` do DESIGN). Não "as telas funcionam", e
+sim **"a estrutura e o contexto descrevem o vault de verdade"**.
 
 ---
 
@@ -82,16 +85,13 @@ realidade daquele vault (`§13.2`).
 - **CloudFront + S3** — SPA React
 - **API Gateway HTTP API** — REST
 - **Lambda** — Node 22, ARM64, esbuild, 512 MB
-- **DynamoDB** — single-table, on-demand, PITR
-- **S3** — conteúdo `.md`, versionado, SSE-KMS
+- **DynamoDB** — single-table, on-demand, PITR (indexa metadados)
+- **S3** — conteúdo `.md` (incl. `README.md` e `TEMPLATE.md`), versionado, SSE-KMS
 - **Cognito** — pool único, plano Essentials, Managed Login
 - **CDK v2 (TypeScript)** — IaC
 
-Fora da Fase 1: EventBridge, SQS, Streams, Step Functions (aditivos, entram sem tocar
-no modelo de dados), além de OpenSearch, WAF, Aurora e VPC.
-
 Toda a lógica de domínio vive em `packages/core` — **TypeScript puro, sem imports de
-`@aws-sdk/*`** — testável em milissegundos. REST e (na Fase 3) MCP são adaptadores
+`@aws-sdk/*`** — testável em milissegundos. REST hoje e MCP na Fase 3 são adaptadores
 finos sobre os mesmos casos de uso.
 
 ---
@@ -100,9 +100,9 @@ finos sobre os mesmos casos de uso.
 
 | Fase | Foco | Marco de conclusão |
 |---|---|---|
-| **1** | Demo por importação | Os três vaults carregados e o README gerado batendo com o original |
+| **1** | Demo por seed | Vaults reais carregados; o README de cada um descreve o vault fielmente |
 | **2** | Produto multi-tenant | Cadastro, aprovação, convites, papéis e o importador |
-| **3** | Escrita por agente | Servidor MCP, validação impositiva, delegação atenuada |
+| **3** | Escrita por agente | Servidor MCP, alocação de ID, delegação atenuada |
 | **4** | Produtividade e escala | Busca, histórico, backlinks, billing, SSO |
 
 ---
@@ -110,7 +110,8 @@ finos sobre os mesmos casos de uso.
 ## Estrutura do repositório
 
 > A definir conforme a implementação avança. A intenção de arquitetura
-> (`packages/core` puro + adaptadores) está descrita em [DESIGN.md §8](DESIGN.md).
+> (`packages/core` puro + adaptadores REST/MCP) está descrita em
+> [DESIGN.md §7](DESIGN.md).
 
 ---
 
