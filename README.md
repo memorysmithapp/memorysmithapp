@@ -23,7 +23,9 @@ Vault
     └── notas .md
 ```
 
-`README.md` e `TEMPLATE.md` são os dois únicos nomes reservados. Não são documentação: são **instruções executáveis** — é o que faz o agente escrever a nota certa, na pasta certa, no formato certo.
+`README.md` e `TEMPLATE.md` não são documentação: são **instruções executáveis** — é o que faz o agente escrever a nota certa, na pasta certa, no formato certo.
+
+E não são nomes de arquivo. São **papéis**: o vault aponta um documento como seu guidance, a pasta aponta outro como seu template. Os nomes só aparecem na borda — no export e na UI.
 
 ## Interface
 
@@ -36,18 +38,19 @@ Sobre isso: grafo de links (árvore de dependências e backlinks), busca semânt
 | | |
 |---|---|
 | Stack | AWS Serverless · Node.js/TypeScript |
-| Dados | DynamoDB (estrutura e metadados) + S3 (corpo dos `.md`) + S3 Vectors (embeddings) |
+| Dados | DynamoDB (todo o significado) + S3 (blobs de Markdown, chave opaca) + S3 Vectors (embeddings) |
 | IA | Bedrock — Titan Text Embeddings V2 |
 | Desenho | DDD tático + Hexagonal (Ports & Adapters), um deployable por bounded context |
 | Tenancy | Multi-tenant desde a primeira linha: `TenantId` na chave líder de todo item |
 
 Seis serviços: `access`, `knowledge` (core), `discovery`, `audit`, `agent` (MCP), `portability`.
 
-Três decisões que atravessam o resto:
+Quatro decisões que atravessam o resto:
 
 - **O backend não interpreta o conteúdo.** O que vai dentro da nota — frontmatter inclusive — é decidido pelo Guidance e pelo Template do vault. O backend lê sintaxe universal de Markdown, nunca convenção de vault.
+- **O S3 não sabe o que guarda.** Vault, pasta e nota são conceitos lógicos que vivem inteiramente no DynamoDB. No S3 há uma pilha plana de blobs de Markdown em chaves opacas, e o elo é um ponteiro que diz qual blob, em qual revisão, faz qual papel. Consequência: renomear, reordenar e mover — inclusive mover uma nota de vault — não podem tocar em byte nenhum, porque não há nada na chave que essas operações mudariam.
 - **Tenant é tipo, não convenção.** Não existe caminho de código que construa uma chave sem `TenantId`: o compilador rejeita.
-- **O passado é imutável.** A trilha de auditoria é append-only por política de IAM, não por disciplina — e cada evento carrega o `versionId` do S3, o que permite reler a base como ela estava na data em que um trabalho foi emitido.
+- **O passado é imutável.** A trilha de auditoria é append-only por política de IAM, não por disciplina — e cada evento carrega a revisão exata do S3, o que permite reler a base como ela estava na data em que um trabalho foi emitido.
 
 ## Documentação
 
