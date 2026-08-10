@@ -1,735 +1,670 @@
-# MemoryVault.guru — DESIGN.md (Fase 1)
-> Documento de arquitetura da primeira fase de implementação.
-> Status: **draft para revisão** · Stack alvo: **AWS Serverless**
+# MemoryVault.guru — DESIGN.md
+
+> Documento de arquitetura do produto.
+> Stack: **AWS Serverless · Node.js/TypeScript · DynamoDB + S3 + S3 Vectors + Bedrock**
+> Arquitetura: **DDD + Hexagonal (Ports & Adapters) + microsserviços · multi-tenant desde a primeira linha**
+
 ---
-## 1. Contexto e objetivo
-O MemoryVault.guru é um SaaS de gestão de conhecimento em **Markdown**, organizado por uma **hierarquia organizacional multinível**. A proposta central não é "mais um editor de notas": é **organizar estrutura e contexto em Markdown para leitura de agentes** — dar a cada vault um documento que descreve o que ele é, como se organiza e como preencher suas notas.
-O objetivo da Fase 1 é entregar o **núcleo do modelo** — hierarquia, vaults, pastas, notas e moldes (templates) — de forma simples e portável. Funcionalidades de superfície (busca, sync, colaboração, escrita por agente) ficam para fases seguintes.
-### Conceito-chave
-No fim, **um vault é Markdown**. O backend organiza estrutura e serve conteúdo; o agente lê. Não existe schema tipado gerando Markdown — o Markdown é o produto, escrito por quem opera o vault.
-```
-Tenant → Organização → Departamento → Divisão → Projeto → Vault → Pasta → Nota
-└──────── hierarquia = organização e escopo de acesso ────────┘   └── conteúdo Markdown ──┘
-```
-> **O que este documento deliberadamente NÃO tem:** um motor de configuração com chaves tipadas, herança, procedência e locks. Essa máquina foi removida (ADR-017). Ela era um compilador para uma linguagem cuja semântica ainda não conhecemos, e sua única saída seria… Markdown. Um vault descreve a si mesmo em um `README.md` — uma **convenção, não uma obrigação**; não há propagação de config pela hierarquia (ADR-018, opção A).
-> **O que é o backend, no fundo:** um conjunto de arquivos `.md` no S3 + um índice no DynamoDB que os organiza numa árvore navegável (tenant → nó → vault → pasta → nota). O conteúdo são os arquivos; a estrutura é ponteiro. `README.md` e `TEMPLATE.md` são só nomes reservados dentro dessa árvore (ADR-020, ADR-021).
+
+## 1. O problema
+
+Hoje o fluxo que funciona é: uma pasta de trabalho com arquivos `.md`, um `README.md` na raiz explicando ao agente como estruturar as notas, e o Obsidian por cima para navegar. O agente lê a pasta sempre que precisa de contexto.
+
+Três coisas quebram nesse arranjo:
+
+1. **Colaboração** — o conteúdo é local. Duas pessoas não trabalham no mesmo corpo de conhecimento.
+2. **Navegação compartilhada** — o Obsidian é ótimo local e ruim como cliente de repositório remoto.
+3. **Múltiplos cofres** — separar projetos exige múltiplas pastas soltas, sem um lugar que as liste.
+
+O MemoryVault.guru é o backend remoto desse fluxo: **cofres de conhecimento em Markdown, com estrutura declarada, acessíveis nativamente pelas ferramentas de IA.**
+
+### O ciclo de uso
+
+O agente não só lê o vault — ele o **alimenta**. O caso concreto que o produto serve:
+
+1. **Ingestão.** No Cowork, o agente lê um corpo de normas e legislação e escreve esse conhecimento como notas no vault — obedecendo ao `README.md` (o que este vault é), à estrutura de pastas (onde cada coisa vai) e ao `TEMPLATE.md` da pasta (como a nota se estrutura).
+2. **Consumo.** Depois, outro trabalho — uma auditoria, um relatório — usa o mesmo vault como base de conhecimento estruturada.
+
+Três consequências atravessam o documento inteiro:
+
+- **A escrita via MCP é o caminho de ingestão.** Quem popula o vault é o agente, por construção.
+- **Guidance, estrutura e template são instruções executáveis, não documentação.** São o que faz o agente escrever a nota certa, na pasta certa, no formato certo. Um `README.md` fraco ou uma descrição de pasta vaga degrada a qualidade do que entra — e o efeito só aparece depois, no consumo.
+- **O domínio é regulado.** O vault sustenta trabalho de auditoria, então proveniência e histórico são parte do produto, não conformidade posterior (§9).
+
+### A tese, em uma frase
+
+O produto não é guardar `.md` — é **entregar contexto estruturado ao agente sem atrito**. Se ler um vault for mais trabalhoso que ler uma pasta local, o produto perdeu. Por isso o MCP não é um acessório: é a interface principal.
+
 ---
-## 2. Princípios de design
+
+## 2. Decisões fundadoras
+
+| # | Decisão | Alternativa descartada |
+|---|---|---|
+| D1 | **Acesso por agente via MCP server remoto** (OAuth 2.1, Streamable HTTP) | REST + token manual |
+| D2 | **DynamoDB (estrutura e metadados) + S3 (corpo dos `.md`)** | Só S3; Postgres; Git repo por vault |
+| D3 | **Multi-tenant desde a primeira linha** — `TenantId` na chave líder de todo item, em todo serviço | Adicionar tenant depois (= re-chavear tudo) |
+| D4 | **Tenant → Workspace → Vault** | Vault direto no tenant |
+| D5 | **DDD tático + Hexagonal, um deployable por bounded context** | Monólito modular (ver §14) |
+| D6 | **Duas descobertas complementares: grafo de links e busca vetorial**, ambas projeções de eventos | Só busca lexical |
+| D7 | **Proveniência e histórico imutável no núcleo** — quem escreveu, com qual agente, e o que a nota dizia naquele dia | Log de aplicação; versionamento só no S3 |
+
+### Princípios
+
 | # | Princípio | Consequência prática |
 |---|---|---|
 | P1 | **No fim é tudo Markdown** | O backend organiza e serve; não gera Markdown a partir de schema tipado |
-| P2 | **Vault autônomo** | Cada vault se descreve no seu `README.md`; sem herança de config entre níveis |
-| P3 | **Molde é sugestão, não contrato** | `TEMPLATE.md` orienta o agente; a nota não é obrigada a preencher tudo (seed) |
-| P4 | **Hierarquia genérica, não fixa** | Uma tabela `Node` recursiva com `type`, não cinco tabelas |
-| P5 | **Conteúdo portável** | Markdown + YAML frontmatter puro; export reconstrói a árvore legível, sem lock-in |
-| P6 | **Simples na Fase 1, escalável por design** | Leitura agora; escrita por agente e importador depois — sem mudar o modelo |
-| P7 | **Isolamento por chave-líder** | Todo item de tenant começa com `T#{tenant_id}` |
-| P8 | **Storage por ID opaco** | Conteúdo no S3 sob a chave estável da entidade; mover/renomear não toca no S3 (§6.1) |
----
-## 3. Modelo de domínio
-```mermaid
-erDiagram
-    TENANT ||--|| NODE : "raiz"
-    NODE ||--o{ NODE : "filhos"
-    NODE ||--o{ VAULT : "ancora"
-    VAULT ||--|| README_MD : "tem (obrigatorio)"
-    VAULT ||--o{ FOLDER : "contem"
-    FOLDER ||--o{ FOLDER : "subpastas"
-    FOLDER ||--o{ NOTE : "contem"
-    FOLDER ||--o| TEMPLATE_MD : "molde (arquivo)"
-```
-### 3.1 Node (a espinha dorsal organizacional)
-**Decisão: nó genérico recursivo, não níveis fixos em código.**
-Justificativa: organizações reais não cabem em `Org → Depto → Divisão → Projeto`. Uma agência tem `Org → Cliente → Campanha`. Uma consultoria pula divisões. Se os níveis forem tabelas fixas, cada cliente enterprise vira uma migração.
-```typescript
-interface Node {
-  tenantId: string;
-  nodeId: string;           // ULID
-  parentId: string | null;  // null apenas na raiz
-  type: NodeType;           // TENANT_ROOT | ORG | DEPARTMENT | DIVISION | PROJECT | custom
-  name: string;
-  slug: string;             // único entre irmãos
-  path: string;             // materializado: "/01H.../01H.../01H..."
-  depth: number;            // 0 = raiz
-  status: 'ACTIVE' | 'ARCHIVED';
-  createdAt: string; updatedAt: string; version: number;
-}
-```
-O nó é **pura estrutura**: organiza e serve de escopo de acesso. Não carrega config, não propaga nada para baixo.
-As transições permitidas entre tipos (`TENANT_ROOT → ORG`, `ORG → DEPARTMENT | PROJECT`, …) são uma constante de validação da aplicação — não uma chave herdável.
-**Restrições Fase 1:** árvore (não DAG), pai único, `maxDepth ≤ 6`, `path` derivado e nunca escrito manualmente.
-### 3.2 Vault — o README.md é convenção, não obrigação
-Um vault **pode** ter um `README.md` — um documento Markdown que o descreve (propósito, convenções, como preencher as notas). `README.md` é apenas uma **palavra reservada**: se o arquivo existe na raiz do vault, é ele o contexto que o agente lê (§5). Não é obrigatório. A tela é UX que ajuda a escrevê-lo bem — nome, descrição, estrutura e convenções são seções que o formulário sugere, mas o que se grava é o Markdown.
-```typescript
-interface Vault {
-  tenantId: string; vaultId: string;   // vaultId = chave opaca estável (ULID)
-  nodeId: string;              // âncora: exatamente um nó
-  name: string; slug: string;  // identificação e navegação (metadados, não o storage)
-  hasReadme: boolean;          // existe README.md na raiz do vault?
-  stats: { folderCount: number; noteCount: number; bytes: number };
-}
-```
-O conteúdo do vault vive no S3 sob a **chave opaca** do vault (`{vaultId}/README.md`), não sob um caminho legível — ver o layout em §6.1. É isso que torna renomear e mover baratos: o `name` muda no banco, a chave no S3 não.
-### 3.3 Folder
-```typescript
-interface Folder {
-  tenantId: string; vaultId: string; folderId: string;
-  parentFolderId: string | null;
-  name: string; slug: string;
-  path: string;                // caminho LÓGICO p/ navegação; o storage é por folderId (§6.1)
-  hasTemplate: boolean;        // existe um TEMPLATE.md nesta pasta?
-}
-```
-O molde de uma pasta é simplesmente um arquivo **`TEMPLATE.md`** dentro dela (§4). Sem FK, sem entidade tipada: se a pasta tem um `TEMPLATE.md`, aquele é o molde sugerido para as notas ali. É uma sugestão, não uma trava. A "regra de entrada" da pasta ("o que é uma nota válida aqui?") vive em prosa, dentro do `TEMPLATE.md` ou do `README.md` do vault.
-A pasta tem uma **chave opaca** (`folderId`); o aninhamento pasta→subpasta é só ponteiro (`parentFolderId`), nunca caminho físico. Por isso mover uma pasta inteira é barato — não toca no S3 (§6.1).
-### 3.4 Note
-```typescript
-interface Note {
-  tenantId: string; vaultId: string; folderId: string; noteId: string;
-  title: string; slug: string;
-  frontmatter: Record<string, unknown>;  // livre; o TEMPLATE.md sugere, não obriga
-  bodyS3Key: string;                      // {folderId}/{slug}.md no S3 (§6.1)
-  contentHash: string;                    // SHA-256
-  sizeBytes: number;
-  structuredId?: string;                  // EV-2-c1-014 — preservado da fonte (§11.5)
-  status?: string;                        // frontmatter livre; ex.: seed | revisao | evergreen
-  author?: string;                        // humano responsável, quando houver
-  origin: 'SEED' | 'WEB' | 'MCP' | 'IMPORT';
-  createdBy: string; updatedBy: string; version: number;
-}
-```
-**Separação metadados/conteúdo:** frontmatter e metadados no DynamoDB (consultáveis); corpo Markdown no S3 (sem limite de 400 KB, versionamento nativo do bucket, custo menor por GB).
-**Formato em disco** — Markdown puro com YAML frontmatter, para portabilidade total (P5):
-```markdown
----
-title: Capacities de ativo customizado
-type: evidence
-status: revisao
-source_id: SRC-002
----
-# Capacities de ativo customizado
-...
-```
-Cada nota é Markdown puro com YAML frontmatter (P5). O S3 guarda tudo por chave opaca (§6.1); o **export** reconstrói a árvore legível e abre direto no Obsidian (§6.2).
-> **Ciclo de vida da nota é só um campo de frontmatter livre.** `seed → growing → evergreen`, `rascunho → revisao → validada`, ou o que o vault usar — é texto que o molde sugere e o autor escreve. Não há máquina de estados no backend (removido junto com o motor de config).
----
-## 4. Templates — um TEMPLATE.md na pasta
-Um template é um arquivo fixo **`TEMPLATE.md`** dentro de uma pasta. Mesmo formato Markdown + frontmatter das notas. É conteúdo, não um objeto tipado — o sistema só reconhece o nome do arquivo.
-```markdown
-<!-- /09 Evidence/TEMPLATE.md -->
----
-type: evidence
-status: revisao
-source_id:        # SRC-001 ou SRC-002
-module:
-locator:          # arquivo:linha ou caminho .rst
----
-# {título}
+| P2 | **Vault autônomo** | Cada vault se descreve no próprio `README.md`; sem herança entre vaults |
+| P3 | **Molde é sugestão, não contrato** | `TEMPLATE.md` orienta; a nota não é obrigada a seguir |
+| P4 | **Storage por ID opaco** | Renomear/mover/reordenar não toca no conteúdo do S3 |
+| P5 | **Portável por construção** | Export devolve `.md` puros numa árvore de arquivos legível, sem formato proprietário |
+| P6 | **O domínio não conhece a AWS** | `domain/` e `application/` sem um único `import` de SDK — regra verificada no CI |
+| P7 | **Tenant é tipo, não convenção** | É impossível construir uma chave sem `TenantId`: o compilador impede |
+| P8 | **Descoberta é derivada** | Grafo e vetores nunca são fonte da verdade; reconstruíveis a partir dos `.md` |
+| P9 | **O passado é imutável** | O log de auditoria é append-only por IAM, não por disciplina |
+| P10 | **O backend não interpreta o conteúdo** | O que vai dentro da nota — frontmatter inclusive — é decidido pelo Guidance e pelo Template. O backend lê sintaxe universal de Markdown (link, heading), nunca convenção de vault |
 
-## Trecho
-## Interpretação
-## Sustenta
-```
-### 4.1 Relação fraca template ↔ nota — de propósito
-> Um `TEMPLATE.md` **orienta**, não obriga. O agente lê o molde da pasta e tenta seguir. Mas a fonte de conhecimento é só uma amostra (seed): pode faltar informação, pode não haver o que preencher numa seção. Isso é esperado, não é erro.
-Consequências dessa decisão:
-- **Sem validação de schema, sem Ajv, sem `422`.** A nota pode omitir campos do molde.
-- **Sem versionamento imutável.** Editar o `TEMPLATE.md` não "quebra" nota nenhuma — não há vínculo forte a manter.
-- **A nota não referencia o molde.** Não há `templateId`; a pasta é o vínculo, e é frouxo.
-- **`strict` de pasta não existe.** A pasta *sugere* um molde; não recusa notas.
-A camada "impositiva" (a API garante que o agente não viola a regra) sai do desenho. Ela pressupunha um contrato rígido molde↔nota que o próprio material — conhecimento parcial, incremental — não sustenta. O que fica é a camada **advisory**: o molde é contexto que o agente lê e segue na medida do possível.
-### 4.2 Moldes padrão da plataforma
-A plataforma pode oferecer `TEMPLATE.md` prontos como ponto de partida — uma "biblioteca padrão". Um vault que quiser usá-los **copia** o arquivo para a pasta; não há herança nem vínculo vivo. Copiar desacopla: o vault fica dono do seu molde e pode editá-lo sem afetar ninguém.
 ---
-## 5. O contexto que o agente lê
-Quando o vault tem um `README.md` (convenção, §3.2), **é ele** o documento de contexto — autoral, escrito por quem opera o vault. Não há renderização de config nem montagem a partir de campos: o arquivo existe, e é ele que a UI mostra e que o agente lê. Sem README, o contexto é só a estrutura navegável (as pastas e seus `TEMPLATE.md`).
-```
-GET /vaults/{id}/readme                        README.md do vault (o arquivo, cru)
-GET /vaults/{id}/agent-context?flavor=claude   README.md embrulhado como CLAUDE.md
-GET /folders/{id}/template                      TEMPLATE.md da pasta, se houver
-```
-O `flavor` muda só o envelope e o tom imperativo das instruções; o miolo é o `README.md`.
-### 5.1 Fluxo do agente — pedir antes de escrever (Fase 3)
-> Antes de escrever uma nota numa pasta, o agente **pede via MCP** o `README.md` do vault e o `TEMPLATE.md` da pasta. Com esses dois documentos ele tem o contexto normativo — o que o vault espera e como preencher aquela nota — e então escreve.
-É o mesmo conteúdo que a UI mostra para um humano: nenhuma superfície nova, só o mesmo par de arquivos servido por um transporte diferente. As ferramentas MCP correspondentes estão em §10.5.
-### 5.2 Estado atual (opcional, derivado)
-A API **pode** anexar ao `README.md` uma seção **"estado atual"** calculada dos dados — contagens por pasta, por tipo, por status. É a única parte não-autoral, e é justamente o que um arquivo mantido à mão sempre deixa desatualizado. Mas o núcleo é sempre o arquivo escrito à mão.
-Cada vault é autônomo (ADR-018, opção A): o `README.md` descreve **só aquele vault**. Nada vem de níveis acima.
----
-## 6. Modelo de dados (DynamoDB single-table)
-Tabela única `memoryvault`, on-demand, PITR habilitado, Streams (`NEW_AND_OLD_IMAGES`) para projeções futuras.
-| Entidade | PK | SK | GSI1PK | GSI1SK |
-|---|---|---|---|---|
-| Node | `T#{t}#NODE#{nodeId}` | `META` | `T#{t}#PARENT#{parentId}` | `NODE#{slug}` |
-| Node (subárvore) | ↑ | ↑ | `T#{t}#TREE` (GSI2) | `{path}` |
-| Vault | `T#{t}#VAULT#{vaultId}` | `META` | `T#{t}#NODEVAULTS#{nodeId}` | `VAULT#{slug}` |
-| Folder | `T#{t}#VAULT#{vaultId}` | `FOLDER#{path}` | — | — |
-| Note | `T#{t}#V#{vaultId}#F#{folderId}` | `NOTE#{noteId}` | `T#{t}#VAULTNOTES#{vaultId}` | `UPD#{updatedAt}#{noteId}` |
-| Membership | `T#{t}#USER#{userId}` | `GRANT#{scopeId}` | `T#{t}#SCOPE#{scopeId}` | `USER#{userId}` |
-| Invite | `T#{t}#INVITE#{token}` | `META` | `T#{t}#SCOPE#{scopeId}` | `INVITE#{email}` |
-| **User** (global) | `USER#{userId}` | `PROFILE` | `IDENTITY#{provider}#{subject}` | `USER#{userId}` |
-> `User` e `IdentityLink` são os **únicos** itens sem prefixo de tenant — exceção deliberada, justificada em §8.10.
 
-> **`README.md` e `TEMPLATE.md` não são itens do DynamoDB** — são arquivos no S3, em chaves conhecidas (`{prefix}/README.md`, `{prefix}/{folderPath}/TEMPLATE.md`). O DynamoDB só indexa metadados (o vault aponta `readmeS3Key`; a pasta guarda `hasTemplate`). Servir qualquer um deles é um `GetObject`.
-**Notas particionadas por pasta**, não por vault. Uma partição do DynamoDB tem limite prático de 10 GB e 3.000 RCU; um vault corporativo com dezenas de milhares de notas estouraria isso. Particionar por pasta distribui naturalmente e mantém `listar notas da pasta` como um `Query` de partição única. Listagem vault-wide vai pelo GSI1, ordenada por atualização recente.
-### Padrões de acesso cobertos
-| # | Acesso | Operação |
+## 3. Linguagem ubíqua
+
+Termo único por conceito, do código ao produto. Divergência aqui é o começo de todo modelo anêmico.
+
+| Termo | Significa | **Não** confundir com |
 |---|---|---|
-| A1 | Buscar nó por ID | `GetItem` |
-| A2 | Listar filhos diretos | `Query` GSI1 `PARENT#{id}` |
-| A3 | Listar subárvore | `Query` GSI2 `begins_with(path)` |
-| A4 | Vaults de um nó | `Query` GSI1 `NODEVAULTS#{nodeId}` |
-| A5 | Árvore de pastas do vault | `Query` PK=`VAULT#{id}`, `begins_with(SK,'FOLDER#')` |
-| A6 | Notas de uma pasta | `Query` PK=`V#{vault}#F#{folder}` |
-| A7 | Notas recentes do vault | `Query` GSI1 `VAULTNOTES#{vaultId}`, desc |
-| A8 | Permissões do usuário | `Query` PK=`USER#{userId}` |
-| A9 | README do vault / TEMPLATE da pasta | `GetObject` no S3 (chave conhecida) |
-Some, em relação a versões anteriores deste documento: `ConfigKey`, resolução de config efetiva, e a busca de "templates visíveis pela cadeia". Template agora é o arquivo `TEMPLATE.md` da própria pasta.
-### 6.1 Layout do S3 — por chave opaca, não por caminho
-Cada entidade que carrega conteúdo (vault, pasta) tem uma **chave opaca estável** (ULID) e guarda seus arquivos sob um prefixo **plano** no S3:
-```
-{vaultId}/README.md                    # convenção: contexto do vault
-{folderId}/TEMPLATE.md                 # convenção: molde da pasta
-{folderId}/{slug-da-nota}.md           # as notas daquela pasta
-```
-O aninhamento pasta→subpasta existe **só no DynamoDB** (via `parentFolderId`/`path`), nunca no caminho do S3. Uma subpasta é outro prefixo `{folderId}/` no mesmo nível físico. `README.md` e `TEMPLATE.md` são **palavras reservadas** — um slug de nota não pode colidir com elas.
-**Por que isso importa — quase toda mudança de estrutura é barata:**
-| Operação | S3 | DynamoDB |
-|---|---|---|
-| Renomear vault/pasta (metadados) | intocado | 1 update |
-| Mover/reparentar uma pasta e toda a subárvore | **intocado** | atualizar `parentId`/`path` |
-| Renomear uma nota | 1 objeto (copy+delete) | 1 update |
-| Criar/editar nota | 1 objeto | 1 item |
-Como o prefixo é a chave opaca, e não o caminho legível, mover uma subárvore inteira **não toca em nenhum byte do S3** — só reescreve ponteiros no banco. Isto elimina a operação de reparent cara/assíncrona que versões anteriores deste documento carregavam.
-**A única operação que precisa propagar para o S3 é apagar.** Excluir uma pasta com conteúdo exige, para manter a integridade DynamoDB↔S3:
-```
-1. Coletar no DynamoDB os IDs da pasta e de toda a subárvore  (marcar DELETING)
-2. Apagar os objetos {id}/* no S3
-3. Apagar os itens no DynamoDB
-```
-Não há transação entre os dois; a ordem acima é **segura e idempotente** — pode ser repetida se falhar no meio. Um objeto órfão no S3 é tolerável (varrido por um job de limpeza); um item de banco apontando para conteúdo já apagado, não. Por isso o S3 vai primeiro.
-### 6.2 Export e portabilidade (P5)
-Como o S3 cru é uma pilha de prefixos `{id}/`, um `aws s3 sync` direto **não** produz a árvore navegável. O **export** é uma operação que reconstrói a hierarquia legível a partir do DynamoDB e escreve as pastas com nomes humanos:
-```
-/Excelência Técnica/Engineering Knowledge Vault/09 Evidence/EV-2-c1-014.md
-```
-com `README.md` e `TEMPLATE.md` nos lugares. É esse pacote que abre no Obsidian. O conteúdo é sempre Markdown puro; o que a exportação faz é só remontar os caminhos — nenhum arquivo é reescrito.
+| **Tenant** | Fronteira de isolamento, cobrança e identidade — um cliente | Workspace, conta de usuário |
+| **Workspace** | Unidade de colaboração dentro do tenant; contém vaults e membros | Tenant, pasta |
+| **Vault** | Um cofre de conhecimento autodescrito | Repositório, pasta raiz |
+| **Guidance** | O `README.md` do vault: propósito + como estruturar as notas | Descrição curta do vault |
+| **Folder** | Nó ordenado da árvore do vault, com `description` que diz *o que se guarda ali* | Diretório físico (não existe) |
+| **Template** | O `TEMPLATE.md` de uma pasta: leiaute sugerido das notas dali | Schema, validação |
+| **Note** | Um documento Markdown; o que vai dentro dele é decidido pelo Guidance e pelo Template | Registro, entidade tipada |
+| **Position** | Chave fracionária que ordena irmãos | Índice denso, campo `order` |
+| **Link** | Referência de uma nota a outra, extraída do Markdown | Hyperlink externo |
+| **Edge** | Link já resolvido para um `NoteId` de destino | Link pendente |
+| **Chunk** | Trecho de nota vetorizado, recortado por seção | Nota, parágrafo |
+| **Authorship** | Quem escreveu: o humano **e** o agente usado | Usuário logado |
+| **Revision** | O conteúdo exato de uma nota num instante, identificado pelo `versionId` do S3 | Evento, alteração |
+| **Audit Event** | Registro append-only do que aconteceu, com autoria e revisão | Log de aplicação |
+| **Vault Context** | Documento composto (Guidance + árvore anotada) entregue ao agente | Dump do vault |
+| **Reserved Name** | `README.md` e `TEMPLATE.md` — os dois únicos nomes com significado | Convenção opcional |
+
 ---
-## 7. Arquitetura AWS
-```
-                    CloudFront ──── S3 (SPA React)
-                         │
-                    API Gateway (HTTP API)
-                         │
-                  JWT Authorizer ──── Cognito User Pool
-                         │
-        ┌────────────────┼────────────────┐
-        │                │                │
-   fn-hierarchy     fn-vaults        fn-content
-   fn-templates     fn-notes         fn-readme
-        │                │                │
-        └────────────────┼────────────────┘
-                         │
-              ┌──────────┴──────────┐
-              │                     │
-        DynamoDB (single)      S3 (conteúdo .md)
-                                 SSE-KMS, versionado
-```
-**Componentes**
-| Serviço | Uso | Configuração |
-|---|---|---|
-| API Gateway HTTP API | REST | ~70% mais barato que REST API; suficiente |
-| Lambda | Compute | Node 22 · **ARM64** · esbuild · Powertools · 512 MB |
-| Cognito User Pool | AuthN | Pool único · plano Essentials · Managed Login · e-mail via SES — ver §8 |
-| DynamoDB | Dados | On-demand, PITR, Streams |
-| S3 | Conteúdo | Versionamento ON, SSE-KMS, prefixo por tenant, lifecycle p/ IA em 90d |
-| SES ⏳ | E-mail transacional | Convites, verificação, recuperação |
-| CloudWatch + X-Ray | Observabilidade | Logs estruturados JSON, tracing ponta a ponta |
-| **CDK v2 (TypeScript)** | IaC | Stacks separados: `Data`, `Api`, `Web` |
-⏳ = necessário a partir da Fase 2 (onboarding público).
-**Stack da demo (ADR-016):** CloudFront + S3 · API Gateway HTTP API · Lambda · DynamoDB · S3 · Cognito. Nada mais. Nada na Fase 1 é assíncrono.
-**Fora em qualquer cenário na Fase 1:** OpenSearch (busca), WAF, Aurora, VPC (nenhuma Lambda precisa dela — evita cold start de ENI), EventBridge, SQS, Step Functions.
-### Organização das Lambdas
-Handlers finos por domínio. Toda a lógica em `packages/core` — **TypeScript puro, sem imports de `@aws-sdk/*`** — testável em milissegundos. REST hoje, MCP na Fase 3, são adaptadores finos sobre os mesmos casos de uso. Se o core nascer acoplado ao transporte HTTP, o adaptador MCP fica caro; por isso a fronteira é dura.
----
-## 8. Identidade e acesso (Amazon Cognito)
-### 8.1 Divisão de responsabilidades
-> **Cognito é dono da identidade (AuthN). O DynamoDB é dono da autorização (AuthZ).**
-| Cognito | Aplicação (DynamoDB) |
-|---|---|
-| Credenciais, hash de senha | Memberships (papel × escopo) |
-| MFA, recuperação de senha | Convites e onboarding |
-| Federação SAML/OIDC (Fase 3) | Perfil (nome, avatar, fuso, idioma) |
-| Sessões, emissão e revogação de tokens | Auditoria de acesso |
-| Verificação de e-mail | Estado de ativação por tenant |
-**Por que não usar Cognito Groups para os papéis:** seria necessário um grupo por par (nó × papel). Um tenant com 200 nós × 4 papéis = 800 grupos; 100 tenants = 80.000 — acima do limite de **10.000 grupos por user pool**, e um usuário pode pertencer a no máximo **100 grupos**. Além disso, grupos entram no ID token e inflam o JWT. O modelo de grupos não sobrevive a uma hierarquia.
-### 8.2 Estratégia de pool
-**Decisão: um único User Pool compartilhado por todos os tenants** (modelo pool), não um pool por tenant.
-| Critério | Pool único (escolhido) | Pool por tenant |
-|---|---|---|
-| Limite | 1.000 pools/região (ajustável) — irrelevante | Teto real de crescimento |
-| Onboarding de tenant | Registro no banco | Provisionamento de infra |
-| Usuário em 2+ tenants | Natural | Impossível sem duplicar identidade |
-| Isolamento de credenciais | Lógico | Físico |
-**Custo da escolha:** o e-mail é único dentro do pool → **uma pessoa = uma identidade** em todo o produto, com N memberships. Para um SaaS B2B de conhecimento — onde consultores e parceiros transitam entre organizações — isso é a modelagem correta.
-**Teto a monitorar:** **300 identity providers por user pool** (ajustável até 1.000). Com SSO federado por tenant enterprise (Fase 3), esse é o limite real. Mitigação: fragmentar tenants federados em pools adicionais. Para que isso não seja reescrita depois, o login já nasce *pool-agnóstico*: `GET /auth/discover?email=` retorna qual pool/app client usar. Hoje sempre responde a mesma coisa; no dia do segundo pool, o front-end não muda.
-### 8.3 Configuração do User Pool (Fase 1)
-| Item | Escolha | Motivo |
-|---|---|---|
-| Sign-in | E-mail como alias (case-insensitive) | Sem username; B2B |
-| Auto-cadastro | Habilitado, **gated por trigger Pre Sign-up** | Só passa criação de tenant ou convite válido — §9.4 |
-| Feature plan | **Essentials** | Customização de access token (V2_0) e MFA por e-mail |
-| MFA | Opcional (TOTP) na Fase 1 | Obrigatoriedade por tenant é um **flag simples do tenant**, não config herdável |
-| UI | **Managed Login** com branding | Evita construir telas de auth; é o caminho para federação |
-| Access / ID token | 1 hora | Limite do Cognito: 5 min – 1 dia |
-| Refresh token | 30 dias, com rotação | Limite: 1 hora – 3.650 dias |
-| E-mail | **Via SES**, nunca o padrão | O e-mail padrão do Cognito limita a **50 msgs/dia por conta** |
-| `PreventUserExistenceErrors` | Ativado | Evita enumeração de usuários |
-| `DeletionProtection` | Ativado | — |
-| Custom attributes | Apenas `custom:mv_uid` | Nada mais |
-### 8.4 Modelo de usuário
+
+## 4. Multi-tenancy
+
+Tenancy não é uma feature: é a forma das chaves. Retrofitar tenant depois significa reescrever cada chave, cada índice, cada consulta e cada objeto do S3 — por isso entra antes de qualquer outra coisa (D3).
+
+### 4.1 As três camadas de isolamento
+
+**1. Chave líder.** Todo item de todo serviço começa por `T#{tenantId}`. Toda chave do S3 começa por `t/{tenantId}/`. Nenhuma consulta existe sem o prefixo — não há query que possa, mesmo por engano, atravessar tenants.
+
+**2. Tipo, não disciplina (P7).** As portas de repositório recebem um `TenantContext` no construtor, e os construtores de chave só aceitam `TenantId` — um value object criável apenas a partir da claim do JWT.
+
 ```typescript
-// Cognito — fonte da verdade da identidade
-{ sub, email, email_verified, "custom:mv_uid" }
-// DynamoDB — perfil e autorização
-interface User {                    // GLOBAL, sem prefixo de tenant
-  userId: string;                   // ULID canônico == custom:mv_uid
-  email: string;
-  displayName: string; avatarKey?: string;
-  locale: string; timezone: string;
-  status: 'ACTIVE' | 'DISABLED' | 'DELETED';
-  permVersion: number;              // incrementa a cada mudança de grant
+// domain/ports/VaultRepository.ts
+export interface VaultRepository {
+  findById(id: VaultId): Promise<Vault | null>;   // sem tenantId no argumento…
 }
-interface IdentityLink {            // GLOBAL
-  provider: 'COGNITO' | 'SAML:acme' | 'OIDC:okta-xyz';
-  subject: string; userId: string;
-}
-interface Membership {              // POR TENANT
-  tenantId: string; userId: string;
-  scopeType: 'NODE' | 'VAULT'; scopeId: string;
-  role: 'OWNER' | 'ADMIN' | 'EDITOR' | 'VIEWER';
-  status: 'ACTIVE' | 'INACTIVE';
-  grantedBy: string; grantedAt: string;
+
+// adapters/outbound/dynamodb/DynamoVaultRepository.ts
+export class DynamoVaultRepository implements VaultRepository {
+  constructor(private readonly tenant: TenantContext, private readonly db: DynamoDBDocumentClient) {}
+  // …porque o tenant é do repositório, resolvido por requisição.
 }
 ```
-**Por que ULID canônico e não o `sub` do Cognito?** Porque na Fase 3 a mesma pessoa chegará via SAML da Acme com um `sub` diferente, e porque um dia você pode precisar sair do Cognito. O `IdentityLink` custa um item e compra as duas coisas.
-**Criação de usuário passa sempre pela nossa API**, nunca por `SignUp` direto. O backend gera o ULID e o envia como atributo no `AdminCreateUser`, garantindo que nenhum usuário exista no pool sem o item correspondente no banco.
-### 8.5 Resolução de tenant
-- O token carrega **identidade, não escopo**: `sub`, `email`, `mv_uid`, `permVersion`
-- O cliente envia `X-MV-Tenant: {tenantId}` em toda requisição
-- O middleware **sempre** valida que existe membership ativa de `(userId, tenantId)` e deriva o escopo do banco — o header é uma *pista*, jamais uma autoridade
-- Usuário com um único tenant: o middleware resolve sozinho e o header é opcional
-O Pre Token Generation V2_0 injeta apenas claims **invariantes ao tenant**: `mv_uid`, `permVersion`, flags de plataforma.
-### 8.6 Authorizer e cache de permissões
-**JWT authorizer nativo do API Gateway HTTP API** (valida assinatura, emissor, audiência, expiração — sem custo de Lambda, sem cold start) + autorização em middleware compartilhado.
-```
-JWT authorizer  →  withTenant()      valida membership, monta TenantContext
-                →  withAuthz(action, resource)
-                                      resolve papel efetivo na cadeia de ancestrais
-                →  handler
-```
-**Cache de grants:** memória do Lambda, chave `userId:tenantId:permVersion`, TTL 60 s. Qualquer mudança de permissão incrementa `permVersion` no item `User` → o cache se invalida sozinho. Revogação vale na requisição seguinte, não ao fim do TTL. Como o middleware já lê `User` para obter `permVersion`, checa `status` na mesma leitura: **desativar um usuário tem efeito imediato**.
-### 8.7 Convites e onboarding
-```
-1. Admin (ADMIN+ no nó) convida: email + role + scopeId
-2. Item Invite no DDB — token de uso único, TTL de 7 dias
-3. E-mail via SES
-4. Aceite:
-   ├─ e-mail já existe no pool → cria apenas a Membership (não duplica identidade)
-   └─ e-mail novo → AdminCreateUser + definição de senha + Membership
-```
-O ramo superior é o que torna real "uma pessoa, N organizações": um consultor convidado por três clientes faz login uma vez e alterna entre eles.
-*Auto-join por domínio* (Fase 2) será um **flag simples do tenant** (`autoJoinDomains`, `autoJoinRole`), não uma chave de config herdável.
-### 8.8 Ciclo de vida
-| Operação | Ações |
-|---|---|
-| **Desativar** | `AdminDisableUser` + `AdminUserGlobalSignOut` + memberships `INACTIVE` + `permVersion++` |
-| **Remover de um tenant** | Apenas memberships daquele tenant → `INACTIVE`. Identidade e outros tenants intactos |
-| **Excluir (LGPD)** | `AdminDeleteUser` + anonimização do item `User`, preservando o `userId` como *tombstone* |
-### 8.9 Custo — a armadilha do MAU
-O Cognito cobra por **usuário ativo mensal**, e "ativo" inclui **`AdminGetUser`**.
-> Regra de implementação: **nunca chamar `AdminGetUser` em caminho de requisição.** Perfil se lê do DynamoDB. Uma implementação ingênua que consulta o Cognito a cada request transforma todo usuário autenticado em MAU faturável.
-Confirme os valores vigentes em `aws.amazon.com/cognito/pricing` antes de fechar preço.
-### 8.10 Camadas de isolamento
-1. `userId` vem **exclusivamente** do JWT validado — nunca do body ou da query string
-2. `tenantId` vem do header, mas é **sempre** validado contra Membership; o repositório recebe um `TenantContext` já validado, nunca uma string crua
-3. Nenhum repositório monta chave manualmente — existe uma única função `keyFor(ctx, entity)`
-4. Testes de vazamento cross-tenant no CI que **falham o build**
-**Exceção deliberada:** `User` e `IdentityLink` são **globais**, sem prefixo `T#`, porque identidade atravessa tenants por design. Mitigação: esses itens não contêm dado de negócio, só perfil. Tudo específico de tenant vive em `Membership`. Documente a exceção no código.
-### 8.11 Identidade única entre tenants — **decidido**
-> **ADR-002 · Aceita** · Uma pessoa tem **uma identidade** e N memberships. Trocar de organização é um clique, não um novo login.
-**C1 — Invariante de desativação.** `AdminDisableUser` mata o acesso a **todos** os tenants. Portanto: **um admin de tenant nunca dispara operação no Cognito.** Remover alguém de uma organização é só `Membership.status = INACTIVE` + `permVersion++`. Precisa de teste no CI: sem essa regra, um admin da Org A derruba um consultor na Org B.
-**C2 — Convite não vaza existência de conta.** A resposta do convite é **idêntica** exista ou não a conta. Coerente com `PreventUserExistenceErrors`.
-**C3 — Perfil global.** `displayName`, avatar, fuso, idioma são globais na Fase 1. Escape hatch previsto (item `MembershipProfile` por tenant) se a demanda aparecer.
-**C4 — `/me` é a única superfície cross-tenant.** Devolve `tenantId`, nome e papel — **nunca** métrica de uma organização para outra. Todo o resto é tenant-scoped.
-**C5 — "Tenant atual" mora no cliente** (`localStorage`), não no Cognito nem no banco. Caso de borda: pessoa com **zero** memberships ativas precisa de uma tela "sem organização", não um 403 cru.
-**C6 — Tensão com SSO enterprise (Fase 3).** Domain claiming governará o **método de autenticação** da identidade, não o acesso aos tenants — o que exige que o `IdentityLink` já exista desde a Fase 1 (e já existe). Saída alternativa: mover o tenant para pool dedicado via `/auth/discover`.
+
+O composition root instancia os repositórios **por requisição**, com o tenant vindo do token. Não existe caminho de código que construa um repositório sem tenant: o compilador rejeita. Isso troca uma regra que depende de code review por uma que depende do `tsc`.
+
+**3. Origem do `TenantId`: sempre a claim, nunca a requisição.** O `tenantId` sai do JWT (claim customizada, injetada pelo *pre-token-generation* do Cognito) e **jamais** do path, query ou body. É o que fecha a porta de IDOR: pedir `/vaults/{id}` de outro tenant devolve 404, porque a chave montada nem chega lá.
+
+> Para clientes que exijam isolamento criptográfico forte, o passo seguinte é credencial STS por requisição com `dynamodb:LeadingKeys` e prefixo de S3 na *session policy* — isolamento no IAM, não na aplicação. O ponto de extensão está pronto (o `TenantContext` já é onde a credencial seria resolvida); ligá-lo é configuração, não redesenho.
+
+### 4.2 Tenant → Workspace → Vault
+
+| Nível | Papéis | Existe para |
+|---|---|---|
+| **Tenant** | `TENANT_ADMIN` | Isolamento, cobrança, domínio de identidade |
+| **Workspace** | `OWNER` · `EDITOR` · `VIEWER` | Colaboração: quem trabalha junto em quais vaults |
+| **Vault** | herda do workspace | O conhecimento em si |
+
+Signup cria tenant pessoal + workspace padrão automaticamente. **A UI esconde o nível de tenant enquanto houver só um workspace** — o usuário solo nunca vê a palavra "tenant". O modelo é completo desde o começo; a interface é que é progressiva.
+
 ---
-## 9. Onboarding e ciclo de vida do tenant
-### 9.1 Três planos
-| Plano | Quem opera | Sobre o quê | Superfície |
+
+## 5. Bounded contexts e microsserviços
+
+Seis contextos, seis deployables, **cada um dono exclusivo dos seus dados** (uma tabela DynamoDB por serviço; nenhum serviço lê a tabela do outro).
+
+```
+                    ┌───────────────────────────────────────────┐
+   Claude web/      │   svc-agent   (MCP · OAuth 2.1)           │
+   desktop/code ───▶│   Agent Access Context — BFF/ACL          │
+   cowork/cli       └───┬───────────────────────────┬───────────┘
+                        │ HTTP interno (IAM)        │
+   Web UI ─────┐        ▼                           ▼
+               │  ┌──────────────────┐        ┌──────────────────────────┐
+               ├─▶│  svc-knowledge   │══════▶ │  svc-discovery           │
+               │  │  Knowledge Ctx   │eventos │  grafo de links          │
+               │  │  ★ CORE DOMAIN   │  ║  ║  │  vetores (Bedrock)       │
+               │  └────────┬─────────┘  ║  ║  └──────────────────────────┘
+               │           │ authz      ║  ╚═▶┌──────────────────────────┐
+               │           ▼            ║     │  svc-portability         │
+               │  ┌──────────────────┐  ║     └──────────────────────────┘
+               ├─▶│  svc-access      │══╝     ┌──────────────────────────┐
+               │  │  Access Context  │═══════▶│  svc-audit  (append-only)│
+               └─▶└──────────────────┘        └──────────────────────────┘
+                     todos os eventos ────────────────▲
+```
+
+| Serviço | Contexto | Responsabilidade | Tipo |
 |---|---|---|---|
-| **Plataforma** | Equipe MemoryVault | Tenants, aprovações, planos, suspensão | `/admin/*` |
-| **Tenant** | Owner e admins do cliente | Hierarquia, vaults, templates, membros | `/nodes`, `/vaults`, `/members` |
-| **Conteúdo** | Editores e leitores | Pastas, notas | `/vaults`, `/notes` |
-A API `/admin/*` deve nascer **sem permissão de leitura no conteúdo dos clientes** — não por política, por IAM.
-### 9.2 Administrador da plataforma — **pool separado**
-> **ADR-003** · A equipe MemoryVault vive num **User Pool próprio** (`mv-staff`), separado do pool de clientes. MFA obrigatório, emissor distinto — um token de cliente **nunca** valida em `/admin/*`.
-Não contradiz o pool único da §8.2: aquele argumento era sobre **tenants**, cujo número cresce. A equipe interna não cresce com as vendas e nunca precisa de membership em tenant de cliente. Papéis: `PLATFORM_ADMIN`, `PLATFORM_SUPPORT` (leitura de metadados).
-### 9.3 PLATFORM_ROOT — só a casa dos templates padrão
-> **ADR-004 (revisado)** · `PLATFORM_ROOT` é o espaço da plataforma onde vivem os **moldes padrão** e os tenants. **Não** é "pai na herança de config" — não há herança de config (ADR-017).
-```
-PLATFORM_ROOT  (singleton, tenant SYSTEM — curadoria MemoryVault)
-     │            biblioteca de moldes padrão (copiáveis)
-     ├── TENANT_ROOT (Acme) → ORG acme → …
-     └── TENANT_ROOT (Beta) → ORG beta → …
-```
-Um vault que queira um molde padrão **copia** para si (§4.3). Publicar um molde novo na plataforma o torna disponível para cópia; não altera vaults existentes.
-### 9.4 Fluxo de cadastro
-```
-[anônimo] → POST /signup → PENDING_EMAIL → (verificação) → EMAIL_VERIFIED
-   → POST /signup/org → PENDING_APPROVAL → (admin) → APPROVED → provisionamento
-                                                    └→ REJECTED (slug liberado)
-```
-O estado "identidade sem organização" **não é novo** — é o caso de borda C5. Serve para quem aguarda aprovação e para quem teve o convite revogado.
-Auto-cadastro no Cognito é habilitado, mas com trigger **Pre Sign-up** que só autoriza duas origens: criação de tenant ou convite válido. Ninguém entra no pool por fora da nossa API.
-### 9.5 Unicidade do nome da organização — via slug normalizado
-```
-normalizar(nome) → NFD → remove acentos → minúsculas → [a-z0-9-] → colapsa hífens → 3–40 chars
-"Açme Ltda."  →  "acme-ltda"
-```
-| Regra | Decisão |
-|---|---|
-| Unicidade | Global, sobre o slug normalizado |
-| Nome de exibição | Livre, pode repetir |
-| Reserva | Item `SLUG#{slug}` com `attribute_not_exists` — atômico |
-| Momento da reserva | Na **solicitação**, não na aprovação |
-| TTL da reserva | 7 dias; liberada em rejeição ou expiração |
-| Denylist | `admin api app www support ... mv memoryvault` + marcas conhecidas |
-| Mutabilidade | Imutável na Fase 1 (vai para URL) |
-Reservar na solicitação evita o pior caso: duas pessoas pedem `acme`, esperam três dias, e uma descobre que perdeu o nome.
-### 9.6 Aprovação
-O admin vê na fila: e-mail, domínio, nome e slug pedidos, data, país. Aprova ou rejeita com motivo, tudo em auditoria.
-**Trade-off:** aprovação manual leva o time-to-value de segundos para horas/dias. Mitigação da Fase 1: **expectativa explícita** ("em até 1 dia útil" + status no produto). Allowlist por domínio e trial limitado ficam prontos para acionar quando a fila virar gargalo.
-### 9.7 Provisionamento (idempotente)
-```
-1. Tenant                    status ACTIVE
-2. Nó TENANT_ROOT            parent = PLATFORM_ROOT
-3. Nó ORG                    name + slug do cadastro
-4. Membership OWNER  →  escopo TENANT_ROOT
-5. Vault inicial             opcional, com moldes padrão copiados
-6. E-mail de boas-vindas
-```
-**Por que OWNER no `TENANT_ROOT`:** papéis herdam para baixo, então ele já é owner da ORG, e um grupo com duas organizações irmãs não precisa de grant novo.
-### 9.8 Convite
-Owner ou `ADMIN` convida com **e-mail + escopo + papel**. Duas regras de contenção:
-> **R1** — Só para escopos **dentro da própria subárvore**. Um `ADMIN` do Jurídico não convida para a raiz da organização.
-> **R2** — Ninguém concede papel **maior que o próprio**. Um `ADMIN` não cria um `OWNER`.
-Sem R1/R2, "admin de departamento" é caminho de escalação até o tenant. Testar no CI.
-Convidado **não** passa pela aprovação de plataforma: quem avaliza é o owner, já avaliado.
-**Limite anti-abuso:** teto de convites pendentes por tenant/hora. Todo convite sai do **seu domínio SES** — um tenant disparando convites em massa derruba a reputação de envio da plataforma inteira.
-### 9.9 Invariante do OWNER
-> Todo tenant tem **pelo menos um** `OWNER` ativo, sempre.
-Bloquear a última revogação/saída. Transferência é explícita (`POST /tenants/{id}/transfer-ownership`, com confirmação). Escape de suporte: `PLATFORM_ADMIN` faz `assign-owner`, auditado, com verificação fora de banda.
-### 9.10 Suspensão e encerramento
-| Estado | Efeito |
-|---|---|
-| `ACTIVE` | Normal |
-| `SUSPENDED` | Login funciona, escrita bloqueada, leitura e **export** preservados |
-| `PENDING_DELETION` | 30 dias de carência, export disponível |
-| `DELETED` | Conteúdo removido; identidades **não** são tocadas (podem pertencer a outros tenants) |
-A última linha é consequência do ADR-002 e precisa de teste: **excluir um tenant nunca exclui identidades.**
-### 9.11 Modelo de dados adicional
-| Entidade | PK | SK | GSI1PK | GSI1SK |
-|---|---|---|---|---|
-| SignupRequest | `SIGNUP#{requestId}` | `META` | `SIGNUP#STATUS#{status}` | `{createdAt}` |
-| SlugReservation | `SLUG#{slug}` | `RESERVATION` | — | — |
-| Tenant | `TENANT#{tenantId}` | `META` | `TENANT#STATUS#{status}` | `{createdAt}` |
-| PlatformAudit | `PADMIN#{date}` | `EVT#{ts}#{id}` | `PADMIN#ACTOR#{staffId}` | `{ts}` |
+| `svc-access` | Access | Tenants, workspaces, membros, papéis, convites; Lambda Authorizer | Supporting |
+| `svc-knowledge` | Knowledge | Vaults, guidance, pastas, ordem, templates, notas | **Core** |
+| `svc-discovery` | Discovery | Grafo de links e índice vetorial — duas projeções | Supporting |
+| `svc-audit` | Audit | Trilha append-only: autoria, revisões, reconstrução por data | Supporting |
+| `svc-agent` | Agent Access | MCP server; compõe o *Vault Context*; traduz domínio → tools | Supporting (ACL) |
+| `svc-portability` | Portability | Export para zip legível | Generic |
+
+**Context map:**
+
+- `svc-knowledge` → `svc-access`: **Customer/Supplier**. Knowledge consome decisões de autorização; Access não conhece Knowledge.
+- `svc-agent` → demais: **Anticorruption Layer**. O vocabulário do MCP nunca vaza para o domínio.
+- `svc-discovery`, `svc-audit`, `svc-portability` ← todos: **Published Language** via eventos no EventBridge. Nenhum deles é consultado pelo core — só o alimentam.
+- **Shared Kernel** (`packages/kernel`): só primitivas sem regra — `TenantId`, `Ulid`, `Slug`, `Authorship`, `Result`, `DomainEvent`, erros. Deliberadamente minúsculo: shared kernel grande é acoplamento disfarçado.
+
 ---
-## 10. Escrita por agente — desenho da Fase 3
-A Fase 1 é somente-leitura (ADR-014); a escrita por agente via MCP vem depois. O desenho abaixo fica registrado para orientar a fronteira dos casos de uso, sem ser construído agora.
-### 10.1 Autoria — e o que é verificável
-| Camada | Exemplo | Origem | Verificável? |
+
+## 6. O domínio (DDD tático)
+
+### 6.1 Agregados e invariantes
+
+**`Vault` — Aggregate Root do Knowledge Context.** Fronteira de consistência: o vault e **toda a sua árvore de pastas**.
+
+```typescript
+// domain/knowledge/vault/Vault.ts — zero imports de AWS
+export class Vault {
+  private constructor(
+    private readonly id: VaultId,
+    private readonly workspaceId: WorkspaceId,
+    private name: VaultName,
+    private description: ShortText,
+    private guidance: ContentRef | null,       // ponteiro para o README.md
+    private readonly folders: FolderTree,
+    private version: number,
+  ) {}
+
+  static create(...): Result<Vault, DomainError>
+
+  addFolder(parentId: FolderId | null, name: FolderName, description: FolderDescription, by: Authorship): Result<Folder>
+  renameFolder(id: FolderId, name: FolderName, by: Authorship): Result<void>
+  describeFolder(id: FolderId, description: FolderDescription, by: Authorship): Result<void>
+  moveFolder(id: FolderId, newParentId: FolderId | null, after: FolderId | null, by: Authorship): Result<void>
+  reorderFolder(id: FolderId, after: FolderId | null, by: Authorship): Result<void>
+  removeFolder(id: FolderId, policy: RemovalPolicy, by: Authorship): Result<void>
+  attachTemplate(id: FolderId, ref: ContentRef, by: Authorship): Result<void>
+  setGuidance(ref: ContentRef, by: Authorship): Result<void>
+
+  pullEvents(): DomainEvent[]
+}
+```
+
+`Authorship` é argumento obrigatório de toda operação que muda estado (§9.1). Não há mutação anônima no domínio — a assinatura torna isso impossível, e é o que garante que o evento emitido sempre saiba quem o causou.
+
+Invariantes que **só** o agregado pode garantir — e que por isso definem a fronteira:
+
+| # | Invariante |
+|---|---|
+| I1 | `slug` único entre irmãos |
+| I2 | Profundidade máxima 6 |
+| I3 | Mover uma pasta nunca cria ciclo (destino não pode ser descendente da origem) |
+| I4 | Toda pasta tem `Position` que a ordena entre os irmãos |
+| I5 | Remover pasta com filhas exige `RemovalPolicy` explícita (`CASCADE` \| `REJECT_IF_NOT_EMPTY`) |
+| I6 | `Guidance` e `Template` são referências de conteúdo; o agregado nunca carrega o Markdown |
+
+**`Note` — Aggregate Root separado.** Referencia `VaultId` + `FolderId` por identidade, não por objeto.
+
+> **Por que Note ficou fora do agregado Vault?** Se estivesse dentro, criar uma nota exigiria carregar e travar a árvore inteira — e as invariantes de estrutura não dependem do conteúdo das notas. A regra "uma pasta com notas não pode ser removida sem política" é **consistência eventual** (via evento), não invariante transacional. É a decisão de modelagem mais importante do documento: é ela que mantém escrita de nota barata e concorrente — e escrita de nota é o caminho quente, porque é por ali que o agente alimenta o vault.
+
+```typescript
+export class Note {
+  private constructor(
+    private readonly id: NoteId,
+    private readonly vaultId: VaultId,
+    private folderId: FolderId,
+    private title: NoteTitle,
+    private slug: Slug,
+    private body: ContentRef,           // versionId + SHA-256 + tamanho — o Markdown é opaco (P10)
+    private readonly createdBy: Authorship,
+    private updatedBy: Authorship,
+    private version: number,
+  ) {}
+}
+```
+
+**`Workspace` — AR do Access Context.** Contém `Membership[]`. Invariantes: sempre ao menos um `OWNER`; e-mail único entre membros; convite pendente não vira membro sem aceite; membro pertence ao mesmo tenant.
+
+**`NoteGraph` e `VaultIndex` — ARs do Discovery Context** (§8). São projeções: reconstruíveis a qualquer momento a partir dos `.md` (P8).
+
+**`AuditTrail` — AR do Audit Context** (§9). Append-only: a única operação é `append`.
+
+### 6.2 Value Objects
+
+`TenantId` `WorkspaceId` `VaultId` `FolderId` `NoteId` (ULID) · `Slug` · `Position` (§6.3) · `FolderDescription` (1–500 chars, **obrigatória** — é ela que orienta o agente, então vazio não é aceito) · `ContentRef` (`{ key, versionId, sha256, bytes }`) · `Role` · `Authorship` · `AgentIdentity` · `LinkTarget` · `ChunkId`.
+
+Todos imutáveis, autovalidados no construtor, comparados por valor. Nenhuma `string` crua cruza a fronteira do domínio.
+
+### 6.3 `Position` — ordenação por índice fracionário
+
+A ordem das pastas é requisito de produto, e a forma ingênua (campo `order` inteiro denso) obriga a reescrever todos os irmãos a cada arraste — em DynamoDB, N writes numa transação com teto de 100 itens.
+
+Usamos **índice fracionário lexicográfico**: cada pasta guarda uma chave string; inserir entre `"a0"` e `"a1"` gera `"a0V"`. **Reordenar é um único `UpdateItem`**, independente do número de irmãos.
+
+```typescript
+Position.between(prev: Position | null, next: Position | null): Position
+```
+
+Empates (possíveis sob concorrência) são desempatados por `folderId` — a ordenação nunca fica indefinida. Quando uma chave passa de 12 caracteres, um comando de rebalanceamento redistribui os irmãos; é manutenção rara, não caminho quente.
+
+### 6.4 Eventos de domínio
+
+```
+Access:     TenantCreated · WorkspaceCreated · MemberInvited · MemberJoined
+            MemberRoleChanged · MemberRemoved
+Knowledge:  VaultCreated · VaultRenamed · GuidanceUpdated · FolderAdded · FolderRenamed
+            FolderDescribed · FolderMoved · FolderReordered · FolderRemoved · TemplateUpdated
+            NoteCreated · NoteUpdated · NoteMoved · NoteDeleted
+Discovery:  NoteLinksResolved · NoteIndexed · LinkBroken
+```
+
+Todo evento carrega `tenantId` e `Authorship`. Eventos de conteúdo carregam também o `versionId` do S3 (§9.3). Publicados via **outbox transacional** (§7.3), consumidos por `svc-discovery`, `svc-audit` e `svc-portability`. Adicionar consumidor não toca no core.
+
+### 6.5 Serviços de domínio
+
+- `FolderTreePlacement` — resolve "colocar depois de X dentro de Y" em `(parentId, Position)`, validando I2 e I3.
+- `LinkExtractor` — extrai `[[wikilinks]]` e links Markdown relativos do **corpo** da nota. Só sintaxe universal: nenhum nome de campo, nenhuma convenção de vault (P10).
+- `VaultContextComposer` — monta o *Vault Context* a partir do agregado e do `ContentStore`. Vive no domínio porque **o formato desse documento é o produto**, não detalhe de apresentação.
+
+---
+
+## 7. Persistência
+
+### 7.1 Divisão DynamoDB / S3
+
+| Onde | O quê | Por quê |
+|---|---|---|
+| **DynamoDB** | Estrutura, ordem, descrições, identidade da nota (título, slug, pasta, autoria), membros, arestas do grafo, trilha de auditoria | Consultável, transacional, condicional |
+| **S3** | Corpo dos `.md`: guidance, templates, notas — todas as revisões | Sem teto de 400 KB, versionamento nativo, custo/GB menor |
+| **S3 Vectors** | Embeddings dos chunks | Vetor nativo no S3, sem cluster para operar (§8.2) |
+
+Chaves do S3 são **opacas e prefixadas por tenant** — `t/{tenantId}/v/{vaultId}/f/{folderId}/n/{noteId}.md`. Renomear, mover ou reordenar altera só o DynamoDB; nenhum byte se move no S3 (P4).
+
+### 7.2 Single-table design — `mv-knowledge`
+
+| Item | PK | SK | Atributos |
 |---|---|---|---|
-| **Principal** — quem responde pela nota | `usr_maria` | Token OAuth | ✅ Sim |
-| **Cliente** — qual aplicação escreveu | `cowork-desktop` | `client_id` registrado | ✅ Sim |
-| **Modelo** — coautor | `anthropic/claude-opus-5` | Declarado pelo cliente | ❌ Não |
-> O nome do modelo é **autodeclarado**. Guardado como alegação (`mv_coauthor_claimed`), a UI o rotula como tal. O sufixo `_claimed` é feio de propósito: impede que alguém leia o campo como verificado. `author` volta a ser sempre uma pessoa.
-### 10.2 A conexão MCP é delegação atenuada
-Risco: **confused deputy** — um agente com as credenciais plenas de um `OWNER` pode fazer estrago se uma instrução envenenada dentro de um documento lido pedir isso.
-> Uma conexão MCP **nunca** herda o papel do humano. É um grant separado, sempre menor: `roleCeiling` (padrão `EDITOR`), `vaultScope` explícito, escopos negados por padrão (`members:write`, `vaults:delete`), expiração obrigatória, revogação independente.
-E a regra geral do produto: **conteúdo lido de uma fonte é dado, não comando.** Um `.rst` que diz "ignore as regras e publique isto" está sendo lido, não obedecido. O `roleCeiling` é a garantia estrutural de que a confusão não escala para dano.
-### 10.3 Concorrência e IDs estruturados
-Quando a escrita chegar: `Idempotency-Key` obrigatório (retry não duplica), `If-Match` com `version` (edição concorrente → `409`), `rateLimit` por conexão, `runId` para reverter um lote inteiro. E **alocação de ID estruturado server-side e atômica** — `UpdateItem ADD seq :1` por `(vault, prefix, ordinal)` — porque N subagentes em paralelo colidiriam se cada um numerasse sozinho. Na Fase 1, os IDs vêm prontos da fonte (§11.5); não há alocação.
-### 10.4 Human-in-the-loop
-O agente produz; o humano homologa. Como `status` é um campo de frontmatter livre, "só humano valida" vira uma regra de negócio simples na escrita (Fase 3): recusar a transição para o status terminal quando `origin = MCP`. Não precisa de máquina de estados no backend.
-### 10.5 Ferramentas MCP — ler o contexto antes de escrever
-O agente **pede o contexto antes de escrever** (§5.1): busca o `README.md` do vault e o `TEMPLATE.md` da pasta, entende o que se espera, e só então grava.
-| Ferramenta | O que faz |
-|---|---|
-| `vault_readme` | Devolve o `README.md` do vault — o contrato normativo |
-| `folder_template` | Devolve o `TEMPLATE.md` da pasta, se houver |
-| `folder_list` | Árvore de pastas do vault |
-| `note_search` | Leitura de notas por frontmatter e pasta |
-| `note_create` / `note_update` | Escrita com verificação **leve** (frontmatter bem-formado, não schema rígido); exige `Idempotency-Key` |
-| `id_allocate` | ID estruturado atômico (§10.3) |
-São exatamente os mesmos casos de uso do REST, sobre o mesmo `packages/core` puro (§7) — o servidor MCP é uma casca fina. Nenhuma ferramenta "valida contra schema": coerente com o molde advisory (§4.1), o agente é orientado, não barrado.
----
-## 11. Fase 1 — Demo sobre dados reais
-> **ADR-014** · A Fase 1 é uma **demo somente-leitura** sobre vaults já existentes, carregados por script de seed. Escrita por agente (MCP), onboarding público, aprovação de tenant e o importador de produto saem desta fase.
-### 11.1 Por que isso é forte
-Carregar dois a três vaults reais — 1.200 a 1.500 notas, métodos de trabalho opostos (um PKM evergreen, um discovery rastreável a evidências) — é o teste mais duro que o modelo pode receber. Um dado sintético confirma o que você já acreditava; um vault real recusa a caber quando o modelo está errado.
-Se o PARA de quatro pastas do Engineering Vault e a taxonomia de 13 pastas do CAD Discovery entram **no mesmo modelo simples, sem código condicional**, a tese está demonstrada. E o modelo agora é simples de propósito: campos Markdown + moldes advisory + notas.
-### 11.2 Critério de pronto
-Os vaults reais carregam sem forçar o modelo e ficam **navegáveis** como uma árvore de pastas e notas. Onde há `README.md`/`TEMPLATE.md`, eles são servidos como contexto e descrevem o vault de forma que um agente conseguiria operar ali. Não "as telas funcionam" — e sim **"a estrutura e o contexto descrevem o vault de verdade"**.
-> Nota: o critério antigo "o README renderizado volta idêntico ao escrito à mão" foi removido junto com o motor de config. Ele testava a máquina de renderização, não o produto. O `README.md` agora é **arquivo autoral**, então "voltar idêntico" deixa de fazer sentido — a descrição é a que o usuário escreveu.
-### 11.3 Escopo
-**Dentro**
-- [x] Script de seed: Markdown + YAML frontmatter → nós, vaults, pastas, notas (com `README.md`/`TEMPLATE.md`)
-- [x] `README.md` dos vaults e `TEMPLATE.md` das pastas escritos à mão, versionados no repo
-- [x] `GET /vaults/{id}/readme` e `/agent-context` (§5)
-- [x] UI de leitura: árvore navegável, navegador de pastas, visualizador de nota e de template
-- [x] Export do vault reconstruindo a árvore legível (§6.2)
-- [x] Autenticação mínima: Cognito com tenant e usuários semeados
-**Fora — e por quê**
-| Item | Fase | Motivo |
-|---|---|---|
-| Servidor MCP e escrita por agente | 3 | Sequenciamento; desenho da §10 fica de pé |
-| Importador de produto | 2 | Só faz sentido com um vault que você não conhece |
-| Cadastro público, aprovação, convites | 2 | Um tenant semeado basta para a demo |
-| Editor de nota na web | — | Autoria não é o foco da Fase 1 |
-| Busca full-text, histórico, backlinks | 4 | — |
-| Billing, SSO, SCIM | 4 | — |
-### 11.4 Carga inicial — script de seed
-| | Script de seed (Fase 1) | Importador (Fase 2) |
-|---|---|---|
-| `README.md` / `TEMPLATE.md` | **Escritos à mão** | Inferidos a partir dos arquivos |
-| Interface | Comando | Tela de revisão e confirmação |
-| Público | Você | Cliente migrando |
-| Reexecutável | Sim, idempotente | Incremental, com diff |
-Requisitos do script: ler as pastas, parsear frontmatter YAML, gravar nós/vaults/pastas/notas (com `README.md`/`TEMPLATE.md`), preservar IDs (§11.5), gerar as chaves opacas e o layout do S3 (§6.1), reexecutável do zero.
-> **ADR-015** · O `README.md` e os `TEMPLATE.md` dos vaults são **escritos à mão**. O script apenas carrega; não infere nada. Se um vault real não couber no modelo simples, é o modelo que precisa de ajuste — e essa é a descoberta mais valiosa da Fase 1.
-### 11.5 Preservar IDs
-As notas trazem `EV-1-039`, `EV-2-c1-014`, `INV-2-g4-001` — citados dentro do corpo de outras notas, sustentando a rastreabilidade. **Não podem ser reatribuídos.**
-```
-Regra 1  ID existente é preservado como veio
-Regra 2  Se/quando houver escrita, o contador de cada (vault, prefixo, ordinal) é semeado no MÁXIMO encontrado
-Regra 3  Colisão dentro do lote aborta a carga
-```
-Na Fase 1 (leitura), vale a Regra 1. A Regra 2 evita, na Fase 3, que a primeira nota criada receba `EV-2-001` e colida com uma evidência de um ano atrás.
----
-## 12. Riscos e decisões
-### Riscos
-| Risco | Impacto | Mitigação |
-|---|---|---|
-| Vault real não caber no modelo simples | **Alto** | É o experimento da Fase 1; config à mão expõe a lacuna (§11.4) |
-| Partição quente de notas | Médio | Particionamento por pasta (já no design) |
-| Excluir pasta deixar órfão no S3 ou item DDB pendurado | Médio | Ordem segura S3→DynamoDB, idempotente, + job de limpeza (§6.1) |
-| `AdminGetUser` em caminho quente inflar a conta de MAU | **Alto** | Proibido por regra; perfil sempre do DynamoDB (§8.9) |
-| Admin de um tenant derrubar acesso da pessoa em outro | **Alto** | Invariante C1: admin nunca opera no Cognito; teste no CI |
-| Convite virar oráculo de enumeração | Médio | Resposta idêntica exista ou não a conta (C2) |
-| Escalação de admin de departamento até o tenant | **Alto** | Regras R1 e R2 no convite (§9.8), com teste no CI |
-| Convites em massa queimarem a reputação SES | **Alto** | Teto de convites pendentes por tenant e por hora (§9.8) |
-| Squatting de slug de marca | Médio | Denylist + TTL de 7 dias + liberação forçada pelo admin |
-| Tenant sem OWNER acessível | Médio | Invariante §9.9 + `assign-owner` auditado |
-| Agente com credencial plena do humano (*confused deputy*) | **Alto** | `roleCeiling` e escopos negados por padrão (§10.2) — Fase 3 |
-| Instrução injetada em fonte lida virar ação | **Alto** | Conteúdo é dado, não comando; `roleCeiling` contém o dano (§10.2) |
-| IDs estruturados colidirem na futura escrita | **Alto** | Alocação atômica server-side (§10.3); preservação no seed (§11.5) |
-### Decisões fechadas
-| ADR | Decisão | Data | Consequências |
+| Vault | `T#{t}#VAULT#{v}` | `META` | workspaceId, name, slug, description, guidanceRef, version, stats |
+| Folder | `T#{t}#VAULT#{v}` | `FOLDER#{folderId}` | parentFolderId, name, slug, description, position, templateRef |
+| Note | `T#{t}#VAULT#{v}` | `NOTE#{noteId}` | folderId, title, slug, bodyRef, createdBy, updatedBy, version |
+| Guard de slug | `T#{t}#VAULT#{v}` | `SLUG#{parentId}#{slug}` | garante I1 via `attribute_not_exists` |
+| Outbox | `T#{t}#VAULT#{v}` | `EVENT#{ulid}` | payload, ttl |
+
+| Índice | PK | SK | Serve |
 |---|---|---|---|
-| 002 | **Identidade única entre tenants** — uma pessoa, N memberships | Ago/2026 | §8.11 (C1–C6) |
-| 003 | **Pool Cognito separado para a equipe** (`mv-staff`, MFA obrigatório) | Ago/2026 | §9.2 |
-| 004 (rev.) | **`PLATFORM_ROOT` é a casa dos moldes padrão** — não pai de herança de config | Ago/2026 | §9.3 |
-| 005 | **Cadastro espontâneo com aprovação manual**; convidado não passa pela fila | Ago/2026 | §9.4, §9.8 |
-| 010 | **Vault com âncora única**, sem compartilhamento entre nós | Ago/2026 | §3.2 |
-| 014 | **Fase 1 é demo somente-leitura** sobre dados reais | Ago/2026 | §11 |
-| 015 | **`README.md`/`TEMPLATE.md` escritos à mão**; seed carrega, não infere | Ago/2026 | §11.4 |
-| 016 | **Stack reduzido na Fase 1** — sem EventBridge, SQS, Streams, Step Functions | Ago/2026 | §7 |
-| **017** | **Removido o motor de config** (ConfigKey/ConfigValue, herança, procedência, locks). O vault se descreve em um `README.md` (convenção) | Ago/2026 | §1, §3.2, §5 |
-| **018** | **Vault autônomo** — sem propagação de config pela hierarquia (opção A) | Ago/2026 | §3.2, §5 |
-| **019** | **Template é um `TEMPLATE.md` fixo na pasta** — molde advisory; relação fraca com a nota; agente pode não preencher tudo (seed) | Ago/2026 | §4 |
-| **020** | **`README.md` e `TEMPLATE.md` são arquivos** (S3), não itens tipados no banco. O agente os pede via MCP antes de escrever | Ago/2026 | §5, §6, §10.5 |
-| **021** | **Storage no S3 por chave opaca** — layout plano por ID; renomear/mover é só DynamoDB, só apagar propaga ao S3; `README.md`/`TEMPLATE.md` são palavras reservadas | Ago/2026 | §6.1 |
-### ADRs revogadas nesta revisão
-| ADR | Era | Por quê caiu |
-|---|---|---|
-| 006 | README renderizado da config | Sem config; agora é montagem de Markdown autoral (§5) |
-| 007 | Ciclo de vida da nota é config | Agora é campo de frontmatter livre (§3.4) |
-| 008 | MCP na Fase 1 | Pressupunha agente como único caminho de escrita; Fase 1 é leitura (ADR-014). MCP volta para a Fase 3 |
-| 009 | Hierarchy policy como config herdável | Transições são constante da aplicação, não config (§3.1) |
-| 011 | Agentes via MCP são o caminho primário de escrita | Fase 1 é leitura; escrita é Fase 3 |
-| 012, 013 | Autoria em camadas / delegação atenuada como requisito de Fase 1 | Continuam válidas como **desenho**, mas são Fase 3 (§10) |
-### Decisões abertas (precisam de você)
-1. **Volume esperado** — notas por vault e vaults por tenant no ano 1? Define se o particionamento por pasta basta.
-2. **Região e LGPD** — dado de cliente brasileiro em `sa-east-1`? Afeta KMS e custo base.
-3. **Moldes no `TENANT_ROOT`** — além dos padrão da plataforma, o tenant tem uma biblioteca própria copiável para seus vaults? (Recomendação: sim, mesmo mecanismo de cópia.)
-4. **Modelo de cobrança** — por MAU, por vault ou por nota?
+| `GSI1` | `T#{t}#WS#{ws}` | `VAULT#{v}` | listar vaults do workspace |
+| `GSI2` | `T#{t}#FOLDER#{f}` | `NOTE#{title}` | listar notas de uma pasta, em ordem alfabética |
+
+Carregar o agregado `Vault` = **um `Query` por `PK=T#{t}#VAULT#{v}`** com `begins_with(SK, 'FOLDER#')` + o item `META`. Uma chamada, uma partição, latência previsível.
+
+`mv-access`: `T#{t}/META`, `T#{t}/USER#{userId}`, `T#{t}#WS#{ws}/META`, `T#{t}#WS#{ws}/MEMBER#{userId}`; `GSI1: USER#{userId} → T#{t}#WS#{ws}` responde "quais workspaces eu tenho".
+
+### 7.3 Transações, concorrência e outbox
+
+Toda mutação estrutural é **um** `TransactWriteItems`:
+
+1. `Update` no item `META` com `ConditionExpression: version = :expected` — bloqueio otimista do agregado
+2. `Put`/`Update`/`Delete` nos itens de pasta afetados
+3. `Put` do guard de slug com `attribute_not_exists(PK)` — I1 no banco, não só em memória
+4. `Put` dos eventos de domínio na **outbox**, na mesma transação
+
+Conflito → `TransactionCanceledException` → o repositório traduz para `ConcurrencyError` → o caso de uso repete (até 3 vezes). O domínio nunca vê exceção da AWS: tradução é responsabilidade do adaptador.
+
+**Outbox:** DynamoDB Streams → Lambda relay → EventBridge. Garante que mudança de estado e publicação sejam atômicas — sem isso, "gravei mas não publiquei" acontece e é silencioso. Num sistema cuja trilha de auditoria vive de eventos, esse silêncio seria um buraco no registro.
+
+**Ordem de escrita com o S3:** conteúdo primeiro, DynamoDB depois — e o `versionId` devolvido pelo `PutObject` entra no `ContentRef` gravado. Um `.md` órfão é invisível e inofensivo; um ponteiro para conteúdo inexistente é erro visível ao usuário. Job semanal varre e remove órfãos.
+
 ---
-## 13. Roadmap
-| Fase | Foco | Marco de conclusão |
+
+## 8. Descoberta — grafo e vetores
+
+Duas projeções sobre os mesmos eventos, respondendo a perguntas diferentes. Ambas **derivadas** (P8): apagar e reconstruir do zero é operação suportada, e é o plano de recuperação das duas.
+
+| | **Grafo de links** | **Busca vetorial** |
 |---|---|---|
-| **1** | **Demo por seed** | Vaults reais carregados; contexto montado descreve o vault fielmente |
-| **2** | Produto multi-tenant | Cadastro, aprovação, convites, papéis, e o **importador** |
-| **3** | Escrita por agente | Servidor MCP, alocação de ID, delegação atenuada — §10 construída |
-| **4** | Produtividade e escala | Busca, histórico, backlinks, billing, SSO |
+| Responde | "o que esta nota referencia, e o que depende dela?" | "o que existe sobre este assunto?" |
+| Fonte | links escritos no Markdown | significado do texto |
+| Precisão | exata — o autor escreveu o link | aproximada |
+| Custo | ~zero | embedding por escrita + query |
+| Falha típica | link quebrado | resultado plausível e irrelevante |
+
+São complementares por natureza: o grafo é **intenção declarada**, o vetor é **semelhança inferida**. Quem já organizou o vault ganha no grafo; quem está chegando ganha no vetor.
+
+### 8.1 Grafo de links — árvore de dependências
+
+`LinkExtractor` (§6.5) roda a cada `NoteCreated`/`NoteUpdated` e extrai duas formas do corpo da nota: `[[wikilink]]` e `[texto](caminho.md)` relativo. Cada link vira uma aresta.
+
+Resolução por `slug` dentro do vault. Link cujo alvo ainda não existe **não é descartado** — vira aresta pendente e é resolvido no momento em que uma nota com aquele slug for criada. Sem isso, o grafo mente exatamente enquanto o vault está sendo escrito, que é quando ele é mais consultado.
+
+> **No domínio regulado, o grafo é o rastro de fundamentação.** Uma nota de achado cita, no corpo, a nota da norma que a sustenta; `related_notes` responde "em que base normativa este achado se apoia?" percorrendo as arestas. Quem torna isso confiável é o `TEMPLATE.md` da pasta, que manda escrever a fundamentação como link (`Fundamento: [[lei-14133-art-75]]`) em vez de citar em prosa. O backend não sabe o que é um fundamento — ele só vê uma aresta, e é o vault que decide o que ela significa.
+
+**Tabela `mv-discovery`:**
+
+| Item | PK | SK |
+|---|---|---|
+| Aresta de saída | `T#{t}#VAULT#{v}` | `OUT#{fromNoteId}#{toNoteId}` |
+| Aresta de entrada (backlink) | `T#{t}#VAULT#{v}` | `IN#{toNoteId}#{fromNoteId}` |
+| Link pendente | `T#{t}#VAULT#{v}` | `PENDING#{slug}#{fromNoteId}` |
+
+Aresta gravada nas duas direções: backlink vira um `Query`, não uma varredura. Travessia em BFS com **profundidade máxima 3 e teto de 200 nós**, deduplicando ciclos — um vault denso senão devolve o vault inteiro e o agente afoga.
+
+Saídas: árvore de dependências a partir de uma nota, backlinks, links quebrados e notas órfãs (nenhuma aresta de entrada) — esta última sendo o relatório de higiene que mostra onde o vault está apodrecendo.
+
+### 8.2 Busca vetorial — S3 Vectors + Bedrock
+
+Pipeline por evento de nota:
+
+```
+NoteCreated/NoteUpdated
+   └─▶ carrega o .md do S3
+       └─▶ chunking por seção (heading), 1 chunk ≈ 1 ideia
+           └─▶ prefixo de contexto em cada chunk:  vault › pasta › descrição da pasta › título
+               └─▶ Bedrock Titan Text Embeddings V2 (1024 dims)
+                   └─▶ upsert no índice vetorial do tenant, com metadados
+```
+
+**O prefixo de contexto no chunk é o detalhe que decide a qualidade.** Um chunk solto ("o limite é 200 por conta") é irrecuperável; o mesmo chunk precedido de `Pesquisa de Produto › Evidence › Fatos observados em campo › Capacities de ativo customizado` é buscável. A descrição da pasta, que você já escreve para orientar o agente, vira sinal de recuperação de graça — o mesmo texto trabalhando duas vezes.
+
+**Isolamento:** um índice vetorial **por tenant**, não um índice global filtrado por metadado. Filtro de metadado é controle de acesso por convenção; índice separado é fronteira física. Dentro do índice, filtro por `vaultId` e `folderId` restringe a busca.
+
+Deleção de nota remove os vetores dos seus chunks — sem isso, o índice devolve conteúdo apagado, o que é problema de privacidade, não de qualidade.
+
+> ⚠️ **Risco aberto.** Confirmar disponibilidade do **S3 Vectors** na região escolhida e seus limites (índices por bucket, dimensões, throughput). Se não atender, o plano B é OpenSearch Serverless com coleção vetorial — mesma porta `VectorIndex`, adaptador diferente, **zero mudança no domínio**. É exatamente o tipo de troca que o hexágono existe para tornar barata.
+
+### 8.3 Portas
+
+```typescript
+export interface LinkGraph {
+  replaceOutgoing(note: NoteId, links: LinkTarget[]): Promise<void>;
+  dependencyTree(root: NoteId, depth: Depth): Promise<GraphNode>;
+  backlinks(note: NoteId): Promise<NoteRef[]>;
+  broken(vault: VaultId): Promise<BrokenLink[]>;
+  orphans(vault: VaultId): Promise<NoteRef[]>;
+}
+
+export interface VectorIndex {
+  upsert(chunks: Chunk[]): Promise<void>;
+  removeByNote(note: NoteId): Promise<void>;
+  query(q: EmbeddedQuery, filter: IndexFilter, k: number): Promise<ScoredChunk[]>;
+}
+
+export interface Embedder { embed(texts: string[]): Promise<Vector[]>; }
+```
+
+`S3VectorsIndex`, `BedrockEmbedder` e `DynamoLinkGraph` são adaptadores. O domínio de Discovery conhece `Chunk`, `Edge` e `Depth` — nunca conhece Bedrock.
+
 ---
-## Apêndice A — Exemplo de vault
-Um vault é o seu `README.md` (quando existe) + os `TEMPLATE.md` das pastas + as notas. Tudo é Markdown autoral — nada é resolvido de config. Na **visão navegável** (o que o export reconstrói, §6.2):
+
+## 9. Proveniência e histórico
+
+O vault sustenta trabalho de auditoria em ambiente regulado. Isso muda o que "guardar uma nota" significa: além do conteúdo atual, o sistema precisa responder **quem escreveu, com qual agente, quando, e o que a nota dizia na data em que o trabalho foi emitido**.
+
+### 9.1 Authorship — quem escreveu
+
+```typescript
+export class Authorship {                    // VO imutável
+  constructor(
+    readonly user: UserId,                   // sempre um humano: o dono do token
+    readonly agent: AgentIdentity | null,    // null = escrita pela UI
+    readonly at: Instant,
+  ) {}
+}
+
+export class AgentIdentity {
+  constructor(readonly clientId: OAuthClientId, readonly clientName: string) {}
+}
 ```
-CAD Discovery — GLPI 11.0/
-├── README.md                 ← convenção: contexto do vault
-├── 01 Overview/
-├── 09 Evidence/
-│   ├── TEMPLATE.md           ← convenção: molde advisory da pasta
-│   ├── EV-2-c1-014.md
-│   └── ...
-└── 11 Investigations/
-    ├── TEMPLATE.md
-    └── ...
-```
-No **S3 cru** é plano, por chave opaca (§6.1): `{vlt_GLP01}/README.md`, `{fld_09}/TEMPLATE.md`, `{fld_09}/ev-2-c1-014.md`. O aninhamento acima vem do DynamoDB, não do caminho físico.
-**`vlt_GLP01/README.md`** (a UX da tela conduz o preenchimento; o que se grava é este arquivo):
+
+O humano é sempre identificado — mesmo quando é o Cowork que grava, o token pertence a quem autorizou o conector. O agente é identificado pelo `client_id` do OAuth. É esse par que transforma *"escrito por Heitor"* em *"escrito pelo Claude via Cowork, em nome do Heitor, em 12/03"* — a diferença entre um registro e um registro defensável.
+
+Quem preenche é o adaptador de entrada: `McpToolAdapter` resolve o agente a partir do token; o adaptador HTTP da UI o deixa nulo. O domínio recebe `Authorship` pronto e obrigatório (§6.1).
+
+### 9.2 Audit Context — `svc-audit`
+
+Consumidor de **todos** os eventos do bus, de todos os serviços.
+
+| Item | PK | SK | Atributos |
+|---|---|---|---|
+| Audit Event | `T#{t}#{subject}#{subjectId}` | `AT#{timestamp}#{eventUlid}` | type, authorship, versionId, payload |
+
+com `subject ∈ {WORKSPACE, MEMBER, VAULT, FOLDER, NOTE}`. Um `Query` por `PK` devolve a linha do tempo completa de qualquer objeto, em ordem cronológica, sem varredura.
+
+**A imutabilidade não é convenção (P9): a role do Lambda tem `Deny` explícito em `UpdateItem` e `DeleteItem` na tabela.** Não existe caminho — nem por bug, nem por operador — que reescreva o passado. É a diferença entre "não alteramos o log" e "não conseguimos alterar o log", e só a segunda serve diante de um regulador.
+
+### 9.3 Revision — o que a nota dizia naquele dia
+
+O bucket é versionado, então cada gravação de `.md` produz um `versionId` imutável no S3. **O evento carrega esse `versionId`** — é o detalhe que liga *"aconteceu algo"* a *"o conteúdo era este"*. Sem capturá-lo, o log informa que a nota mudou e não consegue mostrar para quê, o que a torna inútil justamente na pergunta que a auditoria faz.
+
+Reconstruir a nota numa data:
+
+1. no log, o último evento daquela nota com `timestamp ≤ data`
+2. `GET` no S3 com o `versionId` daquele evento
+
+`read_note(vault, note, asOf?)` expõe isso ao agente (§10.1): um trabalho de auditoria pode ser refeito lendo a base **como ela estava na data de emissão**, não como está hoje. É o que permite defender uma conclusão antiga sem que uma norma atualizada depois a contamine retroativamente.
+
+Para tenants com exigência formal de retenção, **S3 Object Lock em modo compliance** trava as versões contra remoção pelo prazo configurado — inclusive contra a conta raiz.
+
+---
+
+## 10. O MCP server
+
+Endpoint: `https://mcp.memoryvault.guru/mcp` (Streamable HTTP, OAuth 2.1). Conector nativo em Claude web, desktop, Code, Cowork e CLI.
+
+### 10.1 Ferramentas
+
+| Tool | Assinatura | Papel |
+|---|---|---|
+| `list_vaults` | `()` | Vaults visíveis, com descrição |
+| **`get_vault_context`** | `(vault)` | **A chamada principal.** Guidance integral + árvore com descrições, ordem e quais pastas têm template |
+| `get_template` | `(vault, folder)` | O `TEMPLATE.md` da pasta — a ler antes de escrever |
+| `list_notes` | `(vault, folder?)` | Índice de notas |
+| `read_note` | `(vault, note, asOf?)` | Markdown completo; com `asOf`, a revisão vigente naquela data (§9.3) |
+| `search_notes` | `(vault, query)` | Lexical: título e pasta |
+| `semantic_search` | `(vault, query, k?, folder?)` | Vetorial: trechos por significado, com a nota de origem |
+| `related_notes` | `(vault, note, depth?)` | Árvore de dependências pelo grafo de links |
+| `backlinks` | `(vault, note)` | Quem aponta para esta nota |
+| `note_history` | `(vault, note)` | Linha do tempo: quem alterou, quando, com qual agente |
+| `create_note` | `(vault, folder, title, content)` | O caminho de ingestão (§1) |
+| `update_note` | `(vault, note, content)` | Atualização, com nova revisão registrada |
+
+Saída de `get_vault_context` — o agente recebe exatamente o que hoje obtém lendo seu README e rodando `ls -R`:
+
 ```markdown
-# CAD Discovery — GLPI 11.0
-
-Substrato neutro: descreve o sistema como ele existe. Toda afirmação rastreável a uma evidência.
-
-## Fontes autorizadas
-- `SRC-001` — código-fonte GLPI 11.0.7
-- `SRC-002` — documentação oficial (227 itens)
+# Vault: Normas e Legislação
+<conteúdo integral do README.md>
 
 ## Estrutura
-Pastas numeradas por pergunta: `01 Overview` (o que é?), `03 Structural Knowledge`
-(do que é composto?), `09 Evidence` (o que sustenta?), `11 Investigations` (o que falta?),
-`13 MOCs` (como navegar?).
+1. **Normas** — Texto normativo por artigo. Uma norma por nota, sempre com órgão e vigência. (48 notas, tem TEMPLATE.md)
+2. **Achados** — Achados de auditoria. Todo achado cita a norma em `source`. (23 notas, tem TEMPLATE.md)
+3. **Trabalhos/** — Relatórios emitidos. (5 notas)
+   3.1. **2026** — Emitidos neste exercício. (5 notas, tem TEMPLATE.md)
+```
 
-## Convenções
-IDs estruturados: `EV-*` (evidências), `INV-*` (investigações).
-Ciclo: `rascunho → revisao → validada` — só um humano valida.
-```
-**`vlt_GLP01/09 Evidence/TEMPLATE.md`** (advisory):
-```markdown
----
-type: evidence
-status: revisao
-source_id:        # SRC-001 ou SRC-002
-module:
-locator:          # arquivo:linha ou caminho .rst
----
-# {título}
+A descrição de cada pasta é o que direciona a escrita do agente na ingestão — por isso ela é obrigatória no domínio (§6.2), não opcional.
 
-## Trecho
-## Interpretação
-## Sustenta
-```
-Uma nota de evidência **tenta** seguir esse molde. Se a fonte não trouxer o `locator`, o campo fica vazio — a nota é aceita mesmo assim (§4.1). Na Fase 3, o agente pede via MCP o `README.md` e este `TEMPLATE.md` antes de escrever (§5.1).
+`svc-agent` é uma **ACL**: `McpToolAdapter` traduz tool call → comando de caso de uso e volta, e resolve o `Authorship` a partir do token. Nenhum vocabulário de MCP entra no core, e trocar de protocolo amanhã é trocar um adaptador.
+
+### 10.2 Escrita por agente
+
+`create_note`/`update_note` respeitam o papel no workspace (`VIEWER` recebe erro). O servidor **não valida** a nota contra o `TEMPLATE.md` — molde é sugestão (P3) — mas a descrição da tool instrui a chamar `get_template` antes, e o erro de argumento faltante devolve o template junto. Toda escrita grava `Authorship` completo e gera uma revisão nova (§9.3).
+
+### 10.3 Autenticação
+
+MCP remoto exige OAuth 2.1 com *Protected Resource Metadata*. Cognito como Authorization Server; `svc-agent` como Resource Server. O `tenantId` entra no token pelo *pre-token-generation trigger* (§4.1), e o `client_id` do conector vira `AgentIdentity` (§9.1).
+
+> ⚠️ **Risco aberto nº 1.** O Cognito não faz *Dynamic Client Registration*. Os clientes Claude aceitam `client_id`/`client_secret` informados à mão na configuração do conector, o que resolve — com atrito no onboarding. **Primeiro spike, antes de qualquer outra coisa:** conectar um MCP mínimo autenticado por Cognito no Claude Desktop **e** no Claude web. Se o atrito for alto, trocar por WorkOS AuthKit ou Auth0 (ambos com DCR). É a decisão de maior risco do projeto: se a conexão não for fluida, a tese cai.
+
 ---
-## Apêndice B — Dados de exemplo (seed)
-Dois vaults de propósito oposto no **mesmo tenant**, derivados de vaults reais. Serve para popular telas e como base do script de seed.
-### B.1 Hierarquia
+
+## 11. API interna e UI
+
+### 11.1 Rotas (consumidas pela UI; o contrato público é o MCP)
+
 ```
-PLATFORM_ROOT  · MemoryVault (SYSTEM)
-└── TENANT_ROOT  · Consultoria Vega                     tnt_01JQ8
-    └── ORG  · Vega                                     nod_ORG01
-        ├── DEPARTMENT · Excelência Técnica             nod_DEP01
-        │   └── 📦 Engineering Knowledge Vault          vlt_ENG01
-        └── DEPARTMENT · Consultoria de Sistemas        nod_DEP02
-            └── DIVISION · Discovery                    nod_DIV01
-                └── PROJECT · GLPI 11 — Cliente Norte   nod_PRJ01
-                    └── 📦 CAD Discovery — GLPI 11.0    vlt_GLP01
+svc-access       POST /workspaces · GET /workspaces · POST /workspaces/:ws/members
+                 POST /invites/:token/accept · GET /authz   (Lambda Authorizer)
+svc-knowledge    POST /vaults · GET /vaults/:v · PUT /vaults/:v/guidance
+                 POST /vaults/:v/folders · PATCH /vaults/:v/folders/:f
+                 POST /vaults/:v/folders/:f/reorder   { afterFolderId | null }
+                 PUT  /vaults/:v/folders/:f/template
+                 POST|GET|PUT|DELETE /vaults/:v/notes[/:n]
+svc-discovery    GET  /vaults/:v/notes/:n/graph?depth= · GET /vaults/:v/notes/:n/backlinks
+                 GET  /vaults/:v/health   (links quebrados, órfãs)
+                 POST /vaults/:v/search   { query, mode: lexical | semantic }
+svc-audit        GET  /notes/:n/history · GET /notes/:n/revisions/:versionId
+                 GET  /vaults/:v/activity?from=&to=
+svc-portability  POST /vaults/:v/exports · GET /exports/:id   → URL pré-assinada
 ```
-```json
-[
-  { "nodeId": "nod_PLATFORM", "tenantId": "SYSTEM", "parentId": null, "type": "PLATFORM_ROOT",
-    "name": "MemoryVault", "slug": "platform", "path": "/nod_PLATFORM", "depth": 0 },
-  { "nodeId": "nod_ROOT01", "tenantId": "tnt_01JQ8", "parentId": "nod_PLATFORM", "type": "TENANT_ROOT",
-    "name": "Consultoria Vega", "slug": "vega", "path": "/nod_PLATFORM/nod_ROOT01", "depth": 1 },
-  { "nodeId": "nod_ORG01", "tenantId": "tnt_01JQ8", "parentId": "nod_ROOT01", "type": "ORG",
-    "name": "Vega", "slug": "vega", "path": "/nod_PLATFORM/nod_ROOT01/nod_ORG01", "depth": 2 },
-  { "nodeId": "nod_DEP01", "tenantId": "tnt_01JQ8", "parentId": "nod_ORG01", "type": "DEPARTMENT",
-    "name": "Excelência Técnica", "slug": "excelencia-tecnica", "depth": 3 },
-  { "nodeId": "nod_DEP02", "tenantId": "tnt_01JQ8", "parentId": "nod_ORG01", "type": "DEPARTMENT",
-    "name": "Consultoria de Sistemas", "slug": "consultoria-sistemas", "depth": 3 },
-  { "nodeId": "nod_DIV01", "tenantId": "tnt_01JQ8", "parentId": "nod_DEP02", "type": "DIVISION",
-    "name": "Discovery", "slug": "discovery", "depth": 4 },
-  { "nodeId": "nod_PRJ01", "tenantId": "tnt_01JQ8", "parentId": "nod_DIV01", "type": "PROJECT",
-    "name": "GLPI 11 — Cliente Norte", "slug": "glpi-11-norte", "depth": 5,
-    "status": "ACTIVE", "createdAt": "2026-06-02T13:20:00Z" }
-]
-```
-### B.2 Vaults (cada um com seu README.md)
-```json
-[
-  { "vaultId": "vlt_ENG01", "nodeId": "nod_DEP01", "name": "Engineering Knowledge Vault",
-    "slug": "engineering-knowledge", "hasReadme": true,
-    "stats": { "folderCount": 6, "noteCount": 460, "bytes": 8912340,
-               "byStatus": { "seed": 12, "growing": 68, "evergreen": 380 } } },
-  { "vaultId": "vlt_GLP01", "nodeId": "nod_PRJ01", "name": "CAD Discovery — GLPI 11.0",
-    "slug": "glpi-11-discovery", "hasReadme": true,
-    "stats": { "folderCount": 13, "noteCount": 756, "bytes": 14203118,
-               "byStatus": { "rascunho": 0, "revisao": 693, "validada": 63 } } }
-]
-```
-O conteúdo dos dois `README.md` é escrito à mão (ver Apêndice A para o do `vlt_GLP01`).
-### B.3 Pastas — vault GLPI
-```json
-[
-  { "folderId": "fld_01", "path": "/01 Overview",             "noteCount": 9,   "hasTemplate": true },
-  { "folderId": "fld_03", "path": "/03 Structural Knowledge", "noteCount": 172, "hasTemplate": true },
-  { "folderId": "fld_06", "path": "/06 Data",                 "noteCount": 112, "hasTemplate": true },
-  { "folderId": "fld_09", "path": "/09 Evidence",             "noteCount": 251, "hasTemplate": true },
-  { "folderId": "fld_11", "path": "/11 Investigations",       "noteCount": 37,  "hasTemplate": true },
-  { "folderId": "fld_13", "path": "/13 MOCs",                 "noteCount": 8,   "hasTemplate": true }
-]
-```
-Cada pasta com `hasTemplate: true` tem um arquivo `TEMPLATE.md` no S3 (ex.: `tnt_01JQ8/vlt_GLP01/09 Evidence/TEMPLATE.md`, mostrado no Apêndice A).
-### B.4 Notas
-```json
-[
-  { "noteId": "not_B7", "vaultId": "vlt_GLP01", "folderId": "fld_09",
-    "title": "EV-2-c1-014 — Capacities de ativo customizado", "structuredId": "EV-2-c1-014",
-    "frontmatter": { "title": "EV-2-c1-014 — Capacities de ativo customizado",
-      "type": "evidence", "status": "revisao", "created": "2026-07-11",
-      "source_id": "SRC-002", "module": "Ativos e Inventário",
-      "locator": "doc/assets/custom_assets.rst:88-131" },
-    "origin": "SEED", "updatedBy": "usr_maria", "updatedAt": "2026-07-11T02:41:00Z" },
-  { "noteId": "not_B9", "vaultId": "vlt_GLP01", "folderId": "fld_11",
-    "title": "INV-1-006 — Catálogo de capacities de ativo customizado", "structuredId": "INV-1-006",
-    "frontmatter": { "title": "INV-1-006 — Catálogo de capacities de ativo customizado",
-      "type": "investigation", "status": "validada", "created": "2026-06-19",
-      "source_id": "SRC-001", "resolution": "Respondida por SRC-002 — ver EV-2-c1-014" },
-    "origin": "SEED", "updatedBy": "usr_carlos", "updatedAt": "2026-07-12T16:05:00Z" }
-]
-```
-### B.5 Pessoas e acesso
-```json
-{
-  "users": [
-    { "userId": "usr_maria",  "email": "maria@vega.com.br",  "displayName": "Maria Furtado",
-      "locale": "pt-BR", "timezone": "America/Sao_Paulo", "status": "ACTIVE", "permVersion": 7 },
-    { "userId": "usr_carlos", "email": "carlos@vega.com.br", "displayName": "Carlos Menezes",
-      "status": "ACTIVE", "permVersion": 3 },
-    { "userId": "usr_bruna",  "email": "bruna@consultoriaexterna.com", "displayName": "Bruna Alves",
-      "status": "ACTIVE", "permVersion": 2, "tenantCount": 3 }
-  ],
-  "memberships": [
-    { "userId": "usr_maria",  "scopeType": "NODE", "scopeId": "nod_ROOT01", "role": "OWNER",  "status": "ACTIVE" },
-    { "userId": "usr_carlos", "scopeType": "NODE", "scopeId": "nod_DEP02",  "role": "ADMIN",  "status": "ACTIVE" },
-    { "userId": "usr_bruna",  "scopeType": "NODE", "scopeId": "nod_PRJ01",  "role": "EDITOR", "status": "ACTIVE" }
-  ]
-}
-```
-`usr_bruna` é o caso do ADR-002 na tela: consultora externa, três organizações, um login.
-### B.6 Telas que este conjunto cobre
-| Tela | Dados |
+
+Nenhuma rota recebe `tenantId`: ele vem do token (§4.1).
+
+Roteamento por path num CloudFront único (`api.memoryvault.guru/knowledge/*` etc.). Chamadas entre serviços via API Gateway com **IAM auth** — nunca por rede aberta.
+
+**Autorização:** o Lambda Authorizer do `svc-access` valida o JWT do Cognito, resolve tenant e memberships, e injeta tudo no contexto da requisição (cache 5 min). Os demais serviços consomem a decisão; nenhum deles lê a tabela do Access.
+
+### 11.2 UI
+
+| Tela | Conteúdo |
 |---|---|
-| Árvore da hierarquia | B.1 |
-| Cartão e página de vault (com editor do README.md) | B.2 + Apêndice A |
-| Navegador de pastas, marcando quais têm TEMPLATE.md | B.3 |
-| Visualizador de TEMPLATE.md da pasta | Apêndice A |
-| Visualizador de nota com frontmatter | B.4 |
-| Membros e papéis | B.5 |
-| Seletor de organização | `usr_bruna` em B.5 |
-| Prévia do contexto que o agente lê (README.md do vault) | §5 |
+| Lista de vaults | cards: nome, descrição, nº de notas, última atualização |
+| Vault → Guidance | editor Markdown com preview; ajuda sugerindo seções (propósito, convenções, nomenclatura) |
+| Vault → Estrutura | árvore com **drag-and-drop para reordenar**, criar/renomear pasta, editar descrição inline |
+| Pasta → Template | editor do `TEMPLATE.md` |
+| Nota | leitura e edição; painel lateral com backlinks e relacionadas |
+| Nota → Histórico | linha do tempo com autoria (humano + agente) e diff entre revisões |
+| Vault → Busca | campo único, alternador lexical/semântica |
+| Vault → Atividade | quem escreveu o quê no período — visão de vault, não de nota |
+| Vault → Saúde | links quebrados e notas órfãs |
+| Workspace → Membros | convidar por e-mail, definir papel |
+| Vault → Conectar | URL do MCP + passo a passo por cliente |
+
+A UI é a única superfície de leitura do produto. Isso levanta a régua da tela de nota e da árvore: elas precisam ser confortáveis para **ler**, não só para editar.
+
+---
+
+## 12. Export
+
+`svc-portability` consome os eventos, monta o zip e devolve URL pré-assinada. Árvore legível, não a de IDs opacos:
+
+```
+Normas e Legislação/
+├── README.md
+├── 01 Normas/
+│   ├── README.md            ← a descrição da pasta, materializada
+│   ├── TEMPLATE.md
+│   └── lei-14133-art-75.md
+├── 02 Achados/
+│   ├── README.md
+│   └── TEMPLATE.md
+└── 03 Trabalhos/
+    └── 01 2026/
+```
+
+O **prefixo numérico codifica a ordem** — é a única forma de preservá-la num sistema de arquivos, que não tem ordem própria. Os links saem intactos no texto. Zero lock-in é requisito, não cortesia: é o que torna o produto seguro de adotar num contexto em que a base precisa sobreviver ao fornecedor.
+
+---
+
+## 13. Infraestrutura
+
+| Camada | Escolha |
+|---|---|
+| Compute | **Um Lambda por serviço** (Node.js 22, ARM64), roteamento interno com Hono |
+| API | API Gateway HTTP API por serviço, atrás de um CloudFront |
+| Dados | Uma tabela DynamoDB por serviço (on-demand, PITR) + bucket S3 versionado (Object Lock opcional) + bucket S3 Vectors |
+| IA | Bedrock — Titan Text Embeddings V2 |
+| Eventos | EventBridge (bus `mv-events`) + DynamoDB Streams para a outbox |
+| Identidade | Cognito user pool + pre-token-generation trigger (claim `tenant_id`) |
+| Front-end | React + Vite (SPA) em S3 + CloudFront |
+| IaC | AWS CDK (TypeScript), um stack por serviço + um de rede/domínio |
+| Observabilidade | Powertools for AWS Lambda; `tenantId` em **toda** linha de log e como dimensão de métrica |
+
+> **Um Lambda por serviço, não um por rota:** menos cold starts, um composition root por deployable, e a fronteira que importa (o bounded context) continua sendo a unidade de deploy.
+
+**Estrutura do monorepo (pnpm):**
+
+```
+memoryvault/
+├── packages/{kernel,contracts}/
+├── services/{access,knowledge,discovery,audit,agent,portability}/
+│   └── src/{domain,application,adapters/{inbound,outbound},main}/
+├── apps/web/
+└── infra/
+```
+
+**Regra de dependência, verificada no CI** (`dependency-cruiser`): `domain` não importa `application`, `adapters` nem lib externa exceto `kernel`. `application` importa só `domain`. Build quebra se violar — sem essa checagem, hexagonal vira nomenclatura de pastas em três sprints.
+
+**Testes:** domínio em unit puro (sem I/O, sem mock de framework) · casos de uso com adaptadores `InMemory` · adaptadores contra DynamoDB Local + MinIO · contract tests dos eventos com schemas Zod · e2e por fatia vertical · **teste de isolamento por serviço** (dois tenants, o de A tentando ler o de B, esperando 404) · **teste de imutabilidade do audit** (tentativa de update no log deve falhar por IAM, não por código).
+
+---
+
+## 14. A linha que separa microsserviços de monólito modular
+
+O desenho é de microsserviços, como pedido. Vale registrar onde está a alavanca, porque hexagonal a torna barata nos dois sentidos.
+
+Contextos, agregados, portas, adaptadores e estrutura de pastas são **idênticos** nas duas opções. O que muda:
+
+| | Microsserviços (D5) | Monólito modular |
+|---|---|---|
+| Deployables | 6 Lambdas, 6 stacks, 6 tabelas | 1 Lambda, 1 stack, 1 tabela com prefixos por contexto |
+| `AccessPolicy` | `HttpAccessPolicy` (rede) | `LocalAccessPolicy` (em processo) |
+| Eventos | EventBridge | bus em processo, mesma interface `EventPublisher` |
+| Custo | contratos versionados, tracing distribuído, deploy coordenado | fronteira depende de disciplina no CI |
+
+**A troca é o `composition-root.ts` de cada serviço** — nenhuma linha de `domain/` ou `application/` muda. Uma ressalva: o `svc-audit` é o único que ganha algo real da separação física, porque sua role de IAM restrita (§9.2) é o que torna o log imutável. Num monólito, essa garantia precisaria migrar para uma tabela com política própria e um papel dedicado.
+
+---
+
+## 15. Sequência de construção
+
+Ordem de dependência técnica. O produto é um só e sai completo.
+
+| # | Entrega | Critério de pronto |
+|---|---|---|
+| 1 | **Spike de auth MCP** | Conector Cognito autentica no Claude Desktop **e** no Claude web |
+| 2 | Monorepo, kernel, `TenantId`, `Authorship`, CDK, CI com regra de dependência | Build quebra se `domain/` importar SDK da AWS |
+| 3 | Domínio do Knowledge: `Vault`, `FolderTree`, `Position`, `Note` | Suíte do domínio verde **sem nenhuma dependência de AWS** |
+| 4 | Adaptadores Dynamo + S3 + outbox, com `versionId` no `ContentRef` | 20 reorders concorrentes: nenhuma perda, nenhuma ordem indefinida |
+| 5 | `svc-access`: tenants, workspaces, membros, authorizer | Teste de isolamento cross-tenant passa |
+| 6 | `svc-knowledge` HTTP completo | Reordenar pasta = 1 write, 0 bytes movidos no S3 |
+| 7 | `svc-audit` | `read_note(asOf)` devolve o conteúdo correto de uma data passada; update no log falha por IAM |
+| 8 | `svc-discovery`: grafo + vetores | Link pendente resolve ao criar a nota alvo; busca semântica traz o chunk certo com a nota de origem |
+| 9 | `svc-agent`: as 12 tools | `get_vault_context` devolve o Markdown de §10.1 |
+| 10 | UI | Criar um vault do zero e ler o histórico de uma nota sem tocar na API |
+| 11 | `svc-portability` | Zip contém só `.md`, com a ordem legível na própria árvore de arquivos |
+
+A 3 antes da 4 não é preciosismo: é o que prova que a inversão de dependência está de pé. Se o domínio precisar da AWS para ser testado, o hexágono já vazou.
+
+---
+
+## 16. Riscos
+
+| Risco | Impacto | Resposta |
+|---|---|---|
+| Onboarding do OAuth do MCP ser penoso | **Alto** — mata a tese | Primeiro spike; trocar de IdP se preciso |
+| Vazamento cross-tenant | **Alto** | Tenant na chave líder + tipo obrigatório + teste de isolamento na suíte |
+| S3 Vectors indisponível ou limitado na região | Médio | Porta `VectorIndex` já isola; plano B é OpenSearch Serverless, sem tocar no domínio |
+| Trilha de auditoria crescer sem controle | Médio | Evento é pequeno e append-only; retenção por tenant, e o conteúdo pesado fica no S3 |
+| Custo de embedding em vault que muda muito | Baixo | Só re-embeda chunk cujo hash mudou, não a nota inteira |
+| Busca semântica devolver plausível-porém-errado | Médio | Sempre citar nota e seção de origem; o agente decide com a fonte à vista |
+| Grafo explodir em vault denso | Médio | Teto de profundidade 3 e 200 nós na travessia |
+| 6 serviços antes do primeiro usuário | Médio | §14: colapsar é trocar o composition root, com a ressalva do `svc-audit` |
+| Hexagonal virar só nome de pasta | Médio | Regra de dependência no CI desde a entrega 2 |

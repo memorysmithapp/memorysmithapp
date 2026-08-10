@@ -1,120 +1,64 @@
 # MemoryVault.guru
 
-> SaaS de gestão de conhecimento em **Markdown**, organizado por uma **hierarquia
-> organizacional multinível**.
+Cofres de conhecimento em **Markdown**, com estrutura declarada, acessíveis nativamente pelas ferramentas de IA.
 
-O MemoryVault.guru não é "mais um editor de notas". A proposta é **organizar
-estrutura e contexto em Markdown para leitura de agentes**: tenant → nó → vault →
-pasta → nota formam uma grande árvore navegável de arquivos `.md`. Dentro dela,
-`README.md` (no vault) e `TEMPLATE.md` (na pasta) são apenas **palavras reservadas**
-— opcionais — que servem de contexto ao agente.
-
-No fim, o backend é **um conjunto de `.md` no S3 + um índice no DynamoDB** que os
-organiza. O conteúdo são os arquivos; a estrutura é ponteiro.
-
-📄 A arquitetura completa está em **[DESIGN.md](DESIGN.md)**.
+O agente não só lê o vault — ele o **alimenta**. Lê um corpo de normas e escreve o conhecimento como notas, obedecendo às orientações do próprio vault; depois, outro trabalho usa essa base para produzir um relatório ou uma auditoria.
 
 ---
 
-## A ideia em uma linha
+## O problema
+
+O fluxo que funciona hoje é uma pasta local de `.md` com um `README.md` na raiz explicando ao agente como estruturar as notas. Funciona — e quebra em três pontos: o conteúdo é local (sem colaboração), não há cliente bom para lê-lo remotamente, e separar projetos vira um punhado de pastas soltas.
+
+O MemoryVault.guru é o backend remoto desse fluxo.
+
+## Como um vault é organizado
 
 ```
-Tenant → Organização → Departamento → Divisão → Projeto → Vault → Pasta → Nota
-└──────── hierarquia = organização e escopo de acesso ────────┘   └── conteúdo Markdown ──┘
+Vault
+├── README.md          ← Guidance: para que serve este vault e como estruturar as notas
+└── Pastas (ordenadas) ── cada uma com uma descrição: o que se guarda aqui
+    ├── TEMPLATE.md    ← como as notas desta pasta se estruturam
+    ├── subpastas
+    └── notas .md
 ```
 
-- **Vault** = pode ter um `README.md` (palavra reservada, opcional) que o descreve.
-- **Pasta** = pode conter um `TEMPLATE.md` — molde **sugerido**, não uma trava.
-- **Nota** = Markdown + YAML frontmatter livre.
-- **Agente** (Fase 3) pede o `README.md` e o `TEMPLATE.md` via MCP **antes** de escrever.
+`README.md` e `TEMPLATE.md` são os dois únicos nomes reservados. Não são documentação: são **instruções executáveis** — é o que faz o agente escrever a nota certa, na pasta certa, no formato certo.
 
-Cada entidade tem uma **chave opaca estável**; o conteúdo vive no S3 sob essa chave
-(`{vaultId}/README.md`, `{folderId}/{nota}.md`), com a hierarquia como ponteiro no
-DynamoDB. Consequência: renomear e **mover são baratos** (só banco); só *apagar*
-propaga para o S3 (ADR-021). O export reconstrói a árvore legível para abrir no
-Obsidian.
+## Interface
 
-Não há motor de configuração tipado, herança, procedência nem locks — removido de
-propósito (ADR-017). Cada vault é autônomo (ADR-018).
+O contrato público é um **MCP server remoto** (OAuth 2.1), conector nativo em Claude web, desktop, Code, Cowork e CLI. A chamada central é `get_vault_context`, que devolve o guidance integral mais a árvore anotada com descrições e ordem — o equivalente a ler o README e rodar `ls -R` na pasta local, em uma chamada.
 
----
+Sobre isso: grafo de links (árvore de dependências e backlinks), busca semântica, histórico por revisão e uma UI de autoria.
 
-## Princípios
+## Arquitetura
 
-| # | Princípio | Consequência prática |
-|---|---|---|
-| P1 | **No fim é tudo Markdown** | O backend organiza e serve; não gera Markdown de schema tipado |
-| P2 | **Vault autônomo** | Cada vault se descreve no seu README; sem herança entre níveis |
-| P3 | **Molde é sugestão, não contrato** | `TEMPLATE.md` orienta; a nota não precisa preencher tudo (seed) |
-| P4 | **Hierarquia genérica, não fixa** | Uma tabela `Node` recursiva com `type`, não cinco tabelas |
-| P5 | **Conteúdo portável** | Markdown + YAML puro; export reconstrói a árvore legível, abre no Obsidian |
-| P6 | **Simples na Fase 1, escalável por design** | Leitura agora; escrita por agente e importador depois |
-| P7 | **Isolamento por chave-líder** | Todo item de tenant começa com `T#{tenant_id}` |
-| P8 | **Storage por ID opaco** | Conteúdo no S3 sob a chave estável da entidade; mover/renomear não toca no S3 |
+| | |
+|---|---|
+| Stack | AWS Serverless · Node.js/TypeScript |
+| Dados | DynamoDB (estrutura e metadados) + S3 (corpo dos `.md`) + S3 Vectors (embeddings) |
+| IA | Bedrock — Titan Text Embeddings V2 |
+| Desenho | DDD tático + Hexagonal (Ports & Adapters), um deployable por bounded context |
+| Tenancy | Multi-tenant desde a primeira linha: `TenantId` na chave líder de todo item |
 
----
+Seis serviços: `access`, `knowledge` (core), `discovery`, `audit`, `agent` (MCP), `portability`.
 
-## O que a Fase 1 entrega
+Três decisões que atravessam o resto:
 
-A Fase 1 é uma **demo somente-leitura** sobre vaults reais, carregados por um script
-de seed (ADR-014). O objetivo é validar o **núcleo do modelo** — não construir todas
-as telas.
+- **O backend não interpreta o conteúdo.** O que vai dentro da nota — frontmatter inclusive — é decidido pelo Guidance e pelo Template do vault. O backend lê sintaxe universal de Markdown, nunca convenção de vault.
+- **Tenant é tipo, não convenção.** Não existe caminho de código que construa uma chave sem `TenantId`: o compilador rejeita.
+- **O passado é imutável.** A trilha de auditoria é append-only por política de IAM, não por disciplina — e cada evento carrega o `versionId` do S3, o que permite reler a base como ela estava na data em que um trabalho foi emitido.
 
-- Hierarquia de nós (organização + escopo de acesso)
-- Vaults com `README.md` e pastas com `TEMPLATE.md` (convenções, opcionais)
-- Notas em Markdown + frontmatter, com IDs estruturados preservados da fonte
-- Storage no S3 por chave opaca; DynamoDB como índice navegável (`§6.1`)
-- `GET /vaults/{id}/readme` e `/agent-context` servindo o contexto
-- UI de leitura: árvore navegável, navegador de pastas, visualizador de nota e de template
-- Export reconstruindo a árvore legível
-- Autenticação mínima via Cognito com tenant e usuários semeados
+## Documentação
 
-### Critério de pronto
+**[DESIGN.md](DESIGN.md)** — arquitetura completa: modelo de domínio, invariantes, single-table design, portas e adaptadores, proveniência e histórico, e a sequência de construção.
 
-Os vaults reais carregam sem forçar o modelo e ficam **navegáveis** como uma árvore
-de pastas e notas; onde há `README.md`/`TEMPLATE.md`, eles descrevem o vault de forma
-que um agente conseguiria operar ali (`§11.2` do DESIGN). Não "as telas funcionam", e
-sim **"a estrutura e o contexto descrevem o vault de verdade"**.
+## Estado
 
----
+Fase de design. Ainda não há código.
 
-## Stack
-
-**AWS Serverless.** Stack reduzido na Fase 1 (ADR-016):
-
-- **CloudFront + S3** — SPA React
-- **API Gateway HTTP API** — REST
-- **Lambda** — Node 22, ARM64, esbuild, 512 MB
-- **DynamoDB** — single-table, on-demand, PITR (indexa metadados)
-- **S3** — conteúdo `.md` (incl. `README.md` e `TEMPLATE.md`), versionado, SSE-KMS
-- **Cognito** — pool único, plano Essentials, Managed Login
-- **CDK v2 (TypeScript)** — IaC
-
-Toda a lógica de domínio vive em `packages/core` — **TypeScript puro, sem imports de
-`@aws-sdk/*`** — testável em milissegundos. REST hoje e MCP na Fase 3 são adaptadores
-finos sobre os mesmos casos de uso.
-
----
-
-## Roadmap
-
-| Fase | Foco | Marco de conclusão |
-|---|---|---|
-| **1** | Demo por seed | Vaults reais carregados; o README de cada um descreve o vault fielmente |
-| **2** | Produto multi-tenant | Cadastro, aprovação, convites, papéis e o importador |
-| **3** | Escrita por agente | Servidor MCP, alocação de ID, delegação atenuada |
-| **4** | Produtividade e escala | Busca, histórico, backlinks, billing, SSO |
-
----
-
-## Estrutura do repositório
-
-> A definir conforme a implementação avança. A intenção de arquitetura
-> (`packages/core` puro + adaptadores REST/MCP) está descrita em
-> [DESIGN.md §7](DESIGN.md).
-
----
+O primeiro passo é um spike de autenticação: conectar um MCP mínimo autenticado por Cognito no Claude Desktop e no Claude web. É a decisão de maior risco do projeto — se a conexão não for fluida, a tese não se sustenta.
 
 ## Licença
 
-[MIT](LICENSE).
+MIT — ver [LICENSE](LICENSE).
