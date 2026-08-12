@@ -41,20 +41,32 @@ Sobre isso: grafo de links (árvore de dependências e backlinks), busca semânt
 | Dados | DynamoDB (todo o significado) + S3 (blobs de Markdown, chave opaca) + S3 Vectors (embeddings) |
 | IA | Bedrock — Titan Text Embeddings V2 |
 | Desenho | DDD tático + Hexagonal (Ports & Adapters), um deployable por bounded context |
-| Tenancy | Multi-tenant desde a primeira linha: `TenantId` na chave líder de todo item |
+| Isolamento | Por assinatura, desde a primeira linha: `SubscriptionId` na chave líder de todo item |
+| Repositório | Três projetos: `memoryvault-backend`, `memoryvault-frontend`, `memoryvault-infra` |
+
+**Assinatura → Workspace → Vault.** A assinatura é a fronteira de isolamento e a unidade de cobrança; o workspace é quem trabalha junto; o vault é o conhecimento. Enquanto não há billing, um administrador de plataforma autoriza cada assinatura — e ele não alcança conteúdo de cliente algum.
 
 Seis serviços: `access`, `knowledge` (core), `discovery`, `audit`, `agent` (MCP), `portability`.
 
-Quatro decisões que atravessam o resto:
+Cinco decisões que atravessam o resto:
 
 - **O backend não interpreta o conteúdo.** O que vai dentro da nota — frontmatter inclusive — é decidido pelo Guidance e pelo Template do vault. O backend lê sintaxe universal de Markdown, nunca convenção de vault.
 - **O S3 não sabe o que guarda.** Vault, pasta e nota são conceitos lógicos que vivem inteiramente no DynamoDB. No S3 há uma pilha plana de blobs de Markdown em chaves opacas, e o elo é um ponteiro que diz qual blob, em qual revisão, faz qual papel. Consequência: renomear, reordenar e mover — inclusive mover uma nota de vault — não podem tocar em byte nenhum, porque não há nada na chave que essas operações mudariam.
-- **Tenant é tipo, não convenção.** Não existe caminho de código que construa uma chave sem `TenantId`: o compilador rejeita.
+- **A assinatura é tipo, não convenção.** Não existe caminho de código que construa uma chave sem `SubscriptionId`: o compilador rejeita. É o mesmo mecanismo que impede uma sessão de plataforma de alcançar conteúdo — sem a claim, nenhum repositório é sequer instanciável.
+- **O identificador da assinatura é perpétuo.** Aprovar, suspender, cancelar e reativar mudam um campo de status, nunca uma chave. O status governa acesso; jamais endereço.
 - **O passado é imutável.** A trilha de auditoria é append-only por política de IAM, não por disciplina — e cada evento carrega a revisão exata do S3, o que permite reler a base como ela estava na data em que um trabalho foi emitido.
 
 ## Documentação
 
-**[DESIGN.md](DESIGN.md)** — arquitetura completa: modelo de domínio, invariantes, single-table design, portas e adaptadores, proveniência e histórico, e a sequência de construção.
+A especificação está dividida em três documentos com responsabilidades que não se sobrepõem — cada fato é declarado em exatamente um deles e referenciado pelos outros:
+
+| Documento | Responde |
+|---|---|
+| **[docs/knowledge-base.md](docs/knowledge-base.md)** | O que é verdade sobre o domínio, independentemente deste produto: Markdown, prática de bases de conhecimento, MCP, recuperação, auditoria, LGPD, multi-tenancy |
+| **[docs/software-vision.md](docs/software-vision.md)** | O que o produto faz e sob qual regra: visão, linguagem ubíqua, papéis, entidades, regras de negócio (`RN-XXX`), o contrato público de MCP, telas, recorte de versão |
+| **[docs/architecture-guide.md](docs/architecture-guide.md)** | Como é construído: DDD tático, portas e adaptadores, chaves, transações, projeções, infraestrutura, testes, CI/CD, sequência de construção |
+
+**[CLAUDE.md](CLAUDE.md)** reúne as orientações de trabalho no repositório: identidade do projeto, política de idioma, regras de desenho inegociáveis, versionamento, changelog, branches e pull requests.
 
 ## Estado
 
