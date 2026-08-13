@@ -23,7 +23,7 @@ memoryvault.guru
 O MemoryVault.guru hospeda vaults de conhecimento em Markdown que se autodescrevem, com estrutura, ordenação e Guidance de autoria declarados como dado, e os serve nativamente às ferramentas de IA por meio de um MCP server remoto. O agente não apenas lê um vault: ele escreve nele, obedecendo ao Guidance do próprio vault e aos Templates de cada pasta.
 
 ### Slogan
-Conhecimento estruturado, legível e gravável nativamente por agentes.
+Structured knowledge, natively readable and writable by agents.
 
 ### Identidade visual
 - **Cor primária:** a definir
