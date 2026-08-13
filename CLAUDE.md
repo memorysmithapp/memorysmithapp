@@ -1,5 +1,3 @@
-# CLAUDE.md
-
 Este arquivo é a **fonte única de verdade** de todo o comportamento do agente neste projeto.
 O Claude Code o lê automaticamente a cada sessão e a cada invocação de sub-agente.
 
@@ -178,6 +176,17 @@ Dentro de um texto em pt-BR, **identificadores de código, caminhos de arquivo, 
 O mesmo vale para os termos da **linguagem ubíqua** do produto, que existem simultaneamente como conceito no texto e como símbolo no código: `Vault`, `Workspace`, `Subscription`, `Guidance`, `Template`, `Note`, `Content Slot`, `Content Role`, `Vault Context`. Traduzi-los na prosa romperia a correspondência entre o texto e o código, que é justamente o que a linguagem ubíqua existe para garantir. Termos técnicos consagrados de engenharia seguem a mesma regra e permanecem na forma original: bounded context, outbox, single-table design, embeddings, chunking, backlink, value object.
 
 Um termo em inglês que **não** é símbolo do código nem termo técnico consagrado deve ser escrito em português.
+
+### A exceção do `README.md`
+
+O `README.md` da raiz é vitrine, não especificação: quem o lê ainda não conhece o vocabulário do produto, e um termo em inglês ali cobra do leitor um aprendizado antes de ele entender o que o produto faz. Por isso, **e somente nesse arquivo**, dois papéis são escritos em português:
+
+| Na linguagem ubíqua e nos `docs/` | No `README.md` |
+|---|---|
+| `Guidance` | Orientação |
+| `Template` | Modelo |
+
+A exceção é deliberada e não se propaga. Em `docs/`, no código, nas ferramentas MCP e no `Content Role`, os termos continuam sendo `guidance` e `template`. Nenhum outro termo da linguagem ubíqua é traduzido, nem mesmo no `README.md`: `Vault`, `Workspace` e os demais permanecem como estão.
 
 ### Travessão
 
