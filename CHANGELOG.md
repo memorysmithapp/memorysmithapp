@@ -1,33 +1,34 @@
 # Changelog
 
-All notable changes to this project are documented in this file.
+Todas as mudanças notáveis deste projeto são registradas neste arquivo.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+O formato segue o [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
 ### Added
 
-- `CLAUDE.md` as the single source of truth for agent behavior: project identity, documentation boundaries, business-rule code scheme (`RN-{CONTEXT}-{NNN}`), non-negotiable design rules, language policy, ignore-file policy, versioning flow, changelog rules, branch protection, incremental commit policy and pull request template.
-- `docs/knowledge-base.md` — domain facts about Markdown knowledge bases and the agent ecosystem: format standardization, personal knowledge management practice, the Model Context Protocol and its OAuth 2.1 authorization model, context engineering, retrieval (embeddings, chunking, RAG) and its failure modes, audit and provenance in regulated work, LGPD, and multi-tenant isolation concepts.
-- `docs/software-vision.md` — product vision, product principles, ubiquitous language, multi-tenancy business model, role and permission matrix, domain entities, business rules under `RN-XXX` codes, the MCP tool catalogue as the public product contract, UI screens, product limits, release scope per version, product risks and open questions.
-- `docs/architecture-guide.md` — engineering architecture: founding decisions, engineering principles with their enforcement mechanisms, bounded contexts, technology stack, monorepo structure and dependency rule, tactical DDD model, ports and adapters, technical multi-tenancy, DynamoDB single-table design and Content Slots, transactions and outbox, discovery projections, provenance storage, MCP wiring, internal API and authorization, error taxonomy, infrastructure, NFRs, testing strategy, CI/CD, anti-patterns, feature checklist, three-layer versioning, the microservice/modular-monolith lever, build sequence and technical risks.
+- `CLAUDE.md` como fonte única de verdade do comportamento do agente: identidade do projeto, fronteira entre os documentos, esquema de código das regras de negócio (`RN-{CONTEXT}-{NNN}`), regras de desenho inegociáveis, política de idioma, política de arquivos ignorados, fluxo de versionamento, regras do changelog, proteção de branch, política de commits incrementais e modelo de pull request.
+- `docs/knowledge-base.md`, com os fatos de domínio sobre bases de conhecimento em Markdown e o ecossistema de agentes: padronização do formato, prática de gestão de conhecimento pessoal, o Model Context Protocol e seu modelo de autorização OAuth 2.1, engenharia de contexto, recuperação (embeddings, chunking, RAG) e seus modos de falha, auditoria e proveniência em trabalho regulado, LGPD e conceitos de isolamento multi-tenant.
+- `docs/software-vision.md`, com a visão de produto, princípios de produto, linguagem ubíqua, modelo de negócio, matriz de papéis e permissões, entidades de domínio, regras de negócio sob códigos `RN-XXX`, o catálogo de ferramentas MCP como contrato público do produto, telas, limites de produto, recorte de versão, riscos e questões em aberto.
+- `docs/architecture-guide.md`, com a arquitetura de engenharia: decisões fundadoras, princípios de engenharia e seus mecanismos de enforcement, bounded contexts, stack de tecnologia, estrutura do monorepo e regra de dependência, modelo de DDD tático, portas e adaptadores, multi-tenancy técnico, desenho single-table no DynamoDB e Content Slots, transações e outbox, projeções de discovery, armazenamento de proveniência, integração MCP, API interna e autorização, taxonomia de erros, infraestrutura, requisitos não funcionais, estratégia de testes, CI/CD, antipadrões, checklist de feature, versionamento em três camadas, a alavanca entre microsserviços e monólito modular, sequência de construção e riscos técnicos.
 - `CHANGELOG.md`.
 
 ### Changed
 
-- Documentation split into three documents with explicit, non-overlapping responsibilities (domain facts / product / engineering), replacing the single `DESIGN.md`. Cross-references replace duplication: each fact is stated in exactly one document and referenced by section from the others.
-- `README.md` now points to `docs/` and to `CLAUDE.md` instead of `DESIGN.md`.
-- `.gitignore` extended with build, dependency, coverage and environment entries in line with the ignore-file policy.
-- Tenancy model replaced by a subscription model. `Subscription` is now both the business object and the isolation boundary: every key begins with `S#{subscriptionId}`, every S3 key with `s/{subscriptionId}/`, and the `tenant` vocabulary is gone from the product and the code. The subscription id is perpetual — approve, suspend, cancel and reactivate change a status field and never move, rekey or delete data.
-- Subscription lifecycle added: signup no longer creates anything but the account. A user requests a subscription during onboarding and a `PLATFORM_ADMIN` authorizes it, since billing is out of scope for now. Rejection carries a mandatory reason and the request can be resubmitted.
-- Role taxonomy reworked to `PLATFORM_ADMIN`, `OWNER`, `EDITOR` and `VIEWER`, replacing `TENANT_ADMIN`. The owner is the subscription holder — exactly one, transferable, stored as a field rather than a collection so the invariant is the shape of the data. Editors and viewers are invited into workspaces by the owner.
-- Platform surface separated from customer data by construction: a platform session carries no `subscription_id` claim, so no Knowledge repository can be instantiated under it. The platform queue reads through a dedicated index that projects metadata only.
-- Per-vault role ceiling added: the owner can lower a member from `EDITOR` to `VIEWER` on a specific vault. Effective role is the minimum of the workspace role and the vault ceiling — it never promotes, and it never hides a vault.
-- Business rule prefix `RN-MTN` (multi-tenancy) retired in favour of `RN-SUB` (subscription and isolation), before any code or issue referenced it.
-- Repository layout defined as three top-level projects — `memoryvault-backend`, `memoryvault-frontend` and `memoryvault-infra` — instead of infrastructure living inside the backend project. Infrastructure declares resources for all three projects, so it owns a project of its own; the dependency direction between the three is single and enforced in CI.
+- Política de idioma revista: toda a documentação do repositório passa a ser escrita em pt-BR, incluindo `README.md`, `CHANGELOG.md` e `CLAUDE.md`, enquanto o código fonte da solução permanece em en-US. Termos da linguagem ubíqua, identificadores, caminhos de arquivo e códigos de erro continuam grafados exatamente como no código. O travessão fica proibido na prosa da documentação.
+- Documentação dividida em três documentos com responsabilidades explícitas e não sobrepostas (fatos de domínio, produto, engenharia), no lugar do antigo `DESIGN.md`. Referências cruzadas substituem duplicação: cada fato é declarado em exatamente um documento e referenciado por seção pelos outros.
+- `README.md` aponta para `docs/` e para `CLAUDE.md` no lugar de `DESIGN.md`, e foi reduzido ao que o leitor precisa antes de abrir a especificação. Stack, serviços e decisões de arquitetura saíram do arquivo e permanecem apenas em `docs/architecture-guide.md`.
+- `.gitignore` estendido com entradas de build, dependências, cobertura e ambiente, em linha com a política de arquivos ignorados.
+- Modelo de tenancy substituído por modelo de assinatura. `Subscription` passa a ser ao mesmo tempo objeto de negócio e fronteira de isolamento: toda chave começa por `S#{subscriptionId}`, toda chave de S3 por `s/{subscriptionId}/`, e o vocabulário `tenant` desaparece do produto e do código. O identificador da assinatura é perpétuo: aprovar, suspender, cancelar e reativar mudam um campo de status, e nunca movem, rechaveiam ou apagam dado.
+- Ciclo de vida da assinatura definido: o cadastro deixa de criar qualquer coisa além da conta. O usuário solicita uma assinatura durante o onboarding e um `PLATFORM_ADMIN` a autoriza, já que billing está fora de escopo por ora. A recusa exige motivo e a solicitação pode ser reenviada.
+- Taxonomia de papéis reescrita para `PLATFORM_ADMIN`, `OWNER`, `EDITOR` e `VIEWER`, substituindo `TENANT_ADMIN`. O owner é o titular da assinatura: exatamente um, transferível, guardado como campo e não como coleção, de modo que a invariante seja o formato do dado. Editores e visualizadores são convidados para workspaces pelo owner.
+- Superfície de plataforma separada do dado de cliente por construção: uma sessão de plataforma não carrega a claim `subscription_id`, então nenhum repositório de Knowledge pode ser instanciado sob ela. A fila da plataforma é lida por um índice dedicado que projeta apenas metadado.
+- Teto de papel por vault: o owner pode rebaixar um membro de `EDITOR` para `VIEWER` em um vault específico. O papel efetivo é o mínimo entre o papel de workspace e o teto do vault, de modo que ele nunca promove e nunca esconde um vault.
+- Prefixo de regra de negócio `RN-MTN` (multi-tenancy) aposentado em favor de `RN-SUB` (assinatura e isolamento), antes que qualquer código ou issue o referenciasse.
+- Layout do repositório definido como três projetos de primeiro nível, `memoryvault-backend`, `memoryvault-frontend` e `memoryvault-infra`, no lugar de manter a infraestrutura dentro do projeto de backend. A infraestrutura declara recursos para os três projetos, então tem projeto próprio; a direção de dependência entre eles é única e verificada em CI.
 
 ### Removed
 
-- `DESIGN.md` — its content was redistributed across the three `docs/` documents. History remains available in git.
+- `DESIGN.md`, cujo conteúdo foi redistribuído entre os três documentos de `docs/`. O histórico permanece disponível no git.

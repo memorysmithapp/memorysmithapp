@@ -1,48 +1,48 @@
 # CLAUDE.md
 
-This file is the **single source of truth** for all agent behavior in this project.
-Claude Code reads this file automatically on every session and every sub-agent invocation.
+Este arquivo é a **fonte única de verdade** de todo o comportamento do agente neste projeto.
+O Claude Code o lê automaticamente a cada sessão e a cada invocação de sub-agente.
 
 ---
 
-## Project Identity
+## Identidade do projeto
 
-### Organization
+### Organização
 MemoryVaultGuru
 
-### Project name
+### Nome do projeto
 MemoryVaultApp
 
-### Project identifier
+### Identificador do projeto
 memoryvault
 
-### Product domain
+### Domínio do produto
 memoryvault.guru
 
-### What it does
-MemoryVault.guru hosts self-describing Markdown knowledge vaults — structure, ordering and authoring guidance declared as data — and serves them natively to AI tooling through a remote MCP server. The agent does not only read a vault: it writes to it, following the vault's own guidance and folder templates.
+### O que faz
+O MemoryVault.guru hospeda vaults de conhecimento em Markdown que se autodescrevem, com estrutura, ordenação e Guidance de autoria declarados como dado, e os serve nativamente às ferramentas de IA por meio de um MCP server remoto. O agente não apenas lê um vault: ele escreve nele, obedecendo ao Guidance do próprio vault e aos Templates de cada pasta.
 
 ### Slogan
-Structured knowledge, natively readable — and writable — by agents.
+Conhecimento estruturado, legível e gravável nativamente por agentes.
 
-### Brand Identity
-- **Primary color:** to be defined
-- **Visual tone:** to be defined — the product surface is a reading tool before it is an editing tool
+### Identidade visual
+- **Cor primária:** a definir
+- **Tom visual:** a definir. A superfície do produto é uma ferramenta de leitura antes de ser uma ferramenta de edição
 
-### Base version
+### Versão base
 0.1.0
 
-### Current state
-Design phase. No code yet. The first deliverable is the MCP authentication spike (see `docs/architecture-guide.md` § MCP server).
+### Estado atual
+Fase de design. Ainda não há código. A primeira entrega é o spike de autenticação do MCP (ver `docs/architecture-guide.md` § MCP server).
 
-### Git remote
+### Remote do git
 github.com/MemoryVaultGuru/MemoryVaultApp
 
 ---
 
-## Repository Layout
+## Layout do repositório
 
-A pnpm monorepo with **three top-level projects**, named after the project identifier. Full structure and rationale in `docs/architecture-guide.md` §5.
+Um monorepo pnpm com **três projetos de primeiro nível**, nomeados a partir do identificador do projeto. Estrutura completa e justificativa em `docs/architecture-guide.md` §5.
 
 ```
 MemoryVaultApp/
@@ -51,9 +51,9 @@ MemoryVaultApp/
 └── memoryvault-infra/       # all CDK: stacks, constructs, IAM policies, pipeline
 ```
 
-**Never put infrastructure code inside the backend project, and never put a stack definition inside a service.** The infra project declares resources for all three projects — including the bucket that serves the frontend and the pipeline that deploys everything — so it cannot live inside any one of them. This also keeps deploy credentials separable from application code.
+**Nunca coloque código de infraestrutura dentro do projeto de backend, e nunca coloque a definição de uma stack dentro de um serviço.** O projeto de infra declara recursos para os três projetos, inclusive o bucket que serve o frontend e o pipeline que faz o deploy de tudo, e por isso não pode viver dentro de nenhum deles. Isso também mantém as credenciais de deploy separáveis do código de aplicação.
 
-**Dependency direction between projects — single direction, enforced in CI:**
+**Direção de dependência entre os projetos, única e verificada em CI:**
 
 ```
 memoryvault-infra      →  references backend and frontend artifacts (bundling, deploy)
@@ -61,152 +61,174 @@ memoryvault-backend    →  knows nothing about infra or frontend
 memoryvault-frontend   →  imports @memoryvault/contracts (types only) and calls the API at runtime
 ```
 
-An `import` from `memoryvault-infra` inside `memoryvault-backend` is an architecture error, not a style question. Services never import each other either: cross-context communication is HTTP with IAM auth or an event, never an `import`.
+Um `import` de `memoryvault-infra` dentro de `memoryvault-backend` é um erro de arquitetura, não uma questão de estilo. Serviços também nunca se importam entre si: comunicação entre contextos é HTTP com autenticação IAM ou um evento, nunca um `import`.
 
-When creating a file, place it by asking what it is, not what it is for: a CDK construct for the audit table belongs in `memoryvault-infra/constructs/`, even though only the audit service uses it.
-
----
-
-## Architecture Reference
-
-The full engineering architecture lives in a single canonical document:
-
-| File | Language | Role |
-|---|---|---|
-| [`docs/architecture-guide.md`](docs/architecture-guide.md) | Portuguese (pt-BR) | **Canonical version** — single source of truth for all engineering decisions |
-
-Contains: technology stack, monorepo structure, tactical DDD (aggregates, value objects, domain events), hexagonal ports and adapters, subscription-scoped isolation, DynamoDB single-table design, Content Slots, transactions and outbox, discovery projections, provenance storage, MCP/OAuth wiring, internal API, infrastructure, NFRs, testing strategy, CI/CD, anti-patterns and the build sequence.
-
-Does **not** contain: product vision, business rules (`RN-XXX` codes), user-facing screens, or general domain facts. Those live in the two documents below.
+Ao criar um arquivo, decida onde ele fica perguntando o que ele é, não para que ele serve: um construct de CDK para a tabela de auditoria pertence a `memoryvault-infra/constructs/`, ainda que só o serviço de auditoria o use.
 
 ---
 
-## Knowledge Base
+## Referência de arquitetura
 
-Project documentation is split into two further concerns — domain knowledge and software vision:
+A arquitetura de engenharia completa vive em um único documento canônico:
 
-### Domain Knowledge Base (Markdown knowledge management and the agent ecosystem)
-
-| File | Language | Role |
+| Arquivo | Idioma | Papel |
 |---|---|---|
-| [`docs/knowledge-base.md`](docs/knowledge-base.md) | Portuguese (pt-BR) | **Canonical version** — domain facts about the space the product operates in |
+| [`docs/architecture-guide.md`](docs/architecture-guide.md) | Português (pt-BR) | **Versão canônica**, fonte única de verdade de todas as decisões de engenharia |
 
-Contains **only domain facts** that would remain true if this product did not exist: Markdown and its universal syntax, personal-knowledge-management practice (vaults, wikilinks, backlinks, templates), the Model Context Protocol and its authorization model, how agent clients consume connectors, context engineering, retrieval (embeddings, chunking, RAG) and its failure modes, knowledge graphs, audit and provenance requirements in regulated work, LGPD obligations, and general multi-tenant SaaS isolation concepts. No MemoryVault entities, no `RN-XXX` codes, no architecture.
+Contém: stack de tecnologia, estrutura do monorepo, DDD tático (agregados, value objects, eventos de domínio), portas e adaptadores hexagonais, isolamento por assinatura, desenho single-table no DynamoDB, Content Slots, transações e outbox, projeções de discovery, armazenamento de proveniência, integração MCP/OAuth, API interna, infraestrutura, requisitos não funcionais, estratégia de testes, CI/CD, antipadrões e a sequência de construção.
 
-### Software Vision (product requirements and business rules)
+**Não** contém: visão de produto, regras de negócio (códigos `RN-XXX`), telas de usuário ou fatos gerais do domínio. Esses vivem nos dois documentos abaixo.
 
-| File | Language | Role |
+---
+
+## Base de conhecimento
+
+A documentação do projeto se divide em duas outras preocupações, conhecimento de domínio e visão de software:
+
+### Base de conhecimento de domínio (gestão de conhecimento em Markdown e o ecossistema de agentes)
+
+| Arquivo | Idioma | Papel |
 |---|---|---|
-| [`docs/software-vision.md`](docs/software-vision.md) | Portuguese (pt-BR) | **Canonical version** — authoritative for all implementation decisions |
+| [`docs/knowledge-base.md`](docs/knowledge-base.md) | Português (pt-BR) | **Versão canônica**, fatos de domínio sobre o espaço em que o produto opera |
 
-Contains: product vision and thesis, product principles, ubiquitous language, the **business model** (Subscription → Workspace → Vault, subscription lifecycle, roles), permission matrix and per-vault role ceiling, bounded-context map from a product standpoint, domain entities with field definitions, business rules (`RN-XXX` codes), the MCP tool catalogue as a **product contract**, UI screens, export, release scope and product risks.
+Contém **apenas fatos de domínio** que continuariam verdadeiros se este produto não existisse: Markdown e sua sintaxe universal, a prática de gestão de conhecimento pessoal (vaults, wikilinks, backlinks, templates), o Model Context Protocol e seu modelo de autorização, como clientes de agente consomem conectores, engenharia de contexto, recuperação (embeddings, chunking, RAG) e seus modos de falha, grafos de conhecimento, exigências de auditoria e proveniência em trabalho regulado, obrigações da LGPD e conceitos gerais de isolamento em SaaS multi-tenant. Nenhuma entidade do MemoryVault, nenhum código `RN-XXX`, nenhuma arquitetura.
 
-For technical implementation details (DynamoDB key design, Content Slots, outbox mechanics, Cognito triggers, CDK stacks), always defer to `docs/architecture-guide.md` — `software-vision.md` must not duplicate that content.
+### Visão de software (requisitos de produto e regras de negócio)
 
-### Boundary rule between the three documents
+| Arquivo | Idioma | Papel |
+|---|---|---|
+| [`docs/software-vision.md`](docs/software-vision.md) | Português (pt-BR) | **Versão canônica**, autoritativa para todas as decisões de implementação |
 
-Before writing a paragraph into `docs/`, decide which question it answers:
+Contém: visão e tese do produto, princípios de produto, linguagem ubíqua, o **modelo de negócio** (Subscription → Workspace → Vault, ciclo de vida da assinatura, papéis), matriz de permissões e teto de papel por vault, mapa de bounded contexts do ponto de vista de produto, entidades de domínio com definição de campos, regras de negócio (códigos `RN-XXX`), o catálogo de ferramentas MCP como **contrato de produto**, telas, export, recorte de versão e riscos de produto.
 
-| The paragraph answers | It belongs in |
+Para detalhes técnicos de implementação (desenho de chaves do DynamoDB, Content Slots, mecânica do outbox, triggers do Cognito, stacks de CDK), sempre remeta a `docs/architecture-guide.md`. O `software-vision.md` não pode duplicar esse conteúdo.
+
+### Regra de fronteira entre os três documentos
+
+Antes de escrever um parágrafo em `docs/`, decida a qual pergunta ele responde:
+
+| O parágrafo responde | Ele pertence a |
 |---|---|
-| "This is true about Markdown / MCP / auditing in general" | `knowledge-base.md` |
-| "This is what our product does, and under which rule" | `software-vision.md` |
-| "This is how we build it" | `architecture-guide.md` |
+| "Isto é verdade sobre Markdown / MCP / auditoria em geral" | `knowledge-base.md` |
+| "Isto é o que o nosso produto faz, e sob qual regra" | `software-vision.md` |
+| "Isto é como construímos" | `architecture-guide.md` |
 
-When a fact seems to fit two documents, it goes in exactly one and the other **references it by section** — never restates it. Duplication across these three files is the failure mode this structure exists to prevent.
+Quando um fato parece caber em dois documentos, ele entra em exatamente um e o outro **o referencia por seção**, jamais o repete. Duplicação entre esses três arquivos é o modo de falha que esta estrutura existe para evitar.
 
-### Business rule codes
+### Códigos de regra de negócio
 
-Business rules are stated only in `software-vision.md`, one rule per line, with a stable code:
+Regras de negócio são declaradas apenas no `software-vision.md`, uma regra por linha, com um código estável:
 
 ```
 RN-{CONTEXT}-{NNN}
 ```
 
-`CONTEXT` is the three-letter bounded-context tag: `SUB` (subscription and isolation), `ACC` (access: workspaces, members, roles, invites), `KNW` (knowledge), `DSC` (discovery), `AUD` (audit), `AGT` (agent access / MCP), `PRT` (portability).
+`CONTEXT` é a sigla de três letras do bounded context: `SUB` (assinatura e isolamento), `ACC` (acesso: workspaces, membros, papéis, convites), `KNW` (conhecimento), `DSC` (discovery), `AUD` (auditoria), `AGT` (acesso de agente / MCP), `PRT` (portabilidade).
 
-Codes are **append-only**. Never renumber a rule and never reuse a retired code — other documents, commits and issues reference them. A rule that no longer applies is marked as removed in the same line, keeping its number.
+Os códigos são **append-only**. Nunca renumere uma regra e nunca reutilize um código aposentado, porque outros documentos, commits e issues os referenciam. Uma regra que deixou de valer é marcada como removida na própria linha, preservando seu número.
 
 ---
 
-## Documentation Hygiene
+## Higiene da documentação
 
-**Never append version notes, review dates, or internal-use footers to any file in `docs/`.** Lines of the form:
+**Nunca acrescente notas de versão, datas de revisão ou rodapés de uso interno a qualquer arquivo em `docs/`.** Linhas da forma:
 
 ```
 *Documento para uso interno de desenvolvimento. Última revisão: … — vX.Y (…)*
 ```
 
-are forbidden. They duplicate information already captured in git history and `CHANGELOG.md`, drift out of sync immediately, and add noise that readers must filter out.
+são proibidas. Elas duplicam informação já registrada no histórico do git e no `CHANGELOG.md`, saem de sincronia imediatamente e acrescentam ruído que o leitor precisa filtrar.
 
-**Where change history belongs:**
+**Onde o histórico de mudanças pertence:**
 
-- **`CHANGELOG.md`** — the single place where notable changes to the project (including significant documentation updates) are recorded. Add an entry here when opening a pull request, not as an inline footnote inside the edited document.
-- **Git commit messages** — every commit already records what changed, when, and why. That is the audit trail for document edits.
+- **`CHANGELOG.md`**, o único lugar onde mudanças notáveis do projeto são registradas, incluindo atualizações relevantes de documentação. Acrescente a entrada ao abrir um pull request, e não como nota de rodapé dentro do documento editado.
+- **Mensagens de commit do git**, já que todo commit registra o que mudou, quando e por quê. Essa é a trilha de auditoria das edições de documento.
 
-**Rule:** when editing any `docs/*.md` file, do not add, update, or preserve any trailing footnote that mentions a version number, a review date, or the phrase "uso interno de desenvolvimento". If such a note already exists in a file being edited, remove it as part of the same change.
-
----
-
-## Language Policy
-
-**All project artifacts must be written in American English (en-US)**, with the single, explicit exception of `docs/*.md`, which is written in Brazilian Portuguese (pt-BR).
-
-The English rule covers without exception:
-- Source code (identifiers, comments, docblocks)
-- Git commit messages, branch names, and pull request descriptions
-- Configuration files, `README.md`, `CHANGELOG.md`, `CLAUDE.md`
-- Log and error messages in code
-- DynamoDB attribute names, S3 key components, EventBridge event names
-- API endpoint names, MCP tool names and tool descriptions
-- User-facing UI strings (labels, messages, placeholders, tooltips) — must use i18n translation keys (never hardcoded). `en_US` is the canonical locale; `pt_BR` is the second required locale. Both translation files must stay in sync.
-
-**The `docs/` exception.** The three architecture and product documents are written in pt-BR because they are the reasoning surface between the product owner and the agent, and reasoning is done in the reader's language. Inside them, **code identifiers, file paths, entity field names, event names, tool names and error codes stay in en-US and are never translated** — a pt-BR document referencing `NoteId`, `get_vault_context` or `PRECONDITION_FAILED` writes them exactly as the code does.
-
-**When en-US versions of the docs are created**, they become the canonical pair member and this policy switches to the bilingual sync rule: any edit to either file in a pair must be reflected in the other before the task is considered complete, with the en-US file taking precedence on conflict. Do not create half a pair.
-
-**Locale-sensitive formatting** (dates, numbers) is runtime behavior driven by `Intl` APIs — governed by the active locale, not by this policy.
+**Regra:** ao editar qualquer arquivo `docs/*.md`, não adicione, não atualize e não preserve nenhuma nota de rodapé que mencione número de versão, data de revisão ou a expressão "uso interno de desenvolvimento". Se uma nota assim já existir em um arquivo que está sendo editado, remova-a na mesma mudança.
 
 ---
 
-## Non-Negotiable Design Rules
+## Política de idioma
 
-These are the load-bearing decisions of the system. They are stated in full in `docs/architecture-guide.md`; they are repeated here because violating any one of them is not a bug to fix later — it is a rewrite. When a task appears to require breaking one, stop and raise it instead of working around it.
+**Toda a documentação do repositório é escrita em português do Brasil (pt-BR). Todo o código fonte da solução é escrito em inglês americano (en-US).**
 
-| # | Rule | Where it is enforced |
+### Escrito em pt-BR
+
+- `docs/*.md`, os três documentos de arquitetura, produto e domínio
+- `README.md`
+- `CHANGELOG.md`, com exceção dos títulos de categoria do formato Keep a Changelog (`Added`, `Changed`, `Fixed`, `Removed`, `Deprecated`, `Security`), que são vocabulário do padrão e permanecem em inglês
+- `CLAUDE.md`
+- Mensagens de commit e descrições de pull request, preservando em inglês apenas os prefixos e escopos de Conventional Commits (`feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `chore(release)`), que são tokens de ferramenta
+- Qualquer outro documento de prosa criado no repositório
+
+### Escrito em en-US
+
+- Código fonte: identificadores, comentários e docblocks
+- Nomes de branch
+- Arquivos de configuração
+- Mensagens de log e de erro no código
+- Nomes de atributo do DynamoDB, componentes de chave do S3, nomes de evento do EventBridge
+- Nomes de endpoint da API, nomes e descrições de ferramentas MCP
+- Textos de interface visíveis ao usuário, que devem usar chaves de tradução i18n e nunca literais no código. `en_US` é o locale canônico e `pt_BR` é o segundo locale obrigatório. Os dois arquivos de tradução precisam permanecer sincronizados
+
+### Termos que nunca são traduzidos
+
+Dentro de um texto em pt-BR, **identificadores de código, caminhos de arquivo, nomes de campo de entidade, nomes de evento, nomes de ferramenta e códigos de erro permanecem em en-US e nunca são traduzidos**. Um documento em pt-BR que cita `NoteId`, `get_vault_context` ou `PRECONDITION_FAILED` os escreve exatamente como o código escreve.
+
+O mesmo vale para os termos da **linguagem ubíqua** do produto, que existem simultaneamente como conceito no texto e como símbolo no código: `Vault`, `Workspace`, `Subscription`, `Guidance`, `Template`, `Note`, `Content Slot`, `Content Role`, `Vault Context`. Traduzi-los na prosa romperia a correspondência entre o texto e o código, que é justamente o que a linguagem ubíqua existe para garantir. Termos técnicos consagrados de engenharia seguem a mesma regra e permanecem na forma original: bounded context, outbox, single-table design, embeddings, chunking, backlink, value object.
+
+Um termo em inglês que **não** é símbolo do código nem termo técnico consagrado deve ser escrito em português.
+
+### Travessão
+
+**O travessão (`—`) é proibido na prosa da documentação.** Em português ele produz frases longas e ambíguas, e quase sempre existe uma pontuação melhor: vírgula para aposto, dois pontos para explicação, ponto final para uma oração que se sustenta sozinha, parênteses para incidente.
+
+A proibição vale para a prosa. Continua permitido usar o caractere onde ele não é pontuação: como marcador de célula vazia em tabela, dentro de blocos de código, em desenhos de árvore e em diagramas ASCII.
+
+### Formatação sensível a locale
+
+Formatação de data e número é comportamento de runtime, conduzido pelas APIs `Intl` e governado pelo locale ativo, não por esta política.
+
+---
+
+## Regras de desenho inegociáveis
+
+Estas são as decisões estruturais do sistema. Elas estão declaradas por extenso em `docs/architecture-guide.md` e são repetidas aqui porque violar qualquer uma delas não é um defeito para corrigir depois: é uma reescrita. Quando uma tarefa parecer exigir quebrar uma delas, pare e levante a questão em vez de contornar.
+
+| # | Regra | Onde é garantida |
 |---|---|---|
-| 1 | **Every key starts with the subscription.** Every DynamoDB item key begins with `S#{subscriptionId}`; every S3 key begins with `s/{subscriptionId}/`. Exactly two exceptions exist and both are named in the design: the user↔subscription link, and the platform queue index. | Key builders accept only a `SubscriptionId` value object |
-| 2 | **`subscriptionId` comes from the JWT claim, never from the request.** Not from path, query, body, or header. | Lambda Authorizer + `SubscriptionContext` injected per request |
-| 3 | **`domain/` and `application/` import no AWS SDK.** No exceptions, including "just for a type". | `dependency-cruiser` rule in CI — the build fails |
-| 4 | **The S3 key is opaque.** It encodes no vault, folder, name, or role — only a `ContentId`. Renaming, moving and reordering must never write a byte to S3. | `s/{subscriptionId}/c/{contentId}.md` is built only inside the S3 adapter |
-| 5 | **The backend never interprets note content.** Frontmatter, field names and conventions belong to the vault's Guidance and Template. The backend reads only universal Markdown syntax (links, headings). | `LinkExtractor` is the only content reader |
-| 6 | **The audit trail is append-only by IAM, not by discipline.** The audit role carries an explicit `Deny` on `UpdateItem` and `DeleteItem`. | IAM policy + an isolation test in the suite |
-| 7 | **Every state-changing domain operation takes an `Authorship`.** There is no anonymous mutation; the signature makes it impossible. | Aggregate method signatures |
-| 8 | **Deleting a note never destroys bytes.** Soft delete only; byte destruction is an administrative act with its own port, its own role and its own event. | `ContentStore` has no `purge` method |
-| 9 | **A forbidden resource returns `404`, never `403`.** `403` would confirm the existence of something the requester may not see. | Error taxonomy in `memoryvault-backend/packages/kernel` |
-| 10 | **A note transaction never writes to the vault's `META` item.** That single item would become the contention point of the whole vault under batch ingestion. | Repository transaction shape + a concurrency test |
-| 11 | **The subscription id is perpetual.** No status transition — approve, suspend, cancel, reactivate — ever moves, rekeys or deletes data. Status governs access, never address. | `SubscriptionId` is `readonly`; no repository reads status to build a key |
-| 12 | **A platform-admin session carries no subscription.** Its token has no `subscription_id` claim, so no Knowledge repository can even be constructed under it. Never add a role check as a substitute — the impossibility is the guarantee. | `SubscriptionContext` requires the claim; isolation test asserts the failure mode |
-| 13 | **A per-vault role ceiling only lowers a role, never raises one.** Effective role is `min(workspace role, vault ceiling)`, with the subscription owner above both. | `Role` is an ordered enum exposing `Role.min`; no code path assigns a role directly |
+| 1 | **Toda chave começa pela assinatura.** Toda chave de item do DynamoDB começa por `S#{subscriptionId}` e toda chave de S3 por `s/{subscriptionId}/`. Existem exatamente duas exceções, ambas nomeadas no desenho: o elo usuário↔assinatura e o índice da fila de plataforma. | Os construtores de chave aceitam apenas um value object `SubscriptionId` |
+| 2 | **O `subscriptionId` vem da claim do JWT, nunca da requisição.** Não vem de path, query, body nem header. | Lambda Authorizer e `SubscriptionContext` injetado por requisição |
+| 3 | **`domain/` e `application/` não importam o AWS SDK.** Sem exceção, incluindo "só para pegar um tipo". | Regra do `dependency-cruiser` em CI, que quebra o build |
+| 4 | **A chave do S3 é opaca.** Ela não codifica vault, pasta, nome nem papel, apenas um `ContentId`. Renomear, mover e reordenar jamais podem escrever um byte no S3. | `s/{subscriptionId}/c/{contentId}.md` é construída apenas dentro do adaptador de S3 |
+| 5 | **O backend nunca interpreta o conteúdo da nota.** Frontmatter, nomes de campo e convenções pertencem ao Guidance e ao Template do vault. O backend lê apenas sintaxe universal de Markdown (links, headings). | `LinkExtractor` é o único leitor de conteúdo |
+| 6 | **A trilha de auditoria é append-only por IAM, não por disciplina.** O papel de auditoria carrega um `Deny` explícito em `UpdateItem` e `DeleteItem`. | Política de IAM e um teste de isolamento na suíte |
+| 7 | **Toda operação de domínio que muda estado recebe um `Authorship`.** Não existe mutação anônima; a assinatura do método a torna impossível. | Assinaturas dos métodos de agregado |
+| 8 | **Apagar uma nota nunca destrói bytes.** Apenas soft delete; destruir bytes é ato administrativo com porta própria, papel próprio e evento próprio. | `ContentStore` não tem método `purge` |
+| 9 | **Um recurso proibido devolve `404`, nunca `403`.** O `403` confirmaria a existência de algo que o solicitante não pode ver. | Taxonomia de erros em `memoryvault-backend/packages/kernel` |
+| 10 | **A transação de uma nota nunca escreve no item `META` do vault.** Esse item único viraria o ponto de contenção do vault inteiro sob ingestão em lote. | Formato da transação no repositório e um teste de concorrência |
+| 11 | **O identificador da assinatura é perpétuo.** Nenhuma transição de status, seja aprovar, suspender, cancelar ou reativar, move, rechaveia ou apaga dado. O status governa acesso, nunca endereço. | `SubscriptionId` é `readonly` e nenhum repositório lê status para construir chave |
+| 12 | **Uma sessão de administrador de plataforma não carrega assinatura.** Seu token não tem a claim `subscription_id`, então nenhum repositório de Knowledge pode sequer ser construído sob ela. Nunca acrescente uma checagem de papel como substituto: a impossibilidade é a garantia. | `SubscriptionContext` exige a claim, e um teste de isolamento verifica o modo de falha |
+| 13 | **O teto de papel por vault só rebaixa um papel, nunca eleva.** O papel efetivo é `min(papel de workspace, teto do vault)`, com o owner da assinatura acima dos dois. | `Role` é um enum ordenado que expõe `Role.min`, e nenhum caminho de código atribui papel diretamente |
 
 ---
 
-## Ignore Files Policy
+## Política de arquivos ignorados
 
-Whenever Claude creates, moves, deletes, or modifies files or directories, it must evaluate whether `.gitignore` and `.dockerignore` need to be updated.
+Sempre que o Claude cria, move, apaga ou modifica arquivos e diretórios, ele precisa avaliar se `.gitignore` e `.dockerignore` precisam ser atualizados.
 
-**Update `.gitignore` when:** new build output dirs (`dist/`, `cdk.out/`, `build/`), dependency dirs (`node_modules/`), env/secret files (`.env`, `*.key`), cache/temp dirs (`.cache/`, `tmp/`, `.turbo/`), IDE and editor files (`.idea/`, `.vscode/`, `.obsidian/`), or coverage dirs (`coverage/`) are introduced.
+**Atualize o `.gitignore` quando:** surgirem novos diretórios de saída de build (`dist/`, `cdk.out/`, `build/`), diretórios de dependências (`node_modules/`), arquivos de ambiente ou segredo (`.env`, `*.key`), diretórios de cache ou temporários (`.cache/`, `tmp/`, `.turbo/`), arquivos de IDE e editor (`.idea/`, `.vscode/`, `.obsidian/`) ou diretórios de cobertura (`coverage/`).
 
-**Update `.dockerignore` when:** new dirs exist that should not be copied into build contexts, new build artifacts or local configs are added, or new secret/env files are created.
+**Atualize o `.dockerignore` quando:** existirem novos diretórios que não devem ser copiados para o contexto de build, forem adicionados novos artefatos de build ou configurações locais, ou forem criados novos arquivos de segredo ou ambiente.
 
-**Rules:**
-- Never leave untracked sensitive files without a `.gitignore` entry
-- Keep build contexts lean — never copy unnecessary files
-- Both files must be reviewed together — a change affecting one usually affects the other
-- If `.dockerignore` does not exist and Docker files are present, create it
-- If `.gitignore` does not exist, create it before committing any new files
+**Regras:**
+- Nunca deixe arquivos sensíveis não rastreados sem entrada no `.gitignore`
+- Mantenha o contexto de build enxuto e nunca copie arquivo desnecessário
+- Os dois arquivos precisam ser revisados juntos, porque uma mudança que afeta um normalmente afeta o outro
+- Se o `.dockerignore` não existir e houver arquivos Docker presentes, crie-o
+- Se o `.gitignore` não existir, crie-o antes de commitar qualquer arquivo novo
 
-**Standard `.dockerignore` entries to always include:**
+**Entradas padrão que o `.dockerignore` sempre deve incluir:**
 ```
 .git/
 .claude/
@@ -227,31 +249,31 @@ docs/
 
 ---
 
-## Versioning Policy
+## Política de versionamento
 
-This project uses a **three-layer versioning model** defined in full in `docs/architecture-guide.md` § Versioning strategy. The summary below governs agent behavior.
+Este projeto usa um **modelo de versionamento em três camadas**, definido por extenso em `docs/architecture-guide.md` § Estratégia de versionamento. O resumo abaixo governa o comportamento do agente.
 
-### Source of truth
+### Fonte de verdade
 
-The canonical product version lives in `CLAUDE.md` under `## Project Identity → Base version`.
-It must be propagated to every `package.json` in the monorepo and to `CHANGELOG.md` before a release commit is made.
+A versão canônica do produto vive no `CLAUDE.md`, em `## Identidade do projeto → Versão base`.
+Ela precisa ser propagada para todo `package.json` do monorepo e para o `CHANGELOG.md` antes que o commit de release seja feito.
 
-### When to bump
+### Quando incrementar
 
-| Change type | Bump |
+| Tipo de mudança | Incremento |
 |---|---|
-| Breaking MCP tool contract, breaking API contract, destructive key/schema migration | Major (`2.0.0`) |
-| New MCP tool, new user-visible feature, new service, new API route | Minor (`0.2.0`) |
-| Bug fix, config tweak, refactor with no external impact | Patch (`0.1.1`) |
+| Quebra de contrato de ferramenta MCP, quebra de contrato da API, migração destrutiva de chave ou schema | Maior (`2.0.0`) |
+| Nova ferramenta MCP, nova funcionalidade visível ao usuário, novo serviço, nova rota de API | Menor (`0.2.0`) |
+| Correção de defeito, ajuste de configuração, refatoração sem impacto externo | Correção (`0.1.1`) |
 
-The MCP tool surface is the product's **public contract** (`docs/software-vision.md` § MCP). Removing a tool, renaming an argument, or narrowing a return shape is a major bump even when no internal API changed.
+A superfície de ferramentas MCP é o **contrato público** do produto (`docs/software-vision.md` § MCP). Remover uma ferramenta, renomear um argumento ou estreitar um formato de retorno é incremento maior, mesmo que nenhuma API interna tenha mudado.
 
-### Version bump flow
+### Fluxo de incremento de versão
 
-Execute in this exact order:
+Execute nesta ordem exata:
 
 ```
-1. Update  CLAUDE.md                                       ← bump "Base version" under Project Identity
+1. Update  CLAUDE.md                                       ← bump "Versão base" under Identidade do projeto
 2. Update  memoryvault-backend/package.json
            memoryvault-backend/packages/*/package.json
            memoryvault-backend/services/*/package.json     ← every service package
@@ -265,119 +287,119 @@ Execute in this exact order:
    gh release create vX.Y.Z --title "vX.Y.Z" --notes-file <changelog-section>
 ```
 
-The three projects share one product version — they are deployed together and a mismatch between them is never meaningful to a user.
+Os três projetos compartilham uma única versão de produto, porque são implantados juntos e uma divergência entre eles nunca significa nada para o usuário.
 
-Steps 1–5 must land in the same commit on the release branch. The version bump reaches `main` only through the PR in step 7 — never push it directly. Never tag before the PR is merged, and never push a tag whose commit is not yet on `main`. The tag must point at the merged commit; the GitHub Release (step 9) is created from that tag.
+Os passos 1 a 5 precisam entrar no mesmo commit da branch de release. O incremento de versão chega à `main` somente pelo PR do passo 7, e nunca por push direto. Nunca marque a tag antes do PR estar mesclado e nunca envie uma tag cujo commit ainda não esteja na `main`. A tag precisa apontar para o commit mesclado, e o GitHub Release do passo 9 é criado a partir dessa tag.
 
 ---
 
-## CHANGELOG Maintenance Policy
+## Política de manutenção do CHANGELOG
 
-`CHANGELOG.md` must be kept current throughout the life of a feature branch — not only at release time.
+O `CHANGELOG.md` precisa ser mantido atualizado ao longo de toda a vida de uma branch de feature, e não apenas no momento do release.
 
-### When to update
+### Quando atualizar
 
-Update `CHANGELOG.md` **in the same commit** as the change it documents. Every incremental commit that touches user-visible behavior, adds a new capability, fixes a bug, or removes something must include a corresponding entry in the `[Unreleased]` section.
+Atualize o `CHANGELOG.md` **no mesmo commit** da mudança que ele documenta. Todo commit incremental que altere comportamento visível ao usuário, acrescente uma capacidade, corrija um defeito ou remova algo precisa incluir a entrada correspondente na seção `[Unreleased]`.
 
-Do **not** batch changelog entries at the end of a branch. Each entry belongs alongside the commit that introduced it.
+**Não** acumule entradas de changelog para o fim da branch. Cada entrada pertence ao commit que a introduziu.
 
-### How to write entries
+### Como escrever as entradas
 
-Use the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) categories. Pick the most accurate one:
+Use as categorias do [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Escolha a mais precisa:
 
-| Category | Use when |
+| Categoria | Use quando |
 |---|---|
-| `Added` | New feature, new MCP tool, new route, new service, new config option |
-| `Changed` | Behavior change in an existing feature, key/schema migration, UI redesign |
-| `Fixed` | Bug fix — describe the symptom that was corrected |
-| `Removed` | Feature, route, tool, field, or dependency deleted |
-| `Deprecated` | Something marked for future removal |
-| `Security` | Vulnerability fix or security hardening (subscription isolation, authorization, audit immutability) |
+| `Added` | Nova funcionalidade, nova ferramenta MCP, nova rota, novo serviço, nova opção de configuração |
+| `Changed` | Mudança de comportamento em funcionalidade existente, migração de chave ou schema, redesenho de UI |
+| `Fixed` | Correção de defeito. Descreva o sintoma que foi corrigido |
+| `Removed` | Funcionalidade, rota, ferramenta, campo ou dependência removida |
+| `Deprecated` | Algo marcado para remoção futura |
+| `Security` | Correção de vulnerabilidade ou endurecimento de segurança (isolamento por assinatura, autorização, imutabilidade da auditoria) |
 
-Write entries from the user/agent perspective, not the implementation perspective. Describe what changed in the product, not which files were edited.
+Escreva as entradas da perspectiva do usuário e do agente, não da implementação. Descreva o que mudou no produto, não quais arquivos foram editados.
 
-**Good:** `Added asOf argument to read_note, returning the revision in force on a given date`
-**Bad:** `Updated NoteQueryHandler.ts to accept an optional timestamp`
+**Bom:** `Adicionado o argumento asOf em read_note, que devolve a revisão vigente em uma data`
+**Ruim:** `Atualizado NoteQueryHandler.ts para aceitar um timestamp opcional`
 
-Group multiple small entries under the same category rather than writing one entry per file touched.
+Agrupe várias entradas pequenas sob a mesma categoria em vez de escrever uma entrada por arquivo tocado.
 
-Documentation restructures inside `docs/` are notable changes and get an entry.
+Restruturações de documentação dentro de `docs/` são mudanças notáveis e recebem entrada.
 
-### At release time
+### No momento do release
 
-When cutting a release (following the Version bump flow), rename `[Unreleased]` to `[{version}] - {date}`, add the new empty `[Unreleased]` section above it, and update the comparison links at the bottom of the file.
-
----
-
-## Branch Protection Policy
-
-`main` is a protected branch. **All changes reach `main` only through a reviewed pull request that is merged on GitHub** — features, fixes, docs, chores, and release/version bumps alike.
-
-**Hard rules:**
-- Never commit or push directly to `main`. Always create a working branch (`feat/…`, `fix/…`, `chore/…`, `docs/…`), push it, open a PR, and merge via GitHub.
-- Never bypass branch protection. Do not use "Bypass rules and merge", `gh ... --admin`, `git push --no-verify`, or any equivalent override — even when you have admin rights to do so.
-- If a merge is blocked (e.g. a required review is missing), stop and report it. Ask the user how to proceed instead of overriding the rule.
-- The only writes that ever touch `main` directly are **annotated tags** on already-merged commits (see the Versioning Policy → Version bump flow).
-
-**Why:** the protection rule is the real enforcement layer; bypassing it silently defeats the purpose. Routing every change through a PR keeps `main` reviewable, auditable, and always green.
+Ao cortar um release, seguindo o fluxo de incremento de versão, renomeie `[Unreleased]` para `[{versão}] - {data}`, acrescente a nova seção `[Unreleased]` vazia acima dela e atualize os links de comparação no fim do arquivo.
 
 ---
 
-## Incremental Commit Policy
+## Política de proteção de branch
 
-When working on a feature branch, commit and push incrementally — do not accumulate all changes into a single end-of-task commit.
+A `main` é uma branch protegida. **Toda mudança chega à `main` apenas por um pull request revisado e mesclado no GitHub**, valendo igualmente para features, correções, documentação, tarefas de manutenção e incrementos de versão.
 
-**When to commit:**
-- After completing any self-contained unit of work (an aggregate, a port and its in-memory adapter, an API route, a CDK stack, a passing test suite run).
-- Whenever a meaningful milestone is reached, even if the overall task is not yet finished.
-- Before switching context to a different area of the codebase within the same task.
+**Regras rígidas:**
+- Nunca commite nem faça push direto na `main`. Sempre crie uma branch de trabalho (`feat/…`, `fix/…`, `chore/…`, `docs/…`), envie-a, abra um PR e mescle pelo GitHub.
+- Nunca contorne a proteção de branch. Não use "Bypass rules and merge", `gh ... --admin`, `git push --no-verify` nem qualquer equivalente, mesmo tendo direito de administrador para isso.
+- Se um merge estiver bloqueado, por exemplo por falta de uma revisão obrigatória, pare e reporte. Pergunte ao usuário como proceder em vez de sobrepor a regra.
+- As únicas escritas que tocam a `main` diretamente são **tags anotadas** sobre commits já mesclados (ver Política de versionamento → Fluxo de incremento de versão).
 
-**Commit hygiene:**
-- Each commit must be buildable and must not break existing tests — never commit a half-implemented state that leaves the branch in a broken state.
-- Write a concise, descriptive commit message following the project's commit style (imperative mood, present tense, e.g. `feat(knowledge): add fractional Position value object`).
-- Push to the remote branch after every commit, or at least after every two to three consecutive commits.
-
-**Why:** Frequent pushes protect in-progress work from local machine failures, make code review easier by providing a clear history of decisions, and allow collaborators to see progress without waiting for a final PR.
+**Por quê:** a regra de proteção é a camada real de garantia, e contorná-la em silêncio anula o propósito. Rotear toda mudança por um PR mantém a `main` revisável, auditável e sempre verde.
 
 ---
 
-## Pull Request Policy
+## Política de commits incrementais
 
-Every pull request description must contain two sections: a **Code Changes Summary** and an **AI Productivity Analysis**.
+Ao trabalhar em uma branch de feature, commite e envie incrementalmente. Não acumule todas as mudanças em um único commit no fim da tarefa.
 
-### Code Changes Summary
+**Quando commitar:**
+- Depois de concluir qualquer unidade de trabalho autocontida (um agregado, uma porta com seu adaptador em memória, uma rota de API, uma stack de CDK, uma suíte de testes passando).
+- Sempre que alcançar um marco relevante, mesmo que a tarefa como um todo ainda não esteja pronta.
+- Antes de trocar de contexto para outra área do código dentro da mesma tarefa.
 
-Describe what changed, why, and any relevant architectural decisions. Follow the existing PR template in the repository if one exists. When a change implements or alters a business rule, cite its `RN-XXX` code.
+**Higiene de commit:**
+- Todo commit precisa ser construível e não pode quebrar os testes existentes. Nunca commite um estado pela metade que deixe a branch quebrada.
+- Escreva uma mensagem de commit concisa e descritiva, seguindo o estilo do projeto: modo imperativo, tempo presente, por exemplo `feat(knowledge): adiciona value object Position fracionário`.
+- Envie para a branch remota depois de cada commit, ou no mínimo a cada dois ou três commits consecutivos.
 
-### AI Productivity Analysis
+**Por quê:** pushes frequentes protegem o trabalho em andamento contra falha da máquina local, facilitam a revisão por oferecerem um histórico claro das decisões e permitem que colaboradores acompanhem o progresso sem esperar o PR final.
 
-Append this section to every PR body. Collect the data from git history and the diff; do not guess or omit fields.
+---
+
+## Política de pull request
+
+Toda descrição de pull request precisa conter duas seções: um **Resumo das mudanças** e uma **Análise de produtividade com IA**.
+
+### Resumo das mudanças
+
+Descreva o que mudou, por quê, e quais decisões de arquitetura estão envolvidas. Siga o modelo de PR existente no repositório, se houver um. Quando uma mudança implementa ou altera uma regra de negócio, cite o código `RN-XXX` dela.
+
+### Análise de produtividade com IA
+
+Acrescente esta seção ao corpo de todo PR. Colete os dados do histórico do git e do diff, sem adivinhar e sem omitir campos.
 
 ```
-## AI Productivity Analysis
+## Análise de produtividade com IA
 
-| Metric | Value |
+| Métrica | Valor |
 |---|---|
-| Lines of code manipulated (added + removed) | {loc_added + loc_removed} ({loc_added} added, {loc_removed} removed) |
-| Branch duration | {duration} (from `{branch_start_date}` to `{pr_date}`) |
-| Technologies involved | {comma-separated list} |
+| Linhas de código manipuladas (adicionadas + removidas) | {loc_added + loc_removed} ({loc_added} adicionadas, {loc_removed} removidas) |
+| Duração da branch | {duration} (de `{branch_start_date}` a `{pr_date}`) |
+| Tecnologias envolvidas | {lista separada por vírgula} |
 
-### Estimated human effort (without AI assistance)
+### Esforço humano estimado (sem assistência de IA)
 
-> **Estimated effort:** {hours}h — equivalent to approximately {total_days} work days (8h/day) or {total_weeks} work weeks (40h/week).
+> **Esforço estimado:** {hours}h, equivalente a aproximadamente {total_days} dias de trabalho (8h/dia) ou {total_weeks} semanas de trabalho (40h/semana).
 ```
 
-**How to populate each field:**
+**Como preencher cada campo:**
 
-- **Lines of code manipulated** — run `git diff --stat origin/main...HEAD` and sum the insertions and deletions shown in the final totals line. Exclude lock files (`pnpm-lock.yaml`, `package-lock.json`) from the count.
-- **Branch duration** — use the date of the first commit of the branch as the start date; the PR date is today's date.
-- **Technologies involved** — list every language, framework, library, and toolchain touched by the diff (e.g. TypeScript, Node.js, AWS CDK, DynamoDB, S3, Bedrock, React, Vite, Hono, Zod). Derive from changed file extensions and import statements; do not list technologies present in the repo but untouched by this PR.
-- **Estimated human effort** — produce a single realistic estimate of how long a human engineer would need to deliver the same result working alone, without AI assistance. Base the estimate on:
-  - **Volume:** total lines of code manipulated (added + removed), weighted by complexity (boilerplate vs. logic-heavy code).
-  - **Breadth:** number of distinct technologies involved — each additional technology adds ramp-up and integration overhead.
-  - **Scope indicators:** number of new aggregates, ports, adapters, API routes, MCP tools, CDK stacks, and test coverage added.
-  - Express the result in hours (e.g. `8h`, `2h`). If the scope is very small (< 1h), use `< 1h`.
-- **Total estimated effort** — use the single estimated hours value from above. Then compute:
-  - `{total_days}` = `{hours}` ÷ 8, rounded to one decimal place
-  - `{total_weeks}` = `{hours}` ÷ 40, rounded to one decimal place
-  - If the estimate is `< 1h`, treat it as `0.5h` for arithmetic purposes and note the approximation inline.
+- **Linhas de código manipuladas:** rode `git diff --stat origin/main...HEAD` e some as inserções e remoções da linha final de totais. Exclua da contagem os arquivos de lock (`pnpm-lock.yaml`, `package-lock.json`).
+- **Duração da branch:** use a data do primeiro commit da branch como início, e a data de hoje como data do PR.
+- **Tecnologias envolvidas:** liste toda linguagem, framework, biblioteca e ferramenta tocada pelo diff, por exemplo TypeScript, Node.js, AWS CDK, DynamoDB, S3, Bedrock, React, Vite, Hono, Zod. Derive das extensões dos arquivos alterados e dos imports, e não liste tecnologias que existem no repositório mas não foram tocadas por este PR.
+- **Esforço humano estimado:** produza uma estimativa realista única de quanto tempo uma pessoa engenheira levaria para entregar o mesmo resultado sozinha, sem assistência de IA. Baseie a estimativa em:
+  - **Volume:** total de linhas manipuladas (adicionadas + removidas), ponderado por complexidade, distinguindo código repetitivo de código com lógica densa.
+  - **Amplitude:** número de tecnologias distintas envolvidas, já que cada tecnologia adicional acrescenta curva de aprendizado e custo de integração.
+  - **Indicadores de escopo:** número de agregados, portas, adaptadores, rotas de API, ferramentas MCP e stacks de CDK novos, além da cobertura de testes acrescentada.
+  - Expresse o resultado em horas, por exemplo `8h` ou `2h`. Se o escopo for muito pequeno (menos de 1h), use `< 1h`.
+- **Esforço total estimado:** use o valor único de horas acima. Em seguida calcule:
+  - `{total_days}` = `{hours}` ÷ 8, arredondado para uma casa decimal
+  - `{total_weeks}` = `{hours}` ÷ 40, arredondado para uma casa decimal
+  - Se a estimativa for `< 1h`, trate como `0.5h` para efeito de conta e registre a aproximação na própria linha.
