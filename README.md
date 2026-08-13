@@ -11,7 +11,7 @@ Vault
 ├── README.md          ← Orientação: para que serve este vault e como estruturar as notas
 └── Pastas (ordenadas) ← cada uma com uma descrição: o que se guarda aqui
     ├── TEMPLATE.md    ← Modelo: como as notas desta pasta se estruturam
-    ├── subpastas
+    ├── subpastas (ordenadas)
     └── notas .md
 ```
 
