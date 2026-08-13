@@ -1,8 +1,6 @@
-# MemoryVault.guru
+O **MemoryVault.guru** auxilia com a manipulação de cofres de conhecimento em **Markdown**, com estrutura declarada, facilitando o acesso nativo pelas ferramentas de IA através de MCP.
 
-Cofres de conhecimento em **Markdown**, com estrutura declarada, acessíveis nativamente pelas ferramentas de IA.
-
-O agente não só lê o vault, ele o **alimenta**. Lê um corpo de normas e escreve o conhecimento como notas, obedecendo às orientações do próprio vault; depois, outro trabalho usa essa base para produzir um relatório ou uma auditoria.
+O agente não só lê o vault, ele o **alimenta**. Através dele é possível realizar a leitura de uma fonte de informação (livro, norma, curso, etc) e estruturar o conhecimento como notas, obedecendo às orientações do próprio vault. Essa estrutura facilita a leitura do humano e do agente de IA durante a construção de novos trabalhos.
 
 ---
 
@@ -23,7 +21,7 @@ E não são nomes de arquivo. São **papéis**: o vault aponta um documento como
 
 ## Interface
 
-O contrato público é um **MCP server remoto** (OAuth 2.1), conector nativo em Claude web, desktop, Code, Cowork e CLI. A chamada central é `get_vault_context`, que devolve o Guidance integral mais a árvore anotada com descrições e ordem. É o equivalente a ler o README e rodar `ls -R` na pasta local, em uma única chamada.
+O contrato público é um **MCP server remoto** (OAuth 2.1), conector nativo para plataformas de IA. A chamada central é `get_vault_context`, que devolve o Guidance integral mais a árvore anotada com descrições e ordem. É o equivalente a ler o README e rodar `ls -R` na pasta local, em uma única chamada.
 
 Sobre isso: grafo de links (árvore de dependências e backlinks), busca semântica, histórico por revisão e uma UI de autoria.
 

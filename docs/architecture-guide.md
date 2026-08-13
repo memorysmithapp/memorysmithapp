@@ -3,7 +3,7 @@
 
 Este documento é a fonte da verdade para **como o produto é construído**. Descreve stack, estrutura do monorepo, modelo tático de domínio, portas e adaptadores, desenho de chaves, transações, projeções, infraestrutura, testes, CI/CD e a sequência de construção.
 
-Para **o que** o produto faz e sob qual regra de negócio, ver [`software-vision.md`](software-vision.md) — este documento não repete regras `RN-XXX`, referencia-as. Para fatos gerais do domínio (Markdown, MCP, RAG, auditoria, LGPD), ver [`knowledge-base.md`](knowledge-base.md).
+Para **o que** o produto faz e sob qual regra de negócio, ver [`software-vision.md`](software-vision.md). Este documento não repete regras `RN-XXX`, apenas as referencia. Para fatos gerais do domínio (Markdown, MCP, RAG, auditoria, LGPD), ver [`knowledge-base.md`](knowledge-base.md).
 
 ---
 
@@ -13,7 +13,7 @@ Para **o que** o produto faz e sob qual regra de negócio, ver [`software-vision
 2. [Princípios de engenharia](#2-princípios-de-engenharia)
 3. [Bounded contexts e forma de deploy](#3-bounded-contexts-e-forma-de-deploy)
 4. [Stack tecnológico](#4-stack-tecnológico)
-5. [Estrutura do monorepo e regra de dependência](#5-estrutura-do-monorepo-e-regra-de-dependência)
+5. [Estrutura do repositório e regra de dependência](#5-estrutura-do-repositório-e-regra-de-dependência)
 6. [Modelo de domínio (DDD tático)](#6-modelo-de-domínio-ddd-tático)
 7. [Portas e adaptadores](#7-portas-e-adaptadores)
 8. [Isolamento por assinatura](#8-isolamento-por-assinatura)
@@ -44,12 +44,12 @@ Para **o que** o produto faz e sob qual regra de negócio, ver [`software-vision
 
 | # | Decisão | Alternativa descartada |
 |---|---|---|
-| **D1** | **Acesso por agente via MCP server remoto** (OAuth 2.1, Streamable HTTP) | REST + token manual |
+| **D1** | **Acesso por agente via MCP server remoto** (OAuth 2.1, Streamable HTTP) | REST com token manual |
 | **D2** | **DynamoDB guarda todo o significado; S3 guarda blobs de Markdown sem significado** | Só S3; PostgreSQL; um repositório git por vault |
-| **D3** | **Isolamento por assinatura desde a primeira linha** — `SubscriptionId` na chave líder de todo item, em todo serviço | Introduzir a fronteira depois (= re-chavear tudo) |
-| **D4** | **Subscription → Workspace → Vault** — a assinatura é a fronteira **e** o objeto de negócio | Tenant técnico separado da assinatura; vault direto na assinatura |
-| **D5** | **DDD tático + Hexagonal, um deployable por bounded context** como desenho-alvo | Monólito modular (ver §24) |
-| **D6** | **Duas descobertas complementares — grafo de links e busca vetorial — ambas projeções de eventos** | Só busca lexical |
+| **D3** | **Isolamento por assinatura desde a primeira linha**, com `SubscriptionId` na chave líder de todo item, em todo serviço | Introduzir a fronteira depois, o que equivale a re-chavear tudo |
+| **D4** | **Subscription → Workspace → Vault**, em que a assinatura é a fronteira **e** o objeto de negócio | Tenant técnico separado da assinatura; vault direto na assinatura |
+| **D5** | **DDD tático mais Hexagonal, um deployable por bounded context** como desenho-alvo | Monólito modular (ver §24) |
+| **D6** | **Duas descobertas complementares, grafo de links e busca vetorial, ambas projeções de eventos** | Só busca lexical |
 | **D7** | **Proveniência e histórico imutável no núcleo** | Log de aplicação; versionamento apenas no S3 |
 
 ### 1.2 Topologia
@@ -79,14 +79,14 @@ Para **o que** o produto faz e sob qual regra de negócio, ver [`software-vision
 
 ## 2. Princípios de engenharia
 
-Contrapartida técnica dos princípios de produto (`software-vision.md` §2). Cada um tem um mecanismo que o torna verificável — princípio sem mecanismo é intenção.
+Contrapartida técnica dos princípios de produto (`software-vision.md` §2). Cada um tem um mecanismo que o torna verificável, porque princípio sem mecanismo é intenção.
 
 | # | Princípio | Mecanismo que o garante |
 |---|---|---|
-| **PE1** | **O domínio não conhece a AWS** | `domain/` e `application/` sem um único `import` de SDK — regra de dependência verificada no CI (§5.5) |
+| **PE1** | **O domínio não conhece a AWS** | `domain/` e `application/` sem um único `import` de SDK, com regra de dependência verificada no CI (§5.5) |
 | **PE2** | **A assinatura é tipo, não convenção** | Construtores de chave aceitam apenas o value object `SubscriptionId`, criável só a partir da claim do JWT (§8) |
 | **PE3** | **A chave do S3 é totalmente opaca** | A chave codifica apenas um `ContentId`; renomear, mover e reordenar não têm o que tocar nela (§9.2) |
-| **PE4** | **O passado é imutável** | `Deny` de IAM em `UpdateItem`/`DeleteItem` na tabela de auditoria; sem `purge` na porta de conteúdo (§12) |
+| **PE4** | **O passado é imutável** | `Deny` de IAM em `UpdateItem` e `DeleteItem` na tabela de auditoria; sem `purge` na porta de conteúdo (§12) |
 | **PE5** | **Descoberta é derivada** | Projeções reconstruíveis a partir dos eventos e dos `.md`; nenhuma é lida pelo core (§11) |
 | **PE6** | **Nenhuma mutação anônima** | `Authorship` é argumento obrigatório de toda operação de agregado que muda estado (§6.1) |
 | **PE7** | **Erro da AWS nunca chega ao domínio** | O adaptador traduz exceção de infraestrutura em `DomainError` tipado (§15) |
@@ -96,7 +96,7 @@ Contrapartida técnica dos princípios de produto (`software-vision.md` §2). Ca
 
 ## 3. Bounded contexts e forma de deploy
 
-Seis contextos (mapa de responsabilidades em `software-vision.md` §6), **cada um dono exclusivo dos seus dados**: uma tabela DynamoDB por serviço, nenhum serviço lê a tabela do outro.
+Seis contextos (mapa de responsabilidades em `software-vision.md` §6), **cada um dono exclusivo dos seus dados**: uma tabela DynamoDB por serviço, e nenhum serviço lê a tabela do outro.
 
 | Serviço | Contexto | Tabela | Tipo |
 |---|---|---|---|
@@ -111,12 +111,12 @@ Seis contextos (mapa de responsabilidades em `software-vision.md` §6), **cada u
 
 - `svc-knowledge` → `svc-access`: **Customer/Supplier**. Knowledge consome decisões de autorização; Access não conhece Knowledge.
 - `svc-agent` → demais: **Anticorruption Layer**. O vocabulário do MCP nunca vaza para o domínio (RN-AGT-008).
-- `svc-discovery`, `svc-audit`, `svc-portability` ← todos: **Published Language** via eventos no EventBridge. Nenhum deles é consultado pelo core — só o alimentam.
-- **Shared Kernel** (`memoryvault-backend/packages/kernel`): apenas primitivas sem regra — `SubscriptionId`, `Ulid`, `Slug`, `Authorship`, `Result`, `DomainEvent`, taxonomia de erros. Deliberadamente minúsculo: shared kernel grande é acoplamento disfarçado.
+- `svc-discovery`, `svc-audit`, `svc-portability` ← todos: **Published Language** via eventos no EventBridge. Nenhum deles é consultado pelo core, apenas o alimentam.
+- **Shared Kernel** (`memoryvault-backend/packages/kernel`): apenas primitivas sem regra, como `SubscriptionId`, `Ulid`, `Slug`, `Authorship`, `Result`, `DomainEvent` e a taxonomia de erros. Deliberadamente minúsculo, porque shared kernel grande é acoplamento disfarçado.
 
 ### 3.2 Forma de deploy
 
-O desenho-alvo é de seis deployables (D5). **A 0.1.0 sai como monólito modular com `svc-audit` separado** — decisão detalhada em §24, com a alavanca de reversão explicitada. Contextos, agregados, portas e estrutura de pastas são idênticos nas duas formas; o que muda é o `composition-root.ts`.
+O desenho-alvo é de seis deployables (D5). **A 0.1.0 sai como monólito modular com `svc-audit` separado**, decisão detalhada em §24, com a alavanca de reversão explicitada. Contextos, agregados, portas e estrutura de pastas são idênticos nas duas formas; o que muda é o `composition-root.ts`.
 
 ---
 
@@ -127,16 +127,16 @@ O desenho-alvo é de seis deployables (D5). **A 0.1.0 sai como monólito modular
 | Camada | Escolha | Nota |
 |---|---|---|
 | Runtime | Node.js 22 (LTS), TypeScript strict | ARM64 |
-| Compute | AWS Lambda — **um por serviço**, não um por rota | Menos cold start, um composition root por deployable |
+| Compute | AWS Lambda, **um por serviço** e não um por rota | Menos cold start, um composition root por deployable |
 | Roteamento interno | Hono | Dentro do Lambda do serviço |
 | API | API Gateway HTTP API por serviço, atrás de um CloudFront | Roteamento por path |
 | Dados estruturais | DynamoDB on-demand, PITR habilitado | Uma tabela por serviço |
 | Conteúdo | S3 com versionamento; Object Lock opcional por assinatura | Chaves opacas planas |
 | Vetores | S3 Vectors | Plano B: OpenSearch Serverless (§26) |
-| Embeddings | Amazon Bedrock — Titan Text Embeddings V2 (1024 dims) | |
-| Eventos | EventBridge (bus `mv-events`) + DynamoDB Streams para a outbox | |
-| Identidade | Amazon Cognito user pool + trigger de *pre-token-generation* | Ver risco em §13.3 |
-| Validação | Zod — na borda e nos contratos de evento | Nunca dentro do domínio |
+| Embeddings | Amazon Bedrock, Titan Text Embeddings V2 (1024 dims) | |
+| Eventos | EventBridge (bus `mv-events`) e DynamoDB Streams para a outbox | |
+| Identidade | Amazon Cognito user pool com trigger de *pre-token-generation* | Ver risco em §13.3 |
+| Validação | Zod, na borda e nos contratos de evento | Nunca dentro do domínio |
 | Observabilidade | AWS Lambda Powertools | `subscriptionId` em toda linha de log |
 | IaC | AWS CDK (TypeScript) | Projeto próprio, `memoryvault-infra` (§5.1, §5.4) |
 
@@ -148,7 +148,7 @@ O desenho-alvo é de seis deployables (D5). **A 0.1.0 sai como monólito modular
 | Hospedagem | S3 + CloudFront |
 | Estado de servidor | TanStack Query |
 | Estado de cliente | Zustand |
-| i18n | `en_US` canônico, `pt_BR` obrigatório (`CLAUDE.md` § Language Policy) |
+| i18n | `en_US` canônico, `pt_BR` obrigatório (`CLAUDE.md` § Política de idioma) |
 | Editor | Editor de Markdown com preview lado a lado |
 
 ### 4.3 Ferramentas
@@ -161,7 +161,7 @@ pnpm (workspaces) · Vitest · `dependency-cruiser` (§5.5) · ESLint + Prettier
 
 ### 5.1 Três projetos de topo
 
-O repositório é um monorepo pnpm com **três projetos de primeiro nível**, nomeados a partir do identificador do projeto (`CLAUDE.md` → Project identifier):
+O repositório é um monorepo pnpm com **três projetos de primeiro nível**, nomeados a partir do identificador do projeto (`CLAUDE.md` → Identificador do projeto):
 
 | Projeto | Contém | **Não** contém |
 |---|---|---|
@@ -172,10 +172,10 @@ O repositório é um monorepo pnpm com **três projetos de primeiro nível**, no
 > **Por que a infraestrutura é um projeto próprio, e não uma pasta dentro do backend.** Três razões, na ordem em que aparecem na prática:
 >
 > 1. **A infra descreve os três projetos**, não um. Ela cria o bucket que serve o frontend, o user pool que autentica os dois e o pipeline que faz o deploy de tudo. Morar dentro do backend a coloca num lugar que só é dono de parte do que ela declara.
-> 2. **Permissão de deploy não é permissão de código.** Quem escreve domínio não precisa das credenciais que criam a conta; quem opera a conta não precisa ler regra de negócio. Projetos separados tornam esse recorte trivial — no CI, no acesso do repositório e na revisão.
+> 2. **Permissão de deploy não é permissão de código.** Quem escreve domínio não precisa das credenciais que criam a conta; quem opera a conta não precisa ler regra de negócio. Projetos separados tornam esse recorte trivial no CI, no acesso do repositório e na revisão.
 > 3. **Os ciclos de vida divergem.** Um refactor de agregado não republica stack; uma mudança de política de IAM não recompila o domínio. Misturá-los faz cada um disparar o build do outro.
 
-**Regra de dependência entre projetos — direção única:**
+**Regra de dependência entre projetos, em direção única:**
 
 ```
 memoryvault-infra      →  referencia artefatos de backend e frontend (bundling, deploy)
@@ -183,7 +183,7 @@ memoryvault-backend    →  não conhece infra, não conhece frontend
 memoryvault-frontend   →  consome @memoryvault/contracts (só tipos) e a API em runtime
 ```
 
-Um `import` de `memoryvault-infra` dentro de `memoryvault-backend` é erro de arquitetura, não questão de gosto: significaria que o código de serviço conhece a conta AWS — o mesmo vazamento que PE1 impede uma camada abaixo.
+Um `import` de `memoryvault-infra` dentro de `memoryvault-backend` é erro de arquitetura, não questão de gosto: significaria que o código de serviço conhece a conta AWS, o mesmo vazamento que PE1 impede uma camada abaixo.
 
 ### 5.2 `memoryvault-backend/`
 
@@ -191,7 +191,7 @@ Um `import` de `memoryvault-infra` dentro de `memoryvault-backend` é erro de ar
 memoryvault-backend/
 ├── packages/
 │   ├── kernel/              # SubscriptionId, Ulid, Slug, Authorship, Result, DomainEvent, erros
-│   └── contracts/           # schemas Zod dos eventos e dos DTOs — o único pacote que o frontend importa
+│   └── contracts/           # schemas Zod dos eventos e dos DTOs: o único pacote que o frontend importa
 ├── services/
 │   ├── access/
 │   ├── knowledge/
@@ -201,7 +201,7 @@ memoryvault-backend/
 │   └── portability/
 │       └── src/
 │           ├── domain/          # agregados, VOs, eventos, serviços de domínio, PORTAS
-│           ├── application/     # casos de uso — orquestram domínio e portas
+│           ├── application/     # casos de uso: orquestram domínio e portas
 │           ├── adapters/
 │           │   ├── inbound/     # HTTP (Hono), MCP, consumidores de evento
 │           │   └── outbound/    # DynamoDB, S3, Bedrock, EventBridge
@@ -249,7 +249,7 @@ memoryvault-frontend/
 └── .env.example
 ```
 
-O mapeamento erro → mensagem vive em `shared/api/error-mapper.ts` e cobre a taxonomia inteira do §15. Em particular, `FORBIDDEN` chega como `404` (§14.2) e a UI mostra "não encontrado" — a interface não pode ser mais informativa que a API, ou o vazamento que o `404` evita volta pela tela.
+O mapeamento de erro para mensagem vive em `shared/api/error-mapper.ts` e cobre a taxonomia inteira do §15. Em particular, `FORBIDDEN` chega como `404` (§14.2) e a UI mostra "não encontrado": a interface não pode ser mais informativa que a API, ou o vazamento que o `404` evita volta pela tela.
 
 ### 5.4 `memoryvault-infra/`
 
@@ -271,7 +271,7 @@ memoryvault-infra/
 │   └── pipeline.stack.ts            # CI/CD (§20)
 ├── constructs/
 │   ├── service-lambda.ts            # Lambda + Powertools + alarmes obrigatórios (§17)
-│   ├── subscription-table.ts              # tabela DynamoDB com PITR e streams
+│   ├── subscription-table.ts        # tabela DynamoDB com PITR e streams
 │   └── append-only-table.ts         # tabela + role com Deny explícito em Update/Delete
 ├── cdk.json
 └── package.json
@@ -280,9 +280,9 @@ memoryvault-infra/
 Dois constructs carregam garantia de arquitetura, não conveniência:
 
 - **`append-only-table`** é onde PE4 deixa de ser política e vira permissão. O `Deny` explícito em `UpdateItem` e `DeleteItem` mora aqui, e é aqui que o teste de imutabilidade do §19 aponta.
-- **`service-lambda`** garante que nenhum serviço vá para produção sem Powertools e sem os alarmes do §17 — esquecer observabilidade deixa de ser possível por omissão.
+- **`service-lambda`** garante que nenhum serviço vá para produção sem Powertools e sem os alarmes do §17. Esquecer observabilidade deixa de ser possível por omissão.
 
-**Um stack por serviço, mais os stacks compartilhados.** Quando a 0.1.0 sair como monólito modular (§24), os stacks de serviço colapsam em dois — um para o deployable principal, um para o `svc-audit` — sem que `stacks/` mude de forma: o que muda é quais são instanciados em `bin/app.ts`.
+**Um stack por serviço, mais os stacks compartilhados.** Quando a 0.1.0 sair como monólito modular (§24), os stacks de serviço colapsam em dois, um para o deployable principal e um para o `svc-audit`, sem que `stacks/` mude de forma: o que muda é quais são instanciados em `bin/app.ts`.
 
 ### 5.5 Regra de dependência entre camadas (verificada no CI)
 
@@ -295,15 +295,15 @@ adapters/     →  importa de application/, domain/, kernel e SDKs
 main/         →  importa de tudo (é o único lugar que conhece o mundo)
 ```
 
-Configurada em `dependency-cruiser` e executada em todo pull request. **O build quebra se `domain/` importar SDK da AWS** — sem essa checagem, hexagonal vira nomenclatura de pastas em três sprints (PE1).
+Configurada em `dependency-cruiser` e executada em todo pull request. **O build quebra se `domain/` importar SDK da AWS.** Sem essa checagem, hexagonal vira nomenclatura de pastas em três sprints (PE1).
 
-A mesma configuração declara as regras entre projetos do §5.1: `memoryvault-backend` e `memoryvault-frontend` não podem importar de `memoryvault-infra`, e nenhum serviço pode importar de outro — a comunicação entre contextos é por HTTP com IAM ou por evento (§3.1), nunca por `import`.
+A mesma configuração declara as regras entre projetos do §5.1: `memoryvault-backend` e `memoryvault-frontend` não podem importar de `memoryvault-infra`, e nenhum serviço pode importar de outro. A comunicação entre contextos é por HTTP com IAM ou por evento (§3.1), nunca por `import`.
 
 ---
 
 ## 6. Modelo de domínio (DDD tático)
 
-### 6.1 `Vault` — Aggregate Root do Knowledge Context
+### 6.1 `Vault`, Aggregate Root do Knowledge Context
 
 Fronteira de consistência: o vault e **toda a sua árvore de pastas**.
 
@@ -335,9 +335,9 @@ export class Vault {
 }
 ```
 
-`Authorship` é argumento obrigatório de toda operação que muda estado (PE6). Não há mutação anônima no domínio — a assinatura torna isso impossível, e é o que garante que o evento emitido sempre saiba quem o causou.
+`Authorship` é argumento obrigatório de toda operação que muda estado (PE6). Não há mutação anônima no domínio, porque a assinatura do método torna isso impossível, e é o que garante que o evento emitido sempre saiba quem o causou.
 
-**Invariantes que só o agregado pode garantir** — e que por isso definem a fronteira:
+**Invariantes que só o agregado pode garantir**, e que por isso definem a fronteira:
 
 | # | Invariante | Regra de negócio |
 |---|---|---|
@@ -348,7 +348,7 @@ export class Vault {
 | I5 | Remover pasta com filhas exige `RemovalPolicy` explícita | RN-KNW-007 |
 | I6 | `Guidance` e `Template` são `ContentRef`; o agregado nunca carrega o Markdown | PP4 |
 
-### 6.2 `Note` — Aggregate Root separado
+### 6.2 `Note`, Aggregate Root separado
 
 ```typescript
 export class Note {
@@ -377,12 +377,12 @@ export class Note {
 }
 ```
 
-> **Por que `Note` ficou fora do agregado `Vault`?** Se estivesse dentro, criar uma nota exigiria carregar e travar a árvore inteira — e as invariantes de estrutura não dependem do conteúdo das notas. A regra "uma pasta com notas não pode ser removida sem política" é **consistência eventual** (via evento), não invariante transacional. É a decisão de modelagem mais importante do sistema: é ela que mantém escrita de nota barata e concorrente — e escrita de nota é o caminho quente, porque é por ali que o agente alimenta o vault.
+> **Por que `Note` ficou fora do agregado `Vault`?** Se estivesse dentro, criar uma nota exigiria carregar e travar a árvore inteira, e as invariantes de estrutura não dependem do conteúdo das notas. A regra "uma pasta com notas não pode ser removida sem política" é **consistência eventual** (via evento), não invariante transacional. É a decisão de modelagem mais importante do sistema, porque é ela que mantém escrita de nota barata e concorrente, e escrita de nota é o caminho quente por onde o agente alimenta o vault.
 
 Detalhes que decorrem disso:
 
-- `vaultId` **não é `readonly`**: mover entre vaults é operação de primeira classe e o `NoteId` é preservado (RN-KNW-023) — é o que mantém a linha do tempo íntegra no `svc-audit`, cuja chave é por sujeito e não por vault (§12.2). "Mover" implementado como delete + create perderia o histórico exatamente onde ele importa.
-- `SlugConflictPolicy` (`REJECT` \| `RENAME`) existe porque o slug é único **dentro do vault** (RN-KNW-020) — portanto só a mudança de vault pode colidir.
+- `vaultId` **não é `readonly`**: mover entre vaults é operação de primeira classe e o `NoteId` é preservado (RN-KNW-023). É o que mantém a linha do tempo íntegra no `svc-audit`, cuja chave é por sujeito e não por vault (§12.2). "Mover" implementado como delete mais create perderia o histórico exatamente onde ele importa.
+- `SlugConflictPolicy` (`REJECT` \| `RENAME`) existe porque o slug é único **dentro do vault** (RN-KNW-020), e portanto só a mudança de vault pode colidir.
 - `replaceBody` recebe um `ContentRef` já gravado: quem fala com o S3 é o caso de uso, nunca o agregado (§10.3).
 - `delete` marca, não destrói: o `bodyRef` permanece e a linha do tempo continua legível por `NoteId`.
 
@@ -392,32 +392,32 @@ Detalhes que decorrem disso:
 
 | Agregado | Contexto | Invariantes |
 |---|---|---|
-| `Subscription` | Access | Exatamente um `owner` (RN-ACC-001), garantido por ser um campo e não uma coleção; transições de status válidas apenas conforme a máquina de `software-vision.md` §4.4; motivo obrigatório na rejeição; o `SubscriptionId` é `readonly` — nenhum método o toca (§8.1) |
-| `Workspace` | Access | E-mail único entre membros; convite pendente não é membro; membro pertence à mesma assinatura; papel de membro é `EDITOR` ou `VIEWER` — `OWNER` não é membership (§9.4) |
-| `NoteGraph` · `VaultIndex` | Discovery | Projeções — reconstruíveis a qualquer momento (PE5) |
+| `Subscription` | Access | Exatamente um `owner` (RN-ACC-001), garantido por ser um campo e não uma coleção; transições de status válidas apenas conforme a máquina de `software-vision.md` §4.4; motivo obrigatório na rejeição; o `SubscriptionId` é `readonly` e nenhum método o toca (§8.1) |
+| `Workspace` | Access | E-mail único entre membros; convite pendente não é membro; membro pertence à mesma assinatura; papel de membro é `EDITOR` ou `VIEWER`, já que `OWNER` não é membership (§9.4) |
+| `NoteGraph` · `VaultIndex` | Discovery | Projeções, reconstruíveis a qualquer momento (PE5) |
 | `AuditTrail` | Audit | Append-only: a única operação é `append` |
 
 ### 6.4 Value Objects
 
-`SubscriptionId` `WorkspaceId` `VaultId` `FolderId` `NoteId` `ContentId` (ULID) · `Slug` · `Position` · `FolderDescription` (1–500 caracteres, obrigatória) · `ContentRef` · `Revision` · `SlugConflictPolicy` · `RemovalPolicy` · `ErasureReason` · `SubscriptionStatus` · `Role` · `VaultRoleLimit` · `Authorship` · `AgentIdentity` · `LinkTarget` · `ChunkId`.
+`SubscriptionId` `WorkspaceId` `VaultId` `FolderId` `NoteId` `ContentId` (ULID) · `Slug` · `Position` · `FolderDescription` (de 1 a 500 caracteres, obrigatória) · `ContentRef` · `Revision` · `SlugConflictPolicy` · `RemovalPolicy` · `ErasureReason` · `SubscriptionStatus` · `Role` · `VaultRoleLimit` · `Authorship` · `AgentIdentity` · `LinkTarget` · `ChunkId`.
 
-`Role` é uma enumeração **ordenada** (`NONE < VIEWER < EDITOR < OWNER`) e expõe `Role.min(a, b)`. É essa ordem que permite escrever o teto de vault como um mínimo (§14.2) em vez de uma cadeia de condicionais — e é ela que torna impossível, por tipo, que um teto promova alguém.
+`Role` é uma enumeração **ordenada** (`NONE < VIEWER < EDITOR < OWNER`) e expõe `Role.min(a, b)`. É essa ordem que permite escrever o teto de vault como um mínimo (§14.2) em vez de uma cadeia de condicionais, e é ela que torna impossível, por tipo, que um teto promova alguém.
 
 Todos imutáveis, autovalidados no construtor, comparados por valor. **Nenhuma `string` crua cruza a fronteira do domínio.**
 
-> `ContentRef` carrega `ContentId`, não um caminho. Uma `key` de S3 é um conceito com forma de S3 — tê-la dentro de um VO do domínio arranharia PE1 sem que a regra de dependência do CI reclamasse, porque uma `string` não importa nada. Montar `s/{subscriptionId}/c/{contentId}.md` é responsabilidade exclusiva do adaptador.
+> `ContentRef` carrega `ContentId`, não um caminho. Uma `key` de S3 é um conceito com forma de S3, e tê-la dentro de um VO do domínio arranharia PE1 sem que a regra de dependência do CI reclamasse, porque uma `string` não importa nada. Montar `s/{subscriptionId}/c/{contentId}.md` é responsabilidade exclusiva do adaptador.
 
-#### `Position` — ordenação por índice fracionário
+#### `Position`, ordenação por índice fracionário
 
-A ordem é requisito de produto (PP9) e vale para pastas entre pastas e para notas dentro da pasta. A forma ingênua — campo `order` inteiro denso — obriga a reescrever todos os irmãos a cada arraste: em DynamoDB, N writes numa transação com teto de 100 itens.
+A ordem é requisito de produto (PP9) e vale para pastas entre pastas e para notas dentro da pasta. A forma ingênua, um campo `order` inteiro denso, obriga a reescrever todos os irmãos a cada arraste: em DynamoDB, N writes numa transação com teto de 100 itens.
 
-Usamos **índice fracionário lexicográfico**: cada item guarda uma chave string; inserir entre `"a0"` e `"a1"` gera `"a0V"`. **Reordenar é um único write no item movido**, independente do número de irmãos.
+Usamos **índice fracionário lexicográfico**: cada item guarda uma chave string, e inserir entre `"a0"` e `"a1"` gera `"a0V"`. **Reordenar é um único write no item movido**, independente do número de irmãos.
 
 ```typescript
 Position.between(prev: Position | null, next: Position | null): Position
 ```
 
-Empates (possíveis sob concorrência) são desempatados pelo ULID do item — a ordenação nunca fica indefinida. Quando uma chave passa de 12 caracteres, um comando de rebalanceamento redistribui os irmãos; é manutenção rara, não caminho quente.
+Empates, possíveis sob concorrência, são desempatados pelo ULID do item, de modo que a ordenação nunca fica indefinida. Quando uma chave passa de 12 caracteres, um comando de rebalanceamento redistribui os irmãos; é manutenção rara, não caminho quente.
 
 ### 6.5 Eventos de domínio
 
@@ -433,16 +433,16 @@ Discovery:  NoteLinksResolved · NoteIndexed · LinkBroken
 Admin:      ContentErased      (o único evento que registra destruição de conteúdo)
 ```
 
-Todo evento carrega `subscriptionId` e `Authorship`. **Eventos de conteúdo carregam o `ContentRef` completo** — `contentId`, `versionId`, `sha256`, `bytes` — e não só o `versionId`: é isso que torna a trilha de auditoria um índice de recuperação suficiente para reconstruir o mapeamento DynamoDB → S3 do zero (§9.2, §12.3). `NoteMoved` carrega origem e destino (`vaultId`, `folderId`), porque quem consome precisa dos dois lados.
+Todo evento carrega `subscriptionId` e `Authorship`. **Eventos de conteúdo carregam o `ContentRef` completo**, com `contentId`, `versionId`, `sha256` e `bytes`, e não só o `versionId`: é isso que torna a trilha de auditoria um índice de recuperação suficiente para reconstruir o mapeamento entre DynamoDB e S3 do zero (§9.2, §12.3). `NoteMoved` carrega origem e destino (`vaultId`, `folderId`), porque quem consome precisa dos dois lados.
 
 Publicados via **outbox transacional** (§10.4). Adicionar consumidor não toca no core.
 
 ### 6.6 Serviços de domínio
 
-- **`FolderTreePlacement`** — resolve "colocar depois de X dentro de Y" em `(parentId, Position)`, validando I2 e I3.
-- **`LinkExtractor`** — extrai `[[wikilinks]]` e links Markdown relativos do **corpo** da nota. Só sintaxe universal: nenhum nome de campo, nenhuma convenção de vault (PP4). Regra de resolução em §11.1.
-- **`VaultContextComposer`** — monta o Vault Context a partir do agregado e do `ContentStore`. **Vive no domínio porque o formato desse documento é o produto** (`software-vision.md` §9.2), não detalhe de apresentação.
-- **`AuthorizationPolicy`** — decide `(memberships, workspaceId do recurso, ação)`. Serviço de domínio, não porta de infraestrutura (§14.2).
+- **`FolderTreePlacement`** resolve "colocar depois de X dentro de Y" em `(parentId, Position)`, validando I2 e I3.
+- **`LinkExtractor`** extrai `[[wikilinks]]` e links Markdown relativos do **corpo** da nota. Só sintaxe universal: nenhum nome de campo, nenhuma convenção de vault (PP4). Regra de resolução em §11.1.
+- **`VaultContextComposer`** monta o Vault Context a partir do agregado e do `ContentStore`. **Vive no domínio porque o formato desse documento é o produto** (`software-vision.md` §9.2), não detalhe de apresentação.
+- **`AuthorizationPolicy`** decide `(memberships, workspaceId do recurso, ação)`. É serviço de domínio, não porta de infraestrutura (§14.2).
 
 ---
 
@@ -475,7 +475,7 @@ export interface ContentStore {
 export interface EventPublisher { publish(events: DomainEvent[]): Promise<void>; }
 ```
 
-**Não há `purge` na porta `ContentStore`, e a ausência é deliberada.** Nenhum caso de uso de domínio pode destruir uma revisão — se pudesse, apagar uma nota quebraria em silêncio a reconstrução histórica que §12.3 promete. Destruir conteúdo é ato administrativo, tem porta própria e evento próprio (§12.4, RN-AUD-007).
+**Não há `purge` na porta `ContentStore`, e a ausência é deliberada.** Nenhum caso de uso de domínio pode destruir uma revisão: se pudesse, apagar uma nota quebraria em silêncio a reconstrução histórica que §12.3 promete. Destruir conteúdo é ato administrativo, tem porta própria e evento próprio (§12.4, RN-AUD-007).
 
 ### 7.2 Adaptadores
 
@@ -489,27 +489,27 @@ export interface EventPublisher { publish(events: DomainEvent[]): Promise<void>;
 | `Embedder` | `BedrockEmbedder` | `FakeEmbedder` (determinístico) |
 | `AccessPolicy` | `HttpAccessPolicy` \| `LocalAccessPolicy` (§24) | `StubAccessPolicy` |
 
-O domínio de Discovery conhece `Chunk`, `Edge` e `Depth` — nunca conhece Bedrock.
+O domínio de Discovery conhece `Chunk`, `Edge` e `Depth`, e nunca conhece Bedrock.
 
 ---
 
 ## 8. Isolamento por assinatura
 
-Introduzir a fronteira depois significa reescrever cada chave, cada índice, cada consulta e cada objeto do S3 — por isso ela entra antes de qualquer outra coisa (D3). Regras de negócio correspondentes: `software-vision.md` §4.8.
+Introduzir a fronteira depois significa reescrever cada chave, cada índice, cada consulta e cada objeto do S3, e por isso ela entra antes de qualquer outra coisa (D3). Regras de negócio correspondentes: `software-vision.md` §4.8.
 
 ### 8.1 O identificador é perpétuo
 
 A assinatura acumula dois papéis: objeto de negócio com estado e fronteira de isolamento (`software-vision.md` §4.2). A regra técnica que torna isso seguro:
 
-> **O `SubscriptionId` é emitido uma vez e nunca muda** (RN-SUB-005). Nenhuma transição de status — aprovar, suspender, cancelar, reativar — escreve numa chave. `canceled` é um campo do item `META`; o dado continua exatamente onde estava, alcançável no instante em que a assinatura voltar a `active`.
+> **O `SubscriptionId` é emitido uma vez e nunca muda** (RN-SUB-005). Nenhuma transição de status, seja aprovar, suspender, cancelar ou reativar, escreve numa chave. `canceled` é um campo do item `META`, e o dado continua exatamente onde estava, alcançável no instante em que a assinatura voltar a `active`.
 
 Consequência de desenho, e não detalhe de implementação: **nenhum código de persistência pode consultar o status para montar uma chave.** Status é decisão de autorização (§14.2), e vive na borda. Se um dia um repositório precisar saber o status, a fronteira vazou para a camada errada.
 
 ### 8.2 Três camadas de isolamento
 
-**1. Chave líder.** Todo item de todo serviço começa por `S#{subscriptionId}`. Toda chave do S3 começa por `s/{subscriptionId}/`. Nenhuma consulta existe sem o prefixo — não há query que possa, mesmo por engano, atravessar assinaturas.
+**1. Chave líder.** Todo item de todo serviço começa por `S#{subscriptionId}`. Toda chave do S3 começa por `s/{subscriptionId}/`. Nenhuma consulta existe sem o prefixo, então não há query que possa, mesmo por engano, atravessar assinaturas.
 
-**2. Tipo, não disciplina (PE2).** As portas de repositório recebem um `SubscriptionContext` no construtor, e os construtores de chave só aceitam `SubscriptionId` — um value object criável apenas a partir da claim do JWT.
+**2. Tipo, não disciplina (PE2).** As portas de repositório recebem um `SubscriptionContext` no construtor, e os construtores de chave só aceitam `SubscriptionId`, um value object criável apenas a partir da claim do JWT.
 
 ```typescript
 // adapters/outbound/dynamodb/DynamoVaultRepository.ts
@@ -523,13 +523,13 @@ O composition root instancia os repositórios **por requisição**, com a assina
 
 **3. Origem do `SubscriptionId`: sempre a claim, nunca a requisição.** O `subscriptionId` sai do JWT (claim customizada, injetada pelo *pre-token-generation* do Cognito) e **jamais** do path, query ou body (RN-SUB-002). É o que fecha a porta de IDOR: pedir `/vaults/{id}` de outra assinatura devolve `404`, porque a chave montada nem chega lá.
 
-> **Ponto de extensão.** Para clientes que exijam isolamento criptográfico forte, o passo seguinte é credencial STS por requisição com `dynamodb:LeadingKeys` e prefixo de S3 na *session policy* — isolamento no IAM, não na aplicação. O `SubscriptionContext` já é onde a credencial seria resolvida; ligá-lo é configuração, não redesenho.
+> **Ponto de extensão.** Para clientes que exijam isolamento criptográfico forte, o passo seguinte é credencial STS por requisição com `dynamodb:LeadingKeys` e prefixo de S3 na *session policy*, ou seja isolamento no IAM e não na aplicação. O `SubscriptionContext` já é onde a credencial seria resolvida; ligá-lo é configuração, não redesenho.
 
 ### 8.3 As duas exceções nomeadas
 
-Duas perguntas do produto precisam atravessar a fronteira. Nenhuma revela conteúdo, e ambas são declaradas aqui — deixá-las implícitas seria pior que nomeá-las.
+Duas perguntas do produto precisam atravessar a fronteira. Nenhuma revela conteúdo, e ambas são declaradas aqui, porque deixá-las implícitas seria pior que nomeá-las.
 
-**Exceção 1 — os vínculos do usuário.** Identidade é global; assinatura é vínculo (RN-SUB-011). O `UserId` é o `sub` do Cognito e não pertence a assinatura nenhuma:
+**Exceção 1: os vínculos do usuário.** Identidade é global; assinatura é vínculo (RN-SUB-011). O `UserId` é o `sub` do Cognito e não pertence a assinatura nenhuma:
 
 ```
 Vínculo   PK: USER#{userId}   SK: SUB#{subscriptionId}   { isOwner, joinedAt, isDefault }
@@ -537,14 +537,14 @@ Vínculo   PK: USER#{userId}   SK: SUB#{subscriptionId}   { isOwner, joinedAt, i
 
 Responde *"de quais assinaturas eu participo?"* e nada mais (RN-SUB-003).
 
-**Exceção 2 — a fila da plataforma.** O `PLATFORM_ADMIN` precisa listar assinaturas por status para aprová-las. Um GSI em `mv-access` resolve, projetando **apenas metadados**:
+**Exceção 2: a fila da plataforma.** O `PLATFORM_ADMIN` precisa listar assinaturas por status para aprová-las. Um GSI em `mv-access` resolve, projetando **apenas metadados**:
 
 ```
 GSI2:  PK: PLATFORM#{status}   SK: REQUESTED#{timestamp}#{subscriptionId}
        projeção: name, ownerEmail, status, requestedAt, workspaceCount
 ```
 
-A projeção é `INCLUDE`, não `ALL`, e a lista de atributos é a garantia: **o índice não carrega nada além do que a tela de plataforma mostra**. Ampliá-la é uma decisão de privacidade, não uma otimização — e por isso a lista está escrita aqui.
+A projeção é `INCLUDE`, não `ALL`, e a lista de atributos é a garantia: **o índice não carrega nada além do que a tela de plataforma mostra**. Ampliá-la é uma decisão de privacidade, não uma otimização, e por isso a lista está escrita aqui.
 
 ### 8.4 A sessão de plataforma não carrega assinatura
 
@@ -552,15 +552,15 @@ O `PLATFORM_ADMIN` opera fora de qualquer assinatura (`software-vision.md` §4.6
 
 > **Um token de plataforma não tem claim `subscription_id`.** Como o `SubscriptionContext` só se constrói a partir dessa claim, e todo repositório exige um no construtor, **nenhum caso de uso do Knowledge é sequer instanciável** sob essa sessão. A tentativa falha na composição, antes de qualquer verificação de papel.
 
-É o mesmo mecanismo de PE2 trabalhando na direção contrária: o tipo que impede um usuário de alcançar a assinatura errada impede o admin de alcançar qualquer uma. O teste correspondente está em §19, e ele verifica **por que** falhou — um teste que passasse porque alguém escreveu um `if` não provaria a propriedade.
+É o mesmo mecanismo de PE2 trabalhando na direção contrária: o tipo que impede um usuário de alcançar a assinatura errada impede o admin de alcançar qualquer uma. O teste correspondente está em §19, e ele verifica **por que** falhou, porque um teste que passasse porque alguém escreveu um `if` não provaria a propriedade.
 
 O `svc-access` é o único serviço com rotas que aceitam sessão de plataforma, e elas leem exclusivamente pelo `GSI2` de §8.3.
 
 ### 8.5 Assinatura ativa no token
 
-O trigger de *pre-token-generation* lê o atributo `active_subscription` do usuário, confirma que existe vínculo correspondente e injeta a claim `subscription_id`. Sem vínculo válido, cai no vínculo marcado como `isDefault` (RN-SUB-012). Trocar de assinatura é atualizar o atributo e renovar o token (`POST /session/subscription`, §14.1) — **nenhuma requisição de negócio jamais recebe `subscriptionId`**.
+O trigger de *pre-token-generation* lê o atributo `active_subscription` do usuário, confirma que existe vínculo correspondente e injeta a claim `subscription_id`. Sem vínculo válido, cai no vínculo marcado como `isDefault` (RN-SUB-012). Trocar de assinatura é atualizar o atributo e renovar o token (`POST /session/subscription`, §14.1). **Nenhuma requisição de negócio jamais recebe `subscriptionId`**.
 
-O trigger injeta também a claim `subscription_status`, lida do item `META`. Ela existe para que o authorizer recuse acesso a assinatura fora de `trial`/`active` (RN-SUB-007) sem uma leitura extra por requisição. Como ela envelhece junto com o token, a suspensão leva o tempo de vida do token para surtir efeito — mesma natureza do atraso de 5 minutos do §14.2, e declarada pelo mesmo motivo.
+O trigger injeta também a claim `subscription_status`, lida do item `META`. Ela existe para que o authorizer recuse acesso a assinatura fora de `trial` ou `active` (RN-SUB-007) sem uma leitura extra por requisição. Como ela envelhece junto com o token, a suspensão leva o tempo de vida do token para surtir efeito, de mesma natureza que o atraso de 5 minutos do §14.2 e declarada pelo mesmo motivo.
 
 Para o conector MCP, o `subscription_id` entra no token de acesso no instante do consentimento e não muda durante a vida daquele token (RN-SUB-014). Um conector, uma assinatura.
 
@@ -573,12 +573,12 @@ Para o conector MCP, o `subscription_id` entra no token de acesso no instante do
 | Onde | O quê | Por quê |
 |---|---|---|
 | **DynamoDB** | **Todo o significado**: estrutura, ordem, descrições, identidade da nota (título, slug, pasta, autoria), qual blob é guidance e qual é template, membros, arestas do grafo, trilha de auditoria | Consultável, transacional, condicional |
-| **S3** | **Blobs de Markdown sem significado**, endereçados por ID opaco — todas as revisões | Sem teto de 400 KB, versionamento nativo, custo/GB menor |
+| **S3** | **Blobs de Markdown sem significado**, endereçados por ID opaco, em todas as revisões | Sem teto de 400 KB, versionamento nativo, custo por GB menor |
 | **S3 Vectors** | Embeddings dos chunks | Vetor nativo no S3, sem cluster para operar |
 
 A divisão não é "metadado aqui, conteúdo ali". É mais forte: **o S3 não sabe o que guarda.** Vault, pasta e nota são conceitos lógicos que existem inteiramente no DynamoDB; no S3 há uma pilha plana de blobs, todos iguais entre si.
 
-### 9.2 Content Slots — o elo entre DynamoDB e S3
+### 9.2 Content Slots, o elo entre DynamoDB e S3
 
 **A chave.** Uma só forma, para todo blob do sistema:
 
@@ -588,7 +588,7 @@ s/{subscriptionId}/c/{contentId}.md
 
 `contentId` é um ULID gerado na criação do slot. `subscriptionId` está ali porque é fronteira de isolamento no IAM (§8.1), não porque signifique algo sobre o conteúdo. O sufixo `.md` é cortesia com humanos e `Content-Type`; nada o lê.
 
-A chave **não codifica vault, pasta, nome nem papel**. Essa é a diferença entre "opaco" como intenção e "opaco" como propriedade estrutural: renomear, mover ou reordenar não pode tocar no S3, porque não existe na chave nenhum campo que essas operações mudariam. Não é uma regra a defender em cada operação nova — é uma impossibilidade (PE3).
+A chave **não codifica vault, pasta, nome nem papel**. Essa é a diferença entre "opaco" como intenção e "opaco" como propriedade estrutural: renomear, mover ou reordenar não pode tocar no S3, porque não existe na chave nenhum campo que essas operações mudariam. Não é uma regra a defender em cada operação nova, é uma impossibilidade (PE3).
 
 **O elo.** O DynamoDB nunca guarda Markdown; guarda um ponteiro para uma **revisão específica** de um slot:
 
@@ -610,9 +610,9 @@ export class ContentRef {                      // VO imutável
 | `sha256` | Se o hash do conteúdo novo é igual ao atual, não há gravação, não há evento, não há re-embedding (RN-KNW-028) |
 | `bytes` | Tamanho para a UI e para os limites, de graça |
 
-O `S3ContentStore` é quem sabe que `contentId` vira `s/{subscriptionId}/c/{contentId}.md`, e o `subscriptionId` ele obtém do `SubscriptionContext` do construtor — nunca do argumento.
+O `S3ContentStore` é quem sabe que `contentId` vira `s/{subscriptionId}/c/{contentId}.md`, e o `subscriptionId` ele obtém do `SubscriptionContext` do construtor, nunca do argumento.
 
-**Um slot nunca é compartilhado.** Chave opaca puxa para endereçamento por conteúdo (`c/{sha256}.md`), com deduplicação de graça. Não fazemos, por três razões: dedup entre assinaturas compartilharia objeto atravessando a fronteira do §8.1 e daria um oráculo de existência; dedup dentro da assinatura exigiria contagem de referências e tornaria "apagar uma nota" uma operação que pode não apagar nada; e o Object Lock (§12.3) é por objeto, então dois donos disputariam uma retenção só. O `sha256` fica onde está — campo de integridade, não endereço.
+**Um slot nunca é compartilhado.** Chave opaca puxa para endereçamento por conteúdo (`c/{sha256}.md`), com deduplicação de graça. Não fazemos, por três razões: dedup entre assinaturas compartilharia objeto atravessando a fronteira do §8.1 e daria um oráculo de existência; dedup dentro da assinatura exigiria contagem de referências e tornaria "apagar uma nota" uma operação que pode não apagar nada; e o Object Lock (§12.3) é por objeto, então dois donos disputariam uma retenção só. O `sha256` fica onde está, como campo de integridade e não como endereço.
 
 **Custo de mover.** É a propriedade que o desenho compra:
 
@@ -624,29 +624,29 @@ O `S3ContentStore` é quem sabe que `contentId` vira `s/{subscriptionId}/c/{cont
 | Mover nota entre vaults | **0 bytes** | 1 transação (6 writes + 2 checks): `Delete`+`Put` do item `NOTE` (a PK muda), `Delete`+`Put` do guard de slug, `ConditionCheck` no vault e na pasta de destino, evento | Re-embedding + poda das arestas na origem |
 | Trocar o corpo da nota | 1 `PutObject` | 1 transação (2 writes): item `NOTE`, evento | Re-embedding dos chunks cujo hash mudou |
 
-Mover entre vaults é a **única operação do sistema que escreve em duas partições de vault na mesma transação**. Ela não trava nenhum dos dois vaults: a árvore não muda, então bastam `ConditionCheck` de existência. O guard de slug da origem é apagado junto com o item — esquecê-lo prenderia aquele slug no vault de origem para sempre.
+Mover entre vaults é a **única operação do sistema que escreve em duas partições de vault na mesma transação**. Ela não trava nenhum dos dois vaults: a árvore não muda, então bastam `ConditionCheck` de existência. O guard de slug da origem é apagado junto com o item, e esquecê-lo prenderia aquele slug no vault de origem para sempre.
 
 **A troca: o bucket fica ilegível para humanos.** Duas respostas, ambas baratas:
 
-1. **Metadados imutáveis no `PutObject`** — `subscription-id`, `content-id`, `created-at`. Só o que nunca muda. Deliberadamente **não** gravamos `vaultId`, `folderId` nem título: viram mentira no primeiro move, e mantê-los atualizados devolveria ao S3 justamente a escrita que estamos eliminando.
+1. **Metadados imutáveis no `PutObject`**, com `subscription-id`, `content-id` e `created-at`. Só o que nunca muda. Deliberadamente **não** gravamos `vaultId`, `folderId` nem título: viram mentira no primeiro move, e mantê-los atualizados devolveria ao S3 justamente a escrita que estamos eliminando.
 2. **A trilha de auditoria é o índice de recuperação.** Como todo evento de conteúdo carrega o `ContentRef` completo (§6.5), o `svc-audit` contém toda tupla `(noteId, contentId, versionId)` que já existiu. Perdida a tabela do Knowledge além da janela de PITR, o mapeamento é reconstruível a partir dela.
 
-### 9.3 Single-table design — `mv-knowledge`
+### 9.3 Single-table design: `mv-knowledge`
 
 | Item | PK | SK | Atributos |
 |---|---|---|---|
 | Vault | `S#{s}#VAULT#{v}` | `META` | workspaceId, name, slug, description, **guidanceRef**, version |
 | Folder | `S#{s}#VAULT#{v}` | `FOLDER#{folderId}` | parentFolderId, name, slug, description, position, **templateRef** |
-| Contador de pasta | `S#{s}#VAULT#{v}` | `FSTAT#{folderId}` | noteCount, updatedAt — projeção assíncrona (§10.3) |
+| Contador de pasta | `S#{s}#VAULT#{v}` | `FSTAT#{folderId}` | noteCount, updatedAt (projeção assíncrona, §10.3) |
 | Contador de vault | `S#{s}#VAULT#{v}` | `FSTAT` | noteCount, updatedAt; indexado no `GSI1` como `VSTAT#{v}` |
-| Teto de papel no vault | `S#{s}#VAULT#{v}` | `LIMIT#{userId}` | limit (`VIEWER`), setBy, setAt — o rebaixamento de §5.3 do produto |
+| Teto de papel no vault | `S#{s}#VAULT#{v}` | `LIMIT#{userId}` | limit (`VIEWER`), setBy, setAt: o rebaixamento de §5.3 do produto |
 | Note | `S#{s}#VAULT#{v}` | `NOTE#{noteId}` | folderId, title, slug, position, **bodyRef**, createdBy, updatedBy, version, `deletedAt?`, `deletedBy?` |
 | Guard de slug de pasta | `S#{s}#VAULT#{v}` | `SLUG#{parentId}#{slug}` | garante I1 via `attribute_not_exists` |
 | Guard de slug de nota | `S#{s}#VAULT#{v}` | `NSLUG#{slug}` | slug de nota é único **no vault** (RN-KNW-020) |
-| Dedup da projeção | `S#{s}#VAULT#{v}` | `SEEN#{eventUlid}` | ttl — torna o contador exatamente-uma-vez |
+| Dedup da projeção | `S#{s}#VAULT#{v}` | `SEEN#{eventUlid}` | ttl; torna o contador exatamente-uma-vez |
 | Outbox | `S#{s}#VAULT#{v}` | `EVENT#{ulid}` | payload, ttl |
 
-Os três `…Ref` são `ContentRef` serializado — **o único elo com o S3, em todo o sistema**.
+Os três `…Ref` são `ContentRef` serializado, **o único elo com o S3 em todo o sistema**.
 
 **A ordem lexicográfica das sort keys é escolhida, não acidental.** `FSTAT#` e `LIMIT#` caem entre `FOLDER#` e `META`, então o agregado inteiro, os contadores **e** os tetos de papel vêm num único `Query`, numa única partição:
 
@@ -658,7 +658,7 @@ Query  PK = S#{s}#VAULT#{v}   AND   SK BETWEEN 'FOLDER#' AND 'META'
 
 `EVENT#` fica antes da faixa; `NOTE#`, `NSLUG#`, `SEEN#` e `SLUG#` ficam depois. É essa propriedade que faz `get_vault_context` devolver a árvore anotada com o número de notas de cada pasta **sem uma consulta por pasta**.
 
-> **`LIMIT#` foi nomeado para cair nessa faixa, e o nome também descreve o que ele é** — um teto, não uma concessão (o teto só rebaixa, RN-ACC-011). A alternativa seria uma segunda consulta por requisição, no caminho mais quente do sistema, para responder uma pergunta de autorização que precisa ser respondida **antes** de tudo (§14.2). O custo é carregar os tetos de todos os membros junto com o vault; como membros são dezenas e a partição é a mesma, é grátis em latência.
+> **`LIMIT#` foi nomeado para cair nessa faixa, e o nome também descreve o que ele é**, um teto e não uma concessão (o teto só rebaixa, RN-ACC-011). A alternativa seria uma segunda consulta por requisição, no caminho mais quente do sistema, para responder uma pergunta de autorização que precisa ser respondida **antes** de tudo (§14.2). O custo é carregar os tetos de todos os membros junto com o vault; como membros são dezenas e a partição é a mesma, é grátis em latência.
 
 | Índice | PK | SK | Serve |
 |---|---|---|---|
@@ -683,7 +683,7 @@ GSI2:  PLATFORM#{status}     → REQUESTED#{timestamp}#{subscriptionId}  → fil
                                projeção INCLUDE: name, ownerEmail, status, requestedAt, workspaceCount
 ```
 
-**O `OWNER` não é um item `MEMBER`.** A titularidade mora em `ownerId`, no item `META` da assinatura — um campo único, que é como RN-ACC-001 ("exatamente um `OWNER`") deixa de ser regra a verificar e passa a ser forma do dado. A transferência de titularidade é um `Update` condicional nesse campo mais o `Put` do membership `EDITOR` do titular anterior, numa transação (RN-ACC-002).
+**O `OWNER` não é um item `MEMBER`.** A titularidade mora em `ownerId`, no item `META` da assinatura: um campo único, que é como RN-ACC-001 ("exatamente um `OWNER`") deixa de ser regra a verificar e passa a ser forma do dado. A transferência de titularidade é um `Update` condicional nesse campo mais o `Put` do membership `EDITOR` do titular anterior, numa transação (RN-ACC-002).
 
 O convite tem TTL igual à sua expiração: convite vencido some sozinho, sem job de limpeza e sem uma verificação de data espalhada por cada leitura.
 
@@ -691,29 +691,29 @@ O convite tem TTL igual à sua expiração: convite vencido some sozinho, sem jo
 
 ## 10. Transações, concorrência e outbox
 
-Toda mutação é **um** `TransactWriteItems` — mas há **duas formas** de transação, e a diferença entre elas é o que mantém a escrita de nota barata (§6.2).
+Toda mutação é **um** `TransactWriteItems`, mas há **duas formas** de transação, e a diferença entre elas é o que mantém a escrita de nota barata (§6.2).
 
-### 10.1 Forma A — mutação da árvore (agregado `Vault`)
+### 10.1 Forma A: mutação da árvore (agregado `Vault`)
 
 Criar, renomear, descrever, mover, reordenar ou remover pasta; trocar guidance ou template.
 
-1. `Update` no item `META` com `ConditionExpression: version = :expected` — bloqueio otimista do agregado
+1. `Update` no item `META` com `ConditionExpression: version = :expected`, que é o bloqueio otimista do agregado
 2. `Put`/`Update`/`Delete` nos itens de pasta afetados
-3. `Put` do guard de slug com `attribute_not_exists(PK)` — I1 no banco, não só em memória
+3. `Put` do guard de slug com `attribute_not_exists(PK)`, que põe I1 no banco e não só em memória
 4. `Put` dos eventos de domínio na **outbox**, na mesma transação
 
-### 10.2 Forma B — mutação de nota (agregado `Note`)
+### 10.2 Forma B: mutação de nota (agregado `Note`)
 
 Criar, editar, retitular, reordenar, mover, apagar.
 
-1. `Put`/`Update`/`Delete` do item `NOTE` com `ConditionExpression: version = :expected` — o lock é do próprio item
-2. `ConditionCheck` com `attribute_exists` no item `FOLDER#{f}` de destino — e, no move entre vaults, também no `META` do vault de destino
+1. `Put`/`Update`/`Delete` do item `NOTE` com `ConditionExpression: version = :expected`, em que o lock é do próprio item
+2. `ConditionCheck` com `attribute_exists` no item `FOLDER#{f}` de destino e, no move entre vaults, também no `META` do vault de destino
 3. `Put`/`Delete` do guard `NSLUG` quando o slug entra ou sai do vault
 4. `Put` do evento na outbox
 
-> **Nenhuma transação de nota escreve no item `META`** (PE8). É esta regra — não a separação dos agregados por si só — que mantém o caminho quente livre de contenção. `META` é um item único: um agente gravando cinquenta notas em sequência o transformaria no gargalo de todo o vault, e o retry só transformaria a contenção em latência. O `ConditionCheck` dá a mesma garantia que interessa — *"a pasta existia no instante da escrita"* — sem escrever nela, e o item `FOLDER` só é escrito quando a pasta é renomeada ou movida, que é evento raro.
+> **Nenhuma transação de nota escreve no item `META`** (PE8). É esta regra, e não a separação dos agregados por si só, que mantém o caminho quente livre de contenção. `META` é um item único: um agente gravando cinquenta notas em sequência o transformaria no gargalo de todo o vault, e o retry só transformaria a contenção em latência. O `ConditionCheck` dá a mesma garantia que interessa, *"a pasta existia no instante da escrita"*, sem escrever nela, e o item `FOLDER` só é escrito quando a pasta é renomeada ou movida, que é evento raro.
 
-Conflito → `TransactionCanceledException` → o repositório traduz para `ConcurrencyError` → o caso de uso repete (até 3 vezes). **O domínio nunca vê exceção da AWS** (PE7).
+Conflito gera `TransactionCanceledException`, o repositório traduz para `ConcurrencyError` e o caso de uso repete, até 3 vezes. **O domínio nunca vê exceção da AWS** (PE7).
 
 ### 10.3 Contadores
 
@@ -729,7 +729,7 @@ Contagem eventualmente consistente é aceitável de propósito: o número orient
 
 ### 10.4 Outbox
 
-DynamoDB Streams → Lambda relay → EventBridge. Garante que mudança de estado e publicação sejam atômicas — sem isso, "gravei mas não publiquei" acontece e é silencioso. Num sistema cuja trilha de auditoria vive de eventos, esse silêncio seria um buraco no registro.
+DynamoDB Streams → Lambda relay → EventBridge. Garante que mudança de estado e publicação sejam atômicas, porque sem isso "gravei mas não publiquei" acontece e é silencioso. Num sistema cuja trilha de auditoria vive de eventos, esse silêncio seria um buraco no registro.
 
 ### 10.5 Ordem de escrita com o S3
 
@@ -742,9 +742,9 @@ Conteúdo primeiro, ponteiro depois:
                                                   + Put do evento na outbox, com o ContentRef dentro
 ```
 
-**A ordem decide qual falha se aceita.** Se o passo 3 falhar, sobra no S3 um blob que ninguém referencia: invisível, inofensivo, recolhido pelo job semanal de órfãos. A ordem inversa produziria um ponteiro para conteúdo inexistente — erro que o usuário vê, no meio do caminho quente.
+**A ordem decide qual falha se aceita.** Se o passo 3 falhar, sobra no S3 um blob que ninguém referencia: invisível, inofensivo, recolhido pelo job semanal de órfãos. A ordem inversa produziria um ponteiro para conteúdo inexistente, erro que o usuário vê, no meio do caminho quente.
 
-O `ContentRef` viaja **dentro do evento, na mesma transação**. Sem isso, `svc-audit` registraria "a nota mudou" sem poder mostrar para quê, e `svc-discovery` re-indexaria "a versão atual" em vez da versão que disparou o evento — que sob concorrência não é a mesma coisa.
+O `ContentRef` viaja **dentro do evento, na mesma transação**. Sem isso, o `svc-audit` registraria "a nota mudou" sem poder mostrar para quê, e o `svc-discovery` re-indexaria "a versão atual" em vez da versão que disparou o evento, que sob concorrência não é a mesma coisa.
 
 Nada disso acontece no agregado: quem fala com o `ContentStore` é o caso de uso, que recebe o `ContentRef` pronto e o entrega ao domínio. O agregado nunca soube que existe S3.
 
@@ -756,7 +756,7 @@ Duas projeções sobre os mesmos eventos. Ambas **derivadas** (PE5): apagar e re
 
 ### 11.1 Grafo de links
 
-`LinkExtractor` (§6.6) roda a cada `NoteCreated`/`NoteUpdated`. O alvo é reduzido ao **basename sem extensão** e normalizado para `Slug`; a resolução acontece no escopo do vault (RN-DSC-001 a RN-DSC-006).
+`LinkExtractor` (§6.6) roda a cada `NoteCreated` e `NoteUpdated`. O alvo é reduzido ao **basename sem extensão** e normalizado para `Slug`; a resolução acontece no escopo do vault (RN-DSC-001 a RN-DSC-006).
 
 **Tabela `mv-discovery`:**
 
@@ -768,7 +768,7 @@ Duas projeções sobre os mesmos eventos. Ambas **derivadas** (PE5): apagar e re
 
 Aresta gravada nas duas direções: backlink vira um `Query`, não uma varredura. Travessia em BFS com profundidade máxima 3 e teto de 200 nós, deduplicando ciclos (RN-DSC-007).
 
-`NoteMoved` entre pastas **não toca no grafo**: aresta é `noteId → noteId`, pasta não participa. `NoteMoved` entre vaults poda as arestas da nota no vault de origem e re-resolve as de saída contra os slugs do destino.
+`NoteMoved` entre pastas **não toca no grafo**, porque aresta é `noteId → noteId` e pasta não participa. `NoteMoved` entre vaults poda as arestas da nota no vault de origem e re-resolve as de saída contra os slugs do destino.
 
 ### 11.2 Busca vetorial
 
@@ -781,9 +781,9 @@ NoteCreated / NoteUpdated / NoteMoved
                    └─▶ upsert no índice vetorial da assinatura, com metadados
 ```
 
-**O prefixo de contexto no chunk é o detalhe que decide a qualidade** (`knowledge-base.md` §5.3). Um chunk solto ("o limite é 200 por conta") é irrecuperável; o mesmo chunk precedido de `Pesquisa de Produto › Evidence › Fatos observados em campo › Capacities de ativo customizado` é buscável. A descrição da pasta, que já se escreve para orientar o agente, vira sinal de recuperação de graça — o mesmo texto trabalhando duas vezes.
+**O prefixo de contexto no chunk é o detalhe que decide a qualidade** (`knowledge-base.md` §5.3). Um chunk solto ("o limite é 200 por conta") é irrecuperável; o mesmo chunk precedido de `Pesquisa de Produto › Evidence › Fatos observados em campo › Capacities de ativo customizado` é buscável. A descrição da pasta, que já se escreve para orientar o agente, vira sinal de recuperação de graça: o mesmo texto trabalhando duas vezes.
 
-**E é por isso que `NoteMoved` está na lista** (RN-DSC-012). O prefixo entra no texto que vai ao embedding, então mover a nota de pasta invalida semanticamente os vetores dela. Não é caro — assíncrono, uma única nota — mas precisa ser explícito, porque sem isso o índice passa a mentir em silêncio, que é a pior forma de errar numa projeção.
+**E é por isso que `NoteMoved` está na lista** (RN-DSC-012). O prefixo entra no texto que vai ao embedding, então mover a nota de pasta invalida semanticamente os vetores dela. Não é caro, por ser assíncrono e sobre uma única nota, mas precisa ser explícito, porque sem isso o índice passa a mentir em silêncio, que é a pior forma de errar numa projeção.
 
 **Isolamento:** um índice vetorial **por assinatura** (RN-DSC-015), não um índice global filtrado por metadado. Filtro de metadado é controle de acesso por convenção; índice separado é fronteira física. Dentro do índice, filtro por `vaultId` e `folderId` restringe a busca.
 
@@ -829,7 +829,7 @@ export class AgentIdentity {
 }
 ```
 
-Quem preenche é o adaptador de entrada: `McpToolAdapter` resolve o agente a partir do token; o adaptador HTTP da UI o deixa nulo. O domínio recebe `Authorship` pronto e obrigatório (PE6).
+Quem preenche é o adaptador de entrada: `McpToolAdapter` resolve o agente a partir do token, e o adaptador HTTP da UI o deixa nulo. O domínio recebe `Authorship` pronto e obrigatório (PE6).
 
 ### 12.2 `svc-audit`
 
@@ -841,26 +841,26 @@ Consumidor de **todos** os eventos do bus, de todos os serviços.
 
 com `subject ∈ {WORKSPACE, MEMBER, VAULT, FOLDER, NOTE}`. Um `Query` por `PK` devolve a linha do tempo completa de qualquer objeto, em ordem cronológica, sem varredura.
 
-A chave é **por sujeito, não por vault** — e isso não é detalhe: é o que faz a linha do tempo de uma nota sobreviver a ela mudar de pasta e de vault, desde que o `NoteId` seja preservado. É a razão de `moveTo` existir como comando em vez de ser implementado como delete + create (§6.2).
+A chave é **por sujeito, não por vault**, e isso não é detalhe: é o que faz a linha do tempo de uma nota sobreviver a ela mudar de pasta e de vault, desde que o `NoteId` seja preservado. É a razão de `moveTo` existir como comando em vez de ser implementado como delete mais create (§6.2).
 
-**A imutabilidade não é convenção (PE4): a role do Lambda tem `Deny` explícito em `UpdateItem` e `DeleteItem` na tabela.** Não existe caminho — nem por bug, nem por operador — que reescreva o passado. É a diferença entre "não alteramos o log" e "não conseguimos alterar o log", e só a segunda serve diante de um regulador.
+**A imutabilidade não é convenção (PE4): a role do Lambda tem `Deny` explícito em `UpdateItem` e `DeleteItem` na tabela.** Não existe caminho, nem por bug nem por operador, que reescreva o passado. É a diferença entre "não alteramos o log" e "não conseguimos alterar o log", e só a segunda serve diante de um regulador.
 
-### 12.3 Revision — reconstrução histórica
+### 12.3 Revision e reconstrução histórica
 
-O bucket é versionado, então cada gravação num Content Slot produz um `versionId` imutável. **O evento carrega o `ContentRef` completo** — é o detalhe que liga *"aconteceu algo"* a *"o conteúdo era este"*.
+O bucket é versionado, então cada gravação num Content Slot produz um `versionId` imutável. **O evento carrega o `ContentRef` completo**, e é o detalhe que liga *"aconteceu algo"* a *"o conteúdo era este"*.
 
 Reconstruir a nota numa data:
 
 1. no log, o último evento daquela nota com `timestamp ≤ data`
-2. `GET` no S3 em `t/{t}/c/{contentId}.md` com o `versionId` daquele evento
+2. `GET` no S3 em `s/{subscriptionId}/c/{contentId}.md` com o `versionId` daquele evento
 
-Nenhuma consulta ao Knowledge é necessária: **o presente vive no `mv-knowledge`, o passado vive no `mv-audit`**, e o evento traz o par `(contentId, versionId)` que basta para buscar o byte. Como a chave é opaca, mover ou renomear a nota depois não afeta a reconstrução — o slot é o mesmo, e o histórico de revisões permanece num único objeto do S3 em vez de espalhado por objetos criados a cada move.
+Nenhuma consulta ao Knowledge é necessária: **o presente vive no `mv-knowledge`, o passado vive no `mv-audit`**, e o evento traz o par `(contentId, versionId)` que basta para buscar o byte. Como a chave é opaca, mover ou renomear a nota depois não afeta a reconstrução: o slot é o mesmo, e o histórico de revisões permanece num único objeto do S3 em vez de espalhado por objetos criados a cada move.
 
-Para assinaturas com exigência formal de retenção, **S3 Object Lock em modo compliance** trava as versões contra remoção pelo prazo configurado — inclusive contra a conta raiz (RN-AUD-008).
+Para assinaturas com exigência formal de retenção, **S3 Object Lock em modo compliance** trava as versões contra remoção pelo prazo configurado, inclusive contra a conta raiz (RN-AUD-008).
 
 ### 12.4 Apagar não é destruir
 
-**`NoteDeleted` é soft delete.** O item `NOTE` ganha `deletedAt` e `deletedBy`, e **perde os atributos de chave do `GSI2`** — como o índice é esparso (§9.3), a nota some das listagens sem uma linha de filtro em lugar nenhum. O `bodyRef` fica intacto: `read_note(asOf)` e `note_history` continuam respondendo por `NoteId`. O guard `NSLUG` é apagado na mesma transação, devolvendo o slug ao vault (RN-KNW-030). Restaurar é devolver os atributos de índice — cai de graça, e vira `NoteRestored`.
+**`NoteDeleted` é soft delete.** O item `NOTE` ganha `deletedAt` e `deletedBy`, e **perde os atributos de chave do `GSI2`**: como o índice é esparso (§9.3), a nota some das listagens sem uma linha de filtro em lugar nenhum. O `bodyRef` fica intacto, então `read_note(asOf)` e `note_history` continuam respondendo por `NoteId`. O guard `NSLUG` é apagado na mesma transação, devolvendo o slug ao vault (RN-KNW-030). Restaurar é devolver os atributos de índice, o que sai de graça e vira `NoteRestored`.
 
 **Destruir conteúdo é ato administrativo, nunca operação de domínio.** Por isso `purge` não existe na porta `ContentStore` (§7.1). O expurgo vive num caso de uso próprio, exige o `OWNER` da assinatura, motivo obrigatório e emite evento:
 
@@ -872,25 +872,25 @@ interface ContentEraser {
 // → ContentErased { contentId, reason, by, at }
 ```
 
-**Object Lock e expurgo são incompatíveis, por desenho** (RN-AUD-009). Com retenção em modo compliance, `erase` falha — e falhar é o comportamento correto.
+**Object Lock e expurgo são incompatíveis, por desenho** (RN-AUD-009). Com retenção em modo compliance, `erase` falha, e falhar é o comportamento correto.
 
 ---
 
 ## 13. MCP server
 
-Endpoint: `https://mcp.memoryvault.guru/mcp` (Streamable HTTP, OAuth 2.1). Catálogo de tools e formato do Vault Context em `software-vision.md` §9 — **o catálogo é contrato público e vive lá, não aqui**.
+Endpoint: `https://mcp.memoryvault.guru/mcp` (Streamable HTTP, OAuth 2.1). Catálogo de tools e formato do Vault Context em `software-vision.md` §9, porque **o catálogo é contrato público e vive lá, não aqui**.
 
 ### 13.1 `svc-agent` como camada anticorrupção
 
-`McpToolAdapter` traduz tool call → comando de caso de uso e volta, e resolve o `Authorship` a partir do token. Nenhum vocabulário de MCP entra no core (RN-AGT-008), e trocar de protocolo amanhã é trocar um adaptador.
+`McpToolAdapter` traduz tool call em comando de caso de uso e volta, e resolve o `Authorship` a partir do token. Nenhum vocabulário de MCP entra no core (RN-AGT-008), e trocar de protocolo amanhã é trocar um adaptador.
 
 ### 13.2 Autenticação
 
-MCP remoto exige OAuth 2.1 com *Protected Resource Metadata* (`knowledge-base.md` §3.4). **Cognito como Authorization Server; `svc-agent` como Resource Server.** O `subscriptionId` entra no token pelo trigger de *pre-token-generation* (§8.3), e o `client_id` do conector vira `AgentIdentity` (§12.1).
+MCP remoto exige OAuth 2.1 com *Protected Resource Metadata* (`knowledge-base.md` §3.4). **Cognito como Authorization Server, `svc-agent` como Resource Server.** O `subscriptionId` entra no token pelo trigger de *pre-token-generation* (§8.3), e o `client_id` do conector vira `AgentIdentity` (§12.1).
 
-### 13.3 Risco aberto nº 1 — DCR
+### 13.3 Risco aberto nº 1: DCR
 
-> O Cognito não faz *Dynamic Client Registration*. Os clientes aceitam `client_id`/`client_secret` informados à mão na configuração do conector, o que resolve — com atrito no onboarding.
+> O Cognito não faz *Dynamic Client Registration*. Os clientes aceitam `client_id` e `client_secret` informados à mão na configuração do conector, o que resolve, com atrito no onboarding.
 >
 > **Primeiro spike, antes de qualquer outra coisa:** conectar um MCP mínimo autenticado por Cognito num cliente desktop **e** num cliente web. Se o atrito for alto, trocar por um provedor com DCR (WorkOS AuthKit, Auth0). É a decisão de maior risco do projeto: se a conexão não for fluida, a tese cai (`software-vision.md` §1.4).
 
@@ -898,8 +898,8 @@ MCP remoto exige OAuth 2.1 com *Protected Resource Metadata* (`knowledge-base.md
 
 Ambas resolvidas sem mecanismo novo:
 
-- **Idempotência** — `NSLUG#{slug}` é único no vault (§9.3), então a segunda chamada de `create_note` falha no `attribute_not_exists` e o adaptador devolve `ALREADY_EXISTS` com o `noteId` existente no `details` (RN-AGT-004). O servidor nunca gera sufixo automático.
-- **Concorrência** — `update_note` exige `baseRevision`; divergência devolve `CONFLICT` com o conteúdo atual anexado (RN-AGT-005).
+- **Idempotência.** `NSLUG#{slug}` é único no vault (§9.3), então a segunda chamada de `create_note` falha no `attribute_not_exists` e o adaptador devolve `ALREADY_EXISTS` com o `noteId` existente no `details` (RN-AGT-004). O servidor nunca gera sufixo automático.
+- **Concorrência.** `update_note` exige `baseRevision`, e divergência devolve `CONFLICT` com o conteúdo atual anexado (RN-AGT-005).
 
 ---
 
@@ -911,7 +911,7 @@ Consumidas pela UI; **o contrato público é o MCP**.
 
 ```
 svc-access       GET  /session/subscriptions · POST /session/subscription  { subscriptionId }
-                 POST /subscriptions                       (onboarding — pending_approval)
+                 POST /subscriptions                       (onboarding: pending_approval)
                  POST /subscriptions/:s/ownership          { toUserId }
                  POST /workspaces · GET /workspaces · POST /workspaces/:ws/members
                  PATCH /workspaces/:ws/members/:u          { role }
@@ -937,16 +937,16 @@ svc-audit        GET  /notes/:n/history · GET /notes/:n/revisions/:versionId
 svc-portability  POST /vaults/:v/exports · GET /exports/:id   → URL pré-assinada
 ```
 
-**Nenhuma rota recebe `subscriptionId`**: ele vem do token (§8.1).
+**Nenhuma rota recebe `subscriptionId`**, que vem sempre do token (§8.1).
 
-Roteamento por path num CloudFront único (`api.memoryvault.guru/knowledge/*` etc.). Chamadas entre serviços via API Gateway com **IAM auth** — nunca por rede aberta.
+Roteamento por path num CloudFront único (`api.memoryvault.guru/knowledge/*` e assim por diante). Chamadas entre serviços via API Gateway com **IAM auth**, nunca por rede aberta.
 
 ### 14.2 Autorização em dois estágios
 
 Deixar isso implícito é como nascem os furos de authz. Cada estágio tem dono explícito:
 
-1. **Authorizer (`svc-access`).** Valida o JWT do Cognito, confirma que a assinatura ativa está em `trial` ou `active` (RN-SUB-007), resolve a titularidade (`isOwner`) e a lista de `(workspaceId, role)`, e injeta tudo no contexto da requisição (cache 5 min). **Não sabe o que é um vault** — nem poderia: quem sabe a que workspace um vault pertence é o Knowledge, e quem guarda o teto por vault é o Knowledge.
-2. **Serviço dono do recurso.** O `AuthorizationPolicy` — serviço de domínio, não porta de infra (§6.6) — decide localmente, sem nenhuma chamada de rede.
+1. **Authorizer (`svc-access`).** Valida o JWT do Cognito, confirma que a assinatura ativa está em `trial` ou `active` (RN-SUB-007), resolve a titularidade (`isOwner`) e a lista de `(workspaceId, role)`, e injeta tudo no contexto da requisição (cache 5 min). **Não sabe o que é um vault**, nem poderia: quem sabe a que workspace um vault pertence é o Knowledge, e quem guarda o teto por vault é o Knowledge.
+2. **Serviço dono do recurso.** O `AuthorizationPolicy`, serviço de domínio e não porta de infra (§6.6), decide localmente, sem nenhuma chamada de rede.
 
 **A decisão do estágio 2, em uma expressão.** O papel efetivo é o menor entre o papel no workspace e o teto do vault, e a titularidade passa por cima dos dois:
 
@@ -962,9 +962,9 @@ effectiveRole(ctx: RequestContext, vault: Vault): Role {
 
 Os três insumos chegam sem custo extra: `isOwner` e as memberships vêm do contexto injetado pelo authorizer; `workspaceId` e os tetos vêm do **mesmo `Query`** que já carregou o vault (§9.3). Nenhuma consulta adicional entra no caminho quente por causa da autorização.
 
-**Regra fixa, sem exceção:** todo caso de uso do Knowledge carrega o vault e chama `policy.require(action, vault)` **antes de qualquer outra coisa**. E **recurso proibido devolve o mesmo `404` que recurso inexistente** (RN-SUB-004) — `403` confirmaria a existência de um vault que o requisitante não pode ver.
+**Regra fixa, sem exceção:** todo caso de uso do Knowledge carrega o vault e chama `policy.require(action, vault)` **antes de qualquer outra coisa**. E **recurso proibido devolve o mesmo `404` que recurso inexistente** (RN-SUB-004), porque `403` confirmaria a existência de um vault que o requisitante não pode ver.
 
-> **Uma exceção deliberada ao `404`:** escrita recusada por teto de vault devolve `FORBIDDEN` de verdade, não `404`. O membro **já sabe** que o vault existe — ele o vê na lista (RN-ACC-012: o teto nunca esconde). Devolver `404` ali não protegeria informação nenhuma e produziria a pior experiência possível: um vault que aparece na tela e some ao ser escrito. A regra do `404` protege existência; onde não há existência a proteger, ela não se aplica.
+> **Uma exceção deliberada ao `404`:** escrita recusada por teto de vault devolve `FORBIDDEN` de verdade, não `404`. O membro **já sabe** que o vault existe, porque o vê na lista (RN-ACC-012: o teto nunca esconde). Devolver `404` ali não protegeria informação nenhuma e produziria a pior experiência possível: um vault que aparece na tela e some ao ser escrito. A regra do `404` protege existência; onde não há existência a proteger, ela não se aplica.
 
 **Três relógios, todos declarados:**
 
@@ -974,7 +974,7 @@ Os três insumos chegam sem custo extra: `isOwner` e as memberships vêm do cont
 | Status da assinatura (suspensão) | vida do token | a claim `subscription_status` envelhece com ele (§8.5) |
 | Titularidade transferida | até 5 min | mesmo cache |
 
-São aceitáveis e estão declarados. Se uma assinatura exigir revogação imediata, o ponto de extensão é uma denylist curta consultada pelo authorizer — e ela cobriria os três casos de uma vez.
+São aceitáveis e estão declarados. Se uma assinatura exigir revogação imediata, o ponto de extensão é uma denylist curta consultada pelo authorizer, e ela cobriria os três casos de uma vez.
 
 ---
 
@@ -996,13 +996,13 @@ export class DomainError {
 |---|---|---|
 | `VALIDATION` | 400 | VO recusou o valor no construtor |
 | `NOT_FOUND` | 404 | não existe |
-| `FORBIDDEN` | **404** | existe e o requisitante não pode ver — `403` vazaria a existência |
+| `FORBIDDEN` | **404** | existe e o requisitante não pode ver, já que `403` vazaria a existência |
 | `CONFLICT` | 409 | lock otimista, slug já usado, `baseRevision` divergente |
 | `PRECONDITION_FAILED` | 412 | política obrigatória ausente (`RemovalPolicy`, `SlugConflictPolicy`) |
 | `LIMIT_EXCEEDED` | 413 / 429 | nota acima do teto, rate limit da assinatura |
-| `INTERNAL` | 500 | o resto — e só o resto |
+| `INTERNAL` | 500 | o resto, e só o resto |
 
-O domínio devolve `Result<T, DomainError>`; **exceção existe só na borda**. O adaptador traduz `TransactionCanceledException` em `CONFLICT` e `ConditionalCheckFailed` no guard de slug em `CONFLICT` com o `noteId` existente no `details`. No MCP, todo erro vira `isError` com texto acionável — e o de argumento faltante devolve o template junto (RN-AGT-003).
+O domínio devolve `Result<T, DomainError>`; **exceção existe só na borda**. O adaptador traduz `TransactionCanceledException` em `CONFLICT`, e `ConditionalCheckFailed` no guard de slug em `CONFLICT` com o `noteId` existente no `details`. No MCP, todo erro vira `isError` com texto acionável, e o de argumento faltante devolve o template junto (RN-AGT-003).
 
 ---
 
@@ -1010,9 +1010,9 @@ O domínio devolve `Result<T, DomainError>`; **exceção existe só na borda**. 
 
 `svc-portability` consome os eventos, monta o zip e devolve URL pré-assinada. Formato da árvore e regras em `software-vision.md` §12.
 
-**Implementação:** a árvore materializada é construída a partir do agregado `Vault` e das notas; o conteúdo vem do `ContentStore` pelos `ContentRef` correntes. O prefixo numérico é derivado da ordem de `Position` no momento do export — não é armazenado.
+**Implementação:** a árvore materializada é construída a partir do agregado `Vault` e das notas; o conteúdo vem do `ContentStore` pelos `ContentRef` correntes. O prefixo numérico é derivado da ordem de `Position` no momento do export, e não é armazenado.
 
-**É aqui que nomes reservados voltam a existir.** No storage não há nome nenhum (§9.2); na árvore materializada `README.md` e `TEMPLATE.md` são ocupados pelo guidance e pelo template. Uma nota cujo slug colida com eles é exportada com sufixo, e os links para ela são reescritos junto (RN-PRT-005). É a única concessão do export, e ela pertence à borda — não ao modelo.
+**É aqui que nomes reservados voltam a existir.** No storage não há nome nenhum (§9.2); na árvore materializada, `README.md` e `TEMPLATE.md` são ocupados pelo guidance e pelo template. Uma nota cujo slug colida com eles é exportada com sufixo, e os links para ela são reescritos junto (RN-PRT-005). É a única concessão do export, e ela pertence à borda, não ao modelo.
 
 ---
 
@@ -1022,12 +1022,12 @@ O domínio devolve `Result<T, DomainError>`; **exceção existe só na borda**. 
 |---|---|
 | Compute | **Um Lambda por serviço** (Node.js 22, ARM64), roteamento interno com Hono |
 | API | API Gateway HTTP API por serviço, atrás de um CloudFront |
-| Dados | Uma tabela DynamoDB por serviço (on-demand, PITR) + bucket S3 versionado com chaves opacas planas (Object Lock opcional) + bucket S3 Vectors |
-| IA | Bedrock — Titan Text Embeddings V2 |
-| Eventos | EventBridge (bus `mv-events`) + DynamoDB Streams para a outbox |
-| Identidade | Cognito user pool + pre-token-generation trigger (claim `subscription_id`) |
+| Dados | Uma tabela DynamoDB por serviço (on-demand, PITR), bucket S3 versionado com chaves opacas planas (Object Lock opcional) e bucket S3 Vectors |
+| IA | Bedrock, Titan Text Embeddings V2 |
+| Eventos | EventBridge (bus `mv-events`) e DynamoDB Streams para a outbox |
+| Identidade | Cognito user pool com pre-token-generation trigger (claim `subscription_id`) |
 | Front-end | React + Vite (SPA) em S3 + CloudFront |
-| IaC | AWS CDK (TypeScript), um stack por serviço + um de rede/domínio |
+| IaC | AWS CDK (TypeScript), um stack por serviço mais um de rede e domínio |
 | Observabilidade | Powertools for AWS Lambda; `subscriptionId` em **toda** linha de log e como dimensão de métrica |
 
 > **Um Lambda por serviço, não um por rota:** menos cold starts, um composition root por deployable, e a fronteira que importa (o bounded context) continua sendo a unidade de deploy.
@@ -1039,13 +1039,13 @@ O domínio devolve `Result<T, DomainError>`; **exceção existe só na borda**. 
 | Coleta de órfãos no S3 | Semanal | Recolhe blobs sem referência, nascidos de falha entre os passos 1 e 3 de §10.5 |
 | Rebalanceamento de `Position` | Sob demanda | Redistribui chaves fracionárias que passaram de 12 caracteres (§6.4) |
 
-**Alarmes obrigatórios por Lambda:** taxa de erro, duração p99, throttles, e profundidade da fila de dead-letter do relay da outbox.
+**Alarmes obrigatórios por Lambda:** taxa de erro, duração p99, throttles e profundidade da fila de dead-letter do relay da outbox.
 
 ---
 
 ## 18. Requisitos não-funcionais
 
-Números iniciais, para virarem teste e não folclore — a tese do produto é "sem atrito", e sem número isso não é verificável. Limites de produto (tamanho de nota, tetos por vault) estão em `software-vision.md` §14.
+Números iniciais, para virarem teste e não folclore. A tese do produto é "sem atrito", e sem número isso não é verificável. Limites de produto (tamanho de nota, tetos por vault) estão em `software-vision.md` §14.
 
 | | Alvo |
 |---|---|
@@ -1062,17 +1062,17 @@ Números iniciais, para virarem teste e não folclore — a tese do produto é "
 
 | Camada | Como |
 |---|---|
-| Domínio | Unit puro — **sem I/O, sem mock de framework**. Se precisar de mock de SDK, o hexágono vazou |
+| Domínio | Unit puro, **sem I/O e sem mock de framework**. Se precisar de mock de SDK, o hexágono vazou |
 | Casos de uso | Com adaptadores `InMemory` |
-| Adaptadores | Contra DynamoDB Local + MinIO |
+| Adaptadores | Contra DynamoDB Local e MinIO |
 | Contratos de evento | Schemas Zod validados nos dois lados (produtor e consumidor) |
 | Ponta a ponta | Por fatia vertical |
 
-**Dois testes que não são opcionais e existem desde a primeira entrega que os torna possíveis:**
+**Três testes que não são opcionais e existem desde a primeira entrega que os torna possíveis:**
 
-- **Teste de isolamento por serviço** — duas assinaturas, a de A tentando ler a de B, esperando `404` (não `403`).
-- **Teste da sessão de plataforma** — um token de `PLATFORM_ADMIN` (que não carrega `subscription_id`) contra qualquer rota do Knowledge deve falhar por **impossibilidade de montar a chave**, não por verificação de papel (RN-SUB-016).
-- **Teste de imutabilidade do audit** — tentativa de `UpdateItem` no log deve falhar **por IAM**, não por código. Um teste que passa porque a aplicação não tem o método não prova nada.
+- **Teste de isolamento por serviço:** duas assinaturas, a de A tentando ler a de B, esperando `404` e não `403`.
+- **Teste da sessão de plataforma:** um token de `PLATFORM_ADMIN`, que não carrega `subscription_id`, contra qualquer rota do Knowledge deve falhar por **impossibilidade de montar a chave**, não por verificação de papel (RN-SUB-016).
+- **Teste de imutabilidade do audit:** tentativa de `UpdateItem` no log deve falhar **por IAM**, não por código. Um teste que passa porque a aplicação não tem o método não prova nada.
 
 ---
 
@@ -1082,7 +1082,7 @@ Números iniciais, para virarem teste e não folclore — a tese do produto é "
 Pull request
   1. install (pnpm, cache do workspace inteiro)
   2. lint + typecheck                      ← nos três projetos
-  3. dependency-cruiser                    ← REGRA DE DEPENDÊNCIA (§5.5) — quebra o build
+  3. dependency-cruiser                    ← REGRA DE DEPENDÊNCIA (§5.5): quebra o build
   4. backend  · unit (domínio + casos de uso)
   5. backend  · adaptadores (DynamoDB Local + MinIO em serviço de container)
   6. backend  · contract tests dos eventos
@@ -1090,14 +1090,14 @@ Pull request
   8. infra    · cdk synth                   ← valida a infraestrutura sem fazer deploy
 
 Merge em main
-  9. infra    · deploy em staging (CDK — empacota os artefatos de backend e frontend)
+  9. infra    · deploy em staging (CDK: empacota os artefatos de backend e frontend)
  10. e2e por fatia vertical em staging
  11. infra    · deploy em produção (aprovação manual)
 ```
 
-**Escopo por projeto alterado.** Os passos 4–6 rodam quando `memoryvault-backend/` mudou; o 7, quando o frontend mudou; o 8, sempre — porque a infra referencia os dois e uma mudança neles pode invalidar o `synth`. Os passos 1–3 e 9–11 rodam sempre.
+**Escopo por projeto alterado.** Os passos 4 a 6 rodam quando `memoryvault-backend/` mudou; o 7, quando o frontend mudou; o 8, sempre, porque a infra referencia os dois e uma mudança neles pode invalidar o `synth`. Os passos 1 a 3 e 9 a 11 rodam sempre.
 
-Nenhum passo pode ser marcado como opcional. O passo 3 em particular é o que impede que "hexagonal" vire nomenclatura de pastas — e é também onde a direção única entre os três projetos (§5.1) é verificada.
+Nenhum passo pode ser marcado como opcional. O passo 3 em particular é o que impede que "hexagonal" vire nomenclatura de pastas, e é também onde a direção única entre os três projetos (§5.1) é verificada.
 
 ---
 
@@ -1105,7 +1105,7 @@ Nenhum passo pode ser marcado como opcional. O passo 3 em particular é o que im
 
 ### 21.1 Domínio
 
-- Importar SDK da AWS em `domain/` ou `application/` — inclusive "só para um tipo".
+- Importar SDK da AWS em `domain/` ou `application/`, inclusive "só para um tipo".
 - Passar `string` crua onde existe value object.
 - Agregado que carrega o Markdown em vez do `ContentRef`.
 - Operação de mutação sem `Authorship`.
@@ -1133,7 +1133,7 @@ Nenhum passo pode ser marcado como opcional. O passo 3 em particular é o que im
 
 ### 21.4 Projeções
 
-- Consultar Discovery a partir do Knowledge — a direção é única.
+- Consultar Discovery a partir do Knowledge, já que a direção é única.
 - Tratar grafo ou índice vetorial como fonte da verdade.
 - Deixar conteúdo apagado no índice vetorial.
 - Filtrar por assinatura dentro de um índice vetorial compartilhado em vez de usar índice por assinatura.
@@ -1143,7 +1143,7 @@ Nenhum passo pode ser marcado como opcional. O passo 3 em particular é o que im
 ## 22. Checklist de nova funcionalidade
 
 **Antes de criar o primeiro arquivo**
-- [ ] Cada arquivo novo está no projeto certo (§5.1)? Stack ou construct → `memoryvault-infra`; tela → `memoryvault-frontend`; regra → `memoryvault-backend`.
+- [ ] Cada arquivo novo está no projeto certo (§5.1)? Stack ou construct em `memoryvault-infra`; tela em `memoryvault-frontend`; regra em `memoryvault-backend`.
 - [ ] A mudança não cria dependência contra a direção única entre projetos.
 
 **Domínio**
@@ -1179,13 +1179,13 @@ Nenhum passo pode ser marcado como opcional. O passo 3 em particular é o que im
 
 ## 23. Estratégia de versionamento
 
-Três camadas, com fontes da verdade distintas. O fluxo operacional de bump está em `CLAUDE.md` § Versioning Policy.
+Três camadas, com fontes da verdade distintas. O fluxo operacional de bump está em `CLAUDE.md` § Política de versionamento.
 
-### 23.1 Camada 1 — versão do produto (SemVer)
+### 23.1 Camada 1: versão do produto (SemVer)
 
-Fonte da verdade: `CLAUDE.md` → Project Identity → Base version. Propagada para todo `package.json` e para o `CHANGELOG.md`.
+Fonte da verdade: `CLAUDE.md` → Identidade do projeto → Versão base. Propagada para todo `package.json` e para o `CHANGELOG.md`.
 
-### 23.2 Camada 2 — versão do contrato
+### 23.2 Camada 2: versão do contrato
 
 Dois contratos, com regras diferentes:
 
@@ -1196,7 +1196,7 @@ Dois contratos, com regras diferentes:
 
 Adicionar tool, adicionar argumento opcional ou ampliar retorno é **minor** nos dois casos.
 
-### 23.3 Camada 3 — versão de deploy
+### 23.3 Camada 3: versão de deploy
 
 Cada stack CDK carrega a tag `app:version` com a versão do produto e `deploy:sha` com o commit. É o que permite responder "o que estava em produção quando isto aconteceu" a partir do próprio ambiente.
 
@@ -1215,11 +1215,11 @@ Contextos, agregados, portas, adaptadores e estrutura de pastas são **idêntico
 | Eventos | EventBridge | bus em processo, mesma interface `EventPublisher` |
 | Custo | contratos versionados, tracing distribuído, deploy coordenado | fronteira depende de disciplina no CI |
 
-**A troca é o `composition-root.ts` de cada serviço** — nenhuma linha de `domain/` ou `application/` muda.
+**A troca é o `composition-root.ts` de cada serviço**, e nenhuma linha de `domain/` ou `application/` muda.
 
 Uma ressalva: **`svc-audit` é o único que ganha algo real da separação física**, porque sua role de IAM restrita (§12.2) é o que torna o log imutável. Num monólito, essa garantia precisaria migrar para uma tabela com política própria e um papel dedicado.
 
-**A alavanca está acionada na 0.1.0:** a primeira versão sai como monólito modular com o `svc-audit` à parte — exatamente a ressalva acima, honrada. A separação em seis deployables acontece quando houver razão para ela (carga, time, ciclo de deploy), e não antes do primeiro usuário. Como a linha de corte é o composition root, adiar não cobra juros.
+**A alavanca está acionada na 0.1.0:** a primeira versão sai como monólito modular com o `svc-audit` à parte, exatamente a ressalva acima honrada. A separação em seis deployables acontece quando houver razão para ela (carga, time, ciclo de deploy), e não antes do primeiro usuário. Como a linha de corte é o composition root, adiar não cobra juros.
 
 ---
 
@@ -1232,13 +1232,13 @@ Ordem de dependência técnica, com critério de pronto verificável. O recorte 
 | 1 | **Spike de auth MCP** (§13.3) | Conector autenticado por Cognito funciona num cliente desktop **e** num cliente web | ✅ |
 | 2 | Monorepo, kernel, `SubscriptionId`, `Authorship`, taxonomia de erros (§15), CDK, CI com regra de dependência | Build quebra se `domain/` importar SDK da AWS | ✅ |
 | 3 | Domínio do Knowledge: `Vault`, `FolderTree`, `Position`, `Note` | Suíte do domínio verde **sem nenhuma dependência de AWS** | ✅ |
-| 4 | Adaptadores Dynamo + S3 + outbox; `ContentStore` com chave opaca e `ContentRef` completo no evento | 20 reorders concorrentes: nenhuma perda, nenhuma ordem indefinida. **50 notas criadas em paralelo no mesmo vault: nenhum retry por contenção** (§10.2) | ✅ |
-| 5 | `svc-access`: assinatura e seu status, workspace, authorizer em dois estágios (§14.2) | Teste de isolamento entre assinaturas passa; recurso de outra assinatura devolve `404`, não `403`; token de plataforma não alcança o Knowledge | ✅ |
-| 6 | `svc-knowledge` HTTP completo | Reordenar pasta = 1 write no item da pasta; mover nota entre pastas = 0 bytes no S3; apagar nota mantém `read_note(asOf)` funcionando | ✅ |
+| 4 | Adaptadores Dynamo, S3 e outbox; `ContentStore` com chave opaca e `ContentRef` completo no evento | 20 reorders concorrentes: nenhuma perda, nenhuma ordem indefinida. **50 notas criadas em paralelo no mesmo vault: nenhum retry por contenção** (§10.2) | ✅ |
+| 5 | `svc-access`: assinatura e seu status, workspace, authorizer em dois estágios (§14.2) | Teste de isolamento entre assinaturas passa; recurso de outra assinatura devolve `404` e não `403`; token de plataforma não alcança o Knowledge | ✅ |
+| 6 | `svc-knowledge` HTTP completo | Reordenar pasta é 1 write no item da pasta; mover nota entre pastas é 0 bytes no S3; apagar nota mantém `read_note(asOf)` funcionando | ✅ |
 | 7 | `svc-audit` | `read_note(asOf)` devolve o conteúdo correto de uma data passada; update no log falha **por IAM** | ✅ |
 | 8 | `svc-agent`: as 7 tools da 0.1.0 | `get_vault_context` devolve o Markdown de `software-vision.md` §9.2, com as contagens, em **um** `Query` | ✅ |
 | 9 | UI de autoria | Criar um vault do zero, escrever guidance e template, e ler o histórico de uma nota sem tocar na API | ✅ |
-| 10 | `svc-discovery`: grafo + vetores | Link pendente resolve ao criar a nota alvo; busca semântica traz o chunk certo com a nota de origem | — |
+| 10 | `svc-discovery`: grafo e vetores | Link pendente resolve ao criar a nota alvo; busca semântica traz o chunk certo com a nota de origem | — |
 | 11 | Tools de descoberta; mover nota entre vaults; convites | `NoteId` e histórico preservados na troca de vault; backlinks quebrados avisados antes | — |
 | 12 | `svc-portability` | Zip contém só `.md`, com a ordem legível na própria árvore de arquivos | — |
 
@@ -1252,11 +1252,11 @@ Riscos de produto estão em `software-vision.md` §16.
 
 | Risco | Impacto | Resposta |
 |---|---|---|
-| Onboarding do OAuth do MCP ser penoso (falta de DCR no Cognito) | **Alto — mata a tese** | Spike na entrega 1; trocar de IdP se preciso (§13.3) |
-| Vazamento entre assinaturas | **Alto** | Assinatura na chave líder + tipo obrigatório + teste de isolamento na suíte (§8, §19) |
-| Contenção no item `META` sob ingestão em lote | **Alto — degrada o caminho quente** | Transação de nota não escreve no `META` (§10.2); contadores em itens próprios; critério de pronto da entrega 4 mede isso |
-| S3 Vectors indisponível ou limitado na região | Médio | Porta `VectorIndex` já isola; plano B é OpenSearch Serverless, **sem tocar no domínio** — é o tipo de troca que o hexágono existe para tornar barata |
-| Bucket opaco: perder o DynamoDB deixa uma pilha de `.md` sem significado | Médio | PITR na tabela + a trilha do `svc-audit` com todo `(noteId, contentId, versionId)` já visto + metadados imutáveis no objeto (§9.2) |
+| Onboarding do OAuth do MCP ser penoso (falta de DCR no Cognito) | **Alto, mata a tese** | Spike na entrega 1; trocar de IdP se preciso (§13.3) |
+| Vazamento entre assinaturas | **Alto** | Assinatura na chave líder, tipo obrigatório e teste de isolamento na suíte (§8, §19) |
+| Contenção no item `META` sob ingestão em lote | **Alto, degrada o caminho quente** | Transação de nota não escreve no `META` (§10.2); contadores em itens próprios; critério de pronto da entrega 4 mede isso |
+| S3 Vectors indisponível ou limitado na região | Médio | Porta `VectorIndex` já isola; plano B é OpenSearch Serverless, **sem tocar no domínio**, que é o tipo de troca que o hexágono existe para tornar barata |
+| Bucket opaco: perder o DynamoDB deixa uma pilha de `.md` sem significado | Médio | PITR na tabela, a trilha do `svc-audit` com todo `(noteId, contentId, versionId)` já visto, e metadados imutáveis no objeto (§9.2) |
 | Trilha de auditoria crescer sem controle | Médio | Evento é pequeno e append-only; retenção por assinatura; o conteúdo pesado fica no S3 |
 | Custo de embedding em vault que muda muito | Baixo | Só re-embeda chunk cujo hash mudou, não a nota inteira |
 | Órfãos no S3 sem índice por `contentId` | Baixo | Só nascem de falha entre os passos 1 e 3 (§10.5): raros e baratos. Job semanal recolhe. Dívida registrada: a solução limpa custa um GSI no caminho quente e não se paga agora |
