@@ -6,19 +6,19 @@ O Claude Code o lê automaticamente a cada sessão e a cada invocação de sub-a
 ## Identidade do projeto
 
 ### Organização
-MemoryVaultGuru
+memorysmith
 
 ### Nome do projeto
-MemoryVaultApp
+core
 
 ### Identificador do projeto
-memoryvault
+memorysmith
 
 ### Domínio do produto
-memoryvault.guru
+memorysmith.app
 
 ### O que faz
-O MemoryVault.guru hospeda vaults de conhecimento em Markdown que se autodescrevem, com estrutura, ordenação e Guidance de autoria declarados como dado, e os serve nativamente às ferramentas de IA por meio de um MCP server remoto. O agente não apenas lê um vault: ele escreve nele, obedecendo ao Guidance do próprio vault e aos Templates de cada pasta.
+O MemorySmith.app hospeda vaults de conhecimento em Markdown que se autodescrevem, com estrutura, ordenação e Guidance de autoria declarados como dado, e os serve nativamente às ferramentas de IA por meio de um MCP server remoto. O agente não apenas lê um vault: ele escreve nele, obedecendo ao Guidance do próprio vault e aos Templates de cada pasta.
 
 ### Slogan
 Structured knowledge, natively readable and writable by agents.
@@ -34,7 +34,7 @@ Structured knowledge, natively readable and writable by agents.
 Fase de design. Ainda não há código. A primeira entrega é o spike de autenticação do MCP (ver `docs/architecture-guide.md` § MCP server).
 
 ### Remote do git
-github.com/MemoryVaultGuru/MemoryVaultApp
+github.com/memorysmith/core
 
 ---
 
@@ -43,10 +43,10 @@ github.com/MemoryVaultGuru/MemoryVaultApp
 Um monorepo pnpm com **três projetos de primeiro nível**, nomeados a partir do identificador do projeto. Estrutura completa e justificativa em `docs/architecture-guide.md` §5.
 
 ```
-MemoryVaultApp/
-├── memoryvault-backend/     # six bounded contexts + shared kernel + event contracts
-├── memoryvault-frontend/    # React SPA
-└── memoryvault-infra/       # all CDK: stacks, constructs, IAM policies, pipeline
+core/
+├── memorysmith-backend/     # six bounded contexts + shared kernel + event contracts
+├── memorysmith-frontend/    # React SPA
+└── memorysmith-infra/       # all CDK: stacks, constructs, IAM policies, pipeline
 ```
 
 **Nunca coloque código de infraestrutura dentro do projeto de backend, e nunca coloque a definição de uma stack dentro de um serviço.** O projeto de infra declara recursos para os três projetos, inclusive o bucket que serve o frontend e o pipeline que faz o deploy de tudo, e por isso não pode viver dentro de nenhum deles. Isso também mantém as credenciais de deploy separáveis do código de aplicação.
@@ -54,14 +54,14 @@ MemoryVaultApp/
 **Direção de dependência entre os projetos, única e verificada em CI:**
 
 ```
-memoryvault-infra      →  references backend and frontend artifacts (bundling, deploy)
-memoryvault-backend    →  knows nothing about infra or frontend
-memoryvault-frontend   →  imports @memoryvault/contracts (types only) and calls the API at runtime
+memorysmith-infra      →  references backend and frontend artifacts (bundling, deploy)
+memorysmith-backend    →  knows nothing about infra or frontend
+memorysmith-frontend   →  imports @memorysmith/contracts (types only) and calls the API at runtime
 ```
 
-Um `import` de `memoryvault-infra` dentro de `memoryvault-backend` é um erro de arquitetura, não uma questão de estilo. Serviços também nunca se importam entre si: comunicação entre contextos é HTTP com autenticação IAM ou um evento, nunca um `import`.
+Um `import` de `memorysmith-infra` dentro de `memorysmith-backend` é um erro de arquitetura, não uma questão de estilo. Serviços também nunca se importam entre si: comunicação entre contextos é HTTP com autenticação IAM ou um evento, nunca um `import`.
 
-Ao criar um arquivo, decida onde ele fica perguntando o que ele é, não para que ele serve: um construct de CDK para a tabela de auditoria pertence a `memoryvault-infra/constructs/`, ainda que só o serviço de auditoria o use.
+Ao criar um arquivo, decida onde ele fica perguntando o que ele é, não para que ele serve: um construct de CDK para a tabela de auditoria pertence a `memorysmith-infra/constructs/`, ainda que só o serviço de auditoria o use.
 
 ---
 
@@ -89,7 +89,7 @@ A documentação do projeto se divide em duas outras preocupações, conheciment
 |---|---|---|
 | [`docs/knowledge-base.md`](docs/knowledge-base.md) | Português (pt-BR) | **Versão canônica**, fatos de domínio sobre o espaço em que o produto opera |
 
-Contém **apenas fatos de domínio** que continuariam verdadeiros se este produto não existisse: Markdown e sua sintaxe universal, a prática de gestão de conhecimento pessoal (vaults, wikilinks, backlinks, templates), o Model Context Protocol e seu modelo de autorização, como clientes de agente consomem conectores, engenharia de contexto, recuperação (embeddings, chunking, RAG) e seus modos de falha, grafos de conhecimento, exigências de auditoria e proveniência em trabalho regulado, obrigações da LGPD e conceitos gerais de isolamento em SaaS multi-tenant. Nenhuma entidade do MemoryVault, nenhum código `RN-XXX`, nenhuma arquitetura.
+Contém **apenas fatos de domínio** que continuariam verdadeiros se este produto não existisse: Markdown e sua sintaxe universal, a prática de gestão de conhecimento pessoal (vaults, wikilinks, backlinks, templates), o Model Context Protocol e seu modelo de autorização, como clientes de agente consomem conectores, engenharia de contexto, recuperação (embeddings, chunking, RAG) e seus modos de falha, grafos de conhecimento, exigências de auditoria e proveniência em trabalho regulado, obrigações da LGPD e conceitos gerais de isolamento em SaaS multi-tenant. Nenhuma entidade do MemorySmith, nenhum código `RN-XXX`, nenhuma arquitetura.
 
 ### Visão de software (requisitos de produto e regras de negócio)
 
@@ -214,7 +214,7 @@ Estas são as decisões estruturais do sistema. Elas estão declaradas por exten
 | 6 | **A trilha de auditoria é append-only por IAM, não por disciplina.** O papel de auditoria carrega um `Deny` explícito em `UpdateItem` e `DeleteItem`. | Política de IAM e um teste de isolamento na suíte |
 | 7 | **Toda operação de domínio que muda estado recebe um `Authorship`.** Não existe mutação anônima; a assinatura do método a torna impossível. | Assinaturas dos métodos de agregado |
 | 8 | **Apagar uma nota nunca destrói bytes.** Apenas soft delete; destruir bytes é ato administrativo com porta própria, papel próprio e evento próprio. | `ContentStore` não tem método `purge` |
-| 9 | **Um recurso proibido devolve `404`, nunca `403`.** O `403` confirmaria a existência de algo que o solicitante não pode ver. | Taxonomia de erros em `memoryvault-backend/packages/kernel` |
+| 9 | **Um recurso proibido devolve `404`, nunca `403`.** O `403` confirmaria a existência de algo que o solicitante não pode ver. | Taxonomia de erros em `memorysmith-backend/packages/kernel` |
 | 10 | **A transação de uma nota nunca escreve no item `META` do vault.** Esse item único viraria o ponto de contenção do vault inteiro sob ingestão em lote. | Formato da transação no repositório e um teste de concorrência |
 | 11 | **O identificador da assinatura é perpétuo.** Nenhuma transição de status, seja aprovar, suspender, cancelar ou reativar, move, rechaveia ou apaga dado. O status governa acesso, nunca endereço. | `SubscriptionId` é `readonly` e nenhum repositório lê status para construir chave |
 | 12 | **Uma sessão de administrador de plataforma não carrega assinatura.** Seu token não tem a claim `subscription_id`, então nenhum repositório de Knowledge pode sequer ser construído sob ela. Nunca acrescente uma checagem de papel como substituto: a impossibilidade é a garantia. | `SubscriptionContext` exige a claim, e um teste de isolamento verifica o modo de falha |
@@ -283,11 +283,11 @@ Execute nesta ordem exata:
 
 ```
 1. Update  CLAUDE.md                                       ← bump "Versão base" under Identidade do projeto
-2. Update  memoryvault-backend/package.json
-           memoryvault-backend/packages/*/package.json
-           memoryvault-backend/services/*/package.json     ← every service package
-3. Update  memoryvault-frontend/package.json
-4. Update  memoryvault-infra/package.json
+2. Update  memorysmith-backend/package.json
+           memorysmith-backend/packages/*/package.json
+           memorysmith-backend/services/*/package.json     ← every service package
+3. Update  memorysmith-frontend/package.json
+4. Update  memorysmith-infra/package.json
 5. Update  CHANGELOG.md                                    ← cut the release section with date and summary
 6. Commit on a release branch  "chore(release): bump version to vX.Y.Z"
 7. Push the branch, open a PR, and merge it into main (never push the bump directly to main)

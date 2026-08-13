@@ -1,6 +1,6 @@
 # Base de Conhecimento: Bases de Conhecimento em Markdown e o Ecossistema de Agentes
 
-Este documento reúne **fatos do domínio** em que o MemoryVault.guru opera, coisas que continuariam verdadeiras se o produto não existisse: formatos, práticas estabelecidas, protocolos abertos, técnicas de recuperação e obrigações regulatórias.
+Este documento reúne **fatos do domínio** em que o MemorySmith.app opera, coisas que continuariam verdadeiras se o produto não existisse: formatos, práticas estabelecidas, protocolos abertos, técnicas de recuperação e obrigações regulatórias.
 
 Não contém entidades do produto, regras de negócio (`RN-XXX`) nem decisões de arquitetura. Para o produto, ver [`software-vision.md`](software-vision.md); para a engenharia, ver [`architecture-guide.md`](architecture-guide.md).
 

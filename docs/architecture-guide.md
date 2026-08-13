@@ -112,7 +112,7 @@ Seis contextos (mapa de responsabilidades em `software-vision.md` §6), **cada u
 - `svc-knowledge` → `svc-access`: **Customer/Supplier**. Knowledge consome decisões de autorização; Access não conhece Knowledge.
 - `svc-agent` → demais: **Anticorruption Layer**. O vocabulário do MCP nunca vaza para o domínio (RN-AGT-008).
 - `svc-discovery`, `svc-audit`, `svc-portability` ← todos: **Published Language** via eventos no EventBridge. Nenhum deles é consultado pelo core, apenas o alimentam.
-- **Shared Kernel** (`memoryvault-backend/packages/kernel`): apenas primitivas sem regra, como `SubscriptionId`, `Ulid`, `Slug`, `Authorship`, `Result`, `DomainEvent` e a taxonomia de erros. Deliberadamente minúsculo, porque shared kernel grande é acoplamento disfarçado.
+- **Shared Kernel** (`memorysmith-backend/packages/kernel`): apenas primitivas sem regra, como `SubscriptionId`, `Ulid`, `Slug`, `Authorship`, `Result`, `DomainEvent` e a taxonomia de erros. Deliberadamente minúsculo, porque shared kernel grande é acoplamento disfarçado.
 
 ### 3.2 Forma de deploy
 
@@ -138,7 +138,7 @@ O desenho-alvo é de seis deployables (D5). **A 0.1.0 sai como monólito modular
 | Identidade | Amazon Cognito user pool com trigger de *pre-token-generation* | Ver risco em §13.3 |
 | Validação | Zod, na borda e nos contratos de evento | Nunca dentro do domínio |
 | Observabilidade | AWS Lambda Powertools | `subscriptionId` em toda linha de log |
-| IaC | AWS CDK (TypeScript) | Projeto próprio, `memoryvault-infra` (§5.1, §5.4) |
+| IaC | AWS CDK (TypeScript) | Projeto próprio, `memorysmith-infra` (§5.1, §5.4) |
 
 ### 4.2 Frontend
 
@@ -165,9 +165,9 @@ O repositório é um monorepo pnpm com **três projetos de primeiro nível**, no
 
 | Projeto | Contém | **Não** contém |
 |---|---|---|
-| **`memoryvault-backend/`** | Os seis bounded contexts, o kernel compartilhado e os contratos de evento. Todo o código de domínio, aplicação e adaptadores | Nenhuma linha de CDK, nenhum nome de stack, nenhuma referência a conta ou região |
-| **`memoryvault-frontend/`** | A SPA React: telas, estado, i18n, cliente HTTP | Regra de negócio; nenhuma decisão que pertença ao domínio |
-| **`memoryvault-infra/`** | Todo o CDK: stacks, constructs, políticas de IAM, pipeline | Nenhuma regra de negócio, nenhum handler |
+| **`memorysmith-backend/`** | Os seis bounded contexts, o kernel compartilhado e os contratos de evento. Todo o código de domínio, aplicação e adaptadores | Nenhuma linha de CDK, nenhum nome de stack, nenhuma referência a conta ou região |
+| **`memorysmith-frontend/`** | A SPA React: telas, estado, i18n, cliente HTTP | Regra de negócio; nenhuma decisão que pertença ao domínio |
+| **`memorysmith-infra/`** | Todo o CDK: stacks, constructs, políticas de IAM, pipeline | Nenhuma regra de negócio, nenhum handler |
 
 > **Por que a infraestrutura é um projeto próprio, e não uma pasta dentro do backend.** Três razões, na ordem em que aparecem na prática:
 >
@@ -178,17 +178,17 @@ O repositório é um monorepo pnpm com **três projetos de primeiro nível**, no
 **Regra de dependência entre projetos, em direção única:**
 
 ```
-memoryvault-infra      →  referencia artefatos de backend e frontend (bundling, deploy)
-memoryvault-backend    →  não conhece infra, não conhece frontend
-memoryvault-frontend   →  consome @memoryvault/contracts (só tipos) e a API em runtime
+memorysmith-infra      →  referencia artefatos de backend e frontend (bundling, deploy)
+memorysmith-backend    →  não conhece infra, não conhece frontend
+memorysmith-frontend   →  consome @memorysmith/contracts (só tipos) e a API em runtime
 ```
 
-Um `import` de `memoryvault-infra` dentro de `memoryvault-backend` é erro de arquitetura, não questão de gosto: significaria que o código de serviço conhece a conta AWS, o mesmo vazamento que PE1 impede uma camada abaixo.
+Um `import` de `memorysmith-infra` dentro de `memorysmith-backend` é erro de arquitetura, não questão de gosto: significaria que o código de serviço conhece a conta AWS, o mesmo vazamento que PE1 impede uma camada abaixo.
 
-### 5.2 `memoryvault-backend/`
+### 5.2 `memorysmith-backend/`
 
 ```
-memoryvault-backend/
+memorysmith-backend/
 ├── packages/
 │   ├── kernel/              # SubscriptionId, Ulid, Slug, Authorship, Result, DomainEvent, erros
 │   └── contracts/           # schemas Zod dos eventos e dos DTOs: o único pacote que o frontend importa
@@ -214,10 +214,10 @@ memoryvault-backend/
 
 Todo serviço tem exatamente a mesma estrutura interna de quatro camadas. Uniformidade aqui não é estética: é o que permite que a regra de dependência do §5.5 seja uma configuração só, válida para os seis.
 
-### 5.3 `memoryvault-frontend/`
+### 5.3 `memorysmith-frontend/`
 
 ```
-memoryvault-frontend/
+memorysmith-frontend/
 ├── public/
 ├── src/
 │   ├── main.tsx                        # bootstrap: auth, i18n, query client
@@ -251,10 +251,10 @@ memoryvault-frontend/
 
 O mapeamento de erro para mensagem vive em `shared/api/error-mapper.ts` e cobre a taxonomia inteira do §15. Em particular, `FORBIDDEN` chega como `404` (§14.2) e a UI mostra "não encontrado": a interface não pode ser mais informativa que a API, ou o vazamento que o `404` evita volta pela tela.
 
-### 5.4 `memoryvault-infra/`
+### 5.4 `memorysmith-infra/`
 
 ```
-memoryvault-infra/
+memorysmith-infra/
 ├── bin/app.ts
 ├── stacks/
 │   ├── network.stack.ts             # CloudFront, domínios, certificados
@@ -267,7 +267,7 @@ memoryvault-infra/
 │   ├── audit.stack.ts               # tabela mv-audit + Lambda com role APPEND-ONLY (§12.2)
 │   ├── agent.stack.ts               # MCP server + resource server OAuth
 │   ├── portability.stack.ts
-│   ├── frontend-hosting.stack.ts    # S3 + CloudFront OAC para memoryvault-frontend
+│   ├── frontend-hosting.stack.ts    # S3 + CloudFront OAC para memorysmith-frontend
 │   └── pipeline.stack.ts            # CI/CD (§20)
 ├── constructs/
 │   ├── service-lambda.ts            # Lambda + Powertools + alarmes obrigatórios (§17)
@@ -286,7 +286,7 @@ Dois constructs carregam garantia de arquitetura, não conveniência:
 
 ### 5.5 Regra de dependência entre camadas (verificada no CI)
 
-Dentro de cada serviço de `memoryvault-backend/services/*`:
+Dentro de cada serviço de `memorysmith-backend/services/*`:
 
 ```
 domain/       →  importa apenas de si mesmo e de packages/kernel
@@ -297,7 +297,7 @@ main/         →  importa de tudo (é o único lugar que conhece o mundo)
 
 Configurada em `dependency-cruiser` e executada em todo pull request. **O build quebra se `domain/` importar SDK da AWS.** Sem essa checagem, hexagonal vira nomenclatura de pastas em três sprints (PE1).
 
-A mesma configuração declara as regras entre projetos do §5.1: `memoryvault-backend` e `memoryvault-frontend` não podem importar de `memoryvault-infra`, e nenhum serviço pode importar de outro. A comunicação entre contextos é por HTTP com IAM ou por evento (§3.1), nunca por `import`.
+A mesma configuração declara as regras entre projetos do §5.1: `memorysmith-backend` e `memorysmith-frontend` não podem importar de `memorysmith-infra`, e nenhum serviço pode importar de outro. A comunicação entre contextos é por HTTP com IAM ou por evento (§3.1), nunca por `import`.
 
 ---
 
@@ -308,7 +308,7 @@ A mesma configuração declara as regras entre projetos do §5.1: `memoryvault-b
 Fronteira de consistência: o vault e **toda a sua árvore de pastas**.
 
 ```typescript
-// memoryvault-backend/services/knowledge/src/domain/vault/Vault.ts — zero imports de AWS
+// memorysmith-backend/services/knowledge/src/domain/vault/Vault.ts — zero imports de AWS
 export class Vault {
   private constructor(
     private readonly id: VaultId,
@@ -878,7 +878,7 @@ interface ContentEraser {
 
 ## 13. MCP server
 
-Endpoint: `https://mcp.memoryvault.guru/mcp` (Streamable HTTP, OAuth 2.1). Catálogo de tools e formato do Vault Context em `software-vision.md` §9, porque **o catálogo é contrato público e vive lá, não aqui**.
+Endpoint: `https://mcp.memorysmith.app/mcp` (Streamable HTTP, OAuth 2.1). Catálogo de tools e formato do Vault Context em `software-vision.md` §9, porque **o catálogo é contrato público e vive lá, não aqui**.
 
 ### 13.1 `svc-agent` como camada anticorrupção
 
@@ -939,7 +939,7 @@ svc-portability  POST /vaults/:v/exports · GET /exports/:id   → URL pré-assi
 
 **Nenhuma rota recebe `subscriptionId`**, que vem sempre do token (§8.1).
 
-Roteamento por path num CloudFront único (`api.memoryvault.guru/knowledge/*` e assim por diante). Chamadas entre serviços via API Gateway com **IAM auth**, nunca por rede aberta.
+Roteamento por path num CloudFront único (`api.memorysmith.app/knowledge/*` e assim por diante). Chamadas entre serviços via API Gateway com **IAM auth**, nunca por rede aberta.
 
 ### 14.2 Autorização em dois estágios
 
@@ -980,7 +980,7 @@ São aceitáveis e estão declarados. Se uma assinatura exigir revogação imedi
 
 ## 15. Taxonomia de erros
 
-Uma taxonomia só, no `memoryvault-backend/packages/kernel`, definida **antes** da primeira linha de caso de uso. Sem isso, cada serviço inventa a sua e a borda vira tradução ad hoc.
+Uma taxonomia só, no `memorysmith-backend/packages/kernel`, definida **antes** da primeira linha de caso de uso. Sem isso, cada serviço inventa a sua e a borda vira tradução ad hoc.
 
 ```typescript
 type ErrorCode =
@@ -1095,7 +1095,7 @@ Merge em main
  11. infra    · deploy em produção (aprovação manual)
 ```
 
-**Escopo por projeto alterado.** Os passos 4 a 6 rodam quando `memoryvault-backend/` mudou; o 7, quando o frontend mudou; o 8, sempre, porque a infra referencia os dois e uma mudança neles pode invalidar o `synth`. Os passos 1 a 3 e 9 a 11 rodam sempre.
+**Escopo por projeto alterado.** Os passos 4 a 6 rodam quando `memorysmith-backend/` mudou; o 7, quando o frontend mudou; o 8, sempre, porque a infra referencia os dois e uma mudança neles pode invalidar o `synth`. Os passos 1 a 3 e 9 a 11 rodam sempre.
 
 Nenhum passo pode ser marcado como opcional. O passo 3 em particular é o que impede que "hexagonal" vire nomenclatura de pastas, e é também onde a direção única entre os três projetos (§5.1) é verificada.
 
@@ -1143,7 +1143,7 @@ Nenhum passo pode ser marcado como opcional. O passo 3 em particular é o que im
 ## 22. Checklist de nova funcionalidade
 
 **Antes de criar o primeiro arquivo**
-- [ ] Cada arquivo novo está no projeto certo (§5.1)? Stack ou construct em `memoryvault-infra`; tela em `memoryvault-frontend`; regra em `memoryvault-backend`.
+- [ ] Cada arquivo novo está no projeto certo (§5.1)? Stack ou construct em `memorysmith-infra`; tela em `memorysmith-frontend`; regra em `memorysmith-backend`.
 - [ ] A mudança não cria dependência contra a direção única entre projetos.
 
 **Domínio**

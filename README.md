@@ -1,4 +1,4 @@
-O **MemoryVault.guru** auxilia com a manipulação de cofres de conhecimento em **Markdown**, com estrutura declarada, facilitando o acesso nativo pelas ferramentas de IA através de MCP.
+O **MemorySmith.app** auxilia com a manipulação de cofres de conhecimento em **Markdown**, com estrutura declarada, facilitando o acesso nativo pelas ferramentas de IA através de MCP.
 
 O agente não só lê o vault, ele o **alimenta**. Através dele é possível realizar a leitura de uma fonte de informação (livro, norma, curso, etc) e estruturar o conhecimento como notas, obedecendo às orientações do próprio vault. Essa estrutura facilita a leitura do humano e do agente de IA durante a construção de novos trabalhos.
 
@@ -27,14 +27,14 @@ Sobre isso: grafo de links (árvore de dependências e backlinks), busca semânt
 
 ## O fluxo do agente
 
-Do consentimento à primeira nota escrita, o caminho entre o cliente MCP da plataforma de IA e o MemoryVault.guru é este:
+Do consentimento à primeira nota escrita, o caminho entre o cliente MCP da plataforma de IA e o MemorySmith.app é este:
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Humano
     participant Cliente as Cliente MCP<br/>(plataforma de IA)
-    participant Servidor as MCP server<br/>(MemoryVault.guru)
+    participant Servidor as MCP server<br/>(MemorySmith.app)
 
     Humano->>Cliente: adiciona o conector
     Cliente->>Servidor: autorização OAuth 2.1

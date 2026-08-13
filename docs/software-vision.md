@@ -1,4 +1,4 @@
-# Visão de Software: Plataforma MemoryVault.guru
+# Visão de Software: Plataforma MemorySmith.app
 
 Este documento é a fonte da verdade para **o que o produto faz e sob qual regra**. Descreve visão, linguagem ubíqua, modelo de negócio de assinaturas, papéis, entidades de domínio, regras de negócio (`RN-XXX`), o contrato público de MCP, as telas e o recorte de cada versão.
 
@@ -44,7 +44,7 @@ Três coisas quebram nesse arranjo (detalhamento em `knowledge-base.md` §2.5):
 
 **Cofres de conhecimento em Markdown, com estrutura declarada, acessíveis nativamente pelas ferramentas de IA.**
 
-O MemoryVault.guru é o backend remoto do fluxo que já funciona. Mantém o formato (Markdown puro), mantém a prática (orientação na raiz, molde por pasta) e resolve os três pontos de quebra, acrescentando o que a pasta local não tem: acesso remoto autenticado, colaboração com papéis, histórico defensável e descoberta por grafo e por significado.
+O MemorySmith.app é o backend remoto do fluxo que já funciona. Mantém o formato (Markdown puro), mantém a prática (orientação na raiz, molde por pasta) e resolve os três pontos de quebra, acrescentando o que a pasta local não tem: acesso remoto autenticado, colaboração com papéis, histórico defensável e descoberta por grafo e por significado.
 
 ### 1.3 O ciclo de uso
 
