@@ -1065,6 +1065,27 @@ Dois cuidados que pertencem à instrução, não à execução:
 - **Certificado de CloudFront vive em `us-east-1`.** É exigência do CloudFront, não escolha. O CDK resolve com um stack de certificado naquela região e referência cross-region; o restante da infra permanece na região principal.
 - **Se o registro do domínio estiver fora do Route 53, a delegação é um ato manual único:** apontar os name servers no registrador para os NS da hosted zone criada pelo CDK. É a única escrita de DNS feita fora do código, e acontece uma vez.
 
+**Certificados.** Todo TLS do produto usa certificado público X.509 emitido pelo ACM, e nada além disso:
+
+- **Emissão pelo CDK, validação por DNS na própria hosted zone.** O construct de certificado cria os registros de validação automaticamente; nenhum desafio manual, nenhum e-mail de aprovação.
+- **Renovação automática e transparente.** O ACM renova antes do vencimento sem intervenção. A validade máxima de certificado público caiu para 198 dias por mandato do CA/Browser Forum; isso não muda nada operacionalmente aqui, porque a renovação é gerida, e é mais uma razão para jamais administrar certificado à mão.
+- **Não exportáveis, de propósito.** A chave privada nunca sai da AWS; o certificado só se associa a CloudFront e API Gateway. Se algum dia um certificado precisar sair (outro provedor, um appliance), essa é uma decisão nova, com custo próprio, e não um default a mudar em silêncio.
+- **Um certificado por distribuição, com SANs cobrindo seus hosts:** o da distribuição do frontend cobre `memorysmith.app` e `www`; o da distribuição de API cobre `api`; o do MCP cobre `mcp`. Certificados de distribuição CloudFront nascem no stack de `us-east-1`; certificados de custom domain de API Gateway nascem na região principal.
+- **Sem Private CA.** Não há caso de uso para autoridade certificadora própria no desenho, e o custo fixo dela (US$ 400 por mês) não compra nada aqui. A comunicação interna entre serviços é autenticada por IAM (§14.1), não por mTLS.
+
+**Custo de DNS e certificados**, aos preços publicados pela AWS ([Route 53](https://aws.amazon.com/route53/pricing/), [ACM](https://aws.amazon.com/certificate-manager/pricing/)):
+
+| Item | Preço | No nosso desenho |
+|---|---|---|
+| Hosted zone | US$ 0,50 por zona/mês (até 25 zonas) | 1 zona |
+| Consultas alias para recursos AWS (CloudFront, S3) | Gratuitas | Todos os nossos registros são alias; custo de consulta efetivamente zero |
+| Consultas padrão | US$ 0,40 por milhão | Só se surgirem registros não-alias |
+| Certificado público ACM não exportável | Gratuito, emissão e renovação | Todos os nossos certificados |
+| Certificado público exportável | US$ 7 por FQDN, US$ 79 por wildcard, na emissão e em cada renovação | Não usamos |
+| AWS Private CA | US$ 400 por mês (US$ 50 no modo short-lived) | Não usamos |
+
+O custo fixo de toda a camada de DNS e TLS é, portanto, a hosted zone: cerca de US$ 0,50 por mês. O registro e a renovação anual do domínio são cobrados pelo registrador onde `memorysmith.app` foi comprado e ficam fora da conta AWS enquanto o domínio não for transferido para o Route 53.
+
 **Jobs periódicos:**
 
 | Job | Frequência | O que faz |
