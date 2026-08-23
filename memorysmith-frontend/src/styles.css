@@ -217,6 +217,12 @@ a:hover { text-decoration: underline; }
 .markdown th { background: var(--surface); }
 .markdown img { max-width: 100%; }
 
+/* Mermaid diagrams */
+.mermaid-diagram { margin: 1rem 0; overflow-x: auto; }
+.mermaid-diagram svg { max-width: 100%; height: auto; }
+.mermaid-loading { min-height: 3rem; }
+.markdown pre:has(> .mermaid-diagram) { background: none; border: 0; padding: 0; }
+
 .wikilink { font-weight: 600; }
 .wikilink-pending {
   color: var(--pending);
@@ -332,7 +338,16 @@ a:hover { text-decoration: underline; }
 .user-menu-identity { display: flex; gap: 0.75rem; align-items: center; }
 .user-menu-identity strong { font-family: var(--display); font-size: 0.95rem; }
 .user-menu-email { font-size: 0.8rem; color: var(--text-soft); }
-.user-menu-meta { font-size: 0.72rem; color: var(--text-soft); margin-top: 0.15rem; }
+.user-menu-fields { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.9rem; }
+.user-menu-field { display: flex; align-items: center; justify-content: space-between; }
+.user-menu-field-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-soft);
+  font-family: var(--display);
+  font-weight: 500;
+}
 .user-menu-section { border-top: 1px solid var(--border); margin-top: 0.9rem; padding-top: 0.9rem; }
 .user-menu-caption {
   margin: 0 0 0.4rem;
@@ -441,9 +456,10 @@ a:hover { text-decoration: underline; }
 .copy-button:hover { border-color: var(--accent); color: var(--accent); }
 .copy-button.copied { border-color: var(--node-green); color: var(--node-green); }
 
-/* Property values: tag chips and navigable links */
+/* Chips: property tags, user-menu fields and other short labeled values */
 .prop-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-.prop-tag {
+.prop-tag,
+.chip {
   background: var(--accent-soft);
   color: var(--accent);
   border: 1px solid transparent;

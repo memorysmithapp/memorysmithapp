@@ -1,9 +1,10 @@
-import type { AnchorHTMLAttributes } from 'react';
+import type { AnchorHTMLAttributes, HTMLAttributes } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 import { useTranslation } from 'react-i18next';
 import { renderCallouts } from '../api/markdown';
+import { MermaidDiagram } from './MermaidDiagram';
 
 interface MarkdownProps {
   children: string;
@@ -32,13 +33,24 @@ function MarkdownAnchor({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAn
   );
 }
 
+function MarkdownCode({ className, children, ...rest }: HTMLAttributes<HTMLElement>) {
+  if (className?.includes('language-mermaid')) {
+    return <MermaidDiagram code={String(children).trim()} />;
+  }
+  return (
+    <code className={className} {...rest}>
+      {children}
+    </code>
+  );
+}
+
 export function Markdown({ children }: MarkdownProps) {
   return (
     <div className="markdown">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         urlTransform={(url) => url}
-        components={{ a: MarkdownAnchor }}
+        components={{ a: MarkdownAnchor, code: MarkdownCode }}
       >
         {renderCallouts(children)}
       </ReactMarkdown>

@@ -49,9 +49,17 @@ export function UserMenu() {
             <div>
               <strong>{user.name}</strong>
               <div className="user-menu-email">{user.email}</div>
-              <div className="user-menu-meta">
-                {t('auth.role')}: {user.role} · {t('auth.subscription')}: {user.subscriptionName}
-              </div>
+            </div>
+          </div>
+
+          <div className="user-menu-fields">
+            <div className="user-menu-field">
+              <span className="user-menu-field-label">{t('auth.role')}</span>
+              <span className="chip">{user.role}</span>
+            </div>
+            <div className="user-menu-field">
+              <span className="user-menu-field-label">{t('auth.subscription')}</span>
+              <span className="chip">{user.subscriptionName}</span>
             </div>
           </div>
 

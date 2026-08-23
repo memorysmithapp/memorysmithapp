@@ -12,6 +12,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.0.0",
     "i18next": "^24.0.0",
+    "mermaid": "^11.17.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-i18next": "^15.0.0",
