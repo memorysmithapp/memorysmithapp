@@ -17,15 +17,9 @@ Cinco princípios definem tanto o que entra quanto como é escrito:
 4. **PARA.** As pastas separam **fonte** (de onde veio), **conhecimento permanente** (o que ficou), **navegação** (como encontrar) e **aplicação** (onde foi usado).
 5. **Curadoria assistida por IA.** A IA propõe extrações, conexões e lacunas; **a curadoria final é sempre humana**.
 
-## Estrutura
+## Onde cada nota entra
 
-| Pasta | Papel | Regra de entrada |
-|---|---|---|
-| **01 Literature** | Notas de fonte, presas ao material original | Uma nota por capítulo/parte/módulo e um índice por obra. Livros em `Books`, treinamentos em `Courses`, bibliotecas de casos de uso em `Use Cases`. Nunca é reescrita depois: é o registro da leitura |
-| **02 Permanent Notes / Concepts** | Conceitos atômicos, independentes da fonte | Só entra o que tem valor **fora** do livro que o originou. Deve fazer sentido sozinho, meses depois |
-| **02 Permanent Notes / Practices** | Técnicas, dinâmicas, atividades executáveis | Descreve um *como fazer*: passos, regras, template. Se responde "o que é", é Concept |
-| **03 Maps of Content** | Índices navegáveis por domínio | Um MOC por domínio de estudo. Não contém conhecimento novo: organiza o que existe |
-| **04 Projects** | Aplicação prática, estudos de caso | Onde a teoria foi exercitada. Sempre referencia as práticas e conceitos usados |
+A árvore de pastas do vault, com a descrição de cada pasta, é a regra de entrada: antes de escrever, leia a descrição da pasta de destino. Ela diz o que se guarda ali e o que pertence a outra pasta.
 
 > [!important] A separação Concept × Practice
 > `MVP` é um **Concept**: define o que é um mínimo produto viável.

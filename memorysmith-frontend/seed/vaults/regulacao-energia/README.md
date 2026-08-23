@@ -29,21 +29,9 @@ A essa rede de fatos soma-se uma segunda, o **grafo de contexto**, alimentado po
 
 Toda afirmação normativa em uma nota aponta para o dispositivo (artigo, anexo) da norma original, identificada por número e ano. Uma nota sem `source` verificável não entra no vault. Em matéria regulatória isso é inegociável: interpretação errada propaga silenciosamente pelo grafo.
 
-## Estrutura
+## Onde cada nota entra
 
-| Pasta | Papel | Regra de entrada |
-|---|---|---|
-| **01 Plano** | Plano de trabalho e auditorias do grafo | Registros de curadoria: o que falta ler, o que foi auditado |
-| **02 Literature / Normas** | Notas de fonte, presas ao texto normativo | Uma nota por título/capítulo/anexo relevante e um índice por norma. Nunca reescrita: é o registro da leitura daquela versão |
-| **03 Permanent Notes / Concepts** | Conceitos atômicos, independentes da norma | Só entra o que tem valor **fora** da norma que o originou. `Consumidor Livre` é conceito; "o art. 12 diz X" é literatura |
-| **03 Permanent Notes / Practices** | Procedimentos e ritos executáveis | Passos, prazos, responsáveis, formulários. Ex.: `Solicitação de Acesso à Distribuidora` |
-| **04 Datasets** | Ficha do conjunto de dados | Uma nota por conjunto: o que contém, quem publica, granularidade, cadência, campos e como obter. Descreve a fonte, **nunca cita valor extraído dela** |
-| **05 Convenções** | Como a fonte estrutura o dado | A gramática da fonte: prefixos de campo, tipagem, chaves de junção. Vale para dezenas de conjuntos, não para um |
-| **06 Projects** | Aplicação prática | Análise de caso, simulação tarifária, avaliação de impacto normativo |
-| **07 Maps of Content** | Navegação dos dois eixos | `MOC - …` navega o eixo normativo; `Dados - …` navega o eixo de dados. Não contém conhecimento novo |
-| **08 Indicadores** | Uma medida, em um recorte | Um número com significado próprio. Linka à ficha de origem (`source`) e ao conceito que mede (`Ref`) |
-| **09 Séries Temporais** | Evolução de uma medida no tempo | Quando o valor só significa algo em trajetória: histórico, tabela e leitura da tendência |
-| **10 Insights** | Leitura interpretada do dado | Conclusão que só existe porque alguém confrontou números e norma. Sempre ancorada em indicador ou série já publicados |
+A árvore de pastas do vault, com a descrição de cada pasta, é a regra de entrada: antes de escrever, leia a descrição da pasta de destino. Ela diz o que se guarda ali e o que pertence a outra pasta.
 
 > [!important] A separação Dataset × Indicador × Série × Insight
 > A **ficha** descreve a fonte e seus campos. O **indicador** extrai um recorte com significado, na data da última atualização. A **série** lê a mesma medida como trajetória. O **insight** é a leitura que só existe ao confrontar série e norma. Os três últimos **vencem**; a ficha só muda se a estrutura do conjunto mudar.

@@ -598,3 +598,19 @@ a:hover { text-decoration: underline; }
 }
 .properties-box td { line-height: 1.7; }
 .properties-box td a { overflow-wrap: anywhere; }
+
+/* Structure outline (vault page) */
+.structure-outline { margin-top: 2.5rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+.structure-outline h2 { font-size: 1.2rem; margin: 0 0 0.25rem; }
+.outline-list { list-style: none; margin: 0.5rem 0 0; padding: 0; }
+.outline-list .outline-list { padding-left: 1.1rem; border-left: 1px solid var(--border); margin-left: 0.45rem; }
+.outline-item { padding: 0.35rem 0; }
+.outline-head { display: flex; align-items: baseline; gap: 0.5rem; }
+.outline-name { font-weight: 600; color: var(--text); font-size: 0.92rem; }
+.outline-badge {
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--signal); border: 1px solid currentColor; border-radius: 999px; padding: 0 0.4rem;
+  font-family: var(--display); font-weight: 500;
+}
+.outline-count { margin-left: auto; font-size: 0.75rem; color: var(--text-soft); white-space: nowrap; }
+.outline-desc { margin: 0.1rem 0 0; font-size: 0.86rem; color: var(--text-soft); }

@@ -16,23 +16,7 @@ Duas fontes autorizadas, duas lentes complementares:
 
 ## Taxonomia
 
-Cada pasta responde uma pergunta sobre o sistema. É a pergunta que decide onde uma nota entra:
-
-| Pasta | Pergunta |
-|---|---|
-| `01 Overview` | O que é o sistema? |
-| `02 Business Knowledge` | Por que existe? |
-| `03 Structural Knowledge` | Do que é composto? |
-| `04 Behavioral Knowledge` | Como funciona? |
-| `05 Source Code` | Como foi implementado? |
-| `06 Data` | Que informações manipula? |
-| `07 Integrations` | Com quem se comunica? |
-| `08 Operational Architecture` | Como opera em produção? |
-| `09 Evidence` | Quais evidências sustentam? |
-| `10 Decisions` | Quais conclusões e premissas? |
-| `11 Investigations` | O que falta investigar? |
-| `12 Views` | Como visualizar? |
-| `13 MOCs` | Como navegar? |
+Cada pasta responde uma pergunta sobre o sistema: o que ele é, por que existe, do que é composto, como funciona, que dados manipula, quais evidências o sustentam. A descrição de cada pasta, na árvore do vault, declara essa pergunta, e é ela que decide onde uma nota entra.
 
 ## O contrato de evidência
 

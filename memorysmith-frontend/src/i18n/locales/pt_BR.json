@@ -38,6 +38,7 @@
     "guidance": "Guidance",
     "folders": "Estrutura",
     "hasTemplate": "template",
+    "outlineHint": "A árvore de pastas com a descrição de cada uma. É ela, e não o texto do Guidance, que diz ao agente onde cada nota entra.",
     "backToVaults": "Todos os vaults"
   },
   "folder": {
