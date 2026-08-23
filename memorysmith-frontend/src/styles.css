@@ -299,22 +299,6 @@ a:hover { text-decoration: underline; }
 .dashboard-select-heading { font-size: 1.05rem; margin-bottom: 0.75rem; }
 
 /* Vault graph */
-.graph-nav-link {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.85rem;
-  font-family: var(--display);
-  font-weight: 500;
-  color: var(--text);
-  padding: 0.35rem 0.5rem;
-  border-radius: 6px;
-  margin-bottom: 0.9rem;
-  border: 1px solid var(--border);
-}
-.graph-nav-link:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
-.graph-nav-link.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
-
 .graph-page { display: flex; flex-direction: column; height: 100%; }
 .graph-toolbar {
   display: flex;
@@ -599,9 +583,7 @@ a:hover { text-decoration: underline; }
 .properties-box td { line-height: 1.7; }
 .properties-box td a { overflow-wrap: anywhere; }
 
-/* Structure outline (vault page) */
-.structure-outline { margin-top: 2.5rem; border-top: 1px solid var(--border); padding-top: 1rem; }
-.structure-outline h2 { font-size: 1.2rem; margin: 0 0 0.25rem; }
+/* Structure outline */
 .outline-list { list-style: none; margin: 0.5rem 0 0; padding: 0; }
 .outline-list .outline-list { padding-left: 1.1rem; border-left: 1px solid var(--border); margin-left: 0.45rem; }
 .outline-item { padding: 0.35rem 0; }
@@ -614,3 +596,35 @@ a:hover { text-decoration: underline; }
 }
 .outline-count { margin-left: auto; font-size: 0.75rem; color: var(--text-soft); white-space: nowrap; }
 .outline-desc { margin: 0.1rem 0 0; font-size: 0.86rem; color: var(--text-soft); }
+
+/* Vault sidebar navigation */
+.vault-nav { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.9rem; }
+.vault-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-family: var(--display);
+  font-weight: 500;
+  color: var(--text);
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+.vault-nav-link:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+.vault-nav-link.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+
+/* Structure page */
+.structure-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.75rem; margin: 1.25rem 0 2rem; }
+.structure-action {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface); color: var(--text);
+}
+.structure-action svg { width: 22px; height: 22px; color: var(--accent); flex-shrink: 0; }
+.structure-action span { display: flex; flex-direction: column; gap: 0.1rem; }
+.structure-action strong { font-family: var(--display); font-weight: 600; font-size: 0.95rem; }
+.structure-action small { font-size: 0.78rem; color: var(--text-soft); }
+.structure-action:hover { border-color: var(--accent); text-decoration: none; }
+.template-folder-link { margin-left: 0.75rem; font-size: 0.78rem; font-weight: 400; color: var(--text-soft); }

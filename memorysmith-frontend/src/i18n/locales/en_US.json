@@ -36,10 +36,20 @@
   },
   "structure": {
     "guidance": "Guidance",
-    "folders": "Structure",
+    "folders": "Folders",
     "hasTemplate": "template",
-    "outlineHint": "The folder tree with each folder's description. It, not the Guidance text, tells the agent where each note goes.",
-    "backToVaults": "All vaults"
+    "outlineHint": "The folder tree with each folder's description. It is what tells the agent where each note goes.",
+    "backToVaults": "All vaults",
+    "heading": "Structure",
+    "intro": "How this vault describes itself: the Guidance says what it is, each folder says what belongs in it, and the folder Template says how a note is laid out. This is what the agent receives from get_vault_context.",
+    "guidanceHint": "What this vault is and how to write in it",
+    "templates": "Templates",
+    "templatesHint_one": "{{count}} folder with a suggested layout",
+    "templatesHint_other": "{{count}} folders with a suggested layout",
+    "noTemplates": "No folder in this vault declares a Template.",
+    "templateOf": "Template of folder {{folder}}",
+    "openFolder": "Open folder",
+    "content": "Content"
   },
   "folder": {
     "notesHeading": "Notes in this folder",

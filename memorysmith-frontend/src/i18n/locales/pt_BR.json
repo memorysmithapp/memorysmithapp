@@ -36,10 +36,20 @@
   },
   "structure": {
     "guidance": "Guidance",
-    "folders": "Estrutura",
+    "folders": "Pastas",
     "hasTemplate": "template",
-    "outlineHint": "A árvore de pastas com a descrição de cada uma. É ela, e não o texto do Guidance, que diz ao agente onde cada nota entra.",
-    "backToVaults": "Todos os vaults"
+    "outlineHint": "A árvore de pastas com a descrição de cada uma. É ela que diz ao agente onde cada nota entra.",
+    "backToVaults": "Todos os vaults",
+    "heading": "Estrutura",
+    "intro": "Como este vault se descreve: o Guidance diz o que ele é, cada pasta diz o que se guarda nela e o Template da pasta diz como a nota se estrutura. É o que o agente recebe em get_vault_context.",
+    "guidanceHint": "O que este vault é e como se escreve nele",
+    "templates": "Templates",
+    "templatesHint_one": "{{count}} pasta com leiaute sugerido",
+    "templatesHint_other": "{{count}} pastas com leiaute sugerido",
+    "noTemplates": "Nenhuma pasta deste vault declara um Template.",
+    "templateOf": "Template da pasta {{folder}}",
+    "openFolder": "Abrir pasta",
+    "content": "Conteúdo"
   },
   "folder": {
     "notesHeading": "Notas nesta pasta",

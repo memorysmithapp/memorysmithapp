@@ -4,6 +4,8 @@ import { LoginPage } from '../features/auth/LoginPage';
 import { GuidancePanel } from '../features/guidance/GuidancePanel';
 import { NotePage } from '../features/note/NotePage';
 import { FolderPage } from '../features/structure/FolderPage';
+import { StructurePage } from '../features/structure/StructurePage';
+import { TemplatesPage } from '../features/structure/TemplatesPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { GraphPage } from '../features/graph/GraphPage';
 import { VaultLayout } from '../features/structure/VaultLayout';
@@ -25,7 +27,9 @@ export const router = createBrowserRouter([
                 path: '/vaults/:vaultSlug',
                 element: <VaultLayout />,
                 children: [
-                  { index: true, element: <GuidancePanel /> },
+                  { index: true, element: <StructurePage /> },
+                  { path: 'guidance', element: <GuidancePanel /> },
+                  { path: 'templates', element: <TemplatesPage /> },
                   { path: 'graph', element: <GraphPage /> },
                   { path: 'folders/*', element: <FolderPage /> },
                   { path: 'notes/:noteSlug', element: <NotePage /> },

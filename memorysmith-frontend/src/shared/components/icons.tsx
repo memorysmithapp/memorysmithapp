@@ -68,3 +68,33 @@ export function GraphIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+export function StructureIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3" y="3" width="7" height="5" rx="1" />
+      <rect x="14" y="10" width="7" height="5" rx="1" />
+      <rect x="14" y="17" width="7" height="4" rx="1" />
+      <path d="M6.5 8v11h7.5M6.5 12.5H14" />
+    </svg>
+  );
+}
+
+export function GuidanceIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
+      <path d="M9 7h7M9 11h5" />
+    </svg>
+  );
+}
+
+export function TemplateIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M3 9h18M9 9v12" />
+    </svg>
+  );
+}

@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link, NavLink, Outlet, useParams } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getVaultStructure } from '../../shared/api/client';
 import type { VaultStructure } from '../../shared/types/api';
-import { GraphIcon } from '../../shared/components/icons';
+import { GraphIcon, StructureIcon } from '../../shared/components/icons';
 import { SearchBox } from '../search/SearchBox';
 import { FolderTree } from './FolderTree';
 
@@ -14,6 +14,9 @@ export interface VaultOutletContext {
 export function VaultLayout() {
   const { t } = useTranslation();
   const { vaultSlug = '' } = useParams();
+  const { pathname } = useLocation();
+  // Guidance and Templates are facets of the structure; keep its entry lit there.
+  const structureActive = /\/(guidance|templates)$/.test(pathname);
   const { data, isPending, isError } = useQuery({
     queryKey: ['vault-structure', vaultSlug],
     queryFn: () => getVaultStructure(vaultSlug),
@@ -30,10 +33,19 @@ export function VaultLayout() {
           <h2>{data.vault.name}</h2>
         </Link>
         <SearchBox vaultSlug={vaultSlug} structure={data} />
-        <NavLink to={`/vaults/${vaultSlug}/graph`} className="graph-nav-link">
-          <GraphIcon /> {t('graph.navLabel')}
-        </NavLink>
-        <p className="sidebar-caption">{t('structure.folders')}</p>
+        <nav className="vault-nav">
+          <NavLink
+            to={`/vaults/${vaultSlug}`}
+            end
+            className={({ isActive }) => `vault-nav-link${isActive || structureActive ? ' active' : ''}`}
+          >
+            <StructureIcon /> {t('structure.heading')}
+          </NavLink>
+          <NavLink to={`/vaults/${vaultSlug}/graph`} className="vault-nav-link">
+            <GraphIcon /> {t('graph.navLabel')}
+          </NavLink>
+        </nav>
+        <p className="sidebar-caption">{t('structure.content')}</p>
         <FolderTree vaultSlug={vaultSlug} folders={data.folders} />
       </aside>
       <section className="vault-content">

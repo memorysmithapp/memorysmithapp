@@ -7,10 +7,14 @@ interface StructureOutlineProps {
   folders: FolderNode[];
 }
 
+export function templateAnchor(folder: Pick<FolderNode, 'slugPath'>): string {
+  return `template-${folder.slugPath.replace(/\//g, '--')}`;
+}
+
 // Renders the vault's folder tree from the structure object: each folder's
 // name, description, note count and template flag. This is the same data
 // get_vault_context hands to agents; the Guidance text never repeats it.
-function OutlineList({ vaultSlug, folders }: StructureOutlineProps) {
+export function StructureOutline({ vaultSlug, folders }: StructureOutlineProps) {
   const { t } = useTranslation();
   return (
     <ol className="outline-list">
@@ -20,26 +24,23 @@ function OutlineList({ vaultSlug, folders }: StructureOutlineProps) {
             <Link to={`/vaults/${vaultSlug}/folders/${folder.slugPath}`} className="outline-name">
               {folder.name}
             </Link>
-            {folder.hasTemplate && <span className="outline-badge">{t('structure.hasTemplate')}</span>}
+            {folder.hasTemplate && (
+              <Link
+                to={`/vaults/${vaultSlug}/templates#${templateAnchor(folder)}`}
+                className="outline-badge"
+                title={t('structure.templateOf', { folder: folder.name })}
+              >
+                {t('structure.hasTemplate')}
+              </Link>
+            )}
             <span className="outline-count">
               {folder.noteCount > 0 ? t('vaults.noteCount', { count: folder.noteCount }) : ''}
             </span>
           </div>
           <p className="outline-desc">{folder.description}</p>
-          {folder.children.length > 0 && <OutlineList vaultSlug={vaultSlug} folders={folder.children} />}
+          {folder.children.length > 0 && <StructureOutline vaultSlug={vaultSlug} folders={folder.children} />}
         </li>
       ))}
     </ol>
-  );
-}
-
-export function StructureOutline({ vaultSlug, folders }: StructureOutlineProps) {
-  const { t } = useTranslation();
-  return (
-    <section className="structure-outline">
-      <h2>{t('structure.folders')}</h2>
-      <p className="hint">{t('structure.outlineHint')}</p>
-      <OutlineList vaultSlug={vaultSlug} folders={folders} />
-    </section>
   );
 }
