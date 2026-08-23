@@ -135,7 +135,7 @@ O desenho-alvo é de seis deployables (D5). **A 0.1.0 sai como monólito modular
 | Vetores | S3 Vectors | Plano B: OpenSearch Serverless (§26) |
 | Embeddings | Amazon Bedrock, Titan Text Embeddings V2 (1024 dims) | |
 | Eventos | EventBridge (bus `mv-events`) e DynamoDB Streams para a outbox | |
-| Identidade | Amazon Cognito user pool com trigger de *pre-token-generation* | Ver risco em §13.3 |
+| Identidade | Amazon Cognito user pool com trigger de *pre-token-generation* | Registro de cliente MCP via proxy CIMD (§13.3) |
 | Validação | Zod, na borda e nos contratos de evento | Nunca dentro do domínio |
 | Observabilidade | AWS Lambda Powertools | `subscriptionId` em toda linha de log |
 | IaC | AWS CDK (TypeScript) | Projeto próprio, `memorysmith-infra` (§5.1, §5.4) |
@@ -265,7 +265,7 @@ memorysmith-infra/
 │   ├── knowledge.stack.ts           # tabela mv-knowledge + Lambda + stream da outbox
 │   ├── discovery.stack.ts           # tabela mv-discovery + Lambda + acesso ao Bedrock
 │   ├── audit.stack.ts               # tabela mv-audit + Lambda com role APPEND-ONLY (§12.2)
-│   ├── agent.stack.ts               # MCP server + resource server OAuth
+│   ├── agent.stack.ts               # MCP server + resource server OAuth + CIMD proxy (§13.3)
 │   ├── portability.stack.ts
 │   ├── frontend-hosting.stack.ts    # S3 + CloudFront OAC para memorysmith-frontend
 │   └── pipeline.stack.ts            # CI/CD (§20)
@@ -886,13 +886,31 @@ Endpoint: `https://mcp.memorysmith.app/mcp` (Streamable HTTP, OAuth 2.1). Catál
 
 ### 13.2 Autenticação
 
-MCP remoto exige OAuth 2.1 com *Protected Resource Metadata* (`knowledge-base.md` §3.4). **Cognito como Authorization Server, `svc-agent` como Resource Server.** O `subscriptionId` entra no token pelo trigger de *pre-token-generation* (§8.3), e o `client_id` do conector vira `AgentIdentity` (§12.1).
+MCP remoto exige OAuth 2.1 com *Protected Resource Metadata* (`knowledge-base.md` §3.4). **Cognito como Authorization Server; `svc-agent` como Resource Server e como proxy de registro de cliente (§13.3).** O `subscriptionId` entra no token pelo trigger de *pre-token-generation* (§8.3), e o `client_id` do conector vira `AgentIdentity` (§12.1).
 
-### 13.3 Risco aberto nº 1: DCR
+### 13.3 Registro de cliente: proxy CIMD na frente do Cognito
 
-> O Cognito não faz *Dynamic Client Registration*. Os clientes aceitam `client_id` e `client_secret` informados à mão na configuração do conector, o que resolve, com atrito no onboarding.
->
-> **Primeiro spike, antes de qualquer outra coisa:** conectar um MCP mínimo autenticado por Cognito num cliente desktop **e** num cliente web. Se o atrito for alto, trocar por um provedor com DCR (WorkOS AuthKit, Auth0). É a decisão de maior risco do projeto: se a conexão não for fluida, a tese cai (`software-vision.md` §1.4).
+O Cognito não implementa nenhum mecanismo de registro automático de cliente, nem DCR nem CIMD (`knowledge-base.md` §3.4). A especificação MCP atual depreciou o DCR e recomenda CIMD, e os clientes de agente relevantes suportam CIMD nas superfícies desktop, web e CLI. A decisão: **o `svc-agent` implementa CIMD, atuando como proxy de autorização na frente do Cognito.** O Cognito continua emitindo todos os tokens; o proxy resolve apenas o registro do cliente. Nenhum componente novo de infraestrutura: o proxy é código dentro do Lambda do `svc-agent`, que já é o Resource Server.
+
+**O mecanismo, ponta a ponta:**
+
+1. **Descoberta.** Requisição não autenticada ao endpoint MCP devolve `401` com `WWW-Authenticate: Bearer resource_metadata="https://mcp.memorysmith.app/.well-known/oauth-protected-resource"`. No documento de PRM, o campo `resource` é exatamente a URL do endpoint MCP como o usuário a digita, e `authorization_servers` aponta para o issuer do próprio `svc-agent`, não para o Cognito.
+2. **Metadados de authorization server.** O `svc-agent` serve o documento RFC 8414 do seu issuer anunciando `client_id_metadata_document_supported: true` e `"none"` em `token_endpoint_auth_methods_supported`, ambos obrigatórios para o cliente escolher CIMD, mais `code_challenge_methods_supported: ["S256"]`, com `authorization_endpoint` e `token_endpoint` apontando para o próprio proxy.
+3. **Autorização.** Ao receber um `client_id` em forma de URL, o proxy busca o documento de metadados do cliente e o valida antes de qualquer redirecionamento: HTTPS obrigatório, bloqueio de endereço privado na resolução (anti-SSRF), teto de tamanho e timeout na busca, `client_id` interno ao documento idêntico à URL, e `redirect_uri` da requisição presente na lista do documento. Validado, encaminha o navegador ao endpoint de autorização do Cognito usando o único app client pré-registrado do proxy, preservando o PKCE do cliente e correlacionando as duas pernas por `state`. Os `redirect_uri` aceitos incluem o callback dos clientes hospedados e loopback (`localhost` e `127.0.0.1`) com a porta ignorada na comparação, conforme a RFC 8252.
+4. **Token.** O endpoint de token do proxy troca o código com o Cognito e devolve o JWT do Cognito **inalterado**: o proxy jamais emite ou modifica token. Aceita `application/x-www-form-urlencoded`, repassa o refresh com rotação de refresh token, e as claims `subscription_id` e `subscription_status` continuam entrando pelo trigger de §8.5. O `client_id` CIMD, a URL, é o que vira `AgentIdentity` (§12.1).
+5. **DCR deliberadamente ausente.** Os metadados não expõem `registration_endpoint`. Além de depreciado, o DCR criaria um app client no user pool a cada conexão nova, acumulando lixo de registro e consumindo quota. Para um cliente que não fale CIMD, o fallback é o pré-registro: informar um `client_id` à mão na configuração do conector, que os clientes suportam por especificação.
+6. **Restrições operacionais que viram teste.** Os clientes esperam resposta dos endpoints de descoberta, autorização e token em até 10 segundos, então o caminho OAuth do Lambda precisa de p95 folgado sob esse teto, cold start incluído. Os endpoints de descoberta precisam ser alcançáveis a partir do egress dos provedores de cliente de agente, sem WAF os bloqueando.
+
+**Alavanca de remoção.** O proxy existe porque o Cognito não fala CIMD. Se um dia falar, o PRM passa a apontar para o issuer do Cognito e o proxy é removido sem migração: o `client_id` CIMD é uma URL hospedada pelo próprio cliente, portável entre authorization servers por construção, então não há estado de registro no nosso lado para carregar. Até lá, o proxy é tratado como componente permanente, com a mesma régua de segurança do resto da borda.
+
+**O spike da entrega 1 (§25) valida este desenho, e continua vindo antes de tudo:** um proxy mínimo com um conector CIMD funcionando de ponta a ponta num cliente desktop e num cliente web, cumprindo os itens 1 a 6. Com a decisão tomada, o risco muda de natureza: deixa de ser escolha de rumo e vira conformidade de integração. A tese, porém, continua dependendo dele (`software-vision.md` §1.4): se o atrito persistir mesmo com o proxy, o plano B é um provedor de identidade com CIMD nativo (WorkOS AuthKit, Auth0), troca contida na stack de identidade e no proxy, sem tocar no domínio.
+
+**Referências normativas e de integração:**
+
+- Model Context Protocol, registro de cliente: <https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/client-registration>
+- Anthropic, autenticação de conectores: <https://claude.com/docs/connectors/building/authentication>
+- OAuth Client ID Metadata Document, draft IETF: <https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/>
+- RFC 9728 (Protected Resource Metadata) · RFC 8414 (Authorization Server Metadata) · RFC 8252 (apps nativos e loopback) · RFC 7636 (PKCE)
 
 ### 13.4 Idempotência e concorrência
 
@@ -1229,7 +1247,7 @@ Ordem de dependência técnica, com critério de pronto verificável. O recorte 
 
 | # | Entrega | Critério de pronto | 0.1.0 |
 |---|---|---|---|
-| 1 | **Spike de auth MCP** (§13.3) | Conector autenticado por Cognito funciona num cliente desktop **e** num cliente web | ✅ |
+| 1 | **Spike de auth MCP: proxy CIMD** (§13.3) | Conector registrado via CIMD e autenticado pelo Cognito funciona num cliente desktop **e** num cliente web, cumprindo os itens 1 a 6 de §13.3 | ✅ |
 | 2 | Monorepo, kernel, `SubscriptionId`, `Authorship`, taxonomia de erros (§15), CDK, CI com regra de dependência | Build quebra se `domain/` importar SDK da AWS | ✅ |
 | 3 | Domínio do Knowledge: `Vault`, `FolderTree`, `Position`, `Note` | Suíte do domínio verde **sem nenhuma dependência de AWS** | ✅ |
 | 4 | Adaptadores Dynamo, S3 e outbox; `ContentStore` com chave opaca e `ContentRef` completo no evento | 20 reorders concorrentes: nenhuma perda, nenhuma ordem indefinida. **50 notas criadas em paralelo no mesmo vault: nenhum retry por contenção** (§10.2) | ✅ |
@@ -1252,7 +1270,7 @@ Riscos de produto estão em `software-vision.md` §16.
 
 | Risco | Impacto | Resposta |
 |---|---|---|
-| Onboarding do OAuth do MCP ser penoso (falta de DCR no Cognito) | **Alto, mata a tese** | Spike na entrega 1; trocar de IdP se preciso (§13.3) |
+| Onboarding do OAuth do MCP ser penoso (Cognito sem CIMD nem DCR) | **Alto, mata a tese** | Proxy CIMD no `svc-agent` (§13.3), validado pelo spike da entrega 1; plano B é provedor de identidade com CIMD nativo |
 | Vazamento entre assinaturas | **Alto** | Assinatura na chave líder, tipo obrigatório e teste de isolamento na suíte (§8, §19) |
 | Contenção no item `META` sob ingestão em lote | **Alto, degrada o caminho quente** | Transação de nota não escreve no `META` (§10.2); contadores em itens próprios; critério de pronto da entrega 4 mede isso |
 | S3 Vectors indisponível ou limitado na região | Médio | Porta `VectorIndex` já isola; plano B é OpenSearch Serverless, **sem tocar no domínio**, que é o tipo de troca que o hexágono existe para tornar barata |

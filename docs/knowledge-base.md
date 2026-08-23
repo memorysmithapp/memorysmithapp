@@ -181,13 +181,18 @@ A especificação de autorização do MCP se apoia inteiramente em padrões exis
 | **OAuth 2.1** | draft (consolidação de OAuth 2.0 e BCPs) | Base: PKCE obrigatório, sem grant implícito, sem password grant |
 | **Protected Resource Metadata** | RFC 9728 | O servidor MCP declara, num documento bem-conhecido, **qual** authorization server o protege |
 | **Authorization Server Metadata** | RFC 8414 | O authorization server declara seus endpoints |
-| **Dynamic Client Registration** | RFC 7591 | O cliente se registra sozinho no authorization server, sem intervenção humana |
+| **Client ID Metadata Documents** | draft IETF (*client-id-metadata-document*) | O cliente usa uma URL HTTPS como `client_id`; o authorization server busca nessa URL um documento JSON com os metadados do cliente, dispensando registro prévio |
+| **Dynamic Client Registration** | RFC 7591 | O cliente se registra sozinho no authorization server, sem intervenção humana. Depreciado pela especificação MCP em favor do CIMD, mantido por retrocompatibilidade |
 | **PKCE** | RFC 7636 | Protege o fluxo de código de autorização contra interceptação |
 | **Resource Indicators** | RFC 8707 | O token é emitido para um recurso específico, e não serve para outro |
 
 O papel dos atores: o **servidor MCP é Resource Server**, e a identidade fica com um **Authorization Server** separado.
 
-**O ponto de atrito prático é o Dynamic Client Registration.** Sem DCR, o cliente não consegue se registrar sozinho e o usuário precisa colar `client_id` e `client_secret` à mão na configuração do conector. Isso funciona, porque os clientes aceitam credenciais informadas manualmente, mas transfere trabalho de configuração para quem só queria conectar. Nem todo provedor de identidade implementa DCR: alguns provedores gerenciados, por exemplo WorkOS AuthKit e Auth0, oferecem; o Amazon Cognito, no momento em que este documento foi escrito, não.
+**O ponto de atrito prático é o registro do cliente.** A especificação reconhece três mecanismos, em ordem de preferência: credenciais pré-registradas quando cliente e servidor já se conhecem, CIMD quando o authorization server anuncia `client_id_metadata_document_supported` nos seus metadados, e DCR apenas como retrocompatibilidade. Quando nenhum dos mecanismos automáticos está disponível, o usuário cola `client_id` e `client_secret` à mão na configuração do conector: funciona, porque os clientes aceitam credenciais informadas manualmente por especificação, mas transfere trabalho de configuração para quem só queria conectar.
+
+O suporte dos provedores de identidade é desigual, e a ausência costuma ser decisão de produto, não lacuna: provedores voltados ao mercado corporativo, como o Amazon Cognito e o Microsoft Entra ID, não implementam nem DCR nem CIMD, porque priorizam a governança e a rastreabilidade de cada cliente registrado sobre a conveniência do registro automático. Provedores voltados a desenvolvedores, como WorkOS AuthKit e Auth0, implementam. Um resource server na frente de um provedor sem suporte pode fechar essa lacuna publicando os próprios metadados de authorization server e atuando como intermediário do registro, sem emitir tokens próprios.
+
+Do lado dos clientes, as superfícies da Anthropic (web, desktop, dispositivos móveis e CLI) compartilham a mesma infraestrutura de autenticação e suportam CIMD nativamente, e a documentação oficial de conectores recomenda CIMD em vez de DCR: com DCR, cada conexão nova registra um cliente OAuth novo, o que incha o authorization server de quem hospeda.
 
 ### 3.5 Clientes
 
@@ -463,8 +468,9 @@ Um sistema de arquivos não tem alguns conceitos que uma base tem: ordem entre i
 | **Backlink** | Lista das notas que apontam para a nota atual |
 | **Chunk** | Trecho de documento recortado para vetorização |
 | **CommonMark** | Especificação formal e estrita de Markdown |
+| **CIMD** | *Client ID Metadata Documents*: o cliente usa uma URL HTTPS como identificador OAuth, e o authorization server lê nela os metadados do cliente |
 | **CRDT** | Estrutura de dados que converge sob edição concorrente sem coordenação |
-| **DCR** | *Dynamic Client Registration* (RFC 7591): registro automático de cliente OAuth |
+| **DCR** | *Dynamic Client Registration* (RFC 7591): registro automático de cliente OAuth, depreciado pela especificação MCP em favor do CIMD |
 | **Embedding** | Representação vetorial densa de um texto |
 | **Frontmatter** | Bloco de metadados no topo do arquivo, delimitado por `---`; convenção, não padrão |
 | **GFM** | *GitHub Flavored Markdown*, superconjunto do CommonMark |
@@ -495,8 +501,12 @@ Um sistema de arquivos não tem alguns conceitos que uma base tem: ordem entre i
 
 **Protocolo**
 - Model Context Protocol, especificação e documentação: <https://modelcontextprotocol.io/>
+- Model Context Protocol, registro de cliente: <https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/client-registration>
+- Anthropic, autenticação de conectores: <https://claude.com/docs/connectors/building/authentication>
+- OAuth Client ID Metadata Document, draft IETF: <https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/>
 - RFC 9728: OAuth 2.0 Protected Resource Metadata
 - RFC 8414: OAuth 2.0 Authorization Server Metadata
+- RFC 8252: OAuth 2.0 for Native Apps
 - RFC 7591: OAuth 2.0 Dynamic Client Registration Protocol
 - RFC 7636: Proof Key for Code Exchange (PKCE)
 - RFC 8707: Resource Indicators for OAuth 2.0
