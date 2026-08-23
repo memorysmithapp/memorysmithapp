@@ -350,10 +350,10 @@ a:hover { text-decoration: underline; }
   background: var(--surface);
   color: var(--text-soft);
   border-radius: 6px;
-  padding: 0.35rem 0;
-  font-size: 0.8rem;
-  font-family: var(--display);
-  font-weight: 500;
+  padding: 0.4rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
 }
 .theme-options button.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
@@ -431,13 +431,28 @@ a:hover { text-decoration: underline; }
   background: var(--surface);
   color: var(--text-soft);
   border-radius: 6px;
-  padding: 0.35rem 0.8rem;
-  font-size: 0.8rem;
-  font-family: var(--display);
-  font-weight: 500;
+  padding: 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  white-space: nowrap;
   margin-top: 1.4rem;
 }
 .copy-button:hover { border-color: var(--accent); color: var(--accent); }
 .copy-button.copied { border-color: var(--node-green); color: var(--node-green); }
+
+/* Property values: tag chips and navigable links */
+.prop-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.prop-tag {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 0.02rem 0.5rem;
+  font-size: 0.76rem;
+  font-family: var(--display);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.properties-box td { line-height: 1.7; }
+.properties-box td a { overflow-wrap: anywhere; }

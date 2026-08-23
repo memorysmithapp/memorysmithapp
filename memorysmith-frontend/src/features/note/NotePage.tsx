@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { getNote, resolveNoteUrl } from '../../shared/api/client';
 import { resolveWikilinks } from '../../shared/api/markdown';
 import { Markdown } from '../../shared/components/Markdown';
+import { PropertyValue } from '../../shared/components/PropertyValue';
+import { CheckIcon, CopyIcon } from '../../shared/components/icons';
 
 export function NotePage() {
   const { t } = useTranslation();
@@ -59,9 +61,10 @@ export function NotePage() {
           type="button"
           className={`copy-button${copied ? ' copied' : ''}`}
           onClick={() => void copyNote()}
-          title={t('note.copyHint')}
+          title={copied ? t('note.copied') : t('note.copyHint')}
+          aria-label={t('note.copy')}
         >
-          {copied ? `✓ ${t('note.copied')}` : t('note.copy')}
+          {copied ? <CheckIcon /> : <CopyIcon />}
         </button>
       </div>
 
@@ -73,7 +76,9 @@ export function NotePage() {
               {properties.map(([key, value]) => (
                 <tr key={key}>
                   <th>{key}</th>
-                  <td>{value}</td>
+                  <td>
+                    <PropertyValue name={key} value={value} vaultSlug={vaultSlug} />
+                  </td>
                 </tr>
               ))}
             </tbody>

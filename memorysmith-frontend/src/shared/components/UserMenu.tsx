@@ -4,8 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { usePreferences, type ThemeChoice } from '../store/preferences';
 import { useSession } from '../store/session';
 import { Avatar } from './Avatar';
+import { MonitorIcon, MoonIcon, SunIcon } from './icons';
 
-const THEME_OPTIONS: ThemeChoice[] = ['light', 'dark', 'system'];
+const THEME_OPTIONS: { value: ThemeChoice; Icon: typeof SunIcon }[] = [
+  { value: 'light', Icon: SunIcon },
+  { value: 'dark', Icon: MoonIcon },
+  { value: 'system', Icon: MonitorIcon },
+];
 
 export function UserMenu() {
   const { t } = useTranslation();
@@ -53,14 +58,16 @@ export function UserMenu() {
           <div className="user-menu-section">
             <p className="user-menu-caption">{t('theme.heading')}</p>
             <div className="theme-options">
-              {THEME_OPTIONS.map((option) => (
+              {THEME_OPTIONS.map(({ value, Icon }) => (
                 <button
-                  key={option}
+                  key={value}
                   type="button"
-                  className={theme === option ? 'active' : ''}
-                  onClick={() => setTheme(option)}
+                  className={theme === value ? 'active' : ''}
+                  onClick={() => setTheme(value)}
+                  title={t(`theme.${value}`)}
+                  aria-label={t(`theme.${value}`)}
                 >
-                  {t(`theme.${option}`)}
+                  <Icon />
                 </button>
               ))}
             </div>
