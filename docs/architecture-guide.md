@@ -257,7 +257,7 @@ O mapeamento de erro para mensagem vive em `shared/api/error-mapper.ts` e cobre 
 memorysmith-infra/
 ├── bin/app.ts
 ├── stacks/
-│   ├── network.stack.ts             # CloudFront, domínios, certificados
+│   ├── network.stack.ts             # Route 53 (hosted zone), CloudFront, certificados ACM (§17)
 │   ├── identity.stack.ts            # Cognito user pool + pre-token-generation (§8.3)
 │   ├── storage.stack.ts             # bucket de conteúdo (versionado) + bucket de vetores
 │   ├── events.stack.ts              # EventBridge bus mv-events
@@ -1044,11 +1044,26 @@ O domínio devolve `Result<T, DomainError>`; **exceção existe só na borda**. 
 | IA | Bedrock, Titan Text Embeddings V2 |
 | Eventos | EventBridge (bus `mv-events`) e DynamoDB Streams para a outbox |
 | Identidade | Cognito user pool com pre-token-generation trigger (claim `subscription_id`) |
+| DNS | Route 53: hosted zone de `memorysmith.app` e todos os registros criados pelo CDK no `network.stack` |
 | Front-end | React + Vite (SPA) em S3 + CloudFront |
 | IaC | AWS CDK (TypeScript), um stack por serviço mais um de rede e domínio |
 | Observabilidade | Powertools for AWS Lambda; `subscriptionId` em **toda** linha de log e como dimensão de métrica |
 
 > **Um Lambda por serviço, não um por rota:** menos cold starts, um composition root por deployable, e a fronteira que importa (o bounded context) continua sendo a unidade de deploy.
+
+**Domínios e DNS.** O domínio `memorysmith.app` está registrado. A partir dele, tudo é declarado pelo CDK no `network.stack`: a hosted zone pública no Route 53, os certificados ACM validados por DNS na própria zona (emissão e renovação automáticas) e os registros de cada superfície. Nenhum registro é criado à mão no console.
+
+| Host | Serve | Stack que cria o registro |
+|---|---|---|
+| `memorysmith.app` | A SPA (S3 + CloudFront) | `frontend-hosting.stack` |
+| `www.memorysmith.app` | Redirect permanente para o apex | `frontend-hosting.stack` |
+| `api.memorysmith.app` | API interna, roteada por path no CloudFront (§14.1) | `network.stack` |
+| `mcp.memorysmith.app` | MCP server e endpoints OAuth do proxy CIMD (§13) | `agent.stack` |
+
+Dois cuidados que pertencem à instrução, não à execução:
+
+- **Certificado de CloudFront vive em `us-east-1`.** É exigência do CloudFront, não escolha. O CDK resolve com um stack de certificado naquela região e referência cross-region; o restante da infra permanece na região principal.
+- **Se o registro do domínio estiver fora do Route 53, a delegação é um ato manual único:** apontar os name servers no registrador para os NS da hosted zone criada pelo CDK. É a única escrita de DNS feita fora do código, e acontece uma vez.
 
 **Jobs periódicos:**
 
