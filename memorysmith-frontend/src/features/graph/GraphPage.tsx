@@ -13,6 +13,7 @@ import {
   type SimulationNodeDatum,
 } from 'd3-force';
 import { usePreferences } from '../../shared/store/preferences';
+import { VaultBreadcrumb } from '../structure/VaultBreadcrumb';
 
 interface GraphFile {
   nodes: { id: string; title: string; kind: 'note' | 'tag' }[];
@@ -303,7 +304,10 @@ export function GraphPage() {
   return (
     <div className="graph-page">
       <div className="graph-toolbar">
-        <h1>{t('graph.heading')}</h1>
+        <div className="graph-title">
+          <VaultBreadcrumb items={[{ label: t('graph.heading') }]} className="graph-breadcrumb" />
+          <h1>{t('graph.heading')}</h1>
+        </div>
         <label className="graph-toggle">
           <input type="checkbox" checked={showTags} onChange={(e) => setShowTags(e.target.checked)} />
           {t('graph.showTags')}

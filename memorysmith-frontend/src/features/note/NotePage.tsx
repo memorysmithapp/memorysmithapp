@@ -1,16 +1,20 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getNote, resolveNoteUrl } from '../../shared/api/client';
 import { resolveWikilinks } from '../../shared/api/markdown';
 import { Markdown } from '../../shared/components/Markdown';
 import { PropertyValue } from '../../shared/components/PropertyValue';
 import { CheckIcon, CopyIcon } from '../../shared/components/icons';
+import { folderTrailForNote } from '../structure/trail';
+import { VaultBreadcrumb, folderCrumbs } from '../structure/VaultBreadcrumb';
+import type { VaultOutletContext } from '../structure/VaultLayout';
 
 export function NotePage() {
   const { t } = useTranslation();
   const { vaultSlug = '', noteSlug = '' } = useParams();
+  const { structure } = useOutletContext<VaultOutletContext>();
   const [copied, setCopied] = useState(false);
   const { data, isPending, isError } = useQuery({
     queryKey: ['note', vaultSlug, noteSlug],
@@ -54,7 +58,9 @@ export function NotePage() {
     <article className="content-pane">
       <div className="note-header">
         <div>
-          <p className="breadcrumb">{data.folderNames.join(' / ')}</p>
+          <VaultBreadcrumb
+            items={[...folderCrumbs(vaultSlug, folderTrailForNote(structure.folders, noteSlug)), { label: data.title }]}
+          />
           <h1>{data.title}</h1>
         </div>
         <button

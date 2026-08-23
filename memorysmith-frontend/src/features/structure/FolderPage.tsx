@@ -4,23 +4,16 @@ import { useTranslation } from 'react-i18next';
 import { getTemplate, resolveNoteUrl } from '../../shared/api/client';
 import { splitFrontmatter } from '../../shared/api/markdown';
 import { Markdown } from '../../shared/components/Markdown';
-import type { FolderNode } from '../../shared/types/api';
 import type { VaultOutletContext } from './VaultLayout';
-
-function findFolder(folders: FolderNode[], slugPath: string): FolderNode | null {
-  for (const folder of folders) {
-    if (folder.slugPath === slugPath) return folder;
-    const nested = findFolder(folder.children, slugPath);
-    if (nested) return nested;
-  }
-  return null;
-}
+import { folderTrail } from './trail';
+import { VaultBreadcrumb, folderCrumbs } from './VaultBreadcrumb';
 
 export function FolderPage() {
   const { t } = useTranslation();
   const { vaultSlug = '', '*': slugPath = '' } = useParams();
   const { structure } = useOutletContext<VaultOutletContext>();
-  const folder = findFolder(structure.folders, slugPath);
+  const chain = folderTrail(structure.folders, slugPath);
+  const folder = chain[chain.length - 1] ?? null;
 
   const { data: template } = useQuery({
     queryKey: ['template', vaultSlug, folder?.id],
@@ -32,6 +25,7 @@ export function FolderPage() {
 
   return (
     <article className="content-pane">
+      <VaultBreadcrumb items={folderCrumbs(vaultSlug, chain)} />
       <h1>{folder.name}</h1>
       <p className="folder-description">{folder.description}</p>
 

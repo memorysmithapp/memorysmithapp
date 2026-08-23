@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { GuidanceIcon, TemplateIcon } from '../../shared/components/icons';
 import type { FolderNode } from '../../shared/types/api';
 import { StructureOutline } from './StructureOutline';
+import { VaultBreadcrumb } from './VaultBreadcrumb';
 import type { VaultOutletContext } from './VaultLayout';
 
 function countTemplates(folders: FolderNode[]): number {
@@ -23,6 +24,7 @@ export function StructurePage() {
 
   return (
     <article className="content-pane">
+      <VaultBreadcrumb items={[{ label: t('structure.heading') }]} />
       <p className="content-kicker">{t('structure.heading')}</p>
       <h1>{structure.vault.name}</h1>
       <p className="hint">{t('structure.intro')}</p>
