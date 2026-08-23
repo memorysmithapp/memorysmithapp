@@ -829,7 +829,7 @@ Registradas aqui em vez de decididas por omissão. Cada uma vira uma decisão da
 | # | Questão | Por que ainda não foi decidida |
 |---|---|---|
 | Q1 | **Planos, cobrança e limites por plano** | Não há definição comercial. Os limites de §14 são técnicos, não de plano. A entidade `Subscription` já comporta plano e cobrança quando houver decisão |
-| Q2 | **Identidade visual:** cor primária, logotipo, tom | Depende de decisão de marca ainda não tomada (`CLAUDE.md` § Identidade visual) |
+| Q2 | **Identidade visual:** cor primária, logotipo, tom | **Resolvida.** Sistema de marca definido no caderno "Livro da marca v1" (Figma): paleta, tipografia, símbolo e regras de uso registrados em `CLAUDE.md` § Identidade visual |
 | Q3 | **Continuidade quando o `OWNER` some** | A transferência exige o próprio `OWNER` (RN-ACC-002). Se ele fica indisponível, hoje só o `PLATFORM_ADMIN` resolveria, e o fluxo não está desenhado |
 | Q4 | **Vault público ou compartilhável por link** | Não está no escopo; entraria como um quarto papel, o que exige revisitar a matriz de §5.2 |
 | Q5 | **Anexos não-Markdown (imagens, PDFs)** | Contradiz PP1 na forma atual. Se entrar, entra como Content Slot de outro tipo, sem virar exceção no modelo |

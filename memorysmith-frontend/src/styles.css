@@ -1,17 +1,23 @@
-/* Neutral reading-first theme. The product's visual identity is still open
-   (software-vision.md Q2); these tokens are the single place to re-skin. */
+/* Brand tokens from the MemorySmith.app brand book (Figma, 'Livro da marca v1').
+   Palette: Azul cofre #0F56D7 (structure) · Laranja sinal #FF8A2B (capture) ·
+   Verde nó #16A34A (connection, never leading) · Tinta #0E1526 (text) ·
+   Fundo escuro #0B1220 (dark mode, unused yet) · Papel #EDEFEC (background).
+   Usage proportion: background 70% · blue 18% · orange 8% · green 4%. */
 
 :root {
-  --bg: #fafaf8;
+  --bg: #edefec;
   --surface: #ffffff;
-  --border: #e4e2dc;
-  --text: #26251f;
-  --text-soft: #6f6d64;
-  --accent: #7a5c2e;
-  --accent-soft: #f0e9dd;
-  --pending: #b0aca0;
+  --border: #dce0da;
+  --text: #0e1526;
+  --text-soft: #545d73;
+  --accent: #0f56d7;
+  --accent-soft: #e7edfb;
+  --signal: #ff8a2b;
+  --node-green: #16a34a;
+  --pending: #a6ab9f;
   --mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
-  --sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --display: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -21,7 +27,14 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--sans);
-  line-height: 1.6;
+  line-height: 1.45;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--display);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
 }
 
 a { color: var(--accent); text-decoration: none; }
@@ -31,15 +44,28 @@ a:hover { text-decoration: underline; }
 
 .app-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 1rem;
-  padding: 0.75rem 1.5rem;
+  height: 56px;
+  padding: 0 1.5rem;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
 
-.brand { font-weight: 700; font-size: 1.1rem; color: var(--text); }
-.brand-mark { color: var(--accent); }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text);
+}
+.brand-symbol { height: 28px; width: auto; }
+.brand-word {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: -0.025em;
+}
+.brand-suffix { color: var(--signal); }
 .tagline { color: var(--text-soft); font-size: 0.85rem; flex: 1; }
 
 .locale-switch { display: flex; gap: 0.25rem; }
@@ -51,6 +77,8 @@ a:hover { text-decoration: underline; }
   cursor: pointer;
   font-size: 0.8rem;
   color: var(--text-soft);
+  font-family: var(--display);
+  font-weight: 500;
 }
 .locale-switch button.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 
@@ -91,7 +119,7 @@ a:hover { text-decoration: underline; }
   background: var(--surface);
   padding: 1rem;
   overflow-y: auto;
-  max-height: calc(100vh - 3.1rem);
+  max-height: calc(100vh - 56px);
   position: sticky;
   top: 0;
 }
@@ -104,6 +132,8 @@ a:hover { text-decoration: underline; }
   font-size: 0.7rem;
   color: var(--text-soft);
   margin: 0 0 0.35rem;
+  font-family: var(--display);
+  font-weight: 500;
 }
 
 .tree-root, .tree-children { list-style: none; margin: 0; padding: 0; }
@@ -127,14 +157,16 @@ a:hover { text-decoration: underline; }
 }
 .tree-note.active { color: var(--accent); font-weight: 600; }
 
-.vault-content { flex: 1; overflow-y: auto; max-height: calc(100vh - 3.1rem); }
+.vault-content { flex: 1; overflow-y: auto; max-height: calc(100vh - 56px); }
 .content-pane { max-width: 46rem; margin: 0 auto; padding: 2rem 2.5rem 4rem; }
 .content-kicker {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 0.72rem;
-  color: var(--accent);
+  color: var(--signal);
   margin-bottom: 0;
+  font-family: var(--display);
+  font-weight: 500;
 }
 .breadcrumb { font-size: 0.8rem; color: var(--text-soft); margin-bottom: 0.25rem; }
 .folder-description { color: var(--text-soft); }
@@ -163,7 +195,7 @@ a:hover { text-decoration: underline; }
 .markdown h1 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; }
 .markdown h2 { font-size: 1.2rem; margin-top: 2rem; }
 .markdown pre {
-  background: #f2f0ea;
+  background: #f4f5f2;
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0.75rem 1rem;

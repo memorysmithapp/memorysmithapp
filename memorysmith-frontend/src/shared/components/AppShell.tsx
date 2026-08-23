@@ -9,7 +9,10 @@ export function AppShell() {
     <div className="app-shell">
       <header className="app-header">
         <Link to="/" className="brand">
-          <span className="brand-mark">◆</span> {t('app.title')}
+          <img src="/symbol.svg" alt="" className="brand-symbol" />
+          <span className="brand-word">
+            MemorySmith<span className="brand-suffix">.app</span>
+          </span>
         </Link>
         <span className="tagline">{t('app.tagline')}</span>
         <nav className="locale-switch" aria-label="Locale">

@@ -24,8 +24,10 @@ O MemorySmith.app hospeda vaults de conhecimento em Markdown que se autodescreve
 Structured knowledge, natively readable and writable by agents.
 
 ### Identidade visual
-- **Cor primária:** a definir
-- **Tom visual:** a definir. A superfície do produto é uma ferramenta de leitura antes de ser uma ferramenta de edição
+Definida no caderno de marca "Livro da marca v1" (Figma). O símbolo é um grafo que forma um cérebro: cada círculo é uma nota, cada haste é uma ligação. Nunca redesenhar o símbolo nem criar combinações de cor fora das quatro versões do caderno.
+- **Cor primária:** Azul cofre `#0F56D7` (estrutura). Acentos: Laranja sinal `#FF8A2B` (captura) e Verde nó `#16A34A` (conexão; nunca conduz uma peça sozinho). Neutros: Tinta `#0E1526` (texto), Papel `#EDEFEC` (fundo claro) e Fundo escuro `#0B1220` (modo escuro). Proporção de uso: fundo 70%, azul 18%, laranja 8%, verde 4%
+- **Tipografia:** Space Grotesk (Bold no logotipo e títulos, Medium em rótulos e interface) e Inter (texto corrido). Tracking de −2,5% no logotipo; o sufixo `.app` do wordmark é sempre Laranja sinal
+- **Tom visual:** sóbrio e legível. A superfície do produto é uma ferramenta de leitura antes de ser uma ferramenta de edição
 
 ### Versão base
 0.1.0
