@@ -137,25 +137,44 @@ function writeTemplate(dir, vaultSlug, templateName) {
 
 const WIKILINK = /\[\[([^\]|]+?)(?:\|[^\]]+?)?\]\]/g;
 
-function collectNoteStats(raw, vault) {
+function parseTags(head) {
+  const inline = /^tags:\s*\[([^\]]*)\]/m.exec(head);
+  if (inline) {
+    return inline[1].split(',').map((t) => t.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+  }
+  const block = /^tags:\s*\n((?:[ \t]+-[ \t]+.*\n?)+)/m.exec(head);
+  if (!block) return [];
+  return block[1]
+    .split('\n')
+    .map((line) => line.replace(/^[ \t]+-[ \t]+/, '').trim())
+    .filter(Boolean);
+}
+
+function collectNoteStats(raw, vault, slug, title) {
   const head = raw.startsWith('---') ? raw.slice(0, raw.indexOf('\n---', 3)) : '';
   const type = /^type:\s*(\S+)/m.exec(head)?.[1] ?? 'none';
   const status = /^status:\s*(\S+)/m.exec(head)?.[1] ?? 'none';
   vault.stats.byType[type] = (vault.stats.byType[type] ?? 0) + 1;
   vault.stats.byStatus[status] = (vault.stats.byStatus[status] ?? 0) + 1;
+
+  const out = new Set();
   for (const m of raw.matchAll(WIKILINK)) {
     const target = slugify((m[1].split('#')[0] ?? '').trim());
-    if (target) vault.linkTargets.set(target, (vault.linkTargets.get(target) ?? 0) + 1);
+    if (!target) continue;
+    vault.linkTargets.set(target, (vault.linkTargets.get(target) ?? 0) + 1);
+    if (target !== slug) out.add(target);
   }
+  vault.graphNotes.push({ slug, title, tags: parseTags(head), out: [...out] });
 }
 
 function copyNotes(srcDir, outDir, vault, counters, depth) {
   if (depth > 6) warnings.push(`depth > 6 at ${outDir}`);
   for (const f of listMd(srcDir)) {
-    const slug = slugify(f.replace(/\.md$/, ''));
+    const title = f.replace(/\.md$/, '');
+    const slug = slugify(title);
     if (vault.slugs.has(slug)) warnings.push(`[${vault.slug}] duplicate note slug "${slug}" (${join(outDir, f)})`);
     vault.slugs.add(slug);
-    collectNoteStats(readFileSync(join(srcDir, f), 'utf8'), vault);
+    collectNoteStats(readFileSync(join(srcDir, f), 'utf8'), vault, slug, title);
     cpSync(join(srcDir, f), join(outDir, f));
     counters.notes += 1;
   }
@@ -210,6 +229,7 @@ for (const def of VAULTS) {
     slugs: new Set(),
     linkTargets: new Map(),
     stats: { byType: {}, byStatus: {} },
+    graphNotes: [],
   };
   const counters = { notes: 0, folders: 0 };
 
@@ -236,6 +256,33 @@ for (const def of VAULTS) {
     byStatus: vault.stats.byStatus,
     links: { resolved, pending },
   });
+
+  // Graph projection: note nodes, tag nodes and their edges, indexed compactly.
+  const noteIndex = new Map(vault.graphNotes.map((n, i) => [n.slug, i]));
+  const nodes = vault.graphNotes.map((n) => ({ id: n.slug, title: n.title, kind: 'note' }));
+  const edges = [];
+  for (const note of vault.graphNotes) {
+    const from = noteIndex.get(note.slug);
+    for (const target of note.out) {
+      const to = noteIndex.get(target);
+      if (to !== undefined) edges.push([from, to]);
+    }
+  }
+  const tagIndex = new Map();
+  for (const note of vault.graphNotes) {
+    const from = noteIndex.get(note.slug);
+    for (const tag of note.tags) {
+      let ti = tagIndex.get(tag);
+      if (ti === undefined) {
+        ti = nodes.length;
+        tagIndex.set(tag, ti);
+        nodes.push({ id: `tag:${tag}`, title: tag, kind: 'tag' });
+      }
+      edges.push([from, ti]);
+    }
+  }
+  mkdirSync(join(SEED_DIR, 'graph'), { recursive: true });
+  writeFileSync(join(SEED_DIR, 'graph', `${def.slug}.json`), JSON.stringify({ nodes, edges }) + '\n', 'utf8');
 }
 
 writeFileSync(join(SEED_DIR, 'stats.json'), JSON.stringify({ vaults: stats }, null, 2) + '\n', 'utf8');

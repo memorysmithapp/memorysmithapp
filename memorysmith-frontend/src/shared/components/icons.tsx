@@ -57,3 +57,14 @@ export function CheckIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+export function GraphIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="5" cy="6" r="2.5" />
+      <circle cx="19" cy="5" r="2.5" />
+      <circle cx="12" cy="19" r="2.5" />
+      <path d="M7.3 7.2 10.8 17M16.9 6.6 13.2 17M7.5 6.4l9-1" />
+    </svg>
+  );
+}

@@ -72,5 +72,13 @@
     "typesHeading": "Notas por tipo",
     "otherTypes": "Outros",
     "selectVault": "Abrir um vault"
+  },
+  "graph": {
+    "heading": "Grafo do vault",
+    "navLabel": "Grafo do vault",
+    "showTags": "Mostrar tags",
+    "legendNotes": "Notas",
+    "legendTags": "Tags",
+    "hint": "Role para ampliar · arraste para mover · clique numa nota para abri-la"
   }
 }
