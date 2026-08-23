@@ -44,6 +44,7 @@ export interface NoteDetail {
   folderNames: string[];
   frontmatter: Record<string, string>;
   body: string;
+  raw: string;
 }
 
 export interface TemplateDetail {

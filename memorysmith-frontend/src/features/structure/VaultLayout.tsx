@@ -3,6 +3,7 @@ import { Link, Outlet, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getVaultStructure } from '../../shared/api/client';
 import type { VaultStructure } from '../../shared/types/api';
+import { SearchBox } from '../search/SearchBox';
 import { FolderTree } from './FolderTree';
 
 export interface VaultOutletContext {
@@ -27,6 +28,7 @@ export function VaultLayout() {
         <Link to={`/vaults/${vaultSlug}`} className="vault-title-link">
           <h2>{data.vault.name}</h2>
         </Link>
+        <SearchBox vaultSlug={vaultSlug} structure={data} />
         <p className="sidebar-caption">{t('structure.folders')}</p>
         <FolderTree vaultSlug={vaultSlug} folders={data.folders} />
       </aside>

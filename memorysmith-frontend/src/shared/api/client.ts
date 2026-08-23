@@ -91,6 +91,7 @@ export async function getNote(vaultSlug: string, noteSlug: string): Promise<Note
     folderNames,
     frontmatter,
     body,
+    raw,
   };
 }
 

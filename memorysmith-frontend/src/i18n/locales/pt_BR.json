@@ -3,6 +3,32 @@
     "title": "MemorySmith",
     "tagline": "Structured knowledge, natively readable and writable by agents."
   },
+  "auth": {
+    "email": "E-mail",
+    "password": "Senha",
+    "continue": "Continuar",
+    "mfaHint": "Informe o código de 6 dígitos do seu aplicativo autenticador.",
+    "mfaCode": "Código de verificação",
+    "signIn": "Entrar",
+    "back": "Voltar",
+    "signOut": "Sair",
+    "role": "Papel",
+    "subscription": "Assinatura",
+    "demoNote": "Protótipo: as credenciais vêm preenchidas e nenhuma autenticação real acontece."
+  },
+  "theme": {
+    "heading": "Tema",
+    "light": "Claro",
+    "dark": "Escuro",
+    "system": "Sistema"
+  },
+  "search": {
+    "placeholder": "Buscar notas…",
+    "modeIndex": "Índice",
+    "modeGraph": "Grafo",
+    "graphSoon": "A busca pelo grafo chega com o Discovery (0.2.0).",
+    "empty": "Nenhuma nota encontrada."
+  },
   "vaults": {
     "heading": "Vaults",
     "noteCount": "{{count}} notas",
@@ -22,7 +48,10 @@
   },
   "note": {
     "properties": "Propriedades",
-    "pendingLink": "Link pendente: a nota alvo ainda não existe."
+    "pendingLink": "Link pendente: a nota alvo ainda não existe.",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "copyHint": "Copiar o Markdown da nota para a área de transferência"
   },
   "common": {
     "loading": "Carregando…",
