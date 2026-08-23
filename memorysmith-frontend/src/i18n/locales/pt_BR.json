@@ -1,0 +1,31 @@
+{
+  "app": {
+    "title": "MemorySmith",
+    "tagline": "Structured knowledge, natively readable and writable by agents."
+  },
+  "vaults": {
+    "heading": "Vaults",
+    "noteCount": "{{count}} notas",
+    "open": "Abrir vault"
+  },
+  "structure": {
+    "guidance": "Guidance",
+    "folders": "Estrutura",
+    "hasTemplate": "template",
+    "backToVaults": "Todos os vaults"
+  },
+  "folder": {
+    "notesHeading": "Notas nesta pasta",
+    "template": "Template",
+    "templateHint": "Leiaute sugerido para as notas desta pasta. O servidor nunca valida contra ele.",
+    "empty": "Ainda não há notas nesta pasta."
+  },
+  "note": {
+    "properties": "Propriedades",
+    "pendingLink": "Link pendente: a nota alvo ainda não existe."
+  },
+  "common": {
+    "loading": "Carregando…",
+    "notFound": "Não encontrado."
+  }
+}

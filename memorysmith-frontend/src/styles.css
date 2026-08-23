@@ -1,0 +1,192 @@
+/* Neutral reading-first theme. The product's visual identity is still open
+   (software-vision.md Q2); these tokens are the single place to re-skin. */
+
+:root {
+  --bg: #fafaf8;
+  --surface: #ffffff;
+  --border: #e4e2dc;
+  --text: #26251f;
+  --text-soft: #6f6d64;
+  --accent: #7a5c2e;
+  --accent-soft: #f0e9dd;
+  --pending: #b0aca0;
+  --mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  --sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  line-height: 1.6;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.app-shell { min-height: 100vh; display: flex; flex-direction: column; }
+
+.app-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand { font-weight: 700; font-size: 1.1rem; color: var(--text); }
+.brand-mark { color: var(--accent); }
+.tagline { color: var(--text-soft); font-size: 0.85rem; flex: 1; }
+
+.locale-switch { display: flex; gap: 0.25rem; }
+.locale-switch button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0.15rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+.locale-switch button.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+
+.app-main { flex: 1; display: flex; min-height: 0; }
+.app-main > * { flex: 1; }
+
+.page { padding: 2rem; max-width: 72rem; margin: 0 auto; }
+.status { padding: 2rem; color: var(--text-soft); }
+
+/* Vault catalog */
+.vault-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  gap: 1rem;
+}
+.vault-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  color: var(--text);
+}
+.vault-card:hover { border-color: var(--accent); text-decoration: none; }
+.vault-card h2 { margin: 0; font-size: 1.05rem; }
+.vault-card p { margin: 0; color: var(--text-soft); font-size: 0.9rem; flex: 1; }
+.vault-card footer { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-soft); }
+.vault-open { color: var(--accent); }
+
+/* Vault layout */
+.vault-layout { display: flex; min-height: 0; width: 100%; }
+.vault-sidebar {
+  width: 22rem;
+  min-width: 16rem;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  padding: 1rem;
+  overflow-y: auto;
+  max-height: calc(100vh - 3.1rem);
+  position: sticky;
+  top: 0;
+}
+.back-link { font-size: 0.8rem; color: var(--text-soft); }
+.vault-title-link { color: var(--text); }
+.vault-title-link h2 { margin: 0.35rem 0 0.75rem; font-size: 1rem; }
+.sidebar-caption {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+  color: var(--text-soft);
+  margin: 0 0 0.35rem;
+}
+
+.tree-root, .tree-children { list-style: none; margin: 0; padding: 0; }
+.tree-children { padding-left: 1.1rem; border-left: 1px solid var(--border); margin-left: 0.45rem; }
+.tree-folder { display: flex; align-items: center; gap: 0.3rem; padding: 0.1rem 0; }
+.tree-folder a { color: var(--text); font-weight: 600; font-size: 0.88rem; }
+.tree-folder.active a { color: var(--accent); }
+.tree-toggle {
+  border: 0; background: none; cursor: pointer; padding: 0;
+  width: 1rem; color: var(--text-soft); font-size: 0.8rem;
+}
+.tree-count { margin-left: auto; font-size: 0.72rem; color: var(--text-soft); }
+.tree-note {
+  display: block;
+  font-size: 0.84rem;
+  color: var(--text-soft);
+  padding: 0.08rem 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tree-note.active { color: var(--accent); font-weight: 600; }
+
+.vault-content { flex: 1; overflow-y: auto; max-height: calc(100vh - 3.1rem); }
+.content-pane { max-width: 46rem; margin: 0 auto; padding: 2rem 2.5rem 4rem; }
+.content-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  color: var(--accent);
+  margin-bottom: 0;
+}
+.breadcrumb { font-size: 0.8rem; color: var(--text-soft); margin-bottom: 0.25rem; }
+.folder-description { color: var(--text-soft); }
+
+.template-box, .properties-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  margin: 1rem 0;
+}
+.template-box summary, .properties-box summary { cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+.hint { font-size: 0.8rem; color: var(--text-soft); }
+.properties-box table { border-collapse: collapse; font-size: 0.84rem; margin-top: 0.5rem; }
+.properties-box th { text-align: left; color: var(--text-soft); font-weight: 500; padding: 0.1rem 1rem 0.1rem 0; vertical-align: top; }
+.properties-box td { padding: 0.1rem 0; }
+
+.note-list { list-style: none; padding: 0; margin: 0; }
+.note-list li { padding: 0.3rem 0; border-bottom: 1px solid var(--border); display: flex; gap: 0.75rem; align-items: baseline; }
+.note-list-folder { font-weight: 600; color: var(--text); }
+.note-list-desc { font-size: 0.8rem; color: var(--text-soft); flex: 1; }
+
+/* Markdown */
+.markdown { font-size: 0.95rem; }
+.markdown h1, .markdown h2, .markdown h3 { line-height: 1.3; }
+.markdown h1 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; }
+.markdown h2 { font-size: 1.2rem; margin-top: 2rem; }
+.markdown pre {
+  background: #f2f0ea;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  font-size: 0.82rem;
+}
+.markdown code { font-family: var(--mono); font-size: 0.85em; }
+.markdown blockquote {
+  margin: 1rem 0;
+  padding: 0.5rem 1rem;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 6px 6px 0;
+  color: var(--text);
+}
+.markdown table { border-collapse: collapse; display: block; overflow-x: auto; }
+.markdown th, .markdown td { border: 1px solid var(--border); padding: 0.3rem 0.6rem; font-size: 0.86rem; }
+.markdown th { background: var(--surface); }
+.markdown img { max-width: 100%; }
+
+.wikilink { font-weight: 600; }
+.wikilink-pending {
+  color: var(--pending);
+  border-bottom: 1px dashed var(--pending);
+  cursor: help;
+}
