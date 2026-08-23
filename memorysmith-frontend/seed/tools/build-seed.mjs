@@ -135,12 +135,27 @@ function writeTemplate(dir, vaultSlug, templateName) {
   writeFileSync(join(dir, 'TEMPLATE.md'), readFileSync(src, 'utf8'), 'utf8');
 }
 
+const WIKILINK = /\[\[([^\]|]+?)(?:\|[^\]]+?)?\]\]/g;
+
+function collectNoteStats(raw, vault) {
+  const head = raw.startsWith('---') ? raw.slice(0, raw.indexOf('\n---', 3)) : '';
+  const type = /^type:\s*(\S+)/m.exec(head)?.[1] ?? 'none';
+  const status = /^status:\s*(\S+)/m.exec(head)?.[1] ?? 'none';
+  vault.stats.byType[type] = (vault.stats.byType[type] ?? 0) + 1;
+  vault.stats.byStatus[status] = (vault.stats.byStatus[status] ?? 0) + 1;
+  for (const m of raw.matchAll(WIKILINK)) {
+    const target = slugify((m[1].split('#')[0] ?? '').trim());
+    if (target) vault.linkTargets.set(target, (vault.linkTargets.get(target) ?? 0) + 1);
+  }
+}
+
 function copyNotes(srcDir, outDir, vault, counters, depth) {
   if (depth > 6) warnings.push(`depth > 6 at ${outDir}`);
   for (const f of listMd(srcDir)) {
     const slug = slugify(f.replace(/\.md$/, ''));
     if (vault.slugs.has(slug)) warnings.push(`[${vault.slug}] duplicate note slug "${slug}" (${join(outDir, f)})`);
     vault.slugs.add(slug);
+    collectNoteStats(readFileSync(join(srcDir, f), 'utf8'), vault);
     cpSync(join(srcDir, f), join(outDir, f));
     counters.notes += 1;
   }
@@ -189,7 +204,13 @@ for (const def of VAULTS) {
   if (!existsSync(guidance)) { warnings.push(`missing guidance for ${def.slug}`); continue; }
   writeFileSync(join(outDir, 'README.md'), readFileSync(guidance, 'utf8'), 'utf8');
 
-  const vault = { slug: def.slug, def, slugs: new Set() };
+  const vault = {
+    slug: def.slug,
+    def,
+    slugs: new Set(),
+    linkTargets: new Map(),
+    stats: { byType: {}, byStatus: {} },
+  };
   const counters = { notes: 0, folders: 0 };
 
   const rootStray = listMd(def.sourceRoot).filter((f) => f !== 'README.md');
@@ -199,8 +220,25 @@ for (const def of VAULTS) {
 
   if (counters.notes > 2000) warnings.push(`[${def.slug}] exceeds 2000 notes (${counters.notes})`);
   if (counters.folders > 200) warnings.push(`[${def.slug}] exceeds 200 folders (${counters.folders})`);
-  stats.push({ vault: def.slug, notes: counters.notes, folders: counters.folders });
+
+  let resolved = 0;
+  let pending = 0;
+  for (const [target, count] of vault.linkTargets) {
+    if (vault.slugs.has(target)) resolved += count;
+    else pending += count;
+  }
+  stats.push({
+    vault: def.slug,
+    name: def.name,
+    notes: counters.notes,
+    folders: counters.folders,
+    byType: vault.stats.byType,
+    byStatus: vault.stats.byStatus,
+    links: { resolved, pending },
+  });
 }
+
+writeFileSync(join(SEED_DIR, 'stats.json'), JSON.stringify({ vaults: stats }, null, 2) + '\n', 'utf8');
 
 console.table(stats);
 if (warnings.length) {

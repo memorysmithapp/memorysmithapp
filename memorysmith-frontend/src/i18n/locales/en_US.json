@@ -56,5 +56,21 @@
   "common": {
     "loading": "Loading…",
     "notFound": "Not found."
+  },
+  "dashboard": {
+    "heading": "Overview",
+    "kpiVaults": "Vaults",
+    "kpiNotes": "Notes",
+    "kpiResolved": "Resolved links",
+    "kpiPending": "Pending links",
+    "maturityHeading": "Note maturity by vault",
+    "bucket": {
+      "consolidated": "Consolidated",
+      "evolving": "Evolving",
+      "open": "Open"
+    },
+    "typesHeading": "Notes by type",
+    "otherTypes": "Other",
+    "selectVault": "Open a vault"
   }
 }

@@ -1,0 +1,95 @@
+{
+  "vaults": [
+    {
+      "vault": "engineering-knowledge",
+      "name": "Engineering Knowledge Vault",
+      "notes": 573,
+      "folders": 15,
+      "byType": {
+        "literature": 41,
+        "concept": 431,
+        "practice": 90,
+        "moc": 8,
+        "project": 3
+      },
+      "byStatus": {
+        "evergreen": 497,
+        "growing": 67,
+        "seed": 9
+      },
+      "links": {
+        "resolved": 5648,
+        "pending": 120
+      }
+    },
+    {
+      "vault": "regulacao-energia",
+      "name": "Regulação de Energia",
+      "notes": 166,
+      "folders": 18,
+      "byType": {
+        "project": 2,
+        "literature": 28,
+        "concept": 31,
+        "practice": 4,
+        "dataset": 74,
+        "convention": 2,
+        "moc": 14,
+        "indicator": 4,
+        "series": 3,
+        "insight": 4
+      },
+      "byStatus": {
+        "growing": 91,
+        "evergreen": 15,
+        "seed": 60
+      },
+      "links": {
+        "resolved": 1341,
+        "pending": 17
+      }
+    },
+    {
+      "vault": "glpi-discovery",
+      "name": "GLPI 11 - Descoberta",
+      "notes": 758,
+      "folders": 13,
+      "byType": {
+        "overview": 10,
+        "process": 23,
+        "capability": 32,
+        "rule": 16,
+        "component": 116,
+        "concept": 51,
+        "actor": 1,
+        "entity": 54,
+        "flow": 34,
+        "use-case": 24,
+        "state-machine": 1,
+        "algorithm": 1,
+        "module": 1,
+        "table": 33,
+        "data": 7,
+        "field": 24,
+        "integration": 11,
+        "infra": 10,
+        "job": 1,
+        "evidence": 251,
+        "adr": 1,
+        "decision": 2,
+        "investigation": 37,
+        "view": 8,
+        "moc": 9
+      },
+      "byStatus": {
+        "confirmed": 723,
+        "inferred": 1,
+        "open": 34
+      },
+      "links": {
+        "resolved": 3864,
+        "pending": 36
+      }
+    }
+  ]
+}

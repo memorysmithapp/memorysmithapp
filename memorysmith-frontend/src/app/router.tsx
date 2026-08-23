@@ -4,8 +4,8 @@ import { LoginPage } from '../features/auth/LoginPage';
 import { GuidancePanel } from '../features/guidance/GuidancePanel';
 import { NotePage } from '../features/note/NotePage';
 import { FolderPage } from '../features/structure/FolderPage';
+import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { VaultLayout } from '../features/structure/VaultLayout';
-import { VaultListPage } from '../features/vaults/VaultListPage';
 import { RequireSession, RootLayout } from './RootLayout';
 
 export const router = createBrowserRouter([
@@ -19,7 +19,7 @@ export const router = createBrowserRouter([
           {
             element: <AppShell />,
             children: [
-              { path: '/', element: <VaultListPage /> },
+              { path: '/', element: <DashboardPage /> },
               {
                 path: '/vaults/:vaultSlug',
                 element: <VaultLayout />,
