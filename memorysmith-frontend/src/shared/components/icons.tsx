@@ -69,17 +69,6 @@ export function GraphIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-export function StructureIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...base(props)}>
-      <rect x="3" y="3" width="7" height="5" rx="1" />
-      <rect x="14" y="10" width="7" height="5" rx="1" />
-      <rect x="14" y="17" width="7" height="4" rx="1" />
-      <path d="M6.5 8v11h7.5M6.5 12.5H14" />
-    </svg>
-  );
-}
-
 export function GuidanceIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base(props)}>

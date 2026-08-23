@@ -49,7 +49,8 @@
     "noTemplates": "No folder in this vault declares a Template.",
     "templateOf": "Template of folder {{folder}}",
     "openFolder": "Open folder",
-    "content": "Content"
+    "content": "Content",
+    "breadcrumb": "Structure trail"
   },
   "folder": {
     "notesHeading": "Notes in this folder",

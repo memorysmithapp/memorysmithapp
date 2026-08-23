@@ -33,7 +33,8 @@ export function LoginPage() {
   return (
     <div className="login-screen">
       <div className="login-card">
-        <img src="/symbol.svg" alt="" className="login-symbol" />
+        <img src="/symbol.svg" alt="" className="login-symbol symbol-light" />
+        <img src="/symbol-dark.svg" alt="" className="login-symbol symbol-dark" />
         <h1 className="brand-word">
           MemorySmith<span className="brand-suffix">.app</span>
         </h1>

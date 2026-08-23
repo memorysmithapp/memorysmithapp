@@ -628,3 +628,7 @@ a:hover { text-decoration: underline; }
 .structure-action small { font-size: 0.78rem; color: var(--text-soft); }
 .structure-action:hover { border-color: var(--accent); text-decoration: none; }
 .template-folder-link { margin-left: 0.75rem; font-size: 0.78rem; font-weight: 400; color: var(--text-soft); }
+.structure-breadcrumb { margin-bottom: 0.75rem; }
+.structure-breadcrumb a { color: var(--text-soft); }
+.structure-breadcrumb a:hover { color: var(--accent); }
+.structure-breadcrumb [aria-current] { color: var(--text); }

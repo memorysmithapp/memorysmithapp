@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { resolveNoteUrl } from '../../shared/api/client';
 import { resolveWikilinks } from '../../shared/api/markdown';
 import { Markdown } from '../../shared/components/Markdown';
+import { StructureBreadcrumb } from '../structure/StructureBreadcrumb';
 import type { VaultOutletContext } from '../structure/VaultLayout';
 
 export function GuidancePanel() {
@@ -10,14 +11,15 @@ export function GuidancePanel() {
   const { vaultSlug = '' } = useParams();
   const { structure } = useOutletContext<VaultOutletContext>();
 
-  if (!structure.guidance) return <p className="status">{t('common.notFound')}</p>;
-
-  const body = resolveWikilinks(structure.guidance, (slug) => resolveNoteUrl(vaultSlug, slug));
+  const body = structure.guidance
+    ? resolveWikilinks(structure.guidance, (slug) => resolveNoteUrl(vaultSlug, slug))
+    : null;
 
   return (
     <article className="content-pane">
+      <StructureBreadcrumb current={t('structure.guidance')} />
       <p className="content-kicker">{t('structure.guidance')}</p>
-      <Markdown>{body}</Markdown>
+      {body ? <Markdown>{body}</Markdown> : <p className="status">{t('common.notFound')}</p>}
     </article>
   );
 }

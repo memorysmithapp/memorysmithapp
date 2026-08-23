@@ -49,7 +49,8 @@
     "noTemplates": "Nenhuma pasta deste vault declara um Template.",
     "templateOf": "Template da pasta {{folder}}",
     "openFolder": "Abrir pasta",
-    "content": "Conteúdo"
+    "content": "Conteúdo",
+    "breadcrumb": "Trilha da estrutura"
   },
   "folder": {
     "notesHeading": "Notas nesta pasta",
