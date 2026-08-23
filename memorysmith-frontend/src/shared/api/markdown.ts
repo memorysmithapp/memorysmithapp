@@ -34,18 +34,51 @@ export function guidanceTitle(guidance: string, fallback: string): string {
   return match?.[1]?.trim() ?? fallback;
 }
 
+function stripInlineMarkdown(text: string): string {
+  return text
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_a, target: string, label?: string) => label ?? target);
+}
+
 export function guidanceDescription(guidance: string): string {
   const lines = guidance.split('\n');
   for (const line of lines) {
     if (line.startsWith('> ') && !line.startsWith('> [!')) {
-      return line.replace(/^>\s*/, '').trim();
+      return stripInlineMarkdown(line.replace(/^>\s*/, '').trim());
     }
   }
   for (const line of lines) {
     const text = line.trim();
-    if (text && !text.startsWith('#') && !text.startsWith('>')) return text;
+    if (text && !text.startsWith('#') && !text.startsWith('>')) return stripInlineMarkdown(text);
   }
   return '';
+}
+
+const CALLOUT_ICONS: Record<string, string> = {
+  abstract: '📌',
+  summary: '📌',
+  info: 'ℹ️',
+  note: '📝',
+  tip: '💡',
+  important: '❗',
+  warning: '⚠️',
+  danger: '⚠️',
+  quote: '💬',
+  question: '❓',
+  success: '✅',
+};
+
+// Obsidian-style callout markers ("> [!info] Title") are a vault convention,
+// not universal Markdown. For display we swap the marker for an icon so the
+// blockquote reads naturally; the stored content is never touched.
+export function renderCallouts(body: string): string {
+  return body.replace(/\r\n?/g, '\n').replace(/^(>[ \t]*)\[!(\w+)\][+-]?[ \t]*(.*)$/gm, (_all, prefix: string, type: string, title: string) => {
+    const icon = CALLOUT_ICONS[type.toLowerCase()] ?? '📎';
+    const heading = title.trim();
+    return heading ? `${prefix}${icon} **${heading}**` : `${prefix}${icon}`;
+  });
 }
 
 const WIKILINK = /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g;

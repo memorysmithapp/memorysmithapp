@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 import { useTranslation } from 'react-i18next';
+import { renderCallouts } from '../api/markdown';
 
 interface MarkdownProps {
   children: string;
@@ -39,7 +40,7 @@ export function Markdown({ children }: MarkdownProps) {
         urlTransform={(url) => url}
         components={{ a: MarkdownAnchor }}
       >
-        {children}
+        {renderCallouts(children)}
       </ReactMarkdown>
     </div>
   );
