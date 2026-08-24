@@ -44,13 +44,15 @@ created: 2026-07-17
 ---
 ```
 
-| `type` | Pasta | Propósito |
-|---|---|---|
-| `literature` | 01 Literature | Registro de leitura de um capítulo ou obra |
-| `concept` | 02 / Concepts | Um conceito atômico: o que é, como funciona, como se relaciona |
-| `practice` | 02 / Practices | Uma técnica ou atividade: passos, regras, template |
-| `moc` | 03 Maps of Content | Mapa de navegação de um domínio |
-| `project` | 04 Projects | Estudo de caso ou aplicação prática |
+| `type` | Propósito |
+|---|---|
+| `literature` | Registro de leitura de um capítulo ou obra |
+| `concept` | Um conceito atômico: o que é, como funciona, como se relaciona |
+| `practice` | Uma técnica ou atividade: passos, regras, template |
+| `moc` | Mapa de navegação de um domínio |
+| `project` | Estudo de caso ou aplicação prática |
+
+A pasta em que cada `type` entra não se declara aqui: a árvore de pastas do vault, com a descrição de cada uma, é a regra de entrada.
 
 | `maturity` | Significado |
 |---|---|
