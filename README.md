@@ -84,7 +84,7 @@ As demais stacks do desenho (§5.4 do guia) entram nas entregas seguintes.
    ```
    npm install -g pnpm@11.22.0
    ```
-3. **Conta AWS** com o domínio `memorysmith.app` delegado a uma hosted zone pública no Route 53.
+3. **Conta AWS** com o domínio `memorysmith.app` delegado a uma hosted zone pública no Route 53 (ver [Delegar o domínio do Squarespace para o Route 53](#delegar-o-domínio-do-squarespace-para-o-route-53)).
 4. **AWS CLI** (recomendado, usado nos passos de credencial e de senha do usuário de teste):
    ```
    winget install -e --id Amazon.AWSCLI
@@ -97,6 +97,43 @@ As demais stacks do desenho (§5.4 do guia) entram nas entregas seguintes.
    O CDK usa a cadeia padrão de credenciais; nenhuma credencial entra em arquivo do repositório.
 
 A região padrão do app é **`us-east-1`** (definida em `bin/app.ts`). Para usar outra, exporte `CDK_DEFAULT_REGION` antes dos comandos.
+
+### Delegar o domínio do Squarespace para o Route 53
+
+O registro de `memorysmith.app` fica no Squarespace, mas quem responde pelo DNS precisa ser uma hosted zone pública do Route 53. É ela que o `hostedZoneId` do `cdk.json` aponta, é nela que o ACM cria o registro de validação do certificado de `mcp.memorysmith.app` e é nela que nasce o A record alias do HTTP API. A delegação é feita uma única vez, o registrador continua sendo o Squarespace e não há transferência de domínio envolvida.
+
+Enquanto os nameservers forem os do Squarespace (`nsa1..nsa4.squarespacedns.com`), o deploy da `MemorysmithNetwork` fica travado esperando uma validação de DNS que nunca chega.
+
+#### 1. Criar a hosted zone na AWS
+
+Console → **Route 53** → **Hosted zones** → **Create hosted zone**:
+
+| Campo | Valor |
+|---|---|
+| Domain name | `memorysmith.app` |
+| Type | Public hosted zone |
+
+Abra a zona criada e anote duas coisas: os **quatro nameservers** do registro `NS` do apex (no formato `ns-123.awsdns-45.com`, `ns-678.awsdns-90.net`, `ns-234.awsdns-56.org`, `ns-789.awsdns-01.co.uk`) e o **Hosted zone ID** (formato `Z0123456ABCDEFGHIJKL`), que vai para o `cdk.json` no passo 2 do roteiro de deploy.
+
+Cada hosted zone custa US$ 0,50 por mês.
+
+#### 2. Apontar os nameservers no Squarespace
+
+1. Entre em `account.squarespace.com` e abra **Domains**.
+2. Clique em `memorysmith.app`.
+3. No menu do domínio, vá em **DNS** e localize a seção **Nameservers**, que vem marcada como nameservers do Squarespace.
+4. Troque para a opção de **nameservers personalizados** e cole os quatro da Route 53, um por campo, **sem o ponto final**.
+5. Salve. O Squarespace avisa que os registros DNS dele deixam de valer e que o site pode ficar inacessível: é o efeito esperado, porque a partir daqui o DNS inteiro do domínio passa a ser servido pela Route 53.
+
+> Se o domínio estiver servindo um site ou e-mail que precisa continuar no ar, recrie os registros correspondentes na hosted zone **antes** deste passo. Enquanto a troca propaga, os dois conjuntos de nameservers respondem, e só a hosted zone conhece os registros novos.
+
+#### 3. Confirmar a delegação
+
+```
+nslookup -type=NS memorysmith.app 8.8.8.8
+```
+
+A delegação terminou quando a resposta trouxer os nomes `awsdns` no lugar dos `squarespacedns`. O TTL dos registros NS no TLD `.app` é de até 48 horas, mas na prática a troca costuma valer em minutos ou poucas horas. Só depois disso o certificado do passo 5 do roteiro consegue ser emitido.
 
 ### Passo a passo
 
@@ -116,7 +153,7 @@ Três valores de contexto governam o deploy:
 
 | Chave | O que é | Como obter |
 |---|---|---|
-| `hostedZoneId` | O ID da hosted zone `memorysmith.app` (formato `Z...`) | Console do Route 53, ou `aws route53 list-hosted-zones-by-name --dns-name memorysmith.app --query "HostedZones[0].Id"` |
+| `hostedZoneId` | O ID da hosted zone `memorysmith.app` (formato `Z...`), criada na [delegação do domínio](#delegar-o-domínio-do-squarespace-para-o-route-53) | Console do Route 53, ou `aws route53 list-hosted-zones-by-name --dns-name memorysmith.app --query "HostedZones[0].Id"` |
 | `cognitoDomainPrefix` | Prefixo do domínio hospedado do Cognito, único globalmente na região | Manter `memorysmith-auth`; se o deploy acusar colisão, escolher outro |
 | `testUserEmail` | E-mail do usuário de teste criado no user pool | O seu |
 
@@ -216,5 +253,6 @@ O user pool e o secret têm política de remoção padrão; confira no console o
 | `Unable to resolve AWS account to use` | Credenciais ausentes ou expiradas na cadeia padrão |
 | `This CDK CLI is not compatible...` | Use o CLI fixado no projeto (`pnpm exec cdk`), não um `cdk` global antigo |
 | Deploy da `MemorysmithNetwork` parado em `CREATE_IN_PROGRESS` | Emissão do certificado aguardando a validação DNS; se passar de 30 minutos, confira se a hosted zone do `hostedZoneId` é a que responde pelo domínio |
+| `nslookup -type=NS memorysmith.app` ainda responde `squarespacedns.com` | Nameservers não trocados no Squarespace, ou troca ainda propagando (ver [Delegar o domínio do Squarespace para o Route 53](#delegar-o-domínio-do-squarespace-para-o-route-53)) |
 | Colisão no domínio do Cognito | Troque `cognitoDomainPrefix` no contexto |
 | `401` também nos endpoints `.well-known` | Rota errada ou domínio ainda propagando; os `.well-known` são públicos por desenho |
