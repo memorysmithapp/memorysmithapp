@@ -88,7 +88,7 @@ Decisões que valem para o produto inteiro e a que qualquer funcionalidade nova 
 | **PP1** | **No fim é tudo Markdown** | O backend organiza e serve; não gera Markdown a partir de esquema tipado, e não impõe estrutura ao conteúdo |
 | **PP2** | **Vault autônomo** | Cada vault se descreve no próprio Guidance. Sem herança entre vaults e, portanto, sem link entre vaults |
 | **PP3** | **Molde é sugestão, não contrato** | O Template orienta a escrita; a nota não é obrigada a segui-lo, e o servidor não valida contra ele |
-| **PP4** | **O backend não interpreta o conteúdo** | O que vai dentro da nota, frontmatter inclusive, é decidido pelo Guidance e pelo Template. O backend lê apenas sintaxe universal de Markdown (link, heading), nunca convenção de vault |
+| **PP4** | **O backend não interpreta o conteúdo** | O que vai dentro da nota, frontmatter inclusive, é decidido pelo Guidance e pelo Template. O backend lê apenas sintaxe universal de Markdown (link, heading), nunca convenção de vault. As duas exceções sancionadas vivem em projeções do Discovery: o extrator de links e o de facetas (§10.3), que agregam sem atribuir significado e nunca alimentam regra do core |
 | **PP5** | **Descoberta é derivada** | Grafo e busca vetorial nunca são fonte da verdade; são reconstruíveis a partir dos `.md` |
 | **PP6** | **O passado é imutável** | Apagar uma nota não destrói o histórico. Destruir conteúdo é ato administrativo registrado, nunca efeito colateral |
 | **PP7** | **Portável por construção** | Export devolve `.md` puros numa árvore de arquivos legível, sem formato proprietário |
@@ -118,6 +118,7 @@ Termo único por conceito, do código ao produto. Divergência aqui é o começo
 | **Edge** | Link já resolvido para um `NoteId` de destino | Link pendente |
 | **Pending Link** | Link cujo alvo ainda não existe; resolve sozinho quando a nota alvo for criada | Link quebrado |
 | **Chunk** | Trecho de nota vetorizado, recortado por seção | Nota, parágrafo |
+| **Facet** | Atributo de frontmatter agregável para curadoria: os padrão `maturity` e `reviewed`, mais os de convenção do vault (`type`, `tags`, datas) | Campo tipado do backend, esquema de nota |
 | **Authorship** | Quem escreveu: o humano **e** o agente usado | Usuário logado |
 | **Revision** | O conteúdo exato de uma nota num instante | Evento, alteração |
 | **Audit Event** | Registro append-only do que aconteceu, com autoria e revisão | Log de aplicação |
@@ -337,7 +338,7 @@ Seis bounded contexts. A separação é de responsabilidade e vocabulário; a fo
 |---|---|---|
 | **Access** | Assinaturas e seu ciclo de vida, workspaces, membros, papéis, tetos de vault, convites, vínculos, autorização | Supporting |
 | **Knowledge** | Vaults, guidance, pastas, ordem, templates, notas | **Core** |
-| **Discovery** | Grafo de links e índice vetorial, duas projeções | Supporting |
+| **Discovery** | Grafo de links, índice vetorial e facetas de curadoria, três projeções | Supporting |
 | **Audit** | Trilha append-only: autoria, revisões, reconstrução por data | Supporting |
 | **Agent Access** | O MCP server; compõe o Vault Context; traduz domínio ↔ tools | Supporting (camada anticorrupção) |
 | **Portability** | Export para árvore de arquivos legível | Generic |
@@ -587,7 +588,7 @@ Três decisões visíveis nesse formato:
 
 ## 10. Domínio: Discovery
 
-Duas projeções sobre os mesmos fatos, respondendo perguntas diferentes. Comparação conceitual em `knowledge-base.md` §5.6.
+Três projeções sobre os mesmos fatos, respondendo perguntas diferentes. Comparação conceitual em `knowledge-base.md` §5.6.
 
 ### 10.1 Grafo de links
 
@@ -616,6 +617,18 @@ Cada link escrito no corpo de uma nota vira uma aresta. Duas formas são reconhe
 - **RN-DSC-014:** Restaurar uma nota reindexa seus vetores.
 - **RN-DSC-015:** O índice vetorial é isolado por assinatura, não filtrado por metadado dentro de um índice compartilhado.
 - **RN-DSC-016:** Grafo e índice vetorial são derivados (PP5): apagar e reconstruir do zero a partir das notas é operação suportada, e é o plano de recuperação dos dois.
+
+### 10.3 Facetas de curadoria
+
+O painel de curadoria (a Visão geral do produto) responde perguntas de gestão do conhecimento: quanto do conteúdo está maduro, quanto já passou por revisão humana, como as notas se distribuem por tipo, por tag e por data de criação. A resposta vem da terceira projeção, as **facetas**: atributos de frontmatter agregáveis, extraídos de cada nota no momento em que ela muda e mantidos como contagens por vault.
+
+- **RN-DSC-017:** O painel de curadoria é servido por uma projeção derivada, alimentada pelos eventos de nota. Nenhuma tela e nenhuma tool varre notas para contar; quem conta é o projetor, uma vez, no momento da mudança.
+- **RN-DSC-018:** Quem lê o frontmatter é o projetor de facetas do Discovery, segundo leitor sancionado de conteúdo ao lado do extrator de links. O core Knowledge continua sem ler conteúdo (PP4), e nenhuma faceta participa de regra, validação ou autorização: faceta orienta curadoria, nunca comportamento.
+- **RN-DSC-019:** `maturity` (`seed`, `growing`, `evergreen`) e `reviewed` (`true`, `false`) são as facetas padrão do produto, o único vocabulário de frontmatter que o produto declara: `maturity` registra o estágio de maturação do conteúdo e é reavaliada a cada escrita; `reviewed` marca se a revisão vigente passou por revisão humana, somente um humano a escreve como `true` e qualquer edição posterior de conteúdo a devolve a `false`.
+- **RN-DSC-020:** `type`, `tags`, `created` e `updated` são facetas de convenção do vault: a projeção as extrai sintaticamente e agrega os valores sem lhes atribuir significado. O que `type: evidence` quer dizer pertence ao Guidance, nunca ao backend.
+- **RN-DSC-021:** Nota sem uma faceta conta como valor ausente; nunca é rejeitada nem corrigida. A projeção descreve o vault como ele está, e apontar lacuna é papel do painel, não do gravador.
+- **RN-DSC-022:** Nota apagada sai das contagens no soft delete e volta na restauração, espelhando a busca (RN-DSC-013, RN-DSC-014).
+- **RN-DSC-023:** A projeção de facetas é derivada (PP5): eventualmente consistente, apagável e reconstruível do zero a partir das notas, como o grafo e o índice vetorial (RN-DSC-016).
 
 ---
 
@@ -770,7 +783,7 @@ Este documento descreve o produto; a 0.1.0 é o recorte que **testa a tese** (§
 
 | Dentro | Fora |
 |---|---|
-| Autenticação do conector MCP, bloqueante | Discovery inteiro: grafo e busca semântica (§10) |
+| Autenticação do conector MCP, bloqueante | Discovery inteiro: grafo, busca semântica e facetas (§10) |
 | Vault, pastas, ordem, guidance, template, nota | Export (§12) |
 | Onboarding de assinatura, aprovação pelo `PLATFORM_ADMIN`, workspace padrão, autorização | Mover nota entre vaults |
 | Auditoria: trilha, `note_history`, `read_note(asOf)` | Convites, `EDITOR`/`VIEWER` e teto por vault (§5.3) |
@@ -833,4 +846,4 @@ Registradas aqui em vez de decididas por omissão. Cada uma vira uma decisão da
 | Q3 | **Continuidade quando o `OWNER` some** | A transferência exige o próprio `OWNER` (RN-ACC-002). Se ele fica indisponível, hoje só o `PLATFORM_ADMIN` resolveria, e o fluxo não está desenhado |
 | Q4 | **Vault público ou compartilhável por link** | Não está no escopo; entraria como um quarto papel, o que exige revisitar a matriz de §5.2 |
 | Q5 | **Anexos não-Markdown (imagens, PDFs)** | Contradiz PP1 na forma atual. Se entrar, entra como Content Slot de outro tipo, sem virar exceção no modelo |
-| Q6 | **Painel de curadoria e a interpretação de convenções de frontmatter** | O protótipo do frontend mostrou o valor de um dashboard de curadoria (maturidade por status, notas por tipo), mas ele exige ler campos de frontmatter como `type` e `status`, que pertencem ao Guidance de cada vault e não ao backend (PP4). Falta decidir onde essa leitura mora no produto: uma projeção do Discovery configurável por vault, uma convenção que o próprio Guidance declara em formato conhecido, ou um recurso restrito à UI sobre dados que o agente já recebe. A decisão afeta o recorte da 0.2.0 |
+| Q6 | **Painel de curadoria e a interpretação de convenções de frontmatter** | **Resolvida.** O painel é a projeção de facetas do Discovery (§10.3, RN-DSC-017 a RN-DSC-023): `maturity` e `reviewed` viram convenção de produto, `type`, `tags` e datas são extraídos sintaticamente como convenção do vault, e quem lê o frontmatter é o projetor, nunca o core |

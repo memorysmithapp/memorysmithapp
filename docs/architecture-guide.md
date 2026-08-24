@@ -19,7 +19,7 @@ Para **o que** o produto faz e sob qual regra de negócio, ver [`software-vision
 8. [Isolamento por assinatura](#8-isolamento-por-assinatura)
 9. [Persistência: DynamoDB + S3](#9-persistência-dynamodb--s3)
 10. [Transações, concorrência e outbox](#10-transações-concorrência-e-outbox)
-11. [Discovery: grafo e vetores](#11-discovery-grafo-e-vetores)
+11. [Discovery: grafo, vetores e facetas](#11-discovery-grafo-vetores-e-facetas)
 12. [Proveniência e histórico](#12-proveniência-e-histórico)
 13. [MCP server](#13-mcp-server)
 14. [API interna e autorização](#14-api-interna-e-autorização)
@@ -750,9 +750,9 @@ Nada disso acontece no agregado: quem fala com o `ContentStore` é o caso de uso
 
 ---
 
-## 11. Discovery: grafo e vetores
+## 11. Discovery: grafo, vetores e facetas
 
-Duas projeções sobre os mesmos eventos. Ambas **derivadas** (PE5): apagar e reconstruir do zero é operação suportada, e é o plano de recuperação das duas. Regras de negócio em `software-vision.md` §10.
+Três projeções sobre os mesmos eventos. Todas **derivadas** (PE5): apagar e reconstruir do zero é operação suportada, e é o plano de recuperação das três. Regras de negócio em `software-vision.md` §10.
 
 ### 11.1 Grafo de links
 
@@ -787,7 +787,29 @@ NoteCreated / NoteUpdated / NoteMoved
 
 **Isolamento:** um índice vetorial **por assinatura** (RN-DSC-015), não um índice global filtrado por metadado. Filtro de metadado é controle de acesso por convenção; índice separado é fronteira física. Dentro do índice, filtro por `vaultId` e `folderId` restringe a busca.
 
-### 11.3 Portas
+### 11.3 Facetas de curadoria
+
+Terceira projeção, a que serve o painel de curadoria. Regras de negócio em `software-vision.md` §10.3.
+
+`FacetExtractor` roda a cada `NoteCreated`, `NoteUpdated`, `NoteDeleted` e `NoteRestored`: carrega o blob pelo `ContentRef` do evento, lê **apenas o bloco de frontmatter** e extrai as facetas padrão (`maturity`, `reviewed`) e as de convenção do vault (`type`, `tags`, `created`, `updated`), sem atribuir semântica a valor nenhum. É o segundo leitor de conteúdo sancionado, ao lado do `LinkExtractor`, e como ele vive fora do core (PP4).
+
+**Consumo:** regra do EventBridge → SQS → Lambda, com DLQ. A fila absorve rajada de ingestão em lote, e retry ou falha do projetor nunca tocam o caminho quente da escrita.
+
+**Tabela `mv-discovery`:**
+
+| Item | PK | SK | Atributos |
+|---|---|---|---|
+| Retrato de facetas da nota | `S#{s}#VAULT#{v}` | `FACET#{noteId}` | maturity, reviewed, type, tags, created, updated, version |
+| Contador agregado | `S#{s}#VAULT#{v}` | `STAT#{facet}#{value}` | count |
+| Dedup de evento | `S#{s}#VAULT#{v}` | `SEEN#{eventUlid}` | TTL 7d |
+
+**O retrato por nota é o que torna o delta exato.** Atualização e exclusão precisam decrementar o valor antigo ("a nota era `growing`, virou `evergreen`"), e o valor antigo não está no evento: está no retrato. O projetor lê `FACET#{noteId}`, computa o delta e aplica tudo numa única transação, no mesmo padrão dos contadores de pasta (§10.3): `Put` do `SEEN#{eventUlid}` com `attribute_not_exists`, `Put` do retrato novo e `ADD count :delta` nos contadores afetados. Reprocessamento da fila é um no-op pelo dedup; evento fora de ordem perde para o `version` maior já retratado.
+
+Um item de contador **por valor de faceta**, e não um item único de estatísticas por vault: cinquenta notas gravadas em paralelo incrementam contadores diferentes, e o item único viraria o mesmo gargalo que a regra do `META` (PE8) existe para evitar.
+
+**Montar o painel é um `Query`** com prefixo `STAT#` por vault, sem tocar em nota nenhuma. Reconstrução (PE5): apagar os itens `FACET#` e `STAT#` do vault e reprocessar as notas.
+
+### 11.4 Portas
 
 ```typescript
 export interface LinkGraph {
@@ -805,6 +827,13 @@ export interface VectorIndex {
 }
 
 export interface Embedder { embed(texts: string[]): Promise<Vector[]>; }
+
+export interface FacetExtractor { extract(frontmatter: string): FacetSnapshot; }
+
+export interface FacetIndex {
+  replaceFacets(note: NoteId, facets: FacetSnapshot | null): Promise<void>; // null: nota apagada
+  vaultFacetStats(vault: VaultId): Promise<FacetStats>;
+}
 ```
 
 ---
@@ -1292,7 +1321,7 @@ Ordem de dependência técnica, com critério de pronto verificável. O recorte 
 | 7 | `svc-audit` | `read_note(asOf)` devolve o conteúdo correto de uma data passada; update no log falha **por IAM** | ✅ |
 | 8 | `svc-agent`: as 7 tools da 0.1.0 | `get_vault_context` devolve o Markdown de `software-vision.md` §9.2, com as contagens, em **um** `Query` | ✅ |
 | 9 | UI de autoria | Criar um vault do zero, escrever guidance e template, e ler o histórico de uma nota sem tocar na API | ✅ |
-| 10 | `svc-discovery`: grafo e vetores | Link pendente resolve ao criar a nota alvo; busca semântica traz o chunk certo com a nota de origem | — |
+| 10 | `svc-discovery`: grafo, vetores e facetas | Link pendente resolve ao criar a nota alvo; busca semântica traz o chunk certo com a nota de origem; o painel de curadoria sai de um `Query` nos contadores, sem varrer notas | — |
 | 11 | Tools de descoberta; mover nota entre vaults; convites | `NoteId` e histórico preservados na troca de vault; backlinks quebrados avisados antes | — |
 | 12 | `svc-portability` | Zip contém só `.md`, com a ordem legível na própria árvore de arquivos | — |
 
