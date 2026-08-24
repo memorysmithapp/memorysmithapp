@@ -88,8 +88,9 @@
     "reviewedYes": "Revisadas",
     "reviewedNo": "Aguardando revisão",
     "tagsHeading": "Tags mais usadas",
-    "tagsDistinct": "{{count}} tags distintas nos três vaults",
+    "tagsDistinct": "{{count}} tags distintas em todos os vaults",
     "timelineHeading": "Notas criadas por dia",
+    "otherVaults": "Outros vaults",
     "otherTypes": "Outros",
     "selectVault": "Abrir um vault"
   },

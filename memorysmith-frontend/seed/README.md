@@ -10,6 +10,7 @@ Três vaults reais, traduzidos dos experimentos de gestão de conhecimento que o
 
 ## Layout
 
+- `fictional/`: as fontes dos cinco vaults fictícios pequenos (runbooks, onboarding, pesquisa de mercado, fermentação e jurisprudência), que vivem no próprio repositório e existem para exercitar o catálogo, o dashboard e a navegação com mais de três vaults.
 - `authoring/`: os textos autorais da tradução, por vault: `guidance.md` (vira o `README.md` da raiz) e `templates/*.md` (viram os `TEMPLATE.md` das pastas).
 - `tools/build-seed.mjs`: o tradutor. Lê os vaults de origem na máquina do autor, aplica o mapeamento de pastas e gera a saída. Os vaults de origem **não** fazem parte do repositório; o artefato commitado é a saída.
 - `vaults/`: a saída gerada, consumida pela camada de dados mockada do frontend. Não editar à mão: alterações se fazem em `authoring/` ou na origem, seguidas de regeração.

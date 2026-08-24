@@ -86,8 +86,12 @@ export interface CreatedTimeline {
   maxTotal: number;
 }
 
+export const OTHER_VAULTS = '__other__';
+
 // Continuous day axis from the first to the last `created` date across vaults;
-// silent days stay in the axis as zeros, so import bursts read as bursts.
+// silent days stay in the axis as zeros, so import bursts read as bursts. The
+// categorical palette has three validated hues, so only the three largest
+// vaults keep their own series; the rest fold into a neutral "other" series.
 export function createdTimeline(): CreatedTimeline {
   const allDays = vaultStats.flatMap((v) => Object.keys(v.byCreatedDay));
   if (allDays.length === 0) return { days: [], series: [], maxTotal: 0 };
@@ -103,11 +107,24 @@ export function createdTimeline(): CreatedTimeline {
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
 
-  const series = vaultStats.map((v) => ({
-    vault: v.vault,
-    name: v.name,
-    counts: days.map((day) => v.byCreatedDay[day] ?? 0),
-  }));
+  const ranked = [...vaultStats].sort((a, b) => b.notes - a.notes);
+  const top = new Set(ranked.slice(0, 3).map((v) => v.vault));
+
+  const series = vaultStats
+    .filter((v) => top.has(v.vault))
+    .map((v) => ({
+      vault: v.vault,
+      name: v.name,
+      counts: days.map((day) => v.byCreatedDay[day] ?? 0),
+    }));
+  const rest = vaultStats.filter((v) => !top.has(v.vault));
+  if (rest.length > 0) {
+    series.push({
+      vault: OTHER_VAULTS,
+      name: OTHER_VAULTS,
+      counts: days.map((day) => rest.reduce((sum, v) => sum + (v.byCreatedDay[day] ?? 0), 0)),
+    });
+  }
   const maxTotal = Math.max(...days.map((_, i) => series.reduce((sum, s) => sum + (s.counts[i] ?? 0), 0)));
   return { days, series, maxTotal };
 }

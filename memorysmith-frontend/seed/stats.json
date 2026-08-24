@@ -1323,6 +1323,167 @@
         "resolved": 3864,
         "pending": 36
       }
+    },
+    {
+      "vault": "runbooks-producao",
+      "name": "Runbooks de Produção",
+      "notes": 4,
+      "folders": 2,
+      "byType": {
+        "runbook": 3,
+        "postmortem": 1
+      },
+      "byMaturity": {
+        "evergreen": 2,
+        "growing": 1,
+        "seed": 1
+      },
+      "byTag": {
+        "runbook": 3,
+        "database": 1,
+        "pipeline": 2,
+        "incident-response": 1,
+        "security": 1,
+        "postmortem": 1
+      },
+      "byCreatedDay": {
+        "2026-06-05": 1,
+        "2026-06-02": 1,
+        "2026-07-30": 1,
+        "2026-06-15": 1
+      },
+      "reviewed": 2,
+      "links": {
+        "resolved": 2,
+        "pending": 0
+      }
+    },
+    {
+      "vault": "onboarding-engenharia",
+      "name": "Onboarding de Engenharia",
+      "notes": 4,
+      "folders": 2,
+      "byType": {
+        "trilha": 2,
+        "guia": 2
+      },
+      "byMaturity": {
+        "evergreen": 2,
+        "growing": 2
+      },
+      "byTag": {
+        "trilha": 2,
+        "setup": 1,
+        "arquitetura": 1,
+        "guia": 2,
+        "vocabulario": 1,
+        "qualidade": 1
+      },
+      "byCreatedDay": {
+        "2026-06-10": 1,
+        "2026-06-12": 1,
+        "2026-07-02": 1,
+        "2026-06-20": 1
+      },
+      "reviewed": 2,
+      "links": {
+        "resolved": 1,
+        "pending": 0
+      }
+    },
+    {
+      "vault": "pesquisa-mercado",
+      "name": "Pesquisa de Mercado 2026",
+      "notes": 3,
+      "folders": 2,
+      "byType": {
+        "entrevista": 2,
+        "insight": 1
+      },
+      "byMaturity": {
+        "evergreen": 2,
+        "growing": 1
+      },
+      "byTag": {
+        "entrevista": 2,
+        "persona-builder": 1,
+        "persona-curadora": 1,
+        "insight": 1,
+        "contexto": 1
+      },
+      "byCreatedDay": {
+        "2026-06-27": 1,
+        "2026-06-25": 1,
+        "2026-07-08": 1
+      },
+      "reviewed": 2,
+      "links": {
+        "resolved": 4,
+        "pending": 0
+      }
+    },
+    {
+      "vault": "fermentacao",
+      "name": "Caderno de Fermentação",
+      "notes": 3,
+      "folders": 2,
+      "byType": {
+        "receita": 2,
+        "experimento": 1
+      },
+      "byMaturity": {
+        "growing": 1,
+        "evergreen": 1,
+        "seed": 1
+      },
+      "byTag": {
+        "receita": 2,
+        "kombucha": 1,
+        "pao": 2,
+        "experimento": 1
+      },
+      "byCreatedDay": {
+        "2026-07-15": 1,
+        "2026-06-07": 1,
+        "2026-08-12": 1
+      },
+      "reviewed": 1,
+      "links": {
+        "resolved": 3,
+        "pending": 0
+      }
+    },
+    {
+      "vault": "jurisprudencia-tributaria",
+      "name": "Jurisprudência Tributária",
+      "notes": 3,
+      "folders": 2,
+      "byType": {
+        "acordao": 2,
+        "tese": 1
+      },
+      "byMaturity": {
+        "growing": 1,
+        "evergreen": 1,
+        "seed": 1
+      },
+      "byTag": {
+        "acordao": 2,
+        "modulacao": 1,
+        "pis-cofins": 1,
+        "tese": 1,
+        "creditos": 1
+      },
+      "byCreatedDay": {
+        "2026-07-22": 1,
+        "2026-06-18": 1,
+        "2026-08-18": 1
+      },
+      "reviewed": 1,
+      "links": {
+        "resolved": 3,
+        "pending": 0
+      }
     }
   ]
 }

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { listVaults } from '../../shared/api/client';
 import {
   MATURITY_ORDER,
+  OTHER_VAULTS,
   createdTimeline,
   distinctTagCount,
   maturityOf,
@@ -58,9 +59,7 @@ export function DashboardPage() {
   return (
     <section className="page dashboard">
       {tooltip.node}
-      <h1>{t('dashboard.heading')}</h1>
-
-      <h2 className="dashboard-select-heading">{t('dashboard.selectVault')}</h2>
+      <h2 className="dashboard-section-heading">{t('dashboard.selectVault')}</h2>
       <div className="vault-grid">
         {vaults?.map((vault) => (
           <Link key={vault.id} to={`/vaults/${vault.slug}`} className="vault-card">
@@ -74,6 +73,8 @@ export function DashboardPage() {
         ))}
       </div>
 
+
+      <h2 className="dashboard-section-heading">{t('dashboard.heading')}</h2>
 
       <div className="stat-row">
         <div className="stat-tile">
@@ -237,8 +238,8 @@ export function DashboardPage() {
           <div className="chart-legend">
             {timeline.series.map((series, index) => (
               <span key={series.vault} className="legend-item">
-                <span className={`legend-swatch cat-${index + 1}`} />
-                {series.name}
+                <span className={`legend-swatch ${series.vault === OTHER_VAULTS ? 'cat-other' : `cat-${index + 1}`}`} />
+                {series.vault === OTHER_VAULTS ? t('dashboard.otherVaults') : series.name}
               </span>
             ))}
           </div>
@@ -258,14 +259,14 @@ export function DashboardPage() {
                         const count = series.counts[dayIndex] ?? 0;
                         if (count === 0) return null;
                         const height = Math.max((count / timeline.maxTotal) * TIMELINE_HEIGHT, 2);
+                        const cls = series.vault === OTHER_VAULTS ? 'cat-other' : `cat-${index + 1}`;
+                        const label = series.vault === OTHER_VAULTS ? t('dashboard.otherVaults') : series.name;
                         return (
                           <div
                             key={series.vault}
-                            className={`colchart-seg cat-${index + 1}`}
+                            className={`colchart-seg ${cls}`}
                             style={{ height: `${height}px` }}
-                            onMouseMove={(e) =>
-                              tooltip.show(e, `${formatDay(day)} · ${series.name}: ${nf.format(count)}`)
-                            }
+                            onMouseMove={(e) => tooltip.show(e, `${formatDay(day)} · ${label}: ${nf.format(count)}`)}
                             onMouseLeave={tooltip.hide}
                           />
                         );

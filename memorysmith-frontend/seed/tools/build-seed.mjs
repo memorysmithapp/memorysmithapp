@@ -105,6 +105,54 @@ const VAULTS = [
       { src: '13 MOCs', out: '13 MOCs', desc: 'Como navegar: um mapa por domínio funcional, ligando componentes, processos, evidências e investigações abertas.', template: 'moc' },
     ],
   },
+// Fictional vaults: small, self-contained, and sourced from inside the repo
+  // (seed/fictional/). They exist to exercise the catalog, the dashboard and
+  // the navigation with more than three vaults; same pipeline, same rules.
+  {
+    slug: 'runbooks-producao',
+    name: 'Runbooks de Produção',
+    sourceRoot: join(SEED_DIR, 'fictional', 'runbooks-producao'),
+    folders: [
+      { src: 'Runbooks', out: '01 Runbooks', desc: 'Um procedimento executável por página: pré-condições, passos numerados e verificação final. Passo que exige julgamento linka a nota que explica o critério.', template: 'runbook' },
+      { src: 'Postmortems', out: '02 Postmortems', desc: 'Um incidente fechado por nota: linha do tempo, causa raiz e ações. Imutável depois de fechado; correção vira nota nova.' },
+    ],
+  },
+  {
+    slug: 'onboarding-engenharia',
+    name: 'Onboarding de Engenharia',
+    sourceRoot: join(SEED_DIR, 'fictional', 'onboarding-engenharia'),
+    folders: [
+      { src: 'Trilhas', out: '01 Trilhas', desc: 'O que fazer em cada semana e em que ordem. A trilha linka os guias; o conteúdo de referência não vive aqui.', template: 'trilha' },
+      { src: 'Guias', out: '02 Guias', desc: 'Referência sem calendário: cada guia faz sentido para quem chega em qualquer semana.' },
+    ],
+  },
+  {
+    slug: 'pesquisa-mercado',
+    name: 'Pesquisa de Mercado 2026',
+    sourceRoot: join(SEED_DIR, 'fictional', 'pesquisa-mercado'),
+    folders: [
+      { src: 'Entrevistas', out: '01 Entrevistas', desc: 'O que foi dito, com citações, identificado pela persona e nunca pelo nome. Interpretação não entra aqui.', template: 'entrevista' },
+      { src: 'Insights', out: '02 Insights', desc: 'Leituras que atravessam mais de uma entrevista, sempre citando as entrevistas que as sustentam.' },
+    ],
+  },
+  {
+    slug: 'fermentacao',
+    name: 'Caderno de Fermentação',
+    sourceRoot: join(SEED_DIR, 'fictional', 'fermentacao'),
+    folders: [
+      { src: 'Receitas', out: '01 Receitas', desc: 'O que já repete resultado: ingredientes, processo e o que não variar.', template: 'receita' },
+      { src: 'Experimentos', out: '02 Experimentos', desc: 'Uma variável isolada por nota, com o resultado e o link para a receita base. Experimento que estabiliza é promovido a receita.' },
+    ],
+  },
+  {
+    slug: 'jurisprudencia-tributaria',
+    name: 'Jurisprudência Tributária',
+    sourceRoot: join(SEED_DIR, 'fictional', 'jurisprudencia-tributaria'),
+    folders: [
+      { src: 'Acórdãos', out: '01 Acórdãos', desc: 'O que o tribunal decidiu: tema, relator e trecho literal. Leitura própria pertence às teses.', template: 'acordao' },
+      { src: 'Teses', out: '02 Teses', desc: 'A aplicação sustentada a partir dos acórdãos, com o grau de consolidação declarado na maturity.' },
+    ],
+  },
 ];
 
 const warnings = [];

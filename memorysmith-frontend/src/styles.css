@@ -22,6 +22,7 @@
   --cat-1: #ff8a2b;
   --cat-2: #0f56d7;
   --cat-3: #16a34a;
+  --cat-other: #8b96a8;
   --mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
   --sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
   --display: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
@@ -272,6 +273,7 @@ a:hover { text-decoration: underline; }
 .cat-1 { background: var(--cat-1); }
 .cat-2 { background: var(--cat-2); }
 .cat-3 { background: var(--cat-3); }
+.cat-other { background: var(--cat-other); }
 
 .hbar-row { display: grid; grid-template-columns: 11rem 1fr 3.2rem; align-items: center; gap: 0.6rem; padding: 0.3rem 0; }
 .hbar-label { font-size: 0.8rem; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -307,7 +309,7 @@ a:hover { text-decoration: underline; }
   pointer-events: none;
   white-space: nowrap;
 }
-.dashboard-select-heading { font-size: 1.05rem; margin-bottom: 0.75rem; }
+.dashboard-section-heading { font-size: 1.3rem; margin: 0 0 0.85rem; }
 
 .chart-card-wide { grid-column: 1 / -1; }
 .chart-footnote { margin: 0.6rem 0 0; font-size: 0.72rem; color: var(--text-soft); }
@@ -399,6 +401,7 @@ a:hover { text-decoration: underline; }
   --cat-1: #d96a10;
   --cat-2: #2f6ee0;
   --cat-3: #16a34a;
+  --cat-other: #55617a;
 }
 
 .symbol-dark { display: none; }

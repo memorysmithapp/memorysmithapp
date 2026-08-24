@@ -90,6 +90,7 @@
     "tagsHeading": "Top tags",
     "tagsDistinct": "{{count}} distinct tags across all vaults",
     "timelineHeading": "Notes created by day",
+    "otherVaults": "Other vaults",
     "otherTypes": "Other",
     "selectVault": "Open a vault"
   },
