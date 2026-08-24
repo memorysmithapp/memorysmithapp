@@ -376,7 +376,16 @@ a:hover { text-decoration: underline; }
   cursor: pointer;
 }
 .graph-legend { display: inline-flex; gap: 1rem; font-size: 0.78rem; color: var(--text-soft); }
-.graph-hint { margin-left: auto; font-size: 0.74rem; color: var(--pending); }
+.graph-hint {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.74rem;
+  color: var(--pending);
+  pointer-events: none;
+  white-space: nowrap;
+}
 .graph-canvas-wrap { flex: 1; position: relative; min-height: 0; overflow: hidden; }
 .graph-canvas-wrap canvas { display: block; cursor: grab; }
 .graph-canvas-wrap .status { position: absolute; inset: 0; }

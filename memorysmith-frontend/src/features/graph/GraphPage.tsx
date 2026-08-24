@@ -409,11 +409,11 @@ export function GraphPage() {
             <span className="legend-item"><span className="legend-swatch" style={{ background: 'var(--cat-other)' }} />{t('graph.legendTags')}</span>
           )}
         </span>
-        <span className="graph-hint">{t('graph.hint')}</span>
       </div>
       <div className="graph-canvas-wrap">
         {!filtered && <p className="status">{t('common.loading')}</p>}
         <canvas ref={canvasRef} />
+        <span className="graph-hint">{t('graph.hint')}</span>
       </div>
     </div>
   );
