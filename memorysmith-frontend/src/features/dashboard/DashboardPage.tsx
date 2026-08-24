@@ -60,6 +60,21 @@ export function DashboardPage() {
       {tooltip.node}
       <h1>{t('dashboard.heading')}</h1>
 
+      <h2 className="dashboard-select-heading">{t('dashboard.selectVault')}</h2>
+      <div className="vault-grid">
+        {vaults?.map((vault) => (
+          <Link key={vault.id} to={`/vaults/${vault.slug}`} className="vault-card">
+            <h2>{vault.name}</h2>
+            <p>{vault.description}</p>
+            <footer>
+              <span>{t('vaults.noteCount', { count: vault.noteCount })}</span>
+              <span className="vault-open">{t('vaults.open')} →</span>
+            </footer>
+          </Link>
+        ))}
+      </div>
+
+
       <div className="stat-row">
         <div className="stat-tile">
           <span className="stat-value">{nf.format(kpis.vaults)}</span>
@@ -268,20 +283,6 @@ export function DashboardPage() {
             ))}
           </div>
         </div>
-      </div>
-
-      <h2 className="dashboard-select-heading">{t('dashboard.selectVault')}</h2>
-      <div className="vault-grid">
-        {vaults?.map((vault) => (
-          <Link key={vault.id} to={`/vaults/${vault.slug}`} className="vault-card">
-            <h2>{vault.name}</h2>
-            <p>{vault.description}</p>
-            <footer>
-              <span>{t('vaults.noteCount', { count: vault.noteCount })}</span>
-              <span className="vault-open">{t('vaults.open')} →</span>
-            </footer>
-          </Link>
-        ))}
       </div>
     </section>
   );
