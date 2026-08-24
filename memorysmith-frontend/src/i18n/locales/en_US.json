@@ -44,6 +44,7 @@
     "intro": "How this vault describes itself: the Guidance says what it is, each folder says what belongs in it, and the folder Template says how a note is laid out. This is what the agent receives from get_vault_context.",
     "guidanceHint": "What this vault is and how to write in it",
     "templates": "Templates",
+    "notes": "Notes",
     "templatesHint_one": "{{count}} folder with a suggested layout",
     "templatesHint_other": "{{count}} folders with a suggested layout",
     "noTemplates": "No folder in this vault declares a Template.",

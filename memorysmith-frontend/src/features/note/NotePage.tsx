@@ -59,7 +59,11 @@ export function NotePage() {
       <div className="note-header">
         <div>
           <VaultBreadcrumb
-            items={[...folderCrumbs(vaultSlug, folderTrailForNote(structure.folders, noteSlug)), { label: data.title }]}
+            items={[
+              { label: t('structure.notes') },
+              ...folderCrumbs(vaultSlug, folderTrailForNote(structure.folders, noteSlug)),
+              { label: data.title },
+            ]}
           />
           <h1>{data.title}</h1>
         </div>
