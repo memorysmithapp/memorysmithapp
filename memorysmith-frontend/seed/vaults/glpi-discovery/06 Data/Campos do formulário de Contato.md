@@ -3,7 +3,6 @@ title: Campos do formulário de Contato
 aliases: [Contact fields]
 tags: [data, management, contact, fields, doc]
 type: table
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d1-004 · Contatos — definição, títulos e vCard|EV-2-d1-004]]"

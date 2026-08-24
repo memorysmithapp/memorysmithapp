@@ -3,7 +3,6 @@ title: EV-2-e2-015 · Formulários nativos - migração e tipos de pergunta
 aliases: [EV-2-e2-015]
 tags: [evidence, formularios, forms, perguntas, migracao, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/forms/forms.rst · Forms / Migration / Forms options"

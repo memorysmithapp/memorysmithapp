@@ -3,7 +3,6 @@ title: EV-2-g3-007 · Feeds RSS
 aliases: [EV-2-g3-007]
 tags: [evidence, tools, rss, feed, targets]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/modules/tools/rssfeed.rst · Manage RSS feeds"

@@ -3,7 +3,6 @@ title: Unicidade de Campos (fields unicity)
 aliases: [Fields unicity, Unicity criteria, Critérios de unicidade]
 tags: [unicidade, duplicatas, configuracao, regra]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-f1-002 · Mecanismo de unicidade de campos|EV-2-f1-002]]"

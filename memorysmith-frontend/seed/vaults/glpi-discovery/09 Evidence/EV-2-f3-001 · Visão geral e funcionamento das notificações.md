@@ -3,7 +3,6 @@ title: EV-2-f3-001 · Visão geral e funcionamento das notificações
 aliases: [EV-2-f3-001]
 tags: [evidence, notificacao, notification, fila, queue]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/notifications/index.rst · Notifications"

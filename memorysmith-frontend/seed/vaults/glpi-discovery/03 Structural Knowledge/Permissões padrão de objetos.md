@@ -3,7 +3,6 @@ title: Permissões padrão de objetos
 aliases: [7 permissões padrão, Standard permissions, Read Update Create Delete Purge]
 tags: [perfis, permissoes, rbac, lixeira, notas]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-e1-004 · Perfis de usuário — conceito, 7 perfis pré-definidos e permissões padrão|EV-2-e1-004]]"

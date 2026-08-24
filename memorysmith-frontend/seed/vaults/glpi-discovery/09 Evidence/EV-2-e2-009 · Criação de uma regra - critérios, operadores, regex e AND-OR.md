@@ -3,7 +3,6 @@ title: EV-2-e2-009 · Criação de uma regra - critérios, operadores, regex e A
 aliases: [EV-2-e2-009]
 tags: [evidence, regras, criterios, operadores, regex, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/rules/rulesmanagement.rst · Create a rule"

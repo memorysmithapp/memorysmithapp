@@ -3,7 +3,6 @@ title: Cluster (agrupamento de ativos)
 aliases: [Cluster, Clusters]
 tags: [management, cluster, agrupamento]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d2-002 · Clusters (clusters.rst)|EV-2-d2-002]]"

@@ -3,7 +3,6 @@ title: Gestão unitária vs global de ativos (visão do doc)
 aliases: [Management type, Tipo de gestão do ativo]
 tags: [assets, management-type, structural]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c1-004 · Formulário de Monitor e gestão unitária vs global|EV-2-c1-004]]"

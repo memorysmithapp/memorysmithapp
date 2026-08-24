@@ -3,7 +3,6 @@ title: EV-2-b2-005 · Matriz de cálculo de prioridade (urgência × impacto)
 aliases: [EV-2-b2-005]
 tags: [evidence, priority, prioridade, urgencia, impacto, matriz, itil]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/assistance/prioritymatrix.rst · Matrix of calculus for priority (documento inteiro)"

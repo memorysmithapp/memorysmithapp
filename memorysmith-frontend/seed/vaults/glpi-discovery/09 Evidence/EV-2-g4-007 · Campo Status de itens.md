@@ -3,7 +3,6 @@ title: EV-2-g4-007 · Campo Status de itens
 aliases: [EV-2-g4-007]
 tags: [evidence, campos-comuns, status]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · tabs/common_fields/status.rst · Status"

@@ -3,7 +3,6 @@ title: Camadas da arquitetura (view)
 aliases: [Arquitetura em camadas, Camadas GLPI]
 tags: [view, arquitetura, dominio/foundation]
 type: view
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

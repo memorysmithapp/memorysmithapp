@@ -3,7 +3,6 @@ title: Destinatários de notificação (recipients)
 aliases: [Recipients, Notification recipients]
 tags: [notificacao, destinatarios, recipients, atores]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

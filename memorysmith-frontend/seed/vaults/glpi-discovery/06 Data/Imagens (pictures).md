@@ -3,7 +3,6 @@ title: Imagens (pictures)
 aliases: [Pictures, Imagens, Fotos]
 tags: [campos-comuns, descritivo, imagens, data]
 type: field
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g4-006 · Campos descritivos (comentários, cor, imagens, referência)|EV-2-g4-006]]"

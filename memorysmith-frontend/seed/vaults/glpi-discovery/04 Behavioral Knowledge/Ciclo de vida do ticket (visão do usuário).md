@@ -3,7 +3,6 @@ title: Ciclo de vida do ticket (visão do usuário)
 aliases: [Status do ticket, Ticket life cycle, Estados do ticket]
 tags: [assistance, ticket, lifecycle, status, state-machine, itil]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-b1-005 · Ciclo de vida do ticket (tipos, status, priorização, regras)|EV-2-b1-005]]"

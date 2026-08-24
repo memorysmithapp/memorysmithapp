@@ -3,7 +3,6 @@ title: Status de itens (campo comum)
 aliases: [Status, Statuses of items, Status de itens]
 tags: [campos-comuns, status, dropdown, data]
 type: field
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g4-007 · Campo Status de itens|EV-2-g4-007]]"

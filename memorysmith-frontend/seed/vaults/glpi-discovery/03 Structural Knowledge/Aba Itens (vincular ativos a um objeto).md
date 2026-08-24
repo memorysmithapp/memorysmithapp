@@ -3,7 +3,6 @@ title: Aba Itens (vincular ativos a um objeto)
 aliases: [Items tab, Aba Items, Link a device]
 tags: [tab, items, link, assets, change, project]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g3-016 · Aba Itens (vincular ativos a um objeto)|EV-2-g3-016]]"

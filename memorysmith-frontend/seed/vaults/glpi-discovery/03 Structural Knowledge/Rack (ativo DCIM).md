@@ -3,7 +3,6 @@ title: Rack (ativo DCIM)
 aliases: [Rack, Cabinet, Gabinete]
 tags: [assets, rack, dcim, datacenter, structural, doc]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c2-005 · Racks (racks.rst)|EV-2-c2-005]]"

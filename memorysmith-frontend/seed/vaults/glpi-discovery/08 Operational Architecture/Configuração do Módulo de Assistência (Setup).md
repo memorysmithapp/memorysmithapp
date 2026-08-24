@@ -3,7 +3,6 @@ title: Configuração do Módulo de Assistência (Setup)
 aliases: [Assistance configuration, Config de assistência]
 tags: [configuracao-geral, assistencia, service-desk, operacao]
 type: capability
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-f1-008 · Configuração de assistência|EV-2-f1-008]]"

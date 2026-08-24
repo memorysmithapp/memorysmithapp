@@ -3,7 +3,6 @@ title: Campos e opções de Grupo
 aliases: [Group fields, Campos do grupo]
 tags: [grupos, campos, dados, opcoes]
 type: table
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-e1-003 · Gestão de Grupos (hierarquia, opções e importação LDAP)|EV-2-e1-003]]"

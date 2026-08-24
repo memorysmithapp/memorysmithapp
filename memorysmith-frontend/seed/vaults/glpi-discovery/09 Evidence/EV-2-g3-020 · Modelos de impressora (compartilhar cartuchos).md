@@ -3,7 +3,6 @@ title: EV-2-g3-020 · Modelos de impressora (compartilhar cartuchos)
 aliases: [EV-2-g3-020]
 tags: [evidence, tab, printer-models, cartridges, dropdown]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/tabs/printer_models.rst · Printer models"

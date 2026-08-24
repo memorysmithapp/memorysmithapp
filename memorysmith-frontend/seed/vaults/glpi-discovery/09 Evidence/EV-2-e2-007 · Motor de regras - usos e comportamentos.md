@@ -3,7 +3,6 @@ title: EV-2-e2-007 · Motor de regras - usos e comportamentos
 aliases: [EV-2-e2-007]
 tags: [evidence, regras, motor, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/rules/rulesmanagement.rst · Rules engine"

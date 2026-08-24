@@ -3,7 +3,6 @@ title: "Comandos de CLI - Manutenção e Diagnóstico de Sistema"
 aliases: [maintenance:enable, system:status, task:unlock, system:check_requirements]
 tags: [cli, manutencao, sistema, diagnostico, seguranca, comandos, operacional]
 type: process
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g1-005 · Referência da linha de comando bin-console (cli.rst)|EV-2-g1-005]]"

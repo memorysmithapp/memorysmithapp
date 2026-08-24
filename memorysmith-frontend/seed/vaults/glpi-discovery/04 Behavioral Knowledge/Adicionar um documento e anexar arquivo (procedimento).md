@@ -3,7 +3,6 @@ title: Adicionar um documento e anexar arquivo (procedimento)
 aliases: [Add a document]
 tags: [use-case, management, document, doc]
 type: use-case
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d1-006 · Documentos — armazenamento, cabeçalhos e itens vinculáveis|EV-2-d1-006]]"

@@ -3,7 +3,6 @@ title: Vínculos entre objetos ITIL (tipos de ligação)
 aliases: [Links ITIL, Linked To, Duplicates, Son of, Parent of]
 tags: [itil, links, vinculos, ticket, problem, change]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

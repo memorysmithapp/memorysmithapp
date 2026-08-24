@@ -3,7 +3,6 @@ title: EV-2-g2-010 · Aba Management (informações financeiras e administrativa
 aliases: [EV-2-g2-010]
 tags: [evidence, tabs, management, financeiro, infocom]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/tabs/management.rst · Management"

@@ -3,7 +3,6 @@ title: Perfis de transferência inter-entidades
 aliases: [Transfer profiles, Transfer]
 tags: [entidades, transferencia, regras, doc]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-e2-008 · Tipos de regra na administração e mecanismos auxiliares|EV-2-e2-008]]"

@@ -3,7 +3,6 @@ title: Exportação de Resultados de Busca
 aliases: [Export search results, Exportação CSV PDF SLK]
 tags: [use-case, export, csv, pdf, slk, search]
 type: use-case
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a1-007 · Motor de busca da UI (básica, multicritério, avançada, export, ações massivas)|EV-2-a1-007]]"

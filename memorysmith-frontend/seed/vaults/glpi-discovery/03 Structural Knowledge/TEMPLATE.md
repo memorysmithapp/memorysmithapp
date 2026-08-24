@@ -3,7 +3,6 @@ title: <Nome do componente (papel)>
 aliases: []
 tags: [component, dominio/<dominio>]
 type: component
-status: draft
 maturity: seed
 reviewed: false
 source:

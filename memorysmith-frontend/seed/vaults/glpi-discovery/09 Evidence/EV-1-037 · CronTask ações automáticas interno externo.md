@@ -3,7 +3,6 @@ title: EV-1-037 · CronTask — ações automáticas (interno/externo)
 aliases: [EV-1-037]
 tags: [evidence, dominio/operacao, cron]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-001 · src/CronTask.php L59, 79–81, 831, 966 · GLPI_CRON_DIR (locks)"

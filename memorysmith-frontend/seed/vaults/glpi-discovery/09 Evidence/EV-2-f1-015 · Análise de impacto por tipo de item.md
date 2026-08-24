@@ -3,7 +3,6 @@ title: EV-2-f1-015 · Análise de impacto por tipo de item
 aliases: [EV-2-f1-015]
 tags: [evidence, analise-de-impacto, configuracao-geral]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/general/impact_analysis.rst · Impact analysis"

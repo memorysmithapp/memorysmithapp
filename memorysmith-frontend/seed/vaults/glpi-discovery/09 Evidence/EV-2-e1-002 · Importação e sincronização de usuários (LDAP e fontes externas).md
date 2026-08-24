@@ -3,7 +3,6 @@ title: EV-2-e1-002 · Importação e sincronização de usuários (LDAP e fontes
 aliases: [EV-2-e1-002]
 tags: [evidence, usuarios, importacao, ldap, sincronizacao, cli]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/users/usersimport.rst · Import users / Import from external source / Import and synchronize from LDAP"

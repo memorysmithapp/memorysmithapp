@@ -3,7 +3,6 @@ title: EV-2-f1-001 · Módulo de Configuração (Setup) e seus submenus
 aliases: [EV-2-f1-001]
 tags: [evidence, configuracao, setup, menu]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/index.rst · Configuration"

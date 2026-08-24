@@ -3,7 +3,6 @@ title: Configuração da API REST
 aliases: [API tab, API config, apirest]
 tags: [configuracao-geral, api, rest, integracao, operacao]
 type: capability
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-f1-014 · Configuração da API REST|EV-2-f1-014]]"

@@ -3,7 +3,6 @@ title: "Comandos de CLI - Regras, Ativos e Ferramentas"
 aliases: [rules:replay_dictionnary_rules, ldap:sync, tools:delete_orphan_logs, build:compile_scss]
 tags: [cli, regras, dicionarios, ativos, ldap, ferramentas, comandos, operacional]
 type: process
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g1-005 · Referência da linha de comando bin-console (cli.rst)|EV-2-g1-005]]"

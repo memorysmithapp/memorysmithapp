@@ -3,7 +3,6 @@ title: Aba Contatos (Contacts) associados
 aliases: [aba Contacts, Contacts tab, contatos associados]
 tags: [tabs, contacts, contatos, ui]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g2-003 · Aba Contacts (contatos associados)|EV-2-g2-003]]"

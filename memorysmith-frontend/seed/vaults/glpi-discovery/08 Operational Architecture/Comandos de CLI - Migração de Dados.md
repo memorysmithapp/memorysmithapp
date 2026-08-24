@@ -3,7 +3,6 @@ title: "Comandos de CLI - Migração de Dados"
 aliases: [migration, plugin_to_core, utf8mb4, myisam_to_innodb]
 tags: [cli, migracao, schema, plugins, comandos, operacional]
 type: process
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g1-005 · Referência da linha de comando bin-console (cli.rst)|EV-2-g1-005]]"

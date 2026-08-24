@@ -3,7 +3,6 @@ title: Réplicas SQL de Leitura
 aliases: [SQL replicas, Réplicas SQL, config_db_slave]
 tags: [configuracao-geral, sql, replicas, banco-de-dados, performance, operacao]
 type: capability
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-f1-016 · Réplicas SQL|EV-2-f1-016]]"

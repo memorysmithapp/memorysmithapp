@@ -3,7 +3,6 @@ title: Motor de Regras na Administração (gestão de regras)
 aliases: [Rules engine (administração), Gestão de regras]
 tags: [regras, motor, automacao, doc]
 type: capability
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

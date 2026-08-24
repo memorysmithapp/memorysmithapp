@@ -3,7 +3,6 @@ title: Configuração de Alertas em Buscas Salvas
 aliases: [Saved search alerts, Alertas de bookmarks, Contadores de buscas salvas]
 tags: [flow, saved-searches, alerts, counters, notification]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a1-008 · Buscas salvas (bookmarks), contadores e alertas|EV-2-a1-008]]"

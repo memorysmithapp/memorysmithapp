@@ -3,7 +3,6 @@ title: Fila de e-mails (fluxo)
 aliases: [Mailqueue flow, Fluxo da fila de e-mails]
 tags: [notificacoes, fila, email, fluxo, doc]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-e2-018 · Fila de e-mails (mailing queue)|EV-2-e2-018]]"

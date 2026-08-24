@@ -3,7 +3,6 @@ title: EV-2-g2-017 · Substitutos autorizados (delegação de validação)
 aliases: [EV-2-g2-017]
 tags: [evidence, user-settings, substitutes, validacao, delegacao]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/user-settings/authorized-substitutes.rst · Authorized substitutes"

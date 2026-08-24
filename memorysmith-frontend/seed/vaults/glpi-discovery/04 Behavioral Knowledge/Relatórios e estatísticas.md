@@ -3,7 +3,6 @@ title: Relatórios e estatísticas
 aliases: [Report, Statistics, Relatório, Estatísticas]
 tags: [report, statistics, reporting, glossary]
 type: capability
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

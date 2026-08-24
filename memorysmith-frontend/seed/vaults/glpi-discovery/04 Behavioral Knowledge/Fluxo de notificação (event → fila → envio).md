@@ -3,7 +3,6 @@ title: Fluxo de notificação (event → fila → envio)
 aliases: [Fluxo de notificação, notification flow]
 tags: [flow, notificacoes, dominio/integracoes]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

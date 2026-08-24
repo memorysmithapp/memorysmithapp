@@ -3,7 +3,6 @@ title: EV-1-010 · Ticket com tipos incidente/requisição e direitos específic
 aliases: [EV-1-010]
 tags: [evidence, dominio/service-desk, ticket]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-001 · src/Ticket.php · L59–105, 158–164"

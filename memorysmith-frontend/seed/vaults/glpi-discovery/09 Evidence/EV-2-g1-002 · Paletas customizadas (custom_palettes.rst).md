@@ -3,7 +3,6 @@ title: EV-2-g1-002 · Paletas customizadas (custom_palettes.rst)
 aliases: [EV-2-g1-002]
 tags: [evidence, temas, paletas, scss, ui, personalizacao]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · advanced/custom_palettes.rst · Create custom palettes"

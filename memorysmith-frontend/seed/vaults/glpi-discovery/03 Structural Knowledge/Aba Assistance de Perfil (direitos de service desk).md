@@ -3,7 +3,6 @@ title: Aba Assistance de Perfil (direitos de service desk)
 aliases: [Assistance tab, Aba Assistance, Direitos de assistência]
 tags: [perfis, permissoes, assistance, tickets, followups, tasks, validacao, planning]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-e1-006 · Aba Assistance do perfil (direitos de service desk, simplificada e padrão)|EV-2-e1-006]]"

@@ -3,7 +3,6 @@ title: Campos descritivos comuns (comentários, cor)
 aliases: [Comments, Comentários, Color, Cor]
 tags: [campos-comuns, descritivo, data]
 type: field
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g4-006 · Campos descritivos (comentários, cor, imagens, referência)|EV-2-g4-006]]"

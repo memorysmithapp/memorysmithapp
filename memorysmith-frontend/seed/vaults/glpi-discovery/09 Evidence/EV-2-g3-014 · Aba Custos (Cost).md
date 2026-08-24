@@ -3,7 +3,6 @@ title: EV-2-g3-014 · Aba Custos (Cost)
 aliases: [EV-2-g3-014]
 tags: [evidence, tab, cost, budget, finance]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/tabs/cost.rst · Cost"

@@ -3,7 +3,6 @@ title: Capacidades de ativo customizado (catálogo)
 aliases: [Capacities, Capacidades de ativo, Custom asset capacities]
 tags: [asset-definition, capacities, custom-asset]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-f2-012 · Capacidades disponíveis para ativos customizados|EV-2-f2-012]]"

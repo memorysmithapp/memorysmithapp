@@ -3,7 +3,6 @@ title: API REST e GraphQL
 aliases: [API, REST, GraphQL, HL API]
 tags: [integration, api, dominio/integracoes]
 type: integration
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-034 · API v2 HL Router REST GraphQL OAuth RSQL|EV-1-034]]"

@@ -3,7 +3,6 @@ title: Notificações (e-mail e canais)
 aliases: [Notificações, Notification, e-mail, alertas]
 tags: [integration, notificacoes, dominio/integracoes]
 type: integration
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-035 · Notificações event template target queue|EV-1-035]]"

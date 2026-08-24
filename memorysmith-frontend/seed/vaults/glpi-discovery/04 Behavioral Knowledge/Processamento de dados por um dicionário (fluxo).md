@@ -3,7 +3,6 @@ title: Processamento de dados por um dicionário (fluxo)
 aliases: [Dictionary processing, Fluxo de dicionário]
 tags: [dicionarios, regras, fluxo, doc]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-e2-013 · Dicionários de dados - conceito e funcionamento|EV-2-e2-013]]"

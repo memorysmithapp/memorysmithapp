@@ -3,7 +3,6 @@ title: Regras de negócio de tickets (administração)
 aliases: [Business rules for tickets, Regras de negócio de tickets]
 tags: [regras, negocio, tickets, automacao, doc]
 type: rule
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-e2-010 · Regras de negócio de tickets|EV-2-e2-010]]"

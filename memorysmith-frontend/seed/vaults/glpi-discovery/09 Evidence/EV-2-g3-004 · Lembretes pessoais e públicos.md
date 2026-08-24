@@ -3,7 +3,6 @@ title: EV-2-g3-004 · Lembretes pessoais e públicos
 aliases: [EV-2-g3-004]
 tags: [evidence, tools, reminders, planning, targets]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/modules/tools/reminders.rst · Manage personal or public reminders"

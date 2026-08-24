@@ -3,7 +3,6 @@ title: Rede (campo de ativo)
 aliases: [Network (campo comum), Rede (dropdown)]
 tags: [campos-comuns, rede, dropdown, data]
 type: field
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g4-003 · Campos de rede e usuário alternativo do inventário|EV-2-g4-003]]"

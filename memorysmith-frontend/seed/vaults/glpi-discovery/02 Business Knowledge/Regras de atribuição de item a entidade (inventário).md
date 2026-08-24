@@ -3,7 +3,6 @@ title: Regras de atribuição de item a entidade (inventário)
 aliases: [Entity assignment rules, Rules for assigning an item to an entity]
 tags: [regras, inventario, entidade, localizacao, doc]
 type: rule
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

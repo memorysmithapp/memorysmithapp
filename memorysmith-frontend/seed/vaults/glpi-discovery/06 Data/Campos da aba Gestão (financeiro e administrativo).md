@@ -3,7 +3,6 @@ title: Campos da aba Gestão (financeiro e administrativo)
 aliases: [campos Management, campos financeiros, campos Infocom]
 tags: [data, campos, management, financeiro, infocom, garantia]
 type: data
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g2-010 · Aba Management (informações financeiras e administrativas)|EV-2-g2-010]]"

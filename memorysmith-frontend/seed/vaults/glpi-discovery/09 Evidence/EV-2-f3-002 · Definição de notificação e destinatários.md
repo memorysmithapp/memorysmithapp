@@ -3,7 +3,6 @@ title: EV-2-f3-002 · Definição de notificação e destinatários
 aliases: [EV-2-f3-002]
 tags: [evidence, notificacao, definicao, destinatarios, recipients]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/notifications/definitions.rst · Notification Definitions"

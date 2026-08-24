@@ -3,7 +3,6 @@ title: Base de Conhecimento (KnowbaseItem)
 aliases: [KnowbaseItem, KB, FAQ, Base de Conhecimento]
 tags: [component, kb, dominio/admin]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-033 · KnowbaseItem base de conhecimento com visibilidade|EV-1-033]]"

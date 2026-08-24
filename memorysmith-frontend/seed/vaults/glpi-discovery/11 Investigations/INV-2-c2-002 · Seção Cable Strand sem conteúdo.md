@@ -3,7 +3,6 @@ title: INV-2-c2-002 · Seção "Cable Strand" sem conteúdo
 aliases: [INV-2-c2-002]
 tags: [investigation, consumidor/cad, assets, cable, gap, doc]
 type: investigation
-status: open
 maturity: seed
 reviewed: false
 author: CAD Discovery (doc)

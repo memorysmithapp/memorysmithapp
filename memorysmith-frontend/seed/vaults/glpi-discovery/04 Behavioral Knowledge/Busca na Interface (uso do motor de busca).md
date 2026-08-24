@@ -3,7 +3,6 @@ title: Busca na Interface (uso do motor de busca)
 aliases: [Search, Busca básica, Busca multicritério, Busca avançada, Search views]
 tags: [use-case, search, criteria, pagination, map-view, trash]
 type: use-case
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a1-007 · Motor de busca da UI (básica, multicritério, avançada, export, ações massivas)|EV-2-a1-007]]"

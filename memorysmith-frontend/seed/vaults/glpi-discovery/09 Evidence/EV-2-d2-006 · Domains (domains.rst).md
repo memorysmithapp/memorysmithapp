@@ -3,7 +3,6 @@ title: EV-2-d2-006 · Domains (domains.rst)
 aliases: [domains.rst, Domains]
 tags: [evidence, management, domain, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/management/domains.rst · Domains"

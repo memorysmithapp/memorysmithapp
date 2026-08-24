@@ -3,7 +3,6 @@ title: EV-2-e1-007 · Aba Configuration do perfil (direitos de exibição de bus
 aliases: [EV-2-e1-007]
 tags: [evidence, perfis, permissoes, configuracao, busca, exibicao]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/profiles/configurationtab.rst · Setup permissions"

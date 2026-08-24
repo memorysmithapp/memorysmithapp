@@ -3,7 +3,6 @@ title: EV-2-g4-011 · Campo Portas sem redação na documentação
 aliases: [EV-2-g4-011]
 tags: [evidence, campos-comuns, portas, lacuna-doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · tabs/common_fields/ports.rst · Ports"

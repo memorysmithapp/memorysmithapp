@@ -3,7 +3,6 @@ title: Campos de uma Máquina Virtual (ativo)
 aliases: [Virtual machine fields, Campos de VM]
 tags: [data, assets, virtualization, vm, fields, uuid]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c3-009 · Aba Virtualização de um host|EV-2-c3-009]]"

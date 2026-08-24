@@ -3,7 +3,6 @@ title: Provenância dos campos de SO (comandos CLI por sistema)
 aliases: [OS fields CLI, Comandos CLI de SO, OS provenance]
 tags: [data, operating-system, cli, inventory, provenance]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g3-019 · Aba Sistemas operacionais (campos e CLI)|EV-2-g3-019]]"

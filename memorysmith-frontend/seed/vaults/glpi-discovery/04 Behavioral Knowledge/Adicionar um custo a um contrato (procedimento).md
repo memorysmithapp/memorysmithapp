@@ -3,7 +3,6 @@ title: Adicionar um custo a um contrato (procedimento)
 aliases: [Add a cost to a contract]
 tags: [use-case, management, contract, budget, financial, doc]
 type: use-case
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d1-002 · Contratos — objetivos, campos específicos e abas|EV-2-d1-002]]"

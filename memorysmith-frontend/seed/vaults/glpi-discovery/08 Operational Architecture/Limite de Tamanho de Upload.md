@@ -3,7 +3,6 @@ title: Limite de Tamanho de Upload
 aliases: [Management tab, Upload size limit, Limite de upload]
 tags: [configuracao-geral, upload, documentos, operacao]
 type: capability
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-f1-009 · Limite de upload de documentos|EV-2-f1-009]]"

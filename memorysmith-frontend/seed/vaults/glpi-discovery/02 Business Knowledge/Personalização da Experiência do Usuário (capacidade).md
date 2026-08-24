@@ -3,7 +3,6 @@ title: Personalização da Experiência do Usuário (capacidade)
 aliases: [Preferências do usuário, User preferences, Personalize]
 tags: [capability, preferences, personalization, ux]
 type: capability
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a1-009 · Preferências do usuário (abas e campos)|EV-2-a1-009]]"

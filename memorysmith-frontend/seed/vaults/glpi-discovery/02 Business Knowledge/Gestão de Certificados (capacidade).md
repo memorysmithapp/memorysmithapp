@@ -3,7 +3,6 @@ title: Gestão de Certificados (capacidade)
 aliases: [Certificates management]
 tags: [capability, management, certificate, financial, doc]
 type: capability
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d1-009 · Certificados — objetivos, campos e abas|EV-2-d1-009]]"

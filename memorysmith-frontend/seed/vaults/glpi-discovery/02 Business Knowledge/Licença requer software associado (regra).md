@@ -3,7 +3,6 @@ title: Licença requer software associado (regra)
 aliases: [License requires software]
 tags: [rule, management, license, software, doc]
 type: rule
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d1-008 · Licenças de software — objetivos, campos e abas|EV-2-d1-008]]"

@@ -3,7 +3,6 @@ title: Agrupamento de software em multi-entidade (procedimento)
 aliases: [Grouping, Agrupamento de software]
 tags: [software, grouping, multi-entity, procedure, doc]
 type: use-case
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c2-008 · Instalações e agrupamento de software (softwares.rst)|EV-2-c2-008]]"

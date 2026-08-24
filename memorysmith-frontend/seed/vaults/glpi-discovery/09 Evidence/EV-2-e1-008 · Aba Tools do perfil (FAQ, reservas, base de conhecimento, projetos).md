@@ -3,7 +3,6 @@ title: EV-2-e1-008 · Aba Tools do perfil (FAQ, reservas, base de conhecimento, 
 aliases: [EV-2-e1-008]
 tags: [evidence, perfis, permissoes, ferramentas, faq, reservas, projetos]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/profiles/toolstab.rst · Tools Permissions (Simplified / Standard)"

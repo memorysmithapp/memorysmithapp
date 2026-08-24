@@ -3,7 +3,6 @@ title: Dispositivo Passivo (ativo)
 aliases: [Passive device, Dispositivos passivos]
 tags: [assets, passive-device, dcim, structural, doc]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c2-002 · Dispositivos passivos (passives_devices.rst)|EV-2-c2-002]]"

@@ -3,7 +3,6 @@ title: EV-2-g2-003 · Aba Contacts (contatos associados)
 aliases: [EV-2-g2-003]
 tags: [evidence, tabs, contacts]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/tabs/contacts.rst · Associated Contacts"

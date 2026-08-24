@@ -3,7 +3,6 @@ title: EV-1-023 · Contract com renovação, alerta, custos e vínculo a itens
 aliases: [EV-1-023]
 tags: [evidence, dominio/gestao, contrato]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-001 · src/Contract.php L47–101 · src/Contract_Item.php L43 · src/ContractCost.php L42 · src/Contract_Supplier.php"

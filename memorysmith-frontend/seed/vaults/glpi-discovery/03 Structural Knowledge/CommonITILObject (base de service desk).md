@@ -3,7 +3,6 @@ title: CommonITILObject (base de service desk)
 aliases: [CommonITILObject, base ITIL]
 tags: [component, itil, dominio/service-desk]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

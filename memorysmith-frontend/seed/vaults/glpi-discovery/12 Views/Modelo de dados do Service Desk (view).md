@@ -3,7 +3,6 @@ title: Modelo de dados do Service Desk (view)
 aliases: [ER service desk, modelo ITIL]
 tags: [view, itil, dados, dominio/service-desk]
 type: view
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

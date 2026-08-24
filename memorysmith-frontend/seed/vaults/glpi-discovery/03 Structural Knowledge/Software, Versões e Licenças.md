@@ -3,7 +3,6 @@ title: Software, Versões e Licenças
 aliases: [Software, SoftwareVersion, SoftwareLicense]
 tags: [concept, software, licenca, dominio/ativos]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-017 · Software versões e licenças|EV-1-017]]"

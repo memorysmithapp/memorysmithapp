@@ -3,7 +3,6 @@ title: Usuários e Grupos
 aliases: [User, Group, Usuários, Grupos]
 tags: [entity, usuarios, dominio/admin]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-028 · User Group e Profile_User binding RBAC|EV-1-028]]"

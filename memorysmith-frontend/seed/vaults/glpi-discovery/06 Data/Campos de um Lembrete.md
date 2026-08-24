@@ -3,7 +3,6 @@ title: Campos de um Lembrete
 aliases: [Reminder fields, Campos de reminder]
 tags: [data, reminders, fields]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g3-004 · Lembretes pessoais e públicos|EV-2-g3-004]]"

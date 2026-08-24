@@ -3,7 +3,6 @@ title: Rede (portas, IP, VLAN)
 aliases: [Rede, NetworkPort, IP, VLAN, IPNetwork]
 tags: [concept, rede, dominio/ativos]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-018 · Rede NetworkPort IPAddress IPNetwork|EV-1-018]]"

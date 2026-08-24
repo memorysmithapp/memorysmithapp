@@ -3,7 +3,6 @@ title: EV-2-a1-012 · Comunidade, catálogo de plugins e parceiros
 aliases: [EV-2-a1-012]
 tags: [evidence, doc, community, plugins, catalog, forum, partners]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/first-steps/conclusion.rst · Conclusion (Plugin catalog / Discussion platforms / Partners)"

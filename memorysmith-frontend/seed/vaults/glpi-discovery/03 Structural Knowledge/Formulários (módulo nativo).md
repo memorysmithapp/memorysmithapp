@@ -3,7 +3,6 @@ title: Formulários (módulo nativo)
 aliases: [Forms, Formulários, Native forms]
 tags: [formularios, forms, self-service, catalogo, doc]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

@@ -3,7 +3,6 @@ title: Aba Análise de Impacto (diagrama de dependências)
 aliases: [Impact Analysis, Análise de Impacto, Impact analysis tab]
 tags: [management, impact-analysis, dependencias, aba]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

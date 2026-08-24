@@ -3,7 +3,6 @@ title: INV-2-c3-001 · Escopo dos campos passíveis de bloqueio (locks)
 aliases: [INV-2-c3-001]
 tags: [investigation, consumidor/cad, assets, locks, inventory]
 type: investigation
-status: open
 maturity: seed
 reviewed: false
 author: CAD Discovery (doc)

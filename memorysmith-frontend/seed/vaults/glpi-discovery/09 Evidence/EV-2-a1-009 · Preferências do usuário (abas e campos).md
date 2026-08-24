@@ -3,7 +3,6 @@ title: EV-2-a1-009 · Preferências do usuário (abas e campos)
 aliases: [EV-2-a1-009]
 tags: [evidence, doc, preferences, personalization, mfa, 2fa, fields, timezone]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/first-steps/preferences.rst · Manage your Preferences (Main / Two-factor authentication / Personalization / Personal View)"

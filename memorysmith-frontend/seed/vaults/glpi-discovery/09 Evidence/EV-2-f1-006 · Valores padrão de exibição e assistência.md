@@ -3,7 +3,6 @@ title: EV-2-f1-006 · Valores padrão de exibição e assistência
 aliases: [EV-2-f1-006]
 tags: [evidence, valores-padrao, preferencias, configuracao-geral]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/general/default_values.rst · Default values"

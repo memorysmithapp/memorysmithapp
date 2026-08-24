@@ -3,7 +3,6 @@ title: EV-1-036 · MailCollector — e-mail para chamado
 aliases: [EV-1-036]
 tags: [evidence, dominio/integracoes, email]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-001 · src/MailCollector.php L73 · src/RuleMailCollector.php"

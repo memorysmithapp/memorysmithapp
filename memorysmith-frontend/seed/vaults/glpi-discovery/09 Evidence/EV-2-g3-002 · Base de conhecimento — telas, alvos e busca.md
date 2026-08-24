@@ -3,7 +3,6 @@ title: EV-2-g3-002 · Base de conhecimento — telas, alvos e busca
 aliases: [EV-2-g3-002]
 tags: [evidence, tools, knowledgebase, faq, search, targets, revision]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/modules/tools/knowledgebase.rst · Manage knowledge base"

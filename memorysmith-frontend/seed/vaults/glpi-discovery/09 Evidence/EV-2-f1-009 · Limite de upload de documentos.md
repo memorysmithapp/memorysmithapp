@@ -3,7 +3,6 @@ title: EV-2-f1-009 · Limite de upload de documentos
 aliases: [EV-2-f1-009]
 tags: [evidence, upload, management, configuracao-geral]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/general/management.rst · Management"

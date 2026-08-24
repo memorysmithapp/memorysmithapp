@@ -3,7 +3,6 @@ title: EV-2-a1-004 · Interface padrão e interface simplificada
 aliases: [EV-2-a1-004]
 tags: [evidence, doc, interface, standard, simplified, helpdesk, dashboard]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/first-steps/interfaces.rst · User interfaces (Standard Interface / Simplified Interface)"

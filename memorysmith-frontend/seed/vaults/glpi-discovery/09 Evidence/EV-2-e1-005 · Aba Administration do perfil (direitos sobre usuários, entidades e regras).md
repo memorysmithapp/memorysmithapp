@@ -3,7 +3,6 @@ title: EV-2-e1-005 · Aba Administration do perfil (direitos sobre usuários, en
 aliases: [EV-2-e1-005]
 tags: [evidence, perfis, permissoes, administracao, usuarios, entidades, regras]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/profiles/administrationtab.rst · Administration permissions"

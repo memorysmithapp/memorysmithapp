@@ -3,7 +3,6 @@ title: EV-2-g1-006 · Índices de Configuração Avançada e Módulos (index.rst
 aliases: [EV-2-g1-006]
 tags: [evidence, indice, toctree, estrutura-doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · advanced/index.rst · Advanced Configuration ; modules/index.rst · Modules"

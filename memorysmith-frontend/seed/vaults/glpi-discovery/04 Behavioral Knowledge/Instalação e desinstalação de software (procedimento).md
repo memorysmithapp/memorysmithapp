@@ -3,7 +3,6 @@ title: Instalação e desinstalação de software (procedimento)
 aliases: [Install software, Uninstall software, Instalações]
 tags: [software, installation, procedure, doc]
 type: use-case
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c2-008 · Instalações e agrupamento de software (softwares.rst)|EV-2-c2-008]]"

@@ -3,7 +3,6 @@ title: Roteamento de tickets de e-mail (regras do coletor)
 aliases: [Collector rules, Rules for assigning a ticket opened via a receiver]
 tags: [coletor, receiver, regras, roteamento, entidade, email]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

@@ -3,7 +3,6 @@ title: Criação de uma regra (passo a passo)
 aliases: [Create a rule, Criar regra]
 tags: [regras, criacao, criterios, acoes, doc]
 type: use-case
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-e2-009 · Criação de uma regra - critérios, operadores, regex e AND-OR|EV-2-e2-009]]"

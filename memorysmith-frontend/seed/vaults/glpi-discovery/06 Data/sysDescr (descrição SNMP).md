@@ -3,7 +3,6 @@ title: sysDescr (descrição SNMP)
 aliases: [sysDescr, Sysdescr]
 tags: [campos-comuns, snmp, inventario, rede, data]
 type: field
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g4-010 · Credenciais SNMP e sysDescr|EV-2-g4-010]]"

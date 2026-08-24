@@ -3,7 +3,6 @@ title: EV-2-f2-005 · Conceito e configuração de dropdowns
 aliases: [EV-2-f2-005]
 tags: [evidence, dropdown, configuration, translation]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/dropdowns/index.rst"

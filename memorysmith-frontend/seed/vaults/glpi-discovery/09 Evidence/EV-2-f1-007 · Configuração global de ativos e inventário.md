@@ -3,7 +3,6 @@ title: EV-2-f1-007 · Configuração global de ativos e inventário
 aliases: [EV-2-f1-007]
 tags: [evidence, ativos, inventario, configuracao-geral]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/general/assets.rst · Assets"

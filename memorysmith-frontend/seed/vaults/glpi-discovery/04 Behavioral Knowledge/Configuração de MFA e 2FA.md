@@ -3,7 +3,6 @@ title: Configuração de MFA e 2FA
 aliases: [MFA, 2FA, Two-factor authentication, Autenticação de dois fatores, "Configuração de MFA/2FA"]
 tags: [flow, mfa, 2fa, authentication, security, otp]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a1-009 · Preferências do usuário (abas e campos)|EV-2-a1-009]]"

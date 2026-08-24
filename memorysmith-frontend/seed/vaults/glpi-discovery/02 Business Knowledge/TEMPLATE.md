@@ -3,7 +3,6 @@ title: <Nome do processo de negócio (processo | regra | capacidade)>
 aliases: []
 tags: [business, dominio/<dominio>]
 type: process
-status: draft
 maturity: seed
 reviewed: false
 source:

@@ -3,7 +3,6 @@ title: EV-2-d1-006 · Documentos — armazenamento, cabeçalhos e itens vinculá
 aliases: [EV-2-d1-006]
 tags: [evidence, management, document, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/modules/management/documents.rst · Documents"

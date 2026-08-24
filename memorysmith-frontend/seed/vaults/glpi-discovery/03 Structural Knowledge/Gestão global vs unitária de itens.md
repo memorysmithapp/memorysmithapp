@@ -3,7 +3,6 @@ title: Gestão global vs unitária de itens
 aliases: [Global management, Unitary management, Gestão global, Gestão unitária]
 tags: [assets, management-mode, glossary]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a2-005 · Glossário oficial do GLPI|EV-2-a2-005]]"

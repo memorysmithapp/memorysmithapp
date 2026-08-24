@@ -3,7 +3,6 @@ title: Reservas e Consumíveis
 aliases: [Reservation, Consumable, Cartridge, Reservas, Consumíveis, "Reservas (Reservation)", "Consumíveis e Cartuchos"]
 tags: [concept, reserva, consumivel, dominio/gestao]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-027 · Reservation e Consumíveis-Cartuchos|EV-1-027]]"

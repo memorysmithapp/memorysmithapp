@@ -3,7 +3,6 @@ title: Aba Antivírus (ativos)
 aliases: [Antivirus tab, Aba Antivirus]
 tags: [assets, tab, antivirus, computer, inventory]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c3-001 · Aba Antivírus de um Computador|EV-2-c3-001]]"

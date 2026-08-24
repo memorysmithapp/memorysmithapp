@@ -3,7 +3,6 @@ title: Perfis e Direitos (RBAC)
 aliases: [Perfis, Direitos, RBAC, Profile, ProfileRight]
 tags: [concept, seguranca, dominio/foundation]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

@@ -3,7 +3,6 @@ title: Campos do formulário de Dispositivo Passivo
 aliases: [Campos Passive device]
 tags: [data, fields, passive-device, assets, doc]
 type: table
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c2-002 · Dispositivos passivos (passives_devices.rst)|EV-2-c2-002]]"

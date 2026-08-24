@@ -3,7 +3,6 @@ title: EV-2-f1-016 · Réplicas SQL
 aliases: [EV-2-f1-016]
 tags: [evidence, sql, replicas, banco-de-dados, configuracao-geral]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/general/sql_replicas.rst · SQL replicas"

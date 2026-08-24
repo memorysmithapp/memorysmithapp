@@ -3,7 +3,6 @@ title: Aba Links Externos (ativos)
 aliases: [External links tab, Aba Links Externos]
 tags: [assets, tab, external-links]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c3-010 · Abas Links Externos e Bloqueios (locks)|EV-2-c3-010]]"

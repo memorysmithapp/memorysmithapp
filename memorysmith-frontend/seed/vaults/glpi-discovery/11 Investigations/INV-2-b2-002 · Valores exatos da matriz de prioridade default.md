@@ -3,7 +3,6 @@ title: INV-2-b2-002 · Valores exatos da matriz de prioridade default
 aliases: [INV-2-b2-002]
 tags: [investigation, consumidor/cad, prioridade, matriz]
 type: investigation
-status: open
 maturity: seed
 reviewed: false
 source: "[[EV-2-b2-005 · Matriz de cálculo de prioridade (urgência × impacto)|EV-2-b2-005]]"

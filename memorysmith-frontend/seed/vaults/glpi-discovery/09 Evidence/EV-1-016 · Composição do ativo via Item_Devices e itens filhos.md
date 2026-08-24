@@ -3,7 +3,6 @@ title: EV-1-016 · Composição do ativo via Item_Devices e itens-filhos
 aliases: [EV-1-016]
 tags: [evidence, dominio/ativos, componentes]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-001 · src/Item_Devices.php L50 · src/Computer.php L80–108 (getCloneRelations) · src/Device*.php (18 tipos)"

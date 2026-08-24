@@ -3,7 +3,6 @@ title: Interface Simplificada (Helpdesk-Self-Service)
 aliases: [Simplified Interface, Interface simplificada, Self-service, Helpdesk interface, "Interface Simplificada (Helpdesk/Self-Service)"]
 tags: [component, interface, simplified, helpdesk, self-service, end-user]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a1-004 · Interface padrão e interface simplificada|EV-2-a1-004]]"

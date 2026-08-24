@@ -3,7 +3,6 @@ title: Posição em datacenter (data center position)
 aliases: [Data center position, Posição em datacenter]
 tags: [campos-comuns, localizacao, datacenter, dcim, data]
 type: field
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g4-005 · Campos de localização e posição em datacenter|EV-2-g4-005]]"

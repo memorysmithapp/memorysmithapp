@@ -3,7 +3,6 @@ title: Módulo de Assistência (Service Desk)
 aliases: [Assistance, Módulo Assistance, Central de Serviços]
 tags: [assistance, service-desk, itil, overview, ticket]
 type: overview
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-b1-001 · Módulo Assistance (visão geral)|EV-2-b1-001]]"

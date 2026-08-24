@@ -3,7 +3,6 @@ title: Sistemas de Cache e Performance
 aliases: [Performances tab, Cache, Caches do GLPI]
 tags: [configuracao-geral, performance, cache, operacao]
 type: capability
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-f1-013 · Performances e sistemas de cache|EV-2-f1-013]]"

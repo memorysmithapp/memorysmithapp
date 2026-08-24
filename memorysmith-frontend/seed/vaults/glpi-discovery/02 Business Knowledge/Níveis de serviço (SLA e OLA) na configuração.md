@@ -3,7 +3,6 @@ title: Níveis de serviço (SLA e OLA) na configuração
 aliases: [Service Levels, SLA e OLA (config)]
 tags: [sla, ola, service-level, regra, config]
 type: capability
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

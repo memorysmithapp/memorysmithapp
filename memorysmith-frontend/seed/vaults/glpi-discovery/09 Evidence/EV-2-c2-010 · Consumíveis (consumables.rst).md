@@ -3,7 +3,6 @@ title: EV-2-c2-010 · Consumíveis (consumables.rst)
 aliases: [EV-2-c2-010]
 tags: [evidence, assets, consumable, stock, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/assets/consumables.rst · Consumables (documento inteiro)"

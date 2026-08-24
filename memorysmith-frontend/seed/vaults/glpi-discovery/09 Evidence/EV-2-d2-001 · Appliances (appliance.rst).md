@@ -3,7 +3,6 @@ title: EV-2-d2-001 · Appliances (appliance.rst)
 aliases: [appliance.rst, Appliances]
 tags: [evidence, management, appliance, aplicacao, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/management/appliance.rst · Appliances"

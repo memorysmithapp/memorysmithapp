@@ -3,7 +3,6 @@ title: Execução de uma regra (criteria → action)
 aliases: [Rule execution, matching de regra]
 tags: [flow, motor-de-regras, dominio/admin]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-031 · Motor de regras Rule RuleCollection Criteria Action|EV-1-031]]"

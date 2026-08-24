@@ -3,7 +3,6 @@ title: Limite de alerta (alert threshold)
 aliases: [Alert threshold, Limite de alerta, Restock threshold]
 tags: [campos-comuns, estoque, consumiveis, alerta, data]
 type: field
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g4-009 · Campos de estoque e consumíveis (limite de alerta, estoque-alvo, tipo de cartucho)|EV-2-g4-009]]"

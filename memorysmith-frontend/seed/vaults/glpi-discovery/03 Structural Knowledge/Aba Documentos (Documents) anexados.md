@@ -3,7 +3,6 @@ title: Aba Documentos (Documents) anexados
 aliases: [aba Documents, Documents tab, documentos anexados]
 tags: [tabs, documents, anexos, ui]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g2-006 · Aba Documents (documentos anexados ao item)|EV-2-g2-006]]"

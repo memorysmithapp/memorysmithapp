@@ -3,7 +3,6 @@ title: Aba Aprovações (validação de chamados e mudanças)
 aliases: [Approvals tab, Aba Approvals, Aprovações]
 tags: [tab, approvals, validation, ticket, change, workflow]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g3-008 · Aba Aprovações (validação de chamados e mudanças)|EV-2-g3-008]]"

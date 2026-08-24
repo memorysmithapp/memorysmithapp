@@ -3,7 +3,6 @@ title: Escalonamento de SLA/OLA (níveis e ações)
 aliases: [Escalation levels, Níveis de escalonamento]
 tags: [sla, ola, escalonamento, escalation, nivel, acoes]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

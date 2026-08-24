@@ -3,7 +3,6 @@ title: EV-2-e2-012 · Regras de inventário - atribuição a entidade e importa�
 aliases: [EV-2-e2-012]
 tags: [evidence, regras, inventario, entidade, importacao, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/rules/inventorytools.rst · Rules for inventory agent"

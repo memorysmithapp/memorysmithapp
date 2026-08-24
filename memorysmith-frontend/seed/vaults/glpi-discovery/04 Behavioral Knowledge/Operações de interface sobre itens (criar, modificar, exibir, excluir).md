@@ -3,7 +3,6 @@ title: Operações de interface sobre itens (criar, modificar, exibir, excluir)
 aliases: [CRUD de interface, Ações sobre objetos, Anexar documento, Anexar contrato]
 tags: [crud, ui, procedure, actions]
 type: use-case
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a2-001 · Ações sobre objetos e ações em massa|EV-2-a2-001]]"

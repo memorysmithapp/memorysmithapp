@@ -3,7 +3,6 @@ title: EV-2-f3-010 · Instalação, atualização e remoção de plugins
 aliases: [EV-2-f3-010]
 tags: [evidence, plugin, marketplace, instalacao, glpi-network, hook]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/plugins.rst · Install and update plugins"

@@ -3,7 +3,6 @@ title: Glossário
 aliases: [Glossário GLPI, Vocabulário]
 tags: [overview, glossario, dominio/foundation]
 type: overview
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

@@ -3,7 +3,6 @@ title: EV-2-d2-005 · Database instances (tabs-database_instances.rst)
 aliases: [database_instances.rst, Database instances]
 tags: [evidence, management, database-instance, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/management/tabs/database_instances.rst · Database instances"

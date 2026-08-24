@@ -3,7 +3,6 @@ title: EV-2-g2-007 · Aba External links (links externos do item)
 aliases: [EV-2-g2-007]
 tags: [evidence, tabs, external-links]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/tabs/external-links.rst · External Links"

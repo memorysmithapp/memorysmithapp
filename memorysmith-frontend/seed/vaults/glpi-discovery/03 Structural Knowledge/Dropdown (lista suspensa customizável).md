@@ -3,7 +3,6 @@ title: Dropdown (lista suspensa customizável)
 aliases: [Dropdown, Lista suspensa, Intitulé]
 tags: [dropdown, configuration, glossary]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

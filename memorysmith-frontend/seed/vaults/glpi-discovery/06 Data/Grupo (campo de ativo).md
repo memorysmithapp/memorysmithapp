@@ -3,7 +3,6 @@ title: Grupo (campo de ativo)
 aliases: [Group, Grupo]
 tags: [campos-comuns, atores, grupo, dropdown, data]
 type: field
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g4-004 · Campos de atores (usuário, grupo, grupo e técnico responsáveis)|EV-2-g4-004]]"

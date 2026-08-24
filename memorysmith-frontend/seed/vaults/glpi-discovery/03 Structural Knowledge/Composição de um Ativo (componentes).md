@@ -3,7 +3,6 @@ title: Composição de um Ativo (componentes)
 aliases: [Componentes, Item_Devices, Devices]
 tags: [concept, cmdb, componentes, dominio/ativos]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-016 · Composição do ativo via Item_Devices e itens filhos|EV-1-016]]"

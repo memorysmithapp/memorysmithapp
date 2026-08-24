@@ -3,7 +3,6 @@ title: Licença pai-filho (procedimento)
 aliases: [Child license, Parent license]
 tags: [use-case, management, license, software, doc]
 type: use-case
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d1-008 · Licenças de software — objetivos, campos e abas|EV-2-d1-008]]"

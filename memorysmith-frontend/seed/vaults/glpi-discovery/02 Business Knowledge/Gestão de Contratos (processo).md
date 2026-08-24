@@ -3,7 +3,6 @@ title: Gestão de Contratos (processo)
 aliases: [Contract Management, Supplier Management]
 tags: [process, contrato, dominio/gestao]
 type: process
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

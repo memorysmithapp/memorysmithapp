@@ -3,7 +3,6 @@ title: INV-1-004 · Ações de escalonamento de SLA
 aliases: [INV-1-004]
 tags: [investigation, consumidor/cad, sla]
 type: investigation
-status: open
 maturity: seed
 reviewed: false
 source: "[[EV-1-011 · SLM SLA e OLA com TTR-TTO e níveis de escalonamento|EV-1-011]]"

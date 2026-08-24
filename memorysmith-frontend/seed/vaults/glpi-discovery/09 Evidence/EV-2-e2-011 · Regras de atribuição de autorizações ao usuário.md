@@ -3,7 +3,6 @@ title: EV-2-e2-011 · Regras de atribuição de autorizações ao usuário
 aliases: [EV-2-e2-011]
 tags: [evidence, regras, autorizacoes, ldap, entidade, perfil, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/rules/userauthorizations.rst · Rules for assigning authorizations to a user"

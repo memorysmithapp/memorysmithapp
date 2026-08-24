@@ -3,7 +3,6 @@ title: EV-2-g4-004 · Campos de atores (usuário, grupo, grupo e técnico respon
 aliases: [EV-2-g4-004]
 tags: [evidence, campos-comuns, atores, usuario, grupo, tecnico]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · tabs/common_fields/user.rst · User; tabs/common_fields/group.rst · Group; tabs/common_fields/group_in_charge.rst · Group in charge; tabs/common_fields/technician_in_charge.rst · Technician in charge"

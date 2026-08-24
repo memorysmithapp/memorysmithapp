@@ -3,7 +3,6 @@ title: Campos de Versão de Software
 aliases: [Campos SoftwareVersion, Versão de software]
 tags: [data, fields, software, version, dsl, doc]
 type: table
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c2-007 · Software, versões e licenças (softwares.rst)|EV-2-c2-007]]"

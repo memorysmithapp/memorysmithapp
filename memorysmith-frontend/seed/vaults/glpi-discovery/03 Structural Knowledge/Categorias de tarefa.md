@@ -3,7 +3,6 @@ title: Categorias de tarefa
 aliases: [Task categories]
 tags: [assistance, categories, task, statistics]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-b1-011 · Categorias ITIL e de tarefa|EV-2-b1-011]]"

@@ -3,7 +3,6 @@ title: EV-2-g3-003 · Gestão de projetos (Project e Project task)
 aliases: [EV-2-g3-003]
 tags: [evidence, tools, projects, gantt, kanban, tasks, teams]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/modules/tools/projects.rst · Manage projects"

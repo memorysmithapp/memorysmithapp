@@ -3,7 +3,6 @@ title: RBAC User×Profile×Entity (view)
 aliases: [RBAC view, Profile_User diagram, "RBAC User×Profile×Entity (view)"]
 tags: [view, seguranca, rbac, dominio/admin]
 type: view
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-028 · User Group e Profile_User binding RBAC|EV-1-028]]"

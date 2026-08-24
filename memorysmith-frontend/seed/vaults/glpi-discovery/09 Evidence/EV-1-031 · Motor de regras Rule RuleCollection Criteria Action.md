@@ -3,7 +3,6 @@ title: EV-1-031 · Motor de regras (Rule/RuleCollection/Criteria/Action)
 aliases: [EV-1-031]
 tags: [evidence, dominio/admin, regras, motor-de-regras]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-001 · src/Rule.php L50, 106–123 · src/RuleCollection.php L48 · src/RuleCriteria.php L46 · src/RuleAction.php L43"

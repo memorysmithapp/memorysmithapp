@@ -3,7 +3,6 @@ title: EV-2-g2-014 · Aba Templates (gerar objeto por modelo)
 aliases: [EV-2-g2-014]
 tags: [evidence, tabs, templates, modelos]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/tabs/templates.rst"

@@ -3,7 +3,6 @@ title: Ligação de dois dispositivos por cabo (endpoints)
 aliases: [Endpoint A, Endpoint B, Cable endpoints]
 tags: [cable, socket, connectivity, procedure, doc]
 type: use-case
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c2-006 · Cabos (cables.rst)|EV-2-c2-006]]"

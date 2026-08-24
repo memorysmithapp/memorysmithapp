@@ -3,7 +3,6 @@ title: Perfis pré-definidos do GLPI
 aliases: [7 perfis, Default profiles, Super-Admin, Self-Service]
 tags: [perfis, rbac, super-admin, self-service, technician]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-e1-004 · Perfis de usuário — conceito, 7 perfis pré-definidos e permissões padrão|EV-2-e1-004]]"

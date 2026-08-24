@@ -3,7 +3,6 @@ title: Ações em massa (massive actions)
 aliases: [Massive actions, Mass actions, Ações em lote, Botão Actions]
 tags: [massive-actions, ui, crud, bulk]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a2-001 · Ações sobre objetos e ações em massa|EV-2-a2-001]]"

@@ -3,7 +3,6 @@ title: Campos da delegação de substitutos
 aliases: [campos authorized substitutes]
 tags: [data, campos, substitutes, delegacao, validacao]
 type: data
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g2-017 · Substitutos autorizados (delegação de validação)|EV-2-g2-017]]"

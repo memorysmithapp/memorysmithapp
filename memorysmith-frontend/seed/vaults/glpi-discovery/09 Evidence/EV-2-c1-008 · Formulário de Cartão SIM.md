@@ -3,7 +3,6 @@ title: EV-2-c1-008 · Formulário de Cartão SIM
 aliases: [EV-2-c1-008]
 tags: [evidence, assets, sim, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/assets/sim.rst · SIM (todas as seções/abas)"

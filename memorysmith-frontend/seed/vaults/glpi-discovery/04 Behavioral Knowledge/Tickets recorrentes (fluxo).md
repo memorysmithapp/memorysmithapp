@@ -3,7 +3,6 @@ title: Tickets recorrentes (fluxo)
 aliases: [Recurrent tickets, Chamados recorrentes]
 tags: [assistance, ticket, recurrent, automation, crontask, template]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-b1-009 · Campos do ticket recorrente|EV-2-b1-009]]"

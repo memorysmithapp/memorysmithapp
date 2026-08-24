@@ -3,7 +3,6 @@ title: EV-2-d1-003 · Fornecedores — definição, distinção fornecedor×fabr
 aliases: [EV-2-d1-003]
 tags: [evidence, management, supplier, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/modules/management/suppliers.rst · Suppliers"

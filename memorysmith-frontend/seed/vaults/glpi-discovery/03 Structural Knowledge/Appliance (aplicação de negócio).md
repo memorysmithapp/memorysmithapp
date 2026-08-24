@@ -3,7 +3,6 @@ title: Appliance (aplicação de negócio)
 aliases: [Appliance, Appliances, Aplicação, Servidor lógico]
 tags: [management, appliance, aplicacao, ativo-logico]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d2-001 · Appliances (appliance.rst)|EV-2-d2-001]]"

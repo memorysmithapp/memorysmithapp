@@ -3,7 +3,6 @@ title: EV-2-f1-004 · Componentes de hardware configuráveis
 aliases: [EV-2-f1-004]
 tags: [evidence, componentes, hardware, configuracao]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/components.rst · Components"

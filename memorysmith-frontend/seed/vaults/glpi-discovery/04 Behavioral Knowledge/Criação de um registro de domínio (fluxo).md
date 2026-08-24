@@ -3,7 +3,6 @@ title: Criação de um registro de domínio (fluxo)
 aliases: [Adicionar domain record, Criar registro de domínio]
 tags: [management, domain-record, dns, fluxo, procedimento]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d2-007 · Domain records (domains_records.rst)|EV-2-d2-007]]"

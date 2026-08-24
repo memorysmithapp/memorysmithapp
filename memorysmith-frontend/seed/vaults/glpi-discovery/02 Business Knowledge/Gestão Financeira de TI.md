@@ -3,7 +3,6 @@ title: Gestão Financeira de TI
 aliases: [Financial Management, ITFM, custos]
 tags: [process, financeiro, dominio/gestao]
 type: process
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

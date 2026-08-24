@@ -3,7 +3,6 @@ title: INV-2-f2-001 · Include de tabs-translation.rst ausente nos dropdowns
 aliases: [INV-2-f2-001]
 tags: [investigation, consumidor/cad, dropdown, doc-gap]
 type: investigation
-status: open
 maturity: seed
 reviewed: false
 author: CAD Discovery (doc)

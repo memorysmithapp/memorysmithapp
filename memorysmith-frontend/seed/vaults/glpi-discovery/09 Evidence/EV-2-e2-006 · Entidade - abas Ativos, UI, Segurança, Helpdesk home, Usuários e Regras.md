@@ -3,7 +3,6 @@ title: EV-2-e2-006 · Entidade - abas Ativos, UI, Segurança, Helpdesk home, Usu
 aliases: [EV-2-e2-006]
 tags: [evidence, entidades, ativos, ui, seguranca, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/entity/entities.rst · Assets/UI Customization/Security/Helpdesk home/Users/Rules"

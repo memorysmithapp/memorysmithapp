@@ -3,7 +3,6 @@ title: Campos de Licença de Software
 aliases: [Campos SoftwareLicense, Licença de software]
 tags: [data, fields, software, license, doc]
 type: table
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c2-007 · Software, versões e licenças (softwares.rst)|EV-2-c2-007]]"

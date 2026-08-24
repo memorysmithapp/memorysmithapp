@@ -3,7 +3,6 @@ title: EV-2-g3-016 · Aba Itens (vincular ativos a um objeto)
 aliases: [EV-2-g3-016]
 tags: [evidence, tab, items, link, assets]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/tabs/item.rst · Items"

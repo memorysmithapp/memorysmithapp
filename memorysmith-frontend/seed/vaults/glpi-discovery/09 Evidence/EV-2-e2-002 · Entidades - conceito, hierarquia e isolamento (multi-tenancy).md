@@ -3,7 +3,6 @@ title: EV-2-e2-002 · Entidades - conceito, hierarquia e isolamento (multi-tenan
 aliases: [EV-2-e2-002]
 tags: [evidence, entidades, multi-tenancy, hierarquia, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/entity/entities.rst · Entities (introdução)"

@@ -3,7 +3,6 @@ title: EV-2-c1-001 · Módulo Assets e tipos de ativo disponíveis
 aliases: [EV-2-c1-001]
 tags: [evidence, assets, inventory, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/assets/index.rst · Assets / Asset management in GLPI / Available types"

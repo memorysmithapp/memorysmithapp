@@ -3,7 +3,6 @@ title: Autenticação (Auth)
 aliases: [Auth, Autenticação, LDAP, SSO, 2FA]
 tags: [component, autenticacao, seguranca, dominio/admin]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

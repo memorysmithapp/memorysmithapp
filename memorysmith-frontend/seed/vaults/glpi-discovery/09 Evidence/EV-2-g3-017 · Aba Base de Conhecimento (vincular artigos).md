@@ -3,7 +3,6 @@ title: EV-2-g3-017 · Aba Base de Conhecimento (vincular artigos)
 aliases: [EV-2-g3-017]
 tags: [evidence, tab, knowledgebase, link, article]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/tabs/knowledgebase.rst · Knowledge base"

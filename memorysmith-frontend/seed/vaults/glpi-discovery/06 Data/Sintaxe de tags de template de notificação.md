@@ -3,7 +3,6 @@ title: Sintaxe de tags de template de notificação
 aliases: [Notification tags, Template tags]
 tags: [dados, template, tags, sintaxe, notificacao]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

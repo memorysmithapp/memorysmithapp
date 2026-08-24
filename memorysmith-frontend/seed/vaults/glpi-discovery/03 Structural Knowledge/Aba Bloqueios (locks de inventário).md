@@ -3,7 +3,6 @@ title: Aba Bloqueios (locks de inventário)
 aliases: [Locks tab, Aba Locks, Bloqueio de campos]
 tags: [assets, tab, locks, inventory, fields]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c3-010 · Abas Links Externos e Bloqueios (locks)|EV-2-c3-010]]"

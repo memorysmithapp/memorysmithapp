@@ -3,7 +3,6 @@ title: Templates de itens (modelos)
 aliases: [Template, Modelo de objeto, Templates de ativos]
 tags: [templates, assets, creation]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a2-004 · Gestão de templates (ativos e tickets)|EV-2-a2-004]]"

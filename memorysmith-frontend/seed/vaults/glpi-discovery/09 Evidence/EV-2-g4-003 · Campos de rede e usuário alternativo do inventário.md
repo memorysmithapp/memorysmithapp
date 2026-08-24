@@ -3,7 +3,6 @@ title: EV-2-g4-003 · Campos de rede e usuário alternativo do inventário
 aliases: [EV-2-g4-003]
 tags: [evidence, campos-comuns, rede, inventario, usuario]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · tabs/common_fields/network.rst · Network; tabs/common_fields/alternate_user.rst · Alternate username; tabs/common_fields/alternate_username.rst · Alternate username number"

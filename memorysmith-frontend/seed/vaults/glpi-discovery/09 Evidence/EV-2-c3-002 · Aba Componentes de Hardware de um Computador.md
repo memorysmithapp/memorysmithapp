@@ -3,7 +3,6 @@ title: EV-2-c3-002 · Aba Componentes de Hardware de um Computador
 aliases: [EV-2-c3-002]
 tags: [evidence, doc, assets, components, hardware, computer]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/assets/tabs/components.rst · Components"

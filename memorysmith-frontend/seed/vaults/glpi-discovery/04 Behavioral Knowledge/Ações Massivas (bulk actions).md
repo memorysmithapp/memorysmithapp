@@ -3,7 +3,6 @@ title: Ações Massivas (bulk actions)
 aliases: [Massive actions, Bulk actions, Ações em lote]
 tags: [use-case, massive-actions, bulk, search]
 type: use-case
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a1-007 · Motor de busca da UI (básica, multicritério, avançada, export, ações massivas)|EV-2-a1-007]]"

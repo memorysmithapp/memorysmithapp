@@ -3,7 +3,6 @@ title: EV-1-032 · Tipos de regra especializados
 aliases: [EV-1-032]
 tags: [evidence, dominio/admin, regras]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-001 · src/RuleRight.php L43 · src/RuleTicket.php L36 · src/RuleAsset.php L36 · src/RuleImportAsset.php L46 · src/RuleDictionarySoftware.php"

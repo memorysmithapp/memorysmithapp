@@ -3,7 +3,6 @@ title: EV-2-c3-011 · Abas Itens de Enclosure e Itens de Rack (DCIM)
 aliases: [EV-2-c3-011]
 tags: [evidence, doc, assets, dcim, rack, enclosure, pdu]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

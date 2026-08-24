@@ -3,7 +3,6 @@ title: EV-2-e1-003 · Gestão de Grupos (hierarquia, opções e importação LDA
 aliases: [EV-2-e1-003]
 tags: [evidence, grupos, hierarquia, ldap, notificacoes, 2fa]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/groups.rst · Groups / Import groups / abas (Child groups, Users, Security, Notifications...)"

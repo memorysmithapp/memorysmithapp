@@ -3,7 +3,6 @@ title: EV-2-d1-005 · Orçamentos — definição, criação e abas
 aliases: [EV-2-d1-005]
 tags: [evidence, management, budget, doc, financial]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/modules/management/budgets.rst · Budgets"

@@ -3,7 +3,6 @@ title: INV-2-e2-003 · Exemplos incompletos nos dicionários (lacuna de document
 aliases: [INV-2-e2-003]
 tags: [investigation, consumidor/cad, dicionarios, doc-quality]
 type: investigation
-status: open
 maturity: seed
 reviewed: false
 source: "[[EV-2-e2-014 · Dicionários globais e de drop-downs|EV-2-e2-014]]"

@@ -3,7 +3,6 @@ title: Validação e aprovação (regra)
 aliases: [Validação, Aprovação, ITILValidation]
 tags: [rule, itil, aprovacao, dominio/service-desk]
 type: rule
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-012 · Validação ITIL e artefatos filhos followup-task-solution|EV-1-012]]"

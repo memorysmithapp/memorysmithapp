@@ -3,7 +3,6 @@ title: Catálogo de ações automáticas (crontasks)
 aliases: [Automatic actions, Crontasks catalog, Default actions]
 tags: [operacao, crontask, acao-automatica, cron, agendamento, catalogo]
 type: infra
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

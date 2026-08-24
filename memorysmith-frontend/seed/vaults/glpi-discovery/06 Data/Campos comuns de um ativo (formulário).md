@@ -3,7 +3,6 @@ title: Campos comuns de um ativo (formulário)
 aliases: [Common fields, Campos comuns de ativo]
 tags: [assets, data, common-fields, form]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

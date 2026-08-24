@@ -3,7 +3,6 @@ title: EV-2-c1-007 · Formulário e abas de Impressora
 aliases: [EV-2-c1-007]
 tags: [evidence, assets, printer, snmp, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/assets/printers.rst · Printers (todas as seções/abas)"

@@ -3,7 +3,6 @@ title: Equipes no Kanban (papéis de membros)
 aliases: [Kanban team, Team management, Equipe do Kanban]
 tags: [kanban, team, actors, roles]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a2-002 · Quadro Kanban|EV-2-a2-002]]"

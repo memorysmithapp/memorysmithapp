@@ -3,7 +3,6 @@ title: INV-2-d2-001 · Campos do formulário de Domínio não enumerados na docu
 aliases: [Campos de Domain, Domain form fields]
 tags: [investigation, consumidor/cad, management, domain, campos]
 type: investigation
-status: open
 maturity: seed
 reviewed: false
 author: CAD Discovery (doc)

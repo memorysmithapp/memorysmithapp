@@ -3,7 +3,6 @@ title: Campos do formulário de Licença
 aliases: [License fields]
 tags: [data, management, license, software, fields, doc]
 type: table
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d1-008 · Licenças de software — objetivos, campos e abas|EV-2-d1-008]]"

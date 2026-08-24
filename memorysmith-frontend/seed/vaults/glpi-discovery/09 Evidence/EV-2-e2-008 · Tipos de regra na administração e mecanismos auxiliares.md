@@ -3,7 +3,6 @@ title: EV-2-e2-008 · Tipos de regra na administração e mecanismos auxiliares
 aliases: [EV-2-e2-008]
 tags: [evidence, regras, tipos, blacklist, transfer, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/rules/rulesmanagement.rst · The different rules"

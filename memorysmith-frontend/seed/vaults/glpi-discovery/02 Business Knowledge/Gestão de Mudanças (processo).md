@@ -3,7 +3,6 @@ title: Gestão de Mudanças (processo)
 aliases: [Change Management]
 tags: [process, itil, dominio/service-desk]
 type: process
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-013 · Change e Problem estendem CommonITILObject com fases próprias|EV-1-013]]"

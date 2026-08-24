@@ -3,7 +3,6 @@ title: Dicionário de dados (dictionary)
 aliases: [Dictionary, Dicionário]
 tags: [dictionary, rules, data-quality, glossary]
 type: capability
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a2-005 · Glossário oficial do GLPI|EV-2-a2-005]]"

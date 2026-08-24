@@ -3,7 +3,6 @@ title: Fornecedores e Contatos
 aliases: [Supplier, Contact, Fornecedor, Contato]
 tags: [entity, fornecedor, dominio/gestao]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-024 · Supplier Contact e Budget|EV-1-024]]"

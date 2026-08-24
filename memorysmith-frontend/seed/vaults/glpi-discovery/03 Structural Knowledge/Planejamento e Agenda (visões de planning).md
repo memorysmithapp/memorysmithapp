@@ -3,7 +3,6 @@ title: Planejamento e Agenda (visões de planning)
 aliases: [Planning, Agenda, Planejamento]
 tags: [planning, agenda, ical, webcal, planejamento]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-b2-003 · Planejamento (agenda) — visões e autorizações|EV-2-b2-003]]"

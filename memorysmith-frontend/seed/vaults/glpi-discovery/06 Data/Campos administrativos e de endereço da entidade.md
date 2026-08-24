@@ -3,7 +3,6 @@ title: Campos administrativos e de endereço da entidade
 aliases: [Entity address fields]
 tags: [entidades, campos, endereco, dados, doc]
 type: table
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-e2-003 · Abas da entidade - Endereço e Avançado (regras genéricas e LDAP)|EV-2-e2-003]]"

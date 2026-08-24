@@ -3,7 +3,6 @@ title: EV-2-c3-007 · Aba Softwares instalados num Computador
 aliases: [EV-2-c3-007]
 tags: [evidence, doc, assets, software, license, computer]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/assets/tabs/softwares.rst · Software"

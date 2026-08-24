@@ -3,7 +3,6 @@ title: EV-2-g3-008 · Aba Aprovações (validação de chamados e mudanças)
 aliases: [EV-2-g3-008]
 tags: [evidence, tab, approvals, validation, ticket, change]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/tabs/approvals.rst · Approvals"

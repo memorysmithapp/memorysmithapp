@@ -3,7 +3,6 @@ title: EV-2-g2-012 · Aba Problems (problemas vinculados ao objeto)
 aliases: [EV-2-g2-012]
 tags: [evidence, tabs, problems, itil]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/tabs/problems.rst · Problems"

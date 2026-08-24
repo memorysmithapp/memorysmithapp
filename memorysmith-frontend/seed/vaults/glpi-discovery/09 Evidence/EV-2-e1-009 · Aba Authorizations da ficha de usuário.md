@@ -3,7 +3,6 @@ title: EV-2-e1-009 · Aba Authorizations da ficha de usuário
 aliases: [EV-2-e1-009]
 tags: [evidence, usuarios, autorizacoes, perfis, entidades, recursivo, dinamico]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/users/tabs/authorizations.rst · Authorizations"

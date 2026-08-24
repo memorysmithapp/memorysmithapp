@@ -3,7 +3,6 @@ title: Diretório LDAP e Active Directory (configuração)
 aliases: [LDAP, Active Directory, AD, Diretório LDAP]
 tags: [authentication, ldap, active-directory, configuration]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-f2-002 · Autenticação, sincronização e abas de configuração LDAP-AD|EV-2-f2-002]]"

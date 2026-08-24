@@ -3,7 +3,6 @@ title: EV-2-c1-004 · Formulário de Monitor e gestão unitária vs global
 aliases: [EV-2-c1-004]
 tags: [evidence, assets, monitor, management-type, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/assets/monitors.rst · Monitors (todas as seções/abas)"

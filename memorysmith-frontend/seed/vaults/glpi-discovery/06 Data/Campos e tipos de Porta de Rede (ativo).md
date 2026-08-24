@@ -3,7 +3,6 @@ title: Campos e tipos de Porta de Rede (ativo)
 aliases: [Network port types, Tipos de porta de rede, Campos de porta de rede]
 tags: [data, assets, network, ports, vlan, mac, ethernet, wifi]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c3-004 · Aba Portas de Rede de um Computador|EV-2-c3-004]]"

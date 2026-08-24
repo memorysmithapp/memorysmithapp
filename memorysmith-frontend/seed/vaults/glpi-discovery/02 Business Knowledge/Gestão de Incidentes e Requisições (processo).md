@@ -3,7 +3,6 @@ title: Gestão de Incidentes e Requisições (processo)
 aliases: [Incident Management, Request Fulfillment, Service Desk]
 tags: [process, itil, dominio/service-desk]
 type: process
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

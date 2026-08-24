@@ -3,7 +3,6 @@ title: Motor de Regras (engine)
 aliases: [Rule engine, Motor de regras, RuleCollection]
 tags: [component, motor-de-regras, dominio/admin]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-031 · Motor de regras Rule RuleCollection Criteria Action|EV-1-031]]"

@@ -3,7 +3,6 @@ title: EV-2-c1-009 · Ativos não gerenciados e conversão de tipo
 aliases: [EV-2-c1-009]
 tags: [evidence, assets, unmanaged, network-discovery, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/assets/unmanaged_assets.rst · Unmanaged assets (todas as seções + Particularity)"

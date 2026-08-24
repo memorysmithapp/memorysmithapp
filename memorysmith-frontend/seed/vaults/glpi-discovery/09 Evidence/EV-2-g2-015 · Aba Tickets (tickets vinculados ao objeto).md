@@ -3,7 +3,6 @@ title: EV-2-g2-015 · Aba Tickets (tickets vinculados ao objeto)
 aliases: [EV-2-g2-015]
 tags: [evidence, tabs, tickets, itil]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/tabs/tickets.rst · Tickets"

@@ -3,7 +3,6 @@ title: EV-2-e2-013 · Dicionários de dados - conceito e funcionamento
 aliases: [EV-2-e2-013]
 tags: [evidence, dicionarios, regras, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/dictionnaries.rst · Dictionaries / Configure data dictionaries"

@@ -3,7 +3,6 @@ title: Política de Senhas (segurança e expiração)
 aliases: [Security tab, Password policy, Política de senhas]
 tags: [configuracao-geral, seguranca, senha, politica, operacao]
 type: rule
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-f1-012 · Política de senhas (segurança e expiração)|EV-2-f1-012]]"

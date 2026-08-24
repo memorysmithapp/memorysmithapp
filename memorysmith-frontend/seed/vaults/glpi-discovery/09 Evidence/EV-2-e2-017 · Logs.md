@@ -3,7 +3,6 @@ title: EV-2-e2-017 · Logs
 aliases: [EV-2-e2-017]
 tags: [evidence, logs, historico, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/logs.rst · Logs"

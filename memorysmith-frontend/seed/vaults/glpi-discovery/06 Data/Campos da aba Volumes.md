@@ -3,7 +3,6 @@ title: Campos da aba Volumes
 aliases: [Volumes tab, Aba Volumes]
 tags: [assets, data, volume, tab]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

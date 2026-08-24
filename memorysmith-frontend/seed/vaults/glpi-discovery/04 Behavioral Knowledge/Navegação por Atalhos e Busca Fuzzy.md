@@ -3,7 +3,6 @@ title: Navegação por Atalhos e Busca Fuzzy
 aliases: [Keyboard shortcuts, Atalhos de teclado, Fuzzy navigation, Busca aproximada]
 tags: [use-case, navigation, keyboard, shortcuts, fuzzy]
 type: use-case
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a1-005 · Navegação por módulos, atalhos de teclado e busca fuzzy|EV-2-a1-005]]"

@@ -3,7 +3,6 @@ title: EV-2-c1-002 · Busca global de ativos (Global search)
 aliases: [EV-2-c1-002]
 tags: [evidence, assets, search, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/assets/global.rst · Global search"

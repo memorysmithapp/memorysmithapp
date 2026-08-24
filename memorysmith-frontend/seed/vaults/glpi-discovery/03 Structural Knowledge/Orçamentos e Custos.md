@@ -3,7 +3,6 @@ title: Orçamentos e Custos
 aliases: [Budget, Custos, Cost, Orçamento]
 tags: [concept, financeiro, dominio/gestao]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

@@ -3,7 +3,6 @@ title: Distinção Fornecedor × Contato (regra)
 aliases: [Supplier vs Contact]
 tags: [rule, management, supplier, contact, doc]
 type: rule
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

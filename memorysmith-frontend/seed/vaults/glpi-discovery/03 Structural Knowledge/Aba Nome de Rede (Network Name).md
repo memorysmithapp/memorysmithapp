@@ -3,7 +3,6 @@ title: Aba Nome de Rede (Network Name)
 aliases: [Network Name tab, Aba Nome de Rede, DNS name]
 tags: [assets, tab, network, dns, fqdn, ip]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c3-005 · Aba Nome de Rede (Network Name)|EV-2-c3-005]]"

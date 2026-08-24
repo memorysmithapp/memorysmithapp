@@ -3,7 +3,6 @@ title: Ciclo de vida de um item (add-update-delete)
 aliases: [Ciclo de vida, CRUD lifecycle, add update delete]
 tags: [flow, orm, ciclo-de-vida, dominio/foundation]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

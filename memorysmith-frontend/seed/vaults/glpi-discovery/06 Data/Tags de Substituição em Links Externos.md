@@ -3,7 +3,6 @@ title: Tags de Substituição em Links Externos
 aliases: [External link tags, Tags de links externos, Twig tags]
 tags: [links-externos, tags, twig, campos, data]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-f1-003 · Links externos, tags e templates Twig|EV-2-f1-003]]"

@@ -3,7 +3,6 @@ title: EV-2-g3-019 · Aba Sistemas operacionais (campos e CLI)
 aliases: [EV-2-g3-019]
 tags: [evidence, tab, operating-system, cli, inventory]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/tabs/operating_systems.rst · Operating Systems"

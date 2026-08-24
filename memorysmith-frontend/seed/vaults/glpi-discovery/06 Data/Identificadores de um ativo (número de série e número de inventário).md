@@ -3,7 +3,6 @@ title: Identificadores de um ativo (número de série e número de inventário)
 aliases: [Serial number, Número de série, Inventory number, Número de inventário]
 tags: [campos-comuns, identificacao, inventario, data]
 type: field
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g4-001 · Campos de identificação de inventário (série, UUID, nº inventário, fonte)|EV-2-g4-001]]"

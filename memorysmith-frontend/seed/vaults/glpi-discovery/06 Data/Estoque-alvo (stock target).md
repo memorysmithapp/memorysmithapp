@@ -3,7 +3,6 @@ title: Estoque-alvo (stock target)
 aliases: [Stock target, Estoque-alvo, Estoque alvo]
 tags: [campos-comuns, estoque, consumiveis, data]
 type: field
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g4-009 · Campos de estoque e consumíveis (limite de alerta, estoque-alvo, tipo de cartucho)|EV-2-g4-009]]"

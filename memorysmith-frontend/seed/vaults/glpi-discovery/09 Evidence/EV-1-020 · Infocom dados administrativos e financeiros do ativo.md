@@ -3,7 +3,6 @@ title: EV-1-020 · Infocom — dados administrativos e financeiros do ativo
 aliases: [EV-1-020]
 tags: [evidence, dominio/ativos, financeiro, infocom]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-001 · src/Infocom.php L49 · src/Computer.php L64–65 (forward_entity_to Infocom, auto-create)"

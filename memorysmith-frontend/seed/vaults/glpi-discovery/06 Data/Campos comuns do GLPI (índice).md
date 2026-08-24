@@ -3,7 +3,6 @@ title: Campos comuns do GLPI (índice)
 aliases: [Common fields, Campos comuns, Dicionário de campos comuns]
 tags: [campos-comuns, indice, dicionario, data]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

@@ -3,7 +3,6 @@ title: Recursividade em entidades
 aliases: [Recursivity, Recursividade, Sub-entity, Global note, Global right, Local right]
 tags: [entities, recursivity, multi-tenancy, glossary]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a2-005 · Glossário oficial do GLPI|EV-2-a2-005]]"

@@ -3,7 +3,6 @@ title: Usuário alternativo do inventário (alternate username e número)
 aliases: [Alternate username, Alternate username number, Usuário alternativo]
 tags: [campos-comuns, inventario, usuario, data]
 type: field
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g4-003 · Campos de rede e usuário alternativo do inventário|EV-2-g4-003]]"

@@ -3,7 +3,6 @@ title: Campos do formulário de Cartucho
 aliases: [Campos Cartridge]
 tags: [data, fields, cartridge, stock, doc]
 type: table
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c2-009 · Cartuchos (cartridges.rst)|EV-2-c2-009]]"

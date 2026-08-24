@@ -3,7 +3,6 @@ title: EV-2-e2-001 · Módulo de Administração e submenus (index)
 aliases: [EV-2-e2-001]
 tags: [evidence, administracao, modulo, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/index.rst · Administration"

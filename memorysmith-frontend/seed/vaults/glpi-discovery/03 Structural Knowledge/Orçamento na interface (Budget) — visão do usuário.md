@@ -3,7 +3,6 @@ title: Orçamento na interface (Budget) — visão do usuário
 aliases: [Budget, Orçamento]
 tags: [concept, management, budget, financial, doc]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d1-005 · Orçamentos — definição, criação e abas|EV-2-d1-005]]"

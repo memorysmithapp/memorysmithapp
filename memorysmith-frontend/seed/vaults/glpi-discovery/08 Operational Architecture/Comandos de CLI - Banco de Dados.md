@@ -3,7 +3,6 @@ title: "Comandos de CLI - Banco de Dados"
 aliases: [db:install, db:update, db:configure, db:check_schema_integrity]
 tags: [cli, banco-de-dados, schema, instalacao, comandos, operacional]
 type: process
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g1-005 · Referência da linha de comando bin-console (cli.rst)|EV-2-g1-005]]"

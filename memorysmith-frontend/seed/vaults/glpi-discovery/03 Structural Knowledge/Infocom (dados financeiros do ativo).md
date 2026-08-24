@@ -3,7 +3,6 @@ title: Infocom (dados financeiros do ativo)
 aliases: [Infocom, dados financeiros, garantia, depreciação]
 tags: [concept, financeiro, dominio/ativos]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-020 · Infocom dados administrativos e financeiros do ativo|EV-1-020]]"

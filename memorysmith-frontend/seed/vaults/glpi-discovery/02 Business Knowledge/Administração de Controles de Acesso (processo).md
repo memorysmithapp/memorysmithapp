@@ -3,7 +3,6 @@ title: Administração de Controles de Acesso (processo)
 aliases: [Access control, Controle de acesso, Contexto de uso]
 tags: [process, access-control, rbac, entities, profiles, groups, authentication]
 type: process
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a1-002 · Administração de controles de acesso|EV-2-a1-002]]"

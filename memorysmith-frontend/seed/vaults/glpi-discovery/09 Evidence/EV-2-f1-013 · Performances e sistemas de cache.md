@@ -3,7 +3,6 @@ title: EV-2-f1-013 · Performances e sistemas de cache
 aliases: [EV-2-f1-013]
 tags: [evidence, performance, cache, configuracao-geral]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/general/performances.rst · Performances"

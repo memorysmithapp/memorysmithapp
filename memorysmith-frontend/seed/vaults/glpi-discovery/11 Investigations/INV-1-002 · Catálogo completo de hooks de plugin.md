@@ -3,7 +3,6 @@ title: INV-1-002 · Catálogo completo de hooks de plugin
 aliases: [INV-1-002]
 tags: [investigation, consumidor/cad, plugins]
 type: investigation
-status: open
 maturity: seed
 reviewed: false
 source: "[[EV-1-007 · Hooks de plugin no ciclo de vida dos itens|EV-1-007]]"

@@ -3,7 +3,6 @@ title: Abas de configuração da Entidade
 aliases: [Entity tabs, Abas da entidade]
 tags: [entidades, abas, configuracao, ui, doc]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

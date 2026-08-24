@@ -3,7 +3,6 @@ title: Monitoramento de Status e Health Check
 aliases: [status.php, health check, glpi:system:status, monitoramento]
 tags: [status, health-check, monitoramento, servicos, observabilidade, operacional]
 type: infra
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g1-004 · Monitoramento de status e health check (status.rst)|EV-2-g1-004]]"

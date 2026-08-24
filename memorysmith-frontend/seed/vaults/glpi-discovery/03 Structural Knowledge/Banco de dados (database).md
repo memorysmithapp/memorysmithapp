@@ -3,7 +3,6 @@ title: Banco de dados (database)
 aliases: [Database, Banco de dados, Databases]
 tags: [management, database, inventario]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

@@ -3,7 +3,6 @@ title: EV-2-f1-010 · Purga de logs (PurgeLogs)
 aliases: [EV-2-f1-010]
 tags: [evidence, logs, purga, crontask, configuracao-geral]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/general/logs_purge.rst · Logs purge"

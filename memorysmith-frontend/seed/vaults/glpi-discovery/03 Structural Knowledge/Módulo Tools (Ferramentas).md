@@ -3,7 +3,6 @@ title: Módulo Tools (Ferramentas)
 aliases: [Tools, Menu Ferramentas, Módulo Tools]
 tags: [tools, module, overview, navigation]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g3-001 · Módulo Tools (visão geral)|EV-2-g3-001]]"

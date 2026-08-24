@@ -3,7 +3,6 @@ title: Campos do Ticket Recorrente
 aliases: [Campos do recurrent ticket]
 tags: [assistance, ticket, recurrent, fields, data]
 type: table
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-b1-009 · Campos do ticket recorrente|EV-2-b1-009]]"

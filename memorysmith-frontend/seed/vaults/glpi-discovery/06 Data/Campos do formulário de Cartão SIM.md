@@ -3,7 +3,6 @@ title: Campos do formulário de Cartão SIM
 aliases: [Campos de SIM, SIM fields]
 tags: [assets, data, sim, form]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c1-008 · Formulário de Cartão SIM|EV-2-c1-008]]"

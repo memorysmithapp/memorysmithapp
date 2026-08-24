@@ -3,7 +3,6 @@ title: EV-2-f1-008 · Configuração de assistência
 aliases: [EV-2-f1-008]
 tags: [evidence, assistencia, service-desk, configuracao-geral]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/general/assistance.rst · Assistance"

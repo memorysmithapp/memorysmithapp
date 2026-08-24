@@ -3,7 +3,6 @@ title: EV-2-d2-007 · Domain records (domains_records.rst)
 aliases: [domains_records.rst, Domain records]
 tags: [evidence, management, domain-record, dns, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/management/domains_records.rst · Domains records"

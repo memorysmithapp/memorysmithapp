@@ -3,7 +3,6 @@ title: INV-1-003 · Comportamento de produção via plugins fora do repo
 aliases: [INV-1-003]
 tags: [investigation, consumidor/cad, plugins, escopo]
 type: investigation
-status: open
 maturity: seed
 reviewed: false
 source: "[[EV-1-007 · Hooks de plugin no ciclo de vida dos itens|EV-1-007]]"

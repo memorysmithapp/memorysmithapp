@@ -3,7 +3,6 @@ title: Interface padrão vs simplificada
 aliases: [Standard interface, Simplified interface, Interface simplificada, Interface padrão]
 tags: [interface, ui, end-user, glossary]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a2-005 · Glossário oficial do GLPI|EV-2-a2-005]]"

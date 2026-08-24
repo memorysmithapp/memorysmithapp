@@ -3,7 +3,6 @@ title: Campos de um Registro de domínio
 aliases: [Campos de Domain record, Domain record fields]
 tags: [management, domain-record, dns, campos, formulario, data]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d2-007 · Domain records (domains_records.rst)|EV-2-d2-007]]"

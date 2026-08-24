@@ -3,7 +3,6 @@ title: Campos do formulário de Documento
 aliases: [Document fields]
 tags: [data, management, document, fields, doc]
 type: table
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d1-006 · Documentos — armazenamento, cabeçalhos e itens vinculáveis|EV-2-d1-006]]"

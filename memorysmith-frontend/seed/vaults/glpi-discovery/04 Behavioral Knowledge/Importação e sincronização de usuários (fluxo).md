@@ -3,7 +3,6 @@ title: Importação e sincronização de usuários (fluxo)
 aliases: [Import users, Importar usuários, LDAP user import]
 tags: [usuarios, importacao, ldap, sincronizacao, fluxo, entidades]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-e1-002 · Importação e sincronização de usuários (LDAP e fontes externas)|EV-2-e1-002]]"

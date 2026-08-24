@@ -3,7 +3,6 @@ title: Template de notificação (objeto global)
 aliases: [Notification template]
 tags: [template, notificacao, global, traducao, css]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

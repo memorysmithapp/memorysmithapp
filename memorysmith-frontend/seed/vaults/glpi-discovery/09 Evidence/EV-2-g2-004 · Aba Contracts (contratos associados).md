@@ -3,7 +3,6 @@ title: EV-2-g2-004 · Aba Contracts (contratos associados)
 aliases: [EV-2-g2-004]
 tags: [evidence, tabs, contracts]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/tabs/contracts.rst · Associated Contracts"

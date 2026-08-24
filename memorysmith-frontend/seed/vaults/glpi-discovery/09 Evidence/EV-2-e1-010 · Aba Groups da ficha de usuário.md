@@ -3,7 +3,6 @@ title: EV-2-e1-010 · Aba Groups da ficha de usuário
 aliases: [EV-2-e1-010]
 tags: [evidence, usuarios, grupos, manager, acoes-massivas]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/users/tabs/groups.rst · Groups (user tab)"

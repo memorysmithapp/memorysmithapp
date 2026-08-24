@@ -3,7 +3,6 @@ title: EV-2-g3-012 · Tipo de consumível (consumable type)
 aliases: [EV-2-g3-012]
 tags: [evidence, tab, consumable, dropdown, translation]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/tabs/consumable_type.rst · Consumable type"

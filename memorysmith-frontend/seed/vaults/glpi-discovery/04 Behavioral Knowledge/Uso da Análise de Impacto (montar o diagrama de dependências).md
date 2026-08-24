@@ -3,7 +3,6 @@ title: Uso da Análise de Impacto (montar o diagrama de dependências)
 aliases: [Impact analysis procedure, Montar análise de impacto]
 tags: [behavioral, impact-analysis, dependency, diagram, procedure]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g3-015 · Análise de Impacto (procedimento e conceitos)|EV-2-g3-015]]"

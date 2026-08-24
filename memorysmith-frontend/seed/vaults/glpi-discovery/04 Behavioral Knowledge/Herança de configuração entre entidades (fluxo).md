@@ -3,7 +3,6 @@ title: Herança de configuração entre entidades (fluxo)
 aliases: [Inheritance of the parent entity, Herança de entidades]
 tags: [entidades, heranca, configuracao, multi-tenancy, doc]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

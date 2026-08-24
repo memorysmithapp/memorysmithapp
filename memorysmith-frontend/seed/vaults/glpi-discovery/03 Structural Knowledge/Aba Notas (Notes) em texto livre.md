@@ -3,7 +3,6 @@ title: Aba Notas (Notes) em texto livre
 aliases: [aba Notes, Notes tab, notas do item]
 tags: [tabs, notes, notas, ui]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g2-011 · Aba Notes (notas em texto livre no item)|EV-2-g2-011]]"

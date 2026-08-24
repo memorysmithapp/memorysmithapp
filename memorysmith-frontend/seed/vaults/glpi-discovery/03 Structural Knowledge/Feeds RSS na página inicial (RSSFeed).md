@@ -3,7 +3,6 @@ title: Feeds RSS na página inicial (RSSFeed)
 aliases: [RSS feed, RSSFeed, Feed RSS]
 tags: [tools, rss, feed, targets, home]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g3-007 · Feeds RSS|EV-2-g3-007]]"

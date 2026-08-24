@@ -3,7 +3,6 @@ title: Importação e sincronização de usuários LDAP (procedimento)
 aliases: [Sincronização LDAP, Importação LDAP, glpi:ldap:synchronize_users]
 tags: [authentication, ldap, synchronization, provisioning, procedure]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-f2-002 · Autenticação, sincronização e abas de configuração LDAP-AD|EV-2-f2-002]]"

@@ -3,7 +3,6 @@ title: Blacklists de coletor de e-mail
 aliases: [Collector blacklists]
 tags: [integracao, receiver, collector, blacklist, spam, email]
 type: integration
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

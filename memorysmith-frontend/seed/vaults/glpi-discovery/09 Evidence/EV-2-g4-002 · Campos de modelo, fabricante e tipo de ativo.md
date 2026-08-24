@@ -3,7 +3,6 @@ title: EV-2-g4-002 · Campos de modelo, fabricante e tipo de ativo
 aliases: [EV-2-g4-002]
 tags: [evidence, campos-comuns, modelo, fabricante, tipo]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · tabs/common_fields/model.rst · Model; tabs/common_fields/manufacturer.rst · Manufacturer; tabs/common_fields/asset_type.rst · Asset type"

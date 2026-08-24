@@ -3,7 +3,6 @@ title: Análise de Impacto (ativação por tipo)
 aliases: [Impact analysis config, Análise de impacto]
 tags: [configuracao-geral, analise-de-impacto, operacao]
 type: capability
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-f1-015 · Análise de impacto por tipo de item|EV-2-f1-015]]"

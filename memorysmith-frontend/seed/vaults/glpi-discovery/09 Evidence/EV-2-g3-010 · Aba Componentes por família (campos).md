@@ -3,7 +3,6 @@ title: EV-2-g3-010 · Aba Componentes por família (campos)
 aliases: [EV-2-g3-010]
 tags: [evidence, tab, components, hardware, fields]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/tabs/components.rst · Components"

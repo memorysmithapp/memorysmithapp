@@ -3,7 +3,6 @@ title: Perfis × Entidades (Profile_User)
 aliases: [Profile_User, RBAC binding, perfil entidade]
 tags: [concept, seguranca, rbac, dominio/admin]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-028 · User Group e Profile_User binding RBAC|EV-1-028]]"

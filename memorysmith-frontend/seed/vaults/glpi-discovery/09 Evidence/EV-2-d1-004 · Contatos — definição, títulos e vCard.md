@@ -3,7 +3,6 @@ title: EV-2-d1-004 · Contatos — definição, títulos e vCard
 aliases: [EV-2-d1-004]
 tags: [evidence, management, contact, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/modules/management/contacts.rst · Contacts"

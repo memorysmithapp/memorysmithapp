@@ -3,7 +3,6 @@ title: Máquina de estados do Ticket (view)
 aliases: [State diagram ticket]
 tags: [view, state-machine, dominio/service-desk]
 type: view
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-008 · CommonITILObject define statuses e matriz de prioridade|EV-1-008]]"

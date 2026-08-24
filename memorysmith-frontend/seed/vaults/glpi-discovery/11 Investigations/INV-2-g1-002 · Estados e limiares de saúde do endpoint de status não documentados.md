@@ -3,7 +3,6 @@ title: INV-2-g1-002 · Estados e limiares de saúde do endpoint de status não d
 aliases: [INV-2-g1-002]
 tags: [investigation, consumidor/cad, status, health-check, monitoramento, operacional]
 type: investigation
-status: open
 maturity: seed
 reviewed: false
 source: "SRC-002 · advanced/status.rst"

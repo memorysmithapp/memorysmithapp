@@ -3,7 +3,6 @@ title: EV-2-c3-012 · Aba Tomadas (Plugs) de um PDU
 aliases: [EV-2-c3-012]
 tags: [evidence, doc, assets, dcim, pdu, plugs]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/assets/tabs/plugs.rst · Plugs"

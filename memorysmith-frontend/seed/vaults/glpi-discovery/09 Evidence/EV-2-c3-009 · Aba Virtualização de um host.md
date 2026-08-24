@@ -3,7 +3,6 @@ title: EV-2-c3-009 · Aba Virtualização de um host
 aliases: [EV-2-c3-009]
 tags: [evidence, doc, assets, virtualization, vm, uuid]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/assets/tabs/virtualization.rst · Virtualization"

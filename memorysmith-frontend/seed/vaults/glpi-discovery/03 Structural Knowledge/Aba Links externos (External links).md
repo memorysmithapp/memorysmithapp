@@ -3,7 +3,6 @@ title: Aba Links externos (External links)
 aliases: [aba External links, External links tab, links externos]
 tags: [tabs, external-links, ui]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g2-007 · Aba External links (links externos do item)|EV-2-g2-007]]"

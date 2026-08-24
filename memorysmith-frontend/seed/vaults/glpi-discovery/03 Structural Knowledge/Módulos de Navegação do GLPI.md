@@ -3,7 +3,6 @@ title: Módulos de Navegação do GLPI
 aliases: [Módulos GLPI, GLPI modules, Assets, Assistance, Management, Tools, Administration, Setup]
 tags: [component, modules, navigation, menu]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a1-005 · Navegação por módulos, atalhos de teclado e busca fuzzy|EV-2-a1-005]]"

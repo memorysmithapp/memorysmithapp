@@ -3,7 +3,6 @@ title: Visão Geral do GLPI
 aliases: [GLPI, Gestionnaire Libre de Parc Informatique]
 tags: [overview, dominio/foundation]
 type: overview
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-002 · Constantes globais e bitmask de direitos|EV-1-002]]"

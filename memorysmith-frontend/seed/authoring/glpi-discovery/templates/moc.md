@@ -3,7 +3,6 @@ title: MOC - <Domínio>
 aliases: []
 tags: [moc]
 type: moc
-status: draft
 maturity: seed
 reviewed: false
 source:

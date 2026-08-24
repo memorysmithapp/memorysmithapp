@@ -3,7 +3,6 @@ title: Substitutos autorizados (delegação de validação)
 aliases: [authorized substitutes, substitutos, delegação de validação, delegatee]
 tags: [user-settings, substitutes, validacao, aprovacao, delegacao, regra]
 type: rule
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g2-017 · Substitutos autorizados (delegação de validação)|EV-2-g2-017]]"

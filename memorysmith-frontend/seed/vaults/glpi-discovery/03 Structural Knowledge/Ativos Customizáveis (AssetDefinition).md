@@ -3,7 +3,6 @@ title: Ativos Customizáveis (AssetDefinition)
 aliases: [AssetDefinition, ativos customizados, custom assets, capacities]
 tags: [component, custom-assets, dominio/ativos]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-022 · Ativos customizáveis AssetDefinition com capacities e custom fields|EV-1-022]]"

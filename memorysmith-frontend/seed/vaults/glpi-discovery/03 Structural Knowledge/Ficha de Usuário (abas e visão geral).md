@@ -3,7 +3,6 @@ title: Ficha de Usuário (abas e visão geral)
 aliases: [Aba Users, User form, Ficha do usuário]
 tags: [usuarios, ficha-usuario, abas, ldap, administracao]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-e1-001 · Ficha de Usuário — aba Users, impersonate e vcard|EV-2-e1-001]]"

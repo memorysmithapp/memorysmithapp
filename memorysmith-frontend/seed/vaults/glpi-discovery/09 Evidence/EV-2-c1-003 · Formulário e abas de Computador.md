@@ -3,7 +3,6 @@ title: EV-2-c1-003 · Formulário e abas de Computador
 aliases: [EV-2-c1-003]
 tags: [evidence, assets, computer, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/assets/computers.rst · Computers (todas as seções/abas)"

@@ -3,7 +3,6 @@ title: INV-<sessão>-<seq> · <A pergunta sem resposta, como frase>
 aliases: [INV-<sessão>-<seq>]
 tags: [investigation, dominio/<dominio>]
 type: investigation
-status: draft
 maturity: seed
 reviewed: false
 source: "<O que foi examinado sem encontrar a resposta>"

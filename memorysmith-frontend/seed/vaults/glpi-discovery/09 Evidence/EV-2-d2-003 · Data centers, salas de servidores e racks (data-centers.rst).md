@@ -3,7 +3,6 @@ title: EV-2-d2-003 · Data centers, salas de servidores e racks (data-centers.rs
 aliases: [data-centers.rst, Data centers]
 tags: [evidence, management, datacenter, dcim, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/management/data-centers.rst · Data centers"

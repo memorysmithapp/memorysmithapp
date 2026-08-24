@@ -3,7 +3,6 @@ title: Relatórios gerenciais (tipos e conteúdo)
 aliases: [Reports, Relatórios, Generate reports]
 tags: [behavioral, reports, financial, network, loan, status]
 type: use-case
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g3-005 · Geração de relatórios|EV-2-g3-005]]"

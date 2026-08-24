@@ -3,7 +3,6 @@ title: EV-2-e2-014 · Dicionários globais e de drop-downs
 aliases: [EV-2-e2-014]
 tags: [evidence, dicionarios, software, fabricante, impressoras, dropdowns, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/dictionnaries.rst · Global dictionaries / Drop-downs"

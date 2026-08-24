@@ -3,7 +3,6 @@ title: Configuração de Aparência e Parâmetros Globais
 aliases: [General setup, Aparência global, General configuration tab]
 tags: [configuracao-geral, aparencia, busca, operacao]
 type: capability
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-f1-005 · Configuração Geral — abas e aparência|EV-2-f1-005]]"

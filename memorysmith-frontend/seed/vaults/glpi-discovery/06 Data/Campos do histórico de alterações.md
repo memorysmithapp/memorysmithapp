@@ -3,7 +3,6 @@ title: Campos do histórico de alterações
 aliases: [campos History, campos historical]
 tags: [data, campos, history, auditoria]
 type: data
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g2-008 · Aba History (histórico de alterações do item)|EV-2-g2-008]]"

@@ -3,7 +3,6 @@ title: EV-2-b1-003 · Campos específicos da abertura na interface simplificada
 aliases: [EV-2-b1-003]
 tags: [evidence, assistance, ticket, opening, simplified-interface, fields]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/modules/assistance/tickets/ticketopening.rst · Simplified interface"

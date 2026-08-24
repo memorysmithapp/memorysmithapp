@@ -3,7 +3,6 @@ title: Criação de um template de notificação (passo a passo)
 aliases: [Template example, Criar template de notificação]
 tags: [template, notificacao, procedimento, ticket, timeline, traducao]
 type: use-case
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

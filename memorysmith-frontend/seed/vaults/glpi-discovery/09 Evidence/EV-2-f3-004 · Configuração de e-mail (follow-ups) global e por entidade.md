@@ -3,7 +3,6 @@ title: EV-2-f3-004 · Configuração de e-mail (follow-ups) global e por entidad
 aliases: [EV-2-f3-004]
 tags: [evidence, email, smtp, notificacao, config]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/notifications/email_notifications.rst · Email follow-ups configuration"

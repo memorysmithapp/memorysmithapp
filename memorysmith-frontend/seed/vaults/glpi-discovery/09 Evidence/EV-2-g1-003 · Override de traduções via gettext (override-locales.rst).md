@@ -3,7 +3,6 @@ title: EV-2-g1-003 · Override de traduções via gettext (override-locales.rst)
 aliases: [EV-2-g1-003]
 tags: [evidence, locales, traducoes, gettext, i18n, operacional]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · advanced/override-locales.rst · Override GLPI locales"

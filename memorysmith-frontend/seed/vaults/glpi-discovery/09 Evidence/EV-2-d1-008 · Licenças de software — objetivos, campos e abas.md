@@ -3,7 +3,6 @@ title: EV-2-d1-008 · Licenças de software — objetivos, campos e abas
 aliases: [EV-2-d1-008]
 tags: [evidence, management, license, software, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/modules/management/licenses.rst · Licenses"

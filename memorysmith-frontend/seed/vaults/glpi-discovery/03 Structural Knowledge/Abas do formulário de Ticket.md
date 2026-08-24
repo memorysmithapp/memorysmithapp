@@ -3,7 +3,6 @@ title: Abas do formulário de Ticket
 aliases: [Abas do ticket]
 tags: [assistance, ticket, tabs, ui]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-b1-007 · Abas do ticket e followups|EV-2-b1-007]]"

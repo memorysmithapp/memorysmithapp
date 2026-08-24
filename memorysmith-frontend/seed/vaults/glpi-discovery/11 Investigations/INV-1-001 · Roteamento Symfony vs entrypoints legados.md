@@ -3,7 +3,6 @@ title: INV-1-001 · Roteamento Symfony vs entrypoints legados
 aliases: [INV-1-001]
 tags: [investigation, consumidor/cad, arquitetura]
 type: investigation
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

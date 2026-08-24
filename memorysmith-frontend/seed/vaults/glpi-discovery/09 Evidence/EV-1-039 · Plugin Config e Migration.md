@@ -3,7 +3,6 @@ title: EV-1-039 · Plugin, Config e Migration
 aliases: [EV-1-039]
 tags: [evidence, dominio/operacao, plugin, config, instalacao]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-001 · src/Plugin.php L62 · src/Config.php L68 · src/Migration.php L49 · install/"

@@ -3,7 +3,6 @@ title: Cartucho (ativo)
 aliases: [Cartridge, Cartucho, Cartuchos]
 tags: [assets, cartridge, stock, structural, doc]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c2-009 · Cartuchos (cartridges.rst)|EV-2-c2-009]]"

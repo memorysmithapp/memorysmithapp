@@ -3,7 +3,6 @@ title: EV-2-c3-004 · Aba Portas de Rede de um Computador
 aliases: [EV-2-c3-004]
 tags: [evidence, doc, assets, network, ports, vlan, computer]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/assets/tabs/network-ports.rst · Network ports"

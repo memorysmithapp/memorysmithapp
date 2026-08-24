@@ -3,7 +3,6 @@ title: Campos de uma Reserva
 aliases: [Reservation fields, Campos de reserva, Booking fields]
 tags: [data, reservations, fields, recurrence]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g3-006 · Reservas de equipamentos|EV-2-g3-006]]"

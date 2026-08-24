@@ -3,7 +3,6 @@ title: Motor de Busca (Search Engine)
 aliases: [Search Engine, Motor de Busca, Search, SEARCH_OPTION]
 tags: [component, busca, dominio/foundation]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-005 · Motor de busca SQL dirigido por SEARCH_OPTION|EV-1-005]]"

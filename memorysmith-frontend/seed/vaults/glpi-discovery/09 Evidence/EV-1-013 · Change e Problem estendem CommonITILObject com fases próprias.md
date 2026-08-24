@@ -3,7 +3,6 @@ title: EV-1-013 · Change e Problem estendem CommonITILObject com fases própria
 aliases: [EV-1-013]
 tags: [evidence, dominio/service-desk, change, problem]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-001 · src/Change.php L46,60–70 · src/Problem.php L46,61–64"

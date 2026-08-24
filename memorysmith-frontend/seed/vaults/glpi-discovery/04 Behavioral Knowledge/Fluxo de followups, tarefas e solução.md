@@ -3,7 +3,6 @@ title: Fluxo de followups, tarefas e solução
 aliases: [Timeline ITIL, followup task solution]
 tags: [flow, itil, timeline, dominio/service-desk]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-012 · Validação ITIL e artefatos filhos followup-task-solution|EV-1-012]]"

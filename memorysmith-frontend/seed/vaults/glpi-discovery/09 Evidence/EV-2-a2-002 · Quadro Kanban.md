@@ -3,7 +3,6 @@ title: EV-2-a2-002 · Quadro Kanban
 aliases: [EV-2-a2-002]
 tags: [evidence, kanban, board, team, filter]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/overview/kanban.rst · Kanban (Cards, Team management, Searching and Filtering)"

@@ -3,7 +3,6 @@ title: Dropdowns de calendário e períodos de fechamento
 aliases: [Calendar, Close times, Time ranges, Períodos de fechamento]
 tags: [dropdown, calendar, sla, closing-periods, entity]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-f2-008 · Dropdowns de calendário e períodos de fechamento|EV-2-f2-008]]"

@@ -3,7 +3,6 @@ title: INV-1-006 · Capacities disponíveis para ativos customizados
 aliases: [INV-1-006]
 tags: [investigation, consumidor/cad, custom-assets]
 type: investigation
-status: open
 maturity: seed
 reviewed: false
 source: "[[EV-1-022 · Ativos customizáveis AssetDefinition com capacities e custom fields|EV-1-022]]"

@@ -3,7 +3,6 @@ title: EV-2-c1-005 · Formulário e abas de Periférico
 aliases: [EV-2-c1-005]
 tags: [evidence, assets, peripheral, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/assets/peripherals.rst · Peripherals (todas as seções/abas)"

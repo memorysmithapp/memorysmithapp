@@ -3,7 +3,6 @@ title: EV-2-d1-001 · Índice do módulo Management e itens geridos
 aliases: [EV-2-d1-001]
 tags: [evidence, management, doc, index]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/modules/management/index.rst · Management"

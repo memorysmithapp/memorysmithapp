@@ -3,7 +3,6 @@ title: INV-2-g4-001 · Campo Portas de ativo não documentado (ports.rst pendent
 aliases: [INV-2-g4-001]
 tags: [investigation, consumidor/cad, campos-comuns, portas, lacuna-doc]
 type: investigation
-status: open
 maturity: seed
 reviewed: false
 source: "[[EV-2-g4-011 · Campo Portas sem redação na documentação|EV-2-g4-011]]"

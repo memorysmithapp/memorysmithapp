@@ -3,7 +3,6 @@ title: Modelo de Ativos (padrão comum)
 aliases: [Ativos, Assets, CMDB, padrão de ativo]
 tags: [concept, cmdb, dominio/ativos]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

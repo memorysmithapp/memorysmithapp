@@ -3,7 +3,6 @@ title: EV-2-e2-003 · Abas da entidade - Endereço e Avançado (regras genérica
 aliases: [EV-2-e2-003]
 tags: [evidence, entidades, abas, ldap, campos, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/entity/entities.rst · Entities/Address/Advanced information"

@@ -3,7 +3,6 @@ title: Áreas da Interface do GLPI
 aliases: [Layout da interface, UI areas, User menu, Breadcrumb, Search box]
 tags: [component, interface, layout, navigation, ui]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a1-011 · Áreas da interface do GLPI|EV-2-a1-011]]"

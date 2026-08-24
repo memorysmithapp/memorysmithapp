@@ -3,7 +3,6 @@ title: Registro de Evidências
 aliases: [Evidence log, Registro de Evidências]
 tags: [moc, evidencias]
 type: moc
-status: confirmed
 maturity: evergreen
 reviewed: false
 author: CAD Discovery

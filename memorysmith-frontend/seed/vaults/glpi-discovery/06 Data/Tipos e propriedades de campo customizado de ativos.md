@@ -3,7 +3,6 @@ title: Tipos e propriedades de campo customizado de ativos
 aliases: [Custom field types, Propriedades de campo customizado, Field types]
 tags: [data, asset-definition, custom-fields, field-types]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-f2-013 · Campos perfis e traduções de ativos customizados|EV-2-f2-013]]"

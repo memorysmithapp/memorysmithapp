@@ -3,7 +3,6 @@ title: Campos do formulário de Impressora
 aliases: [Campos de Impressora, Printer fields]
 tags: [assets, data, printer, snmp, form]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c1-007 · Formulário e abas de Impressora|EV-2-c1-007]]"

@@ -3,7 +3,6 @@ title: EV-2-c2-011 · Bancos de dados — stub (databases.rst)
 aliases: [EV-2-c2-011]
 tags: [evidence, assets, database, stub, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/assets/databases.rst · Databases"

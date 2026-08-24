@@ -3,7 +3,6 @@ title: EV-2-b2-001 · Gestão de mudanças — formulário, abas e fluxo
 aliases: [EV-2-b2-001]
 tags: [evidence, changes, mudancas, itil, assistance]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/assistance/changes.rst · Manage changes (documento inteiro)"

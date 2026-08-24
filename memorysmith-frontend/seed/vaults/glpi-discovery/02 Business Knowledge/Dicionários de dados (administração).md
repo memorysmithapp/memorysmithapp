@@ -3,7 +3,6 @@ title: Dicionários de dados (administração)
 aliases: [Dictionaries, Dicionários, Dictionnaries]
 tags: [dicionarios, regras, normalizacao, doc]
 type: capability
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

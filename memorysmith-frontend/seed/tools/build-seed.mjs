@@ -157,9 +157,9 @@ function parseTags(head) {
 // body untouched. engineering-knowledge and regulacao-energia already use the
 // maturity vocabulary under the `status` key, so the key is renamed and
 // `reviewed` is seeded from the vault's own definition of evergreen ("madura,
-// revisada"). glpi-discovery keeps its vault-specific evidence `status` and
-// gains a derived `maturity`; its notes are agent-produced, so `reviewed`
-// starts false everywhere.
+// revisada"). glpi-discovery's evidence `status` is dropped after deriving
+// `maturity` from it; its notes are agent-produced, so `reviewed` starts
+// false everywhere.
 const GLPI_MATURITY_BY_STATUS = {
   confirmed: 'evergreen',
   superseded: 'evergreen',
@@ -179,7 +179,7 @@ function normalizeFrontmatter(raw, vaultSlug) {
     const status = /^status:\s*(\S+)/m.exec(head)?.[1];
     const maturity = GLPI_MATURITY_BY_STATUS[status] ?? 'seed';
     if (/^status:/m.test(head)) {
-      head = head.replace(/^(status:[^\n]*)$/m, `$1\nmaturity: ${maturity}\nreviewed: false`);
+      head = head.replace(/^status:[^\n]*$/m, `maturity: ${maturity}\nreviewed: false`);
     } else {
       head += `\nmaturity: ${maturity}\nreviewed: false`;
     }

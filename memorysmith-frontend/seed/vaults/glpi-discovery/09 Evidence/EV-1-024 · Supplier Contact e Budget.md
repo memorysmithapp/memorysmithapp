@@ -3,7 +3,6 @@ title: EV-1-024 · Supplier, Contact e Budget
 aliases: [EV-1-024]
 tags: [evidence, dominio/gestao, fornecedor, orcamento]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-001 · src/Supplier.php L46 · src/Contact.php L45 · src/Contact_Supplier.php · src/Budget.php L46"

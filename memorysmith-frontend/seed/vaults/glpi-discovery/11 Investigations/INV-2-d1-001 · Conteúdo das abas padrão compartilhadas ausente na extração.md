@@ -3,7 +3,6 @@ title: INV-2-d1-001 · Conteúdo das abas padrão compartilhadas ausente na extr
 aliases: [INV-2-d1-001]
 tags: [investigation, consumidor/cad, management, tabs, doc, gap]
 type: investigation
-status: open
 maturity: seed
 reviewed: false
 author: CAD Discovery (doc)

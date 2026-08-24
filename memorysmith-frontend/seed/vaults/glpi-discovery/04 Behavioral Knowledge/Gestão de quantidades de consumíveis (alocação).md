@@ -3,7 +3,6 @@ title: Gestão de quantidades de consumíveis (alocação)
 aliases: [Alocação de consumíveis, Consumables allocation]
 tags: [consumable, stock, allocation, procedure, doc]
 type: use-case
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c2-010 · Consumíveis (consumables.rst)|EV-2-c2-010]]"

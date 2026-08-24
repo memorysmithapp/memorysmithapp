@@ -3,7 +3,6 @@ title: Reserva de Ativos e Documentos (processos)
 aliases: [Reserva de ativos, Gestão de documentos, "Reserva de Ativos (processo)", "Gestão de Documentos (processo)"]
 tags: [process, reserva, documento, dominio/gestao]
 type: process
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

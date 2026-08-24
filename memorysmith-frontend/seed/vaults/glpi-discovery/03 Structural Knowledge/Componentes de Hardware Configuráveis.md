@@ -3,7 +3,6 @@ title: Componentes de Hardware Configuráveis
 aliases: [Components, Componentes de hardware, Device components]
 tags: [componentes, hardware, ativos, configuracao]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-f1-004 · Componentes de hardware configuráveis|EV-2-f1-004]]"

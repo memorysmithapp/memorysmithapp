@@ -3,7 +3,6 @@ title: Categorias e templates ITIL
 aliases: [ITILCategory, ITILTemplate, TicketTemplate]
 tags: [component, template, categoria, dominio/service-desk]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-014 · Categorias e templates ITIL|EV-1-014]]"

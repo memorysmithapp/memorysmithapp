@@ -3,7 +3,6 @@ title: Gestão de Bancos de Dados (capacidade)
 aliases: [Databases management, Gestão de Bancos de Dados]
 tags: [management, database, capacidade]
 type: capability
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

@@ -3,7 +3,6 @@ title: Buscas Salvas (Bookmarks)
 aliases: [Saved searches, Bookmarks, Buscas favoritas]
 tags: [component, search, saved-searches, bookmarks, private, public]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a1-008 · Buscas salvas (bookmarks), contadores e alertas|EV-2-a1-008]]"

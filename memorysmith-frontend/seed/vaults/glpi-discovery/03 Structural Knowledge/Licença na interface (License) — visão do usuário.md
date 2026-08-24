@@ -3,7 +3,6 @@ title: Licença na interface (License) — visão do usuário
 aliases: [License, Licença, SoftwareLicense]
 tags: [concept, management, license, software, doc]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d1-008 · Licenças de software — objetivos, campos e abas|EV-2-d1-008]]"

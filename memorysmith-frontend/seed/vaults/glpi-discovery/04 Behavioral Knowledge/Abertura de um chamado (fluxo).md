@@ -3,7 +3,6 @@ title: Abertura de um chamado (fluxo)
 aliases: [Abertura de ticket, Opening a ticket]
 tags: [assistance, ticket, opening, flow, helpdesk, mail]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

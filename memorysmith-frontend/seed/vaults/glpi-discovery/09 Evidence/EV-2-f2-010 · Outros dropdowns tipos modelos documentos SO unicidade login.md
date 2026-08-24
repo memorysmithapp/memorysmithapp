@@ -3,7 +3,6 @@ title: EV-2-f2-010 · Outros dropdowns tipos modelos documentos SO unicidade log
 aliases: [EV-2-f2-010]
 tags: [evidence, dropdown, others, document-types, operating-systems, unicity]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/dropdowns/others.rst"

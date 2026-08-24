@@ -3,7 +3,6 @@ title: EV-2-g2-008 · Aba History (histórico de alterações do item)
 aliases: [EV-2-g2-008]
 tags: [evidence, tabs, history, historico]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/tabs/historical.rst · History"

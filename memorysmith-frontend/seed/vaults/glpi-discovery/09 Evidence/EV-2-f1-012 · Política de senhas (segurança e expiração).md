@@ -3,7 +3,6 @@ title: EV-2-f1-012 · Política de senhas (segurança e expiração)
 aliases: [EV-2-f1-012]
 tags: [evidence, seguranca, senha, politica, configuracao-geral]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/general/security.rst · Security"

@@ -3,7 +3,6 @@ title: EV-1-038 · Agente de inventário — protocolo XML/JSON, OAuth
 aliases: [EV-1-038]
 tags: [evidence, dominio/integracoes, inventario, agente]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-001 · src/Glpi/Agent/Communication/AbstractRequest.php L69–90 · src/Agent.php"

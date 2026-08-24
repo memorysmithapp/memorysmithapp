@@ -3,7 +3,6 @@ title: Aba Conexões Diretas (ativos)
 aliases: [Connections tab, Aba Conexões, Direct connections]
 tags: [assets, tab, connections, computer, peripheral]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c3-003 · Aba Conexões Diretas entre hardwares|EV-2-c3-003]]"

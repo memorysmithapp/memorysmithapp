@@ -3,7 +3,6 @@ title: EV-2-f2-004 · Métodos externos adicionais CAS x509 e SSO delegado
 aliases: [EV-2-f2-004]
 tags: [evidence, authentication, cas, x509, sso]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/authentication/other.rst"

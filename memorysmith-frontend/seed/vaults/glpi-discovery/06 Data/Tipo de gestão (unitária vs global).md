@@ -3,7 +3,6 @@ title: Tipo de gestão (unitária vs global)
 aliases: [Management type, Tipo de gestão, Gestão unitária, Gestão global]
 tags: [campos-comuns, gestao, perifericos, data]
 type: field
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g4-008 · Campo Tipo de gestão (unitária vs global)|EV-2-g4-008]]"

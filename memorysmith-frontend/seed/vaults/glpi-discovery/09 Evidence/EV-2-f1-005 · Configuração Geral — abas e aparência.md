@@ -3,7 +3,6 @@ title: EV-2-f1-005 · Configuração Geral — abas e aparência
 aliases: [EV-2-f1-005]
 tags: [evidence, configuracao-geral, aparencia, setup]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/general/index.rst + general/general_configuration.rst · General configuration"

@@ -3,7 +3,6 @@ title: EV-2-a1-011 · Áreas da interface do GLPI
 aliases: [EV-2-a1-011]
 tags: [evidence, doc, interface, layout, user-menu, breadcrumb, search-box]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/first-steps/discovery.rst · Understanding the interface"

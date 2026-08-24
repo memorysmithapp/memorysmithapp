@@ -3,7 +3,6 @@ title: EV-2-a2-005 · Glossário oficial do GLPI
 aliases: [EV-2-a2-005]
 tags: [evidence, glossary, terminology]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · glossary.rst · Glossary (glossário oficial, ~130 termos)"

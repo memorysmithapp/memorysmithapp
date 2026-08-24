@@ -3,7 +3,6 @@ title: MOC - Service Desk
 aliases: [MOC Service Desk, Índice Módulo 2, MOC ITIL]
 tags: [moc, dominio/service-desk]
 type: moc
-status: confirmed
 maturity: evergreen
 reviewed: false
 author: CAD Discovery

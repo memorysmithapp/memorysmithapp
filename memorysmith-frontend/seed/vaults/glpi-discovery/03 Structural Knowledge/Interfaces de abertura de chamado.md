@@ -3,7 +3,6 @@ title: Interfaces de abertura de chamado
 aliases: [Interfaces de abertura de ticket, Helpdesk anônimo]
 tags: [assistance, ticket, opening, interface, helpdesk]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

@@ -3,7 +3,6 @@ title: EV-2-d1-002 · Contratos — objetivos, campos específicos e abas
 aliases: [EV-2-d1-002]
 tags: [evidence, management, contract, doc, financial]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/modules/management/contract.rst · Contracts"

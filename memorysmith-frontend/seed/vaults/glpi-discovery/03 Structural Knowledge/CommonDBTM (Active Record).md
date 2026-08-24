@@ -3,7 +3,6 @@ title: CommonDBTM (Active Record)
 aliases: [CommonDBTM, Active Record base]
 tags: [component, orm, dominio/foundation]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-001 · CommonDBTM é o active-record base com ciclo add-update-delete|EV-1-001]]"

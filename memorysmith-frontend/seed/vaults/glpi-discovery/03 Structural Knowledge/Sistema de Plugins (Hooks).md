@@ -3,7 +3,6 @@ title: Sistema de Plugins (Hooks)
 aliases: [Plugins, Hooks, Extensibilidade]
 tags: [component, plugins, extensibilidade, dominio/foundation]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-007 · Hooks de plugin no ciclo de vida dos itens|EV-1-007]]"

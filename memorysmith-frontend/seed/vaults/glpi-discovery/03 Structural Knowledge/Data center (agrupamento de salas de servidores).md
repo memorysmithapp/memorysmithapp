@@ -3,7 +3,6 @@ title: Data center (agrupamento de salas de servidores)
 aliases: [Data center, Data centers, Datacenter]
 tags: [management, datacenter, dcim, infraestrutura]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d2-003 · Data centers, salas de servidores e racks (data-centers.rst)|EV-2-d2-003]]"

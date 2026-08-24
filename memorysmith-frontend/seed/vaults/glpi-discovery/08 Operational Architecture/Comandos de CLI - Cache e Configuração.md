@@ -3,7 +3,6 @@ title: "Comandos de CLI - Cache e Configuração"
 aliases: [cache:clear, cache:configure, config:set, cache:debug]
 tags: [cli, cache, configuracao, comandos, operacional]
 type: process
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g1-005 · Referência da linha de comando bin-console (cli.rst)|EV-2-g1-005]]"

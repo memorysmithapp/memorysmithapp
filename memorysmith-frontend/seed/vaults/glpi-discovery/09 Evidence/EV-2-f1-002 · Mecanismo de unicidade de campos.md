@@ -3,7 +3,6 @@ title: EV-2-f1-002 · Mecanismo de unicidade de campos
 aliases: [EV-2-f1-002]
 tags: [evidence, unicidade, duplicatas, configuracao]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/fields-unicity.rst · Fields unicity"

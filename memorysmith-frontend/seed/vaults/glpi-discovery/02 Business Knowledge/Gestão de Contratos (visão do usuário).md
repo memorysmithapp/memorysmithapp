@@ -3,7 +3,6 @@ title: Gestão de Contratos (visão do usuário)
 aliases: [Contracts management]
 tags: [capability, management, contract, financial, doc]
 type: capability
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d1-002 · Contratos — objetivos, campos específicos e abas|EV-2-d1-002]]"

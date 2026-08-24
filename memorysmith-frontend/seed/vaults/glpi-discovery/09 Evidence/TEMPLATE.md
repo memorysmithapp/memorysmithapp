@@ -3,7 +3,6 @@ title: EV-<sessão>-<seq> · <O fato que a evidência estabelece, como frase>
 aliases: [EV-<sessão>-<seq>]
 tags: [evidence, dominio/<dominio>]
 type: evidence
-status: draft
 maturity: seed
 reviewed: false
 source: "<SRC-00N · caminho/do/arquivo · linhas NN–NN>"

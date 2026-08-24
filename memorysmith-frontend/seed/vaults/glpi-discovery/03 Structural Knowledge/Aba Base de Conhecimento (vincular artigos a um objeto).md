@@ -3,7 +3,6 @@ title: Aba Base de Conhecimento (vincular artigos a um objeto)
 aliases: [Knowledge base tab, Aba KB, Link article]
 tags: [tab, knowledgebase, link, article]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g3-017 · Aba Base de Conhecimento (vincular artigos)|EV-2-g3-017]]"

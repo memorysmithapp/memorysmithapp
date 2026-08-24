@@ -3,7 +3,6 @@ title: EV-1-002 · Constantes globais e bitmask de direitos
 aliases: [EV-1-002]
 tags: [evidence, dominio/foundation, seguranca, direitos]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-001 · codebase/in/glpi/src/autoload/constants.php · linhas 43–109"

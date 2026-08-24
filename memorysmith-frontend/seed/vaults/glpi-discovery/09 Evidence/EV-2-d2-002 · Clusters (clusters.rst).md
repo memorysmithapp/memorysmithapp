@@ -3,7 +3,6 @@ title: EV-2-d2-002 · Clusters (clusters.rst)
 aliases: [clusters.rst, Clusters]
 tags: [evidence, management, cluster, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/management/clusters.rst · Clusters"

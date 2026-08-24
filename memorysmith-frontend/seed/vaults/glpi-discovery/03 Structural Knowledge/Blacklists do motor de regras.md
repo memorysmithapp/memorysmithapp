@@ -3,7 +3,6 @@ title: Blacklists do motor de regras
 aliases: [Blacklists, Lista negra de regras]
 tags: [regras, blacklist, inventario, doc]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-e2-008 · Tipos de regra na administração e mecanismos auxiliares|EV-2-e2-008]]"

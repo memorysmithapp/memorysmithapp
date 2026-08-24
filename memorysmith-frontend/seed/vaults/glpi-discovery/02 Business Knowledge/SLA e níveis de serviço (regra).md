@@ -3,7 +3,6 @@ title: SLA e níveis de serviço (regra)
 aliases: [SLA regra, TTR TTO]
 tags: [rule, sla, dominio/service-desk]
 type: rule
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-011 · SLM SLA e OLA com TTR-TTO e níveis de escalonamento|EV-1-011]]"

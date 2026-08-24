@@ -3,7 +3,6 @@ title: INV-2-b1-001 · Vínculos Son of e Parent of entre tickets não documenta
 aliases: [INV-2-b1-001]
 tags: [investigation, consumidor/cad, assistance, ticket, links]
 type: investigation
-status: open
 maturity: seed
 reviewed: false
 author: CAD Discovery (doc)

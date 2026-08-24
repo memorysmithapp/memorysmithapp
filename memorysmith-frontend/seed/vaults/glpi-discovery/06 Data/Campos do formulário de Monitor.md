@@ -3,7 +3,6 @@ title: Campos do formulário de Monitor
 aliases: [Campos de Monitor]
 tags: [assets, data, monitor, form]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c1-004 · Formulário de Monitor e gestão unitária vs global|EV-2-c1-004]]"

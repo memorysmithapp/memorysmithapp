@@ -3,7 +3,6 @@ title: Base de Conhecimento na interface (abas e navegação)
 aliases: [Knowledge base UI, FAQ, KB navegação]
 tags: [tools, knowledgebase, faq, search, targets, revision, comments]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g3-002 · Base de conhecimento — telas, alvos e busca|EV-2-g3-002]]"

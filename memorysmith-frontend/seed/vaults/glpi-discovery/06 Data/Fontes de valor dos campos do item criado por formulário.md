@@ -3,7 +3,6 @@ title: Fontes de valor dos campos do item criado por formulário
 aliases: [Form item field sources, Custom item fields]
 tags: [formularios, forms, item, mapeamento, dados, doc]
 type: table
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-e2-016 · Formulários - visibilidade, catálogo, controle de acesso e item a criar|EV-2-e2-016]]"

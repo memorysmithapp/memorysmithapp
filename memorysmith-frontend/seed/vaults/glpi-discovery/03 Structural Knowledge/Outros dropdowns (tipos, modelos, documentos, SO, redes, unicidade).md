@@ -3,7 +3,6 @@ title: Outros dropdowns (tipos, modelos, documentos, SO, redes, unicidade)
 aliases: [Types, Models, Document types, Operating systems, Ignored values for unicity]
 tags: [dropdown, others, document-types, operating-systems, unicity, ldap-criteria]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-f2-010 · Outros dropdowns tipos modelos documentos SO unicidade login|EV-2-f2-010]]"

@@ -3,7 +3,6 @@ title: Modos de notificação (e-mail e navegador)
 aliases: [Notification mode, Browser followups]
 tags: [notificacao, modo, email, browser, canal]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

@@ -3,7 +3,6 @@ title: MOC - Gestão
 aliases: [MOC Gestão, Índice Módulo 4, MOC Management]
 tags: [moc, dominio/gestao]
 type: moc
-status: confirmed
 maturity: evergreen
 reviewed: false
 author: CAD Discovery

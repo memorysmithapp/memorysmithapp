@@ -3,7 +3,6 @@ title: Integrações e operação (view)
 aliases: [view integrações, arquitetura operacional]
 tags: [view, integracoes, operacao, dominio/integracoes]
 type: view
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

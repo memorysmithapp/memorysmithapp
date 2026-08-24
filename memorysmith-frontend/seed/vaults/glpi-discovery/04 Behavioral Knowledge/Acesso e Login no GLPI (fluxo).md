@@ -3,7 +3,6 @@ title: Acesso e Login no GLPI (fluxo)
 aliases: [Login GLPI, How to connect, Acesso, Logout]
 tags: [flow, login, access, session, browser, use-case]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a1-003 · Navegador, conexão e fim de sessão|EV-2-a1-003]]"

@@ -3,7 +3,6 @@ title: EV-2-a2-003 · Status como visão específica
 aliases: [EV-2-a2-003]
 tags: [evidence, status, dropdown, inventory]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/overview/status.rst · Status in GLPI, specific view"

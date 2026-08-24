@@ -3,7 +3,6 @@ title: Campos de Nome de Rede (FQDN e IP)
 aliases: [Network name fields, Campos de network name]
 tags: [data, assets, network, dns, fqdn, ip, cname]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c3-005 · Aba Nome de Rede (Network Name)|EV-2-c3-005]]"

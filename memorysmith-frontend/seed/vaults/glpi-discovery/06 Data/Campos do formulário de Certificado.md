@@ -3,7 +3,6 @@ title: Campos do formulário de Certificado
 aliases: [Certificate fields]
 tags: [data, management, certificate, fields, doc]
 type: table
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d1-009 · Certificados — objetivos, campos e abas|EV-2-d1-009]]"

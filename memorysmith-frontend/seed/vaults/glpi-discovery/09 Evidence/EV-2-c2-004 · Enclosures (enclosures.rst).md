@@ -3,7 +3,6 @@ title: EV-2-c2-004 · Enclosures (enclosures.rst)
 aliases: [EV-2-c2-004]
 tags: [evidence, assets, enclosure, dcim, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/assets/enclosures.rst · Enclosures (documento inteiro)"

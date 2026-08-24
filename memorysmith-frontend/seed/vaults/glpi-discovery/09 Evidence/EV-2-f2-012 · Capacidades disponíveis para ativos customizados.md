@@ -3,7 +3,6 @@ title: EV-2-f2-012 · Capacidades disponíveis para ativos customizados
 aliases: [EV-2-f2-012]
 tags: [evidence, asset-definition, capacities, INV-1-006]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/asset_definitions/asset_definitions.rst · seção Capacities"

@@ -3,7 +3,6 @@ title: Campos do formulário de Orçamento
 aliases: [Budget fields]
 tags: [data, management, budget, financial, fields, doc]
 type: table
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d1-005 · Orçamentos — definição, criação e abas|EV-2-d1-005]]"

@@ -3,7 +3,6 @@ title: EV-2-b1-005 · Ciclo de vida do ticket (tipos, status, priorização, reg
 aliases: [EV-2-b1-005]
 tags: [evidence, assistance, ticket, lifecycle, status, priority, itil]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/modules/assistance/tickets/ticketlifecycle.rst · Ticket life cycle"

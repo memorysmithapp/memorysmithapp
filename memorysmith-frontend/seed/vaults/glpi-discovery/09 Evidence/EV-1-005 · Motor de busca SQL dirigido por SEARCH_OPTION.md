@@ -3,7 +3,6 @@ title: EV-1-005 · Motor de busca SQL dirigido por SEARCH_OPTION
 aliases: [EV-1-005]
 tags: [evidence, dominio/foundation, busca, search-engine]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-001 · codebase/in/glpi/src/Search.php (L184, 221, 830) · src/Glpi/Search/Provider/SQLProvider.php"

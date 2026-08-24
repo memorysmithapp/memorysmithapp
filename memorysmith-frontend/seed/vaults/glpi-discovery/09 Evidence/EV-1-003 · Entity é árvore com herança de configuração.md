@@ -3,7 +3,6 @@ title: EV-1-003 · Entity é árvore com herança de configuração
 aliases: [EV-1-003]
 tags: [evidence, dominio/foundation, multi-tenancy, entidades]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-001 · codebase/in/glpi/src/Entity.php · linhas 57, 78–80, 786, 2210"

@@ -3,7 +3,6 @@ title: EV-2-g3-015 · Análise de Impacto (procedimento e conceitos)
 aliases: [EV-2-g3-015]
 tags: [evidence, tab, impact-analysis, dependency, diagram]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/tabs/impact_analysis.rst · Impact Analysis"

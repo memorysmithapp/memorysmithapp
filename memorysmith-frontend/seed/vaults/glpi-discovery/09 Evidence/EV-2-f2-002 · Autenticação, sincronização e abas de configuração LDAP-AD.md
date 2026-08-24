@@ -3,7 +3,6 @@ title: EV-2-f2-002 · Autenticação, sincronização e abas de configuração L
 aliases: [EV-2-f2-002]
 tags: [evidence, authentication, ldap, active-directory]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/authentication/ldap.rst"

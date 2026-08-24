@@ -3,7 +3,6 @@ title: Campos do formulário de Ticket
 aliases: [Campos do ticket, Ticket fields]
 tags: [assistance, ticket, fields, form, data]
 type: table
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-b1-006 · Campos específicos do formulário de ticket|EV-2-b1-006]]"

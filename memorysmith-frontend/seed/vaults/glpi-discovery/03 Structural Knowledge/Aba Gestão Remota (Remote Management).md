@@ -3,7 +3,6 @@ title: Aba Gestão Remota (Remote Management)
 aliases: [Remote Management, Gestão remota, Remote access]
 tags: [tab, remote-management, inventory, software]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g3-022 · Aba Gestão Remota (Remote Management)|EV-2-g3-022]]"

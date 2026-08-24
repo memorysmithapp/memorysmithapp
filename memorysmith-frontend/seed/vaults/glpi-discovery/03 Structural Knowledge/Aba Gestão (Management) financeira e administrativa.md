@@ -3,7 +3,6 @@ title: Aba Gestão (Management) financeira e administrativa
 aliases: [aba Management, Management tab, gestão financeira]
 tags: [tabs, management, financeiro, infocom, ui]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g2-010 · Aba Management (informações financeiras e administrativas)|EV-2-g2-010]]"

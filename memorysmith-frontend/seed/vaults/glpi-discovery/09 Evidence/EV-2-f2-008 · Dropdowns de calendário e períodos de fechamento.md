@@ -3,7 +3,6 @@ title: EV-2-f2-008 · Dropdowns de calendário e períodos de fechamento
 aliases: [EV-2-f2-008]
 tags: [evidence, dropdown, calendar, sla, closing-periods]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/dropdowns/calendar.rst"

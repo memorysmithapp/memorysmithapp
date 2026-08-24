@@ -3,7 +3,6 @@ title: Aba Problemas (Problems) vinculados
 aliases: [aba Problems, Problems tab, problemas vinculados]
 tags: [tabs, problems, itil, ui]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g2-012 · Aba Problems (problemas vinculados ao objeto)|EV-2-g2-012]]"

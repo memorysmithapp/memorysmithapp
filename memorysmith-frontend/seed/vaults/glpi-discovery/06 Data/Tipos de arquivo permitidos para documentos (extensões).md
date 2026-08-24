@@ -3,7 +3,6 @@ title: Tipos de arquivo permitidos para documentos (extensões)
 aliases: [Document types, Downloadable file types]
 tags: [data, management, document, file-types, doc]
 type: table
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d1-007 · Tipos de arquivo autorizados para upload de documentos|EV-2-d1-007]]"

@@ -3,7 +3,6 @@ title: Campos da aba Contratos vinculados
 aliases: [campos Contracts tab]
 tags: [data, campos, contracts, contratos]
 type: data
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g2-004 · Aba Contracts (contratos associados)|EV-2-g2-004]]"

@@ -3,7 +3,6 @@ title: Tipo de ativo (asset type)
 aliases: [Asset type, Computer type, Tipo de ativo, Tipo de computador]
 tags: [campos-comuns, classificacao, dropdown, data]
 type: field
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g4-002 · Campos de modelo, fabricante e tipo de ativo|EV-2-g4-002]]"

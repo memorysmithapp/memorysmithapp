@@ -3,7 +3,6 @@ title: EV-2-f1-014 · Configuração da API REST
 aliases: [EV-2-f1-014]
 tags: [evidence, api, rest, configuracao-geral]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/general/api.rst · API"

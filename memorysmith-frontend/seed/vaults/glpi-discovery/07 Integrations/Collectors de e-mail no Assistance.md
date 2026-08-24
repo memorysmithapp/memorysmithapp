@@ -3,7 +3,6 @@ title: Collectors de e-mail no Assistance
 aliases: [Mail collectors do ticket, Abertura por e-mail]
 tags: [assistance, ticket, collector, mail, integration]
 type: integration
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

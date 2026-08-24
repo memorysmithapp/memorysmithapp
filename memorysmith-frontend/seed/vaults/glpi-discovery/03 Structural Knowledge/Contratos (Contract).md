@@ -3,7 +3,6 @@ title: Contratos (Contract)
 aliases: [Contract, Contrato]
 tags: [entity, contrato, dominio/gestao]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-023 · Contract com renovação alerta custos e vínculo a itens|EV-1-023]]"

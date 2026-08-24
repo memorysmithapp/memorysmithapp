@@ -3,7 +3,6 @@ title: EV-2-f2-001 · Processo geral de autenticação e criação on-the-fly
 aliases: [EV-2-f2-001]
 tags: [evidence, authentication, login, provisioning]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/authentication/index.rst · modules/configuration/authentication/configuration.rst"

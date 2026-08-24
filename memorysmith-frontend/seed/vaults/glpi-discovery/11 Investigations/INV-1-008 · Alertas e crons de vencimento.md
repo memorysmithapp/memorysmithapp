@@ -3,7 +3,6 @@ title: INV-1-008 · Alertas e crons de vencimento
 aliases: [INV-1-008]
 tags: [investigation, consumidor/cad, financeiro, cron]
 type: investigation
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

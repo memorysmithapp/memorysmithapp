@@ -3,7 +3,6 @@ title: Lembretes pessoais e públicos (Reminder)
 aliases: [Reminder, Lembrete, Reminders]
 tags: [tools, reminders, planning, targets]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g3-004 · Lembretes pessoais e públicos|EV-2-g3-004]]"

@@ -3,7 +3,6 @@ title: Campos do formulário de Enclosure
 aliases: [Campos Enclosure]
 tags: [data, fields, enclosure, dcim, assets, doc]
 type: table
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c2-004 · Enclosures (enclosures.rst)|EV-2-c2-004]]"

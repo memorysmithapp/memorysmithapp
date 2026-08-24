@@ -3,7 +3,6 @@ title: INV-2-c1-002 · Erro de redação no tipo de gestão do monitor
 aliases: [INV-2-c1-002]
 tags: [investigation, consumidor/cad, assets, monitor, doc-quality]
 type: investigation
-status: open
 maturity: seed
 reviewed: false
 author: CAD Discovery (doc)

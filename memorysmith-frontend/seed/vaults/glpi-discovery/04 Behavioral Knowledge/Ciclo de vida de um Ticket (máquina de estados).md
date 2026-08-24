@@ -3,7 +3,6 @@ title: Ciclo de vida de um Ticket (máquina de estados)
 aliases: [Máquina de estados do Ticket, status ticket]
 tags: [state-machine, itil, dominio/service-desk]
 type: state-machine
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-008 · CommonITILObject define statuses e matriz de prioridade|EV-1-008]]"

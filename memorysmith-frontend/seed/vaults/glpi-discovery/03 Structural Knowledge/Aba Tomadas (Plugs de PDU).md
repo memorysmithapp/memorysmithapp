@@ -3,7 +3,6 @@ title: Aba Tomadas (Plugs de PDU)
 aliases: [Plugs tab, Aba Plugs, Tomadas PDU]
 tags: [assets, tab, dcim, pdu, plugs, power]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c3-012 · Aba Tomadas (Plugs) de um PDU|EV-2-c3-012]]"

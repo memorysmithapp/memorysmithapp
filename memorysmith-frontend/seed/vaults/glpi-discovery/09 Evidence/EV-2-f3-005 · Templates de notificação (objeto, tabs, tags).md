@@ -3,7 +3,6 @@ title: EV-2-f3-005 · Templates de notificação (objeto, tabs, tags)
 aliases: [EV-2-f3-005]
 tags: [evidence, template, notificacao, tags, traducao]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/notifications/templates.rst · Notification templates"

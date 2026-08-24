@@ -3,7 +3,6 @@ title: EV-2-d1-009 · Certificados — objetivos, campos e abas
 aliases: [EV-2-d1-009]
 tags: [evidence, management, certificate, doc]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/modules/management/certificates.rst · Certificates"

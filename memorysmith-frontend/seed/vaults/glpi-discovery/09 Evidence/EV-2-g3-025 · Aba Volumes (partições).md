@@ -3,7 +3,6 @@ title: EV-2-g3-025 · Aba Volumes (partições)
 aliases: [EV-2-g3-025]
 tags: [evidence, tab, volumes, partition, filesystem]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/tabs/volume.rst · Volumes"

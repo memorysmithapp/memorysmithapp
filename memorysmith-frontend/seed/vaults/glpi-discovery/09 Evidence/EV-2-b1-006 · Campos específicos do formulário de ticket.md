@@ -3,7 +3,6 @@ title: EV-2-b1-006 · Campos específicos do formulário de ticket
 aliases: [EV-2-b1-006]
 tags: [evidence, assistance, ticket, fields, form, data]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/modules/assistance/tickets/ticketmanagement.rst · Description of specific fields"

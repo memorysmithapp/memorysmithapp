@@ -3,7 +3,6 @@ title: Regras de categorização de software
 aliases: [Rules for assigning a category to software]
 tags: [regras, software, categoria, doc]
 type: rule
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-e2-008 · Tipos de regra na administração e mecanismos auxiliares|EV-2-e2-008]]"

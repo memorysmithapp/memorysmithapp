@@ -3,7 +3,6 @@ title: Aba Itens do Rack (ativos)
 aliases: [Rack items tab, Aba Itens do Rack, Items (rack)]
 tags: [assets, tab, dcim, rack, datacenter, pdu]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c3-011 · Abas Itens de Enclosure e Itens de Rack (DCIM)|EV-2-c3-011]]"

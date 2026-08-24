@@ -3,7 +3,6 @@ title: EV-2-f3-008 · Receivers (coletores de e-mail), blacklists e regras de ro
 aliases: [EV-2-f3-008]
 tags: [evidence, receiver, collector, mailgate, imap, pop, regras, roteamento, blacklist]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/collectors.rst · Receivers"

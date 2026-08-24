@@ -3,7 +3,6 @@ title: Preenchimento automático e incremento em templates
 aliases: [Autofill, Increment, Incremento, Autofill mark]
 tags: [templates, autofill, increment, syntax]
 type: algorithm
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a2-004 · Gestão de templates (ativos e tickets)|EV-2-a2-004]]"

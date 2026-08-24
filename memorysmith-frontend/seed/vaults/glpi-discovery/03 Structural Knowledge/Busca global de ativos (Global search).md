@@ -3,7 +3,6 @@ title: Busca global de ativos (Global search)
 aliases: [Global search, Asset Global]
 tags: [assets, search, structural]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c1-002 · Busca global de ativos (Global search)|EV-2-c1-002]]"

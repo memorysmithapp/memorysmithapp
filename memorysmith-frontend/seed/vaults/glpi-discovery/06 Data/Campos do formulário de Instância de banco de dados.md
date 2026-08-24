@@ -3,7 +3,6 @@ title: Campos do formulário de Instância de banco de dados
 aliases: [Campos de Database instance, Database instance fields]
 tags: [management, database-instance, campos, formulario, data]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d2-005 · Database instances (tabs-database_instances.rst)|EV-2-d2-005]]"

@@ -3,7 +3,6 @@ title: Campos específicos de Cluster
 aliases: [Campos de Cluster, Cluster fields]
 tags: [management, cluster, campos, formulario, data]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d2-002 · Clusters (clusters.rst)|EV-2-d2-002]]"

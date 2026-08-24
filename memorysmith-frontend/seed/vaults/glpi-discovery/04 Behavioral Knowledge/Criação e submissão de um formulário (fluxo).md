@@ -3,7 +3,6 @@ title: Criação e submissão de um formulário (fluxo)
 aliases: [Form lifecycle, Fluxo de formulário]
 tags: [formularios, forms, fluxo, self-service, doc]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

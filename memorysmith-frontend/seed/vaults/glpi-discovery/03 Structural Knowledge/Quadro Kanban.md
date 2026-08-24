@@ -3,7 +3,6 @@ title: Quadro Kanban
 aliases: [Kanban, ITIL Kanban, Project Kanban, Task board]
 tags: [kanban, board, view, projects, tickets]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a2-002 · Quadro Kanban|EV-2-a2-002]]"

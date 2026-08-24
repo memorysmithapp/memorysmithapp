@@ -3,7 +3,6 @@ title: INV-2-f1-001 · Semântica dos parâmetros Items seen e Global search
 aliases: [INV-2-f1-001]
 tags: [investigation, consumidor/cad, configuracao-geral]
 type: investigation
-status: open
 maturity: seed
 reviewed: false
 author: CAD Discovery (doc)

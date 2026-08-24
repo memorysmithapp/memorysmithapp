@@ -3,7 +3,6 @@ title: Configuração Geral do GLPI (Setup - General)
 aliases: [General configuration, Setup General, Configuração geral]
 tags: [configuracao-geral, setup, abas, estrutura]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-f1-005 · Configuração Geral — abas e aparência|EV-2-f1-005]]"

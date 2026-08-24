@@ -3,7 +3,6 @@ title: EV-2-g4-010 · Credenciais SNMP e sysDescr
 aliases: [EV-2-g4-010]
 tags: [evidence, campos-comuns, snmp, inventario, rede]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · tabs/common_fields/SNMP_credentials.rst · SNMP Credentials; tabs/common_fields/sysdescr.rst · Sysdescr"

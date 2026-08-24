@@ -3,7 +3,6 @@ title: EV-2-f3-011 · Páginas de Locks não redigidas (stubs)
 aliases: [EV-2-f3-011]
 tags: [evidence, lock, stub, todo, documentacao-incompleta]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/locks.rst e modules/configuration/Locks.rst · Locks / lock"

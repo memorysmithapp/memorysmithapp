@@ -3,7 +3,6 @@ title: Campos do formulário de Fornecedor
 aliases: [Supplier fields]
 tags: [data, management, supplier, fields, doc]
 type: table
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d1-003 · Fornecedores — definição, distinção fornecedor×fabricante e abas|EV-2-d1-003]]"

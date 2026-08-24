@@ -3,7 +3,6 @@ title: Campos do template de notificação
 aliases: [Notification template fields]
 tags: [dados, template, campos, traducao, notificacao]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

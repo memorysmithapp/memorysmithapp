@@ -3,7 +3,6 @@ title: EV-2-g1-001 · Sistema de cache do GLPI (cache.rst)
 aliases: [EV-2-g1-001]
 tags: [evidence, cache, opcache, performance, operacional]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · advanced/cache.rst · Using the cache / OPCache"

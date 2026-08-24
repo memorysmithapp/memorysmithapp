@@ -3,7 +3,6 @@ title: Usuário (campo user do ativo)
 aliases: [User, Usuário]
 tags: [campos-comuns, atores, usuario, data]
 type: field
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g4-004 · Campos de atores (usuário, grupo, grupo e técnico responsáveis)|EV-2-g4-004]]"

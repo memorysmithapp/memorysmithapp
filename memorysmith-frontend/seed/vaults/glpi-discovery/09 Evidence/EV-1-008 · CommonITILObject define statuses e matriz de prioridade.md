@@ -3,7 +3,6 @@ title: EV-1-008 · CommonITILObject define statuses e matriz de prioridade
 aliases: [EV-1-008]
 tags: [evidence, dominio/service-desk, itil]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-001 · codebase/in/glpi/src/CommonITILObject.php · L76, 120–128, 3318–3322, 3891–3912"

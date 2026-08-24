@@ -3,7 +3,6 @@ title: EV-2-e1-001 · Ficha de Usuário — aba Users, impersonate e vcard
 aliases: [EV-2-e1-001]
 tags: [evidence, usuarios, ficha-usuario, impersonate, vcard, ldap]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/administration/users/users.rst · Users / Impersonate / Vcard / abas"

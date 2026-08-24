@@ -3,7 +3,6 @@ title: EV-2-f2-006 · Dropdowns comuns localizações status fabricantes blackli
 aliases: [EV-2-f2-006]
 tags: [evidence, dropdown, location, status, manufacturer, blacklist]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/dropdowns/general.rst"

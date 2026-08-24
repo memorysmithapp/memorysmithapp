@@ -3,7 +3,6 @@ title: Followups públicos e privados
 aliases: [Acompanhamentos, Followups, Processing ticket]
 tags: [assistance, ticket, followup, public, private]
 type: flow
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-b1-007 · Abas do ticket e followups|EV-2-b1-007]]"

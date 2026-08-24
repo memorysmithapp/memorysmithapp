@@ -3,7 +3,6 @@ title: Campos da configuração de e-mail (follow-ups)
 aliases: [Email follow-ups fields, SMTP config fields]
 tags: [dados, email, smtp, config, campos, entidade]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

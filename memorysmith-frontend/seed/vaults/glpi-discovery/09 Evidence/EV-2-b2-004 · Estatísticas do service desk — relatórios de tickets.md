@@ -3,7 +3,6 @@ title: EV-2-b2-004 · Estatísticas do service desk — relatórios de tickets
 aliases: [EV-2-b2-004]
 tags: [evidence, statistics, estatisticas, relatorios, service-desk]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/assistance/statistics.rst · Display statistics (documento inteiro)"

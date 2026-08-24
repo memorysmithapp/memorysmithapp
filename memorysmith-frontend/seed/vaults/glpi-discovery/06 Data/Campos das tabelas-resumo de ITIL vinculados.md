@@ -3,7 +3,6 @@ title: Campos das tabelas-resumo de ITIL vinculados
 aliases: [campos tickets vinculados, campos problems vinculados, campos changes vinculados]
 tags: [data, campos, tickets, problems, changes, itil]
 type: data
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

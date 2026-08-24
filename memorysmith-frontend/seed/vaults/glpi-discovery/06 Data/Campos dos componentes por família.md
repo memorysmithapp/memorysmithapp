@@ -3,7 +3,6 @@ title: Campos dos componentes por família
 aliases: [Component fields per family, Campos de componentes]
 tags: [data, components, hardware, fields]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g3-010 · Aba Componentes por família (campos)|EV-2-g3-010]]"

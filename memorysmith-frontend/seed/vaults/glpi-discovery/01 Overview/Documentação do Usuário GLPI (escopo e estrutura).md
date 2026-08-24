@@ -3,7 +3,6 @@ title: Documentação do Usuário GLPI (escopo e estrutura)
 aliases: [GLPI User Documentation, Escopo da documentação]
 tags: [overview, doc, glpi, scope]
 type: overview
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-a1-001 · Prefácio e estrutura da documentação do usuário GLPI|EV-2-a1-001]]"

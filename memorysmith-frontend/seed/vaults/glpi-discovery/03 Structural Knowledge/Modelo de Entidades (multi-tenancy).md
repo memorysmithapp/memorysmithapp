@@ -3,7 +3,6 @@ title: Modelo de Entidades (multi-tenancy)
 aliases: [Entidades, Entity, Multi-tenancy, Separação de entidades]
 tags: [concept, multi-tenancy, dominio/foundation]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-003 · Entity é árvore com herança de configuração|EV-1-003]]"

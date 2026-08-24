@@ -3,7 +3,6 @@ title: Tags de URL da pesquisa de satisfação
 aliases: [Survey URL tags]
 tags: [entidades, satisfacao, tags, url, dados, doc]
 type: table
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-e2-005 · Entidade - aba Assistência (templates, fechamento, satisfação)|EV-2-e2-005]]"

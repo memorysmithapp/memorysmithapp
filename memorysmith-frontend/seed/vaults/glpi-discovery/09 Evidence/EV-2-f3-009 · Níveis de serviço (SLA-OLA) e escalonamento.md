@@ -3,7 +3,6 @@ title: EV-2-f3-009 · Níveis de serviço (SLA-OLA) e escalonamento
 aliases: [EV-2-f3-009]
 tags: [evidence, sla, ola, service-level, escalonamento, escalation, calendario]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · modules/configuration/service_levels.rst · Service Levels"

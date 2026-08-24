@@ -3,7 +3,6 @@ title: Campos do formulário de Cabo
 aliases: [Campos Cable]
 tags: [data, fields, cable, connectivity, assets, doc]
 type: table
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-c2-006 · Cabos (cables.rst)|EV-2-c2-006]]"

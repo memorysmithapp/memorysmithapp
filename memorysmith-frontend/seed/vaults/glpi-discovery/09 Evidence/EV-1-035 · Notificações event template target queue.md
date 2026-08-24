@@ -3,7 +3,6 @@ title: EV-1-035 · Notificações — event/template/target/queue
 aliases: [EV-1-035]
 tags: [evidence, dominio/integracoes, notificacoes]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-001 · src/Notification.php L44 · src/NotificationTemplate.php L47 · src/NotificationTarget.php L44 · src/QueuedNotification.php L48 · src/NotificationEventMailing.php"

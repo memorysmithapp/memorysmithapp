@@ -3,7 +3,6 @@ title: EV-2-g4-005 · Campos de localização e posição em datacenter
 aliases: [EV-2-g4-005]
 tags: [evidence, campos-comuns, localizacao, datacenter]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · tabs/common_fields/location.rst · Location; tabs/common_fields/data_center_position.rst · Data center position"

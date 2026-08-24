@@ -3,7 +3,6 @@ title: Campos do formulário de Appliance
 aliases: [Campos de Appliance, Appliance form fields]
 tags: [management, appliance, campos, formulario, data]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d2-001 · Appliances (appliance.rst)|EV-2-d2-001]]"

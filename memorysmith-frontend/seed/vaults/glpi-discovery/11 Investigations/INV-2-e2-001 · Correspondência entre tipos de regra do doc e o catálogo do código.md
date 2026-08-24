@@ -3,7 +3,6 @@ title: INV-2-e2-001 · Correspondência entre tipos de regra do doc e o catálog
 aliases: [INV-2-e2-001]
 tags: [investigation, consumidor/cad, regras, criterios, acoes]
 type: investigation
-status: open
 maturity: seed
 reviewed: false
 source: "[[EV-2-e2-009 · Criação de uma regra - critérios, operadores, regex e AND-OR|EV-2-e2-009]]"

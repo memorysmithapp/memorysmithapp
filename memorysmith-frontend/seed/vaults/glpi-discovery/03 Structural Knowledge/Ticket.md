@@ -3,7 +3,6 @@ title: Ticket
 aliases: [Chamado, Ticket]
 tags: [entity, itil, dominio/service-desk]
 type: entity
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

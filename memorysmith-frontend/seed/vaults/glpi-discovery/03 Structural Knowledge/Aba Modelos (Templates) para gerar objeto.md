@@ -3,7 +3,6 @@ title: Aba Modelos (Templates) para gerar objeto
 aliases: [aba Templates, Templates tab, modelos]
 tags: [tabs, templates, modelos, ui]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-g2-014 · Aba Templates (gerar objeto por modelo)|EV-2-g2-014]]"

@@ -3,7 +3,6 @@ title: EV-2-g3-023 · Aba Sockets (tomadas físicas de cabeamento)
 aliases: [EV-2-g3-023]
 tags: [evidence, tab, sockets, cables, cabling]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/tabs/sockets.rst · Sockets"

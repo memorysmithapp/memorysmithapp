@@ -3,7 +3,6 @@ title: INV-2-b2-001 · Matriz de ciclo de vida — transições exatas por perfi
 aliases: [INV-2-b2-001]
 tags: [investigation, consumidor/cad, ciclo-de-vida, status]
 type: investigation
-status: open
 maturity: seed
 reviewed: false
 source: "[[EV-2-b2-006 · Matriz de ciclo de vida por perfil (transições de status)|EV-2-b2-006]]"

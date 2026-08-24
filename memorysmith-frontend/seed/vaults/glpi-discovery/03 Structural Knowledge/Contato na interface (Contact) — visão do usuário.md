@@ -3,7 +3,6 @@ title: Contato na interface (Contact) — visão do usuário
 aliases: [Contact, Contato]
 tags: [concept, management, contact, doc]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-2-d1-004 · Contatos — definição, títulos e vCard|EV-2-d1-004]]"

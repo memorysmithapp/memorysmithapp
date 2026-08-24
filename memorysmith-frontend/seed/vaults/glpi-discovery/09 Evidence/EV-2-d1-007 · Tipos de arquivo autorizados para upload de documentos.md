@@ -3,7 +3,6 @@ title: EV-2-d1-007 · Tipos de arquivo autorizados para upload de documentos
 aliases: [EV-2-d1-007]
 tags: [evidence, management, document, doc, file-types]
 type: evidence
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "SRC-002 · source/modules/management/documents.rst · Downloadable file types"

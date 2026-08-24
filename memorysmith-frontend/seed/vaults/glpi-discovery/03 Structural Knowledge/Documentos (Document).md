@@ -3,7 +3,6 @@ title: Documentos (Document)
 aliases: [Document, Documento, anexos]
 tags: [component, documento, dominio/gestao]
 type: component
-status: confirmed
 maturity: evergreen
 reviewed: false
 source: "[[EV-1-025 · Document com dedup sha1 e Document_Item polimórfico|EV-1-025]]"

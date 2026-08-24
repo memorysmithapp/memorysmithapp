@@ -3,7 +3,6 @@ title: Definição de notificação (estrutura)
 aliases: [Notification Definition]
 tags: [notificacao, definicao, estrutura, evento]
 type: concept
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:

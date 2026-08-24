@@ -3,7 +3,6 @@ title: Notificações no GLPI (visão de configuração)
 aliases: [Notificações (config), Notifications]
 tags: [notificacao, capacidade, config, email, browser]
 type: capability
-status: confirmed
 maturity: evergreen
 reviewed: false
 source:
