@@ -262,7 +262,7 @@ function collectNoteStats(raw, vault, slug, title) {
     vault.linkTargets.set(target, (vault.linkTargets.get(target) ?? 0) + 1);
     if (target !== slug) out.add(target);
   }
-  vault.graphNotes.push({ slug, title, tags, out: [...out] });
+  vault.graphNotes.push({ slug, title, tags, out: [...out], type, maturity, reviewed });
 }
 
 function copyNotes(srcDir, outDir, vault, counters, depth) {
@@ -361,7 +361,7 @@ for (const def of VAULTS) {
 
   // Graph projection: note nodes, tag nodes and their edges, indexed compactly.
   const noteIndex = new Map(vault.graphNotes.map((n, i) => [n.slug, i]));
-  const nodes = vault.graphNotes.map((n) => ({ id: n.slug, title: n.title, kind: 'note' }));
+  const nodes = vault.graphNotes.map((n) => ({ id: n.slug, title: n.title, kind: 'note', type: n.type, maturity: n.maturity, reviewed: n.reviewed }));
   const edges = [];
   for (const note of vault.graphNotes) {
     const from = noteIndex.get(note.slug);

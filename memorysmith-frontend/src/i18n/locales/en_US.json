@@ -97,6 +97,8 @@
   "graph": {
     "heading": "Vault graph",
     "navLabel": "Vault graph",
+    "colorBy": "Color by",
+    "colorDefault": "Default",
     "showTags": "Show tags",
     "legendNotes": "Notes",
     "legendTags": "Tags",

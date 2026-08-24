@@ -311,6 +311,17 @@ a:hover { text-decoration: underline; }
 }
 .dashboard-section-heading { font-size: 1.3rem; margin: 0 0 0.85rem; }
 
+.graph-colorby select {
+  margin-left: 0.4rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.8rem;
+  font-family: var(--sans);
+}
+
 .chart-card-wide { grid-column: 1 / -1; }
 .chart-footnote { margin: 0.6rem 0 0; font-size: 0.72rem; color: var(--text-soft); }
 
