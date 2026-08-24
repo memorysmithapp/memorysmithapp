@@ -198,8 +198,14 @@ function collectNoteStats(raw, vault, slug, title) {
   const head = raw.startsWith('---') ? raw.slice(0, raw.indexOf('\n---', 3)) : '';
   const type = /^type:\s*(\S+)/m.exec(head)?.[1] ?? 'none';
   const maturity = /^maturity:\s*(\S+)/m.exec(head)?.[1] ?? 'none';
+  const reviewed = /^reviewed:\s*(\S+)/m.exec(head)?.[1] === 'true';
+  const created = /^created:\s*(\d{4}-\d{2}-\d{2})/m.exec(head)?.[1];
+  const tags = parseTags(head);
   vault.stats.byType[type] = (vault.stats.byType[type] ?? 0) + 1;
   vault.stats.byMaturity[maturity] = (vault.stats.byMaturity[maturity] ?? 0) + 1;
+  if (reviewed) vault.stats.reviewed += 1;
+  if (created) vault.stats.byCreatedDay[created] = (vault.stats.byCreatedDay[created] ?? 0) + 1;
+  for (const tag of tags) vault.stats.byTag[tag] = (vault.stats.byTag[tag] ?? 0) + 1;
 
   const out = new Set();
   for (const m of raw.matchAll(WIKILINK)) {
@@ -208,7 +214,7 @@ function collectNoteStats(raw, vault, slug, title) {
     vault.linkTargets.set(target, (vault.linkTargets.get(target) ?? 0) + 1);
     if (target !== slug) out.add(target);
   }
-  vault.graphNotes.push({ slug, title, tags: parseTags(head), out: [...out] });
+  vault.graphNotes.push({ slug, title, tags, out: [...out] });
 }
 
 function copyNotes(srcDir, outDir, vault, counters, depth) {
@@ -273,7 +279,7 @@ for (const def of VAULTS) {
     def,
     slugs: new Set(),
     linkTargets: new Map(),
-    stats: { byType: {}, byMaturity: {} },
+    stats: { byType: {}, byMaturity: {}, byTag: {}, byCreatedDay: {}, reviewed: 0 },
     graphNotes: [],
   };
   const counters = { notes: 0, folders: 0 };
@@ -299,6 +305,9 @@ for (const def of VAULTS) {
     folders: counters.folders,
     byType: vault.stats.byType,
     byMaturity: vault.stats.byMaturity,
+    byTag: vault.stats.byTag,
+    byCreatedDay: vault.stats.byCreatedDay,
+    reviewed: vault.stats.reviewed,
     links: { resolved, pending },
   });
 

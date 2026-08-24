@@ -19,6 +19,9 @@
   --seq-seed: #bfd2f6;
   --seq-growing: #6b96ea;
   --seq-evergreen: #0f56d7;
+  --cat-1: #ff8a2b;
+  --cat-2: #0f56d7;
+  --cat-3: #16a34a;
   --mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
   --sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
   --display: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
@@ -261,6 +264,9 @@ a:hover { text-decoration: underline; }
 .seq-seed { background: var(--seq-seed); }
 .seq-growing { background: var(--seq-growing); }
 .seq-evergreen { background: var(--seq-evergreen); }
+.cat-1 { background: var(--cat-1); }
+.cat-2 { background: var(--cat-2); }
+.cat-3 { background: var(--cat-3); }
 
 .hbar-row { display: grid; grid-template-columns: 11rem 1fr 3.2rem; align-items: center; gap: 0.6rem; padding: 0.3rem 0; }
 .hbar-label { font-size: 0.8rem; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -297,6 +303,39 @@ a:hover { text-decoration: underline; }
   white-space: nowrap;
 }
 .dashboard-select-heading { font-size: 1.05rem; margin-bottom: 0.75rem; }
+
+.chart-card-wide { grid-column: 1 / -1; }
+.chart-footnote { margin: 0.6rem 0 0; font-size: 0.72rem; color: var(--text-soft); }
+
+.colchart { display: flex; align-items: flex-end; gap: 2px; margin-top: 0.25rem; }
+.colchart-col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+}
+.colchart-col-label {
+  font-size: 0.65rem;
+  color: var(--text-soft);
+  text-align: center;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+.colchart-stack { display: flex; flex-direction: column; justify-content: flex-end; }
+.colchart-seg { border-radius: 2px; margin-top: 2px; }
+.colchart-stack .colchart-seg:first-child { border-radius: 4px 4px 2px 2px; }
+.colchart-axis { display: flex; gap: 2px; margin-top: 4px; }
+.colchart-tick {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 0.62rem;
+  color: var(--text-soft);
+  text-align: center;
+  white-space: nowrap;
+  overflow: visible;
+}
 
 /* Vault graph */
 .graph-page { display: flex; flex-direction: column; height: 100%; }
@@ -352,6 +391,9 @@ a:hover { text-decoration: underline; }
   --seq-seed: #33507f;
   --seq-growing: #6b96ea;
   --seq-evergreen: #a9c4f5;
+  --cat-1: #d96a10;
+  --cat-2: #2f6ee0;
+  --cat-3: #16a34a;
 }
 
 .symbol-dark { display: none; }

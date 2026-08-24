@@ -76,6 +76,7 @@
     "kpiNotes": "Notes",
     "kpiResolved": "Resolved links",
     "kpiPending": "Pending links",
+    "kpiReviewed": "Reviewed notes ({{pct}}%)",
     "maturityHeading": "Note maturity by vault",
     "bucket": {
       "evergreen": "Evergreen",
@@ -83,6 +84,12 @@
       "seed": "Seed"
     },
     "typesHeading": "Notes by type",
+    "reviewedHeading": "Human review by vault",
+    "reviewedYes": "Reviewed",
+    "reviewedNo": "Awaiting review",
+    "tagsHeading": "Top tags",
+    "tagsDistinct": "{{count}} distinct tags across all vaults",
+    "timelineHeading": "Notes created by day",
     "otherTypes": "Other",
     "selectVault": "Open a vault"
   },
