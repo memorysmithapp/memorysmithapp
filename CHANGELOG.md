@@ -54,6 +54,7 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- A árvore do menu lateral não refletia a navegação feita fora dela: chegar a uma pasta ou nota pelo painel central, pela trilha, por um wikilink ou por URL direta não expandia nem destacava o caminho. Agora a árvore segue a rota: toda pasta da cadeia ativa se expande, o item ativo é destacado e rolado para a área visível, e o fechamento manual continua possível.
 - O slogan do cabeçalho estava em inglês também no locale `pt_BR`; agora é traduzido ("Conhecimento estruturado, que agentes leem e escrevem nativamente.").
 - O símbolo da marca no modo escuro tinha um quadrado de fundo na cor Fundo escuro, que destoava da superfície do cabeçalho: a variante escura passa a ter fundo transparente, e a tela de login também alterna para ela no modo escuro.
 
