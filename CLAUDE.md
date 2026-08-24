@@ -179,16 +179,16 @@ O mesmo vale para os termos da **linguagem ubíqua** do produto, que existem sim
 
 Um termo em inglês que **não** é símbolo do código nem termo técnico consagrado deve ser escrito em português.
 
-### A exceção do `README.md`
+### A exceção do `README.md` e da interface em `pt_BR`
 
-O `README.md` da raiz é vitrine, não especificação: quem o lê ainda não conhece o vocabulário do produto, e um termo em inglês ali cobra do leitor um aprendizado antes de ele entender o que o produto faz. Por isso, **e somente nesse arquivo**, dois papéis são escritos em português:
+O `README.md` da raiz é vitrine, não especificação: quem o lê ainda não conhece o vocabulário do produto, e um termo em inglês ali cobra do leitor um aprendizado antes de ele entender o que o produto faz. O mesmo vale para quem usa o produto em português: os textos do locale `pt_BR` da interface falam com o usuário final, não com quem lê a especificação. Por isso, **e somente nesses dois lugares**, dois papéis são escritos em português:
 
-| Na linguagem ubíqua e nos `docs/` | No `README.md` |
+| Na linguagem ubíqua e nos `docs/` | No `README.md` e no locale `pt_BR` |
 |---|---|
 | `Guidance` | Orientação |
 | `Template` | Modelo |
 
-A exceção é deliberada e não se propaga. Em `docs/`, no código, nas ferramentas MCP e no `Content Role`, os termos continuam sendo `guidance` e `template`. Nenhum outro termo da linguagem ubíqua é traduzido, nem mesmo no `README.md`: `Vault`, `Workspace` e os demais permanecem como estão.
+A exceção é deliberada e não se propaga. Em `docs/`, no código, nas ferramentas MCP, no `Content Role` e no locale `en_US` (o canônico), os termos continuam sendo `guidance` e `template`. Nenhum outro termo da linguagem ubíqua é traduzido: `Vault`, `Workspace` e os demais permanecem como estão. `Note` é o caso trivial: "nota" é palavra comum do português e é assim que o locale `pt_BR` a escreve.
 
 ### Travessão
 
