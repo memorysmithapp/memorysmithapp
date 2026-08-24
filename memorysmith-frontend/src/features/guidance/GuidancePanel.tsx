@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { resolveNoteUrl } from '../../shared/api/client';
 import { resolveWikilinks } from '../../shared/api/markdown';
 import { Markdown } from '../../shared/components/Markdown';
-import { StructureBreadcrumb } from '../structure/StructureBreadcrumb';
+import { VaultBreadcrumb } from '../structure/VaultBreadcrumb';
 import type { VaultOutletContext } from '../structure/VaultLayout';
 
 export function GuidancePanel() {
@@ -17,7 +17,7 @@ export function GuidancePanel() {
 
   return (
     <article className="content-pane">
-      <StructureBreadcrumb current={t('structure.guidance')} />
+      <VaultBreadcrumb items={[{ label: t('structure.guidance') }]} />
       <p className="content-kicker">{t('structure.guidance')}</p>
       {body ? <Markdown>{body}</Markdown> : <p className="status">{t('common.notFound')}</p>}
     </article>

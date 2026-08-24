@@ -15,8 +15,9 @@ interface VaultBreadcrumbProps {
   className?: string;
 }
 
-// Every page inside a vault starts its trail at the vault (the Structure page)
-// and walks down: Structure facets, the folder chain, the note.
+// Every page inside a vault starts its trail at the vault name (which links to
+// the Structure page) and walks down: Guidance or Templates, the folder chain,
+// the note. On the Structure page itself the trail is just the vault name.
 export function VaultBreadcrumb({ items, className = '' }: VaultBreadcrumbProps) {
   const { t } = useTranslation();
   const { vaultSlug = '' } = useParams();

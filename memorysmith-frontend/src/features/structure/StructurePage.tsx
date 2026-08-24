@@ -24,7 +24,7 @@ export function StructurePage() {
 
   return (
     <article className="content-pane">
-      <VaultBreadcrumb items={[{ label: t('structure.heading') }]} />
+      <VaultBreadcrumb items={[]} />
       <p className="content-kicker">{t('structure.heading')}</p>
       <h1>{structure.vault.name}</h1>
       <p className="hint">{t('structure.intro')}</p>

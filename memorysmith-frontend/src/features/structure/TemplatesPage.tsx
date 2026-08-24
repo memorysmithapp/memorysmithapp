@@ -7,7 +7,7 @@ import { splitFrontmatter } from '../../shared/api/markdown';
 import { Markdown } from '../../shared/components/Markdown';
 import type { FolderNode } from '../../shared/types/api';
 import { templateAnchor } from './StructureOutline';
-import { StructureBreadcrumb } from './StructureBreadcrumb';
+import { VaultBreadcrumb } from './VaultBreadcrumb';
 import type { VaultOutletContext } from './VaultLayout';
 
 interface TemplatedFolder {
@@ -50,7 +50,7 @@ export function TemplatesPage() {
 
   return (
     <article className="content-pane">
-      <StructureBreadcrumb current={t('structure.templates')} />
+      <VaultBreadcrumb items={[{ label: t('structure.templates') }]} />
       <p className="content-kicker">{t('structure.templates')}</p>
       <h1>{structure.vault.name}</h1>
       <p className="hint">{t('folder.templateHint')}</p>
