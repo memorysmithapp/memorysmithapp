@@ -53,6 +53,7 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- O slogan do cabeçalho estava em inglês também no locale `pt_BR`; agora é traduzido ("Conhecimento estruturado, que agentes leem e escrevem nativamente.").
 - O símbolo da marca no modo escuro tinha um quadrado de fundo na cor Fundo escuro, que destoava da superfície do cabeçalho: a variante escura passa a ter fundo transparente, e a tela de login também alterna para ela no modo escuro.
 
 ### Removed
