@@ -1,6 +1,6 @@
 # Seed de vaults do frontend
 
-Três vaults reais, traduzidos dos experimentos de gestão de conhecimento que originaram o MemorySmith.app, no **formato de export do produto** (`docs/software-vision.md` §12): prefixo numérico codifica a ordem das pastas, `README.md` faz o papel de Guidance na raiz do vault e de descrição dentro de cada pasta, `TEMPLATE.md` faz o papel de Template da pasta, e as notas são copiadas byte a byte, com frontmatter e wikilinks intactos (PP4).
+Três vaults reais, traduzidos dos experimentos de gestão de conhecimento que originaram o MemorySmith.app, no **formato de export do produto** (`docs/software-vision.md` §12): prefixo numérico codifica a ordem das pastas, `README.md` faz o papel de Guidance na raiz do vault e de descrição dentro de cada pasta, `TEMPLATE.md` faz o papel de Template da pasta, e as notas são copiadas com o corpo byte a byte e os wikilinks intactos (PP4). No frontmatter, a tradução aplica o padrão de autoria comum aos três vaults: `maturity` (`seed`, `growing`, `evergreen`), reavaliado a cada escrita, e `reviewed`, que marca se a revisão vigente passou por revisão humana.
 
 | Vault | Conteúdo | Notas |
 |---|---|---|

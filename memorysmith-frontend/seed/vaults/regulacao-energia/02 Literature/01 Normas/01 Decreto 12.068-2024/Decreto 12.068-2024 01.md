@@ -7,7 +7,8 @@ tags:
   - concessoes
   - qualidade
 type: literature
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Decreto nº 12.068/2024, Capítulo I, arts. 2º e 3º
 author: Presidência da República
 created: 2026-07-26

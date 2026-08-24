@@ -8,7 +8,8 @@ tags:
   - claude
   - ai-fluency
 type: literature
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Claude 101 — Anthropic Academy (anthropic.skilljar.com/claude-101)
 author: Anthropic
 created: 2026-07-31

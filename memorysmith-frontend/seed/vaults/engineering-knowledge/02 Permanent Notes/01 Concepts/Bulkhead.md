@@ -10,7 +10,8 @@ tags:
   - distributed-systems
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Bulkhead pattern — Azure Architecture Center, 2026
 author: Microsoft (Azure Architecture Center)
 created: 2026-07-25

@@ -7,7 +7,8 @@ tags:
   - marco-legal
   - legislacao
 type: moc
-status: seed
+maturity: seed
+reviewed: false
 source: Lei 14.300/2022; Decreto 12.068/2024
 author: Heitor Rapcinski + Claude
 created: 2026-07-26

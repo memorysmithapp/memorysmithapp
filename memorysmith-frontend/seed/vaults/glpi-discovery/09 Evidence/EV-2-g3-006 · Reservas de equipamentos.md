@@ -4,6 +4,8 @@ aliases: [EV-2-g3-006]
 tags: [evidence, tools, reservations, booking, recurrence, planning]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/modules/tools/reservations.rst · Manage reservations"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -4,6 +4,8 @@ aliases: [Groups, Grupos, Gestão de grupos]
 tags: [grupos, hierarquia, notificacoes, ldap, entidades, 2fa]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e1-003 · Gestão de Grupos (hierarquia, opções e importação LDAP)|EV-2-e1-003]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

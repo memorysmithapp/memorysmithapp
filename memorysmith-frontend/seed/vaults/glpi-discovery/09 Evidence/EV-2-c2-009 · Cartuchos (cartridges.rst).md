@@ -4,6 +4,8 @@ aliases: [EV-2-c2-009]
 tags: [evidence, assets, cartridge, consumable, stock, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/assets/cartridges.rst · Cartridges (documento inteiro)"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -9,7 +9,8 @@ tags:
   - licitacao
   - indenizacao
 type: literature
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Decreto nº 12.068/2024, Capítulo IV, arts. 13 e 14
 author: Presidência da República
 created: 2026-07-26

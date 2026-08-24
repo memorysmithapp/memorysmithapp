@@ -4,6 +4,8 @@ aliases: [EV-2-e2-001]
 tags: [evidence, administracao, modulo, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/administration/index.rst · Administration"
 author: CAD Discovery (doc)
 created: 2026-07-12

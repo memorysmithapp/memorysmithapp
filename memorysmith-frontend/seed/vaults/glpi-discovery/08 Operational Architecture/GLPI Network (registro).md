@@ -4,6 +4,8 @@ aliases: [GLPI Network, Registration key, Chave de registro]
 tags: [configuracao-geral, glpi-network, registro, operacao]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f1-017 · GLPI Network (chave de registro)|EV-2-f1-017]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

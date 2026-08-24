@@ -4,6 +4,8 @@ aliases: [EV-2-a1-002]
 tags: [evidence, doc, access-control, rbac, entities, profiles, authentication]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/first-steps/access-glpi.rst · Administering access controls"
 author: CAD Discovery (doc)
 created: 2026-07-12

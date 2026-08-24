@@ -10,7 +10,8 @@ tags:
   - identity
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: OWASP Authorization Cheat Sheet; NIST SP 800-162 ABAC
 author: OWASP · NIST
 created: 2026-07-25

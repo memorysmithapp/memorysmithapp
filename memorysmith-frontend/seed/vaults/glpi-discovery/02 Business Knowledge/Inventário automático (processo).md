@@ -4,6 +4,8 @@ aliases: [Inventário, Native Inventory, agente]
 tags: [process, inventario, dominio/ativos]
 type: process
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-1-021 · Inventário nativo orquestra parsers InventoryAsset|EV-1-021]]"
 author: CAD Discovery
 created: 2026-07-10

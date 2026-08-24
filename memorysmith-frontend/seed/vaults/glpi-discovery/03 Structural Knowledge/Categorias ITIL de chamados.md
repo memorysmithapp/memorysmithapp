@@ -4,6 +4,8 @@ aliases: [ITIL Categories, Categorias de ticket]
 tags: [assistance, categories, itil, hierarchy, template, dropdown]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-b1-011 · Categorias ITIL e de tarefa|EV-2-b1-011]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -4,6 +4,8 @@ aliases: [EV-2-f1-006]
 tags: [evidence, valores-padrao, preferencias, configuracao-geral]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/configuration/general/default_values.rst · Default values"
 author: CAD Discovery (doc)
 created: 2026-07-12

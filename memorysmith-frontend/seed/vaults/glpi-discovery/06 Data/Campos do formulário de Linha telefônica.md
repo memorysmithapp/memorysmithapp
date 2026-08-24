@@ -4,6 +4,8 @@ aliases: [Campos de Phone line, Phone line fields]
 tags: [management, line, telefonia, campos, formulario, data]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-d2-008 · Phone lines (lines.rst)|EV-2-d2-008]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

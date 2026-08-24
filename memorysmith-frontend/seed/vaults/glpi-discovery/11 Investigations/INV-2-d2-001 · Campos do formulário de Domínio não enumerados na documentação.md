@@ -4,6 +4,8 @@ aliases: [Campos de Domain, Domain form fields]
 tags: [investigation, consumidor/cad, management, domain, campos]
 type: investigation
 status: open
+maturity: seed
+reviewed: false
 author: CAD Discovery (doc)
 created: 2026-07-12
 ---

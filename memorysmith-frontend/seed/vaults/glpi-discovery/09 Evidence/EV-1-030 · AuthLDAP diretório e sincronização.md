@@ -4,6 +4,8 @@ aliases: [EV-1-030]
 tags: [evidence, dominio/admin, ldap]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · src/AuthLDAP.php L59 · src/AuthMail.php L41"
 author: CAD Discovery
 created: 2026-07-10

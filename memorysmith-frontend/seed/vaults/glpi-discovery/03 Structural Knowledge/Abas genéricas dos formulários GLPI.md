@@ -4,6 +4,8 @@ aliases: [abas genéricas, generic tabs, tabs do formulário]
 tags: [tabs, formulario, ui, estrutura]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-g2-001 · Aba All (todas as informações numa página)|EV-2-g2-001]]"
   - "[[EV-2-g2-006 · Aba Documents (documentos anexados ao item)|EV-2-g2-006]]"

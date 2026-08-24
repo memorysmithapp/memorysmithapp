@@ -4,6 +4,8 @@ aliases: [database_instances.rst, Database instances]
 tags: [evidence, management, database-instance, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/management/tabs/database_instances.rst · Database instances"
 author: CAD Discovery (doc)
 created: 2026-07-12

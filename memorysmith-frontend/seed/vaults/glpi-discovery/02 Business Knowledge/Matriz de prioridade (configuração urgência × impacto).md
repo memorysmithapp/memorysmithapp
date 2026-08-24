@@ -4,6 +4,8 @@ aliases: [Priority matrix, Matriz de prioridade]
 tags: [prioridade, urgencia, impacto, matriz, itil, rule, configuracao]
 type: rule
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-b2-005 · Matriz de cálculo de prioridade (urgência × impacto)|EV-2-b2-005]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

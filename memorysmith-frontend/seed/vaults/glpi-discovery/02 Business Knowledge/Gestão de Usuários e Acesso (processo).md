@@ -4,6 +4,8 @@ aliases: [IAM, gestão de acesso, provisionamento]
 tags: [process, seguranca, dominio/admin]
 type: process
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-1-028 · User Group e Profile_User binding RBAC|EV-1-028]]"
   - "[[EV-1-030 · AuthLDAP diretório e sincronização|EV-1-030]]"

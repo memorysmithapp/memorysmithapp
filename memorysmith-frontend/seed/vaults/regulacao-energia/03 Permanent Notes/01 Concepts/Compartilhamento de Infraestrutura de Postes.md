@@ -9,7 +9,8 @@ tags:
   - infraestrutura
   - conceito
 type: concept
-status: growing
+maturity: growing
+reviewed: false
 source: Decreto 12.068/2024, art. 16
 author: Presidência da República
 created: 2026-07-26

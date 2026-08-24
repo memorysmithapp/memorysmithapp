@@ -10,7 +10,8 @@ tags:
   - distributed-systems
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Pattern Saga — microservices.io
 author: Chris Richardson
 created: 2026-07-25

@@ -4,6 +4,8 @@ aliases: [Campos Consumable]
 tags: [data, fields, consumable, stock, doc]
 type: table
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-c2-010 · Consumíveis (consumables.rst)|EV-2-c2-010]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

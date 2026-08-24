@@ -4,6 +4,8 @@ aliases: [EV-2-e2-018]
 tags: [evidence, notificacoes, fila, email, crontask, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/administration/mailqueue.rst · Mailing queue"
 author: CAD Discovery (doc)
 created: 2026-07-12

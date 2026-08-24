@@ -4,6 +4,8 @@ aliases: [EV-2-e2-012]
 tags: [evidence, regras, inventario, entidade, importacao, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/administration/rules/inventorytools.rst · Rules for inventory agent"
 author: CAD Discovery (doc)
 created: 2026-07-12

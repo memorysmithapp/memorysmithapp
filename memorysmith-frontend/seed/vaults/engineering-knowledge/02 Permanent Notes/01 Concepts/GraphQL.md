@@ -8,7 +8,8 @@ tags:
   - graphql
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: GraphQL Documentation — graphql.org, GraphQL Foundation
 author: GraphQL Foundation (criado na Meta)
 created: 2026-07-25

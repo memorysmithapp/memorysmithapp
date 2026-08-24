@@ -9,7 +9,8 @@ tags:
   - devops
   - governance
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Tom Preston-Werner, "Semantic Versioning 2.0.0" (semver.org)
 author: Tom Preston-Werner
 created: 2026-07-25

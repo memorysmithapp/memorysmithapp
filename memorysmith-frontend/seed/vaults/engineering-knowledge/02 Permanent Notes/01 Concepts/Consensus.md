@@ -10,7 +10,8 @@ tags:
   - algorithms
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: In Search of an Understandable Consensus Algorithm — USENIX ATC, 2014
 author: Diego Ongaro e John Ousterhout (Stanford)
 created: 2026-07-25

@@ -10,7 +10,8 @@ tags:
   - integration
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Martin Kleppmann, "Designing Data-Intensive Applications"; Amazon DynamoDB Streams documentation
 author: Martin Kleppmann; Amazon Web Services
 created: 2026-07-25

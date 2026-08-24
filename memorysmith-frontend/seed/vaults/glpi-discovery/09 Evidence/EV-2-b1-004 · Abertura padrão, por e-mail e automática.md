@@ -4,6 +4,8 @@ aliases: [EV-2-b1-004]
 tags: [evidence, assistance, ticket, opening, standard-interface, mail, collector]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/modules/assistance/tickets/ticketopening.rst · Standard interface / Open a ticket by mail / Open a ticket automatically"
 author: CAD Discovery (doc)
 created: 2026-07-12

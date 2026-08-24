@@ -4,6 +4,8 @@ aliases: [System tab, Modo de manutenção, Maintenance mode, Proxy]
 tags: [configuracao-geral, sistema, proxy, manutencao, logging, operacao]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f1-011 · Sistema — logging, CLI, proxy, manutenção, info|EV-2-f1-011]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

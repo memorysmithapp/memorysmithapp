@@ -10,7 +10,8 @@ tags:
   - abertura-de-mercado
   - conceito
 type: concept
-status: growing
+maturity: growing
+reviewed: false
 source: Decreto 12.068/2024, art. 18 e art. 4º, XIV, "c"
 author: Presidência da República
 created: 2026-07-26

@@ -4,6 +4,8 @@ aliases: [EV-1-002]
 tags: [evidence, dominio/foundation, seguranca, direitos]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · codebase/in/glpi/src/autoload/constants.php · linhas 43–109"
 author: CAD Discovery
 created: 2026-07-10

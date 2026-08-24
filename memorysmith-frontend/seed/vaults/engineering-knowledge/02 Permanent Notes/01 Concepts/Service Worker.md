@@ -9,7 +9,8 @@ tags:
   - performance
   - architecture
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: MDN Web Docs — Service Worker API; Integrated Architecture Guide (PWA + AWS Serverless)
 author: Mozilla Developer Network
 created: 2026-07-25

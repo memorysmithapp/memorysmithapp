@@ -11,7 +11,8 @@ tags:
   - web
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: OWASP Session Management Cheat Sheet; BIG ARCHIVE System Design 2023
 author: OWASP · ByteByteGo
 created: 2026-07-25

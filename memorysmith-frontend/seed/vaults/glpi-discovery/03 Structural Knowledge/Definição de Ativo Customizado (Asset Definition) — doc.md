@@ -4,6 +4,8 @@ aliases: [Asset Definition, Ativo customizado, Custom Asset, Generic asset]
 tags: [asset-definition, custom-asset, generic-object, configuration]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-f2-011 · Definições de ativos customizados e criação|EV-2-f2-011]]"
   - "[[EV-2-f2-012 · Capacidades disponíveis para ativos customizados|EV-2-f2-012]]"

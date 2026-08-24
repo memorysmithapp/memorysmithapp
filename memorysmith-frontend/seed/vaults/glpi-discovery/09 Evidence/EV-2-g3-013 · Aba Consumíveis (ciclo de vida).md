@@ -4,6 +4,8 @@ aliases: [EV-2-g3-013]
 tags: [evidence, tab, consumables, stock, lifecycle]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/tabs/consumables.rst · Consumables"
 author: CAD Discovery (doc)
 created: 2026-07-12

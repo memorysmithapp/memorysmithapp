@@ -8,7 +8,8 @@ tags:
   - service
   - management
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: ITIL Foundation (Version 5), PeopleCert, 2026
 author: PeopleCert
 created: 2026-07-24

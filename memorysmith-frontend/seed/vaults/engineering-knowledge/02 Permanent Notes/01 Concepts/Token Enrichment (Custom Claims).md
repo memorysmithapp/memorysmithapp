@@ -11,7 +11,8 @@ tags:
   - aws
   - architecture
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Amazon Cognito Developer Guide (Pre Token Generation Lambda Trigger); Integrated Architecture Guide (PWA + AWS Serverless)
 author: Amazon Web Services
 created: 2026-07-25

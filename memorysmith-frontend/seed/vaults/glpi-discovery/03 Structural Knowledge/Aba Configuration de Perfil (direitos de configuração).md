@@ -4,6 +4,8 @@ aliases: [Configuration tab, Setup permissions, Aba Configuration]
 tags: [perfis, permissoes, configuracao, busca, exibicao]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e1-007 · Aba Configuration do perfil (direitos de exibição de busca)|EV-2-e1-007]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

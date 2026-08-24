@@ -4,6 +4,8 @@ aliases: [EV-1-028]
 tags: [evidence, dominio/admin, usuarios, rbac]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · src/User.php L69 · src/Group.php L45 · src/Group_User.php L45 · src/Profile_User.php L42"
 author: CAD Discovery
 created: 2026-07-10

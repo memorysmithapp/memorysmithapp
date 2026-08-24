@@ -4,6 +4,8 @@ aliases: [EV-2-g2-005]
 tags: [evidence, tabs, debug, notificacoes]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/tabs/debug.rst · Debugging information"
 author: CAD Discovery (doc)
 created: 2026-07-12

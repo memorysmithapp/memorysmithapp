@@ -9,7 +9,8 @@ tags:
   - indicadores
   - conceito
 type: concept
-status: growing
+maturity: growing
+reviewed: false
 source: Decreto 12.068/2024, art. 2º
 author: Presidência da República
 created: 2026-07-26

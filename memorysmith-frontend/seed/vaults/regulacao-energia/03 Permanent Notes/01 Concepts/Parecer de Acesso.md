@@ -7,7 +7,8 @@ tags:
   - acesso
   - conceito
 type: concept
-status: growing
+maturity: growing
+reviewed: false
 source: Lei 14.300/2022, arts. 2º, 5º, 6º, 7º e 26
 author: Presidência da República
 created: 2026-07-26

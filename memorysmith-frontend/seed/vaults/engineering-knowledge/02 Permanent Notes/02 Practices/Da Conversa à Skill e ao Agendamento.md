@@ -11,7 +11,8 @@ tags:
   - automation
   - practice
 type: practice
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Claude Use Cases (Product Cowork) — claude.com/resources/use-cases
 author: Anthropic
 created: 2026-08-04

@@ -4,6 +4,8 @@ aliases: [EV-2-f1-003]
 tags: [evidence, links-externos, twig, tags, configuracao]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/configuration/external_links.rst · External links"
 author: CAD Discovery (doc)
 created: 2026-07-12

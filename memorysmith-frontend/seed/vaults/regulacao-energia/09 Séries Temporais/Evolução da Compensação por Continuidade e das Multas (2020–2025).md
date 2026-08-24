@@ -12,7 +12,8 @@ tags:
   - penalidade
   - dados-abertos
 type: series
-status: growing
+maturity: growing
+reviewed: false
 source: "[[Indicadores Coletivos de Continuidade DEC e FEC (ANEEL)]]"
 author: ANEEL
 created: 2026-07-27

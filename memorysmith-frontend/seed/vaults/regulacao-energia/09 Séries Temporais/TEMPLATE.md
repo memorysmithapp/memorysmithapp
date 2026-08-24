@@ -3,7 +3,8 @@ title: <Evolução de <medida> (AAAA–AAAA)>
 aliases: []
 tags: []
 type: series
-status: seed
+maturity: seed
+reviewed: false
 source: "[[Ficha do Dataset de origem]]"
 author: <Instituição publicadora do dado>
 created: <YYYY-MM-DD>

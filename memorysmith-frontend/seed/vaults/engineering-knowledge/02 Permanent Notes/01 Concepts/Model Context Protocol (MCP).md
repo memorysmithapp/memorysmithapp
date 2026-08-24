@@ -8,7 +8,8 @@ tags:
   - mcp
   - interoperability
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Anthropic MCP Specification
 author: ChatGPT
 created: 2026-07-17

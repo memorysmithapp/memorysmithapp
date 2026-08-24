@@ -4,6 +4,8 @@ aliases: [EV-2-g1-002]
 tags: [evidence, temas, paletas, scss, ui, personalizacao]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · advanced/custom_palettes.rst · Create custom palettes"
 author: CAD Discovery (doc)
 created: 2026-07-12

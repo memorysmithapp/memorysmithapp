@@ -4,6 +4,8 @@ aliases: [Automatic actions, Crontasks catalog, Default actions]
 tags: [operacao, crontask, acao-automatica, cron, agendamento, catalogo]
 type: infra
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-f3-007 · Ações automáticas (crontasks) — config e catálogo|EV-2-f3-007]]"
 author: CAD Discovery (doc)

@@ -4,6 +4,8 @@ aliases: [Common fields, Campos comuns de ativo]
 tags: [assets, data, common-fields, form]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-c1-003 · Formulário e abas de Computador|EV-2-c1-003]]"
   - "[[EV-2-c1-004 · Formulário de Monitor e gestão unitária vs global|EV-2-c1-004]]"

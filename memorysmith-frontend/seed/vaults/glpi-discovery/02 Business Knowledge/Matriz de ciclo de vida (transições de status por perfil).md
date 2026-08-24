@@ -4,6 +4,8 @@ aliases: [Life cycle matrix, Matriz de ciclo de vida]
 tags: [ciclo-de-vida, status, transicoes, perfil, itil, rule]
 type: rule
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-b2-006 · Matriz de ciclo de vida por perfil (transições de status)|EV-2-b2-006]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

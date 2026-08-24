@@ -10,7 +10,8 @@ tags:
   - distributed-systems
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Using load shedding to avoid overload — Amazon Builders' Library
 author: David Yanacek (AWS)
 created: 2026-07-25

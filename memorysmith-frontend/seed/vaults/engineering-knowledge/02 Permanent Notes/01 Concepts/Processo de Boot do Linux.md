@@ -9,7 +9,8 @@ tags:
   - linux
   - infrastructure
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Linux Boot Process Illustrated — BIG ARCHIVE System Design 2023; systemd documentation
 author: ByteByteGo (Alex Xu, Sahn Lam) · freedesktop.org
 created: 2026-07-25

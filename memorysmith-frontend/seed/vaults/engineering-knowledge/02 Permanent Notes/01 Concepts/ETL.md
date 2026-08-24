@@ -5,7 +5,8 @@ aliases:
 tags:
   - data-engineering
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 ETL é o processo de **Extrair**, **Transformar** e **Carregar** dados para um repositório analítico.

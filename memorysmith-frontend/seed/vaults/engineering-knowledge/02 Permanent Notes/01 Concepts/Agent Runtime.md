@@ -8,7 +8,8 @@ tags:
   - agents
   - runtime
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Agentic AI Architectures
 author: ChatGPT
 created: 2026-07-17

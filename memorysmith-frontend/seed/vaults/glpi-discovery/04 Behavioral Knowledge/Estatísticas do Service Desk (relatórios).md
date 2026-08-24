@@ -4,6 +4,8 @@ aliases: [Statistics, Relatórios de tickets, Estatísticas]
 tags: [statistics, relatorios, service-desk, kpi]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-b2-004 · Estatísticas do service desk — relatórios de tickets|EV-2-b2-004]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

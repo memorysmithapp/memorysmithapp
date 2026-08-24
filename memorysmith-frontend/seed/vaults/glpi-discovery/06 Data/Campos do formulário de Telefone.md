@@ -4,6 +4,8 @@ aliases: [Campos de Telefone, Phone fields]
 tags: [assets, data, phone, form]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-c1-006 · Formulário e abas de Telefone|EV-2-c1-006]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

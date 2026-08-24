@@ -4,6 +4,8 @@ aliases: [Links ITIL, Linked To, Duplicates, Son of, Parent of]
 tags: [itil, links, vinculos, ticket, problem, change]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-b2-001 · Gestão de mudanças — formulário, abas e fluxo|EV-2-b2-001]]"
   - "[[EV-2-b2-002 · Gestão de problemas — formulário e abas|EV-2-b2-002]]"

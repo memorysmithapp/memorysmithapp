@@ -3,7 +3,8 @@ title: <Nome do indicador>
 aliases: []
 tags: []
 type: indicator
-status: seed
+maturity: seed
+reviewed: false
 source: "[[Ficha do Dataset de origem]]"
 author: <Instituição publicadora do dado>
 created: <YYYY-MM-DD>

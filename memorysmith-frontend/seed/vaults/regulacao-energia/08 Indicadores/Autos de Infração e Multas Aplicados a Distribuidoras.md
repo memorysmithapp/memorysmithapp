@@ -11,7 +11,8 @@ tags:
   - concessoes
   - dados-abertos
 type: indicator
-status: growing
+maturity: growing
+reviewed: false
 source: "[[Auto de Infração (ANEEL)]]"
 author: ANEEL
 created: 2026-07-27

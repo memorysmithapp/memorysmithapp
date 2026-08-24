@@ -9,7 +9,8 @@ tags:
   - ai-fluency
   - practice
 type: practice
-status: growing
+maturity: growing
+reviewed: false
 source: Claude 101 — Anthropic Academy
 author: Anthropic
 created: 2026-07-31

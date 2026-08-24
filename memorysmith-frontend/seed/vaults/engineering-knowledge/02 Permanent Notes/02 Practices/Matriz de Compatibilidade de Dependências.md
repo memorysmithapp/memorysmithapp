@@ -9,7 +9,8 @@ tags:
   - governance
   - frontend
 type: practice
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Integrated Architecture Guide (PWA + AWS Serverless)
 author: Heitor Rapcinski
 created: 2026-07-25

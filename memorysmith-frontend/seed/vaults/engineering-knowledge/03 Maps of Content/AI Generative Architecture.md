@@ -10,7 +10,8 @@ tags:
   - generative-ai
   - architecture
 type: moc
-status: evergreen
+maturity: evergreen
+reviewed: true
 source:
 author: ChatGPT
 created: 2026-07-17

@@ -11,7 +11,8 @@ tags:
   - operations
   - serverless
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Amazon CloudWatch User Guide; Integrated Architecture Guide (PWA + AWS Serverless)
 author: Amazon Web Services
 created: 2026-07-25

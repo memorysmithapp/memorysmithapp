@@ -4,6 +4,8 @@ aliases: [EV-1-006]
 tags: [evidence, dominio/foundation, seguranca, perfis]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · codebase/in/glpi/src/Profile.php (L57–86) · src/ProfileRight.php"
 author: CAD Discovery
 created: 2026-07-10

@@ -4,6 +4,8 @@ aliases: [EV-2-f3-011]
 tags: [evidence, lock, stub, todo, documentacao-incompleta]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/configuration/locks.rst e modules/configuration/Locks.rst · Locks / lock"
 author: CAD Discovery (doc)
 created: 2026-07-12

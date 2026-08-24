@@ -4,6 +4,8 @@ aliases: [Advanced Configuration, configuração avançada]
 tags: [operacional, avancado, cache, locales, temas, status, indice]
 type: overview
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g1-006 · Índices de Configuração Avançada e Módulos (index.rst)|EV-2-g1-006]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

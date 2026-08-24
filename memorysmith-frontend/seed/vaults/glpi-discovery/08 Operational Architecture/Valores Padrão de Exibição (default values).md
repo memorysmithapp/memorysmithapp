@@ -4,6 +4,8 @@ aliases: [Default values, Valores padrão]
 tags: [configuracao-geral, preferencias, valores-padrao, operacao]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f1-006 · Valores padrão de exibição e assistência|EV-2-f1-006]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

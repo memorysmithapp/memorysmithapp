@@ -4,6 +4,8 @@ aliases: [EV-2-g1-005]
 tags: [evidence, cli, bin-console, comandos, operacional]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · cli.rst · GLPI command-line interface"
 author: CAD Discovery (doc)
 created: 2026-07-12

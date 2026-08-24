@@ -4,6 +4,8 @@ aliases: [appliance.rst, Appliances]
 tags: [evidence, management, appliance, aplicacao, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/management/appliance.rst · Appliances"
 author: CAD Discovery (doc)
 created: 2026-07-12

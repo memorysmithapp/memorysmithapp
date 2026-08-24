@@ -4,6 +4,8 @@ aliases: [EV-1-015]
 tags: [evidence, dominio/ativos, cmdb]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · src/Computer.php L49–108 · src/Monitor.php L49 · src/NetworkEquipment.php L50 · src/Printer.php L50 · src/Phone.php L48"
 author: CAD Discovery
 created: 2026-07-10

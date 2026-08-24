@@ -12,7 +12,8 @@ tags:
   - normas
   - fonte
 type: dataset
-status: growing
+maturity: growing
+reviewed: false
 source: https://git.aneel.gov.br/publico
 author: ANEEL
 created: 2026-07-27

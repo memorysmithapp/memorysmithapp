@@ -4,6 +4,8 @@ aliases: [Software, Versões, Licenças, Software asset]
 tags: [assets, software, version, license, structural, doc]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-c2-007 · Software, versões e licenças (softwares.rst)|EV-2-c2-007]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

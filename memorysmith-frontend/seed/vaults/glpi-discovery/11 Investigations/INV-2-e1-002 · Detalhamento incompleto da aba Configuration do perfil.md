@@ -4,6 +4,8 @@ aliases: [INV-2-e1-002]
 tags: [investigation, consumidor/cad, perfis, permissoes, configuracao, lacuna-doc]
 type: investigation
 status: open
+maturity: seed
+reviewed: false
 author: CAD Discovery (doc)
 created: 2026-07-12
 ---

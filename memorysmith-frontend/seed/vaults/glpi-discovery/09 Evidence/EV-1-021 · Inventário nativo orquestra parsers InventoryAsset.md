@@ -4,6 +4,8 @@ aliases: [EV-1-021]
 tags: [evidence, dominio/ativos, inventario]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · src/Glpi/Inventory/Inventory.php L36–70 · src/Glpi/Inventory/Asset/InventoryAsset.php · src/Glpi/Inventory/MainAsset/MainAsset.php"
 author: CAD Discovery
 created: 2026-07-10

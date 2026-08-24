@@ -4,6 +4,8 @@ aliases: [Notification template]
 tags: [template, notificacao, global, traducao, css]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-f3-005 · Templates de notificação (objeto, tabs, tags)|EV-2-f3-005]]"
 author: CAD Discovery (doc)

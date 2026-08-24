@@ -7,7 +7,8 @@ tags:
   - sancoes
   - conceito
 type: concept
-status: growing
+maturity: growing
+reviewed: false
 source: Decreto 12.068/2024, art. 2º, §§ 9º a 11, e art. 5º
 author: Presidência da República
 created: 2026-07-26

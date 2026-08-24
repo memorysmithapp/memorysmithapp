@@ -4,6 +4,8 @@ aliases: [Arquitetura em camadas, Camadas GLPI]
 tags: [view, arquitetura, dominio/foundation]
 type: view
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-1-004 · Kernel Symfony MicroKernel envolve o legado|EV-1-004]]"
   - "[[EV-1-001 · CommonDBTM é o active-record base com ciclo add-update-delete|EV-1-001]]"

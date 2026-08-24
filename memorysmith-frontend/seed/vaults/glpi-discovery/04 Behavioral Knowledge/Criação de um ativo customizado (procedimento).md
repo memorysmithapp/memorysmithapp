@@ -4,6 +4,8 @@ aliases: [Criar asset definition, Create custom asset]
 tags: [asset-definition, custom-asset, procedure]
 type: use-case
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f2-011 · Definições de ativos customizados e criação|EV-2-f2-011]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

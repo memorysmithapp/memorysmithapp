@@ -8,7 +8,8 @@ tags:
   - governance
   - operations
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 Business Continuity (BC) é a capacidade de uma organização manter suas operações essenciais durante e após eventos adversos.

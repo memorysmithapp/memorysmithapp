@@ -4,6 +4,8 @@ aliases: [Forms, Formulários, Native forms]
 tags: [formularios, forms, self-service, catalogo, doc]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-e2-015 · Formulários nativos - migração e tipos de pergunta|EV-2-e2-015]]"
   - "[[EV-2-e2-016 · Formulários - visibilidade, catálogo, controle de acesso e item a criar|EV-2-e2-016]]"

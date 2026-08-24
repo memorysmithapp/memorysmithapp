@@ -4,7 +4,8 @@ tags:
   - architecture
   - distributed-systems
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 Event Sourcing é um padrão onde o estado da aplicação é reconstruído a partir da sequência de eventos ocorridos.

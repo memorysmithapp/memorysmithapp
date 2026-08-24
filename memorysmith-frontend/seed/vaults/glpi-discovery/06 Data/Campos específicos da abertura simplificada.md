@@ -4,6 +4,8 @@ aliases: [Campos da interface simplificada de abertura]
 tags: [assistance, ticket, opening, simplified-interface, fields, data]
 type: table
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-b1-003 · Campos específicos da abertura na interface simplificada|EV-2-b1-003]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

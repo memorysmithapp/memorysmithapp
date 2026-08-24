@@ -1,7 +1,8 @@
 ---
 type: concept
 tags: [ux, customer-journey, interaction]
-status: evergreen
+maturity: evergreen
+reviewed: true
 ---
 A jornada descreve o percurso de um usuário através de uma sequência de passos para alcançar um objetivo específico. 
 

@@ -10,7 +10,8 @@ tags:
   - cloud-native
   - architecture
 type: moc
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: "BIG ARCHIVE: System Design 2023 (ByteByteGo); fontes primárias listadas em cada nota"
 author: ByteByteGo (Alex Xu, Sahn Lam) e demais autores citados por nota
 created: 2026-07-25

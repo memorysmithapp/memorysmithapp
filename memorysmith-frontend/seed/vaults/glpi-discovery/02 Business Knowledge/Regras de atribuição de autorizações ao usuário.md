@@ -4,6 +4,8 @@ aliases: [User authorizations, Regras de autorização, Entity and rights assign
 tags: [regras, autorizacoes, ldap, perfil, entidade, autenticacao, doc]
 type: rule
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e2-011 · Regras de atribuição de autorizações ao usuário|EV-2-e2-011]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

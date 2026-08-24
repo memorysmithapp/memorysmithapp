@@ -4,6 +4,8 @@ aliases: [Login flow, provisionamento LDAP]
 tags: [flow, autenticacao, dominio/admin]
 type: flow
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-1-029 · Auth com múltiplos métodos e 2FA|EV-1-029]]"
   - "[[EV-1-030 · AuthLDAP diretório e sincronização|EV-1-030]]"

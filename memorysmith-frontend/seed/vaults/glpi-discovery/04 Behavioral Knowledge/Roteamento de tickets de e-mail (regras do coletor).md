@@ -4,6 +4,8 @@ aliases: [Collector rules, Rules for assigning a ticket opened via a receiver]
 tags: [coletor, receiver, regras, roteamento, entidade, email]
 type: flow
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-f3-008 · Receivers (coletores de e-mail), blacklists e regras de roteamento|EV-2-f3-008]]"
 author: CAD Discovery (doc)

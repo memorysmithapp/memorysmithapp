@@ -4,6 +4,8 @@ aliases: [EV-1-009]
 tags: [evidence, dominio/service-desk, atores]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · src/CommonITILActor.php L39–48 · src/Ticket.php L66–68"
 author: CAD Discovery
 created: 2026-07-10

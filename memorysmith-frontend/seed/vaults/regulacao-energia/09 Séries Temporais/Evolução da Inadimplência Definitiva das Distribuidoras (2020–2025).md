@@ -11,7 +11,8 @@ tags:
   - indqual
   - dados-abertos
 type: series
-status: growing
+maturity: growing
+reviewed: false
 source: "[[IndQual - Inadimplência (ANEEL)]]"
 author: ANEEL
 created: 2026-07-27

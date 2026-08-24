@@ -4,6 +4,8 @@ aliases: [EV-1-017]
 tags: [evidence, dominio/ativos, software, licenca]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · src/Software.php · src/SoftwareVersion.php · src/SoftwareLicense.php · src/Item_SoftwareVersion.php L39 · src/Item_SoftwareLicense.php"
 author: CAD Discovery
 created: 2026-07-10

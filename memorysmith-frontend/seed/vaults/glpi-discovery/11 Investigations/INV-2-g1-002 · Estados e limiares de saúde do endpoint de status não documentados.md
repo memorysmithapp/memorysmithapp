@@ -4,6 +4,8 @@ aliases: [INV-2-g1-002]
 tags: [investigation, consumidor/cad, status, health-check, monitoramento, operacional]
 type: investigation
 status: open
+maturity: seed
+reviewed: false
 source: "SRC-002 · advanced/status.rst"
 author: CAD Discovery (doc)
 created: 2026-07-12

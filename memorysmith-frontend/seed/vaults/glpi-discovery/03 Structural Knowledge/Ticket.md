@@ -4,6 +4,8 @@ aliases: [Chamado, Ticket]
 tags: [entity, itil, dominio/service-desk]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-1-010 · Ticket com tipos incidente-requisição e direitos específicos|EV-1-010]]"
   - "[[EV-1-008 · CommonITILObject define statuses e matriz de prioridade|EV-1-008]]"

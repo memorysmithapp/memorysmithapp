@@ -1,7 +1,8 @@
 ---
 type: practice
 tags: [environment, collaboration, setup]
-status: evergreen
+maturity: evergreen
+reviewed: true
 ---
 A **Sala de Guerra** é o ambiente físico dedicado exclusivamente à equipe durante o período intenso da [[Lean Inception Workshop]]. A manutenção de um espaço único evita perda de tempo com deslocamentos e garante que a informação gerada permaneça visível para todos.
 

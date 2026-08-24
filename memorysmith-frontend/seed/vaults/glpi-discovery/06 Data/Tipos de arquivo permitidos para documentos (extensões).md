@@ -4,6 +4,8 @@ aliases: [Document types, Downloadable file types]
 tags: [data, management, document, file-types, doc]
 type: table
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-d1-007 · Tipos de arquivo autorizados para upload de documentos|EV-2-d1-007]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

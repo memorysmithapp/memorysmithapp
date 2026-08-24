@@ -4,6 +4,8 @@ aliases: [Page counters, Cartridges tab]
 tags: [assets, data, printer, cartridge, page-counter]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-c1-007 · Formulário e abas de Impressora|EV-2-c1-007]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

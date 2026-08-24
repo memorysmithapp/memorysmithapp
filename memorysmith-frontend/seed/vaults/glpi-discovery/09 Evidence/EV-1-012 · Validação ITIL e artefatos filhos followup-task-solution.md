@@ -4,6 +4,8 @@ aliases: [EV-1-012]
 tags: [evidence, dominio/service-desk, validacao, followup]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · src/CommonITILValidation.php L49,62–65 · src/ITILFollowup.php L44 · src/CommonITILTask.php · src/ITILSolution.php L42 · src/PendingReason.php L41"
 author: CAD Discovery
 created: 2026-07-10

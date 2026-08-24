@@ -4,6 +4,8 @@ aliases: [EV-2-b1-010]
 tags: [evidence, assistance, actors, requester, technician, watcher, roles]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/modules/assistance/actors.rst · Defining actors and roles"
 author: CAD Discovery (doc)
 created: 2026-07-12

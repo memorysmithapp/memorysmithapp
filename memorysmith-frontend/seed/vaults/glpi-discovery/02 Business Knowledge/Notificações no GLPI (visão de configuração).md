@@ -4,6 +4,8 @@ aliases: [Notificações (config), Notifications]
 tags: [notificacao, capacidade, config, email, browser]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-f3-001 · Visão geral e funcionamento das notificações|EV-2-f3-001]]"
   - "[[EV-2-f3-004 · Configuração de e-mail (follow-ups) global e por entidade|EV-2-f3-004]]"

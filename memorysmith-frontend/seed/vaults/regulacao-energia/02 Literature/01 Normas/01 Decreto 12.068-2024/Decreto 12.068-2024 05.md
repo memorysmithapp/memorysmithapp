@@ -8,7 +8,8 @@ tags:
   - telecomunicacoes
   - consumidores
 type: literature
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Decreto nº 12.068/2024, Capítulo V, arts. 15 a 23
 author: Presidência da República
 created: 2026-07-26

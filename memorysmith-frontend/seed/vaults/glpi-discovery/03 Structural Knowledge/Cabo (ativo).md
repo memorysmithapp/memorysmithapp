@@ -4,6 +4,8 @@ aliases: [Cable, Cabo, Cabos]
 tags: [assets, cable, connectivity, dcim, structural, doc]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-c2-006 · Cabos (cables.rst)|EV-2-c2-006]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

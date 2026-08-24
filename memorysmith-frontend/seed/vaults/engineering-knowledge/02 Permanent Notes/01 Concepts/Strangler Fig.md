@@ -9,7 +9,8 @@ tags:
   - legacy-modernization
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Strangler Fig (bliki) — martinfowler.com, 2024
 author: Martin Fowler
 created: 2026-07-25

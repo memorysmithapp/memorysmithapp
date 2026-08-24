@@ -8,7 +8,8 @@ tags:
   - agent
   - workflow
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Claude 101 — Anthropic Academy; Claude Use Cases (Product Cowork) — claude.com
 author: Anthropic
 created: 2026-07-31

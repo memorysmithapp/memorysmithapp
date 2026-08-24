@@ -4,6 +4,8 @@ aliases: [Resoluções sessão 2, cruzamento SRC-001 × SRC-002, doc responde ao
 tags: [decision, sintese, cruzamento-fontes, sessao/2]
 type: decision
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[Registro de Evidências]]"
 author: CAD Discovery
 created: 2026-07-12

@@ -4,6 +4,8 @@ aliases: [INV-2-b2-003]
 tags: [investigation, consumidor/cad, problema, solucao]
 type: investigation
 status: open
+maturity: seed
+reviewed: false
 source: "[[EV-2-b2-002 · Gestão de problemas — formulário e abas|EV-2-b2-002]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

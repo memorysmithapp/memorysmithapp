@@ -4,6 +4,8 @@ aliases: [EV-<sessão>-<seq>]
 tags: [evidence, dominio/<dominio>]
 type: evidence
 status: draft
+maturity: seed
+reviewed: false
 source: "<SRC-00N · caminho/do/arquivo · linhas NN–NN>"
 author: <Quem extraiu>
 created: <YYYY-MM-DD>

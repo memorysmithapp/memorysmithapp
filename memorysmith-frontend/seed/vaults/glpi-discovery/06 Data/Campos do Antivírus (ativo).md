@@ -4,6 +4,8 @@ aliases: [Antivirus fields]
 tags: [data, assets, antivirus, fields]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-c3-001 · Aba Antivírus de um Computador|EV-2-c3-001]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

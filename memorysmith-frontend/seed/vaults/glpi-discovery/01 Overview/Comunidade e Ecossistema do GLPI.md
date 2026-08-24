@@ -4,6 +4,8 @@ aliases: [Comunidade GLPI, Ecossistema GLPI, Plugin catalog]
 tags: [overview, community, plugins, partners, forum]
 type: overview
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-a1-012 · Comunidade, catálogo de plugins e parceiros|EV-2-a1-012]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

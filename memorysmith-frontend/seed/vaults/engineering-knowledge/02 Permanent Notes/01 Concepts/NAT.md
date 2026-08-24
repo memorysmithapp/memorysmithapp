@@ -9,7 +9,8 @@ tags:
   - infrastructure
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: RFC 3022 Traditional IP Network Address Translator — IETF, 2001
 author: P. Srisuresh e K. Egevang (IETF)
 created: 2026-07-25

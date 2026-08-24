@@ -10,7 +10,8 @@ tags:
   - distribuicao
   - glossario
 type: literature
-status: growing
+maturity: growing
+reviewed: false
 source: REN ANEEL 956/2021, Anexo I — PRODIST Módulo 1, v12
 author: ANEEL
 created: 2026-07-26

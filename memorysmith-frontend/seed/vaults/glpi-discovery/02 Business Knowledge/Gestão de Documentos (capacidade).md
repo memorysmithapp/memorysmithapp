@@ -4,6 +4,8 @@ aliases: [Documents management]
 tags: [capability, management, document, doc]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-d1-006 · Documentos — armazenamento, cabeçalhos e itens vinculáveis|EV-2-d1-006]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

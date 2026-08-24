@@ -4,6 +4,8 @@ aliases: [ER gestão, contratos financeiro view]
 tags: [view, gestao, dados, dominio/gestao]
 type: view
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-1-023 · Contract com renovação alerta custos e vínculo a itens|EV-1-023]]"
   - "[[EV-1-024 · Supplier Contact e Budget|EV-1-024]]"

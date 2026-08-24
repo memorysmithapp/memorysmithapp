@@ -10,7 +10,8 @@ tags:
   - database
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Designing Data-Intensive Applications, cap. 9 — O'Reilly, 2017
 author: Martin Kleppmann
 created: 2026-07-25

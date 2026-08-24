@@ -4,6 +4,8 @@ aliases: [EV-2-a1-010]
 tags: [evidence, doc, password, reset, security-policy, ldap]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/first-steps/manage-your-password.rst · Manage your password"
 author: CAD Discovery (doc)
 created: 2026-07-12

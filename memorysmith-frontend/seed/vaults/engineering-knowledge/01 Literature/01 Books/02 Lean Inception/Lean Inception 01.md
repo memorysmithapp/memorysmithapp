@@ -7,7 +7,8 @@ tags:
 aliases:
   - "Parte 1: Construindo o Produto Certo"
 type: literature
-status: evergreen
+maturity: evergreen
+reviewed: true
 ---
 ## Parte 1: Construindo o Produto Certo
 

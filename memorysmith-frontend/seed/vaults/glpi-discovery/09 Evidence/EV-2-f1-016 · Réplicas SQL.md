@@ -4,6 +4,8 @@ aliases: [EV-2-f1-016]
 tags: [evidence, sql, replicas, banco-de-dados, configuracao-geral]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/configuration/general/sql_replicas.rst · SQL replicas"
 author: CAD Discovery (doc)
 created: 2026-07-12

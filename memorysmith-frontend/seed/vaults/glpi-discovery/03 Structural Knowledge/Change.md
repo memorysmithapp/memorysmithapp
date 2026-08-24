@@ -4,6 +4,8 @@ aliases: [Mudança, Change]
 tags: [entity, itil, dominio/service-desk]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-1-013 · Change e Problem estendem CommonITILObject com fases próprias|EV-1-013]]"
 author: CAD Discovery
 created: 2026-07-10

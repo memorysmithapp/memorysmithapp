@@ -9,7 +9,8 @@ tags:
   - protocols
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: RFC 1034 e RFC 1035 Domain Names — IETF, 1987
 author: Paul Mockapetris (IETF)
 created: 2026-07-25

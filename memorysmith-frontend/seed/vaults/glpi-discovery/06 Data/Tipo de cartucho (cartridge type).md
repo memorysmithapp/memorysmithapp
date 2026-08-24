@@ -4,6 +4,8 @@ aliases: [Cartridge type, Tipo de cartucho]
 tags: [campos-comuns, consumiveis, cartucho, dropdown, data]
 type: field
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g4-009 · Campos de estoque e consumíveis (limite de alerta, estoque-alvo, tipo de cartucho)|EV-2-g4-009]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

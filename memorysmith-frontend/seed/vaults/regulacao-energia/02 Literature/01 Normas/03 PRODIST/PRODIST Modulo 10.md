@@ -11,7 +11,8 @@ tags:
   - dados-abertos
   - geoprocessamento
 type: literature
-status: growing
+maturity: growing
+reviewed: false
 source: REN ANEEL 956/2021, Anexo X — PRODIST Módulo 10, v4
 author: ANEEL
 created: 2026-07-26

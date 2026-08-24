@@ -4,6 +4,8 @@ aliases: [EV-1-036]
 tags: [evidence, dominio/integracoes, email]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · src/MailCollector.php L73 · src/RuleMailCollector.php"
 author: CAD Discovery
 created: 2026-07-10

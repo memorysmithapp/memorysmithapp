@@ -4,6 +4,8 @@ aliases: [EV-2-g4-005]
 tags: [evidence, campos-comuns, localizacao, datacenter]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · tabs/common_fields/location.rst · Location; tabs/common_fields/data_center_position.rst · Data center position"
 author: CAD Discovery (doc)
 created: 2026-07-12

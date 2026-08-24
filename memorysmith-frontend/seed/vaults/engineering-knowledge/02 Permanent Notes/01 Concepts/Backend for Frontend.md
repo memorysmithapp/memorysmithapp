@@ -9,7 +9,8 @@ tags:
   - api
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Pattern Backends for Frontends — Sam Newman; Building Microservices, O'Reilly
 author: Sam Newman · Phil Calçado (SoundCloud)
 created: 2026-07-25

@@ -11,7 +11,8 @@ tags:
   - prodist-8
   - insight
 type: insight
-status: growing
+maturity: growing
+reviewed: false
 source: "[[Transgressão dos Limites Coletivos de Continuidade]]"
 author: Análise própria (assistida por IA)
 created: 2026-07-27

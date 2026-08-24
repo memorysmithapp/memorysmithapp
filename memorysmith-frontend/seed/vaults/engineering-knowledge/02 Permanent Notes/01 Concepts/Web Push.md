@@ -10,7 +10,8 @@ tags:
   - notifications
   - architecture
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: MDN Web Docs — Push API; RFC 8030 (Web Push Protocol), RFC 8292 (VAPID)
 author: Mozilla Developer Network; IETF
 created: 2026-07-25

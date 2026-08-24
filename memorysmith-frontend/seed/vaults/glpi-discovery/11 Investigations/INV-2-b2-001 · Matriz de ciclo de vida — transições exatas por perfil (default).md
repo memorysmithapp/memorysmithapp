@@ -4,6 +4,8 @@ aliases: [INV-2-b2-001]
 tags: [investigation, consumidor/cad, ciclo-de-vida, status]
 type: investigation
 status: open
+maturity: seed
+reviewed: false
 source: "[[EV-2-b2-006 · Matriz de ciclo de vida por perfil (transições de status)|EV-2-b2-006]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

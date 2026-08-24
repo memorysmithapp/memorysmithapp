@@ -4,6 +4,8 @@ aliases: [EV-2-d1-005]
 tags: [evidence, management, budget, doc, financial]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/modules/management/budgets.rst · Budgets"
 author: CAD Discovery (doc)
 created: 2026-07-12

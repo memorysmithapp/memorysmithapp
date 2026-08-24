@@ -9,7 +9,8 @@ tags:
   - cowork
   - literature
 type: literature
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: claude.com/resources/use-cases — filtro Product = Claude Cowork
 author: Anthropic
 created: 2026-08-04

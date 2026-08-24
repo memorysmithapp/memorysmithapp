@@ -11,7 +11,8 @@ tags:
   - api
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: RFC 6749 The OAuth 2.0 Authorization Framework — IETF; oauth.net
 author: IETF OAuth Working Group
 created: 2026-07-25

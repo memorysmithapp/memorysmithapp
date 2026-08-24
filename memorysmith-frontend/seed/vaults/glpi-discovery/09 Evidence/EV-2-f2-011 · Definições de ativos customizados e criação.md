@@ -4,6 +4,8 @@ aliases: [EV-2-f2-011]
 tags: [evidence, asset-definition, custom-asset, generic-object]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/configuration/asset_definitions/asset_definitions.rst · seções Asset Definitions/Migration/Definitions/Create an asset"
 author: CAD Discovery (doc)
 created: 2026-07-12

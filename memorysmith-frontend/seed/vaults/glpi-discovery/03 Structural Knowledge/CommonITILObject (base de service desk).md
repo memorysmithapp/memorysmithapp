@@ -4,6 +4,8 @@ aliases: [CommonITILObject, base ITIL]
 tags: [component, itil, dominio/service-desk]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-1-008 · CommonITILObject define statuses e matriz de prioridade|EV-1-008]]"
   - "[[EV-1-009 · Atores ITIL requester-assign-observer|EV-1-009]]"

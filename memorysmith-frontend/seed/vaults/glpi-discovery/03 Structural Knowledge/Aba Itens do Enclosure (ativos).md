@@ -4,6 +4,8 @@ aliases: [Enclosure items tab, Aba Itens do Chassi, Items (enclosure)]
 tags: [assets, tab, dcim, enclosure, chassis]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-c3-011 · Abas Itens de Enclosure e Itens de Rack (DCIM)|EV-2-c3-011]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

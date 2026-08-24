@@ -10,7 +10,8 @@ tags:
   - identity
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: NIST SP 800-207 Zero Trust Architecture — NIST, 2020
 author: NIST
 created: 2026-07-25

@@ -12,7 +12,7 @@
         "moc": 8,
         "project": 3
       },
-      "byStatus": {
+      "byMaturity": {
         "evergreen": 497,
         "growing": 67,
         "seed": 9
@@ -39,7 +39,7 @@
         "series": 3,
         "insight": 4
       },
-      "byStatus": {
+      "byMaturity": {
         "growing": 91,
         "evergreen": 15,
         "seed": 60
@@ -81,10 +81,10 @@
         "view": 8,
         "moc": 9
       },
-      "byStatus": {
-        "confirmed": 723,
-        "inferred": 1,
-        "open": 34
+      "byMaturity": {
+        "evergreen": 723,
+        "growing": 1,
+        "seed": 34
       },
       "links": {
         "resolved": 3864,

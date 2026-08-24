@@ -4,6 +4,8 @@ aliases: [IMAP auth, POP auth, Mail servers auth]
 tags: [authentication, imap, pop, email]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f2-003 · Autenticação via servidor de e-mail IMAP-POP|EV-2-f2-003]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

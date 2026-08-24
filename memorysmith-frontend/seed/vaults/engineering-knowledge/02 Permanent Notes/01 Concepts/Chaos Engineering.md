@@ -9,7 +9,8 @@ tags:
   - testing
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Principles of Chaos Engineering — principlesofchaos.org, 2019
 author: Chaos Community (Netflix e colaboradores)
 created: 2026-07-25

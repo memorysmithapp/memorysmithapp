@@ -4,6 +4,8 @@ aliases: [Network Ports tab, Aba Portas de rede]
 tags: [assets, data, network-port, tab]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-c1-003 · Formulário e abas de Computador|EV-2-c1-003]]"
   - "[[EV-2-c1-009 · Ativos não gerenciados e conversão de tipo|EV-2-c1-009]]"

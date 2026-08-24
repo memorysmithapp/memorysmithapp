@@ -4,6 +4,8 @@ aliases: [Custom fields management, Campos customizados de ativos]
 tags: [asset-definition, custom-fields, procedure]
 type: use-case
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f2-013 · Campos perfis e traduções de ativos customizados|EV-2-f2-013]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

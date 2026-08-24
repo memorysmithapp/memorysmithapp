@@ -8,7 +8,8 @@ tags:
   - prompting
   - ai-fluency
 type: literature
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Claude 101 — Anthropic Academy, lições 1–4
 author: Anthropic
 created: 2026-07-31

@@ -3,14 +3,17 @@
 // encode folder order, README.md carries the guidance (vault root) or the
 // folder description, TEMPLATE.md carries the folder template. Note bodies are
 // copied byte for byte — the backend never interprets content (PP4), and
-// neither does this script.
+// neither does this script. The only exception is the frontmatter head, where
+// the cross-vault authoring standard is applied: `maturity` (seed | growing |
+// evergreen) and `reviewed` (whether the current revision has passed human
+// review) — see normalizeFrontmatter for the per-vault derivation.
 //
 // Sources live on the author's machine and are NOT part of the repository;
 // the generated trees under seed/vaults/ are the committed artifact.
 //
 // Usage: node memorysmith-frontend/seed/tools/build-seed.mjs
 
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -150,12 +153,53 @@ function parseTags(head) {
     .filter(Boolean);
 }
 
+// Applies the cross-vault frontmatter standard to a note head, leaving the
+// body untouched. engineering-knowledge and regulacao-energia already use the
+// maturity vocabulary under the `status` key, so the key is renamed and
+// `reviewed` is seeded from the vault's own definition of evergreen ("madura,
+// revisada"). glpi-discovery keeps its vault-specific evidence `status` and
+// gains a derived `maturity`; its notes are agent-produced, so `reviewed`
+// starts false everywhere.
+const GLPI_MATURITY_BY_STATUS = {
+  confirmed: 'evergreen',
+  superseded: 'evergreen',
+  inferred: 'growing',
+  draft: 'seed',
+  open: 'seed',
+};
+
+function normalizeFrontmatter(raw, vaultSlug) {
+  if (!raw.startsWith('---')) return raw;
+  const end = raw.indexOf('\n---', 3);
+  if (end === -1) return raw;
+  let head = raw.slice(0, end);
+  const rest = raw.slice(end);
+
+  if (vaultSlug === 'glpi-discovery') {
+    const status = /^status:\s*(\S+)/m.exec(head)?.[1];
+    const maturity = GLPI_MATURITY_BY_STATUS[status] ?? 'seed';
+    if (/^status:/m.test(head)) {
+      head = head.replace(/^(status:[^\n]*)$/m, `$1\nmaturity: ${maturity}\nreviewed: false`);
+    } else {
+      head += `\nmaturity: ${maturity}\nreviewed: false`;
+    }
+  } else if (/^status:/m.test(head)) {
+    head = head.replace(
+      /^status:(\s*)(\S+)[^\n]*$/m,
+      (_, sp, value) => `maturity:${sp}${value}\nreviewed: ${value === 'evergreen' ? 'true' : 'false'}`,
+    );
+  } else {
+    head += '\nmaturity: seed\nreviewed: false';
+  }
+  return head + rest;
+}
+
 function collectNoteStats(raw, vault, slug, title) {
   const head = raw.startsWith('---') ? raw.slice(0, raw.indexOf('\n---', 3)) : '';
   const type = /^type:\s*(\S+)/m.exec(head)?.[1] ?? 'none';
-  const status = /^status:\s*(\S+)/m.exec(head)?.[1] ?? 'none';
+  const maturity = /^maturity:\s*(\S+)/m.exec(head)?.[1] ?? 'none';
   vault.stats.byType[type] = (vault.stats.byType[type] ?? 0) + 1;
-  vault.stats.byStatus[status] = (vault.stats.byStatus[status] ?? 0) + 1;
+  vault.stats.byMaturity[maturity] = (vault.stats.byMaturity[maturity] ?? 0) + 1;
 
   const out = new Set();
   for (const m of raw.matchAll(WIKILINK)) {
@@ -174,8 +218,9 @@ function copyNotes(srcDir, outDir, vault, counters, depth) {
     const slug = slugify(title);
     if (vault.slugs.has(slug)) warnings.push(`[${vault.slug}] duplicate note slug "${slug}" (${join(outDir, f)})`);
     vault.slugs.add(slug);
-    collectNoteStats(readFileSync(join(srcDir, f), 'utf8'), vault, slug, title);
-    cpSync(join(srcDir, f), join(outDir, f));
+    const raw = normalizeFrontmatter(readFileSync(join(srcDir, f), 'utf8'), vault.slug);
+    collectNoteStats(raw, vault, slug, title);
+    writeFileSync(join(outDir, f), raw, 'utf8');
     counters.notes += 1;
   }
 }
@@ -228,7 +273,7 @@ for (const def of VAULTS) {
     def,
     slugs: new Set(),
     linkTargets: new Map(),
-    stats: { byType: {}, byStatus: {} },
+    stats: { byType: {}, byMaturity: {} },
     graphNotes: [],
   };
   const counters = { notes: 0, folders: 0 };
@@ -253,7 +298,7 @@ for (const def of VAULTS) {
     notes: counters.notes,
     folders: counters.folders,
     byType: vault.stats.byType,
-    byStatus: vault.stats.byStatus,
+    byMaturity: vault.stats.byMaturity,
     links: { resolved, pending },
   });
 

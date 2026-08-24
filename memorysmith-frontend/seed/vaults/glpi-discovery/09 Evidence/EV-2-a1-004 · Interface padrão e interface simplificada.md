@@ -4,6 +4,8 @@ aliases: [EV-2-a1-004]
 tags: [evidence, doc, interface, standard, simplified, helpdesk, dashboard]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/first-steps/interfaces.rst · User interfaces (Standard Interface / Simplified Interface)"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -4,6 +4,8 @@ aliases: [INV-1-005]
 tags: [investigation, consumidor/cad, itil]
 type: investigation
 status: open
+maturity: seed
+reviewed: false
 source: "[[EV-1-008 · CommonITILObject define statuses e matriz de prioridade|EV-1-008]]"
 author: CAD Discovery
 created: 2026-07-10

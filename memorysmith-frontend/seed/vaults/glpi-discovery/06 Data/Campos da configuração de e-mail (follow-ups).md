@@ -4,6 +4,8 @@ aliases: [Email follow-ups fields, SMTP config fields]
 tags: [dados, email, smtp, config, campos, entidade]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-f3-004 · Configuração de e-mail (follow-ups) global e por entidade|EV-2-f3-004]]"
 author: CAD Discovery (doc)

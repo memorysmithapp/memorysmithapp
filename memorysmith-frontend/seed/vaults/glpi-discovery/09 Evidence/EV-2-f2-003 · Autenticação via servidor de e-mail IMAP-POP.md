@@ -4,6 +4,8 @@ aliases: [EV-2-f2-003]
 tags: [evidence, authentication, imap, pop, email]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/configuration/authentication/imap.rst"
 author: CAD Discovery (doc)
 created: 2026-07-12

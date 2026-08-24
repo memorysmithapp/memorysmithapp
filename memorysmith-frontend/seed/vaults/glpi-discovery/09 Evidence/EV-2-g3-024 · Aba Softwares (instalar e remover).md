@@ -4,6 +4,8 @@ aliases: [EV-2-g3-024]
 tags: [evidence, tab, software, install]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/tabs/software.rst · Software"
 author: CAD Discovery (doc)
 created: 2026-07-12

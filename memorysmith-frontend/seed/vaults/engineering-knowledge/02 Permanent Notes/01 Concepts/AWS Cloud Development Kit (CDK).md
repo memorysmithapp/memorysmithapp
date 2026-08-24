@@ -10,7 +10,8 @@ tags:
   - devops
   - cloud
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: AWS CDK Developer Guide; Integrated Architecture Guide (PWA + AWS Serverless)
 author: Amazon Web Services
 created: 2026-07-25

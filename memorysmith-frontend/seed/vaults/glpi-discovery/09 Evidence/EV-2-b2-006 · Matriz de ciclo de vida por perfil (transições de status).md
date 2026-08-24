@@ -4,6 +4,8 @@ aliases: [EV-2-b2-006]
 tags: [evidence, lifecycle, ciclo-de-vida, status, transicoes, perfil, itil]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/assistance/lifecyclematrix.rst · Life cycle matrix (documento inteiro)"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -4,6 +4,8 @@ aliases: [EV-2-g2-011]
 tags: [evidence, tabs, notes, notas]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/tabs/notes.rst · Notes"
 author: CAD Discovery (doc)
 created: 2026-07-12

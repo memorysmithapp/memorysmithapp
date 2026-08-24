@@ -10,7 +10,8 @@ tags:
   - inclusao-energetica
   - conceito
 type: concept
-status: seed
+maturity: seed
+reviewed: false
 source: Decreto 12.068/2024, art. 4º, XIV "d", XV, §§ 2º e 3º, e art. 19
 author: Presidência da República
 created: 2026-07-26

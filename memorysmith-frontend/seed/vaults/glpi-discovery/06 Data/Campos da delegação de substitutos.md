@@ -4,6 +4,8 @@ aliases: [campos authorized substitutes]
 tags: [data, campos, substitutes, delegacao, validacao]
 type: data
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g2-017 · Substitutos autorizados (delegação de validação)|EV-2-g2-017]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

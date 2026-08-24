@@ -4,6 +4,8 @@ aliases: [Document types fields, Tipos de documento]
 tags: [data, dropdown, document-types, fields]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f2-010 · Outros dropdowns tipos modelos documentos SO unicidade login|EV-2-f2-010]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

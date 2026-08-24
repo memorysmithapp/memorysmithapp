@@ -8,7 +8,8 @@ tags:
   - computing
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: IEEE Std 1003.1 POSIX; Modern Operating Systems, Andrew S. Tanenbaum
 author: IEEE · Andrew S. Tanenbaum
 created: 2026-07-25

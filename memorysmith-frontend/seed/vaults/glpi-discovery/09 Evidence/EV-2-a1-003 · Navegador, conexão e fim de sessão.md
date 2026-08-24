@@ -4,6 +4,8 @@ aliases: [EV-2-a1-003]
 tags: [evidence, doc, login, browser, session, interface]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/first-steps/general.rst · General (Choose a web browser / How to connect / End your session)"
 author: CAD Discovery (doc)
 created: 2026-07-12

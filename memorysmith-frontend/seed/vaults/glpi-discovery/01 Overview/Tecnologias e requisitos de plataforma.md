@@ -4,6 +4,8 @@ aliases: [Stack, Requisitos, Tecnologias]
 tags: [overview, tecnologia, dominio/foundation]
 type: overview
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-1-002 · Constantes globais e bitmask de direitos|EV-1-002]]"
   - "[[EV-1-004 · Kernel Symfony MicroKernel envolve o legado|EV-1-004]]"

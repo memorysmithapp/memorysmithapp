@@ -1,7 +1,8 @@
 ---
 type: practice
 tags: [estimation, risk-management, business-value]
-status: evergreen
+maturity: evergreen
+reviewed: true
 ---
 Após o brainstorming, cada funcionalidade é avaliada sob três perspectivas para auxiliar na priorização e planejamento.
 

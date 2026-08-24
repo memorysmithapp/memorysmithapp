@@ -4,6 +4,8 @@ aliases: [Document linkable items, Associated Items]
 tags: [component, management, document, doc]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-d1-006 · Documentos — armazenamento, cabeçalhos e itens vinculáveis|EV-2-d1-006]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -38,6 +38,8 @@ aliases: [EV-1-001]
 tags: [evidence, dominio/foundation]
 type: evidence       # overview | process | component | behavior | data | integration | operational | evidence | decision | investigation | view | moc
 status: confirmed    # draft | confirmed | superseded
+maturity: evergreen  # seed | growing | evergreen
+reviewed: false      # true somente após revisão humana da revisão vigente
 source: "SRC-001 · src/CommonDBTM.php · linhas 68, 336, 1286–1405"
 author: CAD Discovery
 created: 2026-07-10
@@ -46,7 +48,8 @@ created: 2026-07-10
 
 - `tags` carregam o domínio funcional com prefixo: `dominio/foundation`, `dominio/service-desk`, `dominio/ativos`.
 - `source` de nota de conhecimento aponta evidências; `source` de evidência aponta a fonte primária.
-- `status: superseded` marca nota substituída por leitura mais recente, sem apagá-la.
+- `status: superseded` marca nota substituída por leitura mais recente, sem apagá-la. O `status` é o ciclo de vida da evidência deste vault e independe dos dois campos padrão.
+- `maturity` e `reviewed` são o padrão de todos os vaults e formam dois eixos independentes: `maturity` registra a maturação do conteúdo (`seed` capturado, `growing` utilizável com lacunas, `evergreen` maduro e conectado) e é reavaliado a cada escrita; `reviewed` registra se a revisão vigente passou por revisão humana, somente um humano o escreve como `true` e qualquer edição posterior de conteúdo o devolve a `false`.
 
 ## Regras de escrita
 

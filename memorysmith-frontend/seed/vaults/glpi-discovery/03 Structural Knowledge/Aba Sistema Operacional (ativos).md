@@ -4,6 +4,8 @@ aliases: [Operating system tab, Aba SO, Aba OS]
 tags: [assets, tab, os, operating-system, computer]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-c3-006 · Aba Sistema Operacional de um Computador|EV-2-c3-006]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

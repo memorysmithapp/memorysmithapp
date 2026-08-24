@@ -4,6 +4,8 @@ aliases: [EV-2-g4-008]
 tags: [evidence, campos-comuns, gestao, management-type]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · tabs/common_fields/management_type.rst · Management type"
 author: CAD Discovery (doc)
 created: 2026-07-12

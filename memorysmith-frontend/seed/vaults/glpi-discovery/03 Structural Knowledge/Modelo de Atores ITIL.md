@@ -4,6 +4,8 @@ aliases: [Atores ITIL, requester assign observer]
 tags: [concept, itil, atores, dominio/service-desk]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-1-009 · Atores ITIL requester-assign-observer|EV-1-009]]"
 author: CAD Discovery
 created: 2026-07-10

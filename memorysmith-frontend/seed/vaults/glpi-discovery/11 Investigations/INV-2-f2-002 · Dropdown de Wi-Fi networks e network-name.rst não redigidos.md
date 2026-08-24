@@ -4,6 +4,8 @@ aliases: [INV-2-f2-002]
 tags: [investigation, consumidor/cad, dropdown, internet, doc-gap]
 type: investigation
 status: open
+maturity: seed
+reviewed: false
 author: CAD Discovery (doc)
 created: 2026-07-12
 ---

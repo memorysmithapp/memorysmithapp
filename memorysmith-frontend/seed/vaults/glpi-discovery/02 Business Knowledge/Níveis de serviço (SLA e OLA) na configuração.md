@@ -4,6 +4,8 @@ aliases: [Service Levels, SLA e OLA (config)]
 tags: [sla, ola, service-level, regra, config]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-f3-009 · Níveis de serviço (SLA-OLA) e escalonamento|EV-2-f3-009]]"
 author: CAD Discovery (doc)

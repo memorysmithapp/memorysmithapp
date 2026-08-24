@@ -4,6 +4,8 @@ aliases: [EV-1-007]
 tags: [evidence, dominio/foundation, plugins, extensibilidade]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · codebase/in/glpi/src/CommonDBTM.php (L50, 1336, 1345) · Glpi\\Plugin\\Hooks"
 author: CAD Discovery
 created: 2026-07-10

@@ -8,7 +8,8 @@ tags:
   - product-management
   - mvp
 type: literature
-status: evergreen
+maturity: evergreen
+reviewed: true
 ---
 ## Resumo
 

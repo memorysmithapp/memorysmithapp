@@ -9,7 +9,8 @@ tags:
   - llm
   - concepts
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: OpenAI, Anthropic, Google DeepMind, Meta
 author: ChatGPT
 created: 2026-07-17

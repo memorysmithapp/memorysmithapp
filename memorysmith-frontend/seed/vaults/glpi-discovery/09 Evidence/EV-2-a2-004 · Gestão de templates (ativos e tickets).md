@@ -4,6 +4,8 @@ aliases: [EV-2-a2-004]
 tags: [evidence, templates, autofill, tickets]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/overview/templates.rst · Template management in GLPI (Introduction, Assets, Increment, Ticket templates)"
 author: CAD Discovery (doc)
 created: 2026-07-12

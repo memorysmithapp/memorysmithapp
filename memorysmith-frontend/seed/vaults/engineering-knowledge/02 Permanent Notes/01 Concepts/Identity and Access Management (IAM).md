@@ -9,7 +9,8 @@ tags:
   - governance
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: NIST SP 800-63 Digital Identity Guidelines; AWS IAM Documentation
 author: NIST · Amazon Web Services
 created: 2026-07-25

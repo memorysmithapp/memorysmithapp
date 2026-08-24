@@ -4,6 +4,8 @@ aliases: [EV-2-g4-009]
 tags: [evidence, campos-comuns, estoque, consumiveis, cartucho, alerta]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · tabs/common_fields/alert_threshold.rst · Alert threshold; tabs/common_fields/stock_target.rst · Stock target; tabs/common_fields/cartridge_type.rst · Cartridge Type"
 author: CAD Discovery (doc)
 created: 2026-07-12

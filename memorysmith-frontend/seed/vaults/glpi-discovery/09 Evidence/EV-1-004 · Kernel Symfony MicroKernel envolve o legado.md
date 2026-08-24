@@ -4,6 +4,8 @@ aliases: [EV-1-004]
 tags: [evidence, dominio/foundation, arquitetura, bootstrap]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · codebase/in/glpi/src/Glpi/Kernel/Kernel.php · linhas 35–81"
 author: CAD Discovery
 created: 2026-07-10

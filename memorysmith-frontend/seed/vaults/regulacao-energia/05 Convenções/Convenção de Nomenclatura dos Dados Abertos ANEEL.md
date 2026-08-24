@@ -11,7 +11,8 @@ tags:
   - engenharia-de-dados
   - schema
 type: convention
-status: growing
+maturity: growing
+reviewed: false
 source: "[[Portal de Dados Abertos ANEEL (CKAN)]]"
 author: Curadoria
 created: 2026-07-27

@@ -9,7 +9,8 @@ tags:
   - frontend
   - backend
 type: practice
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Integrated Architecture Guide (PWA + AWS Serverless); RFC 9457 (Problem Details)
 author: Heitor Rapcinski; IETF
 created: 2026-07-25

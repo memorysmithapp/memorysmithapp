@@ -10,7 +10,8 @@ tags:
   - obsidian
   - architecture
 type: project
-status: growing
+maturity: growing
+reviewed: false
 source: Análise automatizada do Knowledge-Vault (500 notas) + Notion-flavored Markdown Spec
 author: Heitor Rapcinski
 created: 2026-07-31

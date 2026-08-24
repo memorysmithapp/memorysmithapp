@@ -10,7 +10,8 @@ tags:
   - domain-driven-design
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: CQRS (bliki) — martinfowler.com, 2011
 author: Martin Fowler (conceito de Greg Young)
 created: 2026-07-25

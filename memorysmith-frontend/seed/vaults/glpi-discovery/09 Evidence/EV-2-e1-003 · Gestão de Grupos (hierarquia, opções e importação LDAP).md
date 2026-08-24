@@ -4,6 +4,8 @@ aliases: [EV-2-e1-003]
 tags: [evidence, grupos, hierarquia, ldap, notificacoes, 2fa]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/administration/groups.rst · Groups / Import groups / abas (Child groups, Users, Security, Notifications...)"
 author: CAD Discovery (doc)
 created: 2026-07-12

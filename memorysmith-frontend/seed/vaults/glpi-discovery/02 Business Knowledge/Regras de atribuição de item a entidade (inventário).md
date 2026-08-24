@@ -4,6 +4,8 @@ aliases: [Entity assignment rules, Rules for assigning an item to an entity]
 tags: [regras, inventario, entidade, localizacao, doc]
 type: rule
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-e2-012 · Regras de inventário - atribuição a entidade e importação-vínculo|EV-2-e2-012]]"
   - "[[EV-2-e2-003 · Abas da entidade - Endereço e Avançado (regras genéricas e LDAP)|EV-2-e2-003]]"

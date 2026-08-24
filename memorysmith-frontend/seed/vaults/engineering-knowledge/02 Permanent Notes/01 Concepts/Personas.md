@@ -1,7 +1,8 @@
 ---
 type: concept
 tags: [ux, user-centered-design]
-status: evergreen
+maturity: evergreen
+reviewed: true
 ---
 Uma **persona** representa um usuário do produto, descrevendo seu papel e suas necessidades específicas para criar uma representação realista que auxilie o time a pensar nas funcionalidades.
 

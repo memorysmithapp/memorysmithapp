@@ -4,6 +4,8 @@ aliases: [Notification definition fields]
 tags: [dados, notificacao, campos, definicao]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-f3-002 · Definição de notificação e destinatários|EV-2-f3-002]]"
 author: CAD Discovery (doc)

@@ -10,7 +10,8 @@ tags:
   - architecture
   - resilience
 type: concept
-status: growing
+maturity: growing
+reviewed: false
 source: Mastering OpenStack (3rd Edition), Packt, 2024
 author: Omar Khedher
 created: 2026-07-25

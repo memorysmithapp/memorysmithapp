@@ -4,6 +4,8 @@ aliases: [Campos de Location, GPS de localização]
 tags: [data, dropdown, location, fields]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f2-006 · Dropdowns comuns localizações status fabricantes blacklists|EV-2-f2-006]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

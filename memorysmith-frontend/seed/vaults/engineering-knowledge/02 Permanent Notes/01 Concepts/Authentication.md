@@ -8,7 +8,8 @@ tags:
   - identity
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: NIST SP 800-63B Digital Identity Guidelines; OWASP Authentication Cheat Sheet
 author: NIST · OWASP
 created: 2026-07-25

@@ -4,6 +4,8 @@ aliases: [EV-2-d1-004]
 tags: [evidence, management, contact, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/modules/management/contacts.rst · Contacts"
 author: CAD Discovery (doc)
 created: 2026-07-12

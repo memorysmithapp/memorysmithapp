@@ -4,6 +4,8 @@ aliases: [Assets configuration, Config global de ativos]
 tags: [configuracao-geral, ativos, inventario, operacao]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f1-007 · Configuração global de ativos e inventário|EV-2-f1-007]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

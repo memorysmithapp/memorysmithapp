@@ -4,6 +4,8 @@ aliases: [Quick search, Busca global, Global search box]
 tags: [component, search, quick-search, global-search]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-a1-007 · Motor de busca da UI (básica, multicritério, avançada, export, ações massivas)|EV-2-a1-007]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

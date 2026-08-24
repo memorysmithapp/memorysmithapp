@@ -9,7 +9,8 @@ tags:
   - performance
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Rate Limiting pattern — Azure Architecture Center, 2026
 author: Microsoft (Azure Architecture Center)
 created: 2026-07-25

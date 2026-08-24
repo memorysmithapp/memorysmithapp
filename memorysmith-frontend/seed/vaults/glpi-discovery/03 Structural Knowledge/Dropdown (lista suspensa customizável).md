@@ -4,6 +4,8 @@ aliases: [Dropdown, Lista suspensa, Intitulé]
 tags: [dropdown, configuration, glossary]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-a2-003 · Status como visão específica|EV-2-a2-003]]"
   - "[[EV-2-a2-005 · Glossário oficial do GLPI|EV-2-a2-005]]"

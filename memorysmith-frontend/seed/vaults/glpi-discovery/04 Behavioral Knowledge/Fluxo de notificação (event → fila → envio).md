@@ -4,6 +4,8 @@ aliases: [Fluxo de notificação, notification flow]
 tags: [flow, notificacoes, dominio/integracoes]
 type: flow
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-1-035 · Notificações event template target queue|EV-1-035]]"
   - "[[EV-1-037 · CronTask ações automáticas interno externo|EV-1-037]]"

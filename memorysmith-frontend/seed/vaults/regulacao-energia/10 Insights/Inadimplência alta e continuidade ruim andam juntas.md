@@ -11,7 +11,8 @@ tags:
   - sustentabilidade-economica
   - insight
 type: insight
-status: seed
+maturity: seed
+reviewed: false
 source: "[[Evolução da Inadimplência Definitiva das Distribuidoras (2020–2025)]]"
 author: Análise própria (assistida por IA)
 created: 2026-07-27

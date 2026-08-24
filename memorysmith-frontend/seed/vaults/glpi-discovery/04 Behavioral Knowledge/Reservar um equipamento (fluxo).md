@@ -4,6 +4,8 @@ aliases: [Reservation flow, Reservar equipamento, Booking]
 tags: [behavioral, reservations, booking, recurrence, planning]
 type: flow
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g3-006 · Reservas de equipamentos|EV-2-g3-006]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -9,7 +9,8 @@ tags:
   - indenizacao
   - conceito
 type: concept
-status: growing
+maturity: growing
+reviewed: false
 source: Decreto 12.068/2024, arts. 13 e 14; Lei 9.074/1995
 author: Presidência da República
 created: 2026-07-26

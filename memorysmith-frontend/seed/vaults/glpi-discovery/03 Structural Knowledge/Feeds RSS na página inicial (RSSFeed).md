@@ -4,6 +4,8 @@ aliases: [RSS feed, RSSFeed, Feed RSS]
 tags: [tools, rss, feed, targets, home]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g3-007 · Feeds RSS|EV-2-g3-007]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

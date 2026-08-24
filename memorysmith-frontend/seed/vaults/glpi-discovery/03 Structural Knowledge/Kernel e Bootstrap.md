@@ -4,6 +4,8 @@ aliases: [Kernel, Bootstrap, Symfony Kernel]
 tags: [component, arquitetura, dominio/foundation]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-1-004 · Kernel Symfony MicroKernel envolve o legado|EV-1-004]]"
 author: CAD Discovery
 created: 2026-07-10

@@ -3,7 +3,7 @@ import { useState, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { listVaults } from '../../shared/api/client';
-import { MATURITY_ORDER, maturityOf, topTypes, totals, vaultStats, type MaturityBucket } from '../../shared/api/stats';
+import { MATURITY_ORDER, maturityOf, topTypes, totals, vaultStats, type Maturity } from '../../shared/api/stats';
 
 interface TooltipState {
   x: number;
@@ -76,7 +76,7 @@ export function DashboardPage() {
               <div key={vault.vault} className="hbar-row">
                 <span className="hbar-label">{vault.name}</span>
                 <div className="hbar-track">
-                  {MATURITY_ORDER.map((bucket: MaturityBucket) => {
+                  {MATURITY_ORDER.map((bucket: Maturity) => {
                     const count = buckets[bucket];
                     if (count === 0) return null;
                     const pct = (count / vault.notes) * 100;

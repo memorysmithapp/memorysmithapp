@@ -4,6 +4,8 @@ aliases: [Entidades (administração), Multi-tenancy GLPI]
 tags: [entidades, multi-tenancy, hierarquia, isolamento, delegacao, doc]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e2-002 · Entidades - conceito, hierarquia e isolamento (multi-tenancy)|EV-2-e2-002]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

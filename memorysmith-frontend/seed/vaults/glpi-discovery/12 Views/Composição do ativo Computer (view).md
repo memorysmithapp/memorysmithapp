@@ -4,6 +4,8 @@ aliases: [ER Computer, composição ativo]
 tags: [view, cmdb, dados, dominio/ativos]
 type: view
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-1-016 · Composição do ativo via Item_Devices e itens filhos|EV-1-016]]"
 author: CAD Discovery
 created: 2026-07-10

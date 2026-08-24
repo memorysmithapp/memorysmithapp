@@ -10,7 +10,8 @@ tags:
   - event-architectures
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: The Evolving Landscape of API Protocols in 2023 — Postman Blog / ByteByteGo
 author: ByteByteGo (Alex Xu, Sahn Lam)
 created: 2026-07-25

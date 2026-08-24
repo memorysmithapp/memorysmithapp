@@ -4,6 +4,8 @@ aliases: [maintenance:enable, system:status, task:unlock, system:check_requireme
 tags: [cli, manutencao, sistema, diagnostico, seguranca, comandos, operacional]
 type: process
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g1-005 · Referência da linha de comando bin-console (cli.rst)|EV-2-g1-005]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

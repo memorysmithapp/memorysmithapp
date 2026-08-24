@@ -4,6 +4,8 @@ aliases: [aba Contracts, Contracts tab, contratos associados]
 tags: [tabs, contracts, contratos, ui]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g2-004 · Aba Contracts (contratos associados)|EV-2-g2-004]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

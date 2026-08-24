@@ -11,7 +11,8 @@ tags:
   - faturamento
   - consumidor
 type: literature
-status: growing
+maturity: growing
+reviewed: false
 source: REN ANEEL 956/2021, Anexo XI — PRODIST Módulo 11, v2
 author: ANEEL
 created: 2026-07-26

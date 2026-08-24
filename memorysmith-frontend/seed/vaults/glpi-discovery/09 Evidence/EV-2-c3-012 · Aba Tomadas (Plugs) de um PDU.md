@@ -4,6 +4,8 @@ aliases: [EV-2-c3-012]
 tags: [evidence, doc, assets, dcim, pdu, plugs]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/assets/tabs/plugs.rst · Plugs"
 author: CAD Discovery (doc)
 created: 2026-07-12

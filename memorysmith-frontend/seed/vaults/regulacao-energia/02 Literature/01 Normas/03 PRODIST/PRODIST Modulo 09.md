@@ -11,7 +11,8 @@ tags:
   - consumidor
   - ressarcimento
 type: literature
-status: growing
+maturity: growing
+reviewed: false
 source: REN ANEEL 956/2021, Anexo IX — PRODIST Módulo 9, v2
 author: ANEEL
 created: 2026-07-26

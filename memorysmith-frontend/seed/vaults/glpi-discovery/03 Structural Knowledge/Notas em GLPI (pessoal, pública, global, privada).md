@@ -4,6 +4,8 @@ aliases: [Personal note, Public note, Global note, Private, Notas]
 tags: [notes, visibility, glossary]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-a2-005 · Glossário oficial do GLPI|EV-2-a2-005]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

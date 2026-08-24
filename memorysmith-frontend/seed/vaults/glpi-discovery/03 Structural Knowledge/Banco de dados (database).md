@@ -4,6 +4,8 @@ aliases: [Database, Banco de dados, Databases]
 tags: [management, database, inventario]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-d2-004 · Databases (databases.rst)|EV-2-d2-004]]"
 author: CAD Discovery (doc)

@@ -8,7 +8,8 @@ tags:
   - security
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Proxy vs reverse proxy — BIG ARCHIVE System Design 2023; RFC 9110
 author: ByteByteGo (Alex Xu, Sahn Lam) · IETF
 created: 2026-07-25

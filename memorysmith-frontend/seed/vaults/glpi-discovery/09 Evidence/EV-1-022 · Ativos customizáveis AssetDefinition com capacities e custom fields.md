@@ -4,6 +4,8 @@ aliases: [EV-1-022]
 tags: [evidence, dominio/ativos, custom-assets]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · src/Glpi/Asset/AssetDefinition.php L63–78 · src/Glpi/Asset/AssetDefinitionManager.php · src/Glpi/Asset/Capacity/* · src/Glpi/Asset/CustomFieldType/*"
 author: CAD Discovery
 created: 2026-07-10

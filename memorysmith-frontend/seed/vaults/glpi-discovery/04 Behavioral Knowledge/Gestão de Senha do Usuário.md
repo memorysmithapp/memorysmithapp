@@ -4,6 +4,8 @@ aliases: [Manage password, Troca de senha, Reset de senha, Password reset]
 tags: [flow, password, reset, security-policy, ldap]
 type: flow
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-a1-010 · Gestão e recuperação de senha|EV-2-a1-010]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

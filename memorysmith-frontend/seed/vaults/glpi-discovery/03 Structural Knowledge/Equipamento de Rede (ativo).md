@@ -4,6 +4,8 @@ aliases: [Network equipment, NetworkEquipment, Equipamento de rede]
 tags: [assets, network, dcim, structural, doc]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-c2-001 · Equipamentos de rede (network-equipments.rst)|EV-2-c2-001]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

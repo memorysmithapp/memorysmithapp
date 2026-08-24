@@ -4,6 +4,8 @@ aliases: [EV-2-f2-013]
 tags: [evidence, asset-definition, custom-fields, profiles, translation]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/configuration/asset_definitions/asset_definitions.rst · seções Fields/Profiles/Translations"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -6,7 +6,8 @@ tags:
   - governance
   - architecture
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 Risk Management é o processo contínuo de identificar, analisar, tratar e monitorar riscos que possam impactar os objetivos de um sistema ou organização.

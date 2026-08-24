@@ -4,6 +4,8 @@ aliases: [Global search, Asset Global]
 tags: [assets, search, structural]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-c1-002 · Busca global de ativos (Global search)|EV-2-c1-002]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

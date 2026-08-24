@@ -9,7 +9,8 @@ tags:
   - risk
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: OWASP Threat Modeling Cheat Sheet; Threat Modeling Manifesto
 author: OWASP · Threat Modeling Manifesto authors
 created: 2026-07-25

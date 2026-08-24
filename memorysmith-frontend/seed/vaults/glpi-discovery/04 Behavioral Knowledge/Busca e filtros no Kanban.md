@@ -4,6 +4,8 @@ aliases: [Kanban filters, Filtros do Kanban, Kanban search]
 tags: [kanban, search, filter, tags]
 type: use-case
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-a2-002 · Quadro Kanban|EV-2-a2-002]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

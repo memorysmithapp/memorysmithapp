@@ -4,6 +4,8 @@ aliases: [Autenticação externa, Setup Authentication]
 tags: [authentication, configuration, sso, external-auth]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f2-001 · Processo geral de autenticação e criação on-the-fly|EV-2-f2-001]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

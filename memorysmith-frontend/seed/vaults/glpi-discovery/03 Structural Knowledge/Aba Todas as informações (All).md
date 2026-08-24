@@ -4,6 +4,8 @@ aliases: [aba All, All tab, todas as informações]
 tags: [tabs, all, ui]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g2-001 · Aba All (todas as informações numa página)|EV-2-g2-001]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -3,7 +3,8 @@ title: <Nome do estudo de caso>
 aliases: []
 tags: []
 type: project
-status: seed
+maturity: seed
+reviewed: false
 source: <Contexto que originou a aplicação>
 author:
 created: <YYYY-MM-DD>

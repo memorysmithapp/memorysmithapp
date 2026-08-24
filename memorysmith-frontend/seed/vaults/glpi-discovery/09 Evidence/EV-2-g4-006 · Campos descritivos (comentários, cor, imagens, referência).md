@@ -4,6 +4,8 @@ aliases: [EV-2-g4-006]
 tags: [evidence, campos-comuns, descritivo, comentarios, cor, imagens, referencia]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · tabs/common_fields/comments.rst · Comments; tabs/common_fields/color.rst · Color; tabs/common_fields/pictures.rst · Pictures; tabs/common_fields/reference.rst · Reference"
 author: CAD Discovery (doc)
 created: 2026-07-12

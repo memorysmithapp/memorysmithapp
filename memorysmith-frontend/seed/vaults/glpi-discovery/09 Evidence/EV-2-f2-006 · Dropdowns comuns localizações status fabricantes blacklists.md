@@ -4,6 +4,8 @@ aliases: [EV-2-f2-006]
 tags: [evidence, dropdown, location, status, manufacturer, blacklist]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/configuration/dropdowns/general.rst"
 author: CAD Discovery (doc)
 created: 2026-07-12

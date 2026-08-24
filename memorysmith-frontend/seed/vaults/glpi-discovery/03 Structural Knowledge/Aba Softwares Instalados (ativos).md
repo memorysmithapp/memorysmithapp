@@ -4,6 +4,8 @@ aliases: [Software tab, Aba Softwares]
 tags: [assets, tab, software, license, computer]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-c3-007 · Aba Softwares instalados num Computador|EV-2-c3-007]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

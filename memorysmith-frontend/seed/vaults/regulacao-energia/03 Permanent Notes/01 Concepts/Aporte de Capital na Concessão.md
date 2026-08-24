@@ -7,7 +7,8 @@ tags:
   - economico-financeiro
   - conceito
 type: concept
-status: seed
+maturity: seed
+reviewed: false
 source: Decreto 12.068/2024, art. 3º e art. 11, I
 author: Presidência da República
 created: 2026-07-26

@@ -9,7 +9,8 @@ tags:
   - product-management
   - mvp
 type: moc
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Lean Inception - Como Alinhar Pessoas e Construir o Produto Certo, Paulo Caroli, 2018
 author: Paulo Caroli
 created: 2026-07-09

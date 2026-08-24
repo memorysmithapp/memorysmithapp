@@ -4,6 +4,8 @@ aliases: [Logs, Registro de eventos]
 tags: [logs, auditoria, historico, doc]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e2-017 · Logs|EV-2-e2-017]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

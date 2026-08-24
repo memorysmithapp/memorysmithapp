@@ -4,6 +4,8 @@ aliases: [EV-2-g3-022]
 tags: [evidence, tab, remote-management, inventory]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/tabs/remote-management.rst · Remote Management"
 author: CAD Discovery (doc)
 created: 2026-07-12

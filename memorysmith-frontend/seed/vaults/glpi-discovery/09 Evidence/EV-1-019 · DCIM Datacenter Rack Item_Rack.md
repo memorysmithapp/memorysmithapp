@@ -4,6 +4,8 @@ aliases: [EV-1-019]
 tags: [evidence, dominio/ativos, dcim]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · src/Datacenter.php L41 · src/DCRoom.php L45 · src/Rack.php L46 · src/Item_Rack.php L40 · src/Enclosure.php L47 · src/PDU.php L46"
 author: CAD Discovery
 created: 2026-07-10

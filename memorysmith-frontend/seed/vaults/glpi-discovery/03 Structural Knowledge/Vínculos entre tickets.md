@@ -4,6 +4,8 @@ aliases: [Linked Tickets, Tickets duplicados, Duplicates]
 tags: [assistance, ticket, links, duplicates]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-b1-006 · Campos específicos do formulário de ticket|EV-2-b1-006]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

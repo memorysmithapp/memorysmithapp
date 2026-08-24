@@ -4,6 +4,8 @@ aliases: [EV-2-c3-005]
 tags: [evidence, doc, assets, network, dns, fqdn, ip]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/assets/tabs/network_name.rst · Network Name"
 author: CAD Discovery (doc)
 created: 2026-07-12

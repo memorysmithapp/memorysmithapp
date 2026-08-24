@@ -4,6 +4,8 @@ aliases: [Fluxo de inventário, Inventory flow]
 tags: [flow, inventario, dominio/ativos]
 type: flow
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-1-021 · Inventário nativo orquestra parsers InventoryAsset|EV-1-021]]"
 author: CAD Discovery
 created: 2026-07-10

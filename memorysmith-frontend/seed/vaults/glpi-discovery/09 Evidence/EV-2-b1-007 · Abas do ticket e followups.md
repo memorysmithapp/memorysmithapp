@@ -4,6 +4,8 @@ aliases: [EV-2-b1-007]
 tags: [evidence, assistance, ticket, tabs, followup, solution]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/modules/assistance/tickets/ticketmanagement.rst · The different tabs"
 author: CAD Discovery (doc)
 created: 2026-07-12

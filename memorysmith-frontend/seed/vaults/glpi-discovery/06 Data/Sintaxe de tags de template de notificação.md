@@ -4,6 +4,8 @@ aliases: [Notification tags, Template tags]
 tags: [dados, template, tags, sintaxe, notificacao]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-f3-005 · Templates de notificação (objeto, tabs, tags)|EV-2-f3-005]]"
   - "[[EV-2-f3-006 · Exemplo de criação de template de ticket|EV-2-f3-006]]"

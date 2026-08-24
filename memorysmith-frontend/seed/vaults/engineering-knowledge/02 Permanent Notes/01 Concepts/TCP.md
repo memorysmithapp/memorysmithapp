@@ -8,7 +8,8 @@ tags:
   - protocols
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: RFC 9293 Transmission Control Protocol — IETF, 2022
 author: IETF (obsoleta a RFC 793 de Jon Postel, 1981)
 created: 2026-07-25

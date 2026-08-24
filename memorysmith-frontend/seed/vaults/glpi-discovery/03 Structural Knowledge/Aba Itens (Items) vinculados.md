@@ -4,6 +4,8 @@ aliases: [aba Items, Items tab, itens vinculados]
 tags: [tabs, items, vinculos, ui]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g2-009 · Aba Items (itens vinculados ao objeto)|EV-2-g2-009]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

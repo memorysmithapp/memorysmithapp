@@ -10,7 +10,8 @@ tags:
   - distribuicao
   - planejamento
 type: literature
-status: growing
+maturity: growing
+reviewed: false
 source: REN ANEEL 956/2021, Anexo II — PRODIST Módulo 2, v8
 author: ANEEL
 created: 2026-07-26

@@ -4,6 +4,8 @@ aliases: [domains_records.rst, Domain records]
 tags: [evidence, management, domain-record, dns, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/management/domains_records.rst · Domains records"
 author: CAD Discovery (doc)
 created: 2026-07-12

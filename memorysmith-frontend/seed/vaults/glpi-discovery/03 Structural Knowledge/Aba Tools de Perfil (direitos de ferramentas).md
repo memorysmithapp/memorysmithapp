@@ -4,6 +4,8 @@ aliases: [Tools tab, Aba Tools, Direitos de ferramentas]
 tags: [perfis, permissoes, ferramentas, faq, reservas, base-conhecimento, projetos]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e1-008 · Aba Tools do perfil (FAQ, reservas, base de conhecimento, projetos)|EV-2-e1-008]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

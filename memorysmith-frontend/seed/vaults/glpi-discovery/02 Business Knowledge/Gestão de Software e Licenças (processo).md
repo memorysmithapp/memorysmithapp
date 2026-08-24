@@ -4,6 +4,8 @@ aliases: [Software Asset Management, SAM, licenças]
 tags: [process, software, licenca, dominio/ativos]
 type: process
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-1-017 · Software versões e licenças|EV-1-017]]"
 author: CAD Discovery
 created: 2026-07-10

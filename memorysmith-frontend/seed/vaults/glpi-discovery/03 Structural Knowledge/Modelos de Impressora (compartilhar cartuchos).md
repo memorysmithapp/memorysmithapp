@@ -4,6 +4,8 @@ aliases: [Printer models, Modelos de impressora]
 tags: [tab, printer-models, cartridges, dropdown]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g3-020 · Modelos de impressora (compartilhar cartuchos)|EV-2-g3-020]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

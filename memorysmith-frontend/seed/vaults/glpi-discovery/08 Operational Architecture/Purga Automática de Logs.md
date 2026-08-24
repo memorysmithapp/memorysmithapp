@@ -4,6 +4,8 @@ aliases: [Logs purge, PurgeLogs, Purga de logs]
 tags: [configuracao-geral, logs, purga, manutencao, operacao]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f1-010 · Purga de logs (PurgeLogs)|EV-2-f1-010]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -4,6 +4,8 @@ aliases: [View and manage records, Listas e abas, Customize display]
 tags: [use-case, list, tabs, display, columns, view]
 type: use-case
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-a1-006 · Visualização e gestão de registros (listas e abas)|EV-2-a1-006]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

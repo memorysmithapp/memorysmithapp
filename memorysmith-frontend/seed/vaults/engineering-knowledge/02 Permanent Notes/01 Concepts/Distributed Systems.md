@@ -8,7 +8,8 @@ tags:
   - architecture
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Challenges with distributed systems — Amazon Builders' Library, 2019
 author: Jacob Gabrielson (AWS)
 created: 2026-07-25

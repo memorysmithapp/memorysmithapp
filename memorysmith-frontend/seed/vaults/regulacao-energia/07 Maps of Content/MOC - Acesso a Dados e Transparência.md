@@ -9,7 +9,8 @@ tags:
   - transparencia
   - aneel
 type: moc
-status: seed
+maturity: seed
+reviewed: false
 source: Decreto 12.068/2024, art. 4º; Briefing de Distribuição 2026
 author: Heitor Rapcinski + Claude
 created: 2026-07-26

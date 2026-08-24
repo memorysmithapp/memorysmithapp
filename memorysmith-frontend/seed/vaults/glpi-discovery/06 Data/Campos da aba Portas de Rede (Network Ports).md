@@ -4,6 +4,8 @@ aliases: [Network Ports fields, Portas de rede]
 tags: [data, fields, network, port, vlan, doc]
 type: table
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-c2-001 · Equipamentos de rede (network-equipments.rst)|EV-2-c2-001]]"
   - "[[EV-2-c2-003 · PDUs (pdus.rst)|EV-2-c2-003]]"

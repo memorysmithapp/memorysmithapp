@@ -4,6 +4,8 @@ aliases: [EV-2-d1-008]
 tags: [evidence, management, license, software, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/modules/management/licenses.rst · Licenses"
 author: CAD Discovery (doc)
 created: 2026-07-12

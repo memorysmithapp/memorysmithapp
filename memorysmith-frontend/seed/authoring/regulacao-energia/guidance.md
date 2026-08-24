@@ -44,12 +44,15 @@ title: Geração Distribuída (GD)
 aliases: [GD, Micro e Minigeração Distribuída]
 tags: [aneel, geracao-distribuida, marco-legal]
 type: concept        # literature | concept | practice | moc | project | dataset | convention | indicator | series | insight
-status: growing      # seed | growing | evergreen
+maturity: growing    # seed | growing | evergreen
+reviewed: false      # true somente após revisão humana da revisão vigente
 source: Lei 14.300/2022; REN ANEEL 1.059/2023
 author: ANEEL
 created: 2026-07-26
 ---
 ```
+
+Os campos `maturity` e `reviewed` são o padrão de todos os vaults e formam dois eixos independentes. `maturity` é reavaliado a cada escrita: quem cria ou atualiza a nota declara o estágio em que o conteúdo ficou. `reviewed` registra se a revisão vigente passou por revisão humana: somente um humano o escreve como `true`, e qualquer edição posterior de conteúdo o devolve a `false`. Uma nota `evergreen` pode aguardar revisão, e uma nota `seed` pode já ter sido revisada.
 
 Notas de medida (pastas 08 a 10) e fichas de dataset acrescentam: `updated`, `refresh_frequency`, `data_source` e `coverage`.
 

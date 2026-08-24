@@ -4,6 +4,8 @@ aliases: [Campos LDAP, BaseDN, RootDN, Login field, Synchronization field]
 tags: [data, ldap, authentication, fields]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f2-002 · Autenticação, sincronização e abas de configuração LDAP-AD|EV-2-f2-002]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

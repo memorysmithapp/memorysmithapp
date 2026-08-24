@@ -4,6 +4,8 @@ aliases: []
 tags: [component, dominio/<dominio>]
 type: component
 status: draft
+maturity: seed
+reviewed: false
 source:
   - "[[EV-N-NNN · fato|EV-N-NNN]]"
 author: <Quem extraiu>

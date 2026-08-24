@@ -4,6 +4,8 @@ aliases: [campos tickets vinculados, campos problems vinculados, campos changes 
 tags: [data, campos, tickets, problems, changes, itil]
 type: data
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-g2-002 · Aba Changes (mudanças vinculadas ao objeto)|EV-2-g2-002]]"
   - "[[EV-2-g2-012 · Aba Problems (problemas vinculados ao objeto)|EV-2-g2-012]]"

@@ -8,7 +8,8 @@ tags:
   - politica-publica
   - conceito
 type: concept
-status: seed
+maturity: seed
+reviewed: false
 source: Lei 14.300/2022, art. 1º, IV, arts. 22 e 25; Lei 10.438/2002
 author: Presidência da República
 created: 2026-07-26

@@ -11,7 +11,8 @@ tags:
   - architecture
   - software-engineering
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: W3C Internationalization; Unicode CLDR; Integrated Architecture Guide (PWA + AWS Serverless)
 author: W3C; Unicode Consortium
 created: 2026-07-25

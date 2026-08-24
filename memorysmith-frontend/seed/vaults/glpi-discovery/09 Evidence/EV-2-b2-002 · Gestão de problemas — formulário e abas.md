@@ -4,6 +4,8 @@ aliases: [EV-2-b2-002]
 tags: [evidence, problems, problemas, itil, assistance]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "SRC-002 · modules/assistance/problems.rst · Manage problems (documento inteiro)"
   - "SRC-002 · modules/assistance/tabs/analysis.rst · Analysis"

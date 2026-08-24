@@ -4,7 +4,8 @@ tags:
   - distributed-systems
   - performance
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 Distributed Cache é um cache compartilhado entre vários servidores.

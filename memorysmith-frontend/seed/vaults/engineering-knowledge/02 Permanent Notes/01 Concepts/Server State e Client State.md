@@ -10,7 +10,8 @@ tags:
   - state-management
   - design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: TanStack Query documentation (Tanner Linsley); Integrated Architecture Guide (PWA + AWS Serverless)
 author: Tanner Linsley
 created: 2026-07-25

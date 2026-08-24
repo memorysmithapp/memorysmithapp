@@ -5,7 +5,8 @@ tags:
   - disaster-recovery
   - resilience
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 Backup é o processo de criar cópias dos dados para possibilitar sua recuperação em caso de perda, corrupção, exclusão acidental ou desastre.

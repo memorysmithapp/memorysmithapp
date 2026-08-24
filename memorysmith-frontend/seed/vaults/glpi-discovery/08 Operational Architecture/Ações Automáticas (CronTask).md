@@ -4,6 +4,8 @@ aliases: [CronTask, ações automáticas, jobs, cron]
 tags: [infra, cron, jobs, dominio/operacao]
 type: job
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-1-037 · CronTask ações automáticas interno externo|EV-1-037]]"
 author: CAD Discovery
 created: 2026-07-10

@@ -9,7 +9,8 @@ tags:
   - competency
   - ai-governance
 type: concept
-status: growing
+maturity: growing
+reviewed: false
 source: Claude 101 — Anthropic Academy · 4D Framework (Rick Dakan e Joseph Feller)
 author: Rick Dakan, Joseph Feller
 created: 2026-07-31

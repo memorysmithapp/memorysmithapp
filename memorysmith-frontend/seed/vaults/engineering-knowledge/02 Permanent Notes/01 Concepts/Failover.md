@@ -9,7 +9,8 @@ tags:
   - operations
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Reliability Pillar — AWS Well-Architected Framework
 author: Amazon Web Services
 created: 2026-07-25

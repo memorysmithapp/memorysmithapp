@@ -4,6 +4,8 @@ aliases: [INV-2-g1-001]
 tags: [investigation, consumidor/cad, cache, operacional, divergencia-doc]
 type: investigation
 status: open
+maturity: seed
+reviewed: false
 source: "SRC-002 · advanced/cache.rst ; cli.rst · glpi:cache:configure"
 author: CAD Discovery (doc)
 created: 2026-07-12

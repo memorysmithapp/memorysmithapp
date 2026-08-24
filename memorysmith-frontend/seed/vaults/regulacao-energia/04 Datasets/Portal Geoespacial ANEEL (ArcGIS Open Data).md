@@ -12,7 +12,8 @@ tags:
   - sig-r
   - fonte
 type: dataset
-status: seed
+maturity: seed
+reviewed: false
 source: https://dadosabertos-aneel.opendata.arcgis.com/
 author: ANEEL
 created: 2026-07-27

@@ -4,6 +4,8 @@ aliases: [EV-2-c2-007]
 tags: [evidence, assets, software, version, license, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/assets/softwares.rst · Software (documento inteiro)"
 author: CAD Discovery (doc)
 created: 2026-07-12

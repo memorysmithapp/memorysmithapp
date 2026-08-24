@@ -4,6 +4,8 @@ aliases: [EV-2-e1-006]
 tags: [evidence, perfis, permissoes, assistance, tickets, followups, validacao]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/administration/profiles/assistancetab.rst · Assistance permissions (Simplified / Standard interface)"
 author: CAD Discovery (doc)
 created: 2026-07-12

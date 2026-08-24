@@ -4,6 +4,8 @@ aliases: [Template example, Criar template de notificação]
 tags: [template, notificacao, procedimento, ticket, timeline, traducao]
 type: use-case
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-f3-006 · Exemplo de criação de template de ticket|EV-2-f3-006]]"
 author: CAD Discovery (doc)

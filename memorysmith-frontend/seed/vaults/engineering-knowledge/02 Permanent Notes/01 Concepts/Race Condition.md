@@ -9,7 +9,8 @@ tags:
   - operating-system
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Modern Operating Systems, Andrew S. Tanenbaum; IEEE Std 1003.1 POSIX
 author: Andrew S. Tanenbaum · IEEE
 created: 2026-07-25

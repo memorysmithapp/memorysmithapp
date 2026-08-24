@@ -10,7 +10,8 @@ tags:
   - aneel
   - concessoes
 type: project
-status: growing
+maturity: growing
+reviewed: false
 source: Briefing "Principais Obrigações das Concessões de Serviços Públicos de Distribuição de Energia Elétrica e Acesso às Informações/Dados"
 author: Heitor Rapcinski + Claude
 created: 2026-07-26

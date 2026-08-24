@@ -8,7 +8,8 @@ tags:
   - consistency
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: CAP, BASE, SOLID, KISS — BIG ARCHIVE System Design 2023
 author: ByteByteGo (Alex Xu, Sahn Lam)
 created: 2026-07-25

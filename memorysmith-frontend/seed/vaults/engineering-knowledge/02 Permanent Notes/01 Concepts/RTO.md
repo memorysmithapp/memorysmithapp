@@ -5,7 +5,8 @@ aliases:
 tags:
   - resilience
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 RTO representa o tempo máximo aceitável para restaurar um serviço após uma interrupção.

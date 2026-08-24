@@ -11,7 +11,8 @@ tags:
   - kubernetes
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Sidecar pattern — Azure Architecture Center
 author: Microsoft (Azure Architecture Center)
 created: 2026-07-25

@@ -4,6 +4,8 @@ aliases: [Permissions zones, Zonas de permissão, Global vs local]
 tags: [perfis, permissoes, entidades, delegacao, governanca]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e1-005 · Aba Administration do perfil (direitos sobre usuários, entidades e regras)|EV-2-e1-005]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

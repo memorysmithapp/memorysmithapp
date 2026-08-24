@@ -4,6 +4,8 @@ aliases: [Transfer, Transferência, Transfer between entities]
 tags: [transfer, entities, multi-tenancy, process]
 type: process
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-a2-001 · Ações sobre objetos e ações em massa|EV-2-a2-001]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

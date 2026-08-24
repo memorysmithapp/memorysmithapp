@@ -11,7 +11,8 @@ tags:
   - security
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: AWS SaaS Lens (Well-Architected Framework); Integrated Architecture Guide (PWA + AWS Serverless)
 author: Amazon Web Services
 created: 2026-07-25

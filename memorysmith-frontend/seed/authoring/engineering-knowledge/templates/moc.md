@@ -3,7 +3,8 @@ title: <Domínio> MOC
 aliases: []
 tags: []
 type: moc
-status: growing
+maturity: growing
+reviewed: false
 source:
 author:
 created: <YYYY-MM-DD>

@@ -4,6 +4,8 @@ aliases: [EV-2-b1-003]
 tags: [evidence, assistance, ticket, opening, simplified-interface, fields]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/modules/assistance/tickets/ticketopening.rst · Simplified interface"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -4,6 +4,8 @@ aliases: [Renewal alerts, Notificações de vencimento]
 tags: [capability, management, notification, contract, license, certificate, doc]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-d1-002 · Contratos — objetivos, campos específicos e abas|EV-2-d1-002]]"
   - "[[EV-2-d1-008 · Licenças de software — objetivos, campos e abas|EV-2-d1-008]]"

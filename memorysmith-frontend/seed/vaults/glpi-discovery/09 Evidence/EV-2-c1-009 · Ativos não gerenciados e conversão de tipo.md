@@ -4,6 +4,8 @@ aliases: [EV-2-c1-009]
 tags: [evidence, assets, unmanaged, network-discovery, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/assets/unmanaged_assets.rst · Unmanaged assets (todas as seções + Particularity)"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -10,7 +10,8 @@ tags:
   - architecture
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: SOAP Version 1.2 Part 1 Messaging Framework — W3C Recommendation, 2007
 author: W3C XML Protocol Working Group
 created: 2026-07-25

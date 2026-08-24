@@ -9,7 +9,8 @@ tags:
   - microservices
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Bounded Context (bliki) — martinfowler.com, 2014; Domain-Driven Design, Eric Evans
 author: Martin Fowler · Eric Evans
 created: 2026-07-25

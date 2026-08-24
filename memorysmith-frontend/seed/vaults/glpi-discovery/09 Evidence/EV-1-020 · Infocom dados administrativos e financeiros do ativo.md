@@ -4,6 +4,8 @@ aliases: [EV-1-020]
 tags: [evidence, dominio/ativos, financeiro, infocom]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · src/Infocom.php L49 · src/Computer.php L64–65 (forward_entity_to Infocom, auto-create)"
 author: CAD Discovery
 created: 2026-07-10

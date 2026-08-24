@@ -4,6 +4,8 @@ aliases: [custom palettes, temas, paletas, data-glpi-theme, Auror]
 tags: [temas, paletas, scss, ui, personalizacao, operacional]
 type: process
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g1-002 · Paletas customizadas (custom_palettes.rst)|EV-2-g1-002]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

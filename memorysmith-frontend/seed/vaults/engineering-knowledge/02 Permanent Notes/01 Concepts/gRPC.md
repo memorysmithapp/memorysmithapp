@@ -11,7 +11,8 @@ tags:
   - protocols
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Introduction to gRPC — grpc.io, gRPC Authors
 author: gRPC Authors (Google / CNCF)
 created: 2026-07-25

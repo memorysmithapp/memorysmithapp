@@ -4,6 +4,8 @@ aliases: [EV-2-d1-009]
 tags: [evidence, management, certificate, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/modules/management/certificates.rst · Certificates"
 author: CAD Discovery (doc)
 created: 2026-07-12

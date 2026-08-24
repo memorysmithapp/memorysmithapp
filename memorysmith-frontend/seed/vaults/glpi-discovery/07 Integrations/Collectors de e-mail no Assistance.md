@@ -4,6 +4,8 @@ aliases: [Mail collectors do ticket, Abertura por e-mail]
 tags: [assistance, ticket, collector, mail, integration]
 type: integration
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-b1-004 · Abertura padrão, por e-mail e automática|EV-2-b1-004]]"
   - "[[EV-2-b1-008 · Recursos avançados de tickets (collectors, fechamento, satisfação)|EV-2-b1-008]]"

@@ -1,7 +1,8 @@
 ---
 type: practice
 tags: [strategy, vision, alignment]
-status: evergreen
+maturity: evergreen
+reviewed: true
 ---
 A **Visão do Produto** ajuda a trilhar o caminho inicial entre a ideia e o lançamento, definindo a essência do valor de negócio e refletindo uma mensagem clara para os clientes.
 

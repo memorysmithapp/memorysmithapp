@@ -10,7 +10,8 @@ tags:
   - protocols
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: ISO/IEC 7498-1 Open Systems Interconnection Basic Reference Model — ISO, 1994
 author: ISO/IEC
 created: 2026-07-25

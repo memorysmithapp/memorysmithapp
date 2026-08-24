@@ -4,6 +4,8 @@ aliases: [EV-2-e2-005]
 tags: [evidence, entidades, assistencia, satisfacao, fechamento, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/administration/entity/entities.rst · Assistance"
 author: CAD Discovery (doc)
 created: 2026-07-12

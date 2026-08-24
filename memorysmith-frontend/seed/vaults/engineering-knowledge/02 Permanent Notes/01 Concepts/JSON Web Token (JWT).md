@@ -10,7 +10,8 @@ tags:
   - api
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: RFC 7519 JSON Web Token — IETF, 2015; OWASP JWT Cheat Sheet
 author: IETF · OWASP
 created: 2026-07-25

@@ -4,6 +4,8 @@ aliases: [Setup, Configuration, Menu Setup]
 tags: [configuracao, setup, menu, estrutura]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f1-001 · Módulo de Configuração (Setup) e seus submenus|EV-2-f1-001]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

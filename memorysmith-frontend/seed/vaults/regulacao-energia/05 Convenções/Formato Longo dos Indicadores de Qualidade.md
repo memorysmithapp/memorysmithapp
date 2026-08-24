@@ -13,7 +13,8 @@ tags:
   - schema
   - prodist-8
 type: convention
-status: growing
+maturity: growing
+reviewed: false
 source: "[[Portal de Dados Abertos ANEEL (CKAN)]]"
 author: Curadoria
 created: 2026-07-27

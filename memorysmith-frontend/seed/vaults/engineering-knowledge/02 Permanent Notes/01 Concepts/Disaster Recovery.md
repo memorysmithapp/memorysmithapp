@@ -9,7 +9,8 @@ tags:
   - cloud
   - operations
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 Disaster Recovery (DR) é o conjunto de estratégias, processos e tecnologias utilizados para restaurar serviços e dados após um desastre que comprometa a operação normal de um sistema.

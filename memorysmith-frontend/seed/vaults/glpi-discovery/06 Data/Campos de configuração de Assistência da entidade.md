@@ -4,6 +4,8 @@ aliases: [Entity assistance fields]
 tags: [entidades, campos, assistencia, tickets, satisfacao, dados, doc]
 type: table
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e2-005 · Entidade - aba Assistência (templates, fechamento, satisfação)|EV-2-e2-005]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

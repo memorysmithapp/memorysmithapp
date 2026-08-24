@@ -4,6 +4,8 @@ aliases: [INV-<sessão>-<seq>]
 tags: [investigation, dominio/<dominio>]
 type: investigation
 status: draft
+maturity: seed
+reviewed: false
 source: "<O que foi examinado sem encontrar a resposta>"
 author: <Quem abriu>
 created: <YYYY-MM-DD>

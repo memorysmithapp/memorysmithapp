@@ -8,7 +8,8 @@ tags:
   - aneel
   - fiscalizacao
 type: moc
-status: growing
+maturity: growing
+reviewed: false
 source: "[[Portal de Dados Abertos ANEEL (CKAN)]]"
 author: Curadoria
 created: 2026-07-27

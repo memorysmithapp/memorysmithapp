@@ -4,6 +4,8 @@ aliases: [Projects tab, Aba Projects, Link a project]
 tags: [tab, projects, link, change]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g3-021 · Aba Projetos (vincular projeto a um objeto)|EV-2-g3-021]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

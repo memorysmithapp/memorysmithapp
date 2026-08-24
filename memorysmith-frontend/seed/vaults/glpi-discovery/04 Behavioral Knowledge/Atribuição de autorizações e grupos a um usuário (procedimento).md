@@ -4,6 +4,8 @@ aliases: [Authorizations tab, Aba Authorizations, Atribuir perfil ao usuário]
 tags: [usuarios, autorizacoes, perfis, grupos, entidades, recursivo, dinamico, acoes-massivas]
 type: use-case
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-e1-009 · Aba Authorizations da ficha de usuário|EV-2-e1-009]]"
   - "[[EV-2-e1-010 · Aba Groups da ficha de usuário|EV-2-e1-010]]"

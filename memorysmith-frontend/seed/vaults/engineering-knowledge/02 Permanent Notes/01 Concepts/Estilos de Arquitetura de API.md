@@ -9,7 +9,8 @@ tags:
   - integration
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: How many API architecture styles do you know? — BIG ARCHIVE System Design 2023, ByteByteGo
 author: ByteByteGo (Alex Xu, Sahn Lam)
 created: 2026-07-25

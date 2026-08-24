@@ -4,6 +4,8 @@ aliases: [Mapeamento LDAP, LDAP Users tab, LDAP Groups tab]
 tags: [data, ldap, mapping, users, groups]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f2-002 · Autenticação, sincronização e abas de configuração LDAP-AD|EV-2-f2-002]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

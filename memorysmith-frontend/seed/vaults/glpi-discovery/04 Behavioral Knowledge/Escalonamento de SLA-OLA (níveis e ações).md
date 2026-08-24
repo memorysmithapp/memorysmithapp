@@ -4,6 +4,8 @@ aliases: [Escalation levels, Níveis de escalonamento]
 tags: [sla, ola, escalonamento, escalation, nivel, acoes]
 type: flow
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-f3-009 · Níveis de serviço (SLA-OLA) e escalonamento|EV-2-f3-009]]"
 author: CAD Discovery (doc)

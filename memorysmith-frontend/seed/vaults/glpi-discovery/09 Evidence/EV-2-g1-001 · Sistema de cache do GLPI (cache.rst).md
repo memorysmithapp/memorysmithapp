@@ -4,6 +4,8 @@ aliases: [EV-2-g1-001]
 tags: [evidence, cache, opcache, performance, operacional]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · advanced/cache.rst · Using the cache / OPCache"
 author: CAD Discovery (doc)
 created: 2026-07-12

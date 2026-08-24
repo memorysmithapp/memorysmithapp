@@ -4,6 +4,8 @@ aliases: [Operating systems tab, Aba OS]
 tags: [assets, data, operating-system, tab]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-c1-003 · Formulário e abas de Computador|EV-2-c1-003]]"
   - "[[EV-2-c1-005 · Formulário e abas de Periférico|EV-2-c1-005]]"

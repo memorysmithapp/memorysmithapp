@@ -4,6 +4,8 @@ aliases: [INV-2-e2-002]
 tags: [investigation, consumidor/cad, formularios, terminologia]
 type: investigation
 status: open
+maturity: seed
+reviewed: false
 source: "[[EV-2-e2-016 · Formulários - visibilidade, catálogo, controle de acesso e item a criar|EV-2-e2-016]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

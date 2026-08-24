@@ -11,7 +11,8 @@ tags:
   - api
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Idempotent requests — Stripe API Reference; Amazon Builders' Library
 author: Stripe · Marc Brooker (AWS)
 created: 2026-07-25

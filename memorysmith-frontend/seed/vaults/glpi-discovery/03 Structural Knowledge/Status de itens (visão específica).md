@@ -4,6 +4,8 @@ aliases: [Status, Estado de item, Status de ativo]
 tags: [status, lifecycle, dropdown, inventory]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-a2-003 · Status como visão específica|EV-2-a2-003]]"
   - "[[EV-2-a2-005 · Glossário oficial do GLPI|EV-2-a2-005]]"

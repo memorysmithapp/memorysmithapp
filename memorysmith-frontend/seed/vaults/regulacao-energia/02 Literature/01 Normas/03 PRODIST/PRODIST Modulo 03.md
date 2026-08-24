@@ -11,7 +11,8 @@ tags:
   - acesso
   - geracao-distribuida
 type: literature
-status: growing
+maturity: growing
+reviewed: false
 source: REN ANEEL 956/2021, Anexo III — PRODIST Módulo 3, v9
 author: ANEEL
 created: 2026-07-26

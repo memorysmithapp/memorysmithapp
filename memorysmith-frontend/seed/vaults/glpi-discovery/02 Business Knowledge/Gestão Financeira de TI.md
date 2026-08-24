@@ -4,6 +4,8 @@ aliases: [Financial Management, ITFM, custos]
 tags: [process, financeiro, dominio/gestao]
 type: process
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-1-020 · Infocom dados administrativos e financeiros do ativo|EV-1-020]]"
   - "[[EV-1-023 · Contract com renovação alerta custos e vínculo a itens|EV-1-023]]"

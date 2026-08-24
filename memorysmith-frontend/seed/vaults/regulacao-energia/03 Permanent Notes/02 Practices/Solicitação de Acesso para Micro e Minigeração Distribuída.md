@@ -8,7 +8,8 @@ tags:
   - acesso
   - pratica
 type: practice
-status: growing
+maturity: growing
+reviewed: false
 source: Lei 14.300/2022, arts. 2º a 8º e art. 26, § 3º
 author: Presidência da República
 created: 2026-07-26

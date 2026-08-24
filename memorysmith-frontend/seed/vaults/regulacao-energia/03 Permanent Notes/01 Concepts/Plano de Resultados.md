@@ -7,7 +7,8 @@ tags:
   - qualidade
   - conceito
 type: concept
-status: seed
+maturity: seed
+reviewed: false
 source: Decreto 12.068/2024, art. 11, II e § 1º
 author: Presidência da República
 created: 2026-07-26

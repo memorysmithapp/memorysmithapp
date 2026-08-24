@@ -4,6 +4,8 @@ aliases: [MOC Admin, Índice Módulo 5, MOC Segurança]
 tags: [moc, dominio/admin]
 type: moc
 status: confirmed
+maturity: evergreen
+reviewed: false
 author: CAD Discovery
 created: 2026-07-10
 ---

@@ -4,6 +4,8 @@ aliases: [User profiles, Perfis, Profile]
 tags: [perfis, rbac, permissoes, entidades, recursividade, dinamico]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e1-004 · Perfis de usuário — conceito, 7 perfis pré-definidos e permissões padrão|EV-2-e1-004]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

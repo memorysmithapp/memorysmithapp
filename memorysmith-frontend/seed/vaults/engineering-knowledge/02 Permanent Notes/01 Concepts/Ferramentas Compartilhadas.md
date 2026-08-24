@@ -10,7 +10,8 @@ tags:
   - agentic-ai
   - architecture
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: How we built our multi-agent research system — Anthropic Engineering, 2025
 author: Jeremy Hadfield, Barry Zhang, Kenneth Lien, Florian Scholz, Jeremy Fox e Daniel Ford (Anthropic)
 created: 2026-07-25

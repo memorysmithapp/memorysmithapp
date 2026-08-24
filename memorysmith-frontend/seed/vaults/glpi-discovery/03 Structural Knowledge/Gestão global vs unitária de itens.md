@@ -4,6 +4,8 @@ aliases: [Global management, Unitary management, Gestão global, Gestão unitár
 tags: [assets, management-mode, glossary]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-a2-005 · Glossário oficial do GLPI|EV-2-a2-005]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

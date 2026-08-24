@@ -4,6 +4,8 @@ aliases: [Components tab, Aba Componentes]
 tags: [assets, tab, components, hardware, computer]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-c3-002 · Aba Componentes de Hardware de um Computador|EV-2-c3-002]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

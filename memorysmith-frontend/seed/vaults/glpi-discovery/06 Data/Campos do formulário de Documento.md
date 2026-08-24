@@ -4,6 +4,8 @@ aliases: [Document fields]
 tags: [data, management, document, fields, doc]
 type: table
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-d1-006 · Documentos — armazenamento, cabeçalhos e itens vinculáveis|EV-2-d1-006]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

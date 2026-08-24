@@ -10,7 +10,8 @@ tags:
   - identity
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Session, cookie, JWT, token, SSO, and OAuth 2.0 — BIG ARCHIVE System Design 2023; OWASP SAML Security
 author: ByteByteGo (Alex Xu, Sahn Lam) · OWASP
 created: 2026-07-25

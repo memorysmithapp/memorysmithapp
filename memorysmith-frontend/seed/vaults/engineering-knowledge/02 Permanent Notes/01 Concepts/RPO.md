@@ -6,7 +6,8 @@ tags:
   - resilience
   - backup
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 RPO define a quantidade máxima de dados que uma organização aceita perder após um incidente.

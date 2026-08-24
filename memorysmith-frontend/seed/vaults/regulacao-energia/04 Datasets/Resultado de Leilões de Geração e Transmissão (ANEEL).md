@@ -10,7 +10,8 @@ tags:
   - dados-abertos
   - aneel
 type: dataset
-status: seed
+maturity: seed
+reviewed: false
 source: "[[Portal de Dados Abertos ANEEL (CKAN)]]"
 author: ANEEL
 created: 2026-07-27

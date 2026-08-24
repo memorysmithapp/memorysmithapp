@@ -7,7 +7,8 @@ tags:
   - storage
   - analytics
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 Data Lake é um repositório centralizado capaz de armazenar grandes volumes de dados estruturados, semiestruturados e não estruturados em seu formato original.

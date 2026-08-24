@@ -9,7 +9,8 @@ tags:
   - eficiencia-energetica
   - conceito
 type: concept
-status: growing
+maturity: growing
+reviewed: false
 source: Lei 14.300/2022, art. 36 e art. 36-A
 author: Presidência da República
 created: 2026-07-26

@@ -7,7 +7,8 @@ tags:
   - cloud
   - architecture
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 Object Storage é um modelo de armazenamento que organiza dados como **objetos**, em vez de arquivos ou blocos.

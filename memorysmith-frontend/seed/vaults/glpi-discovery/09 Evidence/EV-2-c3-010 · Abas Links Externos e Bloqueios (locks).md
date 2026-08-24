@@ -4,6 +4,8 @@ aliases: [EV-2-c3-010]
 tags: [evidence, doc, assets, links, locks, inventory]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "SRC-002 · modules/assets/tabs/links.rst · External links"
   - "SRC-002 · modules/assets/tabs/locks.rst · Locks"

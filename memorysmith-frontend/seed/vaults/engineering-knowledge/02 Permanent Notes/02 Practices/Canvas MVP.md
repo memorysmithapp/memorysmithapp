@@ -1,7 +1,8 @@
 ---
 type: practice
 tags: [strategy, artifact]
-status: evergreen
+maturity: evergreen
+reviewed: true
 ---
 O ápice da Lean Inception. Um quadro visual que detalha a estratégia do MVP sob as perspectivas de Design Thinking e Lean Startup.
 

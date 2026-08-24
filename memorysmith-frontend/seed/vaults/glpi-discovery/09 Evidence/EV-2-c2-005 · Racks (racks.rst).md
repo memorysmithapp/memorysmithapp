@@ -4,6 +4,8 @@ aliases: [EV-2-c2-005]
 tags: [evidence, assets, rack, dcim, datacenter, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/assets/racks.rst · Racks (documento inteiro)"
 author: CAD Discovery (doc)
 created: 2026-07-12

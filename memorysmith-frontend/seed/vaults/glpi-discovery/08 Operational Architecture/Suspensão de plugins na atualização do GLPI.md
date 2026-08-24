@@ -4,6 +4,8 @@ aliases: [Suspend plugins, Plugins and Update GLPI]
 tags: [operacao, plugin, atualizacao, suspensao, manutencao]
 type: infra
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-f3-010 · Instalação, atualização e remoção de plugins|EV-2-f3-010]]"
 author: CAD Discovery (doc)

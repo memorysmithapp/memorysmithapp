@@ -4,6 +4,8 @@ aliases: [Contract tabs]
 tags: [component, management, contract, tabs, doc]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-d1-002 · Contratos — objetivos, campos específicos e abas|EV-2-d1-002]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

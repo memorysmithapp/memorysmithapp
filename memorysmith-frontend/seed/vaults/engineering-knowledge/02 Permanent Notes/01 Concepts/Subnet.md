@@ -10,7 +10,8 @@ tags:
   - infrastructure
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Configure subnets for your VPC — AWS Documentation; RFC 1918
 author: Amazon Web Services · IETF
 created: 2026-07-25

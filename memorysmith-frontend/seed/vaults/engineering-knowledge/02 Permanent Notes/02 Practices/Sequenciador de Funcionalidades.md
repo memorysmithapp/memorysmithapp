@@ -1,7 +1,8 @@
 ---
 type: practice
 tags: [prioritization, planning]
-status: evergreen
+maturity: evergreen
+reviewed: true
 ---
 Ferramenta visual para organizar a ordem de criação das funcionalidades, definindo o MVP e seus incrementos.
 

@@ -4,6 +4,8 @@ aliases: [EV-2-c2-008]
 tags: [evidence, software, installation, grouping, multi-entity, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/assets/softwares.rst · Installations / Grouping"
 author: CAD Discovery (doc)
 created: 2026-07-12

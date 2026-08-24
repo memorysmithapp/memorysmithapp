@@ -1,6 +1,6 @@
-// Aggregations over the seed statistics emitted by build-seed.mjs. The maturity
-// buckets fold the per-vault status vocabularies (which belong to each vault's
-// Guidance, not to the product) into a single ordered scale for the dashboard.
+// Aggregations over the seed statistics emitted by build-seed.mjs. Maturity is
+// the cross-vault authoring standard (`maturity: seed | growing | evergreen` in
+// every note's frontmatter), so the dashboard reads it directly.
 
 import raw from '../../../seed/stats.json';
 
@@ -10,29 +10,19 @@ export interface VaultStats {
   notes: number;
   folders: number;
   byType: Record<string, number>;
-  byStatus: Record<string, number>;
+  byMaturity: Record<string, number>;
   links: { resolved: number; pending: number };
 }
 
 export const vaultStats: VaultStats[] = (raw as unknown as { vaults: VaultStats[] }).vaults;
 
-export type MaturityBucket = 'open' | 'evolving' | 'consolidated';
-export const MATURITY_ORDER: MaturityBucket[] = ['consolidated', 'evolving', 'open'];
+export type Maturity = 'seed' | 'growing' | 'evergreen';
+export const MATURITY_ORDER: Maturity[] = ['evergreen', 'growing', 'seed'];
 
-const BUCKET_BY_STATUS: Record<string, MaturityBucket> = {
-  seed: 'open',
-  draft: 'open',
-  open: 'open',
-  growing: 'evolving',
-  inferred: 'evolving',
-  evergreen: 'consolidated',
-  confirmed: 'consolidated',
-};
-
-export function maturityOf(stats: VaultStats): Record<MaturityBucket, number> {
-  const buckets: Record<MaturityBucket, number> = { open: 0, evolving: 0, consolidated: 0 };
-  for (const [status, count] of Object.entries(stats.byStatus)) {
-    buckets[BUCKET_BY_STATUS[status] ?? 'open'] += count;
+export function maturityOf(stats: VaultStats): Record<Maturity, number> {
+  const buckets: Record<Maturity, number> = { seed: 0, growing: 0, evergreen: 0 };
+  for (const [maturity, count] of Object.entries(stats.byMaturity)) {
+    if (maturity in buckets) buckets[maturity as Maturity] += count;
   }
   return buckets;
 }

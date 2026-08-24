@@ -4,6 +4,8 @@ aliases: [cache GLPI, cache_db, cache_trans, Symfony Cache]
 tags: [cache, performance, operacional, symfony, redis, apcu]
 type: infra
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g1-001 · Sistema de cache do GLPI (cache.rst)|EV-2-g1-001]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

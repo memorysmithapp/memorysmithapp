@@ -7,7 +7,8 @@ tags:
   - distributed-systems
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Timeouts, retries, and backoff with jitter — Amazon Builders' Library
 author: Marc Brooker (AWS)
 created: 2026-07-25

@@ -4,6 +4,8 @@ aliases: [Ciclo de vida, CRUD lifecycle, add update delete]
 tags: [flow, orm, ciclo-de-vida, dominio/foundation]
 type: flow
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-1-001 · CommonDBTM é o active-record base com ciclo add-update-delete|EV-1-001]]"
   - "[[EV-1-007 · Hooks de plugin no ciclo de vida dos itens|EV-1-007]]"

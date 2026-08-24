@@ -4,6 +4,8 @@ aliases: [EV-2-a1-006]
 tags: [evidence, doc, list, tabs, records, display, columns]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/first-steps/view.rst · View and manage records / Customize the display"
 author: CAD Discovery (doc)
 created: 2026-07-12

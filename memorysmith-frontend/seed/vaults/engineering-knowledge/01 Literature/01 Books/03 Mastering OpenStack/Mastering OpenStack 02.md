@@ -10,7 +10,8 @@ tags:
   - ansible
   - containers
 type: literature
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Mastering OpenStack (3rd Edition), Packt, 2024
 author: Omar Khedher
 created: 2026-07-25

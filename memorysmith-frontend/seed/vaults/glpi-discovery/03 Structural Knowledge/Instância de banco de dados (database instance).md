@@ -4,6 +4,8 @@ aliases: [Database instance, Instância de banco de dados, Bdd instance]
 tags: [management, database-instance, inventario]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-d2-005 · Database instances (tabs-database_instances.rst)|EV-2-d2-005]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

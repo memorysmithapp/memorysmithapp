@@ -9,7 +9,8 @@ tags:
   - domain-driven-design
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Domain Event (eaaDev) — martinfowler.com, 2005
 author: Martin Fowler
 created: 2026-07-25

@@ -4,6 +4,8 @@ aliases: [Dropdowns, Listas suspensas configuráveis, Setup dropdowns]
 tags: [dropdown, configuration, translation, tree, entity]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f2-005 · Conceito e configuração de dropdowns|EV-2-f2-005]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

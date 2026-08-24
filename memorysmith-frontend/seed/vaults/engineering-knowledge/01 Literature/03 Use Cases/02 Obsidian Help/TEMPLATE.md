@@ -3,7 +3,8 @@ title: <Obra NN>
 aliases: []
 tags: []
 type: literature
-status: seed
+maturity: seed
+reviewed: false
 source: <Obra, capítulo ou módulo>
 author: <Autor da obra>
 created: <YYYY-MM-DD>

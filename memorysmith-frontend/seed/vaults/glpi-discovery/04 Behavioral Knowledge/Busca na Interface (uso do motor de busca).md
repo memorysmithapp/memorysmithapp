@@ -4,6 +4,8 @@ aliases: [Search, Busca básica, Busca multicritério, Busca avançada, Search v
 tags: [use-case, search, criteria, pagination, map-view, trash]
 type: use-case
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-a1-007 · Motor de busca da UI (básica, multicritério, avançada, export, ações massivas)|EV-2-a1-007]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

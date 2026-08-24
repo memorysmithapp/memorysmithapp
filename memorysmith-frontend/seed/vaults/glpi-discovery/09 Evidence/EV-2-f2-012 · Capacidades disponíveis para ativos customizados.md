@@ -4,6 +4,8 @@ aliases: [EV-2-f2-012]
 tags: [evidence, asset-definition, capacities, INV-1-006]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/configuration/asset_definitions/asset_definitions.rst · seção Capacities"
 author: CAD Discovery (doc)
 created: 2026-07-12

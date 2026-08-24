@@ -4,6 +4,8 @@ aliases: [Alarm options]
 tags: [dados, alarme, entidade, estoque, expiracao, campos]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-f3-003 · Opções de alarme por entidade|EV-2-f3-003]]"
 author: CAD Discovery (doc)

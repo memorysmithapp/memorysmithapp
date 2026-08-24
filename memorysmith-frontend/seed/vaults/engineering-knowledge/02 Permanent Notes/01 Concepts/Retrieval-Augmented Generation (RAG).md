@@ -7,7 +7,8 @@ tags:
   - generative-ai
   - rag
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Meta AI (2020)
 author: ChatGPT
 created: 2026-07-17

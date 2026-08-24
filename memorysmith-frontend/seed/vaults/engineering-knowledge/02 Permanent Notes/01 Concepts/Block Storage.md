@@ -6,7 +6,8 @@ tags:
   - storage
   - cloud
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 Block Storage armazena dados em blocos independentes, que podem ser acessados diretamente pelo sistema operacional como discos.

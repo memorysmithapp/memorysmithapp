@@ -3,7 +3,8 @@ title: <Norma NN>
 aliases: []
 tags: []
 type: literature
-status: seed
+maturity: seed
+reviewed: false
 source: <Identificação oficial da norma>
 author: <Agente emissor>
 created: <YYYY-MM-DD>

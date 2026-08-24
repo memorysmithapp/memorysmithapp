@@ -4,6 +4,8 @@ aliases: [Internet dropdowns, IP networks, Network names, Internet domains, FQDN
 tags: [dropdown, internet, ip-network, network-name, vlan, fqdn]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f2-009 · Dropdowns de internet redes IP e nomes de rede|EV-2-f2-009]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

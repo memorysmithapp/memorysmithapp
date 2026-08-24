@@ -4,6 +4,8 @@ aliases: [Dictionaries, Dicionários, Dictionnaries]
 tags: [dicionarios, regras, normalizacao, doc]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-e2-013 · Dicionários de dados - conceito e funcionamento|EV-2-e2-013]]"
   - "[[EV-2-e2-014 · Dicionários globais e de drop-downs|EV-2-e2-014]]"

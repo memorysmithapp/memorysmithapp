@@ -7,7 +7,8 @@ tags:
   - graph
   - knowledge
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Google Knowledge Graph, Semantic Web
 author: ChatGPT
 created: 2026-07-17

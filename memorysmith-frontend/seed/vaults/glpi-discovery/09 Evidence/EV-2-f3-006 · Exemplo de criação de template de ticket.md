@@ -4,6 +4,8 @@ aliases: [EV-2-f3-006]
 tags: [evidence, template, exemplo, ticket, timeline, traducao]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/configuration/notifications/template_example.rst · Template example"
 author: CAD Discovery (doc)
 created: 2026-07-12

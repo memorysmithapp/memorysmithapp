@@ -10,7 +10,8 @@ tags:
   - http
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Architectural Styles and the Design of Network-based Software Architectures, cap. 5 — UC Irvine, 2000
 author: Roy T. Fielding
 created: 2026-07-25

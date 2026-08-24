@@ -10,7 +10,8 @@ tags:
   - microservices
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: What do you mean by Event-Driven? — martinfowler.com, 2017
 author: Martin Fowler (Thoughtworks)
 created: 2026-07-25

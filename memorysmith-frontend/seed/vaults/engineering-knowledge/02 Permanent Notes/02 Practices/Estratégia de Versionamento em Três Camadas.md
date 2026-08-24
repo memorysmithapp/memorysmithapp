@@ -9,7 +9,8 @@ tags:
   - governance
   - api
 type: practice
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Integrated Architecture Guide (PWA + AWS Serverless); Semantic Versioning 2.0.0
 author: Heitor Rapcinski
 created: 2026-07-25

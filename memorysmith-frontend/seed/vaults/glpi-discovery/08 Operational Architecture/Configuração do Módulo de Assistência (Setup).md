@@ -4,6 +4,8 @@ aliases: [Assistance configuration, Config de assistência]
 tags: [configuracao-geral, assistencia, service-desk, operacao]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f1-008 · Configuração de assistência|EV-2-f1-008]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -4,6 +4,8 @@ aliases: [SACM, Asset Management, CMDB processo]
 tags: [process, cmdb, dominio/ativos]
 type: process
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-1-015 · Ativos herdam CommonDBTM com traits Assignable-State-Inventoriable|EV-1-015]]"
   - "[[EV-1-016 · Composição do ativo via Item_Devices e itens filhos|EV-1-016]]"

@@ -8,7 +8,8 @@ tags:
   - ai-fluency
   - learning
 type: literature
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Claude 101 — Anthropic Academy, lição 13
 author: Anthropic
 created: 2026-07-31

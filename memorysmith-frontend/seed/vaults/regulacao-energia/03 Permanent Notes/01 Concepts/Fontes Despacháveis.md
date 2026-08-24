@@ -9,7 +9,8 @@ tags:
   - armazenamento
   - conceito
 type: concept
-status: growing
+maturity: growing
+reviewed: false
 source: Lei 14.300/2022, art. 1º, IX
 author: Presidência da República
 created: 2026-07-26

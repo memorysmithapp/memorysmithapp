@@ -9,7 +9,8 @@ tags:
   - aws
   - architecture
 type: practice
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: AWS SaaS Lens; Integrated Architecture Guide (PWA + AWS Serverless)
 author: Heitor Rapcinski; Amazon Web Services
 created: 2026-07-25

@@ -8,7 +8,8 @@ tags:
   - analytics
   - storage
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 Data Warehouse é um repositório de dados estruturados, organizado para consultas analíticas, Business Intelligence (BI) e geração de relatórios.

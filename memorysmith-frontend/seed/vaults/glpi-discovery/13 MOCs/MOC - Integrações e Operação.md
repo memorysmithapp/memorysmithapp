@@ -4,6 +4,8 @@ aliases: [MOC Integrações, Índice Módulo 6, MOC Operação]
 tags: [moc, dominio/integracoes, dominio/operacao]
 type: moc
 status: confirmed
+maturity: evergreen
+reviewed: false
 author: CAD Discovery
 created: 2026-07-10
 ---

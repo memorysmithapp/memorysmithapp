@@ -4,6 +4,8 @@ aliases: [INV-2-g3-001]
 tags: [investigation, consumidor/cad, tabs, contracts, links, doc-gap]
 type: investigation
 status: open
+maturity: seed
+reviewed: false
 source: "[[EV-2-g3-026 · Abas-stub (contratos e links, por redigir)|EV-2-g3-026]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

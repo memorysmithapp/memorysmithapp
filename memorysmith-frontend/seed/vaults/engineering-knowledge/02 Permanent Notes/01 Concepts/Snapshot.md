@@ -9,7 +9,8 @@ tags:
   - backup
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Amazon EBS Snapshots — AWS Documentation
 author: Amazon Web Services
 created: 2026-07-25

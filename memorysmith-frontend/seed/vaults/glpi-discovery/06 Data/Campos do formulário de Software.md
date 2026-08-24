@@ -4,6 +4,8 @@ aliases: [Campos Software]
 tags: [data, fields, software, assets, doc]
 type: table
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-c2-007 · Software, versões e licenças (softwares.rst)|EV-2-c2-007]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

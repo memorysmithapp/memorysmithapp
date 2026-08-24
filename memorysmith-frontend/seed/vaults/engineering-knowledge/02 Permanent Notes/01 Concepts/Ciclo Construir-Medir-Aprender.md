@@ -1,7 +1,8 @@
 ---
 type: concept
 tags: [lean-startup, experiment]
-status: evergreen
+maturity: evergreen
+reviewed: true
 ---
 O MVP é a peça-chave deste ciclo, servindo como o artefato construído para gerar dados que possibilitam a medição e o aprendizado.
 

@@ -9,7 +9,8 @@ tags:
   - cloud
   - governance
 type: practice
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: AWS Pricing (páginas públicas por serviço, maio de 2026); Integrated Architecture Guide (PWA + AWS Serverless)
 author: Heitor Rapcinski; Amazon Web Services
 created: 2026-07-25

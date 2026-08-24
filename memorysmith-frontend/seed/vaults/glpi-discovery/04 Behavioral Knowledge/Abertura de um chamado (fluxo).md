@@ -4,6 +4,8 @@ aliases: [Abertura de ticket, Opening a ticket]
 tags: [assistance, ticket, opening, flow, helpdesk, mail]
 type: flow
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-b1-002 · Ferramentas e interfaces de abertura de chamado|EV-2-b1-002]]"
   - "[[EV-2-b1-003 · Campos específicos da abertura na interface simplificada|EV-2-b1-003]]"

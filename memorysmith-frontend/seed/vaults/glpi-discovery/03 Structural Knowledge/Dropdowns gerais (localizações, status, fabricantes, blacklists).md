@@ -4,6 +4,8 @@ aliases: [Locations, Status of items, Manufacturers, Blacklists]
 tags: [dropdown, location, status, manufacturer, blacklist]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f2-006 · Dropdowns comuns localizações status fabricantes blacklists|EV-2-f2-006]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

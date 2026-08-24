@@ -5,7 +5,8 @@ aliases:
 tags:
   - distributed-systems
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 O Teorema CAP afirma que um sistema distribuído pode garantir, no máximo, duas das seguintes propriedades:

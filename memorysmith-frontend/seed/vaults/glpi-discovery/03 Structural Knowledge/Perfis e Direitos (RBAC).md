@@ -4,6 +4,8 @@ aliases: [Perfis, Direitos, RBAC, Profile, ProfileRight]
 tags: [concept, seguranca, dominio/foundation]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-1-002 · Constantes globais e bitmask de direitos|EV-1-002]]"
   - "[[EV-1-006 · Profile e ProfileRight definem RBAC helpdesk vs standard|EV-1-006]]"

@@ -4,6 +4,8 @@ aliases: [INV-2-e1-001]
 tags: [investigation, consumidor/cad, usuarios, scim, provisionamento, ldap]
 type: investigation
 status: open
+maturity: seed
+reviewed: false
 author: CAD Discovery (doc)
 created: 2026-07-12
 ---

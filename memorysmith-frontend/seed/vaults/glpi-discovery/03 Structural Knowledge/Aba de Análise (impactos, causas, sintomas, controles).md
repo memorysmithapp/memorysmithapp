@@ -4,6 +4,8 @@ aliases: [Analysis tab, Aba Analysis]
 tags: [analysis, problem, change, itil, aba]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-b2-002 · Gestão de problemas — formulário e abas|EV-2-b2-002]]"
   - "[[EV-2-b2-001 · Gestão de mudanças — formulário, abas e fluxo|EV-2-b2-001]]"

@@ -77,9 +77,9 @@
     "kpiPending": "Pending links",
     "maturityHeading": "Note maturity by vault",
     "bucket": {
-      "consolidated": "Consolidated",
-      "evolving": "Evolving",
-      "open": "Open"
+      "evergreen": "Evergreen",
+      "growing": "Growing",
+      "seed": "Seed"
     },
     "typesHeading": "Notes by type",
     "otherTypes": "Other",

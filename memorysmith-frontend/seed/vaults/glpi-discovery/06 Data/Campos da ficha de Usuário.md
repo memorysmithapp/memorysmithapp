@@ -4,6 +4,8 @@ aliases: [User fields, Campos do usuário]
 tags: [usuarios, campos, dados, formulario, ldap]
 type: table
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e1-001 · Ficha de Usuário — aba Users, impersonate e vcard|EV-2-e1-001]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

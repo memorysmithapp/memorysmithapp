@@ -4,6 +4,8 @@ aliases: [EV-2-a2-001]
 tags: [evidence, actions, massive-actions, crud, transfer, trash-bin]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/overview/actions.rst · modules/overview/index.rst · Actions (Creation, Modification, Display, Attaching a document, Attaching a contract, Transfer between entities, Deletion)"
 author: CAD Discovery (doc)
 created: 2026-07-12

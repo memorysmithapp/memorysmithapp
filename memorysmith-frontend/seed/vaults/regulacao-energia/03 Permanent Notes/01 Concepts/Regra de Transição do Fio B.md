@@ -11,7 +11,8 @@ tags:
   - fio-b
   - conceito
 type: concept
-status: growing
+maturity: growing
+reviewed: false
 source: Lei 14.300/2022, arts. 17, 26 e 27
 author: Presidência da República
 created: 2026-07-26

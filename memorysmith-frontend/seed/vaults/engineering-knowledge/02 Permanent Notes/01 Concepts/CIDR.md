@@ -6,7 +6,8 @@ tags:
   - networking
   - cloud
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 CIDR (Classless Inter-Domain Routing) é um método para representar intervalos de endereços IP utilizando prefixos.

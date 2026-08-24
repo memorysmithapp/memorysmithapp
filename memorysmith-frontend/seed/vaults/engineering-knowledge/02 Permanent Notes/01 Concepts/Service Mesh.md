@@ -5,7 +5,8 @@ tags:
   - kubernetes
   - networking
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 Service Mesh é uma camada de infraestrutura responsável pela comunicação entre microsserviços.

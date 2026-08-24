@@ -10,7 +10,8 @@ tags:
   - identity
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Web Authentication Level 3 — W3C; FIDO2 — FIDO Alliance
 author: W3C · FIDO Alliance
 created: 2026-07-25

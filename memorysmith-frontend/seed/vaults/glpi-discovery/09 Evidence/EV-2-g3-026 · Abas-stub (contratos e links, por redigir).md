@@ -4,6 +4,8 @@ aliases: [EV-2-g3-026]
 tags: [evidence, tab, contracts, links, stub, todo]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "SRC-002 · source/tabs/contracts.rst · Contracts"
   - "SRC-002 · source/tabs/links.rst · Links"

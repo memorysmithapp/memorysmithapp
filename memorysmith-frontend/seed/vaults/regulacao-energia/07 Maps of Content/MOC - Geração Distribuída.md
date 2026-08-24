@@ -6,7 +6,8 @@ tags:
   - moc
   - geracao-distribuida
 type: moc
-status: growing
+maturity: growing
+reviewed: false
 source: Lei 14.300/2022
 author: Heitor Rapcinski + Claude
 created: 2026-07-26

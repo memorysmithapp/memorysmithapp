@@ -8,7 +8,8 @@ tags:
   - governanca
   - qualidade
 type: project
-status: growing
+maturity: growing
+reviewed: false
 source: Varredura programática de knowledge-vault/ e docs/ em 2026-07-26
 author: Heitor Rapcinski + Claude
 created: 2026-07-26

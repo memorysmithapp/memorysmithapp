@@ -4,6 +4,8 @@ aliases: [Form question types]
 tags: [formularios, forms, perguntas, campos, dados, doc]
 type: table
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e2-015 · Formulários nativos - migração e tipos de pergunta|EV-2-e2-015]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

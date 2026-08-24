@@ -9,7 +9,8 @@ tags:
   - database
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Eventually Consistent, Revisited — ACM Queue, 2008
 author: Werner Vogels (Amazon)
 created: 2026-07-25

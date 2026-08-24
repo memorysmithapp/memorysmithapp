@@ -4,6 +4,8 @@ aliases: [EV-2-g2-016]
 tags: [evidence, user-settings, preferencias]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/user-settings/index.rst · User's settings"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -4,6 +4,8 @@ aliases: [EV-1-010]
 tags: [evidence, dominio/service-desk, ticket]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · src/Ticket.php · L59–105, 158–164"
 author: CAD Discovery
 created: 2026-07-10

@@ -4,6 +4,8 @@ aliases: [Unmanaged assets, Equipamentos não gerenciados]
 tags: [assets, unmanaged, network-discovery, structural]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-c1-009 · Ativos não gerenciados e conversão de tipo|EV-2-c1-009]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

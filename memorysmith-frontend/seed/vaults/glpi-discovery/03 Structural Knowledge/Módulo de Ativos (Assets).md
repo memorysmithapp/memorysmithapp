@@ -4,6 +4,8 @@ aliases: [Módulo Assets, Ativos]
 tags: [assets, inventory, module, structural]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-c1-001 · Módulo Assets e tipos de ativo disponíveis|EV-2-c1-001]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

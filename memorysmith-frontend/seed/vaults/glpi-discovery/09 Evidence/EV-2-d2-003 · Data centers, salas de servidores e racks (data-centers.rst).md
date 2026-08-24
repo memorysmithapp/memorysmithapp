@@ -4,6 +4,8 @@ aliases: [data-centers.rst, Data centers]
 tags: [evidence, management, datacenter, dcim, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/management/data-centers.rst · Data centers"
 author: CAD Discovery (doc)
 created: 2026-07-12

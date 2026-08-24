@@ -4,6 +4,8 @@ aliases: [Plugin, Marketplace, extensibilidade]
 tags: [integration, plugins, dominio/integracoes]
 type: integration
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-1-039 · Plugin Config e Migration|EV-1-039]]"
 author: CAD Discovery
 created: 2026-07-10

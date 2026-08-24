@@ -4,6 +4,8 @@ aliases: [EV-2-a1-011]
 tags: [evidence, doc, interface, layout, user-menu, breadcrumb, search-box]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/first-steps/discovery.rst · Understanding the interface"
 author: CAD Discovery (doc)
 created: 2026-07-12

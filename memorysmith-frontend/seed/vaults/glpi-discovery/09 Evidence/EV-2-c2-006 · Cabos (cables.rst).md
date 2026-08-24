@@ -4,6 +4,8 @@ aliases: [EV-2-c2-006]
 tags: [evidence, assets, cable, connectivity, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/assets/cables.rst · Cables (documento inteiro)"
 author: CAD Discovery (doc)
 created: 2026-07-12

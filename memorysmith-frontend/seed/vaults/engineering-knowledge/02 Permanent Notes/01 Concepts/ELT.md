@@ -5,7 +5,8 @@ aliases:
 tags:
   - data-engineering
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 ELT é uma abordagem em que os dados são carregados primeiro no ambiente analítico e transformados posteriormente.

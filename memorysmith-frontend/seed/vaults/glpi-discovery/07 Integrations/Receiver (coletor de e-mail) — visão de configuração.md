@@ -4,6 +4,8 @@ aliases: [Receivers, Mail collector (config), Coletor de e-mail (doc)]
 tags: [integracao, receiver, collector, mailgate, imap, pop, email]
 type: integration
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-f3-008 · Receivers (coletores de e-mail), blacklists e regras de roteamento|EV-2-f3-008]]"
 author: CAD Discovery (doc)

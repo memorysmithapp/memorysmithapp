@@ -4,6 +4,8 @@ aliases: [EV-1-014]
 tags: [evidence, dominio/service-desk, template, categoria]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · src/ITILCategory.php L41 · src/ITILTemplate.php L46 · src/TicketTemplate.php L43 · src/ChangeTemplate*Field.php"
 author: CAD Discovery
 created: 2026-07-10

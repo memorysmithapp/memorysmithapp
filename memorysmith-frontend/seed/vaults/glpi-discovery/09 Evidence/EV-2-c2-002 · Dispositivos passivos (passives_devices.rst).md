@@ -4,6 +4,8 @@ aliases: [EV-2-c2-002]
 tags: [evidence, assets, passive-device, dcim, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/assets/passives_devices.rst · Passive devices (documento inteiro)"
 author: CAD Discovery (doc)
 created: 2026-07-12

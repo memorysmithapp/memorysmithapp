@@ -4,6 +4,8 @@ aliases: [Supplier vs Vendor, Fornecedor vs Fabricante]
 tags: [rule, management, supplier, manufacturer, doc]
 type: rule
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-d1-003 · Fornecedores — definição, distinção fornecedor×fabricante e abas|EV-2-d1-003]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

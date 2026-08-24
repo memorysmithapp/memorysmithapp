@@ -8,7 +8,8 @@ tags:
   - legislacao
   - conceito
 type: concept
-status: growing
+maturity: growing
+reviewed: false
 source: Lei 14.300/2022, art. 1º, XIII e parágrafo único
 author: Presidência da República
 created: 2026-07-26

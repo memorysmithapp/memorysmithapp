@@ -4,6 +4,8 @@ aliases: [Manage changes, Gerir mudanças]
 tags: [changes, mudancas, itil, procedimento, ui, assistance]
 type: use-case
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-b2-001 · Gestão de mudanças — formulário, abas e fluxo|EV-2-b2-001]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

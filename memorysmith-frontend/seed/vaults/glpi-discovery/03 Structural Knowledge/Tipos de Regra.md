@@ -4,6 +4,8 @@ aliases: [RuleRight, RuleTicket, RuleAsset, RuleImportAsset, dicionários]
 tags: [concept, motor-de-regras, dominio/admin]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-1-032 · Tipos de regra especializados|EV-1-032]]"
 author: CAD Discovery
 created: 2026-07-10

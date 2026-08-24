@@ -4,6 +4,8 @@ aliases: [EV-1-027]
 tags: [evidence, dominio/gestao, reserva, consumivel]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · src/Reservation.php L45 · src/ReservationItem.php L44 · src/Consumable.php L50 · src/Cartridge.php L47"
 author: CAD Discovery
 created: 2026-07-10

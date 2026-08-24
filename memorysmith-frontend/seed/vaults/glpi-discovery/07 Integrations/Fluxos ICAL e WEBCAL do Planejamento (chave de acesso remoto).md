@@ -4,6 +4,8 @@ aliases: [ICAL, WEBCAL, Remote access key, Calendário externo]
 tags: [integration, calendar, ical, webcal, planning, remote-access-key]
 type: integration
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-a1-009 · Preferências do usuário (abas e campos)|EV-2-a1-009]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

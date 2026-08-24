@@ -4,6 +4,8 @@ aliases: [External links, Links externos]
 tags: [links-externos, configuracao, integracao-leve]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f1-003 · Links externos, tags e templates Twig|EV-2-f1-003]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

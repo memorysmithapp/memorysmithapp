@@ -4,6 +4,8 @@ aliases: [EV-2-f3-003]
 tags: [evidence, alarme, alarm, entidade, estoque, expiracao]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/configuration/notifications/alarm_options.rst · Alarm options"
 author: CAD Discovery (doc)
 created: 2026-07-12

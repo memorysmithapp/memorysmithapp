@@ -3,7 +3,8 @@ title: <Nome do conjunto (Fonte)>
 aliases: []
 tags: [dados-abertos]
 type: dataset
-status: seed
+maturity: seed
+reviewed: false
 source: <Portal ou catálogo de origem>
 author: <Instituição publicadora>
 created: <YYYY-MM-DD>

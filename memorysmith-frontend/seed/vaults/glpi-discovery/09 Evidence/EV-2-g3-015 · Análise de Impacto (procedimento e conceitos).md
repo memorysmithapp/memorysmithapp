@@ -4,6 +4,8 @@ aliases: [EV-2-g3-015]
 tags: [evidence, tab, impact-analysis, dependency, diagram]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/tabs/impact_analysis.rst · Impact Analysis"
 author: CAD Discovery (doc)
 created: 2026-07-12

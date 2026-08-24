@@ -4,6 +4,8 @@ aliases: [rules:replay_dictionnary_rules, ldap:sync, tools:delete_orphan_logs, b
 tags: [cli, regras, dicionarios, ativos, ldap, ferramentas, comandos, operacional]
 type: process
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g1-005 · Referência da linha de comando bin-console (cli.rst)|EV-2-g1-005]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

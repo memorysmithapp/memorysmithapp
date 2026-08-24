@@ -4,6 +4,8 @@ aliases: [Virtualization tab, Aba Virtualização, VM tab]
 tags: [assets, tab, virtualization, vm, uuid, computer]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-c3-009 · Aba Virtualização de um host|EV-2-c3-009]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

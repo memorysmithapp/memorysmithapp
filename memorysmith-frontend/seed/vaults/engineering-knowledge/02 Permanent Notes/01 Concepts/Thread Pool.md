@@ -9,7 +9,8 @@ tags:
   - performance
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Modern Operating Systems, Andrew S. Tanenbaum; Using load shedding to avoid overload, Amazon Builders' Library
 author: Andrew S. Tanenbaum · David Yanacek (AWS)
 created: 2026-07-25

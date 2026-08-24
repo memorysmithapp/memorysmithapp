@@ -4,6 +4,8 @@ aliases: [EV-2-b2-003]
 tags: [evidence, planning, agenda, planejamento, ical, webcal]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/assistance/planning.rst · Managing plannings (documento inteiro)"
 author: CAD Discovery (doc)
 created: 2026-07-12

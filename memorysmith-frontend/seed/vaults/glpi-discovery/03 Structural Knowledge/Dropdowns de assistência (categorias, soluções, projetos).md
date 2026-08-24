@@ -4,6 +4,8 @@ aliases: [Ticket categories, Task categories, Solution types, Request sources, P
 tags: [dropdown, assistance, ticket-category, solution, project, service-desk]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f2-007 · Dropdowns de assistência categorias soluções projetos|EV-2-f2-007]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

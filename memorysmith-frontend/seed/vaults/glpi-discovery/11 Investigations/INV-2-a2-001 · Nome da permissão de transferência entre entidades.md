@@ -4,6 +4,8 @@ aliases: [INV-2-a2-001]
 tags: [investigation, consumidor/cad, transfer, permissions, doc-gap]
 type: investigation
 status: open
+maturity: seed
+reviewed: false
 source: "SRC-002 · modules/overview/actions.rst · Transfer between entities"
 author: CAD Discovery (doc)
 created: 2026-07-12

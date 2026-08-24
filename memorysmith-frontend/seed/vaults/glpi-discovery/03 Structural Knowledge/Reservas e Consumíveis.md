@@ -4,6 +4,8 @@ aliases: [Reservation, Consumable, Cartridge, Reservas, Consumíveis, "Reservas 
 tags: [concept, reserva, consumivel, dominio/gestao]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-1-027 · Reservation e Consumíveis-Cartuchos|EV-1-027]]"
 author: CAD Discovery
 created: 2026-07-10

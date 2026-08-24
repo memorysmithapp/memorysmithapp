@@ -6,7 +6,8 @@ tags:
   - security
   - iam
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 Identity Federation permite que usuários autenticados em um sistema utilizem suas credenciais para acessar outro sistema sem criar uma nova conta.

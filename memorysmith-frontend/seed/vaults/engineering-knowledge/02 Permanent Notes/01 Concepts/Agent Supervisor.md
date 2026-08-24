@@ -8,7 +8,8 @@ tags:
   - agents
   - orchestration
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Multi-Agent Systems
 author: ChatGPT
 created: 2026-07-17

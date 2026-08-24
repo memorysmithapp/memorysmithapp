@@ -11,7 +11,8 @@ tags:
   - perdas
   - tarifa
 type: literature
-status: growing
+maturity: growing
+reviewed: false
 source: REN ANEEL 956/2021, Anexo VII — PRODIST Módulo 7, v6
 author: ANEEL
 created: 2026-07-26

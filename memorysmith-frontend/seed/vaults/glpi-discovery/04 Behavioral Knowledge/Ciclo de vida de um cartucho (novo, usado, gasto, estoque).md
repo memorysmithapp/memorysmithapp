@@ -4,6 +4,8 @@ aliases: [Cartridge lifecycle, Ciclo de vida do cartucho]
 tags: [behavioral, cartridges, printer, lifecycle, stock, state-machine]
 type: flow
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g3-009 · Aba Cartuchos (ciclo de vida na impressora)|EV-2-g3-009]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

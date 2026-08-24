@@ -11,7 +11,8 @@ tags:
   - saas
   - reference-architecture
 type: project
-status: growing
+maturity: growing
+reviewed: false
 source: docs/architecture-guide.md — Integrated Architecture Guide (Frontend PWA + Serverless AWS)
 author: Heitor Rapcinski
 created: 2026-07-25

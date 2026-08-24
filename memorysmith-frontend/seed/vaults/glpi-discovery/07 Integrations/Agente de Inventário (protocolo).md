@@ -4,6 +4,8 @@ aliases: [Agente, GLPI Agent, protocolo de inventário]
 tags: [integration, inventario, agente, dominio/integracoes]
 type: integration
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-1-038 · Agente de inventário protocolo XML-JSON OAuth|EV-1-038]]"
 author: CAD Discovery
 created: 2026-07-10

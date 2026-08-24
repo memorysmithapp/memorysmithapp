@@ -4,6 +4,8 @@ aliases: [EV-1-029]
 tags: [evidence, dominio/admin, autenticacao, seguranca]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · src/Auth.php L55–115 · Glpi\\Security\\TOTPManager · src/Glpi/OAuth/*"
 author: CAD Discovery
 created: 2026-07-10

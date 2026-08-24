@@ -4,6 +4,8 @@ aliases: [EV-2-f1-012]
 tags: [evidence, seguranca, senha, politica, configuracao-geral]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/configuration/general/security.rst · Security"
 author: CAD Discovery (doc)
 created: 2026-07-12

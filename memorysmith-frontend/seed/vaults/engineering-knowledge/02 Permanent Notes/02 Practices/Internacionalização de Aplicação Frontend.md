@@ -9,7 +9,8 @@ tags:
   - ux
   - architecture
 type: practice
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: i18next documentation; Integrated Architecture Guide (PWA + AWS Serverless)
 author: Heitor Rapcinski
 created: 2026-07-25

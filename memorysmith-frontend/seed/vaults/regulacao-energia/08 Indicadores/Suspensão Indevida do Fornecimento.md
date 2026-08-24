@@ -11,7 +11,8 @@ tags:
   - indger
   - dados-abertos
 type: indicator
-status: growing
+maturity: growing
+reviewed: false
 source: "[[INDGER - Indicadores Gerenciais da Distribuição (ANEEL)]]"
 author: ANEEL
 created: 2026-07-27

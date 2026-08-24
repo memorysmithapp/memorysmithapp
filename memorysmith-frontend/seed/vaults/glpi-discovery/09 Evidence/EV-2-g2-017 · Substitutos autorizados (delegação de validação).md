@@ -4,6 +4,8 @@ aliases: [EV-2-g2-017]
 tags: [evidence, user-settings, substitutes, validacao, delegacao]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/user-settings/authorized-substitutes.rst · Authorized substitutes"
 author: CAD Discovery (doc)
 created: 2026-07-12

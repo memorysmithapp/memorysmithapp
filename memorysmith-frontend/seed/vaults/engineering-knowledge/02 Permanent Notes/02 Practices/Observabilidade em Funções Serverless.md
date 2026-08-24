@@ -9,7 +9,8 @@ tags:
   - serverless
   - operations
 type: practice
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Powertools for AWS Lambda; Integrated Architecture Guide (PWA + AWS Serverless)
 author: Amazon Web Services
 created: 2026-07-25

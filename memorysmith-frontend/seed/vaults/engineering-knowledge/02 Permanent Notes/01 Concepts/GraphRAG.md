@@ -9,7 +9,8 @@ tags:
   - knowledge-graph
   - rag
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: From Local to Global — A Graph RAG Approach to Query-Focused Summarization, Microsoft Research, 2024
 author: Darren Edge et al. (Microsoft Research)
 created: 2026-07-25

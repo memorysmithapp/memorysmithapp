@@ -4,6 +4,8 @@ aliases: [EV-1-034]
 tags: [evidence, dominio/integracoes, api]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · src/Glpi/Api/HL/Router.php L36–80 · src/Glpi/Api/API.php · src/Glpi/Api/HL/Middleware/*"
 author: CAD Discovery
 created: 2026-07-10

@@ -4,6 +4,8 @@ aliases: [OPCache, opcache blacklist]
 tags: [opcache, php, performance, operacional, pdf, fontes]
 type: infra
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g1-001 · Sistema de cache do GLPI (cache.rst)|EV-2-g1-001]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -4,6 +4,8 @@ aliases: [Mailing queue, Fila de notificações, queuedmail]
 tags: [notificacoes, fila, email, crontask, doc]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e2-018 · Fila de e-mails (mailing queue)|EV-2-e2-018]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

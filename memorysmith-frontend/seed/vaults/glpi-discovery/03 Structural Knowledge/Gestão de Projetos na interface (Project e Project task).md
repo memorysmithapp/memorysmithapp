@@ -4,6 +4,8 @@ aliases: [Projects UI, Project, Project task, Abas de projeto]
 tags: [tools, projects, gantt, kanban, tasks, teams, subproject]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g3-003 · Gestão de projetos (Project e Project task)|EV-2-g3-003]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

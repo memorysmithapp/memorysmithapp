@@ -9,7 +9,8 @@ tags:
   - organization
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Technology Radar — Thoughtworks; Team Topologies, Skelton e Pais
 author: Thoughtworks · Matthew Skelton e Manuel Pais
 created: 2026-07-25

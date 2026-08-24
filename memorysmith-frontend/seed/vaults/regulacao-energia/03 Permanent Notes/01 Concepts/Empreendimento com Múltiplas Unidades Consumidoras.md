@@ -9,7 +9,8 @@ tags:
   - modalidades
   - conceito
 type: concept
-status: seed
+maturity: seed
+reviewed: false
 source: Lei 14.300/2022, art. 1º, VII
 author: Presidência da República
 created: 2026-07-26

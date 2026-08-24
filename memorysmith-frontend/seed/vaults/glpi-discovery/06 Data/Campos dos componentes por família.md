@@ -4,6 +4,8 @@ aliases: [Component fields per family, Campos de componentes]
 tags: [data, components, hardware, fields]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g3-010 · Aba Componentes por família (campos)|EV-2-g3-010]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

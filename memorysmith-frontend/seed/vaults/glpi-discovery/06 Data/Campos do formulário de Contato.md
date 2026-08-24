@@ -4,6 +4,8 @@ aliases: [Contact fields]
 tags: [data, management, contact, fields, doc]
 type: table
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-d1-004 · Contatos — definição, títulos e vCard|EV-2-d1-004]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

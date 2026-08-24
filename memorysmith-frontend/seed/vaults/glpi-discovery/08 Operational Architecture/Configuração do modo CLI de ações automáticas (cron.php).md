@@ -4,6 +4,8 @@ aliases: [CLI cron mode, cron.php]
 tags: [operacao, crontask, cli, cron, agendador, cron.php]
 type: infra
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-f3-007 · Ações automáticas (crontasks) — config e catálogo|EV-2-f3-007]]"
 author: CAD Discovery (doc)

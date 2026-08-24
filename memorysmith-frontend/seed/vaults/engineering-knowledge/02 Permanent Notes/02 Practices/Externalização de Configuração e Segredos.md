@@ -10,7 +10,8 @@ tags:
   - aws
   - iac
 type: practice
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: The Twelve-Factor App (Config); AWS Secrets Manager e SSM Parameter Store; Integrated Architecture Guide
 author: Adam Wiggins; Amazon Web Services
 created: 2026-07-25

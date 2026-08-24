@@ -11,7 +11,8 @@ tags:
   - catalogo
   - fonte
 type: dataset
-status: growing
+maturity: growing
+reviewed: false
 source: https://dadosabertos.aneel.gov.br/
 author: ANEEL
 created: 2026-07-27

@@ -9,7 +9,8 @@ tags:
   - networking
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: RFC 6455 The WebSocket Protocol — IETF, 2011
 author: I. Fette e A. Melnikov (IETF)
 created: 2026-07-25

@@ -9,7 +9,8 @@ tags:
   - pwa
   - architecture
 type: practice
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Workbox documentation (Google); Integrated Architecture Guide (PWA + AWS Serverless)
 author: Google Chrome Team
 created: 2026-07-25

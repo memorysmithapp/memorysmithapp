@@ -8,7 +8,8 @@ tags:
   - api
   - architecture
 type: practice
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Top 12 Tips for API Security — BIG ARCHIVE System Design 2023; OWASP API Security Top 10
 author: ByteByteGo (Alex Xu, Sahn Lam) · OWASP
 created: 2026-07-25

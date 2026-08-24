@@ -10,7 +10,8 @@ tags:
   - aneel
   - fontes
 type: moc
-status: growing
+maturity: growing
+reviewed: false
 source: "[[Portal de Dados Abertos ANEEL (CKAN)]]"
 author: Curadoria
 created: 2026-07-26

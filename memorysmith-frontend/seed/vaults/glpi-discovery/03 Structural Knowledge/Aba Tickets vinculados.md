@@ -4,6 +4,8 @@ aliases: [aba Tickets, Tickets tab, tickets vinculados]
 tags: [tabs, tickets, itil, ui]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g2-015 · Aba Tickets (tickets vinculados ao objeto)|EV-2-g2-015]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

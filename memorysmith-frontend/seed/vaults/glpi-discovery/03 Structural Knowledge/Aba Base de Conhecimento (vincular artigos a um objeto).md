@@ -4,6 +4,8 @@ aliases: [Knowledge base tab, Aba KB, Link article]
 tags: [tab, knowledgebase, link, article]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g3-017 · Aba Base de Conhecimento (vincular artigos)|EV-2-g3-017]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

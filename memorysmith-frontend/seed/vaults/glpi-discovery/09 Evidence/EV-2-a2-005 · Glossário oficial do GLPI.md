@@ -4,6 +4,8 @@ aliases: [EV-2-a2-005]
 tags: [evidence, glossary, terminology]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · glossary.rst · Glossary (glossário oficial, ~130 termos)"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -4,6 +4,8 @@ aliases: [glpi:ldap:synchronize_users, LDAP sync CLI]
 tags: [ldap, sincronizacao, cli, manutencao, operacao]
 type: infra
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e1-002 · Importação e sincronização de usuários (LDAP e fontes externas)|EV-2-e1-002]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

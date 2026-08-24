@@ -10,7 +10,8 @@ tags:
   - infrastructure
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: NIST SP 800-41 Rev. 1 Guidelines on Firewalls and Firewall Policy — NIST, 2009
 author: NIST
 created: 2026-07-25

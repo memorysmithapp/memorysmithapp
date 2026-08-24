@@ -6,7 +6,8 @@ tags:
   - analytics
   - data
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 Business Intelligence (BI) é o conjunto de processos, ferramentas e técnicas utilizados para transformar dados em informações que apoiam a tomada de decisão.

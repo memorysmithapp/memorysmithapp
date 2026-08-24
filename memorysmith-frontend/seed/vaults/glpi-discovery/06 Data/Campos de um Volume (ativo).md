@@ -4,6 +4,8 @@ aliases: [Volume fields]
 tags: [data, assets, volumes, storage, fields]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-c3-008 · Aba Volumes de um Computador|EV-2-c3-008]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

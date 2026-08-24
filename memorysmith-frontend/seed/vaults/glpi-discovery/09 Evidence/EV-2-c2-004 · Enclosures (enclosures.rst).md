@@ -4,6 +4,8 @@ aliases: [EV-2-c2-004]
 tags: [evidence, assets, enclosure, dcim, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/assets/enclosures.rst · Enclosures (documento inteiro)"
 author: CAD Discovery (doc)
 created: 2026-07-12

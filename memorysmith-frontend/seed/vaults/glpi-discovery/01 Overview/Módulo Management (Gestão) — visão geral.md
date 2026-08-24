@@ -4,6 +4,8 @@ aliases: [Management, Gestão, Módulo de Gestão]
 tags: [overview, management, doc]
 type: overview
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-d1-001 · Índice do módulo Management e itens geridos|EV-2-d1-001]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

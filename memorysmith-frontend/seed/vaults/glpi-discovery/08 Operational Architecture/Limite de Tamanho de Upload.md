@@ -4,6 +4,8 @@ aliases: [Management tab, Upload size limit, Limite de upload]
 tags: [configuracao-geral, upload, documentos, operacao]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f1-009 · Limite de upload de documentos|EV-2-f1-009]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

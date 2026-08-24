@@ -4,6 +4,8 @@ aliases: [EV-2-b1-011]
 tags: [evidence, assistance, categories, itil, hierarchy, template]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/modules/assistance/categories.rst · Categories"
 author: CAD Discovery (doc)
 created: 2026-07-12

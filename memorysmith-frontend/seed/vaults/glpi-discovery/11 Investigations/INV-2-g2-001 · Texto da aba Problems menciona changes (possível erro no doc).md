@@ -4,6 +4,8 @@ aliases: [INV-2-g2-001]
 tags: [investigation, consumidor/cad, doc-inconsistencia, problems]
 type: investigation
 status: open
+maturity: seed
+reviewed: false
 author: CAD Discovery (doc)
 created: 2026-07-12
 ---

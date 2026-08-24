@@ -4,6 +4,8 @@ aliases: [Fluxo de notificação (doc)]
 tags: [notificacao, fluxo, fila, queue, email]
 type: flow
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-f3-001 · Visão geral e funcionamento das notificações|EV-2-f3-001]]"
 author: CAD Discovery (doc)

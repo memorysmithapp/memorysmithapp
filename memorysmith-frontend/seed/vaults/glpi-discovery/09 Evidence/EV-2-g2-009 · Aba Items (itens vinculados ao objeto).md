@@ -4,6 +4,8 @@ aliases: [EV-2-g2-009]
 tags: [evidence, tabs, items]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/tabs/items.rst · Items"
 author: CAD Discovery (doc)
 created: 2026-07-12

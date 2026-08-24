@@ -4,6 +4,8 @@ aliases: [aba Debug, Debug tab, depuração]
 tags: [tabs, debug, notificacoes, ui]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g2-005 · Aba Debug (informações de depuração)|EV-2-g2-005]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

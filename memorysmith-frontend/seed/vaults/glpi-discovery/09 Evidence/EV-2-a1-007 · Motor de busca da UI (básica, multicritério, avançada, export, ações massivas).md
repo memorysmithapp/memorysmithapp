@@ -4,6 +4,8 @@ aliases: [EV-2-a1-007]
 tags: [evidence, doc, search, criteria, operators, export, massive-actions, quick-search, trash]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/first-steps/search.rst · Search for information in GLPI (todas as seções)"
 author: CAD Discovery (doc)
 created: 2026-07-12

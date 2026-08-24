@@ -10,7 +10,8 @@ tags:
   - operating-system
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Modern Operating Systems, Andrew S. Tanenbaum; Coffman, Elphick e Shoshani, System Deadlocks, 1971
 author: Andrew S. Tanenbaum · E. G. Coffman et al.
 created: 2026-07-25

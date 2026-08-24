@@ -9,7 +9,8 @@ tags:
   - system-design
   - engineering
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Building Evolutionary Architectures — Neal Ford, Rebecca Parsons e Patrick Kua, O'Reilly
 author: Neal Ford, Rebecca Parsons e Patrick Kua (Thoughtworks)
 created: 2026-07-25

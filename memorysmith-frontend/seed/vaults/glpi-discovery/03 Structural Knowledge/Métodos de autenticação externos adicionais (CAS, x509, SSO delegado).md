@@ -4,6 +4,8 @@ aliases: [CAS, x509, SSO, LemonLDAP, Shibboleth, Single Sign-On]
 tags: [authentication, cas, x509, sso, single-sign-on]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-f2-004 · Métodos externos adicionais CAS x509 e SSO delegado|EV-2-f2-004]]"
   - "[[EV-2-f2-010 · Outros dropdowns tipos modelos documentos SO unicidade login|EV-2-f2-010]]"

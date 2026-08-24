@@ -9,7 +9,8 @@ tags:
   - frontend
   - architecture
 type: practice
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Amazon S3 User Guide; Integrated Architecture Guide (PWA + AWS Serverless)
 author: Heitor Rapcinski; Amazon Web Services
 created: 2026-07-25

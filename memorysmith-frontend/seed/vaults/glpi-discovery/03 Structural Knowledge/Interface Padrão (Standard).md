@@ -4,6 +4,8 @@ aliases: [Standard Interface, Interface standard, Central]
 tags: [component, interface, standard, dashboard, home-page]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-a1-004 · Interface padrão e interface simplificada|EV-2-a1-004]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

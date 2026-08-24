@@ -4,6 +4,8 @@ aliases: [Rule criteria operators, Operadores de regra]
 tags: [regras, criterios, operadores, regex, dados, doc]
 type: table
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e2-009 · Criação de uma regra - critérios, operadores, regex e AND-OR|EV-2-e2-009]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -4,6 +4,8 @@ aliases: [Location, Localização]
 tags: [campos-comuns, localizacao, dropdown, data]
 type: field
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g4-005 · Campos de localização e posição em datacenter|EV-2-g4-005]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

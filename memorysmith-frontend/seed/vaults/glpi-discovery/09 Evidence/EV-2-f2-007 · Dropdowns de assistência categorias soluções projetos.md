@@ -4,6 +4,8 @@ aliases: [EV-2-f2-007]
 tags: [evidence, dropdown, assistance, ticket-category, solution, project]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/configuration/dropdowns/assistance.rst"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -4,6 +4,8 @@ aliases: [Auth, Autenticação, LDAP, SSO, 2FA]
 tags: [component, autenticacao, seguranca, dominio/admin]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-1-029 · Auth com múltiplos métodos e 2FA|EV-1-029]]"
   - "[[EV-1-030 · AuthLDAP diretório e sincronização|EV-1-030]]"

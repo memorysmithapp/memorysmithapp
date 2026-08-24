@@ -4,6 +4,8 @@ aliases: [Reminder, Lembrete, Reminders]
 tags: [tools, reminders, planning, targets]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g3-004 · Lembretes pessoais e públicos|EV-2-g3-004]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

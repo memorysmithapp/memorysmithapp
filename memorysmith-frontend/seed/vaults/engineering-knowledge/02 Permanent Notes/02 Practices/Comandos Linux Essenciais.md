@@ -8,7 +8,8 @@ tags:
   - operating-system
   - infrastructure
 type: practice
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: 18 Most-used Linux Commands e Most Used Linux Commands Map — BIG ARCHIVE System Design 2023
 author: ByteByteGo (Alex Xu, Sahn Lam)
 created: 2026-07-25

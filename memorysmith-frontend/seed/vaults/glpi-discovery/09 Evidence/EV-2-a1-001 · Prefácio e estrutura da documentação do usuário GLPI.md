@@ -4,6 +4,8 @@ aliases: [EV-2-a1-001]
 tags: [evidence, doc, overview, glpi, first-steps]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/index.rst · Preface / Installation / Table of contents / Documentation license; source/first-steps/index.rst · First Steps with GLPI"
 author: CAD Discovery (doc)
 created: 2026-07-12

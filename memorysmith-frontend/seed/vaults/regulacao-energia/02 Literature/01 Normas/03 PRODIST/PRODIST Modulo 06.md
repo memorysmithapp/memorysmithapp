@@ -11,7 +11,8 @@ tags:
   - dados-abertos
   - obrigacoes
 type: literature
-status: growing
+maturity: growing
+reviewed: false
 source: REN ANEEL 956/2021, Anexo VI — PRODIST Módulo 6, v17
 author: ANEEL
 created: 2026-07-26

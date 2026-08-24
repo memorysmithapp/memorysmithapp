@@ -4,6 +4,8 @@ aliases: [EV-2-e2-011]
 tags: [evidence, regras, autorizacoes, ldap, entidade, perfil, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/administration/rules/userauthorizations.rst · Rules for assigning authorizations to a user"
 author: CAD Discovery (doc)
 created: 2026-07-12

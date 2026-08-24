@@ -10,7 +10,8 @@ tags:
   - governance
   - architecture
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: FinOps Foundation — FinOps Framework; Integrated Architecture Guide (PWA + AWS Serverless)
 author: FinOps Foundation
 created: 2026-07-25

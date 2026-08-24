@@ -4,6 +4,8 @@ aliases: [Project Management]
 tags: [process, projeto, dominio/gestao]
 type: process
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-1-026 · Project ProjectTask ProjectTeam e ProjectCost|EV-1-026]]"
 author: CAD Discovery
 created: 2026-07-10

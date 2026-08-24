@@ -4,6 +4,8 @@ aliases: [EV-1-026]
 tags: [evidence, dominio/gestao, projeto]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · src/Project.php L50, 266–329 · src/ProjectTask.php L59 · src/ProjectTeam.php L48 · src/ProjectCost.php L40"
 author: CAD Discovery
 created: 2026-07-10

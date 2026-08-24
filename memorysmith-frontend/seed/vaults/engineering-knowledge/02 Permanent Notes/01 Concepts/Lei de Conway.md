@@ -8,7 +8,8 @@ tags:
 type: concept
 aliases:
   - Conway's Law
-status: evergreen
+maturity: evergreen
+reviewed: true
 ---
 
 > [!quote]

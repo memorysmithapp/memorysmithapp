@@ -8,7 +8,8 @@ tags:
   - use-cases
   - workflow
 type: literature
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Claude 101 — Anthropic Academy, lições 11–12
 author: Anthropic
 created: 2026-07-31

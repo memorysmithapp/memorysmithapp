@@ -4,6 +4,8 @@ aliases: [Databases management, Gestão de Bancos de Dados]
 tags: [management, database, capacidade]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-d2-004 · Databases (databases.rst)|EV-2-d2-004]]"
   - "[[EV-2-d2-005 · Database instances (tabs-database_instances.rst)|EV-2-d2-005]]"

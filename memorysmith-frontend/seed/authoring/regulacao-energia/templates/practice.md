@@ -3,7 +3,8 @@ title: <Nome do rito ou procedimento>
 aliases: []
 tags: []
 type: practice
-status: seed
+maturity: seed
+reviewed: false
 source: <Norma(s) que instituem o rito>
 author: <Agente emissor>
 created: <YYYY-MM-DD>

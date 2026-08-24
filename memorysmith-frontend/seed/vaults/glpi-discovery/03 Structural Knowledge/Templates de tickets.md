@@ -4,6 +4,8 @@ aliases: [Ticket template, Modelo de ticket]
 tags: [templates, tickets, mandatory-fields, itil]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-a2-004 · Gestão de templates (ativos e tickets)|EV-2-a2-004]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

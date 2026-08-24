@@ -3,7 +3,8 @@ title: <Nome canônico do conceito>
 aliases: []
 tags: []
 type: concept
-status: seed
+maturity: seed
+reviewed: false
 source: <Norma(s) de origem, com número e ano>
 author: <Agente emissor>
 created: <YYYY-MM-DD>

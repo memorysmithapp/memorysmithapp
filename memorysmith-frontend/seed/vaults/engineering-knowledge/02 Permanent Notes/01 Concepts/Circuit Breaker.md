@@ -4,7 +4,8 @@ tags:
   - resilience
   - distributed-systems
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 Circuit Breaker é um padrão de resiliência que interrompe chamadas para um serviço quando ele apresenta falhas repetidas.

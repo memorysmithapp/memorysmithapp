@@ -4,6 +4,8 @@ aliases: [EV-2-f3-005]
 tags: [evidence, template, notificacao, tags, traducao]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/configuration/notifications/templates.rst · Notification templates"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -4,6 +4,8 @@ aliases: [EV-2-g3-011]
 tags: [evidence, tab, connections, computer, peripheral]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/tabs/connections.rst · Connections"
 author: CAD Discovery (doc)
 created: 2026-07-12

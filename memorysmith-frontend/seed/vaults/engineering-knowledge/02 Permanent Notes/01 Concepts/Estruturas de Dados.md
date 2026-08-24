@@ -7,7 +7,8 @@ tags:
   - algorithms
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: 10 Key Data Structures We Use Every Day — BIG ARCHIVE System Design 2023
 author: ByteByteGo (Alex Xu, Sahn Lam)
 created: 2026-07-25

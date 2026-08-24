@@ -4,6 +4,8 @@ aliases: [Administration, Administração]
 tags: [administracao, modulo, overview, doc]
 type: overview
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e2-001 · Módulo de Administração e submenus (index)|EV-2-e2-001]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

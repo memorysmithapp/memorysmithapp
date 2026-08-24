@@ -4,6 +4,8 @@ aliases: [Domains management, Gestão de Domínios]
 tags: [management, domain, dns, capacidade]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-d2-006 · Domains (domains.rst)|EV-2-d2-006]]"
   - "[[EV-2-d2-007 · Domain records (domains_records.rst)|EV-2-d2-007]]"

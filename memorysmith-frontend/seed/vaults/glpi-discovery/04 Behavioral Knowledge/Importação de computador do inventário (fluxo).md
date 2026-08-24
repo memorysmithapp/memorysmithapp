@@ -4,6 +4,8 @@ aliases: [Import computer flow, Fluxo de importação de computador]
 tags: [inventario, importacao, entidade, regras, fluxo, doc]
 type: flow
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e2-012 · Regras de inventário - atribuição a entidade e importação-vínculo|EV-2-e2-012]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

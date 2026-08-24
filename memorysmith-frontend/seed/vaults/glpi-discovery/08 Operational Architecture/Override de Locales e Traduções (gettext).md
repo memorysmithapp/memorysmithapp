@@ -4,6 +4,8 @@ aliases: [override locales, traduções customizadas, gettext, _locales]
 tags: [i18n, locales, traducoes, gettext, operacional, personalizacao]
 type: process
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g1-003 · Override de traduções via gettext (override-locales.rst)|EV-2-g1-003]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

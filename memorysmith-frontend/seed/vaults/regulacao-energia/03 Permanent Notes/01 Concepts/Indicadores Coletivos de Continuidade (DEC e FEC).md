@@ -15,7 +15,8 @@ tags:
   - prodist-8
   - conceito
 type: concept
-status: growing
+maturity: growing
+reviewed: false
 source: PRODIST Módulo 8 (Anexo VIII da REN ANEEL 956/2021), itens 176 a 213
 author: ANEEL
 created: 2026-07-27

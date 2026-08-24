@@ -4,6 +4,8 @@ aliases: [Config, "Configuração (Config)", "Instalação, atualização e migr
 tags: [infra, config, instalacao, dominio/operacao]
 type: infra
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-1-039 · Plugin Config e Migration|EV-1-039]]"
 author: CAD Discovery
 created: 2026-07-10

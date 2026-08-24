@@ -4,6 +4,8 @@ aliases: [Common fields, Campos comuns, Dicionário de campos comuns]
 tags: [campos-comuns, indice, dicionario, data]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-g4-001 · Campos de identificação de inventário (série, UUID, nº inventário, fonte)|EV-2-g4-001]]"
   - "[[EV-2-g4-002 · Campos de modelo, fabricante e tipo de ativo|EV-2-g4-002]]"

@@ -4,6 +4,8 @@ aliases: [Operating system fields, Campos do SO]
 tags: [data, assets, os, fields]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-c3-006 · Aba Sistema Operacional de um Computador|EV-2-c3-006]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -4,6 +4,8 @@ aliases: [EV-2-c3-011]
 tags: [evidence, doc, assets, dcim, rack, enclosure, pdu]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "SRC-002 · modules/assets/tabs/enclosures_items.rst · Items"
   - "SRC-002 · modules/assets/tabs/rack_items.rst · Items"

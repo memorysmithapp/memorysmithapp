@@ -10,7 +10,8 @@ tags:
   - ddd
   - software-engineering
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Alistair Cockburn, "Hexagonal Architecture (Ports and Adapters)"
 author: Alistair Cockburn
 created: 2026-07-25

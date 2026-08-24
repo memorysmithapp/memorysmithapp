@@ -4,6 +4,8 @@ aliases: [aba Changes, Changes tab, mudanças vinculadas]
 tags: [tabs, changes, itil, ui]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g2-002 · Aba Changes (mudanças vinculadas ao objeto)|EV-2-g2-002]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -11,7 +11,8 @@ tags:
   - zettelkasten
   - moc
 type: moc
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Obsidian Help — obsidian.md/help
 author: Obsidian
 created: 2026-08-07

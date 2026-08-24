@@ -4,6 +4,8 @@ aliases: [EV-1-025]
 tags: [evidence, dominio/gestao, documento]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · src/Document.php L67, 182, 231–269 · src/Document_Item.php L45 · src/DocumentType.php L41"
 author: CAD Discovery
 created: 2026-07-10

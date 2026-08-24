@@ -4,6 +4,8 @@ aliases: [view integrações, arquitetura operacional]
 tags: [view, integracoes, operacao, dominio/integracoes]
 type: view
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-1-034 · API v2 HL Router REST GraphQL OAuth RSQL|EV-1-034]]"
   - "[[EV-1-035 · Notificações event template target queue|EV-1-035]]"

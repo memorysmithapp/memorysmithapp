@@ -4,6 +4,8 @@ aliases: [Campos de Periférico, Peripheral fields]
 tags: [assets, data, peripheral, form]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-c1-005 · Formulário e abas de Periférico|EV-2-c1-005]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

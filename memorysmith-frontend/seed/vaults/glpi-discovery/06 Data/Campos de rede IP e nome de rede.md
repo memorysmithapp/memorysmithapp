@@ -4,6 +4,8 @@ aliases: [Campos de IP network, Campos de network name, FQDN fields]
 tags: [data, dropdown, ip-network, network-name, fqdn, vlan]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f2-009 · Dropdowns de internet redes IP e nomes de rede|EV-2-f2-009]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

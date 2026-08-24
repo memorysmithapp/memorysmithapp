@@ -4,6 +4,8 @@ aliases: [Campos de Computador]
 tags: [assets, data, computer, form]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-c1-003 · Formulário e abas de Computador|EV-2-c1-003]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

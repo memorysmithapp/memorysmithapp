@@ -10,7 +10,8 @@ tags:
   - infrastructure
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: What is Amazon VPC? — AWS Documentation
 author: Amazon Web Services
 created: 2026-07-25

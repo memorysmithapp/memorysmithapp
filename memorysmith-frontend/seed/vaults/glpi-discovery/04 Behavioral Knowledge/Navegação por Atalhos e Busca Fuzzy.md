@@ -4,6 +4,8 @@ aliases: [Keyboard shortcuts, Atalhos de teclado, Fuzzy navigation, Busca aproxi
 tags: [use-case, navigation, keyboard, shortcuts, fuzzy]
 type: use-case
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-a1-005 · Navegação por módulos, atalhos de teclado e busca fuzzy|EV-2-a1-005]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

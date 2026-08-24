@@ -6,7 +6,8 @@ tags:
   - storage
   - cloud
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 File Storage organiza dados em uma estrutura hierárquica composta por diretórios e arquivos.

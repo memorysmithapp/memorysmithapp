@@ -4,6 +4,8 @@ aliases: [EV-2-f3-007]
 tags: [evidence, crontask, acao-automatica, cron, cli, agendamento]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/configuration/crontasks.rst · Configure automatic actions"
 author: CAD Discovery (doc)
 created: 2026-07-12

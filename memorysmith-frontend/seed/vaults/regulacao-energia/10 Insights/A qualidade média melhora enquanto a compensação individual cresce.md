@@ -11,7 +11,8 @@ tags:
   - prodist-8
   - insight
 type: insight
-status: growing
+maturity: growing
+reviewed: false
 source: "[[Evolução da Transgressão dos Limites de DEC e FEC (2020–2025)]]"
 author: Análise própria (assistida por IA)
 created: 2026-07-27

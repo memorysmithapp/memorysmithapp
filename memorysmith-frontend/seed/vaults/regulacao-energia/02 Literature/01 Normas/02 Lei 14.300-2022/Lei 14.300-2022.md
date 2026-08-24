@@ -10,7 +10,8 @@ tags:
   - marco-legal
   - scee
 type: literature
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Lei nº 14.300, de 6 de janeiro de 2022
 author: Presidência da República
 created: 2026-07-26

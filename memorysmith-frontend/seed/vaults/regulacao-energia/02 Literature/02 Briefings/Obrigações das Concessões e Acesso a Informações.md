@@ -10,7 +10,8 @@ tags:
   - concessoes
   - dados-abertos
 type: literature
-status: growing
+maturity: growing
+reviewed: false
 source: Documento de trabalho "Principais Obrigações das Concessões de Serviços Públicos de Distribuição de Energia Elétrica e Acesso às Informações/Dados"
 author: Documento interno
 created: 2026-07-26

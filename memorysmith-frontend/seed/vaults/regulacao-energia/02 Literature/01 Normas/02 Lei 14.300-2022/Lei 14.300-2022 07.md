@@ -9,7 +9,8 @@ tags:
   - pers
   - baixa-renda
 type: literature
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Lei nº 14.300/2022, Capítulo VII, arts. 28 a 37
 author: Presidência da República
 created: 2026-07-26

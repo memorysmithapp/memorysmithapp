@@ -4,6 +4,8 @@ aliases: [Phone lines management, Gestão de Linhas]
 tags: [management, line, telefonia, capacidade]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-d2-008 · Phone lines (lines.rst)|EV-2-d2-008]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

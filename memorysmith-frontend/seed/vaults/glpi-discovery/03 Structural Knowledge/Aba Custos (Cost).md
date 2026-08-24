@@ -4,6 +4,8 @@ aliases: [Cost tab, Aba Cost, Custos]
 tags: [tab, cost, budget, finance]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g3-014 · Aba Custos (Cost)|EV-2-g3-014]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

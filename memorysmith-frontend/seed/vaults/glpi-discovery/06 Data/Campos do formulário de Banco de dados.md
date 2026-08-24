@@ -4,6 +4,8 @@ aliases: [Campos de Database, Database fields]
 tags: [management, database, campos, formulario, data]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-d2-004 · Databases (databases.rst)|EV-2-d2-004]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

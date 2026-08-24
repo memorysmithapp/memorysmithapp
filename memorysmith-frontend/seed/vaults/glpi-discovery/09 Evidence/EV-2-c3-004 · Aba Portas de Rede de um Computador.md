@@ -4,6 +4,8 @@ aliases: [EV-2-c3-004]
 tags: [evidence, doc, assets, network, ports, vlan, computer]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/assets/tabs/network-ports.rst · Network ports"
 author: CAD Discovery (doc)
 created: 2026-07-12

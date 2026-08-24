@@ -4,6 +4,8 @@ aliases: [EV-2-f1-007]
 tags: [evidence, ativos, inventario, configuracao-geral]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/configuration/general/assets.rst · Assets"
 author: CAD Discovery (doc)
 created: 2026-07-12

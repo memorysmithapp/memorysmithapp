@@ -12,7 +12,8 @@ tags:
   - qualidade
   - continuidade
 type: literature
-status: growing
+maturity: growing
+reviewed: false
 source: REN ANEEL 956/2021, Anexo VIII — PRODIST Módulo 8, v14
 author: ANEEL
 created: 2026-07-26

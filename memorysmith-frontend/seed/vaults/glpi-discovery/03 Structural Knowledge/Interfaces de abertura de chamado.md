@@ -4,6 +4,8 @@ aliases: [Interfaces de abertura de ticket, Helpdesk anônimo]
 tags: [assistance, ticket, opening, interface, helpdesk]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-b1-002 · Ferramentas e interfaces de abertura de chamado|EV-2-b1-002]]"
   - "[[EV-2-b1-003 · Campos específicos da abertura na interface simplificada|EV-2-b1-003]]"

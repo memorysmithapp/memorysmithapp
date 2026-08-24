@@ -9,7 +9,8 @@ tags:
   - faturamento
   - pratica
 type: practice
-status: growing
+maturity: growing
+reviewed: false
 source: Lei 14.300/2022, arts. 12 a 16
 author: Presidência da República
 created: 2026-07-26

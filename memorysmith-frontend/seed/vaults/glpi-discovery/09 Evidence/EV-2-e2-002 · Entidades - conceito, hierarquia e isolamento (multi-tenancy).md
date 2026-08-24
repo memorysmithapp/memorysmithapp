@@ -4,6 +4,8 @@ aliases: [EV-2-e2-002]
 tags: [evidence, entidades, multi-tenancy, hierarquia, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/administration/entity/entities.rst · Entities (introdução)"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -4,6 +4,8 @@ aliases: [Budgets, Gestão financeira, Financial management]
 tags: [capability, management, budget, financial, doc]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-d1-005 · Orçamentos — definição, criação e abas|EV-2-d1-005]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

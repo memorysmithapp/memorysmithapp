@@ -3,7 +3,8 @@ title: <A conclusão, escrita como frase afirmativa>
 aliases: []
 tags: []
 type: insight
-status: seed
+maturity: seed
+reviewed: false
 source: "[[Indicador ou Série que sustenta]]"
 author:
 created: <YYYY-MM-DD>

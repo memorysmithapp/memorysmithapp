@@ -4,6 +4,8 @@ aliases: [EV-2-c3-001]
 tags: [evidence, doc, assets, antivirus, computer]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/assets/tabs/antivirus.rst · Antivirus"
 author: CAD Discovery (doc)
 created: 2026-07-12

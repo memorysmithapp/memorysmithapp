@@ -4,6 +4,8 @@ aliases: [EV-2-c2-003]
 tags: [evidence, assets, pdu, dcim, power, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/assets/pdus.rst · PDUs (documento inteiro)"
 author: CAD Discovery (doc)
 created: 2026-07-12

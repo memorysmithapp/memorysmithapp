@@ -4,6 +4,8 @@ aliases: [EV-2-g4-001]
 tags: [evidence, campos-comuns, inventario, identificacao]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · tabs/common_fields/serial_number.rst · Serial number; tabs/common_fields/uuid.rst · UUID; tabs/common_fields/inventory_number.rst · Inventory number; tabs/common_fields/update_source.rst · Update source"
 author: CAD Discovery (doc)
 created: 2026-07-12

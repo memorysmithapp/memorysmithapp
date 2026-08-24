@@ -7,7 +7,8 @@ tags:
   - cloud
   - infrastructure
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 Storage é a infraestrutura responsável por armazenar, organizar e disponibilizar dados de forma persistente para aplicações e usuários.

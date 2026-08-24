@@ -4,6 +4,8 @@ aliases: [Trash bin, Lixeira, Purga, Purge, Restauração, Restoration]
 tags: [trash-bin, deletion, lifecycle]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-a2-001 · Ações sobre objetos e ações em massa|EV-2-a2-001]]"
   - "[[EV-2-a2-005 · Glossário oficial do GLPI|EV-2-a2-005]]"

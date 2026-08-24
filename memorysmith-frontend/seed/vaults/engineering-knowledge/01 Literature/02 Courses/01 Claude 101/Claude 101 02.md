@@ -8,7 +8,8 @@ tags:
   - knowledge-management
   - workflow
 type: literature
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Claude 101 — Anthropic Academy, lições 5–7
 author: Anthropic
 created: 2026-07-31

@@ -3,7 +3,8 @@ title: <Convenção da fonte>
 aliases: []
 tags: [dados-abertos]
 type: convention
-status: seed
+maturity: seed
+reviewed: false
 source: <Fonte cuja gramática esta nota descreve>
 author: <Instituição publicadora>
 created: <YYYY-MM-DD>

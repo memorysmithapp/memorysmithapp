@@ -10,7 +10,8 @@ tags:
   - linux
   - infrastructure
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Filesystem Hierarchy Standard 3.0 — LSB Workgroup, The Linux Foundation, 2015
 author: LSB Workgroup (Linux Foundation)
 created: 2026-07-25

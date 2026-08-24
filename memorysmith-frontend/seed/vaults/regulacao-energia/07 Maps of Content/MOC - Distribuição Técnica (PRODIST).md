@@ -9,7 +9,8 @@ tags:
   - distribuicao
   - aneel
 type: moc
-status: growing
+maturity: growing
+reviewed: false
 source: REN ANEEL 956/2021 e anexos I a XI
 author: Heitor Rapcinski + Claude
 created: 2026-07-26

@@ -11,7 +11,8 @@ tags:
   - protocols
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: RFC 3986 Uniform Resource Identifier (URI) Generic Syntax — IETF, 2005
 author: T. Berners-Lee, R. Fielding e L. Masinter (IETF)
 created: 2026-07-25

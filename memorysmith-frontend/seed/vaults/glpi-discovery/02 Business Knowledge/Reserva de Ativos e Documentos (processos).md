@@ -4,6 +4,8 @@ aliases: [Reserva de ativos, Gestão de documentos, "Reserva de Ativos (processo
 tags: [process, reserva, documento, dominio/gestao]
 type: process
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-1-027 · Reservation e Consumíveis-Cartuchos|EV-1-027]]"
   - "[[EV-1-025 · Document com dedup sha1 e Document_Item polimórfico|EV-1-025]]"

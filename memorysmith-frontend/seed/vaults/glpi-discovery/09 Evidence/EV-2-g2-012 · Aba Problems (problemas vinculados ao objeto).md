@@ -4,6 +4,8 @@ aliases: [EV-2-g2-012]
 tags: [evidence, tabs, problems, itil]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/tabs/problems.rst · Problems"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -4,6 +4,8 @@ aliases: [EV-2-g2-013]
 tags: [evidence, tabs, suppliers, fornecedores]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/tabs/suppliers.rst · Suppliers"
 author: CAD Discovery (doc)
 created: 2026-07-12

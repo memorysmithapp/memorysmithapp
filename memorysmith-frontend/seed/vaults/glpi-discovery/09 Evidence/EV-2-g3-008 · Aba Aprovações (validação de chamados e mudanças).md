@@ -4,6 +4,8 @@ aliases: [EV-2-g3-008]
 tags: [evidence, tab, approvals, validation, ticket, change]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/tabs/approvals.rst · Approvals"
 author: CAD Discovery (doc)
 created: 2026-07-12

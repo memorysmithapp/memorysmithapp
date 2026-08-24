@@ -4,6 +4,8 @@ aliases: [Rules import/export, Portabilidade de configuração]
 tags: [regras, dicionarios, formularios, import, export, xml, migracao, doc]
 type: integration
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-e2-007 · Motor de regras - usos e comportamentos|EV-2-e2-007]]"
   - "[[EV-2-e2-013 · Dicionários de dados - conceito e funcionamento|EV-2-e2-013]]"

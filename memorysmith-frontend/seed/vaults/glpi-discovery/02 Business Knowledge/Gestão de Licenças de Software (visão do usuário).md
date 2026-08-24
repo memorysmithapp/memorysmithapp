@@ -4,6 +4,8 @@ aliases: [Licenses management]
 tags: [capability, management, license, software, financial, doc]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-d1-008 · Licenças de software — objetivos, campos e abas|EV-2-d1-008]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

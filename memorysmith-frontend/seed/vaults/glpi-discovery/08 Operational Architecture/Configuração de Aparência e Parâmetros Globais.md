@@ -4,6 +4,8 @@ aliases: [General setup, Aparência global, General configuration tab]
 tags: [configuracao-geral, aparencia, busca, operacao]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f1-005 · Configuração Geral — abas e aparência|EV-2-f1-005]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -4,6 +4,8 @@ aliases: [EV-2-f3-010]
 tags: [evidence, plugin, marketplace, instalacao, glpi-network, hook]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/configuration/plugins.rst · Install and update plugins"
 author: CAD Discovery (doc)
 created: 2026-07-12

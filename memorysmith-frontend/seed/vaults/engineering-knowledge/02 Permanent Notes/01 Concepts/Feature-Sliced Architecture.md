@@ -10,7 +10,8 @@ tags:
   - modularity
   - design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Feature-Sliced Design methodology; Integrated Architecture Guide (PWA + AWS Serverless)
 author: Comunidade Feature-Sliced Design
 created: 2026-07-25

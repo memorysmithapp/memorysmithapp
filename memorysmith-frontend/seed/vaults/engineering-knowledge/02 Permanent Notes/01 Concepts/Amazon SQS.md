@@ -11,7 +11,8 @@ tags:
   - serverless
   - resilience
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Amazon SQS Developer Guide; Integrated Architecture Guide (PWA + AWS Serverless)
 author: Amazon Web Services
 created: 2026-07-25

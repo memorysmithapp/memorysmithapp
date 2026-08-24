@@ -11,7 +11,8 @@ tags:
   - protocols
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: OWASP Transport Layer Security Cheat Sheet; RFC 8446 TLS 1.3
 author: OWASP · IETF
 created: 2026-07-25

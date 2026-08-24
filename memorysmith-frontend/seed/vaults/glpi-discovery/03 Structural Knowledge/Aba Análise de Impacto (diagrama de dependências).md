@@ -4,6 +4,8 @@ aliases: [Impact Analysis, Análise de Impacto, Impact analysis tab]
 tags: [management, impact-analysis, dependencias, aba]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-d2-001 · Appliances (appliance.rst)|EV-2-d2-001]]"
   - "[[EV-2-d2-003 · Data centers, salas de servidores e racks (data-centers.rst)|EV-2-d2-003]]"

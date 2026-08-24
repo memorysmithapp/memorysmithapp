@@ -4,6 +4,8 @@ aliases: [Access control, Controle de acesso, Contexto de uso]
 tags: [process, access-control, rbac, entities, profiles, groups, authentication]
 type: process
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-a1-002 · Administração de controles de acesso|EV-2-a1-002]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

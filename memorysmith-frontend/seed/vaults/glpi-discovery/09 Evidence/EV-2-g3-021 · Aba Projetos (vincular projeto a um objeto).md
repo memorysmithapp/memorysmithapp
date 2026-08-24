@@ -4,6 +4,8 @@ aliases: [EV-2-g3-021]
 tags: [evidence, tab, projects, link, change]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/tabs/projects.rst · Projects"
 author: CAD Discovery (doc)
 created: 2026-07-12

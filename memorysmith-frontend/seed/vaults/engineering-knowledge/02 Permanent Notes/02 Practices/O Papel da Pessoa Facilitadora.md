@@ -1,7 +1,8 @@
 ---
 type: practice
 tags: [facilitation, leadership, neutrality]
-status: evergreen
+maturity: evergreen
+reviewed: true
 ---
 A pessoa facilitadora atua como um guia que lidera as discussões e a sequência de atividades do workshop. Ela deve possuir alta familiaridade com o formato da [[Lean Inception Workshop]] e sua natureza colaborativa.
 

@@ -4,6 +4,8 @@ aliases: [Notification mode, Browser followups]
 tags: [notificacao, modo, email, browser, canal]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-f3-001 · Visão geral e funcionamento das notificações|EV-2-f3-001]]"
   - "[[EV-2-f3-002 · Definição de notificação e destinatários|EV-2-f3-002]]"

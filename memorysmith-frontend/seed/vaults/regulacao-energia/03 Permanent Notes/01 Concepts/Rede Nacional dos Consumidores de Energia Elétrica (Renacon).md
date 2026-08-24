@@ -7,7 +7,8 @@ tags:
   - governanca
   - conceito
 type: concept
-status: seed
+maturity: seed
+reviewed: false
 source: Decreto 12.068/2024, art. 17
 author: Presidência da República
 created: 2026-07-26

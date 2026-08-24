@@ -4,6 +4,8 @@ aliases: [databases.rst, Databases]
 tags: [evidence, management, database, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/management/databases.rst · Databases"
 author: CAD Discovery (doc)
 created: 2026-07-12

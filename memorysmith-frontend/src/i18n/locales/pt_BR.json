@@ -77,9 +77,9 @@
     "kpiPending": "Links pendentes",
     "maturityHeading": "Maturidade das notas por vault",
     "bucket": {
-      "consolidated": "Consolidada",
-      "evolving": "Em evolução",
-      "open": "Aberta"
+      "evergreen": "Evergreen",
+      "growing": "Growing",
+      "seed": "Seed"
     },
     "typesHeading": "Notas por tipo",
     "otherTypes": "Outros",

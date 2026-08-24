@@ -4,6 +4,8 @@ aliases: [Automatic action fields, Crontask config fields]
 tags: [dados, crontask, acao-automatica, campos, config]
 type: entity
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-f3-007 · Ações automáticas (crontasks) — config e catálogo|EV-2-f3-007]]"
 author: CAD Discovery (doc)

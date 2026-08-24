@@ -4,6 +4,8 @@ aliases: [EV-2-a1-012]
 tags: [evidence, doc, community, plugins, catalog, forum, partners]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/first-steps/conclusion.rst · Conclusion (Plugin catalog / Discussion platforms / Partners)"
 author: CAD Discovery (doc)
 created: 2026-07-12

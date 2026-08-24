@@ -4,6 +4,8 @@ aliases: [MOC Documentação, MOC SRC-002, índice da documentação do usuário
 tags: [moc, documentacao, global, fonte/src-002]
 type: moc
 status: confirmed
+maturity: evergreen
+reviewed: false
 author: CAD Discovery
 created: 2026-07-12
 ---

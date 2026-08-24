@@ -10,7 +10,8 @@ tags:
   - cryptography
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Symmetric encryption vs asymmetric encryption — BIG ARCHIVE System Design 2023; OWASP Cryptographic Storage
 author: ByteByteGo (Alex Xu, Sahn Lam) · OWASP
 created: 2026-07-25

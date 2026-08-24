@@ -9,7 +9,8 @@ tags:
   - prazos
   - pratica
 type: practice
-status: growing
+maturity: growing
+reviewed: false
 source: Decreto 12.068/2024, arts. 2º, 3º e 7º a 12
 author: Presidência da República
 created: 2026-07-26

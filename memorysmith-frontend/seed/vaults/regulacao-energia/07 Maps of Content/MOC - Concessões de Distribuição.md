@@ -7,7 +7,8 @@ tags:
   - concessoes
   - distribuicao
 type: moc
-status: growing
+maturity: growing
+reviewed: false
 source: Decreto 12.068/2024
 author: Heitor Rapcinski + Claude
 created: 2026-07-26

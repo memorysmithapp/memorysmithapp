@@ -4,6 +4,8 @@ aliases: []
 tags: [moc]
 type: moc
 status: draft
+maturity: seed
+reviewed: false
 source:
 author: <Quem mantém>
 created: <YYYY-MM-DD>

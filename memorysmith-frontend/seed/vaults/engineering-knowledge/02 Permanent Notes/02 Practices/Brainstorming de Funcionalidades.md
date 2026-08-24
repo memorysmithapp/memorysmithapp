@@ -1,7 +1,8 @@
 ---
 type: practice
 tags: [ideation, features, solution]
-status: evergreen
+maturity: evergreen
+reviewed: true
 ---
 Funcionalidade é a descrição de uma ação ou interação de um usuário com o produto (ex: "imprimir nota fiscal").
 

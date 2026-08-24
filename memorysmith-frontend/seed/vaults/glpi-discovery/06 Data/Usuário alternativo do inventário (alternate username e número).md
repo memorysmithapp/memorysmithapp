@@ -4,6 +4,8 @@ aliases: [Alternate username, Alternate username number, Usuário alternativo]
 tags: [campos-comuns, inventario, usuario, data]
 type: field
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g4-003 · Campos de rede e usuário alternativo do inventário|EV-2-g4-003]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

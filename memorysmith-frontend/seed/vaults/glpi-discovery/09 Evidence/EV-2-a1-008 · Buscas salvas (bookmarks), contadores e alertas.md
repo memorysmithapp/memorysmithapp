@@ -4,6 +4,8 @@ aliases: [EV-2-a1-008]
 tags: [evidence, doc, saved-searches, bookmarks, alerts, counters, notification]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/first-steps/saved-searches.rst · Saved Searches (Display of counters / Configuring alerts)"
 author: CAD Discovery (doc)
 created: 2026-07-12

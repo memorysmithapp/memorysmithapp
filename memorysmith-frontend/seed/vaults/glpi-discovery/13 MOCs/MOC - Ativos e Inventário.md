@@ -4,6 +4,8 @@ aliases: [MOC Ativos, Índice Módulo 3, MOC CMDB]
 tags: [moc, dominio/ativos]
 type: moc
 status: confirmed
+maturity: evergreen
+reviewed: false
 author: CAD Discovery
 created: 2026-07-10
 ---

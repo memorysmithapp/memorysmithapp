@@ -12,7 +12,7 @@ Este vault não é um repositório de resumos. Cada livro lido, artigo estudado 
 Cinco princípios definem tanto o que entra quanto como é escrito:
 
 1. **Atomic Notes.** Cada nota representa um único conceito. Se uma nota precisa de dois títulos de primeiro nível para explicar coisas diferentes, são duas notas.
-2. **Evergreen Notes.** Nenhuma nota está concluída. O campo `status` do frontmatter registra em que ponto da maturação a nota está.
+2. **Evergreen Notes.** Nenhuma nota está concluída. O campo `maturity` do frontmatter registra em que ponto da maturação a nota está.
 3. **Zettelkasten.** As notas se conectam por links `[[wikilink]]`. Uma nota sem links de entrada nem de saída é um sintoma, não um resultado.
 4. **PARA.** As pastas separam **fonte** (de onde veio), **conhecimento permanente** (o que ficou), **navegação** (como encontrar) e **aplicação** (onde foi usado).
 5. **Curadoria assistida por IA.** A IA propõe extrações, conexões e lacunas; **a curadoria final é sempre humana**.
@@ -28,7 +28,7 @@ A árvore de pastas do vault, com a descrição de cada pasta, é a regra de ent
 
 ## Frontmatter obrigatório
 
-Toda nota carrega oito campos. Quando um campo não se aplica, fica presente e vazio, nunca ausente.
+Toda nota carrega nove campos. Quando um campo não se aplica, fica presente e vazio, nunca ausente.
 
 ```yaml
 ---
@@ -36,7 +36,8 @@ title: Context Graph
 aliases: [Execution Context]
 tags: [ai, generative-ai, context]
 type: concept          # literature | concept | practice | moc | project
-status: evergreen      # seed | growing | evergreen
+maturity: evergreen    # seed | growing | evergreen
+reviewed: false        # true somente após revisão humana da revisão vigente
 source: Agentic AI, GraphRAG, AI Agent Architectures
 author: ChatGPT
 created: 2026-07-17
@@ -51,11 +52,13 @@ created: 2026-07-17
 | `moc` | 03 Maps of Content | Mapa de navegação de um domínio |
 | `project` | 04 Projects | Estudo de caso ou aplicação prática |
 
-| `status` | Significado |
+| `maturity` | Significado |
 |---|---|
 | `seed` | Rascunho: a ideia foi capturada mas ainda não está bem formada |
 | `growing` | Em evolução: utilizável, com lacunas conhecidas ou links pendentes |
 | `evergreen` | Madura: autossuficiente, conectada, revisada. Continua aberta a enriquecimento |
+
+Os campos `maturity` e `reviewed` são o padrão de todos os vaults e formam dois eixos independentes. `maturity` é reavaliado a cada escrita: quem cria ou atualiza a nota declara o estágio em que o conteúdo ficou. `reviewed` registra se a revisão vigente passou por revisão humana: somente um humano o escreve como `true`, e qualquer edição posterior de conteúdo o devolve a `false`. Uma nota `evergreen` pode aguardar revisão, e uma nota `seed` pode já ter sido revisada.
 
 ## Nomenclatura
 

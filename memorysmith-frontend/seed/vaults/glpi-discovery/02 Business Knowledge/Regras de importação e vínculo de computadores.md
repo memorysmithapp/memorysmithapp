@@ -4,6 +4,8 @@ aliases: [Rules for importing and linking computers, Import and link rules]
 tags: [regras, inventario, importacao, vinculo, doc]
 type: rule
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e2-012 · Regras de inventário - atribuição a entidade e importação-vínculo|EV-2-e2-012]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -9,7 +9,8 @@ tags:
   - protocols
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: RFC 768 User Datagram Protocol — IETF, 1980
 author: Jon Postel (IETF)
 created: 2026-07-25

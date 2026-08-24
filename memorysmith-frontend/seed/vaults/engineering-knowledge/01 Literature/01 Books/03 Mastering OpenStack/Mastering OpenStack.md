@@ -10,7 +10,8 @@ tags:
   - cloud-architecture
   - devsecops
 type: literature
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Mastering OpenStack (3rd Edition), Packt Publishing, novembro 2024, ISBN 978-1-83546-891-3
 author: Omar Khedher
 created: 2026-07-25

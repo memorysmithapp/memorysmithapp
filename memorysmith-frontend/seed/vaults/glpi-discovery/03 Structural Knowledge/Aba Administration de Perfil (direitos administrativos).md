@@ -4,6 +4,8 @@ aliases: [Administration tab, Aba Administration]
 tags: [perfis, permissoes, administracao, usuarios, entidades, regras, ldap]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e1-005 · Aba Administration do perfil (direitos sobre usuários, entidades e regras)|EV-2-e1-005]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

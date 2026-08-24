@@ -4,6 +4,8 @@ aliases: [DCIM, Datacenter, Rack, Enclosure, PDU]
 tags: [concept, dcim, dominio/ativos]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-1-019 · DCIM Datacenter Rack Item_Rack|EV-1-019]]"
 author: CAD Discovery
 created: 2026-07-10

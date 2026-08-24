@@ -4,6 +4,8 @@ aliases: [Consumable type, Tipo de consumível]
 tags: [tab, consumable, dropdown, translation]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g3-012 · Tipo de consumível (consumable type)|EV-2-g3-012]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

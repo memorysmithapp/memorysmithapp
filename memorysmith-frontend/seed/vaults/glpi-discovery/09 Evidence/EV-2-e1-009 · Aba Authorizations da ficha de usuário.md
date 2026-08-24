@@ -4,6 +4,8 @@ aliases: [EV-2-e1-009]
 tags: [evidence, usuarios, autorizacoes, perfis, entidades, recursivo, dinamico]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/administration/users/tabs/authorizations.rst · Authorizations"
 author: CAD Discovery (doc)
 created: 2026-07-12

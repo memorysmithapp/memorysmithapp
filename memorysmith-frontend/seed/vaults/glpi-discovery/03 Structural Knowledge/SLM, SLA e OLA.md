@@ -4,6 +4,8 @@ aliases: [SLM, SLA, OLA, Service Level]
 tags: [component, sla, dominio/service-desk]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-1-011 · SLM SLA e OLA com TTR-TTO e níveis de escalonamento|EV-1-011]]"
 author: CAD Discovery
 created: 2026-07-10

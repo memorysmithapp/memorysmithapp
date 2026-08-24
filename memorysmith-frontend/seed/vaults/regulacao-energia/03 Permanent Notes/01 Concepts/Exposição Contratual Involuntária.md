@@ -8,7 +8,8 @@ tags:
   - distribuidoras
   - conceito
 type: concept
-status: seed
+maturity: seed
+reviewed: false
 source: Lei 14.300/2022, arts. 21 e 33; Lei 10.848/2004, art. 2º-D
 author: Presidência da República
 created: 2026-07-26

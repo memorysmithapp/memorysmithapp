@@ -4,6 +4,8 @@ aliases: [Update source, Fonte de atualização]
 tags: [campos-comuns, inventario, dropdown, data]
 type: field
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g4-001 · Campos de identificação de inventário (série, UUID, nº inventário, fonte)|EV-2-g4-001]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

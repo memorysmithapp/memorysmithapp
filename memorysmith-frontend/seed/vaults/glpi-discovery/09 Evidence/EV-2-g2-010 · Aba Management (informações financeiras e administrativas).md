@@ -4,6 +4,8 @@ aliases: [EV-2-g2-010]
 tags: [evidence, tabs, management, financeiro, infocom]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/tabs/management.rst · Management"
 author: CAD Discovery (doc)
 created: 2026-07-12

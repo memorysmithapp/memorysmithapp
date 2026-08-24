@@ -9,7 +9,8 @@ tags:
   - distribuicao
   - prorrogacao
 type: literature
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Decreto nº 12.068, de 20 de junho de 2024
 author: Presidência da República
 created: 2026-07-26

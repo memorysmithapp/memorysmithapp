@@ -8,7 +8,8 @@ tags:
   - resilience
   - cloud
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 created: 2026-07-09
 ---
 High Availability (HA) é uma característica de sistemas projetados para permanecerem operacionais mesmo quando ocorre a falha de um ou mais componentes.

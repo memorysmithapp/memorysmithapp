@@ -4,6 +4,8 @@ aliases: [Formcreator migration, migration:formcreator_plugin_to_core]
 tags: [formularios, forms, migracao, cli, glpi11, doc]
 type: infra
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e2-015 · Formulários nativos - migração e tipos de pergunta|EV-2-e2-015]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

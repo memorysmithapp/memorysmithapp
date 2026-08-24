@@ -4,6 +4,8 @@ aliases: [Search operators, Operadores de busca, Search criteria]
 tags: [data, search, operators, criteria, semantics]
 type: data
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-a1-007 · Motor de busca da UI (básica, multicritério, avançada, export, ações massivas)|EV-2-a1-007]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

@@ -4,6 +4,8 @@ aliases: [Install and update plugins, Marketplace (config)]
 tags: [integracao, plugin, marketplace, glpi-network, instalacao]
 type: integration
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-f3-010 · Instalação, atualização e remoção de plugins|EV-2-f3-010]]"
 author: CAD Discovery (doc)

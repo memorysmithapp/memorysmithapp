@@ -4,6 +4,8 @@ aliases: [EV-2-g2-014]
 tags: [evidence, tabs, templates, modelos]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/tabs/templates.rst"
 author: CAD Discovery (doc)
 created: 2026-07-12

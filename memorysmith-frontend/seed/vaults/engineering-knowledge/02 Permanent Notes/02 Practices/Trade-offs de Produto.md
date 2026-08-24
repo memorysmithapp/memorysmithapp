@@ -1,7 +1,8 @@
 ---
 type: practice
 tags: [prioritization, negotiation]
-status: evergreen
+maturity: evergreen
+reviewed: true
 ---
 Um **trade-off** é uma troca onde se deixa de priorizar algo para conseguir priorizar outra coisa considerada mais desejada. Esta atividade evita desentendimentos futuros e acelera a tomada de decisão.
 

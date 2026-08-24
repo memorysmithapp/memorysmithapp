@@ -4,6 +4,8 @@ aliases: [EV-1-033]
 tags: [evidence, dominio/admin, kb, conhecimento]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · src/KnowbaseItem.php L55"
 author: CAD Discovery
 created: 2026-07-10

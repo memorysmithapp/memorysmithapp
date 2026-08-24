@@ -4,6 +4,8 @@ aliases: [EV-2-e2-016]
 tags: [evidence, formularios, forms, catalogo, acesso, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/administration/forms/forms.rst · Configure visibility até Import/Export"
 author: CAD Discovery (doc)
 created: 2026-07-12

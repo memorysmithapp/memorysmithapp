@@ -4,6 +4,8 @@ aliases: [INV-1-001]
 tags: [investigation, consumidor/cad, arquitetura]
 type: investigation
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-1-004 · Kernel Symfony MicroKernel envolve o legado|EV-1-004]]"
   - "[[EV-1-034 · API v2 HL Router REST GraphQL OAuth RSQL|EV-1-034]]"

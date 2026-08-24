@@ -4,6 +4,8 @@ aliases: [Satisfaction survey, Satisfação do chamado]
 tags: [assistance, ticket, satisfaction, survey, closure]
 type: flow
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-b1-008 · Recursos avançados de tickets (collectors, fechamento, satisfação)|EV-2-b1-008]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

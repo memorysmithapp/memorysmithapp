@@ -4,6 +4,8 @@ aliases: [Impersonate, Impersonation, Assumir conta]
 tags: [usuarios, impersonate, seguranca, depuracao, privilegio]
 type: use-case
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e1-001 · Ficha de Usuário — aba Users, impersonate e vcard|EV-2-e1-001]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

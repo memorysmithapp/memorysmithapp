@@ -4,6 +4,8 @@ aliases: [Business Rules, automação, regras de negócio]
 tags: [capability, motor-de-regras, dominio/admin]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-1-031 · Motor de regras Rule RuleCollection Criteria Action|EV-1-031]]"
   - "[[EV-1-032 · Tipos de regra especializados|EV-1-032]]"

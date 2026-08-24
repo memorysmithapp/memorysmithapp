@@ -4,6 +4,8 @@ aliases: [User preference fields, Campos de preferências, Personalization field
 tags: [data, preferences, fields, personalization, form]
 type: data
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-a1-009 · Preferências do usuário (abas e campos)|EV-2-a1-009]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

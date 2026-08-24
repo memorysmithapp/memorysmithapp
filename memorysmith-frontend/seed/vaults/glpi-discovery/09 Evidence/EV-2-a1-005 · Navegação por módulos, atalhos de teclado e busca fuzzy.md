@@ -4,6 +4,8 @@ aliases: [EV-2-a1-005]
 tags: [evidence, doc, navigation, modules, shortcuts, fuzzy, menu]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · source/first-steps/navigation-modules.rst · Navigate GLPI modules"
 author: CAD Discovery (doc)
 created: 2026-07-12

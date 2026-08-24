@@ -4,6 +4,8 @@ aliases: [7 permissões padrão, Standard permissions, Read Update Create Delete
 tags: [perfis, permissoes, rbac, lixeira, notas]
 type: concept
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-e1-004 · Perfis de usuário — conceito, 7 perfis pré-definidos e permissões padrão|EV-2-e1-004]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

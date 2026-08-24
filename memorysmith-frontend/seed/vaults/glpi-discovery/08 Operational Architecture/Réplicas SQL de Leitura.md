@@ -4,6 +4,8 @@ aliases: [SQL replicas, Réplicas SQL, config_db_slave]
 tags: [configuracao-geral, sql, replicas, banco-de-dados, performance, operacao]
 type: capability
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-f1-016 · Réplicas SQL|EV-2-f1-016]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

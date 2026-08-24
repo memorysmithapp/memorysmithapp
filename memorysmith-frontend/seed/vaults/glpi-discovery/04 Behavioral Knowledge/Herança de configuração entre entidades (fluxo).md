@@ -4,6 +4,8 @@ aliases: [Inheritance of the parent entity, Herança de entidades]
 tags: [entidades, heranca, configuracao, multi-tenancy, doc]
 type: flow
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-2-e2-004 · Entidade - Notificações e Alarmes (herança)|EV-2-e2-004]]"
   - "[[EV-2-e2-002 · Entidades - conceito, hierarquia e isolamento (multi-tenancy)|EV-2-e2-002]]"

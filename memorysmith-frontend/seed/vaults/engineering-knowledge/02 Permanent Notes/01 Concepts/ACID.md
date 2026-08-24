@@ -8,7 +8,8 @@ tags:
   - transaction-management
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: What does ACID mean? — BIG ARCHIVE System Design 2023; Designing Data-Intensive Applications, cap. 7
 author: ByteByteGo (Alex Xu, Sahn Lam) · Martin Kleppmann
 created: 2026-07-25

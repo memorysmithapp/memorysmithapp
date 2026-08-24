@@ -4,6 +4,8 @@ aliases: [ER service desk, modelo ITIL]
 tags: [view, itil, dados, dominio/service-desk]
 type: view
 status: confirmed
+maturity: evergreen
+reviewed: false
 source:
   - "[[EV-1-008 · CommonITILObject define statuses e matriz de prioridade|EV-1-008]]"
   - "[[EV-1-009 · Atores ITIL requester-assign-observer|EV-1-009]]"

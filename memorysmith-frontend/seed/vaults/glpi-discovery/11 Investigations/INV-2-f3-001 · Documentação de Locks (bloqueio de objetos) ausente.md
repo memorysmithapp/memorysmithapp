@@ -4,6 +4,8 @@ aliases: [INV-2-f3-001]
 tags: [investigation, consumidor/cad, lock, documentacao-incompleta, stub]
 type: investigation
 status: open
+maturity: seed
+reviewed: false
 source:
   - "[[EV-2-f3-011 · Páginas de Locks não redigidas (stubs)|EV-2-f3-011]]"
 author: CAD Discovery (doc)

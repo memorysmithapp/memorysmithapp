@@ -4,6 +4,8 @@ aliases: [EV-1-001]
 tags: [evidence, dominio/foundation, orm, ciclo-de-vida]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-001 · codebase/in/glpi/src/CommonDBTM.php · linhas 68, 336, 760, 1286–1405, 1611–2114"
 author: CAD Discovery
 created: 2026-07-10

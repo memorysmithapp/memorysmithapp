@@ -11,7 +11,8 @@ tags:
   - serverless
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Serverless — CNCF Cloud Native Glossary
 author: Cloud Native Computing Foundation
 created: 2026-07-25

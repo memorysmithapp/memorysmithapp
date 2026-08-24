@@ -8,7 +8,8 @@ tags:
   - distribuicao
   - conceito
 type: concept
-status: growing
+maturity: growing
+reviewed: false
 source: Decreto 12.068/2024, arts. 1º a 12; Lei 9.074/1995, art. 4º
 author: Presidência da República
 created: 2026-07-26

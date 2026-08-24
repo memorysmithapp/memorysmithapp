@@ -4,6 +4,8 @@ aliases: [MOC Arquitetura, índice global, mapa do vault]
 tags: [moc, arquitetura, global]
 type: moc
 status: confirmed
+maturity: evergreen
+reviewed: false
 author: CAD Discovery
 created: 2026-07-10
 ---

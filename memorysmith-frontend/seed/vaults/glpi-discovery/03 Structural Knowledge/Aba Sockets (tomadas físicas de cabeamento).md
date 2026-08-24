@@ -4,6 +4,8 @@ aliases: [Sockets tab, Aba Sockets, Tomadas físicas]
 tags: [tab, sockets, cables, cabling, network]
 type: component
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-2-g3-023 · Aba Sockets (tomadas físicas de cabeamento)|EV-2-g3-023]]"
 author: CAD Discovery (doc)
 created: 2026-07-12

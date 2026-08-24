@@ -10,7 +10,8 @@ tags:
   - cloud-native
   - system-design
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: "BIG ARCHIVE: System Design 2023, ByteByteGo"
 author: ByteByteGo (Alex Xu, Sahn Lam)
 created: 2026-07-25

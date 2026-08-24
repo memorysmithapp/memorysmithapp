@@ -4,6 +4,8 @@ aliases: [EV-2-e2-010]
 tags: [evidence, regras, negocio, tickets, doc]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · modules/administration/rules/ticketbusinessrules.rst · Business rules for tickets"
 author: CAD Discovery (doc)
 created: 2026-07-12

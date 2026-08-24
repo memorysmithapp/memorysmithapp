@@ -4,6 +4,8 @@ aliases: [MailCollector, e-mail para chamado, IMAP]
 tags: [integration, email, dominio/integracoes]
 type: integration
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "[[EV-1-036 · MailCollector e-mail para chamado|EV-1-036]]"
 author: CAD Discovery
 created: 2026-07-10

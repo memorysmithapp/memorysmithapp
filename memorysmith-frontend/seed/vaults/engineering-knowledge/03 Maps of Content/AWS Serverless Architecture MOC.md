@@ -12,7 +12,8 @@ tags:
   - architecture
   - saas
 type: moc
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Integrated Architecture Guide — Frontend PWA + Serverless AWS; documentação oficial AWS por serviço
 author: Heitor Rapcinski; Amazon Web Services e demais autores citados por nota
 created: 2026-07-25

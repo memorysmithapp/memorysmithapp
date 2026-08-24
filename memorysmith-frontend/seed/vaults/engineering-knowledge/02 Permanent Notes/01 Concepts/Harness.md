@@ -10,7 +10,8 @@ tags:
   - agents
   - runtime
 type: concept
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: Literatura de IA Generativa e Frameworks de Agentes
 author: ChatGPT
 created: 2026-07-17

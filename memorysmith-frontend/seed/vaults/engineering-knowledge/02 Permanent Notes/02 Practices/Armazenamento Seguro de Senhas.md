@@ -10,7 +10,8 @@ tags:
   - cryptography
   - api
 type: practice
-status: evergreen
+maturity: evergreen
+reviewed: true
 source: OWASP Password Storage Cheat Sheet
 author: OWASP Cheat Sheet Series Team
 created: 2026-07-25

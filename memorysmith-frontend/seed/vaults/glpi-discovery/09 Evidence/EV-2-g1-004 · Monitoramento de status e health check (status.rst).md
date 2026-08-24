@@ -4,6 +4,8 @@ aliases: [EV-2-g1-004]
 tags: [evidence, status, health-check, monitoramento, servicos, operacional]
 type: evidence
 status: confirmed
+maturity: evergreen
+reviewed: false
 source: "SRC-002 · advanced/status.rst · GLPI Status Monitoring"
 author: CAD Discovery (doc)
 created: 2026-07-12
