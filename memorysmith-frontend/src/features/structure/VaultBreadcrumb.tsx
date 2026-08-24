@@ -17,10 +17,10 @@ interface VaultBreadcrumbProps {
 
 // Every page inside a vault starts its trail at the vault name (which links to
 // the Structure page). The second level is a reserved namespace, never a vault
-// folder: Guidance, Templates or Folders (plus the vault graph), mirroring the
-// URL, where all content lives under /folders. The Folders crumb links to the
+// folder: Guidance, Templates or Root (plus the vault graph), mirroring the
+// URL, where all content lives under /root. The Root crumb links to the
 // vault root listing, so every level of the trail is navigable, and a folder
-// named "Guidance", "Templates" or "Folders" stays unambiguous. On the
+// named "Guidance", "Templates" or "Root" stays unambiguous. On the
 // Structure page itself the trail is just the vault name.
 export function VaultBreadcrumb({ items, className = '' }: VaultBreadcrumbProps) {
   const { t } = useTranslation();
@@ -48,6 +48,6 @@ export function VaultBreadcrumb({ items, className = '' }: VaultBreadcrumbProps)
 export function folderCrumbs(vaultSlug: string, chain: FolderNode[]): Crumb[] {
   return chain.map((folder) => ({
     label: folder.name,
-    to: `/vaults/${vaultSlug}/folders/${folder.slugPath}`,
+    to: `/vaults/${vaultSlug}/root/${folder.slugPath}`,
   }));
 }

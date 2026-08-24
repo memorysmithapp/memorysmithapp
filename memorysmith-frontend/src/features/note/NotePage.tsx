@@ -60,7 +60,7 @@ export function NotePage({ noteSlug }: { noteSlug: string }) {
         <div>
           <VaultBreadcrumb
             items={[
-              { label: t('structure.folders'), to: `/vaults/${vaultSlug}/folders` },
+              { label: t('structure.root'), to: `/vaults/${vaultSlug}/root` },
               ...folderCrumbs(vaultSlug, folderTrailForNote(structure.folders, noteSlug)),
               { label: data.title },
             ]}

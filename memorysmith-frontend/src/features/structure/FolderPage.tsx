@@ -27,7 +27,7 @@ export function FolderPage() {
     <article className="content-pane">
       <VaultBreadcrumb
         items={[
-          { label: t('structure.folders'), to: `/vaults/${vaultSlug}/folders` },
+          { label: t('structure.root'), to: `/vaults/${vaultSlug}/root` },
           ...folderCrumbs(vaultSlug, chain),
         ]}
       />
@@ -47,7 +47,7 @@ export function FolderPage() {
       <ul className="note-list">
         {folder.children.map((child) => (
           <li key={child.id}>
-            <Link to={`/vaults/${vaultSlug}/folders/${child.slugPath}`} className="note-list-folder">
+            <Link to={`/vaults/${vaultSlug}/root/${child.slugPath}`} className="note-list-folder">
               {child.name}/
             </Link>
             <span className="note-list-desc">{child.description}</span>

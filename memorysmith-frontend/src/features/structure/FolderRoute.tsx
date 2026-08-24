@@ -6,7 +6,7 @@ import { FoldersIndexPage } from './FoldersIndexPage';
 import { folderTrail } from './trail';
 import type { VaultOutletContext } from './VaultLayout';
 
-// The folders/* namespace holds the whole vault content, so folder and note
+// The root/* namespace holds the whole vault content, so folder and note
 // names can never collide with reserved pages: an empty path is the vault
 // root listing, a full match on folder slugs is a folder page, and one extra
 // trailing segment is a note inside the matched folder.

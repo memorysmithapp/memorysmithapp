@@ -109,5 +109,5 @@ export function resolveNoteUrl(vaultSlug: string, targetSlug: string): string | 
   if (!vault || !note) return null;
   const folder = vault.folders.get(note.folderDirPath);
   if (!folder) return null;
-  return `/vaults/${vaultSlug}/folders/${folder.slugPath}/${targetSlug}`;
+  return `/vaults/${vaultSlug}/root/${folder.slugPath}/${targetSlug}`;
 }

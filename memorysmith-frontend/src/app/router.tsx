@@ -30,7 +30,7 @@ export const router = createBrowserRouter([
                   { path: 'guidance', element: <GuidancePanel /> },
                   { path: 'templates', element: <TemplatesPage /> },
                   { path: 'graph', element: <GraphPage /> },
-                  { path: 'folders/*', element: <FolderRoute /> },
+                  { path: 'root/*', element: <FolderRoute /> },
                 ],
               },
             ],

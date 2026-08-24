@@ -13,13 +13,13 @@ export function FoldersIndexPage() {
 
   return (
     <article className="content-pane">
-      <VaultBreadcrumb items={[{ label: t('structure.folders') }]} />
-      <h1>{t('structure.folders')}</h1>
+      <VaultBreadcrumb items={[{ label: t('structure.root') }]} />
+      <h1>{t('structure.root')}</h1>
       <p className="folder-description">{t('structure.outlineHint')}</p>
       <ul className="note-list">
         {structure.folders.map((folder) => (
           <li key={folder.id}>
-            <Link to={`/vaults/${vaultSlug}/folders/${folder.slugPath}`} className="note-list-folder">
+            <Link to={`/vaults/${vaultSlug}/root/${folder.slugPath}`} className="note-list-folder">
               {folder.name}/
             </Link>
             <span className="note-list-desc">{folder.description}</span>

@@ -37,6 +37,7 @@
   "structure": {
     "guidance": "Guidance",
     "folders": "Folders",
+    "root": "Root",
     "hasTemplate": "template",
     "outlineHint": "The folder tree with each folder's description. It is what tells the agent where each note goes.",
     "backToVaults": "All vaults",

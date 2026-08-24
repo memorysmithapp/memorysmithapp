@@ -37,6 +37,7 @@
   "structure": {
     "guidance": "Orientação",
     "folders": "Pastas",
+    "root": "Raiz",
     "hasTemplate": "modelo",
     "outlineHint": "A árvore de pastas com a descrição de cada uma. É ela que diz ao agente onde cada nota entra.",
     "backToVaults": "Todos os vaults",

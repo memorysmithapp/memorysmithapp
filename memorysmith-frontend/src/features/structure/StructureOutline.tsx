@@ -21,7 +21,7 @@ export function StructureOutline({ vaultSlug, folders }: StructureOutlineProps) 
       {folders.map((folder) => (
         <li key={folder.id} className="outline-item">
           <div className="outline-head">
-            <Link to={`/vaults/${vaultSlug}/folders/${folder.slugPath}`} className="outline-name">
+            <Link to={`/vaults/${vaultSlug}/root/${folder.slugPath}`} className="outline-name">
               {folder.name}
             </Link>
             {folder.hasTemplate && (

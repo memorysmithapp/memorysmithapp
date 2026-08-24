@@ -63,7 +63,7 @@ export function TemplatesPage() {
           <details key={folder.id} id={anchor} className="template-box" open={hash === `#${anchor}`}>
             <summary>
               {path.join(' / ')}
-              <Link to={`/vaults/${vaultSlug}/folders/${folder.slugPath}`} className="template-folder-link">
+              <Link to={`/vaults/${vaultSlug}/root/${folder.slugPath}`} className="template-folder-link">
                 {t('structure.openFolder')}
               </Link>
             </summary>
