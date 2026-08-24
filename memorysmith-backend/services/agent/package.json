@@ -1,0 +1,21 @@
+{
+  "name": "@memorysmith/svc-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Agent Access bounded context: remote MCP server, OAuth resource server and CIMD registration proxy.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "hono": "^4.9.0",
+    "jose": "^6.0.13"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.152",
+    "@types/node": "^24.3.0",
+    "typescript": "~5.7.3",
+    "vitest": "^3.2.4"
+  }
+}
