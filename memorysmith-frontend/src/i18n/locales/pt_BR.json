@@ -92,7 +92,9 @@
     "timelineHeading": "Notas criadas por dia",
     "otherVaults": "Outros vaults",
     "otherTypes": "Outros",
-    "selectVault": "Abrir um vault"
+    "selectVault": "Abrir um vault",
+    "prevVaults": "Vaults anteriores",
+    "nextVaults": "Próximos vaults"
   },
   "graph": {
     "heading": "Grafo do vault",

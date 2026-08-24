@@ -97,6 +97,31 @@ a:hover { text-decoration: underline; }
 .status { padding: 2rem; color: var(--text-soft); }
 
 /* Vault catalog */
+.card-carousel { position: relative; }
+.carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 1.3rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0 3px;
+  box-shadow: 0 2px 8px rgba(14, 21, 38, 0.15);
+}
+.carousel-arrow.left { left: -14px; }
+.carousel-arrow.right { right: -14px; }
+.carousel-arrow:hover { border-color: var(--accent); color: var(--accent); }
+
 .vault-grid {
   display: flex;
   gap: 1rem;

@@ -3,6 +3,7 @@ import { useState, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { listVaults } from '../../shared/api/client';
+import { CardCarousel } from '../../shared/components/CardCarousel';
 import {
   MATURITY_ORDER,
   OTHER_VAULTS,
@@ -60,7 +61,7 @@ export function DashboardPage() {
     <section className="page dashboard">
       {tooltip.node}
       <h2 className="dashboard-section-heading">{t('dashboard.selectVault')}</h2>
-      <div className="vault-grid">
+      <CardCarousel prevLabel={t('dashboard.prevVaults')} nextLabel={t('dashboard.nextVaults')}>
         {vaults?.map((vault) => (
           <Link key={vault.id} to={`/vaults/${vault.slug}`} className="vault-card">
             <h2>{vault.name}</h2>
@@ -71,7 +72,7 @@ export function DashboardPage() {
             </footer>
           </Link>
         ))}
-      </div>
+      </CardCarousel>
 
 
       <h2 className="dashboard-section-heading">{t('dashboard.heading')}</h2>
