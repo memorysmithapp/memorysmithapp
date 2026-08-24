@@ -105,6 +105,9 @@ export async function getTemplate(vaultSlug: string, folderId: string): Promise<
 
 export function resolveNoteUrl(vaultSlug: string, targetSlug: string): string | null {
   const vault = seedVaults().get(vaultSlug);
-  if (!vault?.notesBySlug.has(targetSlug)) return null;
-  return `/vaults/${vaultSlug}/notes/${targetSlug}`;
+  const note = vault?.notesBySlug.get(targetSlug);
+  if (!vault || !note) return null;
+  const folder = vault.folders.get(note.folderDirPath);
+  if (!folder) return null;
+  return `/vaults/${vaultSlug}/folders/${folder.slugPath}/${targetSlug}`;
 }

@@ -2,8 +2,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import { AppShell } from '../shared/components/AppShell';
 import { LoginPage } from '../features/auth/LoginPage';
 import { GuidancePanel } from '../features/guidance/GuidancePanel';
-import { NotePage } from '../features/note/NotePage';
-import { FolderPage } from '../features/structure/FolderPage';
+import { FolderRoute } from '../features/structure/FolderRoute';
 import { StructurePage } from '../features/structure/StructurePage';
 import { TemplatesPage } from '../features/structure/TemplatesPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
@@ -31,8 +30,7 @@ export const router = createBrowserRouter([
                   { path: 'guidance', element: <GuidancePanel /> },
                   { path: 'templates', element: <TemplatesPage /> },
                   { path: 'graph', element: <GraphPage /> },
-                  { path: 'folders/*', element: <FolderPage /> },
-                  { path: 'notes/:noteSlug', element: <NotePage /> },
+                  { path: 'folders/*', element: <FolderRoute /> },
                 ],
               },
             ],

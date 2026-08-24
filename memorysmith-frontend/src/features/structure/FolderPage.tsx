@@ -25,7 +25,12 @@ export function FolderPage() {
 
   return (
     <article className="content-pane">
-      <VaultBreadcrumb items={[{ label: t('structure.notes') }, ...folderCrumbs(vaultSlug, chain)]} />
+      <VaultBreadcrumb
+        items={[
+          { label: t('structure.folders'), to: `/vaults/${vaultSlug}/folders` },
+          ...folderCrumbs(vaultSlug, chain),
+        ]}
+      />
       <h1>{folder.name}</h1>
       <p className="folder-description">{folder.description}</p>
 

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { FolderNode, VaultStructure } from '../../shared/types/api';
+import { resolveNoteUrl } from '../../shared/api/client';
 
 type SearchMode = 'index' | 'graph';
 
@@ -73,7 +74,7 @@ export function SearchBox({ vaultSlug, structure }: SearchBoxProps) {
             <ul>
               {results.map((note) => (
                 <li key={note.slug}>
-                  <Link to={`/vaults/${vaultSlug}/notes/${note.slug}`} onClick={() => setQuery('')}>
+                  <Link to={resolveNoteUrl(vaultSlug, note.slug) ?? '#'} onClick={() => setQuery('')}>
                     <span className="search-title">{note.title}</span>
                     <span className="search-path">{note.folderPath}</span>
                   </Link>

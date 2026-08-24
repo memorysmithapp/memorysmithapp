@@ -8,7 +8,7 @@ interface FolderTreeProps {
 }
 
 function FolderItem({ vaultSlug, folder }: { vaultSlug: string; folder: FolderNode }) {
-  const { noteSlug, '*': folderPath } = useParams();
+  const { '*': folderPath } = useParams();
   const [open, setOpen] = useState(false);
   const isActive = folderPath === folder.slugPath;
 
@@ -36,8 +36,8 @@ function FolderItem({ vaultSlug, folder }: { vaultSlug: string; folder: FolderNo
           {folder.notes.map((note) => (
             <li key={note.id}>
               <Link
-                className={`tree-note${noteSlug === note.slug ? ' active' : ''}`}
-                to={`/vaults/${vaultSlug}/notes/${note.slug}`}
+                className={`tree-note${folderPath === `${folder.slugPath}/${note.slug}` ? ' active' : ''}`}
+                to={`/vaults/${vaultSlug}/folders/${folder.slugPath}/${note.slug}`}
               >
                 {note.title}
               </Link>

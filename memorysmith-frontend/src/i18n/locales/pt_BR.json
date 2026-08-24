@@ -44,7 +44,6 @@
     "intro": "Como este vault se descreve: a Orientação diz o que ele é, cada pasta diz o que se guarda nela e o Modelo da pasta diz como a nota se estrutura. É o que o agente recebe em get_vault_context.",
     "guidanceHint": "O que este vault é e como se escreve nele",
     "templates": "Modelos",
-    "notes": "Notas",
     "templatesHint_one": "{{count}} pasta com leiaute sugerido",
     "templatesHint_other": "{{count}} pastas com leiaute sugerido",
     "noTemplates": "Nenhuma pasta deste vault declara um Modelo.",

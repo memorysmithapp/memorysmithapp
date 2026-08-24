@@ -11,9 +11,9 @@ import { folderTrailForNote } from '../structure/trail';
 import { VaultBreadcrumb, folderCrumbs } from '../structure/VaultBreadcrumb';
 import type { VaultOutletContext } from '../structure/VaultLayout';
 
-export function NotePage() {
+export function NotePage({ noteSlug }: { noteSlug: string }) {
   const { t } = useTranslation();
-  const { vaultSlug = '', noteSlug = '' } = useParams();
+  const { vaultSlug = '' } = useParams();
   const { structure } = useOutletContext<VaultOutletContext>();
   const [copied, setCopied] = useState(false);
   const { data, isPending, isError } = useQuery({
@@ -60,7 +60,7 @@ export function NotePage() {
         <div>
           <VaultBreadcrumb
             items={[
-              { label: t('structure.notes') },
+              { label: t('structure.folders'), to: `/vaults/${vaultSlug}/folders` },
               ...folderCrumbs(vaultSlug, folderTrailForNote(structure.folders, noteSlug)),
               { label: data.title },
             ]}

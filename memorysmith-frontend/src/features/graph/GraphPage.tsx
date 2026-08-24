@@ -14,6 +14,7 @@ import {
 } from 'd3-force';
 import { usePreferences } from '../../shared/store/preferences';
 import { VaultBreadcrumb } from '../structure/VaultBreadcrumb';
+import { resolveNoteUrl } from '../../shared/api/client';
 
 interface GraphFile {
   nodes: { id: string; title: string; kind: 'note' | 'tag' }[];
@@ -273,7 +274,10 @@ export function GraphPage() {
       if (moved) return;
       const { gx, gy } = toGraphSpace(event);
       const hit = hitTest(gx, gy);
-      if (hit && hit.kind === 'note') void navigate(`/vaults/${vaultSlug}/notes/${hit.id}`);
+      if (hit && hit.kind === 'note') {
+        const url = resolveNoteUrl(vaultSlug, hit.id);
+        if (url) void navigate(url);
+      }
     }
     function onLeave() {
       dragging = false;
