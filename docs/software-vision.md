@@ -118,7 +118,7 @@ Termo único por conceito, do código ao produto. Divergência aqui é o começo
 | **Edge** | Link já resolvido para um `NoteId` de destino | Link pendente |
 | **Pending Link** | Link cujo alvo ainda não existe; resolve sozinho quando a nota alvo for criada | Link quebrado |
 | **Chunk** | Trecho de nota vetorizado, recortado por seção | Nota, parágrafo |
-| **Facet** | Atributo de frontmatter agregável para curadoria: os padrão `maturity` e `reviewed`, mais os de convenção do vault (`type`, `tags`, datas) | Campo tipado do backend, esquema de nota |
+| **Facet** | Atributo de frontmatter agregável para curadoria: os padrão `maturity` e `reviewed`, mais os que o Guidance do vault definir, descobertos pela forma do valor | Campo tipado do backend, esquema de nota |
 | **Authorship** | Quem escreveu: o humano **e** o agente usado | Usuário logado |
 | **Revision** | O conteúdo exato de uma nota num instante | Evento, alteração |
 | **Audit Event** | Registro append-only do que aconteceu, com autoria e revisão | Log de aplicação |
@@ -620,15 +620,16 @@ Cada link escrito no corpo de uma nota vira uma aresta. Duas formas são reconhe
 
 ### 10.3 Facetas de curadoria
 
-O painel de curadoria (a Visão geral do produto) responde perguntas de gestão do conhecimento: quanto do conteúdo está maduro, quanto já passou por revisão humana, como as notas se distribuem por tipo, por tag e por data de criação. A resposta vem da terceira projeção, as **facetas**: atributos de frontmatter agregáveis, extraídos de cada nota no momento em que ela muda e mantidos como contagens por vault.
+O painel de curadoria (a Visão geral do produto) responde perguntas de gestão do conhecimento: quanto do conteúdo está maduro, quanto já passou por revisão humana, como as notas se distribuem por tipo, por tag e por data de criação. A resposta vem da terceira projeção, as **facetas**: atributos de frontmatter agregáveis, extraídos de cada nota no momento em que ela muda e mantidos como contagens por vault. O conjunto de atributos não é fixo: quem define o frontmatter das notas é o Guidance de cada vault, e a projeção o descobre pela forma dos valores.
 
 - **RN-DSC-017:** O painel de curadoria é servido por uma projeção derivada, alimentada pelos eventos de nota. Nenhuma tela e nenhuma tool varre notas para contar; quem conta é o projetor, uma vez, no momento da mudança.
 - **RN-DSC-018:** Quem lê o frontmatter é o projetor de facetas do Discovery, segundo leitor sancionado de conteúdo ao lado do extrator de links. O core Knowledge continua sem ler conteúdo (PP4), e nenhuma faceta participa de regra, validação ou autorização: faceta orienta curadoria, nunca comportamento.
-- **RN-DSC-019:** `maturity` (`seed`, `growing`, `evergreen`) e `reviewed` (`true`, `false`) são as facetas padrão do produto, o único vocabulário de frontmatter que o produto declara: `maturity` registra o estágio de maturação do conteúdo e é reavaliada a cada escrita; `reviewed` marca se a revisão vigente passou por revisão humana, somente um humano a escreve como `true` e qualquer edição posterior de conteúdo a devolve a `false`.
-- **RN-DSC-020:** `type`, `tags`, `created` e `updated` são facetas de convenção do vault: a projeção as extrai sintaticamente e agrega os valores sem lhes atribuir significado. O que `type: evidence` quer dizer pertence ao Guidance, nunca ao backend.
+- **RN-DSC-019:** `maturity` (`seed`, `growing`, `evergreen`) e `reviewed` (`true`, `false`) são as facetas padrão do produto, o único vocabulário de frontmatter que o produto declara: `maturity` registra o estágio de maturação do conteúdo e é reavaliada a cada escrita; `reviewed` marca se a revisão vigente passou por revisão humana, somente um humano a escreve como `true` e qualquer edição posterior de conteúdo a devolve a `false`. Para o projetor elas não são caso especial, são atributos agregáveis como quaisquer outros; o padrão existe para que as telas e as tools do produto possam nomeá-las.
+- **RN-DSC-020:** Os demais atributos são convenção do vault e não são configurados em lugar nenhum: a projeção classifica cada valor pela **forma** e agrega os agregáveis, ou seja datas, booleanos, valores curtos enumeráveis e listas de valores curtos (como `tags`). Texto livre é descartado. O que `type: evidence` quer dizer pertence ao Guidance, nunca ao backend.
 - **RN-DSC-021:** Nota sem uma faceta conta como valor ausente; nunca é rejeitada nem corrigida. A projeção descreve o vault como ele está, e apontar lacuna é papel do painel, não do gravador.
 - **RN-DSC-022:** Nota apagada sai das contagens no soft delete e volta na restauração, espelhando a busca (RN-DSC-013, RN-DSC-014).
 - **RN-DSC-023:** A projeção de facetas é derivada (PP5): eventualmente consistente, apagável e reconstruível do zero a partir das notas, como o grafo e o índice vetorial (RN-DSC-016).
+- **RN-DSC-024:** Atributo que se revela texto livre pelo uso deixa de ser agregado: quando a cardinalidade de valores distintos de um atributo ultrapassa o teto por vault, suas contagens são descartadas e ele para de gerar estatística. É esse mecanismo, e não uma lista de exclusão mantida à mão, que impede `title` ou `source` de virarem estatística.
 
 ---
 
@@ -846,4 +847,4 @@ Registradas aqui em vez de decididas por omissão. Cada uma vira uma decisão da
 | Q3 | **Continuidade quando o `OWNER` some** | A transferência exige o próprio `OWNER` (RN-ACC-002). Se ele fica indisponível, hoje só o `PLATFORM_ADMIN` resolveria, e o fluxo não está desenhado |
 | Q4 | **Vault público ou compartilhável por link** | Não está no escopo; entraria como um quarto papel, o que exige revisitar a matriz de §5.2 |
 | Q5 | **Anexos não-Markdown (imagens, PDFs)** | Contradiz PP1 na forma atual. Se entrar, entra como Content Slot de outro tipo, sem virar exceção no modelo |
-| Q6 | **Painel de curadoria e a interpretação de convenções de frontmatter** | **Resolvida.** O painel é a projeção de facetas do Discovery (§10.3, RN-DSC-017 a RN-DSC-023): `maturity` e `reviewed` viram convenção de produto, `type`, `tags` e datas são extraídos sintaticamente como convenção do vault, e quem lê o frontmatter é o projetor, nunca o core |
+| Q6 | **Painel de curadoria e a interpretação de convenções de frontmatter** | **Resolvida.** O painel é a projeção de facetas do Discovery (§10.3, RN-DSC-017 a RN-DSC-024): `maturity` e `reviewed` viram convenção de produto; os demais atributos, definidos pelo Guidance de cada vault, são descobertos pela forma do valor (data, booleano, valor enumerável, lista), com texto livre descartado; e quem lê o frontmatter é o projetor, nunca o core |

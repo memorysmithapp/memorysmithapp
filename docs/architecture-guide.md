@@ -791,7 +791,7 @@ NoteCreated / NoteUpdated / NoteMoved
 
 Terceira projeção, a que serve o painel de curadoria. Regras de negócio em `software-vision.md` §10.3.
 
-`FacetExtractor` roda a cada `NoteCreated`, `NoteUpdated`, `NoteDeleted` e `NoteRestored`: carrega o blob pelo `ContentRef` do evento, lê **apenas o bloco de frontmatter** e extrai as facetas padrão (`maturity`, `reviewed`) e as de convenção do vault (`type`, `tags`, `created`, `updated`), sem atribuir semântica a valor nenhum. É o segundo leitor de conteúdo sancionado, ao lado do `LinkExtractor`, e como ele vive fora do core (PP4).
+`FacetExtractor` roda a cada `NoteCreated`, `NoteUpdated`, `NoteDeleted` e `NoteRestored`: carrega o blob pelo `ContentRef` do evento, lê **apenas o bloco de frontmatter** e classifica cada par chave-valor pela **forma do valor**: data, booleano, valor curto enumerável e lista de valores curtos são agregáveis; texto livre é descartado (RN-DSC-020). Não há lista de chaves no código nem configuração por vault: o vocabulário é do Guidance, e `maturity` e `reviewed`, as facetas padrão do produto, são para o extrator atributos como quaisquer outros. É o segundo leitor de conteúdo sancionado, ao lado do `LinkExtractor`, e como ele vive fora do core (PP4).
 
 **Consumo:** regra do EventBridge → SQS → Lambda, com DLQ. A fila absorve rajada de ingestão em lote, e retry ou falha do projetor nunca tocam o caminho quente da escrita.
 
@@ -799,13 +799,16 @@ Terceira projeção, a que serve o painel de curadoria. Regras de negócio em `s
 
 | Item | PK | SK | Atributos |
 |---|---|---|---|
-| Retrato de facetas da nota | `S#{s}#VAULT#{v}` | `FACET#{noteId}` | maturity, reviewed, type, tags, created, updated, version |
+| Retrato de facetas da nota | `S#{s}#VAULT#{v}` | `FACET#{noteId}` | mapa `{atributo: valor(es)}` dos agregáveis, version |
 | Contador agregado | `S#{s}#VAULT#{v}` | `STAT#{facet}#{value}` | count |
+| Estado do atributo | `S#{s}#VAULT#{v}` | `FDEF#{facet}` | tipo inferido, distinctCount, `discarded?` |
 | Dedup de evento | `S#{s}#VAULT#{v}` | `SEEN#{eventUlid}` | TTL 7d |
 
 **O retrato por nota é o que torna o delta exato.** Atualização e exclusão precisam decrementar o valor antigo ("a nota era `growing`, virou `evergreen`"), e o valor antigo não está no evento: está no retrato. O projetor lê `FACET#{noteId}`, computa o delta e aplica tudo numa única transação, no mesmo padrão dos contadores de pasta (§10.3): `Put` do `SEEN#{eventUlid}` com `attribute_not_exists`, `Put` do retrato novo e `ADD count :delta` nos contadores afetados. Reprocessamento da fila é um no-op pelo dedup; evento fora de ordem perde para o `version` maior já retratado.
 
 Um item de contador **por valor de faceta**, e não um item único de estatísticas por vault: cinquenta notas gravadas em paralelo incrementam contadores diferentes, e o item único viraria o mesmo gargalo que a regra do `META` (PE8) existe para evitar.
+
+**O teto de cardinalidade é o detector de texto livre** (RN-DSC-024). `FDEF#{facet}` acompanha quantos valores distintos o atributo já produziu no vault; ao ultrapassar o teto, o projetor marca o atributo como `discarded`, apaga seus itens `STAT#` e passa a ignorá-lo. É assim que `title` e `source` nunca viram estatística, sem nenhuma lista de exclusão no código: um atributo cujo valor é único por nota se denuncia sozinho pela cardinalidade.
 
 **Montar o painel é um `Query`** com prefixo `STAT#` por vault, sem tocar em nota nenhuma. Reconstrução (PE5): apagar os itens `FACET#` e `STAT#` do vault e reprocessar as notas.
 
