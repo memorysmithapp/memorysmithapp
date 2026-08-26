@@ -262,6 +262,41 @@ describe('Structure operations write nothing they do not have to', () => {
   });
 });
 
+describe('Vault lifecycle', () => {
+  it('refuses a second vault of the same name and points at the one that exists', async () => {
+    /**
+     * RN-KNW-032. The slug is how the interface addresses a vault, so a twin
+     * would share the address and be unreachable: every link would open the
+     * first one. The answer is the shape RN-AGT-004 already set for notes,
+     * the identifier of what exists, never an invented suffix.
+     */
+    const session = (await (await call('/access/session')).json()) as {
+      workspaces: Array<{ workspaceId: string }>;
+    };
+    const workspaceId = session.workspaces[0]?.workspaceId;
+
+    const first = (await (
+      await call('/knowledge/vaults', {
+        method: 'POST',
+        body: { workspaceId, name: 'Normas e Legislacao', description: 'Texto normativo' },
+      })
+    ).json()) as { vaultId: string };
+
+    const twin = await call('/knowledge/vaults', {
+      method: 'POST',
+      body: { workspaceId, name: 'Normas e Legislacao', description: 'Outra descricao' },
+    });
+    expect(twin.status).toBe(409);
+    const body = (await twin.json()) as { details: { code: string; vaultId: string } };
+    expect(body.details.code).toBe('ALREADY_EXISTS');
+    expect(body.details.vaultId).toBe(first.vaultId);
+
+    // And the catalogue holds one, not two.
+    const listed = (await (await call('/knowledge/vaults')).json()) as Array<{ slug: string }>;
+    expect(listed.filter((vault) => vault.slug === 'normas-e-legislacao')).toHaveLength(1);
+  });
+});
+
 describe('Note lifecycle', () => {
   it('refuses a duplicate slug and points at the note that already exists', async () => {
     const { vaultId, folderId } = await seedVault();

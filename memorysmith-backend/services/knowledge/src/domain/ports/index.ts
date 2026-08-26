@@ -35,6 +35,11 @@ export interface VaultRepository {
    * caller can already answer would be paying for it twice.
    */
   listByWorkspace(workspaceId: WorkspaceId): Promise<Vault[]>;
+  /**
+   * Resolves a slug to the vault that holds it in this workspace, which is
+   * how the guard of RN-KNW-032 is read before a write attempts it.
+   */
+  findBySlug(workspaceId: WorkspaceId, slug: Slug): Promise<Vault | null>;
   save(vault: Vault): Promise<Result<void, ConcurrencyError>>;
 }
 

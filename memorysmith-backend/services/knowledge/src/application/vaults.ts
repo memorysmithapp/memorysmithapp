@@ -14,6 +14,7 @@ import {
   err,
   ok,
   Role,
+  Slug,
   VaultId,
   VaultRoleLimit,
   WorkspaceId,
@@ -71,6 +72,26 @@ export class CreateVault {
     if (!name.ok) return name;
     const description = ShortText.create(input.description);
     if (!description.ok) return description;
+
+    /**
+     * Idempotency, the same shape create_note already has (RN-AGT-004): the
+     * slug is the address of the vault, so a second call with the same name
+     * finds the first vault instead of creating a twin nobody can reach. The
+     * transaction carries the guard too, which is what settles a race; this
+     * read is what turns the race into a good answer when there is none.
+     */
+    const slug = Slug.from(name.value.value);
+    if (!slug.ok) return slug;
+    const existing = await this.deps.vaults.findBySlug(input.workspaceId, slug.value);
+    if (existing) {
+      return err(
+        DomainError.conflict('A vault with this slug already exists in this workspace', {
+          code: 'ALREADY_EXISTS',
+          vaultId: existing.id.value,
+          slug: slug.value.value,
+        }),
+      );
+    }
 
     const vault = Vault.create({
       id: VaultId.generate(),
@@ -145,6 +166,21 @@ export class RenameVault {
 
     const name = VaultName.create(input.name);
     if (!name.ok) return name;
+
+    // Renaming into a slug another vault of the workspace already holds is
+    // the same collision as creating one, and gets the same answer.
+    const slug = Slug.from(name.value.value);
+    if (!slug.ok) return slug;
+    const holder = await this.deps.vaults.findBySlug(vault.value.workspaceId, slug.value);
+    if (holder && !holder.id.equals(vault.value.id)) {
+      return err(
+        DomainError.conflict('A vault with this slug already exists in this workspace', {
+          code: 'ALREADY_EXISTS',
+          vaultId: holder.id.value,
+          slug: slug.value.value,
+        }),
+      );
+    }
 
     const renamed = vault.value.rename(name.value, input.by);
     if (!renamed.ok) return renamed;

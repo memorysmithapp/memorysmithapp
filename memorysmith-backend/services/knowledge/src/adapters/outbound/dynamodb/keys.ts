@@ -93,6 +93,15 @@ export class KnowledgeKeys {
     return `VSTAT#${vaultId.value}`;
   }
 
+  /**
+   * Unique WITHIN THE WORKSPACE (RN-KNW-032). It lives in the workspace
+   * partition of the TABLE, not in GSI1, because a transaction cannot condition
+   * on an index: the guard has to be an item the write can lock against.
+   */
+  vaultSlugGuard(slug: string): string {
+    return `VSLUG#${slug}`;
+  }
+
   // ---- GSI2: notes of a folder, in the defined order -----------------------
 
   folderPartition(folderId: FolderId): string {

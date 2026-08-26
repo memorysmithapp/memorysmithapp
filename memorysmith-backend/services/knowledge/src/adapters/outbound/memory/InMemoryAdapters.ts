@@ -94,6 +94,16 @@ export class InMemoryVaultRepository implements VaultRepository {
       .filter((vault) => vault.workspaceId.equals(workspaceId));
   }
 
+  /**
+   * Same answer the database gives, from the same question: which vault of
+   * this workspace holds this slug. The adapter in memory has no guard item,
+   * so it looks through the list, which is the honest equivalent at this size.
+   */
+  async findBySlug(workspaceId: WorkspaceId, slug: Slug): Promise<Vault | null> {
+    const vaults = await this.listByWorkspace(workspaceId);
+    return vaults.find((vault) => vault.slug.value === slug.value) ?? null;
+  }
+
   async save(vault: Vault): Promise<Result<void, ConcurrencyError>> {
     const key = vaultKey(this.sub, vault.id);
     const stored = this.db.vaults.get(key);

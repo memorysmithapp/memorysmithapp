@@ -505,6 +505,7 @@ Ordenação alfabética continua disponível como opção de exibição no clien
 
 - **RN-KNW-001:** Todo vault pertence a exatamente um workspace, e a um só.
 - **RN-KNW-002:** O `slug` de uma pasta é único entre suas irmãs (mesmo pai, mesmo vault).
+- **RN-KNW-032:** O `slug` do vault é único **dentro do workspace**, porque é por ele que a interface endereça o vault. Criar um vault cujo nome gera um `slug` já usado devolve `ALREADY_EXISTS` **com o identificador do vault existente**, e nunca cria um segundo, pela mesma razão de RN-AGT-004: o servidor não gera sufixo automático. Renomear para um `slug` ocupado recebe a mesma recusa. Sem essa regra, dois vaults de mesmo nome dividem um endereço e o segundo fica inalcançável.
 - **RN-KNW-003:** A profundidade máxima da árvore de pastas é 6 níveis.
 - **RN-KNW-004:** Mover uma pasta nunca pode criar ciclo: o destino não pode ser descendente da origem.
 - **RN-KNW-005:** Toda pasta tem uma `position` que a ordena entre as irmãs; toda nota tem uma `position` que a ordena dentro da pasta.

@@ -167,6 +167,86 @@ describe('DynamoVaultRepository: the aggregate in one Query', () => {
     expect(await repositories(context).vaults.listByWorkspace(WorkspaceId.generate())).toEqual([]);
   });
 
+  it('refuses a second vault whose name yields a slug already taken in the workspace', async () => {
+    /**
+     * RN-KNW-032. The slug of the vault is its address in the interface, so
+     * two vaults sharing one makes every URL ambiguous and leaves the second
+     * unreachable. The guard item is what makes this a database rule: without
+     * it two concurrent creations both pass a read check and both write.
+     */
+    const context = contextFor();
+    const workspaceId = WorkspaceId.generate();
+    const { vaults } = repositories(context);
+
+    const make = (name: string) =>
+      unwrap(
+        Vault.create({
+          id: VaultId.generate(),
+          subscriptionId: context.subscriptionId,
+          workspaceId,
+          name: unwrap(VaultName.create(name)),
+          description: unwrap(ShortText.create('')),
+          by: authorshipOf(context),
+        }),
+      );
+
+    const first = make('Normas e Legislacao');
+    expect((await vaults.save(first)).ok).toBe(true);
+
+    const twin = make('Normas e Legislacao');
+    expect((await vaults.save(twin)).ok).toBe(false);
+
+    // The guard resolves the slug to the vault that holds it, which is what
+    // lets the caller be told WHICH vault already exists.
+    const found = await vaults.findBySlug(workspaceId, unwrap(Slug.from('Normas e Legislacao')));
+    expect(found?.id.value).toBe(first.id.value);
+
+    // Another workspace is a different partition, so the same name is free.
+    const elsewhere = unwrap(
+      Vault.create({
+        id: VaultId.generate(),
+        subscriptionId: context.subscriptionId,
+        workspaceId: WorkspaceId.generate(),
+        name: unwrap(VaultName.create('Normas e Legislacao')),
+        description: unwrap(ShortText.create('')),
+        by: authorshipOf(context),
+      }),
+    );
+    expect((await vaults.save(elsewhere)).ok).toBe(true);
+  });
+
+  it('moves the slug guard when a vault is renamed, freeing the old name', async () => {
+    const context = contextFor();
+    const workspaceId = WorkspaceId.generate();
+    const { vaults } = repositories(context);
+
+    const vault = unwrap(
+      Vault.create({
+        id: VaultId.generate(),
+        subscriptionId: context.subscriptionId,
+        workspaceId,
+        name: unwrap(VaultName.create('Normas e Legislacao')),
+        description: unwrap(ShortText.create('')),
+        by: authorshipOf(context),
+      }),
+    );
+    expect((await vaults.save(vault)).ok).toBe(true);
+
+    const loaded = (await vaults.findById(vault.id)) as Vault;
+    expect(
+      loaded.rename(unwrap(VaultName.create('Jurisprudencia')), authorshipOf(context)).ok,
+    ).toBe(true);
+    expect((await vaults.save(loaded)).ok).toBe(true);
+
+    expect(
+      (await vaults.findBySlug(workspaceId, unwrap(Slug.from('Jurisprudencia'))))?.id.value,
+    ).toBe(vault.id.value);
+    // The name it left behind is free again, guard and all.
+    expect(
+      await vaults.findBySlug(workspaceId, unwrap(Slug.from('Normas e Legislacao'))),
+    ).toBeNull();
+  });
+
   it('answers null for a vault of another subscription', async () => {
     // RN-SUB-004: indistinguishable from a vault that does not exist, because
     // the key the repository builds never reaches the other partition.

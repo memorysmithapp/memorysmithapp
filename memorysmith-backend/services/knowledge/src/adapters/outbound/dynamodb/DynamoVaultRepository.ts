@@ -18,12 +18,18 @@ import {
   ConcurrencyError,
   ok,
   type Result,
+  type Slug,
   type SubscriptionContext,
-  type VaultId,
+  VaultId,
   type WorkspaceId,
 } from '@memorysmith/kernel';
 import type { DynamoDBDocumentClient, TransactWriteCommandInput } from '@aws-sdk/lib-dynamodb';
-import { BatchWriteCommand, QueryCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  BatchWriteCommand,
+  GetCommand,
+  QueryCommand,
+  TransactWriteCommand,
+} from '@aws-sdk/lib-dynamodb';
 import type { Vault } from '../../../domain/vault/Vault.js';
 import type { VaultRepository } from '../../../domain/ports/index.js';
 import { AGGREGATE_RANGE_END, AGGREGATE_RANGE_START, KnowledgeKeys } from './keys.js';
@@ -34,6 +40,8 @@ type TransactItem = NonNullable<TransactWriteCommandInput['TransactItems']>[numb
 /** What the aggregate looked like when it was loaded, for the write diff. */
 interface Snapshot {
   version: number;
+  /** The slug as it was loaded: a change means the guard has to move. */
+  slug: string;
   folders: Map<string, { parentFolderId: string | null; slug: string }>;
   limits: Set<string>;
 }
@@ -73,6 +81,23 @@ export class DynamoVaultRepository implements VaultRepository {
     const vault = parseVault(items, this.sub.subscriptionId);
     if (vault) this.snapshots.set(vault.id.value, snapshotOf(vault));
     return vault;
+  }
+
+  /** Reads the guard item, which IS the index from slug to vault. */
+  async findBySlug(workspaceId: WorkspaceId, slug: Slug): Promise<Vault | null> {
+    const guard = await this.db.send(
+      new GetCommand({
+        TableName: this.tableName,
+        Key: {
+          PK: this.keys.workspacePartition(workspaceId),
+          SK: this.keys.vaultSlugGuard(slug.value),
+        },
+      }),
+    );
+    const vaultId = guard.Item?.['vaultId'];
+    if (!vaultId) return null;
+    const parsed = VaultId.create(String(vaultId));
+    return parsed.ok ? this.findById(parsed.value) : null;
   }
 
   async listByWorkspace(workspaceId: WorkspaceId): Promise<Vault[]> {
@@ -132,6 +157,48 @@ export class DynamoVaultRepository implements VaultRepository {
           : { ConditionExpression: 'attribute_not_exists(PK)' }),
       },
     });
+
+    /**
+     * The slug guard, which is what makes RN-KNW-032 a database rule instead
+     * of a check that races. It sits in the workspace partition, so two vaults
+     * of the SAME workspace collide and two vaults of different workspaces do
+     * not. A rename moves it: delete the old key and claim the new one, both
+     * in this transaction, so a failed rename leaves neither half behind.
+     */
+    const guardPk = this.keys.workspacePartition(vault.workspaceId);
+    if (!snapshot) {
+      conditional.push({
+        Put: {
+          TableName: this.tableName,
+          Item: {
+            PK: guardPk,
+            SK: this.keys.vaultSlugGuard(vault.slug.value),
+            entity: 'VSLUG',
+            vaultId: vault.id.value,
+          },
+          ConditionExpression: 'attribute_not_exists(PK)',
+        },
+      });
+    } else if (snapshot.slug !== vault.slug.value) {
+      conditional.push({
+        Delete: {
+          TableName: this.tableName,
+          Key: { PK: guardPk, SK: this.keys.vaultSlugGuard(snapshot.slug) },
+        },
+      });
+      conditional.push({
+        Put: {
+          TableName: this.tableName,
+          Item: {
+            PK: guardPk,
+            SK: this.keys.vaultSlugGuard(vault.slug.value),
+            entity: 'VSLUG',
+            vaultId: vault.id.value,
+          },
+          ConditionExpression: 'attribute_not_exists(PK)',
+        },
+      });
+    }
 
     // A brand new vault also gets its counter item, which GSI1 projects as
     // VSTAT# so that listing vaults already carries the note count.
@@ -320,6 +387,7 @@ export class DynamoVaultRepository implements VaultRepository {
 function snapshotOf(vault: Vault): Snapshot {
   return {
     version: vault.version,
+    slug: vault.slug.value,
     folders: new Map(
       vault.folders
         .all()
