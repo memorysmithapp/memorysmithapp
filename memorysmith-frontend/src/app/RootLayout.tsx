@@ -42,7 +42,7 @@ export function RootLayout() {
 export function RequireSession() {
   const simulated = useSession((s) => s.user);
   const live = useLiveSession((state) => state.session);
-  const loading = useLiveSession((state) => state.loading);
+  const loaded = useLiveSession((state) => state.loaded);
   const location = useLocation();
 
   if (!isLive) {
@@ -50,7 +50,11 @@ export function RequireSession() {
   }
 
   if (!readTokens()) return <Navigate to="/login" replace />;
-  if (loading && !live) return <div className="loading-screen" />;
+  // A token exists, so the only honest answer before the session resolves is
+  // to wait. This guard renders BEFORE the effect that starts the load, so
+  // reading "no session" here would mean "not asked yet", and redirecting on
+  // it sends every page load and every deep link back to sign-in.
+  if (!loaded) return <div className="loading-screen" />;
   if (!live) return <Navigate to="/login" replace />;
 
   const needsOnboarding = live.subscriptionState !== 'active';

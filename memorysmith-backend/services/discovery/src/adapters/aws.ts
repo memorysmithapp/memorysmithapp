@@ -45,6 +45,7 @@ import type {
   LinkTarget,
   NoteRef,
   ScoredChunk,
+  VaultGraph,
   VectorIndex,
 } from '../domain/ports.js';
 import { GRAPH_LIMITS } from '../domain/ports.js';
@@ -71,15 +72,31 @@ export class DynamoLinkGraph implements LinkGraph {
     return partition(this.subscriptionId, vaultId);
   }
 
+  /**
+   * Every page, not the first one. A Query answers at most 1 MB, and a vault
+   * with a few thousand notes passes that easily: stopping at the first page
+   * would silently hide half the graph, and the caller would have no way to
+   * tell a small vault from a truncated answer.
+   */
   private async query(vaultId: string, prefix: string): Promise<Item[]> {
-    const response = await this.db.send(
-      new QueryCommand({
-        TableName: this.tableName,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-        ExpressionAttributeValues: { ':pk': this.pk(vaultId), ':prefix': prefix },
-      }),
-    );
-    return (response.Items ?? []) as Item[];
+    const items: Item[] = [];
+    let startKey: Record<string, unknown> | undefined;
+    do {
+      const response: {
+        Items?: Record<string, unknown>[] | undefined;
+        LastEvaluatedKey?: Record<string, unknown> | undefined;
+      } = await this.db.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+          ExpressionAttributeValues: { ':pk': this.pk(vaultId), ':prefix': prefix },
+          ...(startKey ? { ExclusiveStartKey: startKey } : {}),
+        }),
+      );
+      items.push(...((response.Items ?? []) as Item[]));
+      startKey = response.LastEvaluatedKey;
+    } while (startKey);
+    return items;
   }
 
   private async put(items: Item[]): Promise<void> {
@@ -320,6 +337,42 @@ export class DynamoLinkGraph implements LinkGraph {
       edges.flatMap((edge) => [String(edge['fromNoteId']), String(edge['toNoteId'])]),
     );
     return allNotes.filter((note) => !linked.has(note.noteId));
+  }
+
+  /**
+   * Three prefix queries in ONE partition, which is the whole reason the
+   * projection is keyed by vault: the graph of a vault is a scan of its own
+   * partition and never reaches another one.
+   */
+  async wholeGraph(vaultId: string): Promise<VaultGraph> {
+    const noteItems = await this.query(vaultId, 'NOTE#');
+    const truncated = noteItems.length > GRAPH_LIMITS.maxVaultNodes;
+    const kept = truncated ? noteItems.slice(0, GRAPH_LIMITS.maxVaultNodes) : noteItems;
+
+    const nodes: NoteRef[] = kept.map((item) => ({
+      noteId: String(item['noteId']),
+      title: String(item['title']),
+      slug: String(item['slug']),
+      folderId: String(item['folderId']),
+    }));
+    const indexOf = new Map(nodes.map((note, index) => [note.noteId, index]));
+
+    // An edge with either end outside the ceiling is dropped: it would index
+    // past the end of `nodes`, and a dangling index is worse than a lost edge.
+    const edges: Array<[number, number]> = [];
+    for (const item of await this.query(vaultId, 'OUT#')) {
+      const from = indexOf.get(String(item['fromNoteId']));
+      const to = indexOf.get(String(item['toNoteId']));
+      if (from !== undefined && to !== undefined) edges.push([from, to]);
+    }
+
+    const pending: Array<{ from: number; targetSlug: string }> = [];
+    for (const item of await this.query(vaultId, 'PENDING#')) {
+      const from = indexOf.get(String(item['fromNoteId']));
+      if (from !== undefined) pending.push({ from, targetSlug: String(item['slug']) });
+    }
+
+    return { nodes, edges, pending, truncated };
   }
 }
 

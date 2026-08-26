@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { usePreferences, type ThemeChoice } from '../store/preferences';
 import { useSession } from '../store/session';
+import { useLiveSession, authConfig, type LiveSession } from '../auth/session';
+import { signOut as endHostedSession } from '../auth/oauth';
+import { isLive } from '../api/source';
 import { Avatar } from './Avatar';
 import { MonitorIcon, MoonIcon, SunIcon } from './icons';
 
@@ -12,11 +15,61 @@ const THEME_OPTIONS: { value: ThemeChoice; Icon: typeof SunIcon }[] = [
   { value: 'system', Icon: MonitorIcon },
 ];
 
+/** What the menu shows, whichever session is answering. */
+interface Identity {
+  readonly name: string;
+  readonly email: string;
+  readonly role: string;
+  readonly subscriptionName: string | null;
+}
+
+const ROLE_ORDER = ['NONE', 'VIEWER', 'EDITOR', 'OWNER'];
+
+/**
+ * The chip shows one role, and the owner of the subscription outranks every
+ * workspace role, because the ceiling of a vault can only lower a role, never
+ * raise it (RN-ACC-011).
+ */
+function identityOf(live: LiveSession): Identity {
+  const active = live.subscriptions.find((link) => link.isDefault) ?? live.subscriptions[0];
+  const role = active?.isOwner
+    ? 'OWNER'
+    : live.workspaces.reduce(
+        (top, workspace) =>
+          ROLE_ORDER.indexOf(workspace.role) > ROLE_ORDER.indexOf(top) ? workspace.role : top,
+        'VIEWER',
+      );
+  return {
+    name: live.name,
+    email: live.email,
+    role,
+    subscriptionName: live.subscriptionName,
+  };
+}
+
 export function UserMenu() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const user = useSession((s) => s.user);
-  const signOut = useSession((s) => s.signOut);
+  /**
+   * Two sessions exist on purpose: the prototype over the seed simulates one,
+   * and the live product carries the real one, minted by the identity
+   * provider. The menu shows whichever is answering and, more importantly,
+   * signs out through the same door the session came in: clearing a simulated
+   * user would leave a real token in place, and the person would still be
+   * signed in after being told they were not.
+   */
+  const simulated = useSession((s) => s.user);
+  const endSimulated = useSession((s) => s.signOut);
+  const live = useLiveSession((s) => s.session);
+  const clearLive = useLiveSession((s) => s.clear);
+
+  const user: Identity | null = isLive
+    ? live
+      ? identityOf(live)
+      : null
+    : simulated
+      ? { ...simulated, subscriptionName: simulated.subscriptionName }
+      : null;
   const theme = usePreferences((s) => s.theme);
   const setTheme = usePreferences((s) => s.setTheme);
   const [open, setOpen] = useState(false);
@@ -33,7 +86,15 @@ export function UserMenu() {
   if (!user) return null;
 
   function handleSignOut() {
-    signOut();
+    if (isLive) {
+      // The hosted session is ended at the provider, which also clears the
+      // tokens here. It navigates away on its own, so there is nothing left
+      // for the router to do.
+      clearLive();
+      endHostedSession(authConfig());
+      return;
+    }
+    endSimulated();
     void navigate('/login');
   }
 
@@ -62,10 +123,12 @@ export function UserMenu() {
               <span className="user-menu-field-label">{t('auth.role')}</span>
               <span className="chip">{user.role}</span>
             </div>
-            <div className="user-menu-field">
-              <span className="user-menu-field-label">{t('auth.subscription')}</span>
-              <span className="chip">{user.subscriptionName}</span>
-            </div>
+            {user.subscriptionName ? (
+              <div className="user-menu-field">
+                <span className="user-menu-field-label">{t('auth.subscription')}</span>
+                <span className="chip">{user.subscriptionName}</span>
+              </div>
+            ) : null}
           </div>
 
           <div className="user-menu-section">

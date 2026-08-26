@@ -97,7 +97,12 @@
     "otherTypes": "Other",
     "selectVault": "Open a vault",
     "prevVaults": "Previous vaults",
-    "nextVaults": "Next vaults"
+    "nextVaults": "Next vaults",
+    "kpiOrphans": "Orphan notes",
+    "noFacets": "These vaults declare no attributes in their notes yet, so there is nothing to chart.",
+    "moreFacets": "{{count}} more attribute(s) counted but not charted.",
+    "discardedFacets": "{{count}} attribute(s) left out of the statistics as free text: {{names}}.",
+    "unavailableVaults": "{{count}} vault(s) did not answer, so these totals are short."
   },
   "graph": {
     "heading": "Vault graph",
@@ -107,7 +112,9 @@
     "showTags": "Show tags",
     "legendNotes": "Notes",
     "legendTags": "Tags",
-    "hint": "Scroll to zoom · drag to pan · click a note to open it"
+    "hint": "Scroll to zoom · drag to pan · click a note to open it",
+    "empty": "This vault has no notes to draw yet.",
+    "truncated": "Showing the first 2000 notes of this vault."
   },
   "onboarding": {
     "title": "Ask for a subscription",

@@ -33,7 +33,29 @@ export interface BrokenLink {
 }
 
 /** Depth is capped at 3 and the traversal at 200 nodes (RN-DSC-007). */
-export const GRAPH_LIMITS = { maxDepth: 3, maxNodes: 200 } as const;
+export const GRAPH_LIMITS = { maxDepth: 3, maxNodes: 200, maxVaultNodes: 2000 } as const;
+
+/**
+ * The whole link graph of one vault, which is what the projection already is:
+ * the notes it knows and the edges between them. It is a different question
+ * from the dependency tree, which walks OUT from one note under a depth
+ * ceiling; here there is no root and no depth, only the shape of the vault.
+ *
+ * Edges are index pairs into `nodes` because a graph of any size repeats the
+ * same identifiers on both ends, and an index costs two bytes where a ULID
+ * costs twenty-six.
+ */
+export interface VaultGraph {
+  readonly nodes: NoteRef[];
+  readonly edges: Array<[number, number]>;
+  /** Links whose target does not exist yet, kept so the UI can show them. */
+  readonly pending: Array<{ from: number; targetSlug: string }>;
+  /**
+   * Whether `maxVaultNodes` cut the graph short. Never truncate in silence:
+   * a partial graph that claims to be whole is worse than no graph.
+   */
+  readonly truncated: boolean;
+}
 
 export interface LinkGraph {
   /** Replaces every outgoing edge of a note, resolving what it can. */
@@ -45,6 +67,8 @@ export interface LinkGraph {
   dependencyTree(vaultId: string, rootNoteId: string, depth: number): Promise<GraphNode | null>;
   backlinks(vaultId: string, noteId: string): Promise<NoteRef[]>;
   broken(vaultId: string): Promise<BrokenLink[]>;
+  /** Every note and every edge of the vault, for the graph view. */
+  wholeGraph(vaultId: string): Promise<VaultGraph>;
   orphans(vaultId: string, allNotes: NoteRef[]): Promise<NoteRef[]>;
 }
 

@@ -33,6 +33,14 @@ export interface LiveSession {
 interface SessionStore {
   session: LiveSession | null;
   loading: boolean;
+  /**
+   * Whether load() has finished at least once. It is NOT the negation of
+   * `loading`: before the first call, nothing is loading and nothing is
+   * loaded, and those two states are what a route guard has to tell apart.
+   * Reading "no session" during that gap is how a guard bounces a perfectly
+   * valid token to the sign-in screen on every page load.
+   */
+  loaded: boolean;
   error: string | null;
   load: () => Promise<void>;
   clear: () => void;
@@ -48,12 +56,13 @@ function stateOf(status: string | undefined): SubscriptionState {
 export const useLiveSession = create<SessionStore>((set) => ({
   session: null,
   loading: false,
+  loaded: false,
   error: null,
 
   async load(): Promise<void> {
     const tokens = readTokens();
     if (!tokens) {
-      set({ session: null, loading: false });
+      set({ session: null, loading: false, loaded: true });
       return;
     }
     set({ loading: true, error: null });
@@ -66,6 +75,7 @@ export const useLiveSession = create<SessionStore>((set) => ({
         dto.subscriptions.find((link) => link.subscriptionId === claims?.subscriptionId);
       set({
         loading: false,
+        loaded: true,
         session: {
           userId: dto.user.userId,
           email: dto.user.email,
@@ -82,6 +92,7 @@ export const useLiveSession = create<SessionStore>((set) => ({
     } catch (error) {
       set({
         loading: false,
+        loaded: true,
         error: error instanceof Error ? error.message : 'unknown',
         session: claims
           ? {
@@ -100,7 +111,7 @@ export const useLiveSession = create<SessionStore>((set) => ({
   },
 
   clear(): void {
-    set({ session: null, error: null, loading: false });
+    set({ session: null, error: null, loading: false, loaded: true });
   },
 }));
 

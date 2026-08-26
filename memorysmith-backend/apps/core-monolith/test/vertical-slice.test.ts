@@ -12,11 +12,14 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import { buildTestApp } from './wiring.js';
+import { sessionSchema } from '@memorysmith/contracts';
 
 type App = ReturnType<typeof buildTestApp>;
 let harness: App;
 
 const TOKEN = 'token-owner';
+/** The subscription the token names, which each test rebuilds. */
+let activeSubscriptionId = '';
 
 beforeEach(async () => {
   harness = buildTestApp();
@@ -28,6 +31,7 @@ beforeEach(async () => {
     body: JSON.stringify({ name: 'Tribunal de Contas' }),
   });
   const { subscriptionId } = (await created.json()) as { subscriptionId: string };
+  activeSubscriptionId = subscriptionId;
 
   harness.verifier.issue('platform-token', {
     sub: 'platform-admin',
@@ -88,6 +92,31 @@ async function seedVault(): Promise<{ vaultId: string; folderId: string }> {
 
   return { vaultId: vault.vaultId, folderId: folder.folderId };
 }
+
+describe('The API answers what its contract declares', () => {
+  /**
+   * The shape of a response is a promise, and the schemas in the contracts
+   * package ARE that promise. Nothing enforced it on the way out, so
+   * GET /access/session drifted: it answered `links` where the contract says
+   * `subscriptions`, and an email as the value object `{ value }` instead of a
+   * string. The SPA read undefined, fell back to a degraded session, and
+   * showed the person no name, no subscription and the wrong role.
+   */
+  it('answers GET /access/session in exactly the declared shape', async () => {
+    const response = await call('/access/session');
+    expect(response.status).toBe(200);
+
+    const parsed = sessionSchema.safeParse(await response.json());
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+
+    expect(parsed.data.user.email).toBe('owner@example.com');
+    expect(parsed.data.subscriptions.length).toBeGreaterThan(0);
+    // The active subscription is the one the token names, not the first of the list.
+    expect(parsed.data.activeSubscription?.subscriptionId).toBe(activeSubscriptionId);
+    expect(parsed.data.workspaces[0]?.role).toBe('OWNER');
+  });
+});
 
 describe('The authoring cycle', () => {
   it('writes guidance, a tree, a template and a note', async () => {

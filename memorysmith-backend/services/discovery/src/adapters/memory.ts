@@ -19,6 +19,7 @@ import {
   type NoteCatalog,
   type NoteRef,
   type ScoredChunk,
+  type VaultGraph,
   type VectorIndex,
 } from '../domain/ports.js';
 import type { FacetSnapshot } from '../domain/FacetExtractor.js';
@@ -180,6 +181,29 @@ export class InMemoryLinkGraph implements LinkGraph {
     const state = this.vault(vaultId);
     const linked = new Set(state.edges.flatMap((edge) => [edge.fromNoteId, edge.toNoteId]));
     return allNotes.filter((note) => !linked.has(note.noteId));
+  }
+
+  async wholeGraph(vaultId: string): Promise<VaultGraph> {
+    const state = this.vault(vaultId);
+    const all = [...state.notes.values()];
+    const truncated = all.length > GRAPH_LIMITS.maxVaultNodes;
+    const nodes = truncated ? all.slice(0, GRAPH_LIMITS.maxVaultNodes) : all;
+    const indexOf = new Map(nodes.map((note, index) => [note.noteId, index]));
+
+    const edges: Array<[number, number]> = [];
+    for (const edge of state.edges) {
+      const from = indexOf.get(edge.fromNoteId);
+      const to = indexOf.get(edge.toNoteId);
+      if (from !== undefined && to !== undefined) edges.push([from, to]);
+    }
+
+    const pending: Array<{ from: number; targetSlug: string }> = [];
+    for (const link of state.pending) {
+      const from = indexOf.get(link.fromNoteId);
+      if (from !== undefined) pending.push({ from, targetSlug: link.slug });
+    }
+
+    return { nodes, edges, pending, truncated };
   }
 }
 

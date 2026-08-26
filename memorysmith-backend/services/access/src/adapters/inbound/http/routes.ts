@@ -37,6 +37,7 @@ import type {
 } from '../../../application/members.js';
 import type { UserProfile } from '../../../domain/ports/index.js';
 import type { SubscriptionContext } from '@memorysmith/kernel';
+import { sessionSchema } from '@memorysmith/contracts';
 
 /** What the auth middleware puts on the request. */
 export interface AccessRequest {
@@ -99,14 +100,39 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
 
   // ---- Session -------------------------------------------------------------
 
+  /**
+   * The one call the SPA makes to render its shell. The use case answers in
+   * the vocabulary of the domain, where an email is a value object and the
+   * links are links; the DTO is the vocabulary of the contract, and mapping
+   * between the two is the job of this adapter. Handing the domain view
+   * straight to `c.json` is how an email reaches the browser as `{value: ...}`
+   * and a declared field arrives under another name.
+   */
   app.get('/session', async (c) => {
     const request = c.get('access');
-    return respond(
-      c,
-      await useCases
-        .getSession(request)
-        .execute({ profile: request.profile, context: request.context }),
-    );
+    const view = await useCases
+      .getSession(request)
+      .execute({ profile: request.profile, context: request.context });
+    if (!view.ok) return respond(c, view);
+
+    const activeId = request.context?.subscriptionId.value ?? null;
+    const dto = {
+      user: {
+        userId: view.value.user.userId.value,
+        email: view.value.user.email.value,
+        name: view.value.user.name,
+        isPlatformAdmin: view.value.user.isPlatformAdmin,
+      },
+      // The active subscription is the one the TOKEN names, never the one the
+      // list happens to start with (RN-SUB-002).
+      activeSubscription: view.value.links.find((link) => link.subscriptionId === activeId) ?? null,
+      subscriptions: view.value.links,
+      workspaces: view.value.workspaces,
+    };
+    // Parsed, not cast. A cast would let the shape drift from the declared
+    // contract in silence, which is exactly how this response came to send
+    // `links` where the contract says `subscriptions`.
+    return c.json(sessionSchema.parse(dto), 200);
   });
 
   app.post('/session/subscription', async (c) => {

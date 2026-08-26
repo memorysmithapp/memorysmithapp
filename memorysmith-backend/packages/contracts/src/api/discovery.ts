@@ -30,6 +30,19 @@ export const graphNodeSchema: z.ZodType<{
   }),
 );
 
+/**
+ * The whole link graph of a vault. Edges are index pairs into `nodes`, because
+ * a graph repeats every identifier twice per edge and an index is two bytes
+ * where a ULID is twenty-six.
+ */
+export const vaultGraphSchema = z.object({
+  nodes: z.array(noteRefSchema),
+  edges: z.array(z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()])),
+  pending: z.array(z.object({ from: z.number().int().nonnegative(), targetSlug: slugSchema })),
+  /** True when the node ceiling cut the graph short. Never truncate silently. */
+  truncated: z.boolean(),
+});
+
 export const backlinksSchema = z.object({
   note: noteRefSchema,
   backlinks: z.array(noteRefSchema),
@@ -83,6 +96,7 @@ export const facetStatsSchema = z.object({
 
 export type NoteRefDto = z.infer<typeof noteRefSchema>;
 export type GraphNodeDto = z.infer<typeof graphNodeSchema>;
+export type VaultGraphDto = z.infer<typeof vaultGraphSchema>;
 export type BacklinksDto = z.infer<typeof backlinksSchema>;
 export type BrokenLinkDto = z.infer<typeof brokenLinkSchema>;
 export type VaultHealthDto = z.infer<typeof vaultHealthSchema>;

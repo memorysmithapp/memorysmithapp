@@ -14,7 +14,8 @@ import {
 } from 'd3-force';
 import { usePreferences } from '../../shared/store/preferences';
 import { VaultBreadcrumb } from '../structure/VaultBreadcrumb';
-import { resolveNoteUrl } from '../../shared/api/source';
+import { isLive, resolveNoteUrl } from '../../shared/api/source';
+import { getVaultGraph } from '../../shared/api/backend';
 
 interface GraphFile {
   nodes: {
@@ -60,6 +61,7 @@ export function GraphPage() {
   const { vaultSlug = '' } = useParams();
   const theme = usePreferences((s) => s.theme);
   const [showTags, setShowTags] = useState(true);
+  const [truncated, setTruncated] = useState(false);
   const [colorBy, setColorBy] = useState<ColorBy>('none');
   const [data, setData] = useState<GraphFile | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -85,10 +87,46 @@ export function GraphPage() {
     redraw: null,
   });
 
+  /**
+   * Live, the graph is the link projection of Discovery, which is the same
+   * graph the seed file used to carry, only computed from what the vault
+   * really holds. The facet fields a node can be colored by (`maturity`,
+   * `type`, `reviewed`) are a convention of the seed, not of the product: the
+   * backend never interprets the content of a note, so live nodes carry only
+   * what the projection knows, and the controls that depend on them are not
+   * offered.
+   */
   useEffect(() => {
+    if (isLive) {
+      let live = true;
+      void getVaultGraph(vaultSlug)
+        .then((graph) => {
+          if (!live) return;
+          setData({
+            nodes: graph.nodes.map((note) => ({
+              id: note.slug,
+              title: note.title,
+              kind: 'note' as const,
+            })),
+            edges: graph.edges,
+          });
+          setTruncated(graph.truncated);
+        })
+        .catch(() => {
+          if (live) setData({ nodes: [], edges: [] });
+        });
+      return () => {
+        live = false;
+      };
+    }
+
     const loader = graphFiles[`/seed/graph/${vaultSlug}.json`];
-    if (!loader) return;
+    if (!loader) {
+      setData({ nodes: [], edges: [] });
+      return;
+    }
     void loader().then((mod) => setData(mod.default));
+    return;
   }, [vaultSlug]);
 
   const typeTop = useMemo(() => {
@@ -400,23 +438,32 @@ export function GraphPage() {
           <VaultBreadcrumb items={[{ label: t('graph.heading') }]} className="graph-breadcrumb" />
           <h1>{t('graph.heading')}</h1>
         </div>
-        <label className="graph-toggle graph-colorby">
-          {t('graph.colorBy')}
-          <select value={colorBy} onChange={(e) => setColorBy(e.target.value as ColorBy)}>
-            <option value="none">{t('graph.colorDefault')}</option>
-            <option value="maturity">maturity</option>
-            <option value="reviewed">reviewed</option>
-            <option value="type">type</option>
-          </select>
-        </label>
-        <label className="graph-toggle">
-          <input
-            type="checkbox"
-            checked={showTags}
-            onChange={(e) => setShowTags(e.target.checked)}
-          />
-          {t('graph.showTags')}
-        </label>
+        {/*
+          Not rendered at all when the source is the API, rather than hidden:
+          both controls read frontmatter fields that only the seed guarantees,
+          and a control that steers nothing is worse than no control.
+        */}
+        {!isLive && (
+          <>
+            <label className="graph-toggle graph-colorby">
+              {t('graph.colorBy')}
+              <select value={colorBy} onChange={(e) => setColorBy(e.target.value as ColorBy)}>
+                <option value="none">{t('graph.colorDefault')}</option>
+                <option value="maturity">maturity</option>
+                <option value="reviewed">reviewed</option>
+                <option value="type">type</option>
+              </select>
+            </label>
+            <label className="graph-toggle">
+              <input
+                type="checkbox"
+                checked={showTags}
+                onChange={(e) => setShowTags(e.target.checked)}
+              />
+              {t('graph.showTags')}
+            </label>
+          </>
+        )}
         <span className="graph-legend">
           {colorBy === 'none' && (
             <>
@@ -424,12 +471,13 @@ export function GraphPage() {
                 <span className="legend-swatch" style={{ background: 'var(--accent)' }} />
                 {t('graph.legendNotes')}
               </span>
-              {showTags && (
+              {showTags && !isLive && (
                 <span className="legend-item">
                   <span className="legend-swatch" style={{ background: 'var(--signal)' }} />
                   {t('graph.legendTags')}
                 </span>
               )}
+              {truncated && <span className="legend-item">{t('graph.truncated')}</span>}
             </>
           )}
           {colorBy === 'maturity' &&
@@ -478,6 +526,7 @@ export function GraphPage() {
       </div>
       <div className="graph-canvas-wrap">
         {!filtered && <p className="status">{t('common.loading')}</p>}
+        {filtered?.nodes.length === 0 && <p className="status">{t('graph.empty')}</p>}
         <canvas ref={canvasRef} />
         <span className="graph-hint">{t('graph.hint')}</span>
       </div>

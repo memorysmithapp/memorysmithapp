@@ -1,6 +1,7 @@
 /**
  * HTTP surface of svc-discovery (architecture-guide.md, section 14.1):
  *
+ *   GET  /vaults/:v/graph
  *   GET  /vaults/:v/notes/:n/graph?depth=
  *   GET  /vaults/:v/notes/:n/backlinks
  *   GET  /vaults/:v/health
@@ -23,6 +24,7 @@ import type {
   GetFacetStats,
   RelatedNotes,
   SearchNotes,
+  VaultGraphQuery,
   VaultHealth,
 } from '../application/queries.js';
 
@@ -40,6 +42,7 @@ export interface DiscoveryUseCases {
   readonly related: (request: DiscoveryRequest) => RelatedNotes;
   readonly backlinks: (request: DiscoveryRequest) => Backlinks;
   readonly health: (request: DiscoveryRequest) => VaultHealth;
+  readonly graph: (request: DiscoveryRequest) => VaultGraphQuery;
   readonly search: (request: DiscoveryRequest) => SearchNotes;
   readonly facets: (request: DiscoveryRequest) => GetFacetStats;
 }
@@ -61,6 +64,21 @@ async function guard(request: DiscoveryRequest, vaultId: string): Promise<Domain
 
 export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Variables: Variables }> {
   const app = new Hono<{ Variables: Variables }>();
+
+  /**
+   * The whole link graph of the vault. It is a different question from the
+   * route below, which walks OUT from one note under a depth ceiling: here
+   * there is no root, and the ceiling is on how many notes come back.
+   */
+  app.get('/vaults/:v/graph', async (c) => {
+    const request = c.get('discovery');
+    const vaultId = c.req.param('v') ?? '';
+    const denied = await guard(request, vaultId);
+    if (denied) return fail(c, denied);
+
+    const graph = await useCases.graph(request).execute({ vaultId });
+    return present(c, graph, (value) => value);
+  });
 
   app.get('/vaults/:v/notes/:n/graph', async (c) => {
     const request = c.get('discovery');

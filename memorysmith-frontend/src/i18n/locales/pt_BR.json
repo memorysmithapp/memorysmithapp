@@ -97,7 +97,12 @@
     "otherTypes": "Outros",
     "selectVault": "Abrir um vault",
     "prevVaults": "Vaults anteriores",
-    "nextVaults": "Próximos vaults"
+    "nextVaults": "Próximos vaults",
+    "kpiOrphans": "Notas órfãs",
+    "noFacets": "Estes vaults ainda não declaram atributos nas notas, então não há o que representar.",
+    "moreFacets": "Mais {{count}} atributo(s) contado(s) e não representado(s).",
+    "discardedFacets": "{{count}} atributo(s) ficaram fora das estatísticas por serem texto livre: {{names}}.",
+    "unavailableVaults": "{{count}} vault(s) não responderam, então estes totais estão incompletos."
   },
   "graph": {
     "heading": "Grafo do vault",
@@ -107,7 +112,9 @@
     "showTags": "Mostrar tags",
     "legendNotes": "Notas",
     "legendTags": "Tags",
-    "hint": "Role para ampliar · arraste para mover · clique numa nota para abri-la"
+    "hint": "Role para ampliar · arraste para mover · clique numa nota para abri-la",
+    "empty": "Este vault ainda não tem notas para desenhar.",
+    "truncated": "Mostrando as primeiras 2000 notas deste vault."
   },
   "onboarding": {
     "title": "Solicitar uma assinatura",

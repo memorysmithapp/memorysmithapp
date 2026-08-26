@@ -13,6 +13,7 @@ import {
   type NoteCatalog,
   type NoteRef,
   type ScoredChunk,
+  type VaultGraph,
   type VectorIndex,
   type Embedder,
   type BrokenLink,
@@ -64,6 +65,19 @@ export class VaultHealth {
       broken: await this.deps.graph.broken(input.vaultId),
       orphans: await this.deps.graph.orphans(input.vaultId, notes),
     });
+  }
+}
+
+/**
+ * The shape of the whole vault, which the graph view draws. It reads one
+ * projection and nothing else: Discovery never asks Knowledge for a note
+ * (RN-DSC-017), and the notes it names are the ones its own projection knows.
+ */
+export class VaultGraphQuery {
+  constructor(private readonly deps: QueryDependencies) {}
+
+  async execute(input: { vaultId: string }): Promise<Result<VaultGraph, DomainError>> {
+    return ok(await this.deps.graph.wholeGraph(input.vaultId));
   }
 }
 

@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useState, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { listVaults } from '../../shared/api/source';
+import { isLive, listVaults } from '../../shared/api/source';
+import { LiveDashboard } from './LiveDashboard';
 import { CardCarousel } from '../../shared/components/CardCarousel';
 import {
   MATURITY_ORDER,
@@ -44,22 +45,18 @@ const formatDay = (iso: string) => df.format(new Date(`${iso}T00:00:00`));
 // Stacked column area height in px; segments scale against the busiest day.
 const TIMELINE_HEIGHT = 150;
 
+/**
+ * The vault catalogue is the same question under either source, so it is asked
+ * once, here. What sits below it is not: the seed overview charts a fixed set
+ * of frontmatter attributes that only the seed guarantees, while the live one
+ * charts whatever the vaults declare (live-stats.ts).
+ */
 export function DashboardPage() {
   const { t } = useTranslation();
   const { data: vaults } = useQuery({ queryKey: ['vaults'], queryFn: listVaults });
-  const tooltip = useTooltip();
-
-  const kpis = totals();
-  const reviewedPct = kpis.notes > 0 ? Math.round((kpis.reviewed / kpis.notes) * 100) : 0;
-  const types = topTypes(8);
-  const maxType = Math.max(...types.map((entry) => entry.count));
-  const tags = topTags(10);
-  const maxTag = Math.max(...tags.map((entry) => entry.count));
-  const timeline = createdTimeline();
 
   return (
     <section className="page dashboard">
-      {tooltip.node}
       <h2 className="dashboard-section-heading">{t('dashboard.selectVault')}</h2>
       <CardCarousel prevLabel={t('dashboard.prevVaults')} nextLabel={t('dashboard.nextVaults')}>
         {vaults?.map((vault) => (
@@ -74,6 +71,26 @@ export function DashboardPage() {
         ))}
       </CardCarousel>
 
+      {isLive ? <LiveDashboard /> : <SeedOverview />}
+    </section>
+  );
+}
+
+function SeedOverview() {
+  const { t } = useTranslation();
+  const tooltip = useTooltip();
+
+  const kpis = totals();
+  const reviewedPct = kpis.notes > 0 ? Math.round((kpis.reviewed / kpis.notes) * 100) : 0;
+  const types = topTypes(8);
+  const maxType = Math.max(...types.map((entry) => entry.count));
+  const tags = topTags(10);
+  const maxTag = Math.max(...tags.map((entry) => entry.count));
+  const timeline = createdTimeline();
+
+  return (
+    <>
+      {tooltip.node}
       <h2 className="dashboard-section-heading">{t('dashboard.heading')}</h2>
 
       <div className="stat-row">
@@ -311,6 +328,6 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
-    </section>
+    </>
   );
 }

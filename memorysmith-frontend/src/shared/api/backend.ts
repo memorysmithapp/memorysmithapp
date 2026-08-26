@@ -11,7 +11,10 @@ import type {
   FolderDto,
   NoteSummaryDto,
   SessionDto,
+  FacetStatsDto,
   VaultDetailDto,
+  VaultGraphDto,
+  VaultHealthDto,
   VaultSummaryDto,
 } from '@memorysmith/contracts';
 import type {
@@ -157,6 +160,30 @@ export async function getTemplate(
 }
 
 /** The composed document the agent reads, shown in the connect screen. */
+/**
+ * The two Discovery reads the dashboard aggregates. Both take an identifier,
+ * not a slug, because the caller already listed the vaults and holds it: going
+ * back through the slug would be a second round trip for something it knows.
+ */
+export async function getFacetsById(vaultId: string): Promise<FacetStatsDto> {
+  return request<FacetStatsDto>(`/discovery/vaults/${vaultId}/facets`);
+}
+
+export async function getHealthById(vaultId: string): Promise<VaultHealthDto> {
+  return request<VaultHealthDto>(`/discovery/vaults/${vaultId}/health`);
+}
+
+/**
+ * The whole link graph of a vault, drawn by the graph view. The API answers
+ * with edges as index pairs, and the note identifiers it names are resolved
+ * against the structure the screen already loaded, so a click can open a note
+ * without another round trip.
+ */
+export async function getVaultGraph(vaultSlug: string): Promise<VaultGraphDto> {
+  const vaultId = await vaultIdOf(vaultSlug);
+  return request<VaultGraphDto>(`/discovery/vaults/${vaultId}/graph`);
+}
+
 export async function getVaultContext(vaultSlug: string): Promise<string> {
   const vaultId = await vaultIdOf(vaultSlug);
   return request<string>(`/knowledge/vaults/${vaultId}/context`, { accept: 'text' });

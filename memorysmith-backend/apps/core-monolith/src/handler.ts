@@ -70,6 +70,7 @@ import {
   GetFacetStats,
   RelatedNotes,
   SearchNotes,
+  VaultGraphQuery,
   VaultHealth,
 } from '@memorysmith/svc-discovery/application/queries';
 import { createApp } from './app.js';
@@ -219,6 +220,7 @@ const discoveryUseCases: DiscoveryUseCases = {
   related: (request) => new RelatedNotes(discoveryFor(request.subscription)),
   backlinks: (request) => new Backlinks(discoveryFor(request.subscription)),
   health: (request) => new VaultHealth(discoveryFor(request.subscription)),
+  graph: (request) => new VaultGraphQuery(discoveryFor(request.subscription)),
   search: (request) => new SearchNotes(discoveryFor(request.subscription)),
   facets: (request) => new GetFacetStats(discoveryFor(request.subscription)),
 };

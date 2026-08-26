@@ -102,6 +102,7 @@ import {
   GetFacetStats,
   RelatedNotes,
   SearchNotes,
+  VaultGraphQuery,
   VaultHealth,
 } from '@memorysmith/svc-discovery/application/queries';
 import type { DiscoveryUseCases } from '@memorysmith/svc-discovery/adapters/http';
@@ -287,6 +288,7 @@ export function buildTestApp() {
     related: () => new RelatedNotes(discoveryDeps),
     backlinks: () => new Backlinks(discoveryDeps),
     health: () => new VaultHealth(discoveryDeps),
+    graph: () => new VaultGraphQuery(discoveryDeps),
     search: () => new SearchNotes(discoveryDeps),
     facets: () => new GetFacetStats(discoveryDeps),
   };

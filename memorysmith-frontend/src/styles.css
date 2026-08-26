@@ -576,6 +576,12 @@ a:hover {
 :root[data-theme='dark'] .hbar-seg.seq-evergreen .hbar-seg-label {
   color: #0b1220;
 }
+.dashboard-footnote {
+  font-size: 0.78rem;
+  color: var(--text-soft);
+  margin: 0.2rem 0 0;
+}
+
 .hbar-total {
   font-size: 0.76rem;
   color: var(--text-soft);

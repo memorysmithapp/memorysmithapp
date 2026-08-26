@@ -987,7 +987,8 @@ svc-knowledge    POST /vaults · GET /vaults/:v · PUT /vaults/:v/guidance
                  POST /vaults/:v/notes/:n/restore
                  POST /vaults/:v/notes/:n/move   { toVaultId?, toFolderId, onSlugConflict }
                  PUT|DELETE /vaults/:v/limits/:userId   { limit: VIEWER }   (§9.3)
-svc-discovery    GET  /vaults/:v/notes/:n/graph?depth= · GET /vaults/:v/notes/:n/backlinks
+svc-discovery    GET  /vaults/:v/graph   (grafo inteiro do vault, arestas por índice)
+                 GET  /vaults/:v/notes/:n/graph?depth= · GET /vaults/:v/notes/:n/backlinks
                  GET  /vaults/:v/health   (links quebrados, órfãs)
                  POST /vaults/:v/search   { query, mode: lexical | semantic }
 svc-audit        GET  /notes/:n/history · GET /notes/:n/revisions/:versionId
@@ -1342,10 +1343,11 @@ Ordem de dependência técnica, com critério de pronto verificável. A coluna *
 
 A 0.2.0 constrói os seis bounded contexts, a infraestrutura inteira e a ligação da interface com a API. As entregas 2 a 12 nascem juntas porque o teste de isolamento, o de contenção e o de imutabilidade só existem quando existe o que testar, e adiar qualquer um deles significaria construir sobre uma propriedade não verificada.
 
-Três decisões da implementação valem registro, porque quem lê o desenho precisa saber onde o código diverge dele e por quê:
+Quatro decisões da implementação valem registro, porque quem lê o desenho precisa saber onde o código diverge dele e por quê:
 
 - **O índice vetorial vive, por ora, na própria tabela do Discovery**, com a pontuação por cosseno feita na função. É honesto para o teto de 2.000 notas por vault que o produto declara (`software-vision.md` §14) e não acrescenta infraestrutura. A porta `VectorIndex` (§11.4) é exatamente o que torna a migração para S3 Vectors uma troca de adaptador, e o risco correspondente do §26 permanece registrado.
 - **O Discovery mantém uma projeção própria da estrutura do vault**, alimentada pelos eventos de vault e de pasta. O prefixo de contexto do chunk (§11.2) precisa do nome do vault, do caminho da pasta e da descrição dela, e consultar o Knowledge para obtê-los inverteria a direção única do §3.1, que é o que torna as projeções reconstruíveis.
+- **O Discovery ganhou uma sexta rota, `GET /vaults/:v/graph`**, que devolve o grafo de links inteiro de um vault. A §14.1 declarava apenas a árvore a partir de uma nota, sob teto de profundidade, e ela responde a outra pergunta: a tela de grafo desenha o vault todo, sem raiz. A projeção de links já guardava exatamente isso na partição do vault, então a rota é uma consulta por prefixo e nada de novo é gravado. As arestas voltam como pares de índice sobre a lista de nós, e o teto de 2.000 nós vem declarado na resposta, porque um grafo cortado que se diz inteiro é pior que grafo nenhum.
 - **A composição do monólito modular vive em `memorysmith-backend/apps/core-monolith`**, e é o único lugar que conhece dois contextos ao mesmo tempo. Os serviços continuam sem se importarem entre si, e a separação em seis deployables é a troca desse arquivo (§24).
 
 ---

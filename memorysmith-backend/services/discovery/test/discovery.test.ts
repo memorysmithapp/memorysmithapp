@@ -20,6 +20,7 @@ import {
   GetFacetStats,
   RelatedNotes,
   SearchNotes,
+  VaultGraphQuery,
   VaultHealth,
 } from '../src/application/queries.js';
 
@@ -523,6 +524,41 @@ describe('Discovery queries', () => {
     expect(found.ok).toBe(true);
     if (!found.ok) return;
     expect(found.value.map((note) => note.noteId)).toEqual(['n1']);
+  });
+
+  it('draws the whole vault as nodes and index pairs', async () => {
+    const drawn = await new VaultGraphQuery(deps).execute({ vaultId: VAULT });
+    expect(drawn.ok).toBe(true);
+    if (!drawn.ok) return;
+
+    // Every edge indexes a node that is really there. A dangling index is the
+    // one failure the drawing cannot survive.
+    for (const [from, to] of drawn.value.edges) {
+      expect(drawn.value.nodes[from]).toBeDefined();
+      expect(drawn.value.nodes[to]).toBeDefined();
+    }
+    expect(drawn.value.nodes.map((note) => note.slug)).toContain('nota-solta');
+    expect(drawn.value.truncated).toBe(false);
+
+    // The edge n1 -> n2 of the fixture survives the round trip as indexes.
+    const n1 = drawn.value.nodes.findIndex((note) => note.noteId === 'n1');
+    const n2 = drawn.value.nodes.findIndex((note) => note.noteId === 'n2');
+    expect(drawn.value.edges).toContainEqual([n1, n2]);
+  });
+
+  it('keeps an unresolved link in the graph instead of dropping it', async () => {
+    await deps.graph.replaceOutgoing(
+      VAULT,
+      { noteId: 'n9', title: 'Aponta para o futuro', slug: 'aponta', folderId: 'f1' },
+      [{ slug: 'ainda-nao-existe', anchor: null }],
+    );
+
+    const drawn = await new VaultGraphQuery(deps).execute({ vaultId: VAULT });
+    expect(drawn.ok).toBe(true);
+    if (!drawn.ok) return;
+
+    const from = drawn.value.nodes.findIndex((note) => note.noteId === 'n9');
+    expect(drawn.value.pending).toContainEqual({ from, targetSlug: 'ainda-nao-existe' });
   });
 
   it('reports broken links and orphan notes', async () => {
