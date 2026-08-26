@@ -50,7 +50,7 @@ export class Note {
     readonly createdBy: Authorship,
     private _updatedBy: Authorship,
     private _deletedAt: Instant | null,
-    readonly version: number,
+    private _version: number,
   ) {}
 
   static create(input: {
@@ -122,6 +122,16 @@ export class Note {
       input.deletedAt,
       input.version,
     );
+  }
+
+  /** The version currently stored, which is what the optimistic lock expects. */
+  get version(): number {
+    return this._version;
+  }
+
+  /** Called by the repository after a successful write. */
+  markPersisted(): void {
+    this._version += 1;
   }
 
   get vaultId(): VaultId {

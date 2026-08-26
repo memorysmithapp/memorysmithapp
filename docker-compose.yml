@@ -1,0 +1,27 @@
+# Local dependencies for the adapter tests (architecture-guide.md, section 19).
+# The same two services the CI job starts, so "it passes locally" and "it passes
+# on CI" mean the same thing.
+#
+#   docker compose up -d
+#   pnpm -r --if-present test:adapters
+
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    container_name: memorysmith-dynamodb
+    ports:
+      - '8000:8000'
+    command: ['-jar', 'DynamoDBLocal.jar', '-inMemory', '-sharedDb']
+
+  minio:
+    image: minio/minio:latest
+    container_name: memorysmith-minio
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      MINIO_ROOT_USER: memorysmith
+      MINIO_ROOT_PASSWORD: memorysmith-local
+    # The bucket is created BY THE TEST HARNESS, with versioning enabled:
+    # without versioning there is no revision to point a ContentRef at.
+    command: ['server', '/data', '--console-address', ':9001']

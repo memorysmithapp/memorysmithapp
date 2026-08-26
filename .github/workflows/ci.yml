@@ -63,7 +63,7 @@ jobs:
         ports:
           - 8000:8000
       minio:
-        image: bitnami/minio:latest
+        image: minio/minio:edge-cicd
         ports:
           - 9000:9000
         env:

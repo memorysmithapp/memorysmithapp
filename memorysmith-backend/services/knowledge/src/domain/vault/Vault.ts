@@ -68,7 +68,7 @@ export class Vault {
      */
     private readonly _noteCounts: Map<string, number>,
     private readonly _vaultNoteCount: number,
-    readonly version: number,
+    private _version: number,
     readonly createdBy: Authorship,
     private _updatedAt: Instant,
   ) {}
@@ -147,6 +147,20 @@ export class Vault {
 
   // ---- Reads ---------------------------------------------------------------
 
+  /** The version currently stored, which is what the optimistic lock expects. */
+  get version(): number {
+    return this._version;
+  }
+
+  /**
+   * Called by the repository after a successful write. Keeping the counter
+   * here, rather than in the repository, is what lets the same aggregate be
+   * saved twice in one request without the second write guessing wrong.
+   */
+  markPersisted(): void {
+    this._version += 1;
+  }
+
   get name(): VaultName {
     return this._name;
   }
@@ -190,6 +204,11 @@ export class Vault {
 
   hasLimitFor(user: UserId): boolean {
     return this._limits.has(user.value);
+  }
+
+  /** The members currently under a ceiling, for the persistence diff. */
+  get limitedUserIds(): string[] {
+    return [...this._limits.keys()];
   }
 
   // ---- Vault-level mutations ----------------------------------------------

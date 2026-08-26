@@ -6,9 +6,15 @@
   "description": "Knowledge bounded context, the core domain: vaults, guidance, folders, order, templates and notes.",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run --config vitest.config.ts",
+    "test:adapters": "vitest run --config vitest.adapters.config.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1117.0",
+    "@aws-sdk/client-eventbridge": "^3.1117.0",
+    "@aws-sdk/client-s3": "^3.1117.0",
+    "@aws-sdk/lib-dynamodb": "^3.1117.0",
+    "@memorysmith/contracts": "workspace:*",
     "@memorysmith/kernel": "workspace:*"
   }
 }

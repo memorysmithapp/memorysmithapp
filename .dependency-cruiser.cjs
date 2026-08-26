@@ -124,7 +124,7 @@ module.exports = {
           '(^|/)[.][^/]+[.](js|cjs|mjs|ts|json)$',
           '[.]d[.]ts$',
           '(^|/)tsconfig[.]json$',
-          '(^|/)(babel|webpack|vite|vitest)[.]config[.](js|cjs|mjs|ts|json)$',
+          '(^|/)(babel|webpack|vite|vitest)[.](config|adapters[.]config)[.](js|cjs|mjs|ts|json)$',
           '(^|/)[.]dependency-cruiser[.]cjs$',
           '(^|/)eslint[.]config[.](js|cjs|mjs|ts)$',
         ],
