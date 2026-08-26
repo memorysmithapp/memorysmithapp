@@ -11,8 +11,12 @@ export interface AgentConfig {
   cognitoDomain: string;
   /** The single pre-registered Cognito app client used by the CIMD proxy. */
   proxyClientId: string;
-  /** HMAC secret used to sign the state that correlates the two OAuth legs. */
-  stateSecret: string;
+  /**
+   * Identifier of the Secrets Manager secret holding the HMAC key that signs
+   * the state correlating the two OAuth legs. The value itself never travels
+   * in the environment; it is read at runtime through a SecretResolver.
+   */
+  stateSecretId: string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AgentConfig {
@@ -26,6 +30,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AgentConfig {
     cognitoIssuer: required('COGNITO_ISSUER').replace(/\/$/, ''),
     cognitoDomain: required('COGNITO_DOMAIN').replace(/\/$/, ''),
     proxyClientId: required('PROXY_CLIENT_ID'),
-    stateSecret: required('STATE_SECRET'),
+    stateSecretId: required('STATE_SECRET_ID'),
   };
 }

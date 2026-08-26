@@ -10,14 +10,23 @@
  */
 
 import { Hono } from 'hono';
-import { loadConfig, type AgentConfig } from './config.js';
+import { type AgentConfig } from './config.js';
 import { resolveClientMetadata } from './cimd.js';
 import { decodeState, encodeState } from './state.js';
 import { authorizationServerMetadata, protectedResourceMetadata } from './oauth.js';
+import type { SecretResolver } from './secrets.js';
 import { verifyAccessToken } from './auth.js';
 import { handleMcpRequest } from './mcp.js';
 
-export function createApp(config: AgentConfig = loadConfig()): Hono {
+/**
+ * Builds the HTTP surface.
+ *
+ * The state HMAC key arrives as a resolver rather than a value: it is read from
+ * Secrets Manager at request time, so it never sits in the function's
+ * environment. Both parameters are required, and the Lambda entrypoint is the
+ * only place that wires the real adapter.
+ */
+export function createApp(config: AgentConfig, resolveStateSecret: SecretResolver): Hono {
   const app = new Hono();
   const challenge = `Bearer resource_metadata="${config.publicOrigin}/.well-known/oauth-protected-resource"`;
 
@@ -59,7 +68,7 @@ export function createApp(config: AgentConfig = loadConfig()): Hono {
         clientState: q['state'],
         issuedAt: Date.now(),
       },
-      config.stateSecret,
+      await resolveStateSecret(),
     );
 
     const upstream = new URL(`${config.cognitoDomain}/oauth2/authorize`);
@@ -75,11 +84,11 @@ export function createApp(config: AgentConfig = loadConfig()): Hono {
 
   // ---- Callback from Cognito (item 3, second leg) --------------------------
 
-  app.get('/callback', (c) => {
+  app.get('/callback', async (c) => {
     const q = c.req.query();
     const encoded = q['state'];
     if (!encoded) return c.json({ error: 'invalid_request', error_description: 'Missing state' }, 400);
-    const state = decodeState(encoded, config.stateSecret);
+    const state = decodeState(encoded, await resolveStateSecret());
     if (!state) return c.json({ error: 'invalid_request', error_description: 'Invalid or expired state' }, 400);
 
     const target = new URL(state.redirectUri);

@@ -7,10 +7,12 @@ const config: AgentConfig = {
   cognitoIssuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_TEST',
   cognitoDomain: 'https://memorysmith-auth.auth.us-east-1.amazoncognito.com',
   proxyClientId: 'proxy-client-id',
-  stateSecret: 'test-secret',
+  stateSecretId: 'arn:aws:secretsmanager:us-east-1:000000000000:secret:test',
 };
 
-const app = createApp(config);
+const resolveStateSecret = async (): Promise<string> => 'test-secret';
+
+const app = createApp(config, resolveStateSecret);
 
 describe('discovery (items 1 and 2 of 13.3)', () => {
   it('answers 401 with the resource_metadata challenge on an unauthenticated /mcp call', async () => {

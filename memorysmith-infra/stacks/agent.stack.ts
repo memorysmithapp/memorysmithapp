@@ -59,16 +59,24 @@ export class AgentStack extends Stack {
         target: 'node22',
         minify: true,
         sourceMap: true,
+        // Bundle the AWS SDK instead of borrowing the runtime's copy, so the
+        // version the tests ran against is the version that ships.
+        externalModules: [],
       },
       environment: {
         PUBLIC_ORIGIN: publicOrigin,
         COGNITO_ISSUER: cognitoIssuer,
         COGNITO_DOMAIN: cognitoDomain,
         PROXY_CLIENT_ID: props.proxyClient.userPoolClientId,
-        STATE_SECRET: stateSecret.secretValue.unsafeUnwrap(),
+        STATE_SECRET_ID: stateSecret.secretArn,
         NODE_OPTIONS: '--enable-source-maps',
       },
     });
+
+    // The function reads the HMAC key itself. Injecting the value would store it
+    // in plaintext on the function configuration and in the CloudFormation
+    // template, where anyone with describe rights could read it.
+    stateSecret.grantRead(fn);
 
     const domainName = new apigwv2.DomainName(this, 'McpDomain', {
       domainName: props.mcpDomainName,

@@ -66,3 +66,7 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Removed
 
 - `DESIGN.md`, cujo conteúdo foi redistribuído entre os três documentos de `docs/`. O histórico permanece disponível no git.
+
+### Security
+
+- A chave HMAC que assina o `state` do proxy CIMD deixa de ser injetada como variável de ambiente do Lambda e passa a ser lida do Secrets Manager em tempo de execução. Como variável de ambiente, o valor ficava em texto claro tanto na configuração da função quanto no template do CloudFormation, legível por qualquer identidade com permissão de descrever esses recursos. A função passa a receber apenas o identificador do segredo, com permissão de leitura restrita a ele, e o valor é resolvido sob demanda e mantido em cache por cinco minutos entre invocações. O SDK da AWS passa a ser empacotado junto com a função, para que a versão exercitada pelos testes seja a versão que executa.

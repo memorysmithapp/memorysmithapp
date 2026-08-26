@@ -9,6 +9,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.1117.0",
     "hono": "^4.9.0",
     "jose": "^6.0.13"
   },
