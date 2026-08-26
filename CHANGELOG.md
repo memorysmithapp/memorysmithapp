@@ -7,6 +7,8 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-08-26
+
 ### Added
 
 - Registro da distribuição do conector como parte do contrato público. O `knowledge-base.md` ganha a seção §3.7 sobre diretórios curados de conectores (o que muda para quem conecta, os dois níveis de curadoria e os critérios de aceitação, quase todos de desenho de tool), e a §3.4 passa a documentar a condição dupla que faz um cliente escolher CIMD em vez de registro dinâmico, mais os contratos que os clientes impõem ao resource server: forma do desafio de descoberta, correspondência exata do recurso, URI de redirecionamento em loopback, PKCE, tolerâncias de tempo e rotação de refresh token. O `software-vision.md` ganha a §9.4 com as regras RN-AGT-009 a RN-AGT-012: toda tool declara título e marca de leitura ou destruição, leitura e escrita nunca compartilham uma tool, o registro de cliente é por CIMD e a listagem em diretório é objetivo de produto fora do recorte inicial.
@@ -72,3 +74,6 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Security
 
 - A chave HMAC que assina o `state` do proxy CIMD deixa de ser injetada como variável de ambiente do Lambda e passa a ser lida do Secrets Manager em tempo de execução. Como variável de ambiente, o valor ficava em texto claro tanto na configuração da função quanto no template do CloudFormation, legível por qualquer identidade com permissão de descrever esses recursos. A função passa a receber apenas o identificador do segredo, com permissão de leitura restrita a ele, e o valor é resolvido sob demanda e mantido em cache por cinco minutos entre invocações. O SDK da AWS passa a ser empacotado junto com a função, para que a versão exercitada pelos testes seja a versão que executa.
+
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/memorysmithapp/memorysmithapp/releases/tag/v0.1.0

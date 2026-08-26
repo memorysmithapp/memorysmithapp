@@ -33,10 +33,10 @@ Definida no caderno de marca "Livro da marca v1" (Figma). O símbolo é um grafo
 0.1.0
 
 ### Estado atual
-Fase de design. Ainda não há código. A primeira entrega é o spike de autenticação do MCP (ver `docs/architecture-guide.md` § MCP server).
+Versão 0.1.0. A documentação canônica, o protótipo navegável do frontend sobre o seed e o spike de autenticação do MCP estão na `main`. O spike foi validado em ambiente real na AWS e depois desmontado. A próxima entrega é a segunda da sequência de construção (`docs/architecture-guide.md` §25).
 
 ### Remote do git
-github.com/memorysmith/core
+github.com/memorysmithapp/memorysmithapp
 
 ---
 
