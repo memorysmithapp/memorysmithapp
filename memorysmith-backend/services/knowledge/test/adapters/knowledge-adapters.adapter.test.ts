@@ -135,6 +135,38 @@ describe('DynamoVaultRepository: the aggregate in one Query', () => {
     expect(loaded?.folders.get(folder.id)?.description.value).toContain('Uma norma por nota');
   });
 
+  it('lists the vaults of a workspace through GSI1', async () => {
+    // The listing the vault catalogue is built on. The in-memory adapter
+    // answered it by scanning a prefix, which is exactly why it never noticed
+    // that the real query needed the workspace partition.
+    const context = contextFor();
+    const workspaceId = WorkspaceId.generate();
+    const { vaults } = repositories(context);
+
+    for (const name of ['Normas', 'Achados']) {
+      const vault = unwrap(
+        Vault.create({
+          id: VaultId.generate(),
+          subscriptionId: context.subscriptionId,
+          workspaceId,
+          name: unwrap(VaultName.create(name)),
+          description: unwrap(ShortText.create('')),
+          by: authorshipOf(context),
+        }),
+      );
+      expect((await vaults.save(vault)).ok).toBe(true);
+    }
+
+    const listed = await repositories(context).vaults.listByWorkspace(workspaceId);
+    expect(listed.map((vault) => vault.name.value).sort()).toEqual(['Achados', 'Normas']);
+    // And the count travels with them, from the VSTAT projection.
+    expect(listed.every((vault) => vault.noteCount === 0)).toBe(true);
+
+    // A workspace of the same subscription that holds nothing answers empty,
+    // rather than answering everything.
+    expect(await repositories(context).vaults.listByWorkspace(WorkspaceId.generate())).toEqual([]);
+  });
+
   it('answers null for a vault of another subscription', async () => {
     // RN-SUB-004: indistinguishable from a vault that does not exist, because
     // the key the repository builds never reaches the other partition.

@@ -76,6 +76,18 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
 
   app.get('/health', (c) => c.json({ status: 'ok' }));
 
+  /**
+   * The preflight. The HTTP API is what adds the CORS headers, but the default
+   * route captures every method, so OPTIONS still reaches us and has to be
+   * answered: a 404 here fails the preflight, and with it every browser call
+   * that carries an Authorization header, which is all of them.
+   *
+   * No CORS header is written here on purpose. Two sources writing the same
+   * header is worse than none: the browser rejects a duplicated
+   * Access-Control-Allow-Origin outright.
+   */
+  app.options('*', () => new Response(null, { status: 204 }));
+
   app.use('/access/*', async (c: Context<{ Variables: Variables }>, next: Next) => {
     const session = await authenticate(deps.verifier, c.req.header('authorization'));
     if (!session.ok) return fail(c, session.error);

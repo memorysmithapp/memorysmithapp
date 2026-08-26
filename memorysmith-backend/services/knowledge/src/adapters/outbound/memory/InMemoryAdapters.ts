@@ -87,14 +87,11 @@ export class InMemoryVaultRepository implements VaultRepository {
   }
 
   async listByWorkspace(workspaceId: WorkspaceId): Promise<Vault[]> {
-    return (await this.listAll()).filter((vault) => vault.workspaceId.equals(workspaceId));
-  }
-
-  async listAll(): Promise<Vault[]> {
     const prefix = `S#${this.sub.subscriptionId.value}#VAULT#`;
     return [...this.db.vaults.entries()]
       .filter(([key]) => key.startsWith(prefix))
-      .map(([, entry]) => entry.vault);
+      .map(([, entry]) => entry.vault)
+      .filter((vault) => vault.workspaceId.equals(workspaceId));
   }
 
   async save(vault: Vault): Promise<Result<void, ConcurrencyError>> {

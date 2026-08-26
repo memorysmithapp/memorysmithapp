@@ -27,9 +27,14 @@ import type { NoteOrder } from '../services/NotePlacement.js';
 
 export interface VaultRepository {
   findById(id: VaultId): Promise<Vault | null>;
+  /**
+   * Vaults of ONE workspace. There is deliberately no "all vaults of the
+   * subscription": the partition of GSI1 is the workspace, and whoever knows
+   * which workspaces this session reaches is the authorizer, which already
+   * resolved them (section 14.2). Inventing an index for a question the
+   * caller can already answer would be paying for it twice.
+   */
   listByWorkspace(workspaceId: WorkspaceId): Promise<Vault[]>;
-  /** All vaults of the subscription, across its workspaces. */
-  listAll(): Promise<Vault[]>;
   save(vault: Vault): Promise<Result<void, ConcurrencyError>>;
 }
 

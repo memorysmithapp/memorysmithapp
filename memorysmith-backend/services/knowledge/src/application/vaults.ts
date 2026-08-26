@@ -16,7 +16,7 @@ import {
   Role,
   VaultId,
   VaultRoleLimit,
-  type WorkspaceId,
+  WorkspaceId,
   type Result,
   type UserId,
 } from '@memorysmith/kernel';
@@ -90,10 +90,22 @@ export class CreateVault {
 export class ListVaults {
   constructor(private readonly deps: VaultDependencies) {}
 
-  /** Only the vaults whose workspace the caller can read (RN-ACC-012). */
+  /**
+   * The vaults of every workspace this session reaches, which the authorizer
+   * already resolved, filtered by the effective role. A member of a workspace
+   * sees every vault in it; the ceiling controls writing, not seeing
+   * (RN-ACC-012).
+   */
   async execute(input: { ctx: RequestContext }): Promise<Result<Vault[], DomainError>> {
-    const all = await this.deps.vaults.listAll();
-    return ok(all.filter((vault) => AuthorizationPolicy.effectiveRole(input.ctx, vault).canRead()));
+    const found: Vault[] = [];
+    for (const workspaceId of input.ctx.roles.keys()) {
+      const parsed = WorkspaceId.create(workspaceId);
+      if (!parsed.ok) continue;
+      found.push(...(await this.deps.vaults.listByWorkspace(parsed.value)));
+    }
+    return ok(
+      found.filter((vault) => AuthorizationPolicy.effectiveRole(input.ctx, vault).canRead()),
+    );
   }
 }
 

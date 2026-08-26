@@ -107,29 +107,6 @@ export class DynamoVaultRepository implements VaultRepository {
     return vaults;
   }
 
-  /**
-   * Every vault of the subscription. There is no cross-subscription query in
-   * this class and there cannot be one: the partition prefix is built from the
-   * SubscriptionId held by the repository.
-   */
-  async listAll(): Promise<Vault[]> {
-    const response = await this.db.send(
-      new QueryCommand({
-        TableName: this.tableName,
-        IndexName: 'GSI1',
-        KeyConditionExpression: 'GSI1PK = :pk',
-        ExpressionAttributeValues: { ':pk': `S#${this.sub.subscriptionId.value}#WS#ALL` },
-      }),
-    );
-    // GSI1 is per workspace, so "all vaults" is answered by svc-access telling
-    // us the workspaces first; this method exists for the single-workspace
-    // shortcut of the 0.1.0 and returns whatever that one partition holds.
-    const items = (response.Items ?? []) as Item[];
-    return items
-      .map((item) => parseVault([item], this.sub.subscriptionId))
-      .filter((vault): vault is Vault => vault !== null);
-  }
-
   async save(vault: Vault): Promise<Result<void, ConcurrencyError>> {
     const pk = this.keys.vault(vault.id);
     const snapshot = this.snapshots.get(vault.id.value);
