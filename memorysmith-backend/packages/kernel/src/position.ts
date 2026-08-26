@@ -93,8 +93,11 @@ function decrementInteger(integer: string): string | null {
     if (head === 'a') return 'Z' + DIGITS.slice(-1); // crossing from positive to negative
     if (head === 'A') return null; // ran out of headroom downwards
     const previousHead = String.fromCharCode((head as string).charCodeAt(0) - 1);
-    if (previousHead > 'Z') rest.push(DIGITS.slice(-1));
-    else rest.pop();
+    // Going down through the lowercase heads shortens the integer part
+    // ('b' holds 3 characters, 'a' holds 2); going down through the uppercase
+    // heads lengthens it ('Z' holds 2, 'Y' holds 3).
+    if (previousHead > 'Z') rest.pop();
+    else rest.push(DIGITS.slice(-1));
     return previousHead + rest.join('');
   }
   return (head as string) + rest.join('');

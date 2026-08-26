@@ -71,6 +71,12 @@ importers:
         specifier: ^3.2.4
         version: 3.2.7(@types/debug@4.1.13)(@types/node@24.13.3)(supports-color@7.2.0)(tsx@4.23.12)
 
+  memorysmith-backend/services/knowledge:
+    dependencies:
+      '@memorysmith/kernel':
+        specifier: workspace:*
+        version: link:../../packages/kernel
+
   memorysmith-frontend:
     dependencies:
       '@tanstack/react-query':

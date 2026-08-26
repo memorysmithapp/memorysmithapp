@@ -1,0 +1,14 @@
+{
+  "name": "@memorysmith/svc-knowledge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Knowledge bounded context, the core domain: vaults, guidance, folders, order, templates and notes.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@memorysmith/kernel": "workspace:*"
+  }
+}
