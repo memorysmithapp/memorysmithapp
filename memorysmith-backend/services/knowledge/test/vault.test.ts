@@ -212,7 +212,7 @@ describe('Vault: I3, a move never creates a cycle', () => {
 });
 
 describe('Vault: I4, ordering', () => {
-  it('places a new folder at the front when no anchor is given', () => {
+  it('appends a new folder when no anchor is given', () => {
     const vault = newVault();
     const first = unwrap(
       vault.addFolder(null, folderName('A'), folderDescription('.'), null, authorship()),
@@ -220,11 +220,10 @@ describe('Vault: I4, ordering', () => {
     const second = unwrap(
       vault.addFolder(null, folderName('B'), folderDescription('.'), null, authorship()),
     );
-    // Without an anchor the new folder goes first, which is what the UI shows
-    // when you create a folder with nothing selected.
+    // Creating a folder with nothing selected puts it at the end of the level.
     expect(vault.folders.childrenOf(null).map((folder) => folder.id.value)).toEqual([
-      second.id.value,
       first.id.value,
+      second.id.value,
     ]);
   });
 

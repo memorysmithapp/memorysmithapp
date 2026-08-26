@@ -1,0 +1,21 @@
+{
+  "name": "@memorysmith/core-monolith",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The composition root of the modular monolith: the one place that wires the bounded contexts together. Moving to six deployables changes this file, not the contexts.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1117.0",
+    "@aws-sdk/client-s3": "^3.1117.0",
+    "@aws-sdk/lib-dynamodb": "^3.1117.0",
+    "@memorysmith/contracts": "workspace:*",
+    "@memorysmith/kernel": "workspace:*",
+    "@memorysmith/svc-access": "workspace:*",
+    "@memorysmith/svc-knowledge": "workspace:*",
+    "hono": "^4.9.0"
+  }
+}

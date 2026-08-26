@@ -1,0 +1,371 @@
+/**
+ * HTTP surface of svc-access (architecture-guide.md, section 14.1).
+ *
+ * NO ROUTE TAKES A subscriptionId: it always comes from the token. The single
+ * exception is POST /session/subscription, which is a session operation, not a
+ * business one, and it names the subscription the user is switching TO
+ * (RN-SUB-013).
+ *
+ * The platform routes are the other named exception: they run under a session
+ * with no subscription claim at all, and they read only subscription metadata.
+ */
+
+import { Hono } from 'hono';
+import {
+  Authorship,
+  DomainError,
+  httpStatusFor,
+  SubscriptionId,
+  UserId,
+  WorkspaceId,
+  type Result,
+} from '@memorysmith/kernel';
+import type { Context } from 'hono';
+import type {
+  RequestSubscription,
+  GetSession,
+  SwitchActiveSubscription,
+} from '../../../application/onboarding.js';
+import type { ListPlatformQueue, ReviewSubscription } from '../../../application/platform.js';
+import type {
+  AcceptInvite,
+  ChangeMemberRole,
+  CreateWorkspace,
+  InviteMember,
+  RemoveMember,
+  TransferOwnership,
+} from '../../../application/members.js';
+import type { UserProfile } from '../../../domain/ports/index.js';
+import type { SubscriptionContext } from '@memorysmith/kernel';
+
+/** What the auth middleware puts on the request. */
+export interface AccessRequest {
+  readonly profile: UserProfile;
+  readonly context: SubscriptionContext | null;
+}
+
+/**
+ * Every use case is a FACTORY over the request, because the repositories
+ * behind it are built per request from the subscription in the token (PE2).
+ */
+export interface AccessUseCases {
+  readonly requestSubscription: (request: AccessRequest) => RequestSubscription;
+  readonly getSession: (request: AccessRequest) => GetSession;
+  readonly switchSubscription: (request: AccessRequest) => SwitchActiveSubscription;
+  readonly listPlatformQueue: (request: AccessRequest) => ListPlatformQueue;
+  readonly reviewSubscription: (request: AccessRequest) => ReviewSubscription;
+  readonly createWorkspace: (request: AccessRequest) => CreateWorkspace;
+  readonly inviteMember: (request: AccessRequest) => InviteMember;
+  readonly acceptInvite: (request: AccessRequest) => AcceptInvite;
+  readonly changeMemberRole: (request: AccessRequest) => ChangeMemberRole;
+  readonly removeMember: (request: AccessRequest) => RemoveMember;
+  readonly transferOwnership: (request: AccessRequest) => TransferOwnership;
+}
+
+type Variables = { access: AccessRequest };
+
+/** Translates the taxonomy into HTTP once, for every route (section 15). */
+export function respond<T>(c: Context, result: Result<T, DomainError>, okStatus = 200): Response {
+  if (result.ok) {
+    return result.value === undefined
+      ? new Response(null, { status: okStatus === 200 ? 204 : okStatus })
+      : c.json(result.value as object, okStatus as 200);
+  }
+  const status = httpStatusFor(result.error);
+  return c.json(
+    {
+      code: result.error.code,
+      message: result.error.message,
+      ...(result.error.details ? { details: result.error.details } : {}),
+    },
+    status as 400,
+  );
+}
+
+function requireContext(request: AccessRequest): Result<SubscriptionContext, DomainError> {
+  if (!request.context) {
+    // A platform session carries no subscription: no key can be built, and the
+    // failure happens before any role check (RN-SUB-016).
+    return {
+      ok: false,
+      error: DomainError.forbidden('This session carries no active subscription'),
+    };
+  }
+  return { ok: true, value: request.context };
+}
+
+export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: Variables }> {
+  const app = new Hono<{ Variables: Variables }>();
+
+  // ---- Session -------------------------------------------------------------
+
+  app.get('/session', async (c) => {
+    const request = c.get('access');
+    return respond(
+      c,
+      await useCases
+        .getSession(request)
+        .execute({ profile: request.profile, context: request.context }),
+    );
+  });
+
+  app.post('/session/subscription', async (c) => {
+    const request = c.get('access');
+    const body = (await c.req.json().catch(() => ({}))) as { subscriptionId?: string };
+    const subscriptionId = SubscriptionId.fromClaim(String(body.subscriptionId ?? ''));
+    if (!subscriptionId.ok) return respond(c, subscriptionId);
+    return respond(
+      c,
+      await useCases.switchSubscription(request).execute({
+        user: request.profile.userId,
+        subscriptionId: subscriptionId.value,
+      }),
+      204,
+    );
+  });
+
+  // ---- Onboarding ----------------------------------------------------------
+
+  app.post('/subscriptions', async (c) => {
+    const request = c.get('access');
+    const body = (await c.req.json().catch(() => ({}))) as { name?: string };
+    const created = await useCases.requestSubscription(request).execute({
+      profile: request.profile,
+      name: String(body.name ?? ''),
+      by: Authorship.byHuman(request.profile.userId),
+    });
+    return respond(
+      c,
+      created.ok
+        ? { ok: true as const, value: { subscriptionId: created.value.subscriptionId.value } }
+        : created,
+      201,
+    );
+  });
+
+  // ---- Workspaces and members ---------------------------------------------
+
+  app.post('/workspaces', async (c) => {
+    const request = c.get('access');
+    const context = requireContext(request);
+    if (!context.ok) return respond(c, context);
+
+    const body = (await c.req.json().catch(() => ({}))) as { name?: string };
+    const created = await useCases.createWorkspace(request).execute({
+      context: context.value,
+      name: String(body.name ?? ''),
+      by: Authorship.byHuman(request.profile.userId),
+    });
+    return respond(
+      c,
+      created.ok
+        ? { ok: true as const, value: { workspaceId: created.value.workspaceId.value } }
+        : created,
+      201,
+    );
+  });
+
+  app.post('/workspaces/:ws/members', async (c) => {
+    const request = c.get('access');
+    const context = requireContext(request);
+    if (!context.ok) return respond(c, context);
+
+    const workspaceId = WorkspaceId.create(c.req.param('ws'));
+    if (!workspaceId.ok) return respond(c, workspaceId);
+
+    const body = (await c.req.json().catch(() => ({}))) as { email?: string; role?: string };
+    const invited = await useCases.inviteMember(request).execute({
+      context: context.value,
+      workspaceId: workspaceId.value,
+      email: String(body.email ?? ''),
+      role: String(body.role ?? ''),
+      by: Authorship.byHuman(request.profile.userId),
+    });
+    return respond(
+      c,
+      invited.ok ? { ok: true as const, value: { token: invited.value.token.value } } : invited,
+      201,
+    );
+  });
+
+  app.patch('/workspaces/:ws/members/:user', async (c) => {
+    const request = c.get('access');
+    const context = requireContext(request);
+    if (!context.ok) return respond(c, context);
+
+    const workspaceId = WorkspaceId.create(c.req.param('ws'));
+    if (!workspaceId.ok) return respond(c, workspaceId);
+    const userId = UserId.create(c.req.param('user'));
+    if (!userId.ok) return respond(c, userId);
+
+    const body = (await c.req.json().catch(() => ({}))) as { role?: string };
+    return respond(
+      c,
+      await useCases.changeMemberRole(request).execute({
+        context: context.value,
+        workspaceId: workspaceId.value,
+        userId: userId.value,
+        role: String(body.role ?? ''),
+        by: Authorship.byHuman(request.profile.userId),
+      }),
+      204,
+    );
+  });
+
+  app.delete('/workspaces/:ws/members/:user', async (c) => {
+    const request = c.get('access');
+    const context = requireContext(request);
+    if (!context.ok) return respond(c, context);
+
+    const workspaceId = WorkspaceId.create(c.req.param('ws'));
+    if (!workspaceId.ok) return respond(c, workspaceId);
+    const userId = UserId.create(c.req.param('user'));
+    if (!userId.ok) return respond(c, userId);
+
+    return respond(
+      c,
+      await useCases.removeMember(request).execute({
+        context: context.value,
+        workspaceId: workspaceId.value,
+        userId: userId.value,
+        by: Authorship.byHuman(request.profile.userId),
+      }),
+      204,
+    );
+  });
+
+  app.post('/subscriptions/:s/ownership', async (c) => {
+    const request = c.get('access');
+    const context = requireContext(request);
+    if (!context.ok) return respond(c, context);
+    // The path carries the subscription for readability, but the operation
+    // acts on the one in the token: a different id is simply not found.
+    if (c.req.param('s') !== context.value.subscriptionId.value) {
+      return respond(c, { ok: false, error: DomainError.notFound('Subscription not found') });
+    }
+
+    const body = (await c.req.json().catch(() => ({}))) as { toUserId?: string };
+    const toUserId = UserId.create(String(body.toUserId ?? ''));
+    if (!toUserId.ok) return respond(c, toUserId);
+
+    return respond(
+      c,
+      await useCases.transferOwnership(request).execute({
+        context: context.value,
+        toUserId: toUserId.value,
+        by: Authorship.byHuman(request.profile.userId),
+      }),
+      204,
+    );
+  });
+
+  app.post('/invites/:token/accept', async (c) => {
+    const request = c.get('access');
+    const accepted = await useCases.acceptInvite(request).execute({
+      profile: request.profile,
+      token: c.req.param('token'),
+      by: Authorship.byHuman(request.profile.userId),
+    });
+    return respond(
+      c,
+      accepted.ok
+        ? {
+            ok: true as const,
+            value: { workspaceId: accepted.value.workspaceId.value, role: accepted.value.role },
+          }
+        : accepted,
+    );
+  });
+
+  // ---- Platform ------------------------------------------------------------
+
+  app.get('/platform/subscriptions', async (c) => {
+    const request = c.get('access');
+    return respond(
+      c,
+      await useCases.listPlatformQueue(request).execute({
+        actor: {
+          userId: request.profile.userId,
+          isPlatformAdmin: request.profile.isPlatformAdmin,
+        },
+        status: c.req.query('status') ?? 'pending_approval',
+      }),
+    );
+  });
+
+  app.post('/platform/subscriptions/:s/approve', async (c) =>
+    platformAction(c, useCases, 'approve'),
+  );
+  app.post('/platform/subscriptions/:s/reject', async (c) => platformAction(c, useCases, 'reject'));
+  app.post('/platform/subscriptions/:s/suspend', async (c) =>
+    platformAction(c, useCases, 'suspend'),
+  );
+  app.post('/platform/subscriptions/:s/reactivate', async (c) =>
+    platformAction(c, useCases, 'reactivate'),
+  );
+
+  return app;
+}
+
+async function platformAction(
+  c: Context<{ Variables: Variables }>,
+  useCases: AccessUseCases,
+  action: 'approve' | 'reject' | 'suspend' | 'reactivate',
+): Promise<Response> {
+  const request = c.get('access');
+  const subscriptionId = SubscriptionId.fromClaim(c.req.param('s') ?? '');
+  if (!subscriptionId.ok) return respond(c, subscriptionId);
+
+  const actor = {
+    userId: request.profile.userId,
+    isPlatformAdmin: request.profile.isPlatformAdmin,
+  };
+  const by = Authorship.byHuman(request.profile.userId);
+  const body = (await c.req.json().catch(() => ({}))) as { status?: string; reason?: string };
+
+  switch (action) {
+    case 'approve':
+      return respond(
+        c,
+        await useCases.reviewSubscription(request).approve({
+          actor,
+          subscriptionId: subscriptionId.value,
+          status: String(body.status ?? 'active'),
+          by,
+        }),
+        204,
+      );
+    case 'reject':
+      return respond(
+        c,
+        await useCases.reviewSubscription(request).reject({
+          actor,
+          subscriptionId: subscriptionId.value,
+          reason: String(body.reason ?? ''),
+          by,
+        }),
+        204,
+      );
+    case 'suspend':
+      return respond(
+        c,
+        await useCases.reviewSubscription(request).suspend({
+          actor,
+          subscriptionId: subscriptionId.value,
+          by,
+        }),
+        204,
+      );
+    case 'reactivate':
+      return respond(
+        c,
+        await useCases.reviewSubscription(request).reactivate({
+          actor,
+          subscriptionId: subscriptionId.value,
+          status: String(body.status ?? 'active'),
+          by,
+        }),
+        204,
+      );
+  }
+}

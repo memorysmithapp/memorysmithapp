@@ -33,7 +33,8 @@ export const FolderTreePlacement = {
         DomainError.validation(`The folder tree goes at most ${VAULT_LIMITS.maxDepth} levels deep`),
       );
     }
-    const anchors = tree.positionAfter(parentFolderId, afterFolderId);
+    // A new folder with no anchor goes to the END of its level.
+    const anchors = tree.positionAfter(parentFolderId, afterFolderId, 'last');
     return ok({ parentFolderId, position: Position.between(anchors.previous, anchors.next) });
   },
 
@@ -60,7 +61,8 @@ export const FolderTreePlacement = {
         ),
       );
     }
-    const anchors = tree.positionAfter(newParentFolderId, afterFolderId);
+    // A move with no anchor lands at the end of the destination level.
+    const anchors = tree.positionAfter(newParentFolderId, afterFolderId, 'last');
     return ok({
       parentFolderId: newParentFolderId,
       position: Position.between(anchors.previous, anchors.next),
@@ -82,7 +84,9 @@ export const FolderTreePlacement = {
     if (afterFolderId?.equals(folderId)) {
       return err(DomainError.validation('A folder cannot be placed after itself'));
     }
-    const anchors = tree.positionAfter(folder.parentFolderId, afterFolderId);
+    // Reordering with no anchor means "first": that is what dragging an item
+    // to the top of the list expresses.
+    const anchors = tree.positionAfter(folder.parentFolderId, afterFolderId, 'first');
     const previous = anchors.previous?.equals(folder.position) ? null : anchors.previous;
     const next = anchors.next?.equals(folder.position) ? null : anchors.next;
     return ok(Position.between(previous, next));

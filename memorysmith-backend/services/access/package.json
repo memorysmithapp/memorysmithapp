@@ -1,0 +1,35 @@
+{
+  "name": "@memorysmith/svc-access",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Access bounded context: subscriptions and their lifecycle, workspaces, members, roles, vault ceilings, invites, links and authorization.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --config vitest.config.ts",
+    "test:adapters": "vitest run --config vitest.adapters.config.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1117.0",
+    "@aws-sdk/lib-dynamodb": "^3.1117.0",
+    "@memorysmith/contracts": "workspace:*",
+    "@memorysmith/kernel": "workspace:*",
+    "hono": "^4.9.0",
+    "jose": "^6.0.13"
+  },
+  "exports": {
+    "./adapters/dynamodb": "./src/adapters/outbound/dynamodb/DynamoAccess.ts",
+    "./adapters/items": "./src/adapters/outbound/dynamodb/items.ts",
+    "./adapters/memory": "./src/adapters/outbound/memory/InMemoryAccess.ts",
+    "./adapters/http": "./src/adapters/inbound/http/routes.ts",
+    "./adapters/auth": "./src/adapters/inbound/http/authentication.ts",
+    "./application/context": "./src/application/ResolveRequestContext.ts",
+    "./application/onboarding": "./src/application/onboarding.ts",
+    "./application/platform": "./src/application/platform.ts",
+    "./application/members": "./src/application/members.ts",
+    "./domain/values": "./src/domain/values.ts",
+    "./domain/ports": "./src/domain/ports/index.ts",
+    "./domain/subscription": "./src/domain/subscription/Subscription.ts",
+    "./domain/workspace": "./src/domain/workspace/Workspace.ts"
+  }
+}

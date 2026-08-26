@@ -110,17 +110,27 @@ export class FolderTree {
     );
   }
 
-  /** The position that places a folder right after `afterFolderId`. */
+  /**
+   * The neighbours a folder placed right after `afterFolderId` would have.
+   *
+   * With no anchor the two callers want opposite things, so they say which:
+   * creating a folder appends it at the end of its level, while reordering
+   * with no anchor means "put it first", which is what dragging an item to
+   * the top of the list expresses.
+   */
   positionAfter(
     parentFolderId: FolderId | null,
     afterFolderId: FolderId | null,
+    whenNoAnchor: 'first' | 'last' = 'first',
   ): {
     previous: Position | null;
     next: Position | null;
   } {
     const siblings = this.childrenOf(parentFolderId);
     if (afterFolderId === null) {
-      return { previous: null, next: siblings[0]?.position ?? null };
+      return whenNoAnchor === 'first'
+        ? { previous: null, next: siblings[0]?.position ?? null }
+        : { previous: siblings[siblings.length - 1]?.position ?? null, next: null };
     }
     const index = siblings.findIndex((folder) => folder.id.equals(afterFolderId));
     if (index === -1) {

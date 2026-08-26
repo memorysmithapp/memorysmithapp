@@ -38,6 +38,33 @@ importers:
 
   memorysmith-backend: {}
 
+  memorysmith-backend/apps/core-monolith:
+    dependencies:
+      '@aws-sdk/client-dynamodb':
+        specifier: ^3.1117.0
+        version: 3.1117.0
+      '@aws-sdk/client-s3':
+        specifier: ^3.1117.0
+        version: 3.1117.0
+      '@aws-sdk/lib-dynamodb':
+        specifier: ^3.1117.0
+        version: 3.1117.0(@aws-sdk/client-dynamodb@3.1117.0)
+      '@memorysmith/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@memorysmith/kernel':
+        specifier: workspace:*
+        version: link:../../packages/kernel
+      '@memorysmith/svc-access':
+        specifier: workspace:*
+        version: link:../../services/access
+      '@memorysmith/svc-knowledge':
+        specifier: workspace:*
+        version: link:../../services/knowledge
+      hono:
+        specifier: ^4.9.0
+        version: 4.13.3
+
   memorysmith-backend/packages/contracts:
     dependencies:
       zod:
@@ -45,6 +72,27 @@ importers:
         version: 4.4.3
 
   memorysmith-backend/packages/kernel: {}
+
+  memorysmith-backend/services/access:
+    dependencies:
+      '@aws-sdk/client-dynamodb':
+        specifier: ^3.1117.0
+        version: 3.1117.0
+      '@aws-sdk/lib-dynamodb':
+        specifier: ^3.1117.0
+        version: 3.1117.0(@aws-sdk/client-dynamodb@3.1117.0)
+      '@memorysmith/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@memorysmith/kernel':
+        specifier: workspace:*
+        version: link:../../packages/kernel
+      hono:
+        specifier: ^4.9.0
+        version: 4.13.3
+      jose:
+        specifier: ^6.0.13
+        version: 6.2.10
 
   memorysmith-backend/services/agent:
     dependencies:
@@ -91,6 +139,9 @@ importers:
       '@memorysmith/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
+      hono:
+        specifier: ^4.13.3
+        version: 4.13.3
 
   memorysmith-frontend:
     dependencies:
