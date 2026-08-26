@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { FolderNode, VaultStructure } from '../../shared/types/api';
-import { resolveNoteUrl } from '../../shared/api/client';
+import { resolveNoteUrl } from '../../shared/api/source';
 
 type SearchMode = 'index' | 'graph';
 

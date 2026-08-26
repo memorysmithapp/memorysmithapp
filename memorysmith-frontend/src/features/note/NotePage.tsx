@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getNote, resolveNoteUrl } from '../../shared/api/client';
+import { getNote, resolveNoteUrl } from '../../shared/api/source';
 import { resolveWikilinks } from '../../shared/api/markdown';
 import { Markdown } from '../../shared/components/Markdown';
 import { PropertyValue } from '../../shared/components/PropertyValue';

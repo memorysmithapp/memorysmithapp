@@ -2,6 +2,9 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../../shared/store/session';
+import { isLive } from '../../shared/api/source';
+import { beginSignIn } from '../../shared/auth/oauth';
+import { authConfig } from '../../shared/auth/session';
 
 // Mock sign-in: credentials and the 2FA code are pre-filled and accepted as
 // typed. The two-step shape mirrors the future Cognito flow.
@@ -40,7 +43,21 @@ export function LoginPage() {
         </h1>
         <p className="login-tagline">{t('app.tagline')}</p>
 
-        {step === 'credentials' ? (
+        {isLive ? (
+          // With the backend live there is no local form: the identity
+          // provider owns the credentials, and this button hands the browser
+          // over to it.
+          <div className="login-form">
+            <p className="login-hint">{t('auth.hostedHint')}</p>
+            <button
+              type="button"
+              className="button-primary"
+              onClick={() => void beginSignIn(authConfig())}
+            >
+              {t('auth.signIn')}
+            </button>
+          </div>
+        ) : step === 'credentials' ? (
           <form onSubmit={submitCredentials} className="login-form">
             <label>
               {t('auth.email')}
@@ -91,7 +108,7 @@ export function LoginPage() {
           </form>
         )}
 
-        <p className="login-demo-note">{t('auth.demoNote')}</p>
+        {isLive ? null : <p className="login-demo-note">{t('auth.demoNote')}</p>}
       </div>
     </div>
   );

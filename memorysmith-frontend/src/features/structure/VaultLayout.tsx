@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, NavLink, Outlet, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getVaultStructure } from '../../shared/api/client';
+import { getVaultStructure } from '../../shared/api/source';
 import type { VaultStructure } from '../../shared/types/api';
 import { GraphIcon } from '../../shared/components/icons';
 import { SearchBox } from '../search/SearchBox';

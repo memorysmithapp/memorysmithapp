@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { resolveNoteUrl } from '../api/client';
+import { resolveNoteUrl } from '../api/source';
 import { slugify } from '../api/seed-source';
 
 // Frontmatter values are vault content, so they may carry [[wikilinks]],

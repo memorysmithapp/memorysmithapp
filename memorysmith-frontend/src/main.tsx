@@ -4,8 +4,17 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 import { queryClient } from './app/query-client';
 import { router } from './app/router';
+import { configureHttp } from './shared/api/http';
+import { apiOrigin } from './shared/api/source';
+import { authConfig } from './shared/auth/session';
 import './i18n';
 import './styles.css';
+
+// With VITE_API_ORIGIN set the SPA talks to the real backend; without it, it
+// reads the bundled seed and is a navigable prototype.
+if (apiOrigin) {
+  configureHttp({ origin: apiOrigin, auth: authConfig() });
+}
 
 const container = document.getElementById('root');
 if (!container) throw new Error('missing #root element');

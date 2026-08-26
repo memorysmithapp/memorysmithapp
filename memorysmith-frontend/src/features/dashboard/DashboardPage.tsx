@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { listVaults } from '../../shared/api/client';
+import { listVaults } from '../../shared/api/source';
 import { CardCarousel } from '../../shared/components/CardCarousel';
 import {
   MATURITY_ORDER,

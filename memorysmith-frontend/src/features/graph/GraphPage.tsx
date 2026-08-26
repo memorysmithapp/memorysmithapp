@@ -14,7 +14,7 @@ import {
 } from 'd3-force';
 import { usePreferences } from '../../shared/store/preferences';
 import { VaultBreadcrumb } from '../structure/VaultBreadcrumb';
-import { resolveNoteUrl } from '../../shared/api/client';
+import { resolveNoteUrl } from '../../shared/api/source';
 
 interface GraphFile {
   nodes: {

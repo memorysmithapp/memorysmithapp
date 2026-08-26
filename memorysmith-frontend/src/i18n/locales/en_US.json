@@ -14,7 +14,10 @@
     "signOut": "Sign out",
     "role": "Role",
     "subscription": "Subscription",
-    "demoNote": "Prototype: credentials are pre-filled and no real authentication happens."
+    "demoNote": "Prototype: credentials are pre-filled and no real authentication happens.",
+    "hostedHint": "You will be taken to the sign-in page and brought back here.",
+    "completing": "Finishing the sign-in...",
+    "tryAgain": "Try again"
   },
   "theme": {
     "heading": "Theme",
@@ -105,5 +108,28 @@
     "legendNotes": "Notes",
     "legendTags": "Tags",
     "hint": "Scroll to zoom · drag to pan · click a note to open it"
+  },
+  "onboarding": {
+    "title": "Ask for a subscription",
+    "body": "Your account exists, but it does not reach any vault yet. A subscription is what holds your workspaces and your knowledge, and while there is no automatic billing it is released by hand.",
+    "nameLabel": "Name of the subscription",
+    "namePlaceholder": "The name of your organization or team",
+    "submit": "Ask for a subscription",
+    "submitting": "Sending...",
+    "alreadyRequested": "You already hold a subscription.",
+    "pendingTitle": "Waiting for authorization",
+    "pendingBody": "Your request was registered and is with the platform. Release is manual at this stage, and you will be able to use the product as soon as it is approved.",
+    "blockedTitle": "Access unavailable",
+    "blockedBody": "This subscription is not active right now. Nothing was lost: the data stays exactly where it is and comes back the moment access is restored."
+  },
+  "errors": {
+    "validation": "Something in what was sent is not accepted.",
+    "notFound": "Not found.",
+    "conflict": "This changed while you were working on it.",
+    "preconditionFailed": "This operation needs an explicit choice before it can run.",
+    "limitExceeded": "This is past the limit the product declares.",
+    "unauthenticated": "Sign in to continue.",
+    "offline": "The application could not reach the server.",
+    "unexpected": "Something went wrong."
   }
 }

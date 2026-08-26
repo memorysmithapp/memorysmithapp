@@ -88,6 +88,32 @@ export class ReadNote {
   }
 }
 
+/**
+ * Resolves a note by its slug, which is what a link and a URL carry. It is a
+ * GetItem on the NSLUG guard plus a GetItem on the note: the guard is already
+ * the index from slug to note (RN-KNW-020), so no listing is involved.
+ */
+export class ReadNoteBySlug {
+  constructor(private readonly deps: NoteDependencies) {}
+
+  async execute(input: {
+    ctx: RequestContext;
+    vaultId: VaultId;
+    slug: string;
+  }): Promise<Result<{ note: Note; content: string }, DomainError>> {
+    const vault = await loadAuthorized(this.deps, input.ctx, input.vaultId, 'read');
+    if (!vault.ok) return vault;
+
+    const slug = Slug.create(input.slug);
+    if (!slug.ok) return err(DomainError.notFound('Note not found'));
+
+    const note = await this.deps.notes.findBySlug(input.vaultId, slug.value);
+    if (!note || note.isDeleted) return err(DomainError.notFound('Note not found'));
+
+    return ok({ note, content: await this.deps.content.read(note.bodyRef) });
+  }
+}
+
 export class CreateNote {
   constructor(private readonly deps: NoteDependencies) {}
 

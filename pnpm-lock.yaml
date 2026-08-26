@@ -220,6 +220,9 @@ importers:
 
   memorysmith-frontend:
     dependencies:
+      '@memorysmith/contracts':
+        specifier: workspace:*
+        version: link:../memorysmith-backend/packages/contracts
       '@tanstack/react-query':
         specifier: ^5.0.0
         version: 5.101.4(react@19.2.8)

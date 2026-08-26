@@ -1,6 +1,8 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { AppShell } from '../shared/components/AppShell';
 import { LoginPage } from '../features/auth/LoginPage';
+import { AuthCallbackPage } from '../features/auth/AuthCallbackPage';
+import { OnboardingPage } from '../features/onboarding/OnboardingPage';
 import { GuidancePanel } from '../features/guidance/GuidancePanel';
 import { FolderRoute } from '../features/structure/FolderRoute';
 import { StructurePage } from '../features/structure/StructurePage';
@@ -15,9 +17,13 @@ export const router = createBrowserRouter([
     element: <RootLayout />,
     children: [
       { path: '/login', element: <LoginPage /> },
+      { path: '/auth/callback', element: <AuthCallbackPage /> },
       {
         element: <RequireSession />,
         children: [
+          // Onboarding sits inside the guard and outside the shell: there is
+          // no vault to frame yet.
+          { path: '/onboarding', element: <OnboardingPage /> },
           {
             element: <AppShell />,
             children: [
