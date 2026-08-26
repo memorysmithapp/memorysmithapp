@@ -7,6 +7,7 @@
 export { DomainError, ConcurrencyError, httpStatusFor, type ErrorCode } from './errors.js';
 export { ok, err, isOk, isErr, mapOk, allOk, type Result, type Ok, type Err } from './result.js';
 export { ulid, isUlid, ulidTime } from './ulid.js';
+export { sha256Hex } from './hash.js';
 export {
   SubscriptionId,
   WorkspaceId,

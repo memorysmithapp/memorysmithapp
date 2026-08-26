@@ -1,0 +1,21 @@
+{
+  "name": "@memorysmith/svc-portability",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Portability bounded context: export of a vault as a readable folder of Markdown files. Zero lock-in is a requirement, not a courtesy.",
+  "exports": {
+    "./domain": "./src/domain/ExportTree.ts",
+    "./application": "./src/application/ExportVault.ts",
+    "./adapters/zip": "./src/adapters/zip.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1117.0",
+    "@aws-sdk/s3-request-presigner": "^3.1117.0",
+    "@memorysmith/kernel": "workspace:*"
+  }
+}

@@ -21,11 +21,13 @@ module.exports = {
       name: 'domain-imports-only-kernel',
       comment:
         'domain/ imports only from itself and from packages/kernel. No SDK, no framework, ' +
-        'no Zod, not even "just to grab a type" (PE1).',
+        'no Zod, not even "just to grab a type" (PE1). The standard library of the runtime is ' +
+        'not infrastructure and is allowed; the boundary is around the AWS SDK and frameworks.',
       severity: 'error',
       from: { path: DOMAIN },
       to: {
         pathNot: [DOMAIN, KERNEL],
+        dependencyTypesNot: ['core'],
       },
     },
     {
@@ -35,6 +37,7 @@ module.exports = {
       from: { path: APPLICATION },
       to: {
         pathNot: [DOMAIN, APPLICATION, KERNEL],
+        dependencyTypesNot: ['core'],
       },
     },
     {
@@ -105,6 +108,7 @@ module.exports = {
       from: { path: KERNEL },
       to: {
         pathNot: [KERNEL],
+        dependencyTypesNot: ['core'],
       },
     },
     {
