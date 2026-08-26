@@ -58,8 +58,12 @@ export class DataStack extends Stack {
       stream: true,
       removalPolicy,
       indexes: [
-        // "Which workspaces do I have", and the owner shortcut (section 9.4).
-        { name: 'GSI1', partitionKey: 'GSI1PK', sortKey: 'GSI1SK' },
+        /**
+         * Only GSI2 here. GSI1 used to answer "which workspaces do I have",
+         * and with that level gone (software-vision.md 4.3) the question is
+         * answered by the link partition itself, so the index would be an
+         * empty one nobody writes to.
+         */
         // The platform queue, metadata only (exception 2 of section 8.3).
         { name: 'GSI2', partitionKey: 'GSI2PK', sortKey: 'GSI2SK' },
       ],
@@ -72,6 +76,7 @@ export class DataStack extends Stack {
       removalPolicy,
       indexes: [
         // Vaults of a workspace, already carrying the note count.
+        // The vaults of the subscription, already carrying the note count.
         { name: 'GSI1', partitionKey: 'GSI1PK', sortKey: 'GSI1SK' },
         // Notes of a folder, in the defined order. SPARSE: a deleted note
         // loses these attributes and leaves every listing (section 12.4).
