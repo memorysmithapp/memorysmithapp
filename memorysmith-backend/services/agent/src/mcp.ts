@@ -20,12 +20,20 @@ type JsonRpcResponse =
   | { jsonrpc: '2.0'; id: number | string | null; result: unknown }
   | { jsonrpc: '2.0'; id: number | string | null; error: { code: number; message: string } };
 
+/**
+ * Every tool carries a human-readable title and a read-only or destructive
+ * hint (software-vision.md, RN-AGT-009). The hints are what decide whether a
+ * client runs the call outright or asks the user first, so a tool without them
+ * costs friction on every invocation.
+ */
 const WHOAMI_TOOL = {
   name: 'whoami',
+  title: 'Who am I',
   description:
     'Echoes the authenticated identity carried by the access token: the human subject, ' +
     'the OAuth client and the subscription the connector is bound to. Spike-only tool.',
   inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  annotations: { readOnlyHint: true },
 };
 
 function result(id: number | string | null, value: unknown): JsonRpcResponse {

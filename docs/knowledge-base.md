@@ -194,6 +194,21 @@ O suporte dos provedores de identidade é desigual, e a ausência costuma ser de
 
 Do lado dos clientes, as superfícies da Anthropic (web, desktop, dispositivos móveis e CLI) compartilham a mesma infraestrutura de autenticação e suportam CIMD nativamente, e a documentação oficial de conectores recomenda CIMD em vez de DCR: com DCR, cada conexão nova registra um cliente OAuth novo, o que incha o authorization server de quem hospeda.
 
+**A escolha do CIMD por esses clientes é condicional, e a condição tem duas partes.** O cliente só seleciona CIMD quando os metadados do authorization server anunciam, ao mesmo tempo, `client_id_metadata_document_supported: true` e o valor `none` em `token_endpoint_auth_methods_supported`. O segundo item existe porque o cliente CIMD se apresenta como cliente público no endpoint de token, sem segredo. Faltando qualquer um dos dois, o cliente cai de volta para DCR, e um authorization server que não publique `registration_endpoint` falha a conexão inteira. Anunciar apenas a primeira chave é, por isso, um modo de falha silencioso: os metadados parecem corretos e o fluxo nunca começa.
+
+Outros contratos que o mesmo conjunto de clientes impõe ao servidor, e que valem no desenho de qualquer resource server que pretenda atendê-los:
+
+| Contrato | Exigência |
+|---|---|
+| Desafio de descoberta | O `401` precisa trazer `WWW-Authenticate` com `resource_metadata`. O mesmo cabeçalho em uma resposta `200` é ignorado |
+| Correspondência do recurso | O campo `resource` do documento de recurso protegido precisa bater exatamente com a URL que o usuário digitou, componente de caminho incluído |
+| Ordem dos authorization servers | Se o documento lista mais de um, o primeiro é usado e não há tentativa nos seguintes |
+| URI de redirecionamento | As superfícies hospedadas usam um callback fixo; o cliente de linha de comando usa loopback RFC 8252 em porta efêmera, o que obriga o servidor a casar `localhost` e `127.0.0.1` ignorando a porta |
+| PKCE | `S256` em toda requisição de autorização, e o método precisa estar anunciado nos metadados |
+| Tolerância de tempo | Cerca de dez segundos para descoberta, registro e token, e trinta segundos para renovação. Estouro é tratado como falha, mesmo que o servidor responda depois |
+| Renovação | Códigos de erro conforme RFC 6749 (`invalid_grant`, não um código próprio) e rotação do refresh token, porque cliente público |
+| Origem do tráfego | As requisições saem de uma faixa de IP publicada, o que importa quando há WAF ou acesso condicional na frente do provedor de identidade |
+
 ### 3.5 Clientes
 
 Um mesmo servidor MCP remoto pode ser consumido por clientes bem diferentes: aplicações web e desktop, ferramentas de linha de comando, ambientes de trabalho agentivo e IDEs. Isso muda duas coisas para quem escreve o servidor:
@@ -208,6 +223,29 @@ Um mesmo servidor MCP remoto pode ser consumido por clientes bem diferentes: apl
 - **Erro acionável.** A mensagem de erro é lida pelo modelo e vira a próxima ação. "Argumento inválido" desperdiça o turno; "faltou `folder`; as pastas disponíveis são A, B, C" o resolve.
 - **Idempotência explícita.** Retry de transporte é rotina. Se a segunda chamada idêntica cria uma segunda coisa, a base se enche de duplicatas silenciosas.
 - **Concorrência declarada.** Escrita cega sobrescreve trabalho alheio. O padrão estabelecido é exigir a versão-base na atualização e recusar quando ela divergiu.
+
+### 3.7 Distribuição de conectores: diretórios curados
+
+Publicar um servidor MCP remoto na internet o torna utilizável, não descobrível. Entre o servidor existir e um usuário encontrá-lo existe uma segunda camada, a dos **diretórios curados** mantidos pelos fornecedores de cliente.
+
+A diferença é visível para quem conecta. Um servidor fora do diretório é adicionado como **conector personalizado**: o usuário cola a URL e responde a um formulário sobre tipo de autenticação, mecanismo de registro de cliente e transporte. Um servidor listado aparece na lista de conectores prontos e conecta em um clique, porque essas respostas já foram dadas pelo desenvolvedor na submissão e conferidas na revisão. Estar listado não altera as tools expostas nem o comportamento em execução: muda apenas a descoberta e o atrito da primeira conexão.
+
+O modelo de curadoria costuma ter dois níveis: um servidor aprovado entra com o rótulo de comunidade, e os que se mostram mais úteis podem ser promovidos a um rótulo verificado, cuja revisão é mais lenta e inclui teste funcional de cada tool. O rótulo é sinal de qualidade ao usuário, não um modo de operação diferente.
+
+**Os critérios de aceitação são majoritariamente de desenho, não de infraestrutura**, e é por isso que interessam antes da submissão:
+
+- **Anotação obrigatória em toda tool.** Cada uma declara um título legível e a marca de leitura (`readOnlyHint`) ou de destruição (`destructiveHint`). Não é burocracia de catálogo: é o que decide se o cliente executa a tool sem confirmação a cada chamada ou sempre pergunta ao usuário. Uma tool de escrita sem marca produz atrito permanente, listada ou não.
+- **Separação entre leitura e escrita.** Uma tool única que aceite métodos seguros e inseguros conforme um argumento é recusada. Documentar a diferença na descrição não substitui separar em tools distintas.
+- **Descrição que corresponde ao comportamento.** A descrição é lida pelo modelo, então descrição vaga é defeito funcional. Descrições que instruem o modelo a agir fora da função da tool, que puxam instrução de fonte externa ou que carregam texto oculto são tratadas como tentativa de injeção de prompt e reprovadas.
+- **Erro acionável.** Erro genérico sem detalhe reprova, pelo mesmo motivo de §3.6.
+- **Política de privacidade pública.** Ausente ou incompleta costuma ser reprovação imediata.
+- **Propriedade da API.** O servidor precisa chamar API própria, ou de terceiro com consentimento. Embrulhar API alheia não passa.
+- **Conta de teste povoada.** O revisor precisa exercitar cada tool ponta a ponta, o que exige dados, não apenas credencial válida.
+
+Há ainda um requisito de conta que não é técnico e costuma ser descoberto tarde: o portal de submissão de servidores remotos vive nas configurações de organização do cliente, o que exige plano corporativo. Planos individuais não expõem essa área.
+
+Duas categorias de conector são recusadas por política, independentemente de qualidade: as que transferem dinheiro ou ativos financeiros e as que geram imagem, vídeo ou áudio por modelo de IA (ferramentas de desenho que produzem diagramas e esquemas são aceitas).
+
 
 ---
 
@@ -503,6 +541,9 @@ Um sistema de arquivos não tem alguns conceitos que uma base tem: ordem entre i
 - Model Context Protocol, especificação e documentação: <https://modelcontextprotocol.io/>
 - Model Context Protocol, registro de cliente: <https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/client-registration>
 - Anthropic, autenticação de conectores: <https://claude.com/docs/connectors/building/authentication>
+- Anthropic, submissão ao diretório de conectores: <https://claude.com/docs/connectors/building/submission>
+- Anthropic, critérios de revisão de conectores: <https://claude.com/docs/connectors/building/review-criteria>
+- RFC 6749: The OAuth 2.0 Authorization Framework
 - OAuth Client ID Metadata Document, draft IETF: <https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/>
 - RFC 9728: OAuth 2.0 Protected Resource Metadata
 - RFC 8414: OAuth 2.0 Authorization Server Metadata
