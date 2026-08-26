@@ -61,21 +61,65 @@ O humano autoriza o conector uma única vez, e é nesse consentimento que a assi
 
 ---
 
+## Rodando na sua máquina
+
+O monorepo roda inteiro localmente, e há dois modos de olhar para ele.
+
+**O protótipo, sem nada além do repositório.** A interface lê o seed empacotado e navega como se o produto estivesse cheio:
+
+```
+pnpm install
+pnpm -C memorysmith-frontend dev
+```
+
+**A suíte inteira**, que é o que diz se a implementação está de pé:
+
+```
+pnpm typecheck      # os três projetos
+pnpm lint
+pnpm depcruise      # a regra de dependência: quebra se domain/ importar SDK da AWS
+pnpm test           # domínio, casos de uso, contratos e a fatia vertical
+```
+
+Os testes de adaptador precisam de DynamoDB Local e MinIO, e são eles que verificam os critérios de concorrência (20 reordenações simultâneas, 50 notas criadas em paralelo):
+
+```
+docker compose up -d
+pnpm -r --if-present test:adapters
+docker compose down
+```
+
+**A interface contra o backend real.** Copie `memorysmith-frontend/.env.example` para `.env.local` e preencha as três variáveis com o que o deploy imprimiu:
+
+```
+VITE_API_ORIGIN=https://api.memorysmith.app
+VITE_COGNITO_DOMAIN=https://<prefixo>.auth.us-east-1.amazoncognito.com
+VITE_COGNITO_CLIENT_ID=<app client da SPA>
+```
+
+Sem `VITE_API_ORIGIN` a aplicação continua lendo o seed, o que é útil para trabalhar na interface sem depender de nuvem nenhuma.
+
+---
+
 ## Subindo a infraestrutura na AWS
 
 Toda a infraestrutura vive em [`memorysmith-infra/`](memorysmith-infra/) (AWS CDK em TypeScript); a arquitetura de referência está em [`docs/architecture-guide.md`](docs/architecture-guide.md). O passo a passo abaixo sobe o ambiente atual.
 
-### O que existe hoje (escopo do spike, entrega 1 do §25)
+### O que existe hoje
 
-O `bin/app.ts` instancia três stacks, na dependência abaixo:
+O `bin/app.ts` instancia sete stacks, na dependência abaixo:
 
 | Stack | O que cria |
 |---|---|
-| `MemorysmithNetwork` | Referência à hosted zone `memorysmith.app` e certificado ACM de `mcp.memorysmith.app` (validação por DNS) |
-| `MemorysmithIdentity` | User pool do Cognito (`memorysmith-users`), trigger provisório de pre-token-generation (injeta `subscription_id` e `subscription_status` no access token), domínio hospedado do Cognito, o app client único do proxy CIMD e um usuário de teste |
-| `MemorysmithAgent` | Lambda do `svc-agent` (proxy CIMD + MCP server mínimo) atrás de um HTTP API no domínio `mcp.memorysmith.app`, com o segredo de correlação de state no Secrets Manager |
+| `MemorysmithNetwork` | Referência à hosted zone `memorysmith.app` e os certificados ACM de `mcp.`, `api.` e do site (com `www` como SAN), todos validados por DNS na própria zona |
+| `MemorysmithIdentity` | User pool do Cognito, trigger de pre-token-generation (injeta `subscription_id` e `subscription_status` no access token), domínio hospedado e o app client único do proxy CIMD |
+| `MemorysmithData` | Bucket de conteúdo versionado, o bus `mv-events` e as quatro tabelas: `mv-access`, `mv-knowledge`, `mv-discovery` e `mv-audit`, todas com PITR |
+| `MemorysmithApi` | O deployable principal em `api.memorysmith.app` e o relay da outbox, com fila de mensagens mortas e alarme de profundidade |
+| `MemorysmithProjections` | O consumidor da auditoria, cujo papel carrega o `Deny` explícito que torna o log imutável, e o projetor do Discovery atrás de fila com DLQ |
+| `MemorysmithAgent` | O MCP server e o proxy CIMD em `mcp.memorysmith.app` |
+| `MemorysmithFrontend` | Bucket privado, distribuição CloudFront com Origin Access Control e os registros de `memorysmith.app` e `www` |
 
-As demais stacks do desenho (§5.4 do guia) entram nas entregas seguintes.
+A ordem de deploy é a da tabela: rede e identidade primeiro, dados em seguida, e o resto depois.
 
 ### Pré-requisitos
 
@@ -190,7 +234,11 @@ Ou, uma a uma, na ordem:
 ```
 pnpm exec cdk deploy MemorysmithNetwork
 pnpm exec cdk deploy MemorysmithIdentity
+pnpm exec cdk deploy MemorysmithData
+pnpm exec cdk deploy MemorysmithApi
+pnpm exec cdk deploy MemorysmithProjections
 pnpm exec cdk deploy MemorysmithAgent
+pnpm exec cdk deploy MemorysmithFrontend
 ```
 
 Notas de primeira execução:
@@ -198,7 +246,18 @@ Notas de primeira execução:
 - O certificado ACM valida por DNS na própria hosted zone; a emissão costuma levar de 2 a 10 minutos e o deploy da `MemorysmithNetwork` espera por ela.
 - Ao final, a `MemorysmithAgent` imprime os outputs `McpEndpoint` (a URL pública do MCP) e `ApiId`.
 
-#### 6. Definir a senha do usuário de teste
+#### 6. Publicar a interface
+
+A stack do frontend só copia arquivos quando eles existem, então o build vem antes do deploy dela. Com as três variáveis preenchidas em `memorysmith-frontend/.env.local` (ver [Rodando na sua máquina](#rodando-na-sua-máquina)):
+
+```
+pnpm -C memorysmith-frontend build
+pnpm exec cdk deploy MemorysmithFrontend
+```
+
+Sem as variáveis o build sai apontando para o seed, e a aplicação publicada seria o protótipo em vez do produto.
+
+#### 7. Definir a senha do usuário de teste
 
 O usuário de teste nasce com senha temporária enviada por e-mail. Para fixar uma senha definitiva sem passar pelo fluxo de troca:
 
@@ -208,7 +267,7 @@ aws cognito-idp admin-set-user-password --user-pool-id <ID do user pool> --usern
 
 O ID do user pool aparece no console do Cognito ou em `aws cognito-idp list-user-pools --max-results 10`.
 
-#### 7. Verificar a subida
+#### 8. Verificar a subida
 
 Checagens rápidas de descoberta (itens 1 e 2 do §13.3 do guia):
 
@@ -225,7 +284,7 @@ curl https://mcp.memorysmith.app/.well-known/oauth-authorization-server
 
 O primeiro deve apontar `authorization_servers` para `https://mcp.memorysmith.app`; o segundo deve anunciar `client_id_metadata_document_supported: true`, PKCE `S256` e nenhum `registration_endpoint`.
 
-#### 8. Testar o fluxo OAuth completo com o MCP Inspector
+#### 9. Testar o fluxo OAuth completo com o MCP Inspector
 
 ```
 npx @modelcontextprotocol/inspector
@@ -238,7 +297,7 @@ Em seguida, os dois clientes do critério de pronto da entrega 1:
 - **Claude Desktop / Claude Code:** adicionar um conector remoto apontando para `https://mcp.memorysmith.app/mcp`.
 - **claude.ai:** Settings → Connectors → Add custom connector, com a mesma URL.
 
-#### 9. Derrubar (quando necessário)
+#### 10. Derrubar (quando necessário)
 
 ```
 pnpm exec cdk destroy --all
