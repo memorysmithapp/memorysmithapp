@@ -120,7 +120,9 @@ module.exports = {
     },
     {
       name: 'no-orphans',
-      comment: 'Dead module: nothing imports it and it imports nothing.',
+      comment:
+        'Dead module: nothing imports it and it imports nothing. Lambda entrypoints are ' +
+        'exempt, because what references them is the CDK, by path, and not an import.',
       severity: 'warn',
       from: {
         orphan: true,
@@ -130,6 +132,7 @@ module.exports = {
           '(^|/)tsconfig[.]json$',
           '(^|/)(babel|webpack|vite|vitest)[.](config|adapters[.]config)[.](js|cjs|mjs|ts|json)$',
           '(^|/)[.]dependency-cruiser[.]cjs$',
+          '(^|/)(handler|lambda|relay[.]handler|pre-token-generation)[.]ts$',
           '(^|/)eslint[.]config[.](js|cjs|mjs|ts)$',
         ],
       },

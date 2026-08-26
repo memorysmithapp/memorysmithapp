@@ -28,12 +28,16 @@ const retainData = app.node.tryGetContext('retainData') !== 'false';
 
 const network = new NetworkStack(app, 'MemorysmithNetwork', { env });
 
+// Data comes before Identity: the pre-token-generation trigger reads the links
+// of the user from mv-access, which is what turns the active subscription into
+// a signed claim (§8.5).
+const data = new DataStack(app, 'MemorysmithData', { env, retainData });
+
 const identity = new IdentityStack(app, 'MemorysmithIdentity', {
   env,
   mcpOrigin: `https://${network.mcpDomainName}`,
+  accessTable: data.accessTable.table,
 });
-
-const data = new DataStack(app, 'MemorysmithData', { env, retainData });
 
 const api = new ApiStack(app, 'MemorysmithApi', {
   env,

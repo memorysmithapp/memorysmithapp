@@ -9,6 +9,7 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- App client próprio para a interface, separado do client do conector MCP, e o grupo de administração da plataforma, que é o que identifica uma sessão de plataforma.
 - A interface passa a falar com o backend real. Definida a origem da API, toda leitura e escrita acontece contra o produto; sem ela, a aplicação continua lendo o seed e sendo o protótipo navegável de antes. Entram a autenticação por OAuth 2.1 com PKCE, a tela de retorno do provedor de identidade, a solicitação de assinatura e os estados de espera e de acesso indisponível, que levam o usuário a uma tela que explica o que está acontecendo em vez de uma lista vazia. O mapeamento de erro cobre a taxonomia inteira, e um recurso proibido mostra a mesma mensagem de um recurso inexistente, porque a tela não pode ser mais informativa que a API.
 - Resolução de nota por slug na API do conhecimento, que é o que um link e uma URL carregam, respondida pelo próprio guard de unicidade e sem varrer nota nenhuma.
 - Infraestrutura completa em CDK: bucket de conteúdo versionado, barramento de eventos, as quatro tabelas com PITR, a API do produto em `api.memorysmith.app`, o relay da outbox com fila de mensagens mortas e alarme de profundidade, o consumidor da auditoria, o projetor do Discovery atrás de fila com DLQ, o MCP server e a hospedagem da interface em `memorysmith.app` com redirecionamento de `www`. Toda função nasce com Powertools, alarmes de erro, throttle e duração, e log group declarado com retenção. A trilha de auditoria recebe um `Deny` explícito de IAM em alteração e remoção, que é o que torna o passado imutável por permissão e não por disciplina.
@@ -19,6 +20,11 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Contexto de acesso completo: assinatura com identificador perpétuo e ciclo de vida (solicitar, aprovar em trial ou active, rejeitar com motivo obrigatório, suspender, reativar, cancelar e solicitar de novo), workspaces, convites de uso único válidos por sete dias, papéis `EDITOR` e `VIEWER`, transferência de titularidade atômica e a fila da plataforma, que mostra titular, e-mail, status, datas e contagem de workspaces, e nada além disso. A autorização acontece em dois estágios: o primeiro confirma que a assinatura está em trial ou active e resolve titularidade e papéis, com o atraso de cinco minutos declarado; o segundo é decidido pelo serviço dono do recurso.
 - API interna do Knowledge: vaults, Orientação, pastas com descrição obrigatória, ordem, Modelos e notas, mais o Vault Context servido em Markdown. Um recurso de outra assinatura responde `404` e nunca `403`, uma sessão de plataforma é recusada em toda rota de conhecimento por não conseguir sequer montar a chave, criar nota com slug repetido devolve o identificador da nota existente em vez de duplicar, e atualizar com revisão desatualizada devolve o conteúdo atual junto do conflito.
 - O `apps/core-monolith` monta os contextos em um único deployable, construindo os repositórios por requisição a partir da assinatura do token. Separar em seis serviços passa a ser trocar esse arquivo, e não mexer nos contextos.
+
+### Fixed
+
+- O MCP server respondia `500` em toda chamada: a função vinha do spike e era empacotada em ESM sem o preâmbulo que o SDK da AWS exige, e morria na inicialização. Ela passa a ser construída pelo mesmo construct das demais, o que também lhe dá os alarmes obrigatórios e retenção de log.
+- O trigger que injeta a assinatura no token ainda era o esboço do spike, que devolvia uma assinatura fixa para qualquer usuário. Ele passa a resolver o vínculo real: lê os vínculos da pessoa, escolhe o marcado como padrão e lê o status da assinatura. Quem não tem vínculo não recebe claim nenhuma, que é o que impede uma sessão de plataforma de alcançar conteúdo.
 
 ### Changed
 
