@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../../shared/store/session';
@@ -11,10 +11,55 @@ import { authConfig } from '../../shared/auth/session';
 const DEMO_EMAIL = 'heitor.rapcinski@gmail.com';
 const DEMO_NAME = 'Heitor Rapcinski';
 
+/**
+ * Marks that this browser already handed itself over to the identity
+ * provider. Without it, a sign-in that comes back without a session would
+ * bounce between here and the provider forever, and the person would see a
+ * flickering screen instead of a message. It lives in sessionStorage because
+ * the question it answers is "in THIS visit", and it is cleared the moment a
+ * session exists.
+ */
+const HANDOVER_KEY = 'memorysmith.signin.handover';
+
+export function clearHandover(): void {
+  try {
+    sessionStorage.removeItem(HANDOVER_KEY);
+  } catch {
+    // A browser with storage disabled just loses the loop guard, not the flow.
+  }
+}
+
 export function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const signIn = useSession((s) => s.signIn);
+  const started = useRef(false);
+  const [handedOver, setHandedOver] = useState(false);
+
+  /**
+   * There is nothing to decide here when the backend is live: the identity
+   * provider owns the credentials, so a screen whose only content is one
+   * button is a click asking for nothing. It hands over immediately, and only
+   * shows the button if a previous handover in this visit came back without a
+   * session.
+   */
+  useEffect(() => {
+    if (!isLive || started.current) return;
+    started.current = true;
+
+    let already = false;
+    try {
+      already = sessionStorage.getItem(HANDOVER_KEY) === 'yes';
+      sessionStorage.setItem(HANDOVER_KEY, 'yes');
+    } catch {
+      // Storage refused: fall through and hand over anyway.
+    }
+    if (already) {
+      setHandedOver(true);
+      return;
+    }
+    void beginSignIn(authConfig());
+  }, []);
 
   const [step, setStep] = useState<'credentials' | 'mfa'>('credentials');
   const [email, setEmail] = useState(DEMO_EMAIL);
@@ -44,18 +89,19 @@ export function LoginPage() {
         <p className="login-tagline">{t('app.tagline')}</p>
 
         {isLive ? (
-          // With the backend live there is no local form: the identity
-          // provider owns the credentials, and this button hands the browser
-          // over to it.
           <div className="login-form">
-            <p className="login-hint">{t('auth.hostedHint')}</p>
-            <button
-              type="button"
-              className="button-primary"
-              onClick={() => void beginSignIn(authConfig())}
-            >
-              {t('auth.signIn')}
-            </button>
+            <p className="login-hint">
+              {handedOver ? t('auth.handoverFailed') : t('auth.handingOver')}
+            </p>
+            {handedOver ? (
+              <button
+                type="button"
+                className="button-primary"
+                onClick={() => void beginSignIn(authConfig())}
+              >
+                {t('auth.signIn')}
+              </button>
+            ) : null}
           </div>
         ) : step === 'credentials' ? (
           <form onSubmit={submitCredentials} className="login-form">

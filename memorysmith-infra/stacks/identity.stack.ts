@@ -169,6 +169,48 @@ export class IdentityStack extends Stack {
     );
     membership.addDependency(testUser);
 
+    /**
+     * The hosted sign-in page, dressed as the product.
+     *
+     * Cognito's classic hosted UI only accepts a FIXED list of classes and, in
+     * each of them, a fixed list of properties. `font-family` is not on that
+     * list, so Space Grotesk and Inter cannot reach this page: what carries
+     * the brand here is colour, weight and radius. The palette is the one from
+     * the brand book (CLAUDE.md), and the button is Azul cofre so that the
+     * only action on the page reads as the same action the product uses.
+     *
+     * Two limits of this page are worth naming, because they are Cognito's
+     * and not ours. The PAGE background is not in the customizable list: only
+     * the card is, so the card is white and reads as a card against whatever
+     * Cognito paints behind it, exactly like the card of the product's own
+     * screens. And the logo would need a raster upload through the
+     * SetUICustomization API, which CloudFormation does not carry, while the
+     * symbol only exists as SVG. An empty logo area is honest; a broken image
+     * would not be, and a banner sized for a logo that never arrives is just
+     * a gap.
+     */
+    new cognito.CfnUserPoolUICustomizationAttachment(this, 'HostedUiBranding', {
+      userPoolId: this.userPool.userPoolId,
+      // ALL, and not a single client: whoever signs in, including through the
+      // connector, should meet the same page.
+      clientId: 'ALL',
+      css: [
+        '.background-customizable { background-color: #FFFFFF; }',
+        '.banner-customizable { background-color: #FFFFFF; padding: 8px 0 0 0; }',
+        '.label-customizable { color: #0E1526; font-size: 13px; font-weight: 500; }',
+        '.textDescription-customizable { color: #0E1526; font-size: 14px; padding-top: 8px; padding-bottom: 16px; }',
+        '.legalText-customizable { color: #5A6272; font-size: 12px; margin-top: 16px; }',
+        '.inputField-customizable { background: #FFFFFF; border: 1px solid #D5D8D3; border-radius: 8px; color: #0E1526; font-size: 14px; padding: 10px 12px; width: 100%; }',
+        '.inputField-customizable:focus { border-color: #0F56D7; outline: 0; }',
+        '.submitButton-customizable { background-color: #0F56D7; border: 0; border-radius: 8px; color: #FFFFFF; font-size: 14px; font-weight: 600; margin: 16px 0 8px 0; width: 100%; }',
+        '.submitButton-customizable:hover { background-color: #0C46AF; color: #FFFFFF; }',
+        '.idpButton-customizable { background: #FFFFFF; border: 1px solid #D5D8D3; border-radius: 8px; color: #0E1526; font-size: 14px; font-weight: 500; padding: 10px 12px; width: 100%; }',
+        '.idpButton-customizable:hover { background: #E4E7E2; color: #0E1526; }',
+        '.errorMessage-customizable { background: #FFF1E8; border: 1px solid #FF8A2B; color: #0E1526; font-size: 13px; padding: 10px 12px; text-align: left; }',
+        '.redirect-customizable { padding: 8px 0; text-align: center; }',
+      ].join('\n'),
+    });
+
     new CfnOutput(this, 'UserPoolId', { value: this.userPool.userPoolId });
     new CfnOutput(this, 'WebClientId', { value: this.webClient.userPoolClientId });
     new CfnOutput(this, 'CognitoDomain', {

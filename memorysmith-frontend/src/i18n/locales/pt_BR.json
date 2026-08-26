@@ -17,7 +17,9 @@
     "demoNote": "Protótipo: as credenciais vêm preenchidas e nenhuma autenticação real acontece.",
     "hostedHint": "Você será levado à página de entrada e trazido de volta para cá.",
     "completing": "Concluindo a entrada...",
-    "tryAgain": "Tentar de novo"
+    "tryAgain": "Tentar de novo",
+    "handingOver": "Levando você à página de entrada...",
+    "handoverFailed": "A entrada não foi concluída. Tente de novo."
   },
   "theme": {
     "heading": "Tema",

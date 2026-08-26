@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { completeSignIn } from '../../shared/auth/oauth';
+import { clearHandover } from './LoginPage';
 import { authConfig, useLiveSession } from '../../shared/auth/session';
 
 export function AuthCallbackPage() {
@@ -34,6 +35,8 @@ export function AuthCallbackPage() {
 
     completeSignIn(authConfig(), code)
       .then(async () => {
+        // The handover worked, so the loop guard has nothing left to guard.
+        clearHandover();
         await load();
         void navigate('/', { replace: true });
       })
