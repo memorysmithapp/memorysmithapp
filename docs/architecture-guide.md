@@ -206,11 +206,19 @@ memorysmith-backend/
 │           │   ├── inbound/     # HTTP (Hono), MCP, consumidores de evento
 │           │   └── outbound/    # DynamoDB, S3, Bedrock, EventBridge
 │           └── main/
-│               ├── handler.ts              # o entrypoint que a infra empacota
-│               └── composition-root.ts     # a única peça que muda entre monólito e microsserviço
+│               └── handler.ts   # o entrypoint que a infra empacota
+├── apps/
+│   └── core-monolith/           # o composition root do deployable principal (§24)
+│       └── src/
+│           ├── composition-root.ts   # a única peça que muda entre monólito e microsserviço
+│           ├── app.ts                # monta os contextos sob um prefixo cada
+│           ├── handler.ts            # entrypoint da API
+│           └── relay.handler.ts      # entrypoint do relay da outbox
 ├── package.json
 └── tsconfig.json
 ```
+
+O `apps/core-monolith` é o **único lugar que conhece dois contextos ao mesmo tempo**, e é por isso que ele existe em vez de um dos serviços importar o outro: a regra do §5.5 continua valendo entre `services/*`, e a composição fica fora dela, onde ela deve ficar.
 
 Todo serviço tem exatamente a mesma estrutura interna de quatro camadas. Uniformidade aqui não é estética: é o que permite que a regra de dependência do §5.5 seja uma configuração só, válida para os seis.
 
@@ -1311,24 +1319,34 @@ Uma ressalva: **`svc-audit` é o único que ganha algo real da separação físi
 
 ## 25. Sequência de construção
 
-Ordem de dependência técnica, com critério de pronto verificável. O recorte de produto da 0.1.0 está em `software-vision.md` §15.
+Ordem de dependência técnica, com critério de pronto verificável. A coluna **Versão** diz em qual recorte a entrega nasce, e o recorte de produto está em `software-vision.md` §15.
 
-| # | Entrega | Critério de pronto | 0.1.0 |
+| # | Entrega | Critério de pronto | Versão |
 |---|---|---|---|
-| 1 | **Spike de auth MCP: proxy CIMD** (§13.3) | Conector registrado via CIMD e autenticado pelo Cognito funciona num cliente desktop **e** num cliente web, cumprindo os itens 1 a 6 de §13.3 | ✅ |
-| 2 | Monorepo, kernel, `SubscriptionId`, `Authorship`, taxonomia de erros (§15), CDK, CI com regra de dependência | Build quebra se `domain/` importar SDK da AWS | ✅ |
-| 3 | Domínio do Knowledge: `Vault`, `FolderTree`, `Position`, `Note` | Suíte do domínio verde **sem nenhuma dependência de AWS** | ✅ |
-| 4 | Adaptadores Dynamo, S3 e outbox; `ContentStore` com chave opaca e `ContentRef` completo no evento | 20 reorders concorrentes: nenhuma perda, nenhuma ordem indefinida. **50 notas criadas em paralelo no mesmo vault: nenhum retry por contenção** (§10.2) | ✅ |
-| 5 | `svc-access`: assinatura e seu status, workspace, authorizer em dois estágios (§14.2) | Teste de isolamento entre assinaturas passa; recurso de outra assinatura devolve `404` e não `403`; token de plataforma não alcança o Knowledge | ✅ |
-| 6 | `svc-knowledge` HTTP completo | Reordenar pasta é 1 write no item da pasta; mover nota entre pastas é 0 bytes no S3; apagar nota mantém `read_note(asOf)` funcionando | ✅ |
-| 7 | `svc-audit` | `read_note(asOf)` devolve o conteúdo correto de uma data passada; update no log falha **por IAM** | ✅ |
-| 8 | `svc-agent`: as 7 tools da 0.1.0 | `get_vault_context` devolve o Markdown de `software-vision.md` §9.2, com as contagens, em **um** `Query` | ✅ |
-| 9 | UI de autoria | Criar um vault do zero, escrever guidance e template, e ler o histórico de uma nota sem tocar na API | ✅ |
-| 10 | `svc-discovery`: grafo, vetores e facetas | Link pendente resolve ao criar a nota alvo; busca semântica traz o chunk certo com a nota de origem; o painel de curadoria sai de um `Query` nos contadores, sem varrer notas | — |
-| 11 | Tools de descoberta; mover nota entre vaults; convites | `NoteId` e histórico preservados na troca de vault; backlinks quebrados avisados antes | — |
-| 12 | `svc-portability` | Zip contém só `.md`, com a ordem legível na própria árvore de arquivos | — |
+| 1 | **Spike de auth MCP: proxy CIMD** (§13.3) | Conector registrado via CIMD e autenticado pelo Cognito funciona num cliente desktop **e** num cliente web, cumprindo os itens 1 a 6 de §13.3 | 0.1.0 |
+| 2 | Monorepo, kernel, `SubscriptionId`, `Authorship`, taxonomia de erros (§15), CDK, CI com regra de dependência | Build quebra se `domain/` importar SDK da AWS | 0.2.0 |
+| 3 | Domínio do Knowledge: `Vault`, `FolderTree`, `Position`, `Note` | Suíte do domínio verde **sem nenhuma dependência de AWS** | 0.2.0 |
+| 4 | Adaptadores Dynamo, S3 e outbox; `ContentStore` com chave opaca e `ContentRef` completo no evento | 20 reorders concorrentes: nenhuma perda, nenhuma ordem indefinida. **50 notas criadas em paralelo no mesmo vault: nenhum retry por contenção** (§10.2) | 0.2.0 |
+| 5 | `svc-access`: assinatura e seu status, workspace, authorizer em dois estágios (§14.2) | Teste de isolamento entre assinaturas passa; recurso de outra assinatura devolve `404` e não `403`; token de plataforma não alcança o Knowledge | 0.2.0 |
+| 6 | `svc-knowledge` HTTP completo | Reordenar pasta é 1 write no item da pasta; mover nota entre pastas é 0 bytes no S3; apagar nota mantém `read_note(asOf)` funcionando | 0.2.0 |
+| 7 | `svc-audit` | `read_note(asOf)` devolve o conteúdo correto de uma data passada; update no log falha **por IAM** | 0.2.0 |
+| 8 | `svc-agent`: o catálogo de tools | `get_vault_context` devolve o Markdown de `software-vision.md` §9.2, com as contagens, em **um** `Query` | 0.2.0 |
+| 9 | UI de autoria | Criar um vault do zero, escrever guidance e template, e ler o histórico de uma nota sem tocar na API | 0.2.0 |
+| 10 | `svc-discovery`: grafo, vetores e facetas | Link pendente resolve ao criar a nota alvo; busca semântica traz o chunk certo com a nota de origem; o painel de curadoria sai de um `Query` nos contadores, sem varrer notas | 0.2.0 |
+| 11 | Tools de descoberta; mover nota entre vaults; convites | `NoteId` e histórico preservados na troca de vault; backlinks quebrados avisados antes | 0.2.0 |
+| 12 | `svc-portability` | Zip contém só `.md`, com a ordem legível na própria árvore de arquivos | 0.2.0 |
 
 > **A entrega 3 antes da 4 não é preciosismo:** é o que prova que a inversão de dependência está de pé. Se o domínio precisar da AWS para ser testado, o hexágono já vazou.
+
+### 25.1 O que a 0.2.0 fecha, e o que ela deixa aberto
+
+A 0.2.0 constrói os seis bounded contexts, a infraestrutura inteira e a ligação da interface com a API. As entregas 2 a 12 nascem juntas porque o teste de isolamento, o de contenção e o de imutabilidade só existem quando existe o que testar, e adiar qualquer um deles significaria construir sobre uma propriedade não verificada.
+
+Três decisões da implementação valem registro, porque quem lê o desenho precisa saber onde o código diverge dele e por quê:
+
+- **O índice vetorial vive, por ora, na própria tabela do Discovery**, com a pontuação por cosseno feita na função. É honesto para o teto de 2.000 notas por vault que o produto declara (`software-vision.md` §14) e não acrescenta infraestrutura. A porta `VectorIndex` (§11.4) é exatamente o que torna a migração para S3 Vectors uma troca de adaptador, e o risco correspondente do §26 permanece registrado.
+- **O Discovery mantém uma projeção própria da estrutura do vault**, alimentada pelos eventos de vault e de pasta. O prefixo de contexto do chunk (§11.2) precisa do nome do vault, do caminho da pasta e da descrição dela, e consultar o Knowledge para obtê-los inverteria a direção única do §3.1, que é o que torna as projeções reconstruíveis.
+- **A composição do monólito modular vive em `memorysmith-backend/apps/core-monolith`**, e é o único lugar que conhece dois contextos ao mesmo tempo. Os serviços continuam sem se importarem entre si, e a separação em seis deployables é a troca desse arquivo (§24).
 
 ---
 

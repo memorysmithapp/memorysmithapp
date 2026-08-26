@@ -560,12 +560,14 @@ A saída de `get_vault_context` é **o produto**, não um detalhe de apresentaç
 # Vault: Normas e Legislação
 <conteúdo integral do Guidance>
 
-## Estrutura
-1. **Normas**: Texto normativo por artigo. Uma norma por nota, sempre com órgão e vigência. (48 notas, tem TEMPLATE.md)
-2. **Achados**: Achados de auditoria. Todo achado cita a norma que o fundamenta. (23 notas, tem TEMPLATE.md)
-3. **Trabalhos/**: Relatórios emitidos. (5 notas)
-   3.1. **2026**: Emitidos neste exercício. (5 notas, tem TEMPLATE.md)
+## Structure
+1. **Normas**: Texto normativo por artigo. Uma norma por nota, sempre com órgão e vigência. (48 notes, has TEMPLATE.md)
+2. **Achados**: Achados de auditoria. Todo achado cita a norma que o fundamenta. (23 notes, has TEMPLATE.md)
+3. **Trabalhos/**: Relatórios emitidos. (5 notes)
+   3.1. **2026**: Emitidos neste exercício. (5 notes, has TEMPLATE.md)
 ```
+
+Os rótulos que o produto escreve (`## Structure`, `notes`, `has TEMPLATE.md`) são en-US, como toda a superfície MCP, que é contrato público e tem `en_US` como locale canônico (`CLAUDE.md` § Política de idioma). O que aparece em português no exemplo acima é o conteúdo do vault, escrito por quem o autora, e é assim que sai em qualquer idioma que o vault use.
 
 Três decisões visíveis nesse formato:
 
@@ -807,16 +809,18 @@ Três inclusões que parecem contradizer o recorte, e não contradizem:
 - **A UI de autoria entra.** Sem Guidance e Template escritos por um humano, não existe nada para o agente ler, e a tese não é testável. É o menor pedaço de UI que fecha o ciclo.
 - **A aprovação de assinatura entra.** Sem billing, ela é o único portão de entrada: sem ela ninguém acessa nada, e a 0.1.0 não teria como ser usada por um primeiro cliente real. O que fica de fora é o resto do ciclo de vida, ou seja suspender, reativar e transferir.
 
-**O que a 0.1.0 assume, e que precisa estar declarado:** a assinatura tem um `OWNER` e nenhum outro membro. A colaboração inteira, com convites, `EDITOR`, `VIEWER` e teto por vault, fica para a 0.3.0. O modelo de papéis já existe no domínio desde a primeira linha (PP8); o que não existe ainda é a superfície que o exercita.
+**O que a 0.1.0 assume, e que precisa estar declarado:** a assinatura tem um `OWNER` e nenhum outro membro. A colaboração inteira, com convites, `EDITOR`, `VIEWER` e teto por vault, chega na 0.2.0 (§15.2). O modelo de papéis já existe no domínio desde a primeira linha (PP8); o que não existia na 0.1.0 é a superfície que o exercita.
 
 ### 15.2 Depois da 0.1.0
 
+A 0.2.0 fecha o produto descrito neste documento: os seis bounded contexts, a infraestrutura inteira e a interface ligada à API real. Ela entrega, além do recorte da 0.1.0, o Discovery completo (grafo de links, busca semântica e facetas de curadoria), as cinco tools de descoberta, a colaboração (convites, `EDITOR`, `VIEWER` e teto de papel por vault), o ciclo de vida completo da assinatura (suspender, reativar, cancelar e transferir titularidade), mover nota entre vaults e a portabilidade.
+
 | Versão | Tema |
 |---|---|
-| 0.2.0 | Discovery: grafo de links, busca semântica e as tools correspondentes |
-| 0.3.0 | Colaboração: convites, `EDITOR`/`VIEWER`, teto de papel por vault (§5.3), telas de membros e atividade |
-| 0.4.0 | Ciclo de vida completo: suspender, reativar, cancelar, transferir titularidade; portabilidade (export) e mover nota entre vaults |
-| 0.5.0 | Conformidade: retenção legal, expurgo, relatórios de saúde |
+| 0.2.0 | O produto completo: Discovery, colaboração, ciclo de vida da assinatura, portabilidade e a interface sobre a API real |
+| 0.3.0 | Conformidade: retenção legal, expurgo e relatórios de saúde |
+
+O que fica declaradamente fora da 0.2.0 é a conformidade formal, ou seja a retenção legal (RN-AUD-008), o expurgo de conteúdo (RN-AUD-007) e os relatórios que os sustentam. Os três são atos administrativos com porta própria e evento próprio, e nenhum deles é pré-requisito de nada que já existe: adiar não cobra juros, porque a trilha que eles governam já está sendo escrita desde o primeiro dia.
 
 A ordem técnica de construção, com critérios de pronto, está em `architecture-guide.md` §25.
 

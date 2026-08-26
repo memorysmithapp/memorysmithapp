@@ -33,7 +33,7 @@ Definida no caderno de marca "Livro da marca v1" (Figma). O símbolo é um grafo
 0.1.0
 
 ### Estado atual
-Versão 0.1.0. A documentação canônica, o protótipo navegável do frontend sobre o seed e o spike de autenticação do MCP estão na `main`. O spike foi validado em ambiente real na AWS e depois desmontado. A próxima entrega é a segunda da sequência de construção (`docs/architecture-guide.md` §25).
+Versão 0.1.0 na `main`, com a 0.2.0 em construção na branch de trabalho. A 0.1.0 entregou a documentação canônica, o protótipo navegável do frontend sobre o seed e o spike de autenticação do MCP, validado em ambiente real na AWS e depois desmontado. A 0.2.0 constrói as entregas 2 a 12 do `docs/architecture-guide.md` §25: os seis bounded contexts, a infraestrutura inteira em CDK e a interface ligada à API real. O deploy na AWS acontece com acompanhamento passo a passo do usuário.
 
 ### Remote do git
 github.com/memorysmithapp/memorysmithapp
@@ -47,6 +47,9 @@ Um monorepo pnpm com **três projetos de primeiro nível**, nomeados a partir do
 ```
 core/
 ├── memorysmith-backend/     # six bounded contexts + shared kernel + event contracts
+│   ├── packages/            # kernel and contracts
+│   ├── services/            # access, knowledge, discovery, audit, agent, portability
+│   └── apps/core-monolith/  # the composition root of the main deployable
 ├── memorysmith-frontend/    # React SPA
 └── memorysmith-infra/       # all CDK: stacks, constructs, IAM policies, pipeline
 ```
