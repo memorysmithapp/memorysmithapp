@@ -15,6 +15,7 @@ import type { Construct } from 'constructs';
 import { ServiceLambda } from '../constructs/service-lambda.js';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { readFileSync } from 'node:fs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -90,8 +91,16 @@ export class IdentityStack extends Stack {
     const zoneName = this.node.tryGetContext('hostedZoneName') as string;
     this.issuer = `https://cognito-idp.${this.region}.amazonaws.com/${this.userPool.userPoolId}`;
 
+    /**
+     * Managed login, not the classic hosted UI. The classic page accepts a
+     * fixed list of CSS properties that has no border radius for the card and
+     * no font family at all, so dressing it stops at colour. Managed login is
+     * the branding surface that carries a logo, a radius and the palette, and
+     * it is the only way this page can look like the product.
+     */
     this.userPoolDomain = this.userPool.addDomain('HostedDomain', {
       cognitoDomain: { domainPrefix },
+      managedLoginVersion: cognito.ManagedLoginVersion.NEWER_MANAGED_LOGIN,
     });
 
     this.proxyClient = this.userPool.addClient('CimdProxyClient', {
@@ -170,45 +179,43 @@ export class IdentityStack extends Stack {
     membership.addDependency(testUser);
 
     /**
-     * The hosted sign-in page, dressed as the product.
+     * The sign-in page, dressed as the product.
      *
-     * Cognito's classic hosted UI only accepts a FIXED list of classes and, in
-     * each of them, a fixed list of properties. `font-family` is not on that
-     * list, so Space Grotesk and Inter cannot reach this page: what carries
-     * the brand here is colour, weight and radius. The palette is the one from
-     * the brand book (CLAUDE.md), and the button is Azul cofre so that the
-     * only action on the page reads as the same action the product uses.
+     * The settings document was NOT written by hand: it is the one Cognito
+     * generates for a new branding, with the palette, the radius and the logo
+     * patched into it. The schema is large and validated on deploy, so
+     * starting from what the service itself produces is the difference
+     * between a change and a guessing game.
      *
-     * Two limits of this page are worth naming, because they are Cognito's
-     * and not ours. The PAGE background is not in the customizable list: only
-     * the card is, so the card is white and reads as a card against whatever
-     * Cognito paints behind it, exactly like the card of the product's own
-     * screens. And the logo would need a raster upload through the
-     * SetUICustomization API, which CloudFormation does not carry, while the
-     * symbol only exists as SVG. An empty logo area is honest; a broken image
-     * would not be, and a banner sized for a logo that never arrives is just
-     * a gap.
+     * The symbol comes from the frontend, which owns the brand assets, so
+     * there is one copy of it and not two that drift.
      */
-    new cognito.CfnUserPoolUICustomizationAttachment(this, 'HostedUiBranding', {
+    const symbol = (file: string): string =>
+      readFileSync(join(here, '..', '..', 'memorysmith-frontend', 'public', file)).toString(
+        'base64',
+      );
+
+    new cognito.CfnManagedLoginBranding(this, 'ManagedLoginBranding', {
       userPoolId: this.userPool.userPoolId,
-      // ALL, and not a single client: whoever signs in, including through the
-      // connector, should meet the same page.
-      clientId: 'ALL',
-      css: [
-        '.background-customizable { background-color: #FFFFFF; }',
-        '.banner-customizable { background-color: #FFFFFF; padding: 8px 0 0 0; }',
-        '.label-customizable { color: #0E1526; font-size: 13px; font-weight: 500; }',
-        '.textDescription-customizable { color: #0E1526; font-size: 14px; padding-top: 8px; padding-bottom: 16px; }',
-        '.legalText-customizable { color: #5A6272; font-size: 12px; margin-top: 16px; }',
-        '.inputField-customizable { background: #FFFFFF; border: 1px solid #D5D8D3; border-radius: 8px; color: #0E1526; font-size: 14px; padding: 10px 12px; width: 100%; }',
-        '.inputField-customizable:focus { border-color: #0F56D7; outline: 0; }',
-        '.submitButton-customizable { background-color: #0F56D7; border: 0; border-radius: 8px; color: #FFFFFF; font-size: 14px; font-weight: 600; margin: 16px 0 8px 0; width: 100%; }',
-        '.submitButton-customizable:hover { background-color: #0C46AF; color: #FFFFFF; }',
-        '.idpButton-customizable { background: #FFFFFF; border: 1px solid #D5D8D3; border-radius: 8px; color: #0E1526; font-size: 14px; font-weight: 500; padding: 10px 12px; width: 100%; }',
-        '.idpButton-customizable:hover { background: #E4E7E2; color: #0E1526; }',
-        '.errorMessage-customizable { background: #FFF1E8; border: 1px solid #FF8A2B; color: #0E1526; font-size: 13px; padding: 10px 12px; text-align: left; }',
-        '.redirect-customizable { padding: 8px 0; text-align: center; }',
-      ].join('\n'),
+      clientId: this.webClient.userPoolClientId,
+      useCognitoProvidedValues: false,
+      settings: JSON.parse(
+        readFileSync(join(here, '..', 'branding', 'managed-login.json'), 'utf8'),
+      ) as unknown,
+      assets: [
+        {
+          category: 'FORM_LOGO',
+          colorMode: 'LIGHT',
+          extension: 'SVG',
+          bytes: symbol('symbol.svg'),
+        },
+        {
+          category: 'FORM_LOGO',
+          colorMode: 'DARK',
+          extension: 'SVG',
+          bytes: symbol('symbol-dark.svg'),
+        },
+      ],
     });
 
     new CfnOutput(this, 'UserPoolId', { value: this.userPool.userPoolId });
