@@ -47,7 +47,7 @@ Para **o que** o produto faz e sob qual regra de negócio, ver [`software-vision
 | **D1** | **Acesso por agente via MCP server remoto** (OAuth 2.1, Streamable HTTP) | REST com token manual |
 | **D2** | **DynamoDB guarda todo o significado; S3 guarda blobs de Markdown sem significado** | Só S3; PostgreSQL; um repositório git por vault |
 | **D3** | **Isolamento por assinatura desde a primeira linha**, com `SubscriptionId` na chave líder de todo item, em todo serviço | Introduzir a fronteira depois, o que equivale a re-chavear tudo |
-| **D4** | **Subscription → Workspace → Vault**, em que a assinatura é a fronteira **e** o objeto de negócio | Tenant técnico separado da assinatura; vault direto na assinatura |
+| **D4** | **Subscription → Vault**, em que a assinatura é a fronteira, a unidade de colaboração **e** o objeto de negócio | Tenant técnico separado da assinatura; nível intermediário de workspace (removido, `software-vision.md` §4.3) |
 | **D5** | **DDD tático mais Hexagonal, um deployable por bounded context** como desenho-alvo | Monólito modular (ver §24) |
 | **D6** | **Duas descobertas complementares, grafo de links e busca vetorial, ambas projeções de eventos** | Só busca lexical |
 | **D7** | **Proveniência e histórico imutável no núcleo** | Log de aplicação; versionamento apenas no S3 |
@@ -320,7 +320,6 @@ Fronteira de consistência: o vault e **toda a sua árvore de pastas**.
 export class Vault {
   private constructor(
     private readonly id: VaultId,
-    private readonly workspaceId: WorkspaceId,
     private name: VaultName,
     private description: ShortText,
     private guidance: ContentRef | null,       // ponteiro opaco; o agregado nunca vê o Markdown
@@ -401,13 +400,13 @@ Detalhes que decorrem disso:
 | Agregado | Contexto | Invariantes |
 |---|---|---|
 | `Subscription` | Access | Exatamente um `owner` (RN-ACC-001), garantido por ser um campo e não uma coleção; transições de status válidas apenas conforme a máquina de `software-vision.md` §4.4; motivo obrigatório na rejeição; o `SubscriptionId` é `readonly` e nenhum método o toca (§8.1) |
-| `Workspace` | Access | E-mail único entre membros; convite pendente não é membro; membro pertence à mesma assinatura; papel de membro é `EDITOR` ou `VIEWER`, já que `OWNER` não é membership (§9.4) |
+| `Subscription` | Access | Exatamente um `OWNER`, sempre presente; e-mail único entre membros; convite pendente não é membro; papel de membro é `EDITOR` ou `VIEWER`, já que `OWNER` não é membership (§9.4) |
 | `NoteGraph` · `VaultIndex` | Discovery | Projeções, reconstruíveis a qualquer momento (PE5) |
 | `AuditTrail` | Audit | Append-only: a única operação é `append` |
 
 ### 6.4 Value Objects
 
-`SubscriptionId` `WorkspaceId` `VaultId` `FolderId` `NoteId` `ContentId` (ULID) · `Slug` · `Position` · `FolderDescription` (de 1 a 500 caracteres, obrigatória) · `ContentRef` · `Revision` · `SlugConflictPolicy` · `RemovalPolicy` · `ErasureReason` · `SubscriptionStatus` · `Role` · `VaultRoleLimit` · `Authorship` · `AgentIdentity` · `LinkTarget` · `ChunkId`.
+`SubscriptionId` `VaultId` `FolderId` `NoteId` `ContentId` (ULID) · `Slug` · `Position` · `FolderDescription` (de 1 a 500 caracteres, obrigatória) · `ContentRef` · `Revision` · `SlugConflictPolicy` · `RemovalPolicy` · `ErasureReason` · `SubscriptionStatus` · `Role` · `VaultRoleLimit` · `Authorship` · `AgentIdentity` · `LinkTarget` · `ChunkId`.
 
 `Role` é uma enumeração **ordenada** (`NONE < VIEWER < EDITOR < OWNER`) e expõe `Role.min(a, b)`. É essa ordem que permite escrever o teto de vault como um mínimo (§14.2) em vez de uma cadeia de condicionais, e é ela que torna impossível, por tipo, que um teto promova alguém.
 
@@ -432,7 +431,7 @@ Empates, possíveis sob concorrência, são desempatados pelo ULID do item, de m
 ```
 Access:     SubscriptionRequested · SubscriptionApproved · SubscriptionRejected
             SubscriptionSuspended · SubscriptionReactivated · SubscriptionCanceled
-            OwnershipTransferred · WorkspaceCreated · MemberInvited · MemberJoined
+            OwnershipTransferred · MemberInvited · MemberJoined
             MemberRoleChanged · MemberRemoved · VaultRoleLimitSet · VaultRoleLimitCleared
 Knowledge:  VaultCreated · VaultRenamed · GuidanceUpdated · FolderAdded · FolderRenamed
             FolderDescribed · FolderMoved · FolderReordered · FolderRemoved · TemplateUpdated
@@ -450,7 +449,7 @@ Publicados via **outbox transacional** (§10.4). Adicionar consumidor não toca 
 - **`FolderTreePlacement`** resolve "colocar depois de X dentro de Y" em `(parentId, Position)`, validando I2 e I3.
 - **`LinkExtractor`** extrai `[[wikilinks]]` e links Markdown relativos do **corpo** da nota. Só sintaxe universal: nenhum nome de campo, nenhuma convenção de vault (PP4). Regra de resolução em §11.1.
 - **`VaultContextComposer`** monta o Vault Context a partir do agregado e do `ContentStore`. **Vive no domínio porque o formato desse documento é o produto** (`software-vision.md` §9.2), não detalhe de apresentação.
-- **`AuthorizationPolicy`** decide `(memberships, workspaceId do recurso, ação)`. É serviço de domínio, não porta de infraestrutura (§14.2).
+- **`AuthorizationPolicy`** decide `(papel na assinatura, teto do vault, ação)`. É serviço de domínio, não porta de infraestrutura (§14.2).
 
 ---
 
@@ -549,7 +548,7 @@ Responde *"de quais assinaturas eu participo?"* e nada mais (RN-SUB-003).
 
 ```
 GSI2:  PK: PLATFORM#{status}   SK: REQUESTED#{timestamp}#{subscriptionId}
-       projeção: name, ownerEmail, status, requestedAt, workspaceCount
+       projeção: name, ownerEmail, status, requestedAt, memberCount
 ```
 
 A projeção é `INCLUDE`, não `ALL`, e a lista de atributos é a garantia: **o índice não carrega nada além do que a tela de plataforma mostra**. Ampliá-la é uma decisão de privacidade, não uma otimização, e por isso a lista está escrita aqui.
@@ -643,7 +642,7 @@ Mover entre vaults é a **única operação do sistema que escreve em duas parti
 
 | Item | PK | SK | Atributos |
 |---|---|---|---|
-| Vault | `S#{s}#VAULT#{v}` | `META` | workspaceId, name, slug, description, **guidanceRef**, version |
+| Vault | `S#{s}#VAULT#{v}` | `META` | name, slug, description, **guidanceRef**, version |
 | Folder | `S#{s}#VAULT#{v}` | `FOLDER#{folderId}` | parentFolderId, name, slug, description, position, **templateRef** |
 | Contador de pasta | `S#{s}#VAULT#{v}` | `FSTAT#{folderId}` | noteCount, updatedAt (projeção assíncrona, §10.3) |
 | Contador de vault | `S#{s}#VAULT#{v}` | `FSTAT` | noteCount, updatedAt; indexado no `GSI1` como `VSTAT#{v}` |
@@ -670,7 +669,7 @@ Query  PK = S#{s}#VAULT#{v}   AND   SK BETWEEN 'FOLDER#' AND 'META'
 
 | Índice | PK | SK | Serve |
 |---|---|---|---|
-| `GSI1` | `S#{s}#WS#{ws}` | `VAULT#{v}` · `VSTAT#{v}` | listar vaults do workspace, já com a contagem |
+| `GSI1` | `S#{s}#VAULTS` | `VAULT#{v}` · `VSTAT#{v}` | listar os vaults da assinatura, já com a contagem |
 | `GSI2` | `S#{s}#FOLDER#{f}` | `NOTE#{position}#{noteId}` | listar notas de uma pasta, **na ordem definida** |
 
 `GSI2` é **esparso**: os atributos que formam sua chave só existem enquanto `deletedAt` não existe. Nota apagada some das listagens sem uma linha de filtro em lugar nenhum (§12.4). Ordenação alfabética continua disponível como ordenação de exibição, feita no cliente sobre o resultado.
@@ -682,13 +681,11 @@ S#{s}              / META                  → assinatura: name, ownerId, status
                                              reviewedBy, rejectionReason, legalHold
 S#{s}              / USER#{userId}          → usuário conhecido pela assinatura
 S#{s}              / INVITE#{token}         → convite pendente (ttl = expiresAt)
-S#{s}#WS#{ws}      / META                   → workspace
-S#{s}#WS#{ws}      / MEMBER#{userId}        → membership: role (EDITOR | VIEWER)
+S#{s}              / MEMBER#{userId}        → membership: role (EDITOR | VIEWER)
 USER#{userId}      / SUB#{subscriptionId}   → vínculo (§8.3, exceção 1)
 
-GSI1:  USER#{userId}         → S#{s}#WS#{ws}                          → "quais workspaces eu tenho"
 GSI2:  PLATFORM#{status}     → REQUESTED#{timestamp}#{subscriptionId}  → fila da plataforma (§8.3, exceção 2)
-                               projeção INCLUDE: name, ownerEmail, status, requestedAt, workspaceCount
+                               projeção INCLUDE: name, ownerEmail, status, requestedAt, memberCount
 ```
 
 **O `OWNER` não é um item `MEMBER`.** A titularidade mora em `ownerId`, no item `META` da assinatura: um campo único, que é como RN-ACC-001 ("exatamente um `OWNER`") deixa de ser regra a verificar e passa a ser forma do dado. A transferência de titularidade é um `Update` condicional nesse campo mais o `Put` do membership `EDITOR` do titular anterior, numa transação (RN-ACC-002).
@@ -879,7 +876,7 @@ Consumidor de **todos** os eventos do bus, de todos os serviços.
 |---|---|---|---|
 | Audit Event | `S#{s}#{subject}#{subjectId}` | `AT#{timestamp}#{eventUlid}` | type, authorship, contentRef, payload |
 
-com `subject ∈ {WORKSPACE, MEMBER, VAULT, FOLDER, NOTE}`. Um `Query` por `PK` devolve a linha do tempo completa de qualquer objeto, em ordem cronológica, sem varredura.
+com `subject ∈ {SUBSCRIPTION, MEMBER, VAULT, FOLDER, NOTE}`. Um `Query` por `PK` devolve a linha do tempo completa de qualquer objeto, em ordem cronológica, sem varredura.
 
 A chave é **por sujeito, não por vault**, e isso não é detalhe: é o que faz a linha do tempo de uma nota sobreviver a ela mudar de pasta e de vault, desde que o `NoteId` seja preservado. É a razão de `moveTo` existir como comando em vez de ser implementado como delete mais create (§6.2).
 
@@ -971,8 +968,8 @@ Consumidas pela UI; **o contrato público é o MCP**.
 svc-access       GET  /session/subscriptions · POST /session/subscription  { subscriptionId }
                  POST /subscriptions                       (onboarding: pending_approval)
                  POST /subscriptions/:s/ownership          { toUserId }
-                 POST /workspaces · GET /workspaces · POST /workspaces/:ws/members
-                 PATCH /workspaces/:ws/members/:u          { role }
+                 GET  /members · POST /members             { email, role }
+                 PATCH /members/:u  { role } · DELETE /members/:u
                  POST /invites/:token/accept · GET /authz  (Lambda Authorizer)
 svc-access       GET  /platform/subscriptions?status=      ─┐  sessão de plataforma:
  (plataforma)    POST /platform/subscriptions/:s/approve    ├─ sem claim subscription_id,
@@ -1004,22 +1001,21 @@ Roteamento por path num CloudFront único (`api.memorysmith.app/knowledge/*` e a
 
 Deixar isso implícito é como nascem os furos de authz. Cada estágio tem dono explícito:
 
-1. **Authorizer (`svc-access`).** Valida o JWT do Cognito, confirma que a assinatura ativa está em `trial` ou `active` (RN-SUB-007), resolve a titularidade (`isOwner`) e a lista de `(workspaceId, role)`, e injeta tudo no contexto da requisição (cache 5 min). **Não sabe o que é um vault**, nem poderia: quem sabe a que workspace um vault pertence é o Knowledge, e quem guarda o teto por vault é o Knowledge.
+1. **Authorizer (`svc-access`).** Valida o JWT do Cognito, confirma que a assinatura ativa está em `trial` ou `active` (RN-SUB-007), resolve a titularidade (`isOwner`) e o papel do usuário na assinatura, e injeta tudo no contexto da requisição (cache 5 min). **Não sabe o que é um vault**, nem poderia: quem guarda o teto por vault é o Knowledge.
 2. **Serviço dono do recurso.** O `AuthorizationPolicy`, serviço de domínio e não porta de infra (§6.6), decide localmente, sem nenhuma chamada de rede.
 
-**A decisão do estágio 2, em uma expressão.** O papel efetivo é o menor entre o papel no workspace e o teto do vault, e a titularidade passa por cima dos dois:
+**A decisão do estágio 2, em uma expressão.** O papel efetivo é o menor entre o papel na assinatura e o teto do vault, e a titularidade passa por cima dos dois:
 
 ```typescript
 // domain/access/AuthorizationPolicy.ts — sem I/O, sem SDK
 effectiveRole(ctx: RequestContext, vault: Vault): Role {
-  if (ctx.isOwner) return Role.OWNER;                    // titular alcança tudo (RN-ACC-013)
-  const inWorkspace = ctx.roleIn(vault.workspaceId);     // EDITOR | VIEWER | none
-  if (!inWorkspace) return Role.NONE;
-  return Role.min(inWorkspace, vault.limitFor(ctx.user)); // o teto só rebaixa (RN-ACC-011)
+  if (ctx.isOwner) return Role.OWNER;                     // titular alcança tudo (RN-ACC-013)
+  if (!ctx.role.canRead()) return Role.NONE;             // EDITOR | VIEWER | none
+  return Role.min(ctx.role, vault.limitFor(ctx.user));   // o teto só rebaixa (RN-ACC-011)
 }
 ```
 
-Os três insumos chegam sem custo extra: `isOwner` e as memberships vêm do contexto injetado pelo authorizer; `workspaceId` e os tetos vêm do **mesmo `Query`** que já carregou o vault (§9.3). Nenhuma consulta adicional entra no caminho quente por causa da autorização.
+Os três insumos chegam sem custo extra: `isOwner` e o papel vêm do contexto injetado pelo authorizer, e os tetos vêm do **mesmo `Query`** que já carregou o vault (§9.3). Nenhuma consulta adicional entra no caminho quente por causa da autorização.
 
 **Regra fixa, sem exceção:** todo caso de uso do Knowledge carrega o vault e chama `policy.require(action, vault)` **antes de qualquer outra coisa**. E **recurso proibido devolve o mesmo `404` que recurso inexistente** (RN-SUB-004), porque `403` confirmaria a existência de um vault que o requisitante não pode ver.
 
@@ -1029,7 +1025,7 @@ Os três insumos chegam sem custo extra: `isOwner` e as memberships vêm do cont
 
 | Mudança | Tempo até surtir efeito | Por quê |
 |---|---|---|
-| Papel no workspace, teto de vault, remoção de membro | até 5 min | cache do authorizer (RN-ACC-016) |
+| Papel na assinatura, teto de vault, remoção de membro | até 5 min | cache do authorizer (RN-ACC-016) |
 | Status da assinatura (suspensão) | vida do token | a claim `subscription_status` envelhece com ele (§8.5) |
 | Titularidade transferida | até 5 min | mesmo cache |
 
@@ -1255,7 +1251,7 @@ Nenhum passo pode ser marcado como opcional. O passo 3 em particular é o que im
 - [ ] O evento carrega `ContentRef` completo, quando há conteúdo envolvido?
 
 **Borda**
-- [ ] `policy.require(action, workspaceId)` antes de qualquer outra coisa.
+- [ ] `policy.require(action, vault)` antes de qualquer outra coisa.
 - [ ] Recurso proibido devolve `404`.
 - [ ] O erro devolvido é acionável.
 - [ ] Se é tool nova de MCP: entra no catálogo de `software-vision.md` §9.1 e dispara bump minor (§23).
@@ -1328,7 +1324,7 @@ Ordem de dependência técnica, com critério de pronto verificável. A coluna *
 | 2 | Monorepo, kernel, `SubscriptionId`, `Authorship`, taxonomia de erros (§15), CDK, CI com regra de dependência | Build quebra se `domain/` importar SDK da AWS | 0.2.0 |
 | 3 | Domínio do Knowledge: `Vault`, `FolderTree`, `Position`, `Note` | Suíte do domínio verde **sem nenhuma dependência de AWS** | 0.2.0 |
 | 4 | Adaptadores Dynamo, S3 e outbox; `ContentStore` com chave opaca e `ContentRef` completo no evento | 20 reorders concorrentes: nenhuma perda, nenhuma ordem indefinida. **50 notas criadas em paralelo no mesmo vault: nenhum retry por contenção** (§10.2) | 0.2.0 |
-| 5 | `svc-access`: assinatura e seu status, workspace, authorizer em dois estágios (§14.2) | Teste de isolamento entre assinaturas passa; recurso de outra assinatura devolve `404` e não `403`; token de plataforma não alcança o Knowledge | 0.2.0 |
+| 5 | `svc-access`: assinatura, seus membros e seu status, authorizer em dois estágios (§14.2) | Teste de isolamento entre assinaturas passa; recurso de outra assinatura devolve `404` e não `403`; token de plataforma não alcança o Knowledge | 0.2.0 |
 | 6 | `svc-knowledge` HTTP completo | Reordenar pasta é 1 write no item da pasta; mover nota entre pastas é 0 bytes no S3; apagar nota mantém `read_note(asOf)` funcionando | 0.2.0 |
 | 7 | `svc-audit` | `read_note(asOf)` devolve o conteúdo correto de uma data passada; update no log falha **por IAM** | 0.2.0 |
 | 8 | `svc-agent`: o catálogo de tools | `get_vault_context` devolve o Markdown de `software-vision.md` §9.2, com as contagens, em **um** `Query` | 0.2.0 |

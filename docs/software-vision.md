@@ -68,7 +68,7 @@ O produto não é guardar `.md`, é **entregar contexto estruturado ao agente se
 | Para quem | Dor | O que o produto entrega |
 |---|---|---|
 | Quem trabalha com agente sobre um corpo de conhecimento | A pasta local não sai da máquina | Vault remoto, conectado nativamente ao cliente de IA |
-| Times que compartilham uma base | Sincronizar arquivos não resolve edição concorrente | Workspace com papéis e escrita com detecção de conflito |
+| Times que compartilham uma base | Sincronizar arquivos não resolve edição concorrente | Assinatura com papéis e escrita com detecção de conflito |
 | Trabalho regulado (auditoria, jurídico, compliance) | O parecer emitido não pode ser demonstrado com a base de ontem | Histórico por revisão, autoria de humano e agente, trilha imutável |
 | Quem tem muitos assuntos | Pastas soltas, sem catálogo | Lista de vaults com descrição, cada um autônomo |
 | Quem teme lock-in | Base é ativo de longo prazo | Export de `.md` puros, sem formato proprietário |
@@ -92,7 +92,7 @@ Decisões que valem para o produto inteiro e a que qualquer funcionalidade nova 
 | **PP5** | **Descoberta é derivada** | Grafo e busca vetorial nunca são fonte da verdade; são reconstruíveis a partir dos `.md` |
 | **PP6** | **O passado é imutável** | Apagar uma nota não destrói o histórico. Destruir conteúdo é ato administrativo registrado, nunca efeito colateral |
 | **PP7** | **Portável por construção** | Export devolve `.md` puros numa árvore de arquivos legível, sem formato proprietário |
-| **PP8** | **Modelo completo, interface progressiva** | Assinatura, workspaces, papéis e vínculos existem desde a primeira linha; a UI só mostra cada um quando o usuário chega no caso que o exige |
+| **PP8** | **Modelo completo, interface progressiva** | Assinatura, papéis e vínculos existem desde a primeira linha; a UI só mostra cada um quando o usuário chega no caso que o exige |
 | **PP9** | **Ordem é sinal, não enfeite** | A ordem de pastas e de notas é conteúdo: é ela que diz ao agente por onde começar. Por isso é editável e é preservada até no export |
 | **PP10** | **Erro é interface** | Toda recusa devolvida ao agente precisa dizer o que fazer em seguida: argumento faltante devolve as opções válidas, e conflito devolve o conteúdo atual |
 
@@ -104,10 +104,9 @@ Termo único por conceito, do código ao produto. Divergência aqui é o começo
 
 | Termo | Significa | **Não** confundir com |
 |---|---|---|
-| **Subscription** | A assinatura: fronteira de isolamento, unidade de cobrança e raiz de tudo. Tem um titular e um estado | Conta de usuário, workspace |
+| **Subscription** | A assinatura: fronteira de isolamento, unidade de colaboração, unidade de cobrança e raiz de tudo. Tem um titular, membros e um estado | Conta de usuário |
 | **Platform Admin** | Quem opera a plataforma e autoriza assinaturas. **Não é papel dentro de assinatura alguma** e não alcança conteúdo | Owner, administrador do cliente |
 | **Owner** | O titular da assinatura: responsável pelo pagamento, convida e remove membros, edita tudo. Um por assinatura | Editor com muitos direitos |
-| **Workspace** | Unidade de colaboração dentro da assinatura; contém vaults e membros | Assinatura, pasta |
 | **Vault** | Um cofre de conhecimento autodescrito | Repositório, pasta raiz |
 | **Guidance** | O **papel** de "para que serve este vault e como estruturar as notas", desempenhado por um documento apontado pelo vault | Um arquivo chamado `README.md` |
 | **Folder** | Nó ordenado da árvore do vault, com `description` que diz *o que se guarda ali* | Diretório físico (não existe) |
@@ -125,9 +124,9 @@ Termo único por conceito, do código ao produto. Divergência aqui é o começo
 | **Vault Context** | Documento composto (Guidance mais árvore anotada) entregue ao agente | Dump do vault |
 | **Content Slot** | Um documento Markdown armazenado, endereçado por identificador opaco. Nota, guidance e template são o **mesmo** tipo de coisa; o que difere é quem aponta para ele | Arquivo, caminho |
 | **Content Role** | O significado atribuído a um slot: `body` (nota), `guidance` (vault) ou `template` (pasta) | Nome de arquivo reservado |
-| **Vínculo** | A relação `(usuário, assinatura)` que autoriza aquele usuário a atuar naquela assinatura | Membership de workspace |
+| **Vínculo** | A relação `(usuário, assinatura)` que autoriza aquele usuário a atuar naquela assinatura | Membership |
 | **Assinatura Ativa** | A assinatura em cujo nome a sessão age agora, escolhida entre os vínculos | O conjunto das assinaturas do usuário |
-| **Membership** | A relação `(usuário, workspace)` com papel `EDITOR` ou `VIEWER` | Vínculo com a assinatura |
+| **Membership** | A relação `(usuário, assinatura)` com papel `EDITOR` ou `VIEWER` | Vínculo, que diz apenas que o usuário alcança a assinatura |
 | **Vault Role Limit** | O teto de papel de um membro num vault específico. Só rebaixa, nunca promove | Papel próprio do vault |
 | **Expurgo** | Destruição deliberada do conteúdo de um Content Slot, com motivo e autorização registrados | Apagar uma nota |
 
@@ -137,16 +136,15 @@ Termo único por conceito, do código ao produto. Divergência aqui é o começo
 
 ### 4.1 Visão geral do modelo
 
-A assinatura não é uma feature: é a forma do produto. Um cliente é uma **Subscription**; dentro dela, pessoas colaboram em **Workspaces**; dentro do workspace vivem os **Vaults**.
+A assinatura não é uma feature: é a forma do produto. Um cliente é uma **Subscription**, e dentro dela pessoas colaboram nos **Vaults**.
 
 ```
-Subscription  (fronteira de isolamento, cobrança e identidade: um titular, um estado)
-└── Workspace  (unidade de colaboração: quem trabalha junto)
-    └── Vault  (o conhecimento em si, autônomo, PP2)
-        ├── Guidance
-        └── Folder (ordenada, com descrição)
-            ├── Template
-            └── Note (ordenada)
+Subscription  (fronteira de isolamento, colaboração, cobrança e identidade: um titular, membros, um estado)
+└── Vault  (o conhecimento em si, autônomo, PP2)
+    ├── Guidance
+    └── Folder (ordenada, com descrição)
+        ├── Template
+        └── Note (ordenada)
 ```
 
 **Acima da assinatura existe apenas a plataforma**, operada pelo `PLATFORM_ADMIN`. Ela não é um nível da hierarquia de dados: é uma superfície separada, que autoriza assinaturas e nunca alcança conteúdo (§4.6).
@@ -159,15 +157,14 @@ A assinatura acumula dois papéis que normalmente ficam separados: é o objeto d
 
 Sem essa regra, "cancelar" viraria migração de dados e "recontratar" viraria importação, e a fronteira de isolamento passaria a depender de um estado que muda. Com ela, o status controla **acesso**, nunca **endereço**.
 
-### 4.3 Hierarquia e por que ela tem três níveis
+### 4.3 Hierarquia e por que ela tem dois níveis
 
 | Nível | Quem manda | Existe para |
 |---|---|---|
-| **Subscription** | `OWNER` (um, o titular) | Isolamento, cobrança, domínio de identidade |
-| **Workspace** | `EDITOR` · `VIEWER` (convidados) | Colaboração: quem trabalha junto em quais vaults |
-| **Vault** | herda do workspace, com teto opcional (§5.3) | O conhecimento em si |
+| **Subscription** | `OWNER` (um, o titular) e os membros `EDITOR` · `VIEWER` | Isolamento, colaboração, cobrança, domínio de identidade |
+| **Vault** | herda o papel da assinatura, com teto opcional (§5.3) | O conhecimento em si |
 
-O nível de workspace não é redundante com a assinatura: uma organização com dois times que não devem se ver tem **uma** assinatura e **dois** workspaces. Colapsar os dois níveis obrigaria a contratar assinaturas separadas, e portanto pagar duas vezes, por um caso que é de organização interna.
+**Decisão consciente, com um custo declarado.** Existiu um terceiro nível entre os dois, o workspace, e ele foi removido. Ele resolvia um caso: dois times do mesmo cliente que não devem se ver. Sem ele, quem é membro da assinatura alcança todos os vaults dela, e a única granularidade que sobra é o teto por vault, que rebaixa a escrita mas nunca esconde. Separar dois grupos passa a exigir **duas assinaturas**, e portanto duas cobranças. O custo foi pesado e aceito: um nível a menos vale mais para quem usa o produto sozinho ou em time único, que é o caso que o produto atende primeiro, do que a granularidade valeria para o caso que ele ainda não atende.
 
 ### 4.4 Onboarding e ciclo de vida da assinatura
 
@@ -178,8 +175,8 @@ Não há processamento automático de pagamento nesta fase. A ativação é um *
 | **Signup** | Cria a conta de usuário. Nenhuma assinatura ainda, nenhum acesso operacional |
 | **Onboarding** | O usuário solicita uma assinatura e passa a ser o `OWNER` dela. Status: `pending_approval` |
 | **Autorização** | Um `PLATFORM_ADMIN` aprova (status vira `trial` ou `active`) ou rejeita, com motivo obrigatório |
-| **Configuração** | O `OWNER` cria workspaces e vaults, e escreve Guidance e Templates |
-| **Convite** | O `OWNER` convida por e-mail para um workspace, definindo `EDITOR` ou `VIEWER` |
+| **Configuração** | O `OWNER` cria vaults e escreve Guidance e Templates |
+| **Convite** | O `OWNER` convida por e-mail para a assinatura, definindo `EDITOR` ou `VIEWER` |
 | **Aceite** | O convidado ganha vínculo com aquela assinatura. **Não cria assinatura própria e não paga nada** |
 | **Saída** | Remover um membro revoga o acesso; a conta, os demais vínculos e a autoria do que ele escreveu permanecem |
 | **Suspensão / cancelamento** | Acesso operacional cessa; os dados permanecem sob a mesma chave (§4.2) |
@@ -214,13 +211,13 @@ O `PLATFORM_ADMIN` opera a plataforma: aprova, rejeita e suspende assinaturas. *
 
 > Uma sessão de plataforma **não carrega assinatura ativa**. Como toda chave de dado do sistema começa pela assinatura, não há chave que uma credencial de admin consiga montar. A impossibilidade é estrutural, não uma verificação que alguém precisa lembrar de escrever.
 
-O que ele vê é metadado de assinatura: titular, e-mail, status, datas e contagem de workspaces. Nunca nome de vault, nunca conteúdo de nota.
+O que ele vê é metadado de assinatura: titular, e-mail, status, datas e contagem de membros. Nunca nome de vault, nunca conteúdo de nota.
 
 Se um `PLATFORM_ADMIN` também for usuário de alguma assinatura, ele age ali como qualquer outro membro, com sessão própria. Os dois papéis nunca se somam na mesma sessão.
 
 ### 4.7 Interface progressiva (PP8)
 
-**A UI esconde o nível de workspace enquanto houver um só, e esconde a troca de assinatura enquanto houver um só vínculo.** O modelo é completo desde o começo, e a interface é que aparece por etapas.
+**A UI esconde a lista de membros enquanto houver só o titular, e esconde a troca de assinatura enquanto houver um só vínculo.** O modelo é completo desde o começo, e a interface é que aparece por etapas.
 
 ### 4.8 Regras de negócio: assinatura e isolamento
 
@@ -239,7 +236,7 @@ Se um `PLATFORM_ADMIN` também for usuário de alguma assinatura, ele age ali co
 - **RN-SUB-013:** Trocar de assinatura ativa é ação explícita do usuário; nenhuma operação de negócio recebe a assinatura como argumento.
 - **RN-SUB-014:** Um conector MCP autorizado opera sempre na assinatura fixada no momento do consentimento, pela vida inteira daquela autorização.
 - **RN-SUB-015:** Índices derivados (busca vetorial, grafo, cache) respeitam a mesma fronteira de assinatura que o dado de origem.
-- **RN-SUB-016:** Uma sessão de `PLATFORM_ADMIN` não carrega assinatura ativa e, portanto, não alcança nenhum dado de workspace, vault ou nota.
+- **RN-SUB-016:** Uma sessão de `PLATFORM_ADMIN` não carrega assinatura ativa e, portanto, não alcança nenhum dado de vault ou nota.
 - **RN-SUB-017:** Aceitar um convite não cria assinatura para o convidado: ele passa a atuar na assinatura de quem convidou.
 
 ---
@@ -254,10 +251,10 @@ Quatro papéis, em dois planos que nunca se misturam na mesma sessão:
 |---|---|---|---|
 | `PLATFORM_ADMIN` | Plataforma | Quem opera o serviço | Vários |
 | `OWNER` | Assinatura | O titular, definido no onboarding | **Exatamente um por assinatura** |
-| `EDITOR` | Workspace | Convidado que escreve | Vários por workspace |
-| `VIEWER` | Workspace | Convidado que só lê, inclusive revisor externo | Vários por workspace |
+| `EDITOR` | Assinatura | Convidado que escreve | Vários por assinatura |
+| `VIEWER` | Assinatura | Convidado que só lê, inclusive revisor externo | Vários por assinatura |
 
-O `OWNER` é da **assinatura**, não de um workspace: ele alcança todos os workspaces e vaults dela, sem precisar ser convidado para cada um. `EDITOR` e `VIEWER` são do **workspace**: um mesmo usuário pode ser `EDITOR` num workspace e `VIEWER` em outro, dentro da mesma assinatura.
+Os três papéis de cliente são da **assinatura**. O `OWNER` alcança todos os vaults dela sem precisar ser convidado para cada um, e `EDITOR` e `VIEWER` alcançam todos os vaults com o papel que têm, até onde o teto de cada vault permitir (§5.3). Um usuário tem **um** papel por assinatura, e não um papel por recorte.
 
 **Transferência.** O `OWNER` pode transferir a titularidade para outro membro da assinatura, e a partir daí ele passa a ser `EDITOR`. A assinatura nunca fica sem titular, porque a transferência é atômica e não é "remover e depois nomear".
 
@@ -267,8 +264,6 @@ O `OWNER` é da **assinatura**, não de um workspace: ele alcança todos os work
 |---|:---:|:---:|:---:|:---:|
 | Aprovar / rejeitar / suspender assinatura | ● | — | — | — |
 | Ver metadados de assinaturas (titular, status, datas) | ● | ●¹ | — | — |
-| Criar workspace | — | ● | — | — |
-| Renomear / apagar workspace | — | ● | — | — |
 | Convidar membro, alterar papel, remover membro | — | ● | — | — |
 | Definir o teto de papel de um membro num vault (§5.3) | — | ● | — | — |
 | Transferir titularidade da assinatura | — | ● | — | — |
@@ -293,11 +288,11 @@ O `OWNER` é da **assinatura**, não de um workspace: ele alcança todos os work
 
 ### 5.3 Teto de papel por vault
 
-Um workspace pode conter vaults de sensibilidade diferente. Em vez de exigir um workspace novo para cada recorte, o `OWNER` pode **rebaixar** o papel de um membro num vault específico.
+Uma assinatura pode conter vaults de sensibilidade diferente. Para isso o `OWNER` pode **rebaixar** o papel de um membro num vault específico.
 
-**A permissão efetiva é sempre o menor entre o papel no workspace e o teto do vault. Nunca promove.**
+**A permissão efetiva é sempre o menor entre o papel na assinatura e o teto do vault. Nunca promove.**
 
-| Papel no workspace | Teto no vault | Efetivo |
+| Papel na assinatura | Teto no vault | Efetivo |
 |---|---|---|
 | `EDITOR` | — (nenhum) | `EDITOR` |
 | `EDITOR` | `VIEWER` | `VIEWER` |
@@ -305,7 +300,7 @@ Um workspace pode conter vaults de sensibilidade diferente. Em vez de exigir um 
 | `VIEWER` | `VIEWER` | `VIEWER` |
 | `VIEWER` | `EDITOR` | **recusado**, porque o teto não promove |
 
-Só existe um valor de teto: `VIEWER`. Não há "sem acesso", porque **quem é membro do workspace enxerga todos os vaults dele**; o que o teto controla é escrever, não ver. Tirar um vault do alcance de alguém continua sendo motivo para um workspace separado, o que mantém a pergunta "quem vê o quê" respondível olhando só a lista de membros.
+Só existe um valor de teto: `VIEWER`. Não há "sem acesso", porque **quem é membro da assinatura enxerga todos os vaults dela**; o que o teto controla é escrever, não ver. Tirar um vault do alcance de alguém exige uma assinatura separada (§4.3), o que mantém a pergunta "quem vê o quê" respondível olhando só a lista de membros.
 
 O teto não se aplica ao `OWNER`: ele é titular da assinatura e alcança tudo.
 
@@ -313,19 +308,19 @@ O teto não se aplica ao `OWNER`: ele é titular da assinatura e alcança tudo.
 
 - **RN-ACC-001:** Toda assinatura tem, em qualquer instante, exatamente um `OWNER`. Remover o `OWNER` é recusado; a única saída é a transferência de titularidade.
 - **RN-ACC-002:** A transferência de titularidade é atômica: o novo titular vira `OWNER` e o anterior vira `EDITOR` na mesma operação.
-- **RN-ACC-003:** O e-mail é único entre os membros de um workspace.
+- **RN-ACC-003:** O e-mail é único entre os membros de uma assinatura.
 - **RN-ACC-004:** Um convite pendente não concede acesso; só o aceite cria o membro.
 - **RN-ACC-005:** O convite é de uso único, vinculado ao e-mail para o qual foi enviado, e expira em 7 dias.
 - **RN-ACC-006:** Somente o `OWNER` convida, altera papel, remove membros e define tetos de vault. `EDITOR` não convida.
-- **RN-ACC-007:** Somente o `OWNER` cria, renomeia e apaga workspaces da sua assinatura.
+- **RN-ACC-007:** *(removida)* Tratava da criação, renomeação e remoção de workspaces. O nível de workspace deixou de existir (§4.3). O número é preservado e nunca será reaproveitado.
 - **RN-ACC-008:** Um convite só pode ser emitido por assinatura em status `trial` ou `active`.
-- **RN-ACC-009:** Remover um membro revoga o acesso aos workspaces daquela assinatura e preserva integralmente o que ele escreveu, incluindo a autoria registrada.
-- **RN-ACC-010:** `VIEWER`, seja por papel de workspace ou por teto de vault, recebe recusa em qualquer operação de escrita, tanto pela UI quanto pelo MCP.
-- **RN-ACC-011:** O teto de papel por vault só rebaixa. Definir um teto maior que o papel do membro no workspace é recusado com `VALIDATION`.
+- **RN-ACC-009:** Remover um membro revoga o acesso à assinatura e preserva integralmente o que ele escreveu, incluindo a autoria registrada.
+- **RN-ACC-010:** `VIEWER`, seja por papel de assinatura ou por teto de vault, recebe recusa em qualquer operação de escrita, tanto pela UI quanto pelo MCP.
+- **RN-ACC-011:** O teto de papel por vault só rebaixa. Definir um teto maior que o papel do membro na assinatura é recusado com `VALIDATION`.
 - **RN-ACC-012:** O único valor de teto admitido é `VIEWER`; não existe teto que remova a visibilidade do vault.
 - **RN-ACC-013:** O teto de vault não se aplica ao `OWNER`.
-- **RN-ACC-014:** Remover um membro do workspace remove também os tetos de vault dele naquele workspace.
-- **RN-ACC-015:** Toda decisão de autorização é tomada pelo serviço dono do recurso, combinando o papel do usuário no workspace com o teto do vault.
+- **RN-ACC-014:** Remover um membro da assinatura remove também todos os tetos de vault dele.
+- **RN-ACC-015:** Toda decisão de autorização é tomada pelo serviço dono do recurso, combinando o papel do usuário na assinatura com o teto do vault.
 - **RN-ACC-016:** Alterações de papel, de teto e remoções podem levar até 5 minutos para surtir efeito em sessões já autenticadas. Esse atraso é declarado ao usuário nas telas de membros e de vault.
 
 ---
@@ -336,7 +331,7 @@ Seis bounded contexts. A separação é de responsabilidade e vocabulário; a fo
 
 | Contexto | Responsabilidade | Tipo |
 |---|---|---|
-| **Access** | Assinaturas e seu ciclo de vida, workspaces, membros, papéis, tetos de vault, convites, vínculos, autorização | Supporting |
+| **Access** | Assinaturas e seu ciclo de vida, membros, papéis, tetos de vault, convites, vínculos, autorização | Supporting |
 | **Knowledge** | Vaults, guidance, pastas, ordem, templates, notas | **Core** |
 | **Discovery** | Grafo de links, índice vetorial e facetas de curadoria, três projeções | Supporting |
 | **Audit** | Trilha append-only: autoria, revisões, reconstrução por data | Supporting |
@@ -373,7 +368,14 @@ requested_at,
 reviewed_by_id?, reviewed_at?,
 rejection_reason?,           -- obrigatório quando status = rejected (RN-SUB-009)
 legal_hold_enabled (bool),   -- retenção legal; ver RN-AUD-009
-created_at
+created_at,
+members: [{
+  user_id,
+  email,                     -- único entre os membros da assinatura (RN-ACC-003)
+  role (EDITOR | VIEWER),    -- OWNER não é membro: alcança tudo pela titularidade
+  invited_by_id,
+  joined_at
+}]
 ```
 
 O campo `status` controla **acesso**, nunca **endereço** (§4.2). Nenhuma transição de status move ou re-chaveia dado algum.
@@ -385,21 +387,6 @@ user_id, subscription_id,
 is_owner (bool),
 is_default (bool),
 joined_at
-```
-
-#### Entidade: `Workspace` (Agregado Raiz)
-
-```
-id, subscription_id,
-name, slug,
-is_default (bool),
-created_at,
-members: [{
-  user_id,
-  role (EDITOR | VIEWER),    -- OWNER não é membro: alcança tudo pela titularidade
-  invited_by_id,
-  joined_at
-}]
 ```
 
 #### Entidade: `VaultRoleLimit`, o teto por vault (§5.3)
@@ -415,7 +402,7 @@ Vive junto do vault, não do membro: quem sabe quais vaults existem é o Knowled
 #### Entidade: `Invite`
 
 ```
-id, subscription_id, workspace_id,
+id, subscription_id,
 invitee_email,
 invitee_role (EDITOR | VIEWER),
 invited_by_id,               -- sempre o OWNER (RN-ACC-006)
@@ -441,8 +428,8 @@ O core. Quatro conceitos: o vault, a árvore de pastas, a nota e o conteúdo.
 Fronteira de consistência: o vault e **toda a sua árvore de pastas**.
 
 ```
-id, subscription_id, workspace_id,
-name, slug,
+id, subscription_id,
+name, slug,                  -- slug único na assinatura (RN-KNW-032)
 description,                 -- o que aparece no catálogo de vaults
 guidance_ref?,               -- ponteiro para o Content Slot que faz o papel de Guidance
 version,                     -- controle de concorrência do agregado
@@ -503,9 +490,9 @@ Ordenação alfabética continua disponível como opção de exibição no clien
 
 ### 8.2 Regras de negócio: vault e estrutura
 
-- **RN-KNW-001:** Todo vault pertence a exatamente um workspace, e a um só.
+- **RN-KNW-001:** Todo vault pertence a exatamente uma assinatura, e a uma só.
 - **RN-KNW-002:** O `slug` de uma pasta é único entre suas irmãs (mesmo pai, mesmo vault).
-- **RN-KNW-032:** O `slug` do vault é único **dentro do workspace**, porque é por ele que a interface endereça o vault. Criar um vault cujo nome gera um `slug` já usado devolve `ALREADY_EXISTS` **com o identificador do vault existente**, e nunca cria um segundo, pela mesma razão de RN-AGT-004: o servidor não gera sufixo automático. Renomear para um `slug` ocupado recebe a mesma recusa. Sem essa regra, dois vaults de mesmo nome dividem um endereço e o segundo fica inalcançável.
+- **RN-KNW-032:** O `slug` do vault é único **dentro da assinatura**, porque é por ele que a interface endereça o vault. Criar um vault cujo nome gera um `slug` já usado devolve `ALREADY_EXISTS` **com o identificador do vault existente**, e nunca cria um segundo, pela mesma razão de RN-AGT-004: o servidor não gera sufixo automático. Renomear para um `slug` ocupado recebe a mesma recusa. Sem essa regra, dois vaults de mesmo nome dividem um endereço e o segundo fica inalcançável.
 - **RN-KNW-003:** A profundidade máxima da árvore de pastas é 6 níveis.
 - **RN-KNW-004:** Mover uma pasta nunca pode criar ciclo: o destino não pode ser descendente da origem.
 - **RN-KNW-005:** Toda pasta tem uma `position` que a ordena entre as irmãs; toda nota tem uma `position` que a ordena dentro da pasta.
@@ -667,7 +654,7 @@ O humano é sempre identificado, porque mesmo quando quem grava é o agente a au
 #### Entidade: `AuditEvent`
 
 ```
-subject (WORKSPACE | MEMBER | VAULT | FOLDER | NOTE),
+subject (SUBSCRIPTION | MEMBER | VAULT | FOLDER | NOTE),
 subject_id,
 occurred_at,
 type,                        -- o evento de domínio que ocorreu
@@ -731,15 +718,14 @@ Normas e Legislação/
 |---|---|
 | Solicitação de assinatura | Formulário do onboarding; ao enviar, mostra o estado `pending_approval` e explica que a liberação é manual nesta fase |
 | Aguardando autorização | Estado de espera, sem acesso operacional; mostra o motivo e o botão de reenvio quando a solicitação foi rejeitada |
-| **Plataforma → Assinaturas** | Área do `PLATFORM_ADMIN`: fila de pendentes, aprovar (`trial` ou `active`), rejeitar com motivo, suspender e reativar. Mostra titular, e-mail, datas e contagem de workspaces, **nunca nome de vault nem conteúdo** (§4.6) |
+| **Plataforma → Assinaturas** | Área do `PLATFORM_ADMIN`: fila de pendentes, aprovar (`trial` ou `active`), rejeitar com motivo, suspender e reativar. Mostra titular, e-mail, datas e contagem de membros, **nunca nome de vault nem conteúdo** (§4.6) |
 
-**Assinatura e workspace**
+**Assinatura**
 
 | Tela | Conteúdo |
 |---|---|
 | Assinatura → Membros | Convidar por e-mail definindo `EDITOR` ou `VIEWER`, alterar papel, remover; declara o atraso de propagação (RN-ACC-016) |
 | Assinatura → Titularidade | Transferir a titularidade para outro membro, com confirmação explícita de que o titular atual vira `EDITOR` |
-| Workspace → Vaults | Lista de vaults do workspace |
 
 **Conhecimento**
 
@@ -755,18 +741,17 @@ Normas e Legislação/
 | Vault → Busca | Campo único, alternador lexical e semântica |
 | Vault → Atividade | Quem escreveu o quê no período, em visão de vault e não de nota |
 | Vault → Saúde | Links quebrados e notas órfãs |
-| Vault → Acesso | Lista os membros do workspace e permite rebaixar um `EDITOR` a `VIEWER` **neste vault** (§5.3). Mostra o papel efetivo de cada um, não só o teto |
+| Vault → Acesso | Lista os membros da assinatura e permite rebaixar um `EDITOR` a `VIEWER` **neste vault** (§5.3). Mostra o papel efetivo de cada um, não só o teto |
 | Vault → Conectar | URL do MCP e passo a passo por cliente |
 | Configurações da assinatura | Titularidade, transferência, retenção legal, expurgo e troca de assinatura ativa, que só aparecem quando aplicáveis (PP8) |
 
 ### 13.2 Regras de interface
 
 - A troca de assinatura só aparece para quem tem mais de um vínculo (§4.5).
-- O nível de workspace só aparece quando existe mais de um workspace.
 - A área de plataforma é uma superfície à parte, alcançada por sessão própria; nenhuma tela de conteúdo tem versão "de admin" (§4.6).
 - Uma assinatura fora de `trial` ou `active` leva o usuário à tela de estado, não a uma tela de conteúdo vazia. A diferença entre "não há nada aqui" e "seu acesso está suspenso" é a diferença entre um bug aparente e uma informação.
 - Toda operação destrutiva ou de efeito não óbvio, como mover nota entre vaults, remover pasta com conteúdo, transferir titularidade, ativar retenção legal e expurgar, mostra a consequência **antes** de confirmar, com número concreto quando houver.
-- Onde o papel efetivo difere do papel no workspace por causa de um teto de vault (§5.3), a UI mostra o efetivo e explica a origem, porque um `EDITOR` que não consegue escrever precisa saber por quê.
+- Onde o papel efetivo difere do papel na assinatura por causa de um teto de vault (§5.3), a UI mostra o efetivo e explica a origem, porque um `EDITOR` que não consegue escrever precisa saber por quê.
 
 ---
 
@@ -798,7 +783,7 @@ Este documento descreve o produto; a 0.1.0 é o recorte que **testa a tese** (§
 |---|---|
 | Autenticação do conector MCP, bloqueante | Discovery inteiro: grafo, busca semântica e facetas (§10) |
 | Vault, pastas, ordem, guidance, template, nota | Export (§12) |
-| Onboarding de assinatura, aprovação pelo `PLATFORM_ADMIN`, workspace padrão, autorização | Mover nota entre vaults |
+| Onboarding de assinatura, aprovação pelo `PLATFORM_ADMIN`, autorização | Mover nota entre vaults |
 | Auditoria: trilha, `note_history`, `read_note(asOf)` | Convites, `EDITOR`/`VIEWER` e teto por vault (§5.3) |
 | MCP com 7 tools: `list_vaults`, `get_vault_context`, `get_template`, `list_notes`, `read_note`, `create_note`, `update_note` | `search_notes`, `semantic_search`, `related_notes`, `backlinks` |
 | UI de autoria: vault, pastas, guidance, template, nota | Retenção legal e expurgo · telas de saúde, atividade e membros |
