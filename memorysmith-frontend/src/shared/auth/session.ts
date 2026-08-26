@@ -12,6 +12,7 @@ import { create } from 'zustand';
 import type { SessionDto } from '@memorysmith/contracts';
 import { claimsOf, readTokens, type AuthConfig } from './oauth';
 import { getSession } from '../api/backend';
+import i18n from '../../i18n';
 
 export type SubscriptionState =
   | 'none' // signed in, has not asked for a subscription yet
@@ -116,6 +117,16 @@ export const useLiveSession = create<SessionStore>((set) => ({
   },
 }));
 
+/**
+ * The locale of the product, as the identity provider spells it. Our codes are
+ * the i18n ones (`en_US`, `pt_BR`); the provider wants BCP 47, and it answers
+ * in English to anything it does not know, so the mapping is explicit and the
+ * fallback is the canonical locale rather than a guess.
+ */
+function providerLang(): string {
+  return i18n.language === 'pt_BR' ? 'pt-BR' : 'en';
+}
+
 export function authConfig(): AuthConfig {
   const env = import.meta.env as Record<string, string | undefined>;
   return {
@@ -123,5 +134,6 @@ export function authConfig(): AuthConfig {
     clientId: env['VITE_COGNITO_CLIENT_ID'] ?? '',
     redirectUri: `${window.location.origin}/auth/callback`,
     scopes: 'openid email profile',
+    lang: providerLang(),
   };
 }

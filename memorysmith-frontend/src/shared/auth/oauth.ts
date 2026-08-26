@@ -13,6 +13,12 @@ export interface AuthConfig {
   readonly clientId: string;
   readonly redirectUri: string;
   readonly scopes: string;
+  /**
+   * The language the sign-in page opens in, as the provider spells it. The
+   * person already chose a language in the product, and being handed to a
+   * page in another one is the seam showing (RN of no rule, just courtesy).
+   */
+  readonly lang: string;
 }
 
 export interface Tokens {
@@ -58,6 +64,7 @@ export async function beginSignIn(config: AuthConfig): Promise<void> {
   url.searchParams.set('scope', config.scopes);
   url.searchParams.set('code_challenge', await challengeFor(verifier));
   url.searchParams.set('code_challenge_method', 'S256');
+  url.searchParams.set('lang', config.lang);
   window.location.assign(url.toString());
 }
 
@@ -171,6 +178,7 @@ export function signOut(config: AuthConfig): void {
   clearTokens();
   const url = new URL(`${config.domain}/logout`);
   url.searchParams.set('client_id', config.clientId);
+  url.searchParams.set('lang', config.lang);
   url.searchParams.set('logout_uri', new URL('/', config.redirectUri).toString());
   window.location.assign(url.toString());
 }
