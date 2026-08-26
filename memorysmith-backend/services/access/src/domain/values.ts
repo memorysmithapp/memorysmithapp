@@ -34,20 +34,6 @@ export class SubscriptionName {
   }
 }
 
-export class WorkspaceName {
-  private readonly __workspaceName!: void;
-  private constructor(readonly value: string) {}
-
-  static create(raw: string): Result<WorkspaceName, DomainError> {
-    const bounds = bounded(raw, 1, 120, 'The workspace name');
-    return bounds.ok ? ok(new WorkspaceName(bounds.value)) : bounds;
-  }
-
-  toString(): string {
-    return this.value;
-  }
-}
-
 /** Mandatory on rejection, and communicated to the requester (RN-SUB-009). */
 export class RejectionReason {
   private readonly __rejectionReason!: void;

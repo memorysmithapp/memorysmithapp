@@ -16,7 +16,6 @@ import {
   NoteId,
   UserId,
   VaultId,
-  WorkspaceId,
   type Result,
   type Role,
   type SubscriptionContext,
@@ -58,7 +57,8 @@ export interface KnowledgeRequest {
   readonly ctx: RequestContext;
   readonly subscription: SubscriptionContext;
   readonly authorship: Authorship;
-  readonly workspaceRoleOf: (workspaceId: string) => Role;
+  /** The role this session holds in the subscription, already resolved. */
+  readonly subscriptionRole: Role;
 }
 
 export interface KnowledgeUseCases {
@@ -124,36 +124,25 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     const request = c.get('knowledge');
     const listed = await useCases.listVaults(request).execute({ ctx: request.ctx });
     return present(c, listed, (vaults) =>
-      vaults.map((vault) =>
-        vaultToSummary(vault, request.workspaceRoleOf(vault.workspaceId.value)),
-      ),
+      vaults.map((vault) => vaultToSummary(vault, request.subscriptionRole)),
     );
   });
 
   app.post('/vaults', async (c) => {
     const request = c.get('knowledge');
     const body = (await c.req.json().catch(() => ({}))) as {
-      workspaceId?: string;
       name?: string;
       description?: string;
     };
-    const workspaceId = WorkspaceId.create(String(body.workspaceId ?? ''));
-    if (!workspaceId.ok) return fail(c, workspaceId.error);
 
     const created = await useCases.createVault(request).execute({
       ctx: request.ctx,
-      workspaceId: workspaceId.value,
       name: String(body.name ?? ''),
       description: String(body.description ?? ''),
       subscriptionId: request.subscription.subscriptionId,
       by: request.authorship,
     });
-    return present(
-      c,
-      created,
-      (vault) => vaultToSummary(vault, request.workspaceRoleOf(vault.workspaceId.value)),
-      201,
-    );
+    return present(c, created, (vault) => vaultToSummary(vault, request.subscriptionRole), 201);
   });
 
   app.get('/vaults/:v', async (c) => {
@@ -571,7 +560,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     const userId = UserId.create(c.req.param('user') ?? '');
     if (!userId.ok) return fail(c, userId.error);
 
-    const body = (await c.req.json().catch(() => ({}))) as { limit?: string; workspaceId?: string };
+    const body = (await c.req.json().catch(() => ({}))) as { limit?: string };
     return noContent(
       c,
       await useCases.setVaultLimit(request).execute({
@@ -579,7 +568,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
         vaultId: vaultId.value,
         userId: userId.value,
         limit: String(body.limit ?? ''),
-        workspaceRole: request.workspaceRoleOf(String(body.workspaceId ?? '')),
+        subscriptionRole: request.subscriptionRole,
         by: request.authorship,
       }),
     );

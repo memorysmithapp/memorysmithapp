@@ -3,8 +3,8 @@
  *
  * FIXED RULE, NO EXCEPTION: every Knowledge use case loads the vault and calls
  * policy.require BEFORE anything else (section 14.2). The three inputs of that
- * decision arrive at no extra cost, because the workspaceId and the ceilings
- * came back in the same Query that loaded the vault.
+ * decision arrive at no extra cost, because the ceilings came back in the
+ * same Query that loaded the vault.
  */
 
 import {
@@ -17,7 +17,6 @@ import {
   Slug,
   VaultId,
   VaultRoleLimit,
-  WorkspaceId,
   type Result,
   type UserId,
 } from '@memorysmith/kernel';
@@ -54,18 +53,15 @@ export class CreateVault {
 
   async execute(input: {
     ctx: RequestContext;
-    workspaceId: WorkspaceId;
     name: string;
     description: string;
     subscriptionId: Parameters<typeof Vault.create>[0]['subscriptionId'];
     by: Authorship;
   }): Promise<Result<Vault, DomainError>> {
-    // Creating a vault is a workspace-level decision: OWNER or EDITOR.
-    const role = input.ctx.isOwner
-      ? Role.OWNER
-      : (input.ctx.roles.get(input.workspaceId.value) ?? Role.NONE);
+    // Creating a vault is a subscription-level decision: OWNER or EDITOR.
+    const role = input.ctx.isOwner ? Role.OWNER : input.ctx.role;
     if (!role.canWrite()) {
-      return err(DomainError.forbidden('Workspace not found'));
+      return err(DomainError.forbiddenVisible('Creating a vault requires the EDITOR role'));
     }
 
     const name = VaultName.create(input.name);
@@ -82,10 +78,10 @@ export class CreateVault {
      */
     const slug = Slug.from(name.value.value);
     if (!slug.ok) return slug;
-    const existing = await this.deps.vaults.findBySlug(input.workspaceId, slug.value);
+    const existing = await this.deps.vaults.findBySlug(slug.value);
     if (existing) {
       return err(
-        DomainError.conflict('A vault with this slug already exists in this workspace', {
+        DomainError.conflict('A vault with this slug already exists in this subscription', {
           code: 'ALREADY_EXISTS',
           vaultId: existing.id.value,
           slug: slug.value.value,
@@ -96,7 +92,6 @@ export class CreateVault {
     const vault = Vault.create({
       id: VaultId.generate(),
       subscriptionId: input.subscriptionId,
-      workspaceId: input.workspaceId,
       name: name.value,
       description: description.value,
       by: input.by,
@@ -112,18 +107,11 @@ export class ListVaults {
   constructor(private readonly deps: VaultDependencies) {}
 
   /**
-   * The vaults of every workspace this session reaches, which the authorizer
-   * already resolved, filtered by the effective role. A member of a workspace
-   * sees every vault in it; the ceiling controls writing, not seeing
-   * (RN-ACC-012).
+   * Every vault of the subscription, filtered by the effective role. A member
+   * sees every vault; the ceiling controls writing, not seeing (RN-ACC-012).
    */
   async execute(input: { ctx: RequestContext }): Promise<Result<Vault[], DomainError>> {
-    const found: Vault[] = [];
-    for (const workspaceId of input.ctx.roles.keys()) {
-      const parsed = WorkspaceId.create(workspaceId);
-      if (!parsed.ok) continue;
-      found.push(...(await this.deps.vaults.listByWorkspace(parsed.value)));
-    }
+    const found = await this.deps.vaults.listAll();
     return ok(
       found.filter((vault) => AuthorizationPolicy.effectiveRole(input.ctx, vault).canRead()),
     );
@@ -167,14 +155,14 @@ export class RenameVault {
     const name = VaultName.create(input.name);
     if (!name.ok) return name;
 
-    // Renaming into a slug another vault of the workspace already holds is
+    // Renaming into a slug another vault of the subscription already holds is
     // the same collision as creating one, and gets the same answer.
     const slug = Slug.from(name.value.value);
     if (!slug.ok) return slug;
-    const holder = await this.deps.vaults.findBySlug(vault.value.workspaceId, slug.value);
+    const holder = await this.deps.vaults.findBySlug(slug.value);
     if (holder && !holder.id.equals(vault.value.id)) {
       return err(
-        DomainError.conflict('A vault with this slug already exists in this workspace', {
+        DomainError.conflict('A vault with this slug already exists in this subscription', {
           code: 'ALREADY_EXISTS',
           vaultId: holder.id.value,
           slug: slug.value.value,
@@ -249,7 +237,7 @@ export class SetVaultRoleLimit {
     userId: UserId;
     /** The only admitted value is VIEWER (RN-ACC-012). */
     limit: string;
-    workspaceRole: Role;
+    subscriptionRole: Role;
     by: Authorship;
   }): Promise<Result<void, DomainError>> {
     const vault = await loadAuthorized(this.deps, input.ctx, input.vaultId, 'administer');
@@ -257,9 +245,9 @@ export class SetVaultRoleLimit {
 
     const limit = VaultRoleLimit.create(input.limit);
     if (!limit.ok) return limit;
-    // RN-ACC-011: the ceiling only demotes. Setting one above the workspace
+    // RN-ACC-011: the ceiling only demotes. Setting one above the member's
     // role is refused with VALIDATION rather than silently ignored.
-    if (!input.workspaceRole.atLeast(limit.value.role)) {
+    if (!input.subscriptionRole.atLeast(limit.value.role)) {
       return err(DomainError.validation('A vault ceiling can only lower a role, never raise it'));
     }
 

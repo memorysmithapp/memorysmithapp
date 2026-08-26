@@ -64,20 +64,11 @@ async function onboard(
   return subscriptionId;
 }
 
-async function firstWorkspaceOf(app: App, token: string): Promise<string> {
-  const session = await app.app.request('/access/session', {
-    headers: { authorization: `Bearer ${token}` },
-  });
-  const body = (await session.json()) as { workspaces: Array<{ workspaceId: string }> };
-  return body.workspaces[0]?.workspaceId ?? '';
-}
-
 async function createVault(app: App, token: string, name: string): Promise<string> {
-  const workspaceId = await firstWorkspaceOf(app, token);
   const created = await app.app.request('/knowledge/vaults', {
     method: 'POST',
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ workspaceId, name, description: 'Base de normas' }),
+    body: JSON.stringify({ name, description: 'Base de normas' }),
   });
   expect(created.status).toBe(201);
   const { vaultId } = (await created.json()) as { vaultId: string };
@@ -212,14 +203,14 @@ describe('The platform session reaches no content', () => {
     expect(queue.status).toBe(200);
     const rows = (await queue.json()) as Array<Record<string, unknown>>;
     expect(rows).toHaveLength(1);
-    // Holder, e-mail, status, dates and a workspace count. Nothing else.
+    // Holder, e-mail, status, dates and a member count. Nothing else.
     expect(Object.keys(rows[0] ?? {}).sort()).toEqual([
+      'memberCount',
       'name',
       'ownerEmail',
       'requestedAt',
       'status',
       'subscriptionId',
-      'workspaceCount',
     ]);
   });
 

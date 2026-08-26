@@ -31,7 +31,6 @@ import {
   DynamoPlatformAdmin,
   DynamoSubscriptionRepository,
   DynamoUserLinkRepository,
-  DynamoWorkspaceRepository,
 } from '@memorysmith/svc-access/adapters/dynamodb';
 import { NULL_OUTBOX_SINK } from '@memorysmith/svc-access/adapters/items';
 import {
@@ -74,12 +73,6 @@ export function buildAccess(infra: Infrastructure, context: SubscriptionContext 
   const scoped = context
     ? {
         subscriptions: new DynamoSubscriptionRepository(
-          context,
-          infra.db,
-          infra.accessTable,
-          NULL_OUTBOX_SINK,
-        ),
-        workspaces: new DynamoWorkspaceRepository(
           context,
           infra.db,
           infra.accessTable,
@@ -134,7 +127,7 @@ export function buildAuthorizer(
   const access = buildAccess(infra, context);
   if (!access.scoped) throw new Error('unreachable: a context was provided');
   return new CachedRequestContext(
-    new ResolveRequestContext(access.scoped.subscriptions, access.scoped.workspaces),
+    new ResolveRequestContext(access.scoped.subscriptions),
     ACCESS_LIMITS.authorizerCacheSeconds,
   );
 }
@@ -153,6 +146,7 @@ export function authorshipFor(user: UserId, clientId?: string | undefined): Auth
   return agent.ok ? Authorship.byAgent(user, agent.value) : Authorship.byHuman(user);
 }
 
-export function roleLookup(resolved: ResolvedContext): (workspaceId: string) => Role {
-  return (workspaceId) => resolved.roles.get(workspaceId) ?? Role.NONE;
+/** The role the session holds in the subscription, owner above every member. */
+export function roleOf(resolved: ResolvedContext): Role {
+  return resolved.isOwner ? Role.OWNER : resolved.role;
 }

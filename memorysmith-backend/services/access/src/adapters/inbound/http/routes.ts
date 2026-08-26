@@ -17,7 +17,6 @@ import {
   httpStatusFor,
   SubscriptionId,
   UserId,
-  WorkspaceId,
   type Result,
 } from '@memorysmith/kernel';
 import type { Context } from 'hono';
@@ -30,7 +29,7 @@ import type { ListPlatformQueue, ReviewSubscription } from '../../../application
 import type {
   AcceptInvite,
   ChangeMemberRole,
-  CreateWorkspace,
+  ListMembers,
   InviteMember,
   RemoveMember,
   TransferOwnership,
@@ -55,7 +54,7 @@ export interface AccessUseCases {
   readonly switchSubscription: (request: AccessRequest) => SwitchActiveSubscription;
   readonly listPlatformQueue: (request: AccessRequest) => ListPlatformQueue;
   readonly reviewSubscription: (request: AccessRequest) => ReviewSubscription;
-  readonly createWorkspace: (request: AccessRequest) => CreateWorkspace;
+  readonly listMembers: (request: AccessRequest) => ListMembers;
   readonly inviteMember: (request: AccessRequest) => InviteMember;
   readonly acceptInvite: (request: AccessRequest) => AcceptInvite;
   readonly changeMemberRole: (request: AccessRequest) => ChangeMemberRole;
@@ -127,7 +126,7 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
       // list happens to start with (RN-SUB-002).
       activeSubscription: view.value.links.find((link) => link.subscriptionId === activeId) ?? null,
       subscriptions: view.value.links,
-      workspaces: view.value.workspaces,
+      role: view.value.role,
     };
     // Parsed, not cast. A cast would let the shape drift from the declared
     // contract in silence, which is exactly how this response came to send
@@ -169,40 +168,39 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
     );
   });
 
-  // ---- Workspaces and members ---------------------------------------------
+  // ---- Members -------------------------------------------------------------
 
-  app.post('/workspaces', async (c) => {
+  app.get('/members', async (c) => {
     const request = c.get('access');
     const context = requireContext(request);
     if (!context.ok) return respond(c, context);
 
-    const body = (await c.req.json().catch(() => ({}))) as { name?: string };
-    const created = await useCases.createWorkspace(request).execute({
-      context: context.value,
-      name: String(body.name ?? ''),
-      by: Authorship.byHuman(request.profile.userId),
-    });
+    const listed = await useCases.listMembers(request).execute({ context: context.value });
     return respond(
       c,
-      created.ok
-        ? { ok: true as const, value: { workspaceId: created.value.workspaceId.value } }
-        : created,
-      201,
+      listed.ok
+        ? {
+            ok: true as const,
+            value: listed.value.map((member) => ({
+              userId: member.userId.value,
+              email: member.email.value,
+              role: member.role.name,
+              invitedBy: member.invitedBy?.value ?? null,
+              joinedAt: member.joinedAt.toISOString(),
+            })),
+          }
+        : listed,
     );
   });
 
-  app.post('/workspaces/:ws/members', async (c) => {
+  app.post('/members', async (c) => {
     const request = c.get('access');
     const context = requireContext(request);
     if (!context.ok) return respond(c, context);
-
-    const workspaceId = WorkspaceId.create(c.req.param('ws'));
-    if (!workspaceId.ok) return respond(c, workspaceId);
 
     const body = (await c.req.json().catch(() => ({}))) as { email?: string; role?: string };
     const invited = await useCases.inviteMember(request).execute({
       context: context.value,
-      workspaceId: workspaceId.value,
       email: String(body.email ?? ''),
       role: String(body.role ?? ''),
       by: Authorship.byHuman(request.profile.userId),
@@ -214,13 +212,11 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
     );
   });
 
-  app.patch('/workspaces/:ws/members/:user', async (c) => {
+  app.patch('/members/:user', async (c) => {
     const request = c.get('access');
     const context = requireContext(request);
     if (!context.ok) return respond(c, context);
 
-    const workspaceId = WorkspaceId.create(c.req.param('ws'));
-    if (!workspaceId.ok) return respond(c, workspaceId);
     const userId = UserId.create(c.req.param('user'));
     if (!userId.ok) return respond(c, userId);
 
@@ -229,7 +225,6 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
       c,
       await useCases.changeMemberRole(request).execute({
         context: context.value,
-        workspaceId: workspaceId.value,
         userId: userId.value,
         role: String(body.role ?? ''),
         by: Authorship.byHuman(request.profile.userId),
@@ -238,13 +233,11 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
     );
   });
 
-  app.delete('/workspaces/:ws/members/:user', async (c) => {
+  app.delete('/members/:user', async (c) => {
     const request = c.get('access');
     const context = requireContext(request);
     if (!context.ok) return respond(c, context);
 
-    const workspaceId = WorkspaceId.create(c.req.param('ws'));
-    if (!workspaceId.ok) return respond(c, workspaceId);
     const userId = UserId.create(c.req.param('user'));
     if (!userId.ok) return respond(c, userId);
 
@@ -252,7 +245,6 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
       c,
       await useCases.removeMember(request).execute({
         context: context.value,
-        workspaceId: workspaceId.value,
         userId: userId.value,
         by: Authorship.byHuman(request.profile.userId),
       }),
@@ -297,7 +289,7 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
       accepted.ok
         ? {
             ok: true as const,
-            value: { workspaceId: accepted.value.workspaceId.value, role: accepted.value.role },
+            value: { subscriptionId: accepted.value.subscriptionId, role: accepted.value.role },
           }
         : accepted,
     );

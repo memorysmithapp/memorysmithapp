@@ -13,20 +13,17 @@ import {
   ok,
   Role,
   SubscriptionId,
-  WorkspaceId,
   type Result,
   type SubscriptionContext,
   type UserId,
 } from '@memorysmith/kernel';
 import { Subscription } from '../domain/subscription/Subscription.js';
-import { Workspace } from '../domain/workspace/Workspace.js';
-import { SubscriptionName, WorkspaceName } from '../domain/values.js';
+import { SubscriptionName } from '../domain/values.js';
 import type {
   SubscriptionOnboarding,
   SubscriptionRepository,
   UserLinkRepository,
   UserProfile,
-  WorkspaceRepository,
 } from '../domain/ports/index.js';
 
 export class RequestSubscription {
@@ -61,22 +58,8 @@ export class RequestSubscription {
     });
     if (!subscription.ok) return subscription;
 
-    // The default workspace exists from day one; the UI just hides the level
-    // while there is only one of them (PP8).
-    const workspaceName = WorkspaceName.create(name.value.value);
-    if (!workspaceName.ok) return workspaceName;
-    const workspace = Workspace.create({
-      id: WorkspaceId.generate(),
-      subscriptionId: subscription.value.id,
-      name: workspaceName.value,
-      isDefault: true,
-      by: input.by,
-    });
-    if (!workspace.ok) return workspace;
-
     const written = await this.onboarding.create({
       subscription: subscription.value,
-      workspace: workspace.value,
       link: {
         userId: input.profile.userId,
         subscriptionId: subscription.value.id,
@@ -103,21 +86,14 @@ export interface SessionView {
     isDefault: boolean;
     joinedAt: string;
   }>;
-  readonly workspaces: Array<{
-    workspaceId: string;
-    name: string;
-    slug: string;
-    isDefault: boolean;
-    role: string;
-    createdAt: string;
-  }>;
+  /** The role in the ACTIVE subscription; NONE when there is none. */
+  readonly role: string;
 }
 
 export class GetSession {
   constructor(
     private readonly links: UserLinkRepository,
     private readonly subscriptions: SubscriptionRepository | null,
-    private readonly workspaces: WorkspaceRepository | null,
     /** Reads the metadata of a link; the only cross-subscription read there is. */
     private readonly describeLink: (id: SubscriptionId) => Promise<{
       name: string;
@@ -146,27 +122,22 @@ export class GetSession {
       });
     }
 
-    // Workspaces only exist for the ACTIVE subscription: there is no session
-    // that sees the workspaces of two subscriptions at once (RN-SUB-003).
-    const workspaces: SessionView['workspaces'] = [];
-    if (input.context && this.workspaces && this.subscriptions) {
+    /**
+     * The role only exists for the ACTIVE subscription: no session sees two
+     * subscriptions at once (RN-SUB-003). Without a context there is no
+     * subscription to have a role in, and NONE is the honest answer.
+     */
+    let role = Role.NONE;
+    if (input.context && this.subscriptions) {
       const subscription = await this.subscriptions.find();
-      const isOwner = subscription?.isOwner(input.profile.userId) ?? false;
-      for (const workspace of await this.workspaces.listAll()) {
-        const role = isOwner ? Role.OWNER : workspace.memberRole(input.profile.userId);
-        if (!role.canRead()) continue;
-        workspaces.push({
-          workspaceId: workspace.id.value,
-          name: workspace.name.value,
-          slug: workspace.slug.value,
-          isDefault: workspace.isDefault,
-          role: role.name,
-          createdAt: workspace.createdAt.toISOString(),
-        });
+      if (subscription) {
+        role = subscription.isOwner(input.profile.userId)
+          ? Role.OWNER
+          : subscription.memberRole(input.profile.userId);
       }
     }
 
-    return ok({ user: input.profile, links: described, workspaces });
+    return ok({ user: input.profile, links: described, role: role.name });
   }
 }
 

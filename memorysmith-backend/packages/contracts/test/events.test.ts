@@ -161,8 +161,11 @@ describe('API DTOs', () => {
       },
       activeSubscription: null,
       subscriptions: [],
-      workspaces: [],
+      // No subscription means no role in one: NONE is the honest answer, and
+      // the schema requires it rather than letting it be forgotten.
+      role: 'NONE',
     });
     expect(session.activeSubscription).toBeNull();
+    expect(session.role).toBe('NONE');
   });
 });

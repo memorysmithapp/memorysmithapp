@@ -26,7 +26,8 @@ export interface LiveSession {
   readonly isPlatformAdmin: boolean;
   readonly subscriptionState: SubscriptionState;
   readonly subscriptionName: string | null;
-  readonly workspaces: SessionDto['workspaces'];
+  /** The role in the active subscription, already resolved by the API. */
+  readonly role: SessionDto['role'];
   readonly subscriptions: SessionDto['subscriptions'];
 }
 
@@ -85,7 +86,7 @@ export const useLiveSession = create<SessionStore>((set) => ({
           // the token: a suspension takes effect on the next refresh (§8.5).
           subscriptionState: stateOf(claims?.subscriptionStatus ?? active?.status),
           subscriptionName: active?.name ?? dto.subscriptions[0]?.name ?? null,
-          workspaces: dto.workspaces,
+          role: dto.role,
           subscriptions: dto.subscriptions,
         },
       });
@@ -102,7 +103,7 @@ export const useLiveSession = create<SessionStore>((set) => ({
               isPlatformAdmin: claims.groups.includes('platform-admin'),
               subscriptionState: stateOf(claims.subscriptionStatus),
               subscriptionName: null,
-              workspaces: [],
+              role: 'NONE',
               subscriptions: [],
             }
           : null,

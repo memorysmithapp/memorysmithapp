@@ -2,10 +2,9 @@
  * Stage 1 of the two-stage authorization (architecture-guide.md, section 14.2).
  *
  * It validates that the active subscription is in trial or active (RN-SUB-007),
- * resolves ownership and the list of (workspaceId, role), and injects all of it
+ * resolves ownership and the role in the subscription, and injects all of it
  * into the request context. IT DOES NOT KNOW WHAT A VAULT IS, and could not:
- * whoever knows which workspace a vault belongs to is the Knowledge context,
- * and whoever holds the per-vault ceiling is the Knowledge context.
+ * whoever holds the per-vault ceiling is the Knowledge context.
  *
  * The result is cached for five minutes, which is the declared propagation
  * delay of a role change (RN-ACC-016).
@@ -20,20 +19,18 @@ import {
   type SubscriptionContext,
   type UserId,
 } from '@memorysmith/kernel';
-import type { SubscriptionRepository, WorkspaceRepository } from '../domain/ports/index.js';
+import type { SubscriptionRepository } from '../domain/ports/index.js';
 
 /** Exactly the shape the Knowledge context expects to receive. */
 export interface ResolvedContext {
   readonly user: UserId;
   readonly isOwner: boolean;
-  readonly roles: ReadonlyMap<string, Role>;
+  /** One role for the whole subscription; a vault ceiling can only lower it. */
+  readonly role: Role;
 }
 
 export class ResolveRequestContext {
-  constructor(
-    private readonly subscriptions: SubscriptionRepository,
-    private readonly workspaces: WorkspaceRepository,
-  ) {}
+  constructor(private readonly subscriptions: SubscriptionRepository) {}
 
   async execute(context: SubscriptionContext): Promise<Result<ResolvedContext, DomainError>> {
     const subscription = await this.subscriptions.find();
@@ -52,13 +49,9 @@ export class ResolveRequestContext {
     }
 
     const isOwner = subscription.isOwner(context.userId);
-    const roles = new Map<string, Role>();
-    for (const workspace of await this.workspaces.listAll()) {
-      const role = isOwner ? Role.OWNER : workspace.memberRole(context.userId);
-      if (role.canRead()) roles.set(workspace.id.value, role);
-    }
+    const role = isOwner ? Role.OWNER : subscription.memberRole(context.userId);
 
-    return ok({ user: context.userId, isOwner, roles });
+    return ok({ user: context.userId, isOwner, role });
   }
 }
 

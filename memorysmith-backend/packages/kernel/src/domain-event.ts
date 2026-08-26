@@ -25,6 +25,12 @@ export const ACCESS_EVENT_TYPES = [
   'SubscriptionReactivated',
   'SubscriptionCanceled',
   'OwnershipTransferred',
+  /**
+   * RETIRED with the workspace level (software-vision.md, section 4.3). It
+   * stays in the list for the same reason a retired RN code is never reused:
+   * the audit trail is append-only, and an event already written has to stay
+   * parseable forever.
+   */
   'WorkspaceCreated',
   'MemberInvited',
   'MemberJoined',

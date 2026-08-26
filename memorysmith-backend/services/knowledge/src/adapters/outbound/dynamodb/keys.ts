@@ -13,14 +13,7 @@
  * sort after it.
  */
 
-import type {
-  FolderId,
-  NoteId,
-  Position,
-  SubscriptionId,
-  VaultId,
-  WorkspaceId,
-} from '@memorysmith/kernel';
+import type { FolderId, NoteId, Position, SubscriptionId, VaultId } from '@memorysmith/kernel';
 
 /** The sort key of the vault item itself. */
 export const META = 'META';
@@ -79,10 +72,16 @@ export class KnowledgeKeys {
     return `SEEN#${eventId}`;
   }
 
-  // ---- GSI1: vaults of a workspace, already carrying the count -------------
+  // ---- GSI1: vaults of the subscription, already carrying the count --------
 
-  workspacePartition(workspaceId: WorkspaceId): string {
-    return `S#${this.subscriptionId.value}#WS#${workspaceId.value}`;
+  /**
+   * One partition per subscription, which is what listing vaults asks for now
+   * that nothing sits between the subscription and the vault. It doubles as
+   * the table partition of the slug guard below: same string, different table
+   * attribute, and both start with the subscription (rule 1).
+   */
+  subscriptionVaults(): string {
+    return `S#${this.subscriptionId.value}#VAULTS`;
   }
 
   gsi1Vault(vaultId: VaultId): string {
@@ -94,7 +93,7 @@ export class KnowledgeKeys {
   }
 
   /**
-   * Unique WITHIN THE WORKSPACE (RN-KNW-032). It lives in the workspace
+   * Unique WITHIN THE SUBSCRIPTION (RN-KNW-032). It lives in the vaults
    * partition of the TABLE, not in GSI1, because a transaction cannot condition
    * on an index: the guard has to be an item the write can lock against.
    */

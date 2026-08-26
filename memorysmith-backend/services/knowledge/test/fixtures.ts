@@ -16,7 +16,6 @@ import {
   SubscriptionId,
   UserId,
   VaultId,
-  WorkspaceId,
   type Result,
 } from '@memorysmith/kernel';
 import { Vault } from '../src/domain/vault/Vault.js';
@@ -80,7 +79,6 @@ export function newVault(name = 'Normas e Legislacao'): Vault {
     Vault.create({
       id: VaultId.generate(),
       subscriptionId: SubscriptionId.generate(),
-      workspaceId: WorkspaceId.generate(),
       name: vaultName(name),
       description: unwrap(ShortText.create('Texto normativo por artigo')),
       by: authorship(),
@@ -153,7 +151,6 @@ export function rehydratedVaultWithNotes(notes: number): { vault: Vault; folderI
   const vault = Vault.rehydrate({
     id: VaultId.generate(),
     subscriptionId: SubscriptionId.generate(),
-    workspaceId: WorkspaceId.generate(),
     name: vaultName('Normas e Legislacao'),
     slug: unwrap(Slug.from('Normas e Legislacao')),
     description: unwrap(ShortText.create('')),

@@ -9,9 +9,9 @@
  *  - UserLinkRepository answers "which subscriptions do I take part in?" and
  *    nothing else. Identity is global; a subscription is a link (RN-SUB-011).
  *  - PlatformSubscriptionAdmin serves the platform queue, reading metadata
- *    only through GSI2. It never reaches a workspace, a vault or a note, and
+ *    only through GSI2. It never reaches a vault or a note, and
  *    it could not: those keys start with a subscription it cannot build.
- *  - SubscriptionOnboarding writes the first three items of a brand new
+ *  - SubscriptionOnboarding writes the first items of a brand new
  *    subscription, at the one moment when no context exists yet.
  */
 
@@ -21,10 +21,8 @@ import type {
   SubscriptionId,
   SubscriptionStatus,
   UserId,
-  WorkspaceId,
 } from '@memorysmith/kernel';
 import type { Subscription } from '../subscription/Subscription.js';
-import type { Workspace } from '../workspace/Workspace.js';
 import type { Invite } from '../invite/Invite.js';
 import type { Email, InviteToken } from '../values.js';
 
@@ -34,16 +32,9 @@ export interface SubscriptionRepository {
   save(subscription: Subscription): Promise<Result<void, ConcurrencyError>>;
 }
 
-export interface WorkspaceRepository {
-  findById(id: WorkspaceId): Promise<Workspace | null>;
-  listAll(): Promise<Workspace[]>;
-  findDefault(): Promise<Workspace | null>;
-  save(workspace: Workspace): Promise<Result<void, ConcurrencyError>>;
-}
-
 export interface InviteRepository {
   findByToken(token: InviteToken): Promise<Invite | null>;
-  listByWorkspace(workspaceId: WorkspaceId): Promise<Invite[]>;
+  listPending(): Promise<Invite[]>;
   save(invite: Invite): Promise<Result<void, ConcurrencyError>>;
 }
 
@@ -71,7 +62,7 @@ export interface PlatformSubscriptionView {
   readonly ownerEmail: string;
   readonly status: string;
   readonly requestedAt: string;
-  readonly workspaceCount: number;
+  readonly memberCount: number;
 }
 
 export interface PlatformSubscriptionAdmin {
@@ -81,10 +72,9 @@ export interface PlatformSubscriptionAdmin {
 }
 
 export interface SubscriptionOnboarding {
-  /** Subscription, default workspace and link, written together. */
+  /** Subscription and link, written together. */
   create(input: {
     subscription: Subscription;
-    workspace: Workspace;
     link: SubscriptionLink;
   }): Promise<Result<void, ConcurrencyError>>;
   /** Whether this user already asked for a subscription of their own. */

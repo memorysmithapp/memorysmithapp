@@ -12,7 +12,12 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { S3Client } from '@aws-sdk/client-s3';
 import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
-import { DomainError, Role, VaultId, type SubscriptionContext } from '@memorysmith/kernel';
+import {
+  DomainError,
+  VaultId,
+  type SubscriptionContext,
+  type SubscriptionId,
+} from '@memorysmith/kernel';
 import { CognitoTokenVerifier } from '@memorysmith/svc-access/adapters/auth';
 import type { AccessRequest, AccessUseCases } from '@memorysmith/svc-access/adapters/http';
 import {
@@ -27,7 +32,7 @@ import {
 import {
   AcceptInvite,
   ChangeMemberRole,
-  CreateWorkspace,
+  ListMembers,
   InviteMember,
   RemoveMember,
   TransferOwnership,
@@ -80,7 +85,7 @@ import {
   buildAudit,
   buildDiscovery,
   buildKnowledge,
-  roleLookup,
+  roleOf,
   type Infrastructure,
 } from './composition-root.js';
 import { KnowledgeNoteCatalog } from './note-catalog.js';
@@ -114,17 +119,12 @@ const accessUseCases: AccessUseCases = {
   },
   getSession: (request) => {
     const { links, platform, scoped } = buildAccess(infra, request.context);
-    return new GetSession(
-      links,
-      scoped?.subscriptions ?? null,
-      scoped?.workspaces ?? null,
-      async (id) => {
-        const found = await platform.findById(id);
-        return found
-          ? { name: found.name.value, slug: found.slug.value, status: found.status.name }
-          : null;
-      },
-    );
+    return new GetSession(links, scoped?.subscriptions ?? null, async (id: SubscriptionId) => {
+      const found = await platform.findById(id);
+      return found
+        ? { name: found.name.value, slug: found.slug.value, status: found.status.name }
+        : null;
+    });
   },
   switchSubscription: (request) =>
     new SwitchActiveSubscription(buildAccess(infra, request.context).links),
@@ -132,41 +132,27 @@ const accessUseCases: AccessUseCases = {
     new ListPlatformQueue(buildAccess(infra, request.context).platform),
   reviewSubscription: (request) =>
     new ReviewSubscription(buildAccess(infra, request.context).platform),
-  createWorkspace: (request) => {
-    const scoped = scopedOrThrow(request);
-    return new CreateWorkspace(scoped.subscriptions, scoped.workspaces);
-  },
+  listMembers: (request) => new ListMembers(scopedOrThrow(request).subscriptions),
   inviteMember: (request) => {
     const scoped = scopedOrThrow(request);
-    return new InviteMember(scoped.subscriptions, scoped.workspaces, scoped.invites);
+    return new InviteMember(scoped.subscriptions, scoped.invites);
   },
   acceptInvite: (request) => {
     const scoped = scopedOrThrow(request);
     return new AcceptInvite(
       scoped.invites,
-      scoped.workspaces,
+      scoped.subscriptions,
       buildAccess(infra, request.context).links,
     );
   },
-  changeMemberRole: (request) => {
-    const scoped = scopedOrThrow(request);
-    return new ChangeMemberRole(scoped.subscriptions, scoped.workspaces);
-  },
+  changeMemberRole: (request) => new ChangeMemberRole(scopedOrThrow(request).subscriptions),
   removeMember: (request) => {
     const scoped = scopedOrThrow(request);
-    return new RemoveMember(
-      scoped.subscriptions,
-      scoped.workspaces,
-      buildAccess(infra, request.context).links,
-    );
+    return new RemoveMember(scoped.subscriptions, buildAccess(infra, request.context).links);
   },
   transferOwnership: (request) => {
     const scoped = scopedOrThrow(request);
-    return new TransferOwnership(
-      scoped.subscriptions,
-      scoped.workspaces,
-      buildAccess(infra, request.context).links,
-    );
+    return new TransferOwnership(scoped.subscriptions, buildAccess(infra, request.context).links);
   },
 };
 
@@ -259,7 +245,7 @@ const app = createApp({
     }
     const authorizer = new (
       await import('@memorysmith/svc-access/application/context')
-    ).ResolveRequestContext(scoped.subscriptions, scoped.workspaces);
+    ).ResolveRequestContext(scoped.subscriptions);
     const resolved = await authorizer.execute(context);
     if (!resolved.ok) return { ok: false as const, error: resolved.error };
 
@@ -268,7 +254,7 @@ const app = createApp({
       subscription: context,
       // The agent identity comes from the client_id of the token itself.
       authorship: authorshipFor(context.userId, request.profile.userId.value),
-      workspaceRoleOf: roleLookup(resolved.value),
+      subscriptionRole: roleOf(resolved.value),
     };
     return { ok: true as const, value: knowledgeRequest };
   },
@@ -277,10 +263,7 @@ const app = createApp({
     if (!parsed.ok) return false;
     const vault = await buildKnowledge(infra, request.subscription).vaults.findById(parsed.value);
     if (!vault) return false;
-    return (
-      request.ctx.isOwner ||
-      (request.workspaceRoleOf(vault.workspaceId.value) ?? Role.NONE).canRead()
-    );
+    return request.ctx.isOwner || request.subscriptionRole.canRead();
   },
 });
 

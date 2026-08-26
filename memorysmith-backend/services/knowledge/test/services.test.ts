@@ -159,7 +159,7 @@ describe('AuthorizationPolicy', () => {
     return {
       user: otherUser,
       isOwner: false,
-      roles: new Map([[vault.workspaceId.value, Role.EDITOR]]),
+      role: Role.EDITOR,
       ...overrides,
     };
   }
@@ -171,7 +171,7 @@ describe('AuthorizationPolicy', () => {
 
   it('answers 404, never 403, for a vault the caller cannot see', () => {
     // RN-SUB-004: a forbidden resource is indistinguishable from a missing one.
-    const outsider = context({ roles: new Map() });
+    const outsider = context({ role: Role.NONE });
     const error = expectErr(AuthorizationPolicy.require(outsider, vault, 'read'));
     expect(error.code).toBe('FORBIDDEN');
     expect(error.revealsExistence).toBe(false);
@@ -184,7 +184,7 @@ describe('AuthorizationPolicy', () => {
   it('demotes an EDITOR to VIEWER through the vault ceiling', () => {
     const limited = newVault();
     unwrap(limited.setRoleLimit(otherUser, VaultRoleLimit.VIEWER, authorship()));
-    const ctx = context({ roles: new Map([[limited.workspaceId.value, Role.EDITOR]]) });
+    const ctx = context({ role: Role.EDITOR });
 
     expect(AuthorizationPolicy.effectiveRole(ctx, limited)).toBe(Role.VIEWER);
     const error = expectErr(AuthorizationPolicy.require(ctx, limited, 'write'));
@@ -197,7 +197,7 @@ describe('AuthorizationPolicy', () => {
   it('never lets a ceiling promote anyone', () => {
     const limited = newVault();
     unwrap(limited.setRoleLimit(otherUser, VaultRoleLimit.VIEWER, authorship()));
-    const viewer = context({ roles: new Map([[limited.workspaceId.value, Role.VIEWER]]) });
+    const viewer = context({ role: Role.VIEWER });
     expect(AuthorizationPolicy.effectiveRole(viewer, limited)).toBe(Role.VIEWER);
   });
 
@@ -209,8 +209,8 @@ describe('AuthorizationPolicy', () => {
     ).toBe(Role.OWNER);
   });
 
-  it('refuses a VIEWER any write, by workspace role alone', () => {
-    const viewer = context({ roles: new Map([[vault.workspaceId.value, Role.VIEWER]]) });
+  it('refuses a VIEWER any write, by subscription role alone', () => {
+    const viewer = context({ role: Role.VIEWER });
     const error = expectErr(AuthorizationPolicy.require(viewer, vault, 'write'));
     expect(error.message).toContain('EDITOR');
   });

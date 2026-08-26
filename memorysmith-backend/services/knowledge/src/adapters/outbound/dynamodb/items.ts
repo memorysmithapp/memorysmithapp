@@ -21,7 +21,6 @@ import {
   UserId,
   VaultId,
   VaultRoleLimit,
-  WorkspaceId,
   type DomainEvent,
 } from '@memorysmith/kernel';
 import { Folder } from '../../../domain/vault/Folder.js';
@@ -82,7 +81,6 @@ export function vaultMetaItem(vault: Vault, pk: string): Item {
     SK: 'META',
     entity: 'VAULT',
     vaultId: vault.id.value,
-    workspaceId: vault.workspaceId.value,
     name: vault.name.value,
     slug: vault.slug.value,
     description: vault.description.value,
@@ -153,7 +151,6 @@ export function parseVault(items: Item[], subscriptionId: SubscriptionId): Vault
   return Vault.rehydrate({
     id: unwrapOrThrow(VaultId.create(String(meta['vaultId']))),
     subscriptionId,
-    workspaceId: unwrapOrThrow(WorkspaceId.create(String(meta['workspaceId']))),
     name: unwrapOrThrow(VaultName.create(String(meta['name']))),
     slug: unwrapOrThrow(Slug.create(String(meta['slug']))),
     description: unwrapOrThrow(ShortText.create(String(meta['description'] ?? ''))),

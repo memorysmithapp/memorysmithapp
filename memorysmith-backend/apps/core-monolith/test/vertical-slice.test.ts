@@ -66,14 +66,10 @@ async function call(
 }
 
 async function seedVault(): Promise<{ vaultId: string; folderId: string }> {
-  const session = (await (await call('/access/session')).json()) as {
-    workspaces: Array<{ workspaceId: string }>;
-  };
   const vault = (await (
     await call('/knowledge/vaults', {
       method: 'POST',
       body: {
-        workspaceId: session.workspaces[0]?.workspaceId,
         name: 'Normas e Legislacao',
         description: 'Texto normativo por artigo',
       },
@@ -114,7 +110,7 @@ describe('The API answers what its contract declares', () => {
     expect(parsed.data.subscriptions.length).toBeGreaterThan(0);
     // The active subscription is the one the token names, not the first of the list.
     expect(parsed.data.activeSubscription?.subscriptionId).toBe(activeSubscriptionId);
-    expect(parsed.data.workspaces[0]?.role).toBe('OWNER');
+    expect(parsed.data.role).toBe('OWNER');
   });
 });
 
@@ -270,21 +266,16 @@ describe('Vault lifecycle', () => {
      * first one. The answer is the shape RN-AGT-004 already set for notes,
      * the identifier of what exists, never an invented suffix.
      */
-    const session = (await (await call('/access/session')).json()) as {
-      workspaces: Array<{ workspaceId: string }>;
-    };
-    const workspaceId = session.workspaces[0]?.workspaceId;
-
     const first = (await (
       await call('/knowledge/vaults', {
         method: 'POST',
-        body: { workspaceId, name: 'Normas e Legislacao', description: 'Texto normativo' },
+        body: { name: 'Normas e Legislacao', description: 'Texto normativo' },
       })
     ).json()) as { vaultId: string };
 
     const twin = await call('/knowledge/vaults', {
       method: 'POST',
-      body: { workspaceId, name: 'Normas e Legislacao', description: 'Outra descricao' },
+      body: { name: 'Normas e Legislacao', description: 'Outra descricao' },
     });
     expect(twin.status).toBe(409);
     const body = (await twin.json()) as { details: { code: string; vaultId: string } };

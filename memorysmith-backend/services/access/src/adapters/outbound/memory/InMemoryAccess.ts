@@ -14,10 +14,8 @@ import {
   type SubscriptionId,
   type SubscriptionStatus,
   type UserId,
-  type WorkspaceId,
 } from '@memorysmith/kernel';
 import type { Subscription } from '../../../domain/subscription/Subscription.js';
-import type { Workspace } from '../../../domain/workspace/Workspace.js';
 import type { Invite } from '../../../domain/invite/Invite.js';
 import type { InviteToken } from '../../../domain/values.js';
 import type {
@@ -28,18 +26,15 @@ import type {
   SubscriptionOnboarding,
   SubscriptionRepository,
   UserLinkRepository,
-  WorkspaceRepository,
 } from '../../../domain/ports/index.js';
 
 export class InMemoryAccessDatabase {
   readonly subscriptions = new Map<string, { subscription: Subscription; version: number }>();
-  readonly workspaces = new Map<string, { workspace: Workspace; version: number }>();
   readonly invites = new Map<string, Invite>();
   readonly links = new Map<string, SubscriptionLink>();
 
   clear(): void {
     this.subscriptions.clear();
-    this.workspaces.clear();
     this.invites.clear();
     this.links.clear();
   }
@@ -70,46 +65,6 @@ export class InMemorySubscriptionRepository implements SubscriptionRepository {
   }
 }
 
-export class InMemoryWorkspaceRepository implements WorkspaceRepository {
-  constructor(
-    private readonly sub: SubscriptionContext,
-    private readonly db: InMemoryAccessDatabase,
-    private readonly events: EventPublisher,
-  ) {}
-
-  private key(id: WorkspaceId): string {
-    return `S#${this.sub.subscriptionId.value}#WS#${id.value}`;
-  }
-
-  async findById(id: WorkspaceId): Promise<Workspace | null> {
-    return this.db.workspaces.get(this.key(id))?.workspace ?? null;
-  }
-
-  async listAll(): Promise<Workspace[]> {
-    const prefix = `S#${this.sub.subscriptionId.value}#WS#`;
-    return [...this.db.workspaces.entries()]
-      .filter(([key]) => key.startsWith(prefix))
-      .map(([, entry]) => entry.workspace);
-  }
-
-  async findDefault(): Promise<Workspace | null> {
-    return (await this.listAll()).find((workspace) => workspace.isDefault) ?? null;
-  }
-
-  async save(workspace: Workspace): Promise<Result<void, ConcurrencyError>> {
-    const key = this.key(workspace.id);
-    const stored = this.db.workspaces.get(key);
-    if (stored && stored.version !== workspace.version) {
-      return { ok: false, error: new ConcurrencyError() };
-    }
-    const pending = workspace.pullEvents();
-    workspace.markPersisted();
-    this.db.workspaces.set(key, { workspace, version: workspace.version });
-    await this.events.publish(pending);
-    return ok();
-  }
-}
-
 export class InMemoryInviteRepository implements InviteRepository {
   constructor(
     private readonly sub: SubscriptionContext,
@@ -123,12 +78,11 @@ export class InMemoryInviteRepository implements InviteRepository {
     return this.db.invites.get(`S#${this.sub.subscriptionId.value}#INVITE#${token.value}`) ?? null;
   }
 
-  async listByWorkspace(workspaceId: WorkspaceId): Promise<Invite[]> {
+  async listPending(): Promise<Invite[]> {
     const prefix = `S#${this.sub.subscriptionId.value}#INVITE#`;
     return [...this.db.invites.entries()]
       .filter(([key]) => key.startsWith(prefix))
-      .map(([, invite]) => invite)
-      .filter((invite) => invite.workspaceId.equals(workspaceId));
+      .map(([, invite]) => invite);
   }
 
   async save(invite: Invite): Promise<Result<void, ConcurrencyError>> {
@@ -187,9 +141,7 @@ export class InMemoryPlatformAdmin implements PlatformSubscriptionAdmin {
         ownerEmail: entry.subscription.ownerEmail,
         status: entry.subscription.status.name,
         requestedAt: entry.subscription.requestedAt.toISOString(),
-        workspaceCount: [...this.db.workspaces.keys()].filter((key) =>
-          key.startsWith(`S#${entry.subscription.id.value}#WS#`),
-        ).length,
+        memberCount: entry.subscription.members.length,
       }));
   }
 
@@ -226,19 +178,13 @@ export class InMemoryOnboarding implements SubscriptionOnboarding {
 
   async create(input: {
     subscription: Subscription;
-    workspace: Workspace;
     link: SubscriptionLink;
   }): Promise<Result<void, ConcurrencyError>> {
-    const pending = [...input.subscription.pullEvents(), ...input.workspace.pullEvents()];
+    const pending = input.subscription.pullEvents();
     input.subscription.markPersisted();
-    input.workspace.markPersisted();
     this.db.subscriptions.set(`S#${input.subscription.id.value}`, {
       subscription: input.subscription,
       version: input.subscription.version,
-    });
-    this.db.workspaces.set(`S#${input.subscription.id.value}#WS#${input.workspace.id.value}`, {
-      workspace: input.workspace,
-      version: input.workspace.version,
     });
     this.db.links.set(
       `USER#${input.link.userId.value}#SUB#${input.link.subscriptionId.value}`,

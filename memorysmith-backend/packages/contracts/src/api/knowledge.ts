@@ -25,14 +25,13 @@ import {
 
 export const vaultSummarySchema = z.object({
   vaultId: ulidSchema,
-  workspaceId: ulidSchema,
   name: z.string(),
   slug: slugSchema,
   description: z.string(),
   noteCount: z.number().int().nonnegative(),
   hasGuidance: z.boolean(),
   updatedAt: instantSchema,
-  /** min(workspace role, vault ceiling), owner above both (RN-ACC-011). */
+  /** min(subscription role, vault ceiling), owner above both (RN-ACC-011). */
   effectiveRole: roleSchema,
 });
 
@@ -54,7 +53,6 @@ export const vaultDetailSchema = vaultSummarySchema.extend({
 });
 
 export const createVaultRequestSchema = z.object({
-  workspaceId: ulidSchema.optional(),
   name: z.string().min(1).max(120),
   description: z.string().max(500).default(''),
 });

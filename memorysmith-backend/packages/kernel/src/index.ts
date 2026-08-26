@@ -8,15 +8,7 @@ export { DomainError, ConcurrencyError, httpStatusFor, type ErrorCode } from './
 export { ok, err, isOk, isErr, mapOk, allOk, type Result, type Ok, type Err } from './result.js';
 export { ulid, isUlid, ulidTime } from './ulid.js';
 export { sha256Hex } from './hash.js';
-export {
-  SubscriptionId,
-  WorkspaceId,
-  VaultId,
-  FolderId,
-  NoteId,
-  ContentId,
-  UserId,
-} from './ids.js';
+export { SubscriptionId, VaultId, FolderId, NoteId, ContentId, UserId } from './ids.js';
 export { Slug, slugify } from './slug.js';
 export { Instant } from './instant.js';
 export { Position, rebalancedPositions, REBALANCE_THRESHOLD } from './position.js';

@@ -23,26 +23,16 @@ interface Identity {
   readonly subscriptionName: string | null;
 }
 
-const ROLE_ORDER = ['NONE', 'VIEWER', 'EDITOR', 'OWNER'];
-
 /**
- * The chip shows one role, and the owner of the subscription outranks every
- * workspace role, because the ceiling of a vault can only lower a role, never
- * raise it (RN-ACC-011).
+ * The chip shows the role in the subscription, which the API already resolved.
+ * A vault ceiling can lower it for a given vault but never raise it
+ * (RN-ACC-011), so it belongs on the vault screen and not here.
  */
 function identityOf(live: LiveSession): Identity {
-  const active = live.subscriptions.find((link) => link.isDefault) ?? live.subscriptions[0];
-  const role = active?.isOwner
-    ? 'OWNER'
-    : live.workspaces.reduce(
-        (top, workspace) =>
-          ROLE_ORDER.indexOf(workspace.role) > ROLE_ORDER.indexOf(top) ? workspace.role : top,
-        'VIEWER',
-      );
   return {
     name: live.name,
     email: live.email,
-    role,
+    role: live.role,
     subscriptionName: live.subscriptionName,
   };
 }

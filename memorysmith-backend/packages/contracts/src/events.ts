@@ -107,6 +107,7 @@ export const ownershipTransferredPayload = z.object({
   toUserId: userIdSchema,
 });
 
+/** Retired with the workspace level; kept so the trail stays parseable. */
 export const workspaceCreatedPayload = z.object({
   workspaceId: ulidSchema,
   name: z.string().min(1),
@@ -115,27 +116,23 @@ export const workspaceCreatedPayload = z.object({
 });
 
 export const memberInvitedPayload = z.object({
-  workspaceId: ulidSchema,
   inviteeEmail: z.string().email(),
   role: membershipRoleSchema,
   expiresAt: instantSchema,
 });
 
 export const memberJoinedPayload = z.object({
-  workspaceId: ulidSchema,
   userId: userIdSchema,
   role: membershipRoleSchema,
 });
 
 export const memberRoleChangedPayload = z.object({
-  workspaceId: ulidSchema,
   userId: userIdSchema,
   from: membershipRoleSchema,
   to: membershipRoleSchema,
 });
 
 export const memberRemovedPayload = z.object({
-  workspaceId: ulidSchema,
   userId: userIdSchema,
 });
 
@@ -147,7 +144,6 @@ export const vaultRoleLimitPayload = z.object({
 
 export const vaultCreatedPayload = z.object({
   vaultId: ulidSchema,
-  workspaceId: ulidSchema,
   name: z.string().min(1),
   slug: slugSchema,
   description: z.string(),

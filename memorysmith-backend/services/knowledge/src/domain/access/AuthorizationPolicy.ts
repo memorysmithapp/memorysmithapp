@@ -4,10 +4,9 @@
  *
  * It is a DOMAIN SERVICE, not an infrastructure port: it takes no I/O and
  * makes no network call. The three inputs arrive at no extra cost - isOwner
- * and the memberships come from the context the authorizer injected, and the
- * workspaceId and the ceilings come from the same Query that already loaded
- * the vault (section 9.3). No extra read enters the hot path because of
- * authorization.
+ * and the role come from the context the authorizer injected, and the
+ * ceilings come from the same Query that already loaded the vault
+ * (section 9.3). No extra read enters the hot path because of authorization.
  *
  * Fixed rule, no exception: every Knowledge use case loads the vault and calls
  * require() BEFORE anything else.
@@ -23,20 +22,23 @@ export interface RequestContext {
   readonly user: UserId;
   /** The subscription owner reaches everything in it (RN-ACC-013). */
   readonly isOwner: boolean;
-  /** Workspace id to role, for the workspaces this user belongs to. */
-  readonly roles: ReadonlyMap<string, Role>;
+  /**
+   * The role in the subscription: one role, not one per recorte. There is no
+   * level between the subscription and the vault (software-vision.md 4.3), so
+   * the only thing that can narrow this is the ceiling of a given vault.
+   */
+  readonly role: Role;
 }
 
 export const AuthorizationPolicy = {
   /**
-   * The effective role, in one expression: the lower of the workspace role and
-   * the vault ceiling, with ownership above both.
+   * The effective role, in one expression: the lower of the subscription role
+   * and the vault ceiling, with ownership above both.
    */
   effectiveRole(ctx: RequestContext, vault: Vault): Role {
     if (ctx.isOwner) return Role.OWNER;
-    const inWorkspace = ctx.roles.get(vault.workspaceId.value) ?? Role.NONE;
-    if (!inWorkspace.canRead()) return Role.NONE;
-    return Role.min(inWorkspace, vault.limitFor(ctx.user));
+    if (!ctx.role.canRead()) return Role.NONE;
+    return Role.min(ctx.role, vault.limitFor(ctx.user));
   },
 
   require(ctx: RequestContext, vault: Vault, action: Action): Result<Role, DomainError> {

@@ -19,7 +19,6 @@ import {
   type SubscriptionId,
   ulid,
   type UserId,
-  type WorkspaceId,
   type DomainEvent,
   type Result,
 } from '@memorysmith/kernel';
@@ -33,7 +32,6 @@ export class Invite {
   private constructor(
     readonly id: string,
     readonly subscriptionId: SubscriptionId,
-    readonly workspaceId: WorkspaceId,
     readonly email: Email,
     readonly role: Role,
     readonly invitedBy: UserId,
@@ -46,7 +44,6 @@ export class Invite {
 
   static issue(input: {
     subscriptionId: SubscriptionId;
-    workspaceId: WorkspaceId;
     email: Email;
     role: Role;
     by: Authorship;
@@ -57,7 +54,6 @@ export class Invite {
     const invite = new Invite(
       ulid(),
       input.subscriptionId,
-      input.workspaceId,
       input.email,
       input.role,
       input.by.user,
@@ -68,7 +64,6 @@ export class Invite {
       null,
     );
     invite.record('MemberInvited', input.by, {
-      workspaceId: input.workspaceId.value,
       inviteeEmail: input.email.value,
       role: input.role.name,
       expiresAt: invite.expiresAt.toISOString(),
@@ -79,7 +74,6 @@ export class Invite {
   static rehydrate(input: {
     id: string;
     subscriptionId: SubscriptionId;
-    workspaceId: WorkspaceId;
     email: Email;
     role: Role;
     invitedBy: UserId;
@@ -92,7 +86,6 @@ export class Invite {
     return new Invite(
       input.id,
       input.subscriptionId,
-      input.workspaceId,
       input.email,
       input.role,
       input.invitedBy,

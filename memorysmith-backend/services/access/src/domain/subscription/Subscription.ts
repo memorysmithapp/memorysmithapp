@@ -21,6 +21,7 @@ import {
   err,
   type Instant,
   ok,
+  Role,
   Slug,
   type SubscriptionId,
   SubscriptionStatus,
@@ -28,7 +29,21 @@ import {
   type DomainEvent,
   type Result,
 } from '@memorysmith/kernel';
-import { type RejectionReason, type SubscriptionName } from '../values.js';
+import { type Email, type RejectionReason, type SubscriptionName } from '../values.js';
+
+/**
+ * A member of the subscription. THE OWNER IS NOT ONE. Ownership lives in a
+ * single field, which is how "exactly one OWNER" (RN-ACC-001) stops being a
+ * rule to check and becomes the shape of the data. A membership is EDITOR or
+ * VIEWER, and nothing else.
+ */
+export interface Membership {
+  readonly userId: UserId;
+  readonly email: Email;
+  readonly role: Role;
+  readonly invitedBy: UserId | null;
+  readonly joinedAt: Instant;
+}
 
 /** The transition machine of software-vision.md, section 4.4. */
 const TRANSITIONS: Record<string, readonly string[]> = {
@@ -57,6 +72,7 @@ export class Subscription {
     private _rejectionReason: RejectionReason | null,
     private _legalHold: boolean,
     private _version: number,
+    private readonly _members: Map<string, Membership>,
   ) {}
 
   /**
@@ -86,6 +102,7 @@ export class Subscription {
       null,
       false,
       0,
+      new Map(),
     );
     subscription.record('SubscriptionRequested', input.by, {
       name: input.name.value,
@@ -110,6 +127,7 @@ export class Subscription {
     rejectionReason: RejectionReason | null;
     legalHold: boolean;
     version: number;
+    members: Membership[];
   }): Subscription {
     return new Subscription(
       input.id,
@@ -124,6 +142,7 @@ export class Subscription {
       input.rejectionReason,
       input.legalHold,
       input.version,
+      new Map(input.members.map((member) => [member.userId.value, member])),
     );
   }
 
@@ -305,6 +324,101 @@ export class Subscription {
       },
     );
     return ok();
+  }
+
+  // ---- Members (they used to belong to Workspace, section 4.3) ------------
+
+  get members(): Membership[] {
+    return [...this._members.values()];
+  }
+
+  /** NONE for a stranger and for the owner, whose reach is not a membership. */
+  memberRole(user: UserId): Role {
+    return this._members.get(user.value)?.role ?? Role.NONE;
+  }
+
+  hasMember(user: UserId): boolean {
+    return this._members.has(user.value);
+  }
+
+  /** Only accepting an invite creates a member (RN-ACC-004). */
+  addMember(
+    user: UserId,
+    email: Email,
+    role: Role,
+    invitedBy: UserId | null,
+    by: Authorship,
+  ): Result<void, DomainError> {
+    if (!role.equals(Role.EDITOR) && !role.equals(Role.VIEWER)) {
+      return err(DomainError.validation('A membership is EDITOR or VIEWER'));
+    }
+    if (this._members.has(user.value)) {
+      return err(DomainError.conflict('That user is already a member of this subscription'));
+    }
+    // RN-ACC-003: the e-mail is unique among the members of a subscription.
+    if (this.members.some((member) => member.email.equals(email))) {
+      return err(
+        DomainError.conflict('That e-mail already belongs to a member of this subscription'),
+      );
+    }
+
+    this._members.set(user.value, { userId: user, email, role, invitedBy, joinedAt: by.at });
+    this.recordAbout('MemberJoined', 'MEMBER', user.value, by, {
+      userId: user.value,
+      role: role.name,
+    });
+    return ok();
+  }
+
+  changeMemberRole(user: UserId, role: Role, by: Authorship): Result<void, DomainError> {
+    const member = this._members.get(user.value);
+    if (!member) return err(DomainError.notFound('That user is not a member of this subscription'));
+    if (!role.equals(Role.EDITOR) && !role.equals(Role.VIEWER)) {
+      return err(DomainError.validation('A membership is EDITOR or VIEWER'));
+    }
+    if (member.role.equals(role)) return ok();
+
+    const from = member.role;
+    this._members.set(user.value, { ...member, role });
+    this.recordAbout('MemberRoleChanged', 'MEMBER', user.value, by, {
+      userId: user.value,
+      from: from.name,
+      to: role.name,
+    });
+    return ok();
+  }
+
+  /**
+   * Removing a member revokes access and preserves everything they wrote,
+   * including the recorded authorship (RN-ACC-009). Nothing about their past
+   * writes is touched here, because authorship lives on the events.
+   */
+  removeMember(user: UserId, by: Authorship): Result<void, DomainError> {
+    if (!this._members.delete(user.value)) {
+      return err(DomainError.notFound('That user is not a member of this subscription'));
+    }
+    this.recordAbout('MemberRemoved', 'MEMBER', user.value, by, { userId: user.value });
+    return ok();
+  }
+
+  /** An event ABOUT something inside the subscription, not about it. */
+  private recordAbout(
+    type: Parameters<typeof createEvent>[0]['type'],
+    subject: Parameters<typeof createEvent>[0]['subject'],
+    subjectId: string,
+    by: Authorship,
+    payload: Record<string, unknown>,
+  ): void {
+    this.events.push(
+      createEvent({
+        type,
+        subscriptionId: this.id,
+        subject,
+        subjectId,
+        authorship: by,
+        payload,
+      }),
+    );
   }
 
   private record(

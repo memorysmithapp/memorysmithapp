@@ -30,21 +30,11 @@ export const subscriptionLinkSchema = z.object({
   joinedAt: instantSchema,
 });
 
-export const workspaceSchema = z.object({
-  workspaceId: ulidSchema,
-  name: z.string(),
-  slug: slugSchema,
-  isDefault: z.boolean(),
-  /** The role of the current user in this workspace, already resolved. */
-  role: roleSchema,
-  createdAt: instantSchema,
-});
-
 /**
  * Everything the SPA needs to render its shell in one call: who the user is,
- * which subscription the session acts for, and which workspaces it reaches.
- * The UI hides the workspace level while there is only one, and hides the
- * subscription switcher while there is only one link (PP8).
+ * which subscription the session acts for, and with which role. The UI hides
+ * the member list while there is only the owner, and hides the subscription
+ * switcher while there is only one link (PP8).
  */
 export const sessionSchema = z.object({
   user: z.object({
@@ -55,7 +45,13 @@ export const sessionSchema = z.object({
   }),
   activeSubscription: subscriptionLinkSchema.nullable(),
   subscriptions: z.array(subscriptionLinkSchema),
-  workspaces: z.array(workspaceSchema),
+  /**
+   * The role of this user in the ACTIVE subscription, already resolved: OWNER
+   * for the holder, EDITOR or VIEWER for a member, NONE for a session that
+   * carries no subscription at all. A per-vault ceiling can lower it, never
+   * raise it (RN-ACC-011), and that lives with the vault.
+   */
+  role: roleSchema,
 });
 
 export const switchSubscriptionRequestSchema = z.object({
@@ -63,10 +59,6 @@ export const switchSubscriptionRequestSchema = z.object({
 });
 
 export const requestSubscriptionRequestSchema = z.object({
-  name: z.string().min(1).max(120),
-});
-
-export const createWorkspaceRequestSchema = z.object({
   name: z.string().min(1).max(120),
 });
 
@@ -86,7 +78,6 @@ export const inviteMemberRequestSchema = z.object({
 
 export const inviteSchema = z.object({
   inviteId: ulidSchema,
-  workspaceId: ulidSchema,
   email: z.string().email(),
   role: membershipRoleSchema,
   status: z.enum(['pending', 'accepted', 'expired', 'revoked']),
@@ -117,7 +108,7 @@ export const platformSubscriptionSchema = z.object({
   ownerEmail: z.string().email(),
   status: subscriptionStatusSchema,
   requestedAt: instantSchema,
-  workspaceCount: z.number().int().nonnegative(),
+  memberCount: z.number().int().nonnegative(),
 });
 
 export const approveSubscriptionRequestSchema = z.object({
@@ -130,14 +121,12 @@ export const rejectSubscriptionRequestSchema = z.object({
 });
 
 export type SubscriptionLinkDto = z.infer<typeof subscriptionLinkSchema>;
-export type WorkspaceDto = z.infer<typeof workspaceSchema>;
 export type SessionDto = z.infer<typeof sessionSchema>;
 export type MemberDto = z.infer<typeof memberSchema>;
 export type InviteDto = z.infer<typeof inviteSchema>;
 export type PlatformSubscriptionDto = z.infer<typeof platformSubscriptionSchema>;
 export type SwitchSubscriptionRequest = z.infer<typeof switchSubscriptionRequestSchema>;
 export type RequestSubscriptionRequest = z.infer<typeof requestSubscriptionRequestSchema>;
-export type CreateWorkspaceRequest = z.infer<typeof createWorkspaceRequestSchema>;
 export type InviteMemberRequest = z.infer<typeof inviteMemberRequestSchema>;
 export type ChangeMemberRoleRequest = z.infer<typeof changeMemberRoleRequestSchema>;
 export type TransferOwnershipRequest = z.infer<typeof transferOwnershipRequestSchema>;

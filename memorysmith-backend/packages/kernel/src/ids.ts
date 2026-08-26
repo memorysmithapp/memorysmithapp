@@ -62,16 +62,6 @@ export class SubscriptionId extends UlidIdentifier {
   }
 }
 
-export class WorkspaceId extends UlidIdentifier {
-  private readonly __workspaceId!: void;
-  static create(raw: string): Result<WorkspaceId, DomainError> {
-    return parseUlid(raw, 'WorkspaceId', (value) => new WorkspaceId(value));
-  }
-  static generate(): WorkspaceId {
-    return new WorkspaceId(ulid());
-  }
-}
-
 export class VaultId extends UlidIdentifier {
   private readonly __vaultId!: void;
   static create(raw: string): Result<VaultId, DomainError> {

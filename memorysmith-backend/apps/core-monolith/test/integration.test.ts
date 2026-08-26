@@ -77,14 +77,10 @@ async function seed(): Promise<{
   folderId: string;
   notes: Record<string, string>;
 }> {
-  const session = (await (await call('/access/session')).json()) as {
-    workspaces: Array<{ workspaceId: string }>;
-  };
   const vault = (await (
     await call('/knowledge/vaults', {
       method: 'POST',
       body: {
-        workspaceId: session.workspaces[0]?.workspaceId,
         name: 'Normas e Legislacao',
         description: 'Texto normativo por artigo',
       },

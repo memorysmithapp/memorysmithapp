@@ -25,7 +25,6 @@ import {
   InMemoryPlatformAdmin,
   InMemorySubscriptionRepository,
   InMemoryUserLinkRepository,
-  InMemoryWorkspaceRepository,
 } from '@memorysmith/svc-access/adapters/memory';
 import {
   GetSession,
@@ -39,7 +38,7 @@ import {
 import {
   AcceptInvite,
   ChangeMemberRole,
-  CreateWorkspace,
+  ListMembers,
   InviteMember,
   RemoveMember,
   TransferOwnership,
@@ -148,7 +147,6 @@ export function buildTestApp() {
     if (!context) return null;
     return {
       subscriptions: new InMemorySubscriptionRepository(context, accessDb, events),
-      workspaces: new InMemoryWorkspaceRepository(context, accessDb, events),
       invites: new InMemoryInviteRepository(context, accessDb, events),
     };
   };
@@ -167,44 +165,39 @@ export function buildTestApp() {
     requestSubscription: () => new RequestSubscription(onboarding, links),
     getSession: (request) => {
       const scoped = scopedAccess(request);
-      return new GetSession(
-        links,
-        scoped?.subscriptions ?? null,
-        scoped?.workspaces ?? null,
-        async (id) => {
-          const found = accessDb.subscriptions.get(`S#${id.value}`)?.subscription;
-          return found
-            ? { name: found.name.value, slug: found.slug.value, status: found.status.name }
-            : null;
-        },
-      );
+      return new GetSession(links, scoped?.subscriptions ?? null, async (id) => {
+        const found = accessDb.subscriptions.get(`S#${id.value}`)?.subscription;
+        return found
+          ? { name: found.name.value, slug: found.slug.value, status: found.status.name }
+          : null;
+      });
     },
     switchSubscription: () => new SwitchActiveSubscription(links),
     listPlatformQueue: () => new ListPlatformQueue(platform),
     reviewSubscription: () => new ReviewSubscription(platform),
-    createWorkspace: (request) => {
+    listMembers: (request) => {
       const scoped = scopedAccess(request);
-      return new CreateWorkspace(scoped!.subscriptions, scoped!.workspaces);
+      return new ListMembers(scoped!.subscriptions);
     },
     inviteMember: (request) => {
       const scoped = scopedAccess(request);
-      return new InviteMember(scoped!.subscriptions, scoped!.workspaces, scoped!.invites);
+      return new InviteMember(scoped!.subscriptions, scoped!.invites);
     },
     acceptInvite: (request) => {
       const scoped = scopedAccess(request);
-      return new AcceptInvite(scoped!.invites, scoped!.workspaces, links);
+      return new AcceptInvite(scoped!.invites, scoped!.subscriptions, links);
     },
     changeMemberRole: (request) => {
       const scoped = scopedAccess(request);
-      return new ChangeMemberRole(scoped!.subscriptions, scoped!.workspaces);
+      return new ChangeMemberRole(scoped!.subscriptions);
     },
     removeMember: (request) => {
       const scoped = scopedAccess(request);
-      return new RemoveMember(scoped!.subscriptions, scoped!.workspaces, links);
+      return new RemoveMember(scoped!.subscriptions, links);
     },
     transferOwnership: (request) => {
       const scoped = scopedAccess(request);
-      return new TransferOwnership(scoped!.subscriptions, scoped!.workspaces, links);
+      return new TransferOwnership(scoped!.subscriptions, links);
     },
   };
 
@@ -315,17 +308,14 @@ export function buildTestApp() {
         };
       }
       const scoped = scopedAccess(request);
-      const resolved = await new ResolveRequestContext(
-        scoped!.subscriptions,
-        scoped!.workspaces,
-      ).execute(context);
+      const resolved = await new ResolveRequestContext(scoped!.subscriptions).execute(context);
       if (!resolved.ok) return { ok: false as const, error: resolved.error };
 
       const knowledgeRequest: KnowledgeRequest = {
         ctx: resolved.value,
         subscription: context,
         authorship: Authorship.byHuman(context.userId),
-        workspaceRoleOf: (workspaceId) => resolved.value.roles.get(workspaceId) ?? Role.NONE,
+        subscriptionRole: resolved.value.isOwner ? Role.OWNER : resolved.value.role,
       };
       return { ok: true as const, value: knowledgeRequest };
     },

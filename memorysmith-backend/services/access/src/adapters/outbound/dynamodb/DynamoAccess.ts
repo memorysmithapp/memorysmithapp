@@ -3,13 +3,14 @@
  * (architecture-guide.md, section 9.4).
  *
  *   S#{s}          / META                  subscription
+ *   S#{s}          / MEMBER#{userId}       membership (EDITOR | VIEWER)
  *   S#{s}          / INVITE#{token}        pending invite, ttl = expiresAt
- *   S#{s}#WS#{ws}  / META                  workspace
- *   S#{s}#WS#{ws}  / MEMBER#{userId}       membership (EDITOR | VIEWER)
  *   USER#{u}       / SUB#{s}               the link, exception 1 of section 8.3
  *
- *   GSI1: USER#{u}        -> S#{s}#WS#{ws}                        my workspaces
  *   GSI2: PLATFORM#{st}   -> REQUESTED#{ts}#{s}                   platform queue
+ *
+ * The subscription and its members share ONE partition, so a single Query
+ * brings the whole aggregate back, the way the vault already loads its tree.
  *
  * The OWNER is not a MEMBER item: ownership is the `ownerId` field of the META
  * item, which is how "exactly one OWNER" becomes the shape of the data.
@@ -26,7 +27,6 @@ import {
   SubscriptionId,
   SubscriptionStatus,
   UserId,
-  WorkspaceId,
   type Result,
   type SubscriptionContext,
 } from '@memorysmith/kernel';
@@ -40,15 +40,9 @@ import {
   type DynamoDBDocumentClient,
 } from '@aws-sdk/lib-dynamodb';
 import { Subscription } from '../../../domain/subscription/Subscription.js';
-import { Workspace, type Membership } from '../../../domain/workspace/Workspace.js';
+import type { Membership } from '../../../domain/subscription/Subscription.js';
 import { Invite, type InviteStatus } from '../../../domain/invite/Invite.js';
-import {
-  Email,
-  InviteToken,
-  RejectionReason,
-  SubscriptionName,
-  WorkspaceName,
-} from '../../../domain/values.js';
+import { Email, InviteToken, RejectionReason, SubscriptionName } from '../../../domain/values.js';
 import type {
   InviteRepository,
   PlatformSubscriptionAdmin,
@@ -57,7 +51,6 @@ import type {
   SubscriptionOnboarding,
   SubscriptionRepository,
   UserLinkRepository,
-  WorkspaceRepository,
 } from '../../../domain/ports/index.js';
 import { outboxItemFor, type Item, type OutboxSink } from './items.js';
 
@@ -89,8 +82,9 @@ function subscriptionItem(subscription: Subscription): Item {
   };
 }
 
-function parseSubscription(item: Item): Subscription {
+function parseSubscription(item: Item, members: Membership[] = []): Subscription {
   return Subscription.rehydrate({
+    members,
     id: need(SubscriptionId.fromClaim(String(item['subscriptionId']))),
     name: need(SubscriptionName.create(String(item['name']))),
     slug: need(Slug.create(String(item['slug']))),
@@ -108,28 +102,9 @@ function parseSubscription(item: Item): Subscription {
   });
 }
 
-function workspaceItem(workspace: Workspace, subscriptionId: SubscriptionId): Item {
+function memberItem(member: Membership, subscriptionId: SubscriptionId): Item {
   return {
-    PK: `S#${subscriptionId.value}#WS#${workspace.id.value}`,
-    SK: 'META',
-    entity: 'WORKSPACE',
-    workspaceId: workspace.id.value,
-    subscriptionId: subscriptionId.value,
-    name: workspace.name.value,
-    slug: workspace.slug.value,
-    isDefault: workspace.isDefault,
-    createdAt: workspace.createdAt.toISOString(),
-    version: workspace.version + 1,
-  };
-}
-
-function memberItem(
-  member: Membership,
-  subscriptionId: SubscriptionId,
-  workspaceId: WorkspaceId,
-): Item {
-  return {
-    PK: `S#${subscriptionId.value}#WS#${workspaceId.value}`,
+    PK: `S#${subscriptionId.value}`,
     SK: `MEMBER#${member.userId.value}`,
     entity: 'MEMBER',
     userId: member.userId.value,
@@ -137,9 +112,16 @@ function memberItem(
     role: member.role.name,
     invitedBy: member.invitedBy?.value ?? null,
     joinedAt: member.joinedAt.toISOString(),
-    // "Which workspaces do I have" is answered by GSI1 (exception 1 adjacent).
-    GSI1PK: `USER#${member.userId.value}`,
-    GSI1SK: `S#${subscriptionId.value}#WS#${workspaceId.value}`,
+  };
+}
+
+function parseMember(item: Item): Membership {
+  return {
+    userId: need(UserId.create(String(item['userId']))),
+    email: need(Email.create(String(item['email']))),
+    role: need(Role.membership(String(item['role']))),
+    invitedBy: item['invitedBy'] ? need(UserId.create(String(item['invitedBy']))) : null,
+    joinedAt: need(Instant.fromISO(String(item['joinedAt']))),
   };
 }
 
@@ -151,14 +133,30 @@ export class DynamoSubscriptionRepository implements SubscriptionRepository {
     private readonly outbox: OutboxSink,
   ) {}
 
+  /**
+   * ONE Query brings the subscription and its members back: `MEMBER#` sorts
+   * before `META`, so both come from the same partition in the same read, and
+   * no authorization decision costs an extra round trip.
+   */
   async find(): Promise<Subscription | null> {
     const response = await this.db.send(
-      new GetCommand({
+      new QueryCommand({
         TableName: this.tableName,
-        Key: { PK: `S#${this.sub.subscriptionId.value}`, SK: 'META' },
+        KeyConditionExpression: 'PK = :pk AND SK BETWEEN :from AND :to',
+        ExpressionAttributeValues: {
+          ':pk': `S#${this.sub.subscriptionId.value}`,
+          ':from': 'MEMBER#',
+          ':to': 'META',
+        },
       }),
     );
-    return response.Item ? parseSubscription(response.Item as Item) : null;
+    const items = (response.Items ?? []) as Item[];
+    const meta = items.find((item) => item['SK'] === 'META');
+    if (!meta) return null;
+    return parseSubscription(
+      meta,
+      items.filter((item) => String(item['SK']).startsWith('MEMBER#')).map(parseMember),
+    );
   }
 
   async save(subscription: Subscription): Promise<Result<void, ConcurrencyError>> {
@@ -173,6 +171,23 @@ async function saveSubscription(
   subscription: Subscription,
 ): Promise<Result<void, ConcurrencyError>> {
   const events = subscription.pullEvents();
+  const partition = `S#${subscription.id.value}`;
+
+  // Whoever left the member list has to leave the table too, or a removed
+  // member would keep their item and the next read would bring them back.
+  const stored = await db.send(
+    new QueryCommand({
+      TableName: tableName,
+      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+      ExpressionAttributeValues: { ':pk': partition, ':prefix': 'MEMBER#' },
+      ProjectionExpression: 'SK',
+    }),
+  );
+  const current = new Set(subscription.members.map((member) => `MEMBER#${member.userId.value}`));
+  const removed = ((stored.Items ?? []) as Item[])
+    .map((item) => String(item['SK']))
+    .filter((sk) => !current.has(sk));
+
   try {
     await db.send(
       new TransactWriteCommand({
@@ -185,11 +200,14 @@ async function saveSubscription(
               ExpressionAttributeValues: { ':expected': subscription.version },
             },
           },
+          ...subscription.members.map((member) => ({
+            Put: { TableName: tableName, Item: memberItem(member, subscription.id) },
+          })),
+          ...removed.map((sk) => ({
+            Delete: { TableName: tableName, Key: { PK: partition, SK: sk } },
+          })),
           ...events.map((event) => ({
-            Put: {
-              TableName: tableName,
-              Item: outboxItemFor(event, `S#${subscription.id.value}`),
-            },
+            Put: { TableName: tableName, Item: outboxItemFor(event, partition) },
           })),
         ],
       }),
@@ -203,165 +221,6 @@ async function saveSubscription(
   subscription.markPersisted();
   await outbox.published(events);
   return ok();
-}
-
-export class DynamoWorkspaceRepository implements WorkspaceRepository {
-  constructor(
-    private readonly sub: SubscriptionContext,
-    private readonly db: DynamoDBDocumentClient,
-    private readonly tableName: string,
-    private readonly outbox: OutboxSink,
-  ) {}
-
-  private partition(id: WorkspaceId): string {
-    return `S#${this.sub.subscriptionId.value}#WS#${id.value}`;
-  }
-
-  async findById(id: WorkspaceId): Promise<Workspace | null> {
-    const response = await this.db.send(
-      new QueryCommand({
-        TableName: this.tableName,
-        KeyConditionExpression: 'PK = :pk',
-        ExpressionAttributeValues: { ':pk': this.partition(id) },
-      }),
-    );
-    return this.assemble((response.Items ?? []) as Item[]);
-  }
-
-  async listAll(): Promise<Workspace[]> {
-    // Workspaces of the subscription, found through the membership index of
-    // the current user plus the ownership shortcut resolved by the caller.
-    const response = await this.db.send(
-      new QueryCommand({
-        TableName: this.tableName,
-        IndexName: 'GSI1',
-        KeyConditionExpression: 'GSI1PK = :pk AND begins_with(GSI1SK, :prefix)',
-        ExpressionAttributeValues: {
-          ':pk': `USER#${this.sub.userId.value}`,
-          ':prefix': `S#${this.sub.subscriptionId.value}#WS#`,
-        },
-      }),
-    );
-    const ids = new Set(
-      ((response.Items ?? []) as Item[]).map((item) => String(item['GSI1SK']).split('#WS#')[1]),
-    );
-
-    // The owner reaches every workspace of the subscription without being a
-    // member of any (RN-ACC-013), so the owner path scans the ownership index.
-    const owned = await this.db.send(
-      new QueryCommand({
-        TableName: this.tableName,
-        IndexName: 'GSI1',
-        KeyConditionExpression: 'GSI1PK = :pk AND begins_with(GSI1SK, :prefix)',
-        ExpressionAttributeValues: {
-          ':pk': `SUBWS#${this.sub.subscriptionId.value}`,
-          ':prefix': 'WS#',
-        },
-      }),
-    );
-    for (const item of (owned.Items ?? []) as Item[]) {
-      ids.add(String(item['workspaceId']));
-    }
-
-    const workspaces: Workspace[] = [];
-    for (const id of ids) {
-      if (!id) continue;
-      const parsed = WorkspaceId.create(id);
-      if (!parsed.ok) continue;
-      const workspace = await this.findById(parsed.value);
-      if (workspace) workspaces.push(workspace);
-    }
-    return workspaces;
-  }
-
-  async findDefault(): Promise<Workspace | null> {
-    return (await this.listAll()).find((workspace) => workspace.isDefault) ?? null;
-  }
-
-  async save(workspace: Workspace): Promise<Result<void, ConcurrencyError>> {
-    const events = workspace.pullEvents();
-    const partition = this.partition(workspace.id);
-    const existingMembers = await this.db.send(
-      new QueryCommand({
-        TableName: this.tableName,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-        ExpressionAttributeValues: { ':pk': partition, ':prefix': 'MEMBER#' },
-        ProjectionExpression: 'SK',
-      }),
-    );
-    const current = new Set(workspace.members.map((member) => `MEMBER#${member.userId.value}`));
-    const removed = ((existingMembers.Items ?? []) as Item[])
-      .map((item) => String(item['SK']))
-      .filter((sk) => !current.has(sk));
-
-    try {
-      await this.db.send(
-        new TransactWriteCommand({
-          TransactItems: [
-            {
-              Put: {
-                TableName: this.tableName,
-                Item: {
-                  ...workspaceItem(workspace, this.sub.subscriptionId),
-                  // Lets the owner list every workspace of the subscription.
-                  GSI1PK: `SUBWS#${this.sub.subscriptionId.value}`,
-                  GSI1SK: `WS#${workspace.id.value}`,
-                },
-                ConditionExpression: 'attribute_not_exists(PK) OR version = :expected',
-                ExpressionAttributeValues: { ':expected': workspace.version },
-              },
-            },
-            ...workspace.members.map((member) => ({
-              Put: {
-                TableName: this.tableName,
-                Item: memberItem(member, this.sub.subscriptionId, workspace.id),
-              },
-            })),
-            ...removed.map((sk) => ({
-              Delete: { TableName: this.tableName, Key: { PK: partition, SK: sk } },
-            })),
-            ...events.map((event) => ({
-              Put: { TableName: this.tableName, Item: outboxItemFor(event, partition) },
-            })),
-          ],
-        }),
-      );
-    } catch (error) {
-      const name = (error as { name?: string })?.name ?? '';
-      if (name === 'TransactionCanceledException') {
-        return { ok: false, error: new ConcurrencyError() };
-      }
-      throw error;
-    }
-    workspace.markPersisted();
-    await this.outbox.published(events);
-    return ok();
-  }
-
-  private assemble(items: Item[]): Workspace | null {
-    const meta = items.find((item) => item['SK'] === 'META');
-    if (!meta) return null;
-    const members: Membership[] = items
-      .filter((item) => String(item['SK']).startsWith('MEMBER#'))
-      .map((item) => ({
-        userId: need(UserId.create(String(item['userId']))),
-        email: need(Email.create(String(item['email']))),
-        role: need(Role.membership(String(item['role']))),
-        invitedBy: item['invitedBy'] ? need(UserId.create(String(item['invitedBy']))) : null,
-        joinedAt: need(Instant.fromISO(String(item['joinedAt']))),
-      }));
-
-    return Workspace.rehydrate({
-      id: need(WorkspaceId.create(String(meta['workspaceId']))),
-      subscriptionId: this.sub.subscriptionId,
-      name: need(WorkspaceName.create(String(meta['name']))),
-      slug: need(Slug.create(String(meta['slug']))),
-      isDefault: Boolean(meta['isDefault']),
-      members,
-      createdAt: need(Instant.fromISO(String(meta['createdAt']))),
-      version: Number(meta['version'] ?? 0),
-    });
-  }
 }
 
 export class DynamoInviteRepository implements InviteRepository {
@@ -382,7 +241,7 @@ export class DynamoInviteRepository implements InviteRepository {
     return response.Item ? this.parse(response.Item as Item) : null;
   }
 
-  async listByWorkspace(workspaceId: WorkspaceId): Promise<Invite[]> {
+  async listPending(): Promise<Invite[]> {
     const response = await this.db.send(
       new QueryCommand({
         TableName: this.tableName,
@@ -393,9 +252,7 @@ export class DynamoInviteRepository implements InviteRepository {
         },
       }),
     );
-    return ((response.Items ?? []) as Item[])
-      .map((item) => this.parse(item))
-      .filter((invite) => invite.workspaceId.equals(workspaceId));
+    return ((response.Items ?? []) as Item[]).map((item) => this.parse(item));
   }
 
   async save(invite: Invite): Promise<Result<void, ConcurrencyError>> {
@@ -408,7 +265,6 @@ export class DynamoInviteRepository implements InviteRepository {
           SK: `INVITE#${invite.token.value}`,
           entity: 'INVITE',
           inviteId: invite.id,
-          workspaceId: invite.workspaceId.value,
           email: invite.email.value,
           role: invite.role.name,
           invitedBy: invite.invitedBy.value,
@@ -429,7 +285,6 @@ export class DynamoInviteRepository implements InviteRepository {
     return Invite.rehydrate({
       id: String(item['inviteId']),
       subscriptionId: this.sub.subscriptionId,
-      workspaceId: need(WorkspaceId.create(String(item['workspaceId']))),
       email: need(Email.create(String(item['email']))),
       role: need(Role.membership(String(item['role']))),
       invitedBy: need(UserId.create(String(item['invitedBy']))),
@@ -531,7 +386,7 @@ export class DynamoPlatformAdmin implements PlatformSubscriptionAdmin {
       ownerEmail: String(item['ownerEmail']),
       status: String(item['status']),
       requestedAt: String(item['requestedAt']),
-      workspaceCount: Number(item['workspaceCount'] ?? 0),
+      memberCount: Number(item['memberCount'] ?? 0),
     }));
   }
 
@@ -573,10 +428,9 @@ export class DynamoOnboarding implements SubscriptionOnboarding {
 
   async create(input: {
     subscription: Subscription;
-    workspace: Workspace;
     link: SubscriptionLink;
   }): Promise<Result<void, ConcurrencyError>> {
-    const events = [...input.subscription.pullEvents(), ...input.workspace.pullEvents()];
+    const events = input.subscription.pullEvents();
     const partition = `S#${input.subscription.id.value}`;
     try {
       await this.db.send(
@@ -585,18 +439,8 @@ export class DynamoOnboarding implements SubscriptionOnboarding {
             {
               Put: {
                 TableName: this.tableName,
-                Item: { ...subscriptionItem(input.subscription), workspaceCount: 1 },
+                Item: { ...subscriptionItem(input.subscription), memberCount: 0 },
                 ConditionExpression: 'attribute_not_exists(PK)',
-              },
-            },
-            {
-              Put: {
-                TableName: this.tableName,
-                Item: {
-                  ...workspaceItem(input.workspace, input.subscription.id),
-                  GSI1PK: `SUBWS#${input.subscription.id.value}`,
-                  GSI1SK: `WS#${input.workspace.id.value}`,
-                },
               },
             },
             {
@@ -627,7 +471,6 @@ export class DynamoOnboarding implements SubscriptionOnboarding {
       throw error;
     }
     input.subscription.markPersisted();
-    input.workspace.markPersisted();
     await this.outbox.published(events);
     return ok();
   }

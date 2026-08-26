@@ -29,7 +29,6 @@ import {
   type SubscriptionId,
   type VaultId,
   type VaultRoleLimit,
-  type WorkspaceId,
   type DomainEvent,
   type Result,
   type UserId,
@@ -52,7 +51,6 @@ export class Vault {
   private constructor(
     readonly id: VaultId,
     readonly subscriptionId: SubscriptionId,
-    readonly workspaceId: WorkspaceId,
     private _name: VaultName,
     private _slug: Slug,
     private _description: ShortText,
@@ -76,7 +74,6 @@ export class Vault {
   static create(input: {
     id: VaultId;
     subscriptionId: SubscriptionId;
-    workspaceId: WorkspaceId;
     name: VaultName;
     description: ShortText;
     by: Authorship;
@@ -87,7 +84,6 @@ export class Vault {
     const vault = new Vault(
       input.id,
       input.subscriptionId,
-      input.workspaceId,
       input.name,
       slug.value,
       input.description,
@@ -102,7 +98,6 @@ export class Vault {
     );
     vault.record('VaultCreated', 'VAULT', input.id.value, input.by, {
       vaultId: input.id.value,
-      workspaceId: input.workspaceId.value,
       name: input.name.value,
       slug: slug.value.value,
       description: input.description.value,
@@ -114,7 +109,6 @@ export class Vault {
   static rehydrate(input: {
     id: VaultId;
     subscriptionId: SubscriptionId;
-    workspaceId: WorkspaceId;
     name: VaultName;
     slug: Slug;
     description: ShortText;
@@ -130,7 +124,6 @@ export class Vault {
     return new Vault(
       input.id,
       input.subscriptionId,
-      input.workspaceId,
       input.name,
       input.slug,
       input.description,

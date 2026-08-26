@@ -7,7 +7,6 @@ import {
   SubscriptionId,
   SubscriptionStatus,
   UserId,
-  WorkspaceId,
   type Result,
 } from '@memorysmith/kernel';
 import { Subscription } from '../src/domain/subscription/Subscription.js';
@@ -19,7 +18,6 @@ import {
   InMemoryPlatformAdmin,
   InMemorySubscriptionRepository,
   InMemoryUserLinkRepository,
-  InMemoryWorkspaceRepository,
 } from '../src/adapters/outbound/memory/InMemoryAccess.js';
 import { RecordingEventPublisher } from './recording-publisher.js';
 import {
@@ -31,7 +29,6 @@ import { ListPlatformQueue, ReviewSubscription } from '../src/application/platfo
 import {
   AcceptInvite,
   ChangeMemberRole,
-  CreateWorkspace,
   InviteMember,
   RemoveMember,
   TransferOwnership,
@@ -163,7 +160,7 @@ describe('Subscription: the identifier is perpetual', () => {
 });
 
 describe('Onboarding', () => {
-  it('creates the subscription, a default workspace and the link', async () => {
+  it('creates the subscription and the link, and nothing between them', async () => {
     const onboarding = new InMemoryOnboarding(db, events);
     const links = new InMemoryUserLinkRepository(db);
     const useCase = new RequestSubscription(onboarding, links);
@@ -177,10 +174,8 @@ describe('Onboarding', () => {
     );
 
     expect(db.subscriptions.size).toBe(1);
-    expect(db.workspaces.size).toBe(1);
     expect(await links.linksOf(owner)).toHaveLength(1);
     expect(events.ofType('SubscriptionRequested')).toHaveLength(1);
-    expect(events.ofType('WorkspaceCreated')).toHaveLength(1);
     expect(created.subscriptionId.value).toHaveLength(26);
   });
 
@@ -229,7 +224,7 @@ describe('Platform surface', () => {
       ownerEmail: 'owner@example.com',
       status: 'pending_approval',
       requestedAt: expect.any(String),
-      workspaceCount: 1,
+      memberCount: 0,
     });
     // Nothing about vaults or content is even representable in this view.
     expect(Object.keys(queue[0] ?? {})).not.toContain('vaults');
@@ -281,7 +276,7 @@ describe('Platform surface', () => {
   });
 });
 
-describe('Workspaces, invites and members', () => {
+describe('Invites and members', () => {
   async function activeSubscription() {
     const onboarding = new InMemoryOnboarding(db, events);
     const { subscriptionId } = unwrap(
@@ -305,61 +300,63 @@ describe('Workspaces, invites and members', () => {
       subscriptionId,
       context,
       subscriptions: new InMemorySubscriptionRepository(context, db, events),
-      workspaces: new InMemoryWorkspaceRepository(context, db, events),
       invites: new InMemoryInviteRepository(context, db, events),
       links: new InMemoryUserLinkRepository(db),
     };
   }
 
-  it('lets only the owner create a workspace', async () => {
-    const { context, subscriptions, workspaces } = await activeSubscription();
-    const useCase = new CreateWorkspace(subscriptions, workspaces);
-
-    unwrap(await useCase.execute({ context, name: 'Auditoria', by: Authorship.byHuman(owner) }));
-    expect(await workspaces.listAll()).toHaveLength(2);
+  it('lets only the owner invite', async () => {
+    const { context, subscriptions, invites } = await activeSubscription();
 
     const asMember = contextOf(context.subscriptionId, invitee);
-    const refused = await new CreateWorkspace(
+    const refused = await new InviteMember(
       new InMemorySubscriptionRepository(asMember, db, events),
-      new InMemoryWorkspaceRepository(asMember, db, events),
-    ).execute({ context: asMember, name: 'Outro', by: Authorship.byHuman(invitee) });
+      invites,
+    ).execute({
+      context: asMember,
+      email: 'outro@example.com',
+      role: 'EDITOR',
+      by: Authorship.byHuman(invitee),
+    });
     const error = expectErr(refused);
     expect(error.code).toBe('FORBIDDEN');
     // The member sees the subscription they belong to, so this is a real 403.
     expect(error.revealsExistence).toBe(true);
+
+    unwrap(
+      await new InviteMember(subscriptions, invites).execute({
+        context,
+        email: 'invitee@example.com',
+        role: 'EDITOR',
+        by: Authorship.byHuman(owner),
+      }),
+    );
   });
 
-  it('turns an invite into a membership and a link', async () => {
-    const { context, subscriptions, workspaces, invites, links } = await activeSubscription();
-    const workspace = (await workspaces.findDefault()) as NonNullable<
-      Awaited<ReturnType<typeof workspaces.findDefault>>
-    >;
+  it('turns an invite into a membership of the subscription and a link', async () => {
+    const { context, subscriptions, invites, links } = await activeSubscription();
 
     const issued = unwrap(
-      await new InviteMember(subscriptions, workspaces, invites).execute({
+      await new InviteMember(subscriptions, invites).execute({
         context,
-        workspaceId: workspace.id,
         email: 'invitee@example.com',
         role: 'EDITOR',
         by: Authorship.byHuman(owner),
       }),
     );
     // A pending invite grants no access at all (RN-ACC-004).
-    expect(workspace.hasMember(invitee)).toBe(false);
+    expect((await subscriptions.find())?.hasMember(invitee)).toBe(false);
 
     const accepted = unwrap(
-      await new AcceptInvite(invites, workspaces, links).execute({
+      await new AcceptInvite(invites, subscriptions, links).execute({
         profile: profileOf(invitee, 'invitee@example.com'),
         token: issued.token.value,
         by: Authorship.byHuman(invitee),
       }),
     );
     expect(accepted.role).toBe('EDITOR');
+    expect((await subscriptions.find())?.memberRole(invitee)).toBe(Role.EDITOR);
 
-    const reloaded = (await workspaces.findById(workspace.id)) as NonNullable<
-      Awaited<ReturnType<typeof workspaces.findById>>
-    >;
-    expect(reloaded.memberRole(invitee)).toBe(Role.EDITOR);
     // Accepting does not create a subscription for the invitee (RN-SUB-017).
     const inviteeLinks = await links.linksOf(invitee);
     expect(inviteeLinks).toHaveLength(1);
@@ -367,19 +364,17 @@ describe('Workspaces, invites and members', () => {
   });
 
   it('refuses an invite accepted from another e-mail address', async () => {
-    const { context, subscriptions, workspaces, invites, links } = await activeSubscription();
-    const workspace = (await workspaces.findDefault())!;
+    const { context, subscriptions, invites, links } = await activeSubscription();
     const issued = unwrap(
-      await new InviteMember(subscriptions, workspaces, invites).execute({
+      await new InviteMember(subscriptions, invites).execute({
         context,
-        workspaceId: workspace.id,
         email: 'invitee@example.com',
         role: 'VIEWER',
         by: Authorship.byHuman(owner),
       }),
     );
 
-    const wrongPerson = await new AcceptInvite(invites, workspaces, links).execute({
+    const wrongPerson = await new AcceptInvite(invites, subscriptions, links).execute({
       profile: profileOf(invitee, 'someone-else@example.com'),
       token: issued.token.value,
       by: Authorship.byHuman(invitee),
@@ -388,13 +383,11 @@ describe('Workspaces, invites and members', () => {
   });
 
   it('expires an invite after seven days', async () => {
-    const { context, subscriptions, workspaces, invites, links } = await activeSubscription();
-    const workspace = (await workspaces.findDefault())!;
+    const { context, subscriptions, invites, links } = await activeSubscription();
     const sentAt = unwrap(Instant.fromISO('2026-03-01T10:00:00.000Z'));
     const issued = unwrap(
-      await new InviteMember(subscriptions, workspaces, invites).execute({
+      await new InviteMember(subscriptions, invites).execute({
         context,
-        workspaceId: workspace.id,
         email: 'invitee@example.com',
         role: 'VIEWER',
         by: Authorship.byHuman(owner, sentAt),
@@ -402,7 +395,7 @@ describe('Workspaces, invites and members', () => {
     );
 
     const tooLate = unwrap(Instant.fromISO('2026-03-09T10:00:00.000Z'));
-    const refused = await new AcceptInvite(invites, workspaces, links).execute({
+    const refused = await new AcceptInvite(invites, subscriptions, links).execute({
       profile: profileOf(invitee, 'invitee@example.com'),
       token: issued.token.value,
       by: Authorship.byHuman(invitee, tooLate),
@@ -410,54 +403,75 @@ describe('Workspaces, invites and members', () => {
     expect(expectErr(refused).message).toContain('expired');
   });
 
-  it('changes a role and removes a member', async () => {
-    const { context, subscriptions, workspaces, invites, links } = await activeSubscription();
-    const workspace = (await workspaces.findDefault())!;
+  it('refuses a second invite to an e-mail that is already a member', async () => {
+    // RN-ACC-003: the e-mail is unique among the members of a SUBSCRIPTION,
+    // which used to mean "of a workspace".
+    const { context, subscriptions, invites, links } = await activeSubscription();
     const issued = unwrap(
-      await new InviteMember(subscriptions, workspaces, invites).execute({
+      await new InviteMember(subscriptions, invites).execute({
         context,
-        workspaceId: workspace.id,
         email: 'invitee@example.com',
         role: 'EDITOR',
         by: Authorship.byHuman(owner),
       }),
     );
-    await new AcceptInvite(invites, workspaces, links).execute({
+    await new AcceptInvite(invites, subscriptions, links).execute({
+      profile: profileOf(invitee, 'invitee@example.com'),
+      token: issued.token.value,
+      by: Authorship.byHuman(invitee),
+    });
+
+    const again = await new InviteMember(subscriptions, invites).execute({
+      context,
+      email: 'invitee@example.com',
+      role: 'VIEWER',
+      by: Authorship.byHuman(owner),
+    });
+    expect(expectErr(again).code).toBe('CONFLICT');
+  });
+
+  it('changes a role and removes a member', async () => {
+    const { context, subscriptions, invites, links } = await activeSubscription();
+    const issued = unwrap(
+      await new InviteMember(subscriptions, invites).execute({
+        context,
+        email: 'invitee@example.com',
+        role: 'EDITOR',
+        by: Authorship.byHuman(owner),
+      }),
+    );
+    await new AcceptInvite(invites, subscriptions, links).execute({
       profile: profileOf(invitee, 'invitee@example.com'),
       token: issued.token.value,
       by: Authorship.byHuman(invitee),
     });
 
     unwrap(
-      await new ChangeMemberRole(subscriptions, workspaces).execute({
+      await new ChangeMemberRole(subscriptions).execute({
         context,
-        workspaceId: workspace.id,
         userId: invitee,
         role: 'VIEWER',
         by: Authorship.byHuman(owner),
       }),
     );
-    expect((await workspaces.findById(workspace.id))?.memberRole(invitee)).toBe(Role.VIEWER);
+    expect((await subscriptions.find())?.memberRole(invitee)).toBe(Role.VIEWER);
 
     unwrap(
-      await new RemoveMember(subscriptions, workspaces, links).execute({
+      await new RemoveMember(subscriptions, links).execute({
         context,
-        workspaceId: workspace.id,
         userId: invitee,
         by: Authorship.byHuman(owner),
       }),
     );
-    expect((await workspaces.findById(workspace.id))?.hasMember(invitee)).toBe(false);
-    // The link goes with the last membership of that subscription.
+    expect((await subscriptions.find())?.hasMember(invitee)).toBe(false);
+    // The link goes with the membership: there is nothing left to reach.
     expect(await links.linksOf(invitee)).toHaveLength(0);
   });
 
   it('refuses to remove the owner', async () => {
-    const { context, subscriptions, workspaces, links } = await activeSubscription();
-    const workspace = (await workspaces.findDefault())!;
-    const refused = await new RemoveMember(subscriptions, workspaces, links).execute({
+    const { context, subscriptions, links } = await activeSubscription();
+    const refused = await new RemoveMember(subscriptions, links).execute({
       context,
-      workspaceId: workspace.id,
       userId: owner,
       by: Authorship.byHuman(owner),
     });
@@ -465,34 +479,34 @@ describe('Workspaces, invites and members', () => {
   });
 
   it('transfers ownership atomically, demoting the previous holder', async () => {
-    const { context, subscriptions, workspaces, invites, links } = await activeSubscription();
-    const workspace = (await workspaces.findDefault())!;
+    const { context, subscriptions, invites, links } = await activeSubscription();
     const issued = unwrap(
-      await new InviteMember(subscriptions, workspaces, invites).execute({
+      await new InviteMember(subscriptions, invites).execute({
         context,
-        workspaceId: workspace.id,
         email: 'invitee@example.com',
         role: 'EDITOR',
         by: Authorship.byHuman(owner),
       }),
     );
-    await new AcceptInvite(invites, workspaces, links).execute({
+    await new AcceptInvite(invites, subscriptions, links).execute({
       profile: profileOf(invitee, 'invitee@example.com'),
       token: issued.token.value,
       by: Authorship.byHuman(invitee),
     });
 
     unwrap(
-      await new TransferOwnership(subscriptions, workspaces, links).execute({
+      await new TransferOwnership(subscriptions, links).execute({
         context,
         toUserId: invitee,
         by: Authorship.byHuman(owner),
       }),
     );
 
-    const subscription = (await subscriptions.find())!;
-    expect(subscription.isOwner(invitee)).toBe(true);
-    expect((await workspaces.findById(workspace.id))?.memberRole(owner)).toBe(Role.EDITOR);
+    const subscription = await subscriptions.find();
+    expect(subscription?.isOwner(invitee)).toBe(true);
+    // Both halves of RN-ACC-002 now land in ONE save of ONE aggregate.
+    expect(subscription?.memberRole(owner)).toBe(Role.EDITOR);
+    expect(subscription?.hasMember(invitee)).toBe(false);
   });
 });
 
@@ -520,7 +534,6 @@ describe('ResolveRequestContext: stage 1 of authorization', () => {
     const context = contextOf(subscriptionId, owner, 'suspended');
     const resolved = await new ResolveRequestContext(
       new InMemorySubscriptionRepository(context, db, events),
-      new InMemoryWorkspaceRepository(context, db, events),
     ).execute(context);
 
     const error = expectErr(resolved);
@@ -528,7 +541,7 @@ describe('ResolveRequestContext: stage 1 of authorization', () => {
     expect(error.details).toEqual({ status: 'suspended' });
   });
 
-  it('resolves ownership and the workspace roles in one shot', async () => {
+  it('resolves ownership and the role in the subscription in one shot', async () => {
     const onboarding = new InMemoryOnboarding(db, events);
     const { subscriptionId } = unwrap(
       await new RequestSubscription(onboarding, new InMemoryUserLinkRepository(db)).execute({
@@ -548,16 +561,15 @@ describe('ResolveRequestContext: stage 1 of authorization', () => {
     const resolved = unwrap(
       await new ResolveRequestContext(
         new InMemorySubscriptionRepository(context, db, events),
-        new InMemoryWorkspaceRepository(context, db, events),
       ).execute(context),
     );
     expect(resolved.isOwner).toBe(true);
-    expect([...resolved.roles.values()].every((role) => role === Role.OWNER)).toBe(true);
+    expect(resolved.role).toBe(Role.OWNER);
   });
 });
 
 describe('Session', () => {
-  it('lists the links of the user and the workspaces of the active one', async () => {
+  it('lists the links of the user and the role in the active one', async () => {
     const onboarding = new InMemoryOnboarding(db, events);
     const links = new InMemoryUserLinkRepository(db);
     const { subscriptionId } = unwrap(
@@ -572,8 +584,7 @@ describe('Session', () => {
       await new GetSession(
         links,
         new InMemorySubscriptionRepository(context, db, events),
-        new InMemoryWorkspaceRepository(context, db, events),
-        async (id) => {
+        async (id: SubscriptionId) => {
           const found = db.subscriptions.get(`S#${id.value}`)?.subscription;
           return found
             ? { name: found.name.value, slug: found.slug.value, status: found.status.name }
@@ -584,7 +595,7 @@ describe('Session', () => {
 
     expect(session.links).toHaveLength(1);
     expect(session.links[0]?.isOwner).toBe(true);
-    expect(session.workspaces).toHaveLength(1);
+    expect(session.role).toBe('OWNER');
   });
 
   it('refuses to switch to a subscription the user has no link with', async () => {
@@ -599,25 +610,27 @@ describe('Session', () => {
   });
 });
 
-describe('Workspace membership shape', () => {
+describe('Membership shape', () => {
   it('refuses OWNER as a membership, because ownership is not a membership', () => {
     expect(expectErr(Role.membership('OWNER')).code).toBe('VALIDATION');
   });
 
-  it('keeps the e-mail unique among the members of a workspace', async () => {
-    const context = contextOf(SubscriptionId.generate(), owner);
-    const workspaces = new InMemoryWorkspaceRepository(context, db, events);
-    const workspace = unwrap(
-      (await import('../src/domain/workspace/Workspace.js')).Workspace.create({
-        id: WorkspaceId.generate(),
-        subscriptionId: context.subscriptionId,
-        name: unwrap((await import('../src/domain/values.js')).WorkspaceName.create('Auditoria')),
-        isDefault: true,
+  it('keeps the e-mail unique among the members of a subscription', async () => {
+    // RN-ACC-003. The rule used to be scoped to a workspace; with that level
+    // gone, the subscription is where a duplicate e-mail has to be caught.
+    const subscription = unwrap(
+      (await import('../src/domain/subscription/Subscription.js')).Subscription.request({
+        id: SubscriptionId.generate(),
+        name: unwrap(
+          (await import('../src/domain/values.js')).SubscriptionName.create('Auditoria'),
+        ),
+        ownerId: owner,
+        ownerEmail: 'owner@example.com',
         by: Authorship.byHuman(owner),
       }),
     );
     unwrap(
-      workspace.addMember(
+      subscription.addMember(
         invitee,
         unwrap(Email.create('same@example.com')),
         Role.EDITOR,
@@ -626,7 +639,7 @@ describe('Workspace membership shape', () => {
       ),
     );
     const twin = unwrap(UserId.create('user-twin'));
-    const clash = workspace.addMember(
+    const clash = subscription.addMember(
       twin,
       unwrap(Email.create('SAME@example.com')),
       Role.VIEWER,
@@ -634,6 +647,5 @@ describe('Workspace membership shape', () => {
       Authorship.byHuman(owner),
     );
     expect(expectErr(clash).code).toBe('CONFLICT');
-    await workspaces.save(workspace);
   });
 });

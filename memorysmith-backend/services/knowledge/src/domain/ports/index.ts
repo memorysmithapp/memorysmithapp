@@ -17,7 +17,6 @@ import type {
   Position,
   Slug,
   VaultId,
-  WorkspaceId,
   ConcurrencyError,
   Result,
 } from '@memorysmith/kernel';
@@ -27,19 +26,13 @@ import type { NoteOrder } from '../services/NotePlacement.js';
 
 export interface VaultRepository {
   findById(id: VaultId): Promise<Vault | null>;
+  /** Every vault of the subscription, which is one partition of GSI1. */
+  listAll(): Promise<Vault[]>;
   /**
-   * Vaults of ONE workspace. There is deliberately no "all vaults of the
-   * subscription": the partition of GSI1 is the workspace, and whoever knows
-   * which workspaces this session reaches is the authorizer, which already
-   * resolved them (section 14.2). Inventing an index for a question the
-   * caller can already answer would be paying for it twice.
-   */
-  listByWorkspace(workspaceId: WorkspaceId): Promise<Vault[]>;
-  /**
-   * Resolves a slug to the vault that holds it in this workspace, which is
+   * Resolves a slug to the vault that holds it in this subscription, which is
    * how the guard of RN-KNW-032 is read before a write attempts it.
    */
-  findBySlug(workspaceId: WorkspaceId, slug: Slug): Promise<Vault | null>;
+  findBySlug(slug: Slug): Promise<Vault | null>;
   save(vault: Vault): Promise<Result<void, ConcurrencyError>>;
 }
 

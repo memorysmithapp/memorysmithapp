@@ -32,7 +32,6 @@ export function folderToDto(folder: Folder, vault: Vault): FolderDto {
 export function vaultToSummary(vault: Vault, role: Role): VaultSummaryDto {
   return {
     vaultId: vault.id.value,
-    workspaceId: vault.workspaceId.value,
     name: vault.name.value,
     slug: vault.slug.value,
     description: vault.description.value,

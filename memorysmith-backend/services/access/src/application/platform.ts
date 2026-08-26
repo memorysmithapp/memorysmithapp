@@ -2,10 +2,10 @@
  * The platform surface (software-vision.md, section 4.6).
  *
  * A platform session carries NO active subscription, so there is no key it can
- * build for a workspace, a vault or a note. These use cases take a plain
+ * build for a vault or a note. These use cases take a plain
  * UserId and reach only subscription metadata, which is the whole of what the
  * platform admin is allowed to see: holder, e-mail, status, dates and a
- * workspace count. Never a vault name, never content.
+ * member count. Never a vault name, never content.
  */
 
 import {

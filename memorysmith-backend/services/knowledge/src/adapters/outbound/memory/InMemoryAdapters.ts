@@ -23,7 +23,6 @@ import {
   type Slug,
   type SubscriptionContext,
   type VaultId,
-  type WorkspaceId,
 } from '@memorysmith/kernel';
 import { createHash } from 'node:crypto';
 import type { Note } from '../../../domain/note/Note.js';
@@ -86,21 +85,20 @@ export class InMemoryVaultRepository implements VaultRepository {
     return this.db.vaults.get(vaultKey(this.sub, id))?.vault ?? null;
   }
 
-  async listByWorkspace(workspaceId: WorkspaceId): Promise<Vault[]> {
+  async listAll(): Promise<Vault[]> {
     const prefix = `S#${this.sub.subscriptionId.value}#VAULT#`;
     return [...this.db.vaults.entries()]
       .filter(([key]) => key.startsWith(prefix))
-      .map(([, entry]) => entry.vault)
-      .filter((vault) => vault.workspaceId.equals(workspaceId));
+      .map(([, entry]) => entry.vault);
   }
 
   /**
    * Same answer the database gives, from the same question: which vault of
-   * this workspace holds this slug. The adapter in memory has no guard item,
+   * this subscription holds this slug. The adapter in memory has no guard item,
    * so it looks through the list, which is the honest equivalent at this size.
    */
-  async findBySlug(workspaceId: WorkspaceId, slug: Slug): Promise<Vault | null> {
-    const vaults = await this.listByWorkspace(workspaceId);
+  async findBySlug(slug: Slug): Promise<Vault | null> {
+    const vaults = await this.listAll();
     return vaults.find((vault) => vault.slug.value === slug.value) ?? null;
   }
 

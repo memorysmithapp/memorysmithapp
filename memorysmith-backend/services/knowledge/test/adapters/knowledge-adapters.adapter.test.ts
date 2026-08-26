@@ -19,7 +19,6 @@ import {
   Slug,
   VaultId,
   VaultRoleLimit,
-  WorkspaceId,
   type SubscriptionContext,
 } from '@memorysmith/kernel';
 import { GetCommand, QueryCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
@@ -61,14 +60,18 @@ function repositories(context: SubscriptionContext) {
   };
 }
 
-async function seedVault(context: SubscriptionContext) {
+/**
+ * The name is a parameter because the slug is unique in the SUBSCRIPTION now
+ * (RN-KNW-032): two seeded vaults sharing a name is exactly what the rule
+ * refuses, and the refusal is the point.
+ */
+async function seedVault(context: SubscriptionContext, name = 'Normas e Legislacao') {
   const { vaults } = repositories(context);
   const vault = unwrap(
     Vault.create({
       id: VaultId.generate(),
       subscriptionId: context.subscriptionId,
-      workspaceId: WorkspaceId.generate(),
-      name: unwrap(VaultName.create('Normas e Legislacao')),
+      name: unwrap(VaultName.create(name)),
       description: unwrap(ShortText.create('Texto normativo por artigo')),
       by: authorshipOf(context),
     }),
@@ -135,12 +138,11 @@ describe('DynamoVaultRepository: the aggregate in one Query', () => {
     expect(loaded?.folders.get(folder.id)?.description.value).toContain('Uma norma por nota');
   });
 
-  it('lists the vaults of a workspace through GSI1', async () => {
+  it('lists the vaults of the subscription through GSI1', async () => {
     // The listing the vault catalogue is built on. The in-memory adapter
     // answered it by scanning a prefix, which is exactly why it never noticed
-    // that the real query needed the workspace partition.
+    // that the real query needed a partition that actually exists.
     const context = contextFor();
-    const workspaceId = WorkspaceId.generate();
     const { vaults } = repositories(context);
 
     for (const name of ['Normas', 'Achados']) {
@@ -148,7 +150,6 @@ describe('DynamoVaultRepository: the aggregate in one Query', () => {
         Vault.create({
           id: VaultId.generate(),
           subscriptionId: context.subscriptionId,
-          workspaceId,
           name: unwrap(VaultName.create(name)),
           description: unwrap(ShortText.create('')),
           by: authorshipOf(context),
@@ -157,17 +158,17 @@ describe('DynamoVaultRepository: the aggregate in one Query', () => {
       expect((await vaults.save(vault)).ok).toBe(true);
     }
 
-    const listed = await repositories(context).vaults.listByWorkspace(workspaceId);
+    const listed = await repositories(context).vaults.listAll();
     expect(listed.map((vault) => vault.name.value).sort()).toEqual(['Achados', 'Normas']);
     // And the count travels with them, from the VSTAT projection.
     expect(listed.every((vault) => vault.noteCount === 0)).toBe(true);
 
-    // A workspace of the same subscription that holds nothing answers empty,
-    // rather than answering everything.
-    expect(await repositories(context).vaults.listByWorkspace(WorkspaceId.generate())).toEqual([]);
+    // Another subscription answers empty, rather than answering everything:
+    // the partition it builds is its own (RN-SUB-004).
+    expect(await repositories(contextFor()).vaults.listAll()).toEqual([]);
   });
 
-  it('refuses a second vault whose name yields a slug already taken in the workspace', async () => {
+  it('refuses a second vault whose name yields a slug already taken', async () => {
     /**
      * RN-KNW-032. The slug of the vault is its address in the interface, so
      * two vaults sharing one makes every URL ambiguous and leaves the second
@@ -175,7 +176,6 @@ describe('DynamoVaultRepository: the aggregate in one Query', () => {
      * it two concurrent creations both pass a read check and both write.
      */
     const context = contextFor();
-    const workspaceId = WorkspaceId.generate();
     const { vaults } = repositories(context);
 
     const make = (name: string) =>
@@ -183,7 +183,6 @@ describe('DynamoVaultRepository: the aggregate in one Query', () => {
         Vault.create({
           id: VaultId.generate(),
           subscriptionId: context.subscriptionId,
-          workspaceId,
           name: unwrap(VaultName.create(name)),
           description: unwrap(ShortText.create('')),
           by: authorshipOf(context),
@@ -198,33 +197,31 @@ describe('DynamoVaultRepository: the aggregate in one Query', () => {
 
     // The guard resolves the slug to the vault that holds it, which is what
     // lets the caller be told WHICH vault already exists.
-    const found = await vaults.findBySlug(workspaceId, unwrap(Slug.from('Normas e Legislacao')));
+    const found = await vaults.findBySlug(unwrap(Slug.from('Normas e Legislacao')));
     expect(found?.id.value).toBe(first.id.value);
 
-    // Another workspace is a different partition, so the same name is free.
+    // Another subscription is a different partition, so the name is free.
+    const other = contextFor();
     const elsewhere = unwrap(
       Vault.create({
         id: VaultId.generate(),
-        subscriptionId: context.subscriptionId,
-        workspaceId: WorkspaceId.generate(),
+        subscriptionId: other.subscriptionId,
         name: unwrap(VaultName.create('Normas e Legislacao')),
         description: unwrap(ShortText.create('')),
-        by: authorshipOf(context),
+        by: authorshipOf(other),
       }),
     );
-    expect((await vaults.save(elsewhere)).ok).toBe(true);
+    expect((await repositories(other).vaults.save(elsewhere)).ok).toBe(true);
   });
 
   it('moves the slug guard when a vault is renamed, freeing the old name', async () => {
     const context = contextFor();
-    const workspaceId = WorkspaceId.generate();
     const { vaults } = repositories(context);
 
     const vault = unwrap(
       Vault.create({
         id: VaultId.generate(),
         subscriptionId: context.subscriptionId,
-        workspaceId,
         name: unwrap(VaultName.create('Normas e Legislacao')),
         description: unwrap(ShortText.create('')),
         by: authorshipOf(context),
@@ -238,13 +235,11 @@ describe('DynamoVaultRepository: the aggregate in one Query', () => {
     ).toBe(true);
     expect((await vaults.save(loaded)).ok).toBe(true);
 
-    expect(
-      (await vaults.findBySlug(workspaceId, unwrap(Slug.from('Jurisprudencia'))))?.id.value,
-    ).toBe(vault.id.value);
+    expect((await vaults.findBySlug(unwrap(Slug.from('Jurisprudencia'))))?.id.value).toBe(
+      vault.id.value,
+    );
     // The name it left behind is free again, guard and all.
-    expect(
-      await vaults.findBySlug(workspaceId, unwrap(Slug.from('Normas e Legislacao'))),
-    ).toBeNull();
+    expect(await vaults.findBySlug(unwrap(Slug.from('Normas e Legislacao')))).toBeNull();
   });
 
   it('answers null for a vault of another subscription', async () => {
@@ -468,8 +463,8 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
 
   it('moves a note between vaults preserving its identifier', async () => {
     const context = contextFor();
-    const origin = await seedVault(context);
-    const destination = await seedVault(context);
+    const origin = await seedVault(context, 'Normas e Legislacao');
+    const destination = await seedVault(context, 'Jurisprudencia');
     const { notes } = repositories(context);
 
     const created = await createNote(context, origin.vault, origin.folder.id, 'Lei 14.133');

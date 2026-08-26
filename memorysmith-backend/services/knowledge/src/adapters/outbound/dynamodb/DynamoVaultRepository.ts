@@ -21,7 +21,6 @@ import {
   type Slug,
   type SubscriptionContext,
   VaultId,
-  type WorkspaceId,
 } from '@memorysmith/kernel';
 import type { DynamoDBDocumentClient, TransactWriteCommandInput } from '@aws-sdk/lib-dynamodb';
 import {
@@ -84,12 +83,12 @@ export class DynamoVaultRepository implements VaultRepository {
   }
 
   /** Reads the guard item, which IS the index from slug to vault. */
-  async findBySlug(workspaceId: WorkspaceId, slug: Slug): Promise<Vault | null> {
+  async findBySlug(slug: Slug): Promise<Vault | null> {
     const guard = await this.db.send(
       new GetCommand({
         TableName: this.tableName,
         Key: {
-          PK: this.keys.workspacePartition(workspaceId),
+          PK: this.keys.subscriptionVaults(),
           SK: this.keys.vaultSlugGuard(slug.value),
         },
       }),
@@ -100,14 +99,18 @@ export class DynamoVaultRepository implements VaultRepository {
     return parsed.ok ? this.findById(parsed.value) : null;
   }
 
-  async listByWorkspace(workspaceId: WorkspaceId): Promise<Vault[]> {
-    // GSI1 lists the vaults of a workspace already carrying the note count.
+  /**
+   * Every vault of the subscription, from ONE partition of GSI1, already
+   * carrying the note count. This used to be a question about a workspace,
+   * and answering it once meant querying a partition that never existed.
+   */
+  async listAll(): Promise<Vault[]> {
     const response = await this.db.send(
       new QueryCommand({
         TableName: this.tableName,
         IndexName: 'GSI1',
         KeyConditionExpression: 'GSI1PK = :pk',
-        ExpressionAttributeValues: { ':pk': this.keys.workspacePartition(workspaceId) },
+        ExpressionAttributeValues: { ':pk': this.keys.subscriptionVaults() },
       }),
     );
     const items = (response.Items ?? []) as Item[];
@@ -146,7 +149,7 @@ export class DynamoVaultRepository implements VaultRepository {
         TableName: this.tableName,
         Item: {
           ...vaultMetaItem(vault, pk),
-          GSI1PK: this.keys.workspacePartition(vault.workspaceId),
+          GSI1PK: this.keys.subscriptionVaults(),
           GSI1SK: this.keys.gsi1Vault(vault.id),
         },
         ...(snapshot
@@ -160,12 +163,13 @@ export class DynamoVaultRepository implements VaultRepository {
 
     /**
      * The slug guard, which is what makes RN-KNW-032 a database rule instead
-     * of a check that races. It sits in the workspace partition, so two vaults
-     * of the SAME workspace collide and two vaults of different workspaces do
-     * not. A rename moves it: delete the old key and claim the new one, both
-     * in this transaction, so a failed rename leaves neither half behind.
+     * of a check that races. It sits in the vaults partition of the
+     * subscription, so two vaults of the SAME subscription collide and two of
+     * different subscriptions never meet. A rename moves it: delete the old
+     * key and claim the new one, both in this transaction, so a failed rename
+     * leaves neither half behind.
      */
-    const guardPk = this.keys.workspacePartition(vault.workspaceId);
+    const guardPk = this.keys.subscriptionVaults();
     if (!snapshot) {
       conditional.push({
         Put: {
@@ -213,7 +217,7 @@ export class DynamoVaultRepository implements VaultRepository {
             vaultId: vault.id.value,
             noteCount: 0,
             updatedAt: vault.updatedAt.toISOString(),
-            GSI1PK: this.keys.workspacePartition(vault.workspaceId),
+            GSI1PK: this.keys.subscriptionVaults(),
             GSI1SK: this.keys.gsi1VaultStat(vault.id),
           },
         },

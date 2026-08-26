@@ -192,7 +192,6 @@ export async function getVaultContext(vaultSlug: string): Promise<string> {
 // ---- Writes ----------------------------------------------------------------
 
 export async function createVault(input: {
-  workspaceId: string;
   name: string;
   description: string;
 }): Promise<VaultSummary> {
