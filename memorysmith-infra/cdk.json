@@ -8,7 +8,7 @@
     "@aws-cdk/aws-apigateway:disableCloudWatchRole": true,
     "@aws-cdk/core:enablePartitionLiterals": true,
     "hostedZoneName": "memorysmith.app",
-    "hostedZoneId": "Z_PLACEHOLDER_SET_ME",
+    "hostedZoneId": "Z1003210YHFJUFXNHOVX",
     "cognitoDomainPrefix": "memorysmith-auth",
     "testUserEmail": "heitor.rapcinski@gmail.com"
   }
