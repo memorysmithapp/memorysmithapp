@@ -15,7 +15,16 @@ import type { Construct } from 'constructs';
 export class NetworkStack extends Stack {
   readonly hostedZone: route53.IHostedZone;
   readonly mcpCertificate: acm.ICertificate;
+  readonly apiCertificate: acm.ICertificate;
+  /**
+   * CloudFront requires its certificate in us-east-1. That is its rule, not a
+   * choice; the rest of the infrastructure stays in the main region. This
+   * stack is deployed in us-east-1, so the same certificate serves both.
+   */
+  readonly siteCertificate: acm.ICertificate;
   readonly mcpDomainName: string;
+  readonly apiDomainName: string;
+  readonly siteDomainName: string;
 
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
@@ -23,14 +32,30 @@ export class NetworkStack extends Stack {
     const zoneName = this.node.tryGetContext('hostedZoneName') as string;
     const zoneId = this.node.tryGetContext('hostedZoneId') as string;
     this.mcpDomainName = `mcp.${zoneName}`;
+    this.apiDomainName = `api.${zoneName}`;
+    this.siteDomainName = zoneName;
 
     this.hostedZone = route53.HostedZone.fromHostedZoneAttributes(this, 'HostedZone', {
       hostedZoneId: zoneId,
       zoneName,
     });
 
+    // One certificate per distribution, with SANs covering its hosts
+    // (section 17). Public ACM certificates cost nothing, and they renew
+    // themselves, which is why none of them is ever handled by hand.
     this.mcpCertificate = new acm.Certificate(this, 'McpCertificate', {
       domainName: this.mcpDomainName,
+      validation: acm.CertificateValidation.fromDns(this.hostedZone),
+    });
+
+    this.apiCertificate = new acm.Certificate(this, 'ApiCertificate', {
+      domainName: this.apiDomainName,
+      validation: acm.CertificateValidation.fromDns(this.hostedZone),
+    });
+
+    this.siteCertificate = new acm.Certificate(this, 'SiteCertificate', {
+      domainName: zoneName,
+      subjectAlternativeNames: [`www.${zoneName}`],
       validation: acm.CertificateValidation.fromDns(this.hostedZone),
     });
   }

@@ -99,15 +99,11 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
       const resolved = await deps.resolveContext(session.value);
       if (!resolved.ok) return fail(c, resolved.error);
       c.set('knowledge', resolved.value);
-      c.set('audit', {
-        subscriptionId: resolved.value.subscription.subscriptionId.value,
-        userId: resolved.value.subscription.userId.value,
-      });
+      c.set('audit', { subscription: resolved.value.subscription });
       c.set('discovery', {
-        subscriptionId: resolved.value.subscription.subscriptionId.value,
-        userId: resolved.value.subscription.userId.value,
+        subscription: resolved.value.subscription,
         // Discovery holds no vault, so whether the caller may read one is
-        // answered by the roles the authorizer already resolved.
+        // answered by the context that owns it.
         canRead: (vaultId: string) => deps.canReadVault(resolved.value, vaultId),
       });
       await next();

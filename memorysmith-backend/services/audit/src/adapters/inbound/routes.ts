@@ -12,13 +12,22 @@
  */
 
 import { Hono, type Context } from 'hono';
-import { type DomainError, httpStatusFor, type Result } from '@memorysmith/kernel';
+import {
+  type DomainError,
+  httpStatusFor,
+  type Result,
+  type SubscriptionContext,
+} from '@memorysmith/kernel';
 import type { AuditEvent } from '../../domain/index.js';
 import type { GetNoteHistory, GetVaultActivity, ReadRevision } from '../../application/index.js';
 
+/**
+ * The verified context travels with the request. Passing the subscription as a
+ * bare string would mean rebuilding it downstream, and a value object that can
+ * be rebuilt from a string is no longer the guarantee PE2 relies on.
+ */
 export interface AuditRequest {
-  readonly subscriptionId: string;
-  readonly userId: string;
+  readonly subscription: SubscriptionContext;
 }
 
 export interface AuditUseCases {

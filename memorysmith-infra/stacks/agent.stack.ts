@@ -30,6 +30,13 @@ export interface AgentStackProps extends StackProps {
   userPool: cognito.UserPool;
   userPoolDomain: cognito.UserPoolDomain;
   proxyClient: cognito.UserPoolClient;
+  /**
+   * Where the tools reach the other contexts. svc-agent forwards the caller's
+   * own token, so the subscription that arrives at the core is the one fixed
+   * at consent, and the client_id in that token is what becomes the agent
+   * identity in the authorship (architecture-guide.md, sections 13.1, 14.1).
+   */
+  internalApiOrigin: string;
 }
 
 export class AgentStack extends Stack {
@@ -69,6 +76,7 @@ export class AgentStack extends Stack {
         COGNITO_DOMAIN: cognitoDomain,
         PROXY_CLIENT_ID: props.proxyClient.userPoolClientId,
         STATE_SECRET_ID: stateSecret.secretArn,
+        INTERNAL_API_ORIGIN: props.internalApiOrigin,
         NODE_OPTIONS: '--enable-source-maps',
       },
     });

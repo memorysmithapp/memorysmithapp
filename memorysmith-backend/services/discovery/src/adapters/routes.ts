@@ -12,7 +12,12 @@
  */
 
 import { Hono, type Context } from 'hono';
-import { DomainError, httpStatusFor, type Result } from '@memorysmith/kernel';
+import {
+  DomainError,
+  httpStatusFor,
+  type Result,
+  type SubscriptionContext,
+} from '@memorysmith/kernel';
 import type {
   Backlinks,
   GetFacetStats,
@@ -22,8 +27,7 @@ import type {
 } from '../application/queries.js';
 
 export interface DiscoveryRequest {
-  readonly subscriptionId: string;
-  readonly userId: string;
+  readonly subscription: SubscriptionContext;
   /**
    * Whether the caller may read that vault. Discovery holds no vault, so the
    * decision belongs to the context that owns it, and it arrives as a

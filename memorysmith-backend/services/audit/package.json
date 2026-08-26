@@ -10,7 +10,8 @@
     "./adapters/trail": "./src/adapters/outbound/DynamoAuditTrail.ts",
     "./adapters/content": "./src/adapters/outbound/S3RevisionReader.ts",
     "./adapters/http": "./src/adapters/inbound/routes.ts",
-    "./adapters/consumer": "./src/adapters/inbound/event-consumer.ts"
+    "./adapters/consumer": "./src/adapters/inbound/event-consumer.ts",
+    "./main": "./src/main/handler.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

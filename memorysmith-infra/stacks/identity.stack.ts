@@ -22,6 +22,8 @@ export class IdentityStack extends Stack {
   readonly userPool: cognito.UserPool;
   readonly userPoolDomain: cognito.UserPoolDomain;
   readonly proxyClient: cognito.UserPoolClient;
+  /** The issuer every service validates tokens against (section 13.2). */
+  readonly issuer: string;
 
   constructor(scope: Construct, id: string, props: IdentityStackProps) {
     super(scope, id, props);
@@ -73,6 +75,8 @@ export class IdentityStack extends Stack {
     );
 
     const domainPrefix = this.node.tryGetContext('cognitoDomainPrefix') as string;
+    this.issuer = `https://cognito-idp.${this.region}.amazonaws.com/${this.userPool.userPoolId}`;
+
     this.userPoolDomain = this.userPool.addDomain('HostedDomain', {
       cognitoDomain: { domainPrefix },
     });
