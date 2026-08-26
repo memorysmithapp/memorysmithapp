@@ -28,7 +28,7 @@ const VAULT = 'vault-1';
 describe('LinkExtractor: universal syntax only', () => {
   it('reads both link forms and normalizes the target', () => {
     const links = extractLinks('Ver [[Lei 14.133]] e [o achado](../achados/achado-12.md).');
-    expect(links.map((link) => link.slug)).toEqual(['lei-14-133', 'achado-12']);
+    expect(links.map((link) => link.slug)).toEqual(['lei-14133', 'achado-12']);
   });
 
   it('ignores path segments deliberately', () => {

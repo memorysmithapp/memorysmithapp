@@ -40,6 +40,9 @@ importers:
 
   memorysmith-backend/apps/core-monolith:
     dependencies:
+      '@aws-sdk/client-bedrock-runtime':
+        specifier: ^3.1117.0
+        version: 3.1117.0
       '@aws-sdk/client-dynamodb':
         specifier: ^3.1117.0
         version: 3.1117.0
@@ -58,9 +61,18 @@ importers:
       '@memorysmith/svc-access':
         specifier: workspace:*
         version: link:../../services/access
+      '@memorysmith/svc-audit':
+        specifier: workspace:*
+        version: link:../../services/audit
+      '@memorysmith/svc-discovery':
+        specifier: workspace:*
+        version: link:../../services/discovery
       '@memorysmith/svc-knowledge':
         specifier: workspace:*
         version: link:../../services/knowledge
+      '@memorysmith/svc-portability':
+        specifier: workspace:*
+        version: link:../../services/portability
       hono:
         specifier: ^4.9.0
         version: 4.13.3

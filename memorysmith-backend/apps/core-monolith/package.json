@@ -16,6 +16,10 @@
     "@memorysmith/kernel": "workspace:*",
     "@memorysmith/svc-access": "workspace:*",
     "@memorysmith/svc-knowledge": "workspace:*",
-    "hono": "^4.9.0"
+    "hono": "^4.9.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.1117.0",
+    "@memorysmith/svc-audit": "workspace:*",
+    "@memorysmith/svc-discovery": "workspace:*",
+    "@memorysmith/svc-portability": "workspace:*"
   }
 }

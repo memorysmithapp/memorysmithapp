@@ -79,6 +79,32 @@ import {
   RestoreNote,
   UpdateNote,
 } from '@memorysmith/svc-knowledge/application/notes';
+import { InMemoryAuditTrail } from '@memorysmith/svc-audit/adapters/trail';
+import {
+  GetNoteHistory,
+  GetVaultActivity,
+  ReadRevision,
+  RecordEvents,
+} from '@memorysmith/svc-audit/application';
+import { AuditEventConsumer } from '@memorysmith/svc-audit/adapters/consumer';
+import type { AuditUseCases } from '@memorysmith/svc-audit/adapters/http';
+import {
+  FakeEmbedder,
+  InMemoryFacetIndex,
+  InMemoryLinkGraph,
+  InMemoryNoteCatalog,
+  InMemoryStructureProjection,
+  InMemoryVectorIndex,
+} from '@memorysmith/svc-discovery/adapters/memory';
+import {
+  Backlinks,
+  GetFacetStats,
+  RelatedNotes,
+  SearchNotes,
+  VaultHealth,
+} from '@memorysmith/svc-discovery/application/queries';
+import type { DiscoveryUseCases } from '@memorysmith/svc-discovery/adapters/http';
+import { ProjectNote, ProjectStructure } from '@memorysmith/svc-discovery/application/projections';
 import { createApp } from '../src/app.js';
 
 export class RecordingEventPublisher implements EventPublisher {
@@ -205,10 +231,77 @@ export function buildTestApp() {
     restoreNote: (request) => new RestoreNote(knowledgeRepos(request.subscription)),
   };
 
+  // Audit and Discovery, wired in memory. In production they are fed by the
+  // event bus; here the test drives them directly.
+  const auditTrail = new InMemoryAuditTrail();
+  const revisions = { read: async () => '' };
+  const auditUseCases: AuditUseCases = {
+    noteHistory: () => new GetNoteHistory(auditTrail),
+    vaultActivity: () => new GetVaultActivity(auditTrail),
+    readRevision: () => new ReadRevision(auditTrail, revisions),
+  };
+  const auditConsumer = new AuditEventConsumer(new RecordEvents(auditTrail));
+
+  const discovery = {
+    graph: new InMemoryLinkGraph(),
+    vectors: new InMemoryVectorIndex(),
+    facets: new InMemoryFacetIndex(),
+    structure: new InMemoryStructureProjection(),
+    catalog: new InMemoryNoteCatalog(),
+    embedder: new FakeEmbedder(),
+  };
+  const discoveryDeps = {
+    graph: discovery.graph,
+    vectors: discovery.vectors,
+    facets: discovery.facets,
+    catalog: discovery.catalog,
+    embedder: discovery.embedder,
+  };
+  /**
+   * In production the bus drives these; in the test the harness does, which
+   * is the same contract with a shorter wire (section 24).
+   */
+  const projectNote = new ProjectNote({
+    graph: discovery.graph,
+    vectors: discovery.vectors,
+    facets: discovery.facets,
+    structure: discovery.structure,
+    embedder: discovery.embedder,
+    content: {
+      // The slot is addressed by its content id, exactly as the S3 adapter
+      // addresses it; the version id alone is not unique across slots.
+      read: async (ref) => {
+        for (const [key, slot] of knowledgeDb.content) {
+          if (!key.endsWith(`/${ref.contentId}.md`)) continue;
+          return slot.revisions.get(ref.versionId) ?? '';
+        }
+        return '';
+      },
+    },
+  });
+  const projectStructure = new ProjectStructure(discovery.structure);
+
+  const discoveryUseCases: DiscoveryUseCases = {
+    related: () => new RelatedNotes(discoveryDeps),
+    backlinks: () => new Backlinks(discoveryDeps),
+    health: () => new VaultHealth(discoveryDeps),
+    search: () => new SearchNotes(discoveryDeps),
+    facets: () => new GetFacetStats(discoveryDeps),
+  };
+
   const app = createApp({
     verifier,
     accessUseCases,
     knowledgeUseCases,
+    auditUseCases,
+    discoveryUseCases,
+    // Discovery holds no vault, so it asks the context that owns it.
+    canReadVault: async (request, vaultId) => {
+      const parsed = (await import('@memorysmith/kernel')).VaultId.create(vaultId);
+      if (!parsed.ok) return false;
+      const vault = await knowledgeRepos(request.subscription).vaults.findById(parsed.value);
+      return vault !== null;
+    },
     resolveContext: async (request: AccessRequest) => {
       const context = request.context;
       if (!context) {
@@ -234,5 +327,18 @@ export function buildTestApp() {
     },
   });
 
-  return { app, accessDb, knowledgeDb, events, verifier, links, platform };
+  return {
+    app,
+    accessDb,
+    knowledgeDb,
+    events,
+    verifier,
+    links,
+    platform,
+    auditTrail,
+    auditConsumer,
+    discovery,
+    projectNote,
+    projectStructure,
+  };
 }

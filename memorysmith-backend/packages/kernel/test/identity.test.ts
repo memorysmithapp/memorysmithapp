@@ -64,7 +64,7 @@ describe('identifiers', () => {
 
 describe('Slug', () => {
   it('normalizes free text deterministically', () => {
-    expect(slugify('Lei 14.133, art. 75')).toBe('lei-14-133-art-75');
+    expect(slugify('Lei 14.133, art. 75')).toBe('lei-14133-art-75');
     expect(slugify('  Normas e Legislacao  ')).toBe('normas-e-legislacao');
     expect(slugify('Aquisicao Publica')).toBe('aquisicao-publica');
     expect(slugify('Achado #12')).toBe('achado-12');

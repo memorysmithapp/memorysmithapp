@@ -17,10 +17,11 @@
 
 import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import type { S3Client } from '@aws-sdk/client-s3';
+import type { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
 import {
   Authorship,
+  AgentIdentity,
   Role,
-  type EventPublisher,
   type SubscriptionContext,
   type UserId,
 } from '@memorysmith/kernel';
@@ -42,14 +43,25 @@ import { ACCESS_LIMITS } from '@memorysmith/svc-access/domain/values';
 import { DynamoNoteRepository } from '@memorysmith/svc-knowledge/adapters/notes';
 import { DynamoVaultRepository } from '@memorysmith/svc-knowledge/adapters/vaults';
 import { S3ContentStore } from '@memorysmith/svc-knowledge/adapters/content';
+import { DynamoAuditTrail } from '@memorysmith/svc-audit/adapters/trail';
+import { S3RevisionReader } from '@memorysmith/svc-audit/adapters/content';
+import {
+  BedrockEmbedder,
+  DynamoFacetIndex,
+  DynamoLinkGraph,
+  DynamoStructureProjection,
+  DynamoVectorIndex,
+} from '@memorysmith/svc-discovery/adapters/aws';
 
 export interface Infrastructure {
   readonly db: DynamoDBDocumentClient;
   readonly s3: S3Client;
+  readonly bedrock: BedrockRuntimeClient;
   readonly knowledgeTable: string;
   readonly accessTable: string;
+  readonly auditTable: string;
+  readonly discoveryTable: string;
   readonly contentBucket: string;
-  readonly events: EventPublisher;
 }
 
 /** Everything the Access routes need, for one request. */
@@ -92,6 +104,28 @@ export function buildKnowledge(infra: Infrastructure, context: SubscriptionConte
   };
 }
 
+/** Audit reads. Writing is the consumer's job, in its own deployable. */
+export function buildAudit(infra: Infrastructure, context: SubscriptionContext) {
+  return {
+    trail: new DynamoAuditTrail(infra.db, infra.auditTable, context.subscriptionId),
+    revisions: new S3RevisionReader(context.subscriptionId, infra.s3, infra.contentBucket),
+  };
+}
+
+export function buildDiscovery(infra: Infrastructure, context: SubscriptionContext) {
+  return {
+    graph: new DynamoLinkGraph(context.subscriptionId, infra.db, infra.discoveryTable),
+    vectors: new DynamoVectorIndex(context.subscriptionId, infra.db, infra.discoveryTable),
+    facets: new DynamoFacetIndex(context.subscriptionId, infra.db, infra.discoveryTable),
+    structure: new DynamoStructureProjection(
+      context.subscriptionId,
+      infra.db,
+      infra.discoveryTable,
+    ),
+    embedder: new BedrockEmbedder(infra.bedrock),
+  };
+}
+
 /** Stage 1 of authorization, cached for the declared five minutes. */
 export function buildAuthorizer(
   infra: Infrastructure,
@@ -105,10 +139,18 @@ export function buildAuthorizer(
   );
 }
 
-export function authorshipFor(user: UserId): Authorship {
-  // A write through the UI carries no agent; the MCP adapter is the one that
-  // fills that in (section 12.1).
-  return Authorship.byHuman(user);
+/**
+ * A write through the UI carries no agent. A write through the MCP connector
+ * arrives with the CIMD client_id in the token, and that is what becomes the
+ * AgentIdentity: the authorship records the agent AND the human, with no side
+ * channel to trust (RN-AGT-001, section 12.1).
+ */
+export function authorshipFor(user: UserId, clientId?: string | undefined): Authorship {
+  const isConnector = Boolean(clientId && /^https?:\/\//i.test(clientId));
+  if (!isConnector || !clientId) return Authorship.byHuman(user);
+
+  const agent = AgentIdentity.create(clientId, clientId);
+  return agent.ok ? Authorship.byAgent(user, agent.value) : Authorship.byHuman(user);
 }
 
 export function roleLookup(resolved: ResolvedContext): (workspaceId: string) => Role {

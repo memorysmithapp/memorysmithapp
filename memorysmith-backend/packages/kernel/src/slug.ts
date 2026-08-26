@@ -19,14 +19,20 @@ const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
  * the same slug, which is what makes create_note idempotent (RN-AGT-004).
  */
 export function slugify(raw: string): string {
-  return raw
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, MAX_LENGTH)
-    .replace(/-+$/g, '');
+  return (
+    raw
+      .normalize('NFD')
+      // A dot BETWEEN DIGITS belongs to the number, not to the words around it:
+      // "Lei 14.133" has to become "lei-14133", because "lei-14-133" is not what
+      // anyone would type in a link.
+      .replace(/(\d)[.,](\d)/g, '$1$2')
+      .replace(/\p{M}/gu, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, MAX_LENGTH)
+      .replace(/-+$/g, '')
+  );
 }
 
 export class Slug {

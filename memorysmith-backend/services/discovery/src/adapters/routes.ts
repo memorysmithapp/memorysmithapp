@@ -24,8 +24,12 @@ import type {
 export interface DiscoveryRequest {
   readonly subscriptionId: string;
   readonly userId: string;
-  /** Vaults the caller may read, resolved by the authorizer upstream. */
-  readonly canRead: (vaultId: string) => boolean;
+  /**
+   * Whether the caller may read that vault. Discovery holds no vault, so the
+   * decision belongs to the context that owns it, and it arrives as a
+   * question this request can ask (section 14.2).
+   */
+  readonly canRead: (vaultId: string) => Promise<boolean>;
 }
 
 export interface DiscoveryUseCases {
@@ -47,8 +51,8 @@ function present<T, U>(c: Context, result: Result<T, DomainError>, map: (value: 
 }
 
 /** A vault the caller cannot read is indistinguishable from a missing one. */
-function guard(request: DiscoveryRequest, vaultId: string): DomainError | null {
-  return request.canRead(vaultId) ? null : DomainError.forbidden('Vault not found');
+async function guard(request: DiscoveryRequest, vaultId: string): Promise<DomainError | null> {
+  return (await request.canRead(vaultId)) ? null : DomainError.forbidden('Vault not found');
 }
 
 export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Variables: Variables }> {
@@ -57,7 +61,7 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
   app.get('/vaults/:v/notes/:n/graph', async (c) => {
     const request = c.get('discovery');
     const vaultId = c.req.param('v') ?? '';
-    const denied = guard(request, vaultId);
+    const denied = await guard(request, vaultId);
     if (denied) return fail(c, denied);
 
     const depth = Number(c.req.query('depth') ?? '2');
@@ -72,7 +76,7 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
   app.get('/vaults/:v/notes/:n/backlinks', async (c) => {
     const request = c.get('discovery');
     const vaultId = c.req.param('v') ?? '';
-    const denied = guard(request, vaultId);
+    const denied = await guard(request, vaultId);
     if (denied) return fail(c, denied);
 
     const found = await useCases
@@ -84,7 +88,7 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
   app.get('/vaults/:v/health', async (c) => {
     const request = c.get('discovery');
     const vaultId = c.req.param('v') ?? '';
-    const denied = guard(request, vaultId);
+    const denied = await guard(request, vaultId);
     if (denied) return fail(c, denied);
 
     const health = await useCases.health(request).execute({ vaultId });
@@ -98,7 +102,7 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
   app.get('/vaults/:v/facets', async (c) => {
     const request = c.get('discovery');
     const vaultId = c.req.param('v') ?? '';
-    const denied = guard(request, vaultId);
+    const denied = await guard(request, vaultId);
     if (denied) return fail(c, denied);
 
     const stats = await useCases.facets(request).execute({ vaultId });
@@ -108,7 +112,7 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
   app.post('/vaults/:v/search', async (c) => {
     const request = c.get('discovery');
     const vaultId = c.req.param('v') ?? '';
-    const denied = guard(request, vaultId);
+    const denied = await guard(request, vaultId);
     if (denied) return fail(c, denied);
 
     const body = (await c.req.json().catch(() => ({}))) as {

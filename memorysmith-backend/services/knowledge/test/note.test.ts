@@ -18,7 +18,7 @@ describe('Note: creation', () => {
     const vault = newVault();
     const note = newNote(vault, folderId, 'Lei 14.133, art. 75');
 
-    expect(note.slug.value).toBe('lei-14-133-art-75');
+    expect(note.slug.value).toBe('lei-14133-art-75');
     const [event] = note.pullEvents();
     expect(event?.type).toBe('NoteCreated');
     expect(event?.subject).toBe('NOTE');
@@ -70,7 +70,7 @@ describe('Note: editing', () => {
         authorship(),
       ),
     );
-    expect(note.slug.value).toBe('lei-14-133-art-76');
+    expect(note.slug.value).toBe('lei-14133-art-76');
     expect(note.pullEvents()[0]?.type).toBe('NoteUpdated');
   });
 });
