@@ -62,7 +62,9 @@ export function LoginPage() {
                 required
               />
             </label>
-            <button type="submit" className="button-primary">{t('auth.continue')}</button>
+            <button type="submit" className="button-primary">
+              {t('auth.continue')}
+            </button>
           </form>
         ) : (
           <form onSubmit={submitCode} className="login-form">
@@ -80,7 +82,9 @@ export function LoginPage() {
                 required
               />
             </label>
-            <button type="submit" className="button-primary">{t('auth.signIn')}</button>
+            <button type="submit" className="button-primary">
+              {t('auth.signIn')}
+            </button>
             <button type="button" className="button-ghost" onClick={() => setStep('credentials')}>
               {t('auth.back')}
             </button>

@@ -125,6 +125,8 @@ export function createdTimeline(): CreatedTimeline {
       counts: days.map((day) => rest.reduce((sum, v) => sum + (v.byCreatedDay[day] ?? 0), 0)),
     });
   }
-  const maxTotal = Math.max(...days.map((_, i) => series.reduce((sum, s) => sum + (s.counts[i] ?? 0), 0)));
+  const maxTotal = Math.max(
+    ...days.map((_, i) => series.reduce((sum, s) => sum + (s.counts[i] ?? 0), 0)),
+  );
   return { days, series, maxTotal };
 }

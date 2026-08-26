@@ -2,7 +2,13 @@
 // adapter; wiring the real backend means swapping these bodies for HTTP calls
 // without touching any component.
 
-import type { FolderNode, NoteDetail, TemplateDetail, VaultStructure, VaultSummary } from '../types/api';
+import type {
+  FolderNode,
+  NoteDetail,
+  TemplateDetail,
+  VaultStructure,
+  VaultSummary,
+} from '../types/api';
 import { guidanceDescription, guidanceTitle, splitFrontmatter } from './markdown';
 import { seedVaults, type SeedFolder, type SeedVault } from './seed-source';
 
@@ -37,7 +43,12 @@ async function toFolderNode(folder: SeedFolder): Promise<FolderNode> {
     position: folder.position,
     hasTemplate: Boolean(folder.template),
     noteCount: folder.notes.length,
-    notes: folder.notes.map((n) => ({ id: n.path, slug: n.slug, title: n.title, folderId: folder.dirPath })),
+    notes: folder.notes.map((n) => ({
+      id: n.path,
+      slug: n.slug,
+      title: n.title,
+      folderId: folder.dirPath,
+    })),
     children: [],
   };
 }
@@ -95,7 +106,10 @@ export async function getNote(vaultSlug: string, noteSlug: string): Promise<Note
   };
 }
 
-export async function getTemplate(vaultSlug: string, folderId: string): Promise<TemplateDetail | null> {
+export async function getTemplate(
+  vaultSlug: string,
+  folderId: string,
+): Promise<TemplateDetail | null> {
   const vault = seedVaults().get(vaultSlug);
   const folder = vault?.folders.get(folderId);
   if (!vault || !folder) throw new Error('NOT_FOUND');

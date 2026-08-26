@@ -36,7 +36,9 @@ export function createApp(config: AgentConfig, resolveStateSecret: SecretResolve
     c.json(protectedResourceMetadata(config));
   app.get('/.well-known/oauth-protected-resource', (c) => prm(c));
   app.get('/.well-known/oauth-protected-resource/mcp', (c) => prm(c));
-  app.get('/.well-known/oauth-authorization-server', (c) => c.json(authorizationServerMetadata(config)));
+  app.get('/.well-known/oauth-authorization-server', (c) =>
+    c.json(authorizationServerMetadata(config)),
+  );
 
   // ---- Authorization endpoint (item 3) -------------------------------------
 
@@ -50,15 +52,27 @@ export function createApp(config: AgentConfig, resolveStateSecret: SecretResolve
       return c.json({ error: 'unsupported_response_type' }, 400);
     }
     if (!clientId || !redirectUri) {
-      return c.json({ error: 'invalid_request', error_description: 'client_id and redirect_uri are required' }, 400);
+      return c.json(
+        { error: 'invalid_request', error_description: 'client_id and redirect_uri are required' },
+        400,
+      );
     }
     if (!codeChallenge || (q['code_challenge_method'] ?? 'S256') !== 'S256') {
-      return c.json({ error: 'invalid_request', error_description: 'PKCE with S256 is required' }, 400);
+      return c.json(
+        { error: 'invalid_request', error_description: 'PKCE with S256 is required' },
+        400,
+      );
     }
 
     const metadata = await resolveClientMetadata(clientId, redirectUri);
     if (!metadata.ok) {
-      return c.json({ error: 'invalid_client', error_description: `${metadata.error.code}: ${metadata.error.detail}` }, 400);
+      return c.json(
+        {
+          error: 'invalid_client',
+          error_description: `${metadata.error.code}: ${metadata.error.detail}`,
+        },
+        400,
+      );
     }
 
     const state = encodeState(
@@ -87,14 +101,20 @@ export function createApp(config: AgentConfig, resolveStateSecret: SecretResolve
   app.get('/callback', async (c) => {
     const q = c.req.query();
     const encoded = q['state'];
-    if (!encoded) return c.json({ error: 'invalid_request', error_description: 'Missing state' }, 400);
+    if (!encoded)
+      return c.json({ error: 'invalid_request', error_description: 'Missing state' }, 400);
     const state = decodeState(encoded, await resolveStateSecret());
-    if (!state) return c.json({ error: 'invalid_request', error_description: 'Invalid or expired state' }, 400);
+    if (!state)
+      return c.json(
+        { error: 'invalid_request', error_description: 'Invalid or expired state' },
+        400,
+      );
 
     const target = new URL(state.redirectUri);
     if (q['error']) {
       target.searchParams.set('error', q['error']);
-      if (q['error_description']) target.searchParams.set('error_description', q['error_description']);
+      if (q['error_description'])
+        target.searchParams.set('error_description', q['error_description']);
     } else if (q['code']) {
       target.searchParams.set('code', q['code']);
       target.searchParams.set('iss', config.publicOrigin);
@@ -114,7 +134,10 @@ export function createApp(config: AgentConfig, resolveStateSecret: SecretResolve
 
     if (grantType === 'authorization_code') {
       if (typeof form['code'] !== 'string' || typeof form['code_verifier'] !== 'string') {
-        return c.json({ error: 'invalid_request', error_description: 'code and code_verifier are required' }, 400);
+        return c.json(
+          { error: 'invalid_request', error_description: 'code and code_verifier are required' },
+          400,
+        );
       }
       upstream.set('grant_type', 'authorization_code');
       upstream.set('client_id', config.proxyClientId);
@@ -123,7 +146,10 @@ export function createApp(config: AgentConfig, resolveStateSecret: SecretResolve
       upstream.set('code_verifier', form['code_verifier']);
     } else if (grantType === 'refresh_token') {
       if (typeof form['refresh_token'] !== 'string') {
-        return c.json({ error: 'invalid_request', error_description: 'refresh_token is required' }, 400);
+        return c.json(
+          { error: 'invalid_request', error_description: 'refresh_token is required' },
+          400,
+        );
       }
       upstream.set('grant_type', 'refresh_token');
       upstream.set('client_id', config.proxyClientId);
@@ -166,7 +192,10 @@ export function createApp(config: AgentConfig, resolveStateSecret: SecretResolve
     try {
       body = await c.req.json();
     } catch {
-      return c.json({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } }, 400);
+      return c.json(
+        { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } },
+        400,
+      );
     }
     const response = handleMcpRequest(body, token);
     if (response === null) return c.newResponse(null, 202);

@@ -15,7 +15,10 @@ const documentResponse = (body: unknown, init: ResponseInit = {}): Response =>
     ...init,
   });
 
-const stubFetch = (response: Response): typeof fetch => async () => response;
+const stubFetch =
+  (response: Response): typeof fetch =>
+  async () =>
+    response;
 
 describe('parseClientIdUrl', () => {
   it('accepts an absolute HTTPS URL', () => {
@@ -64,9 +67,9 @@ describe('isPrivateIp', () => {
 
 describe('redirectUriMatches (RFC 8252)', () => {
   it('matches exact URIs', () => {
-    expect(
-      redirectUriMatches('https://app.example.com/cb', 'https://app.example.com/cb'),
-    ).toBe(true);
+    expect(redirectUriMatches('https://app.example.com/cb', 'https://app.example.com/cb')).toBe(
+      true,
+    );
   });
 
   it('ignores the port on loopback hosts', () => {
@@ -85,7 +88,9 @@ describe('redirectUriMatches (RFC 8252)', () => {
   });
 
   it('does not let a loopback request match a hosted registration', () => {
-    expect(redirectUriMatches('http://127.0.0.1:1234/cb', 'https://app.example.com/cb')).toBe(false);
+    expect(redirectUriMatches('http://127.0.0.1:1234/cb', 'https://app.example.com/cb')).toBe(
+      false,
+    );
   });
 });
 
@@ -119,7 +124,10 @@ describe('resolveClientMetadata', () => {
   });
 
   it('rejects a client_id resolving to a private address', async () => {
-    const result = await resolveClientMetadata('https://169.254.169.254/latest/meta', 'https://x/cb');
+    const result = await resolveClientMetadata(
+      'https://169.254.169.254/latest/meta',
+      'https://x/cb',
+    );
     expect(result).toMatchObject({ ok: false, error: { code: 'PRIVATE_ADDRESS' } });
   });
 

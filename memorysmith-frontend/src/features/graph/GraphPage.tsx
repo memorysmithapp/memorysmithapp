@@ -17,7 +17,14 @@ import { VaultBreadcrumb } from '../structure/VaultBreadcrumb';
 import { resolveNoteUrl } from '../../shared/api/client';
 
 interface GraphFile {
-  nodes: { id: string; title: string; kind: 'note' | 'tag'; type?: string; maturity?: string; reviewed?: boolean }[];
+  nodes: {
+    id: string;
+    title: string;
+    kind: 'note' | 'tag';
+    type?: string;
+    maturity?: string;
+    reviewed?: boolean;
+  }[];
   edges: [number, number][];
 }
 
@@ -38,7 +45,10 @@ const MATURITY_STEPS = ['evergreen', 'growing', 'seed'] as const;
 
 type GraphLink = SimulationLinkDatum<GraphNode>;
 
-const graphFiles = import.meta.glob('/seed/graph/*.json') as Record<string, () => Promise<{ default: GraphFile }>>;
+const graphFiles = import.meta.glob('/seed/graph/*.json') as Record<
+  string,
+  () => Promise<{ default: GraphFile }>
+>;
 
 function cssVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -63,7 +73,17 @@ export function GraphPage() {
     colorBy: ColorBy;
     typeTop: string[];
     redraw: (() => void) | null;
-  }>({ nodes: [], links: [], neighbors: new Map(), sim: null, transform: { x: 0, y: 0, k: 1 }, hovered: null, colorBy: 'none', typeTop: [], redraw: null });
+  }>({
+    nodes: [],
+    links: [],
+    neighbors: new Map(),
+    sim: null,
+    transform: { x: 0, y: 0, k: 1 },
+    hovered: null,
+    colorBy: 'none',
+    typeTop: [],
+    redraw: null,
+  });
 
   useEffect(() => {
     const loader = graphFiles[`/seed/graph/${vaultSlug}.json`];
@@ -78,7 +98,10 @@ export function GraphPage() {
       if (node.kind !== 'note' || !node.type) continue;
       counts.set(node.type, (counts.get(node.type) ?? 0) + 1);
     }
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([key]) => key);
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([key]) => key);
   }, [data]);
 
   useEffect(() => {
@@ -96,7 +119,16 @@ export function GraphPage() {
     data.nodes.forEach((n, i) => {
       if (!keep[i]) return;
       indexMap.set(i, nodes.length);
-      nodes.push({ id: n.id, title: n.title, kind: n.kind, type: n.type, maturity: n.maturity, reviewed: n.reviewed, degree: 0, radius: 3 });
+      nodes.push({
+        id: n.id,
+        title: n.title,
+        kind: n.kind,
+        type: n.type,
+        maturity: n.maturity,
+        reviewed: n.reviewed,
+        degree: 0,
+        radius: 3,
+      });
     });
     const links: { source: number; target: number }[] = [];
     for (const [s, tIdx] of data.edges) {
@@ -134,7 +166,11 @@ export function GraphPage() {
     const links: GraphLink[] = filtered.links.map((l) => ({ ...l }));
     state.nodes = nodes;
     state.links = links;
-    state.transform = { x: width / 2, y: height / 2, k: Math.min(1, 600 / Math.sqrt(nodes.length) / 12) };
+    state.transform = {
+      x: width / 2,
+      y: height / 2,
+      k: Math.min(1, 600 / Math.sqrt(nodes.length) / 12),
+    };
     state.hovered = null;
 
     const ctx = canvas.getContext('2d');
@@ -156,15 +192,20 @@ export function GraphPage() {
         evergreen: cssVar('--seq-evergreen') || '#0f56d7',
         other: cssVar('--cat-other') || '#8b96a8',
       };
-      const cats = [cssVar('--cat-1') || '#ff8a2b', cssVar('--cat-2') || '#0f56d7', cssVar('--cat-3') || '#16a34a'];
+      const cats = [
+        cssVar('--cat-1') || '#ff8a2b',
+        cssVar('--cat-2') || '#0f56d7',
+        cssVar('--cat-3') || '#16a34a',
+      ];
       function nodeFill(node: GraphNode): string {
         const mode = state.colorBy;
-        if (node.kind === 'tag') return mode === 'none' ? colors.tag : facet.other ?? colors.tag;
+        if (node.kind === 'tag') return mode === 'none' ? colors.tag : (facet.other ?? colors.tag);
         if (mode === 'maturity') return facet[node.maturity ?? ''] ?? facet.other ?? colors.note;
-        if (mode === 'reviewed') return node.reviewed ? facet.evergreen ?? colors.note : facet.seed ?? colors.note;
+        if (mode === 'reviewed')
+          return node.reviewed ? (facet.evergreen ?? colors.note) : (facet.seed ?? colors.note);
         if (mode === 'type') {
           const slot = state.typeTop.indexOf(node.type ?? '');
-          return slot >= 0 ? cats[slot] ?? colors.note : facet.other ?? colors.note;
+          return slot >= 0 ? (cats[slot] ?? colors.note) : (facet.other ?? colors.note);
         }
         return colors.note;
       }
@@ -369,15 +410,25 @@ export function GraphPage() {
           </select>
         </label>
         <label className="graph-toggle">
-          <input type="checkbox" checked={showTags} onChange={(e) => setShowTags(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={showTags}
+            onChange={(e) => setShowTags(e.target.checked)}
+          />
           {t('graph.showTags')}
         </label>
         <span className="graph-legend">
           {colorBy === 'none' && (
             <>
-              <span className="legend-item"><span className="legend-swatch" style={{ background: 'var(--accent)' }} />{t('graph.legendNotes')}</span>
+              <span className="legend-item">
+                <span className="legend-swatch" style={{ background: 'var(--accent)' }} />
+                {t('graph.legendNotes')}
+              </span>
               {showTags && (
-                <span className="legend-item"><span className="legend-swatch" style={{ background: 'var(--signal)' }} />{t('graph.legendTags')}</span>
+                <span className="legend-item">
+                  <span className="legend-swatch" style={{ background: 'var(--signal)' }} />
+                  {t('graph.legendTags')}
+                </span>
               )}
             </>
           )}
@@ -390,23 +441,38 @@ export function GraphPage() {
             ))}
           {colorBy === 'reviewed' && (
             <>
-              <span className="legend-item"><span className="legend-swatch" style={{ background: 'var(--seq-evergreen)' }} />{t('dashboard.reviewedYes')}</span>
-              <span className="legend-item"><span className="legend-swatch" style={{ background: 'var(--seq-seed)' }} />{t('dashboard.reviewedNo')}</span>
+              <span className="legend-item">
+                <span className="legend-swatch" style={{ background: 'var(--seq-evergreen)' }} />
+                {t('dashboard.reviewedYes')}
+              </span>
+              <span className="legend-item">
+                <span className="legend-swatch" style={{ background: 'var(--seq-seed)' }} />
+                {t('dashboard.reviewedNo')}
+              </span>
             </>
           )}
           {colorBy === 'type' && (
             <>
               {typeTop.map((typeName, index) => (
                 <span key={typeName} className="legend-item">
-                  <span className="legend-swatch" style={{ background: `var(--cat-${index + 1})` }} />
+                  <span
+                    className="legend-swatch"
+                    style={{ background: `var(--cat-${index + 1})` }}
+                  />
                   {typeName}
                 </span>
               ))}
-              <span className="legend-item"><span className="legend-swatch" style={{ background: 'var(--cat-other)' }} />{t('dashboard.otherTypes')}</span>
+              <span className="legend-item">
+                <span className="legend-swatch" style={{ background: 'var(--cat-other)' }} />
+                {t('dashboard.otherTypes')}
+              </span>
             </>
           )}
           {colorBy !== 'none' && showTags && (
-            <span className="legend-item"><span className="legend-swatch" style={{ background: 'var(--cat-other)' }} />{t('graph.legendTags')}</span>
+            <span className="legend-item">
+              <span className="legend-swatch" style={{ background: 'var(--cat-other)' }} />
+              {t('graph.legendTags')}
+            </span>
           )}
         </span>
       </div>

@@ -7,7 +7,8 @@ import { slugify } from '../api/seed-source';
 // Frontmatter values are vault content, so they may carry [[wikilinks]],
 // markdown links and raw URLs. This renderer makes them navigable without
 // interpreting anything else.
-const TOKEN = /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s,]+)/g;
+const TOKEN =
+  /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s,]+)/g;
 
 interface PropertyValueProps {
   name: string;

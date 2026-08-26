@@ -74,7 +74,6 @@ export function DashboardPage() {
         ))}
       </CardCarousel>
 
-
       <h2 className="dashboard-section-heading">{t('dashboard.heading')}</h2>
 
       <div className="stat-row">
@@ -127,7 +126,10 @@ export function DashboardPage() {
                         className={`hbar-seg seq-${bucket}`}
                         style={{ width: `${pct}%` }}
                         onMouseMove={(e) =>
-                          tooltip.show(e, `${t(`dashboard.bucket.${bucket}`)}: ${nf.format(count)} (${Math.round(pct)}%)`)
+                          tooltip.show(
+                            e,
+                            `${t(`dashboard.bucket.${bucket}`)}: ${nf.format(count)} (${Math.round(pct)}%)`,
+                          )
                         }
                         onMouseLeave={tooltip.hide}
                       >
@@ -156,8 +158,18 @@ export function DashboardPage() {
           </div>
           {vaultStats.map((vault) => {
             const segments = [
-              { key: 'yes', className: 'seq-evergreen', label: t('dashboard.reviewedYes'), count: vault.reviewed },
-              { key: 'no', className: 'seq-seed', label: t('dashboard.reviewedNo'), count: vault.notes - vault.reviewed },
+              {
+                key: 'yes',
+                className: 'seq-evergreen',
+                label: t('dashboard.reviewedYes'),
+                count: vault.reviewed,
+              },
+              {
+                key: 'no',
+                className: 'seq-seed',
+                label: t('dashboard.reviewedNo'),
+                count: vault.notes - vault.reviewed,
+              },
             ];
             return (
               <div key={vault.vault} className="hbar-row">
@@ -172,11 +184,16 @@ export function DashboardPage() {
                         className={`hbar-seg ${segment.className}`}
                         style={{ width: `${pct}%` }}
                         onMouseMove={(e) =>
-                          tooltip.show(e, `${segment.label}: ${nf.format(segment.count)} (${Math.round(pct)}%)`)
+                          tooltip.show(
+                            e,
+                            `${segment.label}: ${nf.format(segment.count)} (${Math.round(pct)}%)`,
+                          )
                         }
                         onMouseLeave={tooltip.hide}
                       >
-                        {pct >= 12 && <span className="hbar-seg-label">{nf.format(segment.count)}</span>}
+                        {pct >= 12 && (
+                          <span className="hbar-seg-label">{nf.format(segment.count)}</span>
+                        )}
                       </div>
                     );
                   })}
@@ -229,7 +246,9 @@ export function DashboardPage() {
               </div>
             ))}
           </div>
-          <p className="chart-footnote">{t('dashboard.tagsDistinct', { count: distinctTagCount() })}</p>
+          <p className="chart-footnote">
+            {t('dashboard.tagsDistinct', { count: distinctTagCount() })}
+          </p>
         </div>
       </div>
 
@@ -239,7 +258,9 @@ export function DashboardPage() {
           <div className="chart-legend">
             {timeline.series.map((series, index) => (
               <span key={series.vault} className="legend-item">
-                <span className={`legend-swatch ${series.vault === OTHER_VAULTS ? 'cat-other' : `cat-${index + 1}`}`} />
+                <span
+                  className={`legend-swatch ${series.vault === OTHER_VAULTS ? 'cat-other' : `cat-${index + 1}`}`}
+                />
                 {series.vault === OTHER_VAULTS ? t('dashboard.otherVaults') : series.name}
               </span>
             ))}
@@ -260,14 +281,18 @@ export function DashboardPage() {
                         const count = series.counts[dayIndex] ?? 0;
                         if (count === 0) return null;
                         const height = Math.max((count / timeline.maxTotal) * TIMELINE_HEIGHT, 2);
-                        const cls = series.vault === OTHER_VAULTS ? 'cat-other' : `cat-${index + 1}`;
-                        const label = series.vault === OTHER_VAULTS ? t('dashboard.otherVaults') : series.name;
+                        const cls =
+                          series.vault === OTHER_VAULTS ? 'cat-other' : `cat-${index + 1}`;
+                        const label =
+                          series.vault === OTHER_VAULTS ? t('dashboard.otherVaults') : series.name;
                         return (
                           <div
                             key={series.vault}
                             className={`colchart-seg ${cls}`}
                             style={{ height: `${height}px` }}
-                            onMouseMove={(e) => tooltip.show(e, `${formatDay(day)} · ${label}: ${nf.format(count)}`)}
+                            onMouseMove={(e) =>
+                              tooltip.show(e, `${formatDay(day)} · ${label}: ${nf.format(count)}`)
+                            }
                             onMouseLeave={tooltip.hide}
                           />
                         );

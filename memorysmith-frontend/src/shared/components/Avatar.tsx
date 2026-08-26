@@ -26,6 +26,16 @@ export function Avatar({ email, size = 32 }: AvatarProps) {
     };
   }, [email, size]);
 
-  if (!url) return <span className="avatar avatar-fallback" style={{ width: size, height: size }} />;
-  return <img className="avatar" src={url} alt="" width={size} height={size} referrerPolicy="no-referrer" />;
+  if (!url)
+    return <span className="avatar avatar-fallback" style={{ width: size, height: size }} />;
+  return (
+    <img
+      className="avatar"
+      src={url}
+      alt=""
+      width={size}
+      height={size}
+      referrerPolicy="no-referrer"
+    />
+  );
 }

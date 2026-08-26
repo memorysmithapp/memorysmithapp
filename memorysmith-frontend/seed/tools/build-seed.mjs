@@ -13,7 +13,15 @@
 //
 // Usage: node memorysmith-frontend/seed/tools/build-seed.mjs
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -36,76 +44,253 @@ const VAULTS = [
         out: '01 Literature',
         desc: 'Notas de fonte, presas ao material original: uma nota por capítulo, parte ou módulo e um índice por obra. Nunca são reescritas depois da leitura: são o registro do que a fonte disse.',
         children: [
-          { src: '01 Literature/Books', out: '01 Books', desc: 'Livros lidos. Uma subpasta por livro, com o índice da obra e uma nota por capítulo ou parte.', childDesc: (n) => `Leitura de "${n}": um índice da obra e uma nota por capítulo ou parte.`, childTemplate: 'literature' },
-          { src: '01 Literature/Courses', out: '02 Courses', desc: 'Treinamentos e cursos. Uma subpasta por curso, com o índice e uma nota por módulo.', childDesc: (n) => `Leitura de "${n}": um índice do curso e uma nota por módulo.`, childTemplate: 'literature' },
-          { src: '01 Literature/Use Cases', out: '03 Use Cases', desc: 'Bibliotecas web de casos de uso e documentação. Uma subpasta por coleção, com o índice e uma nota por bloco de leitura.', childDesc: (n) => `Leitura de "${n}": um índice da coleção e uma nota por bloco de leitura.`, childTemplate: 'literature' },
+          {
+            src: '01 Literature/Books',
+            out: '01 Books',
+            desc: 'Livros lidos. Uma subpasta por livro, com o índice da obra e uma nota por capítulo ou parte.',
+            childDesc: (n) =>
+              `Leitura de "${n}": um índice da obra e uma nota por capítulo ou parte.`,
+            childTemplate: 'literature',
+          },
+          {
+            src: '01 Literature/Courses',
+            out: '02 Courses',
+            desc: 'Treinamentos e cursos. Uma subpasta por curso, com o índice e uma nota por módulo.',
+            childDesc: (n) => `Leitura de "${n}": um índice do curso e uma nota por módulo.`,
+            childTemplate: 'literature',
+          },
+          {
+            src: '01 Literature/Use Cases',
+            out: '03 Use Cases',
+            desc: 'Bibliotecas web de casos de uso e documentação. Uma subpasta por coleção, com o índice e uma nota por bloco de leitura.',
+            childDesc: (n) =>
+              `Leitura de "${n}": um índice da coleção e uma nota por bloco de leitura.`,
+            childTemplate: 'literature',
+          },
         ],
       },
       {
         out: '02 Permanent Notes',
         desc: 'O conhecimento que ficou, independente da fonte que o originou. Conceitos dizem o que uma coisa É; práticas dizem como uma coisa é FEITA.',
         children: [
-          { src: '02 Permanent Notes/Concepts', out: '01 Concepts', desc: 'Conceitos atômicos, independentes da fonte. Só entra o que tem valor fora do livro que o originou e faz sentido sozinho, meses depois. Se responde "como fazer", pertence a Practices.', template: 'concept' },
-          { src: '02 Permanent Notes/Practices', out: '02 Practices', desc: 'Técnicas, dinâmicas e atividades executáveis: passos, regras, template de aplicação. Se responde "o que é", pertence a Concepts.', template: 'practice' },
+          {
+            src: '02 Permanent Notes/Concepts',
+            out: '01 Concepts',
+            desc: 'Conceitos atômicos, independentes da fonte. Só entra o que tem valor fora do livro que o originou e faz sentido sozinho, meses depois. Se responde "como fazer", pertence a Practices.',
+            template: 'concept',
+          },
+          {
+            src: '02 Permanent Notes/Practices',
+            out: '02 Practices',
+            desc: 'Técnicas, dinâmicas e atividades executáveis: passos, regras, template de aplicação. Se responde "o que é", pertence a Concepts.',
+            template: 'practice',
+          },
         ],
       },
-      { src: '03 Maps of Content (MOCs)', out: '03 Maps of Content', desc: 'Índices navegáveis, um por domínio de estudo. Um MOC não contém conhecimento novo: organiza o que existe e registra as lacunas conhecidas do domínio.', template: 'moc' },
-      { src: '04 Projects', out: '04 Projects', desc: 'Aplicação prática e estudos de caso: onde a teoria foi exercitada. Toda nota referencia as práticas e conceitos usados.', template: 'project' },
+      {
+        src: '03 Maps of Content (MOCs)',
+        out: '03 Maps of Content',
+        desc: 'Índices navegáveis, um por domínio de estudo. Um MOC não contém conhecimento novo: organiza o que existe e registra as lacunas conhecidas do domínio.',
+        template: 'moc',
+      },
+      {
+        src: '04 Projects',
+        out: '04 Projects',
+        desc: 'Aplicação prática e estudos de caso: onde a teoria foi exercitada. Toda nota referencia as práticas e conceitos usados.',
+        template: 'project',
+      },
     ],
   },
   {
     slug: 'regulacao-energia',
     name: 'Regulação de Energia',
-    sourceRoot: join(HOME, 'Claude Cowork', 'KnowledgeGraph - Regulação de Energia', 'knowledge-vault'),
-    extraRoots: { context: join(HOME, 'Claude Cowork', 'KnowledgeGraph - Regulação de Energia', 'context-vault') },
+    sourceRoot: join(
+      HOME,
+      'Claude Cowork',
+      'KnowledgeGraph - Regulação de Energia',
+      'knowledge-vault',
+    ),
+    extraRoots: {
+      context: join(
+        HOME,
+        'Claude Cowork',
+        'KnowledgeGraph - Regulação de Energia',
+        'context-vault',
+      ),
+    },
     folders: [
-      { src: '00 Plano', out: '01 Plano', desc: 'Plano de trabalho e auditorias do grafo: o que falta ler, o que foi auditado e quando. Registros de curadoria, não de conhecimento normativo.' },
+      {
+        src: '00 Plano',
+        out: '01 Plano',
+        desc: 'Plano de trabalho e auditorias do grafo: o que falta ler, o que foi auditado e quando. Registros de curadoria, não de conhecimento normativo.',
+      },
       {
         out: '02 Literature',
         desc: 'Fonte normativa: o registro de leitura de cada norma, preso ao texto original daquela versão. Nunca é reescrito quando a norma muda: a alteração vira nota nova.',
         children: [
-          { src: '01 Literature/Normas', out: '01 Normas', desc: 'Uma subpasta por norma, com o índice e uma nota por título, capítulo ou anexo relevante. A identificação oficial (número e ano) é o nome da subpasta.', childDesc: (n) => `Leitura de "${n}": um índice da norma e uma nota por título, capítulo ou anexo relevante.`, childTemplate: 'norma' },
-          { src: '01 Literature/Briefings', out: '02 Briefings', desc: 'Sínteses de contexto que atravessam mais de uma norma: o estado de um tema em uma data, com as fontes citadas.' },
+          {
+            src: '01 Literature/Normas',
+            out: '01 Normas',
+            desc: 'Uma subpasta por norma, com o índice e uma nota por título, capítulo ou anexo relevante. A identificação oficial (número e ano) é o nome da subpasta.',
+            childDesc: (n) =>
+              `Leitura de "${n}": um índice da norma e uma nota por título, capítulo ou anexo relevante.`,
+            childTemplate: 'norma',
+          },
+          {
+            src: '01 Literature/Briefings',
+            out: '02 Briefings',
+            desc: 'Sínteses de contexto que atravessam mais de uma norma: o estado de um tema em uma data, com as fontes citadas.',
+          },
         ],
       },
       {
         out: '03 Permanent Notes',
         desc: 'O que a norma diz, decomposto em conhecimento permanente: conceitos que a regulação institui e ritos que ela exige.',
         children: [
-          { src: '02 Permanent Notes/Concepts', out: '01 Concepts', desc: 'Conceitos atômicos, independentes da norma que os originou, sempre com a base normativa citada por dispositivo. "Consumidor Livre" é conceito; "o art. 12 diz X" é literatura.', template: 'concept' },
-          { src: '02 Permanent Notes/Practices', out: '02 Practices', desc: 'Procedimentos e ritos executáveis: passos, prazos, responsáveis e formulários, com o dispositivo normativo de cada regra.', template: 'practice' },
+          {
+            src: '02 Permanent Notes/Concepts',
+            out: '01 Concepts',
+            desc: 'Conceitos atômicos, independentes da norma que os originou, sempre com a base normativa citada por dispositivo. "Consumidor Livre" é conceito; "o art. 12 diz X" é literatura.',
+            template: 'concept',
+          },
+          {
+            src: '02 Permanent Notes/Practices',
+            out: '02 Practices',
+            desc: 'Procedimentos e ritos executáveis: passos, prazos, responsáveis e formulários, com o dispositivo normativo de cada regra.',
+            template: 'practice',
+          },
         ],
       },
-      { src: '03 Datasets', out: '04 Datasets', desc: 'Fichas de conjuntos de dados abertos: o que o conjunto contém, quem publica, granularidade, cadência, campos e como obter. A ficha descreve a fonte e nunca cita valor extraído dela.', template: 'dataset' },
-      { src: '04 Convenções', out: '05 Convenções', desc: 'A gramática das fontes de dados: prefixos de campo, tipagem, chaves de junção e formatos recorrentes. Cada convenção vale para dezenas de conjuntos, não para um específico.', template: 'convention' },
-      { src: '05 Projects', out: '06 Projects', desc: 'Onde a regra foi exercitada: análise de caso, simulação tarifária, avaliação de impacto normativo.' },
-      { src: '06 Maps of Content (MOCs)', out: '07 Maps of Content', desc: 'Navegação dos dois eixos num lugar só. "MOC - …" navega o eixo normativo; "Dados - …" navega o eixo de dados. Nenhum mapa contém conhecimento novo.', template: 'moc' },
-      { root: 'context', src: '01 Indicadores', out: '08 Indicadores', desc: 'Medidas pontuais: um número ou recorte com significado próprio, na data da última atualização. Toda nota linka a ficha do dataset de origem e o conceito que mede, e vence pela cadência declarada.', template: 'indicador' },
-      { root: 'context', src: '02 Séries Temporais', out: '09 Séries Temporais', desc: 'Medidas em trajetória: histórico, tabela e leitura de tendência, quando o valor só significa algo ao longo do tempo. Vencem pela cadência declarada.', template: 'serie' },
-      { root: 'context', src: '03 Insights', out: '10 Insights', desc: 'Leituras interpretadas: conclusões que só existem porque alguém confrontou indicador, série e norma. Sempre ancoradas em medida já publicada, nunca em número solto.', template: 'insight' },
+      {
+        src: '03 Datasets',
+        out: '04 Datasets',
+        desc: 'Fichas de conjuntos de dados abertos: o que o conjunto contém, quem publica, granularidade, cadência, campos e como obter. A ficha descreve a fonte e nunca cita valor extraído dela.',
+        template: 'dataset',
+      },
+      {
+        src: '04 Convenções',
+        out: '05 Convenções',
+        desc: 'A gramática das fontes de dados: prefixos de campo, tipagem, chaves de junção e formatos recorrentes. Cada convenção vale para dezenas de conjuntos, não para um específico.',
+        template: 'convention',
+      },
+      {
+        src: '05 Projects',
+        out: '06 Projects',
+        desc: 'Onde a regra foi exercitada: análise de caso, simulação tarifária, avaliação de impacto normativo.',
+      },
+      {
+        src: '06 Maps of Content (MOCs)',
+        out: '07 Maps of Content',
+        desc: 'Navegação dos dois eixos num lugar só. "MOC - …" navega o eixo normativo; "Dados - …" navega o eixo de dados. Nenhum mapa contém conhecimento novo.',
+        template: 'moc',
+      },
+      {
+        root: 'context',
+        src: '01 Indicadores',
+        out: '08 Indicadores',
+        desc: 'Medidas pontuais: um número ou recorte com significado próprio, na data da última atualização. Toda nota linka a ficha do dataset de origem e o conceito que mede, e vence pela cadência declarada.',
+        template: 'indicador',
+      },
+      {
+        root: 'context',
+        src: '02 Séries Temporais',
+        out: '09 Séries Temporais',
+        desc: 'Medidas em trajetória: histórico, tabela e leitura de tendência, quando o valor só significa algo ao longo do tempo. Vencem pela cadência declarada.',
+        template: 'serie',
+      },
+      {
+        root: 'context',
+        src: '03 Insights',
+        out: '10 Insights',
+        desc: 'Leituras interpretadas: conclusões que só existem porque alguém confrontou indicador, série e norma. Sempre ancoradas em medida já publicada, nunca em número solto.',
+        template: 'insight',
+      },
     ],
   },
   {
     slug: 'glpi-discovery',
     name: 'GLPI 11 - Descoberta',
-    sourceRoot: join(HOME, 'Claude Cowork', 'Extração de Requisitos v4 - GLPI', 'docs', 'knowledge-vault'),
+    sourceRoot: join(
+      HOME,
+      'Claude Cowork',
+      'Extração de Requisitos v4 - GLPI',
+      'docs',
+      'knowledge-vault',
+    ),
     folders: [
-      { src: '01 Overview', out: '01 Overview', desc: 'O que o sistema é: visão geral, glossário e requisitos de plataforma. A porta de entrada de quem nunca viu o GLPI.' },
-      { src: '02 Business Knowledge', out: '02 Business Knowledge', desc: 'Por que o sistema existe: os processos de negócio que ele realiza (incidentes, mudanças, ativos, contratos), as regras que os governam e as capacidades transversais.', template: 'process' },
-      { src: '03 Structural Knowledge', out: '03 Structural Knowledge', desc: 'Do que o sistema é composto: os componentes, suas heranças e composições. Toda afirmação cita a evidência que a sustenta.', template: 'component' },
-      { src: '04 Behavioral Knowledge', out: '04 Behavioral Knowledge', desc: 'Como o sistema funciona: ciclos de vida, máquinas de estado, fluxos entre componentes e efeitos colaterais observados.' },
-      { src: '05 Source Code', out: '05 Source Code', desc: 'Como foi implementado: notas sobre a organização do código-fonte que não pertencem a um componente específico.' },
-      { src: '06 Data', out: '06 Data', desc: 'Que informações o sistema manipula: entidades de dados, campos, dicionários e relações, na visão de quem precisa extrair requisitos.' },
-      { src: '07 Integrations', out: '07 Integrations', desc: 'Com quem o sistema se comunica: APIs, agentes, coletores de e-mail, protocolos e autenticação de cada integração.' },
-      { src: '08 Operational Architecture', out: '08 Operational Architecture', desc: 'Como opera em produção: instalação, cron, cache, saúde, segurança operacional e requisitos de infraestrutura.' },
-      { src: '09 Evidence', out: '09 Evidence', desc: 'Os artefatos que sustentam tudo: citações literais de código ou documentação, com referência exata de arquivo e linhas. Cada evidência lista as notas de conhecimento que dependem dela.', template: 'evidence' },
-      { src: '10 Decisions', out: '10 Decisions', desc: 'Conclusões e premissas de trabalho, declaradas como tais: o único lugar do vault onde entra julgamento, sempre separado da descrição neutra.' },
-      { src: '11 Investigations', out: '11 Investigations', desc: 'O que falta investigar: perguntas que as fontes não responderam, com identificador estável, o porquê de importarem e o próximo passo sugerido.', template: 'investigation' },
-      { src: '12 Views', out: '12 Views', desc: 'Como visualizar: diagramas e visões de conjunto que atravessam domínios, derivados das notas de conhecimento.' },
-      { src: '13 MOCs', out: '13 MOCs', desc: 'Como navegar: um mapa por domínio funcional, ligando componentes, processos, evidências e investigações abertas.', template: 'moc' },
+      {
+        src: '01 Overview',
+        out: '01 Overview',
+        desc: 'O que o sistema é: visão geral, glossário e requisitos de plataforma. A porta de entrada de quem nunca viu o GLPI.',
+      },
+      {
+        src: '02 Business Knowledge',
+        out: '02 Business Knowledge',
+        desc: 'Por que o sistema existe: os processos de negócio que ele realiza (incidentes, mudanças, ativos, contratos), as regras que os governam e as capacidades transversais.',
+        template: 'process',
+      },
+      {
+        src: '03 Structural Knowledge',
+        out: '03 Structural Knowledge',
+        desc: 'Do que o sistema é composto: os componentes, suas heranças e composições. Toda afirmação cita a evidência que a sustenta.',
+        template: 'component',
+      },
+      {
+        src: '04 Behavioral Knowledge',
+        out: '04 Behavioral Knowledge',
+        desc: 'Como o sistema funciona: ciclos de vida, máquinas de estado, fluxos entre componentes e efeitos colaterais observados.',
+      },
+      {
+        src: '05 Source Code',
+        out: '05 Source Code',
+        desc: 'Como foi implementado: notas sobre a organização do código-fonte que não pertencem a um componente específico.',
+      },
+      {
+        src: '06 Data',
+        out: '06 Data',
+        desc: 'Que informações o sistema manipula: entidades de dados, campos, dicionários e relações, na visão de quem precisa extrair requisitos.',
+      },
+      {
+        src: '07 Integrations',
+        out: '07 Integrations',
+        desc: 'Com quem o sistema se comunica: APIs, agentes, coletores de e-mail, protocolos e autenticação de cada integração.',
+      },
+      {
+        src: '08 Operational Architecture',
+        out: '08 Operational Architecture',
+        desc: 'Como opera em produção: instalação, cron, cache, saúde, segurança operacional e requisitos de infraestrutura.',
+      },
+      {
+        src: '09 Evidence',
+        out: '09 Evidence',
+        desc: 'Os artefatos que sustentam tudo: citações literais de código ou documentação, com referência exata de arquivo e linhas. Cada evidência lista as notas de conhecimento que dependem dela.',
+        template: 'evidence',
+      },
+      {
+        src: '10 Decisions',
+        out: '10 Decisions',
+        desc: 'Conclusões e premissas de trabalho, declaradas como tais: o único lugar do vault onde entra julgamento, sempre separado da descrição neutra.',
+      },
+      {
+        src: '11 Investigations',
+        out: '11 Investigations',
+        desc: 'O que falta investigar: perguntas que as fontes não responderam, com identificador estável, o porquê de importarem e o próximo passo sugerido.',
+        template: 'investigation',
+      },
+      {
+        src: '12 Views',
+        out: '12 Views',
+        desc: 'Como visualizar: diagramas e visões de conjunto que atravessam domínios, derivados das notas de conhecimento.',
+      },
+      {
+        src: '13 MOCs',
+        out: '13 MOCs',
+        desc: 'Como navegar: um mapa por domínio funcional, ligando componentes, processos, evidências e investigações abertas.',
+        template: 'moc',
+      },
     ],
   },
-// Fictional vaults: small, self-contained, and sourced from inside the repo
+  // Fictional vaults: small, self-contained, and sourced from inside the repo
   // (seed/fictional/). They exist to exercise the catalog, the dashboard and
   // the navigation with more than three vaults; same pipeline, same rules.
   {
@@ -113,8 +298,17 @@ const VAULTS = [
     name: 'Runbooks de Produção',
     sourceRoot: join(SEED_DIR, 'fictional', 'runbooks-producao'),
     folders: [
-      { src: 'Runbooks', out: '01 Runbooks', desc: 'Um procedimento executável por página: pré-condições, passos numerados e verificação final. Passo que exige julgamento linka a nota que explica o critério.', template: 'runbook' },
-      { src: 'Postmortems', out: '02 Postmortems', desc: 'Um incidente fechado por nota: linha do tempo, causa raiz e ações. Imutável depois de fechado; correção vira nota nova.' },
+      {
+        src: 'Runbooks',
+        out: '01 Runbooks',
+        desc: 'Um procedimento executável por página: pré-condições, passos numerados e verificação final. Passo que exige julgamento linka a nota que explica o critério.',
+        template: 'runbook',
+      },
+      {
+        src: 'Postmortems',
+        out: '02 Postmortems',
+        desc: 'Um incidente fechado por nota: linha do tempo, causa raiz e ações. Imutável depois de fechado; correção vira nota nova.',
+      },
     ],
   },
   {
@@ -122,8 +316,17 @@ const VAULTS = [
     name: 'Onboarding de Engenharia',
     sourceRoot: join(SEED_DIR, 'fictional', 'onboarding-engenharia'),
     folders: [
-      { src: 'Trilhas', out: '01 Trilhas', desc: 'O que fazer em cada semana e em que ordem. A trilha linka os guias; o conteúdo de referência não vive aqui.', template: 'trilha' },
-      { src: 'Guias', out: '02 Guias', desc: 'Referência sem calendário: cada guia faz sentido para quem chega em qualquer semana.' },
+      {
+        src: 'Trilhas',
+        out: '01 Trilhas',
+        desc: 'O que fazer em cada semana e em que ordem. A trilha linka os guias; o conteúdo de referência não vive aqui.',
+        template: 'trilha',
+      },
+      {
+        src: 'Guias',
+        out: '02 Guias',
+        desc: 'Referência sem calendário: cada guia faz sentido para quem chega em qualquer semana.',
+      },
     ],
   },
   {
@@ -131,8 +334,17 @@ const VAULTS = [
     name: 'Pesquisa de Mercado 2026',
     sourceRoot: join(SEED_DIR, 'fictional', 'pesquisa-mercado'),
     folders: [
-      { src: 'Entrevistas', out: '01 Entrevistas', desc: 'O que foi dito, com citações, identificado pela persona e nunca pelo nome. Interpretação não entra aqui.', template: 'entrevista' },
-      { src: 'Insights', out: '02 Insights', desc: 'Leituras que atravessam mais de uma entrevista, sempre citando as entrevistas que as sustentam.' },
+      {
+        src: 'Entrevistas',
+        out: '01 Entrevistas',
+        desc: 'O que foi dito, com citações, identificado pela persona e nunca pelo nome. Interpretação não entra aqui.',
+        template: 'entrevista',
+      },
+      {
+        src: 'Insights',
+        out: '02 Insights',
+        desc: 'Leituras que atravessam mais de uma entrevista, sempre citando as entrevistas que as sustentam.',
+      },
     ],
   },
   {
@@ -140,8 +352,17 @@ const VAULTS = [
     name: 'Caderno de Fermentação',
     sourceRoot: join(SEED_DIR, 'fictional', 'fermentacao'),
     folders: [
-      { src: 'Receitas', out: '01 Receitas', desc: 'O que já repete resultado: ingredientes, processo e o que não variar.', template: 'receita' },
-      { src: 'Experimentos', out: '02 Experimentos', desc: 'Uma variável isolada por nota, com o resultado e o link para a receita base. Experimento que estabiliza é promovido a receita.' },
+      {
+        src: 'Receitas',
+        out: '01 Receitas',
+        desc: 'O que já repete resultado: ingredientes, processo e o que não variar.',
+        template: 'receita',
+      },
+      {
+        src: 'Experimentos',
+        out: '02 Experimentos',
+        desc: 'Uma variável isolada por nota, com o resultado e o link para a receita base. Experimento que estabiliza é promovido a receita.',
+      },
     ],
   },
   {
@@ -149,8 +370,17 @@ const VAULTS = [
     name: 'Jurisprudência Tributária',
     sourceRoot: join(SEED_DIR, 'fictional', 'jurisprudencia-tributaria'),
     folders: [
-      { src: 'Acórdãos', out: '01 Acórdãos', desc: 'O que o tribunal decidiu: tema, relator e trecho literal. Leitura própria pertence às teses.', template: 'acordao' },
-      { src: 'Teses', out: '02 Teses', desc: 'A aplicação sustentada a partir dos acórdãos, com o grau de consolidação declarado na maturity.' },
+      {
+        src: 'Acórdãos',
+        out: '01 Acórdãos',
+        desc: 'O que o tribunal decidiu: tema, relator e trecho literal. Leitura própria pertence às teses.',
+        template: 'acordao',
+      },
+      {
+        src: 'Teses',
+        out: '02 Teses',
+        desc: 'A aplicação sustentada a partir dos acórdãos, com o grau de consolidação declarado na maturity.',
+      },
     ],
   },
 ];
@@ -163,7 +393,9 @@ function listMd(dir) {
 }
 
 function listDirs(dir) {
-  return readdirSync(dir).filter((f) => !IGNORED_DIRS.has(f) && statSync(join(dir, f)).isDirectory());
+  return readdirSync(dir).filter(
+    (f) => !IGNORED_DIRS.has(f) && statSync(join(dir, f)).isDirectory(),
+  );
 }
 
 function slugify(name) {
@@ -176,13 +408,17 @@ function slugify(name) {
 }
 
 function writeDesc(dir, desc) {
-  if (desc.length < 1 || desc.length > 500) warnings.push(`description out of 1..500 chars (${desc.length}): ${dir}`);
+  if (desc.length < 1 || desc.length > 500)
+    warnings.push(`description out of 1..500 chars (${desc.length}): ${dir}`);
   writeFileSync(join(dir, 'README.md'), desc + '\n', 'utf8');
 }
 
 function writeTemplate(dir, vaultSlug, templateName) {
   const src = join(AUTHORING, vaultSlug, 'templates', `${templateName}.md`);
-  if (!existsSync(src)) { warnings.push(`missing template "${templateName}" for ${vaultSlug}`); return; }
+  if (!existsSync(src)) {
+    warnings.push(`missing template "${templateName}" for ${vaultSlug}`);
+    return;
+  }
   writeFileSync(join(dir, 'TEMPLATE.md'), readFileSync(src, 'utf8'), 'utf8');
 }
 
@@ -191,7 +427,10 @@ const WIKILINK = /\[\[([^\]|]+?)(?:\|[^\]]+?)?\]\]/g;
 function parseTags(head) {
   const inline = /^tags:\s*\[([^\]]*)\]/m.exec(head);
   if (inline) {
-    return inline[1].split(',').map((t) => t.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+    return inline[1]
+      .split(',')
+      .map((t) => t.trim().replace(/^["']|["']$/g, ''))
+      .filter(Boolean);
   }
   const block = /^tags:\s*\n((?:[ \t]+-[ \t]+.*\n?)+)/m.exec(head);
   if (!block) return [];
@@ -234,7 +473,8 @@ function normalizeFrontmatter(raw, vaultSlug) {
   } else if (/^status:/m.test(head)) {
     head = head.replace(
       /^status:(\s*)(\S+)[^\n]*$/m,
-      (_, sp, value) => `maturity:${sp}${value}\nreviewed: ${value === 'evergreen' ? 'true' : 'false'}`,
+      (_, sp, value) =>
+        `maturity:${sp}${value}\nreviewed: ${value === 'evergreen' ? 'true' : 'false'}`,
     );
   } else {
     head += '\nmaturity: seed\nreviewed: false';
@@ -270,7 +510,8 @@ function copyNotes(srcDir, outDir, vault, counters, depth) {
   for (const f of listMd(srcDir)) {
     const title = f.replace(/\.md$/, '');
     const slug = slugify(title);
-    if (vault.slugs.has(slug)) warnings.push(`[${vault.slug}] duplicate note slug "${slug}" (${join(outDir, f)})`);
+    if (vault.slugs.has(slug))
+      warnings.push(`[${vault.slug}] duplicate note slug "${slug}" (${join(outDir, f)})`);
     vault.slugs.add(slug);
     const raw = normalizeFrontmatter(readFileSync(join(srcDir, f), 'utf8'), vault.slug);
     collectNoteStats(raw, vault, slug, title);
@@ -306,7 +547,10 @@ function buildFolder(spec, parentOut, vault, counters, depth) {
   if (spec.src) {
     const base = spec.root ? vault.def.extraRoots[spec.root] : vault.def.sourceRoot;
     const srcDir = join(base, spec.src);
-    if (!existsSync(srcDir)) { warnings.push(`[${vault.slug}] missing source dir: ${srcDir}`); return; }
+    if (!existsSync(srcDir)) {
+      warnings.push(`[${vault.slug}] missing source dir: ${srcDir}`);
+      return;
+    }
     copyNotes(srcDir, outDir, vault, counters, depth);
     copyAutoChildren(srcDir, outDir, vault, counters, depth, spec);
   }
@@ -319,7 +563,10 @@ for (const def of VAULTS) {
   mkdirSync(outDir, { recursive: true });
 
   const guidance = join(AUTHORING, def.slug, 'guidance.md');
-  if (!existsSync(guidance)) { warnings.push(`missing guidance for ${def.slug}`); continue; }
+  if (!existsSync(guidance)) {
+    warnings.push(`missing guidance for ${def.slug}`);
+    continue;
+  }
   writeFileSync(join(outDir, 'README.md'), readFileSync(guidance, 'utf8'), 'utf8');
 
   const vault = {
@@ -333,12 +580,16 @@ for (const def of VAULTS) {
   const counters = { notes: 0, folders: 0 };
 
   const rootStray = listMd(def.sourceRoot).filter((f) => f !== 'README.md');
-  if (rootStray.length) warnings.push(`[${def.slug}] skipped root-level notes (no folder in the model): ${rootStray.join(', ')}`);
+  if (rootStray.length)
+    warnings.push(
+      `[${def.slug}] skipped root-level notes (no folder in the model): ${rootStray.join(', ')}`,
+    );
 
   for (const spec of def.folders) buildFolder(spec, outDir, vault, counters, 1);
 
   if (counters.notes > 2000) warnings.push(`[${def.slug}] exceeds 2000 notes (${counters.notes})`);
-  if (counters.folders > 200) warnings.push(`[${def.slug}] exceeds 200 folders (${counters.folders})`);
+  if (counters.folders > 200)
+    warnings.push(`[${def.slug}] exceeds 200 folders (${counters.folders})`);
 
   let resolved = 0;
   let pending = 0;
@@ -361,7 +612,14 @@ for (const def of VAULTS) {
 
   // Graph projection: note nodes, tag nodes and their edges, indexed compactly.
   const noteIndex = new Map(vault.graphNotes.map((n, i) => [n.slug, i]));
-  const nodes = vault.graphNotes.map((n) => ({ id: n.slug, title: n.title, kind: 'note', type: n.type, maturity: n.maturity, reviewed: n.reviewed }));
+  const nodes = vault.graphNotes.map((n) => ({
+    id: n.slug,
+    title: n.title,
+    kind: 'note',
+    type: n.type,
+    maturity: n.maturity,
+    reviewed: n.reviewed,
+  }));
   const edges = [];
   for (const note of vault.graphNotes) {
     const from = noteIndex.get(note.slug);
@@ -384,10 +642,18 @@ for (const def of VAULTS) {
     }
   }
   mkdirSync(join(SEED_DIR, 'graph'), { recursive: true });
-  writeFileSync(join(SEED_DIR, 'graph', `${def.slug}.json`), JSON.stringify({ nodes, edges }) + '\n', 'utf8');
+  writeFileSync(
+    join(SEED_DIR, 'graph', `${def.slug}.json`),
+    JSON.stringify({ nodes, edges }) + '\n',
+    'utf8',
+  );
 }
 
-writeFileSync(join(SEED_DIR, 'stats.json'), JSON.stringify({ vaults: stats }, null, 2) + '\n', 'utf8');
+writeFileSync(
+  join(SEED_DIR, 'stats.json'),
+  JSON.stringify({ vaults: stats }, null, 2) + '\n',
+  'utf8',
+);
 
 console.table(stats);
 if (warnings.length) {

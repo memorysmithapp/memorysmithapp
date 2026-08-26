@@ -32,7 +32,10 @@ export const DEFAULT_SECRET_TTL_MS = 5 * 60 * 1000;
  * in-flight read share it rather than issuing parallel calls, and a failed read
  * is never cached: the next caller retries.
  */
-export function cacheSecret(fetchSecret: SecretResolver, options: CacheOptions = {}): SecretResolver {
+export function cacheSecret(
+  fetchSecret: SecretResolver,
+  options: CacheOptions = {},
+): SecretResolver {
   const ttlMs = options.ttlMs ?? DEFAULT_SECRET_TTL_MS;
   const now = options.now ?? Date.now;
 

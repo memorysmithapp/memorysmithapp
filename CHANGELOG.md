@@ -7,6 +7,13 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Fundação do backend: nascem `@memorysmith/kernel` e `@memorysmith/contracts`. O kernel traz as primitivas que todo serviço compartilha, com `SubscriptionId` construível apenas a partir da claim do token, ULID ordenável por instante de geração, `Slug` determinístico, `Position` como índice fracionário lexicográfico (reordenar é uma única escrita, qualquer que seja o número de irmãos), `Role` como enumeração ordenada que expressa o teto de vault como um mínimo, `Authorship` obrigatório, `ContentRef` completo, `Instant`, `Result` e a taxonomia de erros na qual um recurso proibido responde `404` e a recusa por teto de vault responde `403`. O pacote de contratos traz os schemas Zod dos 34 eventos de domínio e dos DTOs da API interna, validados nos dois lados do barramento.
+- Regra de dependência verificada no CI: o `dependency-cruiser` quebra o build se `domain/` importar SDK da AWS, se `application/` alcançar um adaptador, se um serviço importar outro, se o backend ou o frontend importarem a infra, ou se o frontend importar do backend qualquer coisa que não seja `@memorysmith/contracts`.
+- Pipeline de integração contínua com os passos do guia de arquitetura: instalação, lint, formatação, typecheck nos três projetos, regra de dependência, testes unitários e de contrato, testes de adaptador contra DynamoDB Local e MinIO, build de produção do frontend e `cdk synth` da infra.
+- ESLint e Prettier configurados para os três projetos, com o lint deliberadamente enxuto: as regras que carregam arquitetura vivem na regra de dependência e no sistema de tipos.
+
 ## [0.1.0] - 2026-08-26
 
 ### Added

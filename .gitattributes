@@ -1,0 +1,10 @@
+# Normaliza fim de linha: LF no repositorio, para que prettier e CI concordem
+# em qualquer sistema operacional.
+* text=auto eol=lf
+
+# Binarios
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary

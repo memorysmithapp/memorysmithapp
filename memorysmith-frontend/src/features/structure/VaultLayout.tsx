@@ -25,8 +25,14 @@ export function VaultLayout() {
   return (
     <div className="vault-layout">
       <aside className="vault-sidebar">
-        <Link to="/" className="back-link">← {t('structure.backToVaults')}</Link>
-        <Link to={`/vaults/${vaultSlug}`} className="vault-title-link" title={t('structure.heading')}>
+        <Link to="/" className="back-link">
+          ← {t('structure.backToVaults')}
+        </Link>
+        <Link
+          to={`/vaults/${vaultSlug}`}
+          className="vault-title-link"
+          title={t('structure.heading')}
+        >
           <h2>{data.vault.name}</h2>
         </Link>
         <SearchBox vaultSlug={vaultSlug} structure={data} />

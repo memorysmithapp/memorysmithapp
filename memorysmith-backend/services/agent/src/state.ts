@@ -59,7 +59,8 @@ export function decodeState(
   }
   if (typeof parsed !== 'object' || parsed === null) return null;
   const state = parsed as Record<string, unknown>;
-  if (typeof state['clientId'] !== 'string' || typeof state['redirectUri'] !== 'string') return null;
+  if (typeof state['clientId'] !== 'string' || typeof state['redirectUri'] !== 'string')
+    return null;
   if (typeof state['issuedAt'] !== 'number') return null;
   if (now - state['issuedAt'] > STATE_TTL_MS) return null;
   return {

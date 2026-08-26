@@ -48,10 +48,7 @@ function rpcError(id: number | string | null, code: number, message: string): Js
  * Handles one Streamable HTTP POST body. Returns null for notifications
  * (the transport answers 202 with no body).
  */
-export function handleMcpRequest(
-  body: unknown,
-  token: VerifiedAgentToken,
-): JsonRpcResponse | null {
+export function handleMcpRequest(body: unknown, token: VerifiedAgentToken): JsonRpcResponse | null {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     return rpcError(null, -32600, 'Invalid request');
   }

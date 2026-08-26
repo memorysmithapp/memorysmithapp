@@ -39,7 +39,12 @@ export function UserMenu() {
 
   return (
     <div className="user-menu" ref={rootRef}>
-      <button type="button" className="user-menu-trigger" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+      <button
+        type="button"
+        className="user-menu-trigger"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
         <Avatar email={user.email} size={32} />
       </button>
       {open && (

@@ -36,8 +36,7 @@ export type CimdError =
   | { code: 'REDIRECT_URI_NOT_REGISTERED'; detail: string };
 
 export type CimdResult =
-  | { ok: true; document: ClientMetadataDocument }
-  | { ok: false; error: CimdError };
+  { ok: true; document: ClientMetadataDocument } | { ok: false; error: CimdError };
 
 /** Validates the shape of a CIMD client_id: an absolute HTTPS URL. */
 export function parseClientIdUrl(clientId: string): URL | null {
@@ -245,7 +244,10 @@ export async function resolveClientMetadata(
   if (!response.ok) {
     return {
       ok: false,
-      error: { code: 'FETCH_FAILED', detail: `Client metadata endpoint answered ${response.status}` },
+      error: {
+        code: 'FETCH_FAILED',
+        detail: `Client metadata endpoint answered ${response.status}`,
+      },
     };
   }
 

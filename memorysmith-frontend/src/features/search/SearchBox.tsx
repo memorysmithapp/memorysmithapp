@@ -16,17 +16,18 @@ function flatten(folders: FolderNode[], trail: string[] = []): FlatNote[] {
   return folders.flatMap((folder) => {
     const path = [...trail, folder.name];
     return [
-      ...folder.notes.map((note) => ({ slug: note.slug, title: note.title, folderPath: path.join(' / ') })),
+      ...folder.notes.map((note) => ({
+        slug: note.slug,
+        title: note.title,
+        folderPath: path.join(' / '),
+      })),
       ...flatten(folder.children, path),
     ];
   });
 }
 
 function normalize(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '');
+  return text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
 interface SearchBoxProps {
@@ -44,7 +45,10 @@ export function SearchBox({ vaultSlug, structure }: SearchBoxProps) {
     const needle = normalize(query.trim());
     if (!needle) return [];
     return notes
-      .filter((note) => normalize(note.title).includes(needle) || normalize(note.folderPath).includes(needle))
+      .filter(
+        (note) =>
+          normalize(note.title).includes(needle) || normalize(note.folderPath).includes(needle),
+      )
       .slice(0, 30);
   }, [notes, query]);
 
@@ -59,10 +63,18 @@ export function SearchBox({ vaultSlug, structure }: SearchBoxProps) {
       {query.trim() !== '' && (
         <div className="search-results">
           <div className="search-modes">
-            <button type="button" className={mode === 'index' ? 'active' : ''} onClick={() => setMode('index')}>
+            <button
+              type="button"
+              className={mode === 'index' ? 'active' : ''}
+              onClick={() => setMode('index')}
+            >
               {t('search.modeIndex')}
             </button>
-            <button type="button" className={mode === 'graph' ? 'active' : ''} onClick={() => setMode('graph')}>
+            <button
+              type="button"
+              className={mode === 'graph' ? 'active' : ''}
+              onClick={() => setMode('graph')}
+            >
               {t('search.modeGraph')}
             </button>
           </div>
@@ -74,7 +86,10 @@ export function SearchBox({ vaultSlug, structure }: SearchBoxProps) {
             <ul>
               {results.map((note) => (
                 <li key={note.slug}>
-                  <Link to={resolveNoteUrl(vaultSlug, note.slug) ?? '#'} onClick={() => setQuery('')}>
+                  <Link
+                    to={resolveNoteUrl(vaultSlug, note.slug) ?? '#'}
+                    onClick={() => setQuery('')}
+                  >
                     <span className="search-title">{note.title}</span>
                     <span className="search-path">{note.folderPath}</span>
                   </Link>
