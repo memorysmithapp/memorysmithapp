@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import type { AgentConfig } from '../src/config.js';
+import { McpToolAdapter } from '../src/mcp/tools.js';
 
 const config: AgentConfig = {
   publicOrigin: 'https://mcp.memorysmith.app',
@@ -12,7 +13,14 @@ const config: AgentConfig = {
 
 const resolveStateSecret = async (): Promise<string> => 'test-secret';
 
-const app = createApp(config, resolveStateSecret);
+/** The gateways are never reached here: these cases stop at the OAuth edge. */
+const tools = new McpToolAdapter({
+  knowledge: {} as never,
+  discovery: {} as never,
+  audit: {} as never,
+});
+
+const app = createApp(config, resolveStateSecret, tools);
 
 describe('discovery (items 1 and 2 of 13.3)', () => {
   it('answers 401 with the resource_metadata challenge on an unauthenticated /mcp call', async () => {

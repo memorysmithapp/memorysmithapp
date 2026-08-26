@@ -17,6 +17,7 @@ import { authorizationServerMetadata, protectedResourceMetadata } from './oauth.
 import type { SecretResolver } from './secrets.js';
 import { verifyAccessToken } from './auth.js';
 import { handleMcpRequest } from './mcp.js';
+import type { McpToolAdapter } from './mcp/tools.js';
 
 /**
  * Builds the HTTP surface.
@@ -26,7 +27,11 @@ import { handleMcpRequest } from './mcp.js';
  * environment. Both parameters are required, and the Lambda entrypoint is the
  * only place that wires the real adapter.
  */
-export function createApp(config: AgentConfig, resolveStateSecret: SecretResolver): Hono {
+export function createApp(
+  config: AgentConfig,
+  resolveStateSecret: SecretResolver,
+  tools: McpToolAdapter,
+): Hono {
   const app = new Hono();
   const challenge = `Bearer resource_metadata="${config.publicOrigin}/.well-known/oauth-protected-resource"`;
 
@@ -181,7 +186,8 @@ export function createApp(config: AgentConfig, resolveStateSecret: SecretResolve
   app.on(['GET', 'POST', 'DELETE'], '/mcp', async (c) => {
     const authorization = c.req.header('authorization');
     if (!authorization?.startsWith('Bearer ')) return unauthorized();
-    const token = await verifyAccessToken(authorization.slice('Bearer '.length), config);
+    const bearerToken = authorization.slice('Bearer '.length);
+    const token = await verifyAccessToken(bearerToken, config);
     if (!token) return unauthorized();
 
     if (c.req.method !== 'POST') {
@@ -197,7 +203,7 @@ export function createApp(config: AgentConfig, resolveStateSecret: SecretResolve
         400,
       );
     }
-    const response = handleMcpRequest(body, token);
+    const response = await handleMcpRequest(body, token, tools, bearerToken);
     if (response === null) return c.newResponse(null, 202);
     return c.json(response);
   });

@@ -1,11 +1,16 @@
 /**
- * Minimal stateless MCP server over Streamable HTTP, existing only to prove the
- * authenticated round-trip of the CIMD spike (architecture-guide.md, section 25,
- * delivery 1). The real tool catalog arrives with delivery 8 and lives in
- * software-vision.md, section 9.
+ * Stateless MCP server over Streamable HTTP.
+ *
+ * The catalog it serves is the public contract of the product
+ * (software-vision.md, section 9.1); the translation into use cases happens in
+ * mcp/tools.ts, which is the anticorruption layer. This file knows JSON-RPC
+ * and nothing else, so a change of protocol stops here.
  */
 
 import type { VerifiedAgentToken } from './auth.js';
+import { TOOL_CATALOG } from './mcp/catalog.js';
+import type { McpToolAdapter } from './mcp/tools.js';
+import type { AgentCaller } from './mcp/gateway.js';
 
 const PROTOCOL_VERSION = '2025-06-18';
 
@@ -16,25 +21,9 @@ interface JsonRpcRequest {
   params?: Record<string, unknown>;
 }
 
-type JsonRpcResponse =
+export type JsonRpcResponse =
   | { jsonrpc: '2.0'; id: number | string | null; result: unknown }
   | { jsonrpc: '2.0'; id: number | string | null; error: { code: number; message: string } };
-
-/**
- * Every tool carries a human-readable title and a read-only or destructive
- * hint (software-vision.md, RN-AGT-009). The hints are what decide whether a
- * client runs the call outright or asks the user first, so a tool without them
- * costs friction on every invocation.
- */
-const WHOAMI_TOOL = {
-  name: 'whoami',
-  title: 'Who am I',
-  description:
-    'Echoes the authenticated identity carried by the access token: the human subject, ' +
-    'the OAuth client and the subscription the connector is bound to. Spike-only tool.',
-  inputSchema: { type: 'object', properties: {}, additionalProperties: false },
-  annotations: { readOnlyHint: true },
-};
 
 function result(id: number | string | null, value: unknown): JsonRpcResponse {
   return { jsonrpc: '2.0', id, result: value };
@@ -45,10 +34,33 @@ function rpcError(id: number | string | null, code: number, message: string): Js
 }
 
 /**
- * Handles one Streamable HTTP POST body. Returns null for notifications
- * (the transport answers 202 with no body).
+ * The caller, resolved from the token. The human is always identified, because
+ * even when the agent is the one writing, the authorization belongs to whoever
+ * connected (RN-AGT-001). The subscription is the one fixed at consent and
+ * does not change for the life of this token (RN-SUB-014).
  */
-export function handleMcpRequest(body: unknown, token: VerifiedAgentToken): JsonRpcResponse | null {
+export function callerFrom(
+  token: VerifiedAgentToken,
+  bearerToken: string,
+): (AgentCaller & { bearerToken: string }) | null {
+  if (!token.subscriptionId) return null;
+  return {
+    userId: token.sub,
+    clientId: token.clientId,
+    clientName: token.username ?? token.clientId,
+    subscriptionId: token.subscriptionId,
+    // Forwarded to the internal API, so the subscription and the agent
+    // identity that reach the core are the ones the token itself carries.
+    bearerToken,
+  };
+}
+
+export async function handleMcpRequest(
+  body: unknown,
+  token: VerifiedAgentToken,
+  tools: McpToolAdapter,
+  bearerToken = '',
+): Promise<JsonRpcResponse | null> {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     return rpcError(null, -32600, 'Invalid request');
   }
@@ -62,29 +74,41 @@ export function handleMcpRequest(body: unknown, token: VerifiedAgentToken): Json
         capabilities: { tools: {} },
         serverInfo: { name: 'memorysmith-mcp', version: '0.1.0' },
       });
+
     case 'notifications/initialized':
       return null;
+
     case 'ping':
       return result(id, {});
+
     case 'tools/list':
-      return result(id, { tools: [WHOAMI_TOOL] });
+      return result(id, { tools: TOOL_CATALOG });
+
     case 'tools/call': {
       const name = request.params?.['name'];
-      if (name !== 'whoami') {
-        return rpcError(id, -32602, `Unknown tool: ${String(name)}`);
+      if (typeof name !== 'string') {
+        return rpcError(id, -32602, 'A tool call requires a name');
       }
-      const identity = {
-        sub: token.sub,
-        username: token.username ?? null,
-        client_id: token.clientId,
-        subscription_id: token.subscriptionId ?? null,
-        subscription_status: token.subscriptionStatus ?? null,
-      };
-      return result(id, {
-        content: [{ type: 'text', text: JSON.stringify(identity, null, 2) }],
-        isError: false,
-      });
+      const caller = callerFrom(token, bearerToken);
+      if (!caller) {
+        // A token with no subscription claim cannot reach a vault, and the
+        // failure is structural rather than a permission check (RN-SUB-016).
+        return result(id, {
+          content: [
+            {
+              type: 'text',
+              text:
+                'This connector is not bound to a subscription. Authorize it again from an ' +
+                'account whose subscription is active.',
+            },
+          ],
+          isError: true,
+        });
+      }
+      const args = (request.params?.['arguments'] ?? {}) as Record<string, unknown>;
+      return result(id, await tools.call(name, args, caller));
     }
+
     default:
       return rpcError(id, -32601, `Method not found: ${request.method}`);
   }
