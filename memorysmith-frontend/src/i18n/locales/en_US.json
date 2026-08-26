@@ -1,0 +1,109 @@
+{
+  "app": {
+    "title": "MemorySmith",
+    "tagline": "Structured knowledge, natively readable and writable by agents."
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "continue": "Continue",
+    "mfaHint": "Enter the 6-digit code from your authenticator app.",
+    "mfaCode": "Verification code",
+    "signIn": "Sign in",
+    "back": "Back",
+    "signOut": "Sign out",
+    "role": "Role",
+    "subscription": "Subscription",
+    "demoNote": "Prototype: credentials are pre-filled and no real authentication happens."
+  },
+  "theme": {
+    "heading": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "search": {
+    "placeholder": "Search notes…",
+    "modeIndex": "Index",
+    "modeGraph": "Graph",
+    "graphSoon": "Graph search arrives with Discovery (0.2.0).",
+    "empty": "No notes match."
+  },
+  "vaults": {
+    "heading": "Vaults",
+    "noteCount": "{{count}} notes",
+    "open": "Open vault"
+  },
+  "structure": {
+    "guidance": "Guidance",
+    "folders": "Folders",
+    "root": "Root",
+    "hasTemplate": "template",
+    "outlineHint": "The folder tree with each folder's description. It is what tells the agent where each note goes.",
+    "backToVaults": "All vaults",
+    "heading": "Structure",
+    "intro": "How this vault describes itself: the Guidance says what it is, each folder says what belongs in it, and the folder Template says how a note is laid out. This is what the agent receives from get_vault_context.",
+    "guidanceHint": "What this vault is and how to write in it",
+    "templates": "Templates",
+    "templatesHint_one": "{{count}} folder with a suggested layout",
+    "templatesHint_other": "{{count}} folders with a suggested layout",
+    "noTemplates": "No folder in this vault declares a Template.",
+    "templateOf": "Template of folder {{folder}}",
+    "openFolder": "Open folder",
+    "content": "Content",
+    "breadcrumb": "Structure trail"
+  },
+  "folder": {
+    "notesHeading": "Notes in this folder",
+    "template": "Template",
+    "templateHint": "Suggested layout for notes in this folder. The server never validates against it.",
+    "empty": "No notes in this folder yet."
+  },
+  "note": {
+    "properties": "Properties",
+    "pendingLink": "Pending link: the target note does not exist yet.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyHint": "Copy the note's Markdown to the clipboard"
+  },
+  "common": {
+    "loading": "Loading…",
+    "notFound": "Not found."
+  },
+  "dashboard": {
+    "heading": "Overview",
+    "kpiVaults": "Vaults",
+    "kpiNotes": "Notes",
+    "kpiResolved": "Resolved links",
+    "kpiPending": "Pending links",
+    "kpiReviewed": "Reviewed notes ({{pct}}%)",
+    "maturityHeading": "Note maturity by vault",
+    "bucket": {
+      "evergreen": "Evergreen",
+      "growing": "Growing",
+      "seed": "Seed"
+    },
+    "typesHeading": "Notes by type",
+    "reviewedHeading": "Human review by vault",
+    "reviewedYes": "Reviewed",
+    "reviewedNo": "Awaiting review",
+    "tagsHeading": "Top tags",
+    "tagsDistinct": "{{count}} distinct tags across all vaults",
+    "timelineHeading": "Notes created by day",
+    "otherVaults": "Other vaults",
+    "otherTypes": "Other",
+    "selectVault": "Open a vault",
+    "prevVaults": "Previous vaults",
+    "nextVaults": "Next vaults"
+  },
+  "graph": {
+    "heading": "Vault graph",
+    "navLabel": "Vault graph",
+    "colorBy": "Color by",
+    "colorDefault": "Default",
+    "showTags": "Show tags",
+    "legendNotes": "Notes",
+    "legendTags": "Tags",
+    "hint": "Scroll to zoom · drag to pan · click a note to open it"
+  }
+}

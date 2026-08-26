@@ -1,0 +1,6 @@
+packages:
+  - memorysmith-frontend
+  - memorysmith-backend/services/*
+  - memorysmith-infra
+allowBuilds:
+  esbuild: true

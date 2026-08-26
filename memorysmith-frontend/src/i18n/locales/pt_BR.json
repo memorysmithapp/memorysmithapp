@@ -1,0 +1,109 @@
+{
+  "app": {
+    "title": "MemorySmith",
+    "tagline": "Conhecimento estruturado, que agentes leem e escrevem nativamente."
+  },
+  "auth": {
+    "email": "E-mail",
+    "password": "Senha",
+    "continue": "Continuar",
+    "mfaHint": "Informe o código de 6 dígitos do seu aplicativo autenticador.",
+    "mfaCode": "Código de verificação",
+    "signIn": "Entrar",
+    "back": "Voltar",
+    "signOut": "Sair",
+    "role": "Papel",
+    "subscription": "Assinatura",
+    "demoNote": "Protótipo: as credenciais vêm preenchidas e nenhuma autenticação real acontece."
+  },
+  "theme": {
+    "heading": "Tema",
+    "light": "Claro",
+    "dark": "Escuro",
+    "system": "Sistema"
+  },
+  "search": {
+    "placeholder": "Buscar notas…",
+    "modeIndex": "Índice",
+    "modeGraph": "Grafo",
+    "graphSoon": "A busca pelo grafo chega com o Discovery (0.2.0).",
+    "empty": "Nenhuma nota encontrada."
+  },
+  "vaults": {
+    "heading": "Vaults",
+    "noteCount": "{{count}} notas",
+    "open": "Abrir vault"
+  },
+  "structure": {
+    "guidance": "Orientação",
+    "folders": "Pastas",
+    "root": "Raiz",
+    "hasTemplate": "modelo",
+    "outlineHint": "A árvore de pastas com a descrição de cada uma. É ela que diz ao agente onde cada nota entra.",
+    "backToVaults": "Todos os vaults",
+    "heading": "Estrutura",
+    "intro": "Como este vault se descreve: a Orientação diz o que ele é, cada pasta diz o que se guarda nela e o Modelo da pasta diz como a nota se estrutura. É o que o agente recebe em get_vault_context.",
+    "guidanceHint": "O que este vault é e como se escreve nele",
+    "templates": "Modelos",
+    "templatesHint_one": "{{count}} pasta com leiaute sugerido",
+    "templatesHint_other": "{{count}} pastas com leiaute sugerido",
+    "noTemplates": "Nenhuma pasta deste vault declara um Modelo.",
+    "templateOf": "Modelo da pasta {{folder}}",
+    "openFolder": "Abrir pasta",
+    "content": "Conteúdo",
+    "breadcrumb": "Trilha da estrutura"
+  },
+  "folder": {
+    "notesHeading": "Notas nesta pasta",
+    "template": "Modelo",
+    "templateHint": "Leiaute sugerido para as notas desta pasta. O servidor nunca valida contra ele.",
+    "empty": "Ainda não há notas nesta pasta."
+  },
+  "note": {
+    "properties": "Propriedades",
+    "pendingLink": "Link pendente: a nota alvo ainda não existe.",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "copyHint": "Copiar o Markdown da nota para a área de transferência"
+  },
+  "common": {
+    "loading": "Carregando…",
+    "notFound": "Não encontrado."
+  },
+  "dashboard": {
+    "heading": "Visão geral",
+    "kpiVaults": "Vaults",
+    "kpiNotes": "Notas",
+    "kpiResolved": "Links resolvidos",
+    "kpiPending": "Links pendentes",
+    "kpiReviewed": "Notas revisadas ({{pct}}%)",
+    "maturityHeading": "Maturidade das notas por vault",
+    "bucket": {
+      "evergreen": "Evergreen",
+      "growing": "Growing",
+      "seed": "Seed"
+    },
+    "typesHeading": "Notas por tipo",
+    "reviewedHeading": "Revisão humana por vault",
+    "reviewedYes": "Revisadas",
+    "reviewedNo": "Aguardando revisão",
+    "tagsHeading": "Tags mais usadas",
+    "tagsDistinct": "{{count}} tags distintas em todos os vaults",
+    "timelineHeading": "Notas criadas por dia",
+    "otherVaults": "Outros vaults",
+    "otherTypes": "Outros",
+    "selectVault": "Abrir um vault",
+    "prevVaults": "Vaults anteriores",
+    "nextVaults": "Próximos vaults"
+  },
+  "graph": {
+    "heading": "Grafo do vault",
+    "navLabel": "Grafo do vault",
+    "colorBy": "Cor por",
+    "colorDefault": "Padrão",
+    "showTags": "Mostrar tags",
+    "legendNotes": "Notas",
+    "legendTags": "Tags",
+    "hint": "Role para ampliar · arraste para mover · clique numa nota para abri-la"
+  }
+}

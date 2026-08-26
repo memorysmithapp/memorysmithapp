@@ -1,0 +1,34 @@
+# Dependências
+node_modules/
+.pnpm-store/
+
+# Build
+dist/
+build/
+*.tsbuildinfo
+
+# CDK
+cdk.out/
+*.d.ts.map
+
+# Testes
+coverage/
+
+# Ambiente e segredos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Cache e temporários
+.cache/
+.turbo/
+tmp/
+*.log
+
+# Editores
+.obsidian/
+.idea/
+.vscode/
+.DS_Store

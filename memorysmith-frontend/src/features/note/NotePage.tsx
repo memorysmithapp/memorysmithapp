@@ -1,0 +1,102 @@
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useOutletContext, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { getNote, resolveNoteUrl } from '../../shared/api/client';
+import { resolveWikilinks } from '../../shared/api/markdown';
+import { Markdown } from '../../shared/components/Markdown';
+import { PropertyValue } from '../../shared/components/PropertyValue';
+import { CheckIcon, CopyIcon } from '../../shared/components/icons';
+import { folderTrailForNote } from '../structure/trail';
+import { VaultBreadcrumb, folderCrumbs } from '../structure/VaultBreadcrumb';
+import type { VaultOutletContext } from '../structure/VaultLayout';
+
+export function NotePage({ noteSlug }: { noteSlug: string }) {
+  const { t } = useTranslation();
+  const { vaultSlug = '' } = useParams();
+  const { structure } = useOutletContext<VaultOutletContext>();
+  const [copied, setCopied] = useState(false);
+  const { data, isPending, isError } = useQuery({
+    queryKey: ['note', vaultSlug, noteSlug],
+    queryFn: () => getNote(vaultSlug, noteSlug),
+  });
+
+  async function copyNote() {
+    if (!data) return;
+    // The async clipboard API can stay pending forever in embedded or
+    // automated contexts, so race it against a short timeout and fall back
+    // to the legacy path when it does not settle.
+    const viaApi = navigator.clipboard
+      ?.writeText(data.raw)
+      .then(() => true)
+      .catch(() => false);
+    const done = await Promise.race([
+      viaApi ?? Promise.resolve(false),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 350)),
+    ]);
+    if (!done) {
+      const scratch = document.createElement('textarea');
+      scratch.value = data.raw;
+      scratch.style.position = 'fixed';
+      scratch.style.opacity = '0';
+      document.body.appendChild(scratch);
+      scratch.select();
+      document.execCommand('copy');
+      scratch.remove();
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  if (isPending) return <p className="status">{t('common.loading')}</p>;
+  if (isError || !data) return <p className="status">{t('common.notFound')}</p>;
+
+  const body = resolveWikilinks(data.body, (slug) => resolveNoteUrl(vaultSlug, slug));
+  const properties = Object.entries(data.frontmatter).filter(([, value]) => value !== '');
+
+  return (
+    <article className="content-pane">
+      <div className="note-header">
+        <div>
+          <VaultBreadcrumb
+            items={[
+              { label: t('structure.root'), to: `/vaults/${vaultSlug}/root` },
+              ...folderCrumbs(vaultSlug, folderTrailForNote(structure.folders, noteSlug)),
+              { label: data.title },
+            ]}
+          />
+          <h1>{data.title}</h1>
+        </div>
+        <button
+          type="button"
+          className={`copy-button${copied ? ' copied' : ''}`}
+          onClick={() => void copyNote()}
+          title={copied ? t('note.copied') : t('note.copyHint')}
+          aria-label={t('note.copy')}
+        >
+          {copied ? <CheckIcon /> : <CopyIcon />}
+        </button>
+      </div>
+
+      {properties.length > 0 && (
+        <details className="properties-box">
+          <summary>{t('note.properties')}</summary>
+          <table>
+            <tbody>
+              {properties.map(([key, value]) => (
+                <tr key={key}>
+                  <th>{key}</th>
+                  <td>
+                    <PropertyValue name={key} value={value} vaultSlug={vaultSlug} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+      )}
+
+      <Markdown>{body}</Markdown>
+    </article>
+  );
+}
