@@ -18,7 +18,6 @@ import { LambdaFunction, SqsQueue } from 'aws-cdk-lib/aws-events-targets';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Alarm, ComparisonOperator, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
-import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import type { Construct } from 'constructs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -110,15 +109,6 @@ export class ProjectionsStack extends Stack {
     );
     props.data.discoveryTable.table.grantReadWriteData(projector.function);
     props.data.contentBucket.grantRead(projector.function);
-    projector.function.addToRolePolicy(
-      new PolicyStatement({
-        actions: ['bedrock:InvokeModel'],
-        resources: [
-          `arn:aws:bedrock:${this.region}::foundation-model/amazon.titan-embed-text-v2:0`,
-        ],
-      }),
-    );
-
     new Alarm(this, 'ProjectionDeadLetterDepth', {
       alarmDescription: 'Discovery projector: messages in the dead-letter queue',
       metric: projectionDlq.metricApproximateNumberOfMessagesVisible({

@@ -14,7 +14,6 @@ import { StartingPosition } from 'aws-cdk-lib/aws-lambda';
 import { DynamoEventSource, SqsDlq } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Alarm, ComparisonOperator, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
-import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { ARecord, RecordTarget, type IHostedZone } from 'aws-cdk-lib/aws-route53';
 import { ApiGatewayv2DomainProperties } from 'aws-cdk-lib/aws-route53-targets';
 import type { ICertificate } from 'aws-cdk-lib/aws-certificatemanager';
@@ -67,15 +66,6 @@ export class ApiStack extends Stack {
     // The API READS the trail and can never write it: the Deny travels with
     // the grant (PE4).
     props.data.auditTable.grantRead(api.function);
-    api.function.addToRolePolicy(
-      new PolicyStatement({
-        actions: ['bedrock:InvokeModel'],
-        resources: [
-          `arn:aws:bedrock:${this.region}::foundation-model/amazon.titan-embed-text-v2:0`,
-        ],
-      }),
-    );
-
     // ---- The outbox relay ---------------------------------------------------
 
     const relayDlq = new Queue(this, 'RelayDeadLetter', {
