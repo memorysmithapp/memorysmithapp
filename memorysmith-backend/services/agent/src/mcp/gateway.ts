@@ -12,6 +12,8 @@
 export interface AgentCaller {
   /** The human who authorized the connector; always present. */
   readonly userId: string;
+  /** How to call that human, when the token says. Identity is not ours. */
+  readonly email?: string | undefined;
   /** The CIMD client_id of the connector, which becomes the AgentIdentity. */
   readonly clientId: string;
   readonly clientName: string;

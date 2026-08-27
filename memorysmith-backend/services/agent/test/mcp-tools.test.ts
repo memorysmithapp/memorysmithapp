@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TOOL_CATALOG, catalogIsWellFormed } from '../src/mcp/catalog.js';
+import { READING_PATH, TOOL_CATALOG, catalogIsWellFormed } from '../src/mcp/catalog.js';
 import { McpToolAdapter } from '../src/mcp/tools.js';
 import { GatewayError, type AgentCaller } from '../src/mcp/gateway.js';
 import { handleMcpRequest } from '../src/mcp.js';
@@ -92,8 +92,9 @@ function gateways(overrides: Record<string, unknown> = {}) {
 }
 
 describe('The tool catalog is the public contract', () => {
-  it('publishes the twelve tools of the product', () => {
+  it('publishes the thirteen tools of the product', () => {
     expect(TOOL_CATALOG.map((tool) => tool.name)).toEqual([
+      'whoami',
       'list_vaults',
       'get_vault_context',
       'get_template',
@@ -116,6 +117,16 @@ describe('The tool catalog is the public contract', () => {
       expect(tool.title.length).toBeGreaterThan(0);
       expect(tool.description.length).toBeGreaterThan(40);
     }
+  });
+
+  it('narrates a reading path made only of tools that exist', () => {
+    /**
+     * The help of `whoami` walks READING_PATH. A step naming a tool nobody
+     * implements would send an agent down a path that fails on the first call,
+     * which is worse than shipping no help at all.
+     */
+    const named = new Set(TOOL_CATALOG.map((tool) => tool.name));
+    for (const step of READING_PATH) expect(named.has(step)).toBe(true);
   });
 
   it('never mixes reading and writing in one tool', () => {
@@ -142,6 +153,62 @@ describe('The tool catalog is the public contract', () => {
     // description is what carries the instruction.
     const create = TOOL_CATALOG.find((tool) => tool.name === 'create_note');
     expect(create?.description).toContain('get_template');
+  });
+});
+
+describe('whoami answers who is acting and how to write here', () => {
+  it('names the person, the connector and the subscription', async () => {
+    const result = await gateways().call(
+      'whoami',
+      {},
+      {
+        ...caller,
+        email: 'heitor@example.com',
+      },
+    );
+    expect(result.isError).toBe(false);
+
+    const answer = result.content[0]?.text ?? '';
+    expect(answer).toContain('heitor@example.com');
+    expect(answer).toContain('Claude');
+    expect(answer).toContain(caller.subscriptionId);
+  });
+
+  it('falls back to the identifier when the token carries no e-mail', async () => {
+    const result = await gateways().call('whoami', {}, caller);
+    expect(result.content[0]?.text ?? '').toContain('user-1');
+  });
+
+  it('lists the vaults actually within reach, not a description of them', async () => {
+    const result = await gateways().call('whoami', {}, caller);
+    const answer = result.content[0]?.text ?? '';
+    expect(answer).toContain('Normas');
+    expect(answer).toContain('48 note(s)');
+  });
+
+  it('says plainly when there is no vault yet', async () => {
+    const empty = gateways({ knowledge: { listVaults: async () => [] } });
+    const result = await empty.call('whoami', {}, caller);
+    expect(result.content[0]?.text ?? '').toContain('No vault yet');
+  });
+
+  it('walks the reading path and names every tool of the catalog', async () => {
+    const result = await gateways().call('whoami', {}, caller);
+    const answer = result.content[0]?.text ?? '';
+
+    // The path, in order, and each step where it belongs.
+    for (const [index, step] of READING_PATH.entries()) {
+      expect(answer).toContain(`${index + 1}. **\`${step}\`**`);
+    }
+    // And nothing in the catalog is left out of the surface it advertises.
+    for (const tool of TOOL_CATALOG) expect(answer).toContain(`\`${tool.name}\``);
+  });
+
+  it('says the server does not validate content against guidance or template', async () => {
+    // PP4: the backend never interprets a note. An agent that assumes it does
+    // would trust a check that never runs.
+    const result = await gateways().call('whoami', {}, caller);
+    expect(result.content[0]?.text ?? '').toContain('does NOT validate');
   });
 });
 
@@ -239,7 +306,7 @@ describe('The MCP transport', () => {
     );
     expect(response).not.toBeNull();
     const tools = (response as { result: { tools: unknown[] } }).result.tools;
-    expect(tools).toHaveLength(12);
+    expect(tools).toHaveLength(13);
   });
 
   it('refuses a tool call from a token with no subscription', async () => {

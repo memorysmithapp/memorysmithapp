@@ -12,6 +12,7 @@
  */
 
 import { TOOL_CATALOG } from './catalog.js';
+import { whoAmI } from './whoami.js';
 import {
   GatewayError,
   type AgentCaller,
@@ -84,6 +85,13 @@ export class McpToolAdapter {
     const { knowledge, discovery, audit } = this.gateways;
 
     switch (name) {
+      case 'whoami': {
+        // The reach is read, not described: a list of vaults the caller cannot
+        // actually open would be a help that lies on its first step.
+        const vaults = await knowledge.listVaults(caller);
+        return text(whoAmI(caller, vaults));
+      }
+
       case 'list_vaults': {
         const vaults = await knowledge.listVaults(caller);
         if (vaults.length === 0) {

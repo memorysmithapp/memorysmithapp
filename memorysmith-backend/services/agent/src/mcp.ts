@@ -44,8 +44,10 @@ export function callerFrom(
   bearerToken: string,
 ): (AgentCaller & { bearerToken: string }) | null {
   if (!token.subscriptionId) return null;
+  const email = token.payload['email'];
   return {
     userId: token.sub,
+    ...(typeof email === 'string' ? { email } : {}),
     clientId: token.clientId,
     clientName: token.username ?? token.clientId,
     subscriptionId: token.subscriptionId,

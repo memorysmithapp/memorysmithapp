@@ -42,6 +42,19 @@ function object(
 
 export const TOOL_CATALOG: readonly ToolDefinition[] = [
   {
+    name: 'whoami',
+    title: 'Who you are, and how to write here',
+    description:
+      'Answers two questions at once: who this connection acts as, and how this product ' +
+      'expects to be used. It names the person who authorized the connector, the connector ' +
+      'itself, the subscription the token is fixed to and the vaults within reach, and then ' +
+      'it lays out the reading path: the guidance of a vault, the folder tree with the ' +
+      'purpose of each folder, and the template of the folder you are about to write in. ' +
+      'Call it first when you do not know this vault yet.',
+    inputSchema: object({}),
+    annotations: { readOnlyHint: true },
+  },
+  {
     name: 'list_vaults',
     title: 'List vaults',
     description:
@@ -220,12 +233,30 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
   },
 ];
 
+/**
+ * The reading path this product is built around, as tool names.
+ *
+ * It is declared here, next to the catalog, because `whoami` narrates it and a
+ * narration that names a tool nobody implements is worse than no help at all.
+ * `catalogIsWellFormed` checks that every step exists, so a rename breaks the
+ * build instead of shipping a lie.
+ */
+export const READING_PATH = [
+  'list_vaults',
+  'get_vault_context',
+  'get_template',
+  'create_note',
+] as const;
+
 /** No tool enters the catalog without a title and a hint (RN-AGT-009). */
 export function catalogIsWellFormed(): boolean {
-  return TOOL_CATALOG.every(
-    (tool) =>
-      tool.title.length > 0 &&
-      (tool.annotations.readOnlyHint !== undefined ||
-        tool.annotations.destructiveHint !== undefined),
+  const named = new Set(TOOL_CATALOG.map((tool) => tool.name));
+  return (
+    TOOL_CATALOG.every(
+      (tool) =>
+        tool.title.length > 0 &&
+        (tool.annotations.readOnlyHint !== undefined ||
+          tool.annotations.destructiveHint !== undefined),
+    ) && READING_PATH.every((step) => named.has(step))
   );
 }

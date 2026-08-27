@@ -527,6 +527,7 @@ Ordenação alfabética continua disponível como opção de exibição no clien
 
 | Tool | Assinatura | Papel |
 |---|---|---|
+| `whoami` | `()` | Quem está agindo, o que a conexão alcança e **como escrever aqui**: a ordem de leitura do vault e o catálogo inteiro |
 | `list_vaults` | `()` | Vaults visíveis, com descrição |
 | **`get_vault_context`** | `(vault)` | **A chamada principal.** Guidance integral mais árvore com descrições, ordem, contagem de notas e quais pastas têm template |
 | `get_template` | `(vault, folder)` | O Template da pasta, a ler antes de escrever |
@@ -581,6 +582,7 @@ O conector é o produto na visão de quem chega por uma plataforma de IA, e a fo
 - **RN-AGT-009:** Toda tool do catálogo declara um título legível e a marca de leitura ou de destruição. Nenhuma tool entra no catálogo sem as duas coisas. A regra vale desde a primeira tool, e não a partir de uma eventual submissão a diretório: são essas marcas que decidem se o cliente executa a chamada direto ou pede confirmação ao usuário, então a ausência cobra atrito de quem usa o produto, listado ou não.
 - **RN-AGT-010:** Leitura e escrita nunca compartilham uma tool. Não existe tool genérica parametrizada por operação. O catálogo de §9.1 já nasce assim, e a regra existe para que continue assim quando a superfície crescer.
 - **RN-AGT-011:** O registro de cliente OAuth do conector é feito por Client ID Metadata Document. O produto não oferece registro dinâmico de cliente, e os metadados de authorization server anunciam as duas chaves que a seleção de CIMD exige (`knowledge-base.md` §3.4). A decisão tem duas razões: registro dinâmico criaria um cliente OAuth novo a cada conexão, o que é justamente o padrão de tráfego esperado de um conector distribuído, e o provedor de identidade que usamos não implementa nenhum dos dois mecanismos, o que já nos obriga a intermediar o registro.
+- **RN-AGT-013:** `whoami` responde duas perguntas na mesma chamada: **quem** a conexão representa (a pessoa que autorizou, o conector e a assinatura fixada no consentimento) e **como o produto espera ser usado** (a ordem de leitura Guidance, estrutura de pastas com a descrição de cada uma, e Template da pasta de destino). A parte de ajuda é **derivada do próprio catálogo**, nunca escrita ao lado dele: um texto paralelo divergiria na primeira tool renomeada, e uma ajuda que cita tool inexistente manda o agente por um caminho que falha. `whoami` também declara que o servidor **não valida** o conteúdo contra Guidance nem Template (PP4), porque um agente que supuser validação confia numa checagem que nunca acontece.
 - **RN-AGT-012:** A listagem em diretório é objetivo de produto, não do recorte inicial. Ela pressupõe catálogo de tools implementado, política de privacidade publicada, documentação pública e uma conta de demonstração com vaults povoados. Enquanto não houver listagem, o conector é adicionado como conector personalizado, e a documentação do produto precisa dizer ao usuário quais respostas dar no formulário.
 
 ---
@@ -785,7 +787,7 @@ Este documento descreve o produto; a 0.1.0 é o recorte que **testa a tese** (§
 | Vault, pastas, ordem, guidance, template, nota | Export (§12) |
 | Onboarding de assinatura, aprovação pelo `PLATFORM_ADMIN`, autorização | Mover nota entre vaults |
 | Auditoria: trilha, `note_history`, `read_note(asOf)` | Convites, `EDITOR`/`VIEWER` e teto por vault (§5.3) |
-| MCP com 7 tools: `list_vaults`, `get_vault_context`, `get_template`, `list_notes`, `read_note`, `create_note`, `update_note` | `search_notes`, `semantic_search`, `related_notes`, `backlinks` |
+| MCP com 8 tools: `whoami`, `list_vaults`, `get_vault_context`, `get_template`, `list_notes`, `read_note`, `create_note`, `update_note` | `search_notes`, `semantic_search`, `related_notes`, `backlinks` |
 | UI de autoria: vault, pastas, guidance, template, nota | Retenção legal e expurgo · telas de saúde, atividade e membros |
 | Área de plataforma: fila de assinaturas, aprovar e rejeitar | Suspensão, reativação e transferência de titularidade |
 
