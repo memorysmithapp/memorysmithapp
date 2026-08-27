@@ -164,13 +164,25 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
   },
   {
     name: 'search_notes',
-    title: 'Search notes by title',
+    title: 'Search notes by text',
     description:
-      'Lexical search over the titles and folders of a vault. It matches how a note is named ' +
-      'and where it sits, not what it says: to find a note by subject, walk the link graph ' +
-      'with related_notes or browse the folder with list_notes.',
+      'Searches the text of a vault: the body of every note, its title, its folder and its ' +
+      'headings. Matching is literal and by substring, accents and case ignored, so a term ' +
+      'written once inside one note is found by typing part of it. It does NOT search by ' +
+      'meaning: a note that discusses a subject in other words will not come back. ' +
+      'The query accepts: several terms (all must match), "an exact phrase", -exclusion, ' +
+      'OR, parentheses, and the fields title:, folder:, content: and section:. ' +
+      'Any other prefix is read as a frontmatter attribute of the vault, so maturity:evergreen ' +
+      'or tags:audit work when the vault writes them; call get_vault_context to learn which ' +
+      'attributes this vault actually uses.',
     inputSchema: object(
-      { vault: vaultArgument, query: { type: 'string', description: 'What to look for.' } },
+      {
+        vault: vaultArgument,
+        query: {
+          type: 'string',
+          description: 'What to look for. Supports fields, quotes, -exclusion, OR and groups.',
+        },
+      },
       ['vault', 'query'],
     ),
     annotations: { readOnlyHint: true },

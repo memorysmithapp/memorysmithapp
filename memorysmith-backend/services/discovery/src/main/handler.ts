@@ -12,6 +12,7 @@ import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { SubscriptionId } from '@memorysmith/kernel';
 import { parseEvent } from '@memorysmith/contracts';
 import {
+  DynamoContentIndex,
   DynamoFacetIndex,
   DynamoLinkGraph,
   DynamoStructureProjection,
@@ -55,6 +56,7 @@ function projectorsFor(subscriptionId: SubscriptionId) {
     note: new ProjectNote({
       graph: new DynamoLinkGraph(subscriptionId, db, table),
       facets: new DynamoFacetIndex(subscriptionId, db, table),
+      index: new DynamoContentIndex(subscriptionId, db, table),
       structure: new DynamoStructureProjection(subscriptionId, db, table),
       content,
     }),

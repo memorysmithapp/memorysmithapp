@@ -183,7 +183,7 @@ describe('Ranking is simple enough to explain to whoever asks', () => {
 describe('The excerpt shows the passage, not the beginning of the note', () => {
   it('cuts around the match', () => {
     const content = `${'a '.repeat(200)}xpto010101${' b'.repeat(200)}`;
-    const excerpt = excerptAround(content, 'xpto010101');
+    const excerpt = excerptAround(content, normalize(content), 'xpto010101');
     expect(excerpt).toContain('xpto010101');
     expect(excerpt.length).toBeLessThan(200);
     expect(excerpt.startsWith('…')).toBe(true);
@@ -191,7 +191,22 @@ describe('The excerpt shows the passage, not the beginning of the note', () => {
   });
 
   it('falls back to the head of the note when the term is not in the body', () => {
-    expect(excerptAround('um corpo curto', 'ausente')).toBe('um corpo curto');
+    expect(excerptAround('um corpo curto', 'um corpo curto', 'ausente')).toBe('um corpo curto');
+  });
+
+  it('cuts the ORIGINAL text, accents and capitals intact', () => {
+    // The term is found in the normalized copy; the reader gets what was written.
+    const original = 'O prazo de vigência é de 12 meses, conforme o Artigo 75.';
+    const excerpt = excerptAround(original, normalize(original), 'vigencia');
+    expect(excerpt).toContain('vigência');
+    expect(excerpt).toContain('Artigo');
+  });
+
+  it('keeps positions aligned between the original and its normalized copy', () => {
+    // A naive NFD over the whole string shifts every offset after an accent.
+    const original = 'ÁÉÍÓÚ marcador çãõ';
+    expect(normalize(original).length).toBe(original.length);
+    expect(normalize(original).indexOf('marcador')).toBe(original.indexOf('marcador'));
   });
 });
 

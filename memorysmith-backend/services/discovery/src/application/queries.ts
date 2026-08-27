@@ -3,12 +3,14 @@
  * notes, and none of them reaches the Knowledge context (RN-DSC-017).
  */
 
-import { DomainError, err, ok, slugify, type Result } from '@memorysmith/kernel';
+import { DomainError, err, ok, type Result } from '@memorysmith/kernel';
 import {
   GRAPH_LIMITS,
+  type ContentIndex,
   type FacetIndex,
   type FacetStats,
   type GraphNode,
+  type IndexedNote,
   type LinkGraph,
   type NoteCatalog,
   type NoteRef,
@@ -16,11 +18,51 @@ import {
   type VaultGraph,
   type BrokenLink,
 } from '../domain/ports.js';
+import {
+  QuerySyntaxError,
+  excerptAround,
+  firstTerm,
+  matches,
+  parseQuery,
+  score,
+  type Candidate,
+} from '../domain/SearchQuery.js';
 
 export interface QueryDependencies {
   readonly graph: LinkGraph;
   readonly facets: FacetIndex;
   readonly catalog: NoteCatalog;
+  readonly content: ContentIndex;
+}
+
+function candidateOf(note: IndexedNote): Candidate {
+  return {
+    title: note.title,
+    folder: note.folderName,
+    content: note.normalized,
+    sections: note.sections,
+    facets: note.facets,
+  };
+}
+
+/**
+ * The heading the match fell under: the last one that opens before it. A hit
+ * that cites no section is one that landed above the first heading, and saying
+ * null is more honest than naming a section it did not come from.
+ */
+function sectionOf(note: IndexedNote, needle: string): string | null {
+  const at = note.normalized.indexOf(needle);
+  if (at === -1) return null;
+
+  let found: string | null = null;
+  let cursor = 0;
+  for (const section of note.sections) {
+    const position = note.normalized.indexOf(section, cursor);
+    if (position === -1 || position > at) break;
+    found = section;
+    cursor = position + section.length;
+  }
+  return found;
 }
 
 export class RelatedNotes {
@@ -81,41 +123,44 @@ export class SearchNotes {
   constructor(private readonly deps: QueryDependencies) {}
 
   /**
-   * Lexical search runs over titles and folder names, which is the whole index
-   * this version has. A hit always cites the note it came from (RN-DSC-010),
-   * and `section` stays null because nothing here cuts a note into parts.
+   * The search reads the content index of the vault and evaluates the query
+   * against every note in it. A hit always cites the note it came from, and
+   * the section when the match fell under a heading (RN-DSC-010).
    *
-   * Searching what a note SAYS is deliberately absent: the vector index was
-   * removed in 0.2.0 and no content index replaced it yet. Whoever restores it
-   * fills this method, not the callers.
+   * Scanning the whole vault is a deliberate choice, not a shortcut. The vault
+   * ceiling is 2.000 notes (RN-KNW-010), which is about 8 MB, and at that size
+   * a scan is cheaper and far simpler than an inverted index that would have
+   * to be kept in step with every write. What the scan may never do is stop
+   * early: `scanVault` walks every page, and the test below proves it.
    */
   async execute(input: {
     vaultId: string;
     query: string;
     k?: number | undefined;
   }): Promise<Result<ScoredNote[], DomainError>> {
-    if (input.query.trim().length === 0) {
-      return err(DomainError.validation('A search needs a query'));
+    let tree;
+    try {
+      tree = parseQuery(input.query);
+    } catch (error) {
+      if (error instanceof QuerySyntaxError) return err(DomainError.validation(error.message));
+      throw error;
     }
 
-    const needle = slugify(input.query);
-    const words = needle.split('-').filter((word) => word.length > 2);
-    const notes = await this.deps.catalog.listNotes(input.vaultId);
+    const notes = await this.deps.content.scanVault(input.vaultId);
+    const needle = firstTerm(tree);
+
     const hits = notes
-      .map((note) => {
-        const haystack = `${slugify(note.title)}-${slugify(note.folderName)}`;
-        const matched = words.filter((word) => haystack.includes(word)).length;
-        const exact = haystack.includes(needle) ? 1 : 0;
-        return {
-          noteId: note.noteId,
-          section: null,
-          excerpt: note.title,
-          score: exact + matched / Math.max(words.length, 1),
-        };
-      })
-      .filter((hit) => hit.score > 0)
+      .map((note) => ({ note, candidate: candidateOf(note) }))
+      .filter(({ candidate }) => matches(tree, candidate))
+      .map(({ note, candidate }) => ({
+        noteId: note.noteId,
+        section: needle ? sectionOf(note, needle) : null,
+        excerpt: needle ? excerptAround(note.original, note.normalized, needle) : note.title,
+        score: score(tree, candidate),
+      }))
       .sort((left, right) => right.score - left.score)
       .slice(0, input.k ?? 10);
+
     return ok(hits);
   }
 }

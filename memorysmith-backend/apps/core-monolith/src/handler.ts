@@ -214,6 +214,7 @@ function discoveryFor(context: SubscriptionContext) {
   return {
     graph: built.graph,
     facets: built.facets,
+    content: built.index,
     catalog: new KnowledgeNoteCatalog(buildKnowledge(infra, context)),
   };
 }

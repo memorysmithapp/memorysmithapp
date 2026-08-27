@@ -44,6 +44,7 @@ import { S3ContentStore } from '@memorysmith/svc-knowledge/adapters/content';
 import { DynamoAuditTrail } from '@memorysmith/svc-audit/adapters/trail';
 import { S3RevisionReader } from '@memorysmith/svc-audit/adapters/content';
 import {
+  DynamoContentIndex,
   DynamoFacetIndex,
   DynamoLinkGraph,
   DynamoStructureProjection,
@@ -105,6 +106,7 @@ export function buildDiscovery(infra: Infrastructure, context: SubscriptionConte
   return {
     graph: new DynamoLinkGraph(context.subscriptionId, infra.db, infra.discoveryTable),
     facets: new DynamoFacetIndex(context.subscriptionId, infra.db, infra.discoveryTable),
+    index: new DynamoContentIndex(context.subscriptionId, infra.db, infra.discoveryTable),
     structure: new DynamoStructureProjection(
       context.subscriptionId,
       infra.db,

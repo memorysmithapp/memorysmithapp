@@ -163,7 +163,7 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       this.origin,
       caller,
       `/discovery/vaults/${vaultId}/search`,
-      { method: 'POST', body: { query, mode: 'lexical' } },
+      { method: 'POST', body: { query } },
     );
     return found.hits;
   }

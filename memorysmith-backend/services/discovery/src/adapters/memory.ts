@@ -12,6 +12,8 @@ import {
   type GraphNode,
   type LinkGraph,
   type LinkTarget,
+  type ContentIndex,
+  type IndexedNote,
   type NoteCatalog,
   type NoteRef,
   type VaultGraph,
@@ -334,5 +336,28 @@ export class InMemoryNoteCatalog implements NoteCatalog {
 
   async listNotes(vaultId: string): Promise<Array<NoteRef & { folderName: string }>> {
     return this.byVault.get(vaultId) ?? [];
+  }
+}
+
+/**
+ * The content index in memory. The DynamoDB adapter answers the same port by
+ * walking every page of a Query; here the whole vault is already one array,
+ * which is exactly the behaviour the paged version has to reproduce.
+ */
+export class InMemoryContentIndex implements ContentIndex {
+  private readonly byVault = new Map<string, Map<string, IndexedNote>>();
+
+  async replaceNote(vaultId: string, note: IndexedNote): Promise<void> {
+    const vault = this.byVault.get(vaultId) ?? new Map<string, IndexedNote>();
+    vault.set(note.noteId, note);
+    this.byVault.set(vaultId, vault);
+  }
+
+  async removeNote(vaultId: string, noteId: string): Promise<void> {
+    this.byVault.get(vaultId)?.delete(noteId);
+  }
+
+  async scanVault(vaultId: string): Promise<IndexedNote[]> {
+    return [...(this.byVault.get(vaultId)?.values() ?? [])];
   }
 }

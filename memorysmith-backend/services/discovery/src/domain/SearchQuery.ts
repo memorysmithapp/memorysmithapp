@@ -59,12 +59,24 @@ export class QuerySyntaxError extends Error {}
  * that almost finds: case folded, diacritics stripped. `Vigência` and
  * `vigencia` are the same word to someone typing in a hurry, and a vault in
  * Portuguese makes that the common case rather than the exception.
+ *
+ * It is done character by character, and every character contributes exactly
+ * as many units as it occupied, so a position in the normalized text is the
+ * same position in the original. That is what lets the excerpt be cut from the
+ * text the author actually wrote: a naive `NFD` over the whole string shifts
+ * every offset after the first accent, and the reader would get a passage
+ * sliced a few characters off, or lowercased and unaccented prose nobody typed.
  */
 export function normalize(raw: string): string {
-  return raw
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase();
+  let out = '';
+  for (const character of raw) {
+    const folded = character
+      .normalize('NFD')
+      .replace(/\p{M}/gu, '')
+      .toLowerCase();
+    out += folded.length === character.length ? folded : character.toLowerCase();
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -325,27 +337,35 @@ function positiveTerms(node: QueryNode): Array<Extract<QueryNode, { kind: 'term'
 
 /**
  * The passage around the first match, so the caller can decide with the source
- * in sight (RN-DSC-010). It cuts on a word boundary, because a snippet that
- * starts mid-word reads as corruption.
+ * in sight (RN-DSC-010).
+ *
+ * The term is located in the normalized text and the passage is cut from the
+ * original, which `normalize` makes safe by preserving positions. It cuts on a
+ * word boundary, because a snippet that starts mid-word reads as corruption.
  */
-export function excerptAround(content: string, needle: string, width = 160): string {
-  const at = content.indexOf(needle);
-  if (at === -1) return content.slice(0, width).trim();
+export function excerptAround(
+  original: string,
+  normalized: string,
+  needle: string,
+  width = 160,
+): string {
+  const at = normalized.indexOf(needle);
+  if (at === -1) return original.slice(0, width).trim();
 
   const half = Math.floor((width - needle.length) / 2);
   let start = Math.max(0, at - half);
-  let end = Math.min(content.length, at + needle.length + half);
+  let end = Math.min(original.length, at + needle.length + half);
 
   if (start > 0) {
-    const space = content.indexOf(' ', start);
+    const space = original.indexOf(' ', start);
     if (space !== -1 && space < at) start = space + 1;
   }
-  if (end < content.length) {
-    const space = content.lastIndexOf(' ', end);
+  if (end < original.length) {
+    const space = original.lastIndexOf(' ', end);
     if (space > at + needle.length) end = space;
   }
 
-  return `${start > 0 ? '…' : ''}${content.slice(start, end).trim()}${end < content.length ? '…' : ''}`;
+  return `${start > 0 ? '…' : ''}${original.slice(start, end).trim()}${end < original.length ? '…' : ''}`;
 }
 
 /** The first positive term, which is the one an excerpt should be cut around. */

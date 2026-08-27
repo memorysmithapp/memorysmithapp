@@ -7,16 +7,18 @@
  *   FACET#{noteId}         the portrait of one note
  *   STAT#{facet}#{value}   one counter PER VALUE, never one item per vault
  *   FDEF#{facet}           inferred kind, distinct count, discarded flag
+ *   TEXT#{noteId}          the searchable portrait of one note
  *   STRUCT / SFOLDER#{id}  the local projection of the vault shape
  *
  * A counter item per value, and not a single statistics item, for the same
  * reason the META rule exists: fifty notes written in parallel increment
  * different items instead of queuing behind one (PE8).
  *
- * There is no content index here. CHUNK# items held one embedded vector each
- * and were removed in 0.2.0: scoring them meant reading every chunk of the
- * vault on every query, which does not scale in cost or in latency. Searching
- * what a note SAYS comes back behind a port, over a real index.
+ * The content index is the TEXT# item, and it is deliberately not an inverted
+ * index. CHUNK# items held one embedded vector each and were removed in 0.2.0:
+ * they cost 14 KB apiece, ten times the note itself, and scoring them meant
+ * reading all of them on every query. TEXT# costs about what the note costs,
+ * and the vault ceiling of 2.000 notes (RN-KNW-010) keeps the scan bounded.
  */
 
 import {
@@ -32,6 +34,8 @@ import {
 import type { SubscriptionId } from '@memorysmith/kernel';
 import type {
   BrokenLink,
+  ContentIndex,
+  IndexedNote,
   FacetIndex,
   FacetStats,
   GraphNode,
@@ -599,5 +603,99 @@ export class DynamoStructureProjection implements StructureProjection {
         }),
       );
     }
+  }
+}
+
+/**
+ * The content index over `mv-discovery`, one item per note:
+ *
+ *   TEXT#{noteId}   the searchable portrait: title, folder, headings, the body
+ *                   normalized for matching and the body as written for the excerpt
+ *
+ * The whole vault is read on every search. That is affordable because the
+ * product caps a vault at 2.000 notes (RN-KNW-010), roughly 8 MB, and it is
+ * far simpler than an inverted index that would need to stay in step with
+ * every write.
+ *
+ * `scanVault` walks EVERY page. The search this one replaced answered from the
+ * first megabyte and dropped the rest without a word, which in a vault of 8 MB
+ * meant deciding over an eighth of it. A partial scan that claims to be whole
+ * is worse than no search, so the loop below is not an optimization detail: it
+ * is the correctness of the feature.
+ */
+export class DynamoContentIndex implements ContentIndex {
+  constructor(
+    private readonly subscriptionId: SubscriptionId,
+    private readonly db: DynamoDBDocumentClient,
+    private readonly tableName: string,
+  ) {}
+
+  private pk(vaultId: string): string {
+    return partition(this.subscriptionId, vaultId);
+  }
+
+  async replaceNote(vaultId: string, note: IndexedNote): Promise<void> {
+    await this.db.send(
+      new PutCommand({
+        TableName: this.tableName,
+        Item: {
+          PK: this.pk(vaultId),
+          SK: `TEXT#${note.noteId}`,
+          entity: 'text',
+          noteId: note.noteId,
+          title: note.title,
+          folderId: note.folderId,
+          folderName: note.folderName,
+          sections: note.sections,
+          normalized: note.normalized,
+          original: note.original,
+          facets: note.facets,
+        },
+      }),
+    );
+  }
+
+  async removeNote(vaultId: string, noteId: string): Promise<void> {
+    await this.db.send(
+      new DeleteCommand({
+        TableName: this.tableName,
+        Key: { PK: this.pk(vaultId), SK: `TEXT#${noteId}` },
+      }),
+    );
+  }
+
+  async scanVault(vaultId: string): Promise<IndexedNote[]> {
+    const notes: IndexedNote[] = [];
+    let startKey: Record<string, unknown> | undefined;
+
+    do {
+      const response: {
+        Items?: Record<string, unknown>[] | undefined;
+        LastEvaluatedKey?: Record<string, unknown> | undefined;
+      } = await this.db.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+          ExpressionAttributeValues: { ':pk': this.pk(vaultId), ':prefix': 'TEXT#' },
+          ...(startKey ? { ExclusiveStartKey: startKey } : {}),
+        }),
+      );
+
+      for (const item of (response.Items ?? []) as Item[]) {
+        notes.push({
+          noteId: String(item['noteId']),
+          title: String(item['title'] ?? ''),
+          folderId: String(item['folderId'] ?? ''),
+          folderName: String(item['folderName'] ?? ''),
+          sections: (item['sections'] as string[]) ?? [],
+          normalized: String(item['normalized'] ?? ''),
+          original: String(item['original'] ?? ''),
+          facets: (item['facets'] as Record<string, string[]>) ?? {},
+        });
+      }
+      startKey = response.LastEvaluatedKey;
+    } while (startKey);
+
+    return notes;
   }
 }

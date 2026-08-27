@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { extractLinks } from '../src/domain/LinkExtractor.js';
 import { extractFacets, facetDelta } from '../src/domain/FacetExtractor.js';
+import { normalize } from '../src/domain/SearchQuery.js';
+import { DynamoContentIndex } from '../src/adapters/aws.js';
 import {
+  InMemoryContentIndex,
   InMemoryFacetIndex,
   InMemoryLinkGraph,
   InMemoryNoteCatalog,
@@ -108,6 +111,7 @@ describe('FacetExtractor: classification by the shape of the value', () => {
 describe('The projections, driven by events', () => {
   let graph: InMemoryLinkGraph;
   let facets: InMemoryFacetIndex;
+  let index: InMemoryContentIndex;
   let structure: InMemoryStructureProjection;
   let catalog: InMemoryNoteCatalog;
   let content: Map<string, string>;
@@ -120,10 +124,11 @@ describe('The projections, driven by events', () => {
   beforeEach(async () => {
     graph = new InMemoryLinkGraph();
     facets = new InMemoryFacetIndex();
+    index = new InMemoryContentIndex();
     structure = new InMemoryStructureProjection();
     catalog = new InMemoryNoteCatalog();
     content = new Map();
-    project = new ProjectNote({ graph, facets, structure, content: reader });
+    project = new ProjectNote({ graph, facets, index, structure, content: reader });
 
     const structureProjector = new ProjectStructure(structure);
     await structureProjector.onVault(VAULT, 'Normas e Legislacao');
@@ -241,7 +246,7 @@ describe('The projections, driven by events', () => {
       markdown: '---\nmaturity: seed\nreviewed: true\n---\n\n# Outra',
     });
 
-    const stats = await new GetFacetStats({ graph, facets, catalog }).execute({ vaultId: VAULT });
+    const stats = await new GetFacetStats({ graph, facets, catalog, content: index }).execute({ vaultId: VAULT });
     expect(stats.ok).toBe(true);
     if (!stats.ok) return;
     const maturity = stats.value.facets.find((facet) => facet.facet === 'maturity');
@@ -288,6 +293,7 @@ describe('Discovery queries', () => {
     graph: InMemoryLinkGraph;
     facets: InMemoryFacetIndex;
     catalog: InMemoryNoteCatalog;
+    content: InMemoryContentIndex;
   };
 
   beforeEach(async () => {
@@ -332,7 +338,31 @@ describe('Discovery queries', () => {
 
     const catalog = new InMemoryNoteCatalog();
     catalog.set(VAULT, notes);
-    deps = { graph, catalog, facets: new InMemoryFacetIndex() };
+    const content = new InMemoryContentIndex();
+    /**
+     * The body is what makes this a content search: `xpto010101` appears in
+     * one note and nowhere else, in no title and in no facet.
+     */
+    const bodies: Record<string, string> = {
+      n1: '# Achado 12\n\nO contrato passou do prazo. Ver a lei.',
+      n2: '# Lei 14.133\n\n## Vigência\n\nArt. 75. Contratação direta com xpto010101.',
+      n3: '# Portaria 9\n\nRegulamenta o prazo interno.',
+      n4: '# Nota solta\n\nSem ligação com nada.',
+    };
+    for (const note of notes) {
+      const body = bodies[note.noteId] ?? '';
+      await content.replaceNote(VAULT, {
+        noteId: note.noteId,
+        title: normalize(note.title),
+        folderId: note.folderId,
+        folderName: normalize(note.folderName),
+        sections: [...body.matchAll(/^#{1,6}\s+(.*)$/gm)].map((m) => normalize(m[1] ?? '')),
+        normalized: normalize(body),
+        original: body,
+        facets: note.noteId === 'n2' ? { maturity: ['evergreen'] } : { maturity: ['seed'] },
+      });
+    }
+    deps = { graph, catalog, facets: new InMemoryFacetIndex(), content };
   });
 
   it('walks the dependency tree with a depth cap', async () => {
@@ -400,14 +430,73 @@ describe('Discovery queries', () => {
     expect(health.value.orphans.map((note) => note.slug)).toEqual(['nota-solta']);
   });
 
-  it('searches lexically over title and folder', async () => {
-    const found = await new SearchNotes(deps).execute({
-      vaultId: VAULT,
-      query: 'lei 14133',
-    });
+  it('searches over the title', async () => {
+    const found = await new SearchNotes(deps).execute({ vaultId: VAULT, query: 'lei 14.133' });
     expect(found.ok).toBe(true);
     if (!found.ok) return;
     expect(found.value[0]?.noteId).toBe('n2');
+  });
+
+  it('matches the text as written, punctuation included', async () => {
+    /**
+     * Deliberate: the match is a substring of what the author typed, so
+     * `14.133` is found by `14.133` and not by `14133`. The previous search
+     * ran over slugs, where `slugify` folded the dot between digits away; this
+     * one runs over prose, and inventing separators the author did not write
+     * would make the result impossible to explain.
+     */
+    const exact = await new SearchNotes(deps).execute({ vaultId: VAULT, query: '14.133' });
+    expect(exact.ok && exact.value.map((hit) => hit.noteId)).toEqual(['n2']);
+
+    const without = await new SearchNotes(deps).execute({ vaultId: VAULT, query: '14133' });
+    expect(without.ok && without.value).toEqual([]);
+  });
+
+  it('finds a word that exists only in the body of one note', async () => {
+    // The behaviour a vault user expects: write a word, find the note.
+    const found = await new SearchNotes(deps).execute({ vaultId: VAULT, query: 'xpto010101' });
+    expect(found.ok).toBe(true);
+    if (!found.ok) return;
+    expect(found.value.map((hit) => hit.noteId)).toEqual(['n2']);
+  });
+
+  it('cites the section the match fell under, and shows the passage', async () => {
+    const found = await new SearchNotes(deps).execute({ vaultId: VAULT, query: 'xpto010101' });
+    expect(found.ok).toBe(true);
+    if (!found.ok) return;
+    expect(found.value[0]?.section).toBe(normalize('Vigência'));
+    // The excerpt comes from the text as written, accents intact.
+    expect(found.value[0]?.excerpt).toContain('xpto010101');
+    expect(found.value[0]?.excerpt).toContain('Contratação');
+  });
+
+  it('narrows a body term with a facet the vault declared', async () => {
+    const withFacet = await new SearchNotes(deps).execute({
+      vaultId: VAULT,
+      query: 'prazo maturity:seed',
+    });
+    expect(withFacet.ok).toBe(true);
+    if (!withFacet.ok) return;
+    expect(withFacet.value.map((hit) => hit.noteId).sort()).toEqual(['n1', 'n3']);
+  });
+
+  it('excludes with a negation', async () => {
+    const found = await new SearchNotes(deps).execute({
+      vaultId: VAULT,
+      query: 'prazo -portaria',
+    });
+    expect(found.ok).toBe(true);
+    if (!found.ok) return;
+    expect(found.value.map((hit) => hit.noteId)).toEqual(['n1']);
+  });
+
+  it('does not search the frontmatter as if it were prose', async () => {
+    // RN-DSC-018: frontmatter belongs to the facet projector. If it leaked
+    // into the body every note would match its own metadata.
+    const found = await new SearchNotes(deps).execute({ vaultId: VAULT, query: 'maturity' });
+    expect(found.ok).toBe(true);
+    if (!found.ok) return;
+    expect(found.value).toEqual([]);
   });
 
   it('refuses an empty query', async () => {
@@ -416,5 +505,56 @@ describe('Discovery queries', () => {
       query: '   ',
     });
     expect(refused.ok).toBe(false);
+  });
+});
+
+describe('The scan walks every page, which is the whole correctness of it', () => {
+  /**
+   * The search this one replaced answered from the first megabyte of a Query
+   * and dropped the rest without a word. In a vault at the declared ceiling
+   * that meant deciding over a fraction of the content while looking exactly
+   * like a search that had read all of it.
+   *
+   * A fake DynamoDB that hands back pages proves the adapter keeps asking.
+   */
+  it('keeps following LastEvaluatedKey until the vault is exhausted', async () => {
+    const PAGES = 9;
+    const perPage = 40;
+    let sent = 0;
+
+    const db = {
+      send: async (command: { input: Record<string, unknown> }) => {
+        const start = (command.input['ExclusiveStartKey'] as { at?: number } | undefined)?.at ?? 0;
+        sent++;
+        const page = Array.from({ length: perPage }, (_, offset) => ({
+          noteId: `n${start + offset}`,
+          title: 'nota',
+          folderId: 'f1',
+          folderName: 'pasta',
+          sections: [],
+          normalized: 'corpo',
+          original: 'corpo',
+          facets: {},
+        }));
+        const next = start + perPage;
+        return {
+          Items: page,
+          ...(next < PAGES * perPage ? { LastEvaluatedKey: { at: next } } : {}),
+        };
+      },
+    };
+
+    const index = new DynamoContentIndex(
+      { value: '01JBQ2X0000000000000000000' } as never,
+      db as never,
+      'mv-discovery',
+    );
+
+    const notes = await index.scanVault(VAULT);
+
+    expect(sent).toBe(PAGES);
+    expect(notes).toHaveLength(PAGES * perPage);
+    // The last note of the last page is present: nothing was cut short.
+    expect(notes[notes.length - 1]?.noteId).toBe(`n${PAGES * perPage - 1}`);
   });
 });

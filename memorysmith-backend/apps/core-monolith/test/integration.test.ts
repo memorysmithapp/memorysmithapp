@@ -195,32 +195,56 @@ describe('Discovery answers over the API', () => {
     expect(tree.children.map((child) => child.note.noteId)).toEqual([notes['lei']]);
   });
 
-  it('searches lexically over titles and folders, and cites the note', async () => {
+  it('searches the body of the note, not only how it is named', async () => {
     /**
-     * This version indexes how a note is NAMED, not what it says: searching
-     * for a term that appears only in the body finds nothing, and that is the
-     * declared behaviour until a content index exists.
+     * `Art. 75` is written in the body of one note and appears in no title, in
+     * no folder name and in no facet. Finding it is the whole point of the
+     * content index.
      */
     const { vaultId, notes } = await seed();
-    const found = (await (
-      await call(`/discovery/vaults/${vaultId}/search`, {
-        method: 'POST',
-        body: { query: 'Lei 14133' },
-      })
-    ).json()) as { mode: string; hits: Array<{ noteId: string; section: string | null }> };
-
-    expect(found.mode).toBe('lexical');
-    expect(found.hits.length).toBeGreaterThan(0);
-    expect(found.hits[0]?.noteId).toBe(notes['lei']);
-    expect(found.hits[0]?.section).toBeNull();
-
     const byBody = (await (
       await call(`/discovery/vaults/${vaultId}/search`, {
         method: 'POST',
         body: { query: 'Art. 75' },
       })
-    ).json()) as { hits: unknown[] };
-    expect(byBody.hits).toEqual([]);
+    ).json()) as {
+      mode: string;
+      hits: Array<{ noteId: string; section: string | null; excerpt: string }>;
+    };
+
+    expect(byBody.mode).toBe('lexical');
+    expect(byBody.hits.map((hit) => hit.noteId)).toEqual([notes['lei']]);
+    expect(byBody.hits[0]?.excerpt).toContain('Art. 75');
+  });
+
+  it('narrows the search with a field and with a facet of the vault', async () => {
+    const { vaultId, notes } = await seed();
+
+    const byTitle = (await (
+      await call(`/discovery/vaults/${vaultId}/search`, {
+        method: 'POST',
+        body: { query: 'title:achado' },
+      })
+    ).json()) as { hits: Array<{ noteId: string }> };
+    expect(byTitle.hits.map((hit) => hit.noteId)).toEqual([notes['achado']]);
+
+    // `maturity` is frontmatter the vault wrote, never a field the code knows.
+    const byFacet = (await (
+      await call(`/discovery/vaults/${vaultId}/search`, {
+        method: 'POST',
+        body: { query: 'maturity:evergreen' },
+      })
+    ).json()) as { hits: Array<{ noteId: string }> };
+    expect(byFacet.hits.map((hit) => hit.noteId)).toEqual([notes['lei']]);
+  });
+
+  it('refuses a query it cannot parse instead of answering with everything', async () => {
+    const { vaultId } = await seed();
+    const response = await call(`/discovery/vaults/${vaultId}/search`, {
+      method: 'POST',
+      body: { query: '"nunca fecha' },
+    });
+    expect(response.status).toBe(400);
   });
 
   it('counts the curation facets of the vault', async () => {

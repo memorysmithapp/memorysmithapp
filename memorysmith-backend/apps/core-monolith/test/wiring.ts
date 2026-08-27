@@ -89,6 +89,7 @@ import {
 import { AuditEventConsumer } from '@memorysmith/svc-audit/adapters/consumer';
 import type { AuditUseCases } from '@memorysmith/svc-audit/adapters/http';
 import {
+  InMemoryContentIndex,
   InMemoryFacetIndex,
   InMemoryLinkGraph,
   InMemoryNoteCatalog,
@@ -241,11 +242,13 @@ export function buildTestApp() {
     facets: new InMemoryFacetIndex(),
     structure: new InMemoryStructureProjection(),
     catalog: new InMemoryNoteCatalog(),
+    index: new InMemoryContentIndex(),
   };
   const discoveryDeps = {
     graph: discovery.graph,
     facets: discovery.facets,
     catalog: discovery.catalog,
+    content: discovery.index,
   };
   /**
    * In production the bus drives these; in the test the harness does, which
@@ -254,6 +257,7 @@ export function buildTestApp() {
   const projectNote = new ProjectNote({
     graph: discovery.graph,
     facets: discovery.facets,
+    index: discovery.index,
     structure: discovery.structure,
     content: {
       // The slot is addressed by its content id, exactly as the S3 adapter

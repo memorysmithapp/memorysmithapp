@@ -72,15 +72,47 @@ export interface LinkGraph {
 }
 
 /**
- * One search hit. `section` is null while the only index is over titles and
- * folders; an index that cuts a note into parts fills it without changing the
- * shape callers already read.
+ * One search hit. `section` names the heading the match fell under, when the
+ * match came from the body and a heading precedes it.
  */
 export interface ScoredNote {
   readonly noteId: string;
   readonly section: string | null;
   readonly excerpt: string;
   readonly score: number;
+}
+
+/**
+ * The searchable portrait of one note: everything the query language needs to
+ * decide, already normalized, so the scan never normalizes on the hot path.
+ *
+ * The body is kept twice, normalized for matching and original for the
+ * excerpt, because showing the reader a lowercased and unaccented passage
+ * would be showing them a note nobody wrote.
+ */
+export interface IndexedNote {
+  readonly noteId: string;
+  readonly title: string;
+  readonly folderId: string;
+  readonly folderName: string;
+  readonly sections: string[];
+  readonly normalized: string;
+  readonly original: string;
+  readonly facets: Record<string, string[]>;
+}
+
+/**
+ * The content index, one per subscription like every other projection.
+ *
+ * `scanVault` MUST walk every page. The search that this one replaced answered
+ * from the first megabyte and silently ignored the rest, which is the failure
+ * mode this port exists to make impossible to repeat: a partial scan that
+ * claims to be whole is worse than no search.
+ */
+export interface ContentIndex {
+  replaceNote(vaultId: string, note: IndexedNote): Promise<void>;
+  removeNote(vaultId: string, noteId: string): Promise<void>;
+  scanVault(vaultId: string): Promise<IndexedNote[]>;
 }
 
 export interface FacetStats {
