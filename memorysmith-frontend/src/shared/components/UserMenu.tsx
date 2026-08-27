@@ -5,6 +5,7 @@ import { usePreferences, type ThemeChoice } from '../store/preferences';
 import { useSession } from '../store/session';
 import { useLiveSession, authConfig, type LiveSession } from '../auth/session';
 import { signOut as endHostedSession } from '../auth/oauth';
+import { gravatarDisplayName } from '../auth/gravatar';
 import { isLive } from '../api/source';
 import { markSignedOut } from '../../features/auth/LoginPage';
 import { Avatar } from './Avatar';
@@ -63,7 +64,28 @@ export function UserMenu() {
   const theme = usePreferences((s) => s.theme);
   const setTheme = usePreferences((s) => s.setTheme);
   const [open, setOpen] = useState(false);
+  const [borrowedName, setBorrowedName] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * The identity provider has no name for everyone, and when it has none the
+   * API answers with the e-mail, which is why this menu used to print the same
+   * line twice. Gravatar is asked ONLY in that case: a name the person gave
+   * the identity provider always wins over one a third party knows about them.
+   */
+  const nameIsMissing = user !== null && user.name === user.email;
+  useEffect(() => {
+    if (!nameIsMissing || user === null) return;
+    let alive = true;
+    void gravatarDisplayName(user.email).then((name) => {
+      if (alive) setBorrowedName(name);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [nameIsMissing, user?.email]);
+
+  const shownName = user === null ? '' : nameIsMissing ? (borrowedName ?? '') : user.name;
 
   useEffect(() => {
     function onClickOutside(event: MouseEvent) {
@@ -111,8 +133,12 @@ export function UserMenu() {
           <div className="user-menu-identity">
             <Avatar email={user.email} size={48} />
             <div>
-              <strong>{user.name}</strong>
-              <div className="user-menu-email">{user.email}</div>
+              {/*
+                One line per thing. With no name to show, the e-mail is the
+                identity and stands alone, instead of being printed twice.
+              */}
+              {shownName ? <strong>{shownName}</strong> : null}
+              <div className={shownName ? 'user-menu-email' : undefined}>{user.email}</div>
             </div>
           </div>
 
