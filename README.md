@@ -268,14 +268,16 @@ Antes de apagar qualquer coisa, o script lista as stacks que existem de fato, av
 
 **O tear down não destrói dado, por desenho.** As quatro tabelas e o bucket de conteúdo nascem com política de retenção, então sobrevivem à stack, e o user pool também. Isso tem uma consequência prática que o relatório final do script repete: os nomes de tabela são fixos, então uma tabela retida faz o próximo deploy falhar com `AlreadyExists`. Ou você apaga a tabela, ou o preflight do `deploy.ps1` vai barrar a subida.
 
-Para um ambiente descartável, `-PurgeData` primeiro reimplanta a stack de dados com a política destrutiva e só então apaga, porque a política que vale é a do template já implantado. A trilha de auditoria (`mv-audit`) retém em qualquer ambiente: ela é a única coisa que não se reconstrói a partir de nada.
+**`-PurgeData` não deixa nada.** Ele reimplanta a stack de dados com a política destrutiva antes de apagar, porque a política que vale é a do template já implantado, e depois remove à mão o que política de remoção nenhuma removeria: a trilha de auditoria (`mv-audit`), o user pool com seu prefixo de domínio e qualquer bucket que uma exclusão malsucedida tenha deixado para trás. Essa segunda parte fica no script, e não na infraestrutura, de propósito: apagar a trilha é ato administrativo explícito, pedido na linha de comando, e nunca efeito colateral de um deploy com a flag errada.
+
+**Derrubar leva tempo, e o script pode ser interrompido sem prejuízo.** Apagar o domínio do Cognito desprovisiona uma distribuição do CloudFront por baixo dos panos, e essa única exclusão passa da meia hora com facilidade. Matar o script não cancela nada: o CloudFormation continua sozinho. Rodar o script de novo entra na operação já em andamento em vez de disparar outra, e segue de onde parou. Por isso o `cdk destroy` reaproveita a síntese que já está em `cdk.out`: uma exclusão é por nome de stack, e recompilar as seis funções para apagá-las seria só espera.
 
 | Opção | Para que serve |
 |---|---|
 | `-Profile <nome>`, `-Region <região>` | Iguais às do deploy |
 | `-Stacks <lista>` | Derruba apenas as stacks indicadas |
 | `-PreflightOnly` | Só o relatório: o que existe e o que sobreviveria |
-| `-PurgeData` | Apaga também tabelas e bucket de conteúdo, exceto a auditoria. Irreversível |
+| `-PurgeData` | Não deixa nada: tabelas (auditoria inclusive), bucket de conteúdo e user pool com o prefixo de domínio. Irreversível |
 | `-Force` | Pula a confirmação digitada, para execução não assistida |
 
 ### Solução de problemas
@@ -285,7 +287,7 @@ Para um ambiente descartável, `-PurgeData` primeiro reimplanta a stack de dados
 | Preflight acusa `AWS credentials` mesmo com `~/.aws/credentials` preenchido | As credenciais estão sob um profile nomeado e não sob o `default`. O próprio gap lista os profiles da máquina; rode com `-Profile <nome>` |
 | Preflight acusa `DNS delegation` | Os nameservers do registrador ainda não são os da Route 53, ou a troca ainda está propagando (ver [Delegar o domínio do Squarespace para o Route 53](#delegar-o-domínio-do-squarespace-para-o-route-53)). O certificado ACM não é emitido enquanto isso |
 | Preflight acusa `Orphan tables` | Um destroy anterior deixou as tabelas retidas. Apague as citadas com `aws dynamodb delete-table --table-name <nome>` antes de subir de novo |
-| Preflight acusa `Stack states` | Uma stack ficou em `ROLLBACK_COMPLETE`, estado que o CloudFormation não atualiza. Rode `./deploy-aws/destroy.ps1 -Stacks <nome>` e suba outra vez |
+| Preflight acusa `Stack states` | Ou uma stack ficou em `ROLLBACK_COMPLETE`, estado que o CloudFormation não atualiza, e aí `./deploy-aws/destroy.ps1 -Stacks <nome>` resolve; ou há uma operação em andamento, e aí é esperar. Um destroy que apaga o domínio do Cognito passa da meia hora |
 | Deploy da `MemorysmithNetwork` parado em `CREATE_IN_PROGRESS` | Emissão do certificado aguardando a validação DNS. Passando de 30 minutos, confira se a hosted zone do `hostedZoneId` é a que de fato responde pelo domínio |
 | Colisão no domínio do Cognito | O prefixo é único por região. Suba com `-CognitoDomainPrefix <outro>` |
 | Verificação final falha com `401` também nos `.well-known` | Rota errada ou domínio ainda propagando; os `.well-known` são públicos por desenho |

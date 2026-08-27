@@ -10,9 +10,16 @@
   retained table with a fixed name is exactly what breaks the next deploy.
 
   By design the tear down does NOT destroy data. The four tables and the
-  content bucket are created with a RETAIN policy, so they outlive the stack.
-  -PurgeData flips that policy first and then deletes them, except the audit
-  trail, which retains in every environment.
+  content bucket are created with a RETAIN policy, so they outlive the stack,
+  and so does the Cognito user pool. -PurgeData leaves nothing behind: it flips
+  the removal policy of the data stack, destroys everything, and then deletes by
+  hand what no removal policy would ever delete, the audit trail and the user
+  pool with its domain prefix included.
+
+  A tear down of this app can run for a long time, because deleting the Cognito
+  domain tears down a CloudFront distribution behind the scenes. Killing the
+  script does NOT cancel that: CloudFormation carries on, and running the script
+  again joins the operation already in flight instead of firing another one.
 
 .PARAMETER Region
   Target region. Defaults to CDK_DEFAULT_REGION, then to the region of the AWS
@@ -25,9 +32,9 @@
   Destroys only these stacks instead of all of them.
 
 .PARAMETER PurgeData
-  Deploys the data stack with retainData=false first, so the tables and the
-  content bucket are actually deleted with the stack. Irreversible, and only
-  ever right for a sandbox.
+  Leaves nothing of the environment: the tables (audit trail included), the
+  content bucket, and the Cognito user pool with its domain prefix.
+  Irreversible, and only ever right for a sandbox.
 
 .PARAMETER Force
   Skips the typed confirmation. For unattended runs only.
@@ -42,7 +49,7 @@
 
 .EXAMPLE
   ./deploy-aws/destroy.ps1 -PurgeData
-  Sandbox tear down: nothing is left except the audit trail.
+  Sandbox tear down: nothing of this environment is left in the account.
 
 .EXAMPLE
   ./deploy-aws/destroy.ps1 -Stacks MemorysmithFrontend
@@ -75,7 +82,6 @@ Set-AwsContext -Region $Region -ProfileName $ProfileName
 
 $context = Get-CdkContext
 $zoneName = $context.hostedZoneName
-$contextArgs = @()
 
 # --- 2. Preflight ------------------------------------------------------------
 # The destroy synthesizes the app before deleting anything, so it needs the same
@@ -125,15 +131,17 @@ if ($existing.Count -eq 0) {
 
 Write-Step 'What survives this tear down'
 if ($PurgeData) {
-  Write-Warn 'PurgeData: the four tables and the content bucket will be DELETED with their data'
-  Write-Detail 'mv-audit still retains: the trail is the one thing that cannot be rebuilt'
+  Write-Warn 'PurgeData: NOTHING of this environment survives'
+  Write-Detail "tables $($Global:MsDataTables -join ', ') go, the audit trail included"
+  Write-Detail 'the content bucket goes, with every note version'
+  Write-Detail 'the Cognito user pool memorysmith-users goes, with its users and its domain prefix'
 } else {
   Write-Detail "tables $($Global:MsDataTables -join ', ') retain, with their data"
   Write-Detail 'the content bucket retains, with every note version'
+  Write-Detail 'the Cognito user pool memorysmith-users retains, with its users and its domain prefix'
+  Write-Detail 'a retained table blocks the next deploy, because table names are fixed'
 }
-Write-Detail 'the Cognito user pool memorysmith-users retains, with its users and its domain prefix'
 Write-Detail 'the Route 53 hosted zone is never touched: it was not created here'
-Write-Detail 'a retained table blocks the next deploy, because table names are fixed'
 
 # --- 5. Confirmation ---------------------------------------------------------
 
@@ -154,24 +162,53 @@ if (-not $Force) {
   }
 }
 
-# --- 6. Purge data -----------------------------------------------------------
+# --- 6. Join whatever is already running -------------------------------------
+# CloudFormation does not stop when the CDK process does: a killed run leaves
+# its deletes going. Firing a second delete at a stack mid-delete only produces
+# noise, so this joins the operation instead of racing it.
+
+$inFlight = @($existing | Where-Object { (Get-StackStatus -StackName $_) -like '*_IN_PROGRESS' })
+if ($inFlight.Count -gt 0) {
+  Write-Step "Waiting for operations already running: $($inFlight -join ', ')"
+  foreach ($stack in $inFlight) { Wait-StackSettled -StackName $stack | Out-Null }
+  $existing = @($existing | Where-Object { Get-StackStatus -StackName $_ })
+  if ($existing.Count -eq 0) {
+    Write-Ok 'the run that was already going finished the job'
+  }
+}
+
+# --- 7. Purge data -----------------------------------------------------------
 # The removal policy that counts is the one in the DEPLOYED template, so making
 # the data destroyable takes an update before the delete.
 
 if ($PurgeData -and ($existing -contains 'MemorysmithData')) {
   Write-Step 'Flipping the data stack to a destroyable removal policy'
   Invoke-Cdk -CdkArgs @('deploy', 'MemorysmithData', '--require-approval', 'never', '-c', 'retainData=false')
-  $contextArgs = @('-c', 'retainData=false')
   Write-Ok 'data resources now carry DESTROY'
 }
 
-# --- 7. Destroy --------------------------------------------------------------
+# --- 8. Destroy --------------------------------------------------------------
+# The delete reuses the assembly on disk instead of synthesizing again: a delete
+# is by stack name, and CloudFormation never reads the local template.
 
-Write-Step "Destroying: $($existing -join ', ')"
-Invoke-Cdk -CdkArgs (@('destroy') + $existing + @('--force') + $contextArgs)
-Write-Ok 'CloudFormation deletions finished'
+if ($existing.Count -gt 0) {
+  Write-Step "Destroying: $($existing -join ', ')"
+  Invoke-Cdk -CdkArgs (@('destroy') + $existing + @('--force') + (Get-CdkAssemblyArgs))
+  Write-Ok 'CloudFormation deletions finished'
+}
 
-# --- 8. What is left ---------------------------------------------------------
+# --- 9. Purge what the stacks retain -----------------------------------------
+# Deleting the audit trail, the user pool and any leftover bucket is an
+# administrative act, not a removal policy: it happens only under -PurgeData,
+# and only after every stack is gone.
+
+if ($PurgeData) {
+  Write-Step 'Purging the resources the stacks retain'
+  $purged = Remove-RetainedResources
+  Write-CheckReport -Checks $purged | Out-Null
+}
+
+# --- 10. What is left --------------------------------------------------------
 
 Write-Step 'Leftovers'
 $leftovers = @()
@@ -227,3 +264,6 @@ if ($leftoverGaps -gt 0) {
   exit 1
 }
 Write-Ok ("tear down finished in {0:mm\:ss}" -f $elapsed)
+# Explicit, so the exit code is the script's and not that of the last native
+# command that happened to run inside it.
+exit 0

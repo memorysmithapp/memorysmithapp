@@ -37,6 +37,24 @@ $Global:MsAllStacks = $Global:MsBackendStacks + $Global:MsFrontendStack
 # Table names are fixed in data.stack.ts, so a retained table blocks a redeploy.
 $Global:MsDataTables = @('mv-access', 'mv-knowledge', 'mv-discovery', 'mv-audit')
 
+function Get-CdkAssemblyArgs {
+  <#
+    Points the CDK at the cloud assembly already on disk, when there is one.
+
+    Synthesizing this app bundles six Lambda functions with esbuild and costs
+    minutes on a cold cache. A DELETE needs none of that: CloudFormation deletes
+    by stack name and never looks at the local template. Reusing the assembly
+    turns those minutes into nothing, and minutes are what push a tear down past
+    the time limit of whatever is running it.
+
+    Only ever right for a destroy. A deploy must synthesize.
+  #>
+  if (Test-Path (Join-Path $Global:MsInfraDir 'cdk.out' 'manifest.json')) {
+    return @('--app', 'cdk.out')
+  }
+  return @()
+}
+
 $Global:MsAws = @{ Region = $null; Profile = $null }
 
 # --- Console -----------------------------------------------------------------
@@ -211,6 +229,171 @@ function Get-StackOutputs {
   $map = @{}
   foreach ($entry in $result) { $map[$entry.OutputKey] = $entry.OutputValue }
   return $map
+}
+
+function Wait-StackSettled {
+  <#
+    Waits while a stack is in the middle of an operation someone else started.
+
+    This matters because CloudFormation keeps working after the CDK process is
+    gone: killing the CLI does not cancel a delete. Deleting a Cognito user pool
+    DOMAIN in particular tears down a CloudFront distribution behind the scenes
+    and can take the better part of an hour on its own, so a second run has to
+    join the operation already running instead of firing another one at it.
+
+    Returns the final status, or null when the stack no longer exists.
+  #>
+  param(
+    [Parameter(Mandatory)][string]$StackName,
+    [int]$TimeoutMinutes = 90,
+    [int]$PollSeconds = 20
+  )
+  $deadline = (Get-Date).AddMinutes($TimeoutMinutes)
+  $announced = $false
+  while ($true) {
+    $status = Get-StackStatus -StackName $StackName
+    if (-not $status -or $status -notlike '*_IN_PROGRESS') {
+      if ($announced) { Write-Ok "$StackName settled as $(if ($status) { $status } else { 'deleted' })" }
+      return $status
+    }
+    if (-not $announced) {
+      Write-Warn "$StackName is $status; waiting for it to finish before doing anything"
+      Write-Detail 'a Cognito domain delete tears down a CloudFront distribution and is slow by nature'
+      $announced = $true
+    }
+    if ((Get-Date) -gt $deadline) {
+      throw "$StackName is still $status after $TimeoutMinutes minutes; check its events in the console"
+    }
+    Start-Sleep -Seconds $PollSeconds
+  }
+}
+
+function Remove-BucketCompletely {
+  <#
+    Empties a versioned bucket and deletes it. `aws s3 rm --recursive` is not
+    enough here: it removes current objects and leaves every old version and
+    delete marker behind, and a bucket that still holds versions cannot be
+    deleted.
+  #>
+  param([Parameter(Mandatory)][string]$BucketName)
+
+  while ($true) {
+    $listing = Invoke-Aws -AllowFailure -Arguments @(
+      's3api', 'list-object-versions', '--bucket', $BucketName, '--max-keys', '1000',
+      '--query', '{v: Versions[].{Key:Key,VersionId:VersionId}, m: DeleteMarkers[].{Key:Key,VersionId:VersionId}}'
+    )
+    if (-not $listing) { break }
+    $objects = @()
+    if ($listing.v) { $objects += @($listing.v) }
+    if ($listing.m) { $objects += @($listing.m) }
+    if ($objects.Count -eq 0) { break }
+
+    $payloadFile = [System.IO.Path]::GetTempFileName()
+    try {
+      $payload = @{ Objects = @($objects | ForEach-Object { @{ Key = $_.Key; VersionId = $_.VersionId } }); Quiet = $true }
+      Set-Content -Path $payloadFile -Value ($payload | ConvertTo-Json -Depth 5 -Compress) -Encoding utf8NoBOM
+      $deleted = Invoke-Aws -AllowFailure -Arguments @(
+        's3api', 'delete-objects', '--bucket', $BucketName, '--delete', "file://$payloadFile"
+      )
+      if ($null -eq $deleted -and $objects.Count -gt 0) {
+        # delete-objects answers with an empty body in quiet mode, so a null
+        # result is normal; only a listing that never shrinks means trouble.
+      }
+      Write-Detail "$BucketName : removed $($objects.Count) version(s)"
+    } finally {
+      Remove-Item $payloadFile -ErrorAction SilentlyContinue
+    }
+  }
+
+  $result = Invoke-Aws -AllowFailure -Raw -Arguments @('s3api', 'delete-bucket', '--bucket', $BucketName)
+  return ($null -ne $result)
+}
+
+function Remove-RetainedResources {
+  <#
+    The administrative half of a purge.
+
+    Stacks retain what they must not lose by accident: the audit table, the user
+    pool with its globally unique domain prefix, and any bucket a failed delete
+    left behind. None of that goes away with `cdk destroy`, and all of it blocks
+    the next deploy. Deleting it is a deliberate act with its own switch, which
+    is exactly why it lives here and not in a removal policy.
+
+    Returns the check lines describing what was removed.
+  #>
+  $checks = @()
+
+  # --- Tables, audit trail included ---------------------------------------
+  $tableNames = Invoke-Aws -AllowFailure -Arguments @('dynamodb', 'list-tables', '--query', 'TableNames')
+  $remaining = @()
+  if ($tableNames) { $remaining = @($Global:MsDataTables | Where-Object { $tableNames -contains $_ }) }
+  foreach ($table in $remaining) {
+    $done = Invoke-Aws -AllowFailure -Arguments @('dynamodb', 'delete-table', '--table-name', $table)
+    if ($done) {
+      $checks += New-Check -Name "table $table" -Status 'ok' -Detail 'deleted'
+    } else {
+      $checks += New-Check -Name "table $table" -Status 'gap' -Detail 'could not be deleted' `
+        -Fix "aws dynamodb delete-table --table-name $table"
+    }
+  }
+  if ($remaining.Count -eq 0) {
+    $checks += New-Check -Name 'tables' -Status 'ok' -Detail 'none left to delete'
+  }
+
+  # --- User pool and its domain -------------------------------------------
+  # The domain has to go first: the prefix is unique across the region, and a
+  # pool that still owns one cannot be deleted.
+  $pools = Invoke-Aws -AllowFailure -Arguments @(
+    'cognito-idp', 'list-user-pools', '--max-results', '60',
+    '--query', "UserPools[?Name=='memorysmith-users'].Id"
+  )
+  foreach ($poolId in @($pools)) {
+    if (-not $poolId) { continue }
+    $described = Invoke-Aws -AllowFailure -Arguments @('cognito-idp', 'describe-user-pool', '--user-pool-id', $poolId)
+    $prefix = $null
+    if ($described -and $described.UserPool) {
+      $prefix = $described.UserPool.Domain
+      if (-not $prefix) { $prefix = $described.UserPool.CustomDomain }
+    }
+    if ($prefix) {
+      Invoke-Aws -AllowFailure -Arguments @(
+        'cognito-idp', 'delete-user-pool-domain', '--user-pool-id', $poolId, '--domain', $prefix
+      ) | Out-Null
+      $checks += New-Check -Name "domain $prefix" -Status 'ok' -Detail 'delete requested'
+    }
+    $done = Invoke-Aws -AllowFailure -Raw -Arguments @('cognito-idp', 'delete-user-pool', '--user-pool-id', $poolId)
+    if ($null -ne $done) {
+      $checks += New-Check -Name "user pool $poolId" -Status 'ok' -Detail 'deleted'
+    } else {
+      # A domain delete is asynchronous, and the pool refuses to go while it is
+      # still attached. Saying so beats pretending the account is clean.
+      $checks += New-Check -Name "user pool $poolId" -Status 'gap' `
+        -Detail 'could not be deleted, most likely while its domain is still going away' `
+        -Fix "aws cognito-idp delete-user-pool --user-pool-id $poolId, again in a few minutes"
+    }
+  }
+  if (@($pools).Count -eq 0) {
+    $checks += New-Check -Name 'user pool' -Status 'ok' -Detail 'none left to delete'
+  }
+
+  # --- Buckets a failed delete left behind --------------------------------
+  $buckets = Invoke-Aws -AllowFailure -Arguments @(
+    's3api', 'list-buckets', '--query', "Buckets[?starts_with(Name, 'memorysmith')].Name"
+  )
+  foreach ($bucket in @($buckets)) {
+    if (-not $bucket) { continue }
+    if (Remove-BucketCompletely -BucketName $bucket) {
+      $checks += New-Check -Name "bucket $bucket" -Status 'ok' -Detail 'emptied and deleted'
+    } else {
+      $checks += New-Check -Name "bucket $bucket" -Status 'gap' -Detail 'could not be deleted' `
+        -Fix "aws s3 rb s3://$bucket --force"
+    }
+  }
+  if (@($buckets).Count -eq 0) {
+    $checks += New-Check -Name 'buckets' -Status 'ok' -Detail 'none left to delete'
+  }
+
+  return $checks
 }
 
 # --- CDK ---------------------------------------------------------------------
@@ -482,16 +665,25 @@ function Test-DeployPreconditions {
   # --- Failed stacks -------------------------------------------------------
   # ROLLBACK_COMPLETE cannot be updated: CloudFormation only accepts a delete.
   $stuck = @()
+  $busy = @()
   foreach ($stack in $Global:MsAllStacks) {
     $status = Get-StackStatus -StackName $stack
     if ($status -eq 'ROLLBACK_COMPLETE' -or $status -eq 'REVIEW_IN_PROGRESS') {
       $stuck += "$stack ($status)"
+    } elseif ($status -like '*_IN_PROGRESS') {
+      # A stack mid-operation refuses a second one, and a delete keeps running
+      # long after the process that started it was killed.
+      $busy += "$stack ($status)"
     }
   }
   if ($stuck.Count -gt 0) {
     $checks += New-Check -Name 'Stack states' -Status 'gap' `
       -Detail "$($stuck -join ', ') cannot be updated in that state" `
       -Fix 'destroy.ps1 -Stacks <name>, or delete the stack in the CloudFormation console, then deploy again'
+  } elseif ($busy.Count -gt 0) {
+    $checks += New-Check -Name 'Stack states' -Status 'gap' `
+      -Detail "$($busy -join ', ') is in the middle of an operation" `
+      -Fix 'wait for it to settle and deploy again; a Cognito domain delete alone can take the better part of an hour'
   } else {
     $checks += New-Check -Name 'Stack states' -Status 'ok' -Detail 'no stack stuck in a non-updatable state'
   }

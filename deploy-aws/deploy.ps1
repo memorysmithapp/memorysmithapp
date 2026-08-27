@@ -310,3 +310,6 @@ if ($verifyGaps -gt 0) {
 }
 Write-Ok ("deploy finished in {0:mm\:ss}" -f $elapsed)
 Write-Detail 'next: sign in at the site, or point an MCP client at the endpoint above'
+# Explicit, so the exit code is the script's and not that of the last native
+# command that happened to run inside it.
+exit 0
