@@ -249,12 +249,16 @@ export class IdentityStack extends Stack {
     };
 
     /**
-     * The icons, exported from the brand book (page 08, "Ícone de app e
-     * favicon") and committed as binaries. Everything else here is derived at
-     * build time from the SVG, and this is the one thing that cannot be: ICO
-     * is a raster format, and nothing in the toolchain rasterises a vector.
-     * The four sizes inside each file are the ones the brand book names, plus
-     * 256 for dense screens.
+     * The icon, from the brand book (page 08), committed as a binary.
+     * Everything else here is derived at build time from an SVG, and this is
+     * the one thing that cannot be: ICO is raster, and nothing in the
+     * toolchain rasterises a vector. The sizes inside it are the ones the
+     * brand book names, plus 256 for dense screens.
+     *
+     * It had to come from an ISOLATED render of the symbol. A plain export
+     * flattens whatever sits behind the node in the file, so the first version
+     * of this icon carried the white of the page it was standing on, and a
+     * favicon with a white plate behind it is worse than no favicon at all.
      */
     const icon = (file: string): string =>
       readFileSync(join(here, '..', 'branding', file)).toString('base64');
