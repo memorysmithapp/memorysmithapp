@@ -332,7 +332,7 @@ Seis bounded contexts. A separação é de responsabilidade e vocabulário; a fo
 |---|---|---|
 | **Access** | Assinaturas e seu ciclo de vida, membros, papéis, tetos de vault, convites, vínculos, autorização | Supporting |
 | **Knowledge** | Vaults, guidance, pastas, ordem, templates, notas | **Core** |
-| **Discovery** | Grafo de links, índice de busca e facetas de curadoria, três projeções | Supporting |
+| **Discovery** | Grafo de links, índice de texto e facetas de curadoria, três projeções | Supporting |
 | **Audit** | Trilha append-only: autoria, revisões, reconstrução por data | Supporting |
 | **Agent Access** | O MCP server; compõe o Vault Context; traduz domínio ↔ tools | Supporting (camada anticorrupção) |
 | **Portability** | Export para árvore de arquivos legível | Generic |
@@ -534,7 +534,7 @@ Ordenação alfabética continua disponível como opção de exibição no clien
 | `read_note` | `(vault, note, asOf?)` | Markdown completo e a revisão corrente; com `asOf`, a revisão vigente naquela data |
 | `create_note` | `(vault, folder, title, content)` | O caminho de ingestão (§1.3) |
 | `update_note` | `(vault, note, content, baseRevision)` | Atualização com detecção de conflito |
-| `search_notes` | `(vault, query)` | Busca lexical: título e pasta |
+| `search_notes` | `(vault, query)` | Busca literal no texto do vault, com campos e operadores (§10.2) |
 | `related_notes` | `(vault, note, depth?)` | Árvore de dependências pelo grafo de links |
 | `backlinks` | `(vault, note)` | Quem aponta para esta nota |
 | `note_history` | `(vault, note)` | Linha do tempo: quem alterou, quando, com qual agente |
@@ -609,18 +609,23 @@ Cada link escrito no corpo de uma nota vira uma aresta. Duas formas são reconhe
 
 ### 10.2 Busca
 
-A busca do produto é **lexical sobre o título e a pasta da nota**. Ela responde "como a nota se chama e onde ela está", não "sobre o que ela fala".
+A busca do produto é **literal sobre o texto do vault**: o corpo de cada nota, o título, a pasta e os headings. Ela responde "onde está escrita esta palavra", e casa por trecho, ignorando acento e caixa, de modo que um termo escrito uma única vez dentro de uma nota é encontrado digitando parte dele.
 
-A busca por significado existiu como `semantic_search`, apoiada em um índice vetorial, e foi **retirada na 0.2.0**. O motivo é de desenho e não de escopo: pontuar similaridade dentro da função exigia ler todos os trechos do vault a cada consulta, o que não escala nem em custo nem em tempo de resposta. A capacidade volta quando houver um índice de conteúdo de verdade por trás da porta, e a decisão de qual índice será tomada com um vault real em uso. Enquanto isso, quem procura por assunto tem o grafo de links (§10.1) e as facetas de curadoria (§10.3).
+A consulta aceita vários termos, que precisam casar todos, `"frase exata"`, `-exclusão`, `OR`, parênteses e os campos `title:`, `folder:`, `content:` e `section:`. **Qualquer outro prefixo é lido como atributo de frontmatter do vault**, e é o que torna `maturity:evergreen`, `reviewed:false` ou um `norma:federal` que o vault inventou filtros válidos sem que nada disso esteja escrito no código. O vocabulário pertence ao Guidance (PP4, RN-DSC-020), e a linguagem ubíqua do vault vira a linguagem de consulta.
 
-- **RN-DSC-010:** A busca sempre devolve a nota de origem junto do resultado, e o campo de seção quando o índice souber de qual seção o trecho veio. Quem consome decide com a fonte à vista.
+O que a busca **não** faz é procurar por significado. Uma nota que trate do assunto com outras palavras não volta. Isso existiu como `semantic_search`, apoiada em um índice vetorial, e foi **retirada na 0.2.0**: pontuar similaridade dentro da função exigia ler todos os trechos do vault a cada consulta, e o item de um trecho custava dez vezes o tamanho da nota. Quem procura por assunto conta com o grafo de links (§10.1) e as facetas de curadoria (§10.3) até que a capacidade volte sobre um índice adequado.
+
+- **RN-DSC-010:** A busca sempre devolve a nota de origem junto do resultado, o heading sob o qual o trecho caiu quando houver um, e o trecho recortado do texto como foi escrito. Quem consome decide com a fonte à vista.
 - **RN-DSC-011:** *(removida na 0.2.0)* Cada trecho era enriquecido com o contexto de onde veio, ou seja vault, pasta, descrição da pasta e título da nota, antes de ser vetorizado.
 - **RN-DSC-012:** Mover uma nota de pasta dispara a reprojeção dela, porque a pasta faz parte do retrato que o vault mostra da nota.
 - **RN-DSC-013:** Apagar uma nota a remove das projeções imediatamente, inclusive no soft delete. O que sai da listagem sai da busca, porque conteúdo apagado que continua sendo devolvido é problema de privacidade, não de qualidade.
 - **RN-DSC-014:** Restaurar uma nota a reprojeta.
 - **RN-DSC-015:** *(removida na 0.2.0)* O índice vetorial era isolado por assinatura, não filtrado por metadado dentro de um índice compartilhado. A exigência continua valendo para qualquer índice derivado por RN-SUB-015, e é ela que governa o índice de conteúdo que vier a substituí-lo.
 - **RN-DSC-016:** Grafo, busca e facetas são derivados (PP5): apagar e reconstruir do zero a partir das notas é operação suportada, e é o plano de recuperação de todos.
-- **RN-DSC-025:** Enquanto não houver índice de conteúdo, a busca declara o que indexa. Uma consulta por termo que só aparece no corpo da nota não devolve resultado, e isso é comportamento declarado, não falha: a ferramenta MCP diz na própria descrição que casa nome e pasta.
+- **RN-DSC-025:** A busca casa **trecho literal**, e não palavra inteira nem raiz. `14.133` é encontrado por `14.133` e não por `14133`, porque o separador foi escrito pelo autor e inventar uma normalização de números tornaria o resultado impossível de explicar. Acento e caixa, esses sim, são ignorados dos dois lados.
+- **RN-DSC-026:** Os campos `title`, `folder`, `content` e `section` são os únicos que o backend conhece por nome. Todo outro prefixo de consulta é resolvido como faceta do vault, e um prefixo que não corresponda a faceta nenhuma simplesmente não casa, nunca é erro.
+- **RN-DSC-027:** A busca varre todas as notas do vault a cada consulta, o que é sustentado pelo teto de 2.000 notas por vault (RN-KNW-010). A varredura precisa percorrer o índice inteiro: uma busca que responde de uma parte do vault sem dizer que parou é pior que busca nenhuma.
+- **RN-DSC-028:** O frontmatter não participa do texto pesquisável. Ele é matéria do projetor de facetas (RN-DSC-018), e mantê-lo no corpo faria toda nota casar com o próprio metadado.
 
 ### 10.3 Facetas de curadoria
 
@@ -743,7 +748,7 @@ Normas e Legislação/
 | Pasta → Template | Editor do Template da pasta |
 | Nota | Leitura e edição; painel lateral com backlinks e relacionadas |
 | Nota → Histórico | Linha do tempo com autoria (humano e agente) e diferença entre revisões |
-| Vault → Busca | Campo único sobre título e pasta |
+| Vault → Busca | Campo único sobre o texto do vault, aceitando campos e operadores |
 | Vault → Atividade | Quem escreveu o quê no período, em visão de vault e não de nota |
 | Vault → Saúde | Links quebrados e notas órfãs |
 | Vault → Acesso | Lista os membros da assinatura e permite rebaixar um `EDITOR` a `VIEWER` **neste vault** (§5.3). Mostra o papel efetivo de cada um, não só o teto |
@@ -804,7 +809,7 @@ Três inclusões que parecem contradizer o recorte, e não contradizem:
 
 ### 15.2 Depois da 0.1.0
 
-A 0.2.0 fecha o produto descrito neste documento: os seis bounded contexts, a infraestrutura inteira e a interface ligada à API real. Ela entrega, além do recorte da 0.1.0, o Discovery sem o índice de conteúdo (grafo de links, busca lexical e facetas de curadoria), as quatro tools de descoberta, a colaboração (convites, `EDITOR`, `VIEWER` e teto de papel por vault), o ciclo de vida completo da assinatura (suspender, reativar, cancelar e transferir titularidade), mover nota entre vaults e a portabilidade.
+A 0.2.0 fecha o produto descrito neste documento: os seis bounded contexts, a infraestrutura inteira e a interface ligada à API real. Ela entrega, além do recorte da 0.1.0, o Discovery completo (grafo de links, busca literal no texto com linguagem de consulta e facetas de curadoria), as quatro tools de descoberta, a colaboração (convites, `EDITOR`, `VIEWER` e teto de papel por vault), o ciclo de vida completo da assinatura (suspender, reativar, cancelar e transferir titularidade), mover nota entre vaults e a portabilidade.
 
 | Versão | Tema |
 |---|---|
@@ -827,7 +832,7 @@ A ordem técnica de construção, com critérios de pronto, está em `architectu
 | Dois agentes sobrescreverem a mesma nota | Médio | `baseRevision` obrigatório; conflito devolve o conteúdo atual (RN-AGT-005) |
 | Retry de transporte duplicar nota na ingestão | Médio | Slug único no vault faz a idempotência; `ALREADY_EXISTS` devolve o identificador existente, nunca gera sufixo (RN-AGT-004) |
 | Busca devolver plausível-porém-errado | Médio | Sempre citar a nota de origem; o agente decide com a fonte à vista (RN-DSC-010) |
-| Busca por título não achar a nota certa | **Alto** | Risco assumido na 0.2.0 (§10.2): sem índice de conteúdo, quem procura por assunto usa o grafo e as facetas. É o que o MVP vai medir com um vault real |
+| Busca literal não achar a nota que fala do assunto com outras palavras | Médio | Risco assumido na 0.2.0 (§10.2): a busca acha o que está escrito, e quem procura por assunto usa o grafo e as facetas. É o que o MVP vai medir com um vault real |
 | Apagar nota destruir o histórico prometido | **Alto** | Soft delete; destruição de bytes fora do domínio, como ato administrativo com evento (RN-AUD-007) |
 | Usuário em duas assinaturas agir na assinatura errada | **Alto** | Assinatura ativa explícita; conector fixa a assinatura no consentimento (RN-SUB-014) |
 | Cancelamento virar perda ou migração de dados | **Alto** | `SubscriptionId` perpétuo: status controla acesso, nunca endereço (RN-SUB-005). Reativar é mudar um campo |

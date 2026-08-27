@@ -49,7 +49,7 @@ Para **o que** o produto faz e sob qual regra de negócio, ver [`software-vision
 | **D3** | **Isolamento por assinatura desde a primeira linha**, com `SubscriptionId` na chave líder de todo item, em todo serviço | Introduzir a fronteira depois, o que equivale a re-chavear tudo |
 | **D4** | **Subscription → Vault**, em que a assinatura é a fronteira, a unidade de colaboração **e** o objeto de negócio | Tenant técnico separado da assinatura; nível intermediário de workspace (removido, `software-vision.md` §4.3) |
 | **D5** | **DDD tático mais Hexagonal, um deployable por bounded context** como desenho-alvo | Monólito modular (ver §24) |
-| **D6** | **Descoberta por grafo de links e por facetas, ambas projeções de eventos.** A busca vetorial que acompanhava as duas foi retirada na 0.2.0 (§11.2) | Só busca lexical |
+| **D6** | **Descoberta por grafo de links, por texto e por facetas, as três projeções de eventos.** A busca é literal e varre o vault sob o teto declarado; a vetorial foi retirada na 0.2.0 (§11.2) | Só busca por título |
 | **D7** | **Proveniência e histórico imutável no núcleo** | Log de aplicação; versionamento apenas no S3 |
 
 ### 1.2 Topologia
@@ -132,7 +132,7 @@ O desenho-alvo é de seis deployables (D5). **A 0.1.0 sai como monólito modular
 | API | API Gateway HTTP API por serviço, atrás de um CloudFront | Roteamento por path |
 | Dados estruturais | DynamoDB on-demand, PITR habilitado | Uma tabela por serviço |
 | Conteúdo | S3 com versionamento; Object Lock opcional por assinatura | Chaves opacas planas |
-| Índice de conteúdo | Nenhum na 0.2.0 | Retirado em §11.2; candidatos avaliados lá |
+| Índice de conteúdo | Item `TEXT#` na `mv-discovery`, varrido na função | Sustentado pelo teto de 2.000 notas (§11.2) |
 | Eventos | EventBridge (bus `mv-events`) e DynamoDB Streams para a outbox | |
 | Identidade | Amazon Cognito user pool com trigger de *pre-token-generation* | Registro de cliente MCP via proxy CIMD (§13.3) |
 | Validação | Zod, na borda e nos contratos de evento | Nunca dentro do domínio |
@@ -491,9 +491,10 @@ export interface EventPublisher { publish(events: DomainEvent[]): Promise<void>;
 | `ContentStore` | `S3ContentStore` | `InMemoryContentStore` |
 | `EventPublisher` | `OutboxEventPublisher` (grava na mesma transação) | `RecordingEventPublisher` |
 | `LinkGraph` | `DynamoLinkGraph` | `InMemoryLinkGraph` |
+| `ContentIndex` | `DynamoContentIndex` | `InMemoryContentIndex` |
 | `AccessPolicy` | `HttpAccessPolicy` \| `LocalAccessPolicy` (§24) | `StubAccessPolicy` |
 
-O domínio de Discovery conhece `Edge`, `Depth` e `Facet`, e nunca conhece AWS.
+O domínio de Discovery conhece `Edge`, `Depth`, `Facet` e `QueryNode`, e nunca conhece AWS. A linguagem de consulta inteira vive em `SearchQuery.ts`, sem I/O.
 
 ---
 
@@ -773,7 +774,24 @@ Aresta gravada nas duas direções: backlink vira um `Query`, não uma varredura
 
 ### 11.2 Busca
 
-A busca é **lexical sobre título e pasta**, respondida a partir do catálogo de notas do Knowledge. Não existe índice de conteúdo: uma consulta por termo que só aparece no corpo da nota não devolve resultado (RN-DSC-025).
+A busca é **literal sobre o texto do vault**, respondida a partir de um item por nota na `mv-discovery`:
+
+| Item | PK | SK |
+|---|---|---|
+| Retrato pesquisável | `S#{s}#VAULT#{v}` | `TEXT#{noteId}` |
+
+O item guarda título, pasta, headings, as facetas e o corpo **duas vezes**: normalizado para casar e como foi escrito para o trecho. A normalização é feita caractere a caractere, e cada caractere contribui com exatamente o tamanho que ocupava, de modo que uma posição no texto normalizado é a mesma posição no original. É isso que permite recortar o trecho do texto que a pessoa escreveu: um `NFD` sobre a string inteira desloca todos os deslocamentos depois do primeiro acento, e o leitor receberia uma passagem cortada alguns caracteres fora do lugar, ou prosa rebaixada que ninguém digitou.
+
+**A varredura é do vault inteiro, e isso é escolha, não atalho.** O teto é de 2.000 notas por vault (`software-vision.md` §14), cerca de 8 MB, e nesse tamanho varrer custa 1.061 unidades de leitura por consulta, algo como US$ 0,00027. Um índice invertido seria mais barato por consulta e muito mais caro de manter correto: cada escrita teria que atualizar as postings de cada termo, e a diferença em dinheiro, no teto declarado, é de centavos por mês. A comparação com o índice vetorial que saiu é o argumento inteiro:
+
+| | Bytes por vault no teto | Amplificação sobre o Markdown | Leitura por consulta |
+|---|---|---|---|
+| `CHUNK#` com vetor (removido) | 82,8 MB | 10,6× | 10.597 RRU |
+| `TEXT#` com o corpo | 8,3 MB | 1,06× | 1.061 RRU |
+
+**O que a varredura não pode é parar cedo.** `scanVault` percorre todas as páginas do `Query`, e há um teste com nove páginas falsas que prova isso. Não é detalhe de otimização: foi exatamente um `Query` que parava na primeira página de 1 MB que quebrou a busca anterior, e 8 MB são oito páginas.
+
+**A linguagem de consulta** (`SearchQuery.ts`) é domínio puro, sem AWS e sem I/O, e por isso testada inteira sem infraestrutura. Ela conhece quatro campos por nome, `title`, `folder`, `content` e `section`, e resolve **qualquer outro prefixo como faceta**. Nenhuma lista de nomes de faceta existe no código, o que é a mesma decisão do `FacetExtractor` (§11.3) levada até a consulta: o vocabulário é do Guidance, então um vault que passe a escrever `norma: federal` ganha `norma:federal` como filtro no mesmo dia.
 
 **O que havia antes, e por que saiu.** Até a 0.1.0 o Discovery mantinha um índice vetorial: as notas eram cortadas em trechos por heading, cada trecho recebia um prefixo de contexto (`vault › pasta › descrição da pasta › título`), ia ao Bedrock Titan Text Embeddings V2 em 1024 dimensões e o vetor era gravado como lista de `Number` na própria tabela `mv-discovery`, em itens `CHUNK#{noteId}#{i}`.
 
@@ -787,7 +805,7 @@ Três medidas tomadas no ambiente real condenaram o desenho:
 
 O terceiro item é o decisivo: a busca **parecia** funcionar porque o corte de 1 MB a mantinha rápida, enquanto varria menos de 0,01% de um vault grande. Um índice que mente em silêncio é pior que a ausência dele, que é declarada.
 
-**A remoção é temporária e o problema está adiado, não resolvido.** Buscar o que uma nota diz é parte da tese do produto, e volta atrás da mesma porta. As três saídas mapeadas, em ordem de custo crescente por mês para dez usuários com 1 GB cada: índice invertido próprio na `mv-discovery` (US$ 4), Athena sobre Parquet (US$ 6) e OpenSearch Serverless em collection NextGen, que escala a zero quando ociosa (US$ 62). Trazer o vetor de volta sobre S3 Vectors continua na mesa e é a única que devolve busca por significado. A escolha se faz com um vault real em uso, não por projeção.
+**O que continua ausente é a busca por significado**, a que acha a nota que fala do assunto com outras palavras. Essa não volta por varredura: exige um índice vetorial com recuperação de verdade, e o candidato é S3 Vectors, que guarda vetor a US$ 0,06 por GB ao mês e não lê tudo a cada consulta. A diferença em relação ao que saiu é que ela voltará como acréscimo a uma busca que funciona, e não como a única busca que existe.
 
 **Isolamento:** qualquer índice que substitua este é **por assinatura** (RN-SUB-015), nunca um índice global filtrado por metadado. Filtro de metadado é controle de acesso por convenção; índice separado é fronteira física.
 
@@ -825,6 +843,13 @@ export interface LinkGraph {
   backlinks(note: NoteId): Promise<NoteRef[]>;
   broken(vault: VaultId): Promise<BrokenLink[]>;
   orphans(vault: VaultId): Promise<NoteRef[]>;
+}
+
+export interface ContentIndex {
+  replaceNote(vault: VaultId, note: IndexedNote): Promise<void>;
+  removeNote(vault: VaultId, note: NoteId): Promise<void>;
+  /** Every page. A partial scan that claims to be whole is worse than none. */
+  scanVault(vault: VaultId): Promise<IndexedNote[]>;
 }
 
 export interface FacetExtractor { extract(frontmatter: string): FacetSnapshot; }
@@ -1319,7 +1344,7 @@ Ordem de dependência técnica, com critério de pronto verificável. A coluna *
 | 7 | `svc-audit` | `read_note(asOf)` devolve o conteúdo correto de uma data passada; update no log falha **por IAM** | 0.2.0 |
 | 8 | `svc-agent`: o catálogo de tools | `get_vault_context` devolve o Markdown de `software-vision.md` §9.2, com as contagens, em **um** `Query` | 0.2.0 |
 | 9 | UI de autoria | Criar um vault do zero, escrever guidance e template, e ler o histórico de uma nota sem tocar na API | 0.2.0 |
-| 10 | `svc-discovery`: grafo, busca e facetas | Link pendente resolve ao criar a nota alvo; a busca lexical traz a nota certa por título e pasta; o painel de curadoria sai de um `Query` nos contadores, sem varrer notas | 0.2.0 |
+| 10 | `svc-discovery`: grafo, busca e facetas | Link pendente resolve ao criar a nota alvo; uma palavra escrita só no corpo de uma nota é encontrada, com o trecho e o heading de origem; o painel de curadoria sai de um `Query` nos contadores, sem varrer notas | 0.2.0 |
 | 11 | Tools de descoberta; mover nota entre vaults; convites | `NoteId` e histórico preservados na troca de vault; backlinks quebrados avisados antes | 0.2.0 |
 | 12 | `svc-portability` | Zip contém só `.md`, com a ordem legível na própria árvore de arquivos | 0.2.0 |
 
@@ -1331,7 +1356,7 @@ A 0.2.0 constrói os seis bounded contexts, a infraestrutura inteira e a ligaç�
 
 Quatro decisões da implementação valem registro, porque quem lê o desenho precisa saber onde o código diverge dele e por quê:
 
-- **Não há índice de conteúdo na 0.2.0.** O índice vetorial que vivia na própria tabela do Discovery, com pontuação por cosseno na função, foi retirado por medição (§11.2): o item de um chunk chegava a 14 KB, quase todo vetor, e cada consulta lia o vault inteiro. A busca por conteúdo volta atrás de uma porta, sobre um índice escolhido com um vault real em uso.
+- **O índice de conteúdo é uma varredura, não um índice invertido** (§11.2). Sob o teto de 2.000 notas por vault, varrer custa cerca de 1.000 unidades de leitura por consulta e dispensa manter postings em dia a cada escrita. A porta `ContentIndex` é o que torna a troca por um índice invertido, ou por um serviço gerenciado, uma mudança de adaptador se o teto do produto algum dia subir.
 - **O Discovery mantém uma projeção própria da estrutura do vault**, alimentada pelos eventos de vault e de pasta. O Vault Context é respondido a partir dela, e consultar o Knowledge para obter o nome do vault e a árvore de pastas inverteria a direção única do §3.1, que é o que torna as projeções reconstruíveis.
 - **O Discovery ganhou uma sexta rota, `GET /vaults/:v/graph`**, que devolve o grafo de links inteiro de um vault. A §14.1 declarava apenas a árvore a partir de uma nota, sob teto de profundidade, e ela responde a outra pergunta: a tela de grafo desenha o vault todo, sem raiz. A projeção de links já guardava exatamente isso na partição do vault, então a rota é uma consulta por prefixo e nada de novo é gravado. As arestas voltam como pares de índice sobre a lista de nós, e o teto de 2.000 nós vem declarado na resposta, porque um grafo cortado que se diz inteiro é pior que grafo nenhum.
 - **A composição do monólito modular vive em `memorysmith-backend/apps/core-monolith`**, e é o único lugar que conhece dois contextos ao mesmo tempo. Os serviços continuam sem se importarem entre si, e a separação em seis deployables é a troca desse arquivo (§24).
@@ -1350,7 +1375,7 @@ Riscos de produto estão em `software-vision.md` §16.
 | S3 Vectors indisponível ou limitado na região | Médio | Porta `VectorIndex` já isola; plano B é OpenSearch Serverless, **sem tocar no domínio**, que é o tipo de troca que o hexágono existe para tornar barata |
 | Bucket opaco: perder o DynamoDB deixa uma pilha de `.md` sem significado | Médio | PITR na tabela, a trilha do `svc-audit` com todo `(noteId, contentId, versionId)` já visto, e metadados imutáveis no objeto (§9.2) |
 | Trilha de auditoria crescer sem controle | Médio | Evento é pequeno e append-only; retenção por assinatura; o conteúdo pesado fica no S3 |
-| Vault grande sem busca por conteúdo | **Alto** | Risco assumido na 0.2.0 (§11.2): o MVP mede com vault real se o grafo e as facetas bastam antes de escolher o índice |
+| Vault acima do teto declarado degradar a busca | Médio | A varredura é sustentada por RN-KNW-010; subir o teto exige trocar o adaptador de `ContentIndex` antes, e não depois |
 | Órfãos no S3 sem índice por `contentId` | Baixo | Só nascem de falha entre os passos 1 e 3 (§10.5): raros e baratos. Job semanal recolhe. Dívida registrada: a solução limpa custa um GSI no caminho quente e não se paga agora |
 | 6 serviços antes do primeiro usuário | Médio | 0.1.0 sai como monólito modular com `svc-audit` separado (§24); expandir é trocar o composition root |
 | Hexagonal virar só nome de pasta | Médio | Regra de dependência no CI desde a entrega 2 (§5.5, §20) |
