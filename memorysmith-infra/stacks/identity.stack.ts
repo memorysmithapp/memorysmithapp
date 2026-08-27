@@ -226,6 +226,17 @@ export class IdentityStack extends Stack {
     const brandAsset = (file: string): Buffer =>
       readFileSync(join(here, '..', '..', 'memorysmith-frontend', 'public', file));
 
+    /**
+     * The icons, exported from the brand book (page 08, "Ícone de app e
+     * favicon") and committed as binaries. Everything else here is derived at
+     * build time from the SVG, and this is the one thing that cannot be: ICO
+     * is a raster format, and nothing in the toolchain rasterises a vector.
+     * The four sizes inside each file are the ones the brand book names, plus
+     * 256 for dense screens.
+     */
+    const icon = (file: string): string =>
+      readFileSync(join(here, '..', 'branding', file)).toString('base64');
+
     const symbol = (file: string): string => brandAsset(file).toString('base64');
 
     /**
@@ -259,17 +270,27 @@ export class IdentityStack extends Stack {
         readFileSync(join(here, '..', 'branding', 'managed-login.json'), 'utf8'),
       ) as unknown,
       assets: [
+        /**
+         * The full signature, symbol and logotype, exported from the brand
+         * book (page 04) with the type already converted to curves. That last
+         * part is why it can live here at all: Space Grotesk is loaded from a
+         * font service at runtime and would never reach a page served by the
+         * identity provider, so a logotype as live text would fall back to
+         * some other typeface on the one screen where the brand is most
+         * exposed. The tile background of the export was stripped: what lands
+         * on the card has to be the signature, not a grey rectangle.
+         */
         {
           category: 'FORM_LOGO',
           colorMode: 'LIGHT',
           extension: 'SVG',
-          bytes: symbol('symbol.svg'),
+          bytes: icon('lockup-light.svg'),
         },
         {
           category: 'FORM_LOGO',
           colorMode: 'DARK',
           extension: 'SVG',
-          bytes: symbol('symbol-dark.svg'),
+          bytes: icon('lockup-dark.svg'),
         },
         /**
          * The same file the product uses as its own favicon, so the tab of the
@@ -289,6 +310,23 @@ export class IdentityStack extends Stack {
           colorMode: 'DARK',
           extension: 'SVG',
           bytes: squareSymbol('symbol-dark.svg'),
+        },
+        /**
+         * The .ico alongside the .svg, because the page announces both and a
+         * browser is free to prefer either. Supplying only one leaves the
+         * other pointing at the provider's default icon.
+         */
+        {
+          category: 'FAVICON_ICO',
+          colorMode: 'LIGHT',
+          extension: 'ICO',
+          bytes: icon('favicon-light.ico'),
+        },
+        {
+          category: 'FAVICON_ICO',
+          colorMode: 'DARK',
+          extension: 'ICO',
+          bytes: icon('favicon-dark.ico'),
         },
       ],
     });
