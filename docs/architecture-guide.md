@@ -674,15 +674,16 @@ Query  PK = S#{s}#VAULT#{v}   AND   SK BETWEEN 'FOLDER#' AND 'META'
 ### 9.4 `mv-access`
 
 ```
-S#{s}              / META                  → assinatura: name, ownerId, status, requestedAt,
-                                             reviewedBy, rejectionReason, legalHold
+S#{s}              / META                  → assinatura: name, ownerId, status, type, quota,
+                                             requestedAt, reviewedBy, rejectionReason, legalHold
 S#{s}              / USER#{userId}          → usuário conhecido pela assinatura
 S#{s}              / INVITE#{token}         → convite pendente (ttl = expiresAt)
 S#{s}              / MEMBER#{userId}        → membership: role (EDITOR | VIEWER)
 USER#{userId}      / SUB#{subscriptionId}   → vínculo (§8.3, exceção 1)
 
 GSI2:  PLATFORM#{status}     → REQUESTED#{timestamp}#{subscriptionId}  → fila da plataforma (§8.3, exceção 2)
-                               projeção INCLUDE: name, ownerEmail, status, requestedAt, memberCount
+                               projeção INCLUDE: name, ownerEmail, status, type, quota,
+                               requestedAt, memberCount
 ```
 
 **O `OWNER` não é um item `MEMBER`.** A titularidade mora em `ownerId`, no item `META` da assinatura: um campo único, que é como RN-ACC-001 ("exatamente um `OWNER`") deixa de ser regra a verificar e passa a ser forma do dado. A transferência de titularidade é um `Update` condicional nesse campo mais o `Put` do membership `EDITOR` do titular anterior, numa transação (RN-ACC-002).
@@ -982,7 +983,7 @@ Consumidas pela UI; **o contrato público é o MCP**.
 
 ```
 svc-access       GET  /session/subscriptions · POST /session/subscription  { subscriptionId }
-                 POST /subscriptions                       (onboarding: pending_approval)
+                 POST /subscriptions      { name, type?, quota? }  (pending_approval)
                  POST /subscriptions/:s/ownership          { toUserId }
                  GET  /members · POST /members             { email, role }
                  PATCH /members/:u  { role } · DELETE /members/:u
@@ -990,7 +991,10 @@ svc-access       GET  /session/subscriptions · POST /session/subscription  { su
 svc-access       GET  /platform/subscriptions?status=      ─┐  sessão de plataforma:
  (plataforma)    POST /platform/subscriptions/:s/approve    ├─ sem claim subscription_id,
                  POST /platform/subscriptions/:s/reject     │  lê só pelo GSI2 (§8.3, §8.4)
-                 POST /platform/subscriptions/:s/suspend   ─┘
+                 POST /platform/subscriptions/:s/suspend    │
+                 PUT  /platform/subscriptions/:s/status     │  ato administrativo: define o
+                 PATCH /platform/subscriptions/:s/plan     ─┘  status sem a máquina de
+                                                               transição (RN-SUB-018)
 svc-knowledge    POST /vaults · GET /vaults/:v · PUT /vaults/:v/guidance
                  POST /vaults/:v/folders · PATCH /vaults/:v/folders/:f
                  POST /vaults/:v/folders/:f/reorder   { afterFolderId | null }

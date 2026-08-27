@@ -235,10 +235,9 @@ Ao final, o script imprime conta, região, endereços do site, da API e do MCP, 
 | `-SkipFrontend` | Sobe só o backend |
 | `-SkipSynth`, `-SkipBootstrap`, `-SkipVerify` | Pulam a síntese, o bootstrap e a verificação final |
 | `-KeepFrontendEnv` | Não sobrescreve `memorysmith-frontend/.env.local` |
-| `-SetTestUserPassword` | Pede uma senha e a define como definitiva para o usuário de teste do pool |
 | `-EphemeralData` | Cria os recursos de dado com política de remoção destrutiva, para um ambiente descartável |
 | `-IgnoreGaps` | Segue mesmo com gaps abertos, para quando uma checagem está errada sobre a sua máquina |
-| `-HostedZoneId`, `-CognitoDomainPrefix`, `-TestUserEmail` | Sobrescrevem o contexto do `cdk.json` só naquela execução |
+| `-HostedZoneId`, `-CognitoDomainPrefix` | Sobrescrevem o contexto do `cdk.json` só naquela execução |
 
 #### O que o script verifica no fim
 
@@ -246,13 +245,50 @@ Com o ambiente no ar, ele confere quatro coisas, que são as mesmas do §13.3 do
 
 #### O que o deploy não faz por você
 
-- **Senha do usuário de teste.** O usuário nasce com senha temporária. Rode uma vez `./deploy-aws/deploy.ps1 -SetTestUserPassword -Stacks MemorysmithIdentity -SkipInstall`, ou use o `aws cognito-idp admin-set-user-password` na mão.
+- **Criar conta nenhuma.** O user pool sobe vazio, de propósito: nenhum e-mail de pessoa real fica no repositório e nenhum deploy decide quem opera a plataforma. Quem cria a primeira conta é o `onboard.ps1` logo abaixo.
 - **O fluxo OAuth ponta a ponta**, que precisa de navegador:
   ```
   npx @modelcontextprotocol/inspector
   ```
   No Inspector: transporte **Streamable HTTP**, URL `https://mcp.memorysmith.app/mcp`, e iniciar a autenticação. O fluxo descobre o authorization server, redireciona ao login do Cognito, volta com o token e lista as tools. Chamar `whoami` deve devolver `sub`, `client_id`, `subscription_id` e `subscription_status`.
 - **Registrar o conector nos clientes de agente**: Claude Desktop, Claude Code e claude.ai recebem a mesma URL como conector remoto.
+
+### A primeira conta, a assinatura e o vault
+
+Um ambiente recém-subido não tem ninguém dentro: o pool é vazio e não existe assinatura, porque assinatura é solicitada por uma pessoa e autorizada por um administrador de plataforma. O `onboard.ps1` fecha esse laço inteiro, sempre pela API do produto e nunca escrevendo no banco à mão:
+
+```
+./deploy-aws/onboard.ps1 -Profile memorysmith
+```
+
+Ele pergunta o que precisa saber e então cria a conta no Cognito com senha definitiva, solicita a assinatura com o tipo e a quota escolhidos, coloca a assinatura no status escolhido e escreve um vault inteiro, com Orientação, pastas, Modelos e notas, a partir de um dos vaults de `memorysmith-frontend/seed/vaults`.
+
+**A primeira conta de um pool vazio vira administradora de plataforma, e só a primeira.** Alguém precisa autorizar a primeira assinatura, e em um ambiente novo não há ninguém. Depois que o grupo tem um membro, uma execução seguinte pede as credenciais de um administrador existente em vez de entregar a plataforma a quem rodar o script.
+
+Para olhar o que um seed viraria, sem criar nada e sem sequer falar com a AWS:
+
+```
+./deploy-aws/onboard.ps1 -VaultTemplate engineering-knowledge -PreviewVault
+```
+
+| Opção | Para que serve |
+|---|---|
+| `-Email <endereço>` | A conta a criar ou reusar. Perguntado quando não é passado |
+| `-Name <nome>` | Nome de exibição da conta |
+| `-SubscriptionName <nome>` | Nome da assinatura. O padrão é `MemorySmith` |
+| `-Type individual` | Tipo da assinatura; `individual` é o único desta fase |
+| `-Quota 500MB\|1GB\|2GB` | Quota de armazenamento, declarada e ainda não aplicada |
+| `-Status <status>` | Status final da assinatura, qualquer um dos seis, inclusive um que a máquina de transição recusaria |
+| `-VaultTemplate <slug>` | Vault do seed a escrever, ou `none` para uma conta sem vault |
+| `-VaultName <nome>` | Nome do vault criado; o padrão é o título do seed |
+| `-StructureOnly` | Escreve Orientação, pastas e Modelos, e nenhuma nota |
+| `-MaxNotes <n>` | Para depois de `n` notas |
+| `-PreviewVault` | Só imprime o que seria escrito, e não cria nada |
+
+Duas coisas que o script faz e vale entender:
+
+- **Um status que não concede acesso é aplicado no fim.** Escrever o vault exige uma assinatura em `trial` ou `active`, então o vault é escrito com a assinatura ativa e o status pedido é aplicado no último passo, pela rota administrativa que define status sem passar pela máquina de transição.
+- **A claim nasce junto com o token.** A interface só enxerga a assinatura depois de um login novo, então saia e entre de novo em um navegador que já estava aberto.
 
 ### Derrubar
 

@@ -189,27 +189,16 @@ export class IdentityStack extends Stack {
       description: 'Operates the platform: approves, rejects and suspends subscriptions.',
     });
 
-    const testUserEmail = this.node.tryGetContext('testUserEmail') as string;
-    const testUser = new cognito.CfnUserPoolUser(this, 'TestUser', {
-      userPoolId: this.userPool.userPoolId,
-      username: testUserEmail,
-      desiredDeliveryMediums: ['EMAIL'],
-      userAttributes: [
-        { name: 'email', value: testUserEmail },
-        { name: 'email_verified', value: 'true' },
-      ],
-    });
-
-    const membership = new cognito.CfnUserPoolUserToGroupAttachment(
-      this,
-      'TestUserIsPlatformAdmin',
-      {
-        userPoolId: this.userPool.userPoolId,
-        groupName: 'platform-admin',
-        username: testUserEmail,
-      },
-    );
-    membership.addDependency(testUser);
+    /**
+     * NO USER IS SEEDED HERE, and that is deliberate.
+     *
+     * A seeded account would put a real person's e-mail address in the
+     * repository, where it stays forever and is read by everyone who clones
+     * it. It would also make the deploy decide who operates the platform,
+     * which is an operational act and not an infrastructure one. The pool
+     * therefore comes up empty, and `deploy-aws/onboard.ps1` creates the
+     * account, its subscription and its first vault against the API.
+     */
 
     /**
      * The sign-in page, dressed as the product.

@@ -26,9 +26,6 @@
 .PARAMETER CognitoDomainPrefix
   Overrides cognitoDomainPrefix from cdk.json for this run.
 
-.PARAMETER TestUserEmail
-  Overrides testUserEmail from cdk.json for this run.
-
 .PARAMETER Stacks
   Deploys only these stacks instead of all of them.
 
@@ -36,9 +33,6 @@
   Gives the data resources a DESTROY removal policy, so a sandbox can be torn
   down completely. Never use it on an environment whose data matters: the audit
   trail is retained either way, but nothing else is.
-
-.PARAMETER SetTestUserPassword
-  Asks for a password and sets it, permanent, on the test user of the pool.
 
 .PARAMETER PreflightOnly
   Runs the checks and stops, changing nothing.
@@ -66,7 +60,6 @@ param(
   [Alias('Profile')][string]$ProfileName,
   [string]$HostedZoneId,
   [string]$CognitoDomainPrefix,
-  [string]$TestUserEmail,
   [string[]]$Stacks,
   [switch]$EphemeralData,
   [switch]$SkipInstall,
@@ -75,7 +68,6 @@ param(
   [switch]$SkipFrontend,
   [switch]$SkipVerify,
   [switch]$KeepFrontendEnv,
-  [switch]$SetTestUserPassword,
   [switch]$PreflightOnly,
   [switch]$IgnoreGaps
 )
@@ -97,12 +89,10 @@ $context = Get-CdkContext
 $zoneName = $context.hostedZoneName
 $zoneId = if ($HostedZoneId) { $HostedZoneId } else { $context.hostedZoneId }
 $domainPrefix = if ($CognitoDomainPrefix) { $CognitoDomainPrefix } else { $context.cognitoDomainPrefix }
-$testUser = if ($TestUserEmail) { $TestUserEmail } else { $context.testUserEmail }
 
 $contextOverrides = @{
   hostedZoneId        = $HostedZoneId
   cognitoDomainPrefix = $CognitoDomainPrefix
-  testUserEmail       = $TestUserEmail
 }
 if ($EphemeralData) { $contextOverrides['retainData'] = 'false' }
 $contextArgs = ConvertTo-CdkContextArgs -Overrides $contextOverrides
@@ -121,7 +111,7 @@ if ($awsGaps -eq 0) {
   Write-Step 'Preflight: environment'
   $environmentGaps = Write-CheckReport -Checks (Test-DeployPreconditions `
       -ZoneName $zoneName -ZoneId $zoneId `
-      -CognitoDomainPrefix $domainPrefix -TestUserEmail $testUser)
+      -CognitoDomainPrefix $domainPrefix)
 } else {
   Write-Warn 'skipping the environment checks: they all need working credentials'
 }
@@ -248,34 +238,7 @@ if ($deployFrontend) {
   Write-Step 'Skipping the frontend (-SkipFrontend)'
 }
 
-# --- 8. Test user password ---------------------------------------------------
-
-if ($SetTestUserPassword) {
-  Write-Step 'Setting the password of the test user'
-  $identity = Get-StackOutputs -StackName 'MemorysmithIdentity'
-  if (-not $identity -or -not $identity['UserPoolId']) {
-    Write-Warn 'no user pool output found; skipping'
-  } elseif (-not $testUser) {
-    Write-Warn 'testUserEmail is empty; skipping'
-  } else {
-    $secure = Read-Host "  password for $testUser" -AsSecureString
-    $plain = [System.Net.NetworkCredential]::new('', $secure).Password
-    if (-not $plain) {
-      Write-Warn 'empty password; skipping'
-    } else {
-      Invoke-Aws -Arguments @(
-        'cognito-idp', 'admin-set-user-password',
-        '--user-pool-id', $identity['UserPoolId'],
-        '--username', $testUser,
-        '--password', $plain,
-        '--permanent'
-      ) | Out-Null
-      Write-Ok "password set for $testUser"
-    }
-  }
-}
-
-# --- 9. Verify ---------------------------------------------------------------
+# --- 8. Verify ---------------------------------------------------------------
 
 $verifyGaps = 0
 if (-not $SkipVerify) {
@@ -308,7 +271,7 @@ if (-not $SkipVerify) {
   }
 }
 
-# --- 10. Summary -------------------------------------------------------------
+# --- 9. Summary --------------------------------------------------------------
 
 Write-Step 'Environment'
 $identityOutputs = Get-StackOutputs -StackName 'MemorysmithIdentity'
@@ -332,7 +295,7 @@ if ($verifyGaps -gt 0) {
   exit 1
 }
 Write-Ok ("deploy finished in {0:mm\:ss}" -f $elapsed)
-Write-Detail 'next: sign in at the site, or point an MCP client at the endpoint above'
+Write-Detail 'next: ./deploy-aws/onboard.ps1 creates the first account, its subscription and its vault'
 # Explicit, so the exit code is the script's and not that of the last native
 # command that happened to run inside it.
 exit 0

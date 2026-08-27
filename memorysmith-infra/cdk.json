@@ -9,7 +9,6 @@
     "@aws-cdk/core:enablePartitionLiterals": true,
     "hostedZoneName": "memorysmith.app",
     "hostedZoneId": "Z1003210YHFJUFXNHOVX",
-    "cognitoDomainPrefix": "memorysmith-auth",
-    "testUserEmail": "heitor.rapcinski@gmail.com"
+    "cognitoDomainPrefix": "memorysmith-auth"
   }
 }

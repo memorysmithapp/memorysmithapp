@@ -553,8 +553,7 @@ function Test-DeployPreconditions {
   param(
     [Parameter(Mandatory)][string]$ZoneName,
     [Parameter(Mandatory)][string]$ZoneId,
-    [string]$CognitoDomainPrefix,
-    [string]$TestUserEmail
+    [string]$CognitoDomainPrefix
   )
   $checks = @()
 
@@ -573,12 +572,6 @@ function Test-DeployPreconditions {
   $contextDetail = "$ZoneName / $ZoneId"
   if ($CognitoDomainPrefix) { $contextDetail += " / $CognitoDomainPrefix" }
   $checks += New-Check -Name 'CDK context' -Status 'ok' -Detail $contextDetail
-
-  if (-not $TestUserEmail) {
-    $checks += New-Check -Name 'Test user' -Status 'warn' -Detail 'testUserEmail is empty; no test user will be seeded'
-  } else {
-    $checks += New-Check -Name 'Test user' -Status 'ok' -Detail $TestUserEmail
-  }
 
   # --- Hosted zone ---------------------------------------------------------
   $zone = Invoke-Aws -AllowFailure -Arguments @('route53', 'get-hosted-zone', '--id', $ZoneId)

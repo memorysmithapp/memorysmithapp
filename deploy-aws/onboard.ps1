@@ -1,33 +1,69 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-  Gives an account its first subscription on a freshly deployed environment.
+  Creates an account, gives it a subscription and fills its first vault.
 
 .DESCRIPTION
-  A deploy creates no subscription, by design: a subscription is requested by a
-  person and approved by a platform administrator (RN-SUB-001), and no seed
-  writes one behind that rule. On a new environment that leaves the first user
-  looking at the onboarding screen with nothing to enter, because the one
-  administrator who could approve the request is that same person and the
-  approval queue has no screen yet.
+  A deploy seeds nothing: the user pool comes up empty and no subscription is
+  written behind the rule that a person asks for one and a platform admin
+  approves it (RN-SUB-001, RN-SUB-006). On a brand new environment that leaves
+  nobody to sign in as, and nobody who could approve anything either.
 
-  This script closes that loop through the API, exactly as the two screens
-  would: it signs in as the user, requests the subscription when there is none
-  pending, and approves it as a platform administrator. Nothing is written to
-  DynamoDB by hand, so the domain events and the audit trail are the same ones
-  the product would have produced.
+  This script closes that loop end to end, and never by hand: it creates the
+  account in Cognito, signs in as it, asks for the subscription with the type
+  and the quota that were chosen, puts it in the status that was chosen, and
+  then writes a whole vault through the product API, from a seed tree under
+  memorysmith-frontend/seed/vaults. Nothing is written into DynamoDB or S3
+  directly, so the domain events and the audit trail are the ones the product
+  would have produced.
 
-  The claim travels inside the token, so the browser only sees the subscription
-  after a NEW sign-in: sign out and back in once this finishes.
+  THE FIRST ACCOUNT OF AN EMPTY POOL BECOMES A PLATFORM ADMIN, and only the
+  first: somebody has to be able to authorize the very first subscription. Once
+  the group has a member, a later run asks for the credentials of an existing
+  admin instead of quietly handing out the platform to whoever runs it.
+
+  The subscription claim is minted when the token is, so the browser only sees
+  the subscription after a NEW sign-in: sign out and back in once this finishes.
 
 .PARAMETER Email
-  The account to onboard. Defaults to testUserEmail from cdk.json.
+  The account to create or reuse. Asked for when it is not given.
+
+.PARAMETER Name
+  Display name of the account. The e-mail is used when there is none.
 
 .PARAMETER SubscriptionName
-  Name of the subscription to request. Defaults to 'MemorySmith'.
+  Name of the subscription. Defaults to 'MemorySmith'.
+
+.PARAMETER Type
+  Subscription type. Only 'individual' exists in this phase (RN-SUB-018).
+
+.PARAMETER Quota
+  Storage quota: '500MB', '1GB' or '2GB'. Declared, not enforced (RN-SUB-019).
 
 .PARAMETER Status
-  The status the approval grants: 'active' or 'trial'. Defaults to 'active'.
+  The status the subscription ends in. Any of the six, including one the
+  transition machine would refuse: the platform route that sets it is the
+  administrative override, and this is what it exists for (RN-SUB-018).
+
+.PARAMETER VaultTemplate
+  Slug of the seed vault to write, or 'none' for an account with no vault.
+  Asked for when it is not given; the list is what exists under
+  memorysmith-frontend/seed/vaults.
+
+.PARAMETER VaultName
+  Name of the created vault. Defaults to the title of the seed vault.
+
+.PARAMETER StructureOnly
+  Writes the Guidance, the folders and the Templates, and no notes. Useful on a
+  large seed, where the notes are the slow part by far.
+
+.PARAMETER MaxNotes
+  Stops after this many notes. 0, the default, means every note of the seed.
+
+.PARAMETER PreviewVault
+  Prints the vault that WOULD be written, folder by folder, and stops. It
+  creates nothing and calls neither the API nor Cognito, so it is how a seed of
+  six hundred notes is inspected before it is uploaded.
 
 .PARAMETER Region
   Target region. Defaults to CDK_DEFAULT_REGION, then to the region of the AWS
@@ -38,14 +74,32 @@
 
 .EXAMPLE
   ./deploy-aws/onboard.ps1 -Profile memorysmith
-  Requests and approves a subscription for the test user of cdk.json.
+  Asks for everything it needs and creates the account, the subscription and
+  the vault.
+
+.EXAMPLE
+  ./deploy-aws/onboard.ps1 -VaultTemplate engineering-knowledge -PreviewVault
+  Prints what that seed would become, and changes nothing.
+
+.EXAMPLE
+  ./deploy-aws/onboard.ps1 -Email ana@example.com -Quota 2GB -Status active -VaultTemplate fermentacao
+  A subscription of 2 GB, active, with a small vault written into it.
 #>
 
 [CmdletBinding()]
 param(
   [string]$Email,
+  [string]$Name,
   [string]$SubscriptionName = 'MemorySmith',
-  [ValidateSet('active', 'trial')][string]$Status = 'active',
+  [ValidateSet('individual')][string]$Type = 'individual',
+  [ValidateSet('500MB', '1GB', '2GB')][string]$Quota,
+  [ValidateSet('pending_approval', 'trial', 'active', 'rejected', 'suspended', 'canceled')]
+  [string]$Status,
+  [string]$VaultTemplate,
+  [string]$VaultName,
+  [switch]$StructureOnly,
+  [int]$MaxNotes = 0,
+  [switch]$PreviewVault,
   [string]$Region,
   [Alias('Profile')][string]$ProfileName
 )
@@ -55,7 +109,251 @@ $ProgressPreference = 'SilentlyContinue'
 . (Join-Path $PSScriptRoot 'lib' 'common.ps1')
 
 Write-Host ''
-Write-Host 'MemorySmith - first subscription' -ForegroundColor White
+Write-Host 'MemorySmith - onboard an account' -ForegroundColor White
+
+$script:ApiOrigin = ''
+$script:FolderCount = 0
+$script:NoteCount = 0
+$script:SkippedNotes = 0
+
+# --- Helpers -----------------------------------------------------------------
+
+function Read-Choice {
+  <#
+    A numbered menu with a default. Enter takes the default, which is what
+    makes a scripted run and an interactive one end in the same place.
+  #>
+  param(
+    [Parameter(Mandatory)][string]$Title,
+    [Parameter(Mandatory)][string[]]$Options,
+    [Parameter(Mandatory)][string]$Default,
+    [string[]]$Labels
+  )
+  Write-Host ''
+  Write-Host "  $Title"
+  for ($index = 0; $index -lt $Options.Count; $index++) {
+    $suffix = if ($Options[$index] -eq $Default) { ' (default)' } else { '' }
+    $label = if ($Labels -and $Labels[$index]) { "  $($Labels[$index])" } else { '' }
+    Write-Host ("    {0}) {1}{2}{3}" -f ($index + 1), $Options[$index], $suffix, $label)
+  }
+  while ($true) {
+    $answer = (Read-Host '  choice').Trim()
+    if (-not $answer) { return $Default }
+    if ($answer -match '^\d+$') {
+      $picked = [int]$answer
+      if ($picked -ge 1 -and $picked -le $Options.Count) { return $Options[$picked - 1] }
+    }
+    $match = $Options | Where-Object { $_ -eq $answer }
+    if ($match) { return $match }
+    Write-Warn 'not one of the options'
+  }
+}
+
+function Read-Secret {
+  <# A password, asked twice when it is being set for the first time. #>
+  param([Parameter(Mandatory)][string]$Prompt, [switch]$Confirm)
+  while ($true) {
+    $first = [System.Net.NetworkCredential]::new('', (Read-Host "  $Prompt" -AsSecureString)).Password
+    if (-not $first) { Write-Warn 'empty password'; continue }
+    if (-not $Confirm) { return $first }
+    if ($first.Length -lt 12) {
+      Write-Warn 'the pool asks for at least 12 characters, with a digit, a lowercase and an uppercase'
+      continue
+    }
+    $again = [System.Net.NetworkCredential]::new('', (Read-Host '  repeat it' -AsSecureString)).Password
+    if ($first -ne $again) { Write-Warn 'the two do not match'; continue }
+    return $first
+  }
+}
+
+function Get-CognitoToken {
+  <#
+    The admin sign-in flow, not the hosted UI: it needs IAM permission on the
+    pool, so it grants nothing to whoever holds only the password.
+  #>
+  param(
+    [Parameter(Mandatory)][string]$UserPoolId,
+    [Parameter(Mandatory)][string]$ClientId,
+    [Parameter(Mandatory)][string]$Username,
+    [Parameter(Mandatory)][string]$Password,
+    [string]$ZoneName
+  )
+  # The parameters go as JSON, not as the key=value shorthand: a password is
+  # allowed to carry a comma or an equals sign, and the shorthand parser would
+  # read either one as the start of another parameter.
+  $parameters = @{ USERNAME = $Username; PASSWORD = $Password } | ConvertTo-Json -Compress
+  $auth = Invoke-Aws -AllowFailure -Arguments @(
+    'cognito-idp', 'admin-initiate-auth',
+    '--user-pool-id', $UserPoolId,
+    '--client-id', $ClientId,
+    '--auth-flow', 'ADMIN_USER_PASSWORD_AUTH',
+    '--auth-parameters', $parameters
+  )
+  if (-not $auth) {
+    throw "Could not sign in as $Username. Wrong password, or the account is not confirmed."
+  }
+  if ($auth.ChallengeName) {
+    $where = if ($ZoneName) { " at https://auth.$ZoneName" } else { '' }
+    throw "Cognito answered with the challenge '$($auth.ChallengeName)'. Finish it on the sign-in page$where and run this again."
+  }
+  $token = $auth.AuthenticationResult.AccessToken
+  if (-not $token) { throw 'Sign-in returned no access token.' }
+  return $token
+}
+
+function Invoke-Api {
+  <#
+    One call to the product API. Returns the parsed body, or $null for an empty
+    one, and throws with the API's own error payload.
+  #>
+  param(
+    [Parameter(Mandatory)][string]$Method,
+    [Parameter(Mandatory)][string]$Path,
+    [Parameter(Mandatory)][string]$Token,
+    [object]$Body
+  )
+  $arguments = @{
+    Uri                = "$script:ApiOrigin$Path"
+    Method             = $Method
+    Headers            = @{ Authorization = "Bearer $Token" }
+    SkipHttpErrorCheck = $true
+    TimeoutSec         = 60
+  }
+  if ($null -ne $Body) {
+    # Sent as UTF-8 bytes, because a seed note carries accents and an agent
+    # that reads it back must find the same characters that were written.
+    $json = $Body | ConvertTo-Json -Compress -Depth 10
+    $arguments['Body'] = [System.Text.Encoding]::UTF8.GetBytes($json)
+    $arguments['ContentType'] = 'application/json; charset=utf-8'
+  }
+  <#
+    A vault of six hundred notes is six hundred calls, and a single throttle or
+    one bad gateway in the middle of it would throw the whole upload away. Only
+    429 and 5xx are retried: a 4xx is an answer, and repeating it would just
+    ask the same wrong question again.
+  #>
+  for ($attempt = 1; ; $attempt++) {
+    $response = Invoke-WebRequest @arguments
+    if ($response.StatusCode -lt 400) { break }
+    $retriable = $response.StatusCode -eq 429 -or $response.StatusCode -ge 500
+    if (-not $retriable -or $attempt -ge 4) {
+      throw "$Method $Path answered $($response.StatusCode): $($response.Content)"
+    }
+    Write-Warn "$Method $Path answered $($response.StatusCode); retrying ($attempt of 3)"
+    Start-Sleep -Seconds ([Math]::Pow(2, $attempt))
+  }
+  if (-not $response.Content) { return $null }
+  return ($response.Content | ConvertFrom-Json)
+}
+
+function Get-SeedText {
+  <# A seed file as text, always decoded as UTF-8. #>
+  param([Parameter(Mandatory)][string]$Path)
+  return [System.IO.File]::ReadAllText($Path, [System.Text.UTF8Encoding]::new($false))
+}
+
+function Get-FolderTitle {
+  <#
+    '01 Literature' is the folder 'Literature' in first place: the numeric
+    prefix is the order, and it belongs to the export format, not to the name.
+  #>
+  param([Parameter(Mandatory)][string]$DirectoryName)
+  return ($DirectoryName -replace '^\d+\s+', '')
+}
+
+function Get-FolderDescription {
+  <#
+    The README of a folder is its description, and a description is MANDATORY
+    and capped at 500 characters (RN-KNW-006): a longer one is cut rather than
+    refused, and a folder without a README still gets a sentence.
+  #>
+  param([Parameter(Mandatory)][string]$Directory, [Parameter(Mandatory)][string]$Title)
+  $path = Join-Path $Directory 'README.md'
+  $text = if (Test-Path -LiteralPath $path) { (Get-SeedText -Path $path).Trim() } else { '' }
+  if (-not $text) { $text = "Notas de $Title." }
+  if ($text.Length -gt 500) { $text = $text.Substring(0, 497) + '...' }
+  return $text
+}
+
+function Get-SeedNotes {
+  <# The notes of a folder: every .md that is not the README or the TEMPLATE. #>
+  param([Parameter(Mandatory)][string]$Directory)
+  return @(Get-ChildItem -LiteralPath $Directory -File -Filter '*.md' |
+      Where-Object { $_.Name -notin @('README.md', 'TEMPLATE.md') } | Sort-Object Name)
+}
+
+function Write-SeedDirectory {
+  <#
+    One directory of the seed, and then its children: the folder, its Template,
+    its notes and its subfolders, in that order and in the order the names
+    give, which is the order the numeric prefixes encode.
+
+    Everything appends, so no position is ever computed here: the API places a
+    new folder and a new note at the end of its parent.
+
+    With -Preview it writes nothing and only prints the tree, which is the same
+    traversal and therefore the same answer.
+  #>
+  param(
+    [Parameter(Mandatory)][string]$Directory,
+    [string]$VaultId,
+    [string]$Token,
+    [string]$ParentFolderId,
+    [switch]$Preview,
+    [int]$Depth = 0
+  )
+
+  foreach ($child in (Get-ChildItem -LiteralPath $Directory -Directory | Sort-Object Name)) {
+    $title = Get-FolderTitle -DirectoryName $child.Name
+    $description = Get-FolderDescription -Directory $child.FullName -Title $title
+    $templatePath = Join-Path $child.FullName 'TEMPLATE.md'
+    $hasTemplate = Test-Path -LiteralPath $templatePath
+    $notes = if ($StructureOnly) { @() } else { Get-SeedNotes -Directory $child.FullName }
+    $folderId = $null
+
+    if ($Preview) {
+      $indent = '  ' * $Depth
+      $marks = @()
+      if ($hasTemplate) { $marks += 'Template' }
+      if ($notes.Count -gt 0) { $marks += "$($notes.Count) note(s)" }
+      $suffix = if ($marks.Count -gt 0) { "  [$($marks -join ', ')]" } else { '' }
+      Write-Host "         $indent$title$suffix" -ForegroundColor DarkGray
+    } else {
+      $folder = Invoke-Api -Method 'POST' -Path "/knowledge/vaults/$VaultId/folders" -Token $Token `
+        -Body @{ parentFolderId = $ParentFolderId; name = $title; description = $description }
+      $folderId = $folder.folderId
+      Write-Detail "folder  $title"
+
+      if ($hasTemplate) {
+        Invoke-Api -Method 'PUT' `
+          -Path "/knowledge/vaults/$VaultId/folders/$folderId/template" -Token $Token `
+          -Body @{ content = (Get-SeedText -Path $templatePath) } | Out-Null
+      }
+    }
+    $script:FolderCount++
+
+    foreach ($note in $notes) {
+      if ($MaxNotes -gt 0 -and $script:NoteCount -ge $MaxNotes) {
+        $script:SkippedNotes++
+        continue
+      }
+      if (-not $Preview) {
+        Invoke-Api -Method 'POST' -Path "/knowledge/vaults/$VaultId/notes" -Token $Token -Body @{
+          folderId = $folderId
+          title    = [System.IO.Path]::GetFileNameWithoutExtension($note.Name)
+          content  = (Get-SeedText -Path $note.FullName)
+        } | Out-Null
+      }
+      $script:NoteCount++
+      if (-not $Preview -and $script:NoteCount % 25 -eq 0) {
+        Write-Detail "$($script:NoteCount) notes written"
+      }
+    }
+
+    Write-SeedDirectory -Directory $child.FullName -VaultId $VaultId -Token $Token `
+      -ParentFolderId $folderId -Preview:$Preview -Depth ($Depth + 1)
+  }
+}
 
 # --- 1. Context --------------------------------------------------------------
 
@@ -63,123 +361,328 @@ Set-AwsContext -Region $Region -ProfileName $ProfileName
 
 $context = Get-CdkContext
 $zoneName = $context.hostedZoneName
-$user = if ($Email) { $Email } else { $context.testUserEmail }
-$apiOrigin = "https://api.$zoneName"
+$script:ApiOrigin = "https://api.$zoneName"
 
-if (-not $user) {
-  throw 'No account to onboard: pass -Email, or set testUserEmail in memorysmith-infra/cdk.json.'
+$seedRoot = Join-Path $Global:MsRepoRoot 'memorysmith-frontend' 'seed' 'vaults'
+$seedVaults = @()
+if (Test-Path $seedRoot) {
+  $seedVaults = @(Get-ChildItem -LiteralPath $seedRoot -Directory | Sort-Object Name |
+      ForEach-Object { $_.Name })
 }
+
+# --- 2. What is being created ------------------------------------------------
+
+Write-Step 'What is being created'
+
+# A preview creates nothing, so it needs no account and no plan.
+if (-not $PreviewVault) {
+  if (-not $Email) { $Email = (Read-Host '  e-mail of the account').Trim() }
+  if (-not $Email) { throw 'No account to onboard: pass -Email.' }
+  $Email = $Email.ToLowerInvariant()
+
+  if (-not $Quota) {
+    $Quota = Read-Choice -Title 'storage quota' -Options @('500MB', '1GB', '2GB') -Default '1GB' `
+      -Labels @('declared, not enforced', '', '')
+  }
+  if (-not $Status) {
+    $Status = Read-Choice -Title 'subscription status' `
+      -Options @('active', 'trial', 'pending_approval', 'suspended', 'canceled', 'rejected') `
+      -Default 'active' `
+      -Labels @('grants access', 'grants access', 'waiting in the queue', 'no access', 'no access', 'no access')
+  }
+}
+
+if (-not $VaultTemplate) {
+  if ($seedVaults.Count -eq 0) {
+    $VaultTemplate = 'none'
+    Write-Warn "no seed vault under $seedRoot; the account gets no vault"
+  } else {
+    $VaultTemplate = Read-Choice -Title 'vault to write' -Options ($seedVaults + 'none') `
+      -Default $seedVaults[0]
+  }
+}
+if ($VaultTemplate -ne 'none' -and $seedVaults -notcontains $VaultTemplate) {
+  throw "There is no seed vault called '$VaultTemplate'. Available: $($seedVaults -join ', ')."
+}
+
+$writesVault = $VaultTemplate -ne 'none'
+$vaultRoot = if ($writesVault) { Join-Path $seedRoot $VaultTemplate } else { $null }
+$guidance = ''
+if ($writesVault) {
+  $guidancePath = Join-Path $vaultRoot 'README.md'
+  if (Test-Path -LiteralPath $guidancePath) { $guidance = Get-SeedText -Path $guidancePath }
+  # The name of the vault is the first heading of its Guidance, which is what
+  # the export wrote there; the slug is the fallback when there is none.
+  if (-not $VaultName) {
+    $heading = [regex]::Match($guidance, '(?m)^#\s+(.+?)\s*$')
+    $VaultName = if ($heading.Success) { $heading.Groups[1].Value } else { $VaultTemplate }
+  }
+}
+
+if (-not $PreviewVault) {
+  Write-Host ''
+  Write-Host "  account          $Email"
+  Write-Host "  subscription     $SubscriptionName  ($Type, $Quota, $Status)"
+  Write-Host "  vault            $VaultTemplate"
+}
+
+# --- 3. Preview, which stops here --------------------------------------------
+
+if ($PreviewVault) {
+  if (-not $writesVault) {
+    Write-Warn 'nothing to preview: no vault was chosen'
+    exit 0
+  }
+  Write-Step "The vault '$VaultName' would be written as"
+  if ($guidance) { Write-Detail "Guidance, $($guidance.Length) characters" }
+  Write-SeedDirectory -Directory $vaultRoot -Preview
+  Write-Host ''
+  Write-Ok "$($script:FolderCount) folder(s), $($script:NoteCount) note(s)"
+  if ($StructureOnly) { Write-Detail 'notes left out by -StructureOnly' }
+  if ($script:SkippedNotes -gt 0) {
+    Write-Detail "$($script:SkippedNotes) note(s) left out by -MaxNotes $MaxNotes"
+  }
+  $orphans = @(Get-SeedNotes -Directory $vaultRoot)
+  if ($orphans.Count -gt 0) {
+    Write-Warn "$($orphans.Count) note(s) sit at the root of the seed and have no folder; they would be skipped"
+  }
+  Write-Detail 'nothing was created: this was a preview'
+  exit 0
+}
+
+# --- 4. The environment and the account --------------------------------------
 
 $identity = Get-StackOutputs -StackName 'MemorysmithIdentity'
 if (-not $identity -or -not $identity['UserPoolId'] -or -not $identity['WebClientId']) {
   throw 'MemorysmithIdentity has no outputs; deploy the environment before onboarding anyone.'
 }
+$userPoolId = $identity['UserPoolId']
+$clientId = $identity['WebClientId']
 
 Write-Step 'Environment'
-Write-Host "  api              $apiOrigin"
-Write-Host "  user pool        $($identity['UserPoolId'])"
-Write-Host "  account          $user"
+Write-Host "  api              $script:ApiOrigin"
+Write-Host "  user pool        $userPoolId"
 
-# --- 2. Sign in --------------------------------------------------------------
-# The admin flow, not the hosted UI: this needs IAM permission on the pool, so
-# it grants nothing to whoever holds only the password. It is the same flow the
-# deploy verification uses.
+Write-Step 'The account in Cognito'
+
+$existing = Invoke-Aws -AllowFailure -Arguments @(
+  'cognito-idp', 'admin-get-user', '--user-pool-id', $userPoolId, '--username', $Email
+)
+
+if ($existing) {
+  Write-Ok "$Email already exists"
+  $password = Read-Secret -Prompt "password for $Email"
+} else {
+  Write-Detail 'creating it; no e-mail is sent, and the password is set here'
+  $password = Read-Secret -Prompt "new password for $Email" -Confirm
+
+  $attributes = @(
+    @{ Name = 'email'; Value = $Email },
+    @{ Name = 'email_verified'; Value = 'true' }
+  )
+  if ($Name) { $attributes += @{ Name = 'name'; Value = $Name } }
+  $created = Invoke-Aws -AllowFailure -Arguments @(
+    'cognito-idp', 'admin-create-user',
+    '--user-pool-id', $userPoolId,
+    '--username', $Email,
+    '--message-action', 'SUPPRESS',
+    '--user-attributes', ($attributes | ConvertTo-Json -Compress -AsArray)
+  )
+  # A pool that does not carry the `name` attribute refuses it; the account is
+  # worth more than the display name, so it is created without one.
+  if (-not $created -and $Name) {
+    Write-Warn 'the pool refused the name attribute; creating the account without it'
+    $bare = @(
+      @{ Name = 'email'; Value = $Email },
+      @{ Name = 'email_verified'; Value = 'true' }
+    )
+    $created = Invoke-Aws -AllowFailure -Arguments @(
+      'cognito-idp', 'admin-create-user',
+      '--user-pool-id', $userPoolId,
+      '--username', $Email,
+      '--message-action', 'SUPPRESS',
+      '--user-attributes', ($bare | ConvertTo-Json -Compress -AsArray)
+    )
+  }
+  if (-not $created) { throw "Could not create $Email in the pool." }
+
+  # Permanent, or the account comes up in FORCE_CHANGE_PASSWORD and every
+  # sign-in below answers with a challenge instead of a token.
+  Invoke-Aws -Arguments @(
+    'cognito-idp', 'admin-set-user-password',
+    '--user-pool-id', $userPoolId,
+    '--username', $Email,
+    '--password', $password,
+    '--permanent'
+  ) | Out-Null
+  Write-Ok "$Email created"
+}
+
+# --- 5. Who authorizes -------------------------------------------------------
+# Somebody has to authorize the very first subscription, and on an empty pool
+# there is nobody. The first account becomes a platform admin for that reason
+# alone; once the group has a member, the platform is not handed out again.
+
+Write-Step 'Who authorizes'
+
+$groups = Invoke-Aws -AllowFailure -Arguments @(
+  'cognito-idp', 'admin-list-groups-for-user',
+  '--user-pool-id', $userPoolId, '--username', $Email
+)
+$isAdmin = $false
+if ($groups -and $groups.Groups) {
+  $isAdmin = @($groups.Groups | Where-Object { $_.GroupName -eq 'platform-admin' }).Count -gt 0
+}
+
+if ($isAdmin) {
+  Write-Ok "$Email is already a platform admin"
+} else {
+  $members = Invoke-Aws -AllowFailure -Arguments @(
+    'cognito-idp', 'list-users-in-group',
+    '--user-pool-id', $userPoolId, '--group-name', 'platform-admin', '--limit', '1'
+  )
+  $hasAdmin = $members -and $members.Users -and @($members.Users).Count -gt 0
+  if (-not $hasAdmin) {
+    Invoke-Aws -Arguments @(
+      'cognito-idp', 'admin-add-user-to-group',
+      '--user-pool-id', $userPoolId, '--username', $Email, '--group-name', 'platform-admin'
+    ) | Out-Null
+    $isAdmin = $true
+    Write-Ok "$Email is the first account of this pool, so it operates the platform"
+  } else {
+    Write-Detail 'this pool already has a platform admin, so this account is not made one'
+  }
+}
+
+# --- 6. Sign in --------------------------------------------------------------
 
 Write-Step 'Signing in'
-$secure = Read-Host "  password for $user" -AsSecureString
-$password = [System.Net.NetworkCredential]::new('', $secure).Password
-if (-not $password) { throw 'No password given.' }
-
-# The parameters go as JSON, not as the key=value shorthand: a password is
-# allowed to carry a comma or an equals sign, and the shorthand parser would
-# read either one as the start of another parameter.
-$parameters = @{ USERNAME = $user; PASSWORD = $password } | ConvertTo-Json -Compress
-$auth = Invoke-Aws -AllowFailure -Arguments @(
-  'cognito-idp', 'admin-initiate-auth',
-  '--user-pool-id', $identity['UserPoolId'],
-  '--client-id', $identity['WebClientId'],
-  '--auth-flow', 'ADMIN_USER_PASSWORD_AUTH',
-  '--auth-parameters', $parameters
-)
-if (-not $auth) { throw "Could not sign in as $user. Wrong password, or the account is not confirmed." }
-if ($auth.ChallengeName) {
-  throw "Cognito answered with the challenge '$($auth.ChallengeName)'. Finish it on the sign-in page at https://auth.$zoneName and run this again."
-}
-
-$token = $auth.AuthenticationResult.AccessToken
-if (-not $token) { throw 'Sign-in returned no access token.' }
+$token = Get-CognitoToken -UserPoolId $userPoolId -ClientId $clientId `
+  -Username $Email -Password $password -ZoneName $zoneName
 Write-Ok 'signed in'
 
-# --- 3. What the session already has -----------------------------------------
+$session = Invoke-Api -Method 'GET' -Path '/access/session' -Token $token
 
-function Invoke-Api {
-  <# One call to the product API as the signed-in user. Returns the parsed body,
-     or $null for an empty one. Throws with the API's own error payload. #>
-  param(
-    [Parameter(Mandatory)][string]$Method,
-    [Parameter(Mandatory)][string]$Path,
-    [object]$Body
-  )
-  $arguments = @{
-    Uri                = "$apiOrigin$Path"
-    Method             = $Method
-    Headers            = @{ Authorization = "Bearer $token" }
-    SkipHttpErrorCheck = $true
-    TimeoutSec         = 30
-  }
-  if ($null -ne $Body) {
-    $arguments['Body'] = ($Body | ConvertTo-Json -Compress)
-    $arguments['ContentType'] = 'application/json'
-  }
-  $response = Invoke-WebRequest @arguments
-  if ($response.StatusCode -ge 400) {
-    throw "$Method $Path answered $($response.StatusCode): $($response.Content)"
-  }
-  if (-not $response.Content) { return $null }
-  return ($response.Content | ConvertFrom-Json)
-}
-
-Write-Step 'Reading the session'
-$session = Invoke-Api -Method 'GET' -Path '/access/session'
+# The token that authorizes is this one when the account operates the platform,
+# and one asked for here when it does not.
+$adminToken = $token
 if (-not $session.user.isPlatformAdmin) {
-  throw "$user is not in the platform-admin group, so it cannot approve anything. Add it to the group and run this again."
+  Write-Detail 'this account cannot authorize its own subscription'
+  $adminEmail = (Read-Host '  e-mail of a platform admin').Trim()
+  if (-not $adminEmail) { throw 'No platform admin given, and this account is not one.' }
+  $adminPassword = Read-Secret -Prompt "password for $adminEmail"
+  $adminToken = Get-CognitoToken -UserPoolId $userPoolId -ClientId $clientId `
+    -Username $adminEmail -Password $adminPassword -ZoneName $zoneName
+  $adminSession = Invoke-Api -Method 'GET' -Path '/access/session' -Token $adminToken
+  if (-not $adminSession.user.isPlatformAdmin) {
+    throw "$adminEmail is not in the platform-admin group either."
+  }
+  Write-Ok "authorizing as $adminEmail"
 }
-if ($session.activeSubscription) {
-  Write-Ok "$user already acts for $($session.activeSubscription.subscriptionId)"
-  Write-Detail 'nothing to do'
-  exit 0
-}
-Write-Detail 'no active subscription in the token, as expected on a new environment'
 
-# --- 4. Request --------------------------------------------------------------
-# A request that is already waiting is reused: asking twice would leave two
-# subscriptions in the queue and only one of them would ever be entered.
+# --- 7. The subscription -----------------------------------------------------
+# A subscription this account already holds is reused: asking twice would leave
+# two of them in the queue and only one would ever be entered.
 
-$pending = Invoke-Api -Method 'GET' -Path '/access/platform/subscriptions?status=pending_approval'
-$mine = @($pending | Where-Object { $_.ownerEmail -eq $user })
+Write-Step 'The subscription'
 
+$mine = @($session.subscriptions | Where-Object { $_.isOwner })
 if ($mine.Count -gt 0) {
   $subscriptionId = $mine[0].subscriptionId
-  Write-Step 'Reusing the request already in the queue'
-  Write-Ok $subscriptionId
+  Write-Ok "reusing $subscriptionId, which this account already holds"
 } else {
-  Write-Step "Requesting '$SubscriptionName'"
-  $created = Invoke-Api -Method 'POST' -Path '/access/subscriptions' -Body @{ name = $SubscriptionName }
+  $created = Invoke-Api -Method 'POST' -Path '/access/subscriptions' -Token $token `
+    -Body @{ name = $SubscriptionName; type = $Type; quota = $Quota }
   $subscriptionId = $created.subscriptionId
   if (-not $subscriptionId) { throw 'The request returned no subscription id.' }
-  Write-Ok $subscriptionId
+  Write-Ok "$subscriptionId requested"
 }
 
-# --- 5. Approve --------------------------------------------------------------
+<#
+  Writing the vault needs a subscription that grants operational access
+  (RN-SUB-007), and the status that was asked for may not be one. The vault is
+  therefore written under `active`, and the chosen status is applied last. Both
+  moves go through the administrative override, which is the route that sets a
+  status without walking the transition machine (RN-SUB-018).
+#>
+$operational = @('trial', 'active')
+$workingStatus = if ($writesVault -and $operational -notcontains $Status) { 'active' } else { $Status }
 
-Write-Step "Approving it as $Status"
-Invoke-Api -Method 'POST' -Path "/access/platform/subscriptions/$subscriptionId/approve" `
-  -Body @{ status = $Status } | Out-Null
-Write-Ok "$subscriptionId is $Status"
+Invoke-Api -Method 'PUT' -Path "/access/platform/subscriptions/$subscriptionId/status" `
+  -Token $adminToken -Body @{ status = $workingStatus } | Out-Null
+Invoke-Api -Method 'PATCH' -Path "/access/platform/subscriptions/$subscriptionId/plan" `
+  -Token $adminToken -Body @{ type = $Type; quota = $Quota } | Out-Null
+Write-Ok "$workingStatus, $Type, $Quota"
+if ($workingStatus -ne $Status) {
+  Write-Detail "temporarily, so the vault can be written; it ends as $Status"
+}
 
-# --- 6. What happens next ----------------------------------------------------
+# --- 8. The vault ------------------------------------------------------------
+
+$vaultId = $null
+
+if ($writesVault) {
+  # The claim is minted with the token, so the session that writes the vault is
+  # a NEW one: the token from step 6 carries no subscription at all.
+  Write-Step 'Signing in again, now with the subscription in the token'
+  $token = Get-CognitoToken -UserPoolId $userPoolId -ClientId $clientId `
+    -Username $Email -Password $password -ZoneName $zoneName
+  Write-Ok 'the token carries the subscription'
+
+  Write-Step "Writing the vault '$VaultName'"
+  $vault = Invoke-Api -Method 'POST' -Path '/knowledge/vaults' -Token $token `
+    -Body @{ name = $VaultName; description = '' }
+  $vaultId = $vault.vaultId
+  if (-not $vaultId) { throw 'Creating the vault returned no id.' }
+  Write-Ok $vaultId
+
+  if ($guidance) {
+    Invoke-Api -Method 'PUT' -Path "/knowledge/vaults/$vaultId/guidance" -Token $token `
+      -Body @{ content = $guidance } | Out-Null
+    Write-Detail 'Guidance written'
+  }
+
+  # A note at the root of the seed has no folder to go in, and a note without a
+  # folder is not representable in the product. Saying so beats writing five
+  # hundred notes and leaving three behind in silence.
+  $orphans = @(Get-SeedNotes -Directory $vaultRoot)
+  if ($orphans.Count -gt 0) {
+    Write-Warn "$($orphans.Count) note(s) sit at the root of the seed and have no folder; skipped"
+  }
+
+  Write-SeedDirectory -Directory $vaultRoot -VaultId $vaultId -Token $token
+  Write-Ok "$($script:FolderCount) folder(s), $($script:NoteCount) note(s)"
+  if ($StructureOnly) { Write-Detail 'notes left out by -StructureOnly' }
+  if ($script:SkippedNotes -gt 0) {
+    Write-Detail "$($script:SkippedNotes) note(s) left out by -MaxNotes $MaxNotes"
+  }
+}
+
+# --- 9. The status it was asked to end in ------------------------------------
+
+if ($workingStatus -ne $Status) {
+  Write-Step "Setting the subscription to $Status"
+  Invoke-Api -Method 'PUT' -Path "/access/platform/subscriptions/$subscriptionId/status" `
+    -Token $adminToken -Body @{ status = $Status } | Out-Null
+  Write-Ok "$subscriptionId is $Status"
+}
+
+# --- 10. What happens next ---------------------------------------------------
+
+Write-Step 'Done'
+$adminNote = if ($isAdmin) { '  (platform admin)' } else { '' }
+Write-Host "  account          $Email$adminNote"
+Write-Host "  subscription     $subscriptionId  ($Type, $Quota, $Status)"
+if ($vaultId) {
+  Write-Host "  vault            $vaultId  ($($script:FolderCount) folders, $($script:NoteCount) notes)"
+}
 
 Write-Host ''
-Write-Ok 'the account has a subscription'
-Write-Detail "the claim is minted when the token is, so sign out of https://$zoneName and sign in again"
+if ($operational -contains $Status) {
+  Write-Ok "sign in at https://$zoneName"
+  Write-Detail 'the claim is minted when the token is, so sign out and in again on a browser that was already open'
+} else {
+  Write-Ok "the account exists, and its subscription is $Status"
+  Write-Detail 'a subscription outside trial and active grants no operational access, to anyone, not even its owner'
+}
 exit 0

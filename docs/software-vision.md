@@ -156,6 +156,8 @@ A assinatura acumula dois papéis que normalmente ficam separados: é o objeto d
 
 Sem essa regra, "cancelar" viraria migração de dados e "recontratar" viraria importação, e a fronteira de isolamento passaria a depender de um estado que muda. Com ela, o status controla **acesso**, nunca **endereço**.
 
+Além do status, a assinatura declara **o que ela é e quanto ela pode guardar**: um `type`, que nesta fase só pode ser `individual`, e uma `quota` de armazenamento, que é `500MB`, `1GB` ou `2GB` (RN-SUB-018, RN-SUB-019). Os dois são escolhidos no momento da solicitação e são alteráveis depois por ato do `PLATFORM_ADMIN`. A quota é **declarada e ainda não aplicada**: nenhuma escrita é recusada por causa dela, e dizer isso aqui vale mais do que deixar que alguém suponha uma checagem que não existe.
+
 ### 4.3 Hierarquia e por que ela tem dois níveis
 
 | Nível | Quem manda | Existe para |
@@ -172,7 +174,7 @@ Não há processamento automático de pagamento nesta fase. A ativação é um *
 | Momento | O que acontece |
 |---|---|
 | **Signup** | Cria a conta de usuário. Nenhuma assinatura ainda, nenhum acesso operacional |
-| **Onboarding** | O usuário solicita uma assinatura e passa a ser o `OWNER` dela. Status: `pending_approval` |
+| **Onboarding** | O usuário solicita uma assinatura, escolhendo tipo e quota, e passa a ser o `OWNER` dela. Status: `pending_approval` |
 | **Autorização** | Um `PLATFORM_ADMIN` aprova (status vira `trial` ou `active`) ou rejeita, com motivo obrigatório |
 | **Configuração** | O `OWNER` cria vaults e escreve Guidance e Templates |
 | **Convite** | O `OWNER` convida por e-mail para a assinatura, definindo `EDITOR` ou `VIEWER` |
@@ -210,7 +212,9 @@ O `PLATFORM_ADMIN` opera a plataforma: aprova, rejeita e suspende assinaturas. *
 
 > Uma sessão de plataforma **não carrega assinatura ativa**. Como toda chave de dado do sistema começa pela assinatura, não há chave que uma credencial de admin consiga montar. A impossibilidade é estrutural, não uma verificação que alguém precisa lembrar de escrever.
 
-O que ele vê é metadado de assinatura: titular, e-mail, status, datas e contagem de membros. Nunca nome de vault, nunca conteúdo de nota.
+O que ele vê é metadado de assinatura: titular, e-mail, status, tipo, quota, datas e contagem de membros. Nunca nome de vault, nunca conteúdo de nota.
+
+Ele conta ainda com **duas operações administrativas**, que existem para operar um ambiente e não para o fluxo de revisão: definir o status diretamente, sem passar pela máquina de transição de §4.4, e mudar tipo e quota (RN-SUB-018, RN-SUB-019). As duas são registradas como eventos próprios, distintos dos eventos de aprovação, rejeição, suspensão e reativação, justamente porque não foram o caminho comum: a trilha precisa dizer qual dos dois aconteceu.
 
 Se um `PLATFORM_ADMIN` também for usuário de alguma assinatura, ele age ali como qualquer outro membro, com sessão própria. Os dois papéis nunca se somam na mesma sessão.
 
@@ -237,6 +241,8 @@ Se um `PLATFORM_ADMIN` também for usuário de alguma assinatura, ele age ali co
 - **RN-SUB-015:** Índices derivados (busca, grafo, facetas, cache) respeitam a mesma fronteira de assinatura que o dado de origem.
 - **RN-SUB-016:** Uma sessão de `PLATFORM_ADMIN` não carrega assinatura ativa e, portanto, não alcança nenhum dado de vault ou nota.
 - **RN-SUB-017:** Aceitar um convite não cria assinatura para o convidado: ele passa a atuar na assinatura de quem convidou.
+- **RN-SUB-018:** Toda assinatura declara um `type`, escolhido na solicitação, cujo único valor nesta fase é `individual`. Somente `PLATFORM_ADMIN` altera o tipo depois, e é ele também quem pode definir o status diretamente, sem seguir a máquina de transição de §4.4. Um status definido assim é registrado como evento próprio, e definir `rejected` por esse caminho não cumpre RN-SUB-009: rejeitar uma solicitação que alguém aguarda continua exigindo motivo.
+- **RN-SUB-019:** Toda assinatura declara uma `quota` de armazenamento, escolhida na solicitação entre `500MB`, `1GB` e `2GB`, e alterável depois por `PLATFORM_ADMIN`. A quota é declarada e ainda não é aplicada: nenhuma escrita é recusada por excedê-la.
 
 ---
 
@@ -363,6 +369,8 @@ id,                          -- PERPÉTUO: emitido uma vez, nunca reemitido (RN-
 name, slug,
 owner_id,                    -- exatamente um, sempre presente (RN-ACC-001)
 status (pending_approval | trial | active | rejected | suspended | canceled),
+type (individual),           -- o que a assinatura é, comercialmente (RN-SUB-018)
+quota (500MB | 1GB | 2GB),   -- declarada, ainda não aplicada (RN-SUB-019)
 requested_at,
 reviewed_by_id?, reviewed_at?,
 rejection_reason?,           -- obrigatório quando status = rejected (RN-SUB-009)
@@ -852,7 +860,7 @@ Registradas aqui em vez de decididas por omissão. Cada uma vira uma decisão da
 
 | # | Questão | Por que ainda não foi decidida |
 |---|---|---|
-| Q1 | **Planos, cobrança e limites por plano** | Não há definição comercial. Os limites de §14 são técnicos, não de plano. A entidade `Subscription` já comporta plano e cobrança quando houver decisão |
+| Q1 | **Cobrança, e a quota que vira limite de verdade** | Não há definição comercial. A assinatura já declara tipo e quota (RN-SUB-018, RN-SUB-019), mas a quota não é aplicada: aplicá-la exige contabilizar bytes por assinatura e decidir o que acontece ao estourar, e cobrar exige a decisão comercial que ainda não existe |
 | Q2 | **Identidade visual:** cor primária, logotipo, tom | **Resolvida.** Sistema de marca definido no caderno "Livro da marca v1" (Figma): paleta, tipografia, símbolo e regras de uso registrados em `CLAUDE.md` § Identidade visual |
 | Q3 | **Continuidade quando o `OWNER` some** | A transferência exige o próprio `OWNER` (RN-ACC-002). Se ele fica indisponível, hoje só o `PLATFORM_ADMIN` resolveria, e o fluxo não está desenhado |
 | Q4 | **Vault público ou compartilhável por link** | Não está no escopo; entraria como um quarto papel, o que exige revisitar a matriz de §5.2 |
