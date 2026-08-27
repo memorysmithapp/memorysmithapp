@@ -166,27 +166,11 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     name: 'search_notes',
     title: 'Search notes by title',
     description:
-      'Lexical search over the titles and folders of a vault. Use it when you know roughly ' +
-      'what the note is called; use semantic_search when you know what it is about.',
+      'Lexical search over the titles and folders of a vault. It matches how a note is named ' +
+      'and where it sits, not what it says: to find a note by subject, walk the link graph ' +
+      'with related_notes or browse the folder with list_notes.',
     inputSchema: object(
       { vault: vaultArgument, query: { type: 'string', description: 'What to look for.' } },
-      ['vault', 'query'],
-    ),
-    annotations: { readOnlyHint: true },
-  },
-  {
-    name: 'semantic_search',
-    title: 'Search notes by meaning',
-    description:
-      'Searches by meaning over sections of notes, and always returns the note and the section ' +
-      'each excerpt came from, so you can decide with the source in sight.',
-    inputSchema: object(
-      {
-        vault: vaultArgument,
-        query: { type: 'string', description: 'What you are trying to find out.' },
-        k: { type: 'number', description: 'How many excerpts to return. Default 10.' },
-        folder: { type: 'string', description: 'Optional: restrict to one folder.' },
-      },
       ['vault', 'query'],
     ),
     annotations: { readOnlyHint: true },

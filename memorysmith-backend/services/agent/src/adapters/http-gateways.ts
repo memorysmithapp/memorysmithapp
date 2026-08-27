@@ -172,27 +172,6 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
 export class HttpDiscoveryGateway implements DiscoveryGateway {
   constructor(private readonly origin: string) {}
 
-  async semanticSearch(
-    caller: AgentCaller,
-    input: { vaultId: string; query: string; k?: number; folderId?: string },
-  ): Promise<SearchHit[]> {
-    const found = await callApi<{ hits: SearchHit[] }>(
-      this.origin,
-      caller,
-      `/discovery/vaults/${input.vaultId}/search`,
-      {
-        method: 'POST',
-        body: {
-          query: input.query,
-          mode: 'semantic',
-          ...(input.k ? { k: input.k } : {}),
-          ...(input.folderId ? { folderId: input.folderId } : {}),
-        },
-      },
-    );
-    return found.hits;
-  }
-
   async relatedNotes(
     caller: AgentCaller,
     input: { vaultId: string; noteId: string; depth?: number },

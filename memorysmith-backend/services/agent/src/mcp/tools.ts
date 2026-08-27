@@ -167,16 +167,6 @@ export class McpToolAdapter {
           ),
         );
 
-      case 'semantic_search':
-        return json(
-          await discovery.semanticSearch(caller, {
-            vaultId: requireString(args, 'vault', 'semantic_search'),
-            query: requireString(args, 'query', 'semantic_search'),
-            ...(typeof args['k'] === 'number' ? { k: args['k'] } : {}),
-            ...(typeof args['folder'] === 'string' ? { folderId: args['folder'] } : {}),
-          }),
-        );
-
       case 'related_notes': {
         const tree = await discovery.relatedNotes(caller, {
           vaultId: requireString(args, 'vault', 'related_notes'),

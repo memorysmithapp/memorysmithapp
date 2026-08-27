@@ -49,15 +49,6 @@ function gateways(overrides: Record<string, unknown> = {}) {
     ...((overrides['knowledge'] as object) ?? {}),
   };
   const discovery = {
-    semanticSearch: async () => [
-      {
-        noteId: 'n1',
-        title: 'Lei 14.133',
-        section: 'Vigencia',
-        excerpt: 'Vigente desde 2021',
-        score: 0.82,
-      },
-    ],
     relatedNotes: async () => ({
       noteId: 'n1',
       title: 'Achado 12',
@@ -92,7 +83,7 @@ function gateways(overrides: Record<string, unknown> = {}) {
 }
 
 describe('The tool catalog is the public contract', () => {
-  it('publishes the thirteen tools of the product', () => {
+  it('publishes the twelve tools of the product', () => {
     expect(TOOL_CATALOG.map((tool) => tool.name)).toEqual([
       'whoami',
       'list_vaults',
@@ -103,7 +94,6 @@ describe('The tool catalog is the public contract', () => {
       'create_note',
       'update_note',
       'search_notes',
-      'semantic_search',
       'related_notes',
       'backlinks',
       'note_history',
@@ -306,7 +296,7 @@ describe('The MCP transport', () => {
     );
     expect(response).not.toBeNull();
     const tools = (response as { result: { tools: unknown[] } }).result.tools;
-    expect(tools).toHaveLength(13);
+    expect(tools).toHaveLength(12);
   });
 
   it('refuses a tool call from a token with no subscription', async () => {

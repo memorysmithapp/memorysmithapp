@@ -90,10 +90,6 @@ export interface KnowledgeGateway {
 }
 
 export interface DiscoveryGateway {
-  semanticSearch(
-    caller: AgentCaller,
-    input: { vaultId: string; query: string; k?: number; folderId?: string },
-  ): Promise<SearchHit[]>;
   relatedNotes(
     caller: AgentCaller,
     input: { vaultId: string; noteId: string; depth?: number },
