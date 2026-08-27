@@ -614,6 +614,20 @@ function Test-DeployPreconditions {
       -Fix 'point the registrar at the four Route 53 nameservers; ACM validation waits on this'
   }
 
+  # --- Apex A record -------------------------------------------------------
+  # Cognito refuses a custom domain whose parent name resolves no A record, and
+  # the apex of this zone only gets one from the hosting stack. On an account
+  # where nothing is up yet that inverts the usual order, and deploy.ps1 puts
+  # hosting before identity by itself.
+  $apex = Get-ApexAddress -ZoneName $ZoneName
+  if ($apex) {
+    $checks += New-Check -Name 'Apex A record' -Status 'ok' -Detail "$ZoneName resolves to $apex"
+  } else {
+    $checks += New-Check -Name 'Apex A record' -Status 'warn' `
+      -Detail "$ZoneName resolves no A record, and Cognito rejects auth.$ZoneName while that is true" `
+      -Fix 'deploy.ps1 deploys the hosting stack first to create it; nothing to do by hand'
+  }
+
   # --- Bootstrap -----------------------------------------------------------
   $bootstrap = Get-StackStatus -StackName 'CDKToolkit'
   if (-not $bootstrap) {
@@ -719,6 +733,64 @@ function Get-NameserverDelegation {
     }
   }
   return $null
+}
+
+function Get-ApexAddress {
+  <#
+    The addresses the public internet hands out for a name, as a single string,
+    or null when it resolves none. Cognito reads this same answer before it
+    accepts a custom domain: a parent domain with no A record is rejected with
+    "Custom domain is not a valid subdomain".
+  #>
+  param([Parameter(Mandatory)][string]$ZoneName)
+  if (Test-CommandExists 'Resolve-DnsName') {
+    try {
+      $records = Resolve-DnsName -Name $ZoneName -Type A -Server '8.8.8.8' -ErrorAction Stop
+      $addresses = @($records | Where-Object { $_.QueryType -eq 'A' } | ForEach-Object { $_.IPAddress })
+      if ($addresses.Count -eq 0) { return $null }
+      return ($addresses -join ', ')
+    } catch {
+      return $null
+    }
+  }
+  if (Test-CommandExists 'nslookup') {
+    try {
+      $raw = & nslookup -type=A $ZoneName 8.8.8.8 2>&1 | Out-String
+      # The answer section repeats the name, so only addresses that come after
+      # it count: the first block is the resolver's own address.
+      $answer = ($raw -split [regex]::Escape($ZoneName), 2)[1]
+      if (-not $answer) { return $null }
+      $found = [regex]::Matches($answer, '(\d{1,3}\.){3}\d{1,3}')
+      if ($found.Count -eq 0) { return $null }
+      return (($found | ForEach-Object { $_.Value }) -join ', ')
+    } catch {
+      return $null
+    }
+  }
+  return $null
+}
+
+function Wait-ApexAddress {
+  <#
+    Waits until the apex resolves an A record publicly. Route 53 answers within
+    seconds of the record being written, but a resolver that already cached the
+    absence of the name keeps saying so until that negative answer expires, so
+    this polls instead of asking once. Returns the addresses, or null on
+    timeout.
+  #>
+  param(
+    [Parameter(Mandatory)][string]$ZoneName,
+    [int]$TimeoutSeconds = 300,
+    [int]$IntervalSeconds = 15
+  )
+  $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+  do {
+    $address = Get-ApexAddress -ZoneName $ZoneName
+    if ($address) { return $address }
+    Write-Detail "$ZoneName still does not resolve; waiting for the record to propagate"
+    Start-Sleep -Seconds $IntervalSeconds
+  } while ((Get-Date) -lt $deadline)
+  return (Get-ApexAddress -ZoneName $ZoneName)
 }
 
 function Test-HttpExpectation {

@@ -182,6 +182,29 @@ foreach ($stack in $requested) {
 $backendTargets = @($requested | Where-Object { $_ -ne $Global:MsFrontendStack })
 $deployFrontend = (-not $SkipFrontend) -and ($requested -contains $Global:MsFrontendStack)
 
+# The sign-in page answers at a custom domain, and Cognito only accepts one
+# whose PARENT already resolves an A record. That record belongs to the hosting
+# stack, so on an environment where nothing is up yet the order inverts: the
+# distribution goes up first, empty, and the SPA is published into it at the end
+# of this script, once the API it talks to exists. The hosting stack skips its
+# upload while memorysmith-frontend/dist is absent, so this first pass costs
+# nothing but the DNS record and the distribution.
+
+if (($backendTargets -contains 'MemorysmithIdentity') -and -not (Get-StackStatus -StackName 'MemorysmithIdentity')) {
+  if (Get-ApexAddress -ZoneName $zoneName) {
+    Write-Detail "$zoneName already resolves; the sign-in domain can be created in order"
+  } else {
+    Write-Step "Creating $zoneName before the sign-in domain"
+    Write-Detail 'Cognito rejects a custom domain whose parent resolves no A record'
+    Invoke-Cdk -CdkArgs (@('deploy', $Global:MsFrontendStack, '--require-approval', 'never') + $contextArgs)
+    $apexAddress = Wait-ApexAddress -ZoneName $zoneName
+    if (-not $apexAddress) {
+      throw "$zoneName still resolves no A record. The hosting stack is up, so this is DNS propagation: wait a few minutes and run the script again."
+    }
+    Write-Ok "$zoneName resolves to $apexAddress"
+  }
+}
+
 if ($backendTargets.Count -gt 0) {
   Write-Step "Deploying the backend: $($backendTargets -join ', ')"
   Write-Detail 'first run: the ACM certificates validate by DNS and take a few minutes'
