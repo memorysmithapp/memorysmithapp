@@ -227,6 +227,28 @@ export class IdentityStack extends Stack {
       readFileSync(join(here, '..', '..', 'memorysmith-frontend', 'public', file));
 
     /**
+     * Vertical breathing room until the artwork fits a ratio the provider
+     * accepts. A logo must be between 1:1 and 4:1, and the horizontal
+     * signature is almost 6:1, so it is padded rather than cropped or
+     * stretched: the extra space is transparent and reads as the clear space
+     * the brand book already asks for around the signature (page 05).
+     */
+    const paddedToRatio = (file: string, maxRatio: number): string => {
+      const svg = readFileSync(join(here, '..', 'branding', file), 'utf8');
+      const box = /viewBox="([-\d.]+) ([-\d.]+) ([\d.]+) ([\d.]+)"/.exec(svg);
+      if (!box) throw new Error(`${file} has no viewBox to pad`);
+
+      const [x, y, width, height] = box.slice(1).map(Number) as [number, number, number, number];
+      const wanted = Math.max(height, width / maxRatio);
+      if (wanted <= height) return Buffer.from(svg).toString('base64');
+
+      const padded = `viewBox="${x} ${y - (wanted - height) / 2} ${width} ${wanted}"`;
+      return Buffer.from(
+        svg.replace(box[0], padded).replace(/height="[\d.]+"/, `height="${wanted}"`),
+      ).toString('base64');
+    };
+
+    /**
      * The icons, exported from the brand book (page 08, "Ícone de app e
      * favicon") and committed as binaries. Everything else here is derived at
      * build time from the SVG, and this is the one thing that cannot be: ICO
@@ -236,8 +258,6 @@ export class IdentityStack extends Stack {
      */
     const icon = (file: string): string =>
       readFileSync(join(here, '..', 'branding', file)).toString('base64');
-
-    const symbol = (file: string): string => brandAsset(file).toString('base64');
 
     /**
      * The same symbol, on a square canvas. A favicon must be 1:1 and the
@@ -284,50 +304,43 @@ export class IdentityStack extends Stack {
           category: 'FORM_LOGO',
           colorMode: 'LIGHT',
           extension: 'SVG',
-          bytes: icon('lockup-light.svg'),
+          bytes: paddedToRatio('lockup-light.svg', 4),
         },
         {
           category: 'FORM_LOGO',
           colorMode: 'DARK',
           extension: 'SVG',
-          bytes: icon('lockup-dark.svg'),
+          bytes: paddedToRatio('lockup-dark.svg', 4),
         },
         /**
-         * The same file the product uses as its own favicon, so the tab of the
-         * sign-in page and the tab of the product carry one mark and not two.
-         * It is supplied per colour mode, and not as DYNAMIC: the page asks
-         * for the light or the dark variant by name, and a DYNAMIC asset is
-         * accepted on deploy and then never requested.
-         */
-        {
-          category: 'FAVICON_SVG',
-          colorMode: 'LIGHT',
-          extension: 'SVG',
-          bytes: squareSymbol('symbol.svg'),
-        },
-        {
-          category: 'FAVICON_SVG',
-          colorMode: 'DARK',
-          extension: 'SVG',
-          bytes: squareSymbol('symbol-dark.svg'),
-        },
-        /**
-         * The .ico alongside the .svg, because the page announces both and a
-         * browser is free to prefer either. Supplying only one leaves the
+         * ONE favicon, transparent, for both colour modes. The symbol carries
+         * its own colour and needs no plate behind it, so there is nothing for
+         * a light and a dark version to differ about, and a single mark is
+         * what a tab should show.
+         *
+         * It is still declared twice, once per colour mode, and that is the
+         * provider's shape rather than ours: the page asks for the light or
+         * the dark variant BY NAME, and a DYNAMIC asset is accepted on deploy
+         * and then never requested. Both entries point at the same bytes.
+         *
+         * The .ico goes alongside the .svg because the page announces both and
+         * a browser is free to prefer either; supplying only one leaves the
          * other pointing at the provider's default icon.
          */
-        {
-          category: 'FAVICON_ICO',
-          colorMode: 'LIGHT',
-          extension: 'ICO',
-          bytes: icon('favicon-light.ico'),
-        },
-        {
-          category: 'FAVICON_ICO',
-          colorMode: 'DARK',
-          extension: 'ICO',
-          bytes: icon('favicon-dark.ico'),
-        },
+        ...(['LIGHT', 'DARK'] as const).flatMap((colorMode) => [
+          {
+            category: 'FAVICON_SVG',
+            colorMode,
+            extension: 'SVG',
+            bytes: squareSymbol('symbol.svg'),
+          },
+          {
+            category: 'FAVICON_ICO',
+            colorMode,
+            extension: 'ICO',
+            bytes: icon('favicon.ico'),
+          },
+        ]),
       ],
     });
 
