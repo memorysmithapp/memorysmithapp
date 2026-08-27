@@ -70,10 +70,7 @@ export class QuerySyntaxError extends Error {}
 export function normalize(raw: string): string {
   let out = '';
   for (const character of raw) {
-    const folded = character
-      .normalize('NFD')
-      .replace(/\p{M}/gu, '')
-      .toLowerCase();
+    const folded = character.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
     out += folded.length === character.length ? folded : character.toLowerCase();
   }
   return out;

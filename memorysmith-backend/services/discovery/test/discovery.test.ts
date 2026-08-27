@@ -246,7 +246,9 @@ describe('The projections, driven by events', () => {
       markdown: '---\nmaturity: seed\nreviewed: true\n---\n\n# Outra',
     });
 
-    const stats = await new GetFacetStats({ graph, facets, catalog, content: index }).execute({ vaultId: VAULT });
+    const stats = await new GetFacetStats({ graph, facets, catalog, content: index }).execute({
+      vaultId: VAULT,
+    });
     expect(stats.ok).toBe(true);
     if (!stats.ok) return;
     const maturity = stats.value.facets.find((facet) => facet.facet === 'maturity');

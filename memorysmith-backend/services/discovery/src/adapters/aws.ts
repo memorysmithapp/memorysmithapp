@@ -372,7 +372,6 @@ export class DynamoLinkGraph implements LinkGraph {
   }
 }
 
-
 export class DynamoFacetIndex implements FacetIndex {
   constructor(
     private readonly subscriptionId: SubscriptionId,
