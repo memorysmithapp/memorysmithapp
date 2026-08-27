@@ -1,14 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { extractLinks } from '../src/domain/LinkExtractor.js';
-import { chunkNote } from '../src/domain/Chunker.js';
 import { extractFacets, facetDelta } from '../src/domain/FacetExtractor.js';
 import {
-  FakeEmbedder,
   InMemoryFacetIndex,
   InMemoryLinkGraph,
   InMemoryNoteCatalog,
   InMemoryStructureProjection,
-  InMemoryVectorIndex,
 } from '../src/adapters/memory.js';
 import {
   ProjectNote,
@@ -57,40 +54,6 @@ describe('LinkExtractor: universal syntax only', () => {
 
   it('reads a wikilink with an alias', () => {
     expect(extractLinks('[[lei-14133|a nova lei]]')[0]?.slug).toBe('lei-14133');
-  });
-});
-
-describe('Chunker: the context prefix is what decides quality', () => {
-  const context = {
-    vaultName: 'Pesquisa de Produto',
-    folderPath: ['Evidence'],
-    folderDescription: 'Fatos observados em campo',
-    noteTitle: 'Capacities de ativo customizado',
-  };
-
-  it('cuts at headings and prefixes each chunk with where it came from', () => {
-    const chunks = chunkNote(
-      '# Contexto\n\nO limite e 200 por conta.\n\n## Consequencia\n\nPrecisa de fila.',
-      context,
-    );
-    expect(chunks).toHaveLength(2);
-    expect(chunks[0]?.section).toBe('Contexto');
-    // The loose chunk would be unrecoverable; the prefixed one is findable.
-    expect(chunks[0]?.embedded).toContain(
-      'Pesquisa de Produto > Evidence > Fatos observados em campo > Capacities de ativo customizado > Contexto',
-    );
-    expect(chunks[0]?.text).toBe('O limite e 200 por conta.');
-  });
-
-  it('drops the frontmatter, which is the facet projector business', () => {
-    const chunks = chunkNote('---\nmaturity: seed\n---\n\n# T\n\nCorpo.', context);
-    expect(chunks[0]?.text).not.toContain('maturity');
-  });
-
-  it('gives an empty note one chunk, because its title is content', () => {
-    const chunks = chunkNote('', context);
-    expect(chunks).toHaveLength(1);
-    expect(chunks[0]?.embedded).toContain('Capacities de ativo customizado');
   });
 });
 
@@ -144,7 +107,6 @@ describe('FacetExtractor: classification by the shape of the value', () => {
 
 describe('The projections, driven by events', () => {
   let graph: InMemoryLinkGraph;
-  let vectors: InMemoryVectorIndex;
   let facets: InMemoryFacetIndex;
   let structure: InMemoryStructureProjection;
   let catalog: InMemoryNoteCatalog;
@@ -157,19 +119,11 @@ describe('The projections, driven by events', () => {
 
   beforeEach(async () => {
     graph = new InMemoryLinkGraph();
-    vectors = new InMemoryVectorIndex();
     facets = new InMemoryFacetIndex();
     structure = new InMemoryStructureProjection();
     catalog = new InMemoryNoteCatalog();
     content = new Map();
-    project = new ProjectNote({
-      graph,
-      vectors,
-      facets,
-      structure,
-      content: reader,
-      embedder: new FakeEmbedder(),
-    });
+    project = new ProjectNote({ graph, facets, structure, content: reader });
 
     const structureProjector = new ProjectStructure(structure);
     await structureProjector.onVault(VAULT, 'Normas e Legislacao');
@@ -241,112 +195,6 @@ describe('The projections, driven by events', () => {
     expect((await graph.broken(VAULT)).map((link) => link.targetSlug)).toEqual(['lei-14133']);
   });
 
-  it('takes the vectors of a deleted note out immediately', async () => {
-    // RN-DSC-013: what leaves the listing leaves the search, because content
-    // that was deleted and keeps being returned is a privacy problem.
-    await write({ noteId: 'n1', title: 'Lei', slug: 'lei', markdown: '# Lei\n\nArt. 75.' });
-    const before = await new SearchNotes({
-      graph,
-      vectors,
-      facets,
-      catalog,
-      embedder: new FakeEmbedder(),
-    }).execute({ vaultId: VAULT, query: 'Art. 75', mode: 'semantic' });
-    expect(before.ok && before.value.length).toBeGreaterThan(0);
-
-    await project.onDeleted({
-      vaultId: VAULT,
-      noteId: 'n1',
-      folderId: 'f1',
-      title: 'Lei',
-      slug: 'lei',
-      contentRef: null,
-    });
-    const after = await new SearchNotes({
-      graph,
-      vectors,
-      facets,
-      catalog,
-      embedder: new FakeEmbedder(),
-    }).execute({ vaultId: VAULT, query: 'Art. 75', mode: 'semantic' });
-    expect(after.ok && after.value).toEqual([]);
-  });
-
-  it('re-embeds only the chunks whose hash changed', async () => {
-    let embeddedTexts = 0;
-    const counting = {
-      embed: async (texts: string[]) => {
-        embeddedTexts += texts.length;
-        return new FakeEmbedder().embed(texts);
-      },
-    };
-    const projector = new ProjectNote({
-      graph,
-      vectors,
-      facets,
-      structure,
-      content: reader,
-      embedder: counting,
-    });
-
-    const first = { contentId: 'c1', versionId: 'v1' };
-    content.set('c1#v1', '# A\n\nUm.\n\n# B\n\nDois.');
-    await projector.onWritten({
-      vaultId: VAULT,
-      noteId: 'n1',
-      folderId: 'f1',
-      title: 'Nota',
-      slug: 'nota',
-      contentRef: first,
-    });
-    expect(embeddedTexts).toBe(2);
-
-    // Only the second section changed.
-    content.set('c1#v2', '# A\n\nUm.\n\n# B\n\nDois, revisado.');
-    await projector.onWritten({
-      vaultId: VAULT,
-      noteId: 'n1',
-      folderId: 'f1',
-      title: 'Nota',
-      slug: 'nota',
-      contentRef: { contentId: 'c1', versionId: 'v2' },
-    });
-    expect(embeddedTexts).toBe(3);
-  });
-
-  it('reindexes a note that moved folder, because the prefix changed', async () => {
-    // RN-DSC-012: the folder is part of the embedded text, so a move
-    // invalidates the vectors even though the words did not change.
-    await structure.upsertFolder(VAULT, {
-      folderId: 'f2',
-      name: 'Achados',
-      description: 'Achados de auditoria',
-      parentFolderId: null,
-    });
-    content.set('c1#v1', '# Nota\n\nCorpo.');
-    await project.onWritten({
-      vaultId: VAULT,
-      noteId: 'n1',
-      folderId: 'f1',
-      title: 'Nota',
-      slug: 'nota',
-      contentRef: { contentId: 'c1', versionId: 'v1' },
-    });
-    const before = await vectors.hashesOf(VAULT, 'n1');
-
-    await project.onMoved({
-      vaultId: VAULT,
-      fromVaultId: VAULT,
-      noteId: 'n1',
-      folderId: 'f2',
-      title: 'Nota',
-      slug: 'nota',
-      contentRef: { contentId: 'c1', versionId: 'v1' },
-    });
-    const after = await vectors.hashesOf(VAULT, 'n1');
-    expect(after.get(0)).not.toBe(before.get(0));
-  });
-
   it('prunes everything in the origin vault on a cross-vault move', async () => {
     // RN-DSC-006: there is no link between vaults.
     content.set('c1#v1', '# Nota\n\n[[outra]]');
@@ -377,8 +225,6 @@ describe('The projections, driven by events', () => {
     });
 
     expect(await graph.backlinks(VAULT, 'n1')).toHaveLength(0);
-    expect(await vectors.hashesOf(VAULT, 'n1')).toEqual(new Map());
-    expect((await vectors.hashesOf('vault-2', 'n1')).size).toBeGreaterThan(0);
   });
 
   it('counts facets and withdraws the portrait when the note goes', async () => {
@@ -395,13 +241,7 @@ describe('The projections, driven by events', () => {
       markdown: '---\nmaturity: seed\nreviewed: true\n---\n\n# Outra',
     });
 
-    const stats = await new GetFacetStats({
-      graph,
-      vectors,
-      facets,
-      catalog,
-      embedder: new FakeEmbedder(),
-    }).execute({ vaultId: VAULT });
+    const stats = await new GetFacetStats({ graph, facets, catalog }).execute({ vaultId: VAULT });
     expect(stats.ok).toBe(true);
     if (!stats.ok) return;
     const maturity = stats.value.facets.find((facet) => facet.facet === 'maturity');
@@ -446,10 +286,8 @@ describe('The projections, driven by events', () => {
 describe('Discovery queries', () => {
   let deps: {
     graph: InMemoryLinkGraph;
-    vectors: InMemoryVectorIndex;
     facets: InMemoryFacetIndex;
     catalog: InMemoryNoteCatalog;
-    embedder: FakeEmbedder;
   };
 
   beforeEach(async () => {
@@ -494,13 +332,7 @@ describe('Discovery queries', () => {
 
     const catalog = new InMemoryNoteCatalog();
     catalog.set(VAULT, notes);
-    deps = {
-      graph,
-      catalog,
-      vectors: new InMemoryVectorIndex(),
-      facets: new InMemoryFacetIndex(),
-      embedder: new FakeEmbedder(),
-    };
+    deps = { graph, catalog, facets: new InMemoryFacetIndex() };
   });
 
   it('walks the dependency tree with a depth cap', async () => {
@@ -572,7 +404,6 @@ describe('Discovery queries', () => {
     const found = await new SearchNotes(deps).execute({
       vaultId: VAULT,
       query: 'lei 14133',
-      mode: 'lexical',
     });
     expect(found.ok).toBe(true);
     if (!found.ok) return;
@@ -583,7 +414,6 @@ describe('Discovery queries', () => {
     const refused = await new SearchNotes(deps).execute({
       vaultId: VAULT,
       query: '   ',
-      mode: 'lexical',
     });
     expect(refused.ok).toBe(false);
   });

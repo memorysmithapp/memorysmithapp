@@ -1,26 +1,20 @@
 /**
- * In-memory adapters of the three projections. They are the reference
- * implementation of the behaviour the DynamoDB ones must match, and they are
- * what the tests of the rules run against.
+ * In-memory adapters of the projections. They are the reference implementation
+ * of the behaviour the DynamoDB ones must match, and they are what the tests
+ * of the rules run against.
  */
 
-import { createHash } from 'node:crypto';
 import {
   GRAPH_LIMITS,
   type BrokenLink,
-  type Embedder,
-  type EmbeddedChunk,
   type FacetIndex,
   type FacetStats,
   type GraphNode,
-  type IndexFilter,
   type LinkGraph,
   type LinkTarget,
   type NoteCatalog,
   type NoteRef,
-  type ScoredChunk,
   type VaultGraph,
-  type VectorIndex,
 } from '../domain/ports.js';
 import type { FacetSnapshot } from '../domain/FacetExtractor.js';
 import { facetDelta } from '../domain/FacetExtractor.js';
@@ -204,88 +198,6 @@ export class InMemoryLinkGraph implements LinkGraph {
     }
 
     return { nodes, edges, pending, truncated };
-  }
-}
-
-/**
- * Vectors in memory, with cosine similarity. The production adapter swaps for
- * S3 Vectors behind the same port; nothing above this line changes when it
- * does, which is the whole point of the port existing (section 26).
- */
-export class InMemoryVectorIndex implements VectorIndex {
-  private readonly byVault = new Map<string, EmbeddedChunk[]>();
-
-  async upsert(vaultId: string, chunks: EmbeddedChunk[]): Promise<void> {
-    const current = this.byVault.get(vaultId) ?? [];
-    const touched = new Set(chunks.map((chunk) => `${chunk.noteId}#${chunk.chunk.index}`));
-    this.byVault.set(vaultId, [
-      ...current.filter((each) => !touched.has(`${each.noteId}#${each.chunk.index}`)),
-      ...chunks,
-    ]);
-  }
-
-  async removeByNote(vaultId: string, noteId: string): Promise<void> {
-    this.byVault.set(
-      vaultId,
-      (this.byVault.get(vaultId) ?? []).filter((chunk) => chunk.noteId !== noteId),
-    );
-  }
-
-  async query(vector: number[], filter: IndexFilter, k: number): Promise<ScoredChunk[]> {
-    return (this.byVault.get(filter.vaultId) ?? [])
-      .filter((chunk) => !filter.folderId || chunk.folderId === filter.folderId)
-      .map((chunk) => ({
-        noteId: chunk.noteId,
-        section: chunk.chunk.section,
-        excerpt: chunk.chunk.text,
-        score: cosine(vector, chunk.vector),
-      }))
-      .sort((left, right) => right.score - left.score)
-      .slice(0, k);
-  }
-
-  async hashesOf(vaultId: string, noteId: string): Promise<Map<number, string>> {
-    return new Map(
-      (this.byVault.get(vaultId) ?? [])
-        .filter((chunk) => chunk.noteId === noteId)
-        .map((chunk) => [chunk.chunk.index, chunk.sha256]),
-    );
-  }
-}
-
-function cosine(left: number[], right: number[]): number {
-  let dot = 0;
-  let leftNorm = 0;
-  let rightNorm = 0;
-  for (let index = 0; index < Math.min(left.length, right.length); index++) {
-    const a = left[index] ?? 0;
-    const b = right[index] ?? 0;
-    dot += a * b;
-    leftNorm += a * a;
-    rightNorm += b * b;
-  }
-  const denominator = Math.sqrt(leftNorm) * Math.sqrt(rightNorm);
-  return denominator === 0 ? 0 : dot / denominator;
-}
-
-/** Deterministic embedder for tests: same text, same vector, no network. */
-export class FakeEmbedder implements Embedder {
-  constructor(private readonly dimensions = 64) {}
-
-  async embed(texts: string[]): Promise<number[][]> {
-    return texts.map((text) => {
-      const vector = new Array<number>(this.dimensions).fill(0);
-      for (const word of text
-        .toLowerCase()
-        .split(/[^a-z0-9]+/)
-        .filter(Boolean)) {
-        const digest = createHash('sha256').update(word).digest();
-        for (let index = 0; index < this.dimensions; index++) {
-          vector[index] = (vector[index] ?? 0) + ((digest[index % digest.length] ?? 0) - 128) / 128;
-        }
-      }
-      return vector;
-    });
   }
 }
 

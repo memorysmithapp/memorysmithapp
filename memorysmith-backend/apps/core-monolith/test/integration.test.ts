@@ -67,6 +67,25 @@ async function drainEvents(): Promise<void> {
           ? { contentId: event.contentRef.contentId.value, versionId: event.contentRef.versionId }
           : null,
       });
+      /**
+       * Lexical search reads the note catalog, which in production is the
+       * Knowledge context answering what it already holds. The harness stands
+       * in for it here, or the search would answer over an empty index and
+       * every assertion about it would be vacuous.
+       */
+      const vaultId = String(payload['vaultId']);
+      const known = await harness.discovery.catalog.listNotes(vaultId);
+      const entry = {
+        noteId: String(payload['noteId']),
+        title: String(payload['title']),
+        slug: String(payload['slug']),
+        folderId: String(payload['folderId']),
+        folderName: '',
+      };
+      harness.discovery.catalog.set(vaultId, [
+        ...known.filter((note) => note.noteId !== entry.noteId),
+        entry,
+      ]);
     }
   }
   harness.events.published.length = 0;
@@ -176,18 +195,32 @@ describe('Discovery answers over the API', () => {
     expect(tree.children.map((child) => child.note.noteId)).toEqual([notes['lei']]);
   });
 
-  it('searches by meaning and cites the section it came from', async () => {
+  it('searches lexically over titles and folders, and cites the note', async () => {
+    /**
+     * This version indexes how a note is NAMED, not what it says: searching
+     * for a term that appears only in the body finds nothing, and that is the
+     * declared behaviour until a content index exists.
+     */
     const { vaultId, notes } = await seed();
     const found = (await (
       await call(`/discovery/vaults/${vaultId}/search`, {
         method: 'POST',
-        body: { query: 'Art. 75', mode: 'semantic' },
+        body: { query: 'Lei 14133' },
       })
-    ).json()) as { hits: Array<{ noteId: string; section: string | null }> };
+    ).json()) as { mode: string; hits: Array<{ noteId: string; section: string | null }> };
 
+    expect(found.mode).toBe('lexical');
     expect(found.hits.length).toBeGreaterThan(0);
     expect(found.hits[0]?.noteId).toBe(notes['lei']);
-    expect(found.hits[0]?.section).toBe('Lei 14.133');
+    expect(found.hits[0]?.section).toBeNull();
+
+    const byBody = (await (
+      await call(`/discovery/vaults/${vaultId}/search`, {
+        method: 'POST',
+        body: { query: 'Art. 75' },
+      })
+    ).json()) as { hits: unknown[] };
+    expect(byBody.hits).toEqual([]);
   });
 
   it('counts the curation facets of the vault', async () => {

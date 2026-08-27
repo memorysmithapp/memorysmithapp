@@ -12,17 +12,13 @@ import {
   type LinkGraph,
   type NoteCatalog,
   type NoteRef,
-  type ScoredChunk,
+  type ScoredNote,
   type VaultGraph,
-  type VectorIndex,
-  type Embedder,
   type BrokenLink,
 } from '../domain/ports.js';
 
 export interface QueryDependencies {
   readonly graph: LinkGraph;
-  readonly vectors: VectorIndex;
-  readonly embedder: Embedder;
   readonly facets: FacetIndex;
   readonly catalog: NoteCatalog;
 }
@@ -85,52 +81,42 @@ export class SearchNotes {
   constructor(private readonly deps: QueryDependencies) {}
 
   /**
-   * Lexical search runs over titles and folder names, which is the index the
-   * product promises; semantic search goes through the vector index and always
-   * cites the note and the section (RN-DSC-010).
+   * Lexical search runs over titles and folder names, which is the whole index
+   * this version has. A hit always cites the note it came from (RN-DSC-010),
+   * and `section` stays null because nothing here cuts a note into parts.
+   *
+   * Searching what a note SAYS is deliberately absent: the vector index was
+   * removed in 0.2.0 and no content index replaced it yet. Whoever restores it
+   * fills this method, not the callers.
    */
   async execute(input: {
     vaultId: string;
     query: string;
-    mode: 'lexical' | 'semantic';
     k?: number | undefined;
-    folderId?: string | undefined;
-  }): Promise<Result<ScoredChunk[], DomainError>> {
+  }): Promise<Result<ScoredNote[], DomainError>> {
     if (input.query.trim().length === 0) {
       return err(DomainError.validation('A search needs a query'));
     }
 
-    if (input.mode === 'lexical') {
-      const needle = slugify(input.query);
-      const words = needle.split('-').filter((word) => word.length > 2);
-      const notes = await this.deps.catalog.listNotes(input.vaultId);
-      const hits = notes
-        .map((note) => {
-          const haystack = `${slugify(note.title)}-${slugify(note.folderName)}`;
-          const matched = words.filter((word) => haystack.includes(word)).length;
-          const exact = haystack.includes(needle) ? 1 : 0;
-          return {
-            noteId: note.noteId,
-            section: null,
-            excerpt: note.title,
-            score: exact + matched / Math.max(words.length, 1),
-          };
-        })
-        .filter((hit) => hit.score > 0)
-        .sort((left, right) => right.score - left.score)
-        .slice(0, input.k ?? 10);
-      return ok(hits);
-    }
-
-    const [vector] = await this.deps.embedder.embed([input.query]);
-    if (!vector) return err(DomainError.internal('The embedder returned nothing'));
-    return ok(
-      await this.deps.vectors.query(
-        vector,
-        { vaultId: input.vaultId, ...(input.folderId ? { folderId: input.folderId } : {}) },
-        input.k ?? 10,
-      ),
-    );
+    const needle = slugify(input.query);
+    const words = needle.split('-').filter((word) => word.length > 2);
+    const notes = await this.deps.catalog.listNotes(input.vaultId);
+    const hits = notes
+      .map((note) => {
+        const haystack = `${slugify(note.title)}-${slugify(note.folderName)}`;
+        const matched = words.filter((word) => haystack.includes(word)).length;
+        const exact = haystack.includes(needle) ? 1 : 0;
+        return {
+          noteId: note.noteId,
+          section: null,
+          excerpt: note.title,
+          score: exact + matched / Math.max(words.length, 1),
+        };
+      })
+      .filter((hit) => hit.score > 0)
+      .sort((left, right) => right.score - left.score)
+      .slice(0, input.k ?? 10);
+    return ok(hits);
   }
 }
 

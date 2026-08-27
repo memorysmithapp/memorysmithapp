@@ -9,15 +9,12 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
 import { SubscriptionId } from '@memorysmith/kernel';
 import { parseEvent } from '@memorysmith/contracts';
 import {
-  BedrockEmbedder,
   DynamoFacetIndex,
   DynamoLinkGraph,
   DynamoStructureProjection,
-  DynamoVectorIndex,
 } from '../adapters/aws.js';
 import { ProjectNote, ProjectStructure } from '../application/projections.js';
 
@@ -36,7 +33,6 @@ const db = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
   marshallOptions: { removeUndefinedValues: true },
 });
 const s3 = new S3Client({});
-const bedrock = new BedrockRuntimeClient({});
 const table = required('DISCOVERY_TABLE');
 const bucket = required('CONTENT_BUCKET');
 
@@ -58,10 +54,8 @@ function projectorsFor(subscriptionId: SubscriptionId) {
   return {
     note: new ProjectNote({
       graph: new DynamoLinkGraph(subscriptionId, db, table),
-      vectors: new DynamoVectorIndex(subscriptionId, db, table),
       facets: new DynamoFacetIndex(subscriptionId, db, table),
       structure: new DynamoStructureProjection(subscriptionId, db, table),
-      embedder: new BedrockEmbedder(bedrock),
       content,
     }),
     structure: new ProjectStructure(new DynamoStructureProjection(subscriptionId, db, table)),

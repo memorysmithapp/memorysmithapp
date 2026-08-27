@@ -6,7 +6,7 @@
  *   GET  /vaults/:v/notes/:n/backlinks
  *   GET  /vaults/:v/health
  *   GET  /vaults/:v/facets
- *   POST /vaults/:v/search   { query, mode: lexical | semantic }
+ *   POST /vaults/:v/search   { query }   lexical, over titles and folders
  *
  * Every route reads a projection. None of them touches a note, and none of
  * them is consulted by the Knowledge context (RN-DSC-017).
@@ -139,21 +139,14 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
 
     const body = (await c.req.json().catch(() => ({}))) as {
       query?: string;
-      mode?: string;
       k?: number;
-      folderId?: string;
     };
     const found = await useCases.search(request).execute({
       vaultId,
       query: String(body.query ?? ''),
-      mode: body.mode === 'semantic' ? 'semantic' : 'lexical',
       ...(typeof body.k === 'number' ? { k: body.k } : {}),
-      ...(body.folderId ? { folderId: body.folderId } : {}),
     });
-    return present(c, found, (hits) => ({
-      mode: body.mode === 'semantic' ? 'semantic' : 'lexical',
-      hits,
-    }));
+    return present(c, found, (hits) => ({ mode: 'lexical', hits }));
   });
 
   return app;

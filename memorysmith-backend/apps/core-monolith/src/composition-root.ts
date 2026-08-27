@@ -17,7 +17,6 @@
 
 import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import type { S3Client } from '@aws-sdk/client-s3';
-import type { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
 import {
   Authorship,
   AgentIdentity,
@@ -45,17 +44,14 @@ import { S3ContentStore } from '@memorysmith/svc-knowledge/adapters/content';
 import { DynamoAuditTrail } from '@memorysmith/svc-audit/adapters/trail';
 import { S3RevisionReader } from '@memorysmith/svc-audit/adapters/content';
 import {
-  BedrockEmbedder,
   DynamoFacetIndex,
   DynamoLinkGraph,
   DynamoStructureProjection,
-  DynamoVectorIndex,
 } from '@memorysmith/svc-discovery/adapters/aws';
 
 export interface Infrastructure {
   readonly db: DynamoDBDocumentClient;
   readonly s3: S3Client;
-  readonly bedrock: BedrockRuntimeClient;
   readonly knowledgeTable: string;
   readonly accessTable: string;
   readonly auditTable: string;
@@ -108,14 +104,12 @@ export function buildAudit(infra: Infrastructure, context: SubscriptionContext) 
 export function buildDiscovery(infra: Infrastructure, context: SubscriptionContext) {
   return {
     graph: new DynamoLinkGraph(context.subscriptionId, infra.db, infra.discoveryTable),
-    vectors: new DynamoVectorIndex(context.subscriptionId, infra.db, infra.discoveryTable),
     facets: new DynamoFacetIndex(context.subscriptionId, infra.db, infra.discoveryTable),
     structure: new DynamoStructureProjection(
       context.subscriptionId,
       infra.db,
       infra.discoveryTable,
     ),
-    embedder: new BedrockEmbedder(infra.bedrock),
   };
 }
 

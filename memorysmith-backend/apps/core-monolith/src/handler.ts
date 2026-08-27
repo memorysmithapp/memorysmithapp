@@ -11,7 +11,6 @@ import { handle } from 'hono/aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { S3Client } from '@aws-sdk/client-s3';
-import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
 import {
   DomainError,
   VaultId,
@@ -101,7 +100,6 @@ const infra: Infrastructure = {
     marshallOptions: { removeUndefinedValues: true },
   }),
   s3: new S3Client({}),
-  bedrock: new BedrockRuntimeClient({}),
   knowledgeTable: required('KNOWLEDGE_TABLE'),
   accessTable: required('ACCESS_TABLE'),
   auditTable: required('AUDIT_TABLE'),
@@ -215,9 +213,7 @@ function discoveryFor(context: SubscriptionContext) {
   const built = buildDiscovery(infra, context);
   return {
     graph: built.graph,
-    vectors: built.vectors,
     facets: built.facets,
-    embedder: built.embedder,
     catalog: new KnowledgeNoteCatalog(buildKnowledge(infra, context)),
   };
 }

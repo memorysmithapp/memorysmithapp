@@ -1,10 +1,11 @@
 /**
- * DTOs of svc-discovery: the three projections over the same events
+ * DTOs of svc-discovery: the projections over the same events
  * (architecture-guide.md, section 11).
  *
- * A semantic hit always carries the note and the section it came from
- * (RN-DSC-010): whoever consumes it decides with the source in sight, which is
- * the answer to plausible-but-wrong retrieval.
+ * A hit always carries the note it came from (RN-DSC-010): whoever consumes it
+ * decides with the source in sight, which is the answer to plausible-but-wrong
+ * retrieval. `section` is kept nullable so a future index that cuts notes into
+ * parts can fill it without moving the contract.
  */
 
 import { z } from 'zod';
@@ -62,21 +63,21 @@ export const vaultHealthSchema = z.object({
 
 export const searchRequestSchema = z.object({
   query: z.string().min(1).max(500),
-  mode: z.enum(['lexical', 'semantic']).default('lexical'),
+  mode: z.enum(['lexical']).default('lexical'),
   folderId: ulidSchema.optional(),
   k: z.number().int().min(1).max(50).default(10),
 });
 
 export const searchHitSchema = z.object({
   note: noteRefSchema,
-  /** The heading the chunk was cut at, so the caller can cite the section. */
+  /** The heading a hit was cut at, when the index knows one. */
   section: z.string().nullable(),
   excerpt: z.string(),
   score: z.number(),
 });
 
 export const searchResultSchema = z.object({
-  mode: z.enum(['lexical', 'semantic']),
+  mode: z.enum(['lexical']),
   hits: z.array(searchHitSchema),
 });
 

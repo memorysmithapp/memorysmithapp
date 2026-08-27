@@ -1,12 +1,11 @@
 /**
  * Ports of the Discovery context (architecture-guide.md, section 11.4).
  *
- * The domain here knows Chunk, Edge and Depth, and never knows Bedrock. All
- * three projections are DERIVED (PE5): deleting and rebuilding them from the
- * notes is a supported operation, and it is the recovery plan for all three.
+ * The domain here knows Edge, Depth and Facet, and never knows AWS. Every
+ * projection is DERIVED (PE5): deleting and rebuilding it from the notes is a
+ * supported operation, and it is the recovery plan for all of them.
  */
 
-import type { Chunk } from './Chunker.js';
 import type { FacetKind, FacetSnapshot } from './FacetExtractor.js';
 
 export interface NoteRef {
@@ -72,37 +71,16 @@ export interface LinkGraph {
   orphans(vaultId: string, allNotes: NoteRef[]): Promise<NoteRef[]>;
 }
 
-export interface EmbeddedChunk {
-  readonly noteId: string;
-  readonly folderId: string;
-  readonly chunk: Chunk;
-  readonly vector: number[];
-  readonly sha256: string;
-}
-
-export interface ScoredChunk {
+/**
+ * One search hit. `section` is null while the only index is over titles and
+ * folders; an index that cuts a note into parts fills it without changing the
+ * shape callers already read.
+ */
+export interface ScoredNote {
   readonly noteId: string;
   readonly section: string | null;
   readonly excerpt: string;
   readonly score: number;
-}
-
-export interface IndexFilter {
-  readonly vaultId: string;
-  readonly folderId?: string | undefined;
-}
-
-/** One index PER SUBSCRIPTION, never a shared index filtered by metadata. */
-export interface VectorIndex {
-  upsert(vaultId: string, chunks: EmbeddedChunk[]): Promise<void>;
-  removeByNote(vaultId: string, noteId: string): Promise<void>;
-  query(vector: number[], filter: IndexFilter, k: number): Promise<ScoredChunk[]>;
-  /** Hashes of what is indexed, so only changed chunks are re-embedded. */
-  hashesOf(vaultId: string, noteId: string): Promise<Map<number, string>>;
-}
-
-export interface Embedder {
-  embed(texts: string[]): Promise<number[][]>;
 }
 
 export interface FacetStats {

@@ -7,18 +7,16 @@
  *   FACET#{noteId}         the portrait of one note
  *   STAT#{facet}#{value}   one counter PER VALUE, never one item per vault
  *   FDEF#{facet}           inferred kind, distinct count, discarded flag
- *   CHUNK#{noteId}#{i}     one embedded chunk
  *   STRUCT / SFOLDER#{id}  the local projection of the vault shape
  *
  * A counter item per value, and not a single statistics item, for the same
  * reason the META rule exists: fifty notes written in parallel increment
  * different items instead of queuing behind one (PE8).
  *
- * VECTORS. The target design is S3 Vectors (section 4.1), and the port is what
- * makes that a swap rather than a redesign (section 26). This adapter keeps
- * the vectors in the same table and scores them in the Lambda, which is honest
- * for the vault sizes the product declares (2.000 notes) and costs no new
- * infrastructure. Moving to S3 Vectors changes this class and nothing above it.
+ * There is no content index here. CHUNK# items held one embedded vector each
+ * and were removed in 0.2.0: scoring them meant reading every chunk of the
+ * vault on every query, which does not scale in cost or in latency. Searching
+ * what a note SAYS comes back behind a port, over a real index.
  */
 
 import {
@@ -31,22 +29,16 @@ import {
   UpdateCommand,
   type DynamoDBDocumentClient,
 } from '@aws-sdk/lib-dynamodb';
-import { type BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import type { SubscriptionId } from '@memorysmith/kernel';
 import type {
   BrokenLink,
-  Embedder,
-  EmbeddedChunk,
   FacetIndex,
   FacetStats,
   GraphNode,
-  IndexFilter,
   LinkGraph,
   LinkTarget,
   NoteRef,
-  ScoredChunk,
   VaultGraph,
-  VectorIndex,
 } from '../domain/ports.js';
 import { GRAPH_LIMITS } from '../domain/ports.js';
 import { facetDelta, type FacetSnapshot } from '../domain/FacetExtractor.js';
@@ -376,142 +368,6 @@ export class DynamoLinkGraph implements LinkGraph {
   }
 }
 
-export class DynamoVectorIndex implements VectorIndex {
-  constructor(
-    private readonly subscriptionId: SubscriptionId,
-    private readonly db: DynamoDBDocumentClient,
-    private readonly tableName: string,
-  ) {}
-
-  private pk(vaultId: string): string {
-    return partition(this.subscriptionId, vaultId);
-  }
-
-  async upsert(vaultId: string, chunks: EmbeddedChunk[]): Promise<void> {
-    for (let index = 0; index < chunks.length; index += 25) {
-      await this.db.send(
-        new BatchWriteCommand({
-          RequestItems: {
-            [this.tableName]: chunks.slice(index, index + 25).map((chunk) => ({
-              PutRequest: {
-                Item: {
-                  PK: this.pk(vaultId),
-                  SK: `CHUNK#${chunk.noteId}#${chunk.chunk.index}`,
-                  entity: 'CHUNK',
-                  noteId: chunk.noteId,
-                  folderId: chunk.folderId,
-                  section: chunk.chunk.section,
-                  text: chunk.chunk.text,
-                  sha256: chunk.sha256,
-                  vector: chunk.vector,
-                },
-              },
-            })),
-          },
-        }),
-      );
-    }
-  }
-
-  async removeByNote(vaultId: string, noteId: string): Promise<void> {
-    const response = await this.db.send(
-      new QueryCommand({
-        TableName: this.tableName,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-        ProjectionExpression: 'SK',
-        ExpressionAttributeValues: { ':pk': this.pk(vaultId), ':prefix': `CHUNK#${noteId}#` },
-      }),
-    );
-    for (const item of (response.Items ?? []) as Item[]) {
-      await this.db.send(
-        new DeleteCommand({
-          TableName: this.tableName,
-          Key: { PK: this.pk(vaultId), SK: String(item['SK']) },
-        }),
-      );
-    }
-  }
-
-  async query(vector: number[], filter: IndexFilter, k: number): Promise<ScoredChunk[]> {
-    const response = await this.db.send(
-      new QueryCommand({
-        TableName: this.tableName,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-        ExpressionAttributeValues: { ':pk': this.pk(filter.vaultId), ':prefix': 'CHUNK#' },
-      }),
-    );
-    return ((response.Items ?? []) as Item[])
-      .filter((item) => !filter.folderId || String(item['folderId']) === filter.folderId)
-      .map((item) => ({
-        noteId: String(item['noteId']),
-        section: item['section'] === null ? null : String(item['section']),
-        excerpt: String(item['text']),
-        score: cosine(vector, (item['vector'] as number[]) ?? []),
-      }))
-      .sort((left, right) => right.score - left.score)
-      .slice(0, k);
-  }
-
-  async hashesOf(vaultId: string, noteId: string): Promise<Map<number, string>> {
-    const response = await this.db.send(
-      new QueryCommand({
-        TableName: this.tableName,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-        ProjectionExpression: 'SK, sha256',
-        ExpressionAttributeValues: { ':pk': this.pk(vaultId), ':prefix': `CHUNK#${noteId}#` },
-      }),
-    );
-    return new Map(
-      ((response.Items ?? []) as Item[]).map((item) => [
-        Number(String(item['SK']).split('#').pop()),
-        String(item['sha256']),
-      ]),
-    );
-  }
-}
-
-function cosine(left: number[], right: number[]): number {
-  let dot = 0;
-  let leftNorm = 0;
-  let rightNorm = 0;
-  for (let index = 0; index < Math.min(left.length, right.length); index++) {
-    const a = Number(left[index] ?? 0);
-    const b = Number(right[index] ?? 0);
-    dot += a * b;
-    leftNorm += a * a;
-    rightNorm += b * b;
-  }
-  const denominator = Math.sqrt(leftNorm) * Math.sqrt(rightNorm);
-  return denominator === 0 ? 0 : dot / denominator;
-}
-
-/** Titan Text Embeddings V2, 1024 dimensions (section 4.1). */
-export class BedrockEmbedder implements Embedder {
-  constructor(
-    private readonly client: BedrockRuntimeClient,
-    private readonly modelId = 'amazon.titan-embed-text-v2:0',
-    private readonly dimensions = 1024,
-  ) {}
-
-  async embed(texts: string[]): Promise<number[][]> {
-    const vectors: number[][] = [];
-    for (const text of texts) {
-      const response = await this.client.send(
-        new InvokeModelCommand({
-          modelId: this.modelId,
-          contentType: 'application/json',
-          accept: 'application/json',
-          body: JSON.stringify({ inputText: text, dimensions: this.dimensions, normalize: true }),
-        }),
-      );
-      const decoded = JSON.parse(new TextDecoder().decode(response.body)) as {
-        embedding: number[];
-      };
-      vectors.push(decoded.embedding);
-    }
-    return vectors;
-  }
-}
 
 export class DynamoFacetIndex implements FacetIndex {
   constructor(

@@ -89,12 +89,10 @@ import {
 import { AuditEventConsumer } from '@memorysmith/svc-audit/adapters/consumer';
 import type { AuditUseCases } from '@memorysmith/svc-audit/adapters/http';
 import {
-  FakeEmbedder,
   InMemoryFacetIndex,
   InMemoryLinkGraph,
   InMemoryNoteCatalog,
   InMemoryStructureProjection,
-  InMemoryVectorIndex,
 } from '@memorysmith/svc-discovery/adapters/memory';
 import {
   Backlinks,
@@ -240,18 +238,14 @@ export function buildTestApp() {
 
   const discovery = {
     graph: new InMemoryLinkGraph(),
-    vectors: new InMemoryVectorIndex(),
     facets: new InMemoryFacetIndex(),
     structure: new InMemoryStructureProjection(),
     catalog: new InMemoryNoteCatalog(),
-    embedder: new FakeEmbedder(),
   };
   const discoveryDeps = {
     graph: discovery.graph,
-    vectors: discovery.vectors,
     facets: discovery.facets,
     catalog: discovery.catalog,
-    embedder: discovery.embedder,
   };
   /**
    * In production the bus drives these; in the test the harness does, which
@@ -259,10 +253,8 @@ export function buildTestApp() {
    */
   const projectNote = new ProjectNote({
     graph: discovery.graph,
-    vectors: discovery.vectors,
     facets: discovery.facets,
     structure: discovery.structure,
-    embedder: discovery.embedder,
     content: {
       // The slot is addressed by its content id, exactly as the S3 adapter
       // addresses it; the version id alone is not unique across slots.
