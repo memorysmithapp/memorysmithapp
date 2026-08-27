@@ -31,6 +31,12 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
   O que a busca não faz é procurar por significado: uma nota que trate do assunto com outras palavras não volta, e a descrição da ferramenta diz isso ao agente com todas as letras.
 
+- **Subir e derrubar o ambiente virou um script, e não mais um roteiro digitado.** `deploy-aws/deploy.ps1` executa o ciclo inteiro em um comando: confere a máquina e a conta, instala o workspace, faz o bootstrap da região quando falta, sintetiza, sobe as seis stacks de backend, escreve o `.env.local` do frontend a partir dos outputs reais do CloudFormation, compila a interface, sobe a hospedagem e verifica por HTTP o que ficou no ar. Compilar a interface entre o backend e a hospedagem é a ordem que o CDK não infere sozinho, e é justamente a que se esquece quando o roteiro é seguido a mão.
+
+  Antes de tocar na conta, os dois scripts rodam o mesmo preflight e **apontam os gaps com o comando que resolve cada um**: versão do Node e do pnpm, dependências instaladas, AWS CLI, credencial que não resolve (dizendo quais profiles existem na máquina), contexto do `cdk.json` ainda no placeholder, hosted zone inexistente ou de outro domínio, delegação de NS que ainda não chegou à Route 53, região sem bootstrap, tabela órfã de um destroy anterior que faria a subida falhar com `AlreadyExists`, prefixo de domínio Cognito já tomado e stack presa em estado que o CloudFormation não atualiza. `-PreflightOnly` responde tudo isso sem mudar nada.
+
+  `deploy-aws/destroy.ps1` lista o que existe de fato na conta, diz o que sobrevive à remoção, exige que o nome do domínio seja digitado e termina relatando o que ficou para trás. Ele não destrói dado por padrão, porque as tabelas e o bucket de conteúdo retêm; `-PurgeData` reimplanta a stack de dados com a política destrutiva antes de apagar, e a trilha de auditoria retém em qualquer caso.
+
 ### Removed
 
 - **A busca por significado saiu do produto.** A ferramenta MCP `semantic_search` deixa de existir, e com ela o índice vetorial inteiro: os trechos de nota, os embeddings do Titan e o modo `semantic` da busca. Quem procura por assunto passa a contar com a busca no texto, o grafo de links e as facetas de curadoria.

@@ -89,7 +89,7 @@ pnpm -r --if-present test:adapters
 docker compose down
 ```
 
-**A interface contra o backend real.** Copie `memorysmith-frontend/.env.example` para `.env.local` e preencha as três variáveis com o que o deploy imprimiu:
+**A interface contra o backend real.** O `deploy.ps1` escreve esse arquivo sozinho a partir dos outputs das stacks, então na prática ele já existe depois de um deploy. Para preenchê-lo à mão, copie `memorysmith-frontend/.env.example` para `.env.local` e preencha as três variáveis:
 
 ```
 VITE_API_ORIGIN=https://api.memorysmith.app
@@ -103,7 +103,7 @@ Sem `VITE_API_ORIGIN` a aplicação continua lendo o seed, o que é útil para t
 
 ## Subindo a infraestrutura na AWS
 
-Toda a infraestrutura vive em [`memorysmith-infra/`](memorysmith-infra/) (AWS CDK em TypeScript); a arquitetura de referência está em [`docs/architecture-guide.md`](docs/architecture-guide.md). O passo a passo abaixo sobe o ambiente atual.
+Toda a infraestrutura vive em [`memorysmith-infra/`](memorysmith-infra/) (AWS CDK em TypeScript); a arquitetura de referência está em [`docs/architecture-guide.md`](docs/architecture-guide.md). O ambiente sobe e desce por script, em [`deploy-aws/`](deploy-aws/), e não por uma sequência de comandos digitados a partir daqui.
 
 ### O que existe hoje
 
@@ -123,24 +123,27 @@ A ordem de deploy é a da tabela: rede e identidade primeiro, dados em seguida, 
 
 ### Pré-requisitos
 
-1. **Node.js 22 ou superior** (`node --version`).
-2. **pnpm 11**. Se o `corepack enable pnpm` falhar por permissão no Windows, instale com:
+Você não precisa decorar esta lista: `./deploy-aws/deploy.ps1 -PreflightOnly` confere tudo o que está abaixo e diz o que falta, com o comando que resolve cada caso.
+
+1. **PowerShell 7 ou superior** (`$PSVersionTable.PSVersion`). Os scripts de deploy são escritos para ele, e o Windows PowerShell 5.1 não serve.
+2. **Node.js 22 ou superior** (`node --version`).
+3. **pnpm 11**. Se o `corepack enable pnpm` falhar por permissão no Windows, instale com:
    ```
    npm install -g pnpm@11.22.0
    ```
-3. **Conta AWS** com o domínio `memorysmith.app` delegado a uma hosted zone pública no Route 53 (ver [Delegar o domínio do Squarespace para o Route 53](#delegar-o-domínio-do-squarespace-para-o-route-53)).
-4. **AWS CLI** (recomendado, usado nos passos de credencial e de senha do usuário de teste):
+4. **Conta AWS** com o domínio `memorysmith.app` delegado a uma hosted zone pública no Route 53 (ver [Delegar o domínio do Squarespace para o Route 53](#delegar-o-domínio-do-squarespace-para-o-route-53)).
+5. **AWS CLI v2**, usada pelos scripts para ler outputs, checar recursos e verificar o ambiente:
    ```
    winget install -e --id Amazon.AWSCLI
    ```
-5. **Credenciais AWS na máquina**, por um dos caminhos:
+6. **Credenciais AWS na máquina**, por um dos caminhos:
    - `aws configure` (access key + secret + região padrão), ou
    - `aws configure sso` para contas com IAM Identity Center, ou
-   - arquivo `~/.aws/credentials` criado manualmente com o profile `default`.
+   - arquivo `~/.aws/credentials` criado manualmente.
 
-   O CDK usa a cadeia padrão de credenciais; nenhuma credencial entra em arquivo do repositório.
+   O CDK usa a cadeia padrão de credenciais e nenhuma credencial entra em arquivo do repositório. Se as suas estiverem sob um profile nomeado em vez do `default`, passe `-Profile <nome>` aos scripts.
 
-A região padrão do app é **`us-east-1`** (definida em `bin/app.ts`). Para usar outra, exporte `CDK_DEFAULT_REGION` antes dos comandos.
+A região padrão do app é **`us-east-1`** (definida em `bin/app.ts`). Para usar outra, passe `-Region <região>` aos scripts.
 
 ### Delegar o domínio do Squarespace para o Route 53
 
@@ -177,141 +180,114 @@ Cada hosted zone custa US$ 0,50 por mês.
 nslookup -type=NS memorysmith.app 8.8.8.8
 ```
 
-A delegação terminou quando a resposta trouxer os nomes `awsdns` no lugar dos `squarespacedns`. O TTL dos registros NS no TLD `.app` é de até 48 horas, mas na prática a troca costuma valer em minutos ou poucas horas. Só depois disso o certificado do passo 5 do roteiro consegue ser emitido.
+A delegação terminou quando a resposta trouxer os nomes `awsdns` no lugar dos `squarespacedns`. O TTL dos registros NS no TLD `.app` é de até 48 horas, mas na prática a troca costuma valer em minutos ou poucas horas. Só depois disso o certificado do site consegue ser emitido.
 
-### Passo a passo
+### O deploy é um script
 
-Todos os comandos abaixo rodam dentro de `memorysmith-infra/`.
+Nada aqui se faz na mão. A pasta [`deploy-aws/`](deploy-aws/) tem dois scripts em PowerShell que executam o ciclo inteiro, e são eles a forma suportada de subir e derrubar o ambiente:
 
-#### 1. Instalar as dependências
+| Script | O que faz |
+|---|---|
+| `deploy-aws/deploy.ps1` | Confere o ambiente, instala o workspace, faz o bootstrap da região quando falta, sintetiza, sobe as seis stacks de backend, escreve o `.env.local` do frontend a partir dos outputs reais, compila a interface, sobe a stack de hospedagem e verifica por HTTP o que ficou no ar |
+| `deploy-aws/destroy.ps1` | Confere o ambiente, lista o que existe de fato na conta, diz o que sobrevive à remoção, pede confirmação digitada, derruba as stacks e termina com o relatório do que ficou para trás |
 
-Na raiz do monorepo:
+Os dois começam pelo mesmo preflight, e ele **aponta os gaps antes de qualquer coisa ser tocada na conta**: versão do Node e do pnpm, dependências instaladas, AWS CLI, credencial resolvida (com os profiles disponíveis na máquina quando nenhuma resolve), contexto do `cdk.json`, existência da hosted zone, delegação de NS já apontando para a Route 53, bootstrap do CDK, tabelas órfãs de um destroy anterior, colisão no prefixo do domínio Cognito e stack presa em estado que o CloudFormation não atualiza. Cada gap vem acompanhado da linha de comando que o resolve.
 
-```
-pnpm install
-```
+Um gap interrompe a execução; um aviso apenas informa e o script segue.
 
-#### 2. Preencher o contexto em `cdk.json`
-
-Três valores de contexto governam o deploy:
-
-| Chave | O que é | Como obter |
-|---|---|---|
-| `hostedZoneId` | O ID da hosted zone `memorysmith.app` (formato `Z...`), criada na [delegação do domínio](#delegar-o-domínio-do-squarespace-para-o-route-53) | Console do Route 53, ou `aws route53 list-hosted-zones-by-name --dns-name memorysmith.app --query "HostedZones[0].Id"` |
-| `cognitoDomainPrefix` | Prefixo do domínio hospedado do Cognito, único globalmente na região | Manter `memorysmith-auth`; se o deploy acusar colisão, escolher outro |
-| `testUserEmail` | E-mail do usuário de teste criado no user pool | O seu |
-
-Edite os valores em `cdk.json` ou passe na linha de comando com `-c hostedZoneId=Z...` (o `-c` vence o arquivo).
-
-**O `hostedZoneId` precisa ser o real antes de qualquer deploy.** O placeholder `Z_PLACEHOLDER_SET_ME` existe só para o `cdk synth` funcionar sem credenciais.
-
-#### 3. Bootstrap do CDK (uma vez por conta e região)
+#### Olhar o ambiente sem mudar nada
 
 ```
-pnpm exec cdk bootstrap
+./deploy-aws/deploy.ps1 -PreflightOnly
 ```
 
-Cria o bucket de assets e as roles que o CloudFormation usa. Se a conta já tem bootstrap de outro projeto, o comando é idempotente.
+É o primeiro comando a rodar em uma máquina nova. Ele não toca em recurso nenhum e responde exatamente o que falta para o deploy funcionar.
 
-#### 4. Validar a síntese
-
-```
-pnpm exec cdk synth --quiet
-```
-
-Precisa terminar sem erro. É o mesmo passo que o CI executará em todo PR.
-
-#### 5. Deploy
-
-As stacks declaram dependências entre si, então o `--all` resolve a ordem sozinho:
+#### Subir tudo
 
 ```
-pnpm exec cdk deploy --all
+./deploy-aws/deploy.ps1
 ```
 
-Ou, uma a uma, na ordem:
+Com um profile nomeado em vez da credencial padrão:
 
 ```
-pnpm exec cdk deploy MemorysmithNetwork
-pnpm exec cdk deploy MemorysmithIdentity
-pnpm exec cdk deploy MemorysmithData
-pnpm exec cdk deploy MemorysmithApi
-pnpm exec cdk deploy MemorysmithProjections
-pnpm exec cdk deploy MemorysmithAgent
-pnpm exec cdk deploy MemorysmithFrontend
+./deploy-aws/deploy.ps1 -Profile memorysmith
 ```
 
-Notas de primeira execução:
+O script é idempotente: quando algo falha no meio, corrija o que o relatório apontou e rode de novo. Notas de primeira execução:
 
-- O certificado ACM valida por DNS na própria hosted zone; a emissão costuma levar de 2 a 10 minutos e o deploy da `MemorysmithNetwork` espera por ela.
-- Ao final, a `MemorysmithAgent` imprime os outputs `McpEndpoint` (a URL pública do MCP) e `ApiId`.
+- Os certificados ACM validam por DNS na própria hosted zone. A emissão costuma levar de 2 a 10 minutos, e a `MemorysmithNetwork` espera por ela.
+- A interface é compilada **depois** do backend e **antes** da stack de hospedagem, porque ela precisa embutir a origem da API e o app client reais. É a ordem que o CDK não teria como inferir sozinho, e é a razão de o frontend não entrar num `--all`.
+- O `.env.local` do frontend é escrito a partir dos outputs do CloudFormation, não da sua memória. Para preservar um arquivo editado à mão, use `-KeepFrontendEnv`.
 
-#### 6. Publicar a interface
+Ao final, o script imprime conta, região, endereços do site, da API e do MCP, o user pool, o app client da interface e o domínio do Cognito.
 
-A stack do frontend só copia arquivos quando eles existem, então o build vem antes do deploy dela. Com as três variáveis preenchidas em `memorysmith-frontend/.env.local` (ver [Rodando na sua máquina](#rodando-na-sua-máquina)):
+#### Opções de `deploy.ps1`
 
-```
-pnpm -C memorysmith-frontend build
-pnpm exec cdk deploy MemorysmithFrontend
-```
+| Opção | Para que serve |
+|---|---|
+| `-Profile <nome>` | Profile da AWS a usar, em vez da cadeia padrão de credenciais |
+| `-Region <região>` | Região de destino; o padrão vem de `CDK_DEFAULT_REGION`, depois do profile, depois `us-east-1` |
+| `-Stacks <lista>` | Sobe apenas as stacks indicadas, por exemplo `-Stacks MemorysmithApi,MemorysmithAgent` |
+| `-PreflightOnly` | Só o relatório de ambiente |
+| `-SkipInstall` | Não roda `pnpm install`, útil em redeploys seguidos |
+| `-SkipFrontend` | Sobe só o backend |
+| `-SkipSynth`, `-SkipBootstrap`, `-SkipVerify` | Pulam a síntese, o bootstrap e a verificação final |
+| `-KeepFrontendEnv` | Não sobrescreve `memorysmith-frontend/.env.local` |
+| `-SetTestUserPassword` | Pede uma senha e a define como definitiva para o usuário de teste do pool |
+| `-EphemeralData` | Cria os recursos de dado com política de remoção destrutiva, para um ambiente descartável |
+| `-IgnoreGaps` | Segue mesmo com gaps abertos, para quando uma checagem está errada sobre a sua máquina |
+| `-HostedZoneId`, `-CognitoDomainPrefix`, `-TestUserEmail` | Sobrescrevem o contexto do `cdk.json` só naquela execução |
 
-Sem as variáveis o build sai apontando para o seed, e a aplicação publicada seria o protótipo em vez do produto.
+#### O que o script verifica no fim
 
-#### 7. Definir a senha do usuário de teste
+Com o ambiente no ar, ele confere quatro coisas, que são as mesmas do §13.3 do guia de arquitetura: o `/health` da API responde, o `/mcp` devolve `401` com o header `WWW-Authenticate` apontando para o documento de metadados, os dois `.well-known` do MCP respondem com o conteúdo esperado, e o site responde `200`. Qualquer uma falhando, o script termina com código de saída diferente de zero e diz qual.
 
-O usuário de teste nasce com senha temporária enviada por e-mail. Para fixar uma senha definitiva sem passar pelo fluxo de troca:
+#### O que o deploy não faz por você
 
-```
-aws cognito-idp admin-set-user-password --user-pool-id <ID do user pool> --username <e-mail do usuário de teste> --password "<senha forte>" --permanent
-```
+- **Senha do usuário de teste.** O usuário nasce com senha temporária. Rode uma vez `./deploy-aws/deploy.ps1 -SetTestUserPassword -Stacks MemorysmithIdentity -SkipInstall`, ou use o `aws cognito-idp admin-set-user-password` na mão.
+- **O fluxo OAuth ponta a ponta**, que precisa de navegador:
+  ```
+  npx @modelcontextprotocol/inspector
+  ```
+  No Inspector: transporte **Streamable HTTP**, URL `https://mcp.memorysmith.app/mcp`, e iniciar a autenticação. O fluxo descobre o authorization server, redireciona ao login do Cognito, volta com o token e lista as tools. Chamar `whoami` deve devolver `sub`, `client_id`, `subscription_id` e `subscription_status`.
+- **Registrar o conector nos clientes de agente**: Claude Desktop, Claude Code e claude.ai recebem a mesma URL como conector remoto.
 
-O ID do user pool aparece no console do Cognito ou em `aws cognito-idp list-user-pools --max-results 10`.
-
-#### 8. Verificar a subida
-
-Checagens rápidas de descoberta (itens 1 e 2 do §13.3 do guia):
-
-```
-curl -i https://mcp.memorysmith.app/mcp
-```
-
-Deve responder `401` com o header `WWW-Authenticate: Bearer resource_metadata="https://mcp.memorysmith.app/.well-known/oauth-protected-resource"`.
-
-```
-curl https://mcp.memorysmith.app/.well-known/oauth-protected-resource
-curl https://mcp.memorysmith.app/.well-known/oauth-authorization-server
-```
-
-O primeiro deve apontar `authorization_servers` para `https://mcp.memorysmith.app`; o segundo deve anunciar `client_id_metadata_document_supported: true`, PKCE `S256` e nenhum `registration_endpoint`.
-
-#### 9. Testar o fluxo OAuth completo com o MCP Inspector
+### Derrubar
 
 ```
-npx @modelcontextprotocol/inspector
+./deploy-aws/destroy.ps1
 ```
 
-No Inspector: transporte **Streamable HTTP**, URL `https://mcp.memorysmith.app/mcp`, e iniciar a autenticação. O fluxo deve descobrir o authorization server, redirecionar ao login do Cognito (usuário de teste do passo 6), voltar com o token e listar a tool `whoami`. Chamar `whoami` deve devolver `sub`, `client_id`, `subscription_id` e `subscription_status`.
-
-Em seguida, os dois clientes do critério de pronto da entrega 1:
-
-- **Claude Desktop / Claude Code:** adicionar um conector remoto apontando para `https://mcp.memorysmith.app/mcp`.
-- **claude.ai:** Settings → Connectors → Add custom connector, com a mesma URL.
-
-#### 10. Derrubar (quando necessário)
+Antes de apagar qualquer coisa, o script lista as stacks que existem de fato, avisa o que sobrevive e pede que você digite o nome do domínio para confirmar. Para inspecionar sem risco nenhum:
 
 ```
-pnpm exec cdk destroy --all
+./deploy-aws/destroy.ps1 -PreflightOnly
 ```
 
-O user pool e o secret têm política de remoção padrão; confira no console o que ficou retido antes de assumir que a conta está limpa.
+**O tear down não destrói dado, por desenho.** As quatro tabelas e o bucket de conteúdo nascem com política de retenção, então sobrevivem à stack, e o user pool também. Isso tem uma consequência prática que o relatório final do script repete: os nomes de tabela são fixos, então uma tabela retida faz o próximo deploy falhar com `AlreadyExists`. Ou você apaga a tabela, ou o preflight do `deploy.ps1` vai barrar a subida.
+
+Para um ambiente descartável, `-PurgeData` primeiro reimplanta a stack de dados com a política destrutiva e só então apaga, porque a política que vale é a do template já implantado. A trilha de auditoria (`mv-audit`) retém em qualquer ambiente: ela é a única coisa que não se reconstrói a partir de nada.
+
+| Opção | Para que serve |
+|---|---|
+| `-Profile <nome>`, `-Region <região>` | Iguais às do deploy |
+| `-Stacks <lista>` | Derruba apenas as stacks indicadas |
+| `-PreflightOnly` | Só o relatório: o que existe e o que sobreviveria |
+| `-PurgeData` | Apaga também tabelas e bucket de conteúdo, exceto a auditoria. Irreversível |
+| `-Force` | Pula a confirmação digitada, para execução não assistida |
 
 ### Solução de problemas
 
 | Sintoma | Causa provável |
 |---|---|
-| `Unable to resolve AWS account to use` | Credenciais ausentes ou expiradas na cadeia padrão |
-| `This CDK CLI is not compatible...` | Use o CLI fixado no projeto (`pnpm exec cdk`), não um `cdk` global antigo |
-| Deploy da `MemorysmithNetwork` parado em `CREATE_IN_PROGRESS` | Emissão do certificado aguardando a validação DNS; se passar de 30 minutos, confira se a hosted zone do `hostedZoneId` é a que responde pelo domínio |
-| `nslookup -type=NS memorysmith.app` ainda responde `squarespacedns.com` | Nameservers não trocados no Squarespace, ou troca ainda propagando (ver [Delegar o domínio do Squarespace para o Route 53](#delegar-o-domínio-do-squarespace-para-o-route-53)) |
-| Colisão no domínio do Cognito | Troque `cognitoDomainPrefix` no contexto |
-| `401` também nos endpoints `.well-known` | Rota errada ou domínio ainda propagando; os `.well-known` são públicos por desenho |
+| Preflight acusa `AWS credentials` mesmo com `~/.aws/credentials` preenchido | As credenciais estão sob um profile nomeado e não sob o `default`. O próprio gap lista os profiles da máquina; rode com `-Profile <nome>` |
+| Preflight acusa `DNS delegation` | Os nameservers do registrador ainda não são os da Route 53, ou a troca ainda está propagando (ver [Delegar o domínio do Squarespace para o Route 53](#delegar-o-domínio-do-squarespace-para-o-route-53)). O certificado ACM não é emitido enquanto isso |
+| Preflight acusa `Orphan tables` | Um destroy anterior deixou as tabelas retidas. Apague as citadas com `aws dynamodb delete-table --table-name <nome>` antes de subir de novo |
+| Preflight acusa `Stack states` | Uma stack ficou em `ROLLBACK_COMPLETE`, estado que o CloudFormation não atualiza. Rode `./deploy-aws/destroy.ps1 -Stacks <nome>` e suba outra vez |
+| Deploy da `MemorysmithNetwork` parado em `CREATE_IN_PROGRESS` | Emissão do certificado aguardando a validação DNS. Passando de 30 minutos, confira se a hosted zone do `hostedZoneId` é a que de fato responde pelo domínio |
+| Colisão no domínio do Cognito | O prefixo é único por região. Suba com `-CognitoDomainPrefix <outro>` |
+| Verificação final falha com `401` também nos `.well-known` | Rota errada ou domínio ainda propagando; os `.well-known` são públicos por desenho |
+| `503 Service Unavailable` intermitente nas primeiras chamadas | Conta nova costuma vir com 10 execuções simultâneas de Lambda. Peça aumento de quota à AWS |
+| `This CDK CLI is not compatible...` | Algum `cdk` global antigo no PATH. Os scripts sempre usam o CLI fixado no projeto |
