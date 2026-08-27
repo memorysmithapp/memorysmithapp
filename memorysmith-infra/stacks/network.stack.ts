@@ -22,9 +22,12 @@ export class NetworkStack extends Stack {
    * stack is deployed in us-east-1, so the same certificate serves both.
    */
   readonly siteCertificate: acm.ICertificate;
+  /** The sign-in page lives on our own domain, not on the provider's. */
+  readonly authCertificate: acm.ICertificate;
   readonly mcpDomainName: string;
   readonly apiDomainName: string;
   readonly siteDomainName: string;
+  readonly authDomainName: string;
 
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
@@ -34,6 +37,7 @@ export class NetworkStack extends Stack {
     this.mcpDomainName = `mcp.${zoneName}`;
     this.apiDomainName = `api.${zoneName}`;
     this.siteDomainName = zoneName;
+    this.authDomainName = `auth.${zoneName}`;
 
     this.hostedZone = route53.HostedZone.fromHostedZoneAttributes(this, 'HostedZone', {
       hostedZoneId: zoneId,
@@ -45,6 +49,15 @@ export class NetworkStack extends Stack {
     // themselves, which is why none of them is ever handled by hand.
     this.mcpCertificate = new acm.Certificate(this, 'McpCertificate', {
       domainName: this.mcpDomainName,
+      validation: acm.CertificateValidation.fromDns(this.hostedZone),
+    });
+
+    /**
+     * Cognito wants this one in us-east-1, the same rule CloudFront has, and
+     * this stack already lives there.
+     */
+    this.authCertificate = new acm.Certificate(this, 'AuthCertificate', {
+      domainName: this.authDomainName,
       validation: acm.CertificateValidation.fromDns(this.hostedZone),
     });
 

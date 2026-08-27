@@ -37,6 +37,9 @@ const identity = new IdentityStack(app, 'MemorysmithIdentity', {
   env,
   mcpOrigin: `https://${network.mcpDomainName}`,
   accessTable: data.accessTable.table,
+  authDomainName: network.authDomainName,
+  authCertificate: network.authCertificate,
+  hostedZone: network.hostedZone,
 });
 
 const api = new ApiStack(app, 'MemorysmithApi', {
@@ -57,7 +60,7 @@ new AgentStack(app, 'MemorysmithAgent', {
   certificate: network.mcpCertificate,
   mcpDomainName: network.mcpDomainName,
   userPool: identity.userPool,
-  userPoolDomain: identity.userPoolDomain,
+  hostedUiOrigin: identity.hostedUiOrigin,
   proxyClient: identity.proxyClient,
   internalApiOrigin: api.apiOrigin,
 });

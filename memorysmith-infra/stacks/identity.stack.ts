@@ -12,6 +12,9 @@ import { CfnOutput, Duration, Stack, type StackProps } from 'aws-cdk-lib';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import type { ITable } from 'aws-cdk-lib/aws-dynamodb';
 import type { Construct } from 'constructs';
+import { ARecord, RecordTarget, type IHostedZone } from 'aws-cdk-lib/aws-route53';
+import { UserPoolDomainTarget } from 'aws-cdk-lib/aws-route53-targets';
+import type { ICertificate } from 'aws-cdk-lib/aws-certificatemanager';
 import { ServiceLambda } from '../constructs/service-lambda.js';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -24,11 +27,21 @@ export interface IdentityStackProps extends StackProps {
   accessTable: ITable;
   /** Public origin of the MCP service, e.g. https://mcp.memorysmith.app */
   mcpOrigin: string;
+  /** The sign-in page lives here, e.g. auth.memorysmith.app */
+  authDomainName: string;
+  authCertificate: ICertificate;
+  hostedZone: IHostedZone;
 }
 
 export class IdentityStack extends Stack {
   readonly userPool: cognito.UserPool;
   readonly userPoolDomain: cognito.UserPoolDomain;
+  /**
+   * Where the sign-in page answers. Everything that builds an OAuth URL reads
+   * this instead of assembling one, so the day the domain changes there is a
+   * single place that knows.
+   */
+  readonly hostedUiOrigin: string;
   readonly proxyClient: cognito.UserPoolClient;
   /** The app client the SPA authenticates with (authorization code + PKCE). */
   readonly webClient: cognito.UserPoolClient;
@@ -91,6 +104,8 @@ export class IdentityStack extends Stack {
     const zoneName = this.node.tryGetContext('hostedZoneName') as string;
     this.issuer = `https://cognito-idp.${this.region}.amazonaws.com/${this.userPool.userPoolId}`;
 
+    this.hostedUiOrigin = `https://${props.authDomainName}`;
+
     /**
      * Managed login, not the classic hosted UI. The classic page accepts a
      * fixed list of CSS properties that has no border radius for the card and
@@ -98,10 +113,28 @@ export class IdentityStack extends Stack {
      * the branding surface that carries a logo, a radius and the palette, and
      * it is the only way this page can look like the product.
      */
+    /**
+     * Our own domain, not the provider's. The sign-in page is the one screen
+     * of the product served by someone else, and an address from another
+     * company on it is the seam showing at the worst possible moment: the one
+     * where the person is typing a password.
+     *
+     * A user pool holds ONE domain, so this replaced the prefix domain rather
+     * than joining it. The issuer of the tokens does not move with it: it is
+     * `cognito-idp.{region}.amazonaws.com/{poolId}` and stays put, so nothing
+     * that validates a token is affected by the change.
+     */
     this.userPoolDomain = this.userPool.addDomain('HostedDomain', {
-      cognitoDomain: { domainPrefix },
+      customDomain: { domainName: props.authDomainName, certificate: props.authCertificate },
       managedLoginVersion: cognito.ManagedLoginVersion.NEWER_MANAGED_LOGIN,
     });
+
+    new ARecord(this, 'AuthRecord', {
+      zone: props.hostedZone,
+      recordName: props.authDomainName,
+      target: RecordTarget.fromAlias(new UserPoolDomainTarget(this.userPoolDomain)),
+    });
+    void domainPrefix;
 
     this.proxyClient = this.userPool.addClient('CimdProxyClient', {
       userPoolClientName: 'cimd-proxy',
@@ -262,8 +295,6 @@ export class IdentityStack extends Stack {
 
     new CfnOutput(this, 'UserPoolId', { value: this.userPool.userPoolId });
     new CfnOutput(this, 'WebClientId', { value: this.webClient.userPoolClientId });
-    new CfnOutput(this, 'CognitoDomain', {
-      value: `https://${domainPrefix}.auth.${this.region}.amazoncognito.com`,
-    });
+    new CfnOutput(this, 'CognitoDomain', { value: this.hostedUiOrigin });
   }
 }

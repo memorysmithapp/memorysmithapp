@@ -93,7 +93,7 @@ docker compose down
 
 ```
 VITE_API_ORIGIN=https://api.memorysmith.app
-VITE_COGNITO_DOMAIN=https://<prefixo>.auth.us-east-1.amazoncognito.com
+VITE_COGNITO_DOMAIN=https://auth.<dominio>
 VITE_COGNITO_CLIENT_ID=<app client da SPA>
 ```
 

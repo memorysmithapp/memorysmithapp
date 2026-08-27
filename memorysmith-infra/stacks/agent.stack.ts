@@ -27,7 +27,8 @@ export interface AgentStackProps extends StackProps {
   certificate: acm.ICertificate;
   mcpDomainName: string;
   userPool: cognito.UserPool;
-  userPoolDomain: cognito.UserPoolDomain;
+  /** Where the sign-in page answers, already assembled by the identity stack. */
+  hostedUiOrigin: string;
   proxyClient: cognito.UserPoolClient;
   /**
    * Where the tools reach the other contexts. svc-agent forwards the caller's
@@ -43,7 +44,7 @@ export class AgentStack extends Stack {
     super(scope, id, props);
 
     const publicOrigin = `https://${props.mcpDomainName}`;
-    const cognitoDomain = `https://${props.userPoolDomain.domainName}.auth.${this.region}.amazoncognito.com`;
+    const cognitoDomain = props.hostedUiOrigin;
     const cognitoIssuer = `https://cognito-idp.${this.region}.amazonaws.com/${props.userPool.userPoolId}`;
 
     // HMAC key that signs the state correlating the two OAuth legs. Rotating it
