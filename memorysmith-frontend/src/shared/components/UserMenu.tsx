@@ -6,6 +6,7 @@ import { useSession } from '../store/session';
 import { useLiveSession, authConfig, type LiveSession } from '../auth/session';
 import { signOut as endHostedSession } from '../auth/oauth';
 import { isLive } from '../api/source';
+import { markSignedOut } from '../../features/auth/LoginPage';
 import { Avatar } from './Avatar';
 import { MonitorIcon, MoonIcon, SunIcon } from './icons';
 
@@ -51,7 +52,6 @@ export function UserMenu() {
   const simulated = useSession((s) => s.user);
   const endSimulated = useSession((s) => s.signOut);
   const live = useLiveSession((s) => s.session);
-  const clearLive = useLiveSession((s) => s.clear);
 
   const user: Identity | null = isLive
     ? live
@@ -77,10 +77,18 @@ export function UserMenu() {
 
   function handleSignOut() {
     if (isLive) {
-      // The hosted session is ended at the provider, which also clears the
-      // tokens here. It navigates away on its own, so there is nothing left
-      // for the router to do.
-      clearLive();
+      /**
+       * NOTHING may change React state before the redirect. Clearing the
+       * session here used to schedule a re-render that ran while the browser
+       * was still on its way to the provider's logout: the guard saw no token,
+       * sent the router to /login, and /login handed the browser BACK to the
+       * provider, replacing the pending navigation. The logout was never
+       * reached and the person came back signed in.
+       *
+       * So the order is the whole fix: mark the intent, then leave. The tokens
+       * are cleared inside the redirect, and the page is going away anyway.
+       */
+      markSignedOut();
       endHostedSession(authConfig());
       return;
     }

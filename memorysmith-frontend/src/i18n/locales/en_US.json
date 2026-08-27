@@ -19,7 +19,8 @@
     "completing": "Finishing the sign-in...",
     "tryAgain": "Try again",
     "handingOver": "Taking you to the sign-in page...",
-    "handoverFailed": "The sign-in did not complete. Try again."
+    "handoverFailed": "The sign-in did not complete. Try again.",
+    "signedOut": "You have signed out."
   },
   "theme": {
     "heading": "Theme",

@@ -21,11 +21,29 @@ const DEMO_NAME = 'Heitor Rapcinski';
  */
 const HANDOVER_KEY = 'memorysmith.signin.handover';
 
+/**
+ * Marks that the person asked to LEAVE. Handing the browser straight back to
+ * the provider is right for someone who arrived without a session; doing it to
+ * someone who just clicked "sign out" would undo the very thing they asked
+ * for, and on a provider session that is still warm it would sign them back in
+ * without a click.
+ */
+const SIGNED_OUT_KEY = 'memorysmith.signin.signedOut';
+
 export function clearHandover(): void {
   try {
     sessionStorage.removeItem(HANDOVER_KEY);
   } catch {
     // A browser with storage disabled just loses the loop guard, not the flow.
+  }
+}
+
+export function markSignedOut(): void {
+  try {
+    sessionStorage.setItem(SIGNED_OUT_KEY, 'yes');
+    sessionStorage.removeItem(HANDOVER_KEY);
+  } catch {
+    // Without storage the sign-out still happens; only the message is lost.
   }
 }
 
@@ -35,6 +53,7 @@ export function LoginPage() {
   const signIn = useSession((s) => s.signIn);
   const started = useRef(false);
   const [handedOver, setHandedOver] = useState(false);
+  const [signedOut, setSignedOut] = useState(false);
 
   /**
    * There is nothing to decide here when the backend is live: the identity
@@ -48,11 +67,18 @@ export function LoginPage() {
     started.current = true;
 
     let already = false;
+    let left = false;
     try {
+      left = sessionStorage.getItem(SIGNED_OUT_KEY) === 'yes';
+      sessionStorage.removeItem(SIGNED_OUT_KEY);
       already = sessionStorage.getItem(HANDOVER_KEY) === 'yes';
-      sessionStorage.setItem(HANDOVER_KEY, 'yes');
+      if (!left) sessionStorage.setItem(HANDOVER_KEY, 'yes');
     } catch {
       // Storage refused: fall through and hand over anyway.
+    }
+    if (left) {
+      setSignedOut(true);
+      return;
     }
     if (already) {
       setHandedOver(true);
@@ -91,9 +117,13 @@ export function LoginPage() {
         {isLive ? (
           <div className="login-form">
             <p className="login-hint">
-              {handedOver ? t('auth.handoverFailed') : t('auth.handingOver')}
+              {signedOut
+                ? t('auth.signedOut')
+                : handedOver
+                  ? t('auth.handoverFailed')
+                  : t('auth.handingOver')}
             </p>
-            {handedOver ? (
+            {signedOut || handedOver ? (
               <button
                 type="button"
                 className="button-primary"

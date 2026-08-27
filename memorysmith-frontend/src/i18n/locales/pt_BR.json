@@ -19,7 +19,8 @@
     "completing": "Concluindo a entrada...",
     "tryAgain": "Tentar de novo",
     "handingOver": "Levando você à página de entrada...",
-    "handoverFailed": "A entrada não foi concluída. Tente de novo."
+    "handoverFailed": "A entrada não foi concluída. Tente de novo.",
+    "signedOut": "Você saiu da sua conta."
   },
   "theme": {
     "heading": "Tema",
