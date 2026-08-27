@@ -282,6 +282,8 @@ Ela precisa ser propagada para todo `package.json` do monorepo e para o `CHANGEL
 
 A superfície de ferramentas MCP é o **contrato público** do produto (`docs/software-vision.md` § MCP). Remover uma ferramenta, renomear um argumento ou estreitar um formato de retorno é incremento maior, mesmo que nenhuma API interna tenha mudado.
 
+**Enquanto a versão base for `0.x`, a regra acima não se aplica.** O Semantic Versioning trata a faixa `0.x` como instável: qualquer coisa pode mudar em um incremento menor, e não existe incremento maior a fazer antes de a `1.0.0` existir. Uma quebra de contrato nessa faixa entra como incremento menor e é registrada no `CHANGELOG.md` sob `Removed` ou `Changed`, dizendo o que saiu e por quê. A partir da `1.0.0`, a regra passa a valer integralmente e sem exceção, porque aí existe alguém integrado do outro lado.
+
 ### Fluxo de incremento de versão
 
 Execute nesta ordem exata:
