@@ -29,7 +29,13 @@ import {
   type DomainEvent,
   type Result,
 } from '@memorysmith/kernel';
-import { type Email, type RejectionReason, type SubscriptionName } from '../values.js';
+import {
+  type Email,
+  type RejectionReason,
+  StorageQuota,
+  type SubscriptionName,
+  SubscriptionType,
+} from '../values.js';
 
 /**
  * A member of the subscription. THE OWNER IS NOT ONE. Ownership lives in a
@@ -66,6 +72,8 @@ export class Subscription {
     private _ownerId: UserId,
     private _ownerEmail: string,
     private _status: SubscriptionStatus,
+    private _type: SubscriptionType,
+    private _quota: StorageQuota,
     readonly requestedAt: Instant,
     private _reviewedBy: UserId | null,
     private _reviewedAt: Instant | null,
@@ -84,11 +92,16 @@ export class Subscription {
     name: SubscriptionName;
     ownerId: UserId;
     ownerEmail: string;
+    /** The commercial shape, chosen at the request (RN-SUB-018, RN-SUB-019). */
+    type?: SubscriptionType;
+    quota?: StorageQuota;
     by: Authorship;
   }): Result<Subscription, DomainError> {
     const slug = Slug.from(input.name.value);
     if (!slug.ok) return slug;
 
+    const type = input.type ?? SubscriptionType.DEFAULT;
+    const quota = input.quota ?? StorageQuota.DEFAULT;
     const subscription = new Subscription(
       input.id,
       input.name,
@@ -96,6 +109,8 @@ export class Subscription {
       input.ownerId,
       input.ownerEmail,
       SubscriptionStatus.PENDING_APPROVAL,
+      type,
+      quota,
       input.by.at,
       null,
       null,
@@ -110,6 +125,8 @@ export class Subscription {
       ownerId: input.ownerId.value,
       ownerEmail: input.ownerEmail,
       status: 'pending_approval',
+      type: type.name,
+      quota: quota.name,
     });
     return ok(subscription);
   }
@@ -121,6 +138,8 @@ export class Subscription {
     ownerId: UserId;
     ownerEmail: string;
     status: SubscriptionStatus;
+    type: SubscriptionType;
+    quota: StorageQuota;
     requestedAt: Instant;
     reviewedBy: UserId | null;
     reviewedAt: Instant | null;
@@ -136,6 +155,8 @@ export class Subscription {
       input.ownerId,
       input.ownerEmail,
       input.status,
+      input.type,
+      input.quota,
       input.requestedAt,
       input.reviewedBy,
       input.reviewedAt,
@@ -160,6 +181,12 @@ export class Subscription {
   }
   get status(): SubscriptionStatus {
     return this._status;
+  }
+  get type(): SubscriptionType {
+    return this._type;
+  }
+  get quota(): StorageQuota {
+    return this._quota;
   }
   get reviewedBy(): UserId | null {
     return this._reviewedBy;
@@ -249,10 +276,65 @@ export class Subscription {
         ownerId: this._ownerId.value,
         ownerEmail: this._ownerEmail,
         status: 'pending_approval',
+        type: this._type.name,
+        quota: this._quota.name,
       },
     });
     if (!moved.ok) return moved;
     this._rejectionReason = null;
+    return ok();
+  }
+
+  /**
+   * The administrative override (RN-SUB-018): it sets the status to whatever
+   * it is given, WITHOUT walking the transition machine.
+   *
+   * It exists for operating an environment, and it is deliberately a method of
+   * its own rather than a flag on `transition`: the ordinary review path keeps
+   * its machine intact, and the trail says which of the two happened, because
+   * this one records `SubscriptionStatusSet` and nothing else does. Setting
+   * `rejected` this way records NO reason, so RN-SUB-009 is not satisfied by
+   * it: rejecting a request that a person is waiting on still goes through
+   * `reject`.
+   */
+  setStatus(to: SubscriptionStatus, reviewer: UserId, by: Authorship): Result<void, DomainError> {
+    if (this._status.equals(to)) return ok();
+
+    const from = this._status;
+    this._status = to;
+    this._reviewedBy = reviewer;
+    this._reviewedAt = by.at;
+    if (!to.equals(SubscriptionStatus.REJECTED)) this._rejectionReason = null;
+    this.record('SubscriptionStatusSet', by, {
+      from: from.name,
+      to: to.name,
+      reviewedBy: reviewer.value,
+    });
+    return ok();
+  }
+
+  /**
+   * The commercial shape changes, and nothing else does: the quota is declared
+   * and not enforced (RN-SUB-019), so this never touches a byte of content and
+   * never moves a key.
+   */
+  changePlan(
+    to: { type?: SubscriptionType; quota?: StorageQuota },
+    reviewer: UserId,
+    by: Authorship,
+  ): Result<void, DomainError> {
+    const type = to.type ?? this._type;
+    const quota = to.quota ?? this._quota;
+    if (type.equals(this._type) && quota.equals(this._quota)) return ok();
+
+    const from = { type: this._type.name, quota: this._quota.name };
+    this._type = type;
+    this._quota = quota;
+    this.record('SubscriptionPlanChanged', by, {
+      from,
+      to: { type: type.name, quota: quota.name },
+      reviewedBy: reviewer.value,
+    });
     return ok();
   }
 

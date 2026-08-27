@@ -24,6 +24,15 @@ export const ACCESS_EVENT_TYPES = [
   'SubscriptionSuspended',
   'SubscriptionReactivated',
   'SubscriptionCanceled',
+  /**
+   * The platform set the status DIRECTLY, without walking the transition
+   * machine, and the plan of a subscription changed. Both are administrative
+   * acts of the platform surface (software-vision.md, section 4.6), and both
+   * are events of their own precisely because they did not go through the
+   * ordinary path: the trail has to say which one it was.
+   */
+  'SubscriptionStatusSet',
+  'SubscriptionPlanChanged',
   'OwnershipTransferred',
   /**
    * RETIRED with the workspace level (software-vision.md, section 4.3). It

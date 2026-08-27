@@ -16,7 +16,9 @@ import {
   membershipRoleSchema,
   positionSchema,
   slugSchema,
+  storageQuotaSchema,
   subscriptionStatusSchema,
+  subscriptionTypeSchema,
   ulidSchema,
   userIdSchema,
   vaultRoleLimitSchema,
@@ -39,6 +41,8 @@ export const domainEventTypeSchema = z.enum([
   'SubscriptionSuspended',
   'SubscriptionReactivated',
   'SubscriptionCanceled',
+  'SubscriptionStatusSet',
+  'SubscriptionPlanChanged',
   'OwnershipTransferred',
   'WorkspaceCreated',
   'MemberInvited',
@@ -93,6 +97,8 @@ export const subscriptionRequestedPayload = z.object({
   ownerId: userIdSchema,
   ownerEmail: z.string().email(),
   status: subscriptionStatusSchema,
+  type: subscriptionTypeSchema,
+  quota: storageQuotaSchema,
 });
 
 export const subscriptionStatusChangedPayload = z.object({
@@ -100,6 +106,23 @@ export const subscriptionStatusChangedPayload = z.object({
   to: subscriptionStatusSchema,
   reviewedBy: userIdSchema.optional(),
   reason: z.string().optional(),
+});
+
+/**
+ * The status was set directly by the platform, without walking the transition
+ * machine. `from` and `to` may be any pair, including one the machine forbids,
+ * which is exactly why this is not a SubscriptionApproved.
+ */
+export const subscriptionStatusSetPayload = z.object({
+  from: subscriptionStatusSchema,
+  to: subscriptionStatusSchema,
+  reviewedBy: userIdSchema.optional(),
+});
+
+export const subscriptionPlanChangedPayload = z.object({
+  from: z.object({ type: subscriptionTypeSchema, quota: storageQuotaSchema }),
+  to: z.object({ type: subscriptionTypeSchema, quota: storageQuotaSchema }),
+  reviewedBy: userIdSchema.optional(),
 });
 
 export const ownershipTransferredPayload = z.object({
@@ -289,6 +312,8 @@ export const eventPayloadSchemas = {
   SubscriptionSuspended: subscriptionStatusChangedPayload,
   SubscriptionReactivated: subscriptionStatusChangedPayload,
   SubscriptionCanceled: subscriptionStatusChangedPayload,
+  SubscriptionStatusSet: subscriptionStatusSetPayload,
+  SubscriptionPlanChanged: subscriptionPlanChangedPayload,
   OwnershipTransferred: ownershipTransferredPayload,
   WorkspaceCreated: workspaceCreatedPayload,
   MemberInvited: memberInvitedPayload,

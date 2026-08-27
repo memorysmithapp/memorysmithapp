@@ -61,6 +61,8 @@ export interface PlatformSubscriptionView {
   readonly name: string;
   readonly ownerEmail: string;
   readonly status: string;
+  readonly type: string;
+  readonly quota: string;
   readonly requestedAt: string;
   readonly memberCount: number;
 }

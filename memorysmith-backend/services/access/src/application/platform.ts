@@ -18,7 +18,7 @@ import {
   type Result,
   type UserId,
 } from '@memorysmith/kernel';
-import { RejectionReason } from '../domain/values.js';
+import { RejectionReason, StorageQuota, SubscriptionType } from '../domain/values.js';
 import type { Subscription } from '../domain/subscription/Subscription.js';
 import type { PlatformSubscriptionAdmin, PlatformSubscriptionView } from '../domain/ports/index.js';
 
@@ -90,6 +90,48 @@ export class ReviewSubscription {
     return this.apply(input.actor, input.subscriptionId, (subscription) =>
       subscription.suspend(input.actor.userId, input.by),
     );
+  }
+
+  /**
+   * The administrative override (RN-SUB-018). It reaches the same aggregate
+   * through the same port, so the write, the event and the audit trail are the
+   * ordinary ones; what it skips is the transition machine, and only that.
+   */
+  async setStatus(input: {
+    actor: PlatformActor;
+    subscriptionId: SubscriptionId;
+    status: string;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>> {
+    return this.apply(input.actor, input.subscriptionId, (subscription) => {
+      const status = SubscriptionStatus.create(input.status);
+      if (!status.ok) return status;
+      return subscription.setStatus(status.value, input.actor.userId, input.by);
+    });
+  }
+
+  /** Type and quota, either one alone (RN-SUB-018, RN-SUB-019). */
+  async changePlan(input: {
+    actor: PlatformActor;
+    subscriptionId: SubscriptionId;
+    type?: string;
+    quota?: string;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>> {
+    return this.apply(input.actor, input.subscriptionId, (subscription) => {
+      const type = input.type ? SubscriptionType.create(input.type) : null;
+      if (type && !type.ok) return type;
+      const quota = input.quota ? StorageQuota.create(input.quota) : null;
+      if (quota && !quota.ok) return quota;
+      return subscription.changePlan(
+        {
+          ...(type?.ok ? { type: type.value } : {}),
+          ...(quota?.ok ? { quota: quota.value } : {}),
+        },
+        input.actor.userId,
+        input.by,
+      );
+    });
   }
 
   async reactivate(input: {

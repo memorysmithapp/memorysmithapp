@@ -179,6 +179,54 @@ describe('Onboarding', () => {
     expect(created.subscriptionId.value).toHaveLength(26);
   });
 
+  it('takes the plan given, and defaults it when none is', async () => {
+    const useCase = new RequestSubscription(
+      new InMemoryOnboarding(db, events),
+      new InMemoryUserLinkRepository(db),
+    );
+
+    const { subscriptionId } = unwrap(
+      await useCase.execute({
+        profile: profileOf(owner, 'owner@example.com'),
+        name: 'Tribunal de Contas',
+        type: 'individual',
+        quota: '2GB',
+        by: Authorship.byHuman(owner),
+      }),
+    );
+    const stored = db.subscriptions.get(`S#${subscriptionId.value}`)?.subscription;
+    expect(stored?.type.name).toBe('individual');
+    expect(stored?.quota.name).toBe('2GB');
+
+    const other = unwrap(
+      await new RequestSubscription(
+        new InMemoryOnboarding(db, events),
+        new InMemoryUserLinkRepository(db),
+      ).execute({
+        profile: profileOf(invitee, 'invitee@example.com'),
+        name: 'Segunda',
+        by: Authorship.byHuman(invitee),
+      }),
+    );
+    expect(db.subscriptions.get(`S#${other.subscriptionId.value}`)?.subscription.quota.name).toBe(
+      '1GB',
+    );
+  });
+
+  it('refuses a plan the product does not sell', async () => {
+    const refused = await new RequestSubscription(
+      new InMemoryOnboarding(db, events),
+      new InMemoryUserLinkRepository(db),
+    ).execute({
+      profile: profileOf(owner, 'owner@example.com'),
+      name: 'Tribunal de Contas',
+      quota: '10GB',
+      by: Authorship.byHuman(owner),
+    });
+    expect(expectErr(refused).code).toBe('VALIDATION');
+    expect(db.subscriptions.size).toBe(0);
+  });
+
   it('refuses a second subscription for the same owner', async () => {
     const onboarding = new InMemoryOnboarding(db, events);
     const useCase = new RequestSubscription(onboarding, new InMemoryUserLinkRepository(db));
@@ -223,6 +271,8 @@ describe('Platform surface', () => {
       name: 'Tribunal de Contas',
       ownerEmail: 'owner@example.com',
       status: 'pending_approval',
+      type: 'individual',
+      quota: '1GB',
       requestedAt: expect.any(String),
       memberCount: 0,
     });
@@ -273,6 +323,71 @@ describe('Platform surface', () => {
       }),
     );
     expect(events.ofType('SubscriptionReactivated')).toHaveLength(1);
+  });
+
+  it('sets a status the transition machine forbids, and says so in the trail', async () => {
+    const subscriptionId = await seed();
+    const review = new ReviewSubscription(new InMemoryPlatformAdmin(db, events));
+    const actor = { userId: admin, isPlatformAdmin: true };
+
+    // pending_approval -> canceled is not a transition the machine allows.
+    expect(
+      expectErr(
+        await review.reactivate({
+          actor,
+          subscriptionId,
+          status: 'canceled',
+          by: Authorship.byHuman(admin),
+        }),
+      ).code,
+    ).toBe('VALIDATION');
+
+    unwrap(
+      await review.setStatus({
+        actor,
+        subscriptionId,
+        status: 'canceled',
+        by: Authorship.byHuman(admin),
+      }),
+    );
+    expect(db.subscriptions.get(`S#${subscriptionId.value}`)?.subscription.status.name).toBe(
+      'canceled',
+    );
+    // A different event, because it was not the ordinary review path.
+    expect(events.ofType('SubscriptionStatusSet')).toHaveLength(1);
+    expect(events.ofType('SubscriptionCanceled')).toHaveLength(0);
+  });
+
+  it('refuses the override to anyone who is not a platform admin', async () => {
+    const subscriptionId = await seed();
+    const refused = await new ReviewSubscription(new InMemoryPlatformAdmin(db, events)).setStatus({
+      actor: { userId: owner, isPlatformAdmin: false },
+      subscriptionId,
+      status: 'active',
+      by: Authorship.byHuman(owner),
+    });
+    expect(expectErr(refused).code).toBe('FORBIDDEN');
+    expect(db.subscriptions.get(`S#${subscriptionId.value}`)?.subscription.status.name).toBe(
+      'pending_approval',
+    );
+  });
+
+  it('changes the quota alone and keeps the type', async () => {
+    const subscriptionId = await seed();
+    const review = new ReviewSubscription(new InMemoryPlatformAdmin(db, events));
+
+    unwrap(
+      await review.changePlan({
+        actor: { userId: admin, isPlatformAdmin: true },
+        subscriptionId,
+        quota: '500MB',
+        by: Authorship.byHuman(admin),
+      }),
+    );
+    const stored = db.subscriptions.get(`S#${subscriptionId.value}`)?.subscription;
+    expect(stored?.quota.name).toBe('500MB');
+    expect(stored?.type.name).toBe('individual');
+    expect(events.ofType('SubscriptionPlanChanged')).toHaveLength(1);
   });
 });
 
@@ -587,7 +702,13 @@ describe('Session', () => {
         async (id: SubscriptionId) => {
           const found = db.subscriptions.get(`S#${id.value}`)?.subscription;
           return found
-            ? { name: found.name.value, slug: found.slug.value, status: found.status.name }
+            ? {
+                name: found.name.value,
+                slug: found.slug.value,
+                status: found.status.name,
+                type: found.type.name,
+                quota: found.quota.name,
+              }
             : null;
         },
       ).execute({ profile: profileOf(owner, 'owner@example.com'), context }),

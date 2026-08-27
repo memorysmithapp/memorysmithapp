@@ -42,7 +42,14 @@ import {
 import { Subscription } from '../../../domain/subscription/Subscription.js';
 import type { Membership } from '../../../domain/subscription/Subscription.js';
 import { Invite, type InviteStatus } from '../../../domain/invite/Invite.js';
-import { Email, InviteToken, RejectionReason, SubscriptionName } from '../../../domain/values.js';
+import {
+  Email,
+  InviteToken,
+  RejectionReason,
+  StorageQuota,
+  SubscriptionName,
+  SubscriptionType,
+} from '../../../domain/values.js';
 import type {
   InviteRepository,
   PlatformSubscriptionAdmin,
@@ -70,6 +77,8 @@ function subscriptionItem(subscription: Subscription): Item {
     ownerId: subscription.ownerId.value,
     ownerEmail: subscription.ownerEmail,
     status: subscription.status.name,
+    type: subscription.type.name,
+    quota: subscription.quota.name,
     requestedAt: subscription.requestedAt.toISOString(),
     reviewedBy: subscription.reviewedBy?.value ?? null,
     reviewedAt: subscription.reviewedAt?.toISOString() ?? null,
@@ -91,6 +100,12 @@ function parseSubscription(item: Item, members: Membership[] = []): Subscription
     ownerId: need(UserId.create(String(item['ownerId']))),
     ownerEmail: String(item['ownerEmail']),
     status: need(SubscriptionStatus.create(String(item['status']))),
+    // An item written before the plan existed carries neither field, and the
+    // default is what it always had in practice: the only type there is.
+    type: item['type']
+      ? need(SubscriptionType.create(String(item['type'])))
+      : SubscriptionType.DEFAULT,
+    quota: item['quota'] ? need(StorageQuota.create(String(item['quota']))) : StorageQuota.DEFAULT,
     requestedAt: need(Instant.fromISO(String(item['requestedAt']))),
     reviewedBy: item['reviewedBy'] ? need(UserId.create(String(item['reviewedBy']))) : null,
     reviewedAt: item['reviewedAt'] ? need(Instant.fromISO(String(item['reviewedAt']))) : null,
@@ -385,6 +400,8 @@ export class DynamoPlatformAdmin implements PlatformSubscriptionAdmin {
       name: String(item['name']),
       ownerEmail: String(item['ownerEmail']),
       status: String(item['status']),
+      type: String(item['type'] ?? SubscriptionType.DEFAULT.name),
+      quota: String(item['quota'] ?? StorageQuota.DEFAULT.name),
       requestedAt: String(item['requestedAt']),
       memberCount: Number(item['memberCount'] ?? 0),
     }));

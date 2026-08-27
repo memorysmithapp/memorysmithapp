@@ -140,6 +140,8 @@ export class InMemoryPlatformAdmin implements PlatformSubscriptionAdmin {
         name: entry.subscription.name.value,
         ownerEmail: entry.subscription.ownerEmail,
         status: entry.subscription.status.name,
+        type: entry.subscription.type.name,
+        quota: entry.subscription.quota.name,
         requestedAt: entry.subscription.requestedAt.toISOString(),
         memberCount: entry.subscription.members.length,
       }));

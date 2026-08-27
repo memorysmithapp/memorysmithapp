@@ -13,7 +13,9 @@ import {
   membershipRoleSchema,
   roleSchema,
   slugSchema,
+  storageQuotaSchema,
   subscriptionStatusSchema,
+  subscriptionTypeSchema,
   ulidSchema,
   userIdSchema,
   vaultRoleLimitSchema,
@@ -25,6 +27,8 @@ export const subscriptionLinkSchema = z.object({
   name: z.string(),
   slug: slugSchema,
   status: subscriptionStatusSchema,
+  type: subscriptionTypeSchema,
+  quota: storageQuotaSchema,
   isOwner: z.boolean(),
   isDefault: z.boolean(),
   joinedAt: instantSchema,
@@ -58,8 +62,15 @@ export const switchSubscriptionRequestSchema = z.object({
   subscriptionId: ulidSchema,
 });
 
+/**
+ * Type and quota are the commercial shape of the subscription, chosen when it
+ * is asked for. Both default on the server, so a client that knows nothing
+ * about them still asks for a valid subscription.
+ */
 export const requestSubscriptionRequestSchema = z.object({
   name: z.string().min(1).max(120),
+  type: subscriptionTypeSchema.optional(),
+  quota: storageQuotaSchema.optional(),
 });
 
 export const memberSchema = z.object({
@@ -107,6 +118,8 @@ export const platformSubscriptionSchema = z.object({
   name: z.string(),
   ownerEmail: z.string().email(),
   status: subscriptionStatusSchema,
+  type: subscriptionTypeSchema,
+  quota: storageQuotaSchema,
   requestedAt: instantSchema,
   memberCount: z.number().int().nonnegative(),
 });
@@ -118,6 +131,22 @@ export const approveSubscriptionRequestSchema = z.object({
 export const rejectSubscriptionRequestSchema = z.object({
   /** Mandatory, and communicated to the requester (RN-SUB-009). */
   reason: z.string().min(1).max(1000),
+});
+
+/**
+ * The administrative override: it sets the status to whatever it names, with
+ * no transition machine in the way. It exists for operating an environment,
+ * never for the ordinary review path, which is approve / reject / suspend /
+ * reactivate above (RN-SUB-018).
+ */
+export const setSubscriptionStatusRequestSchema = z.object({
+  status: subscriptionStatusSchema,
+});
+
+/** Either half may be omitted, and then it keeps the value it already had. */
+export const changeSubscriptionPlanRequestSchema = z.object({
+  type: subscriptionTypeSchema.optional(),
+  quota: storageQuotaSchema.optional(),
 });
 
 export type SubscriptionLinkDto = z.infer<typeof subscriptionLinkSchema>;
@@ -133,3 +162,5 @@ export type TransferOwnershipRequest = z.infer<typeof transferOwnershipRequestSc
 export type SetVaultRoleLimitRequest = z.infer<typeof setVaultRoleLimitRequestSchema>;
 export type ApproveSubscriptionRequest = z.infer<typeof approveSubscriptionRequestSchema>;
 export type RejectSubscriptionRequest = z.infer<typeof rejectSubscriptionRequestSchema>;
+export type SetSubscriptionStatusRequest = z.infer<typeof setSubscriptionStatusRequestSchema>;
+export type ChangeSubscriptionPlanRequest = z.infer<typeof changeSubscriptionPlanRequestSchema>;

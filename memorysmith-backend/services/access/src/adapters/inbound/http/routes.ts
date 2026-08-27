@@ -153,10 +153,18 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
 
   app.post('/subscriptions', async (c) => {
     const request = c.get('access');
-    const body = (await c.req.json().catch(() => ({}))) as { name?: string };
+    const body = (await c.req.json().catch(() => ({}))) as {
+      name?: string;
+      type?: string;
+      quota?: string;
+    };
     const created = await useCases.requestSubscription(request).execute({
       profile: request.profile,
       name: String(body.name ?? ''),
+      // Absent is not the same as invalid: the use case reads it as "the
+      // default plan", and only a value that exists is validated.
+      ...(body.type ? { type: String(body.type) } : {}),
+      ...(body.quota ? { quota: String(body.quota) } : {}),
       by: Authorship.byHuman(request.profile.userId),
     });
     return respond(
@@ -321,6 +329,13 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
   app.post('/platform/subscriptions/:s/reactivate', async (c) =>
     platformAction(c, useCases, 'reactivate'),
   );
+  /**
+   * The administrative override, and the one route that sets a status with no
+   * transition machine in the way (RN-SUB-018). It is a PUT and not a POST
+   * because it names the state it wants, not the review that led to it.
+   */
+  app.put('/platform/subscriptions/:s/status', async (c) => platformAction(c, useCases, 'status'));
+  app.patch('/platform/subscriptions/:s/plan', async (c) => platformAction(c, useCases, 'plan'));
 
   return app;
 }
@@ -328,7 +343,7 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
 async function platformAction(
   c: Context<{ Variables: Variables }>,
   useCases: AccessUseCases,
-  action: 'approve' | 'reject' | 'suspend' | 'reactivate',
+  action: 'approve' | 'reject' | 'suspend' | 'reactivate' | 'status' | 'plan',
 ): Promise<Response> {
   const request = c.get('access');
   const subscriptionId = SubscriptionId.fromClaim(c.req.param('s') ?? '');
@@ -339,7 +354,12 @@ async function platformAction(
     isPlatformAdmin: request.profile.isPlatformAdmin,
   };
   const by = Authorship.byHuman(request.profile.userId);
-  const body = (await c.req.json().catch(() => ({}))) as { status?: string; reason?: string };
+  const body = (await c.req.json().catch(() => ({}))) as {
+    status?: string;
+    reason?: string;
+    type?: string;
+    quota?: string;
+  };
 
   switch (action) {
     case 'approve':
@@ -381,6 +401,29 @@ async function platformAction(
           actor,
           subscriptionId: subscriptionId.value,
           status: String(body.status ?? 'active'),
+          by,
+        }),
+        204,
+      );
+    case 'status':
+      return respond(
+        c,
+        await useCases.reviewSubscription(request).setStatus({
+          actor,
+          subscriptionId: subscriptionId.value,
+          status: String(body.status ?? ''),
+          by,
+        }),
+        204,
+      );
+    case 'plan':
+      return respond(
+        c,
+        await useCases.reviewSubscription(request).changePlan({
+          actor,
+          subscriptionId: subscriptionId.value,
+          ...(body.type ? { type: String(body.type) } : {}),
+          ...(body.quota ? { quota: String(body.quota) } : {}),
           by,
         }),
         204,

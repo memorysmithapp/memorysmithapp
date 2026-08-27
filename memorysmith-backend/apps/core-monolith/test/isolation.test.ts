@@ -203,14 +203,16 @@ describe('The platform session reaches no content', () => {
     expect(queue.status).toBe(200);
     const rows = (await queue.json()) as Array<Record<string, unknown>>;
     expect(rows).toHaveLength(1);
-    // Holder, e-mail, status, dates and a member count. Nothing else.
+    // Holder, e-mail, status, plan, dates and a member count. Nothing else.
     expect(Object.keys(rows[0] ?? {}).sort()).toEqual([
       'memberCount',
       'name',
       'ownerEmail',
+      'quota',
       'requestedAt',
       'status',
       'subscriptionId',
+      'type',
     ]);
   });
 

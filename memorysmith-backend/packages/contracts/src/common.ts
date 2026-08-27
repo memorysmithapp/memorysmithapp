@@ -29,6 +29,17 @@ export const subscriptionStatusSchema = z.enum([
   'canceled',
 ]);
 
+/**
+ * The commercial shape of a subscription: what it is, and how much it may
+ * store (software-vision.md, section 4.2). One type exists for now, and the
+ * list is an enum rather than free text so a new one is a deliberate change on
+ * both ends of the contract.
+ */
+export const subscriptionTypeSchema = z.enum(['individual']);
+
+/** Declared, not enforced yet: no write is refused for exceeding it. */
+export const storageQuotaSchema = z.enum(['500MB', '1GB', '2GB']);
+
 /** The pointer that links DynamoDB to S3 (architecture-guide.md, section 9.2). */
 export const contentRefSchema = z.object({
   contentId: ulidSchema,
@@ -57,6 +68,8 @@ export const slugConflictPolicySchema = z.enum(['REJECT', 'RENAME']);
 export type Role = z.infer<typeof roleSchema>;
 export type MembershipRole = z.infer<typeof membershipRoleSchema>;
 export type SubscriptionStatusName = z.infer<typeof subscriptionStatusSchema>;
+export type SubscriptionTypeName = z.infer<typeof subscriptionTypeSchema>;
+export type StorageQuotaName = z.infer<typeof storageQuotaSchema>;
 export type ContentRefDto = z.infer<typeof contentRefSchema>;
 export type AuthorshipDto = z.infer<typeof authorshipSchema>;
 export type AgentIdentityDto = z.infer<typeof agentIdentitySchema>;

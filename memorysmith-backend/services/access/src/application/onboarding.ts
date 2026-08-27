@@ -18,7 +18,7 @@ import {
   type UserId,
 } from '@memorysmith/kernel';
 import { Subscription } from '../domain/subscription/Subscription.js';
-import { SubscriptionName } from '../domain/values.js';
+import { StorageQuota, SubscriptionName, SubscriptionType } from '../domain/values.js';
 import type {
   SubscriptionOnboarding,
   SubscriptionRepository,
@@ -35,6 +35,9 @@ export class RequestSubscription {
   async execute(input: {
     profile: UserProfile;
     name: string;
+    /** Omitted means the default plan, not an invalid one. */
+    type?: string;
+    quota?: string;
     by: Authorship;
   }): Promise<Result<{ subscriptionId: SubscriptionId }, DomainError>> {
     const existing = await this.onboarding.ownedBy(input.profile.userId);
@@ -49,11 +52,18 @@ export class RequestSubscription {
     const name = SubscriptionName.create(input.name);
     if (!name.ok) return name;
 
+    const type = input.type ? SubscriptionType.create(input.type) : ok(SubscriptionType.DEFAULT);
+    if (!type.ok) return type;
+    const quota = input.quota ? StorageQuota.create(input.quota) : ok(StorageQuota.DEFAULT);
+    if (!quota.ok) return quota;
+
     const subscription = Subscription.request({
       id: SubscriptionId.generate(),
       name: name.value,
       ownerId: input.profile.userId,
       ownerEmail: input.profile.email.value,
+      type: type.value,
+      quota: quota.value,
       by: input.by,
     });
     if (!subscription.ok) return subscription;
@@ -82,6 +92,8 @@ export interface SessionView {
     name: string;
     slug: string;
     status: string;
+    type: string;
+    quota: string;
     isOwner: boolean;
     isDefault: boolean;
     joinedAt: string;
@@ -99,6 +111,8 @@ export class GetSession {
       name: string;
       slug: string;
       status: string;
+      type: string;
+      quota: string;
     } | null>,
   ) {}
 
@@ -116,6 +130,8 @@ export class GetSession {
         name: metadata.name,
         slug: metadata.slug,
         status: metadata.status,
+        type: metadata.type,
+        quota: metadata.quota,
         isOwner: link.isOwner,
         isDefault: link.isDefault,
         joinedAt: link.joinedAt,
