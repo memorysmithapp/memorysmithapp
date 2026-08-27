@@ -726,8 +726,8 @@ Normas e Legislação/
 
 | Tela | Conteúdo |
 |---|---|
-| Solicitação de assinatura | Formulário do onboarding; ao enviar, mostra o estado `pending_approval` e explica que a liberação é manual nesta fase |
-| Aguardando autorização | Estado de espera, sem acesso operacional; mostra o motivo e o botão de reenvio quando a solicitação foi rejeitada |
+| Entrada sem assinatura ativa | Não existe tela de espera dentro do produto. Uma sessão cuja assinatura está ausente, aguardando aprovação ou bloqueada não alcança nada, então ela é encerrada e a pessoa volta à tela de entrada com a mensagem do seu caso: conta sem assinatura, assinatura aguardando autorização ou assinatura inativa. A distinção é deliberada, porque "não há nada aqui" e "seu acesso está suspenso" são fatos diferentes |
+| Solicitação de assinatura | Fora do produto nesta fase. A rota existe na API, e quem solicita e aprova é a operação da plataforma; a interface não oferece o formulário |
 | **Plataforma → Assinaturas** | Área do `PLATFORM_ADMIN`: fila de pendentes, aprovar (`trial` ou `active`), rejeitar com motivo, suspender e reativar. Mostra titular, e-mail, datas e contagem de membros, **nunca nome de vault nem conteúdo** (§4.6) |
 
 **Assinatura**
@@ -759,7 +759,7 @@ Normas e Legislação/
 
 - A troca de assinatura só aparece para quem tem mais de um vínculo (§4.5).
 - A área de plataforma é uma superfície à parte, alcançada por sessão própria; nenhuma tela de conteúdo tem versão "de admin" (§4.6).
-- Uma assinatura fora de `trial` ou `active` leva o usuário à tela de estado, não a uma tela de conteúdo vazia. A diferença entre "não há nada aqui" e "seu acesso está suspenso" é a diferença entre um bug aparente e uma informação.
+- Uma assinatura fora de `trial` ou `active` encerra a sessão e leva o usuário de volta à tela de entrada com a mensagem do seu caso, e nunca a uma tela de conteúdo vazia. A mensagem diz qual dos três casos é, porque a diferença entre "não há nada aqui" e "seu acesso está suspenso" é a diferença entre um bug aparente e uma informação.
 - Toda operação destrutiva ou de efeito não óbvio, como mover nota entre vaults, remover pasta com conteúdo, transferir titularidade, ativar retenção legal e expurgar, mostra a consequência **antes** de confirmar, com número concreto quando houver.
 - Onde o papel efetivo difere do papel na assinatura por causa de um teto de vault (§5.3), a UI mostra o efetivo e explica a origem, porque um `EDITOR` que não consegue escrever precisa saber por quê.
 

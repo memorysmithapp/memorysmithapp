@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useSession } from '../../shared/store/session';
 import { isLive } from '../../shared/api/source';
 import { beginSignIn } from '../../shared/auth/oauth';
-import { authConfig } from '../../shared/auth/session';
+import { authConfig, type WithoutSubscription } from '../../shared/auth/session';
 
 // Mock sign-in: credentials and the 2FA code are pre-filled and accepted as
 // typed. The two-step shape mirrors the future Cognito flow.
@@ -30,6 +30,15 @@ const HANDOVER_KEY = 'memorysmith.signin.handover';
  */
 const SIGNED_OUT_KEY = 'memorysmith.signin.signedOut';
 
+/**
+ * Marks that the person was signed out because the account reaches nothing:
+ * no subscription, one still waiting for approval, or one that is blocked.
+ * The value is WHICH of the three, because the three are different facts and
+ * a single "no access" would read as a defect to someone whose subscription
+ * is merely waiting.
+ */
+const WITHOUT_SUBSCRIPTION_KEY = 'memorysmith.signin.withoutSubscription';
+
 export function clearHandover(): void {
   try {
     sessionStorage.removeItem(HANDOVER_KEY);
@@ -47,6 +56,15 @@ export function markSignedOut(): void {
   }
 }
 
+export function markWithoutSubscription(state: WithoutSubscription): void {
+  try {
+    sessionStorage.setItem(WITHOUT_SUBSCRIPTION_KEY, state);
+    sessionStorage.removeItem(HANDOVER_KEY);
+  } catch {
+    // Without storage the sign-out still happens; only the message is lost.
+  }
+}
+
 export function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -54,6 +72,7 @@ export function LoginPage() {
   const started = useRef(false);
   const [handedOver, setHandedOver] = useState(false);
   const [signedOut, setSignedOut] = useState(false);
+  const [withoutSubscription, setWithoutSubscription] = useState<WithoutSubscription | null>(null);
 
   /**
    * There is nothing to decide here when the backend is live: the identity
@@ -68,13 +87,24 @@ export function LoginPage() {
 
     let already = false;
     let left = false;
+    let denied: WithoutSubscription | null = null;
     try {
+      denied = sessionStorage.getItem(WITHOUT_SUBSCRIPTION_KEY) as WithoutSubscription | null;
+      sessionStorage.removeItem(WITHOUT_SUBSCRIPTION_KEY);
       left = sessionStorage.getItem(SIGNED_OUT_KEY) === 'yes';
       sessionStorage.removeItem(SIGNED_OUT_KEY);
       already = sessionStorage.getItem(HANDOVER_KEY) === 'yes';
-      if (!left) sessionStorage.setItem(HANDOVER_KEY, 'yes');
+      if (!left && !denied) sessionStorage.setItem(HANDOVER_KEY, 'yes');
     } catch {
       // Storage refused: fall through and hand over anyway.
+    }
+    // Handing the browser back to the provider here would sign the same
+    // account straight back in, on a provider session that is still warm, and
+    // it would be shown the door again: the person would watch the two screens
+    // trade the browser back and forth and never read the reason.
+    if (denied) {
+      setWithoutSubscription(denied);
+      return;
     }
     if (left) {
       setSignedOut(true);
@@ -117,13 +147,15 @@ export function LoginPage() {
         {isLive ? (
           <div className="login-form">
             <p className="login-hint">
-              {signedOut
-                ? t('auth.signedOut')
-                : handedOver
-                  ? t('auth.handoverFailed')
-                  : t('auth.handingOver')}
+              {withoutSubscription
+                ? t(`auth.${withoutSubscription}Subscription`)
+                : signedOut
+                  ? t('auth.signedOut')
+                  : handedOver
+                    ? t('auth.handoverFailed')
+                    : t('auth.handingOver')}
             </p>
-            {signedOut || handedOver ? (
+            {withoutSubscription || signedOut || handedOver ? (
               <button
                 type="button"
                 className="button-primary"

@@ -20,6 +20,9 @@ export type SubscriptionState =
   | 'blocked' // rejected, suspended or cancelled
   | 'active'; // trial or active: the product is usable
 
+/** The states that keep someone out of the product, and out of a session. */
+export type WithoutSubscription = Exclude<SubscriptionState, 'active'>;
+
 export interface LiveSession {
   readonly userId: string;
   readonly email: string;

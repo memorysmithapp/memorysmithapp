@@ -20,7 +20,10 @@
     "tryAgain": "Tentar de novo",
     "handingOver": "Levando você à página de entrada...",
     "handoverFailed": "A entrada não foi concluída. Tente de novo.",
-    "signedOut": "Você saiu da sua conta."
+    "signedOut": "Você saiu da sua conta.",
+    "noneSubscription": "Esta conta ainda não alcança nenhuma assinatura. A assinatura é o que guarda os seus vaults, e enquanto não há cobrança automática ela é liberada à mão.",
+    "pendingSubscription": "Sua assinatura está aguardando autorização. A liberação é manual nesta fase, e o produto abre assim que ela for aprovada.",
+    "blockedSubscription": "Esta assinatura não está ativa no momento. Nada foi perdido: os dados continuam exatamente onde estão e voltam a ser alcançáveis assim que o acesso for restabelecido."
   },
   "theme": {
     "heading": "Tema",
@@ -118,19 +121,6 @@
     "hint": "Role para ampliar · arraste para mover · clique numa nota para abri-la",
     "empty": "Este vault ainda não tem notas para desenhar.",
     "truncated": "Mostrando as primeiras 2000 notas deste vault."
-  },
-  "onboarding": {
-    "title": "Solicitar uma assinatura",
-    "body": "Sua conta existe, mas ainda não alcança nenhum vault. A assinatura é o que guarda seus workspaces e seu conhecimento, e enquanto não há cobrança automática ela é liberada à mão.",
-    "nameLabel": "Nome da assinatura",
-    "namePlaceholder": "O nome da sua organização ou do seu time",
-    "submit": "Solicitar assinatura",
-    "submitting": "Enviando...",
-    "alreadyRequested": "Você já é titular de uma assinatura.",
-    "pendingTitle": "Aguardando autorização",
-    "pendingBody": "Sua solicitação foi registrada e está com a plataforma. A liberação é manual nesta fase, e você poderá usar o produto assim que ela for aprovada.",
-    "blockedTitle": "Acesso indisponível",
-    "blockedBody": "Esta assinatura não está ativa no momento. Nada foi perdido: os dados continuam exatamente onde estão e voltam a ser alcançáveis assim que o acesso for restabelecido."
   },
   "errors": {
     "validation": "Algo no que foi enviado não é aceito.",

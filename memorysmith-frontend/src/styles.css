@@ -1330,53 +1330,6 @@ a:hover {
   font-size: 0.74rem;
 }
 
-/* Onboarding and the waiting states. The screen a user sees before there is
-   any vault to frame, so it stands on its own without the shell. */
-.onboarding {
-  max-width: 34rem;
-  margin: 4rem auto;
-  padding: 0 1.5rem;
-}
-.onboarding h1 {
-  margin-bottom: 0.75rem;
-}
-.onboarding p {
-  color: var(--text-soft);
-  line-height: 1.6;
-}
-.onboarding form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 1.5rem;
-}
-.onboarding label {
-  font-size: 0.8rem;
-  color: var(--text-soft);
-}
-.onboarding input {
-  padding: 0.6rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
-  font-size: 0.95rem;
-}
-.onboarding button.primary {
-  align-self: flex-start;
-  margin-top: 0.5rem;
-  padding: 0.6rem 1.1rem;
-  border: 0;
-  border-radius: 8px;
-  background: var(--accent);
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
-}
-.onboarding button.primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 .form-error {
   margin-top: 0.75rem;
   color: #b42318;

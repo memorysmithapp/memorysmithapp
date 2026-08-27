@@ -32,13 +32,6 @@ export async function getSession(): Promise<SessionDto> {
   return request<SessionDto>('/access/session');
 }
 
-export async function requestSubscription(name: string): Promise<{ subscriptionId: string }> {
-  return request<{ subscriptionId: string }>('/access/subscriptions', {
-    method: 'POST',
-    body: { name },
-  });
-}
-
 function toSummary(vault: VaultSummaryDto): VaultSummary {
   return {
     id: vault.vaultId,
