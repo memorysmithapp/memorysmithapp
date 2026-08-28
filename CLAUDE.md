@@ -33,7 +33,7 @@ Definida no caderno de marca "Livro da marca v1" (Figma). O símbolo é um grafo
 0.2.0
 
 ### Estado atual
-Versão 0.1.0 na `main`, com a 0.2.0 em construção na branch de trabalho. A 0.1.0 entregou a documentação canônica, o protótipo navegável do frontend sobre o seed e o spike de autenticação do MCP, validado em ambiente real na AWS e depois desmontado. A 0.2.0 constrói as entregas 2 a 12 do `docs/architecture-guide.md` §25: os seis bounded contexts, a infraestrutura inteira em CDK e a interface ligada à API real. O deploy na AWS acontece com acompanhamento passo a passo do usuário.
+Versão 0.2.0, que entregou as entregas 2 a 12 do `docs/architecture-guide.md` §25: os seis bounded contexts, a infraestrutura inteira em CDK, a interface ligada à API real e o conector MCP com leitura e escrita, autenticado pelo proxy CIMD na frente do Cognito. Antes dela, a 0.1.0 entregou a documentação canônica, o protótipo navegável do frontend sobre o seed e o spike de autenticação do MCP, validado em ambiente real na AWS e depois desmontado. O ambiente sobe e desce pelos scripts de `deploy-aws/`, e o deploy na AWS acontece com acompanhamento passo a passo do usuário.
 
 ### Remote do git
 github.com/memorysmithapp/memorysmithapp

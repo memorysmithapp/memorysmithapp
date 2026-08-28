@@ -7,6 +7,12 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-28
+
+A versão que tira o produto do papel. A 0.1.0 tinha a documentação canônica, um protótipo de interface sobre dados semeados e um spike de autenticação que foi validado e desmontado. A 0.2.0 constrói o produto inteiro descrito no `software-vision.md`: os seis bounded contexts, a infraestrutura completa em CDK, a interface ligada à API real e o conector MCP em pé, com leitura e escrita, autenticado pelo proxy CIMD na frente do Cognito. O ambiente sobe e desce por script, e a primeira conta de uma instalação nova nasce pelo `onboard.ps1`, sempre pela API do produto.
+
+Sai da versão a busca por significado, com o índice vetorial inteiro: a explicação está em `Removed`.
+
 ### Added
 
 - **O conector MCP passa a escrever o vault inteiro, e não apenas as notas dele.** Entram sete ferramentas de autoria: `create_vault`, `delete_vault`, `set_guidance`, `create_folder`, `delete_folder`, `set_template` e `delete_note`. Com elas um agente monta um vault do zero, declara a Orientação que rege a escrita dele, cria as pastas com a descrição que diz o que pertence a cada uma, escreve os Modelos e mantém tudo isso ao longo do tempo, sem que ninguém precise abrir a interface. As regras de papel são as mesmas da interface, porque a decisão continua sendo do caso de uso e nunca do protocolo, e leitura e escrita seguem em ferramentas separadas.
@@ -220,5 +226,6 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - A chave HMAC que assina o `state` do proxy CIMD deixa de ser injetada como variável de ambiente do Lambda e passa a ser lida do Secrets Manager em tempo de execução. Como variável de ambiente, o valor ficava em texto claro tanto na configuração da função quanto no template do CloudFormation, legível por qualquer identidade com permissão de descrever esses recursos. A função passa a receber apenas o identificador do segredo, com permissão de leitura restrita a ele, e o valor é resolvido sob demanda e mantido em cache por cinco minutos entre invocações. O SDK da AWS passa a ser empacotado junto com a função, para que a versão exercitada pelos testes seja a versão que executa.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/memorysmithapp/memorysmithapp/releases/tag/v0.1.0
