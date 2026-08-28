@@ -1,14 +1,13 @@
-// Which source answers the screens.
+// The single source that answers the screens: the product API.
 //
-// With VITE_API_ORIGIN set, the SPA talks to the real backend and every write
-// is a real write. Without it, it reads the bundled seed and is a navigable
-// prototype, which is how the interface was designed before the API existed.
+// There used to be a second one here, a bundled seed the app fell back to when
+// VITE_API_ORIGIN was unset, and it was how the interface was designed before
+// the API existed. It is gone on purpose. A fallback that answers with
+// different data, silently, is worse than no answer: the screen looks right
+// and is showing something else, and every bug found that way is found twice.
 //
-// The two implement the same contract on purpose: the screens never learn
-// which one is answering, and the day the seed goes away nothing above this
-// file changes.
+// So a missing origin is now a configuration error, and it says so.
 
-import * as seed from './client';
 import * as backend from './backend';
 import type {
   NoteDetail,
@@ -18,19 +17,21 @@ import type {
   VaultSummary,
 } from '../types/api';
 
-export interface VaultSource {
-  readonly isLive: boolean;
-  listVaults(): Promise<VaultSummary[]>;
-  getVaultStructure(vaultSlug: string): Promise<VaultStructure>;
-  getNote(vaultSlug: string, noteSlug: string): Promise<NoteDetail>;
-  getTemplate(vaultSlug: string, folderId: string): Promise<TemplateDetail | null>;
-  searchNotes(vaultSlug: string, query: string, k: number): Promise<SearchHit[]>;
-  resolveNoteUrl(vaultSlug: string, targetSlug: string, structure?: VaultStructure): string | null;
+const configuredOrigin = (import.meta.env['VITE_API_ORIGIN'] as string | undefined)?.replace(
+  /\/$/,
+  '',
+);
+
+if (!configuredOrigin) {
+  throw new Error(
+    'VITE_API_ORIGIN is not set. The interface reads and writes through the product API and ' +
+      'has no offline mode; copy .env.example to .env.local and point it at the API.',
+  );
 }
 
-const liveOrigin = (import.meta.env['VITE_API_ORIGIN'] as string | undefined)?.replace(/\/$/, '');
+export const apiOrigin: string = configuredOrigin;
 
-/** Walks the loaded structure, so a live link needs no extra request. */
+/** Walks the loaded structure, so a link needs no extra request. */
 function resolveFromStructure(
   vaultSlug: string,
   targetSlug: string,
@@ -50,30 +51,6 @@ function resolveFromStructure(
   return walk(structure.folders);
 }
 
-export const source: VaultSource = liveOrigin
-  ? {
-      isLive: true,
-      listVaults: backend.listVaults,
-      getVaultStructure: backend.getVaultStructure,
-      getNote: backend.getNote,
-      getTemplate: backend.getTemplate,
-      searchNotes: backend.searchVault,
-      resolveNoteUrl: (vaultSlug, targetSlug, structure) =>
-        resolveFromStructure(vaultSlug, targetSlug, structure),
-    }
-  : {
-      isLive: false,
-      listVaults: seed.listVaults,
-      getVaultStructure: seed.getVaultStructure,
-      getNote: seed.getNote,
-      getTemplate: seed.getTemplate,
-      searchNotes: seed.searchVault,
-      resolveNoteUrl: (vaultSlug, targetSlug) => seed.resolveNoteUrl(vaultSlug, targetSlug),
-    };
-
-export const isLive = Boolean(liveOrigin);
-export const apiOrigin = liveOrigin ?? null;
-
 /**
  * The structures the screens have already loaded. A wikilink resolves against
  * this instead of asking the API again: the tree it needs is the tree the page
@@ -82,34 +59,28 @@ export const apiOrigin = liveOrigin ?? null;
 const loaded = new Map<string, VaultStructure>();
 
 export function listVaults(): Promise<VaultSummary[]> {
-  return source.listVaults();
+  return backend.listVaults();
 }
 
 export async function getVaultStructure(vaultSlug: string): Promise<VaultStructure> {
-  const structure = await source.getVaultStructure(vaultSlug);
+  const structure = await backend.getVaultStructure(vaultSlug);
   loaded.set(vaultSlug, structure);
   return structure;
 }
 
 export function getNote(vaultSlug: string, noteSlug: string): Promise<NoteDetail> {
-  return source.getNote(vaultSlug, noteSlug);
+  return backend.getNote(vaultSlug, noteSlug);
 }
 
 export function getTemplate(vaultSlug: string, folderId: string): Promise<TemplateDetail | null> {
-  return source.getTemplate(vaultSlug, folderId);
+  return backend.getTemplate(vaultSlug, folderId);
 }
 
 /** Null means the target does not exist yet, which the UI shows as pending. */
 export function resolveNoteUrl(vaultSlug: string, targetSlug: string): string | null {
-  return source.resolveNoteUrl(vaultSlug, targetSlug, loaded.get(vaultSlug));
+  return resolveFromStructure(vaultSlug, targetSlug, loaded.get(vaultSlug));
 }
 
-/**
- * Searching is the one read whose reach depends on which source answers: the
- * live one reads the text of every note and the whole query language, the seed
- * one reads the titles it has in memory. The screen shows which it is instead
- * of pretending they are the same.
- */
 export function searchNotes(vaultSlug: string, query: string, k: number): Promise<SearchHit[]> {
-  return source.searchNotes(vaultSlug, query, k);
+  return backend.searchVault(vaultSlug, query, k);
 }

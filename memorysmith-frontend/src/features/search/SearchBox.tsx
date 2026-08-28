@@ -11,7 +11,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import type { FolderNode, SearchHit, VaultStructure } from '../../shared/types/api';
-import { isLive, resolveNoteUrl, searchNotes } from '../../shared/api/source';
+import { resolveNoteUrl, searchNotes } from '../../shared/api/source';
 import { ApiError } from '../../shared/api/error-mapper';
 import { highlight } from './highlight';
 
@@ -161,7 +161,7 @@ export function SearchBox({ vaultSlug, structure }: SearchBoxProps) {
           ) : (
             <p className="search-empty">{busy ? t('search.searching') : t('search.empty')}</p>
           )}
-          <p className="search-hint">{isLive ? t('search.syntaxHint') : t('search.localScope')}</p>
+          <p className="search-hint">{t('search.syntaxHint')}</p>
         </div>
       )}
     </div>

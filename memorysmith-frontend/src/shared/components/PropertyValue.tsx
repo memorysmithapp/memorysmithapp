@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { resolveNoteUrl } from '../api/source';
-import { slugify } from '../api/seed-source';
+import { slugify } from '../api/markdown';
 
 // Frontmatter values are vault content, so they may carry [[wikilinks]],
 // markdown links and raw URLs. This renderer makes them navigable without

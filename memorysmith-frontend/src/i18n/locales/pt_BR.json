@@ -16,7 +16,6 @@
     "plan": "Plano",
     "storage": "Armazenamento",
     "status": "Situação",
-    "demoNote": "Protótipo: as credenciais vêm preenchidas e nenhuma autenticação real acontece.",
     "hostedHint": "Você será levado à página de entrada e trazido de volta para cá.",
     "completing": "Concluindo a entrada...",
     "tryAgain": "Tentar de novo",
@@ -66,8 +65,7 @@
     "empty": "Nenhuma nota encontrada.",
     "invalid": "Consulta inválida. Verifique as aspas, os parênteses e os operadores.",
     "failed": "A busca falhou. Tente de novo.",
-    "syntaxHint": "Busca no texto inteiro. Aceita \"frase exata\", -excluir, OR, title:, folder:, section:, content: e atributos do frontmatter, como maturity:evergreen.",
-    "localScope": "No protótipo, a busca cobre apenas o título e a pasta."
+    "syntaxHint": "Busca no texto inteiro. Aceita \"frase exata\", -excluir, OR, title:, folder:, section:, content: e atributos do frontmatter, como maturity:evergreen."
   },
   "vaults": {
     "heading": "Vaults",
@@ -114,23 +112,7 @@
     "heading": "Visão geral",
     "kpiVaults": "Vaults",
     "kpiNotes": "Notas",
-    "kpiResolved": "Links resolvidos",
     "kpiPending": "Links pendentes",
-    "kpiReviewed": "Notas revisadas ({{pct}}%)",
-    "maturityHeading": "Maturidade das notas por vault",
-    "bucket": {
-      "evergreen": "Evergreen",
-      "growing": "Growing",
-      "seed": "Seed"
-    },
-    "typesHeading": "Notas por tipo",
-    "reviewedHeading": "Revisão humana por vault",
-    "reviewedYes": "Revisadas",
-    "reviewedNo": "Aguardando revisão",
-    "tagsHeading": "Tags mais usadas",
-    "tagsDistinct": "{{count}} tags distintas em todos os vaults",
-    "timelineHeading": "Notas criadas por dia",
-    "otherVaults": "Outros vaults",
     "otherTypes": "Outros",
     "selectVault": "Abrir um vault",
     "prevVaults": "Vaults anteriores",
@@ -144,11 +126,7 @@
   "graph": {
     "heading": "Grafo do vault",
     "navLabel": "Grafo do vault",
-    "colorBy": "Cor por",
-    "colorDefault": "Padrão",
-    "showTags": "Mostrar tags",
     "legendNotes": "Notas",
-    "legendTags": "Tags",
     "hint": "Role para ampliar · arraste para mover · clique numa nota para abri-la",
     "empty": "Este vault ainda não tem notas para desenhar.",
     "truncated": "Mostrando as primeiras 2000 notas deste vault."

@@ -1,11 +1,9 @@
 import { useEffect } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { usePreferences, resolveTheme } from '../shared/store/preferences';
-import { useSession } from '../shared/store/session';
 import { useLiveSession, authConfig, type WithoutSubscription } from '../shared/auth/session';
 import { readTokens, signOut as endHostedSession } from '../shared/auth/oauth';
 import { markWithoutSubscription } from '../features/auth/LoginPage';
-import { isLive } from '../shared/api/source';
 
 // Applies the effective theme (light/dark/system) to the document root and
 // re-applies it when the OS preference changes while in system mode.
@@ -24,18 +22,16 @@ export function RootLayout() {
   }, [theme]);
 
   useEffect(() => {
-    // With the backend live the session comes from the token; the prototype
-    // keeps its simulated one.
-    if (isLive) void load();
+    // The session comes from the token, always.
+    void load();
   }, [load]);
 
   return <Outlet />;
 }
 
 /**
- * The guard. With the backend live it answers three questions in order: is
- * there a token, does it carry a subscription, and does that subscription
- * grant operational access.
+ * The guard. It answers three questions in order: is there a token, does it
+ * carry a subscription, and does that subscription grant operational access.
  *
  * Either a session reaches the product or it does not exist. A token whose
  * subscription is missing, still waiting or blocked cannot do a single thing
@@ -46,13 +42,8 @@ export function RootLayout() {
  * (software-vision.md, section 13.2).
  */
 export function RequireSession() {
-  const simulated = useSession((s) => s.user);
   const live = useLiveSession((state) => state.session);
   const loaded = useLiveSession((state) => state.loaded);
-
-  if (!isLive) {
-    return simulated ? <Outlet /> : <Navigate to="/login" replace />;
-  }
 
   if (!readTokens()) return <Navigate to="/login" replace />;
   // A token exists, so the only honest answer before the session resolves is

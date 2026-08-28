@@ -14,42 +14,22 @@ import {
 } from 'd3-force';
 import { usePreferences } from '../../shared/store/preferences';
 import { VaultBreadcrumb } from '../structure/VaultBreadcrumb';
-import { isLive, resolveNoteUrl } from '../../shared/api/source';
+import { resolveNoteUrl } from '../../shared/api/source';
 import { getVaultGraph } from '../../shared/api/backend';
 
 interface GraphFile {
-  nodes: {
-    id: string;
-    title: string;
-    kind: 'note' | 'tag';
-    type?: string;
-    maturity?: string;
-    reviewed?: boolean;
-  }[];
+  nodes: { id: string; title: string }[];
   edges: [number, number][];
 }
 
 interface GraphNode extends SimulationNodeDatum {
   id: string;
   title: string;
-  kind: 'note' | 'tag';
-  type?: string;
-  maturity?: string;
-  reviewed?: boolean;
   degree: number;
   radius: number;
 }
 
-// Facets a node can be colored by; the values mirror the frontmatter fields.
-export type ColorBy = 'none' | 'maturity' | 'reviewed' | 'type';
-const MATURITY_STEPS = ['evergreen', 'growing', 'seed'] as const;
-
 type GraphLink = SimulationLinkDatum<GraphNode>;
-
-const graphFiles = import.meta.glob('/seed/graph/*.json') as Record<
-  string,
-  () => Promise<{ default: GraphFile }>
->;
 
 function cssVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -60,9 +40,7 @@ export function GraphPage() {
   const navigate = useNavigate();
   const { vaultSlug = '' } = useParams();
   const theme = usePreferences((s) => s.theme);
-  const [showTags, setShowTags] = useState(true);
   const [truncated, setTruncated] = useState(false);
-  const [colorBy, setColorBy] = useState<ColorBy>('none');
   const [data, setData] = useState<GraphFile | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<{
@@ -72,8 +50,6 @@ export function GraphPage() {
     sim: Simulation<GraphNode, GraphLink> | null;
     transform: { x: number; y: number; k: number };
     hovered: GraphNode | null;
-    colorBy: ColorBy;
-    typeTop: string[];
     redraw: (() => void) | null;
   }>({
     nodes: [],
@@ -82,91 +58,41 @@ export function GraphPage() {
     sim: null,
     transform: { x: 0, y: 0, k: 1 },
     hovered: null,
-    colorBy: 'none',
-    typeTop: [],
     redraw: null,
   });
 
   /**
-   * Live, the graph is the link projection of Discovery, which is the same
-   * graph the seed file used to carry, only computed from what the vault
-   * really holds. The facet fields a node can be colored by (`maturity`,
-   * `type`, `reviewed`) are a convention of the seed, not of the product: the
-   * backend never interprets the content of a note, so live nodes carry only
-   * what the projection knows, and the controls that depend on them are not
-   * offered.
+   * The graph is the link projection of Discovery, computed from what the
+   * vault really holds. A node carries only what the projection knows: the
+   * backend never interprets the content of a note, so there is no attribute
+   * here to color by and no tag to draw.
    */
   useEffect(() => {
-    if (isLive) {
-      let live = true;
-      void getVaultGraph(vaultSlug)
-        .then((graph) => {
-          if (!live) return;
-          setData({
-            nodes: graph.nodes.map((note) => ({
-              id: note.slug,
-              title: note.title,
-              kind: 'note' as const,
-            })),
-            edges: graph.edges,
-          });
-          setTruncated(graph.truncated);
-        })
-        .catch(() => {
-          if (live) setData({ nodes: [], edges: [] });
+    let live = true;
+    void getVaultGraph(vaultSlug)
+      .then((graph) => {
+        if (!live) return;
+        setData({
+          nodes: graph.nodes.map((note) => ({ id: note.slug, title: note.title })),
+          edges: graph.edges,
         });
-      return () => {
-        live = false;
-      };
-    }
-
-    const loader = graphFiles[`/seed/graph/${vaultSlug}.json`];
-    if (!loader) {
-      setData({ nodes: [], edges: [] });
-      return;
-    }
-    void loader().then((mod) => setData(mod.default));
-    return;
+        setTruncated(graph.truncated);
+      })
+      .catch(() => {
+        if (live) setData({ nodes: [], edges: [] });
+      });
+    return () => {
+      live = false;
+    };
   }, [vaultSlug]);
-
-  const typeTop = useMemo(() => {
-    if (!data) return [];
-    const counts = new Map<string, number>();
-    for (const node of data.nodes) {
-      if (node.kind !== 'note' || !node.type) continue;
-      counts.set(node.type, (counts.get(node.type) ?? 0) + 1);
-    }
-    return [...counts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([key]) => key);
-  }, [data]);
-
-  useEffect(() => {
-    const state = stateRef.current;
-    state.colorBy = colorBy;
-    state.typeTop = typeTop;
-    state.redraw?.();
-  }, [colorBy, typeTop]);
 
   const filtered = useMemo(() => {
     if (!data) return null;
-    const keep = data.nodes.map((n) => showTags || n.kind === 'note');
     const indexMap = new Map<number, number>();
     const nodes: GraphNode[] = [];
     data.nodes.forEach((n, i) => {
-      if (!keep[i]) return;
       indexMap.set(i, nodes.length);
-      nodes.push({
-        id: n.id,
-        title: n.title,
-        kind: n.kind,
-        type: n.type,
-        maturity: n.maturity,
-        reviewed: n.reviewed,
-        degree: 0,
-        radius: 3,
-      });
+      nodes.push({ id: n.id, title: n.title, degree: 0, radius: 3 });
     });
     const links: { source: number; target: number }[] = [];
     for (const [s, tIdx] of data.edges) {
@@ -180,10 +106,10 @@ export function GraphPage() {
       if (tn) tn.degree += 1;
     }
     for (const node of nodes) {
-      node.radius = node.kind === 'tag' ? 2.5 : Math.min(13, 2.2 + 1.25 * Math.sqrt(node.degree));
+      node.radius = Math.min(13, 2.2 + 1.25 * Math.sqrt(node.degree));
     }
     return { nodes, links };
-  }, [data, showTags]);
+  }, [data]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -219,34 +145,10 @@ export function GraphPage() {
       const { x, y, k } = state.transform;
       const colors = {
         note: cssVar('--accent') || '#0f56d7',
-        tag: cssVar('--signal') || '#ff8a2b',
         edge: cssVar('--text-soft') || '#6f6d64',
         label: cssVar('--text') || '#26251f',
         halo: cssVar('--bg') || '#fafaf8',
       };
-      const facet: Record<string, string> = {
-        seed: cssVar('--seq-seed') || '#bfd2f6',
-        growing: cssVar('--seq-growing') || '#6b96ea',
-        evergreen: cssVar('--seq-evergreen') || '#0f56d7',
-        other: cssVar('--cat-other') || '#8b96a8',
-      };
-      const cats = [
-        cssVar('--cat-1') || '#ff8a2b',
-        cssVar('--cat-2') || '#0f56d7',
-        cssVar('--cat-3') || '#16a34a',
-      ];
-      function nodeFill(node: GraphNode): string {
-        const mode = state.colorBy;
-        if (node.kind === 'tag') return mode === 'none' ? colors.tag : (facet.other ?? colors.tag);
-        if (mode === 'maturity') return facet[node.maturity ?? ''] ?? facet.other ?? colors.note;
-        if (mode === 'reviewed')
-          return node.reviewed ? (facet.evergreen ?? colors.note) : (facet.seed ?? colors.note);
-        if (mode === 'type') {
-          const slot = state.typeTop.indexOf(node.type ?? '');
-          return slot >= 0 ? (cats[slot] ?? colors.note) : (facet.other ?? colors.note);
-        }
-        return colors.note;
-      }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, width, height);
       ctx.translate(x, y);
@@ -284,7 +186,7 @@ export function GraphPage() {
       for (const node of state.nodes) {
         const dimmed = hovered && node !== hovered && !neighborSet?.has(node);
         ctx.globalAlpha = dimmed ? 0.15 : 1;
-        ctx.fillStyle = nodeFill(node);
+        ctx.fillStyle = colors.note;
         ctx.beginPath();
         ctx.arc(node.x ?? 0, node.y ?? 0, node.radius, 0, Math.PI * 2);
         ctx.fill();
@@ -292,7 +194,7 @@ export function GraphPage() {
 
       const labelTargets = hovered
         ? [hovered, ...(neighborSet ? [...neighborSet].slice(0, 18) : [])]
-        : state.nodes.filter((n) => n.kind === 'note' && n.degree >= 25).slice(0, 12);
+        : state.nodes.filter((n) => n.degree >= 25).slice(0, 12);
       ctx.globalAlpha = 1;
       ctx.font = `${Math.max(10 / k, 4)}px Inter, sans-serif`;
       ctx.textBaseline = 'middle';
@@ -400,7 +302,7 @@ export function GraphPage() {
       if (moved) return;
       const { gx, gy } = toGraphSpace(event);
       const hit = hitTest(gx, gy);
-      if (hit && hit.kind === 'note') {
+      if (hit) {
         const url = resolveNoteUrl(vaultSlug, hit.id);
         if (url) void navigate(url);
       }
@@ -438,90 +340,12 @@ export function GraphPage() {
           <VaultBreadcrumb items={[{ label: t('graph.heading') }]} className="graph-breadcrumb" />
           <h1>{t('graph.heading')}</h1>
         </div>
-        {/*
-          Not rendered at all when the source is the API, rather than hidden:
-          both controls read frontmatter fields that only the seed guarantees,
-          and a control that steers nothing is worse than no control.
-        */}
-        {!isLive && (
-          <>
-            <label className="graph-toggle graph-colorby">
-              {t('graph.colorBy')}
-              <select value={colorBy} onChange={(e) => setColorBy(e.target.value as ColorBy)}>
-                <option value="none">{t('graph.colorDefault')}</option>
-                <option value="maturity">maturity</option>
-                <option value="reviewed">reviewed</option>
-                <option value="type">type</option>
-              </select>
-            </label>
-            <label className="graph-toggle">
-              <input
-                type="checkbox"
-                checked={showTags}
-                onChange={(e) => setShowTags(e.target.checked)}
-              />
-              {t('graph.showTags')}
-            </label>
-          </>
-        )}
         <span className="graph-legend">
-          {colorBy === 'none' && (
-            <>
-              <span className="legend-item">
-                <span className="legend-swatch" style={{ background: 'var(--accent)' }} />
-                {t('graph.legendNotes')}
-              </span>
-              {showTags && !isLive && (
-                <span className="legend-item">
-                  <span className="legend-swatch" style={{ background: 'var(--signal)' }} />
-                  {t('graph.legendTags')}
-                </span>
-              )}
-              {truncated && <span className="legend-item">{t('graph.truncated')}</span>}
-            </>
-          )}
-          {colorBy === 'maturity' &&
-            MATURITY_STEPS.map((step) => (
-              <span key={step} className="legend-item">
-                <span className="legend-swatch" style={{ background: `var(--seq-${step})` }} />
-                {t(`dashboard.bucket.${step}`)}
-              </span>
-            ))}
-          {colorBy === 'reviewed' && (
-            <>
-              <span className="legend-item">
-                <span className="legend-swatch" style={{ background: 'var(--seq-evergreen)' }} />
-                {t('dashboard.reviewedYes')}
-              </span>
-              <span className="legend-item">
-                <span className="legend-swatch" style={{ background: 'var(--seq-seed)' }} />
-                {t('dashboard.reviewedNo')}
-              </span>
-            </>
-          )}
-          {colorBy === 'type' && (
-            <>
-              {typeTop.map((typeName, index) => (
-                <span key={typeName} className="legend-item">
-                  <span
-                    className="legend-swatch"
-                    style={{ background: `var(--cat-${index + 1})` }}
-                  />
-                  {typeName}
-                </span>
-              ))}
-              <span className="legend-item">
-                <span className="legend-swatch" style={{ background: 'var(--cat-other)' }} />
-                {t('dashboard.otherTypes')}
-              </span>
-            </>
-          )}
-          {colorBy !== 'none' && showTags && (
-            <span className="legend-item">
-              <span className="legend-swatch" style={{ background: 'var(--cat-other)' }} />
-              {t('graph.legendTags')}
-            </span>
-          )}
+          <span className="legend-item">
+            <span className="legend-swatch" style={{ background: 'var(--accent)' }} />
+            {t('graph.legendNotes')}
+          </span>
+          {truncated && <span className="legend-item">{t('graph.truncated')}</span>}
         </span>
       </div>
       <div className="graph-canvas-wrap">

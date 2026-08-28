@@ -97,12 +97,13 @@ export function resolveWikilinks(body: string, resolve: (slug: string) => string
   return body.replace(WIKILINK, (_all, target: string, label?: string) => {
     const clean = target.split('#')[0]?.trim() ?? '';
     const text = (label ?? target).trim();
-    const url = clean ? resolve(slugifyTarget(clean)) : null;
+    const url = clean ? resolve(slugify(clean)) : null;
     return url ? `[${text}](${url})` : `[${text}](pending:${encodeURIComponent(clean)})`;
   });
 }
 
-function slugifyTarget(name: string): string {
+/** The slug of a note, as the product derives it from the title. */
+export function slugify(name: string): string {
   return name
     .toLowerCase()
     .normalize('NFD')
