@@ -261,7 +261,7 @@ Um ambiente recém-subido não tem ninguém dentro: o pool é vazio e não exist
 ./deploy-aws/onboard.ps1 -Profile memorysmith
 ```
 
-Ele pergunta o que precisa saber e então cria a conta no Cognito com senha definitiva, solicita a assinatura com o tipo e a quota escolhidos, coloca a assinatura no status escolhido e escreve um vault inteiro, com Orientação, pastas, Modelos e notas, a partir de um dos vaults de `memorysmith-frontend/seed/vaults`.
+Ele pergunta o que precisa saber e então cria a conta no Cognito com senha definitiva, solicita a assinatura com o tipo e a quota escolhidos (a assinatura não tem nome: quem a identifica é o titular), coloca a assinatura no status escolhido e escreve um vault inteiro, com Orientação, pastas, Modelos e notas, a partir de um dos vaults de `memorysmith-frontend/seed/vaults`.
 
 **A primeira conta de um pool vazio vira administradora de plataforma, e só a primeira.** Alguém precisa autorizar a primeira assinatura, e em um ambiente novo não há ninguém. Depois que o grupo tem um membro, uma execução seguinte pede as credenciais de um administrador existente em vez de entregar a plataforma a quem rodar o script.
 
@@ -275,7 +275,6 @@ Para olhar o que um seed viraria, sem criar nada e sem sequer falar com a AWS:
 |---|---|
 | `-Email <endereço>` | A conta a criar ou reusar. Perguntado quando não é passado |
 | `-Name <nome>` | Nome de exibição da conta |
-| `-SubscriptionName <nome>` | Nome da assinatura. O padrão é `MemorySmith` |
 | `-Type individual` | Tipo da assinatura; `individual` é o único desta fase |
 | `-Quota 500MB\|1GB\|2GB` | Quota de armazenamento, declarada e ainda não aplicada |
 | `-Status <status>` | Status final da assinatura, qualquer um dos seis, inclusive um que a máquina de transição recusaria |

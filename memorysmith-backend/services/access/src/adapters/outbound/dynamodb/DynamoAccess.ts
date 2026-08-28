@@ -23,7 +23,6 @@ import {
   Instant,
   ok,
   Role,
-  Slug,
   SubscriptionId,
   SubscriptionStatus,
   UserId,
@@ -47,7 +46,6 @@ import {
   InviteToken,
   RejectionReason,
   StorageQuota,
-  SubscriptionName,
   SubscriptionType,
 } from '../../../domain/values.js';
 import type {
@@ -72,8 +70,6 @@ function subscriptionItem(subscription: Subscription): Item {
     SK: 'META',
     entity: 'SUBSCRIPTION',
     subscriptionId: subscription.id.value,
-    name: subscription.name.value,
-    slug: subscription.slug.value,
     ownerId: subscription.ownerId.value,
     ownerEmail: subscription.ownerEmail,
     status: subscription.status.name,
@@ -95,8 +91,6 @@ function parseSubscription(item: Item, members: Membership[] = []): Subscription
   return Subscription.rehydrate({
     members,
     id: need(SubscriptionId.fromClaim(String(item['subscriptionId']))),
-    name: need(SubscriptionName.create(String(item['name']))),
-    slug: need(Slug.create(String(item['slug']))),
     ownerId: need(UserId.create(String(item['ownerId']))),
     ownerEmail: String(item['ownerEmail']),
     status: need(SubscriptionStatus.create(String(item['status']))),
@@ -397,7 +391,6 @@ export class DynamoPlatformAdmin implements PlatformSubscriptionAdmin {
     );
     return ((response.Items ?? []) as Item[]).map((item) => ({
       subscriptionId: String(item['subscriptionId']),
-      name: String(item['name']),
       ownerEmail: String(item['ownerEmail']),
       status: String(item['status']),
       type: String(item['type'] ?? SubscriptionType.DEFAULT.name),

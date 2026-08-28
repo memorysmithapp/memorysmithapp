@@ -674,7 +674,7 @@ Query  PK = S#{s}#VAULT#{v}   AND   SK BETWEEN 'FOLDER#' AND 'META'
 ### 9.4 `mv-access`
 
 ```
-S#{s}              / META                  → assinatura: name, ownerId, status, type, quota,
+S#{s}              / META                  → assinatura: ownerId, status, type, quota,
                                              requestedAt, reviewedBy, rejectionReason, legalHold
 S#{s}              / USER#{userId}          → usuário conhecido pela assinatura
 S#{s}              / INVITE#{token}         → convite pendente (ttl = expiresAt)
@@ -682,7 +682,7 @@ S#{s}              / MEMBER#{userId}        → membership: role (EDITOR | VIEWE
 USER#{userId}      / SUB#{subscriptionId}   → vínculo (§8.3, exceção 1)
 
 GSI2:  PLATFORM#{status}     → REQUESTED#{timestamp}#{subscriptionId}  → fila da plataforma (§8.3, exceção 2)
-                               projeção INCLUDE: name, ownerEmail, status, type, quota,
+                               projeção INCLUDE: ownerEmail, status, type, quota,
                                requestedAt, memberCount
 ```
 
@@ -983,7 +983,7 @@ Consumidas pela UI; **o contrato público é o MCP**.
 
 ```
 svc-access       GET  /session/subscriptions · POST /session/subscription  { subscriptionId }
-                 POST /subscriptions      { name, type?, quota? }  (pending_approval)
+                 POST /subscriptions      { type?, quota? }  (pending_approval)
                  POST /subscriptions/:s/ownership          { toUserId }
                  GET  /members · POST /members             { email, role }
                  PATCH /members/:u  { role } · DELETE /members/:u

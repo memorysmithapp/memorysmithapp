@@ -167,13 +167,7 @@ export function buildTestApp() {
       return new GetSession(links, scoped?.subscriptions ?? null, async (id) => {
         const found = accessDb.subscriptions.get(`S#${id.value}`)?.subscription;
         return found
-          ? {
-              name: found.name.value,
-              slug: found.slug.value,
-              status: found.status.name,
-              type: found.type.name,
-              quota: found.quota.name,
-            }
+          ? { status: found.status.name, type: found.type.name, quota: found.quota.name }
           : null;
       });
     },

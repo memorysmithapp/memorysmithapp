@@ -58,7 +58,6 @@ export interface UserLinkRepository {
 /** Exactly the fields the platform screen shows, and no others. */
 export interface PlatformSubscriptionView {
   readonly subscriptionId: string;
-  readonly name: string;
   readonly ownerEmail: string;
   readonly status: string;
   readonly type: string;

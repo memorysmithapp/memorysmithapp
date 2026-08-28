@@ -148,10 +148,7 @@ beforeEach(async () => {
   harness = buildTestApp();
   harness.verifier.issue(TOKEN, { sub: 'user-owner', email: 'owner@example.com' });
 
-  const created = await call('/access/subscriptions', {
-    method: 'POST',
-    body: { name: 'Tribunal de Contas' },
-  });
+  const created = await call('/access/subscriptions', { method: 'POST', body: {} });
   const { subscriptionId } = (await created.json()) as { subscriptionId: string };
 
   harness.verifier.issue('platform-token', {
@@ -266,7 +263,7 @@ describe('Discovery answers over the API', () => {
     harness.verifier.issue('token-b', { sub: 'user-b', email: 'b@example.com' });
     const other = await call('/access/subscriptions', {
       method: 'POST',
-      body: { name: 'Outra' },
+      body: {},
       token: 'token-b',
     });
     const { subscriptionId } = (await other.json()) as { subscriptionId: string };

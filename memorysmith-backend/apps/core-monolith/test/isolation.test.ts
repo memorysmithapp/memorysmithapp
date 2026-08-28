@@ -26,13 +26,13 @@ beforeEach(() => {
 /** Signs a user in and takes their subscription through approval. */
 async function onboard(
   app: App,
-  input: { token: string; sub: string; email: string; name: string },
+  input: { token: string; sub: string; email: string },
 ): Promise<string> {
   app.verifier.issue(input.token, { sub: input.sub, email: input.email });
   const created = await app.app.request('/access/subscriptions', {
     method: 'POST',
     headers: { authorization: `Bearer ${input.token}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ name: input.name }),
+    body: JSON.stringify({}),
   });
   expect(created.status).toBe(201);
   const { subscriptionId } = (await created.json()) as { subscriptionId: string };
@@ -81,13 +81,11 @@ describe('Isolation between subscriptions', () => {
       token: 'token-a',
       sub: 'user-a',
       email: 'a@example.com',
-      name: 'Cliente A',
     });
     await onboard(harness, {
       token: 'token-b',
       sub: 'user-b',
       email: 'b@example.com',
-      name: 'Cliente B',
     });
 
     const vaultOfB = await createVault(harness, 'token-b', 'Normas de B');
@@ -109,13 +107,11 @@ describe('Isolation between subscriptions', () => {
       token: 'token-a',
       sub: 'user-a',
       email: 'a@example.com',
-      name: 'Cliente A',
     });
     await onboard(harness, {
       token: 'token-b',
       sub: 'user-b',
       email: 'b@example.com',
-      name: 'Cliente B',
     });
     await createVault(harness, 'token-b', 'Normas de B');
     await createVault(harness, 'token-a', 'Normas de A');
@@ -132,13 +128,11 @@ describe('Isolation between subscriptions', () => {
       token: 'token-a',
       sub: 'user-a',
       email: 'a@example.com',
-      name: 'Cliente A',
     });
     await onboard(harness, {
       token: 'token-b',
       sub: 'user-b',
       email: 'b@example.com',
-      name: 'Cliente B',
     });
     const vaultOfB = await createVault(harness, 'token-b', 'Normas de B');
 
@@ -167,7 +161,6 @@ describe('The platform session reaches no content', () => {
       token: 'token-a',
       sub: 'user-a',
       email: 'a@example.com',
-      name: 'Cliente A',
     });
     const vaultOfA = await createVault(harness, 'token-a', 'Normas de A');
 
@@ -195,7 +188,6 @@ describe('The platform session reaches no content', () => {
       token: 'token-a',
       sub: 'user-a',
       email: 'a@example.com',
-      name: 'Cliente A',
     });
     const queue = await harness.app.request('/access/platform/subscriptions?status=active', {
       headers: { authorization: 'Bearer platform-token' },
@@ -203,10 +195,10 @@ describe('The platform session reaches no content', () => {
     expect(queue.status).toBe(200);
     const rows = (await queue.json()) as Array<Record<string, unknown>>;
     expect(rows).toHaveLength(1);
-    // Holder, e-mail, status, plan, dates and a member count. Nothing else.
+    // Holder, status, plan, dates and a member count. Nothing else, and no
+    // name: a subscription has none (RN-SUB-020).
     expect(Object.keys(rows[0] ?? {}).sort()).toEqual([
       'memberCount',
-      'name',
       'ownerEmail',
       'quota',
       'requestedAt',
@@ -221,7 +213,6 @@ describe('The platform session reaches no content', () => {
       token: 'token-a',
       sub: 'user-a',
       email: 'a@example.com',
-      name: 'Cliente A',
     });
     const attempt = await harness.app.request(
       `/access/platform/subscriptions/${subscriptionId}/suspend`,
@@ -237,7 +228,6 @@ describe('Subscription status governs access, never address', () => {
       token: 'token-a',
       sub: 'user-a',
       email: 'a@example.com',
-      name: 'Cliente A',
     });
     const vaultId = await createVault(harness, 'token-a', 'Normas de A');
 

@@ -92,8 +92,6 @@ export const eventEnvelopeSchema = z.object({
 // ---- Payloads ---------------------------------------------------------------
 
 export const subscriptionRequestedPayload = z.object({
-  name: z.string().min(1),
-  slug: slugSchema,
   ownerId: userIdSchema,
   ownerEmail: z.string().email(),
   status: subscriptionStatusSchema,

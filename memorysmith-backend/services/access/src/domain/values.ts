@@ -20,20 +20,6 @@ function bounded(
   return ok(trimmed);
 }
 
-export class SubscriptionName {
-  private readonly __subscriptionName!: void;
-  private constructor(readonly value: string) {}
-
-  static create(raw: string): Result<SubscriptionName, DomainError> {
-    const bounds = bounded(raw, 1, 120, 'The subscription name');
-    return bounds.ok ? ok(new SubscriptionName(bounds.value)) : bounds;
-  }
-
-  toString(): string {
-    return this.value;
-  }
-}
-
 /**
  * SubscriptionType: what the subscription IS, commercially (RN-SUB-018).
  *

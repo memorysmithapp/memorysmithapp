@@ -29,7 +29,6 @@ interface Identity {
   readonly name: string;
   readonly email: string;
   readonly role: string;
-  readonly subscriptionName: string | null;
   readonly subscriptionType: SubscriptionType | null;
   readonly subscriptionQuota: StorageQuota | null;
   readonly subscriptionStatus: SubscriptionStatus | null;
@@ -45,7 +44,6 @@ function identityOf(live: LiveSession): Identity {
     name: live.name,
     email: live.email,
     role: live.role,
-    subscriptionName: live.subscriptionName,
     subscriptionType: live.subscriptionType,
     subscriptionQuota: live.subscriptionQuota,
     subscriptionStatus: live.subscriptionStatus,
@@ -154,18 +152,16 @@ export function UserMenu() {
             as the code spells it: OWNER and individual are symbols, not words
             a person reads. They go through i18n, and the key is the symbol.
 
+            THE SUBSCRIPTION HAS NO NAME to show (RN-SUB-020): what identifies
+            it is the perpetual id, and who holds it is the person reading this
+            menu. What is worth saying about it is the plan and the quota.
+
             The status is shown only for `trial`, which is a fact worth saying.
             `active` adds nothing, and no other status reaches this menu: a
             session without operational access never gets past the sign-in
             screen (RN-SUB-007).
           */}
           <div className="user-menu-fields">
-            {user.subscriptionName ? (
-              <div className="user-menu-field">
-                <span className="user-menu-field-label">{t('auth.subscription')}</span>
-                <span className="chip">{user.subscriptionName}</span>
-              </div>
-            ) : null}
             <div className="user-menu-field">
               <span className="user-menu-field-label">{t('auth.role')}</span>
               <span className="chip">{t(`roles.${user.role}`)}</span>

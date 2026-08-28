@@ -137,7 +137,6 @@ export class InMemoryPlatformAdmin implements PlatformSubscriptionAdmin {
       .filter((entry) => entry.subscription.status.equals(status))
       .map((entry) => ({
         subscriptionId: entry.subscription.id.value,
-        name: entry.subscription.name.value,
         ownerEmail: entry.subscription.ownerEmail,
         status: entry.subscription.status.name,
         type: entry.subscription.type.name,

@@ -54,7 +54,9 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- **O menu do usuário passa a mostrar a assinatura inteira, e em português.** Ele mostrava o papel como o código o escreve, `OWNER`, e mais nada além do nome da assinatura. Agora mostra assinatura, papel, plano e armazenamento, e nenhum desses valores aparece como símbolo: `OWNER` vira Titular, `individual` vira Individual, `1GB` vira 1 GB, e o mesmo vale em inglês. O status só aparece quando é período de teste, que é o único fato que ele acrescenta: `active` não diz nada de novo, e nenhum outro status chega a esta tela, porque uma sessão sem acesso operacional não passa da tela de entrada.
+- **A assinatura deixou de ter nome.** `name` e `slug` saem do agregado, do item de armazenamento, do payload de `SubscriptionRequested`, da fila da plataforma, do contrato de sessão, do menu do usuário e do `onboard.ps1`. O que identifica uma assinatura é o `SubscriptionId`, que é perpétuo, e quem responde por ela é o titular, que a fila da plataforma já mostra pelo e-mail (RN-SUB-020). Solicitar uma assinatura passa a ser um `POST` que aceita corpo vazio: sem tipo e sem quota, ele pede o plano padrão.
+
+- **O menu do usuário passa a mostrar a assinatura inteira, e em português.** Ele mostrava o papel como o código o escreve, `OWNER`, e mais nada além do nome da assinatura. Agora mostra papel, plano e armazenamento, e nenhum desses valores aparece como símbolo: `OWNER` vira Titular, `individual` vira Individual, `1GB` vira 1 GB, e o mesmo vale em inglês. O status só aparece quando é período de teste, que é o único fato que ele acrescenta: `active` não diz nada de novo, e nenhum outro status chega a esta tela, porque uma sessão sem acesso operacional não passa da tela de entrada.
 
   Os rótulos deixaram o caixa alta com espaçamento de letras. Eles nomeiam o valor ao lado, não gritam com quem lê, e em português a caixa alta com acento lê pior do que a caixa mista.
 

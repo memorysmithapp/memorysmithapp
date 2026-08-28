@@ -134,7 +134,6 @@ export function LoginPage() {
       name: DEMO_NAME,
       email,
       role: 'OWNER',
-      subscriptionName: 'MemorySmith',
       subscriptionType: 'individual',
       subscriptionQuota: '1GB',
       subscriptionStatus: 'active',

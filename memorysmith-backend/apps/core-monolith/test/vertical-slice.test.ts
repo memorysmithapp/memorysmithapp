@@ -28,7 +28,7 @@ beforeEach(async () => {
   const created = await harness.app.request('/access/subscriptions', {
     method: 'POST',
     headers: { authorization: `Bearer ${TOKEN}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ name: 'Tribunal de Contas' }),
+    body: JSON.stringify({}),
   });
   const { subscriptionId } = (await created.json()) as { subscriptionId: string };
   activeSubscriptionId = subscriptionId;

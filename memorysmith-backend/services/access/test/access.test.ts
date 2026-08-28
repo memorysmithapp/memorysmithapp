@@ -10,7 +10,7 @@ import {
   type Result,
 } from '@memorysmith/kernel';
 import { Subscription } from '../src/domain/subscription/Subscription.js';
-import { Email, RejectionReason, SubscriptionName } from '../src/domain/values.js';
+import { Email, RejectionReason } from '../src/domain/values.js';
 import {
   InMemoryAccessDatabase,
   InMemoryInviteRepository,
@@ -81,7 +81,6 @@ describe('Subscription: the identifier is perpetual', () => {
     return unwrap(
       Subscription.request({
         id: SubscriptionId.generate(),
-        name: unwrap(SubscriptionName.create('Tribunal de Contas')),
         ownerId: owner,
         ownerEmail: 'owner@example.com',
         by: Authorship.byHuman(owner),
@@ -168,7 +167,6 @@ describe('Onboarding', () => {
     const created = unwrap(
       await useCase.execute({
         profile: profileOf(owner, 'owner@example.com'),
-        name: 'Tribunal de Contas',
         by: Authorship.byHuman(owner),
       }),
     );
@@ -188,7 +186,6 @@ describe('Onboarding', () => {
     const { subscriptionId } = unwrap(
       await useCase.execute({
         profile: profileOf(owner, 'owner@example.com'),
-        name: 'Tribunal de Contas',
         type: 'individual',
         quota: '2GB',
         by: Authorship.byHuman(owner),
@@ -204,7 +201,6 @@ describe('Onboarding', () => {
         new InMemoryUserLinkRepository(db),
       ).execute({
         profile: profileOf(invitee, 'invitee@example.com'),
-        name: 'Segunda',
         by: Authorship.byHuman(invitee),
       }),
     );
@@ -219,7 +215,6 @@ describe('Onboarding', () => {
       new InMemoryUserLinkRepository(db),
     ).execute({
       profile: profileOf(owner, 'owner@example.com'),
-      name: 'Tribunal de Contas',
       quota: '10GB',
       by: Authorship.byHuman(owner),
     });
@@ -232,12 +227,10 @@ describe('Onboarding', () => {
     const useCase = new RequestSubscription(onboarding, new InMemoryUserLinkRepository(db));
     await useCase.execute({
       profile: profileOf(owner, 'owner@example.com'),
-      name: 'Primeira',
       by: Authorship.byHuman(owner),
     });
     const second = await useCase.execute({
       profile: profileOf(owner, 'owner@example.com'),
-      name: 'Segunda',
       by: Authorship.byHuman(owner),
     });
     expect(expectErr(second).code).toBe('CONFLICT');
@@ -250,7 +243,6 @@ describe('Platform surface', () => {
     const requested = unwrap(
       await new RequestSubscription(onboarding, new InMemoryUserLinkRepository(db)).execute({
         profile: profileOf(owner, 'owner@example.com'),
-        name: 'Tribunal de Contas',
         by: Authorship.byHuman(owner),
       }),
     );
@@ -268,7 +260,6 @@ describe('Platform surface', () => {
     expect(queue).toHaveLength(1);
     expect(queue[0]).toEqual({
       subscriptionId: subscriptionId.value,
-      name: 'Tribunal de Contas',
       ownerEmail: 'owner@example.com',
       status: 'pending_approval',
       type: 'individual',
@@ -397,7 +388,6 @@ describe('Invites and members', () => {
     const { subscriptionId } = unwrap(
       await new RequestSubscription(onboarding, new InMemoryUserLinkRepository(db)).execute({
         profile: profileOf(owner, 'owner@example.com'),
-        name: 'Tribunal de Contas',
         by: Authorship.byHuman(owner),
       }),
     );
@@ -631,7 +621,6 @@ describe('ResolveRequestContext: stage 1 of authorization', () => {
     const { subscriptionId } = unwrap(
       await new RequestSubscription(onboarding, new InMemoryUserLinkRepository(db)).execute({
         profile: profileOf(owner, 'owner@example.com'),
-        name: 'Tribunal',
         by: Authorship.byHuman(owner),
       }),
     );
@@ -661,7 +650,6 @@ describe('ResolveRequestContext: stage 1 of authorization', () => {
     const { subscriptionId } = unwrap(
       await new RequestSubscription(onboarding, new InMemoryUserLinkRepository(db)).execute({
         profile: profileOf(owner, 'owner@example.com'),
-        name: 'Tribunal',
         by: Authorship.byHuman(owner),
       }),
     );
@@ -690,7 +678,6 @@ describe('Session', () => {
     const { subscriptionId } = unwrap(
       await new RequestSubscription(onboarding, links).execute({
         profile: profileOf(owner, 'owner@example.com'),
-        name: 'Tribunal',
         by: Authorship.byHuman(owner),
       }),
     );
@@ -702,13 +689,7 @@ describe('Session', () => {
         async (id: SubscriptionId) => {
           const found = db.subscriptions.get(`S#${id.value}`)?.subscription;
           return found
-            ? {
-                name: found.name.value,
-                slug: found.slug.value,
-                status: found.status.name,
-                type: found.type.name,
-                quota: found.quota.name,
-              }
+            ? { status: found.status.name, type: found.type.name, quota: found.quota.name }
             : null;
         },
       ).execute({ profile: profileOf(owner, 'owner@example.com'), context }),
@@ -742,9 +723,6 @@ describe('Membership shape', () => {
     const subscription = unwrap(
       (await import('../src/domain/subscription/Subscription.js')).Subscription.request({
         id: SubscriptionId.generate(),
-        name: unwrap(
-          (await import('../src/domain/values.js')).SubscriptionName.create('Auditoria'),
-        ),
         ownerId: owner,
         ownerEmail: 'owner@example.com',
         by: Authorship.byHuman(owner),

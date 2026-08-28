@@ -12,7 +12,6 @@ import {
   instantSchema,
   membershipRoleSchema,
   roleSchema,
-  slugSchema,
   storageQuotaSchema,
   subscriptionStatusSchema,
   subscriptionTypeSchema,
@@ -24,8 +23,6 @@ import {
 /** One link between a user and a subscription (architecture-guide.md 8.3). */
 export const subscriptionLinkSchema = z.object({
   subscriptionId: ulidSchema,
-  name: z.string(),
-  slug: slugSchema,
   status: subscriptionStatusSchema,
   type: subscriptionTypeSchema,
   quota: storageQuotaSchema,
@@ -64,11 +61,14 @@ export const switchSubscriptionRequestSchema = z.object({
 
 /**
  * Type and quota are the commercial shape of the subscription, chosen when it
- * is asked for. Both default on the server, so a client that knows nothing
- * about them still asks for a valid subscription.
+ * is asked for. Both default on the server, so a request with no body at all
+ * still asks for a valid subscription.
+ *
+ * A subscription HAS NO NAME. What identifies it is its perpetual id, and who
+ * holds it is the owner: a name would be one more thing to keep in sync with
+ * nothing to keep it honest.
  */
 export const requestSubscriptionRequestSchema = z.object({
-  name: z.string().min(1).max(120),
   type: subscriptionTypeSchema.optional(),
   quota: storageQuotaSchema.optional(),
 });
@@ -115,7 +115,6 @@ export const setVaultRoleLimitRequestSchema = z.object({
  */
 export const platformSubscriptionSchema = z.object({
   subscriptionId: ulidSchema,
-  name: z.string(),
   ownerEmail: z.string().email(),
   status: subscriptionStatusSchema,
   type: subscriptionTypeSchema,

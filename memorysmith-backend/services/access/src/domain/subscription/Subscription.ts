@@ -22,20 +22,13 @@ import {
   type Instant,
   ok,
   Role,
-  Slug,
   type SubscriptionId,
   SubscriptionStatus,
   type UserId,
   type DomainEvent,
   type Result,
 } from '@memorysmith/kernel';
-import {
-  type Email,
-  type RejectionReason,
-  StorageQuota,
-  type SubscriptionName,
-  SubscriptionType,
-} from '../values.js';
+import { type Email, type RejectionReason, StorageQuota, SubscriptionType } from '../values.js';
 
 /**
  * A member of the subscription. THE OWNER IS NOT ONE. Ownership lives in a
@@ -67,8 +60,6 @@ export class Subscription {
   private constructor(
     /** Emitted once, never reissued, immutable across every transition. */
     readonly id: SubscriptionId,
-    private _name: SubscriptionName,
-    private _slug: Slug,
     private _ownerId: UserId,
     private _ownerEmail: string,
     private _status: SubscriptionStatus,
@@ -89,7 +80,6 @@ export class Subscription {
    */
   static request(input: {
     id: SubscriptionId;
-    name: SubscriptionName;
     ownerId: UserId;
     ownerEmail: string;
     /** The commercial shape, chosen at the request (RN-SUB-018, RN-SUB-019). */
@@ -97,15 +87,10 @@ export class Subscription {
     quota?: StorageQuota;
     by: Authorship;
   }): Result<Subscription, DomainError> {
-    const slug = Slug.from(input.name.value);
-    if (!slug.ok) return slug;
-
     const type = input.type ?? SubscriptionType.DEFAULT;
     const quota = input.quota ?? StorageQuota.DEFAULT;
     const subscription = new Subscription(
       input.id,
-      input.name,
-      slug.value,
       input.ownerId,
       input.ownerEmail,
       SubscriptionStatus.PENDING_APPROVAL,
@@ -120,8 +105,6 @@ export class Subscription {
       new Map(),
     );
     subscription.record('SubscriptionRequested', input.by, {
-      name: input.name.value,
-      slug: slug.value.value,
       ownerId: input.ownerId.value,
       ownerEmail: input.ownerEmail,
       status: 'pending_approval',
@@ -133,8 +116,6 @@ export class Subscription {
 
   static rehydrate(input: {
     id: SubscriptionId;
-    name: SubscriptionName;
-    slug: Slug;
     ownerId: UserId;
     ownerEmail: string;
     status: SubscriptionStatus;
@@ -150,8 +131,6 @@ export class Subscription {
   }): Subscription {
     return new Subscription(
       input.id,
-      input.name,
-      input.slug,
       input.ownerId,
       input.ownerEmail,
       input.status,
@@ -167,12 +146,6 @@ export class Subscription {
     );
   }
 
-  get name(): SubscriptionName {
-    return this._name;
-  }
-  get slug(): Slug {
-    return this._slug;
-  }
   get ownerId(): UserId {
     return this._ownerId;
   }
@@ -271,8 +244,6 @@ export class Subscription {
       // The payload of a request carries the identity of the subscription, not
       // a status pair, because that is what its consumers expect.
       payload: {
-        name: this._name.value,
-        slug: this._slug.value,
         ownerId: this._ownerId.value,
         ownerEmail: this._ownerEmail,
         status: 'pending_approval',

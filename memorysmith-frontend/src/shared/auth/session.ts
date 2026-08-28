@@ -34,7 +34,6 @@ export interface LiveSession {
   readonly name: string;
   readonly isPlatformAdmin: boolean;
   readonly subscriptionState: SubscriptionState;
-  readonly subscriptionName: string | null;
   /**
    * Type, quota and the status as it is spelled, not as it is grouped:
    * `subscriptionState` above answers "does this session reach the product",
@@ -103,7 +102,6 @@ export const useLiveSession = create<SessionStore>((set) => ({
           // The status in the token is what governs access, and it ages with
           // the token: a suspension takes effect on the next refresh (§8.5).
           subscriptionState: stateOf(claims?.subscriptionStatus ?? active?.status),
-          subscriptionName: active?.name ?? dto.subscriptions[0]?.name ?? null,
           subscriptionType: active?.type ?? null,
           subscriptionQuota: active?.quota ?? null,
           subscriptionStatus: active?.status ?? null,
@@ -123,7 +121,6 @@ export const useLiveSession = create<SessionStore>((set) => ({
               name: claims.name ?? claims.email ?? '',
               isPlatformAdmin: claims.groups.includes('platform-admin'),
               subscriptionState: stateOf(claims.subscriptionStatus),
-              subscriptionName: null,
               subscriptionType: null,
               subscriptionQuota: null,
               subscriptionStatus: null,

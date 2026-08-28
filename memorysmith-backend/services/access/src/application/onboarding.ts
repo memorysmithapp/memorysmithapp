@@ -18,7 +18,7 @@ import {
   type UserId,
 } from '@memorysmith/kernel';
 import { Subscription } from '../domain/subscription/Subscription.js';
-import { StorageQuota, SubscriptionName, SubscriptionType } from '../domain/values.js';
+import { StorageQuota, SubscriptionType } from '../domain/values.js';
 import type {
   SubscriptionOnboarding,
   SubscriptionRepository,
@@ -34,7 +34,6 @@ export class RequestSubscription {
 
   async execute(input: {
     profile: UserProfile;
-    name: string;
     /** Omitted means the default plan, not an invalid one. */
     type?: string;
     quota?: string;
@@ -49,9 +48,6 @@ export class RequestSubscription {
       );
     }
 
-    const name = SubscriptionName.create(input.name);
-    if (!name.ok) return name;
-
     const type = input.type ? SubscriptionType.create(input.type) : ok(SubscriptionType.DEFAULT);
     if (!type.ok) return type;
     const quota = input.quota ? StorageQuota.create(input.quota) : ok(StorageQuota.DEFAULT);
@@ -59,7 +55,6 @@ export class RequestSubscription {
 
     const subscription = Subscription.request({
       id: SubscriptionId.generate(),
-      name: name.value,
       ownerId: input.profile.userId,
       ownerEmail: input.profile.email.value,
       type: type.value,
@@ -89,8 +84,6 @@ export interface SessionView {
   readonly user: UserProfile;
   readonly links: Array<{
     subscriptionId: string;
-    name: string;
-    slug: string;
     status: string;
     type: string;
     quota: string;
@@ -108,8 +101,6 @@ export class GetSession {
     private readonly subscriptions: SubscriptionRepository | null,
     /** Reads the metadata of a link; the only cross-subscription read there is. */
     private readonly describeLink: (id: SubscriptionId) => Promise<{
-      name: string;
-      slug: string;
       status: string;
       type: string;
       quota: string;
@@ -127,8 +118,6 @@ export class GetSession {
       if (!metadata) continue;
       described.push({
         subscriptionId: link.subscriptionId.value,
-        name: metadata.name,
-        slug: metadata.slug,
         status: metadata.status,
         type: metadata.type,
         quota: metadata.quota,

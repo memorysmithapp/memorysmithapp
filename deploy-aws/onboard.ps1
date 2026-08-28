@@ -31,9 +31,6 @@
 .PARAMETER Name
   Display name of the account. The e-mail is used when there is none.
 
-.PARAMETER SubscriptionName
-  Name of the subscription. Defaults to 'MemorySmith'.
-
 .PARAMETER Type
   Subscription type. Only 'individual' exists in this phase (RN-SUB-018).
 
@@ -90,7 +87,6 @@
 param(
   [string]$Email,
   [string]$Name,
-  [string]$SubscriptionName = 'MemorySmith',
   [ValidateSet('individual')][string]$Type = 'individual',
   [ValidateSet('500MB', '1GB', '2GB')][string]$Quota,
   [ValidateSet('pending_approval', 'trial', 'active', 'rejected', 'suspended', 'canceled')]
@@ -422,7 +418,7 @@ if ($writesVault) {
 if (-not $PreviewVault) {
   Write-Host ''
   Write-Host "  account          $Email"
-  Write-Host "  subscription     $SubscriptionName  ($Type, $Quota, $Status)"
+  Write-Host "  subscription     $Type, $Quota, $Status"
   Write-Host "  vault            $VaultTemplate"
 }
 
@@ -592,7 +588,7 @@ if ($mine.Count -gt 0) {
   Write-Ok "reusing $subscriptionId, which this account already holds"
 } else {
   $created = Invoke-Api -Method 'POST' -Path '/access/subscriptions' -Token $token `
-    -Body @{ name = $SubscriptionName; type = $Type; quota = $Quota }
+    -Body @{ type = $Type; quota = $Quota }
   $subscriptionId = $created.subscriptionId
   if (-not $subscriptionId) { throw 'The request returned no subscription id.' }
   Write-Ok "$subscriptionId requested"

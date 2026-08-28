@@ -154,15 +154,14 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
   app.post('/subscriptions', async (c) => {
     const request = c.get('access');
     const body = (await c.req.json().catch(() => ({}))) as {
-      name?: string;
       type?: string;
       quota?: string;
     };
     const created = await useCases.requestSubscription(request).execute({
       profile: request.profile,
-      name: String(body.name ?? ''),
       // Absent is not the same as invalid: the use case reads it as "the
-      // default plan", and only a value that exists is validated.
+      // default plan", and only a value that exists is validated. A request
+      // with no body at all is therefore a valid one.
       ...(body.type ? { type: String(body.type) } : {}),
       ...(body.quota ? { quota: String(body.quota) } : {}),
       by: Authorship.byHuman(request.profile.userId),

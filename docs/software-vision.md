@@ -156,6 +156,8 @@ A assinatura acumula dois papéis que normalmente ficam separados: é o objeto d
 
 Sem essa regra, "cancelar" viraria migração de dados e "recontratar" viraria importação, e a fronteira de isolamento passaria a depender de um estado que muda. Com ela, o status controla **acesso**, nunca **endereço**.
 
+**A assinatura não tem nome** (RN-SUB-020): o que a identifica é o `SubscriptionId`, e quem responde por ela é o titular. Um nome seria mais um campo a manter em dia sem nada que o mantivesse honesto, e não distinguiria nada que o e-mail do titular já não distinga.
+
 Além do status, a assinatura declara **o que ela é e quanto ela pode guardar**: um `type`, que nesta fase só pode ser `individual`, e uma `quota` de armazenamento, que é `500MB`, `1GB` ou `2GB` (RN-SUB-018, RN-SUB-019). Os dois são escolhidos no momento da solicitação e são alteráveis depois por ato do `PLATFORM_ADMIN`. A quota é **declarada e ainda não aplicada**: nenhuma escrita é recusada por causa dela, e dizer isso aqui vale mais do que deixar que alguém suponha uma checagem que não existe.
 
 ### 4.3 Hierarquia e por que ela tem dois níveis
@@ -243,6 +245,7 @@ Se um `PLATFORM_ADMIN` também for usuário de alguma assinatura, ele age ali co
 - **RN-SUB-017:** Aceitar um convite não cria assinatura para o convidado: ele passa a atuar na assinatura de quem convidou.
 - **RN-SUB-018:** Toda assinatura declara um `type`, escolhido na solicitação, cujo único valor nesta fase é `individual`. Somente `PLATFORM_ADMIN` altera o tipo depois, e é ele também quem pode definir o status diretamente, sem seguir a máquina de transição de §4.4. Um status definido assim é registrado como evento próprio, e definir `rejected` por esse caminho não cumpre RN-SUB-009: rejeitar uma solicitação que alguém aguarda continua exigindo motivo.
 - **RN-SUB-019:** Toda assinatura declara uma `quota` de armazenamento, escolhida na solicitação entre `500MB`, `1GB` e `2GB`, e alterável depois por `PLATFORM_ADMIN`. A quota é declarada e ainda não é aplicada: nenhuma escrita é recusada por excedê-la.
+- **RN-SUB-020:** A assinatura não tem nome. Ela é identificada pelo `SubscriptionId`, e para quem a opera ela é reconhecida pelo e-mail do titular. Nenhuma tela, rota, evento ou item de armazenamento carrega um nome de assinatura.
 
 ---
 
@@ -366,7 +369,8 @@ created_at, last_login?
 
 ```
 id,                          -- PERPÉTUO: emitido uma vez, nunca reemitido (RN-SUB-005)
-name, slug,
+                             -- não tem nome: quem a identifica é o id, e quem
+                             -- responde por ela é o titular (RN-SUB-020)
 owner_id,                    -- exatamente um, sempre presente (RN-ACC-001)
 status (pending_approval | trial | active | rejected | suspended | canceled),
 type (individual),           -- o que a assinatura é, comercialmente (RN-SUB-018)
@@ -736,7 +740,7 @@ Normas e Legislação/
 |---|---|
 | Entrada sem assinatura ativa | Não existe tela de espera dentro do produto. Uma sessão cuja assinatura está ausente, aguardando aprovação ou bloqueada não alcança nada, então ela é encerrada e a pessoa volta à tela de entrada com a mensagem do seu caso: conta sem assinatura, assinatura aguardando autorização ou assinatura inativa. A distinção é deliberada, porque "não há nada aqui" e "seu acesso está suspenso" são fatos diferentes |
 | Solicitação de assinatura | Fora do produto nesta fase. A rota existe na API, e quem solicita e aprova é a operação da plataforma; a interface não oferece o formulário |
-| **Plataforma → Assinaturas** | Área do `PLATFORM_ADMIN`: fila de pendentes, aprovar (`trial` ou `active`), rejeitar com motivo, suspender e reativar. Mostra titular, e-mail, datas e contagem de membros, **nunca nome de vault nem conteúdo** (§4.6) |
+| **Plataforma → Assinaturas** | Área do `PLATFORM_ADMIN`: fila de pendentes, aprovar (`trial` ou `active`), rejeitar com motivo, suspender e reativar. Mostra titular, e-mail, tipo, quota, datas e contagem de membros, **nunca nome de vault nem conteúdo** (§4.6) |
 
 **Assinatura**
 

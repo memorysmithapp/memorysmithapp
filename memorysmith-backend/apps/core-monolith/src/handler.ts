@@ -120,13 +120,7 @@ const accessUseCases: AccessUseCases = {
     return new GetSession(links, scoped?.subscriptions ?? null, async (id: SubscriptionId) => {
       const found = await platform.findById(id);
       return found
-        ? {
-            name: found.name.value,
-            slug: found.slug.value,
-            status: found.status.name,
-            type: found.type.name,
-            quota: found.quota.name,
-          }
+        ? { status: found.status.name, type: found.type.name, quota: found.quota.name }
         : null;
     });
   },
