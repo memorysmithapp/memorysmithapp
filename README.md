@@ -63,14 +63,7 @@ O humano autoriza o conector uma única vez, e é nesse consentimento que a assi
 
 ## Rodando na sua máquina
 
-O monorepo roda inteiro localmente, e há dois modos de olhar para ele.
-
-**O protótipo, sem nada além do repositório.** A interface lê o seed empacotado e navega como se o produto estivesse cheio:
-
-```
-pnpm install
-pnpm -C memorysmith-frontend dev
-```
+O monorepo roda inteiro localmente.
 
 **A suíte inteira**, que é o que diz se a implementação está de pé:
 
@@ -89,7 +82,7 @@ pnpm -r --if-present test:adapters
 docker compose down
 ```
 
-**A interface contra o backend real.** O `deploy.ps1` escreve esse arquivo sozinho a partir dos outputs das stacks, então na prática ele já existe depois de um deploy. Para preenchê-lo à mão, copie `memorysmith-frontend/.env.example` para `.env.local` e preencha as três variáveis:
+**A interface.** Ela lê e escreve pela API do produto e não tem modo offline, então precisa de um ambiente de pé para rodar. O `deploy.ps1` escreve o `.env.local` sozinho a partir dos outputs das stacks, então na prática ele já existe depois de um deploy. Para preenchê-lo à mão, copie `memorysmith-frontend/.env.example` para `.env.local` e preencha as três variáveis:
 
 ```
 VITE_API_ORIGIN=https://api.memorysmith.app
@@ -97,7 +90,12 @@ VITE_COGNITO_DOMAIN=https://auth.<dominio>
 VITE_COGNITO_CLIENT_ID=<app client da SPA>
 ```
 
-Sem `VITE_API_ORIGIN` a aplicação continua lendo o seed, o que é útil para trabalhar na interface sem depender de nuvem nenhuma.
+```
+pnpm install
+pnpm -C memorysmith-frontend dev
+```
+
+Sem `VITE_API_ORIGIN` a aplicação recusa subir e diz o porquê. Ela já teve um seed empacotado que respondia no lugar da API, e ele foi removido: uma segunda fonte que responde em silêncio com outros dados faz a tela parecer certa enquanto mostra outra coisa.
 
 ---
 
@@ -261,13 +259,13 @@ Um ambiente recém-subido não tem ninguém dentro: o pool é vazio e não exist
 ./deploy-aws/onboard.ps1 -Profile memorysmith
 ```
 
-Ele pergunta o que precisa saber e então cria a conta no Cognito, solicita a assinatura com o tipo e a quota escolhidos (a assinatura não tem nome: quem a identifica é o titular), coloca a assinatura no status escolhido e escreve um vault inteiro, com Orientação, pastas, Modelos e notas, a partir de um dos vaults de `memorysmith-frontend/seed/vaults`.
+Ele pergunta o que precisa saber e então cria a conta no Cognito, solicita a assinatura com o tipo e a quota escolhidos (a assinatura não tem nome: quem a identifica é o titular), coloca a assinatura no status escolhido e escreve um vault inteiro, com Orientação, pastas, Modelos e notas, a partir de um dos vaults de `deploy-aws/vaults`.
 
 **A conta é entregue com senha provisória.** Solicitar a assinatura e escrever o vault acontecem como a conta, então o script precisa entrar como ela, e entra com uma senha própria que ninguém chega a ver. No fim ele deixa a conta esperando a primeira senha: o Cognito envia por e-mail um convite com uma senha provisória, e a tela de entrada pede uma senha própria no primeiro acesso. Quem roda o script nunca fica sabendo a senha da conta de outra pessoa. `-SetPassword` inverte isso, definindo aqui uma senha definitiva e não enviando e-mail nenhum, que é o que a primeira conta de um ambiente novo quer: ela é a única que não pode depender de um e-mail chegar.
 
 **A primeira conta de um pool vazio vira administradora de plataforma, e só a primeira.** Alguém precisa autorizar a primeira assinatura, e em um ambiente novo não há ninguém. Depois que o grupo tem um membro, uma execução seguinte pede as credenciais de um administrador existente em vez de entregar a plataforma a quem rodar o script.
 
-Para olhar o que um seed viraria, sem criar nada e sem sequer falar com a AWS:
+Para olhar o que um desses vaults viraria, sem criar nada e sem sequer falar com a AWS:
 
 ```
 ./deploy-aws/onboard.ps1 -VaultTemplate engineering-knowledge -PreviewVault
@@ -280,8 +278,8 @@ Para olhar o que um seed viraria, sem criar nada e sem sequer falar com a AWS:
 | `-Type individual` | Tipo da assinatura; `individual` é o único desta fase |
 | `-Quota 500MB\|1GB\|2GB` | Quota de armazenamento, declarada e ainda não aplicada |
 | `-Status <status>` | Status final da assinatura, qualquer um dos seis, inclusive um que a máquina de transição recusaria |
-| `-VaultTemplate <slug>` | Vault do seed a escrever, ou `none` para uma conta sem vault |
-| `-VaultName <nome>` | Nome do vault criado; o padrão é o título do seed |
+| `-VaultTemplate <slug>` | Vault de `deploy-aws/vaults` a escrever, ou `none` para uma conta sem vault |
+| `-VaultName <nome>` | Nome do vault criado; o padrão é o título do vault de origem |
 | `-StructureOnly` | Escreve Orientação, pastas e Modelos, e nenhuma nota |
 | `-MaxNotes <n>` | Para depois de `n` notas |
 | `-PreviewVault` | Só imprime o que seria escrito, e não cria nada |
