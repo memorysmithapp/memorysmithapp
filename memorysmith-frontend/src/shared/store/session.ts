@@ -9,6 +9,10 @@ export interface SessionUser {
   email: string;
   role: 'OWNER';
   subscriptionName: string;
+  /** The same shape the live session carries, so the menu reads one thing. */
+  subscriptionType: 'individual';
+  subscriptionQuota: '500MB' | '1GB' | '2GB';
+  subscriptionStatus: 'active';
 }
 
 interface SessionState {

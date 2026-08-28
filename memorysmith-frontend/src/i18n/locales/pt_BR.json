@@ -14,6 +14,9 @@
     "signOut": "Sair",
     "role": "Papel",
     "subscription": "Assinatura",
+    "plan": "Plano",
+    "storage": "Armazenamento",
+    "status": "Situação",
     "demoNote": "Protótipo: as credenciais vêm preenchidas e nenhuma autenticação real acontece.",
     "hostedHint": "Você será levado à página de entrada e trazido de volta para cá.",
     "completing": "Concluindo a entrada...",
@@ -24,6 +27,28 @@
     "noneSubscription": "Esta conta ainda não alcança nenhuma assinatura. A assinatura é o que guarda os seus vaults, e enquanto não há cobrança automática ela é liberada à mão.",
     "pendingSubscription": "Sua assinatura está aguardando autorização. A liberação é manual nesta fase, e o produto abre assim que ela for aprovada.",
     "blockedSubscription": "Esta assinatura não está ativa no momento. Nada foi perdido: os dados continuam exatamente onde estão e voltam a ser alcançáveis assim que o acesso for restabelecido."
+  },
+  "roles": {
+    "OWNER": "Titular",
+    "EDITOR": "Editor",
+    "VIEWER": "Leitor",
+    "NONE": "Sem acesso"
+  },
+  "subscriptionType": {
+    "individual": "Individual"
+  },
+  "storageQuota": {
+    "500MB": "500 MB",
+    "1GB": "1 GB",
+    "2GB": "2 GB"
+  },
+  "subscriptionStatus": {
+    "pending_approval": "Aguardando autorização",
+    "trial": "Período de teste",
+    "active": "Ativa",
+    "rejected": "Rejeitada",
+    "suspended": "Suspensa",
+    "canceled": "Cancelada"
   },
   "theme": {
     "heading": "Tema",

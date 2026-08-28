@@ -23,6 +23,11 @@ export type SubscriptionState =
 /** The states that keep someone out of the product, and out of a session. */
 export type WithoutSubscription = Exclude<SubscriptionState, 'active'>;
 
+/** The commercial shape of the active subscription, as the API declares it. */
+export type SubscriptionType = SessionDto['subscriptions'][number]['type'];
+export type StorageQuota = SessionDto['subscriptions'][number]['quota'];
+export type SubscriptionStatus = SessionDto['subscriptions'][number]['status'];
+
 export interface LiveSession {
   readonly userId: string;
   readonly email: string;
@@ -30,6 +35,15 @@ export interface LiveSession {
   readonly isPlatformAdmin: boolean;
   readonly subscriptionState: SubscriptionState;
   readonly subscriptionName: string | null;
+  /**
+   * Type, quota and the status as it is spelled, not as it is grouped:
+   * `subscriptionState` above answers "does this session reach the product",
+   * and `trial` and `active` give it the same answer. The menu shows the
+   * subscription the person has, and those two are not the same thing to say.
+   */
+  readonly subscriptionType: SubscriptionType | null;
+  readonly subscriptionQuota: StorageQuota | null;
+  readonly subscriptionStatus: SubscriptionStatus | null;
   /** The role in the active subscription, already resolved by the API. */
   readonly role: SessionDto['role'];
   readonly subscriptions: SessionDto['subscriptions'];
@@ -90,6 +104,9 @@ export const useLiveSession = create<SessionStore>((set) => ({
           // the token: a suspension takes effect on the next refresh (§8.5).
           subscriptionState: stateOf(claims?.subscriptionStatus ?? active?.status),
           subscriptionName: active?.name ?? dto.subscriptions[0]?.name ?? null,
+          subscriptionType: active?.type ?? null,
+          subscriptionQuota: active?.quota ?? null,
+          subscriptionStatus: active?.status ?? null,
           role: dto.role,
           subscriptions: dto.subscriptions,
         },
@@ -107,6 +124,9 @@ export const useLiveSession = create<SessionStore>((set) => ({
               isPlatformAdmin: claims.groups.includes('platform-admin'),
               subscriptionState: stateOf(claims.subscriptionStatus),
               subscriptionName: null,
+              subscriptionType: null,
+              subscriptionQuota: null,
+              subscriptionStatus: null,
               role: 'NONE',
               subscriptions: [],
             }

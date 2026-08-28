@@ -3,7 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { usePreferences, type ThemeChoice } from '../store/preferences';
 import { useSession } from '../store/session';
-import { useLiveSession, authConfig, type LiveSession } from '../auth/session';
+import {
+  useLiveSession,
+  authConfig,
+  type LiveSession,
+  type StorageQuota,
+  type SubscriptionStatus,
+  type SubscriptionType,
+} from '../auth/session';
 import { signOut as endHostedSession } from '../auth/oauth';
 import { gravatarDisplayName } from '../auth/gravatar';
 import { isLive } from '../api/source';
@@ -23,6 +30,9 @@ interface Identity {
   readonly email: string;
   readonly role: string;
   readonly subscriptionName: string | null;
+  readonly subscriptionType: SubscriptionType | null;
+  readonly subscriptionQuota: StorageQuota | null;
+  readonly subscriptionStatus: SubscriptionStatus | null;
 }
 
 /**
@@ -36,6 +46,9 @@ function identityOf(live: LiveSession): Identity {
     email: live.email,
     role: live.role,
     subscriptionName: live.subscriptionName,
+    subscriptionType: live.subscriptionType,
+    subscriptionQuota: live.subscriptionQuota,
+    subscriptionStatus: live.subscriptionStatus,
   };
 }
 
@@ -54,13 +67,7 @@ export function UserMenu() {
   const endSimulated = useSession((s) => s.signOut);
   const live = useLiveSession((s) => s.session);
 
-  const user: Identity | null = isLive
-    ? live
-      ? identityOf(live)
-      : null
-    : simulated
-      ? { ...simulated, subscriptionName: simulated.subscriptionName }
-      : null;
+  const user: Identity | null = isLive ? (live ? identityOf(live) : null) : simulated;
   const theme = usePreferences((s) => s.theme);
   const setTheme = usePreferences((s) => s.setTheme);
   const [open, setOpen] = useState(false);
@@ -142,15 +149,43 @@ export function UserMenu() {
             </div>
           </div>
 
+          {/*
+            Every value here is a term of the domain, and none of them is shown
+            as the code spells it: OWNER and individual are symbols, not words
+            a person reads. They go through i18n, and the key is the symbol.
+
+            The status is shown only for `trial`, which is a fact worth saying.
+            `active` adds nothing, and no other status reaches this menu: a
+            session without operational access never gets past the sign-in
+            screen (RN-SUB-007).
+          */}
           <div className="user-menu-fields">
-            <div className="user-menu-field">
-              <span className="user-menu-field-label">{t('auth.role')}</span>
-              <span className="chip">{user.role}</span>
-            </div>
             {user.subscriptionName ? (
               <div className="user-menu-field">
                 <span className="user-menu-field-label">{t('auth.subscription')}</span>
                 <span className="chip">{user.subscriptionName}</span>
+              </div>
+            ) : null}
+            <div className="user-menu-field">
+              <span className="user-menu-field-label">{t('auth.role')}</span>
+              <span className="chip">{t(`roles.${user.role}`)}</span>
+            </div>
+            {user.subscriptionType ? (
+              <div className="user-menu-field">
+                <span className="user-menu-field-label">{t('auth.plan')}</span>
+                <span className="chip">{t(`subscriptionType.${user.subscriptionType}`)}</span>
+              </div>
+            ) : null}
+            {user.subscriptionQuota ? (
+              <div className="user-menu-field">
+                <span className="user-menu-field-label">{t('auth.storage')}</span>
+                <span className="chip">{t(`storageQuota.${user.subscriptionQuota}`)}</span>
+              </div>
+            ) : null}
+            {user.subscriptionStatus === 'trial' ? (
+              <div className="user-menu-field">
+                <span className="user-menu-field-label">{t('auth.status')}</span>
+                <span className="chip">{t('subscriptionStatus.trial')}</span>
               </div>
             ) : null}
           </div>

@@ -14,6 +14,9 @@
     "signOut": "Sign out",
     "role": "Role",
     "subscription": "Subscription",
+    "plan": "Plan",
+    "storage": "Storage",
+    "status": "Status",
     "demoNote": "Prototype: credentials are pre-filled and no real authentication happens.",
     "hostedHint": "You will be taken to the sign-in page and brought back here.",
     "completing": "Finishing the sign-in...",
@@ -24,6 +27,28 @@
     "noneSubscription": "This account reaches no subscription yet. A subscription is what holds your vaults, and it is granted by hand while there is no automatic billing.",
     "pendingSubscription": "Your subscription is waiting for approval. Approval is manual at this stage, and the product opens as soon as it is granted.",
     "blockedSubscription": "This subscription is not active at the moment. Nothing was lost: the data stays exactly where it is and becomes reachable again once access is restored."
+  },
+  "roles": {
+    "OWNER": "Owner",
+    "EDITOR": "Editor",
+    "VIEWER": "Viewer",
+    "NONE": "No access"
+  },
+  "subscriptionType": {
+    "individual": "Individual"
+  },
+  "storageQuota": {
+    "500MB": "500 MB",
+    "1GB": "1 GB",
+    "2GB": "2 GB"
+  },
+  "subscriptionStatus": {
+    "pending_approval": "Awaiting approval",
+    "trial": "Trial",
+    "active": "Active",
+    "rejected": "Rejected",
+    "suspended": "Suspended",
+    "canceled": "Canceled"
   },
   "theme": {
     "heading": "Theme",

@@ -130,7 +130,15 @@ export function LoginPage() {
   function submitCode(event: FormEvent) {
     event.preventDefault();
     if (code.trim().length < 6) return;
-    signIn({ name: DEMO_NAME, email, role: 'OWNER', subscriptionName: 'MemorySmith' });
+    signIn({
+      name: DEMO_NAME,
+      email,
+      role: 'OWNER',
+      subscriptionName: 'MemorySmith',
+      subscriptionType: 'individual',
+      subscriptionQuota: '1GB',
+      subscriptionStatus: 'active',
+    });
     void navigate('/');
   }
 

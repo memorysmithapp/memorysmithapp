@@ -52,6 +52,12 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
   Derrubar este ambiente é demorado por natureza, porque apagar o domínio do Cognito desprovisiona uma distribuição do CloudFront e sozinho passa da meia hora. Interromper o script não cancela nada, já que o CloudFormation continua sem ele, e rodá-lo de novo entra na operação em andamento em vez de disparar outra. A exclusão também reaproveita a síntese que já está em `cdk.out`, porque apagar é por nome de stack e recompilar as seis funções para isso seria só espera.
 
+### Changed
+
+- **O menu do usuário passa a mostrar a assinatura inteira, e em português.** Ele mostrava o papel como o código o escreve, `OWNER`, e mais nada além do nome da assinatura. Agora mostra assinatura, papel, plano e armazenamento, e nenhum desses valores aparece como símbolo: `OWNER` vira Titular, `individual` vira Individual, `1GB` vira 1 GB, e o mesmo vale em inglês. O status só aparece quando é período de teste, que é o único fato que ele acrescenta: `active` não diz nada de novo, e nenhum outro status chega a esta tela, porque uma sessão sem acesso operacional não passa da tela de entrada.
+
+  Os rótulos deixaram o caixa alta com espaçamento de letras. Eles nomeiam o valor ao lado, não gritam com quem lê, e em português a caixa alta com acento lê pior do que a caixa mista.
+
 ### Removed
 
 - **O deploy não cria mais conta nenhuma.** O user pool subia com um usuário semeado a partir de `testUserEmail` no `cdk.json`, já no grupo `platform-admin`. Isso deixava o e-mail de uma pessoa real no repositório para sempre e fazia o deploy decidir quem opera a plataforma, que é ato operacional e não de infraestrutura. O pool agora sobe vazio e quem cria a primeira conta é o `deploy-aws/onboard.ps1`. Saem junto o contexto `testUserEmail` e as opções `-TestUserEmail` e `-SetTestUserPassword` do `deploy.ps1`.

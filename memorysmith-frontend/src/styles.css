@@ -983,10 +983,13 @@ a:hover {
   align-items: center;
   justify-content: space-between;
 }
+/*
+  Sentence case, not uppercase. These are words the person reads, not tags:
+  uppercase with letter spacing shouts a label that only needs to name the
+  value beside it, and it reads worse in the two locales the product ships.
+*/
 .user-menu-field-label {
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 0.78rem;
   color: var(--text-soft);
   font-family: var(--display);
   font-weight: 500;
@@ -998,9 +1001,7 @@ a:hover {
 }
 .user-menu-caption {
   margin: 0 0 0.4rem;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 0.78rem;
   color: var(--text-soft);
   font-family: var(--display);
   font-weight: 500;
