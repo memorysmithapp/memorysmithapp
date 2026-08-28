@@ -123,6 +123,11 @@
     "discardedFacets": "{{count}} atributo(s) ficaram fora das estatísticas por serem texto livre: {{names}}.",
     "unavailableVaults": "{{count}} vault(s) não responderam, então estes totais estão incompletos."
   },
+  "portability": {
+    "download": "Baixar vault (.zip)",
+    "preparing": "Preparando o arquivo…",
+    "failed": "Não foi possível preparar o arquivo"
+  },
   "graph": {
     "heading": "Grafo do vault",
     "navLabel": "Grafo do vault",

@@ -5,9 +5,11 @@
   "type": "module",
   "description": "Portability bounded context: export of a vault as a readable folder of Markdown files. Zero lock-in is a requirement, not a courtesy.",
   "exports": {
-    "./domain": "./src/domain/ExportTree.ts",
+    "./adapters/http": "./src/adapters/http.ts",
+    "./adapters/s3": "./src/adapters/s3.ts",
+    "./adapters/zip": "./src/adapters/zip.ts",
     "./application": "./src/application/ExportVault.ts",
-    "./adapters/zip": "./src/adapters/zip.ts"
+    "./domain": "./src/domain/ExportTree.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -16,6 +18,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1117.0",
     "@aws-sdk/s3-request-presigner": "^3.1117.0",
-    "@memorysmith/kernel": "workspace:*"
+    "@memorysmith/kernel": "workspace:*",
+    "hono": "^4.13.3"
   }
 }

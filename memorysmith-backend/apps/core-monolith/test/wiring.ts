@@ -80,6 +80,10 @@ import {
   UpdateNote,
 } from '@memorysmith/svc-knowledge/application/notes';
 import { InMemoryAuditTrail } from '@memorysmith/svc-audit/adapters/trail';
+import type { PortabilityUseCases } from '@memorysmith/svc-portability/adapters/http';
+import { ExportVault } from '@memorysmith/svc-portability/application';
+import { createZip } from '@memorysmith/svc-portability/adapters/zip';
+import { KnowledgeExportSource } from '../src/export-source.js';
 import {
   GetNoteHistory,
   GetVaultActivity,
@@ -282,12 +286,34 @@ export function buildTestApp() {
     facets: () => new GetFacetStats(discoveryDeps),
   };
 
+  /**
+   * The export in the harness: the same use case, the same tree builder and
+   * the same zip writer as production. Only the object store is in memory, and
+   * the archive it keeps is what the test reads back.
+   */
+  const archives = new Map<string, Buffer>();
+  const portabilityUseCases: PortabilityUseCases = {
+    exportVault: (request) =>
+      new ExportVault(
+        new KnowledgeExportSource(knowledgeRepos(request.subscription)),
+        {
+          put: async (key, archive) => {
+            archives.set(key, archive);
+          },
+          presign: async (key, _ttl, filename) => `memory://${key}?filename=${filename}`,
+        },
+        createZip,
+        request.subscription.subscriptionId.value,
+      ),
+  };
+
   const app = createApp({
     verifier,
     accessUseCases,
     knowledgeUseCases,
     auditUseCases,
     discoveryUseCases,
+    portabilityUseCases,
     // Discovery holds no vault, so it asks the context that owns it.
     canReadVault: async (request, vaultId) => {
       const parsed = (await import('@memorysmith/kernel')).VaultId.create(vaultId);
@@ -330,5 +356,6 @@ export function buildTestApp() {
     discovery,
     projectNote,
     projectStructure,
+    archives,
   };
 }

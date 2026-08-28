@@ -211,6 +211,9 @@ importers:
       '@memorysmith/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
+      hono:
+        specifier: ^4.13.3
+        version: 4.13.3
 
   memorysmith-frontend:
     dependencies:

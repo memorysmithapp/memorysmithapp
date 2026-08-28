@@ -6,7 +6,7 @@
  * before any function can start.
  */
 
-import { RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
 import { EventBus } from 'aws-cdk-lib/aws-events';
 import { BlockPublicAccess, Bucket, BucketEncryption, HttpMethods } from 'aws-cdk-lib/aws-s3';
 import type { Construct } from 'constructs';
@@ -47,6 +47,26 @@ export class DataStack extends Stack {
           allowedMethods: [HttpMethods.GET],
           allowedOrigins: ['https://memorysmith.app'],
           allowedHeaders: ['*'],
+        },
+      ],
+      /**
+       * An export is a DERIVED artefact: it is rebuilt from the vault on
+       * demand, and the link that reaches it lives fifteen minutes. Keeping it
+       * afterwards would be paying storage for a second copy of what we
+       * already store, so the archive expires by TAG rather than by prefix,
+       * because the prefix carries the subscription and there is one per
+       * customer, while the tag is written by the adapter that creates it.
+       *
+       * The rule touches nothing else in the bucket: a Content Slot carries no
+       * such tag, and its versions are the historical reconstruction itself.
+       */
+      lifecycleRules: [
+        {
+          id: 'ExpireVaultExports',
+          enabled: true,
+          tagFilters: { lifecycle: 'export' },
+          expiration: Duration.days(1),
+          noncurrentVersionExpiration: Duration.days(1),
         },
       ],
     });

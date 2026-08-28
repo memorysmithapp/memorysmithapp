@@ -77,6 +77,10 @@ import {
   VaultGraphQuery,
   VaultHealth,
 } from '@memorysmith/svc-discovery/application/queries';
+import type { PortabilityUseCases } from '@memorysmith/svc-portability/adapters/http';
+import { ExportVault } from '@memorysmith/svc-portability/application';
+import { createZip } from '@memorysmith/svc-portability/adapters/zip';
+import { S3ArchiveStore } from '@memorysmith/svc-portability/adapters/s3';
 import { createApp } from './app.js';
 import {
   authorshipFor,
@@ -88,6 +92,7 @@ import {
   type Infrastructure,
 } from './composition-root.js';
 import { KnowledgeNoteCatalog } from './note-catalog.js';
+import { KnowledgeExportSource } from './export-source.js';
 
 function required(name: string): string {
   const value = process.env[name];
@@ -209,6 +214,21 @@ const discoveryUseCases: DiscoveryUseCases = {
   facets: (request) => new GetFacetStats(discoveryFor(request.subscription)),
 };
 
+/**
+ * The export reads the vault through Knowledge and writes the archive into the
+ * same content bucket, under the subscription prefix. Nothing new is stored:
+ * an export is derived, and the bucket rule expires it by tag.
+ */
+const portabilityUseCases: PortabilityUseCases = {
+  exportVault: (request) =>
+    new ExportVault(
+      new KnowledgeExportSource(buildKnowledge(infra, request.subscription)),
+      new S3ArchiveStore(infra.s3, infra.contentBucket),
+      createZip,
+      request.subscription.subscriptionId.value,
+    ),
+};
+
 function discoveryFor(context: SubscriptionContext) {
   const built = buildDiscovery(infra, context);
   return {
@@ -225,6 +245,7 @@ const app = createApp({
   knowledgeUseCases,
   auditUseCases,
   discoveryUseCases,
+  portabilityUseCases,
   resolveContext: async (request: AccessRequest) => {
     const context = request.context;
     if (!context) {

@@ -9,7 +9,7 @@
  * Deleted notes do not enter the export (RN-PRT-006).
  */
 
-import { DomainError, err, ok, ulid, type Instant, type Result } from '@memorysmith/kernel';
+import { DomainError, err, Instant, ok, ulid, type Result } from '@memorysmith/kernel';
 import { buildExportTree, type ExportFile, type ExportInput } from '../domain/ExportTree.js';
 
 /** What the Knowledge context hands over for an export. */
@@ -20,7 +20,12 @@ export interface ExportSource {
 /** Where the archive lands, and how the caller reaches it. */
 export interface ArchiveStore {
   put(key: string, archive: Buffer): Promise<void>;
-  presign(key: string, expiresInSeconds: number): Promise<string>;
+  /**
+   * A short-lived URL for that one object. `filename` is what the browser
+   * saves it as: the identifier addresses the object, the name of the vault
+   * is what the person recognizes in their downloads folder.
+   */
+  presign(key: string, expiresInSeconds: number, filename: string): Promise<string>;
 }
 
 export interface ExportJob {
@@ -55,14 +60,24 @@ export class ExportVault {
     const key = `s/${this.subscriptionId}/exports/${exportId}.zip`;
     await this.archives.put(key, archive);
 
+    const expiresAt = Instant.fromEpochMillis(input.now.epochMillis + URL_TTL_SECONDS * 1000);
+
     return ok({
       exportId,
       vaultId: input.vaultId,
       status: 'ready',
-      downloadUrl: await this.archives.presign(key, URL_TTL_SECONDS),
-      expiresAt: input.now.plusDays(0).toISOString(),
+      downloadUrl: await this.archives.presign(key, URL_TTL_SECONDS, filenameOf(source.vaultName)),
+      // The moment the link stops working, which is the only expiry there is:
+      // saying anything else here would promise a window that is not real.
+      expiresAt: expiresAt.ok ? expiresAt.value.toISOString() : input.now.toISOString(),
       noteCount: source.notes.length,
       bytes: archive.length,
     });
   }
+}
+
+/** The name the archive is saved as, safe on every file system. */
+function filenameOf(vaultName: string): string {
+  const safe = vaultName.replace(/[\\/:*?"<>|]/g, '-').trim();
+  return `${safe.length > 0 ? safe : 'vault'}.zip`;
 }

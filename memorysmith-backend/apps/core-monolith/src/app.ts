@@ -34,6 +34,11 @@ import {
   type DiscoveryRequest,
   type DiscoveryUseCases,
 } from '@memorysmith/svc-discovery/adapters/http';
+import {
+  createPortabilityRoutes,
+  type PortabilityRequest,
+  type PortabilityUseCases,
+} from '@memorysmith/svc-portability/adapters/http';
 
 export interface AppDependencies {
   readonly verifier: TokenVerifier;
@@ -42,6 +47,7 @@ export interface AppDependencies {
   readonly knowledgeUseCases: KnowledgeUseCases;
   readonly auditUseCases: AuditUseCases;
   readonly discoveryUseCases: DiscoveryUseCases;
+  readonly portabilityUseCases: PortabilityUseCases;
   /** Stage 1 of authorization, for the routes that need a vault decision. */
   readonly resolveContext: (
     request: AccessRequest,
@@ -58,6 +64,7 @@ type Variables = {
   knowledge: KnowledgeRequest;
   audit: AuditRequest;
   discovery: DiscoveryRequest;
+  portability: PortabilityRequest;
 };
 
 function fail(c: Context, error: DomainError): Response {
@@ -102,7 +109,7 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
    * at composition, and not at a role check (RN-SUB-016).
    */
   app.use(
-    '/:context{knowledge|discovery|audit}/*',
+    '/:context{knowledge|discovery|audit|portability}/*',
     async (c: Context<{ Variables: Variables }>, next: Next) => {
       const session = await authenticate(deps.verifier, c.req.header('authorization'));
       if (!session.ok) return fail(c, session.error);
@@ -112,12 +119,16 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
       if (!resolved.ok) return fail(c, resolved.error);
       c.set('knowledge', resolved.value);
       c.set('audit', { subscription: resolved.value.subscription });
+      const canRead = (vaultId: string): Promise<boolean> =>
+        deps.canReadVault(resolved.value, vaultId);
       c.set('discovery', {
         subscription: resolved.value.subscription,
         // Discovery holds no vault, so whether the caller may read one is
         // answered by the context that owns it.
-        canRead: (vaultId: string) => deps.canReadVault(resolved.value, vaultId),
+        canRead,
       });
+      // Portability holds no vault either, and asks the same question.
+      c.set('portability', { subscription: resolved.value.subscription, canRead });
       await next();
     },
   );
@@ -126,6 +137,7 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
   app.route('/knowledge', createKnowledgeRoutes(deps.knowledgeUseCases));
   app.route('/discovery', createDiscoveryRoutes(deps.discoveryUseCases));
   app.route('/audit', createAuditRoutes(deps.auditUseCases));
+  app.route('/portability', createPortabilityRoutes(deps.portabilityUseCases));
 
   return app;
 }

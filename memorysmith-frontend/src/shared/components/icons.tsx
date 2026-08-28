@@ -69,6 +69,15 @@ export function GraphIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function DownloadIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 4v11M8 11l4 4 4-4" />
+      <path d="M5 19h14" />
+    </svg>
+  );
+}
+
 export function GuidanceIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base(props)}>

@@ -123,6 +123,11 @@
     "discardedFacets": "{{count}} attribute(s) left out of the statistics as free text: {{names}}.",
     "unavailableVaults": "{{count}} vault(s) did not answer, so these totals are short."
   },
+  "portability": {
+    "download": "Download vault (.zip)",
+    "preparing": "Preparing the archive…",
+    "failed": "Could not prepare the archive"
+  },
   "graph": {
     "heading": "Vault graph",
     "navLabel": "Vault graph",

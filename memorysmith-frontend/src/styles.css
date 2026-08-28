@@ -1249,6 +1249,18 @@ a:hover {
   color: var(--accent);
   text-decoration: none;
 }
+.vault-nav-action {
+  background: none;
+  font: inherit;
+  font-family: var(--display);
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.vault-nav-action:disabled {
+  cursor: progress;
+  color: var(--text-soft);
+}
 .vault-nav-link.active {
   background: var(--accent-soft);
   color: var(--accent);

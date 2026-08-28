@@ -8,6 +8,7 @@
 // here, once, and is cached by the query client above it.
 
 import type {
+  ExportJobDto,
   FolderDto,
   NoteSummaryDto,
   SessionDto,
@@ -176,6 +177,16 @@ export async function getHealthById(vaultId: string): Promise<VaultHealthDto> {
 export async function getVaultGraph(vaultSlug: string): Promise<VaultGraphDto> {
   const vaultId = await vaultIdOf(vaultSlug);
   return request<VaultGraphDto>(`/discovery/vaults/${vaultId}/graph`);
+}
+
+/**
+ * The export of a whole vault, as a folder of Markdown inside a ZIP. The API
+ * answers with a short-lived link rather than with the bytes, so what comes
+ * back here is where to fetch it and until when.
+ */
+export async function exportVault(vaultSlug: string): Promise<ExportJobDto> {
+  const vaultId = await vaultIdOf(vaultSlug);
+  return request<ExportJobDto>(`/portability/vaults/${vaultId}/export`, { method: 'POST' });
 }
 
 // ---- Writes ----------------------------------------------------------------

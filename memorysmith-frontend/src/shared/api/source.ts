@@ -8,6 +8,7 @@
 //
 // So a missing origin is now a configuration error, and it says so.
 
+import type { ExportJobDto } from '@memorysmith/contracts';
 import * as backend from './backend';
 import type {
   NoteDetail,
@@ -79,6 +80,11 @@ export function getTemplate(vaultSlug: string, folderId: string): Promise<Templa
 /** Null means the target does not exist yet, which the UI shows as pending. */
 export function resolveNoteUrl(vaultSlug: string, targetSlug: string): string | null {
   return resolveFromStructure(vaultSlug, targetSlug, loaded.get(vaultSlug));
+}
+
+/** The whole vault as a downloadable archive, prepared on demand. */
+export function exportVault(vaultSlug: string): Promise<ExportJobDto> {
+  return backend.exportVault(vaultSlug);
 }
 
 export function searchNotes(vaultSlug: string, query: string, k: number): Promise<SearchHit[]> {

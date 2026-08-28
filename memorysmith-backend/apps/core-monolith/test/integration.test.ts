@@ -321,3 +321,47 @@ describe('Audit answers over the API', () => {
     expect(history.entries.map((entry) => entry.type)).toContain('NoteDeleted');
   });
 });
+
+describe('Portability answers over the API', () => {
+  it('exports the vault as an archive of Markdown, reachable by a link', async () => {
+    const { vaultId } = await seed();
+
+    const job = (await (
+      await call(`/portability/vaults/${vaultId}/export`, { method: 'POST' })
+    ).json()) as {
+      exportId: string;
+      status: string;
+      downloadUrl: string;
+      noteCount: number;
+      bytes: number;
+    };
+
+    expect(job.status).toBe('ready');
+    expect(job.noteCount).toBe(2);
+    expect(job.bytes).toBeGreaterThan(0);
+    // The archive is never the body of the response: a vault of two thousand
+    // notes would not fit in one, and the link is what the browser follows.
+    expect(job.downloadUrl).toContain(job.exportId);
+
+    // Every key of this system begins with the subscription, this one too.
+    const [key] = [...harness.archives.keys()];
+    expect(key).toMatch(/^s\/[0-9A-HJKMNP-TV-Z]{26}\/exports\/[0-9A-HJKMNP-TV-Z]{26}\.zip$/);
+
+    // What came out is a real ZIP: the local file header is its first bytes,
+    // and the names inside are the vault as a folder of .md files.
+    const archive = harness.archives.get(key ?? '') as Buffer;
+    expect(archive.subarray(0, 4)).toEqual(Buffer.from([0x50, 0x4b, 0x03, 0x04]));
+    const names = archive.toString('latin1');
+    expect(names).toContain('Normas e Legislacao/GUIDANCE.md');
+    expect(names).toContain('Normas e Legislacao/STRUCTURE.md');
+  });
+
+  it('answers 404 for a vault this session cannot read', async () => {
+    // A vault that is not ours is indistinguishable from one that does not
+    // exist: a 403 here would confirm it exists (rule 9).
+    const response = await call('/portability/vaults/01JBXR8Z5T7QK9M2N4P6R8S0T2/export', {
+      method: 'POST',
+    });
+    expect(response.status).toBe(404);
+  });
+});
