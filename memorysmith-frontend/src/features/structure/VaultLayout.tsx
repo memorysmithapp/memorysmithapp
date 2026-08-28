@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, NavLink, Outlet, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getVaultStructure } from '../../shared/api/client';
+import { getVaultStructure } from '../../shared/api/source';
 import type { VaultStructure } from '../../shared/types/api';
 import { GraphIcon } from '../../shared/components/icons';
 import { SearchBox } from '../search/SearchBox';
+import { ExportVaultButton } from '../portability/ExportVaultButton';
 import { FolderTree } from './FolderTree';
 
 export interface VaultOutletContext {
@@ -25,8 +26,14 @@ export function VaultLayout() {
   return (
     <div className="vault-layout">
       <aside className="vault-sidebar">
-        <Link to="/" className="back-link">← {t('structure.backToVaults')}</Link>
-        <Link to={`/vaults/${vaultSlug}`} className="vault-title-link" title={t('structure.heading')}>
+        <Link to="/" className="back-link">
+          ← {t('structure.backToVaults')}
+        </Link>
+        <Link
+          to={`/vaults/${vaultSlug}`}
+          className="vault-title-link"
+          title={t('structure.heading')}
+        >
           <h2>{data.vault.name}</h2>
         </Link>
         <SearchBox vaultSlug={vaultSlug} structure={data} />
@@ -34,6 +41,7 @@ export function VaultLayout() {
           <NavLink to={`/vaults/${vaultSlug}/graph`} className="vault-nav-link">
             <GraphIcon /> {t('graph.navLabel')}
           </NavLink>
+          <ExportVaultButton vaultSlug={vaultSlug} />
         </nav>
         <p className="sidebar-caption">{t('structure.content')}</p>
         <FolderTree vaultSlug={vaultSlug} folders={data.folders} />

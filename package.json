@@ -1,6 +1,26 @@
 {
   "name": "memorysmith",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "packageManager": "pnpm@11.22.0"
+  "type": "module",
+  "packageManager": "pnpm@11.22.0",
+  "scripts": {
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "eslint .",
+    "format": "prettier --check .",
+    "format:write": "prettier --write .",
+    "depcruise": "depcruise memorysmith-backend memorysmith-frontend memorysmith-infra"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.13.3",
+    "dependency-cruiser": "^18.2.0",
+    "eslint": "^10.9.1",
+    "globals": "^17.11.0",
+    "prettier": "^3.9.6",
+    "typescript": "~5.7.3",
+    "typescript-eslint": "^8.68.0",
+    "vitest": "^3.2.7"
+  }
 }

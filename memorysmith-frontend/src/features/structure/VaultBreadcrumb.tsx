@@ -30,7 +30,10 @@ export function VaultBreadcrumb({ items, className = '' }: VaultBreadcrumbProps)
   const last = trail.length - 1;
 
   return (
-    <nav className={`breadcrumb vault-breadcrumb ${className}`.trim()} aria-label={t('structure.breadcrumb')}>
+    <nav
+      className={`breadcrumb vault-breadcrumb ${className}`.trim()}
+      aria-label={t('structure.breadcrumb')}
+    >
       {trail.map((crumb, index) => (
         <Fragment key={`${index}-${crumb.label}`}>
           {index > 0 && <span aria-hidden="true"> / </span>}

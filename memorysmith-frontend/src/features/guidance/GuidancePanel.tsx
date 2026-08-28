@@ -1,6 +1,6 @@
 import { useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { resolveNoteUrl } from '../../shared/api/client';
+import { resolveNoteUrl } from '../../shared/api/source';
 import { resolveWikilinks } from '../../shared/api/markdown';
 import { Markdown } from '../../shared/components/Markdown';
 import { VaultBreadcrumb } from '../structure/VaultBreadcrumb';

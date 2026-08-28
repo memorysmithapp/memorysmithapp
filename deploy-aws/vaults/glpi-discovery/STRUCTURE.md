@@ -1,0 +1,15 @@
+# Structure: GLPI 11 - Descoberta
+
+1. **Overview**: O que o sistema é: visão geral, glossário e requisitos de plataforma. A porta de entrada de quem nunca viu o GLPI. (9 notes)
+2. **Business Knowledge**: Por que o sistema existe: os processos de negócio que ele realiza (incidentes, mudanças, ativos, contratos), as regras que os governam e as capacidades transversais. (48 notes, has TEMPLATE.md)
+3. **Structural Knowledge**: Do que o sistema é composto: os componentes, suas heranças e composições. Toda afirmação cita a evidência que a sustenta. (174 notes, has TEMPLATE.md)
+4. **Behavioral Knowledge**: Como o sistema funciona: ciclos de vida, máquinas de estado, fluxos entre componentes e efeitos colaterais observados. (62 notes)
+5. **Source Code**: Como foi implementado: notas sobre a organização do código-fonte que não pertencem a um componente específico. (1 note)
+6. **Data**: Que informações o sistema manipula: entidades de dados, campos, dicionários e relações, na visão de quem precisa extrair requisitos. (111 notes)
+7. **Integrations**: Com quem o sistema se comunica: APIs, agentes, coletores de e-mail, protocolos e autenticação de cada integração. (11 notes)
+8. **Operational Architecture**: Como opera em produção: instalação, cron, cache, saúde, segurança operacional e requisitos de infraestrutura. (34 notes)
+9. **Evidence**: Os artefatos que sustentam tudo: citações literais de código ou documentação, com referência exata de arquivo e linhas. Cada evidência lista as notas de conhecimento que dependem dela. (251 notes, has TEMPLATE.md)
+10. **Decisions**: Conclusões e premissas de trabalho, declaradas como tais: o único lugar do vault onde entra julgamento, sempre separado da descrição neutra. (3 notes)
+11. **Investigations**: O que falta investigar: perguntas que as fontes não responderam, com identificador estável, o porquê de importarem e o próximo passo sugerido. (37 notes, has TEMPLATE.md)
+12. **Views**: Como visualizar: diagramas e visões de conjunto que atravessam domínios, derivados das notas de conhecimento. (8 notes)
+13. **MOCs**: Como navegar: um mapa por domínio funcional, ligando componentes, processos, evidências e investigações abertas. (9 notes, has TEMPLATE.md)

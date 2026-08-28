@@ -12,7 +12,15 @@ interface FolderTreeProps {
 // center pane, a breadcrumb, a pasted URL), every folder on the active path
 // expands and the active item scrolls into view. Manual toggles still work;
 // entering a folder's subtree just forces it open again.
-function TreeNote({ vaultSlug, folder, note }: { vaultSlug: string; folder: FolderNode; note: FolderNode['notes'][number] }) {
+function TreeNote({
+  vaultSlug,
+  folder,
+  note,
+}: {
+  vaultSlug: string;
+  folder: FolderNode;
+  note: FolderNode['notes'][number];
+}) {
   const { '*': path } = useParams();
   const active = path === `${folder.slugPath}/${note.slug}`;
   const ref = useRef<HTMLAnchorElement>(null);
@@ -60,7 +68,11 @@ function FolderItem({ vaultSlug, folder }: { vaultSlug: string; folder: FolderNo
         >
           {open ? '▾' : '▸'}
         </button>
-        <Link ref={linkRef} to={`/vaults/${vaultSlug}/root/${folder.slugPath}`} title={folder.description}>
+        <Link
+          ref={linkRef}
+          to={`/vaults/${vaultSlug}/root/${folder.slugPath}`}
+          title={folder.description}
+        >
           {folder.name}
         </Link>
         <span className="tree-count">{folder.noteCount > 0 ? folder.noteCount : ''}</span>

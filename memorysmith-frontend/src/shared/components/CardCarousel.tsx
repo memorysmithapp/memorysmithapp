@@ -48,7 +48,12 @@ export function CardCarousel({ prevLabel, nextLabel, children }: CardCarouselPro
   return (
     <div className="card-carousel">
       {canPrev && (
-        <button type="button" className="carousel-arrow left" aria-label={prevLabel} onClick={() => page(-1)}>
+        <button
+          type="button"
+          className="carousel-arrow left"
+          aria-label={prevLabel}
+          onClick={() => page(-1)}
+        >
           ‹
         </button>
       )}
@@ -56,7 +61,12 @@ export function CardCarousel({ prevLabel, nextLabel, children }: CardCarouselPro
         {children}
       </div>
       {canNext && (
-        <button type="button" className="carousel-arrow right" aria-label={nextLabel} onClick={() => page(1)}>
+        <button
+          type="button"
+          className="carousel-arrow right"
+          aria-label={nextLabel}
+          onClick={() => page(1)}
+        >
           ›
         </button>
       )}

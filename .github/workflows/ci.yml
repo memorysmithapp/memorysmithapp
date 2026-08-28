@@ -1,0 +1,120 @@
+# Continuous integration (architecture-guide.md, section 20).
+#
+# No step here is optional. Step 3 in particular is what keeps "hexagonal" from
+# becoming folder naming, and it is also where the one-way dependency between
+# the three top-level projects is verified.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  quality:
+    name: Lint, typecheck and dependency rule
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+      - name: Format
+        run: pnpm format
+      - name: Typecheck
+        run: pnpm typecheck
+      # The build breaks if domain/ imports the AWS SDK.
+      - name: Dependency rule
+        run: pnpm depcruise
+
+  backend-unit:
+    name: Backend unit and contract tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Domain and use cases
+        run: pnpm -r --if-present test
+
+  backend-adapters:
+    name: Adapter tests against DynamoDB Local and MinIO
+    runs-on: ubuntu-latest
+    services:
+      dynamodb:
+        image: amazon/dynamodb-local:latest
+        ports:
+          - 8000:8000
+      minio:
+        image: minio/minio:edge-cicd
+        ports:
+          - 9000:9000
+        env:
+          MINIO_ROOT_USER: memorysmith
+          MINIO_ROOT_PASSWORD: memorysmith-local
+    env:
+      DYNAMODB_ENDPOINT: http://localhost:8000
+      S3_ENDPOINT: http://localhost:9000
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: memorysmith
+      AWS_SECRET_ACCESS_KEY: memorysmith-local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Adapters
+        run: pnpm -r --if-present test:adapters
+
+  frontend:
+    name: Frontend unit and production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm -C memorysmith-frontend build
+
+  infra:
+    name: CDK synth
+    runs-on: ubuntu-latest
+    # Always runs: infra references backend and frontend artifacts, so a change
+    # in either can invalidate the synth.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Synth
+        run: pnpm -C memorysmith-infra synth
+        env:
+          CDK_DEFAULT_ACCOUNT: '000000000000'
+          CDK_DEFAULT_REGION: us-east-1

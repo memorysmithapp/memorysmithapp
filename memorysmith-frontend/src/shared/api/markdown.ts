@@ -39,7 +39,10 @@ function stripInlineMarkdown(text: string): string {
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/\*([^*]+)\*/g, '$1')
     .replace(/`([^`]+)`/g, '$1')
-    .replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_a, target: string, label?: string) => label ?? target);
+    .replace(
+      /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
+      (_a, target: string, label?: string) => label ?? target,
+    );
 }
 
 export function guidanceDescription(guidance: string): string {
@@ -74,11 +77,16 @@ const CALLOUT_ICONS: Record<string, string> = {
 // not universal Markdown. For display we swap the marker for an icon so the
 // blockquote reads naturally; the stored content is never touched.
 export function renderCallouts(body: string): string {
-  return body.replace(/\r\n?/g, '\n').replace(/^(>[ \t]*)\[!(\w+)\][+-]?[ \t]*(.*)$/gm, (_all, prefix: string, type: string, title: string) => {
-    const icon = CALLOUT_ICONS[type.toLowerCase()] ?? '📎';
-    const heading = title.trim();
-    return heading ? `${prefix}${icon} **${heading}**` : `${prefix}${icon}`;
-  });
+  return body
+    .replace(/\r\n?/g, '\n')
+    .replace(
+      /^(>[ \t]*)\[!(\w+)\][+-]?[ \t]*(.*)$/gm,
+      (_all, prefix: string, type: string, title: string) => {
+        const icon = CALLOUT_ICONS[type.toLowerCase()] ?? '📎';
+        const heading = title.trim();
+        return heading ? `${prefix}${icon} **${heading}**` : `${prefix}${icon}`;
+      },
+    );
 }
 
 const WIKILINK = /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g;
@@ -89,12 +97,13 @@ export function resolveWikilinks(body: string, resolve: (slug: string) => string
   return body.replace(WIKILINK, (_all, target: string, label?: string) => {
     const clean = target.split('#')[0]?.trim() ?? '';
     const text = (label ?? target).trim();
-    const url = clean ? resolve(slugifyTarget(clean)) : null;
+    const url = clean ? resolve(slugify(clean)) : null;
     return url ? `[${text}](${url})` : `[${text}](pending:${encodeURIComponent(clean)})`;
   });
 }
 
-function slugifyTarget(name: string): string {
+/** The slug of a note, as the product derives it from the title. */
+export function slugify(name: string): string {
   return name
     .toLowerCase()
     .normalize('NFD')

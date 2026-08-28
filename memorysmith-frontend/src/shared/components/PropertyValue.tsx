@@ -1,13 +1,14 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { resolveNoteUrl } from '../api/client';
-import { slugify } from '../api/seed-source';
+import { resolveNoteUrl } from '../api/source';
+import { slugify } from '../api/markdown';
 
 // Frontmatter values are vault content, so they may carry [[wikilinks]],
 // markdown links and raw URLs. This renderer makes them navigable without
 // interpreting anything else.
-const TOKEN = /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s,]+)/g;
+const TOKEN =
+  /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s,]+)/g;
 
 interface PropertyValueProps {
   name: string;

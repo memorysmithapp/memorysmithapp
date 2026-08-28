@@ -1,0 +1,17 @@
+# Structure: Engineering Knowledge Vault
+
+1. **Literature/**: Notas de fonte, presas ao material original: uma nota por capítulo, parte ou módulo e um índice por obra. Nunca são reescritas depois da leitura: são o registro do que a fonte disse. (0 notes)
+   1.1. **Books/**: Livros lidos. Uma subpasta por livro, com o índice da obra e uma nota por capítulo ou parte. (0 notes)
+      1.1.1. **ByteByteGo System Design Archive**: Leitura de "ByteByteGo System Design Archive": um índice da obra e uma nota por capítulo ou parte. (6 notes, has TEMPLATE.md)
+      1.1.2. **Lean Inception**: Leitura de "Lean Inception": um índice da obra e uma nota por capítulo ou parte. (4 notes, has TEMPLATE.md)
+      1.1.3. **Mastering OpenStack**: Leitura de "Mastering OpenStack": um índice da obra e uma nota por capítulo ou parte. (12 notes, has TEMPLATE.md)
+   1.2. **Courses/**: Treinamentos e cursos. Uma subpasta por curso, com o índice e uma nota por módulo. (0 notes)
+      1.2.1. **Claude 101**: Leitura de "Claude 101": um índice do curso e uma nota por módulo. (6 notes, has TEMPLATE.md)
+   1.3. **Use Cases/**: Bibliotecas web de casos de uso e documentação. Uma subpasta por coleção, com o índice e uma nota por bloco de leitura. (0 notes)
+      1.3.1. **Claude Cowork Use Cases**: Leitura de "Claude Cowork Use Cases": um índice da coleção e uma nota por bloco de leitura. (4 notes, has TEMPLATE.md)
+      1.3.2. **Obsidian Help**: Leitura de "Obsidian Help": um índice da coleção e uma nota por bloco de leitura. (9 notes, has TEMPLATE.md)
+2. **Permanent Notes/**: O conhecimento que ficou, independente da fonte que o originou. Conceitos dizem o que uma coisa É; práticas dizem como uma coisa é FEITA. (0 notes)
+   2.1. **Concepts**: Conceitos atômicos, independentes da fonte. Só entra o que tem valor fora do livro que o originou e faz sentido sozinho, meses depois. Se responde "como fazer", pertence a Practices. (431 notes, has TEMPLATE.md)
+   2.2. **Practices**: Técnicas, dinâmicas e atividades executáveis: passos, regras, template de aplicação. Se responde "o que é", pertence a Concepts. (90 notes, has TEMPLATE.md)
+3. **Maps of Content**: Índices navegáveis, um por domínio de estudo. Um MOC não contém conhecimento novo: organiza o que existe e registra as lacunas conhecidas do domínio. (8 notes, has TEMPLATE.md)
+4. **Projects**: Aplicação prática e estudos de caso: onde a teoria foi exercitada. Toda nota referencia as práticas e conceitos usados. (3 notes, has TEMPLATE.md)

@@ -1,9 +1,10 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { AppShell } from '../shared/components/AppShell';
 import { LoginPage } from '../features/auth/LoginPage';
+import { AuthCallbackPage } from '../features/auth/AuthCallbackPage';
 import { GuidancePanel } from '../features/guidance/GuidancePanel';
 import { FolderRoute } from '../features/structure/FolderRoute';
-import { StructurePage } from '../features/structure/StructurePage';
+import { VaultContextPage } from '../features/structure/VaultContextPage';
 import { TemplatesPage } from '../features/structure/TemplatesPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { GraphPage } from '../features/graph/GraphPage';
@@ -15,6 +16,7 @@ export const router = createBrowserRouter([
     element: <RootLayout />,
     children: [
       { path: '/login', element: <LoginPage /> },
+      { path: '/auth/callback', element: <AuthCallbackPage /> },
       {
         element: <RequireSession />,
         children: [
@@ -26,7 +28,7 @@ export const router = createBrowserRouter([
                 path: '/vaults/:vaultSlug',
                 element: <VaultLayout />,
                 children: [
-                  { index: true, element: <StructurePage /> },
+                  { index: true, element: <VaultContextPage /> },
                   { path: 'guidance', element: <GuidancePanel /> },
                   { path: 'templates', element: <TemplatesPage /> },
                   { path: 'graph', element: <GraphPage /> },

@@ -38,7 +38,9 @@ export function StructureOutline({ vaultSlug, folders }: StructureOutlineProps) 
             </span>
           </div>
           <p className="outline-desc">{folder.description}</p>
-          {folder.children.length > 0 && <StructureOutline vaultSlug={vaultSlug} folders={folder.children} />}
+          {folder.children.length > 0 && (
+            <StructureOutline vaultSlug={vaultSlug} folders={folder.children} />
+          )}
         </li>
       ))}
     </ol>

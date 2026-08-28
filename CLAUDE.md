@@ -30,10 +30,10 @@ Definida no caderno de marca "Livro da marca v1" (Figma). O símbolo é um grafo
 - **Tom visual:** sóbrio e legível. A superfície do produto é uma ferramenta de leitura antes de ser uma ferramenta de edição
 
 ### Versão base
-0.1.0
+0.2.0
 
 ### Estado atual
-Versão 0.1.0. A documentação canônica, o protótipo navegável do frontend sobre o seed e o spike de autenticação do MCP estão na `main`. O spike foi validado em ambiente real na AWS e depois desmontado. A próxima entrega é a segunda da sequência de construção (`docs/architecture-guide.md` §25).
+Versão 0.2.0, que entregou as entregas 2 a 12 do `docs/architecture-guide.md` §25: os seis bounded contexts, a infraestrutura inteira em CDK, a interface ligada à API real e o conector MCP com leitura e escrita, autenticado pelo proxy CIMD na frente do Cognito. Antes dela, a 0.1.0 entregou a documentação canônica, o protótipo navegável do frontend sobre o seed e o spike de autenticação do MCP, validado em ambiente real na AWS e depois desmontado. O ambiente sobe e desce pelos scripts de `deploy-aws/`, e o deploy na AWS acontece com acompanhamento passo a passo do usuário.
 
 ### Remote do git
 github.com/memorysmithapp/memorysmithapp
@@ -47,6 +47,9 @@ Um monorepo pnpm com **três projetos de primeiro nível**, nomeados a partir do
 ```
 core/
 ├── memorysmith-backend/     # six bounded contexts + shared kernel + event contracts
+│   ├── packages/            # kernel and contracts
+│   ├── services/            # access, knowledge, discovery, audit, agent, portability
+│   └── apps/core-monolith/  # the composition root of the main deployable
 ├── memorysmith-frontend/    # React SPA
 └── memorysmith-infra/       # all CDK: stacks, constructs, IAM policies, pipeline
 ```
@@ -99,7 +102,7 @@ Contém **apenas fatos de domínio** que continuariam verdadeiros se este produt
 |---|---|---|
 | [`docs/software-vision.md`](docs/software-vision.md) | Português (pt-BR) | **Versão canônica**, autoritativa para todas as decisões de implementação |
 
-Contém: visão e tese do produto, princípios de produto, linguagem ubíqua, o **modelo de negócio** (Subscription → Workspace → Vault, ciclo de vida da assinatura, papéis), matriz de permissões e teto de papel por vault, mapa de bounded contexts do ponto de vista de produto, entidades de domínio com definição de campos, regras de negócio (códigos `RN-XXX`), o catálogo de ferramentas MCP como **contrato de produto**, telas, export, recorte de versão e riscos de produto.
+Contém: visão e tese do produto, princípios de produto, linguagem ubíqua, o **modelo de negócio** (Subscription → Vault, ciclo de vida da assinatura, papéis), matriz de permissões e teto de papel por vault, mapa de bounded contexts do ponto de vista de produto, entidades de domínio com definição de campos, regras de negócio (códigos `RN-XXX`), o catálogo de ferramentas MCP como **contrato de produto**, telas, export, recorte de versão e riscos de produto.
 
 Para detalhes técnicos de implementação (desenho de chaves do DynamoDB, Content Slots, mecânica do outbox, triggers do Cognito, stacks de CDK), sempre remeta a `docs/architecture-guide.md`. O `software-vision.md` não pode duplicar esse conteúdo.
 
@@ -123,7 +126,7 @@ Regras de negócio são declaradas apenas no `software-vision.md`, uma regra por
 RN-{CONTEXT}-{NNN}
 ```
 
-`CONTEXT` é a sigla de três letras do bounded context: `SUB` (assinatura e isolamento), `ACC` (acesso: workspaces, membros, papéis, convites), `KNW` (conhecimento), `DSC` (discovery), `AUD` (auditoria), `AGT` (acesso de agente / MCP), `PRT` (portabilidade).
+`CONTEXT` é a sigla de três letras do bounded context: `SUB` (assinatura e isolamento), `ACC` (acesso: membros, papéis, convites), `KNW` (conhecimento), `DSC` (discovery), `AUD` (auditoria), `AGT` (acesso de agente / MCP), `PRT` (portabilidade).
 
 Os códigos são **append-only**. Nunca renumere uma regra e nunca reutilize um código aposentado, porque outros documentos, commits e issues os referenciam. Uma regra que deixou de valer é marcada como removida na própria linha, preservando seu número.
 
@@ -175,7 +178,7 @@ são proibidas. Elas duplicam informação já registrada no histórico do git e
 
 Dentro de um texto em pt-BR, **identificadores de código, caminhos de arquivo, nomes de campo de entidade, nomes de evento, nomes de ferramenta e códigos de erro permanecem em en-US e nunca são traduzidos**. Um documento em pt-BR que cita `NoteId`, `get_vault_context` ou `PRECONDITION_FAILED` os escreve exatamente como o código escreve.
 
-O mesmo vale para os termos da **linguagem ubíqua** do produto, que existem simultaneamente como conceito no texto e como símbolo no código: `Vault`, `Workspace`, `Subscription`, `Guidance`, `Template`, `Note`, `Content Slot`, `Content Role`, `Vault Context`. Traduzi-los na prosa romperia a correspondência entre o texto e o código, que é justamente o que a linguagem ubíqua existe para garantir. Termos técnicos consagrados de engenharia seguem a mesma regra e permanecem na forma original: bounded context, outbox, single-table design, embeddings, chunking, backlink, value object.
+O mesmo vale para os termos da **linguagem ubíqua** do produto, que existem simultaneamente como conceito no texto e como símbolo no código: `Vault`, `Subscription`, `Guidance`, `Template`, `Note`, `Content Slot`, `Content Role`, `Vault Context`. Traduzi-los na prosa romperia a correspondência entre o texto e o código, que é justamente o que a linguagem ubíqua existe para garantir. Termos técnicos consagrados de engenharia seguem a mesma regra e permanecem na forma original: bounded context, outbox, single-table design, embeddings, chunking, backlink, value object.
 
 Um termo em inglês que **não** é símbolo do código nem termo técnico consagrado deve ser escrito em português.
 
@@ -188,7 +191,7 @@ O `README.md` da raiz é vitrine, não especificação: quem o lê ainda não co
 | `Guidance` | Orientação |
 | `Template` | Modelo |
 
-A exceção é deliberada e não se propaga. Em `docs/`, no código, nas ferramentas MCP, no `Content Role` e no locale `en_US` (o canônico), os termos continuam sendo `guidance` e `template`. Nenhum outro termo da linguagem ubíqua é traduzido: `Vault`, `Workspace` e os demais permanecem como estão. `Note` é o caso trivial: "nota" é palavra comum do português e é assim que o locale `pt_BR` a escreve.
+A exceção é deliberada e não se propaga. Em `docs/`, no código, nas ferramentas MCP, no `Content Role` e no locale `en_US` (o canônico), os termos continuam sendo `guidance` e `template`. Nenhum outro termo da linguagem ubíqua é traduzido: `Vault`, `Subscription` e os demais permanecem como estão. `Note` é o caso trivial: "nota" é palavra comum do português e é assim que o locale `pt_BR` a escreve.
 
 ### Travessão
 
@@ -220,7 +223,7 @@ Estas são as decisões estruturais do sistema. Elas estão declaradas por exten
 | 10 | **A transação de uma nota nunca escreve no item `META` do vault.** Esse item único viraria o ponto de contenção do vault inteiro sob ingestão em lote. | Formato da transação no repositório e um teste de concorrência |
 | 11 | **O identificador da assinatura é perpétuo.** Nenhuma transição de status, seja aprovar, suspender, cancelar ou reativar, move, rechaveia ou apaga dado. O status governa acesso, nunca endereço. | `SubscriptionId` é `readonly` e nenhum repositório lê status para construir chave |
 | 12 | **Uma sessão de administrador de plataforma não carrega assinatura.** Seu token não tem a claim `subscription_id`, então nenhum repositório de Knowledge pode sequer ser construído sob ela. Nunca acrescente uma checagem de papel como substituto: a impossibilidade é a garantia. | `SubscriptionContext` exige a claim, e um teste de isolamento verifica o modo de falha |
-| 13 | **O teto de papel por vault só rebaixa um papel, nunca eleva.** O papel efetivo é `min(papel de workspace, teto do vault)`, com o owner da assinatura acima dos dois. | `Role` é um enum ordenado que expõe `Role.min`, e nenhum caminho de código atribui papel diretamente |
+| 13 | **O teto de papel por vault só rebaixa um papel, nunca eleva.** O papel efetivo é `min(papel de assinatura, teto do vault)`, com o owner da assinatura acima dos dois. | `Role` é um enum ordenado que expõe `Role.min`, e nenhum caminho de código atribui papel diretamente |
 
 ---
 
@@ -278,6 +281,8 @@ Ela precisa ser propagada para todo `package.json` do monorepo e para o `CHANGEL
 | Correção de defeito, ajuste de configuração, refatoração sem impacto externo | Correção (`0.1.1`) |
 
 A superfície de ferramentas MCP é o **contrato público** do produto (`docs/software-vision.md` § MCP). Remover uma ferramenta, renomear um argumento ou estreitar um formato de retorno é incremento maior, mesmo que nenhuma API interna tenha mudado.
+
+**Enquanto a versão base for `0.x`, a regra acima não se aplica.** O Semantic Versioning trata a faixa `0.x` como instável: qualquer coisa pode mudar em um incremento menor, e não existe incremento maior a fazer antes de a `1.0.0` existir. Uma quebra de contrato nessa faixa entra como incremento menor e é registrada no `CHANGELOG.md` sob `Removed` ou `Changed`, dizendo o que saiu e por quê. A partir da `1.0.0`, a regra passa a valer integralmente e sem exceção, porque aí existe alguém integrado do outro lado.
 
 ### Fluxo de incremento de versão
 

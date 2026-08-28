@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getTemplate, resolveNoteUrl } from '../../shared/api/client';
+import { getTemplate, resolveNoteUrl } from '../../shared/api/source';
 import { splitFrontmatter } from '../../shared/api/markdown';
 import { Markdown } from '../../shared/components/Markdown';
 import type { VaultOutletContext } from './VaultLayout';

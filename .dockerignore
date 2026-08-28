@@ -1,0 +1,16 @@
+.git/
+.claude/
+.obsidian/
+node_modules/
+dist/
+cdk.out/
+coverage/
+tests/
+*.log
+.env
+.env.*
+README.md
+CHANGELOG.md
+CLAUDE.md
+docs/
+deploy-aws/

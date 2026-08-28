@@ -68,7 +68,7 @@ O produto não é guardar `.md`, é **entregar contexto estruturado ao agente se
 | Para quem | Dor | O que o produto entrega |
 |---|---|---|
 | Quem trabalha com agente sobre um corpo de conhecimento | A pasta local não sai da máquina | Vault remoto, conectado nativamente ao cliente de IA |
-| Times que compartilham uma base | Sincronizar arquivos não resolve edição concorrente | Workspace com papéis e escrita com detecção de conflito |
+| Times que compartilham uma base | Sincronizar arquivos não resolve edição concorrente | Assinatura com papéis e escrita com detecção de conflito |
 | Trabalho regulado (auditoria, jurídico, compliance) | O parecer emitido não pode ser demonstrado com a base de ontem | Histórico por revisão, autoria de humano e agente, trilha imutável |
 | Quem tem muitos assuntos | Pastas soltas, sem catálogo | Lista de vaults com descrição, cada um autônomo |
 | Quem teme lock-in | Base é ativo de longo prazo | Export de `.md` puros, sem formato proprietário |
@@ -89,10 +89,10 @@ Decisões que valem para o produto inteiro e a que qualquer funcionalidade nova 
 | **PP2** | **Vault autônomo** | Cada vault se descreve no próprio Guidance. Sem herança entre vaults e, portanto, sem link entre vaults |
 | **PP3** | **Molde é sugestão, não contrato** | O Template orienta a escrita; a nota não é obrigada a segui-lo, e o servidor não valida contra ele |
 | **PP4** | **O backend não interpreta o conteúdo** | O que vai dentro da nota, frontmatter inclusive, é decidido pelo Guidance e pelo Template. O backend lê apenas sintaxe universal de Markdown (link, heading), nunca convenção de vault. As duas exceções sancionadas vivem em projeções do Discovery: o extrator de links e o de facetas (§10.3), que agregam sem atribuir significado e nunca alimentam regra do core |
-| **PP5** | **Descoberta é derivada** | Grafo e busca vetorial nunca são fonte da verdade; são reconstruíveis a partir dos `.md` |
+| **PP5** | **Descoberta é derivada** | Grafo, busca e facetas nunca são fonte da verdade; são reconstruíveis a partir dos `.md` |
 | **PP6** | **O passado é imutável** | Apagar uma nota não destrói o histórico. Destruir conteúdo é ato administrativo registrado, nunca efeito colateral |
 | **PP7** | **Portável por construção** | Export devolve `.md` puros numa árvore de arquivos legível, sem formato proprietário |
-| **PP8** | **Modelo completo, interface progressiva** | Assinatura, workspaces, papéis e vínculos existem desde a primeira linha; a UI só mostra cada um quando o usuário chega no caso que o exige |
+| **PP8** | **Modelo completo, interface progressiva** | Assinatura, papéis e vínculos existem desde a primeira linha; a UI só mostra cada um quando o usuário chega no caso que o exige |
 | **PP9** | **Ordem é sinal, não enfeite** | A ordem de pastas e de notas é conteúdo: é ela que diz ao agente por onde começar. Por isso é editável e é preservada até no export |
 | **PP10** | **Erro é interface** | Toda recusa devolvida ao agente precisa dizer o que fazer em seguida: argumento faltante devolve as opções válidas, e conflito devolve o conteúdo atual |
 
@@ -104,30 +104,28 @@ Termo único por conceito, do código ao produto. Divergência aqui é o começo
 
 | Termo | Significa | **Não** confundir com |
 |---|---|---|
-| **Subscription** | A assinatura: fronteira de isolamento, unidade de cobrança e raiz de tudo. Tem um titular e um estado | Conta de usuário, workspace |
+| **Subscription** | A assinatura: fronteira de isolamento, unidade de colaboração, unidade de cobrança e raiz de tudo. Tem um titular, membros e um estado | Conta de usuário |
 | **Platform Admin** | Quem opera a plataforma e autoriza assinaturas. **Não é papel dentro de assinatura alguma** e não alcança conteúdo | Owner, administrador do cliente |
 | **Owner** | O titular da assinatura: responsável pelo pagamento, convida e remove membros, edita tudo. Um por assinatura | Editor com muitos direitos |
-| **Workspace** | Unidade de colaboração dentro da assinatura; contém vaults e membros | Assinatura, pasta |
 | **Vault** | Um cofre de conhecimento autodescrito | Repositório, pasta raiz |
-| **Guidance** | O **papel** de "para que serve este vault e como estruturar as notas", desempenhado por um documento apontado pelo vault | Um arquivo chamado `README.md` |
-| **Folder** | Nó ordenado da árvore do vault, com `description` que diz *o que se guarda ali* | Diretório físico (não existe) |
+| **Guidance** | O **papel** de "para que serve este vault e como estruturar as notas", desempenhado por um documento apontado pelo vault | Um arquivo chamado `GUIDANCE.md` |
+| **Folder** | Nó ordenado da árvore do vault, com `description` que diz *o que se guarda ali*. A descrição é atributo da pasta, nunca um Content Slot | Diretório físico (não existe), documento de pasta |
 | **Template** | O **papel** de "leiaute sugerido das notas desta pasta", desempenhado por um documento apontado pela pasta | Esquema, validação, um arquivo chamado `TEMPLATE.md` |
 | **Note** | Um documento Markdown; o que vai dentro dele é decidido pelo Guidance e pelo Template | Registro, entidade tipada |
 | **Position** | Chave que ordena irmãos: pastas entre pastas, notas dentro da pasta | Índice denso, campo `order` |
 | **Link** | Referência de uma nota a outra, extraída do Markdown | Hyperlink externo |
 | **Edge** | Link já resolvido para um `NoteId` de destino | Link pendente |
 | **Pending Link** | Link cujo alvo ainda não existe; resolve sozinho quando a nota alvo for criada | Link quebrado |
-| **Chunk** | Trecho de nota vetorizado, recortado por seção | Nota, parágrafo |
 | **Facet** | Atributo de frontmatter agregável para curadoria: os padrão `maturity` e `reviewed`, mais os que o Guidance do vault definir, descobertos pela forma do valor | Campo tipado do backend, esquema de nota |
 | **Authorship** | Quem escreveu: o humano **e** o agente usado | Usuário logado |
 | **Revision** | O conteúdo exato de uma nota num instante | Evento, alteração |
 | **Audit Event** | Registro append-only do que aconteceu, com autoria e revisão | Log de aplicação |
-| **Vault Context** | Documento composto (Guidance mais árvore anotada) entregue ao agente | Dump do vault |
+| **Vault Context** | Documento composto (Guidance mais árvore anotada) entregue ao agente. É derivado a cada chamada e nunca armazenado | Dump do vault, documento que alguém edita |
 | **Content Slot** | Um documento Markdown armazenado, endereçado por identificador opaco. Nota, guidance e template são o **mesmo** tipo de coisa; o que difere é quem aponta para ele | Arquivo, caminho |
 | **Content Role** | O significado atribuído a um slot: `body` (nota), `guidance` (vault) ou `template` (pasta) | Nome de arquivo reservado |
-| **Vínculo** | A relação `(usuário, assinatura)` que autoriza aquele usuário a atuar naquela assinatura | Membership de workspace |
+| **Vínculo** | A relação `(usuário, assinatura)` que autoriza aquele usuário a atuar naquela assinatura | Membership |
 | **Assinatura Ativa** | A assinatura em cujo nome a sessão age agora, escolhida entre os vínculos | O conjunto das assinaturas do usuário |
-| **Membership** | A relação `(usuário, workspace)` com papel `EDITOR` ou `VIEWER` | Vínculo com a assinatura |
+| **Membership** | A relação `(usuário, assinatura)` com papel `EDITOR` ou `VIEWER` | Vínculo, que diz apenas que o usuário alcança a assinatura |
 | **Vault Role Limit** | O teto de papel de um membro num vault específico. Só rebaixa, nunca promove | Papel próprio do vault |
 | **Expurgo** | Destruição deliberada do conteúdo de um Content Slot, com motivo e autorização registrados | Apagar uma nota |
 
@@ -137,16 +135,15 @@ Termo único por conceito, do código ao produto. Divergência aqui é o começo
 
 ### 4.1 Visão geral do modelo
 
-A assinatura não é uma feature: é a forma do produto. Um cliente é uma **Subscription**; dentro dela, pessoas colaboram em **Workspaces**; dentro do workspace vivem os **Vaults**.
+A assinatura não é uma feature: é a forma do produto. Um cliente é uma **Subscription**, e dentro dela pessoas colaboram nos **Vaults**.
 
 ```
-Subscription  (fronteira de isolamento, cobrança e identidade: um titular, um estado)
-└── Workspace  (unidade de colaboração: quem trabalha junto)
-    └── Vault  (o conhecimento em si, autônomo, PP2)
-        ├── Guidance
-        └── Folder (ordenada, com descrição)
-            ├── Template
-            └── Note (ordenada)
+Subscription  (fronteira de isolamento, colaboração, cobrança e identidade: um titular, membros, um estado)
+└── Vault  (o conhecimento em si, autônomo, PP2)
+    ├── Guidance
+    └── Folder (ordenada, com descrição)
+        ├── Template
+        └── Note (ordenada)
 ```
 
 **Acima da assinatura existe apenas a plataforma**, operada pelo `PLATFORM_ADMIN`. Ela não é um nível da hierarquia de dados: é uma superfície separada, que autoriza assinaturas e nunca alcança conteúdo (§4.6).
@@ -159,15 +156,18 @@ A assinatura acumula dois papéis que normalmente ficam separados: é o objeto d
 
 Sem essa regra, "cancelar" viraria migração de dados e "recontratar" viraria importação, e a fronteira de isolamento passaria a depender de um estado que muda. Com ela, o status controla **acesso**, nunca **endereço**.
 
-### 4.3 Hierarquia e por que ela tem três níveis
+**A assinatura não tem nome** (RN-SUB-020): o que a identifica é o `SubscriptionId`, e quem responde por ela é o titular. Um nome seria mais um campo a manter em dia sem nada que o mantivesse honesto, e não distinguiria nada que o e-mail do titular já não distinga.
+
+Além do status, a assinatura declara **o que ela é e quanto ela pode guardar**: um `type`, que nesta fase só pode ser `individual`, e uma `quota` de armazenamento, que é `500MB`, `1GB` ou `2GB` (RN-SUB-018, RN-SUB-019). Os dois são escolhidos no momento da solicitação e são alteráveis depois por ato do `PLATFORM_ADMIN`. A quota é **declarada e ainda não aplicada**: nenhuma escrita é recusada por causa dela, e dizer isso aqui vale mais do que deixar que alguém suponha uma checagem que não existe.
+
+### 4.3 Hierarquia e por que ela tem dois níveis
 
 | Nível | Quem manda | Existe para |
 |---|---|---|
-| **Subscription** | `OWNER` (um, o titular) | Isolamento, cobrança, domínio de identidade |
-| **Workspace** | `EDITOR` · `VIEWER` (convidados) | Colaboração: quem trabalha junto em quais vaults |
-| **Vault** | herda do workspace, com teto opcional (§5.3) | O conhecimento em si |
+| **Subscription** | `OWNER` (um, o titular) e os membros `EDITOR` · `VIEWER` | Isolamento, colaboração, cobrança, domínio de identidade |
+| **Vault** | herda o papel da assinatura, com teto opcional (§5.3) | O conhecimento em si |
 
-O nível de workspace não é redundante com a assinatura: uma organização com dois times que não devem se ver tem **uma** assinatura e **dois** workspaces. Colapsar os dois níveis obrigaria a contratar assinaturas separadas, e portanto pagar duas vezes, por um caso que é de organização interna.
+**Decisão consciente, com um custo declarado.** Existiu um terceiro nível entre os dois, o workspace, e ele foi removido. Ele resolvia um caso: dois times do mesmo cliente que não devem se ver. Sem ele, quem é membro da assinatura alcança todos os vaults dela, e a única granularidade que sobra é o teto por vault, que rebaixa a escrita mas nunca esconde. Separar dois grupos passa a exigir **duas assinaturas**, e portanto duas cobranças. O custo foi pesado e aceito: um nível a menos vale mais para quem usa o produto sozinho ou em time único, que é o caso que o produto atende primeiro, do que a granularidade valeria para o caso que ele ainda não atende.
 
 ### 4.4 Onboarding e ciclo de vida da assinatura
 
@@ -176,10 +176,10 @@ Não há processamento automático de pagamento nesta fase. A ativação é um *
 | Momento | O que acontece |
 |---|---|
 | **Signup** | Cria a conta de usuário. Nenhuma assinatura ainda, nenhum acesso operacional |
-| **Onboarding** | O usuário solicita uma assinatura e passa a ser o `OWNER` dela. Status: `pending_approval` |
+| **Onboarding** | O usuário solicita uma assinatura, escolhendo tipo e quota, e passa a ser o `OWNER` dela. Status: `pending_approval` |
 | **Autorização** | Um `PLATFORM_ADMIN` aprova (status vira `trial` ou `active`) ou rejeita, com motivo obrigatório |
-| **Configuração** | O `OWNER` cria workspaces e vaults, e escreve Guidance e Templates |
-| **Convite** | O `OWNER` convida por e-mail para um workspace, definindo `EDITOR` ou `VIEWER` |
+| **Configuração** | O `OWNER` cria vaults e escreve Guidance e Templates |
+| **Convite** | O `OWNER` convida por e-mail para a assinatura, definindo `EDITOR` ou `VIEWER` |
 | **Aceite** | O convidado ganha vínculo com aquela assinatura. **Não cria assinatura própria e não paga nada** |
 | **Saída** | Remover um membro revoga o acesso; a conta, os demais vínculos e a autoria do que ele escreveu permanecem |
 | **Suspensão / cancelamento** | Acesso operacional cessa; os dados permanecem sob a mesma chave (§4.2) |
@@ -214,13 +214,15 @@ O `PLATFORM_ADMIN` opera a plataforma: aprova, rejeita e suspende assinaturas. *
 
 > Uma sessão de plataforma **não carrega assinatura ativa**. Como toda chave de dado do sistema começa pela assinatura, não há chave que uma credencial de admin consiga montar. A impossibilidade é estrutural, não uma verificação que alguém precisa lembrar de escrever.
 
-O que ele vê é metadado de assinatura: titular, e-mail, status, datas e contagem de workspaces. Nunca nome de vault, nunca conteúdo de nota.
+O que ele vê é metadado de assinatura: titular, e-mail, status, tipo, quota, datas e contagem de membros. Nunca nome de vault, nunca conteúdo de nota.
+
+Ele conta ainda com **duas operações administrativas**, que existem para operar um ambiente e não para o fluxo de revisão: definir o status diretamente, sem passar pela máquina de transição de §4.4, e mudar tipo e quota (RN-SUB-018, RN-SUB-019). As duas são registradas como eventos próprios, distintos dos eventos de aprovação, rejeição, suspensão e reativação, justamente porque não foram o caminho comum: a trilha precisa dizer qual dos dois aconteceu.
 
 Se um `PLATFORM_ADMIN` também for usuário de alguma assinatura, ele age ali como qualquer outro membro, com sessão própria. Os dois papéis nunca se somam na mesma sessão.
 
 ### 4.7 Interface progressiva (PP8)
 
-**A UI esconde o nível de workspace enquanto houver um só, e esconde a troca de assinatura enquanto houver um só vínculo.** O modelo é completo desde o começo, e a interface é que aparece por etapas.
+**A UI esconde a lista de membros enquanto houver só o titular, e esconde a troca de assinatura enquanto houver um só vínculo.** O modelo é completo desde o começo, e a interface é que aparece por etapas.
 
 ### 4.8 Regras de negócio: assinatura e isolamento
 
@@ -238,9 +240,12 @@ Se um `PLATFORM_ADMIN` também for usuário de alguma assinatura, ele age ali co
 - **RN-SUB-012:** Um dos vínculos é marcado como padrão e é assumido quando nenhuma assinatura ativa válida é encontrada.
 - **RN-SUB-013:** Trocar de assinatura ativa é ação explícita do usuário; nenhuma operação de negócio recebe a assinatura como argumento.
 - **RN-SUB-014:** Um conector MCP autorizado opera sempre na assinatura fixada no momento do consentimento, pela vida inteira daquela autorização.
-- **RN-SUB-015:** Índices derivados (busca vetorial, grafo, cache) respeitam a mesma fronteira de assinatura que o dado de origem.
-- **RN-SUB-016:** Uma sessão de `PLATFORM_ADMIN` não carrega assinatura ativa e, portanto, não alcança nenhum dado de workspace, vault ou nota.
+- **RN-SUB-015:** Índices derivados (busca, grafo, facetas, cache) respeitam a mesma fronteira de assinatura que o dado de origem.
+- **RN-SUB-016:** Uma sessão de `PLATFORM_ADMIN` não carrega assinatura ativa e, portanto, não alcança nenhum dado de vault ou nota.
 - **RN-SUB-017:** Aceitar um convite não cria assinatura para o convidado: ele passa a atuar na assinatura de quem convidou.
+- **RN-SUB-018:** Toda assinatura declara um `type`, escolhido na solicitação, cujo único valor nesta fase é `individual`. Somente `PLATFORM_ADMIN` altera o tipo depois, e é ele também quem pode definir o status diretamente, sem seguir a máquina de transição de §4.4. Um status definido assim é registrado como evento próprio, e definir `rejected` por esse caminho não cumpre RN-SUB-009: rejeitar uma solicitação que alguém aguarda continua exigindo motivo.
+- **RN-SUB-019:** Toda assinatura declara uma `quota` de armazenamento, escolhida na solicitação entre `500MB`, `1GB` e `2GB`, e alterável depois por `PLATFORM_ADMIN`. A quota é declarada e ainda não é aplicada: nenhuma escrita é recusada por excedê-la.
+- **RN-SUB-020:** A assinatura não tem nome. Ela é identificada pelo `SubscriptionId`, e para quem a opera ela é reconhecida pelo e-mail do titular. Nenhuma tela, rota, evento ou item de armazenamento carrega um nome de assinatura.
 
 ---
 
@@ -254,10 +259,10 @@ Quatro papéis, em dois planos que nunca se misturam na mesma sessão:
 |---|---|---|---|
 | `PLATFORM_ADMIN` | Plataforma | Quem opera o serviço | Vários |
 | `OWNER` | Assinatura | O titular, definido no onboarding | **Exatamente um por assinatura** |
-| `EDITOR` | Workspace | Convidado que escreve | Vários por workspace |
-| `VIEWER` | Workspace | Convidado que só lê, inclusive revisor externo | Vários por workspace |
+| `EDITOR` | Assinatura | Convidado que escreve | Vários por assinatura |
+| `VIEWER` | Assinatura | Convidado que só lê, inclusive revisor externo | Vários por assinatura |
 
-O `OWNER` é da **assinatura**, não de um workspace: ele alcança todos os workspaces e vaults dela, sem precisar ser convidado para cada um. `EDITOR` e `VIEWER` são do **workspace**: um mesmo usuário pode ser `EDITOR` num workspace e `VIEWER` em outro, dentro da mesma assinatura.
+Os três papéis de cliente são da **assinatura**. O `OWNER` alcança todos os vaults dela sem precisar ser convidado para cada um, e `EDITOR` e `VIEWER` alcançam todos os vaults com o papel que têm, até onde o teto de cada vault permitir (§5.3). Um usuário tem **um** papel por assinatura, e não um papel por recorte.
 
 **Transferência.** O `OWNER` pode transferir a titularidade para outro membro da assinatura, e a partir daí ele passa a ser `EDITOR`. A assinatura nunca fica sem titular, porque a transferência é atômica e não é "remover e depois nomear".
 
@@ -267,8 +272,6 @@ O `OWNER` é da **assinatura**, não de um workspace: ele alcança todos os work
 |---|:---:|:---:|:---:|:---:|
 | Aprovar / rejeitar / suspender assinatura | ● | — | — | — |
 | Ver metadados de assinaturas (titular, status, datas) | ● | ●¹ | — | — |
-| Criar workspace | — | ● | — | — |
-| Renomear / apagar workspace | — | ● | — | — |
 | Convidar membro, alterar papel, remover membro | — | ● | — | — |
 | Definir o teto de papel de um membro num vault (§5.3) | — | ● | — | — |
 | Transferir titularidade da assinatura | — | ● | — | — |
@@ -279,7 +282,7 @@ O `OWNER` é da **assinatura**, não de um workspace: ele alcança todos os work
 | Editar Guidance e Template | — | ● | ● | — |
 | Mover nota entre vaults | — | ● | ●² | — |
 | Ler vault, pastas, notas | — | ● | ● | ● |
-| Buscar (lexical e semântica) | — | ● | ● | ● |
+| Buscar | — | ● | ● | ● |
 | Ver grafo, backlinks e saúde do vault | — | ● | ● | ● |
 | Ver histórico e atividade | — | ● | ● | ● |
 | Exportar vault | — | ● | ● | — |
@@ -293,11 +296,11 @@ O `OWNER` é da **assinatura**, não de um workspace: ele alcança todos os work
 
 ### 5.3 Teto de papel por vault
 
-Um workspace pode conter vaults de sensibilidade diferente. Em vez de exigir um workspace novo para cada recorte, o `OWNER` pode **rebaixar** o papel de um membro num vault específico.
+Uma assinatura pode conter vaults de sensibilidade diferente. Para isso o `OWNER` pode **rebaixar** o papel de um membro num vault específico.
 
-**A permissão efetiva é sempre o menor entre o papel no workspace e o teto do vault. Nunca promove.**
+**A permissão efetiva é sempre o menor entre o papel na assinatura e o teto do vault. Nunca promove.**
 
-| Papel no workspace | Teto no vault | Efetivo |
+| Papel na assinatura | Teto no vault | Efetivo |
 |---|---|---|
 | `EDITOR` | — (nenhum) | `EDITOR` |
 | `EDITOR` | `VIEWER` | `VIEWER` |
@@ -305,7 +308,7 @@ Um workspace pode conter vaults de sensibilidade diferente. Em vez de exigir um 
 | `VIEWER` | `VIEWER` | `VIEWER` |
 | `VIEWER` | `EDITOR` | **recusado**, porque o teto não promove |
 
-Só existe um valor de teto: `VIEWER`. Não há "sem acesso", porque **quem é membro do workspace enxerga todos os vaults dele**; o que o teto controla é escrever, não ver. Tirar um vault do alcance de alguém continua sendo motivo para um workspace separado, o que mantém a pergunta "quem vê o quê" respondível olhando só a lista de membros.
+Só existe um valor de teto: `VIEWER`. Não há "sem acesso", porque **quem é membro da assinatura enxerga todos os vaults dela**; o que o teto controla é escrever, não ver. Tirar um vault do alcance de alguém exige uma assinatura separada (§4.3), o que mantém a pergunta "quem vê o quê" respondível olhando só a lista de membros.
 
 O teto não se aplica ao `OWNER`: ele é titular da assinatura e alcança tudo.
 
@@ -313,19 +316,19 @@ O teto não se aplica ao `OWNER`: ele é titular da assinatura e alcança tudo.
 
 - **RN-ACC-001:** Toda assinatura tem, em qualquer instante, exatamente um `OWNER`. Remover o `OWNER` é recusado; a única saída é a transferência de titularidade.
 - **RN-ACC-002:** A transferência de titularidade é atômica: o novo titular vira `OWNER` e o anterior vira `EDITOR` na mesma operação.
-- **RN-ACC-003:** O e-mail é único entre os membros de um workspace.
+- **RN-ACC-003:** O e-mail é único entre os membros de uma assinatura.
 - **RN-ACC-004:** Um convite pendente não concede acesso; só o aceite cria o membro.
 - **RN-ACC-005:** O convite é de uso único, vinculado ao e-mail para o qual foi enviado, e expira em 7 dias.
 - **RN-ACC-006:** Somente o `OWNER` convida, altera papel, remove membros e define tetos de vault. `EDITOR` não convida.
-- **RN-ACC-007:** Somente o `OWNER` cria, renomeia e apaga workspaces da sua assinatura.
+- **RN-ACC-007:** *(removida)* Tratava da criação, renomeação e remoção de workspaces. O nível de workspace deixou de existir (§4.3). O número é preservado e nunca será reaproveitado.
 - **RN-ACC-008:** Um convite só pode ser emitido por assinatura em status `trial` ou `active`.
-- **RN-ACC-009:** Remover um membro revoga o acesso aos workspaces daquela assinatura e preserva integralmente o que ele escreveu, incluindo a autoria registrada.
-- **RN-ACC-010:** `VIEWER`, seja por papel de workspace ou por teto de vault, recebe recusa em qualquer operação de escrita, tanto pela UI quanto pelo MCP.
-- **RN-ACC-011:** O teto de papel por vault só rebaixa. Definir um teto maior que o papel do membro no workspace é recusado com `VALIDATION`.
+- **RN-ACC-009:** Remover um membro revoga o acesso à assinatura e preserva integralmente o que ele escreveu, incluindo a autoria registrada.
+- **RN-ACC-010:** `VIEWER`, seja por papel de assinatura ou por teto de vault, recebe recusa em qualquer operação de escrita, tanto pela UI quanto pelo MCP.
+- **RN-ACC-011:** O teto de papel por vault só rebaixa. Definir um teto maior que o papel do membro na assinatura é recusado com `VALIDATION`.
 - **RN-ACC-012:** O único valor de teto admitido é `VIEWER`; não existe teto que remova a visibilidade do vault.
 - **RN-ACC-013:** O teto de vault não se aplica ao `OWNER`.
-- **RN-ACC-014:** Remover um membro do workspace remove também os tetos de vault dele naquele workspace.
-- **RN-ACC-015:** Toda decisão de autorização é tomada pelo serviço dono do recurso, combinando o papel do usuário no workspace com o teto do vault.
+- **RN-ACC-014:** Remover um membro da assinatura remove também todos os tetos de vault dele.
+- **RN-ACC-015:** Toda decisão de autorização é tomada pelo serviço dono do recurso, combinando o papel do usuário na assinatura com o teto do vault.
 - **RN-ACC-016:** Alterações de papel, de teto e remoções podem levar até 5 minutos para surtir efeito em sessões já autenticadas. Esse atraso é declarado ao usuário nas telas de membros e de vault.
 
 ---
@@ -336,9 +339,9 @@ Seis bounded contexts. A separação é de responsabilidade e vocabulário; a fo
 
 | Contexto | Responsabilidade | Tipo |
 |---|---|---|
-| **Access** | Assinaturas e seu ciclo de vida, workspaces, membros, papéis, tetos de vault, convites, vínculos, autorização | Supporting |
+| **Access** | Assinaturas e seu ciclo de vida, membros, papéis, tetos de vault, convites, vínculos, autorização | Supporting |
 | **Knowledge** | Vaults, guidance, pastas, ordem, templates, notas | **Core** |
-| **Discovery** | Grafo de links, índice vetorial e facetas de curadoria, três projeções | Supporting |
+| **Discovery** | Grafo de links, índice de texto e facetas de curadoria, três projeções | Supporting |
 | **Audit** | Trilha append-only: autoria, revisões, reconstrução por data | Supporting |
 | **Agent Access** | O MCP server; compõe o Vault Context; traduz domínio ↔ tools | Supporting (camada anticorrupção) |
 | **Portability** | Export para árvore de arquivos legível | Generic |
@@ -366,14 +369,24 @@ created_at, last_login?
 
 ```
 id,                          -- PERPÉTUO: emitido uma vez, nunca reemitido (RN-SUB-005)
-name, slug,
+                             -- não tem nome: quem a identifica é o id, e quem
+                             -- responde por ela é o titular (RN-SUB-020)
 owner_id,                    -- exatamente um, sempre presente (RN-ACC-001)
 status (pending_approval | trial | active | rejected | suspended | canceled),
+type (individual),           -- o que a assinatura é, comercialmente (RN-SUB-018)
+quota (500MB | 1GB | 2GB),   -- declarada, ainda não aplicada (RN-SUB-019)
 requested_at,
 reviewed_by_id?, reviewed_at?,
 rejection_reason?,           -- obrigatório quando status = rejected (RN-SUB-009)
 legal_hold_enabled (bool),   -- retenção legal; ver RN-AUD-009
-created_at
+created_at,
+members: [{
+  user_id,
+  email,                     -- único entre os membros da assinatura (RN-ACC-003)
+  role (EDITOR | VIEWER),    -- OWNER não é membro: alcança tudo pela titularidade
+  invited_by_id,
+  joined_at
+}]
 ```
 
 O campo `status` controla **acesso**, nunca **endereço** (§4.2). Nenhuma transição de status move ou re-chaveia dado algum.
@@ -385,21 +398,6 @@ user_id, subscription_id,
 is_owner (bool),
 is_default (bool),
 joined_at
-```
-
-#### Entidade: `Workspace` (Agregado Raiz)
-
-```
-id, subscription_id,
-name, slug,
-is_default (bool),
-created_at,
-members: [{
-  user_id,
-  role (EDITOR | VIEWER),    -- OWNER não é membro: alcança tudo pela titularidade
-  invited_by_id,
-  joined_at
-}]
 ```
 
 #### Entidade: `VaultRoleLimit`, o teto por vault (§5.3)
@@ -415,7 +413,7 @@ Vive junto do vault, não do membro: quem sabe quais vaults existem é o Knowled
 #### Entidade: `Invite`
 
 ```
-id, subscription_id, workspace_id,
+id, subscription_id,
 invitee_email,
 invitee_role (EDITOR | VIEWER),
 invited_by_id,               -- sempre o OWNER (RN-ACC-006)
@@ -441,8 +439,8 @@ O core. Quatro conceitos: o vault, a árvore de pastas, a nota e o conteúdo.
 Fronteira de consistência: o vault e **toda a sua árvore de pastas**.
 
 ```
-id, subscription_id, workspace_id,
-name, slug,
+id, subscription_id,
+name, slug,                  -- slug único na assinatura (RN-KNW-032)
 description,                 -- o que aparece no catálogo de vaults
 guidance_ref?,               -- ponteiro para o Content Slot que faz o papel de Guidance
 version,                     -- controle de concorrência do agregado
@@ -491,7 +489,18 @@ ContentRef:   content_id, revision, sha256, bytes
 | `guidance` | Vault | `guidance_ref` |
 | `template` | Pasta | `template_ref` |
 
-Daí decorre a regra de produto mais contraintuitiva do sistema: **`README.md` e `TEMPLATE.md` não são nomes de arquivo, são papéis.** Não existe nome reservado no armazenamento. Nomes de arquivo só voltam a existir na borda, no export (§12) e na UI.
+Daí decorre a regra de produto mais contraintuitiva do sistema: **`GUIDANCE.md` e `TEMPLATE.md` não são nomes de arquivo, são papéis.** Não existe nome reservado no armazenamento. Nomes de arquivo só voltam a existir na borda, no export (§12) e na UI.
+
+Quatro coisas parecidas convivem aqui, e confundi-las custa caro:
+
+| O que é | Onde vive | Quem escreve |
+|---|---|---|
+| **Guidance** | Content Slot apontado por `guidance_ref`, com revisão e histórico | Um humano |
+| **Descrição da pasta** | Atributo `description` da pasta, de 1 a 500 caracteres, sem revisão | Um humano |
+| **Vault Context** | Nada: é composto a cada leitura (§9.2) | O produto, derivando |
+| **`GUIDANCE.md`, `STRUCTURE.md`, `TEMPLATE.md`** | Só na borda: no export (§12) e nunca no armazenamento | O produto, materializando |
+
+Nenhum desses nomes de arquivo aparece na interface nem na superfície MCP. Lá existem apenas o papel e o documento composto.
 
 Isso torna triviais operações que de outro modo seriam código especial: promover uma nota a template da pasta, converter um template em nota, adotar o conteúdo de uma nota como guidance do vault. Todas são troca de ponteiro.
 
@@ -503,8 +512,9 @@ Ordenação alfabética continua disponível como opção de exibição no clien
 
 ### 8.2 Regras de negócio: vault e estrutura
 
-- **RN-KNW-001:** Todo vault pertence a exatamente um workspace, e a um só.
+- **RN-KNW-001:** Todo vault pertence a exatamente uma assinatura, e a uma só.
 - **RN-KNW-002:** O `slug` de uma pasta é único entre suas irmãs (mesmo pai, mesmo vault).
+- **RN-KNW-032:** O `slug` do vault é único **dentro da assinatura**, porque é por ele que a interface endereça o vault. Criar um vault cujo nome gera um `slug` já usado devolve `ALREADY_EXISTS` **com o identificador do vault existente**, e nunca cria um segundo, pela mesma razão de RN-AGT-004: o servidor não gera sufixo automático. Renomear para um `slug` ocupado recebe a mesma recusa. Sem essa regra, dois vaults de mesmo nome dividem um endereço e o segundo fica inalcançável.
 - **RN-KNW-003:** A profundidade máxima da árvore de pastas é 6 níveis.
 - **RN-KNW-004:** Mover uma pasta nunca pode criar ciclo: o destino não pode ser descendente da origem.
 - **RN-KNW-005:** Toda pasta tem uma `position` que a ordena entre as irmãs; toda nota tem uma `position` que a ordena dentro da pasta.
@@ -528,6 +538,7 @@ Ordenação alfabética continua disponível como opção de exibição no clien
 - **RN-KNW-029:** Apagar uma nota é reversível: a nota sai das listagens e da busca, e o histórico permanece consultável pelo identificador da nota.
 - **RN-KNW-030:** Apagar uma nota libera o seu `slug` no vault; restaurá-la exige que o slug esteja livre novamente.
 - **RN-KNW-031:** O backend não valida a nota contra o Template da pasta (PP3), e não interpreta frontmatter nem qualquer convenção de conteúdo (PP4).
+- **RN-KNW-033:** Apagar um vault é reversível e não destrói byte algum: o vault sai de toda listagem e passa a responder `404` em todos os contextos, enquanto pastas, notas e revisões permanecem intactas e o histórico segue consultável. A operação pertence ao papel de administração do vault, como renomear. Apagar libera o nome do vault na assinatura, pela mesma razão de RN-KNW-030, e por isso restaurá-lo exige que o nome esteja livre de novo.
 
 ---
 
@@ -539,15 +550,22 @@ Ordenação alfabética continua disponível como opção de exibição no clien
 
 | Tool | Assinatura | Papel |
 |---|---|---|
+| `whoami` | `()` | Quem está agindo, o que a conexão alcança e **como escrever aqui**: a ordem de leitura do vault e o catálogo inteiro |
 | `list_vaults` | `()` | Vaults visíveis, com descrição |
+| `create_vault` | `(name, description)` | Cria um vault na assinatura; nome repetido devolve `ALREADY_EXISTS` com o identificador do existente (RN-KNW-032) |
+| `delete_vault` | `(vault)` | Apaga um vault, de forma reversível e sem destruir byte algum (RN-KNW-033) |
 | **`get_vault_context`** | `(vault)` | **A chamada principal.** Guidance integral mais árvore com descrições, ordem, contagem de notas e quais pastas têm template |
+| `set_guidance` | `(vault, content)` | Escreve a Guidance do vault, que é o documento que declara como este vault quer ser escrito |
+| `create_folder` | `(vault, name, description, parent?)` | Cria uma pasta; a descrição é obrigatória, porque é ela que diz o que pertence ali |
+| `delete_folder` | `(vault, folder, policy)` | Remove uma pasta sob política explícita, `REJECT_IF_NOT_EMPTY` ou `CASCADE` (RN-KNW-007) |
 | `get_template` | `(vault, folder)` | O Template da pasta, a ler antes de escrever |
+| `set_template` | `(vault, folder, content)` | Escreve o Template da pasta |
 | `list_notes` | `(vault, folder?)` | Índice de notas, na ordem definida |
 | `read_note` | `(vault, note, asOf?)` | Markdown completo e a revisão corrente; com `asOf`, a revisão vigente naquela data |
 | `create_note` | `(vault, folder, title, content)` | O caminho de ingestão (§1.3) |
 | `update_note` | `(vault, note, content, baseRevision)` | Atualização com detecção de conflito |
-| `search_notes` | `(vault, query)` | Busca lexical: título e pasta |
-| `semantic_search` | `(vault, query, k?, folder?)` | Busca por significado: trechos, com a nota de origem |
+| `delete_note` | `(vault, note)` | Apaga uma nota, de forma reversível (RN-KNW-029) |
+| `search_notes` | `(vault, query)` | Busca literal no texto do vault, com campos e operadores (§10.2) |
 | `related_notes` | `(vault, note, depth?)` | Árvore de dependências pelo grafo de links |
 | `backlinks` | `(vault, note)` | Quem aponta para esta nota |
 | `note_history` | `(vault, note)` | Linha do tempo: quem alterou, quando, com qual agente |
@@ -560,12 +578,14 @@ A saída de `get_vault_context` é **o produto**, não um detalhe de apresentaç
 # Vault: Normas e Legislação
 <conteúdo integral do Guidance>
 
-## Estrutura
-1. **Normas**: Texto normativo por artigo. Uma norma por nota, sempre com órgão e vigência. (48 notas, tem TEMPLATE.md)
-2. **Achados**: Achados de auditoria. Todo achado cita a norma que o fundamenta. (23 notas, tem TEMPLATE.md)
-3. **Trabalhos/**: Relatórios emitidos. (5 notas)
-   3.1. **2026**: Emitidos neste exercício. (5 notas, tem TEMPLATE.md)
+## Structure
+1. **Normas**: Texto normativo por artigo. Uma norma por nota, sempre com órgão e vigência. (48 notes, has TEMPLATE.md)
+2. **Achados**: Achados de auditoria. Todo achado cita a norma que o fundamenta. (23 notes, has TEMPLATE.md)
+3. **Trabalhos/**: Relatórios emitidos. (5 notes)
+   3.1. **2026**: Emitidos neste exercício. (5 notes, has TEMPLATE.md)
 ```
+
+Os rótulos que o produto escreve (`## Structure`, `notes`, `has TEMPLATE.md`) são en-US, como toda a superfície MCP, que é contrato público e tem `en_US` como locale canônico (`CLAUDE.md` § Política de idioma). O que aparece em português no exemplo acima é o conteúdo do vault, escrito por quem o autora, e é assim que sai em qualquer idioma que o vault use.
 
 Três decisões visíveis nesse formato:
 
@@ -589,8 +609,10 @@ Três decisões visíveis nesse formato:
 O conector é o produto na visão de quem chega por uma plataforma de IA, e a forma como ele é encontrado faz parte do contrato público tanto quanto a assinatura das tools. O mecanismo de diretório curado e seus critérios estão em `knowledge-base.md` §3.7; as regras abaixo dizem o que o MemorySmith faz a respeito.
 
 - **RN-AGT-009:** Toda tool do catálogo declara um título legível e a marca de leitura ou de destruição. Nenhuma tool entra no catálogo sem as duas coisas. A regra vale desde a primeira tool, e não a partir de uma eventual submissão a diretório: são essas marcas que decidem se o cliente executa a chamada direto ou pede confirmação ao usuário, então a ausência cobra atrito de quem usa o produto, listado ou não.
+- **RN-AGT-014:** O conector escreve o vault inteiro, e não apenas as notas dele. Criar e apagar vault, escrever a Guidance, criar e apagar pasta, escrever o Template e apagar nota existem como tools próprias, sob as mesmas regras de papel que a interface obedece: a decisão é sempre do vault, tomada pelo caso de uso, e nunca do protocolo. A razão é a tese do produto (§1.4): um agente que só pode acrescentar notas a uma estrutura que outra pessoa montou não escreve conhecimento, apenas o deposita.
 - **RN-AGT-010:** Leitura e escrita nunca compartilham uma tool. Não existe tool genérica parametrizada por operação. O catálogo de §9.1 já nasce assim, e a regra existe para que continue assim quando a superfície crescer.
 - **RN-AGT-011:** O registro de cliente OAuth do conector é feito por Client ID Metadata Document. O produto não oferece registro dinâmico de cliente, e os metadados de authorization server anunciam as duas chaves que a seleção de CIMD exige (`knowledge-base.md` §3.4). A decisão tem duas razões: registro dinâmico criaria um cliente OAuth novo a cada conexão, o que é justamente o padrão de tráfego esperado de um conector distribuído, e o provedor de identidade que usamos não implementa nenhum dos dois mecanismos, o que já nos obriga a intermediar o registro.
+- **RN-AGT-013:** `whoami` responde duas perguntas na mesma chamada: **quem** a conexão representa (a pessoa que autorizou, o conector e a assinatura fixada no consentimento) e **como o produto espera ser usado** (a ordem de leitura Guidance, estrutura de pastas com a descrição de cada uma, e Template da pasta de destino). A parte de ajuda é **derivada do próprio catálogo**, nunca escrita ao lado dele: um texto paralelo divergiria na primeira tool renomeada, e uma ajuda que cita tool inexistente manda o agente por um caminho que falha. `whoami` também declara que o servidor **não valida** o conteúdo contra Guidance nem Template (PP4), porque um agente que supuser validação confia numa checagem que nunca acontece.
 - **RN-AGT-012:** A listagem em diretório é objetivo de produto, não do recorte inicial. Ela pressupõe catálogo de tools implementado, política de privacidade publicada, documentação pública e uma conta de demonstração com vaults povoados. Enquanto não houver listagem, o conector é adicionado como conector personalizado, e a documentação do produto precisa dizer ao usuário quais respostas dar no formulário.
 
 ---
@@ -617,15 +639,25 @@ Cada link escrito no corpo de uma nota vira uma aresta. Duas formas são reconhe
 
 > **No domínio regulado, o grafo é o rastro de fundamentação.** Uma nota de achado cita, no corpo, a nota da norma que a sustenta, e `related_notes` responde *"em que base normativa este achado se apoia?"*. Quem torna isso confiável é o Template da pasta, que manda escrever a fundamentação como link em vez de citar em prosa. O backend não sabe o que é um fundamento: ele vê uma aresta, e é o vault que decide o que ela significa (PP4).
 
-### 10.2 Busca semântica
+### 10.2 Busca
 
-- **RN-DSC-010:** A busca semântica opera sobre trechos de nota recortados por seção, e sempre devolve a nota e a seção de origem junto do resultado. Quem consome decide com a fonte à vista.
-- **RN-DSC-011:** Cada trecho é enriquecido com o contexto de onde veio, ou seja vault, pasta, descrição da pasta e título da nota, antes de ser vetorizado. A descrição da pasta, escrita para orientar o agente, vira sinal de recuperação de graça.
-- **RN-DSC-012:** Mover uma nota de pasta invalida os vetores dela e dispara reindexação, porque o contexto embutido no trecho mudou. Sem isso, o índice passa a mentir em silêncio.
-- **RN-DSC-013:** Apagar uma nota remove seus vetores imediatamente, inclusive no soft delete. O que sai da listagem sai da busca, porque conteúdo apagado que continua sendo devolvido é problema de privacidade, não de qualidade.
-- **RN-DSC-014:** Restaurar uma nota reindexa seus vetores.
-- **RN-DSC-015:** O índice vetorial é isolado por assinatura, não filtrado por metadado dentro de um índice compartilhado.
-- **RN-DSC-016:** Grafo e índice vetorial são derivados (PP5): apagar e reconstruir do zero a partir das notas é operação suportada, e é o plano de recuperação dos dois.
+A busca do produto é **literal sobre o texto do vault**: o corpo de cada nota, o título, a pasta e os headings. Ela responde "onde está escrita esta palavra", e casa por trecho, ignorando acento e caixa, de modo que um termo escrito uma única vez dentro de uma nota é encontrado digitando parte dele.
+
+A consulta aceita vários termos, que precisam casar todos, `"frase exata"`, `-exclusão`, `OR`, parênteses e os campos `title:`, `folder:`, `content:` e `section:`. **Qualquer outro prefixo é lido como atributo de frontmatter do vault**, e é o que torna `maturity:evergreen`, `reviewed:false` ou um `norma:federal` que o vault inventou filtros válidos sem que nada disso esteja escrito no código. O vocabulário pertence ao Guidance (PP4, RN-DSC-020), e a linguagem ubíqua do vault vira a linguagem de consulta.
+
+O que a busca **não** faz é procurar por significado. Uma nota que trate do assunto com outras palavras não volta. Isso existiu como `semantic_search`, apoiada em um índice vetorial, e foi **retirada na 0.2.0**: pontuar similaridade dentro da função exigia ler todos os trechos do vault a cada consulta, e o item de um trecho custava dez vezes o tamanho da nota. Quem procura por assunto conta com o grafo de links (§10.1) e as facetas de curadoria (§10.3) até que a capacidade volte sobre um índice adequado.
+
+- **RN-DSC-010:** A busca sempre devolve a nota de origem junto do resultado, o heading sob o qual o trecho caiu quando houver um, e o trecho recortado do texto como foi escrito. Quem consome decide com a fonte à vista.
+- **RN-DSC-011:** *(removida na 0.2.0)* Cada trecho era enriquecido com o contexto de onde veio, ou seja vault, pasta, descrição da pasta e título da nota, antes de ser vetorizado.
+- **RN-DSC-012:** Mover uma nota de pasta dispara a reprojeção dela, porque a pasta faz parte do retrato que o vault mostra da nota.
+- **RN-DSC-013:** Apagar uma nota a remove das projeções imediatamente, inclusive no soft delete. O que sai da listagem sai da busca, porque conteúdo apagado que continua sendo devolvido é problema de privacidade, não de qualidade.
+- **RN-DSC-014:** Restaurar uma nota a reprojeta.
+- **RN-DSC-015:** *(removida na 0.2.0)* O índice vetorial era isolado por assinatura, não filtrado por metadado dentro de um índice compartilhado. A exigência continua valendo para qualquer índice derivado por RN-SUB-015, e é ela que governa o índice de conteúdo que vier a substituí-lo.
+- **RN-DSC-016:** Grafo, busca e facetas são derivados (PP5): apagar e reconstruir do zero a partir das notas é operação suportada, e é o plano de recuperação de todos.
+- **RN-DSC-025:** A busca casa **trecho literal**, e não palavra inteira nem raiz. `14.133` é encontrado por `14.133` e não por `14133`, porque o separador foi escrito pelo autor e inventar uma normalização de números tornaria o resultado impossível de explicar. Acento e caixa, esses sim, são ignorados dos dois lados.
+- **RN-DSC-026:** Os campos `title`, `folder`, `content` e `section` são os únicos que o backend conhece por nome. Todo outro prefixo de consulta é resolvido como faceta do vault, e um prefixo que não corresponda a faceta nenhuma simplesmente não casa, nunca é erro.
+- **RN-DSC-027:** A busca varre todas as notas do vault a cada consulta, o que é sustentado pelo teto de 2.000 notas por vault (RN-KNW-010). A varredura precisa percorrer o índice inteiro: uma busca que responde de uma parte do vault sem dizer que parou é pior que busca nenhuma.
+- **RN-DSC-028:** O frontmatter não participa do texto pesquisável. Ele é matéria do projetor de facetas (RN-DSC-018), e mantê-lo no corpo faria toda nota casar com o próprio metadado.
 
 ### 10.3 Facetas de curadoria
 
@@ -637,7 +669,7 @@ O painel de curadoria (a Visão geral do produto) responde perguntas de gestão 
 - **RN-DSC-020:** Os demais atributos são convenção do vault e não são configurados em lugar nenhum: a projeção classifica cada valor pela **forma** e agrega os agregáveis, ou seja datas, booleanos, valores curtos enumeráveis e listas de valores curtos (como `tags`). Texto livre é descartado. O que `type: evidence` quer dizer pertence ao Guidance, nunca ao backend.
 - **RN-DSC-021:** Nota sem uma faceta conta como valor ausente; nunca é rejeitada nem corrigida. A projeção descreve o vault como ele está, e apontar lacuna é papel do painel, não do gravador.
 - **RN-DSC-022:** Nota apagada sai das contagens no soft delete e volta na restauração, espelhando a busca (RN-DSC-013, RN-DSC-014).
-- **RN-DSC-023:** A projeção de facetas é derivada (PP5): eventualmente consistente, apagável e reconstruível do zero a partir das notas, como o grafo e o índice vetorial (RN-DSC-016).
+- **RN-DSC-023:** A projeção de facetas é derivada (PP5): eventualmente consistente, apagável e reconstruível do zero a partir das notas, como o grafo e o índice de busca (RN-DSC-016).
 - **RN-DSC-024:** Atributo que se revela texto livre pelo uso deixa de ser agregado: quando a cardinalidade de valores distintos de um atributo ultrapassa o teto por vault, suas contagens são descartadas e ele para de gerar estatística. É esse mecanismo, e não uma lista de exclusão mantida à mão, que impede `title` ou `source` de virarem estatística.
 
 ---
@@ -664,7 +696,7 @@ O humano é sempre identificado, porque mesmo quando quem grava é o agente a au
 #### Entidade: `AuditEvent`
 
 ```
-subject (WORKSPACE | MEMBER | VAULT | FOLDER | NOTE),
+subject (SUBSCRIPTION | MEMBER | VAULT | FOLDER | NOTE),
 subject_id,
 occurred_at,
 type,                        -- o evento de domínio que ocorreu
@@ -691,27 +723,24 @@ payload
 
 Zero lock-in é requisito, não cortesia: é o que torna o produto seguro de adotar num contexto em que a base precisa sobreviver ao fornecedor (`knowledge-base.md` §10).
 
-**O export é onde os nomes de arquivo passam a existir.** Dentro do sistema há identificadores opacos e papéis (§8.1); é aqui que `guidance` vira `README.md`, `template` vira `TEMPLATE.md` e o slug da nota vira nome de arquivo.
+**O export é onde os nomes de arquivo passam a existir.** Dentro do sistema há identificadores opacos e papéis (§8.1); é aqui que `guidance` vira `GUIDANCE.md`, `template` vira `TEMPLATE.md` e o slug da nota vira nome de arquivo. A árvore anotada sai ao lado da Orientação, como `STRUCTURE.md`: as duas são exatamente as duas metades do Vault Context (§9.2), a que um humano escreve e a que o produto deriva.
 
 ```
 Normas e Legislação/
-├── README.md
+├── GUIDANCE.md             ← a Orientação do vault, como um humano a escreveu
+├── STRUCTURE.md            ← a árvore anotada: ordem, descrição de cada pasta e onde há Template
 ├── 01 Normas/
-│   ├── README.md            ← a descrição da pasta, materializada
 │   ├── TEMPLATE.md
 │   └── lei-14133-art-75.md
-├── 02 Achados/
-│   ├── README.md
-│   └── TEMPLATE.md
-└── 03 Trabalhos/
-    └── 01 2026/
+└── 02 Achados/
+    └── TEMPLATE.md
 ```
 
 - **RN-PRT-001:** O export contém apenas arquivos `.md`, sem componente proprietário e sem índice obrigatório para leitura.
 - **RN-PRT-002:** A ordem de pastas e de notas é codificada como prefixo numérico no nome, que é a única forma de preservá-la num sistema de arquivos, já que ele não tem ordem própria.
-- **RN-PRT-003:** A descrição de cada pasta é materializada como `README.md` dentro dela.
+- **RN-PRT-003:** *(revista)* A árvore anotada do vault é materializada como `STRUCTURE.md` na raiz, com a ordem, a descrição de cada pasta, a contagem de notas e quais pastas têm Template. A descrição é atributo da pasta e nunca um documento, então nenhum arquivo é escrito dentro da pasta para carregá-la. Uma pasta sem Template e sem nota, por consequência, não deixa diretório na árvore exportada e sobrevive apenas no `STRUCTURE.md`. *(Até a 0.2.0 a regra dizia que a descrição era materializada como `README.md` dentro de cada pasta.)*
 - **RN-PRT-004:** Os links saem intactos no texto das notas.
-- **RN-PRT-005:** Uma nota cujo slug seja exatamente `readme` ou `template` é exportada com sufixo, e todos os links para ela são reescritos junto. É a única concessão do export, e ela pertence à borda, não ao modelo.
+- **RN-PRT-005:** *(revista)* Uma nota cujo slug seja exatamente `guidance`, `structure` ou `template` é exportada com sufixo, e todos os links para ela são reescritos junto. É a única concessão do export, e ela pertence à borda, não ao modelo. *(Até a 0.2.0 os nomes reservados eram `readme` e `template`.)*
 - **RN-PRT-006:** Notas apagadas não entram no export.
 
 ---
@@ -726,17 +755,16 @@ Normas e Legislação/
 
 | Tela | Conteúdo |
 |---|---|
-| Solicitação de assinatura | Formulário do onboarding; ao enviar, mostra o estado `pending_approval` e explica que a liberação é manual nesta fase |
-| Aguardando autorização | Estado de espera, sem acesso operacional; mostra o motivo e o botão de reenvio quando a solicitação foi rejeitada |
-| **Plataforma → Assinaturas** | Área do `PLATFORM_ADMIN`: fila de pendentes, aprovar (`trial` ou `active`), rejeitar com motivo, suspender e reativar. Mostra titular, e-mail, datas e contagem de workspaces, **nunca nome de vault nem conteúdo** (§4.6) |
+| Entrada sem assinatura ativa | Não existe tela de espera dentro do produto. Uma sessão cuja assinatura está ausente, aguardando aprovação ou bloqueada não alcança nada, então ela é encerrada e a pessoa volta à tela de entrada com a mensagem do seu caso: conta sem assinatura, assinatura aguardando autorização ou assinatura inativa. A distinção é deliberada, porque "não há nada aqui" e "seu acesso está suspenso" são fatos diferentes |
+| Solicitação de assinatura | Fora do produto nesta fase. A rota existe na API, e quem solicita e aprova é a operação da plataforma; a interface não oferece o formulário |
+| **Plataforma → Assinaturas** | Área do `PLATFORM_ADMIN`: fila de pendentes, aprovar (`trial` ou `active`), rejeitar com motivo, suspender e reativar. Mostra titular, e-mail, tipo, quota, datas e contagem de membros, **nunca nome de vault nem conteúdo** (§4.6) |
 
-**Assinatura e workspace**
+**Assinatura**
 
 | Tela | Conteúdo |
 |---|---|
 | Assinatura → Membros | Convidar por e-mail definindo `EDITOR` ou `VIEWER`, alterar papel, remover; declara o atraso de propagação (RN-ACC-016) |
 | Assinatura → Titularidade | Transferir a titularidade para outro membro, com confirmação explícita de que o titular atual vira `EDITOR` |
-| Workspace → Vaults | Lista de vaults do workspace |
 
 **Conhecimento**
 
@@ -744,26 +772,25 @@ Normas e Legislação/
 |---|---|
 | Lista de vaults | Cards: nome, descrição, nº de notas, última atualização |
 | Vault → Guidance | Editor Markdown com preview; ajuda sugerindo seções (propósito, convenções, nomenclatura) |
-| Vault → Estrutura | Árvore com arrastar-e-soltar para reordenar e mover pastas **e** notas; criar e renomear pasta; editar descrição inline |
+| Vault → Contexto do Vault | O vault como o agente o recebe em `get_vault_context` (§9.2): a Orientação e os Modelos como pontos de entrada e a árvore de pastas com a descrição de cada uma. Com arrastar-e-soltar para reordenar e mover pastas **e** notas; criar e renomear pasta; editar descrição inline |
 | Mover nota entre vaults | Ação explícita, não arrastar-e-soltar: mostra antes quantos backlinks vão quebrar e pede confirmação (RN-KNW-024) |
 | Pasta → Template | Editor do Template da pasta |
 | Nota | Leitura e edição; painel lateral com backlinks e relacionadas |
 | Nota → Histórico | Linha do tempo com autoria (humano e agente) e diferença entre revisões |
-| Vault → Busca | Campo único, alternador lexical e semântica |
+| Vault → Busca | Campo único sobre o texto do vault, aceitando campos e operadores |
 | Vault → Atividade | Quem escreveu o quê no período, em visão de vault e não de nota |
 | Vault → Saúde | Links quebrados e notas órfãs |
-| Vault → Acesso | Lista os membros do workspace e permite rebaixar um `EDITOR` a `VIEWER` **neste vault** (§5.3). Mostra o papel efetivo de cada um, não só o teto |
+| Vault → Acesso | Lista os membros da assinatura e permite rebaixar um `EDITOR` a `VIEWER` **neste vault** (§5.3). Mostra o papel efetivo de cada um, não só o teto |
 | Vault → Conectar | URL do MCP e passo a passo por cliente |
 | Configurações da assinatura | Titularidade, transferência, retenção legal, expurgo e troca de assinatura ativa, que só aparecem quando aplicáveis (PP8) |
 
 ### 13.2 Regras de interface
 
 - A troca de assinatura só aparece para quem tem mais de um vínculo (§4.5).
-- O nível de workspace só aparece quando existe mais de um workspace.
 - A área de plataforma é uma superfície à parte, alcançada por sessão própria; nenhuma tela de conteúdo tem versão "de admin" (§4.6).
-- Uma assinatura fora de `trial` ou `active` leva o usuário à tela de estado, não a uma tela de conteúdo vazia. A diferença entre "não há nada aqui" e "seu acesso está suspenso" é a diferença entre um bug aparente e uma informação.
+- Uma assinatura fora de `trial` ou `active` encerra a sessão e leva o usuário de volta à tela de entrada com a mensagem do seu caso, e nunca a uma tela de conteúdo vazia. A mensagem diz qual dos três casos é, porque a diferença entre "não há nada aqui" e "seu acesso está suspenso" é a diferença entre um bug aparente e uma informação.
 - Toda operação destrutiva ou de efeito não óbvio, como mover nota entre vaults, remover pasta com conteúdo, transferir titularidade, ativar retenção legal e expurgar, mostra a consequência **antes** de confirmar, com número concreto quando houver.
-- Onde o papel efetivo difere do papel no workspace por causa de um teto de vault (§5.3), a UI mostra o efetivo e explica a origem, porque um `EDITOR` que não consegue escrever precisa saber por quê.
+- Onde o papel efetivo difere do papel na assinatura por causa de um teto de vault (§5.3), a UI mostra o efetivo e explica a origem, porque um `EDITOR` que não consegue escrever precisa saber por quê.
 
 ---
 
@@ -795,9 +822,9 @@ Este documento descreve o produto; a 0.1.0 é o recorte que **testa a tese** (§
 |---|---|
 | Autenticação do conector MCP, bloqueante | Discovery inteiro: grafo, busca semântica e facetas (§10) |
 | Vault, pastas, ordem, guidance, template, nota | Export (§12) |
-| Onboarding de assinatura, aprovação pelo `PLATFORM_ADMIN`, workspace padrão, autorização | Mover nota entre vaults |
+| Onboarding de assinatura, aprovação pelo `PLATFORM_ADMIN`, autorização | Mover nota entre vaults |
 | Auditoria: trilha, `note_history`, `read_note(asOf)` | Convites, `EDITOR`/`VIEWER` e teto por vault (§5.3) |
-| MCP com 7 tools: `list_vaults`, `get_vault_context`, `get_template`, `list_notes`, `read_note`, `create_note`, `update_note` | `search_notes`, `semantic_search`, `related_notes`, `backlinks` |
+| MCP com 8 tools: `whoami`, `list_vaults`, `get_vault_context`, `get_template`, `list_notes`, `read_note`, `create_note`, `update_note` | `search_notes`, `semantic_search`, `related_notes`, `backlinks` |
 | UI de autoria: vault, pastas, guidance, template, nota | Retenção legal e expurgo · telas de saúde, atividade e membros |
 | Área de plataforma: fila de assinaturas, aprovar e rejeitar | Suspensão, reativação e transferência de titularidade |
 
@@ -807,16 +834,18 @@ Três inclusões que parecem contradizer o recorte, e não contradizem:
 - **A UI de autoria entra.** Sem Guidance e Template escritos por um humano, não existe nada para o agente ler, e a tese não é testável. É o menor pedaço de UI que fecha o ciclo.
 - **A aprovação de assinatura entra.** Sem billing, ela é o único portão de entrada: sem ela ninguém acessa nada, e a 0.1.0 não teria como ser usada por um primeiro cliente real. O que fica de fora é o resto do ciclo de vida, ou seja suspender, reativar e transferir.
 
-**O que a 0.1.0 assume, e que precisa estar declarado:** a assinatura tem um `OWNER` e nenhum outro membro. A colaboração inteira, com convites, `EDITOR`, `VIEWER` e teto por vault, fica para a 0.3.0. O modelo de papéis já existe no domínio desde a primeira linha (PP8); o que não existe ainda é a superfície que o exercita.
+**O que a 0.1.0 assume, e que precisa estar declarado:** a assinatura tem um `OWNER` e nenhum outro membro. A colaboração inteira, com convites, `EDITOR`, `VIEWER` e teto por vault, chega na 0.2.0 (§15.2). O modelo de papéis já existe no domínio desde a primeira linha (PP8); o que não existia na 0.1.0 é a superfície que o exercita.
 
 ### 15.2 Depois da 0.1.0
 
+A 0.2.0 fecha o produto descrito neste documento: os seis bounded contexts, a infraestrutura inteira e a interface ligada à API real. Ela entrega, além do recorte da 0.1.0, o Discovery completo (grafo de links, busca literal no texto com linguagem de consulta e facetas de curadoria), as quatro tools de descoberta, a colaboração (convites, `EDITOR`, `VIEWER` e teto de papel por vault), o ciclo de vida completo da assinatura (suspender, reativar, cancelar e transferir titularidade), mover nota entre vaults e a portabilidade.
+
 | Versão | Tema |
 |---|---|
-| 0.2.0 | Discovery: grafo de links, busca semântica e as tools correspondentes |
-| 0.3.0 | Colaboração: convites, `EDITOR`/`VIEWER`, teto de papel por vault (§5.3), telas de membros e atividade |
-| 0.4.0 | Ciclo de vida completo: suspender, reativar, cancelar, transferir titularidade; portabilidade (export) e mover nota entre vaults |
-| 0.5.0 | Conformidade: retenção legal, expurgo, relatórios de saúde |
+| 0.2.0 | O produto completo: Discovery, colaboração, ciclo de vida da assinatura, portabilidade e a interface sobre a API real |
+| 0.3.0 | Conformidade: retenção legal, expurgo e relatórios de saúde |
+
+O que fica declaradamente fora da 0.2.0 é a conformidade formal, ou seja a retenção legal (RN-AUD-008), o expurgo de conteúdo (RN-AUD-007) e os relatórios que os sustentam. Os três são atos administrativos com porta própria e evento próprio, e nenhum deles é pré-requisito de nada que já existe: adiar não cobra juros, porque a trilha que eles governam já está sendo escrita desde o primeiro dia.
 
 A ordem técnica de construção, com critérios de pronto, está em `architecture-guide.md` §25.
 
@@ -831,7 +860,8 @@ A ordem técnica de construção, com critérios de pronto, está em `architectu
 | Guidance e Template fracos degradarem a base sem ninguém perceber | **Alto** | A UI de autoria orienta as seções esperadas; a descrição de pasta é obrigatória; o relatório de saúde expõe o apodrecimento |
 | Dois agentes sobrescreverem a mesma nota | Médio | `baseRevision` obrigatório; conflito devolve o conteúdo atual (RN-AGT-005) |
 | Retry de transporte duplicar nota na ingestão | Médio | Slug único no vault faz a idempotência; `ALREADY_EXISTS` devolve o identificador existente, nunca gera sufixo (RN-AGT-004) |
-| Busca semântica devolver plausível-porém-errado | Médio | Sempre citar nota e seção de origem; o agente decide com a fonte à vista (RN-DSC-010) |
+| Busca devolver plausível-porém-errado | Médio | Sempre citar a nota de origem; o agente decide com a fonte à vista (RN-DSC-010) |
+| Busca literal não achar a nota que fala do assunto com outras palavras | Médio | Risco assumido na 0.2.0 (§10.2): a busca acha o que está escrito, e quem procura por assunto usa o grafo e as facetas. É o que o MVP vai medir com um vault real |
 | Apagar nota destruir o histórico prometido | **Alto** | Soft delete; destruição de bytes fora do domínio, como ato administrativo com evento (RN-AUD-007) |
 | Usuário em duas assinaturas agir na assinatura errada | **Alto** | Assinatura ativa explícita; conector fixa a assinatura no consentimento (RN-SUB-014) |
 | Cancelamento virar perda ou migração de dados | **Alto** | `SubscriptionId` perpétuo: status controla acesso, nunca endereço (RN-SUB-005). Reativar é mudar um campo |
@@ -851,7 +881,7 @@ Registradas aqui em vez de decididas por omissão. Cada uma vira uma decisão da
 
 | # | Questão | Por que ainda não foi decidida |
 |---|---|---|
-| Q1 | **Planos, cobrança e limites por plano** | Não há definição comercial. Os limites de §14 são técnicos, não de plano. A entidade `Subscription` já comporta plano e cobrança quando houver decisão |
+| Q1 | **Cobrança, e a quota que vira limite de verdade** | Não há definição comercial. A assinatura já declara tipo e quota (RN-SUB-018, RN-SUB-019), mas a quota não é aplicada: aplicá-la exige contabilizar bytes por assinatura e decidir o que acontece ao estourar, e cobrar exige a decisão comercial que ainda não existe |
 | Q2 | **Identidade visual:** cor primária, logotipo, tom | **Resolvida.** Sistema de marca definido no caderno "Livro da marca v1" (Figma): paleta, tipografia, símbolo e regras de uso registrados em `CLAUDE.md` § Identidade visual |
 | Q3 | **Continuidade quando o `OWNER` some** | A transferência exige o próprio `OWNER` (RN-ACC-002). Se ele fica indisponível, hoje só o `PLATFORM_ADMIN` resolveria, e o fluxo não está desenhado |
 | Q4 | **Vault público ou compartilhável por link** | Não está no escopo; entraria como um quarto papel, o que exige revisitar a matriz de §5.2 |

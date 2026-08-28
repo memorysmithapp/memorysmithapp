@@ -13,8 +13,40 @@
     "back": "Back",
     "signOut": "Sign out",
     "role": "Role",
-    "subscription": "Subscription",
-    "demoNote": "Prototype: credentials are pre-filled and no real authentication happens."
+    "plan": "Plan",
+    "storage": "Storage",
+    "status": "Status",
+    "hostedHint": "You will be taken to the sign-in page and brought back here.",
+    "completing": "Finishing the sign-in...",
+    "tryAgain": "Try again",
+    "handingOver": "Taking you to the sign-in page...",
+    "handoverFailed": "The sign-in did not complete. Try again.",
+    "signedOut": "You have signed out.",
+    "noneSubscription": "This account reaches no subscription yet. A subscription is what holds your vaults, and it is granted by hand while there is no automatic billing.",
+    "pendingSubscription": "Your subscription is waiting for approval. Approval is manual at this stage, and the product opens as soon as it is granted.",
+    "blockedSubscription": "This subscription is not active at the moment. Nothing was lost: the data stays exactly where it is and becomes reachable again once access is restored."
+  },
+  "roles": {
+    "OWNER": "Owner",
+    "EDITOR": "Editor",
+    "VIEWER": "Viewer",
+    "NONE": "No access"
+  },
+  "subscriptionType": {
+    "individual": "Individual"
+  },
+  "storageQuota": {
+    "500MB": "500 MB",
+    "1GB": "1 GB",
+    "2GB": "2 GB"
+  },
+  "subscriptionStatus": {
+    "pending_approval": "Awaiting approval",
+    "trial": "Trial",
+    "active": "Active",
+    "rejected": "Rejected",
+    "suspended": "Suspended",
+    "canceled": "Canceled"
   },
   "theme": {
     "heading": "Theme",
@@ -22,12 +54,18 @@
     "dark": "Dark",
     "system": "System"
   },
+  "language": {
+    "heading": "Language",
+    "en_US": "English",
+    "pt_BR": "Português"
+  },
   "search": {
-    "placeholder": "Search notes…",
-    "modeIndex": "Index",
-    "modeGraph": "Graph",
-    "graphSoon": "Graph search arrives with Discovery (0.2.0).",
-    "empty": "No notes match."
+    "placeholder": "Search the whole vault…",
+    "searching": "Searching…",
+    "empty": "No notes match.",
+    "invalid": "Invalid query. Check the quotes, parentheses and operators.",
+    "failed": "The search failed. Try again.",
+    "syntaxHint": "Searches the whole text. Accepts \"exact phrase\", -exclude, OR, title:, folder:, section:, content: and frontmatter attributes, such as maturity:evergreen."
   },
   "vaults": {
     "heading": "Vaults",
@@ -41,8 +79,8 @@
     "hasTemplate": "template",
     "outlineHint": "The folder tree with each folder's description. It is what tells the agent where each note goes.",
     "backToVaults": "All vaults",
-    "heading": "Structure",
-    "intro": "How this vault describes itself: the Guidance says what it is, each folder says what belongs in it, and the folder Template says how a note is laid out. This is what the agent receives from get_vault_context.",
+    "heading": "Vault Context",
+    "intro": "How this vault describes itself, and what the agent receives from get_vault_context: the Guidance says what the vault is, each folder says what belongs in it, and the folder Template says how a note is laid out.",
     "guidanceHint": "What this vault is and how to write in it",
     "templates": "Templates",
     "templatesHint_one": "{{count}} folder with a suggested layout",
@@ -51,7 +89,7 @@
     "templateOf": "Template of folder {{folder}}",
     "openFolder": "Open folder",
     "content": "Content",
-    "breadcrumb": "Structure trail"
+    "breadcrumb": "Vault context trail"
   },
   "folder": {
     "notesHeading": "Notes in this folder",
@@ -74,36 +112,45 @@
     "heading": "Overview",
     "kpiVaults": "Vaults",
     "kpiNotes": "Notes",
-    "kpiResolved": "Resolved links",
     "kpiPending": "Pending links",
-    "kpiReviewed": "Reviewed notes ({{pct}}%)",
-    "maturityHeading": "Note maturity by vault",
-    "bucket": {
-      "evergreen": "Evergreen",
-      "growing": "Growing",
-      "seed": "Seed"
-    },
-    "typesHeading": "Notes by type",
-    "reviewedHeading": "Human review by vault",
-    "reviewedYes": "Reviewed",
-    "reviewedNo": "Awaiting review",
-    "tagsHeading": "Top tags",
-    "tagsDistinct": "{{count}} distinct tags across all vaults",
-    "timelineHeading": "Notes created by day",
-    "otherVaults": "Other vaults",
     "otherTypes": "Other",
     "selectVault": "Open a vault",
     "prevVaults": "Previous vaults",
-    "nextVaults": "Next vaults"
+    "nextVaults": "Next vaults",
+    "kpiOrphans": "Orphan notes",
+    "noFacets": "These vaults declare no attributes in their notes yet, so there is nothing to chart.",
+    "moreFacets": "{{count}} more attribute(s) counted but not charted.",
+    "discardedFacets": "{{count}} attribute(s) left out of the statistics as free text: {{names}}.",
+    "unavailableVaults": "{{count}} vault(s) did not answer, so these totals are short."
+  },
+  "portability": {
+    "download": "Download vault (.zip)",
+    "preparing": "Preparing the archive…",
+    "failed": "Could not prepare the archive"
   },
   "graph": {
     "heading": "Vault graph",
     "navLabel": "Vault graph",
-    "colorBy": "Color by",
-    "colorDefault": "Default",
-    "showTags": "Show tags",
     "legendNotes": "Notes",
-    "legendTags": "Tags",
-    "hint": "Scroll to zoom · drag to pan · click a note to open it"
+    "legendTags": "Attribute values",
+    "legendOther": "Other",
+    "legendUnset": "Not declared",
+    "colorBy": "Color by",
+    "colorNone": "Nothing",
+    "attributeNodes": "Draw values of",
+    "attributeNone": "No attribute",
+    "hint": "Scroll to zoom · drag to pan · click a note to open it",
+    "empty": "This vault has no notes to draw yet.",
+    "truncated": "Showing the first 2000 notes of this vault."
+  },
+  "errors": {
+    "validation": "Something in what was sent is not accepted.",
+    "notFound": "Not found.",
+    "conflict": "This changed while you were working on it.",
+    "preconditionFailed": "This operation needs an explicit choice before it can run.",
+    "limitExceeded": "This is past the limit the product declares.",
+    "unauthenticated": "Sign in to continue.",
+    "offline": "The application could not reach the server.",
+    "unexpected": "Something went wrong."
   }
 }

@@ -12,12 +12,11 @@ import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import type * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import type * as cognito from 'aws-cdk-lib/aws-cognito';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
-import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import type { Construct } from 'constructs';
+import { ServiceLambda } from '../constructs/service-lambda.js';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -28,8 +27,16 @@ export interface AgentStackProps extends StackProps {
   certificate: acm.ICertificate;
   mcpDomainName: string;
   userPool: cognito.UserPool;
-  userPoolDomain: cognito.UserPoolDomain;
+  /** Where the sign-in page answers, already assembled by the identity stack. */
+  hostedUiOrigin: string;
   proxyClient: cognito.UserPoolClient;
+  /**
+   * Where the tools reach the other contexts. svc-agent forwards the caller's
+   * own token, so the subscription that arrives at the core is the one fixed
+   * at consent, and the client_id in that token is what becomes the agent
+   * identity in the authorship (architecture-guide.md, sections 13.1, 14.1).
+   */
+  internalApiOrigin: string;
 }
 
 export class AgentStack extends Stack {
@@ -37,7 +44,7 @@ export class AgentStack extends Stack {
     super(scope, id, props);
 
     const publicOrigin = `https://${props.mcpDomainName}`;
-    const cognitoDomain = `https://${props.userPoolDomain.domainName}.auth.${this.region}.amazoncognito.com`;
+    const cognitoDomain = props.hostedUiOrigin;
     const cognitoIssuer = `https://cognito-idp.${this.region}.amazonaws.com/${props.userPool.userPoolId}`;
 
     // HMAC key that signs the state correlating the two OAuth legs. Rotating it
@@ -47,31 +54,28 @@ export class AgentStack extends Stack {
       generateSecretString: { passwordLength: 48, excludePunctuation: true },
     });
 
-    const fn = new NodejsFunction(this, 'AgentFunction', {
-      functionName: 'memorysmith-svc-agent',
+    /**
+     * Built through ServiceLambda like every other function, which is what
+     * gives it Powertools, the mandatory alarms and a declared log group. It
+     * also carries the createRequire banner: the AWS SDK is CommonJS inside,
+     * and an ESM bundle without it dies at init with "Dynamic require of
+     * node:https is not supported". The spike shipped without the banner and
+     * this is where that showed up.
+     */
+    const service = new ServiceLambda(this, 'AgentFunction', {
       entry: join(here, '..', '..', 'memorysmith-backend', 'services', 'agent', 'src', 'lambda.ts'),
-      runtime: lambda.Runtime.NODEJS_22_X,
-      architecture: lambda.Architecture.ARM_64,
-      memorySize: 512,
+      description: 'MCP server and CIMD registration proxy.',
       timeout: Duration.seconds(15),
-      bundling: {
-        format: OutputFormat.ESM,
-        target: 'node22',
-        minify: true,
-        sourceMap: true,
-        // Bundle the AWS SDK instead of borrowing the runtime's copy, so the
-        // version the tests ran against is the version that ships.
-        externalModules: [],
-      },
       environment: {
         PUBLIC_ORIGIN: publicOrigin,
         COGNITO_ISSUER: cognitoIssuer,
         COGNITO_DOMAIN: cognitoDomain,
         PROXY_CLIENT_ID: props.proxyClient.userPoolClientId,
         STATE_SECRET_ID: stateSecret.secretArn,
-        NODE_OPTIONS: '--enable-source-maps',
+        INTERNAL_API_ORIGIN: props.internalApiOrigin,
       },
     });
+    const fn = service.function;
 
     // The function reads the HMAC key itself. Injecting the value would store it
     // in plaintext on the function configuration and in the CloudFormation
