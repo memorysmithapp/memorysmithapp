@@ -5,6 +5,7 @@
 import type {
   FolderNode,
   NoteDetail,
+  SearchHit,
   TemplateDetail,
   VaultStructure,
   VaultSummary,
@@ -77,6 +78,19 @@ export async function getVaultStructure(vaultSlug: string): Promise<VaultStructu
   };
 }
 
+/** The folder names from the vault root down to a folder, in reading order. */
+function folderTrail(vault: SeedVault, dirPath: string): string[] {
+  const names: string[] = [];
+  let dir: string | null = dirPath;
+  while (dir) {
+    const folder = vault.folders.get(dir);
+    if (!folder) break;
+    names.unshift(folder.name);
+    dir = folder.parentDirPath;
+  }
+  return names;
+}
+
 export async function getNote(vaultSlug: string, noteSlug: string): Promise<NoteDetail> {
   const vault = seedVaults().get(vaultSlug);
   const note = vault?.notesBySlug.get(noteSlug);
@@ -85,14 +99,7 @@ export async function getNote(vaultSlug: string, noteSlug: string): Promise<Note
   const raw = await note.load();
   const { frontmatter, body } = splitFrontmatter(raw);
 
-  const folderNames: string[] = [];
-  let dir: string | null = note.folderDirPath;
-  while (dir) {
-    const folder = vault.folders.get(dir);
-    if (!folder) break;
-    folderNames.unshift(folder.name);
-    dir = folder.parentDirPath;
-  }
+  const folderNames = folderTrail(vault, note.folderDirPath);
 
   return {
     id: note.path,
@@ -124,4 +131,39 @@ export function resolveNoteUrl(vaultSlug: string, targetSlug: string): string | 
   const folder = vault.folders.get(note.folderDirPath);
   if (!folder) return null;
   return `/vaults/${vaultSlug}/root/${folder.slugPath}/${targetSlug}`;
+}
+
+/**
+ * The prototype searches the note titles and the folder path, and says so on
+ * screen. The bodies sit behind one lazy import each, and reading six hundred
+ * of them on every keystroke to answer what the live source answers in a
+ * single request is not a trade a prototype needs to make: searching the text
+ * of the vault is a capability of Discovery (RN-DSC-010), and the live source
+ * is the one that has it.
+ */
+export async function searchVault(
+  vaultSlug: string,
+  query: string,
+  k: number,
+): Promise<SearchHit[]> {
+  const vault = seedVaults().get(vaultSlug);
+  if (!vault) throw new Error('NOT_FOUND');
+
+  const needle = fold(query.trim());
+  if (!needle) return [];
+
+  const hits: SearchHit[] = [];
+  for (const note of vault.notesBySlug.values()) {
+    const inTitle = fold(note.title).includes(needle);
+    const inFolder = fold(folderTrail(vault, note.folderDirPath).join(' / ')).includes(needle);
+    if (!inTitle && !inFolder) continue;
+    hits.push({ noteId: note.path, section: null, excerpt: '', score: inTitle ? 5 : 2 });
+  }
+
+  return hits.sort((left, right) => right.score - left.score).slice(0, k);
+}
+
+/** Case and diacritics dropped, the way the backend folds before matching. */
+function fold(raw: string): string {
+  return raw.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 }

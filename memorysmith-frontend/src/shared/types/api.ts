@@ -47,6 +47,19 @@ export interface NoteDetail {
   raw: string;
 }
 
+/**
+ * One hit of a vault search. The identifier is the note's, which the caller
+ * resolves against the structure it has already loaded; the excerpt is the
+ * passage around the match, cut from the text as the author wrote it, and the
+ * section is the heading it fell under when it fell under one.
+ */
+export interface SearchHit {
+  noteId: string;
+  section: string | null;
+  excerpt: string;
+  score: number;
+}
+
 export interface TemplateDetail {
   folderId: string;
   body: string;

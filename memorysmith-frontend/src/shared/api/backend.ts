@@ -20,6 +20,7 @@ import type {
 import type {
   FolderNode,
   NoteDetail,
+  SearchHit,
   TemplateDetail,
   VaultStructure,
   VaultSummary,
@@ -261,15 +262,22 @@ export async function backlinksOf(vaultSlug: string, noteId: string): Promise<Ba
   return found.backlinks;
 }
 
+/**
+ * The search of the Discovery context, which reads the text of the whole vault
+ * and answers the query language of `SearchQuery` (software-vision.md 10.2).
+ * The screen sends what the person typed, verbatim: the fields, the quotes,
+ * the exclusions and the facets are parsed by the backend, not here.
+ */
 export async function searchVault(
   vaultSlug: string,
   query: string,
-  mode: 'lexical' | 'semantic',
-): Promise<Array<{ noteId: string; section: string | null; excerpt: string; score: number }>> {
+  k: number,
+): Promise<SearchHit[]> {
   const vaultId = await vaultIdOf(vaultSlug);
-  const found = await request<{
-    hits: Array<{ noteId: string; section: string | null; excerpt: string; score: number }>;
-  }>(`/discovery/vaults/${vaultId}/search`, { method: 'POST', body: { query, mode } });
+  const found = await request<{ mode: string; hits: SearchHit[] }>(
+    `/discovery/vaults/${vaultId}/search`,
+    { method: 'POST', body: { query, k } },
+  );
   return found.hits;
 }
 

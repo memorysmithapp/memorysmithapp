@@ -10,7 +10,13 @@
 
 import * as seed from './client';
 import * as backend from './backend';
-import type { NoteDetail, TemplateDetail, VaultStructure, VaultSummary } from '../types/api';
+import type {
+  NoteDetail,
+  SearchHit,
+  TemplateDetail,
+  VaultStructure,
+  VaultSummary,
+} from '../types/api';
 
 export interface VaultSource {
   readonly isLive: boolean;
@@ -18,6 +24,7 @@ export interface VaultSource {
   getVaultStructure(vaultSlug: string): Promise<VaultStructure>;
   getNote(vaultSlug: string, noteSlug: string): Promise<NoteDetail>;
   getTemplate(vaultSlug: string, folderId: string): Promise<TemplateDetail | null>;
+  searchNotes(vaultSlug: string, query: string, k: number): Promise<SearchHit[]>;
   resolveNoteUrl(vaultSlug: string, targetSlug: string, structure?: VaultStructure): string | null;
 }
 
@@ -50,6 +57,7 @@ export const source: VaultSource = liveOrigin
       getVaultStructure: backend.getVaultStructure,
       getNote: backend.getNote,
       getTemplate: backend.getTemplate,
+      searchNotes: backend.searchVault,
       resolveNoteUrl: (vaultSlug, targetSlug, structure) =>
         resolveFromStructure(vaultSlug, targetSlug, structure),
     }
@@ -59,6 +67,7 @@ export const source: VaultSource = liveOrigin
       getVaultStructure: seed.getVaultStructure,
       getNote: seed.getNote,
       getTemplate: seed.getTemplate,
+      searchNotes: seed.searchVault,
       resolveNoteUrl: (vaultSlug, targetSlug) => seed.resolveNoteUrl(vaultSlug, targetSlug),
     };
 
@@ -93,4 +102,14 @@ export function getTemplate(vaultSlug: string, folderId: string): Promise<Templa
 /** Null means the target does not exist yet, which the UI shows as pending. */
 export function resolveNoteUrl(vaultSlug: string, targetSlug: string): string | null {
   return source.resolveNoteUrl(vaultSlug, targetSlug, loaded.get(vaultSlug));
+}
+
+/**
+ * Searching is the one read whose reach depends on which source answers: the
+ * live one reads the text of every note and the whole query language, the seed
+ * one reads the titles it has in memory. The screen shows which it is instead
+ * of pretending they are the same.
+ */
+export function searchNotes(vaultSlug: string, query: string, k: number): Promise<SearchHit[]> {
+  return source.searchNotes(vaultSlug, query, k);
 }

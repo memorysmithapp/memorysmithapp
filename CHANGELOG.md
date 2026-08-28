@@ -54,6 +54,12 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **A busca da interface passa a procurar dentro das notas.** A caixa de busca do vault filtrava, no navegador, a árvore que a página já tinha carregada, e por isso só achava o que estivesse no título da nota ou no nome da pasta: uma palavra escrita no corpo era invisível, e `maturity:evergreen` era lido como texto de título, sem casar com nada. Agora ela pergunta ao Discovery, que é quem lê o texto do vault, e a linguagem de consulta inteira vale onde a pessoa digita: vários termos, `"frase exata"`, `-excluir`, `OR`, parênteses, os campos `title:`, `folder:`, `section:` e `content:`, e qualquer atributo do frontmatter como filtro, do jeito que o vault o escreve.
+
+  Cada resultado mostra o trecho de onde a busca veio, recortado do texto como a pessoa escreveu, com o heading sob o qual a passagem caiu e os termos marcados. Uma consulta malformada diz que está malformada em vez de devolver lista vazia. O alternador Índice/Grafo saiu: ele oferecia um modo que não existia.
+
+  Sem a origem da API definida, a aplicação continua sendo o protótipo sobre o seed, onde a busca cobre título e pasta, e a própria tela passa a dizer isso em vez de deixar quem procura concluir que a nota não existe.
+
 - **A seleção de idioma passou para o menu do usuário.** Ela ficava no cabeçalho, como dois botões `PT` e `EN` sempre à vista, ao lado da assinatura da página. Agora fica junto do tema, dentro do menu, porque as duas escolhas são a mesma coisa: como esta pessoa quer o produto apresentado. Cada idioma é nomeado em si mesmo, English e Português, então a opção procurada se lê igual em qualquer idioma que esteja ativo na hora de abrir o menu.
 
 - **A assinatura deixou de ter nome.** `name` e `slug` saem do agregado, do item de armazenamento, do payload de `SubscriptionRequested`, da fila da plataforma, do contrato de sessão, do menu do usuário e do `onboard.ps1`. O que identifica uma assinatura é o `SubscriptionId`, que é perpétuo, e quem responde por ela é o titular, que a fila da plataforma já mostra pelo e-mail (RN-SUB-020). Solicitar uma assinatura passa a ser um `POST` que aceita corpo vazio: sem tipo e sem quota, ele pede o plano padrão.

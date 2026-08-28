@@ -61,11 +61,13 @@
     "pt_BR": "Português"
   },
   "search": {
-    "placeholder": "Buscar notas…",
-    "modeIndex": "Índice",
-    "modeGraph": "Grafo",
-    "graphSoon": "A busca pelo grafo chega com o Discovery (0.2.0).",
-    "empty": "Nenhuma nota encontrada."
+    "placeholder": "Buscar em todo o vault…",
+    "searching": "Buscando…",
+    "empty": "Nenhuma nota encontrada.",
+    "invalid": "Consulta inválida. Verifique as aspas, os parênteses e os operadores.",
+    "failed": "A busca falhou. Tente de novo.",
+    "syntaxHint": "Busca no texto inteiro. Aceita \"frase exata\", -excluir, OR, title:, folder:, section:, content: e atributos do frontmatter, como maturity:evergreen.",
+    "localScope": "No protótipo, a busca cobre apenas o título e a pasta."
   },
   "vaults": {
     "heading": "Vaults",

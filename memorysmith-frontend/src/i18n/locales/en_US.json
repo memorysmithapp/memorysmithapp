@@ -61,11 +61,13 @@
     "pt_BR": "Português"
   },
   "search": {
-    "placeholder": "Search notes…",
-    "modeIndex": "Index",
-    "modeGraph": "Graph",
-    "graphSoon": "Graph search arrives with Discovery (0.2.0).",
-    "empty": "No notes match."
+    "placeholder": "Search the whole vault…",
+    "searching": "Searching…",
+    "empty": "No notes match.",
+    "invalid": "Invalid query. Check the quotes, parentheses and operators.",
+    "failed": "The search failed. Try again.",
+    "syntaxHint": "Searches the whole text. Accepts \"exact phrase\", -exclude, OR, title:, folder:, section:, content: and frontmatter attributes, such as maturity:evergreen.",
+    "localScope": "In the prototype, search covers the title and the folder only."
   },
   "vaults": {
     "heading": "Vaults",
