@@ -178,11 +178,6 @@ export async function getVaultGraph(vaultSlug: string): Promise<VaultGraphDto> {
   return request<VaultGraphDto>(`/discovery/vaults/${vaultId}/graph`);
 }
 
-export async function getVaultContext(vaultSlug: string): Promise<string> {
-  const vaultId = await vaultIdOf(vaultSlug);
-  return request<string>(`/knowledge/vaults/${vaultId}/context`, { accept: 'text' });
-}
-
 // ---- Writes ----------------------------------------------------------------
 
 export async function createVault(input: {
@@ -192,11 +187,6 @@ export async function createVault(input: {
   return toSummary(
     await request<VaultSummaryDto>('/knowledge/vaults', { method: 'POST', body: input }),
   );
-}
-
-export async function putGuidance(vaultSlug: string, content: string): Promise<void> {
-  const vaultId = await vaultIdOf(vaultSlug);
-  await request(`/knowledge/vaults/${vaultId}/guidance`, { method: 'PUT', body: { content } });
 }
 
 export async function createFolder(
