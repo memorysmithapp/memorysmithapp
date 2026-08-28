@@ -54,6 +54,8 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **O `onboard.ps1` passa a ler a estrutura do vault do `STRUCTURE.md`, e não mais dos diretórios.** Com a Orientação virando `GUIDANCE.md` e as descrições de pasta saindo dos `README.md`, ele escrevia um vault sem Orientação, com o nome caindo no slug, e com todas as pastas recebendo um texto genérico no lugar da descrição real. Agora ele lê a Orientação do `GUIDANCE.md` e monta a árvore a partir do documento de estrutura, o que também faz com que uma pasta sem Modelo e sem nota, que não deixa diretório no export, volte a ser criada no lugar certo da ordem.
+
 - **A tela do vault passa a se chamar Contexto do Vault, no lugar de Estrutura.** É o mesmo objeto que o agente recebe em `get_vault_context`, e chamá-la de outra coisa criava um quarto termo para algo que já tinha nome. A página segue sendo a forma navegável dele: a Orientação e os Modelos como pontos de entrada, no lugar de virem embutidos, e a árvore de pastas com a descrição de cada uma.
 
 - **Os `docs/` passam a separar por escrito quatro coisas que se pareciam.** A Orientação é um Content Slot com revisão e histórico; a descrição da pasta é atributo da pasta, de 1 a 500 caracteres e sem histórico; o Vault Context é composto a cada leitura e nunca armazenado; e `GUIDANCE.md`, `STRUCTURE.md` e `TEMPLATE.md` são nomes de arquivo que existem só na borda do export. Nenhum desses nomes de arquivo aparece na interface nem na superfície MCP.

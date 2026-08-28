@@ -332,41 +332,96 @@ function Get-SeedText {
   return [System.IO.File]::ReadAllText($Path, [System.Text.UTF8Encoding]::new($false))
 }
 
-function Get-FolderTitle {
+function Limit-Description {
   <#
-    '01 Literature' is the folder 'Literature' in first place: the numeric
-    prefix is the order, and it belongs to the export format, not to the name.
+    A description is MANDATORY and capped at 500 characters (RN-KNW-006): a
+    longer one is cut rather than refused, and a folder the structure document
+    leaves without one still gets a sentence.
   #>
-  param([Parameter(Mandatory)][string]$DirectoryName)
-  return ($DirectoryName -replace '^\d+\s+', '')
+  param([string]$Text, [Parameter(Mandatory)][string]$Title)
+  $value = if ($Text) { $Text.Trim() } else { '' }
+  if (-not $value) { $value = "Notas de $Title." }
+  if ($value.Length -gt 500) { $value = $value.Substring(0, 497) + '...' }
+  return $value
 }
 
-function Get-FolderDescription {
+function Get-StructureTree {
   <#
-    The README of a folder is its description, and a description is MANDATORY
-    and capped at 500 characters (RN-KNW-006): a longer one is cut rather than
-    refused, and a folder without a README still gets a sentence.
+    THE STRUCTURE OF A VAULT COMES FROM ITS STRUCTURE.md, NOT FROM THE
+    DIRECTORIES. The description of a folder is an attribute of the folder and
+    never a document, so the export writes every description once, at the vault
+    root, and writes nothing inside the folder to carry it. A folder holding no
+    template and no note leaves no directory behind at all, and only that
+    document remembers it.
+
+    One line per folder, numbered, which is what makes it readable without an
+    index: `2.1.` is the folder numbered 1 inside the folder numbered 2, and
+    those numbers are the numeric prefixes the directories carry. Each node
+    comes back with the directory that holds its template and its notes, or
+    with none when the folder has neither.
+
+    Returns the root nodes, in order, each with its Children.
   #>
-  param([Parameter(Mandatory)][string]$Directory, [Parameter(Mandatory)][string]$Title)
-  $path = Join-Path $Directory 'README.md'
-  $text = if (Test-Path -LiteralPath $path) { (Get-SeedText -Path $path).Trim() } else { '' }
-  if (-not $text) { $text = "Notas de $Title." }
-  if ($text.Length -gt 500) { $text = $text.Substring(0, 497) + '...' }
-  return $text
+  param([Parameter(Mandatory)][string]$VaultRoot)
+
+  $path = Join-Path $VaultRoot 'STRUCTURE.md'
+  if (-not (Test-Path -LiteralPath $path)) { return @() }
+
+  $roots = [System.Collections.ArrayList]::new()
+  $byNumbering = @{}
+  $dirByNumbering = @{ '' = $VaultRoot }
+
+  foreach ($line in (Get-SeedText -Path $path) -split "`r?`n") {
+    if ($line -notmatch '^\s*([\d.]+)\.\s+\*\*(.+?)/?\*\*:\s*(.*?)\s*(?:\(\d+\s+notes?[^()]*\))?\s*$') {
+      continue
+    }
+    $numbering = $Matches[1]
+    $title = $Matches[2]
+    $description = $Matches[3]
+
+    $parts = $numbering -split '\.'
+    $parentKey = if ($parts.Count -eq 1) { '' } else { ($parts[0..($parts.Count - 2)] -join '.') }
+    if (-not $dirByNumbering.ContainsKey($parentKey)) { continue }
+
+    $parentDir = $dirByNumbering[$parentKey]
+    $position = [int]$parts[-1]
+    $directory = $null
+    if ($parentDir) {
+      $child = Get-ChildItem -LiteralPath $parentDir -Directory |
+        Where-Object { $_.Name -match '^(\d+)\s' -and [int]$Matches[1] -eq $position } |
+        Select-Object -First 1
+      if ($child) { $directory = $child.FullName }
+    }
+
+    $node = @{
+      Title       = $title
+      Description = Limit-Description -Text $description -Title $title
+      Directory   = $directory
+      Children    = [System.Collections.ArrayList]::new()
+    }
+    $byNumbering[$numbering] = $node
+    $dirByNumbering[$numbering] = $directory
+
+    if ($parentKey -eq '') { [void]$roots.Add($node) }
+    elseif ($byNumbering.ContainsKey($parentKey)) { [void]$byNumbering[$parentKey].Children.Add($node) }
+  }
+
+  return $roots.ToArray()
 }
 
 function Get-SeedNotes {
-  <# The notes of a folder: every .md that is not the README or the TEMPLATE. #>
+  <# The notes of a folder: every .md that is not a reserved name of the export. #>
   param([Parameter(Mandatory)][string]$Directory)
   return @(Get-ChildItem -LiteralPath $Directory -File -Filter '*.md' |
-      Where-Object { $_.Name -notin @('README.md', 'TEMPLATE.md') } | Sort-Object Name)
+      Where-Object { $_.Name -notin @('GUIDANCE.md', 'STRUCTURE.md', 'TEMPLATE.md') } |
+      Sort-Object Name)
 }
 
-function Write-SeedDirectory {
+function Write-SeedFolders {
   <#
-    One directory of the seed, and then its children: the folder, its Template,
-    its notes and its subfolders, in that order and in the order the names
-    give, which is the order the numeric prefixes encode.
+    One level of the structure, and then its children: the folder, its Template,
+    its notes and its subfolders, in that order and in the order the structure
+    document gives, which is the order the numeric prefixes encode.
 
     Everything appends, so no position is ever computed here: the API places a
     new folder and a new note at the end of its parent.
@@ -375,7 +430,7 @@ function Write-SeedDirectory {
     traversal and therefore the same answer.
   #>
   param(
-    [Parameter(Mandatory)][string]$Directory,
+    [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Nodes,
     [string]$VaultId,
     [string]$Token,
     [string]$ParentFolderId,
@@ -383,12 +438,16 @@ function Write-SeedDirectory {
     [int]$Depth = 0
   )
 
-  foreach ($child in (Get-ChildItem -LiteralPath $Directory -Directory | Sort-Object Name)) {
-    $title = Get-FolderTitle -DirectoryName $child.Name
-    $description = Get-FolderDescription -Directory $child.FullName -Title $title
-    $templatePath = Join-Path $child.FullName 'TEMPLATE.md'
-    $hasTemplate = Test-Path -LiteralPath $templatePath
-    $notes = if ($StructureOnly) { @() } else { Get-SeedNotes -Directory $child.FullName }
+  foreach ($node in $Nodes) {
+    $title = $node.Title
+    $description = $node.Description
+    $templatePath = if ($node.Directory) { Join-Path $node.Directory 'TEMPLATE.md' } else { $null }
+    $hasTemplate = $templatePath -and (Test-Path -LiteralPath $templatePath)
+    $notes = if ($StructureOnly -or -not $node.Directory) {
+      @()
+    } else {
+      Get-SeedNotes -Directory $node.Directory
+    }
     $folderId = $null
 
     if ($Preview) {
@@ -430,7 +489,7 @@ function Write-SeedDirectory {
       }
     }
 
-    Write-SeedDirectory -Directory $child.FullName -VaultId $VaultId -Token $Token `
+    Write-SeedFolders -Nodes $node.Children.ToArray() -VaultId $VaultId -Token $Token `
       -ParentFolderId $folderId -Preview:$Preview -Depth ($Depth + 1)
   }
 }
@@ -488,8 +547,9 @@ if ($VaultTemplate -ne 'none' -and $seedVaults -notcontains $VaultTemplate) {
 $writesVault = $VaultTemplate -ne 'none'
 $vaultRoot = if ($writesVault) { Join-Path $seedRoot $VaultTemplate } else { $null }
 $guidance = ''
+$structure = @()
 if ($writesVault) {
-  $guidancePath = Join-Path $vaultRoot 'README.md'
+  $guidancePath = Join-Path $vaultRoot 'GUIDANCE.md'
   if (Test-Path -LiteralPath $guidancePath) { $guidance = Get-SeedText -Path $guidancePath }
   # The name of the vault is the first heading of its Guidance, which is what
   # the export wrote there; the slug is the fallback when there is none.
@@ -497,6 +557,7 @@ if ($writesVault) {
     $heading = [regex]::Match($guidance, '(?m)^#\s+(.+?)\s*$')
     $VaultName = if ($heading.Success) { $heading.Groups[1].Value } else { $VaultTemplate }
   }
+  $structure = Get-StructureTree -VaultRoot $vaultRoot
 }
 
 if (-not $PreviewVault) {
@@ -515,7 +576,7 @@ if ($PreviewVault) {
   }
   Write-Step "The vault '$VaultName' would be written as"
   if ($guidance) { Write-Detail "Guidance, $($guidance.Length) characters" }
-  Write-SeedDirectory -Directory $vaultRoot -Preview
+  Write-SeedFolders -Nodes $structure -Preview
   Write-Host ''
   Write-Ok "$($script:FolderCount) folder(s), $($script:NoteCount) note(s)"
   if ($StructureOnly) { Write-Detail 'notes left out by -StructureOnly' }
@@ -760,7 +821,7 @@ if ($writesVault) {
     Write-Warn "$($orphans.Count) note(s) sit at the root of the seed and have no folder; skipped"
   }
 
-  Write-SeedDirectory -Directory $vaultRoot -VaultId $vaultId -Token $token
+  Write-SeedFolders -Nodes $structure -VaultId $vaultId -Token $token
   Write-Ok "$($script:FolderCount) folder(s), $($script:NoteCount) note(s)"
   if ($StructureOnly) { Write-Detail 'notes left out by -StructureOnly' }
   if ($script:SkippedNotes -gt 0) {
