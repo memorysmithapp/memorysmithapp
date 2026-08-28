@@ -73,4 +73,4 @@ new FrontendHostingStack(app, 'MemorysmithFrontend', {
 });
 
 Tags.of(app).add('app:project', 'memorysmith');
-Tags.of(app).add('app:version', '0.1.0');
+Tags.of(app).add('app:version', '0.2.0');

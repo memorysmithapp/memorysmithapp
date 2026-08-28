@@ -74,7 +74,7 @@ export async function handleMcpRequest(
       return result(id, {
         protocolVersion: PROTOCOL_VERSION,
         capabilities: { tools: {} },
-        serverInfo: { name: 'memorysmith-mcp', version: '0.1.0' },
+        serverInfo: { name: 'memorysmith-mcp', version: '0.2.0' },
       });
 
     case 'notifications/initialized':
