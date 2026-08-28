@@ -55,6 +55,11 @@
     "dark": "Escuro",
     "system": "Sistema"
   },
+  "language": {
+    "heading": "Idioma",
+    "en_US": "English",
+    "pt_BR": "Português"
+  },
   "search": {
     "placeholder": "Buscar notas…",
     "modeIndex": "Índice",

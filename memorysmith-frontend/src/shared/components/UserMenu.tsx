@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { SUPPORTED_LOCALES, setLocale, type Locale } from '../../i18n';
 import { usePreferences, type ThemeChoice } from '../store/preferences';
 import { useSession } from '../store/session';
 import {
@@ -51,7 +52,7 @@ function identityOf(live: LiveSession): Identity {
 }
 
 export function UserMenu() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   /**
    * Two sessions exist on purpose: the prototype over the seed simulates one,
@@ -199,6 +200,28 @@ export function UserMenu() {
                   aria-label={t(`theme.${value}`)}
                 >
                   <Icon />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/*
+            The language belongs beside the theme, because both are the same
+            kind of thing: how this person wants to be shown the product. Each
+            language is named in itself, so the option a person is looking for
+            reads the same whichever locale is active when they open the menu.
+          */}
+          <div className="user-menu-section">
+            <p className="user-menu-caption">{t('language.heading')}</p>
+            <div className="locale-options">
+              {SUPPORTED_LOCALES.map((locale: Locale) => (
+                <button
+                  key={locale}
+                  type="button"
+                  className={i18n.language === locale ? 'active' : ''}
+                  onClick={() => setLocale(locale)}
+                >
+                  {t(`language.${locale}`)}
                 </button>
               ))}
             </div>

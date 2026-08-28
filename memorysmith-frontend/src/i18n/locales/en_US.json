@@ -55,6 +55,11 @@
     "dark": "Dark",
     "system": "System"
   },
+  "language": {
+    "heading": "Language",
+    "en_US": "English",
+    "pt_BR": "Português"
+  },
   "search": {
     "placeholder": "Search notes…",
     "modeIndex": "Index",

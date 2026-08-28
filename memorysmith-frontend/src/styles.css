@@ -99,27 +99,6 @@ a:hover {
   flex: 1;
 }
 
-.locale-switch {
-  display: flex;
-  gap: 0.25rem;
-}
-.locale-switch button {
-  border: 1px solid var(--border);
-  background: var(--surface);
-  padding: 0.15rem 0.6rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  color: var(--text-soft);
-  font-family: var(--display);
-  font-weight: 500;
-}
-.locale-switch button.active {
-  background: var(--accent-soft);
-  color: var(--accent);
-  border-color: var(--accent);
-}
-
 .app-main {
   flex: 1;
   display: flex;
@@ -1006,11 +985,13 @@ a:hover {
   font-family: var(--display);
   font-weight: 500;
 }
-.theme-options {
+.theme-options,
+.locale-options {
   display: flex;
   gap: 0.35rem;
 }
-.theme-options button {
+.theme-options button,
+.locale-options button {
   flex: 1;
   border: 1px solid var(--border);
   background: var(--surface);
@@ -1022,7 +1003,13 @@ a:hover {
   justify-content: center;
   cursor: pointer;
 }
-.theme-options button.active {
+.locale-options button {
+  font-size: 0.82rem;
+  font-family: var(--display);
+  font-weight: 500;
+}
+.theme-options button.active,
+.locale-options button.active {
   background: var(--accent-soft);
   color: var(--accent);
   border-color: var(--accent);
