@@ -12,8 +12,8 @@
   This script closes that loop end to end, and never by hand: it creates the
   account in Cognito, signs in as it, asks for the subscription with the type
   and the quota that were chosen, puts it in the status that was chosen, and
-  then writes a whole vault through the product API, from a seed tree under
-  memorysmith-frontend/seed/vaults. Nothing is written into DynamoDB or S3
+  then writes a whole vault through the product API, from a vault tree under
+  deploy-aws/vaults. Nothing is written into DynamoDB or S3
   directly, so the domain events and the audit trail are the ones the product
   would have produced.
 
@@ -52,24 +52,23 @@
   administrative override, and this is what it exists for (RN-SUB-018).
 
 .PARAMETER VaultTemplate
-  Slug of the seed vault to write, or 'none' for an account with no vault.
-  Asked for when it is not given; the list is what exists under
-  memorysmith-frontend/seed/vaults.
+  Slug of the vault to write, or 'none' for an account with no vault. Asked
+  for when it is not given; the list is what exists under deploy-aws/vaults.
 
 .PARAMETER VaultName
-  Name of the created vault. Defaults to the title of the seed vault.
+  Name of the created vault. Defaults to the title of the source vault.
 
 .PARAMETER StructureOnly
   Writes the Guidance, the folders and the Templates, and no notes. Useful on a
-  large seed, where the notes are the slow part by far.
+  large vault, where the notes are the slow part by far.
 
 .PARAMETER MaxNotes
-  Stops after this many notes. 0, the default, means every note of the seed.
+  Stops after this many notes. 0, the default, means every note of the vault.
 
 .PARAMETER PreviewVault
   Prints the vault that WOULD be written, folder by folder, and stops. It
-  creates nothing and calls neither the API nor Cognito, so it is how a seed of
-  six hundred notes is inspected before it is uploaded.
+  creates nothing and calls neither the API nor Cognito, so it is how a vault
+  of six hundred notes is inspected before it is uploaded.
 
 .PARAMETER SetPassword
   Sets a permanent password, typed here, instead of handing the account over
@@ -91,7 +90,7 @@
 
 .EXAMPLE
   ./deploy-aws/onboard.ps1 -VaultTemplate engineering-knowledge -PreviewVault
-  Prints what that seed would become, and changes nothing.
+  Prints what that vault would become, and changes nothing.
 
 .EXAMPLE
   ./deploy-aws/onboard.ps1 -Email ana@example.com -Quota 2GB -Status active -VaultTemplate fermentacao
@@ -300,7 +299,7 @@ function Invoke-Api {
     TimeoutSec         = 60
   }
   if ($null -ne $Body) {
-    # Sent as UTF-8 bytes, because a seed note carries accents and an agent
+    # Sent as UTF-8 bytes, because a note carries accents and an agent
     # that reads it back must find the same characters that were written.
     $json = $Body | ConvertTo-Json -Compress -Depth 10
     $arguments['Body'] = [System.Text.Encoding]::UTF8.GetBytes($json)
@@ -326,8 +325,8 @@ function Invoke-Api {
   return ($response.Content | ConvertFrom-Json)
 }
 
-function Get-SeedText {
-  <# A seed file as text, always decoded as UTF-8. #>
+function Get-VaultText {
+  <# A file of the vault tree as text, always decoded as UTF-8. #>
   param([Parameter(Mandatory)][string]$Path)
   return [System.IO.File]::ReadAllText($Path, [System.Text.UTF8Encoding]::new($false))
 }
@@ -371,7 +370,7 @@ function Get-StructureTree {
   $byNumbering = @{}
   $dirByNumbering = @{ '' = $VaultRoot }
 
-  foreach ($line in (Get-SeedText -Path $path) -split "`r?`n") {
+  foreach ($line in (Get-VaultText -Path $path) -split "`r?`n") {
     if ($line -notmatch '^\s*([\d.]+)\.\s+\*\*(.+?)/?\*\*:\s*(.*?)\s*(?:\(\d+\s+notes?[^()]*\))?\s*$') {
       continue
     }
@@ -409,7 +408,7 @@ function Get-StructureTree {
   return $roots.ToArray()
 }
 
-function Get-SeedNotes {
+function Get-VaultNotes {
   <# The notes of a folder: every .md that is not a reserved name of the export. #>
   param([Parameter(Mandatory)][string]$Directory)
   return @(Get-ChildItem -LiteralPath $Directory -File -Filter '*.md' |
@@ -417,7 +416,7 @@ function Get-SeedNotes {
       Sort-Object Name)
 }
 
-function Write-SeedFolders {
+function Write-VaultFolders {
   <#
     One level of the structure, and then its children: the folder, its Template,
     its notes and its subfolders, in that order and in the order the structure
@@ -446,7 +445,7 @@ function Write-SeedFolders {
     $notes = if ($StructureOnly -or -not $node.Directory) {
       @()
     } else {
-      Get-SeedNotes -Directory $node.Directory
+      Get-VaultNotes -Directory $node.Directory
     }
     $folderId = $null
 
@@ -466,7 +465,7 @@ function Write-SeedFolders {
       if ($hasTemplate) {
         Invoke-Api -Method 'PUT' `
           -Path "/knowledge/vaults/$VaultId/folders/$folderId/template" -Token $Token `
-          -Body @{ content = (Get-SeedText -Path $templatePath) } | Out-Null
+          -Body @{ content = (Get-VaultText -Path $templatePath) } | Out-Null
       }
     }
     $script:FolderCount++
@@ -480,7 +479,7 @@ function Write-SeedFolders {
         Invoke-Api -Method 'POST' -Path "/knowledge/vaults/$VaultId/notes" -Token $Token -Body @{
           folderId = $folderId
           title    = [System.IO.Path]::GetFileNameWithoutExtension($note.Name)
-          content  = (Get-SeedText -Path $note.FullName)
+          content  = (Get-VaultText -Path $note.FullName)
         } | Out-Null
       }
       $script:NoteCount++
@@ -489,7 +488,7 @@ function Write-SeedFolders {
       }
     }
 
-    Write-SeedFolders -Nodes $node.Children.ToArray() -VaultId $VaultId -Token $Token `
+    Write-VaultFolders -Nodes $node.Children.ToArray() -VaultId $VaultId -Token $Token `
       -ParentFolderId $folderId -Preview:$Preview -Depth ($Depth + 1)
   }
 }
@@ -502,10 +501,10 @@ $context = Get-CdkContext
 $zoneName = $context.hostedZoneName
 $script:ApiOrigin = "https://api.$zoneName"
 
-$seedRoot = Join-Path $Global:MsRepoRoot 'memorysmith-frontend' 'seed' 'vaults'
-$seedVaults = @()
-if (Test-Path $seedRoot) {
-  $seedVaults = @(Get-ChildItem -LiteralPath $seedRoot -Directory | Sort-Object Name |
+$vaultsRoot = Join-Path $PSScriptRoot 'vaults'
+$sourceVaults = @()
+if (Test-Path $vaultsRoot) {
+  $sourceVaults = @(Get-ChildItem -LiteralPath $vaultsRoot -Directory | Sort-Object Name |
       ForEach-Object { $_.Name })
 }
 
@@ -532,25 +531,25 @@ if (-not $PreviewVault) {
 }
 
 if (-not $VaultTemplate) {
-  if ($seedVaults.Count -eq 0) {
+  if ($sourceVaults.Count -eq 0) {
     $VaultTemplate = 'none'
-    Write-Warn "no seed vault under $seedRoot; the account gets no vault"
+    Write-Warn "no vault tree under $vaultsRoot; the account gets no vault"
   } else {
-    $VaultTemplate = Read-Choice -Title 'vault to write' -Options ($seedVaults + 'none') `
-      -Default $seedVaults[0]
+    $VaultTemplate = Read-Choice -Title 'vault to write' -Options ($sourceVaults + 'none') `
+      -Default $sourceVaults[0]
   }
 }
-if ($VaultTemplate -ne 'none' -and $seedVaults -notcontains $VaultTemplate) {
-  throw "There is no seed vault called '$VaultTemplate'. Available: $($seedVaults -join ', ')."
+if ($VaultTemplate -ne 'none' -and $sourceVaults -notcontains $VaultTemplate) {
+  throw "There is no vault called '$VaultTemplate'. Available: $($sourceVaults -join ', ')."
 }
 
 $writesVault = $VaultTemplate -ne 'none'
-$vaultRoot = if ($writesVault) { Join-Path $seedRoot $VaultTemplate } else { $null }
+$vaultRoot = if ($writesVault) { Join-Path $vaultsRoot $VaultTemplate } else { $null }
 $guidance = ''
 $structure = @()
 if ($writesVault) {
   $guidancePath = Join-Path $vaultRoot 'GUIDANCE.md'
-  if (Test-Path -LiteralPath $guidancePath) { $guidance = Get-SeedText -Path $guidancePath }
+  if (Test-Path -LiteralPath $guidancePath) { $guidance = Get-VaultText -Path $guidancePath }
   # The name of the vault is the first heading of its Guidance, which is what
   # the export wrote there; the slug is the fallback when there is none.
   if (-not $VaultName) {
@@ -576,16 +575,16 @@ if ($PreviewVault) {
   }
   Write-Step "The vault '$VaultName' would be written as"
   if ($guidance) { Write-Detail "Guidance, $($guidance.Length) characters" }
-  Write-SeedFolders -Nodes $structure -Preview
+  Write-VaultFolders -Nodes $structure -Preview
   Write-Host ''
   Write-Ok "$($script:FolderCount) folder(s), $($script:NoteCount) note(s)"
   if ($StructureOnly) { Write-Detail 'notes left out by -StructureOnly' }
   if ($script:SkippedNotes -gt 0) {
     Write-Detail "$($script:SkippedNotes) note(s) left out by -MaxNotes $MaxNotes"
   }
-  $orphans = @(Get-SeedNotes -Directory $vaultRoot)
+  $orphans = @(Get-VaultNotes -Directory $vaultRoot)
   if ($orphans.Count -gt 0) {
-    Write-Warn "$($orphans.Count) note(s) sit at the root of the seed and have no folder; they would be skipped"
+    Write-Warn "$($orphans.Count) note(s) sit at the root of the vault tree and have no folder; they would be skipped"
   }
   Write-Detail 'nothing was created: this was a preview'
   exit 0
@@ -813,15 +812,15 @@ if ($writesVault) {
     Write-Detail 'Guidance written'
   }
 
-  # A note at the root of the seed has no folder to go in, and a note without a
+  # A note at the root of the vault tree has no folder to go in, and a note without a
   # folder is not representable in the product. Saying so beats writing five
   # hundred notes and leaving three behind in silence.
-  $orphans = @(Get-SeedNotes -Directory $vaultRoot)
+  $orphans = @(Get-VaultNotes -Directory $vaultRoot)
   if ($orphans.Count -gt 0) {
-    Write-Warn "$($orphans.Count) note(s) sit at the root of the seed and have no folder; skipped"
+    Write-Warn "$($orphans.Count) note(s) sit at the root of the vault tree and have no folder; skipped"
   }
 
-  Write-SeedFolders -Nodes $structure -VaultId $vaultId -Token $token
+  Write-VaultFolders -Nodes $structure -VaultId $vaultId -Token $token
   Write-Ok "$($script:FolderCount) folder(s), $($script:NoteCount) note(s)"
   if ($StructureOnly) { Write-Detail 'notes left out by -StructureOnly' }
   if ($script:SkippedNotes -gt 0) {

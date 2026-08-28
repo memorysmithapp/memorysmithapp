@@ -1,18 +1,19 @@
-// Translates local Obsidian-style vaults into MemorySmith seed vaults, written
+// Translates local Obsidian-style vaults into MemorySmith vault trees, written
 // in the product's export format (software-vision.md §12): numeric prefixes
 // encode folder order, GUIDANCE.md carries the guidance and STRUCTURE.md the
 // annotated folder tree, both at the vault root, and TEMPLATE.md carries the
-// folder template. Note bodies are
-// copied byte for byte — the backend never interprets content (PP4), and
-// neither does this script. The only exception is the frontmatter head, where
+// folder template. Note bodies are copied byte for byte — the backend never
+// interprets content (PP4), and neither does this script. The only exception is the frontmatter head, where
 // the cross-vault authoring standard is applied: `maturity` (seed | growing |
 // evergreen) and `reviewed` (whether the current revision has passed human
 // review) — see normalizeFrontmatter for the per-vault derivation.
 //
-// Sources live on the author's machine and are NOT part of the repository;
-// the generated trees under seed/vaults/ are the committed artifact.
+// The three real vaults are sourced from the author's machine and are NOT part
+// of the repository; the five fictional ones live in ./fictional. Either way
+// the committed artifact is the generated tree under deploy-aws/vaults/, which
+// is what onboard.ps1 writes into a fresh environment.
 //
-// Usage: node memorysmith-frontend/seed/tools/build-seed.mjs
+// Usage: node deploy-aws/vault-sources/build-vaults.mjs
 
 import {
   existsSync,
@@ -27,9 +28,10 @@ import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HOME = process.env.USERPROFILE ?? process.env.HOME;
-const SEED_DIR = resolve(fileURLToPath(import.meta.url), '..', '..');
-const AUTHORING = join(SEED_DIR, 'authoring');
-const OUT_ROOT = join(SEED_DIR, 'vaults');
+const SOURCE_DIR = resolve(fileURLToPath(import.meta.url), '..');
+const AUTHORING = join(SOURCE_DIR, 'authoring');
+const FICTIONAL = join(SOURCE_DIR, 'fictional');
+const OUT_ROOT = resolve(SOURCE_DIR, '..', 'vaults');
 
 const IGNORED_DIRS = new Set(['.obsidian', '.git', '.trash']);
 
@@ -297,7 +299,7 @@ const VAULTS = [
   {
     slug: 'runbooks-producao',
     name: 'Runbooks de Produção',
-    sourceRoot: join(SEED_DIR, 'fictional', 'runbooks-producao'),
+    sourceRoot: join(FICTIONAL, 'runbooks-producao'),
     folders: [
       {
         src: 'Runbooks',
@@ -315,7 +317,7 @@ const VAULTS = [
   {
     slug: 'onboarding-engenharia',
     name: 'Onboarding de Engenharia',
-    sourceRoot: join(SEED_DIR, 'fictional', 'onboarding-engenharia'),
+    sourceRoot: join(FICTIONAL, 'onboarding-engenharia'),
     folders: [
       {
         src: 'Trilhas',
@@ -333,7 +335,7 @@ const VAULTS = [
   {
     slug: 'pesquisa-mercado',
     name: 'Pesquisa de Mercado 2026',
-    sourceRoot: join(SEED_DIR, 'fictional', 'pesquisa-mercado'),
+    sourceRoot: join(FICTIONAL, 'pesquisa-mercado'),
     folders: [
       {
         src: 'Entrevistas',
@@ -351,7 +353,7 @@ const VAULTS = [
   {
     slug: 'fermentacao',
     name: 'Caderno de Fermentação',
-    sourceRoot: join(SEED_DIR, 'fictional', 'fermentacao'),
+    sourceRoot: join(FICTIONAL, 'fermentacao'),
     folders: [
       {
         src: 'Receitas',
@@ -369,7 +371,7 @@ const VAULTS = [
   {
     slug: 'jurisprudencia-tributaria',
     name: 'Jurisprudência Tributária',
-    sourceRoot: join(SEED_DIR, 'fictional', 'jurisprudencia-tributaria'),
+    sourceRoot: join(FICTIONAL, 'jurisprudencia-tributaria'),
     folders: [
       {
         src: 'Acórdãos',
@@ -523,7 +525,7 @@ function normalizeFrontmatter(raw, vaultSlug) {
   return head + rest;
 }
 
-function collectNoteStats(raw, vault, slug, title) {
+function collectNoteStats(raw, vault) {
   const head = raw.startsWith('---') ? raw.slice(0, raw.indexOf('\n---', 3)) : '';
   const type = /^type:\s*(\S+)/m.exec(head)?.[1] ?? 'none';
   const maturity = /^maturity:\s*(\S+)/m.exec(head)?.[1] ?? 'none';
@@ -536,14 +538,11 @@ function collectNoteStats(raw, vault, slug, title) {
   if (created) vault.stats.byCreatedDay[created] = (vault.stats.byCreatedDay[created] ?? 0) + 1;
   for (const tag of tags) vault.stats.byTag[tag] = (vault.stats.byTag[tag] ?? 0) + 1;
 
-  const out = new Set();
   for (const m of raw.matchAll(WIKILINK)) {
     const target = slugify((m[1].split('#')[0] ?? '').trim());
     if (!target) continue;
     vault.linkTargets.set(target, (vault.linkTargets.get(target) ?? 0) + 1);
-    if (target !== slug) out.add(target);
   }
-  vault.graphNotes.push({ slug, title, tags, out: [...out], type, maturity, reviewed });
 }
 
 function copyNotes(srcDir, outDir, vault, counters, depth) {
@@ -555,7 +554,7 @@ function copyNotes(srcDir, outDir, vault, counters, depth) {
       warnings.push(`[${vault.slug}] duplicate note slug "${slug}" (${join(outDir, f)})`);
     vault.slugs.add(slug);
     const raw = normalizeFrontmatter(readFileSync(join(srcDir, f), 'utf8'), vault.slug);
-    collectNoteStats(raw, vault, slug, title);
+    collectNoteStats(raw, vault);
     writeFileSync(join(outDir, f), raw, 'utf8');
     counters.notes += 1;
   }
@@ -616,7 +615,6 @@ for (const def of VAULTS) {
     slugs: new Set(),
     linkTargets: new Map(),
     stats: { byType: {}, byMaturity: {}, byTag: {}, byCreatedDay: {}, reviewed: 0 },
-    graphNotes: [],
   };
   const counters = { notes: 0, folders: 0 };
 
@@ -654,50 +652,7 @@ for (const def of VAULTS) {
     links: { resolved, pending },
   });
 
-  // Graph projection: note nodes, tag nodes and their edges, indexed compactly.
-  const noteIndex = new Map(vault.graphNotes.map((n, i) => [n.slug, i]));
-  const nodes = vault.graphNotes.map((n) => ({
-    id: n.slug,
-    title: n.title,
-    kind: 'note',
-    type: n.type,
-    maturity: n.maturity,
-    reviewed: n.reviewed,
-  }));
-  const edges = [];
-  for (const note of vault.graphNotes) {
-    const from = noteIndex.get(note.slug);
-    for (const target of note.out) {
-      const to = noteIndex.get(target);
-      if (to !== undefined) edges.push([from, to]);
-    }
-  }
-  const tagIndex = new Map();
-  for (const note of vault.graphNotes) {
-    const from = noteIndex.get(note.slug);
-    for (const tag of note.tags) {
-      let ti = tagIndex.get(tag);
-      if (ti === undefined) {
-        ti = nodes.length;
-        tagIndex.set(tag, ti);
-        nodes.push({ id: `tag:${tag}`, title: tag, kind: 'tag' });
-      }
-      edges.push([from, ti]);
-    }
-  }
-  mkdirSync(join(SEED_DIR, 'graph'), { recursive: true });
-  writeFileSync(
-    join(SEED_DIR, 'graph', `${def.slug}.json`),
-    JSON.stringify({ nodes, edges }) + '\n',
-    'utf8',
-  );
 }
-
-writeFileSync(
-  join(SEED_DIR, 'stats.json'),
-  JSON.stringify({ vaults: stats }, null, 2) + '\n',
-  'utf8',
-);
 
 console.table(stats);
 if (warnings.length) {
