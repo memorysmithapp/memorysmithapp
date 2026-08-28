@@ -76,7 +76,7 @@ export function parseAuthorship(raw: unknown): Authorship {
 // ---- Vault ------------------------------------------------------------------
 
 export function vaultMetaItem(vault: Vault, pk: string): Item {
-  return {
+  const item: Item = {
     PK: pk,
     SK: 'META',
     entity: 'VAULT',
@@ -90,6 +90,11 @@ export function vaultMetaItem(vault: Vault, pk: string): Item {
     createdAt: vault.createdBy.at.toISOString(),
     updatedAt: vault.updatedAt.toISOString(),
   };
+  // The repository projects this item into GSI1 only while the vault is live,
+  // exactly as a note leaves GSI2 when it is deleted: the listing needs no
+  // filter, because a deleted vault is not in the index at all.
+  if (vault.isDeleted) item['deletedAt'] = vault.deletedAt?.toISOString();
+  return item;
 }
 
 export function folderItem(folder: Folder, pk: string, sk: string): Item {
@@ -162,6 +167,7 @@ export function parseVault(items: Item[], subscriptionId: SubscriptionId): Vault
     version: Number(meta['version'] ?? 0),
     createdBy: parseAuthorship(meta['createdBy']),
     updatedAt: unwrapOrThrow(Instant.fromISO(String(meta['updatedAt']))),
+    deletedAt: meta['deletedAt'] ? unwrapOrThrow(Instant.fromISO(String(meta['deletedAt']))) : null,
   });
 }
 

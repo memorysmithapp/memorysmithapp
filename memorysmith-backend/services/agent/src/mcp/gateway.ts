@@ -67,9 +67,38 @@ export interface HistoryEntry {
   readonly revision: string | null;
 }
 
+export interface FolderListing {
+  readonly folderId: string;
+  readonly parentFolderId: string | null;
+  readonly name: string;
+  readonly slug: string;
+  readonly description: string;
+}
+
 /** Everything a tool can ask of the Knowledge context. */
 export interface KnowledgeGateway {
   listVaults(caller: AgentCaller): Promise<VaultListing[]>;
+  createVault(
+    caller: AgentCaller,
+    input: { name: string; description: string },
+  ): Promise<VaultListing>;
+  /** Soft delete: the vault leaves the listings and no byte is destroyed. */
+  deleteVault(caller: AgentCaller, vaultId: string): Promise<void>;
+  setGuidance(caller: AgentCaller, vaultId: string, content: string): Promise<void>;
+  createFolder(
+    caller: AgentCaller,
+    input: { vaultId: string; name: string; description: string; parentFolderId?: string },
+  ): Promise<FolderListing>;
+  /** The policy is explicit or it is not: there is no implicit default. */
+  deleteFolder(
+    caller: AgentCaller,
+    input: { vaultId: string; folderId: string; policy: string },
+  ): Promise<{ removedFolderIds: string[] }>;
+  setTemplate(
+    caller: AgentCaller,
+    input: { vaultId: string; folderId: string; content: string },
+  ): Promise<void>;
+  deleteNote(caller: AgentCaller, vaultId: string, noteId: string): Promise<void>;
   vaultContext(caller: AgentCaller, vaultId: string): Promise<string>;
   template(
     caller: AgentCaller,

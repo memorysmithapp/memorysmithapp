@@ -24,11 +24,13 @@ import type { RequestContext } from '../../../domain/access/AuthorizationPolicy.
 import type {
   ClearVaultRoleLimit,
   CreateVault,
+  DeleteVault,
   GetVault,
   GetVaultContext,
   ListVaults,
   PutGuidance,
   RenameVault,
+  RestoreVault,
   SetVaultRoleLimit,
 } from '../../../application/vaults.js';
 import type {
@@ -66,6 +68,8 @@ export interface KnowledgeUseCases {
   readonly listVaults: (request: KnowledgeRequest) => ListVaults;
   readonly getVault: (request: KnowledgeRequest) => GetVault;
   readonly renameVault: (request: KnowledgeRequest) => RenameVault;
+  readonly deleteVault: (request: KnowledgeRequest) => DeleteVault;
+  readonly restoreVault: (request: KnowledgeRequest) => RestoreVault;
   readonly putGuidance: (request: KnowledgeRequest) => PutGuidance;
   readonly getVaultContext: (request: KnowledgeRequest) => GetVaultContext;
   readonly setVaultLimit: (request: KnowledgeRequest) => SetVaultRoleLimit;
@@ -168,6 +172,40 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
         ctx: request.ctx,
         vaultId: vaultId.value,
         name: String(body.name ?? ''),
+        by: request.authorship,
+      }),
+    );
+  });
+
+  /**
+   * Soft delete: the vault leaves every listing, its name goes back to being
+   * available and not one byte is destroyed (RN-KNW-033).
+   */
+  app.delete('/vaults/:v', async (c) => {
+    const request = c.get('knowledge');
+    const vaultId = parseVaultId(c.req.param('v'));
+    if (!vaultId.ok) return fail(c, vaultId.error);
+
+    return noContent(
+      c,
+      await useCases.deleteVault(request).execute({
+        ctx: request.ctx,
+        vaultId: vaultId.value,
+        by: request.authorship,
+      }),
+    );
+  });
+
+  app.post('/vaults/:v/restore', async (c) => {
+    const request = c.get('knowledge');
+    const vaultId = parseVaultId(c.req.param('v'));
+    if (!vaultId.ok) return fail(c, vaultId.error);
+
+    return noContent(
+      c,
+      await useCases.restoreVault(request).execute({
+        ctx: request.ctx,
+        vaultId: vaultId.value,
         by: request.authorship,
       }),
     );

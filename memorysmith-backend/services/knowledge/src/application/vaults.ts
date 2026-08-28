@@ -42,6 +42,14 @@ async function loadAuthorized(
   // A vault of another subscription never even reaches here: the key the
   // repository builds carries the subscription of the token (RN-SUB-004).
   if (!vault) return err(DomainError.notFound('Vault not found'));
+  /**
+   * A deleted vault answers like one that does not exist, to every operation
+   * and every context: this single line is what makes the soft delete real for
+   * the folders, the templates, the guidance and every note inside, since all
+   * of them come through here. Restoring is the one path that loads it
+   * anyway, and it does so explicitly.
+   */
+  if (vault.isDeleted) return err(DomainError.notFound('Vault not found'));
 
   const allowed = AuthorizationPolicy.require(ctx, vault, action);
   if (!allowed.ok) return allowed;
@@ -174,6 +182,69 @@ export class RenameVault {
     if (!renamed.ok) return renamed;
 
     const saved = await this.deps.vaults.save(vault.value);
+    return saved.ok ? ok() : err(saved.error);
+  }
+}
+
+/**
+ * Deleting a vault: reversible, and no byte is destroyed (RN-KNW-033). It is
+ * an OWNER decision, like renaming, because it takes the whole vault out of
+ * reach at once (software-vision.md 5.2).
+ */
+export class DeleteVault {
+  constructor(private readonly deps: VaultDependencies) {}
+
+  async execute(input: {
+    ctx: RequestContext;
+    vaultId: VaultId;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>> {
+    const vault = await loadAuthorized(this.deps, input.ctx, input.vaultId, 'administer');
+    if (!vault.ok) return vault;
+
+    const deleted = vault.value.delete(input.by);
+    if (!deleted.ok) return deleted;
+
+    const saved = await this.deps.vaults.save(vault.value);
+    return saved.ok ? ok() : err(saved.error);
+  }
+}
+
+/**
+ * The way back. It is the ONE use case that loads a deleted vault on purpose,
+ * so it does not go through `loadAuthorized`, which answers 404 for one.
+ */
+export class RestoreVault {
+  constructor(private readonly deps: VaultDependencies) {}
+
+  async execute(input: {
+    ctx: RequestContext;
+    vaultId: VaultId;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>> {
+    const vault = await this.deps.vaults.findById(input.vaultId);
+    if (!vault || !vault.isDeleted) return err(DomainError.notFound('Vault not found'));
+
+    const allowed = AuthorizationPolicy.require(input.ctx, vault, 'administer');
+    if (!allowed.ok) return allowed;
+
+    // Deleting freed the slug, so restoring requires it to be free again,
+    // exactly as restoring a note does (RN-KNW-030).
+    const holder = await this.deps.vaults.findBySlug(vault.slug);
+    if (holder && !holder.id.equals(vault.id)) {
+      return err(
+        DomainError.conflict('That name was taken by another vault while this one was deleted', {
+          code: 'ALREADY_EXISTS',
+          vaultId: holder.id.value,
+          slug: vault.slug.value,
+        }),
+      );
+    }
+
+    const restored = vault.restore(input.by);
+    if (!restored.ok) return restored;
+
+    const saved = await this.deps.vaults.save(vault);
     return saved.ok ? ok() : err(saved.error);
   }
 }

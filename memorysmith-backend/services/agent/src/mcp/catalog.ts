@@ -64,6 +64,38 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     annotations: { readOnlyHint: true },
   },
   {
+    name: 'create_vault',
+    title: 'Create a vault',
+    description:
+      'Creates a vault in this subscription. Write its guidance right after, with set_guidance: ' +
+      'a vault without guidance tells the next agent nothing about how it wants to be written. ' +
+      'If a vault with the same name already exists, this fails with ALREADY_EXISTS and returns ' +
+      'the identifier of the existing one: no second vault is created and no suffix is invented, ' +
+      'so a retry is safe.',
+    inputSchema: object(
+      {
+        name: { type: 'string', description: 'Name of the vault; the slug is derived from it.' },
+        description: {
+          type: 'string',
+          description: 'What this vault is for, in one line. It is shown wherever it is listed.',
+        },
+      },
+      ['name', 'description'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+  },
+  {
+    name: 'delete_vault',
+    title: 'Delete a vault',
+    description:
+      'Removes a vault from every listing. It is REVERSIBLE and destroys nothing: the folders, ' +
+      'the notes and every past revision stay exactly where they are, and the history remains ' +
+      'readable. Only the owner of the subscription may do this, and it takes the whole vault ' +
+      'out of reach at once, so confirm with the person before calling it.',
+    inputSchema: object({ vault: vaultArgument }, ['vault']),
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+  },
+  {
     name: 'get_vault_context',
     title: 'Read the vault context',
     description:
@@ -73,6 +105,69 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'this vault, and the folder descriptions say what belongs where.',
     inputSchema: object({ vault: vaultArgument }, ['vault']),
     annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'set_guidance',
+    title: 'Write the guidance of a vault',
+    description:
+      'Replaces the guidance of a vault, which is the document that declares how THIS vault ' +
+      'wants to be written: its conventions, its vocabulary, what belongs in it and what does ' +
+      'not. It is read by every agent that writes here, so write it for one, in Markdown, and ' +
+      'read the current one with get_vault_context before replacing it.',
+    inputSchema: object(
+      {
+        vault: vaultArgument,
+        content: { type: 'string', description: 'The complete guidance, in Markdown.' },
+      },
+      ['vault', 'content'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: true },
+  },
+  {
+    name: 'create_folder',
+    title: 'Create a folder',
+    description:
+      'Creates a folder in a vault. The description is REQUIRED and is not decoration: it is ' +
+      'what tells the next agent what belongs in this folder, and it travels in every reading ' +
+      'of the vault context. Pass parent to nest it under another folder.',
+    inputSchema: object(
+      {
+        vault: vaultArgument,
+        name: { type: 'string', description: 'Name of the folder.' },
+        description: {
+          type: 'string',
+          description: 'What belongs in this folder. Required, and read by whoever writes here.',
+        },
+        parent: {
+          type: 'string',
+          description: 'Optional: identifier of the folder this one goes under.',
+        },
+      },
+      ['vault', 'name', 'description'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false },
+  },
+  {
+    name: 'delete_folder',
+    title: 'Delete a folder',
+    description:
+      'Removes a folder from the tree of a vault. There is NO implicit policy: with ' +
+      'REJECT_IF_NOT_EMPTY a folder that holds subfolders or notes is refused, and with CASCADE ' +
+      'the whole subtree goes. Call get_vault_context first to see what the folder holds, and ' +
+      'confirm with the person before cascading.',
+    inputSchema: object(
+      {
+        vault: vaultArgument,
+        folder: { type: 'string', description: 'Folder identifier.' },
+        policy: {
+          type: 'string',
+          enum: ['REJECT_IF_NOT_EMPTY', 'CASCADE'],
+          description: 'Required. What to do when the folder is not empty.',
+        },
+      },
+      ['vault', 'folder', 'policy'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: true },
   },
   {
     name: 'get_template',
@@ -86,6 +181,23 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       ['vault', 'folder'],
     ),
     annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'set_template',
+    title: 'Write the template of a folder',
+    description:
+      'Replaces the template of a folder, which is the suggested layout of the notes kept there. ' +
+      'The server does not validate any note against it, so what it buys is coherence, not ' +
+      'enforcement: write the skeleton a good note in this folder would follow.',
+    inputSchema: object(
+      {
+        vault: vaultArgument,
+        folder: { type: 'string', description: 'Folder identifier.' },
+        content: { type: 'string', description: 'The template, in Markdown.' },
+      },
+      ['vault', 'folder', 'content'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: true },
   },
   {
     name: 'list_notes',
@@ -161,6 +273,19 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       ['vault', 'note', 'content', 'baseRevision'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: true },
+  },
+  {
+    name: 'delete_note',
+    title: 'Delete a note',
+    description:
+      'Removes a note from the listings and from the search. It is REVERSIBLE and destroys no ' +
+      'byte: the history of the note stays readable by its identifier, and the links that ' +
+      'pointed at it become pending rather than lost. The slug goes back to being available.',
+    inputSchema: object(
+      { vault: vaultArgument, note: { type: 'string', description: 'Note identifier.' } },
+      ['vault', 'note'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
   },
   {
     name: 'search_notes',

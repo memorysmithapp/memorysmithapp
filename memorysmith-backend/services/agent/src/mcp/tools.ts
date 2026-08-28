@@ -103,6 +103,71 @@ export class McpToolAdapter {
         return json(vaults);
       }
 
+      case 'create_vault': {
+        const created = await knowledge.createVault(caller, {
+          name: requireString(args, 'name', 'create_vault'),
+          description: requireString(args, 'description', 'create_vault'),
+        });
+        return json(created);
+      }
+
+      case 'delete_vault': {
+        const vault = requireString(args, 'vault', 'delete_vault');
+        await knowledge.deleteVault(caller, vault);
+        return text(
+          `The vault ${vault} is out of every listing. Nothing was destroyed: its notes and ` +
+            'their history are intact, and it can be brought back.',
+        );
+      }
+
+      case 'set_guidance': {
+        const vault = requireString(args, 'vault', 'set_guidance');
+        await knowledge.setGuidance(caller, vault, requireString(args, 'content', 'set_guidance'));
+        return text(
+          'The guidance of this vault was replaced. Read it back with get_vault_context to see ' +
+            'it as the next agent will.',
+        );
+      }
+
+      case 'create_folder': {
+        const parent = typeof args['parent'] === 'string' ? args['parent'] : undefined;
+        const folder = await knowledge.createFolder(caller, {
+          vaultId: requireString(args, 'vault', 'create_folder'),
+          name: requireString(args, 'name', 'create_folder'),
+          description: requireString(args, 'description', 'create_folder'),
+          ...(parent === undefined ? {} : { parentFolderId: parent }),
+        });
+        return json(folder);
+      }
+
+      case 'delete_folder': {
+        const removed = await knowledge.deleteFolder(caller, {
+          vaultId: requireString(args, 'vault', 'delete_folder'),
+          folderId: requireString(args, 'folder', 'delete_folder'),
+          policy: requireString(args, 'policy', 'delete_folder'),
+        });
+        return json(removed);
+      }
+
+      case 'set_template': {
+        await knowledge.setTemplate(caller, {
+          vaultId: requireString(args, 'vault', 'set_template'),
+          folderId: requireString(args, 'folder', 'set_template'),
+          content: requireString(args, 'content', 'set_template'),
+        });
+        return text('The template of this folder was replaced. Read it back with get_template.');
+      }
+
+      case 'delete_note': {
+        const note = requireString(args, 'note', 'delete_note');
+        await knowledge.deleteNote(caller, requireString(args, 'vault', 'delete_note'), note);
+        return text(
+          `The note ${note} left the listings and the search. Nothing was destroyed: its ` +
+            'history stays readable by note_history, and the links that pointed at it are now ' +
+            'pending rather than lost.',
+        );
+      }
+
       case 'get_vault_context':
         // Markdown, not JSON: this document IS the product, and it is meant to
         // be read (software-vision.md, section 9.2).

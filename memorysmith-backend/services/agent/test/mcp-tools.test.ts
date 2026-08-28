@@ -46,6 +46,24 @@ function gateways(overrides: Record<string, unknown> = {}) {
     searchNotes: async () => [
       { noteId: 'n1', title: 'Lei 14.133', section: null, excerpt: 'Lei 14.133', score: 1 },
     ],
+    createVault: async () => ({
+      vaultId: 'v2',
+      name: 'Achados',
+      description: 'Achados de auditoria',
+      noteCount: 0,
+    }),
+    deleteVault: async () => undefined,
+    setGuidance: async () => undefined,
+    createFolder: async () => ({
+      folderId: 'f2',
+      parentFolderId: null,
+      name: 'Achados',
+      slug: 'achados',
+      description: 'Achados de auditoria.',
+    }),
+    deleteFolder: async () => ({ removedFolderIds: ['f2'] }),
+    setTemplate: async () => undefined,
+    deleteNote: async () => undefined,
     ...((overrides['knowledge'] as object) ?? {}),
   };
   const discovery = {
@@ -83,16 +101,25 @@ function gateways(overrides: Record<string, unknown> = {}) {
 }
 
 describe('The tool catalog is the public contract', () => {
-  it('publishes the twelve tools of the product', () => {
+  it('publishes the whole authoring surface, reads and writes', () => {
+    // The catalog IS the public contract of the product: a tool leaving it, or
+    // an argument changing shape, is a version bump and never a quiet edit.
     expect(TOOL_CATALOG.map((tool) => tool.name)).toEqual([
       'whoami',
       'list_vaults',
+      'create_vault',
+      'delete_vault',
       'get_vault_context',
+      'set_guidance',
+      'create_folder',
+      'delete_folder',
       'get_template',
+      'set_template',
       'list_notes',
       'read_note',
       'create_note',
       'update_note',
+      'delete_note',
       'search_notes',
       'related_notes',
       'backlinks',
@@ -122,7 +149,17 @@ describe('The tool catalog is the public contract', () => {
   it('never mixes reading and writing in one tool', () => {
     // RN-AGT-010: there is no generic tool parameterized by operation.
     const writers = TOOL_CATALOG.filter((tool) => tool.annotations.readOnlyHint === false);
-    expect(writers.map((tool) => tool.name)).toEqual(['create_note', 'update_note']);
+    expect(writers.map((tool) => tool.name)).toEqual([
+      'create_vault',
+      'delete_vault',
+      'set_guidance',
+      'create_folder',
+      'delete_folder',
+      'set_template',
+      'create_note',
+      'update_note',
+      'delete_note',
+    ]);
     for (const tool of TOOL_CATALOG) {
       const readable = tool.annotations.readOnlyHint === true;
       const writable = tool.annotations.readOnlyHint === false;
@@ -199,6 +236,110 @@ describe('whoami answers who is acting and how to write here', () => {
     // would trust a check that never runs.
     const result = await gateways().call('whoami', {}, caller);
     expect(result.content[0]?.text ?? '').toContain('does NOT validate');
+  });
+});
+
+describe('The connector authors the vault, and not only its notes', () => {
+  /** Each write tool reaches its own use case; none is parameterized by operation. */
+  function spy(): { calls: string[]; adapter: ReturnType<typeof gateways> } {
+    const calls: string[] = [];
+    const adapter = gateways({
+      knowledge: {
+        createVault: async (_caller: unknown, input: { name: string }) => {
+          calls.push(`createVault:${input.name}`);
+          return { vaultId: 'v2', name: input.name, description: '', noteCount: 0 };
+        },
+        deleteVault: async (_caller: unknown, vaultId: string) => {
+          calls.push(`deleteVault:${vaultId}`);
+        },
+        setGuidance: async (_caller: unknown, vaultId: string, content: string) => {
+          calls.push(`setGuidance:${vaultId}:${content}`);
+        },
+        createFolder: async (
+          _caller: unknown,
+          input: { name: string; parentFolderId?: string },
+        ) => {
+          calls.push(`createFolder:${input.name}:${input.parentFolderId ?? 'root'}`);
+          return {
+            folderId: 'f9',
+            parentFolderId: input.parentFolderId ?? null,
+            name: input.name,
+            slug: 'x',
+            description: 'y',
+          };
+        },
+        deleteFolder: async (_caller: unknown, input: { folderId: string; policy: string }) => {
+          calls.push(`deleteFolder:${input.folderId}:${input.policy}`);
+          return { removedFolderIds: [input.folderId] };
+        },
+        setTemplate: async (_caller: unknown, input: { folderId: string }) => {
+          calls.push(`setTemplate:${input.folderId}`);
+        },
+        deleteNote: async (_caller: unknown, vaultId: string, noteId: string) => {
+          calls.push(`deleteNote:${vaultId}:${noteId}`);
+        },
+      },
+    });
+    return { calls, adapter };
+  }
+
+  it('creates a vault, its guidance, a folder and its template', async () => {
+    const { calls, adapter } = spy();
+    await adapter.call('create_vault', { name: 'Achados', description: 'De auditoria' }, caller);
+    await adapter.call('set_guidance', { vault: 'v2', content: '# Proposito' }, caller);
+    await adapter.call(
+      'create_folder',
+      { vault: 'v2', name: '2026', description: 'Deste exercicio.', parent: 'f1' },
+      caller,
+    );
+    await adapter.call('set_template', { vault: 'v2', folder: 'f9', content: '# {{t}}' }, caller);
+
+    expect(calls).toEqual([
+      'createVault:Achados',
+      'setGuidance:v2:# Proposito',
+      'createFolder:2026:f1',
+      'setTemplate:f9',
+    ]);
+  });
+
+  it('deletes a note, a folder and a vault, each through its own tool', async () => {
+    const { calls, adapter } = spy();
+    await adapter.call('delete_note', { vault: 'v1', note: 'n1' }, caller);
+    await adapter.call('delete_folder', { vault: 'v1', folder: 'f2', policy: 'CASCADE' }, caller);
+    await adapter.call('delete_vault', { vault: 'v1' }, caller);
+
+    expect(calls).toEqual(['deleteNote:v1:n1', 'deleteFolder:f2:CASCADE', 'deleteVault:v1']);
+  });
+
+  it('refuses to remove a folder without an explicit policy', async () => {
+    // RN-KNW-007: there is no implicit default, so the tool asks rather than
+    // guessing between refusing and cascading over a subtree.
+    const result = await gateways().call('delete_folder', { vault: 'v1', folder: 'f2' }, caller);
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('delete_folder requires the argument "policy"');
+  });
+
+  it('says plainly that a deletion destroyed nothing', async () => {
+    const { adapter } = spy();
+    const note = await adapter.call('delete_note', { vault: 'v1', note: 'n1' }, caller);
+    const vault = await adapter.call('delete_vault', { vault: 'v1' }, caller);
+    expect(note.content[0]?.text).toContain('history');
+    expect(vault.content[0]?.text).toContain('Nothing was destroyed');
+  });
+
+  it('passes a refusal by role through, instead of pretending it wrote', async () => {
+    // RN-AGT-006 generalized: a VIEWER is refused on every write tool, and the
+    // refusal reaches the agent as an error with text it can act on.
+    const adapter = gateways({
+      knowledge: {
+        createVault: async () => {
+          throw new GatewayError('FORBIDDEN', 'Creating a vault requires the EDITOR role');
+        },
+      },
+    });
+    const result = await adapter.call('create_vault', { name: 'X', description: 'Y' }, caller);
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('EDITOR');
   });
 });
 
@@ -296,7 +437,7 @@ describe('The MCP transport', () => {
     );
     expect(response).not.toBeNull();
     const tools = (response as { result: { tools: unknown[] } }).result.tools;
-    expect(tools).toHaveLength(12);
+    expect(tools).toHaveLength(TOOL_CATALOG.length);
   });
 
   it('refuses a tool call from a token with no subscription', async () => {

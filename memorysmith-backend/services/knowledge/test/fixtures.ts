@@ -162,6 +162,7 @@ export function rehydratedVaultWithNotes(notes: number): { vault: Vault; folderI
     version: 7,
     createdBy: authorship(),
     updatedAt: Instant.now(),
+    deletedAt: null,
   });
   return { vault, folderId };
 }

@@ -54,6 +54,8 @@ export const domainEventTypeSchema = z.enum([
   // Knowledge
   'VaultCreated',
   'VaultRenamed',
+  'VaultDeleted',
+  'VaultRestored',
   'GuidanceUpdated',
   'FolderAdded',
   'FolderRenamed',
@@ -173,6 +175,22 @@ export const vaultCreatedPayload = z.object({
 export const vaultRenamedPayload = z.object({
   vaultId: ulidSchema,
   name: z.string().min(1),
+  slug: slugSchema,
+});
+
+/**
+ * Deleting a vault is REVERSIBLE and destroys no byte, exactly as deleting a
+ * note is (RN-KNW-033): the vault leaves every listing, its slug goes back to
+ * being available, and the content it points at is untouched.
+ */
+export const vaultDeletedPayload = z.object({
+  vaultId: ulidSchema,
+  slug: slugSchema,
+  noteCount: z.number().int().nonnegative(),
+});
+
+export const vaultRestoredPayload = z.object({
+  vaultId: ulidSchema,
   slug: slugSchema,
 });
 
@@ -322,6 +340,8 @@ export const eventPayloadSchemas = {
   VaultRoleLimitCleared: vaultRoleLimitPayload,
   VaultCreated: vaultCreatedPayload,
   VaultRenamed: vaultRenamedPayload,
+  VaultDeleted: vaultDeletedPayload,
+  VaultRestored: vaultRestoredPayload,
   GuidanceUpdated: guidanceUpdatedPayload,
   FolderAdded: folderAddedPayload,
   FolderRenamed: folderRenamedPayload,

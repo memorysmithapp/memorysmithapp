@@ -538,6 +538,7 @@ Ordenação alfabética continua disponível como opção de exibição no clien
 - **RN-KNW-029:** Apagar uma nota é reversível: a nota sai das listagens e da busca, e o histórico permanece consultável pelo identificador da nota.
 - **RN-KNW-030:** Apagar uma nota libera o seu `slug` no vault; restaurá-la exige que o slug esteja livre novamente.
 - **RN-KNW-031:** O backend não valida a nota contra o Template da pasta (PP3), e não interpreta frontmatter nem qualquer convenção de conteúdo (PP4).
+- **RN-KNW-033:** Apagar um vault é reversível e não destrói byte algum: o vault sai de toda listagem e passa a responder `404` em todos os contextos, enquanto pastas, notas e revisões permanecem intactas e o histórico segue consultável. A operação pertence ao papel de administração do vault, como renomear. Apagar libera o nome do vault na assinatura, pela mesma razão de RN-KNW-030, e por isso restaurá-lo exige que o nome esteja livre de novo.
 
 ---
 
@@ -551,12 +552,19 @@ Ordenação alfabética continua disponível como opção de exibição no clien
 |---|---|---|
 | `whoami` | `()` | Quem está agindo, o que a conexão alcança e **como escrever aqui**: a ordem de leitura do vault e o catálogo inteiro |
 | `list_vaults` | `()` | Vaults visíveis, com descrição |
+| `create_vault` | `(name, description)` | Cria um vault na assinatura; nome repetido devolve `ALREADY_EXISTS` com o identificador do existente (RN-KNW-032) |
+| `delete_vault` | `(vault)` | Apaga um vault, de forma reversível e sem destruir byte algum (RN-KNW-033) |
 | **`get_vault_context`** | `(vault)` | **A chamada principal.** Guidance integral mais árvore com descrições, ordem, contagem de notas e quais pastas têm template |
+| `set_guidance` | `(vault, content)` | Escreve a Guidance do vault, que é o documento que declara como este vault quer ser escrito |
+| `create_folder` | `(vault, name, description, parent?)` | Cria uma pasta; a descrição é obrigatória, porque é ela que diz o que pertence ali |
+| `delete_folder` | `(vault, folder, policy)` | Remove uma pasta sob política explícita, `REJECT_IF_NOT_EMPTY` ou `CASCADE` (RN-KNW-007) |
 | `get_template` | `(vault, folder)` | O Template da pasta, a ler antes de escrever |
+| `set_template` | `(vault, folder, content)` | Escreve o Template da pasta |
 | `list_notes` | `(vault, folder?)` | Índice de notas, na ordem definida |
 | `read_note` | `(vault, note, asOf?)` | Markdown completo e a revisão corrente; com `asOf`, a revisão vigente naquela data |
 | `create_note` | `(vault, folder, title, content)` | O caminho de ingestão (§1.3) |
 | `update_note` | `(vault, note, content, baseRevision)` | Atualização com detecção de conflito |
+| `delete_note` | `(vault, note)` | Apaga uma nota, de forma reversível (RN-KNW-029) |
 | `search_notes` | `(vault, query)` | Busca literal no texto do vault, com campos e operadores (§10.2) |
 | `related_notes` | `(vault, note, depth?)` | Árvore de dependências pelo grafo de links |
 | `backlinks` | `(vault, note)` | Quem aponta para esta nota |
@@ -601,6 +609,7 @@ Três decisões visíveis nesse formato:
 O conector é o produto na visão de quem chega por uma plataforma de IA, e a forma como ele é encontrado faz parte do contrato público tanto quanto a assinatura das tools. O mecanismo de diretório curado e seus critérios estão em `knowledge-base.md` §3.7; as regras abaixo dizem o que o MemorySmith faz a respeito.
 
 - **RN-AGT-009:** Toda tool do catálogo declara um título legível e a marca de leitura ou de destruição. Nenhuma tool entra no catálogo sem as duas coisas. A regra vale desde a primeira tool, e não a partir de uma eventual submissão a diretório: são essas marcas que decidem se o cliente executa a chamada direto ou pede confirmação ao usuário, então a ausência cobra atrito de quem usa o produto, listado ou não.
+- **RN-AGT-014:** O conector escreve o vault inteiro, e não apenas as notas dele. Criar e apagar vault, escrever a Guidance, criar e apagar pasta, escrever o Template e apagar nota existem como tools próprias, sob as mesmas regras de papel que a interface obedece: a decisão é sempre do vault, tomada pelo caso de uso, e nunca do protocolo. A razão é a tese do produto (§1.4): um agente que só pode acrescentar notas a uma estrutura que outra pessoa montou não escreve conhecimento, apenas o deposita.
 - **RN-AGT-010:** Leitura e escrita nunca compartilham uma tool. Não existe tool genérica parametrizada por operação. O catálogo de §9.1 já nasce assim, e a regra existe para que continue assim quando a superfície crescer.
 - **RN-AGT-011:** O registro de cliente OAuth do conector é feito por Client ID Metadata Document. O produto não oferece registro dinâmico de cliente, e os metadados de authorization server anunciam as duas chaves que a seleção de CIMD exige (`knowledge-base.md` §3.4). A decisão tem duas razões: registro dinâmico criaria um cliente OAuth novo a cada conexão, o que é justamente o padrão de tráfego esperado de um conector distribuído, e o provedor de identidade que usamos não implementa nenhum dos dois mecanismos, o que já nos obriga a intermediar o registro.
 - **RN-AGT-013:** `whoami` responde duas perguntas na mesma chamada: **quem** a conexão representa (a pessoa que autorizou, o conector e a assinatura fixada no consentimento) e **como o produto espera ser usado** (a ordem de leitura Guidance, estrutura de pastas com a descrição de cada uma, e Template da pasta de destino). A parte de ajuda é **derivada do próprio catálogo**, nunca escrita ao lado dele: um texto paralelo divergiria na primeira tool renomeada, e uma ajuda que cita tool inexistente manda o agente por um caminho que falha. `whoami` também declara que o servidor **não valida** o conteúdo contra Guidance nem Template (PP4), porque um agente que supuser validação confia numa checagem que nunca acontece.

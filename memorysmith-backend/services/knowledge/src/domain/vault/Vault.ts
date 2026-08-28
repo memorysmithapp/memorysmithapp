@@ -69,6 +69,8 @@ export class Vault {
     private _version: number,
     readonly createdBy: Authorship,
     private _updatedAt: Instant,
+    /** Set means soft-deleted: the vault is out of every listing, intact. */
+    private _deletedAt: Instant | null,
   ) {}
 
   static create(input: {
@@ -95,6 +97,7 @@ export class Vault {
       0,
       input.by,
       input.by.at,
+      null,
     );
     vault.record('VaultCreated', 'VAULT', input.id.value, input.by, {
       vaultId: input.id.value,
@@ -120,6 +123,7 @@ export class Vault {
     version: number;
     createdBy: Authorship;
     updatedAt: Instant;
+    deletedAt: Instant | null;
   }): Vault {
     return new Vault(
       input.id,
@@ -135,6 +139,7 @@ export class Vault {
       input.version,
       input.createdBy,
       input.updatedAt,
+      input.deletedAt,
     );
   }
 
@@ -174,6 +179,12 @@ export class Vault {
   }
   get updatedAt(): Instant {
     return this._updatedAt;
+  }
+  get deletedAt(): Instant | null {
+    return this._deletedAt;
+  }
+  get isDeleted(): boolean {
+    return this._deletedAt !== null;
   }
 
   noteCountOf(folderId: FolderId): number {
@@ -216,6 +227,40 @@ export class Vault {
       vaultId: this.id.value,
       name: name.value,
       slug: slug.value.value,
+    });
+    return ok();
+  }
+
+  /**
+   * Soft delete, the same promise deleting a note makes (rule 8, RN-KNW-033):
+   * the vault leaves every listing and NOT ONE BYTE is destroyed. The folders,
+   * the notes and every revision they point at stay exactly where they were,
+   * which is what makes this reversible and what keeps the audit trail
+   * readable afterwards. Destroying content remains an administrative act with
+   * its own port and its own event (RN-AUD-007).
+   *
+   * The slug goes back to being available, exactly as a deleted note frees
+   * its own (RN-KNW-030), so restoring requires it to be free again.
+   */
+  delete(by: Authorship): Result<void, DomainError> {
+    if (this.isDeleted) return err(DomainError.notFound('This vault is already deleted'));
+    this._deletedAt = by.at;
+    this.touch(by.at);
+    this.record('VaultDeleted', 'VAULT', this.id.value, by, {
+      vaultId: this.id.value,
+      slug: this._slug.value,
+      noteCount: this._vaultNoteCount,
+    });
+    return ok();
+  }
+
+  restore(by: Authorship): Result<void, DomainError> {
+    if (!this.isDeleted) return err(DomainError.conflict('This vault is not deleted'));
+    this._deletedAt = null;
+    this.touch(by.at);
+    this.record('VaultRestored', 'VAULT', this.id.value, by, {
+      vaultId: this.id.value,
+      slug: this._slug.value,
     });
     return ok();
   }

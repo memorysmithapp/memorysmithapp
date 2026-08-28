@@ -52,6 +52,8 @@ export const ACCESS_EVENT_TYPES = [
 export const KNOWLEDGE_EVENT_TYPES = [
   'VaultCreated',
   'VaultRenamed',
+  'VaultDeleted',
+  'VaultRestored',
   'GuidanceUpdated',
   'FolderAdded',
   'FolderRenamed',

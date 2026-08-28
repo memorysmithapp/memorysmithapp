@@ -41,6 +41,8 @@ interface Snapshot {
   version: number;
   /** The slug as it was loaded: a change means the guard has to move. */
   slug: string;
+  /** Whether it was deleted when loaded: crossing that line moves the guard. */
+  deleted: boolean;
   folders: Map<string, { parentFolderId: string | null; slug: string }>;
   limits: Set<string>;
 }
@@ -149,8 +151,15 @@ export class DynamoVaultRepository implements VaultRepository {
         TableName: this.tableName,
         Item: {
           ...vaultMetaItem(vault, pk),
-          GSI1PK: this.keys.subscriptionVaults(),
-          GSI1SK: this.keys.gsi1Vault(vault.id),
+          // GSI1 is sparse: a deleted vault carries no index attributes, so it
+          // leaves `listAll` with no filter anywhere, the way a deleted note
+          // leaves GSI2.
+          ...(vault.isDeleted
+            ? {}
+            : {
+                GSI1PK: this.keys.subscriptionVaults(),
+                GSI1SK: this.keys.gsi1Vault(vault.id),
+              }),
         },
         ...(snapshot
           ? {
@@ -170,19 +179,33 @@ export class DynamoVaultRepository implements VaultRepository {
      * leaves neither half behind.
      */
     const guardPk = this.keys.subscriptionVaults();
-    if (!snapshot) {
-      conditional.push({
-        Put: {
-          TableName: this.tableName,
-          Item: {
-            PK: guardPk,
-            SK: this.keys.vaultSlugGuard(vault.slug.value),
-            entity: 'VSLUG',
-            vaultId: vault.id.value,
-          },
-          ConditionExpression: 'attribute_not_exists(PK)',
+    const claimGuard = (slug: string): TransactItem => ({
+      Put: {
+        TableName: this.tableName,
+        Item: {
+          PK: guardPk,
+          SK: this.keys.vaultSlugGuard(slug),
+          entity: 'VSLUG',
+          vaultId: vault.id.value,
         },
-      });
+        ConditionExpression: 'attribute_not_exists(PK)',
+      },
+    });
+    const releaseGuard = (slug: string): TransactItem => ({
+      Delete: {
+        TableName: this.tableName,
+        Key: { PK: guardPk, SK: this.keys.vaultSlugGuard(slug) },
+      },
+    });
+
+    if (!snapshot) {
+      conditional.push(claimGuard(vault.slug.value));
+    } else if (!snapshot.deleted && vault.isDeleted) {
+      // Deleting frees the name, exactly as deleting a note frees its slug.
+      conditional.push(releaseGuard(snapshot.slug));
+    } else if (snapshot.deleted && !vault.isDeleted) {
+      // Restoring claims it back, and fails if someone took it meanwhile.
+      conditional.push(claimGuard(vault.slug.value));
     } else if (snapshot.slug !== vault.slug.value) {
       conditional.push({
         Delete: {
@@ -392,6 +415,7 @@ function snapshotOf(vault: Vault): Snapshot {
   return {
     version: vault.version,
     slug: vault.slug.value,
+    deleted: vault.isDeleted,
     folders: new Map(
       vault.folders
         .all()

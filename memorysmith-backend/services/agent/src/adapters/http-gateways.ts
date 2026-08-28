@@ -18,6 +18,7 @@ import {
   type AgentCaller,
   type AuditGateway,
   type DiscoveryGateway,
+  type FolderListing,
   type HistoryEntry,
   type KnowledgeGateway,
   type NoteContent,
@@ -75,6 +76,85 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       description: vault.description,
       noteCount: vault.noteCount,
     }));
+  }
+
+  async createVault(
+    caller: AgentCaller,
+    input: { name: string; description: string },
+  ): Promise<VaultListing> {
+    const created = await callApi<{ vaultId: string; name: string; description: string }>(
+      this.origin,
+      caller,
+      '/knowledge/vaults',
+      { method: 'POST', body: input },
+    );
+    return {
+      vaultId: created.vaultId,
+      name: created.name,
+      description: created.description,
+      noteCount: 0,
+    };
+  }
+
+  async deleteVault(caller: AgentCaller, vaultId: string): Promise<void> {
+    await callApi(this.origin, caller, `/knowledge/vaults/${vaultId}`, { method: 'DELETE' });
+  }
+
+  async setGuidance(caller: AgentCaller, vaultId: string, content: string): Promise<void> {
+    await callApi(this.origin, caller, `/knowledge/vaults/${vaultId}/guidance`, {
+      method: 'PUT',
+      body: { content },
+    });
+  }
+
+  async createFolder(
+    caller: AgentCaller,
+    input: { vaultId: string; name: string; description: string; parentFolderId?: string },
+  ): Promise<FolderListing> {
+    return callApi<FolderListing>(
+      this.origin,
+      caller,
+      `/knowledge/vaults/${input.vaultId}/folders`,
+      {
+        method: 'POST',
+        body: {
+          name: input.name,
+          description: input.description,
+          parentFolderId: input.parentFolderId ?? null,
+        },
+      },
+    );
+  }
+
+  async deleteFolder(
+    caller: AgentCaller,
+    input: { vaultId: string; folderId: string; policy: string },
+  ): Promise<{ removedFolderIds: string[] }> {
+    // The policy travels in the query, and there is no default (RN-KNW-007).
+    return callApi<{ removedFolderIds: string[] }>(
+      this.origin,
+      caller,
+      `/knowledge/vaults/${input.vaultId}/folders/${input.folderId}?policy=${encodeURIComponent(input.policy)}`,
+      { method: 'DELETE' },
+    );
+  }
+
+  async setTemplate(
+    caller: AgentCaller,
+    input: { vaultId: string; folderId: string; content: string },
+  ): Promise<void> {
+    await callApi(
+      this.origin,
+      caller,
+      `/knowledge/vaults/${input.vaultId}/folders/${input.folderId}/template`,
+      { method: 'PUT', body: { content: input.content } },
+    );
+  }
+
+  async deleteNote(caller: AgentCaller, vaultId: string, noteId: string): Promise<void> {
+    await callApi(this.origin, caller, `/knowledge/vaults/${vaultId}/notes/${noteId}`, {
+      method: 'DELETE',
+    });
   }
 
   async vaultContext(caller: AgentCaller, vaultId: string): Promise<string> {

@@ -365,3 +365,63 @@ describe('Portability answers over the API', () => {
     expect(response.status).toBe(404);
   });
 });
+
+describe('Deleting a vault takes it out of reach without destroying it', () => {
+  it('removes it from every listing and from every context', async () => {
+    const { vaultId, notes } = await seed();
+
+    expect((await call(`/knowledge/vaults/${vaultId}`, { method: 'DELETE' })).status).toBe(204);
+
+    // Out of the listing, and out of Knowledge, Discovery and Portability
+    // alike: a deleted vault answers like one that never existed (rule 9).
+    const listed = (await (await call('/knowledge/vaults')).json()) as Array<{ vaultId: string }>;
+    expect(listed.map((vault) => vault.vaultId)).not.toContain(vaultId);
+    expect((await call(`/knowledge/vaults/${vaultId}`)).status).toBe(404);
+    expect((await call(`/knowledge/vaults/${vaultId}/notes/${notes['lei']}`)).status).toBe(404);
+    expect((await call(`/discovery/vaults/${vaultId}/graph`)).status).toBe(404);
+    expect((await call(`/portability/vaults/${vaultId}/export`, { method: 'POST' })).status).toBe(
+      404,
+    );
+
+    // Nothing was destroyed: the history of a note inside it still answers.
+    const history = (await (await call(`/audit/notes/${notes['lei']}/history`)).json()) as {
+      entries: Array<{ type: string }>;
+    };
+    expect(history.entries.map((entry) => entry.type)).toContain('NoteCreated');
+  });
+
+  it('frees the name and gives it back on restore', async () => {
+    const { vaultId } = await seed();
+    await call(`/knowledge/vaults/${vaultId}`, { method: 'DELETE' });
+
+    // The slug is available again, exactly as a deleted note frees its own.
+    const twin = await call('/knowledge/vaults', {
+      method: 'POST',
+      body: { name: 'Normas e Legislacao', description: 'Outro' },
+    });
+    expect(twin.status).toBe(201);
+
+    // And restoring is refused while the name belongs to someone else.
+    const refused = await call(`/knowledge/vaults/${vaultId}/restore`, { method: 'POST' });
+    expect(refused.status).toBe(409);
+
+    const { vaultId: twinId } = (await twin.json()) as { vaultId: string };
+    await call(`/knowledge/vaults/${twinId}`, { method: 'DELETE' });
+    expect((await call(`/knowledge/vaults/${vaultId}/restore`, { method: 'POST' })).status).toBe(
+      204,
+    );
+    expect((await call(`/knowledge/vaults/${vaultId}`)).status).toBe(200);
+  });
+
+  it('records the deletion in the trail, with authorship', async () => {
+    const { vaultId } = await seed();
+    await call(`/knowledge/vaults/${vaultId}`, { method: 'DELETE' });
+    await drainEvents();
+
+    const activity = (await (await call(`/audit/vaults/${vaultId}/activity`)).json()) as {
+      entries: Array<{ type: string; authorship: { userId: string } }>;
+    };
+    const deleted = activity.entries.find((entry) => entry.type === 'VaultDeleted');
+    expect(deleted?.authorship.userId).toBe('user-owner');
+  });
+});

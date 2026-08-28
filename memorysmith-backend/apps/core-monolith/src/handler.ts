@@ -40,11 +40,13 @@ import type { KnowledgeRequest, KnowledgeUseCases } from '@memorysmith/svc-knowl
 import {
   ClearVaultRoleLimit,
   CreateVault,
+  DeleteVault,
   GetVault,
   GetVaultContext,
   ListVaults,
   PutGuidance,
   RenameVault,
+  RestoreVault,
   SetVaultRoleLimit,
 } from '@memorysmith/svc-knowledge/application/vaults';
 import {
@@ -174,6 +176,8 @@ const knowledgeUseCases: KnowledgeUseCases = {
   listVaults: (request) => new ListVaults(buildKnowledge(infra, request.subscription)),
   getVault: (request) => new GetVault(buildKnowledge(infra, request.subscription)),
   renameVault: (request) => new RenameVault(buildKnowledge(infra, request.subscription)),
+  deleteVault: (request) => new DeleteVault(buildKnowledge(infra, request.subscription)),
+  restoreVault: (request) => new RestoreVault(buildKnowledge(infra, request.subscription)),
   putGuidance: (request) => new PutGuidance(buildKnowledge(infra, request.subscription)),
   getVaultContext: (request) => new GetVaultContext(buildKnowledge(infra, request.subscription)),
   setVaultLimit: (request) => new SetVaultRoleLimit(buildKnowledge(infra, request.subscription)),
@@ -280,7 +284,9 @@ const app = createApp({
     const parsed = VaultId.create(vaultId);
     if (!parsed.ok) return false;
     const vault = await buildKnowledge(infra, request.subscription).vaults.findById(parsed.value);
-    if (!vault) return false;
+    // A deleted vault is unreadable to every context, not only to Knowledge:
+    // Discovery and Portability ask this question, and both must get a no.
+    if (!vault || vault.isDeleted) return false;
     return request.ctx.isOwner || request.subscriptionRole.canRead();
   },
 });

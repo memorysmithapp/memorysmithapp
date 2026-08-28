@@ -57,7 +57,9 @@ import {
   GetVaultContext,
   ListVaults,
   PutGuidance,
+  DeleteVault,
   RenameVault,
+  RestoreVault,
   SetVaultRoleLimit,
 } from '@memorysmith/svc-knowledge/application/vaults';
 import {
@@ -209,6 +211,8 @@ export function buildTestApp() {
     listVaults: (request) => new ListVaults(knowledgeRepos(request.subscription)),
     getVault: (request) => new GetVault(knowledgeRepos(request.subscription)),
     renameVault: (request) => new RenameVault(knowledgeRepos(request.subscription)),
+    deleteVault: (request) => new DeleteVault(knowledgeRepos(request.subscription)),
+    restoreVault: (request) => new RestoreVault(knowledgeRepos(request.subscription)),
     putGuidance: (request) => new PutGuidance(knowledgeRepos(request.subscription)),
     getVaultContext: (request) => new GetVaultContext(knowledgeRepos(request.subscription)),
     setVaultLimit: (request) => new SetVaultRoleLimit(knowledgeRepos(request.subscription)),
@@ -319,7 +323,8 @@ export function buildTestApp() {
       const parsed = (await import('@memorysmith/kernel')).VaultId.create(vaultId);
       if (!parsed.ok) return false;
       const vault = await knowledgeRepos(request.subscription).vaults.findById(parsed.value);
-      return vault !== null;
+      // A deleted vault is unreadable to every context, not only to Knowledge.
+      return vault !== null && !vault.isDeleted;
     },
     resolveContext: async (request: AccessRequest) => {
       const context = request.context;

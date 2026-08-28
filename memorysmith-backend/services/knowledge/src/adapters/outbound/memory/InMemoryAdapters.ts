@@ -85,17 +85,23 @@ export class InMemoryVaultRepository implements VaultRepository {
     return this.db.vaults.get(vaultKey(this.sub, id))?.vault ?? null;
   }
 
+  /**
+   * A deleted vault is out, with no filter needed in the caller: in DynamoDB
+   * that is GSI1 being sparse, and here it is this line.
+   */
   async listAll(): Promise<Vault[]> {
     const prefix = `S#${this.sub.subscriptionId.value}#VAULT#`;
     return [...this.db.vaults.entries()]
       .filter(([key]) => key.startsWith(prefix))
-      .map(([, entry]) => entry.vault);
+      .map(([, entry]) => entry.vault)
+      .filter((vault) => !vault.isDeleted);
   }
 
   /**
    * Same answer the database gives, from the same question: which vault of
    * this subscription holds this slug. The adapter in memory has no guard item,
    * so it looks through the list, which is the honest equivalent at this size.
+   * A deleted vault holds no slug, exactly as its guard item is released.
    */
   async findBySlug(slug: Slug): Promise<Vault | null> {
     const vaults = await this.listAll();
