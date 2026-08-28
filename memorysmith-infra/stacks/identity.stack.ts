@@ -275,67 +275,83 @@ export class IdentityStack extends Stack {
       ).toString('base64');
     };
 
-    new cognito.CfnManagedLoginBranding(this, 'ManagedLoginBranding', {
-      userPoolId: this.userPool.userPoolId,
-      clientId: this.webClient.userPoolClientId,
-      useCognitoProvidedValues: false,
-      settings: JSON.parse(
-        readFileSync(join(here, '..', 'branding', 'managed-login.json'), 'utf8'),
-      ) as unknown,
-      assets: [
-        /**
-         * The full signature, symbol and logotype, exported from the brand
-         * book (page 04) with the type already converted to curves. That last
-         * part is why it can live here at all: Space Grotesk is loaded from a
-         * font service at runtime and would never reach a page served by the
-         * identity provider, so a logotype as live text would fall back to
-         * some other typeface on the one screen where the brand is most
-         * exposed. The tile background of the export was stripped: what lands
-         * on the card has to be the signature, not a grey rectangle.
-         */
+    const brandingSettings = JSON.parse(
+      readFileSync(join(here, '..', 'branding', 'managed-login.json'), 'utf8'),
+    ) as unknown;
+
+    const brandingAssets = [
+      /**
+       * The full signature, symbol and logotype, exported from the brand
+       * book (page 04) with the type already converted to curves. That last
+       * part is why it can live here at all: Space Grotesk is loaded from a
+       * font service at runtime and would never reach a page served by the
+       * identity provider, so a logotype as live text would fall back to
+       * some other typeface on the one screen where the brand is most
+       * exposed. The tile background of the export was stripped: what lands
+       * on the card has to be the signature, not a grey rectangle.
+       */
+      {
+        category: 'FORM_LOGO',
+        colorMode: 'LIGHT',
+        extension: 'SVG',
+        bytes: paddedToRatio('lockup-light.svg', 4),
+      },
+      {
+        category: 'FORM_LOGO',
+        colorMode: 'DARK',
+        extension: 'SVG',
+        bytes: paddedToRatio('lockup-dark.svg', 4),
+      },
+      /**
+       * ONE favicon, transparent, for both colour modes. The symbol carries
+       * its own colour and needs no plate behind it, so there is nothing for
+       * a light and a dark version to differ about, and a single mark is
+       * what a tab should show.
+       *
+       * It is still declared twice, once per colour mode, and that is the
+       * provider's shape rather than ours: the page asks for the light or
+       * the dark variant BY NAME, and a DYNAMIC asset is accepted on deploy
+       * and then never requested. Both entries point at the same bytes.
+       *
+       * The .ico goes alongside the .svg because the page announces both and
+       * a browser is free to prefer either; supplying only one leaves the
+       * other pointing at the provider's default icon.
+       */
+      ...(['LIGHT', 'DARK'] as const).flatMap((colorMode) => [
         {
-          category: 'FORM_LOGO',
-          colorMode: 'LIGHT',
+          category: 'FAVICON_SVG',
+          colorMode,
           extension: 'SVG',
-          bytes: paddedToRatio('lockup-light.svg', 4),
+          bytes: squareSymbol('symbol.svg'),
         },
         {
-          category: 'FORM_LOGO',
-          colorMode: 'DARK',
-          extension: 'SVG',
-          bytes: paddedToRatio('lockup-dark.svg', 4),
+          category: 'FAVICON_ICO',
+          colorMode,
+          extension: 'ICO',
+          bytes: icon('favicon.ico'),
         },
-        /**
-         * ONE favicon, transparent, for both colour modes. The symbol carries
-         * its own colour and needs no plate behind it, so there is nothing for
-         * a light and a dark version to differ about, and a single mark is
-         * what a tab should show.
-         *
-         * It is still declared twice, once per colour mode, and that is the
-         * provider's shape rather than ours: the page asks for the light or
-         * the dark variant BY NAME, and a DYNAMIC asset is accepted on deploy
-         * and then never requested. Both entries point at the same bytes.
-         *
-         * The .ico goes alongside the .svg because the page announces both and
-         * a browser is free to prefer either; supplying only one leaves the
-         * other pointing at the provider's default icon.
-         */
-        ...(['LIGHT', 'DARK'] as const).flatMap((colorMode) => [
-          {
-            category: 'FAVICON_SVG',
-            colorMode,
-            extension: 'SVG',
-            bytes: squareSymbol('symbol.svg'),
-          },
-          {
-            category: 'FAVICON_ICO',
-            colorMode,
-            extension: 'ICO',
-            bytes: icon('favicon.ico'),
-          },
-        ]),
-      ],
-    });
+      ]),
+    ];
+
+    /**
+     * Managed login dresses ONE APP CLIENT AT A TIME, and a client without a
+     * branding of its own gets no page at all: the provider answers "Login
+     * pages unavailable" where the sign-in form should be. Both clients open
+     * the same screen, the SPA and the connector proxy, so both wear the same
+     * dressing. Whoever adds a third client adds it here too.
+     */
+    for (const [id, client] of [
+      ['ManagedLoginBranding', this.webClient],
+      ['CimdProxyManagedLoginBranding', this.proxyClient],
+    ] as const) {
+      new cognito.CfnManagedLoginBranding(this, id, {
+        userPoolId: this.userPool.userPoolId,
+        clientId: client.userPoolClientId,
+        useCognitoProvidedValues: false,
+        settings: brandingSettings,
+        assets: brandingAssets,
+      });
+    }
 
     new CfnOutput(this, 'UserPoolId', { value: this.userPool.userPoolId });
     new CfnOutput(this, 'WebClientId', { value: this.webClient.userPoolClientId });
