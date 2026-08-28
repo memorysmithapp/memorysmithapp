@@ -1,6 +1,6 @@
 # Seed de vaults do frontend
 
-Três vaults reais, traduzidos dos experimentos de gestão de conhecimento que originaram o MemorySmith.app, no **formato de export do produto** (`docs/software-vision.md` §12): prefixo numérico codifica a ordem das pastas, `README.md` faz o papel de Guidance na raiz do vault e de descrição dentro de cada pasta, `TEMPLATE.md` faz o papel de Template da pasta, e as notas são copiadas com o corpo byte a byte e os wikilinks intactos (PP4). No frontmatter, a tradução aplica o padrão de autoria comum aos três vaults: `maturity` (`seed`, `growing`, `evergreen`), reavaliado a cada escrita, e `reviewed`, que marca se a revisão vigente passou por revisão humana.
+Três vaults reais, traduzidos dos experimentos de gestão de conhecimento que originaram o MemorySmith.app, no **formato de export do produto** (`docs/software-vision.md` §12): prefixo numérico codifica a ordem das pastas, `GUIDANCE.md` faz o papel de Guidance na raiz do vault, `STRUCTURE.md` ao lado dele carrega a árvore anotada com a descrição de cada pasta, `TEMPLATE.md` faz o papel de Template da pasta, e as notas são copiadas com o corpo byte a byte e os wikilinks intactos (PP4). No frontmatter, a tradução aplica o padrão de autoria comum aos três vaults: `maturity` (`seed`, `growing`, `evergreen`), reavaliado a cada escrita, e `reviewed`, que marca se a revisão vigente passou por revisão humana.
 
 | Vault | Conteúdo | Notas |
 |---|---|---|
@@ -11,7 +11,7 @@ Três vaults reais, traduzidos dos experimentos de gestão de conhecimento que o
 ## Layout
 
 - `fictional/`: as fontes dos cinco vaults fictícios pequenos (runbooks, onboarding, pesquisa de mercado, fermentação e jurisprudência), que vivem no próprio repositório e existem para exercitar o catálogo, o dashboard e a navegação com mais de três vaults.
-- `authoring/`: os textos autorais da tradução, por vault: `guidance.md` (vira o `README.md` da raiz) e `templates/*.md` (viram os `TEMPLATE.md` das pastas).
+- `authoring/`: os textos autorais da tradução, por vault: `guidance.md` (vira o `GUIDANCE.md` da raiz) e `templates/*.md` (viram os `TEMPLATE.md` das pastas).
 - `tools/build-seed.mjs`: o tradutor. Lê os vaults de origem na máquina do autor, aplica o mapeamento de pastas e gera a saída. Os vaults de origem **não** fazem parte do repositório; o artefato commitado é a saída.
 - `vaults/`: a saída gerada, consumida pela camada de dados mockada do frontend. Não editar à mão: alterações se fazem em `authoring/` ou na origem, seguidas de regeração.
 

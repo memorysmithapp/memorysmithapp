@@ -1,8 +1,10 @@
 // Seed adapter: derives the vault model from the files under /seed/vaults,
-// which are written in the product's export format. Folder order comes from
-// the numeric prefix, README.md carries guidance (vault root) or the folder
-// description, TEMPLATE.md carries the folder template, everything else is a
-// note. File contents load lazily; only the path index is eager.
+// which are written in the product's export format. GUIDANCE.md at the vault
+// root carries the guidance, STRUCTURE.md next to it carries the annotated
+// folder tree, TEMPLATE.md carries the folder template, everything else is a
+// note. Note contents load lazily; only the path index and STRUCTURE.md are
+// eager, which mirrors the real system: the structure comes from the item
+// store and the content from the object store.
 
 type Loader = () => Promise<string>;
 
@@ -10,6 +12,13 @@ const files = import.meta.glob('/seed/vaults/**/*.md', {
   query: '?raw',
   import: 'default',
 }) as Record<string, Loader>;
+
+/** Eight small documents, and nothing renders without them. */
+const structures = import.meta.glob('/seed/vaults/*/STRUCTURE.md', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>;
 
 export function slugify(name: string): string {
   return name
@@ -27,7 +36,7 @@ export interface SeedFolder {
   position: number;
   slug: string;
   slugPath: string;
-  description?: Loader;
+  description: string;
   template?: Loader;
   notes: SeedNote[];
 }
@@ -69,10 +78,78 @@ function ensureFolder(vault: SeedVault, dirs: string[]): SeedFolder {
     position,
     slug,
     slugPath: parent ? `${parent.slugPath}/${slug}` : slug,
+    description: '',
     notes: [],
   };
   vault.folders.set(dirPath, folder);
   return folder;
+}
+
+interface StructureEntry {
+  /** The numbering of the line, `2.1.` read as [2, 1]. */
+  readonly numbering: number[];
+  readonly name: string;
+  readonly description: string;
+}
+
+/**
+ * Reads the annotated tree of STRUCTURE.md, whose format is declared in
+ * software-vision.md 9.2 and written by the export. One line per folder:
+ *
+ *   2.1. **2026**: Emitidos neste exercicio. (5 notes, has TEMPLATE.md)
+ *
+ * Only the numbering, the name and the description are read back. The note
+ * count and the template mark are derived data, and this adapter counts the
+ * real files instead of trusting a number written into a document.
+ */
+function parseStructure(markdown: string): StructureEntry[] {
+  const line = /^\s*([\d.]+)\.\s+\*\*(.+?)\/?\*\*:\s*(.*?)\s*(?:\((?:\d+\s+notes?)[^()]*\))?\s*$/;
+  const entries: StructureEntry[] = [];
+  for (const raw of markdown.split('\n')) {
+    const match = line.exec(raw);
+    if (!match) continue;
+    const numbering = (match[1] ?? '')
+      .split('.')
+      .filter((part) => part.length > 0)
+      .map(Number);
+    if (numbering.length === 0 || numbering.some(Number.isNaN)) continue;
+    entries.push({ numbering, name: match[2] ?? '', description: match[3] ?? '' });
+  }
+  return entries;
+}
+
+function pad(position: number): string {
+  return String(position).padStart(2, '0');
+}
+
+/**
+ * Walks the parsed tree and hands each folder its description. A folder that
+ * holds neither a template nor a note left no directory behind in the export,
+ * so it does not exist yet: it is created here, which is the whole reason the
+ * structure travels as its own document.
+ */
+function applyStructure(vault: SeedVault, markdown: string): void {
+  const dirsByNumbering = new Map<string, string[]>();
+
+  for (const entry of parseStructure(markdown)) {
+    const parentKey = entry.numbering.slice(0, -1).join('.');
+    const parentDirs = entry.numbering.length === 1 ? [] : (dirsByNumbering.get(parentKey) ?? null);
+    if (parentDirs === null) continue;
+
+    const position = entry.numbering[entry.numbering.length - 1] ?? 0;
+    const parentDirPath = parentDirs.length ? parentDirs.join('/') : null;
+    const sibling = [...vault.folders.values()].find(
+      (folder) => folder.parentDirPath === parentDirPath && folder.position === position,
+    );
+
+    const dirs = [
+      ...parentDirs,
+      sibling ? sibling.dirPath.split('/').pop()! : `${pad(position)} ${entry.name}`,
+    ];
+    const folder = ensureFolder(vault, dirs);
+    folder.description = entry.description;
+    dirsByNumbering.set(entry.numbering.join('.'), dirs);
+  }
 }
 
 let cache: Map<string, SeedVault> | null = null;
@@ -94,14 +171,12 @@ export function seedVaults(): Map<string, SeedVault> {
     const rest = parts.slice(1);
     const fileName = rest[rest.length - 1] ?? '';
     if (rest.length === 1) {
-      if (fileName === 'README.md') vault.guidance = load;
+      if (fileName === 'GUIDANCE.md') vault.guidance = load;
       continue;
     }
 
     const folder = ensureFolder(vault, rest.slice(0, -1));
-    if (fileName === 'README.md') {
-      folder.description = load;
-    } else if (fileName === 'TEMPLATE.md') {
+    if (fileName === 'TEMPLATE.md') {
       folder.template = load;
     } else {
       const title = fileName.replace(/\.md$/, '');
@@ -115,6 +190,12 @@ export function seedVaults(): Map<string, SeedVault> {
       folder.notes.push(note);
       vault.notesBySlug.set(note.slug, note);
     }
+  }
+
+  for (const [path, markdown] of Object.entries(structures)) {
+    const vaultSlug = path.replace('/seed/vaults/', '').split('/')[0];
+    const vault = vaultSlug ? vaults.get(vaultSlug) : undefined;
+    if (vault) applyStructure(vault, markdown);
   }
 
   for (const vault of vaults.values()) {

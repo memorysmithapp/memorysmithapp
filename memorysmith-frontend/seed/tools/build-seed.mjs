@@ -1,7 +1,8 @@
 // Translates local Obsidian-style vaults into MemorySmith seed vaults, written
 // in the product's export format (software-vision.md §12): numeric prefixes
-// encode folder order, README.md carries the guidance (vault root) or the
-// folder description, TEMPLATE.md carries the folder template. Note bodies are
+// encode folder order, GUIDANCE.md carries the guidance and STRUCTURE.md the
+// annotated folder tree, both at the vault root, and TEMPLATE.md carries the
+// folder template. Note bodies are
 // copied byte for byte — the backend never interprets content (PP4), and
 // neither does this script. The only exception is the frontmatter head, where
 // the cross-vault authoring standard is applied: `maturity` (seed | growing |
@@ -407,12 +408,52 @@ function slugify(name) {
     .replace(/^-+|-+$/g, '');
 }
 
-function writeDesc(dir, desc) {
+// The description of a folder is an attribute of the folder, not a document:
+// it goes into the single STRUCTURE.md of the vault, never into a file of its
+// own inside the folder (RN-PRT-003).
+const descriptions = new Map();
+
+function recordDesc(dir, desc) {
   if (desc.length < 1 || desc.length > 500)
     warnings.push(`description out of 1..500 chars (${desc.length}): ${dir}`);
-  writeFileSync(join(dir, 'README.md'), desc + '\n', 'utf8');
+  descriptions.set(dir, desc);
 }
 
+/**
+ * The annotated tree, written once at the vault root, in the exact line format
+ * of the `## Structure` section of the Vault Context (software-vision.md 9.2)
+ * and of the STRUCTURE.md the export writes. The three have to agree, and the
+ * document is what keeps them honest: this script cannot import the product.
+ */
+function writeStructure(outDir, vaultName) {
+  const lines = [`# Structure: ${vaultName}`, ''];
+
+  const render = (dir, prefix) => {
+    listDirs(dir)
+      .sort((a, b) => folderOrder(a) - folderOrder(b) || a.localeCompare(b))
+      .forEach((entry, index) => {
+        const full = join(dir, entry);
+        const numbering = prefix ? `${prefix}${index + 1}` : `${index + 1}`;
+        const indent = '   '.repeat(numbering.split('.').filter(Boolean).length - 1);
+        const name = entry.replace(/^\d+\s+/, '');
+        const label = listDirs(full).length > 0 ? `${name}/` : name;
+        const notes = listMd(full).filter((f) => f !== 'TEMPLATE.md').length;
+        const annotations = [`${notes} ${notes === 1 ? 'note' : 'notes'}`];
+        if (existsSync(join(full, 'TEMPLATE.md'))) annotations.push('has TEMPLATE.md');
+        const desc = descriptions.get(full) ?? '';
+        lines.push(`${indent}${numbering}. **${label}**: ${desc} (${annotations.join(', ')})`);
+        render(full, `${numbering}.`);
+      });
+  };
+
+  render(outDir, '');
+  writeFileSync(join(outDir, 'STRUCTURE.md'), lines.join('\n') + '\n', 'utf8');
+}
+
+function folderOrder(entry) {
+  const match = /^(\d+)\s/.exec(entry);
+  return match ? Number(match[1]) : 0;
+}
 function writeTemplate(dir, vaultSlug, templateName) {
   const src = join(AUTHORING, vaultSlug, 'templates', `${templateName}.md`);
   if (!existsSync(src)) {
@@ -530,7 +571,7 @@ function copyAutoChildren(srcDir, outDir, vault, counters, depth, spec) {
     mkdirSync(childOut, { recursive: true });
     counters.folders += 1;
     const desc = spec?.childDesc ? spec.childDesc(name) : `Notas de "${name}".`;
-    writeDesc(childOut, desc);
+    recordDesc(childOut, desc);
     if (spec?.childTemplate) writeTemplate(childOut, vault.slug, spec.childTemplate);
     copyNotes(join(srcDir, name), childOut, vault, counters, depth + 1);
     copyAutoChildren(join(srcDir, name), childOut, vault, counters, depth + 1, undefined);
@@ -541,7 +582,7 @@ function buildFolder(spec, parentOut, vault, counters, depth) {
   const outDir = join(parentOut, spec.out);
   mkdirSync(outDir, { recursive: true });
   counters.folders += 1;
-  writeDesc(outDir, spec.desc);
+  recordDesc(outDir, spec.desc);
   if (spec.template) writeTemplate(outDir, vault.slug, spec.template);
 
   if (spec.src) {
@@ -567,7 +608,7 @@ for (const def of VAULTS) {
     warnings.push(`missing guidance for ${def.slug}`);
     continue;
   }
-  writeFileSync(join(outDir, 'README.md'), readFileSync(guidance, 'utf8'), 'utf8');
+  writeFileSync(join(outDir, 'GUIDANCE.md'), readFileSync(guidance, 'utf8'), 'utf8');
 
   const vault = {
     slug: def.slug,
@@ -586,6 +627,9 @@ for (const def of VAULTS) {
     );
 
   for (const spec of def.folders) buildFolder(spec, outDir, vault, counters, 1);
+
+  const heading = /^#\s+(.+)$/m.exec(readFileSync(guidance, 'utf8'));
+  writeStructure(outDir, heading ? heading[1].trim() : def.name);
 
   if (counters.notes > 2000) warnings.push(`[${def.slug}] exceeds 2000 notes (${counters.notes})`);
   if (counters.folders > 200)

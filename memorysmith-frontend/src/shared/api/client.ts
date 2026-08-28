@@ -40,7 +40,7 @@ async function toFolderNode(folder: SeedFolder): Promise<FolderNode> {
     name: folder.name,
     slug: folder.slug,
     slugPath: folder.slugPath,
-    description: folder.description ? (await folder.description()).trim() : '',
+    description: folder.description,
     position: folder.position,
     hasTemplate: Boolean(folder.template),
     noteCount: folder.notes.length,
