@@ -54,6 +54,12 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **O `onboard.ps1` entrega a conta com senha provisória, e não mais com senha definitiva.** Antes ele pedia uma senha, definia essa senha como definitiva e a pessoa entrava com uma senha escolhida por quem rodou o script. Agora a conta termina esperando a primeira senha: o Cognito envia por e-mail um convite com uma senha provisória, e a tela de entrada pede uma senha própria no primeiro acesso, que é o fluxo que o pool já sabia conduzir. Quem roda o script nunca fica sabendo a senha da conta de outra pessoa.
+
+  Solicitar a assinatura e escrever o vault continuam acontecendo como a conta, então o script ainda precisa entrar como ela. Ele passou a entrar com uma senha própria, aleatória, que existe só enquanto ele roda e é substituída pela provisória no último passo, depois que o último login já aconteceu. Uma conta que já existe e nunca foi usada é assumida por uma execução seguinte, que é o que permite terminar o que uma execução interrompida deixou pela metade; uma conta que já tem dono continua pedindo a senha dela, e nada nela é trocado.
+
+  `-SetPassword` mantém o comportamento anterior, definindo aqui uma senha definitiva e não enviando e-mail nenhum. Ele existe para a primeira conta de um ambiente novo, que é a única que não pode depender de um e-mail chegar. Se o pool não conseguir enviar o convite, o script diz isso e imprime a senha provisória, em vez de deixar uma conta que ninguém alcança.
+
 - **A busca da interface passa a procurar dentro das notas.** A caixa de busca do vault filtrava, no navegador, a árvore que a página já tinha carregada, e por isso só achava o que estivesse no título da nota ou no nome da pasta: uma palavra escrita no corpo era invisível, e `maturity:evergreen` era lido como texto de título, sem casar com nada. Agora ela pergunta ao Discovery, que é quem lê o texto do vault, e a linguagem de consulta inteira vale onde a pessoa digita: vários termos, `"frase exata"`, `-excluir`, `OR`, parênteses, os campos `title:`, `folder:`, `section:` e `content:`, e qualquer atributo do frontmatter como filtro, do jeito que o vault o escreve.
 
   Cada resultado mostra o trecho de onde a busca veio, recortado do texto como a pessoa escreveu, com o heading sob o qual a passagem caiu e os termos marcados. Uma consulta malformada diz que está malformada em vez de devolver lista vazia. O alternador Índice/Grafo saiu: ele oferecia um modo que não existia.

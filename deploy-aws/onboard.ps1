@@ -22,6 +22,15 @@
   the group has a member, a later run asks for the credentials of an existing
   admin instead of quietly handing out the platform to whoever runs it.
 
+  THE ACCOUNT IS HANDED OVER WITH A PROVISIONAL PASSWORD. Asking for the
+  subscription and writing the vault are done as the account, so the script
+  needs to sign in as it, and it signs in with a password of its own that
+  nobody ever sees. At the end it leaves the account waiting for its first
+  password: Cognito e-mails an invitation with a temporary one, and the
+  sign-in page asks for a password of their own the first time it is used.
+  Whoever runs this never learns the password of somebody else's account.
+  -SetPassword types a permanent password here instead, and sends no e-mail.
+
   The subscription claim is minted when the token is, so the browser only sees
   the subscription after a NEW sign-in: sign out and back in once this finishes.
 
@@ -62,6 +71,12 @@
   creates nothing and calls neither the API nor Cognito, so it is how a seed of
   six hundred notes is inspected before it is uploaded.
 
+.PARAMETER SetPassword
+  Sets a permanent password, typed here, instead of handing the account over
+  with a provisional one. No invitation is sent. It exists for the first
+  account of a new environment, which is the one that cannot afford to depend
+  on an e-mail arriving, and for an account whose owner is whoever runs this.
+
 .PARAMETER Region
   Target region. Defaults to CDK_DEFAULT_REGION, then to the region of the AWS
   profile, then to us-east-1.
@@ -80,7 +95,13 @@
 
 .EXAMPLE
   ./deploy-aws/onboard.ps1 -Email ana@example.com -Quota 2GB -Status active -VaultTemplate fermentacao
-  A subscription of 2 GB, active, with a small vault written into it.
+  A subscription of 2 GB, active, with a small vault written into it. Ana gets
+  an e-mail with a provisional password and chooses her own on the first
+  sign-in; nobody else ever knows it.
+
+.EXAMPLE
+  ./deploy-aws/onboard.ps1 -Email me@example.com -SetPassword
+  The account of whoever runs this, with a password typed here and no e-mail.
 #>
 
 [CmdletBinding()]
@@ -96,6 +117,7 @@ param(
   [switch]$StructureOnly,
   [int]$MaxNotes = 0,
   [switch]$PreviewVault,
+  [switch]$SetPassword,
   [string]$Region,
   [Alias('Profile')][string]$ProfileName
 )
@@ -160,6 +182,68 @@ function Read-Secret {
     if ($first -ne $again) { Write-Warn 'the two do not match'; continue }
     return $first
   }
+}
+
+function New-WorkingPassword {
+  <#
+    A password nobody is meant to keep: the script signs in with it while it
+    runs and replaces it with a provisional one at the end. Letters and digits
+    only, because it travels as a command-line argument, and long enough that
+    the alphabet costs it nothing.
+  #>
+  $upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+  $lower = 'abcdefghijkmnopqrstuvwxyz'
+  $digit = '23456789'
+  $alphabet = $upper + $lower + $digit
+  # One of each first, so the pool policy is met by construction and not by
+  # luck, and then shuffled, so their positions say nothing.
+  $characters = @(
+    $upper[[System.Security.Cryptography.RandomNumberGenerator]::GetInt32($upper.Length)],
+    $lower[[System.Security.Cryptography.RandomNumberGenerator]::GetInt32($lower.Length)],
+    $digit[[System.Security.Cryptography.RandomNumberGenerator]::GetInt32($digit.Length)]
+  )
+  for ($index = 0; $index -lt 21; $index++) {
+    $characters += $alphabet[
+    [System.Security.Cryptography.RandomNumberGenerator]::GetInt32($alphabet.Length)]
+  }
+  return -join ($characters | Sort-Object {
+      [System.Security.Cryptography.RandomNumberGenerator]::GetInt32([int]::MaxValue)
+    })
+}
+
+function Send-Invitation {
+  <#
+    Leaves the account waiting for its first password and asks Cognito to
+    e-mail the invitation that carries it.
+
+    An invitation can only be sent to an account that has never set a password,
+    so the temporary password below is what moves it into that state
+    (FORCE_CHANGE_PASSWORD), and the send mints another one for the message
+    itself. The one set here is therefore dead the moment the message leaves,
+    and is returned only because a send that fails leaves it as the single way
+    into the account.
+  #>
+  param(
+    [Parameter(Mandatory)][string]$UserPoolId,
+    [Parameter(Mandatory)][string]$Email
+  )
+  $temporary = New-WorkingPassword
+  Invoke-Aws -Arguments @(
+    'cognito-idp', 'admin-set-user-password',
+    '--user-pool-id', $UserPoolId,
+    '--username', $Email,
+    '--password', $temporary,
+    '--no-permanent'
+  ) | Out-Null
+
+  $sent = Invoke-Aws -AllowFailure -Arguments @(
+    'cognito-idp', 'admin-create-user',
+    '--user-pool-id', $UserPoolId,
+    '--username', $Email,
+    '--message-action', 'RESEND'
+  )
+  if ($sent) { return '' }
+  return $temporary
 }
 
 function Get-CognitoToken {
@@ -465,45 +549,71 @@ $existing = Invoke-Aws -AllowFailure -Arguments @(
   'cognito-idp', 'admin-get-user', '--user-pool-id', $userPoolId, '--username', $Email
 )
 
-if ($existing) {
+<#
+  An account that has never set a password is one nobody holds: it came out of
+  an invitation and stopped there, which is also what a run interrupted halfway
+  leaves behind. Taking it over costs nothing and is how a second run finishes
+  what the first one started. An account in any other state belongs to a
+  person, and the only way in is the password that person has.
+#>
+$unclaimed = @('FORCE_CHANGE_PASSWORD', 'RESET_REQUIRED')
+$claimed = $existing -and $unclaimed -notcontains $existing.UserStatus
+$handOver = -not ($SetPassword -or $claimed)
+
+if ($claimed) {
   Write-Ok "$Email already exists"
+  # Its password is that person's own, and this run neither learns nor
+  # replaces it.
   $password = Read-Secret -Prompt "password for $Email"
 } else {
-  Write-Detail 'creating it; no e-mail is sent, and the password is set here'
-  $password = Read-Secret -Prompt "new password for $Email" -Confirm
+  if ($existing) {
+    Write-Detail "$Email exists and was never signed in to, so this run takes it over"
+  } else {
+    Write-Detail 'creating it; the invitation goes out at the end, not now'
 
-  $attributes = @(
-    @{ Name = 'email'; Value = $Email },
-    @{ Name = 'email_verified'; Value = 'true' }
-  )
-  if ($Name) { $attributes += @{ Name = 'name'; Value = $Name } }
-  $created = Invoke-Aws -AllowFailure -Arguments @(
-    'cognito-idp', 'admin-create-user',
-    '--user-pool-id', $userPoolId,
-    '--username', $Email,
-    '--message-action', 'SUPPRESS',
-    '--user-attributes', ($attributes | ConvertTo-Json -Compress -AsArray)
-  )
-  # A pool that does not carry the `name` attribute refuses it; the account is
-  # worth more than the display name, so it is created without one.
-  if (-not $created -and $Name) {
-    Write-Warn 'the pool refused the name attribute; creating the account without it'
-    $bare = @(
+    $attributes = @(
       @{ Name = 'email'; Value = $Email },
       @{ Name = 'email_verified'; Value = 'true' }
     )
+    if ($Name) { $attributes += @{ Name = 'name'; Value = $Name } }
     $created = Invoke-Aws -AllowFailure -Arguments @(
       'cognito-idp', 'admin-create-user',
       '--user-pool-id', $userPoolId,
       '--username', $Email,
       '--message-action', 'SUPPRESS',
-      '--user-attributes', ($bare | ConvertTo-Json -Compress -AsArray)
+      '--user-attributes', ($attributes | ConvertTo-Json -Compress -AsArray)
     )
+    # A pool that does not carry the `name` attribute refuses it; the account is
+    # worth more than the display name, so it is created without one.
+    if (-not $created -and $Name) {
+      Write-Warn 'the pool refused the name attribute; creating the account without it'
+      $bare = @(
+        @{ Name = 'email'; Value = $Email },
+        @{ Name = 'email_verified'; Value = 'true' }
+      )
+      $created = Invoke-Aws -AllowFailure -Arguments @(
+        'cognito-idp', 'admin-create-user',
+        '--user-pool-id', $userPoolId,
+        '--username', $Email,
+        '--message-action', 'SUPPRESS',
+        '--user-attributes', ($bare | ConvertTo-Json -Compress -AsArray)
+      )
+    }
+    if (-not $created) { throw "Could not create $Email in the pool." }
   }
-  if (-not $created) { throw "Could not create $Email in the pool." }
 
-  # Permanent, or the account comes up in FORCE_CHANGE_PASSWORD and every
-  # sign-in below answers with a challenge instead of a token.
+  <#
+    The password of this stretch is the script's own unless it was asked for:
+    it exists because the subscription and the vault are written as the
+    account, and an account waiting for its first password answers every
+    sign-in with a challenge instead of a token. It is permanent for the same
+    reason, and it is replaced by a provisional one at the end.
+  #>
+  $password = if ($SetPassword) {
+    Read-Secret -Prompt "new password for $Email" -Confirm
+  } else {
+    New-WorkingPassword
+  }
   Invoke-Aws -Arguments @(
     'cognito-idp', 'admin-set-user-password',
     '--user-pool-id', $userPoolId,
@@ -511,7 +621,11 @@ if ($existing) {
     '--password', $password,
     '--permanent'
   ) | Out-Null
-  Write-Ok "$Email created"
+
+  Write-Ok "$Email is ready"
+  if ($handOver) {
+    Write-Detail 'the password of this run is temporary and nobody sees it; the account is handed over at the end'
+  }
 }
 
 # --- 5. Who authorizes -------------------------------------------------------
@@ -663,7 +777,25 @@ if ($workingStatus -ne $Status) {
   Write-Ok "$subscriptionId is $Status"
 }
 
-# --- 10. What happens next ---------------------------------------------------
+# --- 10. Handing the account over --------------------------------------------
+# Every sign-in this run needed is behind it, so the password it used has no
+# reason to keep existing. What is left on the account is a provisional one
+# that only the person receives, by e-mail, and that the sign-in page replaces
+# the first time it is used.
+
+$provisional = ''
+if ($handOver) {
+  Write-Step 'Handing the account over'
+  $provisional = Send-Invitation -UserPoolId $userPoolId -Email $Email
+  if ($provisional) {
+    Write-Warn 'the pool did not send the invitation e-mail'
+    Write-Detail 'the provisional password is printed below; hand it over by another route'
+  } else {
+    Write-Ok "an invitation with a provisional password was sent to $Email"
+  }
+}
+
+# --- 11. What happens next ---------------------------------------------------
 
 Write-Step 'Done'
 $adminNote = if ($isAdmin) { '  (platform admin)' } else { '' }
@@ -674,6 +806,12 @@ if ($vaultId) {
 }
 
 Write-Host ''
+if ($handOver) {
+  if ($provisional) {
+    Write-Host "  provisional      $provisional"
+  }
+  Write-Detail "the first sign-in at https://$zoneName asks for a password of their own"
+}
 if ($operational -contains $Status) {
   Write-Ok "sign in at https://$zoneName"
   Write-Detail 'the claim is minted when the token is, so sign out and in again on a browser that was already open'

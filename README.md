@@ -261,7 +261,9 @@ Um ambiente recém-subido não tem ninguém dentro: o pool é vazio e não exist
 ./deploy-aws/onboard.ps1 -Profile memorysmith
 ```
 
-Ele pergunta o que precisa saber e então cria a conta no Cognito com senha definitiva, solicita a assinatura com o tipo e a quota escolhidos (a assinatura não tem nome: quem a identifica é o titular), coloca a assinatura no status escolhido e escreve um vault inteiro, com Orientação, pastas, Modelos e notas, a partir de um dos vaults de `memorysmith-frontend/seed/vaults`.
+Ele pergunta o que precisa saber e então cria a conta no Cognito, solicita a assinatura com o tipo e a quota escolhidos (a assinatura não tem nome: quem a identifica é o titular), coloca a assinatura no status escolhido e escreve um vault inteiro, com Orientação, pastas, Modelos e notas, a partir de um dos vaults de `memorysmith-frontend/seed/vaults`.
+
+**A conta é entregue com senha provisória.** Solicitar a assinatura e escrever o vault acontecem como a conta, então o script precisa entrar como ela, e entra com uma senha própria que ninguém chega a ver. No fim ele deixa a conta esperando a primeira senha: o Cognito envia por e-mail um convite com uma senha provisória, e a tela de entrada pede uma senha própria no primeiro acesso. Quem roda o script nunca fica sabendo a senha da conta de outra pessoa. `-SetPassword` inverte isso, definindo aqui uma senha definitiva e não enviando e-mail nenhum, que é o que a primeira conta de um ambiente novo quer: ela é a única que não pode depender de um e-mail chegar.
 
 **A primeira conta de um pool vazio vira administradora de plataforma, e só a primeira.** Alguém precisa autorizar a primeira assinatura, e em um ambiente novo não há ninguém. Depois que o grupo tem um membro, uma execução seguinte pede as credenciais de um administrador existente em vez de entregar a plataforma a quem rodar o script.
 
@@ -283,6 +285,7 @@ Para olhar o que um seed viraria, sem criar nada e sem sequer falar com a AWS:
 | `-StructureOnly` | Escreve Orientação, pastas e Modelos, e nenhuma nota |
 | `-MaxNotes <n>` | Para depois de `n` notas |
 | `-PreviewVault` | Só imprime o que seria escrito, e não cria nada |
+| `-SetPassword` | Define aqui uma senha definitiva em vez de entregar a conta com senha provisória por e-mail |
 
 Duas coisas que o script faz e vale entender:
 
