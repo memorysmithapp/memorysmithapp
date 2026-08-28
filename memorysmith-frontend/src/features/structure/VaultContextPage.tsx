@@ -13,10 +13,10 @@ function countTemplates(folders: FolderNode[]): number {
   );
 }
 
-// The vault's self-description as the agent receives it from get_vault_context:
-// the Guidance and the Templates as entry points, and the folder tree with the
-// description of every folder as the structure itself.
-export function StructurePage() {
+// The Vault Context, in its navigable form: the same object get_vault_context
+// returns as Markdown, with the Guidance and the Templates as entry points
+// instead of inline, and the folder tree with the description of every folder.
+export function VaultContextPage() {
   const { t } = useTranslation();
   const { vaultSlug = '' } = useParams();
   const { structure } = useOutletContext<VaultOutletContext>();

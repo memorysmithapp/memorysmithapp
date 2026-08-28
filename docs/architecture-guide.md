@@ -1087,7 +1087,7 @@ O domínio devolve `Result<T, DomainError>`; **exceção existe só na borda**. 
 
 **Implementação:** a árvore materializada é construída a partir do agregado `Vault` e das notas; o conteúdo vem do `ContentStore` pelos `ContentRef` correntes. O prefixo numérico é derivado da ordem de `Position` no momento do export, e não é armazenado.
 
-**É aqui que nomes reservados voltam a existir.** No storage não há nome nenhum (§9.2); na árvore materializada, `README.md` e `TEMPLATE.md` são ocupados pelo guidance e pelo template. Uma nota cujo slug colida com eles é exportada com sufixo, e os links para ela são reescritos junto (RN-PRT-005). É a única concessão do export, e ela pertence à borda, não ao modelo.
+**É aqui que nomes reservados voltam a existir.** No storage não há nome nenhum (§9.2); na árvore materializada, `GUIDANCE.md` e `TEMPLATE.md` são ocupados pelo guidance e pelo template, e `STRUCTURE.md` pela árvore anotada, escrita uma única vez na raiz. A descrição de uma pasta é atributo do item `FOLDER` e nunca alcançou o `ContentStore`, então ela viaja nesse documento e não em um arquivo por pasta. Uma nota cujo slug colida com um dos três nomes é exportada com sufixo, e os links para ela são reescritos junto (RN-PRT-005). É a única concessão do export, e ela pertence à borda, não ao modelo.
 
 ---
 

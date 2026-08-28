@@ -8,20 +8,20 @@ O agente não só lê o vault, ele o **alimenta**. Através dele é possível re
 
 ```
 Vault
-├── README.md          ← Orientação: para que serve este vault e como estruturar as notas
+├── Orientação         ← para que serve este vault e como estruturar as notas
 └── Pastas (ordenadas) ← cada uma com uma descrição: o que se guarda aqui
-    ├── TEMPLATE.md    ← Modelo: como as notas desta pasta se estruturam
+    ├── Modelo         ← como as notas desta pasta se estruturam
     ├── subpastas (ordenadas)
     └── notas .md
 ```
 
-`README.md` e `TEMPLATE.md` não são documentação: são **instruções executáveis**. São o que faz o agente escrever a nota certa, na pasta certa, no formato certo.
+A Orientação e o Modelo não são documentação: são **instruções executáveis**. São o que faz o agente escrever a nota certa, na pasta certa, no formato certo.
 
-E não são nomes de arquivo. São **papéis**: o vault aponta um documento como sua Orientação, a pasta aponta outro como seu Modelo. Os nomes só aparecem na borda, no export e na UI.
+E não são arquivos. São **papéis**: o vault aponta um documento como sua Orientação, a pasta aponta outro como seu Modelo. Nomes de arquivo só aparecem na borda, quando o vault é exportado: aí a Orientação sai como `GUIDANCE.md`, a árvore de pastas com suas descrições sai como `STRUCTURE.md` ao lado dela, e o Modelo sai como `TEMPLATE.md` dentro da pasta.
 
 ## Interface
 
-O contrato público é um **MCP server remoto** (OAuth 2.1), conector nativo para plataformas de IA. A chamada central é `get_vault_context`, que devolve a Orientação integral mais a árvore anotada com descrições e ordem. É o equivalente a ler o README e rodar `ls -R` na pasta local, em uma única chamada.
+O contrato público é um **MCP server remoto** (OAuth 2.1), conector nativo para plataformas de IA. A chamada central é `get_vault_context`, que devolve a Orientação integral mais a árvore anotada com descrições e ordem. É o equivalente a ler a Orientação e rodar `ls -R` na pasta local, em uma única chamada.
 
 Sobre isso: grafo de links (árvore de dependências e backlinks), busca semântica, histórico por revisão e uma UI de autoria.
 

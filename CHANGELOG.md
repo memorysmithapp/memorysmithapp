@@ -54,6 +54,10 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **A tela do vault passa a se chamar Contexto do Vault, no lugar de Estrutura.** É o mesmo objeto que o agente recebe em `get_vault_context`, e chamá-la de outra coisa criava um quarto termo para algo que já tinha nome. A página segue sendo a forma navegável dele: a Orientação e os Modelos como pontos de entrada, no lugar de virem embutidos, e a árvore de pastas com a descrição de cada uma.
+
+- **Os `docs/` passam a separar por escrito quatro coisas que se pareciam.** A Orientação é um Content Slot com revisão e histórico; a descrição da pasta é atributo da pasta, de 1 a 500 caracteres e sem histórico; o Vault Context é composto a cada leitura e nunca armazenado; e `GUIDANCE.md`, `STRUCTURE.md` e `TEMPLATE.md` são nomes de arquivo que existem só na borda do export. Nenhum desses nomes de arquivo aparece na interface nem na superfície MCP.
+
 - **O `onboard.ps1` entrega a conta com senha provisória, e não mais com senha definitiva.** Antes ele pedia uma senha, definia essa senha como definitiva e a pessoa entrava com uma senha escolhida por quem rodou o script. Agora a conta termina esperando a primeira senha: o Cognito envia por e-mail um convite com uma senha provisória, e a tela de entrada pede uma senha própria no primeiro acesso, que é o fluxo que o pool já sabia conduzir. Quem roda o script nunca fica sabendo a senha da conta de outra pessoa.
 
   Solicitar a assinatura e escrever o vault continuam acontecendo como a conta, então o script ainda precisa entrar como ela. Ele passou a entrar com uma senha própria, aleatória, que existe só enquanto ele roda e é substituída pela provisória no último passo, depois que o último login já aconteceu. Uma conta que já existe e nunca foi usada é assumida por uma execução seguinte, que é o que permite terminar o que uma execução interrompida deixou pela metade; uma conta que já tem dono continua pedindo a senha dela, e nada nela é trocado.

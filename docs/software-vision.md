@@ -108,8 +108,8 @@ Termo único por conceito, do código ao produto. Divergência aqui é o começo
 | **Platform Admin** | Quem opera a plataforma e autoriza assinaturas. **Não é papel dentro de assinatura alguma** e não alcança conteúdo | Owner, administrador do cliente |
 | **Owner** | O titular da assinatura: responsável pelo pagamento, convida e remove membros, edita tudo. Um por assinatura | Editor com muitos direitos |
 | **Vault** | Um cofre de conhecimento autodescrito | Repositório, pasta raiz |
-| **Guidance** | O **papel** de "para que serve este vault e como estruturar as notas", desempenhado por um documento apontado pelo vault | Um arquivo chamado `README.md` |
-| **Folder** | Nó ordenado da árvore do vault, com `description` que diz *o que se guarda ali* | Diretório físico (não existe) |
+| **Guidance** | O **papel** de "para que serve este vault e como estruturar as notas", desempenhado por um documento apontado pelo vault | Um arquivo chamado `GUIDANCE.md` |
+| **Folder** | Nó ordenado da árvore do vault, com `description` que diz *o que se guarda ali*. A descrição é atributo da pasta, nunca um Content Slot | Diretório físico (não existe), documento de pasta |
 | **Template** | O **papel** de "leiaute sugerido das notas desta pasta", desempenhado por um documento apontado pela pasta | Esquema, validação, um arquivo chamado `TEMPLATE.md` |
 | **Note** | Um documento Markdown; o que vai dentro dele é decidido pelo Guidance e pelo Template | Registro, entidade tipada |
 | **Position** | Chave que ordena irmãos: pastas entre pastas, notas dentro da pasta | Índice denso, campo `order` |
@@ -120,7 +120,7 @@ Termo único por conceito, do código ao produto. Divergência aqui é o começo
 | **Authorship** | Quem escreveu: o humano **e** o agente usado | Usuário logado |
 | **Revision** | O conteúdo exato de uma nota num instante | Evento, alteração |
 | **Audit Event** | Registro append-only do que aconteceu, com autoria e revisão | Log de aplicação |
-| **Vault Context** | Documento composto (Guidance mais árvore anotada) entregue ao agente | Dump do vault |
+| **Vault Context** | Documento composto (Guidance mais árvore anotada) entregue ao agente. É derivado a cada chamada e nunca armazenado | Dump do vault, documento que alguém edita |
 | **Content Slot** | Um documento Markdown armazenado, endereçado por identificador opaco. Nota, guidance e template são o **mesmo** tipo de coisa; o que difere é quem aponta para ele | Arquivo, caminho |
 | **Content Role** | O significado atribuído a um slot: `body` (nota), `guidance` (vault) ou `template` (pasta) | Nome de arquivo reservado |
 | **Vínculo** | A relação `(usuário, assinatura)` que autoriza aquele usuário a atuar naquela assinatura | Membership |
@@ -489,7 +489,18 @@ ContentRef:   content_id, revision, sha256, bytes
 | `guidance` | Vault | `guidance_ref` |
 | `template` | Pasta | `template_ref` |
 
-Daí decorre a regra de produto mais contraintuitiva do sistema: **`README.md` e `TEMPLATE.md` não são nomes de arquivo, são papéis.** Não existe nome reservado no armazenamento. Nomes de arquivo só voltam a existir na borda, no export (§12) e na UI.
+Daí decorre a regra de produto mais contraintuitiva do sistema: **`GUIDANCE.md` e `TEMPLATE.md` não são nomes de arquivo, são papéis.** Não existe nome reservado no armazenamento. Nomes de arquivo só voltam a existir na borda, no export (§12) e na UI.
+
+Quatro coisas parecidas convivem aqui, e confundi-las custa caro:
+
+| O que é | Onde vive | Quem escreve |
+|---|---|---|
+| **Guidance** | Content Slot apontado por `guidance_ref`, com revisão e histórico | Um humano |
+| **Descrição da pasta** | Atributo `description` da pasta, de 1 a 500 caracteres, sem revisão | Um humano |
+| **Vault Context** | Nada: é composto a cada leitura (§9.2) | O produto, derivando |
+| **`GUIDANCE.md`, `STRUCTURE.md`, `TEMPLATE.md`** | Só na borda: no export (§12) e nunca no armazenamento | O produto, materializando |
+
+Nenhum desses nomes de arquivo aparece na interface nem na superfície MCP. Lá existem apenas o papel e o documento composto.
 
 Isso torna triviais operações que de outro modo seriam código especial: promover uma nota a template da pasta, converter um template em nota, adotar o conteúdo de uma nota como guidance do vault. Todas são troca de ponteiro.
 
@@ -703,27 +714,24 @@ payload
 
 Zero lock-in é requisito, não cortesia: é o que torna o produto seguro de adotar num contexto em que a base precisa sobreviver ao fornecedor (`knowledge-base.md` §10).
 
-**O export é onde os nomes de arquivo passam a existir.** Dentro do sistema há identificadores opacos e papéis (§8.1); é aqui que `guidance` vira `README.md`, `template` vira `TEMPLATE.md` e o slug da nota vira nome de arquivo.
+**O export é onde os nomes de arquivo passam a existir.** Dentro do sistema há identificadores opacos e papéis (§8.1); é aqui que `guidance` vira `GUIDANCE.md`, `template` vira `TEMPLATE.md` e o slug da nota vira nome de arquivo. A árvore anotada sai ao lado da Orientação, como `STRUCTURE.md`: as duas são exatamente as duas metades do Vault Context (§9.2), a que um humano escreve e a que o produto deriva.
 
 ```
 Normas e Legislação/
-├── README.md
+├── GUIDANCE.md             ← a Orientação do vault, como um humano a escreveu
+├── STRUCTURE.md            ← a árvore anotada: ordem, descrição de cada pasta e onde há Template
 ├── 01 Normas/
-│   ├── README.md            ← a descrição da pasta, materializada
 │   ├── TEMPLATE.md
 │   └── lei-14133-art-75.md
-├── 02 Achados/
-│   ├── README.md
-│   └── TEMPLATE.md
-└── 03 Trabalhos/
-    └── 01 2026/
+└── 02 Achados/
+    └── TEMPLATE.md
 ```
 
 - **RN-PRT-001:** O export contém apenas arquivos `.md`, sem componente proprietário e sem índice obrigatório para leitura.
 - **RN-PRT-002:** A ordem de pastas e de notas é codificada como prefixo numérico no nome, que é a única forma de preservá-la num sistema de arquivos, já que ele não tem ordem própria.
-- **RN-PRT-003:** A descrição de cada pasta é materializada como `README.md` dentro dela.
+- **RN-PRT-003:** *(revista)* A árvore anotada do vault é materializada como `STRUCTURE.md` na raiz, com a ordem, a descrição de cada pasta, a contagem de notas e quais pastas têm Template. A descrição é atributo da pasta e nunca um documento, então nenhum arquivo é escrito dentro da pasta para carregá-la. Uma pasta sem Template e sem nota, por consequência, não deixa diretório na árvore exportada e sobrevive apenas no `STRUCTURE.md`. *(Até a 0.2.0 a regra dizia que a descrição era materializada como `README.md` dentro de cada pasta.)*
 - **RN-PRT-004:** Os links saem intactos no texto das notas.
-- **RN-PRT-005:** Uma nota cujo slug seja exatamente `readme` ou `template` é exportada com sufixo, e todos os links para ela são reescritos junto. É a única concessão do export, e ela pertence à borda, não ao modelo.
+- **RN-PRT-005:** *(revista)* Uma nota cujo slug seja exatamente `guidance`, `structure` ou `template` é exportada com sufixo, e todos os links para ela são reescritos junto. É a única concessão do export, e ela pertence à borda, não ao modelo. *(Até a 0.2.0 os nomes reservados eram `readme` e `template`.)*
 - **RN-PRT-006:** Notas apagadas não entram no export.
 
 ---
@@ -755,7 +763,7 @@ Normas e Legislação/
 |---|---|
 | Lista de vaults | Cards: nome, descrição, nº de notas, última atualização |
 | Vault → Guidance | Editor Markdown com preview; ajuda sugerindo seções (propósito, convenções, nomenclatura) |
-| Vault → Estrutura | Árvore com arrastar-e-soltar para reordenar e mover pastas **e** notas; criar e renomear pasta; editar descrição inline |
+| Vault → Contexto do Vault | O vault como o agente o recebe em `get_vault_context` (§9.2): a Orientação e os Modelos como pontos de entrada e a árvore de pastas com a descrição de cada uma. Com arrastar-e-soltar para reordenar e mover pastas **e** notas; criar e renomear pasta; editar descrição inline |
 | Mover nota entre vaults | Ação explícita, não arrastar-e-soltar: mostra antes quantos backlinks vão quebrar e pede confirmação (RN-KNW-024) |
 | Pasta → Template | Editor do Template da pasta |
 | Nota | Leitura e edição; painel lateral com backlinks e relacionadas |
