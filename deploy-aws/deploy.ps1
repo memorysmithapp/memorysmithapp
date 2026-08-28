@@ -238,7 +238,18 @@ if ($deployFrontend) {
   Write-Step 'Skipping the frontend (-SkipFrontend)'
 }
 
-# --- 8. Verify ---------------------------------------------------------------
+# --- 8. Log retention --------------------------------------------------------
+# `ServiceLambda` declares the log group of every function this project writes,
+# so those already expire. The custom resources the CDK creates on its own do
+# not accept a log group: the Lambda service creates theirs on first invocation,
+# without retention, and those events would be billed forever. Setting the
+# policy here is idempotent and has no race with the deploy that just ran.
+
+Write-Step 'Log retention'
+$retentionChecks = Set-OrphanLogRetention -RetentionInDays 30
+Write-CheckReport -Checks $retentionChecks | Out-Null
+
+# --- 9. Verify ---------------------------------------------------------------
 
 $verifyGaps = 0
 if (-not $SkipVerify) {
@@ -271,7 +282,7 @@ if (-not $SkipVerify) {
   }
 }
 
-# --- 9. Summary --------------------------------------------------------------
+# --- 10. Summary -------------------------------------------------------------
 
 Write-Step 'Environment'
 $identityOutputs = Get-StackOutputs -StackName 'MemorysmithIdentity'

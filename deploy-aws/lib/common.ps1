@@ -396,6 +396,112 @@ function Remove-RetainedResources {
   return $checks
 }
 
+# --- CloudWatch Logs ---------------------------------------------------------
+
+function Get-MemorysmithLogGroups {
+  <#
+    Every log group this project owns, as objects with Name, Retention and
+    Orphan. A group is orphan when it is a `/aws/lambda/<name>` group whose
+    function no longer exists: the Lambda service, not CloudFormation, created
+    it, so `cdk destroy` walked away and left it behind.
+  #>
+  $groups = Invoke-Aws -AllowFailure -Arguments @(
+    'logs', 'describe-log-groups',
+    '--query', "logGroups[?starts_with(logGroupName, '/aws/lambda/Memorysmith') || starts_with(logGroupName, 'Memorysmith')].{Name:logGroupName,Retention:retentionInDays,Bytes:storedBytes}"
+  )
+  if ($null -eq $groups) { return @() }
+
+  $functions = Invoke-Aws -AllowFailure -Arguments @(
+    'lambda', 'list-functions', '--query', 'Functions[].FunctionName'
+  )
+  $alive = @($functions)
+
+  return @($groups | ForEach-Object {
+      $orphan = $false
+      if ($_.Name.StartsWith('/aws/lambda/')) {
+        $orphan = -not ($alive -contains $_.Name.Substring('/aws/lambda/'.Length))
+      }
+      [pscustomobject]@{
+        Name      = $_.Name
+        Retention = $_.Retention
+        Bytes     = $_.Bytes
+        Orphan    = $orphan
+      }
+    })
+}
+
+function Set-OrphanLogRetention {
+  <#
+    Gives a retention to every log group that has none.
+
+    `ServiceLambda` declares the log group of every function this project
+    writes, so those are already covered. The gap is the custom resources the
+    CDK creates on its own (`BucketDeployment`, `autoDeleteObjects`, the
+    `AwsCustomResource` behind a Cognito custom domain): none of them accepts a
+    log group, the Lambda service creates theirs on first invocation, and a
+    group created that way keeps its events forever.
+
+    Declaring those groups in the CDK is not the fix. Their function name is
+    only known at deploy time, so the group can only be created after the
+    function, and the custom resource is invoked in that same window: whoever
+    gets there first wins, and when the Lambda service wins the stack fails
+    with AlreadyExists. Setting the policy after the deploy has no such race
+    and is idempotent.
+  #>
+  param([int]$RetentionInDays = 30)
+
+  $checks = @()
+  $missing = @(Get-MemorysmithLogGroups | Where-Object { $null -eq $_.Retention })
+
+  if ($missing.Count -eq 0) {
+    return @(New-Check -Name 'log retention' -Status 'ok' -Detail 'every log group already expires')
+  }
+
+  foreach ($group in $missing) {
+    $result = Invoke-Aws -AllowFailure -Raw -Arguments @(
+      'logs', 'put-retention-policy',
+      '--log-group-name', $group.Name,
+      '--retention-in-days', "$RetentionInDays"
+    )
+    if ($null -ne $result) {
+      $checks += New-Check -Name 'log retention' -Status 'ok' `
+        -Detail "$($group.Name) set to $RetentionInDays days"
+    } else {
+      $checks += New-Check -Name 'log retention' -Status 'warn' `
+        -Detail "$($group.Name) could not be set" `
+        -Fix "aws logs put-retention-policy --log-group-name $($group.Name) --retention-in-days $RetentionInDays"
+    }
+  }
+  return $checks
+}
+
+function Remove-OrphanLogGroups {
+  <#
+    Deletes the log groups whose function is gone. Part of the administrative
+    purge, never of a plain destroy: a log group is the only trace a function
+    leaves once its stack is gone.
+  #>
+  $checks = @()
+  $orphans = @(Get-MemorysmithLogGroups | Where-Object { $_.Orphan })
+
+  if ($orphans.Count -eq 0) {
+    return @(New-Check -Name 'log groups' -Status 'ok' -Detail 'none left behind')
+  }
+
+  foreach ($group in $orphans) {
+    $result = Invoke-Aws -AllowFailure -Raw -Arguments @(
+      'logs', 'delete-log-group', '--log-group-name', $group.Name
+    )
+    if ($null -ne $result) {
+      $checks += New-Check -Name "log group $($group.Name)" -Status 'ok' -Detail 'deleted'
+    } else {
+      $checks += New-Check -Name "log group $($group.Name)" -Status 'warn' -Detail 'could not be deleted' `
+        -Fix "aws logs delete-log-group --log-group-name $($group.Name)"
+    }
+  }
+  return $checks
+}
+
 # --- CDK ---------------------------------------------------------------------
 
 function Get-CdkContext {

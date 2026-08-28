@@ -205,6 +205,10 @@ if ($existing.Count -gt 0) {
 if ($PurgeData) {
   Write-Step 'Purging the resources the stacks retain'
   $purged = Remove-RetainedResources
+  # A log group the Lambda service created is not owned by CloudFormation, so
+  # the destroy above walked past it. It is the last trace a gone function
+  # leaves, which is why it goes only under -PurgeData.
+  $purged += Remove-OrphanLogGroups
   Write-CheckReport -Checks $purged | Out-Null
 }
 
@@ -242,6 +246,15 @@ if ($buckets -and @($buckets).Count -gt 0) {
     -Fix 'empty and delete each bucket by hand if you really want the bytes gone'
 } else {
   $leftovers += New-Check -Name 'S3' -Status 'ok' -Detail 'no bucket left'
+}
+
+$orphanLogs = @(Get-MemorysmithLogGroups | Where-Object { $_.Orphan })
+if ($orphanLogs.Count -gt 0) {
+  $leftovers += New-Check -Name 'CloudWatch Logs' -Status 'warn' `
+    -Detail ("$($orphanLogs.Count) log group(s) of functions that no longer exist") `
+    -Fix 'run again with -PurgeData, or aws logs delete-log-group --log-group-name <name>'
+} else {
+  $leftovers += New-Check -Name 'CloudWatch Logs' -Status 'ok' -Detail 'no log group left'
 }
 
 $stillUp = @()
