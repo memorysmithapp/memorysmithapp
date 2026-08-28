@@ -19,7 +19,7 @@ import {
   type VaultGraph,
 } from '../domain/ports.js';
 import type { FacetSnapshot } from '../domain/FacetExtractor.js';
-import { facetDelta } from '../domain/FacetExtractor.js';
+import { facetDelta, valuesOf } from '../domain/FacetExtractor.js';
 import type { StructureProjection, VaultStructure } from '../application/projections.js';
 
 interface Edge {
@@ -256,6 +256,12 @@ export class InMemoryFacetIndex implements FacetIndex {
 
     if (facets === null) portraits.delete(noteId);
     else portraits.set(noteId, facets);
+  }
+
+  async vaultNoteFacets(vaultId: string): Promise<Map<string, Record<string, string[]>>> {
+    this.vault(vaultId);
+    const portraits = this.portraits.get(vaultId) as Map<string, FacetSnapshot>;
+    return new Map([...portraits].map(([noteId, snapshot]) => [noteId, valuesOf(snapshot)]));
   }
 
   async vaultFacetStats(vaultId: string): Promise<FacetStats> {

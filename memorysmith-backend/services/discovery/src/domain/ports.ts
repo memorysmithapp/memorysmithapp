@@ -56,6 +56,32 @@ export interface VaultGraph {
   readonly truncated: boolean;
 }
 
+/**
+ * A node of the graph as the VIEW reads it: the note, plus the portrait the
+ * facet projection already keeps of it. The portrait is what lets a reader
+ * color the graph by an attribute the vault itself declares, and it costs one
+ * more prefix query in the SAME partition the graph already read.
+ *
+ * The backend still does not interpret the note (PP4): these values were
+ * classified by SHAPE by the FacetExtractor, and which of them means anything
+ * is a decision of whoever authored the vault.
+ */
+export interface GraphNoteRef extends NoteRef {
+  readonly facets: Record<string, string[]>;
+}
+
+export interface AnnotatedVaultGraph {
+  readonly nodes: GraphNoteRef[];
+  readonly edges: Array<[number, number]>;
+  /** Links whose target does not exist yet, kept so the UI can show them. */
+  readonly pending: Array<{ from: number; targetSlug: string }>;
+  /**
+   * Whether `maxVaultNodes` cut the graph short. Never truncate in silence:
+   * a partial graph that claims to be whole is worse than no graph.
+   */
+  readonly truncated: boolean;
+}
+
 export interface LinkGraph {
   /** Replaces every outgoing edge of a note, resolving what it can. */
   replaceOutgoing(vaultId: string, note: NoteRef, links: LinkTarget[]): Promise<void>;
@@ -129,6 +155,12 @@ export interface FacetIndex {
   /** null means the note was deleted and its portrait must be withdrawn. */
   replaceFacets(vaultId: string, noteId: string, facets: FacetSnapshot | null): Promise<void>;
   vaultFacetStats(vaultId: string): Promise<FacetStats>;
+  /**
+   * The portrait of every note of the vault, keyed by note. The statistics
+   * above answer "how many notes say X"; this answers "what does THIS note
+   * say", which is the question the graph view asks in order to color a node.
+   */
+  vaultNoteFacets(vaultId: string): Promise<Map<string, Record<string, string[]>>>;
 }
 
 /** Lexical search lives here too: title and folder, no index of its own. */

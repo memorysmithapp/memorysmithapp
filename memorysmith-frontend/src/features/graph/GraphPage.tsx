@@ -18,21 +18,77 @@ import { resolveNoteUrl } from '../../shared/api/source';
 import { getVaultGraph } from '../../shared/api/backend';
 
 interface GraphFile {
-  nodes: { id: string; title: string }[];
+  nodes: { id: string; title: string; facets: Record<string, string[]> }[];
   edges: [number, number][];
 }
 
 interface GraphNode extends SimulationNodeDatum {
   id: string;
   title: string;
+  kind: 'note' | 'value';
+  /** What this note says about itself; empty on a value node. */
+  facets: Record<string, string[]>;
   degree: number;
   radius: number;
 }
 
 type GraphLink = SimulationLinkDatum<GraphNode>;
 
+/**
+ * How many distinct values an attribute may have and still be offered as a
+ * color: above this it is a label, not a category, and coloring by it would
+ * paint every node the same shade of "other".
+ */
+const MAX_COLORABLE_VALUES = 24;
+/** Only three categorical slots exist in the brand palette; the rest is Other. */
+const COLOR_SLOTS = 3;
+
 function cssVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+/** An attribute of the vault, as the graph sees it: its values, by frequency. */
+interface Attribute {
+  readonly name: string;
+  /** Distinct values, most frequent first: the order the palette follows. */
+  readonly values: string[];
+  /** How many notes declare it, which is what says whether "not declared" exists. */
+  readonly declaredBy: number;
+  readonly multivalued: boolean;
+  readonly boolean: boolean;
+}
+
+function attributesOf(nodes: GraphFile['nodes']): Attribute[] {
+  const counts = new Map<string, Map<string, number>>();
+  const declaredBy = new Map<string, number>();
+  const multivalued = new Set<string>();
+
+  for (const node of nodes) {
+    for (const [facet, values] of Object.entries(node.facets)) {
+      if (values.length === 0) continue;
+      if (values.length > 1) multivalued.add(facet);
+      declaredBy.set(facet, (declaredBy.get(facet) ?? 0) + 1);
+      const byValue = counts.get(facet) ?? new Map<string, number>();
+      for (const value of values) byValue.set(value, (byValue.get(value) ?? 0) + 1);
+      counts.set(facet, byValue);
+    }
+  }
+
+  return [...counts.entries()]
+    .map(([name, byValue]) => {
+      const values = [...byValue.entries()]
+        .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+        .map(([value]) => value);
+      return {
+        name,
+        values,
+        declaredBy: declaredBy.get(name) ?? 0,
+        multivalued: multivalued.has(name),
+        boolean:
+          values.length <= 2 && values.every((value) => value === 'true' || value === 'false'),
+      };
+    })
+    .sort((left, right) => left.name.localeCompare(right.name));
 }
 
 export function GraphPage() {
@@ -41,6 +97,8 @@ export function GraphPage() {
   const { vaultSlug = '' } = useParams();
   const theme = usePreferences((s) => s.theme);
   const [truncated, setTruncated] = useState(false);
+  const [colorBy, setColorBy] = useState('none');
+  const [valuesOf, setValuesOf] = useState('none');
   const [data, setData] = useState<GraphFile | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<{
@@ -50,6 +108,9 @@ export function GraphPage() {
     sim: Simulation<GraphNode, GraphLink> | null;
     transform: { x: number; y: number; k: number };
     hovered: GraphNode | null;
+    colorBy: string;
+    palette: string[];
+    isBoolean: boolean;
     redraw: (() => void) | null;
   }>({
     nodes: [],
@@ -58,14 +119,18 @@ export function GraphPage() {
     sim: null,
     transform: { x: 0, y: 0, k: 1 },
     hovered: null,
+    colorBy: 'none',
+    palette: [],
+    isBoolean: false,
     redraw: null,
   });
 
   /**
-   * The graph is the link projection of Discovery, computed from what the
-   * vault really holds. A node carries only what the projection knows: the
-   * backend never interprets the content of a note, so there is no attribute
-   * here to color by and no tag to draw.
+   * The graph is the link projection of Discovery, and each node carries the
+   * portrait the facet projection keeps of that note. The backend still does
+   * not interpret content (PP4): those attributes were classified by the shape
+   * of the value, so the controls below offer whatever THIS vault declares,
+   * and a vault that declares nothing simply shows no control.
    */
   useEffect(() => {
     let live = true;
@@ -73,7 +138,11 @@ export function GraphPage() {
       .then((graph) => {
         if (!live) return;
         setData({
-          nodes: graph.nodes.map((note) => ({ id: note.slug, title: note.title })),
+          nodes: graph.nodes.map((note) => ({
+            id: note.slug,
+            title: note.title,
+            facets: note.facets ?? {},
+          })),
           edges: graph.edges,
         });
         setTruncated(graph.truncated);
@@ -86,30 +155,89 @@ export function GraphPage() {
     };
   }, [vaultSlug]);
 
+  const noteCount = data?.nodes.length ?? 0;
+  const attributes = useMemo(() => (data ? attributesOf(data.nodes) : []), [data]);
+  const colorable = useMemo(
+    () => attributes.filter((each) => each.values.length <= MAX_COLORABLE_VALUES),
+    [attributes],
+  );
+  /** An attribute worth drawing as nodes is one a note carries several of. */
+  const drawable = useMemo(() => attributes.filter((each) => each.multivalued), [attributes]);
+
+  // An attribute that stops existing (another vault, a rebuilt projection)
+  // must not leave a control pointing at nothing.
+  useEffect(() => {
+    if (colorBy !== 'none' && !colorable.some((each) => each.name === colorBy)) setColorBy('none');
+    if (valuesOf !== 'none' && !drawable.some((each) => each.name === valuesOf))
+      setValuesOf('none');
+  }, [colorable, drawable, colorBy, valuesOf]);
+
+  const active = colorable.find((each) => each.name === colorBy) ?? null;
+  const legend = useMemo(() => (active ? active.values.slice(0, COLOR_SLOTS) : []), [active]);
+
+  useEffect(() => {
+    const state = stateRef.current;
+    state.colorBy = colorBy;
+    state.palette = legend;
+    state.isBoolean = active?.boolean ?? false;
+    state.redraw?.();
+  }, [colorBy, legend, active]);
+
   const filtered = useMemo(() => {
     if (!data) return null;
-    const indexMap = new Map<number, number>();
-    const nodes: GraphNode[] = [];
-    data.nodes.forEach((n, i) => {
-      indexMap.set(i, nodes.length);
-      nodes.push({ id: n.id, title: n.title, degree: 0, radius: 3 });
-    });
+    const nodes: GraphNode[] = data.nodes.map((n) => ({
+      id: n.id,
+      title: n.title,
+      kind: 'note' as const,
+      facets: n.facets,
+      degree: 0,
+      radius: 3,
+    }));
+
     const links: { source: number; target: number }[] = [];
-    for (const [s, tIdx] of data.edges) {
-      const si = indexMap.get(s);
-      const ti = indexMap.get(tIdx);
-      if (si === undefined || ti === undefined) continue;
-      links.push({ source: si, target: ti });
-      const sn = nodes[si];
-      const tn = nodes[ti];
-      if (sn) sn.degree += 1;
-      if (tn) tn.degree += 1;
+    for (const [source, target] of data.edges) {
+      if (source >= nodes.length || target >= nodes.length) continue;
+      links.push({ source, target });
+      const from = nodes[source];
+      const to = nodes[target];
+      if (from) from.degree += 1;
+      if (to) to.degree += 1;
     }
+
+    // The values of one attribute, drawn as nodes: this is what makes a tag
+    // visible as the thing several notes have in common, rather than a word
+    // repeated in their frontmatter.
+    if (valuesOf !== 'none') {
+      const indexOfValue = new Map<string, number>();
+      data.nodes.forEach((note, noteIndex) => {
+        for (const value of note.facets[valuesOf] ?? []) {
+          let at = indexOfValue.get(value);
+          if (at === undefined) {
+            at = nodes.length;
+            indexOfValue.set(value, at);
+            nodes.push({
+              id: `${valuesOf}:${value}`,
+              title: value,
+              kind: 'value',
+              facets: {},
+              degree: 0,
+              radius: 3,
+            });
+          }
+          links.push({ source: noteIndex, target: at });
+          const note0 = nodes[noteIndex];
+          const value0 = nodes[at];
+          if (note0) note0.degree += 1;
+          if (value0) value0.degree += 1;
+        }
+      });
+    }
+
     for (const node of nodes) {
-      node.radius = Math.min(13, 2.2 + 1.25 * Math.sqrt(node.degree));
+      node.radius = node.kind === 'value' ? 2.5 : Math.min(13, 2.2 + 1.25 * Math.sqrt(node.degree));
     }
     return { nodes, links };
-  }, [data]);
+  }, [data, valuesOf]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -145,10 +273,31 @@ export function GraphPage() {
       const { x, y, k } = state.transform;
       const colors = {
         note: cssVar('--accent') || '#0f56d7',
+        value: cssVar('--signal') || '#ff8a2b',
         edge: cssVar('--text-soft') || '#6f6d64',
         label: cssVar('--text') || '#26251f',
         halo: cssVar('--bg') || '#fafaf8',
+        other: cssVar('--cat-other') || '#8b96a8',
       };
+      const categorical = [
+        cssVar('--cat-1') || '#ff8a2b',
+        cssVar('--cat-2') || '#0f56d7',
+        cssVar('--cat-3') || '#16a34a',
+      ];
+      const truthy = cssVar('--seq-evergreen') || '#0f56d7';
+      const falsy = cssVar('--seq-seed') || '#bfd2f6';
+
+      function nodeFill(node: GraphNode): string {
+        const mode = state.colorBy;
+        if (node.kind === 'value') return mode === 'none' ? colors.value : colors.other;
+        if (mode === 'none') return colors.note;
+        const [value] = node.facets[mode] ?? [];
+        if (value === undefined) return colors.other;
+        if (state.isBoolean) return value === 'true' ? truthy : falsy;
+        const slot = state.palette.indexOf(value);
+        return slot >= 0 ? (categorical[slot] ?? colors.other) : colors.other;
+      }
+
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, width, height);
       ctx.translate(x, y);
@@ -186,7 +335,7 @@ export function GraphPage() {
       for (const node of state.nodes) {
         const dimmed = hovered && node !== hovered && !neighborSet?.has(node);
         ctx.globalAlpha = dimmed ? 0.15 : 1;
-        ctx.fillStyle = colors.note;
+        ctx.fillStyle = nodeFill(node);
         ctx.beginPath();
         ctx.arc(node.x ?? 0, node.y ?? 0, node.radius, 0, Math.PI * 2);
         ctx.fill();
@@ -194,7 +343,7 @@ export function GraphPage() {
 
       const labelTargets = hovered
         ? [hovered, ...(neighborSet ? [...neighborSet].slice(0, 18) : [])]
-        : state.nodes.filter((n) => n.degree >= 25).slice(0, 12);
+        : state.nodes.filter((n) => n.kind === 'note' && n.degree >= 25).slice(0, 12);
       ctx.globalAlpha = 1;
       ctx.font = `${Math.max(10 / k, 4)}px Inter, sans-serif`;
       ctx.textBaseline = 'middle';
@@ -302,7 +451,8 @@ export function GraphPage() {
       if (moved) return;
       const { gx, gy } = toGraphSpace(event);
       const hit = hitTest(gx, gy);
-      if (hit) {
+      // A value node addresses no document: it is a grouping, not a note.
+      if (hit && hit.kind === 'note') {
         const url = resolveNoteUrl(vaultSlug, hit.id);
         if (url) void navigate(url);
       }
@@ -340,11 +490,81 @@ export function GraphPage() {
           <VaultBreadcrumb items={[{ label: t('graph.heading') }]} className="graph-breadcrumb" />
           <h1>{t('graph.heading')}</h1>
         </div>
+        {/*
+          Both controls are built from what this vault declares. A vault whose
+          notes carry no frontmatter offers neither, because a control that
+          steers nothing is worse than no control.
+        */}
+        {colorable.length > 0 && (
+          <label className="graph-toggle graph-colorby">
+            {t('graph.colorBy')}
+            <select value={colorBy} onChange={(e) => setColorBy(e.target.value)}>
+              <option value="none">{t('graph.colorNone')}</option>
+              {colorable.map((attribute) => (
+                <option key={attribute.name} value={attribute.name}>
+                  {attribute.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {drawable.length > 0 && (
+          <label className="graph-toggle graph-colorby">
+            {t('graph.attributeNodes')}
+            <select value={valuesOf} onChange={(e) => setValuesOf(e.target.value)}>
+              <option value="none">{t('graph.attributeNone')}</option>
+              {drawable.map((attribute) => (
+                <option key={attribute.name} value={attribute.name}>
+                  {attribute.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <span className="graph-legend">
-          <span className="legend-item">
-            <span className="legend-swatch" style={{ background: 'var(--accent)' }} />
-            {t('graph.legendNotes')}
-          </span>
+          {!active && (
+            <span className="legend-item">
+              <span className="legend-swatch" style={{ background: 'var(--accent)' }} />
+              {t('graph.legendNotes')}
+            </span>
+          )}
+          {active?.boolean &&
+            active.values.map((value: string) => (
+              <span key={value} className="legend-item">
+                <span
+                  className="legend-swatch"
+                  style={{
+                    background: value === 'true' ? 'var(--seq-evergreen)' : 'var(--seq-seed)',
+                  }}
+                />
+                {value}
+              </span>
+            ))}
+          {active &&
+            !active.boolean &&
+            legend.map((value, index) => (
+              <span key={value} className="legend-item">
+                <span className="legend-swatch" style={{ background: `var(--cat-${index + 1})` }} />
+                {value}
+              </span>
+            ))}
+          {active && (active.values.length > legend.length || active.declaredBy < noteCount) && (
+            <span className="legend-item">
+              <span className="legend-swatch" style={{ background: 'var(--cat-other)' }} />
+              {active.values.length > legend.length
+                ? t('graph.legendOther')
+                : t('graph.legendUnset')}
+            </span>
+          )}
+          {valuesOf !== 'none' && (
+            <span className="legend-item">
+              <span
+                className="legend-swatch"
+                style={{ background: active ? 'var(--cat-other)' : 'var(--signal)' }}
+              />
+              {t('graph.legendTags')}
+            </span>
+          )}
           {truncated && <span className="legend-item">{t('graph.truncated')}</span>}
         </span>
       </div>

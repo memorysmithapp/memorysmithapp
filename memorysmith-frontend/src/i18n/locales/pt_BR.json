@@ -127,6 +127,13 @@
     "heading": "Grafo do vault",
     "navLabel": "Grafo do vault",
     "legendNotes": "Notas",
+    "legendTags": "Valores do atributo",
+    "legendOther": "Outros",
+    "legendUnset": "Não declarado",
+    "colorBy": "Colorir por",
+    "colorNone": "Nada",
+    "attributeNodes": "Desenhar valores de",
+    "attributeNone": "Nenhum atributo",
     "hint": "Role para ampliar · arraste para mover · clique numa nota para abri-la",
     "empty": "Este vault ainda não tem notas para desenhar.",
     "truncated": "Mostrando as primeiras 2000 notas deste vault."

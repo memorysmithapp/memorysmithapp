@@ -6,6 +6,7 @@
 import { DomainError, err, ok, type Result } from '@memorysmith/kernel';
 import {
   GRAPH_LIMITS,
+  type AnnotatedVaultGraph,
   type ContentIndex,
   type FacetIndex,
   type FacetStats,
@@ -15,7 +16,6 @@ import {
   type NoteCatalog,
   type NoteRef,
   type ScoredNote,
-  type VaultGraph,
   type BrokenLink,
 } from '../domain/ports.js';
 import {
@@ -114,8 +114,23 @@ export class VaultHealth {
 export class VaultGraphQuery {
   constructor(private readonly deps: QueryDependencies) {}
 
-  async execute(input: { vaultId: string }): Promise<Result<VaultGraph, DomainError>> {
-    return ok(await this.deps.graph.wholeGraph(input.vaultId));
+  async execute(input: { vaultId: string }): Promise<Result<AnnotatedVaultGraph, DomainError>> {
+    // Two prefix queries in the same partition, in parallel: the shape of the
+    // vault, and what each note says about itself. The second is what lets the
+    // view color by an attribute; a note with no frontmatter carries `{}` and
+    // is drawn as any other.
+    const [graph, portraits] = await Promise.all([
+      this.deps.graph.wholeGraph(input.vaultId),
+      this.deps.facets.vaultNoteFacets(input.vaultId),
+    ]);
+
+    return ok({
+      ...graph,
+      nodes: graph.nodes.map((note) => ({
+        ...note,
+        facets: portraits.get(note.noteId) ?? {},
+      })),
+    });
   }
 }
 

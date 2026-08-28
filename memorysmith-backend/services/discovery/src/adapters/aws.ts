@@ -45,7 +45,7 @@ import type {
   VaultGraph,
 } from '../domain/ports.js';
 import { GRAPH_LIMITS } from '../domain/ports.js';
-import { facetDelta, type FacetSnapshot } from '../domain/FacetExtractor.js';
+import { facetDelta, valuesOf, type FacetSnapshot } from '../domain/FacetExtractor.js';
 import type { StructureProjection, VaultStructure } from '../application/projections.js';
 
 type Item = Record<string, unknown>;
@@ -469,6 +469,22 @@ export class DynamoFacetIndex implements FacetIndex {
         UpdateExpression: 'SET discarded = :yes, facet = :facet',
         ExpressionAttributeValues: { ':yes': true, ':facet': facet },
       }),
+    );
+  }
+
+  /**
+   * The portrait of every note, the same items `vaultFacetStats` counts, read
+   * per note instead of aggregated. One prefix query in the partition the
+   * graph already reads, which is why the graph can be colored by an attribute
+   * without a second projection existing anywhere.
+   */
+  async vaultNoteFacets(vaultId: string): Promise<Map<string, Record<string, string[]>>> {
+    const portraits = await this.query(vaultId, 'FACET#');
+    return new Map(
+      portraits.map((item) => [
+        String(item['noteId']),
+        valuesOf((item['facets'] as FacetSnapshot | undefined) ?? {}),
+      ]),
     );
   }
 

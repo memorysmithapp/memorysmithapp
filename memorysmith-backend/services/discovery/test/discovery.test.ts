@@ -410,6 +410,32 @@ describe('Discovery queries', () => {
     expect(drawn.value.edges).toContainEqual([n1, n2]);
   });
 
+  it('hands each node the portrait of its own note, so the view can color by it', async () => {
+    // The extractor classified by shape; nothing here knows what `maturity`
+    // means. What the graph promises is only that the node carries what the
+    // note says about itself, and `{}` when it says nothing.
+    await deps.facets.replaceFacets(VAULT, 'n1', {
+      maturity: { facet: 'maturity', kind: 'enum', values: ['seed'] },
+      tags: { facet: 'tags', kind: 'list', values: ['contrato', 'prazo'] },
+    });
+    await deps.facets.replaceFacets(VAULT, 'n2', {
+      maturity: { facet: 'maturity', kind: 'enum', values: ['evergreen'] },
+    });
+
+    const drawn = await new VaultGraphQuery(deps).execute({ vaultId: VAULT });
+    expect(drawn.ok).toBe(true);
+    if (!drawn.ok) return;
+
+    const byId = new Map(drawn.value.nodes.map((note) => [note.noteId, note]));
+    expect(byId.get('n1')?.facets).toEqual({
+      maturity: ['seed'],
+      tags: ['contrato', 'prazo'],
+    });
+    expect(byId.get('n2')?.facets).toEqual({ maturity: ['evergreen'] });
+    // A note with no frontmatter is drawn like any other, not left out.
+    expect(byId.get('n4')?.facets).toEqual({});
+  });
+
   it('keeps an unresolved link in the graph instead of dropping it', async () => {
     await deps.graph.replaceOutgoing(
       VAULT,

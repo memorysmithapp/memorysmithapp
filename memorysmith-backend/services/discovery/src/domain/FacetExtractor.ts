@@ -117,6 +117,17 @@ export function extractFacets(markdown: string): FacetSnapshot {
 }
 
 /**
+ * The portrait reduced to what a reader groups by: the facet name and its
+ * values, without the kind. It is the shape the graph view reads, and it is
+ * derived here so no adapter has to know how a snapshot is built.
+ */
+export function valuesOf(snapshot: FacetSnapshot): Record<string, string[]> {
+  const values: Record<string, string[]> = {};
+  for (const entry of Object.values(snapshot)) values[entry.facet] = [...entry.values];
+  return values;
+}
+
+/**
  * The delta between the previous portrait and the new one. The old value is
  * NOT in the event, which is exactly why the portrait per note exists
  * (section 11.3): update and deletion have to decrement what was there.

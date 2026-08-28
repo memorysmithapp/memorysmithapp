@@ -32,12 +32,23 @@ export const graphNodeSchema: z.ZodType<{
 );
 
 /**
+ * A node of the whole-vault graph: the note, plus the portrait the facet
+ * projection keeps of it, so a reader can color the graph by an attribute the
+ * vault itself declares. The values were classified BY SHAPE (RN-DSC-019), so
+ * the backend still interprets nothing: what an attribute means is a decision
+ * of whoever authored the vault. A note with no frontmatter carries `{}`.
+ */
+export const graphNoteRefSchema = noteRefSchema.extend({
+  facets: z.record(z.string(), z.array(z.string())),
+});
+
+/**
  * The whole link graph of a vault. Edges are index pairs into `nodes`, because
  * a graph repeats every identifier twice per edge and an index is two bytes
  * where a ULID is twenty-six.
  */
 export const vaultGraphSchema = z.object({
-  nodes: z.array(noteRefSchema),
+  nodes: z.array(graphNoteRefSchema),
   edges: z.array(z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()])),
   pending: z.array(z.object({ from: z.number().int().nonnegative(), targetSlug: slugSchema })),
   /** True when the node ceiling cut the graph short. Never truncate silently. */
@@ -97,6 +108,7 @@ export const facetStatsSchema = z.object({
 
 export type NoteRefDto = z.infer<typeof noteRefSchema>;
 export type GraphNodeDto = z.infer<typeof graphNodeSchema>;
+export type GraphNoteRefDto = z.infer<typeof graphNoteRefSchema>;
 export type VaultGraphDto = z.infer<typeof vaultGraphSchema>;
 export type BacklinksDto = z.infer<typeof backlinksSchema>;
 export type BrokenLinkDto = z.infer<typeof brokenLinkSchema>;
