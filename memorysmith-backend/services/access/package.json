@@ -3,11 +3,10 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Access bounded context: subscriptions and their lifecycle, workspaces, members, roles, vault ceilings, invites, links and authorization.",
+  "description": "Access bounded context: subscriptions and their lifecycle, members, roles, vault ceilings, invites, links and authorization.",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --config vitest.config.ts",
-    "test:adapters": "vitest run --config vitest.adapters.config.ts"
+    "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1117.0",
@@ -29,7 +28,6 @@
     "./application/members": "./src/application/members.ts",
     "./domain/values": "./src/domain/values.ts",
     "./domain/ports": "./src/domain/ports/index.ts",
-    "./domain/subscription": "./src/domain/subscription/Subscription.ts",
-    "./domain/workspace": "./src/domain/workspace/Workspace.ts"
+    "./domain/subscription": "./src/domain/subscription/Subscription.ts"
   }
 }
