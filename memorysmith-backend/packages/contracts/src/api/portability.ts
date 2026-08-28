@@ -2,8 +2,9 @@
  * DTOs of svc-portability (architecture-guide.md, section 16).
  *
  * Export is where file names come back into existence: guidance becomes
- * README.md, template becomes TEMPLATE.md, and the order becomes a numeric
- * prefix, which is the only way a file system can carry it (RN-PRT-002).
+ * GUIDANCE.md, the annotated tree becomes STRUCTURE.md next to it, template
+ * becomes TEMPLATE.md, and the order becomes a numeric prefix, which is the
+ * only way a file system can carry it (RN-PRT-002).
  */
 
 import { z } from 'zod';

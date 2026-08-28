@@ -52,28 +52,55 @@ const vault: ExportInput = {
 };
 
 describe('The export tree is where file names come back into existence', () => {
-  it('materializes guidance, descriptions and templates as Markdown files', () => {
+  it('materializes the guidance, the structure and the templates as Markdown files', () => {
     const files = buildExportTree(vault);
     const paths = files.map((file) => file.path);
 
-    expect(paths).toContain('Normas e Legislacao/README.md');
-    expect(paths).toContain('Normas e Legislacao/01 Normas/README.md');
+    expect(paths).toContain('Normas e Legislacao/GUIDANCE.md');
+    expect(paths).toContain('Normas e Legislacao/STRUCTURE.md');
     expect(paths).toContain('Normas e Legislacao/01 Normas/TEMPLATE.md');
     // Every file is Markdown; there is no index and no proprietary component.
     expect(files.every((file) => file.path.endsWith('.md'))).toBe(true);
+  });
+
+  it('writes no file inside a folder just to carry its description', () => {
+    // The description is an attribute of the folder, never a document. It
+    // survives in STRUCTURE.md and nowhere else (RN-PRT-003).
+    const paths = buildExportTree(vault).map((file) => file.path);
+    expect(paths.filter((path) => path.endsWith('/GUIDANCE.md'))).toEqual([
+      'Normas e Legislacao/GUIDANCE.md',
+    ]);
+    expect(paths.some((path) => path.endsWith('/README.md'))).toBe(false);
   });
 
   it('encodes the order as a numeric prefix, which the file system lacks', () => {
     const paths = buildExportTree(vault).map((file) => file.path);
     expect(paths).toContain('Normas e Legislacao/01 Normas/01 lei-14133.md');
     expect(paths).toContain('Normas e Legislacao/01 Normas/02 portaria-9.md');
-    expect(paths).toContain('Normas e Legislacao/02 Achados/01 2026/README.md');
   });
 
-  it('materializes the description of each folder as its README', () => {
+  it('carries the whole annotated tree in STRUCTURE.md, in the Vault Context format', () => {
     const files = buildExportTree(vault);
-    const readme = files.find((file) => file.path === 'Normas e Legislacao/01 Normas/README.md');
-    expect(readme?.content.trim()).toBe('Texto normativo por artigo.');
+    const structure = files.find((file) => file.path === 'Normas e Legislacao/STRUCTURE.md');
+    expect(structure?.content).toBe(
+      [
+        '# Structure: Normas e Legislacao',
+        '',
+        '1. **Normas**: Texto normativo por artigo. (2 notes, has TEMPLATE.md)',
+        '2. **Achados/**: Achados de auditoria. (0 notes)',
+        '   2.1. **2026**: Emitidos neste exercicio. (0 notes)',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it('leaves a folder with no template and no note out of the tree, not out of the record', () => {
+    // A zip carries no empty directory anyway; STRUCTURE.md is what keeps the
+    // folder, its place in the order and its description.
+    const files = buildExportTree(vault);
+    expect(files.some((file) => file.path.includes('/01 2026/'))).toBe(false);
+    const structure = files.find((file) => file.path.endsWith('STRUCTURE.md'));
+    expect(structure?.content).toContain('2.1. **2026**: Emitidos neste exercicio.');
   });
 
   it('leaves the links of the notes intact', () => {
@@ -91,10 +118,10 @@ describe('The export tree is where file names come back into existence', () => {
         {
           noteId: 'n3',
           folderId: 'f1',
-          title: 'Readme',
-          slug: 'readme',
+          title: 'Structure',
+          slug: 'structure',
           position: 'a0',
-          content: '# Readme',
+          content: '# Structure',
         },
         {
           noteId: 'n4',
@@ -102,23 +129,23 @@ describe('The export tree is where file names come back into existence', () => {
           title: 'Aponta',
           slug: 'aponta',
           position: 'a1',
-          content: 'Ver [[readme]] e [outro](readme.md).',
+          content: 'Ver [[structure]] e [outro](structure.md).',
         },
       ],
     };
     const files = buildExportTree(withCollision);
     expect(files.map((file) => file.path)).toContain(
-      'Normas e Legislacao/01 Normas/01 readme-note.md',
+      'Normas e Legislacao/01 Normas/01 structure-note.md',
     );
     const pointing = files.find((file) => file.path.endsWith('02 aponta.md'));
-    expect(pointing?.content).toContain('[[readme-note]]');
-    expect(pointing?.content).toContain('(readme-note.md)');
+    expect(pointing?.content).toContain('[[structure-note]]');
+    expect(pointing?.content).toContain('(structure-note.md)');
   });
 
   it('writes a vault with no guidance without pretending it has one', () => {
     const files = buildExportTree({ ...vault, guidance: null });
-    const readme = files.find((file) => file.path === 'Normas e Legislacao/README.md');
-    expect(readme?.content).toBe('# Normas e Legislacao\n');
+    const guidance = files.find((file) => file.path === 'Normas e Legislacao/GUIDANCE.md');
+    expect(guidance?.content).toBe('# Normas e Legislacao\n');
   });
 });
 
@@ -135,7 +162,7 @@ describe('The archive', () => {
   });
 
   it('keeps the UTF-8 flag, so accented folder names survive', () => {
-    const archive = createZip([{ path: 'Coordenacao/README.md', content: '# Ola' }], new Date());
+    const archive = createZip([{ path: 'Coordenacao/GUIDANCE.md', content: '# Ola' }], new Date());
     expect(archive.readUInt16LE(6) & 0x0800).toBe(0x0800);
   });
 });

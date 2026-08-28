@@ -4,7 +4,7 @@
  *
  * It lives in the DOMAIN because the shape of this document IS the product,
  * not a presentation detail: it is the exact equivalent of what an agent gets
- * today by reading the orientation file and running `ls -R` on a local folder,
+ * today by reading the guidance and running `ls -R` on a local folder,
  * in a single call.
  *
  * Three decisions are visible in the format:
