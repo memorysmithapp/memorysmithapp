@@ -1155,6 +1155,14 @@ a:hover {
   border-color: var(--signal);
   color: var(--signal);
 }
+/* The version: present for whoever needs to report a problem, quiet enough to
+   be ignored by everyone else. */
+.user-menu-version {
+  margin: 0.6rem 0 0;
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--pending);
+}
 
 /* Search */
 .search-box {

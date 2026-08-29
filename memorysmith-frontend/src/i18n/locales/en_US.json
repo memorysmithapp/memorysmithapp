@@ -1,7 +1,8 @@
 {
   "app": {
     "title": "MemorySmith",
-    "tagline": "Structured knowledge, natively readable and writable by agents."
+    "tagline": "Structured knowledge, natively readable and writable by agents.",
+    "version": "Version {{version}}"
   },
   "auth": {
     "email": "Email",

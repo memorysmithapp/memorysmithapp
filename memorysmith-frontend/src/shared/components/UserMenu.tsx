@@ -214,6 +214,14 @@ export function UserMenu() {
               {t('auth.signOut')}
             </button>
           </div>
+
+          {/*
+            The version, at the foot of the panel and in the quietest type on
+            it. It is the first thing anyone is asked for when something looks
+            wrong, and the last thing anyone needs while reading a vault, so it
+            is present and never in the way.
+          */}
+          <p className="user-menu-version">{t('app.version', { version: __APP_VERSION__ })}</p>
         </div>
       )}
     </div>

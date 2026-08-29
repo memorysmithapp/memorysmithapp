@@ -7,6 +7,10 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **A versão do produto aparece no rodapé do menu do usuário**, no tipo mais discreto do painel. Ela é lida do `package.json` no momento do build, então não existe um segundo lugar para lembrar de atualizar: é a primeira coisa que se pede a quem relata um problema e a última de que se precisa enquanto se lê um vault.
+
 ### Changed
 
 - **A interface passa a caber na tela em que está sendo lida.** A folha de estilo não tinha uma única media query: existia um layout só, desenhado para uma janela larga, e todo aparelho recebia esse. Passam a existir dois pontos de quebra, cada um com uma razão que se mede com régua. Em `1180px` a barra lateral e uma coluna de leitura confortável param de caber lado a lado com folga, e a barra cede largura primeiro. Em `860px` elas param de caber, e a barra lateral do vault deixa de ser uma coluna ao lado do conteúdo para virar uma gaveta sobre ele, aberta por um botão, fechada por toque fora dela, pela tecla `Esc` e por qualquer navegação. Todo celular e todo tablet em retrato ficam abaixo dessa linha; um tablet em paisagem fica acima e mantém a coluna, que é o layout para o qual aquela tela tem espaço.
