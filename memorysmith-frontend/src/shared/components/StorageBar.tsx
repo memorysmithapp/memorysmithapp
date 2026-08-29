@@ -20,20 +20,21 @@ const FULL_AT = 1;
  * right in pt-BR and 1.5 GB in en-US.
  */
 export function formatBytes(bytes: number, locale: string): string {
-  const units: { limit: number; unit: string; digits: number }[] = [
-    { limit: 1024, unit: 'byte', digits: 0 },
-    { limit: 1024 ** 2, unit: 'kilobyte', digits: 0 },
-    { limit: 1024 ** 3, unit: 'megabyte', digits: bytes >= 1024 ** 2 * 10 ? 0 : 1 },
-    { limit: Infinity, unit: 'gigabyte', digits: 1 },
+  // The divisor is declared and NOT derived from `limit`: the last band has no
+  // upper bound, and dividing by Infinity turned every gigabyte into "0 GB".
+  const units: { limit: number; divisor: number; unit: string; digits: number }[] = [
+    { limit: 1024, divisor: 1, unit: 'byte', digits: 0 },
+    { limit: 1024 ** 2, divisor: 1024, unit: 'kilobyte', digits: 0 },
+    { limit: 1024 ** 3, divisor: 1024 ** 2, unit: 'megabyte', digits: bytes >= 1024 ** 2 * 10 ? 0 : 1 },
+    { limit: Infinity, divisor: 1024 ** 3, unit: 'gigabyte', digits: 1 },
   ];
   const scale = units.find((each) => bytes < each.limit) ?? units[units.length - 1]!;
-  const divisor = scale.limit === 1024 ? 1 : scale.limit / 1024;
   return new Intl.NumberFormat(locale, {
     style: 'unit',
     unit: scale.unit,
     unitDisplay: 'short',
     maximumFractionDigits: scale.digits,
-  }).format(bytes / divisor);
+  }).format(bytes / scale.divisor);
 }
 
 export function StorageBar({ usedBytes, quotaBytes }: { usedBytes: number; quotaBytes: number }) {

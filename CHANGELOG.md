@@ -53,6 +53,8 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A barra de armazenamento para de mostrar "0 GB" para uma cota de 1 GB.** O formatador escolhia a faixa da unidade por uma tabela de limites e dividia pelo próprio limite, mas a última faixa não tem teto: dividir por `Infinity` zerava todo valor de um gigabyte para cima. A conta agora usa um divisor declarado por unidade. Só aparecia acima de 1 GB, que é justamente a cota padrão de uma assinatura.
+
 - **O cabeçalho para de estourar ao lado do logotipo no celular.** O slogan ficava entre o logotipo e o menu do usuário ocupando todo o espaço livre, e numa tela estreita empurrava o wordmark para fora dela. Ele explica o produto para quem já está dentro dele, então é a primeira coisa a sair abaixo de `860px`, e o wordmark, que é a marca, fica.
 
 - **A barra lateral do vault para de ocupar a tela inteira no celular.** Ela tinha largura fixa de `22rem` e mínima de `16rem`, o que num aparelho de 390px não deixava nada para o conteúdo. Abaixo de `860px` ela vira uma gaveta que só aparece quando é chamada.
