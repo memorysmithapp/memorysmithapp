@@ -164,8 +164,12 @@ describe('API DTOs', () => {
       // No subscription means no role in one: NONE is the honest answer, and
       // the schema requires it rather than letting it be forgotten.
       role: 'NONE',
+      // No subscription also means nothing stored under one, and null says
+      // that, where a zero would claim an empty subscription exists.
+      usedBytes: null,
     });
     expect(session.activeSubscription).toBeNull();
     expect(session.role).toBe('NONE');
+    expect(session.usedBytes).toBeNull();
   });
 });

@@ -37,10 +37,12 @@ import {
   ResolveRequestContext,
   type ResolvedContext,
 } from '@memorysmith/svc-access/application/context';
-import { ACCESS_LIMITS } from '@memorysmith/svc-access/domain/values';
+import { ACCESS_LIMITS, StorageQuota } from '@memorysmith/svc-access/domain/values';
 import { DynamoNoteRepository } from '@memorysmith/svc-knowledge/adapters/notes';
 import { DynamoVaultRepository } from '@memorysmith/svc-knowledge/adapters/vaults';
 import { S3ContentStore } from '@memorysmith/svc-knowledge/adapters/content';
+import { DynamoStorageMeter } from '@memorysmith/svc-knowledge/adapters/storage';
+import type { StorageState } from '@memorysmith/svc-knowledge/domain';
 import { DynamoAuditTrail } from '@memorysmith/svc-audit/adapters/trail';
 import { S3RevisionReader } from '@memorysmith/svc-audit/adapters/content';
 import {
@@ -91,7 +93,31 @@ export function buildKnowledge(infra: Infrastructure, context: SubscriptionConte
     vaults: new DynamoVaultRepository(context, infra.db, infra.knowledgeTable),
     notes: new DynamoNoteRepository(context, infra.db, infra.knowledgeTable),
     content: new S3ContentStore(context, infra.s3, infra.contentBucket),
+    storage: { current: () => readStorageBudget(infra, context) },
   };
+}
+
+/**
+ * The two halves of the budget, joined HERE and nowhere else: how much is
+ * stored is a Knowledge fact and how much is allowed is an Access one, and
+ * neither context may read the other's table. Joining them is exactly what a
+ * composition root is for.
+ *
+ * A subscription that cannot be read falls back to the default quota rather
+ * than to zero: a transient read failure must not present itself to the person
+ * writing as "your plan is full".
+ */
+export async function readStorageBudget(
+  infra: Infrastructure,
+  context: SubscriptionContext,
+): Promise<StorageState> {
+  const meter = new DynamoStorageMeter(context, infra.db, infra.knowledgeTable);
+  const platform = new DynamoPlatformAdmin(infra.db, infra.accessTable, NULL_OUTBOX_SINK);
+  const [usedBytes, subscription] = await Promise.all([
+    meter.usedBytes(),
+    platform.findById(context.subscriptionId).catch(() => null),
+  ]);
+  return { usedBytes, limitBytes: (subscription?.quota ?? StorageQuota.DEFAULT).bytes };
 }
 
 /** Audit reads. Writing is the consumer's job, in its own deployable. */

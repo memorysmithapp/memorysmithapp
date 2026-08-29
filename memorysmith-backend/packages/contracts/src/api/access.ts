@@ -26,6 +26,12 @@ export const subscriptionLinkSchema = z.object({
   status: subscriptionStatusSchema,
   type: subscriptionTypeSchema,
   quota: storageQuotaSchema,
+  /**
+   * The same ceiling as a number, so the UI never has to know whether "500MB"
+   * means 500 × 1024² or 500 × 10⁶. One side owns that conversion, and it is
+   * the side that owns the quota.
+   */
+  quotaBytes: z.number().int().positive(),
   isOwner: z.boolean(),
   isDefault: z.boolean(),
   joinedAt: instantSchema,
@@ -53,6 +59,12 @@ export const sessionSchema = z.object({
    * raise it (RN-ACC-011), and that lives with the vault.
    */
   role: roleSchema,
+  /**
+   * Bytes of live content the active subscription is storing (RN-SUB-021),
+   * null when the session carries no subscription. Paired with the `quota` of
+   * the active link, it is what lets the shell show how much room is left.
+   */
+  usedBytes: z.number().int().nonnegative().nullable(),
 });
 
 export const switchSubscriptionRequestSchema = z.object({

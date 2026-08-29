@@ -15,6 +15,7 @@
     "signOut": "Sair",
     "role": "Papel",
     "plan": "Plano",
+    "storageUsed": "{{used}} de {{quota}}",
     "storage": "Armazenamento",
     "status": "Situação",
     "hostedHint": "Você será levado à página de entrada e trazido de volta para cá.",

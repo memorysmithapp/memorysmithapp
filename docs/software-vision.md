@@ -158,7 +158,11 @@ Sem essa regra, "cancelar" viraria migração de dados e "recontratar" viraria i
 
 **A assinatura não tem nome** (RN-SUB-020): o que a identifica é o `SubscriptionId`, e quem responde por ela é o titular. Um nome seria mais um campo a manter em dia sem nada que o mantivesse honesto, e não distinguiria nada que o e-mail do titular já não distinga.
 
-Além do status, a assinatura declara **o que ela é e quanto ela pode guardar**: um `type`, que nesta fase só pode ser `individual`, e uma `quota` de armazenamento, que é `500MB`, `1GB` ou `2GB` (RN-SUB-018, RN-SUB-019). Os dois são escolhidos no momento da solicitação e são alteráveis depois por ato do `PLATFORM_ADMIN`. A quota é **declarada e ainda não aplicada**: nenhuma escrita é recusada por causa dela, e dizer isso aqui vale mais do que deixar que alguém suponha uma checagem que não existe.
+Além do status, a assinatura declara **o que ela é e quanto ela pode guardar**: um `type`, que nesta fase só pode ser `individual`, e uma `quota` de armazenamento, que é `500MB`, `1GB` ou `2GB` (RN-SUB-018, RN-SUB-019). Os dois são escolhidos no momento da solicitação e são alteráveis depois por ato do `PLATFORM_ADMIN`.
+
+A quota **é aplicada** (RN-SUB-021). O que ela mede é o **conteúdo vigente**: a revisão atual de cada nota não apagada, mais cada `Guidance` e cada `Template`. Revisões substituídas continuam guardadas, porque apagar bytes é ato administrativo com porta própria, e deliberadamente não entram na conta: cobrar por elas faria o uso subir a cada edição e nunca descer, e apagar uma nota não devolveria nada. Um vault na lixeira continua ocupando o que ocupa, pelo mesmo motivo, e porque ele volta inteiro quando é restaurado.
+
+O que a quota recusa é apenas o que **faz crescer** o conteúdo vigente. Criar nota, aumentar o texto de uma, gravar um `Guidance` maior e restaurar uma nota apagada são recusados com `LIMIT_EXCEEDED` quando não cabem; ler, apagar, mover, reordenar e encurtar continuam funcionando mesmo acima do teto. A razão é simples: um limite que congela tudo prende a pessoa dentro dele, sem conseguir encurtar a própria nota que a levou até lá.
 
 ### 4.3 Hierarquia e por que ela tem dois níveis
 
@@ -244,7 +248,8 @@ Se um `PLATFORM_ADMIN` também for usuário de alguma assinatura, ele age ali co
 - **RN-SUB-016:** Uma sessão de `PLATFORM_ADMIN` não carrega assinatura ativa e, portanto, não alcança nenhum dado de vault ou nota.
 - **RN-SUB-017:** Aceitar um convite não cria assinatura para o convidado: ele passa a atuar na assinatura de quem convidou.
 - **RN-SUB-018:** Toda assinatura declara um `type`, escolhido na solicitação, cujo único valor nesta fase é `individual`. Somente `PLATFORM_ADMIN` altera o tipo depois, e é ele também quem pode definir o status diretamente, sem seguir a máquina de transição de §4.4. Um status definido assim é registrado como evento próprio, e definir `rejected` por esse caminho não cumpre RN-SUB-009: rejeitar uma solicitação que alguém aguarda continua exigindo motivo.
-- **RN-SUB-019:** Toda assinatura declara uma `quota` de armazenamento, escolhida na solicitação entre `500MB`, `1GB` e `2GB`, e alterável depois por `PLATFORM_ADMIN`. A quota é declarada e ainda não é aplicada: nenhuma escrita é recusada por excedê-la.
+- **RN-SUB-019:** Toda assinatura declara uma `quota` de armazenamento, escolhida na solicitação entre `500MB`, `1GB` e `2GB`, e alterável depois por `PLATFORM_ADMIN`. Ela é aplicada nos termos de RN-SUB-021. *(Até a 0.2.0 esta regra dizia que a quota era declarada e não aplicada.)*
+- **RN-SUB-021:** A `quota` de RN-SUB-019 é aplicada sobre o **conteúdo vigente** da assinatura: a revisão atual de cada nota não apagada, somada a cada `Guidance` e cada `Template`. Revisões substituídas permanecem armazenadas e não são contadas. Uma escrita que aumente esse total é recusada com `LIMIT_EXCEEDED` quando o total resultante ultrapassaria a quota; uma escrita que o reduza ou o mantenha é sempre aceita, inclusive acima do teto. A contagem é mantida fora da transação de escrita e é, portanto, levemente atrasada: a assinatura pode terminar pouco acima do teto, nunca indefinidamente acima dele.
 - **RN-SUB-020:** A assinatura não tem nome. Ela é identificada pelo `SubscriptionId`, e para quem a opera ela é reconhecida pelo e-mail do titular. Nenhuma tela, rota, evento ou item de armazenamento carrega um nome de assinatura.
 
 ---
@@ -374,7 +379,7 @@ id,                          -- PERPÉTUO: emitido uma vez, nunca reemitido (RN-
 owner_id,                    -- exatamente um, sempre presente (RN-ACC-001)
 status (pending_approval | trial | active | rejected | suspended | canceled),
 type (individual),           -- o que a assinatura é, comercialmente (RN-SUB-018)
-quota (500MB | 1GB | 2GB),   -- declarada, ainda não aplicada (RN-SUB-019)
+quota (500MB | 1GB | 2GB),   -- aplicada sobre o conteúdo vigente (RN-SUB-019, RN-SUB-021)
 requested_at,
 reviewed_by_id?, reviewed_at?,
 rejection_reason?,           -- obrigatório quando status = rejected (RN-SUB-009)
@@ -881,7 +886,7 @@ Registradas aqui em vez de decididas por omissão. Cada uma vira uma decisão da
 
 | # | Questão | Por que ainda não foi decidida |
 |---|---|---|
-| Q1 | **Cobrança, e a quota que vira limite de verdade** | Não há definição comercial. A assinatura já declara tipo e quota (RN-SUB-018, RN-SUB-019), mas a quota não é aplicada: aplicá-la exige contabilizar bytes por assinatura e decidir o que acontece ao estourar, e cobrar exige a decisão comercial que ainda não existe |
+| Q1 | **Cobrança** | A quota passou a ser aplicada na 0.3.0 (RN-SUB-021), então o que resta aberto é só a cobrança: não há definição comercial de preço por plano, nem de que caminho a pessoa segue para subir de quota sem passar por um `PLATFORM_ADMIN` |
 | Q2 | **Identidade visual:** cor primária, logotipo, tom | **Resolvida.** Sistema de marca definido no caderno "Livro da marca v1" (Figma): paleta, tipografia, símbolo e regras de uso registrados em `CLAUDE.md` § Identidade visual |
 | Q3 | **Continuidade quando o `OWNER` some** | A transferência exige o próprio `OWNER` (RN-ACC-002). Se ele fica indisponível, hoje só o `PLATFORM_ADMIN` resolveria, e o fluxo não está desenhado |
 | Q4 | **Vault público ou compartilhável por link** | Não está no escopo; entraria como um quarto papel, o que exige revisitar a matriz de §5.2 |

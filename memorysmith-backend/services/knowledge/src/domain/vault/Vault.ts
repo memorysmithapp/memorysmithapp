@@ -274,9 +274,20 @@ export class Vault {
       // Byte-for-byte identical content: no new revision, no event (RN-KNW-028).
       return ok();
     }
+    // A guidance replaces the previous one, so what is stored grows only by
+    // the difference; the first one ever set grows by all of it.
+    const delta = ref.bytes - (this._guidanceRef?.bytes ?? 0);
     this._guidanceRef = ref;
     this.touch(by.at);
-    this.record('GuidanceUpdated', 'VAULT', this.id.value, by, { vaultId: this.id.value }, ref);
+    this.record(
+      'GuidanceUpdated',
+      'VAULT',
+      this.id.value,
+      by,
+      { vaultId: this.id.value },
+      ref,
+      delta,
+    );
     return ok();
   }
 
@@ -496,6 +507,7 @@ export class Vault {
     if (!folder) return err(DomainError.notFound('Folder not found in this vault'));
     if (folder.templateRef?.hasSameContentAs(ref)) return ok();
 
+    const delta = ref.bytes - (folder.templateRef?.bytes ?? 0);
     folder.attachTemplate(ref, by.at);
     this._folders = this._folders.withFolder(folder);
     this.touch(by.at);
@@ -506,6 +518,7 @@ export class Vault {
       by,
       { vaultId: this.id.value, folderId: id.value },
       ref,
+      delta,
     );
     return ok();
   }
@@ -531,6 +544,7 @@ export class Vault {
     by: Authorship,
     payload: Record<string, unknown>,
     contentRef: ContentRef | null = null,
+    storageDelta = 0,
   ): void {
     this.events.push(
       createEvent({
@@ -541,6 +555,7 @@ export class Vault {
         authorship: by,
         payload,
         contentRef,
+        storageDelta,
       }),
     );
   }

@@ -642,6 +642,7 @@ Mover entre vaults é a **única operação do sistema que escreve em duas parti
 | Vault | `S#{s}#VAULT#{v}` | `META` | name, slug, description, **guidanceRef**, version |
 | Folder | `S#{s}#VAULT#{v}` | `FOLDER#{folderId}` | parentFolderId, name, slug, description, position, **templateRef** |
 | Contador de pasta | `S#{s}#VAULT#{v}` | `FSTAT#{folderId}` | noteCount, updatedAt (projeção assíncrona, §10.3) |
+| Consumo da assinatura | `S#{s}#VAULTS` | `USAGE` | storedBytes, updatedAt (projeção assíncrona, §10.3, RN-SUB-021) |
 | Contador de vault | `S#{s}#VAULT#{v}` | `FSTAT` | noteCount, updatedAt; indexado no `GSI1` como `VSTAT#{v}` |
 | Teto de papel no vault | `S#{s}#VAULT#{v}` | `LIMIT#{userId}` | limit (`VIEWER`), setBy, setAt: o rebaixamento de §5.3 do produto |
 | Note | `S#{s}#VAULT#{v}` | `NOTE#{noteId}` | folderId, title, slug, position, **bodyRef**, createdBy, updatedBy, version, `deletedAt?`, `deletedBy?` |
@@ -729,6 +730,23 @@ TransactWriteItems
 ```
 
 Contagem eventualmente consistente é aceitável de propósito: o número orienta o agente e a UI, e não participa de invariante nenhuma.
+
+**O consumo de armazenamento da assinatura é mantido pelo mesmo relay, na mesma transação** (RN-SUB-021). Cada evento declara quanto de conteúdo vigente ele acrescentou ou liberou, num campo `storageDelta` do envelope, e o relay soma esse valor num item único por assinatura:
+
+```
+TransactWriteItems
+  Put     PK = S#{s}#VAULT#{v}   SK = SEEN#{eventUlid}   attribute_not_exists(SK)   (TTL 7d)
+  Update  PK = S#{s}#VAULT#{v}   SK = FSTAT#{folderId}   ADD noteCount   :delta
+  Update  PK = S#{s}#VAULTS      SK = USAGE              ADD storedBytes :bytes
+```
+
+Os dois contadores viajam na **mesma** transação porque compartilham o item de dedup: em duas transações, a segunda seria recusada pelo `SEEN` que a primeira gravou.
+
+**O delta é declarado pelo agregado, não derivado do tipo do evento.** `NoteUpdated` é emitido tanto por um renomear, que não move byte nenhum, quanto por um corpo novo, que move a diferença entre duas revisões; só o agregado sabe qual dos dois aconteceu. Derivar do tipo faria o contador crescer a cada renomeação, e o erro seria silencioso: nada quebraria, o número só deixaria de ser verdade.
+
+**Por que o contador não vive na transação do usuário.** Um item único por assinatura tocado por toda escrita de nota é exatamente a contenção que PE10 proíbe para o `META` do vault, e pior, porque é um item para a conta inteira. Por isso ele fica no relay, e por isso a aplicação da quota é levemente atrasada: uma rajada de escritas pode cruzar a linha antes de o contador alcançar. A troca é deliberada e o desvio é limitado pelo que está em voo, já que a checagem roda em toda escrita.
+
+**Quem lê o contador não sabe o limite.** Os bytes guardados são fato do Knowledge e o teto é fato do Access, e nenhum contexto lê a tabela do outro: quem junta as duas metades na porta `StorageBudget` é o composition root (§24).
 
 ### 10.4 Outbox
 

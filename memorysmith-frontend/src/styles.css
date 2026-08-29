@@ -1098,6 +1098,50 @@ a:hover {
   font-family: var(--display);
   font-weight: 500;
 }
+/*
+  How much of the plan is used. It replaces the quota chip rather than sitting
+  beside it: "312 MB / 500 MB" already contains the ceiling, and printing the
+  ceiling twice says less, not more.
+
+  It goes green to amber to red only at the end, because a bar that is coloured
+  the whole way teaches the reader to ignore it exactly when it starts to matter.
+*/
+.storage-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  min-width: 9rem;
+}
+.storage-bar-numbers {
+  font-size: 0.78rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.storage-bar-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+.storage-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.2s ease-out;
+}
+.storage-bar[data-level='warn'] .storage-bar-fill {
+  background: var(--signal);
+}
+.storage-bar[data-level='full'] .storage-bar-fill {
+  background: #d92d20;
+}
+.storage-bar[data-level='full'] .storage-bar-numbers {
+  color: #d92d20;
+}
+
 .user-menu-section {
   border-top: 1px solid var(--border);
   margin-top: 0.9rem;

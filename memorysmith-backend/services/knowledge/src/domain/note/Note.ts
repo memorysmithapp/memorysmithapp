@@ -90,6 +90,7 @@ export class Note {
         position: input.position.value,
       },
       input.bodyRef,
+      input.bodyRef.bytes,
     );
     return ok(note);
   }
@@ -195,6 +196,10 @@ export class Note {
     if (this.isDeleted) return err(DomainError.notFound('This note is deleted'));
     if (this._bodyRef.hasSameContentAs(ref)) return ok(false);
 
+    // What the subscription is storing changed by the difference between the
+    // revision that was live and the one that now is. The superseded revision
+    // stays in the store and stops being counted (RN-SUB-021).
+    const delta = ref.bytes - this._bodyRef.bytes;
     this._bodyRef = ref;
     this._updatedBy = by;
     this.record(
@@ -208,6 +213,7 @@ export class Note {
         slug: this._slug.value,
       },
       ref,
+      delta,
     );
     return ok(true);
   }
@@ -277,12 +283,20 @@ export class Note {
     if (this.isDeleted) return err(DomainError.notFound('This note is already deleted'));
     this._deletedAt = by.at;
     this._updatedBy = by;
-    this.record('NoteDeleted', by, {
-      vaultId: this._vaultId.value,
-      noteId: this.id.value,
-      folderId: this._folderId.value,
-      slug: this._slug.value,
-    });
+    // A deleted note is no longer live content, so its bytes leave the count.
+    // They do NOT leave the store: nothing here destroys a revision (PE8).
+    this.record(
+      'NoteDeleted',
+      by,
+      {
+        vaultId: this._vaultId.value,
+        noteId: this.id.value,
+        folderId: this._folderId.value,
+        slug: this._slug.value,
+      },
+      null,
+      -this._bodyRef.bytes,
+    );
     return ok();
   }
 
@@ -291,13 +305,19 @@ export class Note {
     if (!this.isDeleted) return err(DomainError.conflict('This note is not deleted'));
     this._deletedAt = null;
     this._updatedBy = by;
-    this.record('NoteRestored', by, {
-      vaultId: this._vaultId.value,
-      noteId: this.id.value,
-      folderId: this._folderId.value,
-      slug: this._slug.value,
-      position: this._position.value,
-    });
+    this.record(
+      'NoteRestored',
+      by,
+      {
+        vaultId: this._vaultId.value,
+        noteId: this.id.value,
+        folderId: this._folderId.value,
+        slug: this._slug.value,
+        position: this._position.value,
+      },
+      null,
+      this._bodyRef.bytes,
+    );
     return ok();
   }
 
@@ -314,6 +334,7 @@ export class Note {
     by: Authorship,
     payload: Record<string, unknown>,
     contentRef: ContentRef | null = null,
+    storageDelta = 0,
   ): void {
     this.events.push(
       createEvent({
@@ -324,6 +345,7 @@ export class Note {
         authorship: by,
         payload,
         contentRef,
+        storageDelta,
       }),
     );
   }

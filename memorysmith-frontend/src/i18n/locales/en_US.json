@@ -15,6 +15,7 @@
     "signOut": "Sign out",
     "role": "Role",
     "plan": "Plan",
+    "storageUsed": "{{used}} of {{quota}}",
     "storage": "Storage",
     "status": "Status",
     "hostedHint": "You will be taken to the sign-in page and brought back here.",

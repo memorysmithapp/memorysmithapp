@@ -87,12 +87,20 @@ export interface SessionView {
     status: string;
     type: string;
     quota: string;
+    quotaBytes: number;
     isOwner: boolean;
     isDefault: boolean;
     joinedAt: string;
   }>;
   /** The role in the ACTIVE subscription; NONE when there is none. */
   readonly role: string;
+  /**
+   * Bytes of live content stored by the ACTIVE subscription (RN-SUB-021), or
+   * null when the session carries none. It is here because the screen that
+   * shows the quota is the screen that has to show what is left of it, and
+   * because the same call already answers everything else the shell needs.
+   */
+  readonly usedBytes: number | null;
 }
 
 export class GetSession {
@@ -105,6 +113,12 @@ export class GetSession {
       type: string;
       quota: string;
     } | null>,
+    /**
+     * How much the active subscription is storing. It is a function and not a
+     * repository because the number lives in the Knowledge table, which Access
+     * never reads: the composition root passes the reading in.
+     */
+    private readonly usedBytes: () => Promise<number> = async () => 0,
   ) {}
 
   async execute(input: {
@@ -116,11 +130,13 @@ export class GetSession {
     for (const link of links) {
       const metadata = await this.describeLink(link.subscriptionId);
       if (!metadata) continue;
+      const quota = StorageQuota.create(metadata.quota);
       described.push({
         subscriptionId: link.subscriptionId.value,
         status: metadata.status,
         type: metadata.type,
         quota: metadata.quota,
+        quotaBytes: (quota.ok ? quota.value : StorageQuota.DEFAULT).bytes,
         isOwner: link.isOwner,
         isDefault: link.isDefault,
         joinedAt: link.joinedAt,
@@ -142,7 +158,12 @@ export class GetSession {
       }
     }
 
-    return ok({ user: input.profile, links: described, role: role.name });
+    return ok({
+      user: input.profile,
+      links: described,
+      role: role.name,
+      usedBytes: input.context ? await this.usedBytes() : null,
+    });
   }
 }
 

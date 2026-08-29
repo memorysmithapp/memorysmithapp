@@ -42,6 +42,10 @@ export interface LiveSession {
    */
   readonly subscriptionType: SubscriptionType | null;
   readonly subscriptionQuota: StorageQuota | null;
+  /** The same ceiling in bytes, as the API declares it (RN-SUB-019). */
+  readonly subscriptionQuotaBytes: number | null;
+  /** What the subscription is storing now (RN-SUB-021). */
+  readonly usedBytes: number | null;
   readonly subscriptionStatus: SubscriptionStatus | null;
   /** The role in the active subscription, already resolved by the API. */
   readonly role: SessionDto['role'];
@@ -104,6 +108,11 @@ export const useLiveSession = create<SessionStore>((set) => ({
           subscriptionState: stateOf(claims?.subscriptionStatus ?? active?.status),
           subscriptionType: active?.type ?? null,
           subscriptionQuota: active?.quota ?? null,
+          subscriptionQuotaBytes: active?.quotaBytes ?? null,
+          // `?? null` and not the value straight: an API that predates the
+          // counter answers without the field, and `undefined` reaching the
+          // menu would render a bar measuring nothing.
+          usedBytes: dto.usedBytes ?? null,
           subscriptionStatus: active?.status ?? null,
           role: dto.role,
           subscriptions: dto.subscriptions,
@@ -123,6 +132,8 @@ export const useLiveSession = create<SessionStore>((set) => ({
               subscriptionState: stateOf(claims.subscriptionStatus),
               subscriptionType: null,
               subscriptionQuota: null,
+              subscriptionQuotaBytes: null,
+              usedBytes: null,
               subscriptionStatus: null,
               role: 'NONE',
               subscriptions: [],

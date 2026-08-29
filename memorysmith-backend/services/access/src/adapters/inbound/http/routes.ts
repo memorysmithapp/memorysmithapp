@@ -127,6 +127,7 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
       activeSubscription: view.value.links.find((link) => link.subscriptionId === activeId) ?? null,
       subscriptions: view.value.links,
       role: view.value.role,
+      usedBytes: view.value.usedBytes,
     };
     // Parsed, not cast. A cast would let the shape drift from the declared
     // contract in silence, which is exactly how this response came to send

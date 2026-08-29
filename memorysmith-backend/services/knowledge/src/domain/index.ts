@@ -23,6 +23,11 @@ export { NotePlacement, type NoteOrder } from './services/NotePlacement.js';
 export { NoteRelocation, type SlugTaken } from './services/NoteRelocation.js';
 export { composeVaultContext, type VaultContextInput } from './services/VaultContextComposer.js';
 export {
+  admitWrite,
+  type StorageBudget,
+  type StorageState,
+} from './services/StorageQuota.js';
+export {
   AuthorizationPolicy,
   type Action,
   type RequestContext,
