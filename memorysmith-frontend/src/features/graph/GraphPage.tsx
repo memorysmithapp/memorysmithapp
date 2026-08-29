@@ -16,6 +16,7 @@ import { usePreferences } from '../../shared/store/preferences';
 import { VaultBreadcrumb } from '../structure/VaultBreadcrumb';
 import { resolveNoteUrl } from '../../shared/api/source';
 import { getVaultGraph } from '../../shared/api/backend';
+import { CloseIcon, GearIcon, LegendIcon } from '../../shared/components/icons';
 
 interface GraphFile {
   nodes: { id: string; title: string; facets: Record<string, string[]> }[];
@@ -91,6 +92,11 @@ function attributesOf(nodes: GraphFile['nodes']): Attribute[] {
     .sort((left, right) => left.name.localeCompare(right.name));
 }
 
+/** The breakpoint at which the vault sidebar becomes a drawer (styles.css). */
+function narrowScreen(): boolean {
+  return window.matchMedia('(max-width: 860px)').matches;
+}
+
 /**
  * Whether this device answers with a finger and not a pointer. It decides which
  * gestures the hint names: telling someone to scroll a wheel they do not have
@@ -116,6 +122,13 @@ export function GraphPage() {
   const [truncated, setTruncated] = useState(false);
   const [colorBy, setColorBy] = useState('none');
   const [valuesOf, setValuesOf] = useState('none');
+  /**
+   * The two panels float over the drawing, so on a narrow screen they start
+   * closed: there the graph is the whole screen, and a panel that opens on top
+   * of it uncalled hides the thing the person came to look at.
+   */
+  const [controlsOpen, setControlsOpen] = useState(() => !narrowScreen());
+  const [legendOpen, setLegendOpen] = useState(() => !narrowScreen());
   const [data, setData] = useState<GraphFile | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<{
@@ -596,95 +609,153 @@ export function GraphPage() {
     // active token values.
   }, [filtered, navigate, vaultSlug, theme]);
 
+  const hasControls = colorable.length > 0 || drawable.length > 0;
+
   return (
     <div className="graph-page">
+      {/* Two lines, and only two: the trail, then the name of the screen.
+          Everything that steers the drawing lives over the drawing. */}
       <div className="graph-toolbar">
-        <div className="graph-title">
-          <VaultBreadcrumb items={[{ label: t('graph.heading') }]} className="graph-breadcrumb" />
-          <h1>{t('graph.heading')}</h1>
-        </div>
-        {/*
-          Both controls are built from what this vault declares. A vault whose
-          notes carry no frontmatter offers neither, because a control that
-          steers nothing is worse than no control.
-        */}
-        {colorable.length > 0 && (
-          <label className="graph-toggle graph-colorby">
-            {t('graph.colorBy')}
-            <select value={colorBy} onChange={(e) => setColorBy(e.target.value)}>
-              <option value="none">{t('graph.colorNone')}</option>
-              {colorable.map((attribute) => (
-                <option key={attribute.name} value={attribute.name}>
-                  {attribute.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        {drawable.length > 0 && (
-          <label className="graph-toggle graph-colorby">
-            {t('graph.attributeNodes')}
-            <select value={valuesOf} onChange={(e) => setValuesOf(e.target.value)}>
-              <option value="none">{t('graph.attributeNone')}</option>
-              {drawable.map((attribute) => (
-                <option key={attribute.name} value={attribute.name}>
-                  {attribute.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        <span className="graph-legend">
-          {!active && (
-            <span className="legend-item">
-              <span className="legend-swatch" style={{ background: 'var(--accent)' }} />
-              {t('graph.legendNotes')}
-            </span>
-          )}
-          {active?.boolean &&
-            active.values.map((value: string) => (
-              <span key={value} className="legend-item">
-                <span
-                  className="legend-swatch"
-                  style={{
-                    background: value === 'true' ? 'var(--seq-evergreen)' : 'var(--seq-seed)',
-                  }}
-                />
-                {value}
-              </span>
-            ))}
-          {active &&
-            !active.boolean &&
-            legend.map((value, index) => (
-              <span key={value} className="legend-item">
-                <span className="legend-swatch" style={{ background: `var(--cat-${index + 1})` }} />
-                {value}
-              </span>
-            ))}
-          {active && (active.values.length > legend.length || active.declaredBy < noteCount) && (
-            <span className="legend-item">
-              <span className="legend-swatch" style={{ background: 'var(--cat-other)' }} />
-              {active.values.length > legend.length
-                ? t('graph.legendOther')
-                : t('graph.legendUnset')}
-            </span>
-          )}
-          {valuesOf !== 'none' && (
-            <span className="legend-item">
-              <span
-                className="legend-swatch"
-                style={{ background: active ? 'var(--cat-other)' : 'var(--signal)' }}
-              />
-              {t('graph.legendTags')}
-            </span>
-          )}
-          {truncated && <span className="legend-item">{t('graph.truncated')}</span>}
-        </span>
+        <VaultBreadcrumb items={[{ label: t('graph.heading') }]} className="graph-breadcrumb" />
+        <h1>{t('graph.heading')}</h1>
       </div>
       <div className="graph-canvas-wrap">
         {!filtered && <p className="status">{t('common.loading')}</p>}
         {filtered?.nodes.length === 0 && <p className="status">{t('graph.empty')}</p>}
         <canvas ref={canvasRef} />
+        <div className="graph-overlay">
+          {/*
+            Both controls are built from what this vault declares. A vault whose
+            notes carry no frontmatter offers neither, because a control that
+            steers nothing is worse than no control, and then the panel that
+            would hold them has nothing to hold either.
+          */}
+          {hasControls &&
+            (controlsOpen ? (
+              <section className="graph-panel" aria-label={t('graph.controls')}>
+                <header className="graph-panel-head">
+                  <h2>{t('graph.controls')}</h2>
+                  <button
+                    type="button"
+                    className="graph-panel-close"
+                    aria-label={t('graph.closeControls')}
+                    onClick={() => setControlsOpen(false)}
+                  >
+                    <CloseIcon />
+                  </button>
+                </header>
+                {colorable.length > 0 && (
+                  <details className="graph-panel-section" open>
+                    <summary>{t('graph.colorBy')}</summary>
+                    <select value={colorBy} onChange={(e) => setColorBy(e.target.value)}>
+                      <option value="none">{t('graph.colorNone')}</option>
+                      {colorable.map((attribute) => (
+                        <option key={attribute.name} value={attribute.name}>
+                          {attribute.name}
+                        </option>
+                      ))}
+                    </select>
+                  </details>
+                )}
+                {drawable.length > 0 && (
+                  <details className="graph-panel-section" open>
+                    <summary>{t('graph.attributeNodes')}</summary>
+                    <select value={valuesOf} onChange={(e) => setValuesOf(e.target.value)}>
+                      <option value="none">{t('graph.attributeNone')}</option>
+                      {drawable.map((attribute) => (
+                        <option key={attribute.name} value={attribute.name}>
+                          {attribute.name}
+                        </option>
+                      ))}
+                    </select>
+                  </details>
+                )}
+              </section>
+            ) : (
+              <button
+                type="button"
+                className="graph-overlay-button"
+                aria-label={t('graph.openControls')}
+                onClick={() => setControlsOpen(true)}
+              >
+                <GearIcon />
+              </button>
+            ))}
+          {legendOpen ? (
+            <section className="graph-panel graph-panel-legend" aria-label={t('graph.legend')}>
+              <header className="graph-panel-head">
+                <h2>{t('graph.legend')}</h2>
+                <button
+                  type="button"
+                  className="graph-panel-close"
+                  aria-label={t('graph.closeLegend')}
+                  onClick={() => setLegendOpen(false)}
+                >
+                  <CloseIcon />
+                </button>
+              </header>
+              <div className="graph-legend">
+                {!active && (
+                  <span className="legend-item">
+                    <span className="legend-swatch" style={{ background: 'var(--accent)' }} />
+                    {t('graph.legendNotes')}
+                  </span>
+                )}
+                {active?.boolean &&
+                  active.values.map((value: string) => (
+                    <span key={value} className="legend-item">
+                      <span
+                        className="legend-swatch"
+                        style={{
+                          background: value === 'true' ? 'var(--seq-evergreen)' : 'var(--seq-seed)',
+                        }}
+                      />
+                      {value}
+                    </span>
+                  ))}
+                {active &&
+                  !active.boolean &&
+                  legend.map((value, index) => (
+                    <span key={value} className="legend-item">
+                      <span
+                        className="legend-swatch"
+                        style={{ background: `var(--cat-${index + 1})` }}
+                      />
+                      {value}
+                    </span>
+                  ))}
+                {active &&
+                  (active.values.length > legend.length || active.declaredBy < noteCount) && (
+                    <span className="legend-item">
+                      <span className="legend-swatch" style={{ background: 'var(--cat-other)' }} />
+                      {active.values.length > legend.length
+                        ? t('graph.legendOther')
+                        : t('graph.legendUnset')}
+                    </span>
+                  )}
+                {valuesOf !== 'none' && (
+                  <span className="legend-item">
+                    <span
+                      className="legend-swatch"
+                      style={{ background: active ? 'var(--cat-other)' : 'var(--signal)' }}
+                    />
+                    {t('graph.legendTags')}
+                  </span>
+                )}
+              </div>
+              {truncated && <p className="graph-legend-note">{t('graph.truncated')}</p>}
+            </section>
+          ) : (
+            <button
+              type="button"
+              className="graph-overlay-button"
+              aria-label={t('graph.openLegend')}
+              onClick={() => setLegendOpen(true)}
+            >
+              <LegendIcon />
+            </button>
+          )}
+        </div>
         <span className="graph-hint">{t(touchOnly ? 'graph.hintTouch' : 'graph.hint')}</span>
       </div>
     </div>

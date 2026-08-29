@@ -4,7 +4,7 @@ import { Link, NavLink, Outlet, useLocation, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next';
 import { getVaultStructure } from '../../shared/api/source';
 import type { VaultStructure } from '../../shared/types/api';
-import { GraphIcon, MenuIcon } from '../../shared/components/icons';
+import { GraphIcon, MenuIcon, PanelLeftCloseIcon } from '../../shared/components/icons';
 import { SearchBox } from '../search/SearchBox';
 import { ExportVaultButton } from '../portability/ExportVaultButton';
 import { FolderTree } from './FolderTree';
@@ -80,10 +80,11 @@ export function VaultLayout() {
         <button
           type="button"
           className="vault-nav-close"
+          aria-label={t('structure.closeNavigation')}
           ref={closeRef}
           onClick={() => setNavOpen(false)}
         >
-          {t('structure.closeNavigation')}
+          <PanelLeftCloseIcon />
         </button>
         <Link to="/" className="back-link">
           ← {t('structure.backToVaults')}
