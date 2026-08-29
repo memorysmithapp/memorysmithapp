@@ -133,16 +133,12 @@
   "graph": {
     "heading": "Vault graph",
     "navLabel": "Vault graph",
-    "legendNotes": "Notes",
     "controls": "Controls",
     "openControls": "Open controls",
     "closeControls": "Close controls",
-    "legend": "Legend",
-    "openLegend": "Open legend",
-    "closeLegend": "Close legend",
     "attributeNodes": "Add",
-    "hint": "Scroll to zoom · drag to pan · click a note to open it",
-    "hintTouch": "Pinch to zoom · drag to pan · tap a note to open it",
+    "hint": "Scroll to zoom · drag to pan · click a note to open it, an attribute to hold its notes",
+    "hintTouch": "Pinch to zoom · drag to pan · tap a note to open it, an attribute to hold its notes",
     "empty": "This vault has no notes to draw yet.",
     "truncated": "Showing the first 2000 notes of this vault."
   },

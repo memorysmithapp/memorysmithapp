@@ -133,16 +133,12 @@
   "graph": {
     "heading": "Grafo do vault",
     "navLabel": "Grafo do vault",
-    "legendNotes": "Notas",
     "controls": "Controles",
     "openControls": "Abrir controles",
     "closeControls": "Fechar controles",
-    "legend": "Legenda",
-    "openLegend": "Abrir legenda",
-    "closeLegend": "Fechar legenda",
     "attributeNodes": "Adicionar",
-    "hint": "Role para ampliar · arraste para mover · clique numa nota para abri-la",
-    "hintTouch": "Pince para ampliar · arraste para mover · toque numa nota para abri-la",
+    "hint": "Role para ampliar · arraste para mover · clique numa nota para abri-la, num atributo para fixar suas notas",
+    "hintTouch": "Pince para ampliar · arraste para mover · toque numa nota para abri-la, num atributo para fixar suas notas",
     "empty": "Este vault ainda não tem notas para desenhar.",
     "truncated": "Mostrando as primeiras 2000 notas deste vault."
   },

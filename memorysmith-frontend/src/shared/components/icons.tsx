@@ -124,18 +124,6 @@ export function GearIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-/** Swatches beside labels: what a legend looks like when it is an icon. */
-export function LegendIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...base(props)}>
-      <rect x="3" y="4" width="4" height="4" rx="1" />
-      <rect x="3" y="10" width="4" height="4" rx="1" />
-      <rect x="3" y="16" width="4" height="4" rx="1" />
-      <path d="M11 6h10M11 12h10M11 18h6" />
-    </svg>
-  );
-}
-
 export function CloseIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base(props)}>

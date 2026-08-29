@@ -486,25 +486,6 @@ a:hover {
   font-size: 0.95rem;
 }
 
-.chart-legend {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
-  font-size: 0.76rem;
-  color: var(--text-soft);
-}
-.legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-.legend-swatch {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-  display: inline-block;
-}
-
 .seq-seed {
   background: var(--seq-seed);
 }
@@ -627,9 +608,9 @@ a:hover {
   margin: 0 0 0.85rem;
 }
 
-/* Panels floating over the graph. The controls sit at the top right corner and
-   the legend right under them, each one closing to the small button that
-   reopens it, so the drawing is never permanently covered by its own chrome. */
+/* The panel floating over the graph. It sits at the top right corner and closes
+   to the small button that reopens it, so the drawing is never permanently
+   covered by its own chrome. */
 .graph-overlay {
   position: absolute;
   top: 0.75rem;
@@ -701,10 +682,6 @@ a:hover {
   background: var(--accent-soft);
   color: var(--accent);
 }
-.graph-panel-legend {
-  overflow: hidden;
-}
-
 /* One switch per attribute: each is turned on by itself, and turning a second
    one on does not take the first off the drawing. The track uses --pending,
    which is a mid grey in both themes, so the knob reads in either. */
@@ -731,12 +708,14 @@ a:hover {
   white-space: nowrap;
 }
 /* The colour this attribute wears on the drawing, or an empty ring when it is
-   off: the panel says which colour a switch will bring before it is thrown. */
+   off: the panel says which colour a switch will bring before it is thrown.
+   It is the only place the colour is stated now that the legend is gone, so it
+   is drawn large enough to be read as a colour and not as a bullet. */
 .graph-switch-dot {
   flex-shrink: 0;
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
   border: 1px solid var(--border);
 }
 .graph-switch input {
@@ -846,32 +825,26 @@ a:hover {
   margin: 0;
   font-size: 1.05rem;
 }
-.graph-legend {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.3rem;
-  font-size: 0.78rem;
-  color: var(--text-soft);
-  overflow-y: auto;
-  min-height: 0;
-}
-.graph-legend-note {
-  margin: 0.5rem 0 0;
-  padding-top: 0.4rem;
-  border-top: 1px solid var(--border);
-  font-size: 0.72rem;
-  color: var(--text-soft);
-}
-.graph-hint {
+/* What is said about the drawing as a whole: the gestures it answers to, and
+   the warning that it is not the whole vault. They stack in one centred column
+   instead of being two absolutely positioned lines that have to be kept from
+   colliding, and they wrap rather than run off a narrow screen. */
+.graph-footer {
   position: absolute;
   bottom: 0.75rem;
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  max-width: calc(100% - 1.5rem);
   font-size: 0.74rem;
+  line-height: 1.35;
   color: var(--pending);
+  text-align: center;
+  text-wrap: balance;
   pointer-events: none;
-  white-space: nowrap;
 }
 .graph-canvas-wrap {
   flex: 1;

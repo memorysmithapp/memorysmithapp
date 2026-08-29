@@ -16,7 +16,7 @@ import { usePreferences } from '../../shared/store/preferences';
 import { VaultBreadcrumb } from '../structure/VaultBreadcrumb';
 import { resolveNoteUrl } from '../../shared/api/source';
 import { getVaultGraph } from '../../shared/api/backend';
-import { CloseIcon, GearIcon, LegendIcon } from '../../shared/components/icons';
+import { CloseIcon, GearIcon } from '../../shared/components/icons';
 
 interface GraphFile {
   nodes: { id: string; title: string; facets: Record<string, string[]> }[];
@@ -49,6 +49,18 @@ const MAX_DISCRETE_VALUES = 24;
  * a fourth attribute switched on at the same time wears the Other grey.
  */
 const VALUE_SLOTS = 3;
+
+/**
+ * How many neighbour names a hover writes on the drawing: a glance names a
+ * handful. It is a ceiling and not a promise, since names that would land on
+ * one another are dropped rather than piled up.
+ *
+ * A pinned group writes no such list. Holding a group is the moment you go
+ * looking through it, and eighty names frozen over eighty crowded nodes is a
+ * wall to read, not a group to browse. There the pointer names one node at a
+ * time: the one under it.
+ */
+const LABELS_HOVERED = 18;
 
 /** A date is discrete once it is a month: one node per day is a calendar. */
 const YEAR_MONTH = /^(\d{4})-(\d{2})(?:-\d{2})?(?:[T ].*)?$/;
@@ -154,12 +166,11 @@ export function GraphPage() {
    */
   const [drawn, setDrawn] = useState<readonly { name: string; slot: number }[]>([]);
   /**
-   * The two panels float over the drawing, so on a narrow screen they start
-   * closed: there the graph is the whole screen, and a panel that opens on top
-   * of it uncalled hides the thing the person came to look at.
+   * The panel floats over the drawing, so on a narrow screen it starts closed:
+   * there the graph is the whole screen, and a panel that opens on top of it
+   * uncalled hides the thing the person came to look at.
    */
   const [controlsOpen, setControlsOpen] = useState(() => !narrowScreen());
-  const [legendOpen, setLegendOpen] = useState(() => !narrowScreen());
   const [data, setData] = useState<GraphFile | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<{
@@ -169,6 +180,23 @@ export function GraphPage() {
     sim: Simulation<GraphNode, GraphLink> | null;
     transform: { x: number; y: number; k: number };
     hovered: GraphNode | null;
+    /**
+     * The value node whose group is held on the drawing. Hovering shows a
+     * group for as long as the pointer stays on it, which is exactly as long
+     * as it takes to move the pointer off it and lose it: the moment you go
+     * for one of the notes it named, it is gone. Pinning is that same
+     * highlight, kept, so the group can be read and one of its notes clicked.
+     * While something is pinned the drawing stops answering to hover, because
+     * a highlight that still follows the pointer is not held at all.
+     */
+    pinned: GraphNode | null;
+    /**
+     * What is on the drawing at all: the held node and its group, or null for
+     * the whole vault. A node outside it is not drawn, and is not under the
+     * pointer either, which is the difference between hiding something and
+     * merely fading it.
+     */
+    shown: Set<GraphNode> | null;
     redraw: (() => void) | null;
   }>({
     nodes: [],
@@ -177,6 +205,8 @@ export function GraphPage() {
     sim: null,
     transform: { x: 0, y: 0, k: 1 },
     hovered: null,
+    pinned: null,
+    shown: null,
     redraw: null,
   });
 
@@ -311,8 +341,15 @@ export function GraphPage() {
       });
     }
 
+    // Both grow with how much they hold, and a value node grows faster: it is
+    // the thing you aim at to hold its group, and it used to be the smallest
+    // mark on a drawing where every note around it was larger. A target has to
+    // be hittable, and one that gathers four hundred notes has earned the size.
     for (const node of nodes) {
-      node.radius = node.kind === 'value' ? 2.5 : Math.min(13, 2.2 + 1.25 * Math.sqrt(node.degree));
+      node.radius =
+        node.kind === 'value'
+          ? Math.min(16, 3.5 + 1.6 * Math.sqrt(node.degree))
+          : Math.min(13, 2.2 + 1.25 * Math.sqrt(node.degree));
     }
     return { nodes, links };
   }, [data, drawn, dateLike]);
@@ -345,6 +382,10 @@ export function GraphPage() {
       k: Math.min(1, 600 / Math.sqrt(nodes.length) / 12),
     };
     state.hovered = null;
+    // The nodes were just rebuilt, so a pin from the previous drawing points
+    // at an object that is no longer on it.
+    state.pinned = null;
+    state.shown = null;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -377,29 +418,40 @@ export function GraphPage() {
       ctx.translate(x, y);
       ctx.scale(k, k);
 
+      // A pin outranks the pointer: while one is held, moving the mouse across
+      // the drawing never changes WHICH group is lit, which is the whole point
+      // of holding it. The pointer keeps one job, naming what is under it.
+      const pinned = state.pinned;
       const hovered = state.hovered;
-      const neighborSet = hovered ? state.neighbors.get(hovered) : null;
+      const focus = pinned ?? hovered;
+      const neighborSet = focus ? state.neighbors.get(focus) : null;
+      // With a group held there is nothing else on the drawing to fade: the
+      // rest of the vault is not drawn at all.
+      const shown = state.shown;
 
-      ctx.globalAlpha = hovered ? 0.06 : 0.14;
+      ctx.globalAlpha = focus ? 0.06 : 0.14;
       ctx.strokeStyle = colors.edge;
       ctx.lineWidth = 1 / k;
       ctx.beginPath();
       for (const link of state.links) {
         const s = link.source as GraphNode;
         const tN = link.target as GraphNode;
-        if (hovered && s !== hovered && tN !== hovered) continue;
+        // Inside a held group, the links BETWEEN its notes are drawn too: what
+        // an attribute gathers is worth seeing as a shape, not only as spokes.
+        if (shown ? !shown.has(s) || !shown.has(tN) : focus && s !== focus && tN !== focus)
+          continue;
         ctx.moveTo(s.x ?? 0, s.y ?? 0);
         ctx.lineTo(tN.x ?? 0, tN.y ?? 0);
       }
       ctx.stroke();
 
-      if (hovered) {
+      if (focus) {
         ctx.globalAlpha = 0.5;
         ctx.beginPath();
         for (const link of state.links) {
           const s = link.source as GraphNode;
           const tN = link.target as GraphNode;
-          if (s !== hovered && tN !== hovered) continue;
+          if (s !== focus && tN !== focus) continue;
           ctx.moveTo(s.x ?? 0, s.y ?? 0);
           ctx.lineTo(tN.x ?? 0, tN.y ?? 0);
         }
@@ -407,7 +459,10 @@ export function GraphPage() {
       }
 
       for (const node of state.nodes) {
-        const dimmed = hovered && node !== hovered && !neighborSet?.has(node);
+        if (shown && !shown.has(node)) continue;
+        // Whatever the pointer is on is never dimmed: it is about to be named,
+        // and a name over a faded dot reads as a mistake.
+        const dimmed = focus && node !== focus && node !== hovered && !neighborSet?.has(node);
         ctx.globalAlpha = dimmed ? 0.15 : 1;
         ctx.fillStyle = nodeFill(node);
         ctx.beginPath();
@@ -415,16 +470,59 @@ export function GraphPage() {
         ctx.fill();
       }
 
-      const labelTargets = hovered
-        ? [hovered, ...(neighborSet ? [...neighborSet].slice(0, 18) : [])]
-        : state.nodes.filter((n) => n.kind === 'note' && n.degree >= 25).slice(0, 12);
+      // The ring around the pinned node, so the drawing says whether this
+      // group is being held or merely pointed at. It is drawn in ink and not
+      // in the attribute's own colour, which would be a ring the same shade as
+      // the disc it surrounds.
+      if (pinned) {
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = colors.label;
+        ctx.lineWidth = 1.5 / k;
+        ctx.beginPath();
+        ctx.arc(pinned.x ?? 0, pinned.y ?? 0, pinned.radius + 3.5 / k, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      /*
+        Who gets named. With a group held, only the value that holds it and
+        whatever the pointer is on: the highlight stays put and the pointer
+        reads the group one node at a time, which is how you look for a note
+        among many. A plain hover still names its neighbours, because there the
+        highlight itself is already gone the moment the pointer moves.
+      */
+      const labelTargets = pinned
+        ? [pinned, ...(hovered && hovered !== pinned ? [hovered] : [])]
+        : focus
+          ? [focus, ...(neighborSet ? [...neighborSet].slice(0, LABELS_HOVERED) : [])]
+          : state.nodes.filter((n) => n.kind === 'note' && n.degree >= 25).slice(0, 12);
       ctx.globalAlpha = 1;
-      ctx.font = `${Math.max(10 / k, 4)}px Inter, sans-serif`;
+      const fontSize = Math.max(10 / k, 4);
+      ctx.font = `${fontSize}px Inter, sans-serif`;
       ctx.textBaseline = 'middle';
+      /*
+        A name that lands on another name leaves two unreadable names, and a
+        held group is dozens of nodes crowded into the space of a few. So the
+        boxes already written are kept, and a name that would overlap one of
+        them is skipped rather than piled on top of it: the drawing shows fewer
+        names than it has, and every name it shows can be read. Order decides
+        who wins, and the focused node is first in the list.
+      */
+      const written: { x0: number; y0: number; x1: number; y1: number }[] = [];
       for (const node of labelTargets) {
         const label = node.title;
         const lx = (node.x ?? 0) + node.radius + 3 / k;
         const ly = node.y ?? 0;
+        const box = {
+          x0: lx,
+          y0: ly - fontSize / 2,
+          x1: lx + ctx.measureText(label).width,
+          y1: ly + fontSize / 2,
+        };
+        const collides = written.some(
+          (each) => box.x0 < each.x1 && box.x1 > each.x0 && box.y0 < each.y1 && box.y1 > each.y0,
+        );
+        if (collides) continue;
+        written.push(box);
         ctx.lineWidth = 3 / k;
         ctx.strokeStyle = colors.halo;
         ctx.strokeText(label, lx, ly);
@@ -433,9 +531,14 @@ export function GraphPage() {
       }
     }
 
+    // Held apart so holding a group can retune them: a group of forty in an
+    // empty field wants more room between its nodes than one of six hundred.
+    const linkForce = forceLink<GraphNode, GraphLink>(links).distance(28).strength(0.4);
+    const chargeForce = forceManyBody().strength(-24);
+
     const sim = forceSimulation<GraphNode>(nodes)
-      .force('link', forceLink<GraphNode, GraphLink>(links).distance(28).strength(0.4))
-      .force('charge', forceManyBody().strength(-24))
+      .force('link', linkForce)
+      .force('charge', chargeForce)
       .force('center', forceCenter(0, 0))
       .force('x', forceX(0).strength(0.04))
       .force('y', forceY(0).strength(0.04))
@@ -454,24 +557,77 @@ export function GraphPage() {
     }
     state.neighbors = neighbors;
 
+    /**
+     * Holding a group takes the rest of the vault OFF the drawing, and lets go
+     * puts it back. Dimming was not enough: a node you cannot see still
+     * answered the pointer, so the drawing offered notes it was hiding.
+     *
+     * The simulation is rescoped to the group rather than rebuilt, so the
+     * nodes keep the positions they already had and open out from where they
+     * stood instead of jumping. With the crowd gone they have room, and the
+     * forces are widened to use it: this is the animation that spreads a group
+     * out far enough to pick one note out of it.
+     */
+    function rescope() {
+      const held = state.pinned;
+      if (held) {
+        const group = state.neighbors.get(held) ?? new Set<GraphNode>();
+        const shown = new Set<GraphNode>([held, ...group]);
+        state.shown = shown;
+        linkForce.links(
+          state.links.filter(
+            (link) =>
+              shown.has(link.source as GraphNode) && shown.has(link.target as GraphNode),
+          ),
+        );
+        linkForce.distance(70);
+        chargeForce.strength(-160);
+        sim.nodes([...shown]);
+        // The group is pulled to the origin of the drawing, so the view is put
+        // back over the origin: otherwise a graph someone had dragged aside
+        // opens its group off screen.
+        state.transform.x = width / 2;
+        state.transform.y = height / 2;
+      } else {
+        state.shown = null;
+        linkForce.links(state.links);
+        linkForce.distance(28);
+        chargeForce.strength(-24);
+        sim.nodes(state.nodes);
+      }
+      sim.alpha(0.7).restart();
+    }
+
     function toGraphSpace(event: { clientX: number; clientY: number }) {
       const rect = canvas!.getBoundingClientRect();
       const { x, y, k } = state.transform;
       return { gx: (event.clientX - rect.left - x) / k, gy: (event.clientY - rect.top - y) / k };
     }
 
+    /**
+     * What is under this point, answering with what the eye says is there.
+     * Value nodes are painted over the notes, so a value under the pointer
+     * wins even when a note's centre sits closer: picking by distance alone
+     * opens a note the person cannot see instead of holding the group they
+     * aimed at. Within one kind, the nearest centre wins.
+     */
     function hitTest(gx: number, gy: number): GraphNode | null {
       let best: GraphNode | null = null;
       let bestDist = Infinity;
       for (const node of state.nodes) {
+        if (state.shown && !state.shown.has(node)) continue;
         const dx = (node.x ?? 0) - gx;
         const dy = (node.y ?? 0) - gy;
         const dist = dx * dx + dy * dy;
         const hit = Math.max(node.radius + 4 / state.transform.k, 6 / state.transform.k);
-        if (dist < hit * hit && dist < bestDist) {
-          best = node;
-          bestDist = dist;
-        }
+        if (dist >= hit * hit) continue;
+        const outranks =
+          best === null ||
+          (node.kind === 'value' && best.kind !== 'value') ||
+          (node.kind === best.kind && dist < bestDist);
+        if (!outranks) continue;
+        best = node;
+        bestDist = dist;
       }
       return best;
     }
@@ -519,29 +675,43 @@ export function GraphPage() {
       }
       const { gx, gy } = toGraphSpace(event);
       const hit = hitTest(gx, gy);
-      if (hit !== state.hovered) {
-        state.hovered = hit;
-        canvas!.style.cursor = hit ? 'pointer' : 'grab';
-        draw();
-      }
+      if (hit === state.hovered) return;
+      state.hovered = hit;
+      canvas!.style.cursor = hit ? 'pointer' : 'grab';
+      // Always repaints: with nothing held the hover moves the highlight, and
+      // with a group held it moves the one name on the drawing.
+      draw();
     }
+    /**
+     * What a click means, in the three cases there are. A note is a document
+     * and opens. A value node is a grouping and holds its notes on the drawing,
+     * or lets them go if it was already the one being held. Empty canvas is how
+     * you let go without aiming at anything.
+     */
     function onUp(event: MouseEvent) {
       dragging = false;
       if (moved) return;
       const { gx, gy } = toGraphSpace(event);
       const hit = hitTest(gx, gy);
-      // A value node addresses no document: it is a grouping, not a note.
-      if (hit && hit.kind === 'note') {
+
+      if (hit?.kind === 'note') {
         const url = resolveNoteUrl(vaultSlug, hit.id);
         if (url) void navigate(url);
+        return;
       }
+
+      const next = hit?.kind === 'value' && hit !== state.pinned ? hit : null;
+      if (next === state.pinned) return;
+      state.pinned = next;
+      rescope();
     }
+    /** The pointer leaving takes the hover with it, and never the pin: the
+        held group survives the trip to the panel and back. */
     function onLeave() {
       dragging = false;
-      if (state.hovered) {
-        state.hovered = null;
-        draw();
-      }
+      if (!state.hovered) return;
+      state.hovered = null;
+      draw();
     }
 
     /**
@@ -605,10 +775,20 @@ export function GraphPage() {
       if (!touch) return;
       const { gx, gy } = toGraphSpace(touch);
       const hit = hitTest(gx, gy);
-      if (hit && hit.kind === 'note') {
+
+      if (hit?.kind === 'note') {
         const url = resolveNoteUrl(vaultSlug, hit.id);
         if (url) void navigate(url);
+        return;
       }
+
+      // A tap means what a click means. It matters more here: without a
+      // pointer there is no hover at all, so holding the group is the ONLY way
+      // a touch device ever sees which notes an attribute value gathers.
+      const next = hit?.kind === 'value' && hit !== state.pinned ? hit : null;
+      if (next === state.pinned) return;
+      state.pinned = next;
+      rescope();
     }
 
     const resize = new ResizeObserver(() => {
@@ -723,45 +903,20 @@ export function GraphPage() {
                 <GearIcon />
               </button>
             ))}
-          {legendOpen ? (
-            <section className="graph-panel graph-panel-legend" aria-label={t('graph.legend')}>
-              <header className="graph-panel-head">
-                <h2>{t('graph.legend')}</h2>
-                <button
-                  type="button"
-                  className="graph-panel-close"
-                  aria-label={t('graph.closeLegend')}
-                  onClick={() => setLegendOpen(false)}
-                >
-                  <CloseIcon />
-                </button>
-              </header>
-              <div className="graph-legend">
-                <span className="legend-item">
-                  <span className="legend-swatch" style={{ background: 'var(--accent)' }} />
-                  {t('graph.legendNotes')}
-                </span>
-                {drawn.map((each) => (
-                  <span key={each.name} className="legend-item">
-                    <span className="legend-swatch" style={{ background: slotColor(each.slot) }} />
-                    {each.name}
-                  </span>
-                ))}
-              </div>
-              {truncated && <p className="graph-legend-note">{t('graph.truncated')}</p>}
-            </section>
-          ) : (
-            <button
-              type="button"
-              className="graph-overlay-button"
-              aria-label={t('graph.openLegend')}
-              onClick={() => setLegendOpen(true)}
-            >
-              <LegendIcon />
-            </button>
-          )}
         </div>
-        <span className="graph-hint">{t(touchOnly ? 'graph.hintTouch' : 'graph.hint')}</span>
+        {/*
+          There used to be a legend here, a second panel repeating the name of
+          every attribute beside its colour. It says nothing the switch above
+          does not already say: throwing a switch is what gives the attribute
+          its colour, and the switch wears that colour while it is on. The one
+          thing the legend held that lives nowhere else is the warning that the
+          drawing is not the whole vault, and that moved down here, next to the
+          other thing said about the drawing as a whole.
+        */}
+        <div className="graph-footer">
+          {truncated && <span>{t('graph.truncated')}</span>}
+          <span>{t(touchOnly ? 'graph.hintTouch' : 'graph.hint')}</span>
+        </div>
       </div>
     </div>
   );
