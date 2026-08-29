@@ -7,6 +7,14 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **As actions da integração contínua sobem para os majors que rodam em Node 24.** `actions/checkout` e `actions/setup-node` vão para a `v7` e `pnpm/action-setup` para a `v6`, resolvendo o aviso que os runners emitiam em todos os cinco jobs, de que as versões `v4` ainda declaravam Node 20 e estavam sendo forçadas a rodar em Node 24. O aviso vira erro assim que o GitHub encerrar a compatibilidade. O `pnpm/action-setup` na `v6` é também o primeiro major que declara suporte ao pnpm 11, que é a versão fixada no `packageManager` do repositório.
+
+### Fixed
+
+- **Os testes de adaptador voltam a rodar na integração contínua.** O job subia o MinIO por uma imagem de container publicada quatro anos atrás, que responde `NotImplemented` aos cabeçalhos de checksum que o SDK atual da AWS envia em toda escrita. O `beforeAll` da suíte quebrava ao criar o bucket, os 22 casos eram reportados como pulados e o único portão automático dos adaptadores estava desligado na prática, inclusive na `main`. A CI passa a subir as dependências a partir do mesmo `docker-compose.yml` que a máquina local usa, e não mais de uma segunda declaração dentro do workflow: uma definição só, impossível de divergir em silêncio. As imagens do DynamoDB Local e do MinIO ficam fixadas em uma versão exata, porque uma tag flutuante troca o container debaixo de um build verde sem que commit nenhum diga que algo mudou, e ambas ganham healthcheck, de modo que `docker compose up -d --wait` só devolve o controle quando as duas estão de pé e a suíte nunca corre contra a subida delas.
+
 ## [0.2.0] - 2026-08-28
 
 A versão que tira o produto do papel. A 0.1.0 tinha a documentação canônica, um protótipo de interface sobre dados semeados e um spike de autenticação que foi validado e desmontado. A 0.2.0 constrói o produto inteiro descrito no `software-vision.md`: os seis bounded contexts, a infraestrutura completa em CDK, a interface ligada à API real e o conector MCP em pé, com leitura e escrita, autenticado pelo proxy CIMD na frente do Cognito. O ambiente sobe e desce por script, e a primeira conta de uma instalação nova nasce pelo `onboard.ps1`, sempre pela API do produto.

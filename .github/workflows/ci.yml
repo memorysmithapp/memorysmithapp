@@ -1,8 +1,8 @@
 # Continuous integration (architecture-guide.md, section 20).
 #
-# No step here is optional. Step 3 in particular is what keeps "hexagonal" from
-# becoming folder naming, and it is also where the one-way dependency between
-# the three top-level projects is verified.
+# No step here is optional. The dependency rule in particular is what keeps
+# "hexagonal" from becoming folder naming, and it is also where the one-way
+# dependency between the three top-level projects is verified.
 
 name: CI
 
@@ -23,9 +23,9 @@ jobs:
     name: Lint, typecheck and dependency rule
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -44,9 +44,9 @@ jobs:
     name: Backend unit and contract tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -57,18 +57,6 @@ jobs:
   backend-adapters:
     name: Adapter tests against DynamoDB Local and MinIO
     runs-on: ubuntu-latest
-    services:
-      dynamodb:
-        image: amazon/dynamodb-local:latest
-        ports:
-          - 8000:8000
-      minio:
-        image: minio/minio:edge-cicd
-        ports:
-          - 9000:9000
-        env:
-          MINIO_ROOT_USER: memorysmith
-          MINIO_ROOT_PASSWORD: memorysmith-local
     env:
       DYNAMODB_ENDPOINT: http://localhost:8000
       S3_ENDPOINT: http://localhost:9000
@@ -76,23 +64,32 @@ jobs:
       AWS_ACCESS_KEY_ID: memorysmith
       AWS_SECRET_ACCESS_KEY: memorysmith-local
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # From the repository's own docker-compose.yml, and not from a service
+      # container block: one definition of the dependencies, shared with the
+      # machine of whoever runs the suite locally. --wait blocks until both
+      # healthchecks pass, so the harness never races the containers.
+      - name: Start the local dependencies
+        run: docker compose up -d --wait
       - name: Adapters
         run: pnpm -r --if-present test:adapters
+      - name: Dependency logs
+        if: failure()
+        run: docker compose logs --no-color
 
   frontend:
-    name: Frontend unit and production build
+    name: Frontend production build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -106,9 +103,9 @@ jobs:
     # Always runs: infra references backend and frontend artifacts, so a change
     # in either can invalidate the synth.
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
