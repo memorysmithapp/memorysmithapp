@@ -9,6 +9,8 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **A §20 do `architecture-guide.md` passa a descrever o pipeline que existe, e não um que nunca foi construído.** O documento prometia deploy automático em staging, testes de ponta a ponta contra staging e deploy em produção com aprovação manual, nada disso implementado, além de um recorte de jobs por projeto alterado que o workflow não faz. Prometer pipeline que não existe custa mais caro que não ter pipeline nenhum: quem lê passa a duvidar do resto do documento. A seção agora se divide em integração contínua, com os cinco jobs que realmente rodam, e entrega, que declara o deploy por script de `deploy-aws/` como decisão, com as três razões que a sustentam (não existe staging, existe uma pessoa integrando, e os passos que dependem de propagação externa falham de forma mais legível no terminal) e as três condições que a fariam mudar. Registra também onde a fatia vertical de fato é verificada, que é em processo no job de testes unitários.
+
 - **As actions da integração contínua sobem para os majors que rodam em Node 24.** `actions/checkout` e `actions/setup-node` vão para a `v7` e `pnpm/action-setup` para a `v6`, resolvendo o aviso que os runners emitiam em todos os cinco jobs, de que as versões `v4` ainda declaravam Node 20 e estavam sendo forçadas a rodar em Node 24. O aviso vira erro assim que o GitHub encerrar a compatibilidade. O `pnpm/action-setup` na `v6` é também o primeiro major que declara suporte ao pnpm 11, que é a versão fixada no `packageManager` do repositório.
 
 ### Fixed

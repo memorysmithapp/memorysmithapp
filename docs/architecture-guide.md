@@ -1188,26 +1188,48 @@ Números iniciais, para virarem teste e não folclore. A tese do produto é "sem
 
 ## 20. CI/CD
 
-```
-Pull request
-  1. install (pnpm, cache do workspace inteiro)
-  2. lint + typecheck                      ← nos três projetos
-  3. dependency-cruiser                    ← REGRA DE DEPENDÊNCIA (§5.5): quebra o build
-  4. backend  · unit (domínio + casos de uso)
-  5. backend  · adaptadores (DynamoDB Local + MinIO em serviço de container)
-  6. backend  · contract tests dos eventos
-  7. frontend · unit + build de produção
-  8. infra    · cdk synth                   ← valida a infraestrutura sem fazer deploy
+### 20.1 Integração contínua
 
-Merge em main
-  9. infra    · deploy em staging (CDK: empacota os artefatos de backend e frontend)
- 10. e2e por fatia vertical em staging
- 11. infra    · deploy em produção (aprovação manual)
+Roda em todo pull request e em todo push na `main`, definida em `.github/workflows/ci.yml`. São cinco jobs, todos obrigatórios e todos em paralelo:
+
+```
+quality           lint · format · typecheck nos três projetos · dependency-cruiser
+backend-unit      domínio, casos de uso com adaptadores InMemory, contratos de
+                  evento, isolamento por assinatura e a fatia vertical
+backend-adapters  adaptadores contra DynamoDB Local e MinIO
+frontend          build de produção da SPA
+infra             cdk synth com conta e região falsas
 ```
 
-**Escopo por projeto alterado.** Os passos 4 a 6 rodam quando `memorysmith-backend/` mudou; o 7, quando o frontend mudou; o 8, sempre, porque a infra referencia os dois e uma mudança neles pode invalidar o `synth`. Os passos 1 a 3 e 9 a 11 rodam sempre.
+Nenhum job é opcional. O `dependency-cruiser` em particular é o que impede que "hexagonal" vire nomenclatura de pastas, e é também onde a direção única entre os três projetos (§5.1) é verificada.
 
-Nenhum passo pode ser marcado como opcional. O passo 3 em particular é o que impede que "hexagonal" vire nomenclatura de pastas, e é também onde a direção única entre os três projetos (§5.1) é verificada.
+**Todo job roda em toda execução, sem filtro por caminho alterado.** A suíte inteira leva cerca de um minuto, e um filtro que erra o recorte deixa passar exatamente a mudança que precisava ser verificada. O `infra` teria de rodar sempre de qualquer forma, porque referencia os artefatos dos outros dois e uma mudança neles pode invalidar o `synth`. Quando o tempo de execução passar a incomodar, o recorte por projeto alterado é a primeira otimização a fazer, e não antes disso.
+
+**As dependências dos testes de adaptador têm uma definição só.** O job as sobe com `docker compose up -d --wait` sobre o `docker-compose.yml` da raiz, o mesmo arquivo que a máquina de quem desenvolve usa, com as imagens fixadas em versão exata e healthcheck nas duas. Declarar os mesmos containers uma segunda vez dentro do workflow é o que já fez a suíte passar localmente e falhar na integração contínua por uma diferença de imagem que ninguém tinha motivo para procurar.
+
+### 20.2 Entrega
+
+**Não existe deploy automático, e isso é uma decisão, não uma lacuna.** O ambiente sobe e desce por script, de uma estação de trabalho, com acompanhamento passo a passo:
+
+```
+deploy-aws/deploy.ps1     verifica a toolchain e a conta, instala o workspace, faz o
+                          bootstrap da região quando preciso, sintetiza, implanta as
+                          stacks de backend, escreve o .env.local da SPA a partir dos
+                          outputs reais, constrói a SPA, implanta a hospedagem e
+                          verifica o resultado por HTTP
+deploy-aws/onboard.ps1    cria a primeira conta, a assinatura e o primeiro vault,
+                          sempre pela API do produto
+deploy-aws/destroy.ps1    derruba as stacks, preserva os dados por padrão e relata o
+                          que sobreviveu
+```
+
+Cada passo é idempotente: quando um falha, corrija o que o relatório apontar e rode de novo.
+
+Três razões sustentam a escolha. Não existe ambiente de staging, e um pipeline que implanta direto em produção sem um ambiente antes é pior do que nenhum. Existe uma pessoa integrando, então não há a corrida entre mudanças de gente diferente que é o problema que o deploy automático resolve. E `cdk deploy` sobre um domínio, um certificado e um user pool tem passos que dependem de propagação externa, cujo modo de falha é mais barato de ler no terminal do que num log de runner.
+
+**O que faria essa decisão mudar**, na ordem em que provavelmente acontece: uma segunda conta AWS servindo de staging, uma segunda pessoa integrando na `main`, ou um teste de ponta a ponta contra um ambiente de pé que ninguém queira rodar à mão. Enquanto nenhuma das três for verdade, automatizar o deploy acrescenta um mecanismo a manter e não retira risco nenhum.
+
+**Ponta a ponta.** A fatia vertical é verificada em processo, no job `backend-unit`, com adaptadores `InMemory` e as rotas montadas como o `core-monolith` as monta. Não há suíte de ponta a ponta contra um ambiente implantado, e o `deploy.ps1` fecha essa lacuna à sua maneira: ele termina verificando por HTTP que o que subiu responde.
 
 ---
 
