@@ -121,7 +121,12 @@ export function GraphPage() {
   const theme = usePreferences((s) => s.theme);
   const [truncated, setTruncated] = useState(false);
   const [colorBy, setColorBy] = useState('none');
-  const [valuesOf, setValuesOf] = useState('none');
+  /**
+   * The attributes whose values are drawn as nodes. It is a set and not a
+   * choice: each one is switched on by itself, and adding a second does not
+   * take the first off the drawing.
+   */
+  const [drawn, setDrawn] = useState<readonly string[]>([]);
   /**
    * The two panels float over the drawing, so on a narrow screen they start
    * closed: there the graph is the whole screen, and a panel that opens on top
@@ -198,9 +203,18 @@ export function GraphPage() {
   // must not leave a control pointing at nothing.
   useEffect(() => {
     if (colorBy !== 'none' && !colorable.some((each) => each.name === colorBy)) setColorBy('none');
-    if (valuesOf !== 'none' && !drawable.some((each) => each.name === valuesOf))
-      setValuesOf('none');
-  }, [colorable, drawable, colorBy, valuesOf]);
+    setDrawn((current) => {
+      const kept = current.filter((name) => drawable.some((each) => each.name === name));
+      // Same array when nothing was dropped, or this would never settle.
+      return kept.length === current.length ? current : kept;
+    });
+  }, [colorable, drawable, colorBy]);
+
+  function toggleDrawn(name: string) {
+    setDrawn((current) =>
+      current.includes(name) ? current.filter((each) => each !== name) : [...current, name],
+    );
+  }
 
   const active = colorable.find((each) => each.name === colorBy) ?? null;
   const legend = useMemo(() => (active ? active.values.slice(0, COLOR_SLOTS) : []), [active]);
@@ -234,19 +248,21 @@ export function GraphPage() {
       if (to) to.degree += 1;
     }
 
-    // The values of one attribute, drawn as nodes: this is what makes a tag
-    // visible as the thing several notes have in common, rather than a word
-    // repeated in their frontmatter.
-    if (valuesOf !== 'none') {
-      const indexOfValue = new Map<string, number>();
+    // The values of the switched-on attributes, drawn as nodes: this is what
+    // makes a tag visible as the thing several notes have in common, rather
+    // than a word repeated in their frontmatter. The map is keyed by attribute
+    // AND value, because `type: guide` and `tags: guide` are two facts.
+    const indexOfValue = new Map<string, number>();
+    for (const attribute of drawn) {
       data.nodes.forEach((note, noteIndex) => {
-        for (const value of note.facets[valuesOf] ?? []) {
-          let at = indexOfValue.get(value);
+        for (const value of note.facets[attribute] ?? []) {
+          const key = `${attribute}:${value}`;
+          let at = indexOfValue.get(key);
           if (at === undefined) {
             at = nodes.length;
-            indexOfValue.set(value, at);
+            indexOfValue.set(key, at);
             nodes.push({
-              id: `${valuesOf}:${value}`,
+              id: key,
               title: value,
               kind: 'value',
               facets: {},
@@ -267,7 +283,7 @@ export function GraphPage() {
       node.radius = node.kind === 'value' ? 2.5 : Math.min(13, 2.2 + 1.25 * Math.sqrt(node.degree));
     }
     return { nodes, links };
-  }, [data, valuesOf]);
+  }, [data, drawn]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -660,14 +676,19 @@ export function GraphPage() {
                 {drawable.length > 0 && (
                   <details className="graph-panel-section" open>
                     <summary>{t('graph.attributeNodes')}</summary>
-                    <select value={valuesOf} onChange={(e) => setValuesOf(e.target.value)}>
-                      <option value="none">{t('graph.attributeNone')}</option>
+                    <div className="graph-switches">
                       {drawable.map((attribute) => (
-                        <option key={attribute.name} value={attribute.name}>
-                          {attribute.name}
-                        </option>
+                        <label key={attribute.name} className="graph-switch">
+                          <span>{attribute.name}</span>
+                          <input
+                            type="checkbox"
+                            role="switch"
+                            checked={drawn.includes(attribute.name)}
+                            onChange={() => toggleDrawn(attribute.name)}
+                          />
+                        </label>
                       ))}
-                    </select>
+                    </div>
                   </details>
                 )}
               </section>
@@ -733,7 +754,7 @@ export function GraphPage() {
                         : t('graph.legendUnset')}
                     </span>
                   )}
-                {valuesOf !== 'none' && (
+                {drawn.length > 0 && (
                   <span className="legend-item">
                     <span
                       className="legend-swatch"
