@@ -29,6 +29,8 @@ interface GraphNode extends SimulationNodeDatum {
   kind: 'note' | 'value';
   /** What this note says about itself; empty on a value node. */
   facets: Record<string, string[]>;
+  /** Which colour slot a value node wears; absent on a note. */
+  slot?: number;
   degree: number;
   radius: number;
 }
@@ -36,13 +38,24 @@ interface GraphNode extends SimulationNodeDatum {
 type GraphLink = SimulationLinkDatum<GraphNode>;
 
 /**
- * How many distinct values an attribute may have and still be offered as a
- * color: above this it is a label, not a category, and coloring by it would
- * paint every node the same shade of "other".
+ * How many distinct values an attribute may have and still count as discrete:
+ * above this it is a label and not a category, and drawing it would add one
+ * node per note instead of showing what several notes have in common.
  */
-const MAX_COLORABLE_VALUES = 24;
-/** Only three categorical slots exist in the brand palette; the rest is Other. */
-const COLOR_SLOTS = 3;
+const MAX_DISCRETE_VALUES = 24;
+/**
+ * Colour slots for the drawn attributes. Three, validated against the note
+ * blue and against each other for colour-vision deficiency on both surfaces;
+ * a fourth attribute switched on at the same time wears the Other grey.
+ */
+const VALUE_SLOTS = 3;
+
+/** A date is discrete once it is a month: one node per day is a calendar. */
+const YEAR_MONTH = /^(\d{4})-(\d{2})(?:-\d{2})?(?:[T ].*)?$/;
+function monthOf(value: string): string {
+  const match = YEAR_MONTH.exec(value);
+  return match ? `${match[1]}-${match[2]}` : value;
+}
 
 function cssVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -51,45 +64,56 @@ function cssVar(name: string): string {
 /** An attribute of the vault, as the graph sees it: its values, by frequency. */
 interface Attribute {
   readonly name: string;
-  /** Distinct values, most frequent first: the order the palette follows. */
+  /** Distinct values, most frequent first; dates already reduced to months. */
   readonly values: string[];
-  /** How many notes declare it, which is what says whether "not declared" exists. */
-  readonly declaredBy: number;
   readonly multivalued: boolean;
   readonly boolean: boolean;
+  /** Every value is a date, so the values above are year-months. */
+  readonly dateLike: boolean;
 }
 
 function attributesOf(nodes: GraphFile['nodes']): Attribute[] {
-  const counts = new Map<string, Map<string, number>>();
-  const declaredBy = new Map<string, number>();
+  const raw = new Map<string, string[]>();
   const multivalued = new Set<string>();
 
   for (const node of nodes) {
     for (const [facet, values] of Object.entries(node.facets)) {
       if (values.length === 0) continue;
       if (values.length > 1) multivalued.add(facet);
-      declaredBy.set(facet, (declaredBy.get(facet) ?? 0) + 1);
-      const byValue = counts.get(facet) ?? new Map<string, number>();
-      for (const value of values) byValue.set(value, (byValue.get(value) ?? 0) + 1);
-      counts.set(facet, byValue);
+      const all = raw.get(facet) ?? [];
+      all.push(...values);
+      raw.set(facet, all);
     }
   }
 
-  return [...counts.entries()]
-    .map(([name, byValue]) => {
+  return [...raw.entries()]
+    .map(([name, all]) => {
+      // An attribute is a date only when every value is one; a single stray
+      // word means the column is text that happens to hold some dates.
+      const dateLike = all.every((value) => YEAR_MONTH.test(value));
+      const byValue = new Map<string, number>();
+      for (const value of all) {
+        const key = dateLike ? monthOf(value) : value;
+        byValue.set(key, (byValue.get(key) ?? 0) + 1);
+      }
       const values = [...byValue.entries()]
         .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
         .map(([value]) => value);
       return {
         name,
         values,
-        declaredBy: declaredBy.get(name) ?? 0,
         multivalued: multivalued.has(name),
         boolean:
           values.length <= 2 && values.every((value) => value === 'true' || value === 'false'),
+        dateLike,
       };
     })
     .sort((left, right) => left.name.localeCompare(right.name));
+}
+
+/** Which CSS custom property paints a given slot. */
+function slotColor(slot: number): string {
+  return slot < VALUE_SLOTS ? `var(--val-${slot + 1})` : 'var(--val-other)';
 }
 
 /** The breakpoint at which the vault sidebar becomes a drawer (styles.css). */
@@ -120,13 +144,15 @@ export function GraphPage() {
   const { vaultSlug = '' } = useParams();
   const theme = usePreferences((s) => s.theme);
   const [truncated, setTruncated] = useState(false);
-  const [colorBy, setColorBy] = useState('none');
   /**
-   * The attributes whose values are drawn as nodes. It is a set and not a
-   * choice: each one is switched on by itself, and adding a second does not
-   * take the first off the drawing.
+   * The attributes whose values are drawn as nodes, each with the colour slot
+   * it holds. It is a set and not a choice: every attribute is switched on by
+   * itself, and one attribute is one colour, however many values it has.
+   *
+   * The slot is decided when the attribute is switched ON and held until it is
+   * switched off, so turning one off never repaints the ones that stay.
    */
-  const [drawn, setDrawn] = useState<readonly string[]>([]);
+  const [drawn, setDrawn] = useState<readonly { name: string; slot: number }[]>([]);
   /**
    * The two panels float over the drawing, so on a narrow screen they start
    * closed: there the graph is the whole screen, and a panel that opens on top
@@ -143,9 +169,6 @@ export function GraphPage() {
     sim: Simulation<GraphNode, GraphLink> | null;
     transform: { x: number; y: number; k: number };
     hovered: GraphNode | null;
-    colorBy: string;
-    palette: string[];
-    isBoolean: boolean;
     redraw: (() => void) | null;
   }>({
     nodes: [],
@@ -154,9 +177,6 @@ export function GraphPage() {
     sim: null,
     transform: { x: 0, y: 0, k: 1 },
     hovered: null,
-    colorBy: 'none',
-    palette: [],
-    isBoolean: false,
     redraw: null,
   });
 
@@ -190,42 +210,51 @@ export function GraphPage() {
     };
   }, [vaultSlug]);
 
-  const noteCount = data?.nodes.length ?? 0;
   const attributes = useMemo(() => (data ? attributesOf(data.nodes) : []), [data]);
-  const colorable = useMemo(
-    () => attributes.filter((each) => each.values.length <= MAX_COLORABLE_VALUES),
+  /**
+   * What can be drawn is what is discrete: a list the note carries several of,
+   * a true/false, a date reduced to its month, or any attribute with few
+   * enough distinct values to be a category rather than a label.
+   */
+  const drawable = useMemo(
+    () =>
+      attributes.filter(
+        (each) =>
+          each.multivalued ||
+          each.boolean ||
+          each.dateLike ||
+          each.values.length <= MAX_DISCRETE_VALUES,
+      ),
     [attributes],
   );
-  /** An attribute worth drawing as nodes is one a note carries several of. */
-  const drawable = useMemo(() => attributes.filter((each) => each.multivalued), [attributes]);
+  const dateLike = useMemo(
+    () => new Set(attributes.filter((each) => each.dateLike).map((each) => each.name)),
+    [attributes],
+  );
 
   // An attribute that stops existing (another vault, a rebuilt projection)
-  // must not leave a control pointing at nothing.
+  // must not leave a switch pointing at nothing.
   useEffect(() => {
-    if (colorBy !== 'none' && !colorable.some((each) => each.name === colorBy)) setColorBy('none');
     setDrawn((current) => {
-      const kept = current.filter((name) => drawable.some((each) => each.name === name));
+      const kept = current.filter((each) => drawable.some((one) => one.name === each.name));
       // Same array when nothing was dropped, or this would never settle.
       return kept.length === current.length ? current : kept;
     });
-  }, [colorable, drawable, colorBy]);
+  }, [drawable]);
 
   function toggleDrawn(name: string) {
-    setDrawn((current) =>
-      current.includes(name) ? current.filter((each) => each !== name) : [...current, name],
-    );
+    setDrawn((current) => {
+      if (current.some((each) => each.name === name)) {
+        return current.filter((each) => each.name !== name);
+      }
+      // The lowest free slot, so switching one off frees its colour for the
+      // next attribute instead of shifting everyone along.
+      const taken = new Set(current.map((each) => each.slot));
+      let slot = 0;
+      while (taken.has(slot)) slot += 1;
+      return [...current, { name, slot }];
+    });
   }
-
-  const active = colorable.find((each) => each.name === colorBy) ?? null;
-  const legend = useMemo(() => (active ? active.values.slice(0, COLOR_SLOTS) : []), [active]);
-
-  useEffect(() => {
-    const state = stateRef.current;
-    state.colorBy = colorBy;
-    state.palette = legend;
-    state.isBoolean = active?.boolean ?? false;
-    state.redraw?.();
-  }, [colorBy, legend, active]);
 
   const filtered = useMemo(() => {
     if (!data) return null;
@@ -253,9 +282,11 @@ export function GraphPage() {
     // than a word repeated in their frontmatter. The map is keyed by attribute
     // AND value, because `type: guide` and `tags: guide` are two facts.
     const indexOfValue = new Map<string, number>();
-    for (const attribute of drawn) {
+    for (const { name: attribute, slot } of drawn) {
+      const asMonth = dateLike.has(attribute);
       data.nodes.forEach((note, noteIndex) => {
-        for (const value of note.facets[attribute] ?? []) {
+        for (const raw of note.facets[attribute] ?? []) {
+          const value = asMonth ? monthOf(raw) : raw;
           const key = `${attribute}:${value}`;
           let at = indexOfValue.get(key);
           if (at === undefined) {
@@ -266,6 +297,7 @@ export function GraphPage() {
               title: value,
               kind: 'value',
               facets: {},
+              slot,
               degree: 0,
               radius: 3,
             });
@@ -283,7 +315,7 @@ export function GraphPage() {
       node.radius = node.kind === 'value' ? 2.5 : Math.min(13, 2.2 + 1.25 * Math.sqrt(node.degree));
     }
     return { nodes, links };
-  }, [data, drawn]);
+  }, [data, drawn, dateLike]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -322,29 +354,22 @@ export function GraphPage() {
       const { x, y, k } = state.transform;
       const colors = {
         note: cssVar('--accent') || '#0f56d7',
-        value: cssVar('--signal') || '#ff8a2b',
         edge: cssVar('--text-soft') || '#6f6d64',
         label: cssVar('--text') || '#26251f',
         halo: cssVar('--bg') || '#fafaf8',
-        other: cssVar('--cat-other') || '#8b96a8',
+        other: cssVar('--val-other') || '#8b96a8',
       };
-      const categorical = [
-        cssVar('--cat-1') || '#ff8a2b',
-        cssVar('--cat-2') || '#0f56d7',
-        cssVar('--cat-3') || '#16a34a',
+      // One colour per attribute, whatever its values: a tag node and a month
+      // node say which attribute they came from, not which value they are.
+      const bySlot = [
+        cssVar('--val-1') || '#ff8a2b',
+        cssVar('--val-2') || '#db2777',
+        cssVar('--val-3') || '#008300',
       ];
-      const truthy = cssVar('--seq-evergreen') || '#0f56d7';
-      const falsy = cssVar('--seq-seed') || '#bfd2f6';
 
       function nodeFill(node: GraphNode): string {
-        const mode = state.colorBy;
-        if (node.kind === 'value') return mode === 'none' ? colors.value : colors.other;
-        if (mode === 'none') return colors.note;
-        const [value] = node.facets[mode] ?? [];
-        if (value === undefined) return colors.other;
-        if (state.isBoolean) return value === 'true' ? truthy : falsy;
-        const slot = state.palette.indexOf(value);
-        return slot >= 0 ? (categorical[slot] ?? colors.other) : colors.other;
+        if (node.kind !== 'value') return colors.note;
+        return bySlot[node.slot ?? -1] ?? colors.other;
       }
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -625,7 +650,7 @@ export function GraphPage() {
     // active token values.
   }, [filtered, navigate, vaultSlug, theme]);
 
-  const hasControls = colorable.length > 0 || drawable.length > 0;
+  const hasControls = drawable.length > 0;
 
   return (
     <div className="graph-page">
@@ -650,7 +675,7 @@ export function GraphPage() {
             (controlsOpen ? (
               <section className="graph-panel" aria-label={t('graph.controls')}>
                 <header className="graph-panel-head">
-                  <h2>{t('graph.controls')}</h2>
+                  <h2>{t('graph.attributeNodes')}</h2>
                   <button
                     type="button"
                     className="graph-panel-close"
@@ -660,37 +685,33 @@ export function GraphPage() {
                     <CloseIcon />
                   </button>
                 </header>
-                {colorable.length > 0 && (
-                  <details className="graph-panel-section" open>
-                    <summary>{t('graph.colorBy')}</summary>
-                    <select value={colorBy} onChange={(e) => setColorBy(e.target.value)}>
-                      <option value="none">{t('graph.colorNone')}</option>
-                      {colorable.map((attribute) => (
-                        <option key={attribute.name} value={attribute.name}>
-                          {attribute.name}
-                        </option>
-                      ))}
-                    </select>
-                  </details>
-                )}
-                {drawable.length > 0 && (
-                  <details className="graph-panel-section" open>
-                    <summary>{t('graph.attributeNodes')}</summary>
-                    <div className="graph-switches">
-                      {drawable.map((attribute) => (
-                        <label key={attribute.name} className="graph-switch">
-                          <span>{attribute.name}</span>
-                          <input
-                            type="checkbox"
-                            role="switch"
-                            checked={drawn.includes(attribute.name)}
-                            onChange={() => toggleDrawn(attribute.name)}
-                          />
-                        </label>
-                      ))}
-                    </div>
-                  </details>
-                )}
+                {/*
+                  Whatever THIS vault declares as discrete, and nothing else.
+                  The backend still does not interpret content: these were
+                  classified by the shape of the value, so a vault whose notes
+                  carry no frontmatter offers no switch, and the panel with it
+                  never appears.
+                */}
+                <div className="graph-switches">
+                  {drawable.map((attribute) => {
+                    const on = drawn.find((each) => each.name === attribute.name);
+                    return (
+                      <label key={attribute.name} className="graph-switch">
+                        <span
+                          className="graph-switch-dot"
+                          style={{ background: on ? slotColor(on.slot) : 'transparent' }}
+                        />
+                        <span className="graph-switch-name">{attribute.name}</span>
+                        <input
+                          type="checkbox"
+                          role="switch"
+                          checked={on !== undefined}
+                          onChange={() => toggleDrawn(attribute.name)}
+                        />
+                      </label>
+                    );
+                  })}
+                </div>
               </section>
             ) : (
               <button
@@ -716,53 +737,16 @@ export function GraphPage() {
                 </button>
               </header>
               <div className="graph-legend">
-                {!active && (
-                  <span className="legend-item">
-                    <span className="legend-swatch" style={{ background: 'var(--accent)' }} />
-                    {t('graph.legendNotes')}
+                <span className="legend-item">
+                  <span className="legend-swatch" style={{ background: 'var(--accent)' }} />
+                  {t('graph.legendNotes')}
+                </span>
+                {drawn.map((each) => (
+                  <span key={each.name} className="legend-item">
+                    <span className="legend-swatch" style={{ background: slotColor(each.slot) }} />
+                    {each.name}
                   </span>
-                )}
-                {active?.boolean &&
-                  active.values.map((value: string) => (
-                    <span key={value} className="legend-item">
-                      <span
-                        className="legend-swatch"
-                        style={{
-                          background: value === 'true' ? 'var(--seq-evergreen)' : 'var(--seq-seed)',
-                        }}
-                      />
-                      {value}
-                    </span>
-                  ))}
-                {active &&
-                  !active.boolean &&
-                  legend.map((value, index) => (
-                    <span key={value} className="legend-item">
-                      <span
-                        className="legend-swatch"
-                        style={{ background: `var(--cat-${index + 1})` }}
-                      />
-                      {value}
-                    </span>
-                  ))}
-                {active &&
-                  (active.values.length > legend.length || active.declaredBy < noteCount) && (
-                    <span className="legend-item">
-                      <span className="legend-swatch" style={{ background: 'var(--cat-other)' }} />
-                      {active.values.length > legend.length
-                        ? t('graph.legendOther')
-                        : t('graph.legendUnset')}
-                    </span>
-                  )}
-                {drawn.length > 0 && (
-                  <span className="legend-item">
-                    <span
-                      className="legend-swatch"
-                      style={{ background: active ? 'var(--cat-other)' : 'var(--signal)' }}
-                    />
-                    {t('graph.legendTags')}
-                  </span>
-                )}
+                ))}
               </div>
               {truncated && <p className="graph-legend-note">{t('graph.truncated')}</p>}
             </section>
