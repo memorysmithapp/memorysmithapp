@@ -39,6 +39,8 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **A recontagem do consumo de armazenamento vira uma ferramenta de operação**, em `deploy-aws/recount-storage.ps1`. O contador é mantido pelo relay da outbox um delta por vez, o que faz dele um número derivado, e todo número derivado aqui deve a mesma resposta: como ele se refaz. A ferramenta varre a tabela do Knowledge, soma o conteúdo vigente de cada assinatura e grava o contador; relata primeiro e só escreve com `-Apply`. Ela precisou existir de saída, porque o contador passou a existir depois dos vaults e toda assinatura anterior a ele começou em zero segurando um vault cheio de notas. Não é, e não pode ser, uma rota autenticada: uma sessão de plataforma não carrega assinatura, então um administrador não consegue ler as notas de outra conta, o que é garantia e não obstáculo.
+
 - **A quota do plano passa a ser aplicada, e não apenas declarada.** Toda assinatura já escolhia uma quota de armazenamento (`500MB`, `1GB` ou `2GB`), e nenhuma escrita era recusada por causa dela: `RN-SUB-019` dizia isso com todas as letras, e o risco Q1 registrava a lacuna. Agora a quota vale, sob os termos da nova `RN-SUB-021`.
 
   **O que ela mede é o conteúdo vigente:** a revisão atual de cada nota não apagada, mais cada `Guidance` e cada `Template`. Revisões substituídas continuam guardadas, porque destruir bytes é ato administrativo com porta própria, e de propósito não entram na conta: cobrar por elas faria o uso subir a cada edição e nunca descer, e apagar uma nota não devolveria nada. Um vault na lixeira continua ocupando o que ocupa, pelo mesmo motivo, e porque volta inteiro ao ser restaurado.

@@ -27,6 +27,7 @@
     "./adapters/http": "./src/adapters/inbound/http/routes.ts",
     "./adapters/presenters": "./src/adapters/inbound/http/presenters.ts",
     "./adapters/relay": "./src/adapters/inbound/outbox-relay.ts",
+    "./adapters/recount": "./src/adapters/inbound/storage-recount.ts",
     "./application/vaults": "./src/application/vaults.ts",
     "./application/folders": "./src/application/folders.ts",
     "./application/notes": "./src/application/notes.ts",

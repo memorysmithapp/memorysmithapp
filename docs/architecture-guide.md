@@ -746,6 +746,8 @@ Os dois contadores viajam na **mesma** transação porque compartilham o item de
 
 **Por que o contador não vive na transação do usuário.** Um item único por assinatura tocado por toda escrita de nota é exatamente a contenção que PE10 proíbe para o `META` do vault, e pior, porque é um item para a conta inteira. Por isso ele fica no relay, e por isso a aplicação da quota é levemente atrasada: uma rajada de escritas pode cruzar a linha antes de o contador alcançar. A troca é deliberada e o desvio é limitado pelo que está em voo, já que a checagem roda em toda escrita.
 
+**O contador é derivado, e é reconstruível.** Toda projeção deste sistema deve uma resposta à mesma pergunta, que é como ela se refaz quando está errada (PE5), e a do contador é `deploy-aws/recount-storage.ps1`: ele varre a `mv-knowledge`, soma o conteúdo vigente de cada assinatura e grava o item `USAGE`. Relata primeiro e só escreve com `-Apply`. Precisou existir pelo menos uma vez de verdade, porque o contador passou a existir depois dos vaults, e toda assinatura anterior a ele começou em zero segurando um vault cheio de notas. Uma escrita que aconteça durante a varredura pode ser contada por ela **e** aplicada pelo relay, e a gravação então descarta o delta do relay; o erro é limitado ao que se escreveu enquanto o job rodava e some na recontagem seguinte, então ele roda com as contas paradas.
+
 **Quem lê o contador não sabe o limite.** Os bytes guardados são fato do Knowledge e o teto é fato do Access, e nenhum contexto lê a tabela do outro: quem junta as duas metades na porta `StorageBudget` é o composition root (§24).
 
 ### 10.4 Outbox
