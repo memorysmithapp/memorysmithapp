@@ -79,6 +79,8 @@
     "hasTemplate": "modelo",
     "outlineHint": "A árvore de pastas com a descrição de cada uma. É ela que diz ao agente onde cada nota entra.",
     "backToVaults": "Todos os vaults",
+    "openNavigation": "Navegação do vault",
+    "closeNavigation": "Fechar navegação",
     "heading": "Contexto do Vault",
     "intro": "Como este vault se descreve, e o que o agente recebe em get_vault_context: a Orientação diz o que ele é, cada pasta diz o que se guarda nela e o Modelo da pasta diz como a nota se estrutura.",
     "guidanceHint": "O que este vault é e como se escreve nele",
@@ -140,6 +142,7 @@
     "attributeNodes": "Desenhar valores de",
     "attributeNone": "Nenhum atributo",
     "hint": "Role para ampliar · arraste para mover · clique numa nota para abri-la",
+    "hintTouch": "Pince para ampliar · arraste para mover · toque numa nota para abri-la",
     "empty": "Este vault ainda não tem notas para desenhar.",
     "truncated": "Mostrando as primeiras 2000 notas deste vault."
   },

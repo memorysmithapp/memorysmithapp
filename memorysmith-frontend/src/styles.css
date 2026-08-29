@@ -26,6 +26,7 @@
   --mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
   --sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
   --display: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
+  --header-h: 56px;
 }
 
 * {
@@ -60,6 +61,7 @@ a:hover {
 
 .app-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -68,7 +70,7 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 1rem;
-  height: 56px;
+  height: var(--header-h);
   padding: 0 1.5rem;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
@@ -106,6 +108,7 @@ a:hover {
 }
 .app-main > * {
   flex: 1;
+  min-width: 0;
 }
 
 .page {
@@ -210,7 +213,8 @@ a:hover {
   background: var(--surface);
   padding: 1rem;
   overflow-y: auto;
-  max-height: calc(100vh - 56px);
+  max-height: calc(100vh - var(--header-h));
+  max-height: calc(100dvh - var(--header-h));
   position: sticky;
   top: 0;
 }
@@ -290,8 +294,10 @@ a:hover {
 
 .vault-content {
   flex: 1;
+  min-width: 0;
   overflow-y: auto;
-  max-height: calc(100vh - 56px);
+  max-height: calc(100vh - var(--header-h));
+  max-height: calc(100dvh - var(--header-h));
 }
 .content-pane {
   max-width: 46rem;
@@ -375,6 +381,7 @@ a:hover {
 /* Markdown */
 .markdown {
   font-size: 0.95rem;
+  overflow-wrap: break-word;
 }
 .markdown h1,
 .markdown h2,
@@ -434,7 +441,7 @@ a:hover {
 }
 .stat-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr));
   gap: 1rem;
   margin-bottom: 1.25rem;
 }
@@ -460,7 +467,7 @@ a:hover {
 
 .chart-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
   gap: 1rem;
   margin-bottom: 1.75rem;
 }
@@ -736,6 +743,7 @@ a:hover {
 .graph-canvas-wrap canvas {
   display: block;
   cursor: grab;
+  touch-action: none;
 }
 .graph-canvas-wrap .status {
   position: absolute;
@@ -803,6 +811,7 @@ a:hover {
 /* Login */
 .login-screen {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -930,7 +939,7 @@ a:hover {
   position: absolute;
   right: 0;
   top: calc(100% + 10px);
-  width: 19rem;
+  width: min(19rem, calc(100vw - 1.5rem));
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -1143,6 +1152,7 @@ a:hover {
   justify-content: center;
   cursor: pointer;
   margin-top: 1.4rem;
+  flex-shrink: 0;
 }
 .copy-button:hover {
   border-color: var(--accent);
@@ -1270,7 +1280,7 @@ a:hover {
 /* Structure page */
 .structure-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
   gap: 0.75rem;
   margin: 1.25rem 0 2rem;
 }
@@ -1345,4 +1355,242 @@ a:hover {
 }
 .loading-screen {
   min-height: 60vh;
+}
+
+/* ── Vault navigation drawer ────────────────────────────────────────────────
+   On a wide screen the sidebar is a permanent column and these three controls
+   do not exist. They come into being at the breakpoint below, where the same
+   sidebar becomes a drawer. */
+.vault-nav-toggle,
+.vault-nav-close,
+.vault-nav-scrim {
+  display: none;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────────
+   Two breakpoints, each with a reason that can be checked with a ruler.
+
+   1180px  the sidebar and a comfortable reading column stop fitting side by
+           side with room to breathe, so the sidebar gives up width first.
+   860px   they stop fitting at all. The sidebar becomes a drawer over the
+           content instead of a column beside it, and the content takes the
+           whole width. Every phone, and every tablet held in portrait, is
+           below this line; a tablet in landscape is above it and keeps the
+           column, which is the layout that screen has room for. */
+
+@media (max-width: 1180px) {
+  .vault-sidebar {
+    width: 18rem;
+    min-width: 14rem;
+  }
+  .content-pane {
+    padding: 1.75rem 1.75rem 3rem;
+  }
+  .page {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 860px) {
+  /* The tagline is the first thing to go: it explains the product to someone
+     who is already inside it, and it is what pushes the wordmark off the
+     screen on a phone. */
+  .tagline {
+    display: none;
+  }
+  .app-header {
+    padding: 0 1rem;
+    gap: 0.75rem;
+  }
+  .brand {
+    min-width: 0;
+  }
+  .brand-word {
+    font-size: 1.05rem;
+    white-space: nowrap;
+  }
+  /* The tagline used to be what pushed the menu to the right edge. */
+  .user-menu {
+    margin-left: auto;
+  }
+
+  .page {
+    padding: 1rem;
+  }
+  .status {
+    padding: 1.25rem 1rem;
+  }
+  .content-pane {
+    padding: 1.25rem 1rem 3rem;
+  }
+
+  /* The column becomes a drawer. */
+  .vault-layout {
+    display: block;
+  }
+  .vault-nav-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    min-height: 44px;
+    position: sticky;
+    top: 0;
+    z-index: 15;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: 0.95rem;
+    text-align: left;
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+  }
+  .vault-nav-toggle span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .vault-nav-toggle svg {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+  }
+  .vault-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 40;
+    width: min(20rem, 86vw);
+    min-width: 0;
+    max-height: none;
+    border-right: 1px solid var(--border);
+    transform: translateX(-100%);
+    transition: transform 0.18s ease-out;
+    box-shadow: 0 0 40px rgba(14, 21, 38, 0.25);
+  }
+  .vault-layout.nav-open .vault-sidebar {
+    transform: translateX(0);
+  }
+  /* `hidden` on the element is what closes it; the rule has to respect that,
+     or the scrim would sit over the page with nothing behind it. */
+  .vault-nav-scrim:not([hidden]) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    background: rgba(14, 21, 38, 0.45);
+  }
+  .vault-nav-close {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text-soft);
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  /* With the sidebar gone from the flow, the document scrolls, not a box
+     inside it. That is what lets the phone browser hide its own toolbar. */
+  .vault-content {
+    max-height: none;
+    overflow: visible;
+  }
+  /* Except the graph, which draws into a canvas and therefore needs a box
+     with a height to draw into. */
+  .graph-page {
+    height: auto;
+    min-height: calc(100dvh - var(--header-h) - 44px);
+  }
+  .graph-toolbar {
+    padding: 0.75rem 1rem;
+    gap: 0.75rem;
+  }
+
+  /* A finger is not a mouse pointer: the rows in the tree grow to a tappable
+     height and the toggle stops being a 16px target. */
+  .tree-folder {
+    padding: 0.25rem 0;
+  }
+  .tree-folder a,
+  .tree-note {
+    padding: 0.3rem 0;
+  }
+  .tree-toggle {
+    width: 1.75rem;
+    height: 1.75rem;
+    margin-left: -0.35rem;
+  }
+
+  /* Paging arrows are a pointer affordance, and they hang outside the track,
+     which on a narrow screen means outside the page. Touch swipes instead. */
+  .carousel-arrow {
+    display: none;
+  }
+  .vault-card {
+    flex: 0 0 min(20rem, 86%);
+  }
+
+  /* The label column of a bar chart cannot keep a desktop width when the
+     chart itself is 340px wide. */
+  .hbar-row {
+    grid-template-columns: 6.5rem 1fr 2.6rem;
+    gap: 0.4rem;
+  }
+  .barlist-row {
+    grid-template-columns: 5.5rem 1fr 2.6rem;
+    gap: 0.4rem;
+  }
+  .chart-card {
+    padding: 0.9rem 1rem 1rem;
+  }
+
+  .login-screen {
+    padding: 1rem;
+  }
+  .login-card {
+    padding: 1.75rem 1.25rem;
+  }
+}
+
+/* A phone held in portrait with the text size turned up. The wordmark is the
+   brand and stays; everything around it gives way first. */
+@media (max-width: 380px) {
+  .app-header {
+    padding: 0 0.75rem;
+    gap: 0.5rem;
+  }
+  .brand-symbol {
+    height: 24px;
+  }
+  .brand-word {
+    font-size: 0.98rem;
+  }
+  .content-pane {
+    padding: 1rem 0.75rem 2.5rem;
+  }
+  .page {
+    padding: 0.75rem;
+  }
+  .hbar-row {
+    grid-template-columns: 5rem 1fr 2.4rem;
+  }
+  .barlist-row {
+    grid-template-columns: 4.5rem 1fr 2.4rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vault-sidebar {
+    transition: none;
+  }
 }

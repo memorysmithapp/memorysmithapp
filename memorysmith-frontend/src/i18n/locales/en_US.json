@@ -79,6 +79,8 @@
     "hasTemplate": "template",
     "outlineHint": "The folder tree with each folder's description. It is what tells the agent where each note goes.",
     "backToVaults": "All vaults",
+    "openNavigation": "Vault navigation",
+    "closeNavigation": "Close navigation",
     "heading": "Vault Context",
     "intro": "How this vault describes itself, and what the agent receives from get_vault_context: the Guidance says what the vault is, each folder says what belongs in it, and the folder Template says how a note is laid out.",
     "guidanceHint": "What this vault is and how to write in it",
@@ -140,6 +142,7 @@
     "attributeNodes": "Draw values of",
     "attributeNone": "No attribute",
     "hint": "Scroll to zoom · drag to pan · click a note to open it",
+    "hintTouch": "Pinch to zoom · drag to pan · tap a note to open it",
     "empty": "This vault has no notes to draw yet.",
     "truncated": "Showing the first 2000 notes of this vault."
   },

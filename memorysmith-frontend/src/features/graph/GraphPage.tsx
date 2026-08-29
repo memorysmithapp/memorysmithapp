@@ -91,8 +91,25 @@ function attributesOf(nodes: GraphFile['nodes']): Attribute[] {
     .sort((left, right) => left.name.localeCompare(right.name));
 }
 
+/**
+ * Whether this device answers with a finger and not a pointer. It decides which
+ * gestures the hint names: telling someone to scroll a wheel they do not have
+ * is worse than saying nothing.
+ */
+function useTouchOnly(): boolean {
+  const [touchOnly, setTouchOnly] = useState(() => window.matchMedia('(hover: none)').matches);
+  useEffect(() => {
+    const media = window.matchMedia('(hover: none)');
+    const apply = () => setTouchOnly(media.matches);
+    media.addEventListener('change', apply);
+    return () => media.removeEventListener('change', apply);
+  }, []);
+  return touchOnly;
+}
+
 export function GraphPage() {
   const { t } = useTranslation();
+  const touchOnly = useTouchOnly();
   const navigate = useNavigate();
   const { vaultSlug = '' } = useParams();
   const theme = usePreferences((s) => s.theme);
@@ -246,13 +263,16 @@ export function GraphPage() {
     state.sim?.stop();
 
     const parent = canvas.parentElement;
-    const width = parent?.clientWidth ?? 900;
-    const height = parent?.clientHeight ?? 640;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
+    let width = parent?.clientWidth ?? 900;
+    let height = parent?.clientHeight ?? 640;
+    let dpr = window.devicePixelRatio || 1;
+    function sizeCanvas() {
+      canvas!.width = width * dpr;
+      canvas!.height = height * dpr;
+      canvas!.style.width = `${width}px`;
+      canvas!.style.height = `${height}px`;
+    }
+    sizeCanvas();
 
     const nodes = filtered.nodes.map((n) => ({ ...n }));
     const links: GraphLink[] = filtered.links.map((l) => ({ ...l }));
@@ -380,7 +400,7 @@ export function GraphPage() {
     }
     state.neighbors = neighbors;
 
-    function toGraphSpace(event: MouseEvent) {
+    function toGraphSpace(event: { clientX: number; clientY: number }) {
       const rect = canvas!.getBoundingClientRect();
       const { x, y, k } = state.transform;
       return { gx: (event.clientX - rect.left - x) / k, gy: (event.clientY - rect.top - y) / k };
@@ -407,18 +427,23 @@ export function GraphPage() {
     let lastY = 0;
     let moved = false;
 
-    function onWheel(event: WheelEvent) {
-      event.preventDefault();
-      const rect = canvas!.getBoundingClientRect();
-      const mx = event.clientX - rect.left;
-      const my = event.clientY - rect.top;
-      const factor = event.deltaY < 0 ? 1.15 : 1 / 1.15;
+    /** Zoom around a point of the canvas, wherever the gesture came from. */
+    function zoomAt(mx: number, my: number, factor: number) {
       const tr = state.transform;
       const nk = Math.min(6, Math.max(0.08, tr.k * factor));
       tr.x = mx - ((mx - tr.x) / tr.k) * nk;
       tr.y = my - ((my - tr.y) / tr.k) * nk;
       tr.k = nk;
       draw();
+    }
+    function onWheel(event: WheelEvent) {
+      event.preventDefault();
+      const rect = canvas!.getBoundingClientRect();
+      zoomAt(
+        event.clientX - rect.left,
+        event.clientY - rect.top,
+        event.deltaY < 0 ? 1.15 : 1 / 1.15,
+      );
     }
     function onDown(event: MouseEvent) {
       dragging = true;
@@ -465,11 +490,94 @@ export function GraphPage() {
       }
     }
 
+    /**
+     * Touch. One finger drags the graph, two pinch it, and a finger that lands
+     * and lifts without travelling is a tap that opens the note under it. There
+     * is no hover to keep: a finger is either touching or it is not.
+     */
+    let panningTouch = false;
+    let pinchGap = 0;
+    function gapBetween(touches: TouchList): number {
+      const [a, b] = [touches[0]!, touches[1]!];
+      return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    }
+    function onTouchStart(event: TouchEvent) {
+      if (event.touches.length === 1) {
+        panningTouch = true;
+        moved = false;
+        lastX = event.touches[0]!.clientX;
+        lastY = event.touches[0]!.clientY;
+        return;
+      }
+      // A pinch is never a tap, whatever the fingers do next.
+      panningTouch = false;
+      moved = true;
+      if (event.touches.length === 2) pinchGap = gapBetween(event.touches);
+    }
+    function onTouchMove(event: TouchEvent) {
+      // The canvas owns this gesture; without it the page scrolls instead.
+      event.preventDefault();
+      if (event.touches.length >= 2) {
+        const gap = gapBetween(event.touches);
+        if (pinchGap > 0 && gap > 0) {
+          const rect = canvas!.getBoundingClientRect();
+          const [a, b] = [event.touches[0]!, event.touches[1]!];
+          zoomAt(
+            (a.clientX + b.clientX) / 2 - rect.left,
+            (a.clientY + b.clientY) / 2 - rect.top,
+            gap / pinchGap,
+          );
+        }
+        pinchGap = gap;
+        return;
+      }
+      if (!panningTouch || event.touches.length !== 1) return;
+      const touch = event.touches[0]!;
+      const dx = touch.clientX - lastX;
+      const dy = touch.clientY - lastY;
+      if (Math.abs(dx) + Math.abs(dy) > 2) moved = true;
+      state.transform.x += dx;
+      state.transform.y += dy;
+      lastX = touch.clientX;
+      lastY = touch.clientY;
+      draw();
+    }
+    function onTouchEnd(event: TouchEvent) {
+      const wasTap = panningTouch && !moved && event.touches.length === 0;
+      panningTouch = false;
+      pinchGap = 0;
+      if (!wasTap) return;
+      const touch = event.changedTouches[0];
+      if (!touch) return;
+      const { gx, gy } = toGraphSpace(touch);
+      const hit = hitTest(gx, gy);
+      if (hit && hit.kind === 'note') {
+        const url = resolveNoteUrl(vaultSlug, hit.id);
+        if (url) void navigate(url);
+      }
+    }
+
+    const resize = new ResizeObserver(() => {
+      const w = parent?.clientWidth ?? width;
+      const h = parent?.clientHeight ?? height;
+      if (w === width && h === height) return;
+      width = w;
+      height = h;
+      dpr = window.devicePixelRatio || 1;
+      sizeCanvas();
+      draw();
+    });
+    if (parent) resize.observe(parent);
+
     canvas.addEventListener('wheel', onWheel, { passive: false });
     canvas.addEventListener('mousedown', onDown);
     canvas.addEventListener('mousemove', onMove);
     canvas.addEventListener('mouseup', onUp);
     canvas.addEventListener('mouseleave', onLeave);
+    canvas.addEventListener('touchstart', onTouchStart, { passive: true });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchend', onTouchEnd);
+    canvas.addEventListener('touchcancel', onTouchEnd);
 
     return () => {
       sim.stop();
@@ -478,6 +586,11 @@ export function GraphPage() {
       canvas.removeEventListener('mousemove', onMove);
       canvas.removeEventListener('mouseup', onUp);
       canvas.removeEventListener('mouseleave', onLeave);
+      canvas.removeEventListener('touchstart', onTouchStart);
+      canvas.removeEventListener('touchmove', onTouchMove);
+      canvas.removeEventListener('touchend', onTouchEnd);
+      canvas.removeEventListener('touchcancel', onTouchEnd);
+      resize.disconnect();
     };
     // The theme dependency re-runs the effect so the canvas repaints with the
     // active token values.
@@ -572,7 +685,7 @@ export function GraphPage() {
         {!filtered && <p className="status">{t('common.loading')}</p>}
         {filtered?.nodes.length === 0 && <p className="status">{t('graph.empty')}</p>}
         <canvas ref={canvasRef} />
-        <span className="graph-hint">{t('graph.hint')}</span>
+        <span className="graph-hint">{t(touchOnly ? 'graph.hintTouch' : 'graph.hint')}</span>
       </div>
     </div>
   );
