@@ -7,7 +7,9 @@ import { defineConfig } from 'vite';
  * one place that already carries it, so the number on screen cannot drift from
  * the number that was released: there is nothing to remember to update.
  */
-const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
+const { version } = JSON.parse(
+  readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
+) as {
   version: string;
 };
 

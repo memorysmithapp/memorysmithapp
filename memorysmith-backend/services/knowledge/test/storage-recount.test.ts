@@ -58,10 +58,20 @@ describe('storage recount', () => {
   it('leaves out a deleted note, and keeps the ones in a deleted vault', async () => {
     const { db } = tableOf([
       { PK: `S#${A}#VAULT#1`, entity: 'NOTE', bodyRef: ref(1000) },
-      { PK: `S#${A}#VAULT#1`, entity: 'NOTE', bodyRef: ref(500), deletedAt: '2026-08-29T00:00:00Z' },
+      {
+        PK: `S#${A}#VAULT#1`,
+        entity: 'NOTE',
+        bodyRef: ref(500),
+        deletedAt: '2026-08-29T00:00:00Z',
+      },
       // The vault is in the bin; nothing was released, and restoring brings it
       // all back, so its notes keep counting (RN-SUB-021).
-      { PK: `S#${A}#VAULT#2`, entity: 'VAULT', deletedAt: '2026-08-29T00:00:00Z', guidanceRef: ref(80) },
+      {
+        PK: `S#${A}#VAULT#2`,
+        entity: 'VAULT',
+        deletedAt: '2026-08-29T00:00:00Z',
+        guidanceRef: ref(80),
+      },
       { PK: `S#${A}#VAULT#2`, entity: 'NOTE', bodyRef: ref(300) },
     ]);
 
@@ -86,9 +96,7 @@ describe('storage recount', () => {
   });
 
   it('replaces the counter rather than adding to it', async () => {
-    const { db, written } = tableOf([
-      { PK: `S#${A}#VAULT#1`, entity: 'NOTE', bodyRef: ref(4096) },
-    ]);
+    const { db, written } = tableOf([{ PK: `S#${A}#VAULT#1`, entity: 'NOTE', bodyRef: ref(4096) }]);
     const recount = new StorageRecount({ db: db as never, tableName: 't' });
 
     await recount.apply(await recount.measure());

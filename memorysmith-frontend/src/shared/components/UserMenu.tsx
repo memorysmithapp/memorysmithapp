@@ -170,10 +170,7 @@ export function UserMenu() {
               <div className="user-menu-field">
                 <span className="user-menu-field-label">{t('auth.storage')}</span>
                 {user.usedBytes !== null && user.subscriptionQuotaBytes ? (
-                  <StorageBar
-                    usedBytes={user.usedBytes}
-                    quotaBytes={user.subscriptionQuotaBytes}
-                  />
+                  <StorageBar usedBytes={user.usedBytes} quotaBytes={user.subscriptionQuotaBytes} />
                 ) : (
                   <span className="chip">{t(`storageQuota.${user.subscriptionQuota}`)}</span>
                 )}

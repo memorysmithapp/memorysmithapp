@@ -175,12 +175,17 @@ export function buildTestApp() {
     requestSubscription: () => new RequestSubscription(onboarding, links),
     getSession: (request) => {
       const scoped = scopedAccess(request);
-      return new GetSession(links, scoped?.subscriptions ?? null, async (id) => {
-        const found = accessDb.subscriptions.get(`S#${id.value}`)?.subscription;
-        return found
-          ? { status: found.status.name, type: found.type.name, quota: found.quota.name }
-          : null;
-      }, async () => storage.usedBytes);
+      return new GetSession(
+        links,
+        scoped?.subscriptions ?? null,
+        async (id) => {
+          const found = accessDb.subscriptions.get(`S#${id.value}`)?.subscription;
+          return found
+            ? { status: found.status.name, type: found.type.name, quota: found.quota.name }
+            : null;
+        },
+        async () => storage.usedBytes,
+      );
     },
     switchSubscription: () => new SwitchActiveSubscription(links),
     listPlatformQueue: () => new ListPlatformQueue(platform),

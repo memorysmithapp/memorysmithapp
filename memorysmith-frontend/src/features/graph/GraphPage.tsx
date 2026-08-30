@@ -576,8 +576,7 @@ export function GraphPage() {
         state.shown = shown;
         linkForce.links(
           state.links.filter(
-            (link) =>
-              shown.has(link.source as GraphNode) && shown.has(link.target as GraphNode),
+            (link) => shown.has(link.source as GraphNode) && shown.has(link.target as GraphNode),
           ),
         );
         linkForce.distance(70);

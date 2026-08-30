@@ -65,7 +65,10 @@ export class StorageRecount {
    * reads, so the pages stay small.
    */
   async measure(): Promise<SubscriptionUsage[]> {
-    const totals = new Map<string, { bytes: number; notes: number; guidances: number; templates: number }>();
+    const totals = new Map<
+      string,
+      { bytes: number; notes: number; guidances: number; templates: number }
+    >();
     let startKey: Record<string, unknown> | undefined;
 
     do {
