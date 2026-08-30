@@ -7,6 +7,30 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-29
+
+A versão que faz a 0.2.0 aguentar o uso. Nenhum bounded context novo, nenhuma tool nova: o produto inteiro já existia, e o que faltava era ele funcionar na tela em que está sendo lido, contar o que promete contar e mostrar o vault como o vault se escreve.
+
+A folha de estilo não tinha uma única media query, então todo aparelho recebia um layout desenhado para uma janela larga; passam a existir dois pontos de quebra, cada um com uma razão que se mede com régua. O grafo deixa de ser um desenho para ser uma ferramenta: monta-se por interruptores de atributo, segura o grupo de um valor ao clique, responde ao toque e se redimensiona. A quota do plano, que era declarada e nunca cobrada, passa a ser aplicada na escrita, com uma ferramenta de recontagem para o número derivado que a sustenta. E a superfície de leitura das notas, da Orientação, das pastas e dos Modelos adota as métricas do tema padrão do Obsidian, porque quem lê aqui escreveu lá.
+
+Junto vão cinco defeitos de consistência que só apareceram com um vault real de verdade, entre eles o que fazia a tela de uma nota parecer não ter atributo nenhum enquanto o grafo mostrava os dela, e dois que a projeção do Discovery guardava em silêncio.
+
+### Added
+
+- **A recontagem do consumo de armazenamento vira uma ferramenta de operação**, em `deploy-aws/recount-storage.ps1`. O contador é mantido pelo relay da outbox um delta por vez, o que faz dele um número derivado, e todo número derivado aqui deve a mesma resposta: como ele se refaz. A ferramenta varre a tabela do Knowledge, soma o conteúdo vigente de cada assinatura e grava o contador; relata primeiro e só escreve com `-Apply`. Ela precisou existir de saída, porque o contador passou a existir depois dos vaults e toda assinatura anterior a ele começou em zero segurando um vault cheio de notas. Não é, e não pode ser, uma rota autenticada: uma sessão de plataforma não carrega assinatura, então um administrador não consegue ler as notas de outra conta, o que é garantia e não obstáculo.
+
+- **A quota do plano passa a ser aplicada, e não apenas declarada.** Toda assinatura já escolhia uma quota de armazenamento (`500MB`, `1GB` ou `2GB`), e nenhuma escrita era recusada por causa dela: `RN-SUB-019` dizia isso com todas as letras, e o risco Q1 registrava a lacuna. Agora a quota vale, sob os termos da nova `RN-SUB-021`.
+
+  **O que ela mede é o conteúdo vigente:** a revisão atual de cada nota não apagada, mais cada `Guidance` e cada `Template`. Revisões substituídas continuam guardadas, porque destruir bytes é ato administrativo com porta própria, e de propósito não entram na conta: cobrar por elas faria o uso subir a cada edição e nunca descer, e apagar uma nota não devolveria nada. Um vault na lixeira continua ocupando o que ocupa, pelo mesmo motivo, e porque volta inteiro ao ser restaurado.
+
+  **O que ela recusa é só o que faz crescer.** Criar nota, aumentar o texto de uma, gravar um `Guidance` maior e restaurar uma nota apagada respondem `LIMIT_EXCEEDED` (413) quando não cabem, dizendo quanto está usado, quanto o plano permite e quanto foi pedido. Ler, apagar, mover, reordenar e encurtar continuam funcionando mesmo acima do teto, porque um limite que congela tudo prende a pessoa dentro dele sem conseguir encurtar a própria nota que a levou até lá. A checagem acontece **antes** de o conteúdo chegar ao armazenamento, então uma escrita recusada não deixa revisão órfã para trás.
+
+  **A contagem é mantida fora da transação de escrita**, pelo mesmo relay da outbox que já mantém os contadores de nota e na mesma transação que eles, o que preserva o caminho quente intacto: um item único por assinatura tocado por toda escrita seria a contenção que o desenho evita no item `META` do vault. Cada evento declara quanto de conteúdo vigente acrescentou ou liberou, e quem declara é o agregado, não o tipo do evento: `NoteUpdated` é emitido tanto por um renomear, que não move byte algum, quanto por um corpo novo, que move a diferença entre duas revisões. Em troca, o limite é levemente atrasado: uma rajada pode terminar pouco acima da linha, nunca indefinidamente acima dela.
+
+- **O menu do usuário passa a mostrar quanto do plano está em uso.** Onde havia um chip com o teto ("500 MB"), que respondia uma pergunta que ninguém faz, agora há "312 MB de 500 MB" com uma barra fina, âmbar a partir de 80% e vermelha ao encher. O tamanho é escrito na unidade e na pontuação do idioma ativo, e a `GET /access/session` passa a devolver `usedBytes` e o `quotaBytes` de cada assinatura, para que a interface nunca precise saber se `500MB` são 500 × 1024² ou 500 × 10⁶.
+
+- **A versão do produto aparece no rodapé do menu do usuário**, no tipo mais discreto do painel. Ela é lida do `package.json` no momento do build, então não existe um segundo lugar para lembrar de atualizar: é a primeira coisa que se pede a quem relata um problema e a última de que se precisa enquanto se lê um vault.
+
 ### Changed
 
 - **A interface passa a caber na tela em que está sendo lida.** A folha de estilo não tinha uma única media query: existia um layout só, desenhado para uma janela larga, e todo aparelho recebia esse. Passam a existir dois pontos de quebra, cada um com uma razão que se mede com régua. Em `1180px` a barra lateral e uma coluna de leitura confortável param de caber lado a lado com folga, e a barra cede largura primeiro. Em `860px` elas param de caber, e a barra lateral do vault deixa de ser uma coluna ao lado do conteúdo para virar uma gaveta sobre ele, aberta por um botão, fechada por toque fora dela, pela tecla `Esc` e por qualquer navegação. Todo celular e todo tablet em retrato ficam abaixo dessa linha; um tablet em paisagem fica acima e mantém a coluna, que é o layout para o qual aquela tela tem espaço.
@@ -60,22 +84,6 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Removed
 
 - **A legenda do grafo sai da tela.** Ela era um segundo painel repetindo o nome de cada atributo ao lado da sua cor, e não dizia nada que o interruptor já não dissesse: ligar um atributo é o que lhe dá cor, e o interruptor veste essa cor enquanto está ligado. O quadro de cor no interruptor cresce de 10 para 18 pontos, já que passa a ser o único lugar onde a cor é declarada, e o aviso de que o desenho não traz o vault inteiro, a única coisa que só a legenda carregava, desce para o rodapé do desenho, junto da dica de gestos, porque as duas falam do desenho como um todo.
-
-### Added
-
-- **A recontagem do consumo de armazenamento vira uma ferramenta de operação**, em `deploy-aws/recount-storage.ps1`. O contador é mantido pelo relay da outbox um delta por vez, o que faz dele um número derivado, e todo número derivado aqui deve a mesma resposta: como ele se refaz. A ferramenta varre a tabela do Knowledge, soma o conteúdo vigente de cada assinatura e grava o contador; relata primeiro e só escreve com `-Apply`. Ela precisou existir de saída, porque o contador passou a existir depois dos vaults e toda assinatura anterior a ele começou em zero segurando um vault cheio de notas. Não é, e não pode ser, uma rota autenticada: uma sessão de plataforma não carrega assinatura, então um administrador não consegue ler as notas de outra conta, o que é garantia e não obstáculo.
-
-- **A quota do plano passa a ser aplicada, e não apenas declarada.** Toda assinatura já escolhia uma quota de armazenamento (`500MB`, `1GB` ou `2GB`), e nenhuma escrita era recusada por causa dela: `RN-SUB-019` dizia isso com todas as letras, e o risco Q1 registrava a lacuna. Agora a quota vale, sob os termos da nova `RN-SUB-021`.
-
-  **O que ela mede é o conteúdo vigente:** a revisão atual de cada nota não apagada, mais cada `Guidance` e cada `Template`. Revisões substituídas continuam guardadas, porque destruir bytes é ato administrativo com porta própria, e de propósito não entram na conta: cobrar por elas faria o uso subir a cada edição e nunca descer, e apagar uma nota não devolveria nada. Um vault na lixeira continua ocupando o que ocupa, pelo mesmo motivo, e porque volta inteiro ao ser restaurado.
-
-  **O que ela recusa é só o que faz crescer.** Criar nota, aumentar o texto de uma, gravar um `Guidance` maior e restaurar uma nota apagada respondem `LIMIT_EXCEEDED` (413) quando não cabem, dizendo quanto está usado, quanto o plano permite e quanto foi pedido. Ler, apagar, mover, reordenar e encurtar continuam funcionando mesmo acima do teto, porque um limite que congela tudo prende a pessoa dentro dele sem conseguir encurtar a própria nota que a levou até lá. A checagem acontece **antes** de o conteúdo chegar ao armazenamento, então uma escrita recusada não deixa revisão órfã para trás.
-
-  **A contagem é mantida fora da transação de escrita**, pelo mesmo relay da outbox que já mantém os contadores de nota e na mesma transação que eles, o que preserva o caminho quente intacto: um item único por assinatura tocado por toda escrita seria a contenção que o desenho evita no item `META` do vault. Cada evento declara quanto de conteúdo vigente acrescentou ou liberou, e quem declara é o agregado, não o tipo do evento: `NoteUpdated` é emitido tanto por um renomear, que não move byte algum, quanto por um corpo novo, que move a diferença entre duas revisões. Em troca, o limite é levemente atrasado: uma rajada pode terminar pouco acima da linha, nunca indefinidamente acima dela.
-
-- **O menu do usuário passa a mostrar quanto do plano está em uso.** Onde havia um chip com o teto ("500 MB"), que respondia uma pergunta que ninguém faz, agora há "312 MB de 500 MB" com uma barra fina, âmbar a partir de 80% e vermelha ao encher. O tamanho é escrito na unidade e na pontuação do idioma ativo, e a `GET /access/session` passa a devolver `usedBytes` e o `quotaBytes` de cada assinatura, para que a interface nunca precise saber se `500MB` são 500 × 1024² ou 500 × 10⁶.
-
-- **A versão do produto aparece no rodapé do menu do usuário**, no tipo mais discreto do painel. Ela é lida do `package.json` no momento do build, então não existe um segundo lugar para lembrar de atualizar: é a primeira coisa que se pede a quem relata um problema e a última de que se precisa enquanto se lê um vault.
 
 ### Fixed
 
@@ -306,6 +314,7 @@ Sai da versão a busca por significado, com o índice vetorial inteiro: a explic
 
 - A chave HMAC que assina o `state` do proxy CIMD deixa de ser injetada como variável de ambiente do Lambda e passa a ser lida do Secrets Manager em tempo de execução. Como variável de ambiente, o valor ficava em texto claro tanto na configuração da função quanto no template do CloudFormation, legível por qualquer identidade com permissão de descrever esses recursos. A função passa a receber apenas o identificador do segredo, com permissão de leitura restrita a ele, e o valor é resolvido sob demanda e mantido em cache por cinco minutos entre invocações. O SDK da AWS passa a ser empacotado junto com a função, para que a versão exercitada pelos testes seja a versão que executa.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/memorysmithapp/memorysmithapp/releases/tag/v0.1.0

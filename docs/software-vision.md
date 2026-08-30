@@ -848,9 +848,10 @@ A 0.2.0 fecha o produto descrito neste documento: os seis bounded contexts, a in
 | Versão | Tema |
 |---|---|
 | 0.2.0 | O produto completo: Discovery, colaboração, ciclo de vida da assinatura, portabilidade e a interface sobre a API real |
-| 0.3.0 | Conformidade: retenção legal, expurgo e relatórios de saúde |
+| 0.3.0 | Endurecimento: a interface na tela em que está sendo lida, o grafo como ferramenta de exploração, a quota aplicada e a superfície de leitura fiel ao vault |
+| 0.4.0 | Conformidade: retenção legal, expurgo e relatórios de saúde |
 
-O que fica declaradamente fora da 0.2.0 é a conformidade formal, ou seja a retenção legal (RN-AUD-008), o expurgo de conteúdo (RN-AUD-007) e os relatórios que os sustentam. Os três são atos administrativos com porta própria e evento próprio, e nenhum deles é pré-requisito de nada que já existe: adiar não cobra juros, porque a trilha que eles governam já está sendo escrita desde o primeiro dia.
+O que fica declaradamente fora da 0.2.0 e da 0.3.0 é a conformidade formal, ou seja a retenção legal (RN-AUD-008), o expurgo de conteúdo (RN-AUD-007) e os relatórios que os sustentam. Os três são atos administrativos com porta própria e evento próprio, e nenhum deles é pré-requisito de nada que já existe: adiar não cobra juros, porque a trilha que eles governam já está sendo escrita desde o primeiro dia.
 
 A ordem técnica de construção, com critérios de pronto, está em `architecture-guide.md` §25.
 
