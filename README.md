@@ -449,10 +449,12 @@ pnpm test           # domínio, casos de uso, contratos e a fatia vertical
 Os testes de adaptador precisam de DynamoDB Local e MinIO, e são eles que verificam os critérios de concorrência (20 reordenações simultâneas, 50 notas criadas em paralelo):
 
 ```
-docker compose up -d
+docker compose up -d --wait
 pnpm -r --if-present test:adapters
 docker compose down
 ```
+
+A integração contínua sobe esses dois containers a partir deste mesmo `docker-compose.yml`, com as imagens fixadas em uma versão exata. Uma suíte verde aqui quer dizer uma suíte verde lá.
 
 **A interface.** Ela lê e escreve pela API do produto e não tem modo offline, então precisa de um ambiente de pé para rodar. O `deploy.ps1` escreve o `.env.local` sozinho a partir dos outputs das stacks, então na prática ele já existe depois de um deploy. Para preenchê-lo à mão, copie `memorysmith-frontend/.env.example` para `.env.local` e preencha as três variáveis:
 

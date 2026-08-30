@@ -88,6 +88,13 @@ export const eventEnvelopeSchema = z.object({
   subjectId: z.string().min(1),
   authorship: authorshipSchema,
   contentRef: contentRefSchema.nullable(),
+  /**
+   * Bytes of live content added or released by this event, which is what the
+   * storage counter is built from (RN-SUB-021). Optional on the wire so an
+   * envelope written before the counter existed still parses: the audit trail
+   * is append-only, and an event already written has to stay readable.
+   */
+  storageDelta: z.number().int().default(0),
   payload: z.record(z.string(), z.unknown()),
 });
 

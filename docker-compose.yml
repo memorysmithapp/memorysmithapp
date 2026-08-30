@@ -1,20 +1,33 @@
 # Local dependencies for the adapter tests (architecture-guide.md, section 19).
-# The same two services the CI job starts, so "it passes locally" and "it passes
-# on CI" mean the same thing.
 #
-#   docker compose up -d
+# CI starts these same two containers FROM THIS SAME FILE, so "it passes
+# locally" and "it passes on CI" mean the same thing. A service container
+# block in the workflow would be a second definition of the dependencies,
+# and a second definition is how the two sides drift apart in silence.
+#
+#   docker compose up -d --wait
 #   pnpm -r --if-present test:adapters
+#   docker compose down
+#
+# The tags are pinned on purpose. A floating tag lets the container change
+# under a green build, with no commit saying that anything changed.
 
 services:
   dynamodb:
-    image: amazon/dynamodb-local:latest
+    image: amazon/dynamodb-local:3.3.1
     container_name: memorysmith-dynamodb
     ports:
       - '8000:8000'
     command: ['-jar', 'DynamoDBLocal.jar', '-inMemory', '-sharedDb']
+    healthcheck:
+      # A bare GET answers 400, and 400 already proves it is listening.
+      test: ['CMD', 'curl', '-sS', '-o', '/dev/null', 'http://localhost:8000']
+      interval: 2s
+      timeout: 5s
+      retries: 15
 
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     container_name: memorysmith-minio
     ports:
       - '9000:9000'
@@ -25,3 +38,8 @@ services:
     # The bucket is created BY THE TEST HARNESS, with versioning enabled:
     # without versioning there is no revision to point a ContentRef at.
     command: ['server', '/data', '--console-address', ':9001']
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', '-o', '/dev/null', 'http://localhost:9000/minio/health/live']
+      interval: 2s
+      timeout: 5s
+      retries: 15

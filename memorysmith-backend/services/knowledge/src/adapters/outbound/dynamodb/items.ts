@@ -241,6 +241,7 @@ export function outboxItem(event: DomainEvent, pk: string, sk: string): Item {
     subjectId: event.subjectId,
     authorship: serializeAuthorship(event.authorship),
     contentRef: serializeContentRef(event.contentRef),
+    storageDelta: event.storageDelta,
     payload: event.payload,
     ttl: event.occurredAt.plusDays(OUTBOX_TTL_DAYS).toEpochSeconds(),
   };
@@ -257,6 +258,7 @@ export function eventEnvelopeFrom(item: Item): Item {
     subjectId: item['subjectId'],
     authorship: item['authorship'],
     contentRef: item['contentRef'] ?? null,
+    storageDelta: item['storageDelta'] ?? 0,
     payload: item['payload'] ?? {},
   };
 }

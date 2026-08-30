@@ -25,10 +25,13 @@ import { composeVaultContext } from '../domain/services/VaultContextComposer.js'
 import { Vault } from '../domain/vault/Vault.js';
 import { ShortText, VaultName } from '../domain/values.js';
 import type { ContentStore, VaultRepository } from '../domain/ports/index.js';
+import { admitWrite, type StorageBudget } from '../domain/services/StorageQuota.js';
 
 export interface VaultDependencies {
   readonly vaults: VaultRepository;
   readonly content: ContentStore;
+  /** What the plan allows and what is already stored (RN-SUB-021). */
+  readonly storage: StorageBudget;
 }
 
 /** Loads a vault and authorizes in one step, so no caller can forget. */
@@ -268,6 +271,15 @@ export class PutGuidance {
     if (!vault.ok) return vault;
 
     const current = vault.value.guidanceRef;
+    // Checked BEFORE the content is written, so a refused write leaves nothing
+    // behind in the store: a guidance replaces the previous one, so what it
+    // costs is the difference between them.
+    const admitted = admitWrite(
+      await this.deps.storage.current(),
+      Buffer.byteLength(input.content, 'utf8') - (current?.bytes ?? 0),
+    );
+    if (!admitted.ok) return admitted;
+
     const ref = current
       ? await this.deps.content.overwrite(current.contentId, input.content)
       : await this.deps.content.create(input.content);

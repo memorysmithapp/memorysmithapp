@@ -1,7 +1,8 @@
 {
   "app": {
     "title": "MemorySmith",
-    "tagline": "Conhecimento estruturado, que agentes leem e escrevem nativamente."
+    "tagline": "Conhecimento estruturado, que agentes leem e escrevem nativamente.",
+    "version": "Versão {{version}}"
   },
   "auth": {
     "email": "E-mail",
@@ -14,6 +15,7 @@
     "signOut": "Sair",
     "role": "Papel",
     "plan": "Plano",
+    "storageUsed": "{{used}} de {{quota}}",
     "storage": "Armazenamento",
     "status": "Situação",
     "hostedHint": "Você será levado à página de entrada e trazido de volta para cá.",
@@ -79,6 +81,8 @@
     "hasTemplate": "modelo",
     "outlineHint": "A árvore de pastas com a descrição de cada uma. É ela que diz ao agente onde cada nota entra.",
     "backToVaults": "Todos os vaults",
+    "openNavigation": "Navegação do vault",
+    "closeNavigation": "Fechar navegação",
     "heading": "Contexto do Vault",
     "intro": "Como este vault se descreve, e o que o agente recebe em get_vault_context: a Orientação diz o que ele é, cada pasta diz o que se guarda nela e o Modelo da pasta diz como a nota se estrutura.",
     "guidanceHint": "O que este vault é e como se escreve nele",
@@ -131,15 +135,12 @@
   "graph": {
     "heading": "Grafo do vault",
     "navLabel": "Grafo do vault",
-    "legendNotes": "Notas",
-    "legendTags": "Valores do atributo",
-    "legendOther": "Outros",
-    "legendUnset": "Não declarado",
-    "colorBy": "Colorir por",
-    "colorNone": "Nada",
-    "attributeNodes": "Desenhar valores de",
-    "attributeNone": "Nenhum atributo",
-    "hint": "Role para ampliar · arraste para mover · clique numa nota para abri-la",
+    "controls": "Controles",
+    "openControls": "Abrir controles",
+    "closeControls": "Fechar controles",
+    "attributeNodes": "Adicionar",
+    "hint": "Role para ampliar · arraste para mover · clique numa nota para abri-la, num atributo para fixar suas notas",
+    "hintTouch": "Pince para ampliar · arraste para mover · toque numa nota para abri-la, num atributo para fixar suas notas",
     "empty": "Este vault ainda não tem notas para desenhar.",
     "truncated": "Mostrando as primeiras 2000 notas deste vault."
   },

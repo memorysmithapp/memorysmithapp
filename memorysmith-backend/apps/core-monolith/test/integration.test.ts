@@ -425,3 +425,66 @@ describe('Deleting a vault takes it out of reach without destroying it', () => {
     expect(deleted?.authorship.userId).toBe('user-owner');
   });
 });
+
+/**
+ * The storage quota of the plan, over HTTP (RN-SUB-019, RN-SUB-021).
+ *
+ * The counter is maintained by the relay in production; here the harness moves
+ * it with the same deltas the events declare, which is the same arithmetic on
+ * the same numbers.
+ */
+describe('The plan limits how much a subscription can store', () => {
+  it('refuses a write that would cross the line, and says what the numbers are', async () => {
+    const { vaultId, folderId } = await seed();
+    harness.storage.record(harness.events.published);
+
+    // A ceiling just above what is already stored: enough for a short note,
+    // not for a long one.
+    harness.storage.limitBytes = harness.storage.usedBytes + 200;
+
+    const refused = await call(`/knowledge/vaults/${vaultId}/notes`, {
+      method: 'POST',
+      body: { folderId, title: 'Nota longa', content: 'x'.repeat(500) },
+    });
+    expect(refused.status).toBe(413);
+    const body = (await refused.json()) as { code: string; details?: Record<string, number> };
+    expect(body.code).toBe('LIMIT_EXCEEDED');
+    expect(body.details).toMatchObject({ limitBytes: harness.storage.limitBytes });
+
+    // And nothing was written: the check runs before the content reaches the
+    // store, so a refused write leaves no orphan revision behind.
+    const listed = (await (
+      await call(`/knowledge/vaults/${vaultId}/notes?folderId=${folderId}`)
+    ).json()) as Array<{ title: string }>;
+    expect(listed.map((note) => note.title)).not.toContain('Nota longa');
+  });
+
+  it('still admits the writes that get you back under it', async () => {
+    const { vaultId, folderId, notes } = await seed();
+    harness.storage.record(harness.events.published);
+    harness.storage.limitBytes = 1; // hopelessly over
+
+    const read = (await (
+      await call(`/knowledge/vaults/${vaultId}/notes/${notes['lei']}`)
+    ).json()) as { revision: { versionId: string } };
+
+    // Shortening a note is admitted, and so is deleting one: being over the
+    // limit must not trap someone inside it.
+    const shortened = await call(`/knowledge/vaults/${vaultId}/notes/${notes['lei']}`, {
+      method: 'PUT',
+      body: { content: 'Curta.', baseRevision: read.revision.versionId },
+    });
+    expect(shortened.status).toBe(200);
+    expect(
+      (await call(`/knowledge/vaults/${vaultId}/notes/${notes['achado']}`, { method: 'DELETE' }))
+        .status,
+    ).toBe(204);
+
+    // Growing one is not.
+    const grown = await call(`/knowledge/vaults/${vaultId}/notes`, {
+      method: 'POST',
+      body: { folderId, title: 'Mais uma', content: 'y'.repeat(100) },
+    });
+    expect(grown.status).toBe(413);
+  });
+});

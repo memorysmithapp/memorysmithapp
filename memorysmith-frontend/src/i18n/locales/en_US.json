@@ -1,7 +1,8 @@
 {
   "app": {
     "title": "MemorySmith",
-    "tagline": "Structured knowledge, natively readable and writable by agents."
+    "tagline": "Structured knowledge, natively readable and writable by agents.",
+    "version": "Version {{version}}"
   },
   "auth": {
     "email": "Email",
@@ -14,6 +15,7 @@
     "signOut": "Sign out",
     "role": "Role",
     "plan": "Plan",
+    "storageUsed": "{{used}} of {{quota}}",
     "storage": "Storage",
     "status": "Status",
     "hostedHint": "You will be taken to the sign-in page and brought back here.",
@@ -79,6 +81,8 @@
     "hasTemplate": "template",
     "outlineHint": "The folder tree with each folder's description. It is what tells the agent where each note goes.",
     "backToVaults": "All vaults",
+    "openNavigation": "Vault navigation",
+    "closeNavigation": "Close navigation",
     "heading": "Vault Context",
     "intro": "How this vault describes itself, and what the agent receives from get_vault_context: the Guidance says what the vault is, each folder says what belongs in it, and the folder Template says how a note is laid out.",
     "guidanceHint": "What this vault is and how to write in it",
@@ -131,15 +135,12 @@
   "graph": {
     "heading": "Vault graph",
     "navLabel": "Vault graph",
-    "legendNotes": "Notes",
-    "legendTags": "Attribute values",
-    "legendOther": "Other",
-    "legendUnset": "Not declared",
-    "colorBy": "Color by",
-    "colorNone": "Nothing",
-    "attributeNodes": "Draw values of",
-    "attributeNone": "No attribute",
-    "hint": "Scroll to zoom · drag to pan · click a note to open it",
+    "controls": "Controls",
+    "openControls": "Open controls",
+    "closeControls": "Close controls",
+    "attributeNodes": "Add",
+    "hint": "Scroll to zoom · drag to pan · click a note to open it, an attribute to hold its notes",
+    "hintTouch": "Pinch to zoom · drag to pan · tap a note to open it, an attribute to hold its notes",
     "empty": "This vault has no notes to draw yet.",
     "truncated": "Showing the first 2000 notes of this vault."
   },

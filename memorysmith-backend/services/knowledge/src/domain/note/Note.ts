@@ -90,6 +90,7 @@ export class Note {
         position: input.position.value,
       },
       input.bodyRef,
+      input.bodyRef.bytes,
     );
     return ok(note);
   }
@@ -195,6 +196,10 @@ export class Note {
     if (this.isDeleted) return err(DomainError.notFound('This note is deleted'));
     if (this._bodyRef.hasSameContentAs(ref)) return ok(false);
 
+    // What the subscription is storing changed by the difference between the
+    // revision that was live and the one that now is. The superseded revision
+    // stays in the store and stops being counted (RN-SUB-021).
+    const delta = ref.bytes - this._bodyRef.bytes;
     this._bodyRef = ref;
     this._updatedBy = by;
     this.record(
@@ -208,6 +213,7 @@ export class Note {
         slug: this._slug.value,
       },
       ref,
+      delta,
     );
     return ok(true);
   }
@@ -277,12 +283,20 @@ export class Note {
     if (this.isDeleted) return err(DomainError.notFound('This note is already deleted'));
     this._deletedAt = by.at;
     this._updatedBy = by;
-    this.record('NoteDeleted', by, {
-      vaultId: this._vaultId.value,
-      noteId: this.id.value,
-      folderId: this._folderId.value,
-      slug: this._slug.value,
-    });
+    // A deleted note is no longer live content, so its bytes leave the count.
+    // They do NOT leave the store: nothing here destroys a revision (PE8).
+    this.record(
+      'NoteDeleted',
+      by,
+      {
+        vaultId: this._vaultId.value,
+        noteId: this.id.value,
+        folderId: this._folderId.value,
+        slug: this._slug.value,
+      },
+      null,
+      -this._bodyRef.bytes,
+    );
     return ok();
   }
 
@@ -291,13 +305,19 @@ export class Note {
     if (!this.isDeleted) return err(DomainError.conflict('This note is not deleted'));
     this._deletedAt = null;
     this._updatedBy = by;
-    this.record('NoteRestored', by, {
-      vaultId: this._vaultId.value,
-      noteId: this.id.value,
-      folderId: this._folderId.value,
-      slug: this._slug.value,
-      position: this._position.value,
-    });
+    this.record(
+      'NoteRestored',
+      by,
+      {
+        vaultId: this._vaultId.value,
+        noteId: this.id.value,
+        folderId: this._folderId.value,
+        slug: this._slug.value,
+        position: this._position.value,
+      },
+      null,
+      this._bodyRef.bytes,
+    );
     return ok();
   }
 
@@ -309,22 +329,50 @@ export class Note {
     return this.events.splice(0, this.events.length);
   }
 
+  /**
+   * One unit of work publishes at most one `NoteUpdated`.
+   *
+   * That event is a snapshot and not a diff: every recorder of it writes the
+   * whole of what the note now is, title, slug, folder and the ContentRef that
+   * is live at that instant. So a second one within the same save supersedes
+   * the first entirely, and keeping both would publish two events for one
+   * operation, the earlier of which cites a revision that is already
+   * superseded. Retitling and rewriting a note in a single call did exactly
+   * that. The bus promises delivery, not order, so a projector that received
+   * the pair the other way round would reindex from the old content and stay
+   * there until the note was written again.
+   *
+   * Only the bytes accumulate, because each event declares its own share of
+   * the storage counter (RN-SUB-021) and the two shares are of one change.
+   *
+   * The collapse is deliberately limited to this one type. `NoteMoved` and
+   * `NoteReordered` describe a transition rather than a state, and two of
+   * those in one save are two facts.
+   */
   private record(
     type: Parameters<typeof createEvent>[0]['type'],
     by: Authorship,
     payload: Record<string, unknown>,
     contentRef: ContentRef | null = null,
+    storageDelta = 0,
   ): void {
-    this.events.push(
-      createEvent({
-        type,
-        subscriptionId: this.subscriptionId,
-        subject: 'NOTE',
-        subjectId: this.id.value,
-        authorship: by,
-        payload,
-        contentRef,
-      }),
-    );
+    const event = createEvent({
+      type,
+      subscriptionId: this.subscriptionId,
+      subject: 'NOTE',
+      subjectId: this.id.value,
+      authorship: by,
+      payload,
+      contentRef,
+      storageDelta,
+    });
+
+    const at = type === 'NoteUpdated' ? this.events.findIndex((each) => each.type === type) : -1;
+    const superseded = at === -1 ? undefined : this.events[at];
+    if (superseded) {
+      this.events[at] = { ...event, storageDelta: superseded.storageDelta + storageDelta };
+      return;
+    }
+    this.events.push(event);
   }
 }

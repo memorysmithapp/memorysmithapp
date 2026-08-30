@@ -14,6 +14,7 @@ import { signOut as endHostedSession } from '../auth/oauth';
 import { gravatarDisplayName } from '../auth/gravatar';
 import { markSignedOut } from '../../features/auth/LoginPage';
 import { Avatar } from './Avatar';
+import { StorageBar } from './StorageBar';
 import { MonitorIcon, MoonIcon, SunIcon } from './icons';
 
 const THEME_OPTIONS: { value: ThemeChoice; Icon: typeof SunIcon }[] = [
@@ -29,6 +30,8 @@ interface Identity {
   readonly role: string;
   readonly subscriptionType: SubscriptionType | null;
   readonly subscriptionQuota: StorageQuota | null;
+  readonly subscriptionQuotaBytes: number | null;
+  readonly usedBytes: number | null;
   readonly subscriptionStatus: SubscriptionStatus | null;
 }
 
@@ -44,6 +47,8 @@ function identityOf(live: LiveSession): Identity {
     role: live.role,
     subscriptionType: live.subscriptionType,
     subscriptionQuota: live.subscriptionQuota,
+    subscriptionQuotaBytes: live.subscriptionQuotaBytes,
+    usedBytes: live.usedBytes,
     subscriptionStatus: live.subscriptionStatus,
   };
 }
@@ -155,10 +160,20 @@ export function UserMenu() {
                 <span className="chip">{t(`subscriptionType.${user.subscriptionType}`)}</span>
               </div>
             ) : null}
+            {/*
+              The plan's ceiling alone answers a question nobody asks. What is
+              worth knowing is how much of it is left, so when the API says how
+              much is stored the chip becomes a bar; the plain chip stays as the
+              fallback for a session answering from the token alone.
+            */}
             {user.subscriptionQuota ? (
               <div className="user-menu-field">
                 <span className="user-menu-field-label">{t('auth.storage')}</span>
-                <span className="chip">{t(`storageQuota.${user.subscriptionQuota}`)}</span>
+                {user.usedBytes !== null && user.subscriptionQuotaBytes ? (
+                  <StorageBar usedBytes={user.usedBytes} quotaBytes={user.subscriptionQuotaBytes} />
+                ) : (
+                  <span className="chip">{t(`storageQuota.${user.subscriptionQuota}`)}</span>
+                )}
               </div>
             ) : null}
             {user.subscriptionStatus === 'trial' ? (
@@ -214,6 +229,14 @@ export function UserMenu() {
               {t('auth.signOut')}
             </button>
           </div>
+
+          {/*
+            The version, at the foot of the panel and in the quietest type on
+            it. It is the first thing anyone is asked for when something looks
+            wrong, and the last thing anyone needs while reading a vault, so it
+            is present and never in the way.
+          */}
+          <p className="user-menu-version">{t('app.version', { version: __APP_VERSION__ })}</p>
         </div>
       )}
     </div>

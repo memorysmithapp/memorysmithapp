@@ -101,6 +101,22 @@ export interface DomainEvent<TPayload = Record<string, unknown>> {
   readonly authorship: Authorship;
   /** Present on every event that changed content (RN-AUD-003). */
   readonly contentRef: ContentRef | null;
+  /**
+   * How many bytes of LIVE content this event added (positive) or released
+   * (negative), which is what the storage counter of the subscription is built
+   * from (RN-SUB-021).
+   *
+   * The aggregate declares it instead of the counter deriving it from the
+   * event type, because the type does not carry the answer: `NoteUpdated` is
+   * emitted both by a retitle, which changes no content and moves nothing, and
+   * by a new body, which moves the difference between two revisions. Only the
+   * aggregate knows which of the two just happened.
+   *
+   * It counts LIVE content: the current revision of every note that is not
+   * deleted, plus each guidance and template. Superseded revisions still exist
+   * in the store, and are deliberately not counted (see RN-SUB-021 for why).
+   */
+  readonly storageDelta: number;
   readonly payload: TPayload;
 }
 
@@ -112,6 +128,7 @@ export function createEvent<TPayload extends Record<string, unknown>>(input: {
   authorship: Authorship;
   payload: TPayload;
   contentRef?: ContentRef | null;
+  storageDelta?: number;
   occurredAt?: Instant;
 }): DomainEvent<TPayload> {
   return {
@@ -123,6 +140,9 @@ export function createEvent<TPayload extends Record<string, unknown>>(input: {
     subjectId: input.subjectId,
     authorship: input.authorship,
     contentRef: input.contentRef ?? null,
+    // Zero by default, so an event that moves no content says so by saying
+    // nothing: renaming, reordering and moving are all storage-neutral.
+    storageDelta: input.storageDelta ?? 0,
     payload: input.payload,
   };
 }

@@ -70,6 +70,7 @@ export function envelopeOf(item: Record<string, unknown>): unknown {
     subjectId: item['subjectId'],
     authorship: item['authorship'],
     contentRef: item['contentRef'] ?? null,
+    storageDelta: item['storageDelta'] ?? 0,
     payload: item['payload'] ?? {},
   };
 }
@@ -103,60 +104,96 @@ export class OutboxRelay {
     );
 
     for (const [index, envelope] of envelopes.entries()) {
-      const delta = counterDelta(envelope.type);
-      if (delta === 0) continue;
+      const notes = counterDelta(envelope.type);
+      const bytes = envelope.storageDelta;
+      // An event that moves neither counter needs no transaction, and needs no
+      // SEEN item either: there is nothing to apply twice.
+      if (notes === 0 && bytes === 0) continue;
       const item = events[index] as Record<string, unknown>;
-      await this.applyCounter(String(item['PK']), envelope, delta);
+      await this.applyCounters(String(item['PK']), envelope, notes, bytes);
     }
 
     return { published: envelopes.length };
   }
 
-  private async applyCounter(
+  /**
+   * One transaction per event, carrying everything that event moves: the note
+   * counters of the folder and the vault, and the stored bytes of the whole
+   * subscription (RN-SUB-021). They travel together because they share one
+   * dedup marker: two transactions would mean the second one is refused by the
+   * SEEN item the first one wrote.
+   */
+  private async applyCounters(
     partition: string,
-    envelope: { eventId: string; occurredAt: string; payload: Record<string, unknown> },
-    delta: number,
+    envelope: {
+      eventId: string;
+      occurredAt: string;
+      subscriptionId: string;
+      payload: Record<string, unknown>;
+    },
+    notes: number,
+    bytes: number,
   ): Promise<void> {
     const folderId = String(envelope.payload['folderId'] ?? '');
-    if (!folderId) return;
 
     const occurredAt = Instant.fromISO(envelope.occurredAt);
     const ttl = occurredAt.ok
       ? occurredAt.value.plusDays(SEEN_TTL_DAYS).toEpochSeconds()
       : Instant.now().plusDays(SEEN_TTL_DAYS).toEpochSeconds();
 
-    try {
-      await this.deps.db.send(
-        new TransactWriteCommand({
-          TransactItems: [
-            {
-              Put: {
-                TableName: this.deps.tableName,
-                Item: { PK: partition, SK: `SEEN#${envelope.eventId}`, entity: 'SEEN', ttl },
-                ConditionExpression: 'attribute_not_exists(SK)',
-              },
-            },
-            {
-              Update: {
-                TableName: this.deps.tableName,
-                Key: { PK: partition, SK: `FSTAT#${folderId}` },
-                UpdateExpression: 'ADD noteCount :delta SET updatedAt = :at',
-                ExpressionAttributeValues: { ':delta': delta, ':at': envelope.occurredAt },
-              },
-            },
-            {
-              Update: {
-                TableName: this.deps.tableName,
-                Key: { PK: partition, SK: 'FSTAT' },
-                UpdateExpression: 'ADD noteCount :delta SET updatedAt = :at',
-                ExpressionAttributeValues: { ':delta': delta, ':at': envelope.occurredAt },
-              },
-            },
-          ],
-        }),
+    const writes: NonNullable<
+      ConstructorParameters<typeof TransactWriteCommand>[0]['TransactItems']
+    > = [
+      {
+        Put: {
+          TableName: this.deps.tableName,
+          Item: { PK: partition, SK: `SEEN#${envelope.eventId}`, entity: 'SEEN', ttl },
+          ConditionExpression: 'attribute_not_exists(SK)',
+        },
+      },
+    ];
+
+    if (notes !== 0 && folderId) {
+      writes.push(
+        {
+          Update: {
+            TableName: this.deps.tableName,
+            Key: { PK: partition, SK: `FSTAT#${folderId}` },
+            UpdateExpression: 'ADD noteCount :delta SET updatedAt = :at',
+            ExpressionAttributeValues: { ':delta': notes, ':at': envelope.occurredAt },
+          },
+        },
+        {
+          Update: {
+            TableName: this.deps.tableName,
+            Key: { PK: partition, SK: 'FSTAT' },
+            UpdateExpression: 'ADD noteCount :delta SET updatedAt = :at',
+            ExpressionAttributeValues: { ':delta': notes, ':at': envelope.occurredAt },
+          },
+        },
       );
+    }
+
+    if (bytes !== 0) {
+      // One item per subscription, in the subscription's own partition rather
+      // than a vault's: what a plan limits is the subscription, and a vault in
+      // the bin is still holding its bytes.
+      writes.push({
+        Update: {
+          TableName: this.deps.tableName,
+          Key: { PK: `S#${envelope.subscriptionId}#VAULTS`, SK: 'USAGE' },
+          UpdateExpression: 'ADD storedBytes :delta SET updatedAt = :at',
+          ExpressionAttributeValues: { ':delta': bytes, ':at': envelope.occurredAt },
+        },
+      });
+    }
+
+    if (writes.length === 1) return;
+
+    try {
+      await this.deps.db.send(new TransactWriteCommand({ TransactItems: writes }));
     } catch (error) {
-      // A duplicate SEEN item means the stream is replaying: the counter was
+      // A duplicate SEEN item means the stream is replaying: the counters were
       // already applied, and doing nothing is the correct outcome.
       const name = (error as { name?: string })?.name ?? '';
       if (name !== 'TransactionCanceledException') throw error;

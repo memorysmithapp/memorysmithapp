@@ -46,6 +46,7 @@ import {
 import { ResolveRequestContext } from '@memorysmith/svc-access/application/context';
 import {
   InMemoryContentStore,
+  InMemoryStorageBudget,
   InMemoryDatabase,
   InMemoryNoteRepository,
   InMemoryVaultRepository,
@@ -160,22 +161,31 @@ export function buildTestApp() {
    * The knowledge repositories take a SubscriptionContext, so this function
    * simply cannot be called for a platform session: there is nothing to pass.
    */
+  /** Shared by every use case of this app, exactly as the counter is in production. */
+  const storage = new InMemoryStorageBudget();
+
   const knowledgeRepos = (context: SubscriptionContext) => ({
     vaults: new InMemoryVaultRepository(context, knowledgeDb, events),
     notes: new InMemoryNoteRepository(context, knowledgeDb, events),
     content: new InMemoryContentStore(context, knowledgeDb),
+    storage,
   });
 
   const accessUseCases: AccessUseCases = {
     requestSubscription: () => new RequestSubscription(onboarding, links),
     getSession: (request) => {
       const scoped = scopedAccess(request);
-      return new GetSession(links, scoped?.subscriptions ?? null, async (id) => {
-        const found = accessDb.subscriptions.get(`S#${id.value}`)?.subscription;
-        return found
-          ? { status: found.status.name, type: found.type.name, quota: found.quota.name }
-          : null;
-      });
+      return new GetSession(
+        links,
+        scoped?.subscriptions ?? null,
+        async (id) => {
+          const found = accessDb.subscriptions.get(`S#${id.value}`)?.subscription;
+          return found
+            ? { status: found.status.name, type: found.type.name, quota: found.quota.name }
+            : null;
+        },
+        async () => storage.usedBytes,
+      );
     },
     switchSubscription: () => new SwitchActiveSubscription(links),
     listPlatformQueue: () => new ListPlatformQueue(platform),
@@ -353,6 +363,7 @@ export function buildTestApp() {
     accessDb,
     knowledgeDb,
     events,
+    storage,
     verifier,
     links,
     platform,

@@ -196,7 +196,7 @@ describe('The platform session reaches no content', () => {
     const rows = (await queue.json()) as Array<Record<string, unknown>>;
     expect(rows).toHaveLength(1);
     // Holder, status, plan, dates and a member count. Nothing else, and no
-    // name: a subscription has none (RN-SUB-020).
+    // name: a subscription has none (RN-SUB-021).
     expect(Object.keys(rows[0] ?? {}).sort()).toEqual([
       'memberCount',
       'ownerEmail',

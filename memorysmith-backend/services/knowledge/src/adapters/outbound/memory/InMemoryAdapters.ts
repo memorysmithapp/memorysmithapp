@@ -28,6 +28,7 @@ import { createHash } from 'node:crypto';
 import type { Note } from '../../../domain/note/Note.js';
 import type { NoteOrder } from '../../../domain/services/NotePlacement.js';
 import type { ContentStore, NoteRepository, VaultRepository } from '../../../domain/ports/index.js';
+import type { StorageBudget, StorageState } from '../../../domain/services/StorageQuota.js';
 import type { Vault } from '../../../domain/vault/Vault.js';
 
 /** Records what was published, so a test can assert on the event stream. */
@@ -44,6 +45,31 @@ export class RecordingEventPublisher implements EventPublisher {
 
   clear(): void {
     this.published.length = 0;
+  }
+}
+
+/**
+ * The storage budget, in memory. Production keeps the used bytes in a counter
+ * the outbox relay maintains; a test states them directly, and moves them with
+ * `record()` to stand in for the relay having caught up.
+ *
+ * The default limit is generous on purpose: a test that is not about the quota
+ * must never trip over it.
+ */
+export class InMemoryStorageBudget implements StorageBudget {
+  constructor(
+    public limitBytes = Number.MAX_SAFE_INTEGER,
+    public usedBytes = 0,
+  ) {}
+
+  async current(): Promise<StorageState> {
+    return { usedBytes: this.usedBytes, limitBytes: this.limitBytes };
+  }
+
+  /** What the relay would have applied for these events (RN-SUB-021). */
+  record(events: readonly DomainEvent[]): void {
+    for (const event of events) this.usedBytes += event.storageDelta;
+    if (this.usedBytes < 0) this.usedBytes = 0;
   }
 }
 

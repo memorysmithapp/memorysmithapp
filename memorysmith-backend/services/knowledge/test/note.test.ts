@@ -73,6 +73,60 @@ describe('Note: editing', () => {
     expect(note.slug.value).toBe('lei-14133-art-76');
     expect(note.pullEvents()[0]?.type).toBe('NoteUpdated');
   });
+
+  it('publishes one NoteUpdated for a retitle and a rewrite in the same save', () => {
+    // Two would be one operation told twice, and the earlier of them cites the
+    // revision the later one just superseded. The bus promises delivery, not
+    // order, so a projector could apply them the other way round and reindex
+    // the note from content that is no longer live.
+    const vault = newVault();
+    const note = newNote(vault, folderId);
+    note.pullEvents();
+    const before = note.bodyRef.bytes;
+
+    unwrap(
+      note.retitle(
+        noteTitle('Lei 14.133, art. 76'),
+        unwrap(Slug.from('Lei 14.133, art. 76')),
+        authorship(),
+      ),
+    );
+    const rewritten = contentRef('f'.repeat(64), 1500);
+    expect(unwrap(note.replaceBody(rewritten, authorship()))).toBe(true);
+
+    const events = note.pullEvents();
+    expect(events).toHaveLength(1);
+    const [event] = events;
+    expect(event?.type).toBe('NoteUpdated');
+    // The surviving one is the whole truth: the new title AND the live ref.
+    expect(event?.payload['slug']).toBe('lei-14133-art-76');
+    expect(event?.contentRef?.equals(rewritten)).toBe(true);
+    // The bytes accumulate, because the retitle declared none of them.
+    expect(event?.storageDelta).toBe(1500 - before);
+  });
+
+  it('keeps the two events of a move and a reorder apart', () => {
+    // Only NoteUpdated is a snapshot. A transition is a fact of its own, and
+    // collapsing two of those would lose one.
+    const vault = newVault();
+    const note = newNote(vault, folderId);
+    note.pullEvents();
+
+    unwrap(
+      note.moveTo(
+        {
+          vaultId: vault.id,
+          folderId: FolderId.generate(),
+          slug: note.slug,
+          position: note.position,
+        },
+        authorship(),
+      ),
+    );
+    unwrap(note.reorder(note.position, authorship()));
+
+    expect(note.pullEvents().map((event) => event.type)).toEqual(['NoteMoved', 'NoteReordered']);
+  });
 });
 
 describe('Note: ordering', () => {

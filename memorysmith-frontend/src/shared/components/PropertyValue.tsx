@@ -11,9 +11,23 @@ const TOKEN =
   /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s,]+)/g;
 
 interface PropertyValueProps {
-  name: string;
   value: string;
+  /** The vault wrote this one as a list, so it is drawn as chips. */
+  list: boolean;
   vaultSlug: string;
+}
+
+/**
+ * Which icon names the property, by the shape of its value and never by its
+ * key. It is the same reading the facet projector does (FacetExtractor.ts):
+ * the vocabulary of a vault belongs to its Guidance, so a list of blessed key
+ * names here would be this layer deciding what `status` means.
+ */
+export function propertyType(value: string, list: boolean): 'list' | 'date' | 'checkbox' | 'text' {
+  if (list) return 'list';
+  if (/^(true|false|yes|no)$/i.test(value.trim())) return 'checkbox';
+  if (/^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2})?$/.test(value.trim())) return 'date';
+  return 'text';
 }
 
 function renderRich(value: string, vaultSlug: string, pendingHint: string): ReactNode[] {
@@ -59,10 +73,10 @@ function renderRich(value: string, vaultSlug: string, pendingHint: string): Reac
   return parts;
 }
 
-export function PropertyValue({ name, value, vaultSlug }: PropertyValueProps) {
+export function PropertyValue({ value, list, vaultSlug }: PropertyValueProps) {
   const { t } = useTranslation();
 
-  if (name === 'tags') {
+  if (list) {
     return (
       <span className="prop-tags">
         {value

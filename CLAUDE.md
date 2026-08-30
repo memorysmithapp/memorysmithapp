@@ -30,10 +30,10 @@ Definida no caderno de marca "Livro da marca v1" (Figma). O símbolo é um grafo
 - **Tom visual:** sóbrio e legível. A superfície do produto é uma ferramenta de leitura antes de ser uma ferramenta de edição
 
 ### Versão base
-0.2.0
+0.3.0
 
 ### Estado atual
-Versão 0.2.0, que entregou as entregas 2 a 12 do `docs/architecture-guide.md` §25: os seis bounded contexts, a infraestrutura inteira em CDK, a interface ligada à API real e o conector MCP com leitura e escrita, autenticado pelo proxy CIMD na frente do Cognito. Antes dela, a 0.1.0 entregou a documentação canônica, o protótipo navegável do frontend sobre o seed e o spike de autenticação do MCP, validado em ambiente real na AWS e depois desmontado. O ambiente sobe e desce pelos scripts de `deploy-aws/`, e o deploy na AWS acontece com acompanhamento passo a passo do usuário.
+Versão 0.3.0, que endureceu e poliu o que a 0.2.0 entregou, sem abrir bounded context novo. Ela trouxe a interface responsiva com dois pontos de quebra, o grafo montado por interruptores de atributo, com grupo que se segura ao clique e que responde ao toque, a quota do plano aplicada de fato em vez de apenas declarada, a superfície de leitura das notas seguindo as métricas do tema padrão do Obsidian, e a correção de defeitos de consistência entre a projeção do Discovery e o conteúdo das notas. Antes dela, a 0.2.0 entregou as entregas 2 a 12 do `docs/architecture-guide.md` §25: os seis bounded contexts, a infraestrutura inteira em CDK, a interface ligada à API real e o conector MCP com leitura e escrita, autenticado pelo proxy CIMD na frente do Cognito; e a 0.1.0 entregou a documentação canônica, o protótipo navegável do frontend sobre o seed e o spike de autenticação do MCP. O ambiente sobe e desce pelos scripts de `deploy-aws/`, e o deploy na AWS acontece com acompanhamento passo a passo do usuário.
 
 ### Remote do git
 github.com/memorysmithapp/memorysmithapp

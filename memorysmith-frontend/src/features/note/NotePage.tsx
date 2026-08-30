@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { getNote, resolveNoteUrl } from '../../shared/api/source';
 import { resolveWikilinks } from '../../shared/api/markdown';
 import { Markdown } from '../../shared/components/Markdown';
-import { PropertyValue } from '../../shared/components/PropertyValue';
+import { PropertyValue, propertyType } from '../../shared/components/PropertyValue';
 import { CheckIcon, CopyIcon } from '../../shared/components/icons';
 import { folderTrailForNote } from '../structure/trail';
 import { VaultBreadcrumb, folderCrumbs } from '../structure/VaultBreadcrumb';
@@ -53,6 +53,7 @@ export function NotePage({ noteSlug }: { noteSlug: string }) {
 
   const body = resolveWikilinks(data.body, (slug) => resolveNoteUrl(vaultSlug, slug));
   const properties = Object.entries(data.frontmatter).filter(([, value]) => value !== '');
+  const lists = new Set(data.listProperties);
 
   return (
     <article className="content-pane">
@@ -79,20 +80,22 @@ export function NotePage({ noteSlug }: { noteSlug: string }) {
       </div>
 
       {properties.length > 0 && (
-        <details className="properties-box">
+        <details className="properties-box" open>
           <summary>{t('note.properties')}</summary>
-          <table>
-            <tbody>
-              {properties.map(([key, value]) => (
-                <tr key={key}>
-                  <th>{key}</th>
-                  <td>
-                    <PropertyValue name={key} value={value} vaultSlug={vaultSlug} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="metadata-container">
+            {properties.map(([key, value]) => (
+              <div
+                className="metadata-property"
+                data-property-type={propertyType(value, lists.has(key))}
+                key={key}
+              >
+                <span className="metadata-property-key">{key}</span>
+                <span className="metadata-property-value">
+                  <PropertyValue value={value} list={lists.has(key)} vaultSlug={vaultSlug} />
+                </span>
+              </div>
+            ))}
+          </div>
         </details>
       )}
 

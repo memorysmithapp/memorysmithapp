@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { extractLinks } from '../src/domain/LinkExtractor.js';
 import { extractFacets, facetDelta } from '../src/domain/FacetExtractor.js';
 import { normalize } from '../src/domain/SearchQuery.js';
-import { DynamoContentIndex } from '../src/adapters/aws.js';
+import { DynamoContentIndex, DynamoFacetIndex } from '../src/adapters/aws.js';
 import {
   InMemoryContentIndex,
   InMemoryFacetIndex,
@@ -584,5 +584,85 @@ describe('The scan walks every page, which is the whole correctness of it', () =
     expect(notes).toHaveLength(PAGES * perPage);
     // The last note of the last page is present: nothing was cut short.
     expect(notes[notes.length - 1]?.noteId).toBe(`n${PAGES * perPage - 1}`);
+  });
+});
+
+describe('The facet projection writes every counter and reads every page', () => {
+  const SUBSCRIPTION = { value: '01JBQ2X0000000000000000000' } as never;
+  const TABLE = 'mv-discovery';
+
+  /** A fake DynamoDB that tells the three commands apart by their input. */
+  function fakeDb(pages: Array<Record<string, unknown>[]> = [[]]) {
+    const transactions: Array<Record<string, unknown>[]> = [];
+    let queried = 0;
+    const db = {
+      send: async (command: { input: Record<string, unknown> }) => {
+        const input = command.input;
+        if (input['TransactItems']) {
+          transactions.push(input['TransactItems'] as Record<string, unknown>[]);
+          return {};
+        }
+        if (input['KeyConditionExpression']) {
+          const at = (input['ExclusiveStartKey'] as { at?: number } | undefined)?.at ?? 0;
+          queried++;
+          return {
+            Items: pages[at] ?? [],
+            ...(at + 1 < pages.length ? { LastEvaluatedKey: { at: at + 1 } } : {}),
+          };
+        }
+        return { Item: undefined }; // the GetCommand for the previous portrait
+      },
+    };
+    return { db, transactions, pages: () => queried };
+  }
+
+  it('splits the counters across transactions instead of dropping the tail', async () => {
+    // A TransactWriteItems carries 100 items. The adapter used to send the
+    // portrait plus the first 90 deltas and discard the rest in silence, and
+    // the loss was permanent: the next write of that note computes its delta
+    // against the portrait already stored and finds nothing owing.
+    const VALUES = 250;
+    const { db, transactions } = fakeDb();
+    const index = new DynamoFacetIndex(SUBSCRIPTION, db as never, TABLE);
+
+    await index.replaceFacets(VAULT, 'note-1', {
+      tags: {
+        facet: 'tags',
+        kind: 'list',
+        values: Array.from({ length: VALUES }, (_, at) => `t${at}`),
+      },
+    });
+
+    for (const batch of transactions) expect(batch.length).toBeLessThanOrEqual(100);
+    const puts = transactions.flat().filter((item) => 'Put' in item);
+    const updates = transactions.flat().filter((item) => 'Update' in item);
+    expect(puts).toHaveLength(1); // one portrait, in the first transaction
+    expect(transactions[0]?.[0]).toBe(puts[0]);
+    expect(updates).toHaveLength(VALUES); // and every counter it moved
+    const touched = new Set(
+      updates.map((item) => String((item as { Update: { Key: { SK: string } } }).Update.Key.SK)),
+    );
+    expect(touched.size).toBe(VALUES);
+    expect(touched.has(`STAT#tags#t${VALUES - 1}`)).toBe(true);
+  });
+
+  it('reads the portrait of every note, not of the first page', async () => {
+    // The graph colours a note by the portrait this query returns. A first
+    // page answer would paint an attribute on the notes that fitted and leave
+    // the others bare, which reads as a vault where half the notes forgot
+    // their own frontmatter.
+    const pages = [
+      [{ noteId: 'n1', facets: { type: { facet: 'type', kind: 'enum', values: ['nota'] } } }],
+      [{ noteId: 'n2', facets: { type: { facet: 'type', kind: 'enum', values: ['guia'] } } }],
+      [{ noteId: 'n3', facets: { type: { facet: 'type', kind: 'enum', values: ['guia'] } } }],
+    ];
+    const { db, pages: queried } = fakeDb(pages);
+    const index = new DynamoFacetIndex(SUBSCRIPTION, db as never, TABLE);
+
+    const portraits = await index.vaultNoteFacets(VAULT);
+
+    expect(queried()).toBe(3);
+    expect([...portraits.keys()]).toEqual(['n1', 'n2', 'n3']);
+    expect(portraits.get('n3')?.['type']).toEqual(['guia']);
   });
 });

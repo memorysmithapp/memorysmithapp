@@ -93,6 +93,16 @@ export class KnowledgeKeys {
   }
 
   /**
+   * Stored bytes of the whole subscription, maintained by the outbox relay
+   * (RN-SUB-021). It lives in the subscription's partition and not in a
+   * vault's, because a plan limits the subscription, and a vault in the bin is
+   * still holding what it holds.
+   */
+  storageUsage(): string {
+    return 'USAGE';
+  }
+
+  /**
    * Unique WITHIN THE SUBSCRIPTION (RN-KNW-032). It lives in the vaults
    * partition of the TABLE, not in GSI1, because a transaction cannot condition
    * on an index: the guard has to be an item the write can lock against.

@@ -90,6 +90,7 @@ import {
   buildAudit,
   buildDiscovery,
   buildKnowledge,
+  readStorageBudget,
   roleOf,
   type Infrastructure,
 } from './composition-root.js';
@@ -124,12 +125,20 @@ const accessUseCases: AccessUseCases = {
   },
   getSession: (request) => {
     const { links, platform, scoped } = buildAccess(infra, request.context);
-    return new GetSession(links, scoped?.subscriptions ?? null, async (id: SubscriptionId) => {
-      const found = await platform.findById(id);
-      return found
-        ? { status: found.status.name, type: found.type.name, quota: found.quota.name }
-        : null;
-    });
+    const context = request.context;
+    return new GetSession(
+      links,
+      scoped?.subscriptions ?? null,
+      async (id: SubscriptionId) => {
+        const found = await platform.findById(id);
+        return found
+          ? { status: found.status.name, type: found.type.name, quota: found.quota.name }
+          : null;
+      },
+      // The stored bytes live in the Knowledge table, which Access does not
+      // read; the root is what joins them (composition-root.ts).
+      async () => (context ? (await readStorageBudget(infra, context)).usedBytes : 0),
+    );
   },
   switchSubscription: (request) =>
     new SwitchActiveSubscription(buildAccess(infra, request.context).links),

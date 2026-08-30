@@ -32,6 +32,7 @@ import { NoteRelocation } from '../domain/services/NoteRelocation.js';
 import { NoteTitle, SlugConflictPolicy, VAULT_LIMITS } from '../domain/values.js';
 import type { NoteRepository } from '../domain/ports/index.js';
 import { loadAuthorized, type VaultDependencies } from './vaults.js';
+import { admitWrite } from '../domain/services/StorageQuota.js';
 
 export interface NoteDependencies extends VaultDependencies {
   readonly notes: NoteRepository;
@@ -138,6 +139,13 @@ export class CreateNote {
     if (vault.value.noteCount >= VAULT_LIMITS.maxNotes) {
       return err(DomainError.limitExceeded(`A vault holds at most ${VAULT_LIMITS.maxNotes} notes`));
     }
+    // A new note costs its whole body, and the check runs before the content
+    // is written so a refused write leaves nothing in the store (RN-SUB-021).
+    const admitted = admitWrite(
+      await this.deps.storage.current(),
+      Buffer.byteLength(input.content, 'utf8'),
+    );
+    if (!admitted.ok) return admitted;
 
     const title = NoteTitle.create(input.title);
     if (!title.ok) return title;
@@ -243,6 +251,14 @@ export class UpdateNote {
         const retitled = note.retitle(title.value, slug.value, input.by);
         if (!retitled.ok) return retitled;
       }
+
+      // Only the difference between the revision that is live and the one
+      // being written: an edit that shortens a note never costs anything.
+      const admitted = admitWrite(
+        await this.deps.storage.current(),
+        Buffer.byteLength(input.content, 'utf8') - note.bodyRef.bytes,
+      );
+      if (!admitted.ok) return admitted;
 
       const ref = await this.deps.content.overwrite(note.bodyRef.contentId, input.content);
       const replaced = note.replaceBody(ref, input.by);
@@ -410,6 +426,11 @@ export class RestoreNote {
         }),
       );
     }
+
+    // Bringing a note back puts its bytes back on the count, so it is a write
+    // that grows the stored content and is refused when there is no room.
+    const admitted = admitWrite(await this.deps.storage.current(), note.bodyRef.bytes);
+    if (!admitted.ok) return admitted;
 
     const restored = note.restore(input.by);
     if (!restored.ok) return restored;
