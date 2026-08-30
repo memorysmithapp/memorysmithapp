@@ -130,7 +130,7 @@ export async function getNote(vaultSlug: string, noteSlug: string): Promise<Note
     current = current.parentFolderId ? byId.get(current.parentFolderId) : undefined;
   }
 
-  const { frontmatter, body } = splitFrontmatter(note.content);
+  const { frontmatter, lists, body } = splitFrontmatter(note.content);
   return {
     id: note.noteId,
     vaultSlug,
@@ -138,6 +138,7 @@ export async function getNote(vaultSlug: string, noteSlug: string): Promise<Note
     title: note.title,
     folderNames,
     frontmatter,
+    listProperties: [...lists],
     body,
     raw: note.content,
   };

@@ -3,7 +3,8 @@ import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 import { useTranslation } from 'react-i18next';
-import { renderCallouts } from '../api/markdown';
+import { toUnixNewlines } from '../api/markdown';
+import { remarkCallouts } from '../api/remark-callouts';
 import { MermaidDiagram } from './MermaidDiagram';
 
 interface MarkdownProps {
@@ -48,11 +49,11 @@ export function Markdown({ children }: MarkdownProps) {
   return (
     <div className="markdown">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkCallouts]}
         urlTransform={(url) => url}
         components={{ a: MarkdownAnchor, code: MarkdownCode }}
       >
-        {renderCallouts(children)}
+        {toUnixNewlines(children)}
       </ReactMarkdown>
     </div>
   );

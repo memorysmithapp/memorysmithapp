@@ -43,6 +43,8 @@ export interface NoteDetail {
   title: string;
   folderNames: string[];
   frontmatter: Record<string, string>;
+  /** Which of those the vault wrote as a list; they are drawn as chips. */
+  listProperties: string[];
   body: string;
   raw: string;
 }

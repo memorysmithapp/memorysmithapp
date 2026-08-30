@@ -4,6 +4,15 @@
 
 export interface SplitDocument {
   frontmatter: Record<string, string>;
+  /**
+   * Which of those keys the vault wrote as a list, whether in a dash block or
+   * inline. The values are flattened to one comma-separated string so the
+   * table can print them, and that flattening is lossy: `tags: a, b` and a
+   * two-item list read the same afterwards. The set keeps the difference,
+   * because a list is drawn as chips and a sentence is not, and guessing from
+   * the commas would turn a prose value that happens to have one into chips.
+   */
+  lists: Set<string>;
   body: string;
 }
 
@@ -14,7 +23,7 @@ export interface SplitDocument {
  * invisible in the source and fatal to a regex: `.` does not match one, so
  * `(.*)$` fails on exactly the lines that have a value.
  */
-function toUnixNewlines(raw: string): string {
+export function toUnixNewlines(raw: string): string {
   return raw.replace(/\r\n?/g, '\n');
 }
 
@@ -39,13 +48,15 @@ function unquote(value: string): string {
  */
 export function splitFrontmatter(input: string): SplitDocument {
   const raw = toUnixNewlines(input);
-  if (!raw.startsWith('---')) return { frontmatter: {}, body: raw };
+  const bare = { frontmatter: {}, lists: new Set<string>(), body: raw };
+  if (!raw.startsWith('---')) return bare;
   const end = raw.indexOf('\n---', 3);
-  if (end === -1) return { frontmatter: {}, body: raw };
+  if (end === -1) return bare;
   const head = raw.slice(raw.indexOf('\n') + 1, end);
   const body = raw.slice(raw.indexOf('\n', end + 1) + 1);
 
   const frontmatter: Record<string, string> = {};
+  const lists = new Set<string>();
   let lastKey: string | null = null;
   for (const line of head.split('\n')) {
     const kv = /^([A-Za-z0-9_-]+)\s*:\s*(.*)$/.exec(line);
@@ -54,21 +65,23 @@ export function splitFrontmatter(input: string): SplitDocument {
       const value = (kv[2] ?? '').trim();
       // An inline list becomes the same comma-separated string a dash list
       // produces, so `tags: [a, b]` and a `tags:` block read alike from here.
-      frontmatter[lastKey] =
-        value.startsWith('[') && value.endsWith(']')
-          ? value
-              .slice(1, -1)
-              .split(',')
-              .map(unquote)
-              .filter((item) => item.length > 0)
-              .join(', ')
-          : unquote(value);
+      const inlineList = value.startsWith('[') && value.endsWith(']');
+      if (inlineList) lists.add(lastKey);
+      frontmatter[lastKey] = inlineList
+        ? value
+            .slice(1, -1)
+            .split(',')
+            .map(unquote)
+            .filter((item) => item.length > 0)
+            .join(', ')
+        : unquote(value);
     } else if (lastKey && /^\s+-\s+/.test(line)) {
       const item = unquote(line.replace(/^\s+-\s+/, ''));
+      lists.add(lastKey);
       frontmatter[lastKey] = frontmatter[lastKey] ? `${frontmatter[lastKey]}, ${item}` : item;
     }
   }
-  return { frontmatter, body };
+  return { frontmatter, lists, body };
 }
 
 export function guidanceTitle(guidance: string, fallback: string): string {
@@ -99,34 +112,6 @@ export function guidanceDescription(guidance: string): string {
     if (text && !text.startsWith('#') && !text.startsWith('>')) return stripInlineMarkdown(text);
   }
   return '';
-}
-
-const CALLOUT_ICONS: Record<string, string> = {
-  abstract: '📌',
-  summary: '📌',
-  info: 'ℹ️',
-  note: '📝',
-  tip: '💡',
-  important: '❗',
-  warning: '⚠️',
-  danger: '⚠️',
-  quote: '💬',
-  question: '❓',
-  success: '✅',
-};
-
-// Obsidian-style callout markers ("> [!info] Title") are a vault convention,
-// not universal Markdown. For display we swap the marker for an icon so the
-// blockquote reads naturally; the stored content is never touched.
-export function renderCallouts(body: string): string {
-  return toUnixNewlines(body).replace(
-    /^(>[ \t]*)\[!(\w+)\][+-]?[ \t]*(.*)$/gm,
-    (_all, prefix: string, type: string, title: string) => {
-      const icon = CALLOUT_ICONS[type.toLowerCase()] ?? '📎';
-      const heading = title.trim();
-      return heading ? `${prefix}${icon} **${heading}**` : `${prefix}${icon}`;
-    },
-  );
 }
 
 const WIKILINK = /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g;
