@@ -527,15 +527,32 @@ export class DynamoFacetIndex implements FacetIndex {
     };
   }
 
+  /**
+   * Every page, for the same reason the link graph walks every page: a Query
+   * answers at most 1 MB, and the portrait of a note is not a small item. A
+   * first-page answer would drop the facets of the notes the paging cut off,
+   * and the graph would show an attribute on some of the notes that carry it,
+   * which is worse than showing it on none.
+   */
   private async query(vaultId: string, prefix: string): Promise<Item[]> {
-    const response = await this.db.send(
-      new QueryCommand({
-        TableName: this.tableName,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-        ExpressionAttributeValues: { ':pk': this.pk(vaultId), ':prefix': prefix },
-      }),
-    );
-    return (response.Items ?? []) as Item[];
+    const items: Item[] = [];
+    let startKey: Record<string, unknown> | undefined;
+    do {
+      const response: {
+        Items?: Record<string, unknown>[] | undefined;
+        LastEvaluatedKey?: Record<string, unknown> | undefined;
+      } = await this.db.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+          ExpressionAttributeValues: { ':pk': this.pk(vaultId), ':prefix': prefix },
+          ...(startKey ? { ExclusiveStartKey: startKey } : {}),
+        }),
+      );
+      items.push(...((response.Items ?? []) as Item[]));
+      startKey = response.LastEvaluatedKey;
+    } while (startKey);
+    return items;
   }
 }
 
