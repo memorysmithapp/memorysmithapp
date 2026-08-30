@@ -329,6 +329,26 @@ export class Note {
     return this.events.splice(0, this.events.length);
   }
 
+  /**
+   * One unit of work publishes at most one `NoteUpdated`.
+   *
+   * That event is a snapshot and not a diff: every recorder of it writes the
+   * whole of what the note now is, title, slug, folder and the ContentRef that
+   * is live at that instant. So a second one within the same save supersedes
+   * the first entirely, and keeping both would publish two events for one
+   * operation, the earlier of which cites a revision that is already
+   * superseded. Retitling and rewriting a note in a single call did exactly
+   * that. The bus promises delivery, not order, so a projector that received
+   * the pair the other way round would reindex from the old content and stay
+   * there until the note was written again.
+   *
+   * Only the bytes accumulate, because each event declares its own share of
+   * the storage counter (RN-SUB-021) and the two shares are of one change.
+   *
+   * The collapse is deliberately limited to this one type. `NoteMoved` and
+   * `NoteReordered` describe a transition rather than a state, and two of
+   * those in one save are two facts.
+   */
   private record(
     type: Parameters<typeof createEvent>[0]['type'],
     by: Authorship,
@@ -336,17 +356,23 @@ export class Note {
     contentRef: ContentRef | null = null,
     storageDelta = 0,
   ): void {
-    this.events.push(
-      createEvent({
-        type,
-        subscriptionId: this.subscriptionId,
-        subject: 'NOTE',
-        subjectId: this.id.value,
-        authorship: by,
-        payload,
-        contentRef,
-        storageDelta,
-      }),
-    );
+    const event = createEvent({
+      type,
+      subscriptionId: this.subscriptionId,
+      subject: 'NOTE',
+      subjectId: this.id.value,
+      authorship: by,
+      payload,
+      contentRef,
+      storageDelta,
+    });
+
+    const at = type === 'NoteUpdated' ? this.events.findIndex((each) => each.type === type) : -1;
+    const superseded = at === -1 ? undefined : this.events[at];
+    if (superseded) {
+      this.events[at] = { ...event, storageDelta: superseded.storageDelta + storageDelta };
+      return;
+    }
+    this.events.push(event);
   }
 }
