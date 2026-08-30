@@ -52,6 +52,16 @@ type Item = Record<string, unknown>;
 
 const MAX_DISTINCT_VALUES = 40;
 
+/** What a single TransactWriteItems carries, per the DynamoDB service limit. */
+const MAX_TRANSACTION_ITEMS = 100;
+
+/** Splits a list into batches of at most `size`, keeping the order. */
+function chunk<T>(items: T[], size: number): T[][] {
+  const batches: T[][] = [];
+  for (let at = 0; at < items.length; at += size) batches.push(items.slice(at, at + size));
+  return batches;
+}
+
 /** Every key starts with the subscription, like everywhere else (PE2). */
 function partition(subscriptionId: SubscriptionId, vaultId: string): string {
   return `S#${subscriptionId.value}#VAULT#${vaultId}`;
@@ -397,9 +407,7 @@ export class DynamoFacetIndex implements FacetIndex {
     const before = (previous.Item?.['facets'] as FacetSnapshot | undefined) ?? null;
     const changes = facetDelta(before, facets);
 
-    // One transaction: the new portrait plus the deltas of the counters it
-    // moved, in the same shape as the folder counters of section 10.3.
-    const items: Array<Record<string, unknown>> = [
+    const portrait =
       facets === null
         ? {
             Delete: {
@@ -418,24 +426,37 @@ export class DynamoFacetIndex implements FacetIndex {
                 facets,
               },
             },
-          },
-      ...changes.slice(0, 90).map((change) => ({
-        Update: {
-          TableName: this.tableName,
-          Key: { PK: this.pk(vaultId), SK: `STAT#${change.facet}#${change.value}` },
-          UpdateExpression: 'ADD #count :delta SET #kind = :kind, facet = :facet, #value = :value',
-          ExpressionAttributeNames: { '#count': 'count', '#kind': 'kind', '#value': 'value' },
-          ExpressionAttributeValues: {
-            ':delta': change.delta,
-            ':kind': change.kind,
-            ':facet': change.facet,
-            ':value': change.value,
-          },
-        },
-      })),
-    ];
+          };
 
-    await this.db.send(new TransactWriteCommand({ TransactItems: items as never }));
+    const counters = changes.map((change) => ({
+      Update: {
+        TableName: this.tableName,
+        Key: { PK: this.pk(vaultId), SK: `STAT#${change.facet}#${change.value}` },
+        UpdateExpression: 'ADD #count :delta SET #kind = :kind, facet = :facet, #value = :value',
+        ExpressionAttributeNames: { '#count': 'count', '#kind': 'kind', '#value': 'value' },
+        ExpressionAttributeValues: {
+          ':delta': change.delta,
+          ':kind': change.kind,
+          ':facet': change.facet,
+          ':value': change.value,
+        },
+      },
+    }));
+
+    // The new portrait travels with the counters it moved, in the same shape
+    // as the folder counters of section 10.3. A note whose frontmatter holds
+    // more distinct values than one transaction carries used to have the tail
+    // of its counters dropped without a word: the portrait was right and the
+    // panel counting it was quietly short, forever, because the next write of
+    // that note computes its delta against the portrait and finds nothing
+    // owing. Every delta is applied now, in as many transactions as it takes.
+    const [first, ...rest] = chunk(counters, MAX_TRANSACTION_ITEMS - 1);
+    await this.db.send(
+      new TransactWriteCommand({ TransactItems: [portrait, ...(first ?? [])] as never }),
+    );
+    for (const batch of rest) {
+      await this.db.send(new TransactWriteCommand({ TransactItems: batch as never }));
+    }
 
     for (const facet of new Set(changes.map((change) => change.facet))) {
       await this.enforceCardinality(vaultId, facet);
