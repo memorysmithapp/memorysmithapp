@@ -16,6 +16,10 @@
   --node-green: #16a34a;
   --pending: #a6ab9f;
   --code-bg: #f4f5f2;
+  /* Muted, as the default theme sets inline code, but only as muted as it can
+     be: inside a callout the code sits on the callout's tint over the code
+     tint, and --text-soft loses the 4.5:1 there by a hair. */
+  --code-color: #4e566b;
   --seq-seed: #bfd2f6;
   --seq-growing: #6b96ea;
   --seq-evergreen: #0f56d7;
@@ -503,7 +507,7 @@ a:hover {
   font-family: var(--mono);
   font-size: 0.875em;
   background: var(--code-bg);
-  color: var(--text-soft);
+  color: var(--code-color);
   padding: 0.15em 0.3em;
   border-radius: 4px;
 }
@@ -583,14 +587,18 @@ a:hover {
    without a second file per hue, which is Obsidian's own technique.
 
    The hues are semantic and not decorative: blue informs, green confirms, amber
-   warns, red stops. Three of them are the brand's own; the ones the brand has
-   no word for are darkened until the title clears 4.5:1 against the tint, since
-   a callout title that cannot be read is an ornament. */
+   warns, red stops. They start from the brand's own, and each is then taken
+   down in lightness, at its own hue and saturation, until the title clears
+   4.5:1 against the tinted field it sits on. That step is not optional and it
+   is why Verde nó and Laranja sinal do not appear here at their book values:
+   a 10% tint of a colour lands within a hair of the paper, so a title has to
+   clear the paper, and #16A34A on paper is 3.8:1. The default theme itself
+   fails this; a callout title that cannot be read is an ornament. */
 :root {
   --callout-info: 15, 86, 215;
-  --callout-idea: 15, 118, 110;
-  --callout-done: 21, 128, 61;
-  --callout-warn: 180, 83, 9;
+  --callout-idea: 14, 109, 102;
+  --callout-done: 15, 111, 51;
+  --callout-warn: 158, 71, 0;
   --callout-stop: 180, 35, 24;
   --callout-aside: 109, 40, 217;
   --callout-quote: 84, 93, 115;
@@ -1242,6 +1250,7 @@ a:hover {
   --signal: #ff8a2b;
   --pending: #5d6880;
   --code-bg: #0e1728;
+  --code-color: #93a0ba;
   --seq-seed: #33507f;
   --seq-growing: #6b96ea;
   --seq-evergreen: #a9c4f5;
