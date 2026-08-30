@@ -4,6 +4,7 @@ import { Link, NavLink, Outlet, useLocation, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next';
 import { getVaultStructure } from '../../shared/api/source';
 import type { VaultStructure } from '../../shared/types/api';
+import { BrandMark } from '../../shared/components/BrandMark';
 import { GraphIcon, MenuIcon, PanelLeftCloseIcon } from '../../shared/components/icons';
 import { SearchBox } from '../search/SearchBox';
 import { ExportVaultButton } from '../portability/ExportVaultButton';
@@ -77,15 +78,22 @@ export function VaultLayout() {
         aria-hidden="true"
       />
       <aside className="vault-sidebar" id="vault-sidebar">
-        <button
-          type="button"
-          className="vault-nav-close"
-          aria-label={t('structure.closeNavigation')}
-          ref={closeRef}
-          onClick={() => setNavOpen(false)}
-        >
-          <PanelLeftCloseIcon />
-        </button>
+        {/* The drawer covers the app header, so it carries the brand itself.
+            Shown by CSS only where the sidebar is a drawer. */}
+        <div className="vault-nav-head">
+          <span className="brand">
+            <BrandMark />
+          </span>
+          <button
+            type="button"
+            className="vault-nav-close"
+            aria-label={t('structure.closeNavigation')}
+            ref={closeRef}
+            onClick={() => setNavOpen(false)}
+          >
+            <PanelLeftCloseIcon />
+          </button>
+        </div>
         <Link to="/" className="back-link">
           ← {t('structure.backToVaults')}
         </Link>

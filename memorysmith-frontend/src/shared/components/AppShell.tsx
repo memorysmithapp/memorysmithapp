@@ -1,5 +1,6 @@
 import { Link, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { BrandMark } from './BrandMark';
 import { UserMenu } from './UserMenu';
 
 export function AppShell() {
@@ -9,11 +10,7 @@ export function AppShell() {
     <div className="app-shell">
       <header className="app-header">
         <Link to="/" className="brand">
-          <img src="/symbol.svg" alt="" className="brand-symbol symbol-light" />
-          <img src="/symbol-dark.svg" alt="" className="brand-symbol symbol-dark" />
-          <span className="brand-word">
-            MemorySmith<span className="brand-suffix">.app</span>
-          </span>
+          <BrandMark />
         </Link>
         <span className="tagline">{t('app.tagline')}</span>
         <UserMenu />

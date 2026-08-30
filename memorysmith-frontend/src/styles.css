@@ -1531,6 +1531,7 @@ a:hover {
    sidebar becomes a drawer. */
 .vault-nav-toggle,
 .vault-nav-close,
+.vault-nav-head,
 .vault-nav-scrim {
   display: none;
 }
@@ -1652,13 +1653,42 @@ a:hover {
     z-index: 35;
     background: rgba(14, 21, 38, 0.45);
   }
+  /* The drawer starts at the top of the viewport, over the app header, so it
+     opens with a band of its own the same height as that header: the brand on
+     the left, where the brand was a moment ago, and the close control on the
+     right. Without it the drawer began with an empty strip. */
+  .vault-nav-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    height: var(--header-h);
+    margin: -1rem -1rem 0.6rem;
+    padding: 0 0.6rem 0 1rem;
+    border-bottom: 1px solid var(--border);
+    /* The tree below can be long, and a close control that scrolls out of
+       reach is not a close control. `-1rem` is where the band already sits,
+       one padding above the scrollport edge, so it sticks without moving. */
+    position: sticky;
+    top: -1rem;
+    z-index: 1;
+    background: var(--surface);
+  }
+  .vault-nav-head .brand {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .vault-nav-head .brand-word {
+    font-size: 1.05rem;
+    white-space: nowrap;
+  }
   .vault-nav-close {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
     width: 44px;
     height: 44px;
-    margin: calc(var(--header-h) - 1rem) 0 0.35rem -0.7rem;
     border: 0;
     border-radius: 6px;
     background: none;
