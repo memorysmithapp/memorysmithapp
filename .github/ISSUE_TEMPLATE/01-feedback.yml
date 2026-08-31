@@ -1,0 +1,98 @@
+name: Feedback de uso
+description: Conte um atrito que você sentiu usando o MemorySmith. Não precisa saber qual é a solução.
+title: "[feedback] "
+labels: ["feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por reportar. Duas coisas antes de começar:
+
+        **Este repositório é público.** Não cole conteúdo real das suas notas, nomes de
+        cliente, dados de negócio ou qualquer coisa confidencial. Descreva a situação com
+        exemplos inventados; funciona igual para nós.
+
+        **Se você viu dado de outra conta**, ou qualquer coisa que pareça falha de
+        isolamento, **não abra uma issue**. Use o canal privado descrito em
+        [`SECURITY.md`](../blob/main/SECURITY.md).
+
+  - type: textarea
+    id: tarefa
+    attributes:
+      label: O que você estava tentando fazer?
+      description: A tarefa real, com suas palavras. Não o que você acha que o produto deveria ter.
+      placeholder: |
+        Exemplo: eu estava criando a décima nota de reunião da semana e queria que ela
+        já nascesse com as mesmas seções das outras.
+    validations:
+      required: true
+
+  - type: textarea
+    id: aconteceu
+    attributes:
+      label: O que aconteceu?
+      description: O que o produto fez de fato.
+    validations:
+      required: true
+
+  - type: textarea
+    id: esperava
+    attributes:
+      label: O que você esperava que acontecesse?
+    validations:
+      required: true
+
+  - type: textarea
+    id: contorno
+    attributes:
+      label: Como você contornou?
+      description: |
+        Se você deu um jeito, conte qual. O contorno costuma dizer mais sobre o tamanho
+        da dor do que qualquer outra resposta deste formulário.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: frequencia
+    attributes:
+      label: Com que frequência isso acontece com você?
+      options:
+        - Toda vez que uso
+        - Várias vezes por semana
+        - De vez em quando
+        - Aconteceu uma vez só
+    validations:
+      required: true
+
+  - type: dropdown
+    id: onde
+    attributes:
+      label: Onde isso acontece?
+      options:
+        - Na interface web
+        - No conector MCP, usando um agente
+        - Na instalação ou no deploy
+        - Na documentação (README)
+        - Em outro lugar / não sei dizer
+    validations:
+      required: true
+
+  - type: textarea
+    id: ideia
+    attributes:
+      label: Se você fosse resolver, o que faria?
+      description: |
+        Opcional, e sinta-se livre para deixar em branco. Perguntamos por último e de
+        propósito: a sua descrição do atrito vale mais que a sua proposta de solução, e
+        é comum a gente chegar num caminho diferente do que foi sugerido aqui. Isso não
+        é o pedido sendo ignorado; é o atrito sendo levado a sério.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confidencialidade
+    attributes:
+      label: Confirmação
+      options:
+        - label: Não colei conteúdo confidencial das minhas notas nesta issue.
+          required: true

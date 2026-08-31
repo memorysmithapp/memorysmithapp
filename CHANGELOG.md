@@ -7,6 +7,12 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **O projeto ganhou um canal de entrada para quem usa.** Existem agora dois formulários de issue: um de **feedback de uso**, que pergunta o que a pessoa estava tentando fazer antes de perguntar o que ela quer, e um de **proposta de escopo**, que é a saída da triagem e reserva os códigos `RN-XXX` que a entrega vai criar. A ordem das perguntas do primeiro é deliberada: a sugestão de solução vem por último e é explicitamente opcional, porque a descrição do atrito vale mais que a proposta de conserto e é a que sobrevive quando o caminho escolhido é outro.
+
+- **`SECURITY.md`, com canal privado para falha de isolamento.** O repositório é público, e uma issue descrevendo como alcançar dado de outra assinatura seria instrução de exploração à vista de todos. O documento nomeia as sete observações que são falha de segurança, entre elas um recurso alheio respondendo `403` em vez de `404`, e compromete resposta em 72 horas.
+
 ## [0.3.0] - 2026-08-29
 
 A versão que faz a 0.2.0 aguentar o uso. Nenhum bounded context novo, nenhuma tool nova: o produto inteiro já existia, e o que faltava era ele funcionar na tela em que está sendo lido, contar o que promete contar e mostrar o vault como o vault se escreve.
