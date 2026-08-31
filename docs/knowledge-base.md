@@ -279,6 +279,28 @@ Um agente diante de uma pasta de arquivos infere a organização a partir dos no
 
 A diferença é maior na escrita que na leitura. Para ler, inferir errado custa uma busca a mais. Para escrever, inferir errado custa uma nota no lugar errado, que só será descoberta depois, se for.
 
+### 4.4 Fluência em IA: os quatro D e a memória comum
+
+Trabalhar bem com um agente é competência descrita, não talento pessoal. O framework de *AI Fluency* organiza essa competência em quatro práticas, os quatro D:
+
+| Prática | O que é |
+|---|---|
+| ***Delegation*** | Decidir o que fica com a pessoa, o que vai para o agente e como o trabalho se divide entre os dois |
+| ***Description*** | Comunicar ao agente o que se quer: o contexto do problema, o produto esperado e o processo a seguir |
+| ***Discernment*** | Avaliar criticamente o que volta, o resultado, o raciocínio e o comportamento, em vez de aceitar por plausibilidade |
+| ***Diligence*** | Responder pelo que se produz com o agente: escolher a ferramenta, ser transparente sobre o uso e verificar antes de publicar |
+
+As quatro compartilham uma dependência pouco discutida: **um corpo de conhecimento compartilhado, persistente e legível pelas duas partes**. Sem ele, cada prática paga um imposto que não é atribuído à causa certa.
+
+| Prática | O imposto quando não há base comum |
+|---|---|
+| *Delegation* | Só se delega tarefa que o agente alcança. Se o material está numa pasta local ou na cabeça de alguém, o que se delega é a redigitação do contexto, não o trabalho |
+| *Description* | O contexto que não está escrito em lugar nenhum é redescrito a cada sessão, um pouco diferente a cada vez, o que move o resultado sem que ninguém identifique a causa |
+| *Discernment* | Avaliar exige referencial. Resposta sem fonte só pode ser julgada por plausibilidade, que é exatamente o critério que um modelo otimiza |
+| *Diligence* | Responder por um trabalho significa poder mostrar em que material ele se apoiou, quem escreveu aquele material e o que ele dizia na data |
+
+É a conclusão de §4.3 vista pelo outro lado. A base compartilhada não é o arquivo onde o resultado é depositado no fim: é a condição de a colaboração ser boa desde o começo. E, para cumprir esse papel, ela precisa ser barata nas duas direções, barata de escrever, porque quem mais escreve nela é o agente durante o trabalho, e barata de ler, porque a pessoa precisa julgar, corrigir e decidir sobre ela sem trocar de ferramenta.
+
 ---
 
 ## 5. Recuperação: lexical, vetorial e grafo
@@ -503,6 +525,7 @@ Um sistema de arquivos não tem alguns conceitos que uma base tem: ordem entre i
 
 | Termo | Significado |
 |---|---|
+| **AI Fluency** | Framework de quatro práticas para o trabalho com agentes: *Delegation*, *Description*, *Discernment* e *Diligence* |
 | **Backlink** | Lista das notas que apontam para a nota atual |
 | **Chunk** | Trecho de documento recortado para vetorização |
 | **CommonMark** | Especificação formal e estrita de Markdown |
@@ -551,6 +574,9 @@ Um sistema de arquivos não tem alguns conceitos que uma base tem: ordem entre i
 - RFC 7591: OAuth 2.0 Dynamic Client Registration Protocol
 - RFC 7636: Proof Key for Code Exchange (PKCE)
 - RFC 8707: Resource Indicators for OAuth 2.0
+
+**Colaboração com agentes**
+- Anthropic, *AI Fluency: Framework & Foundations*, curso de Rick Dakan e Joseph Feller: <https://www.anthropic.com/ai-fluency>
 
 **Recuperação**
 - Lewis et al., *Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks* (2020)

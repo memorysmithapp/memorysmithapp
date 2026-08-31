@@ -30,13 +30,27 @@ Para fatos gerais do domínio (Markdown, MCP, auditoria, LGPD), ver [`knowledge-
 
 ### 1.1 O problema
 
-O fluxo que funciona hoje para trabalhar conhecimento com um agente é uma pasta local de arquivos `.md`, com um documento na raiz explicando ao agente como estruturar as notas, e um editor de vault por cima para navegar. O agente lê a pasta sempre que precisa de contexto.
+O que este produto ataca não é a falta de um lugar para guardar arquivo. É a **qualidade da interação entre um time e os agentes de IA com que ele trabalha todos os dias**.
 
-Três coisas quebram nesse arranjo (detalhamento em `knowledge-base.md` §2.5):
+Essa interação acontece hoje sobre duas memórias que não se encontram. A do agente termina quando a sessão termina: cada conversa começa do zero e sabe do assunto apenas o que couber na janela daquela vez. A do time existe, mas está espalhada em conversa, documento, planilha, thread de decisão e na cabeça de quem participou. Uma não persiste, a outra não é alcançável por quem precisaria lê-la a cada tarefa.
+
+O custo não aparece como arquivo perdido, aparece como retrabalho e como desconfiança. Retrabalho porque toda tarefa recomeça pela reconstrução do contexto, e a pessoa gasta a maior parte do tempo redescrevendo ao agente o que o time já havia decidido, um pouco diferente a cada vez. Desconfiança porque o resultado volta sem a fonte: conferir custa mais do que aceitar, e aceitar sem conferir é o que corrói a confiança em tudo que a base passa a conter.
+
+O que falta é uma **memória comum entre as pessoas e os agentes**, construída em três movimentos encadeados:
+
+1. **Capturar com evidência.** Norma, legislação, documentação técnica, pesquisa, decisão tomada em reunião. O que entra registra de onde veio e quem o escreveu, humano ou agente, porque afirmação que não se rastreia até a fonte não sustenta decisão depois.
+2. **Curar.** Material capturado ainda não é conhecimento. Alguém precisa julgar o que vale, reconciliar o que se contradiz, ligar o novo ao que já existia e enxergar o que está maduro e o que ainda é rascunho. Curadoria é trabalho humano assistido por agente, nunca subproduto automático da ingestão.
+3. **Servir aos dois lados com o mesmo material.** A base é fonte da verdade para o agente, que a lê a cada tarefa em vez de adivinhar, e superfície de trabalho para a pessoa, que aprende com ela, corrige o que está errado e decide com ela à vista. Dois leitores com exigências diferentes sobre exatamente o mesmo conteúdo.
+
+**Por que isso é condição da colaboração, e não preferência de organização.** As quatro práticas que descrevem a fluência de quem trabalha com IA, *Delegation*, *Description*, *Discernment* e *Diligence* (detalhadas em `knowledge-base.md` §4.4), degradam todas pela mesma causa: a ausência de um corpo de conhecimento compartilhado, persistente e legível pelos dois lados. Sem ele, delega-se a redigitação de contexto em vez da tarefa, descreve-se o mesmo contexto de novo a cada sessão, avalia-se a resposta por plausibilidade em vez de por fonte, e não sobra rastro para responder pelo que foi produzido. Daí a exigência dupla que atravessa o produto: a base precisa ser **barata de escrever**, porque quem mais escreve nela é o agente durante o trabalho, e **barata de ler**, porque a pessoa precisa curar e decidir sem trocar de ferramenta.
+
+**O arranjo que mais se aproxima disso hoje, e onde ele para.** O fluxo que já funciona é uma pasta local de arquivos `.md`, com um documento na raiz explicando ao agente como escrever nela, e um editor de vault por cima para navegar. Ele acerta o essencial, o formato é legível pelos dois lados e a estrutura está declarada, mas é de uma pessoa só e trava em três pontos previsíveis (detalhamento em `knowledge-base.md` §2.5):
 
 1. **Colaboração:** o conteúdo é local, e duas pessoas não trabalham no mesmo corpo de conhecimento.
 2. **Navegação compartilhada:** editores de vault são clientes locais, ruins como cliente de repositório remoto.
 3. **Múltiplos cofres:** separar assuntos exige pastas soltas, sem um lugar que as liste.
+
+A esses três se soma o que a pasta local nunca teve e que os dois últimos movimentos exigem para valer: registro de quem escreveu cada coisa, quando, e com qual agente.
 
 ### 1.2 A solução
 
@@ -46,10 +60,11 @@ O MemorySmith.app é o backend remoto do fluxo que já funciona. Mantém o forma
 
 ### 1.3 O ciclo de uso
 
-O agente não só lê o vault, ele o **alimenta**. O caso concreto que o produto serve:
+O agente não só lê o vault, ele o **alimenta**. Os três movimentos de §1.1 aparecem aqui como o caso concreto que o produto serve:
 
-1. **Ingestão.** O agente lê um corpo de material, como normas, legislação, documentação ou pesquisa, e escreve esse conhecimento como notas no vault, obedecendo ao Guidance (o que este vault é), à estrutura de pastas (onde cada coisa vai) e ao Template da pasta (como a nota se estrutura).
-2. **Consumo.** Depois, outro trabalho, como uma auditoria, um relatório ou um parecer, usa o mesmo vault como base de conhecimento estruturada.
+1. **Ingestão.** O agente lê um corpo de material, como normas, legislação, documentação ou pesquisa, e escreve esse conhecimento como notas no vault, obedecendo ao Guidance (o que este vault é), à estrutura de pastas (onde cada coisa vai) e ao Template da pasta (como a nota se estrutura). Cada escrita registra quem a fez, com qual agente e o que a nota dizia antes (§11).
+2. **Curadoria.** Pessoas leem, corrigem e organizam o que entrou, na mesma superfície: editam a nota e a estrutura, marcam maturidade e revisão humana, acompanham a distribuição do vault pelo painel de curadoria (§10.3) e caçam link quebrado e nota órfã na tela de saúde (§13.1).
+3. **Consumo.** Depois, outro trabalho, como uma auditoria, um relatório ou um parecer, usa o mesmo vault como base de conhecimento estruturada.
 
 Três consequências atravessam o produto inteiro:
 
@@ -61,11 +76,14 @@ Três consequências atravessam o produto inteiro:
 
 O produto não é guardar `.md`, é **entregar contexto estruturado ao agente sem atrito**. Se ler um vault hospedado for mais trabalhoso que ler uma pasta local, o produto perdeu. Por isso o MCP não é acessório: é a interface principal, e a API interna existe para servir a UI.
 
+O outro lado da mesma tese é a leitura humana. Uma base que a pessoa não consegue ler e corrigir deixa de ser curada, e uma base que ninguém cura deixa de servir como fonte da verdade para o agente (§13).
+
 ### 1.5 Proposta de valor
 
 | Para quem | Dor | O que o produto entrega |
 |---|---|---|
 | Quem trabalha com agente sobre um corpo de conhecimento | A pasta local não sai da máquina | Vault remoto, conectado nativamente ao cliente de IA |
+| Time que trabalha com agentes todo dia | Cada sessão do agente recomeça do zero, e o contexto é redescrito à mão | Memória comum entre pessoas e agentes, escrita durante o trabalho e lida a cada tarefa |
 | Times que compartilham uma base | Sincronizar arquivos não resolve edição concorrente | Assinatura com papéis e escrita com detecção de conflito |
 | Trabalho regulado (auditoria, jurídico, compliance) | O parecer emitido não pode ser demonstrado com a base de ontem | Histórico por revisão, autoria de humano e agente, trilha imutável |
 | Quem tem muitos assuntos | Pastas soltas, sem catálogo | Lista de vaults com descrição, cada um autônomo |
