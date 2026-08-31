@@ -1,7 +1,7 @@
 name: Feedback de uso
 description: Conte um atrito que você sentiu usando o MemorySmith. Não precisa saber qual é a solução.
-title: "[feedback] "
-labels: ["feedback"]
+title: '[feedback] '
+labels: ['feedback']
 body:
   - type: markdown
     attributes:

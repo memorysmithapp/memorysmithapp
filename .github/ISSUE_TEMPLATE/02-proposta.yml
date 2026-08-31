@@ -1,7 +1,7 @@
 name: Proposta de escopo
 description: A necessidade já destilada, pronta para decisão de roadmap. Saída da triagem, não entrada.
-title: "[proposta] "
-labels: ["proposta"]
+title: '[proposta] '
+labels: ['proposta']
 body:
   - type: markdown
     attributes:
@@ -28,7 +28,7 @@ body:
     attributes:
       label: Issues de feedback que originaram esta proposta
       description: Números separados por vírgula. Deixe em branco se a origem foi interna.
-      placeholder: "#12, #15"
+      placeholder: '#12, #15'
     validations:
       required: false
 
@@ -63,11 +63,11 @@ body:
       label: Documentos que esta entrega vai atualizar
       description: Marque o que o commit precisará tocar. Se nada for marcado, justifique abaixo.
       options:
-        - label: "`docs/software-vision.md`, porque muda uma regra, entidade ou limite"
-        - label: "`docs/architecture-guide.md`, porque muda uma decisão técnica"
-        - label: "`docs/knowledge-base.md`, porque muda um fato do domínio"
-        - label: "`README.md`, porque muda o que quem chega vê, instala ou opera"
-        - label: "Nenhum, e a justificativa está no critério de pronto"
+        - label: '`docs/software-vision.md`, porque muda uma regra, entidade ou limite'
+        - label: '`docs/architecture-guide.md`, porque muda uma decisão técnica'
+        - label: '`docs/knowledge-base.md`, porque muda um fato do domínio'
+        - label: '`README.md`, porque muda o que quem chega vê, instala ou opera'
+        - label: 'Nenhum, e a justificativa está no critério de pronto'
 
   - type: textarea
     id: pronto
