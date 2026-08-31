@@ -53,7 +53,7 @@ body:
         **O código é reservado nesta issue e o texto normativo só entra no documento junto
         com o código que o cumpre.** Se nenhuma regra muda, escreva "nenhuma".
       placeholder: |
-        RN-KNW-025 — cria: uma nota pode nascer a partir do Template da pasta de destino
+        RN-KNW-025, cria: uma nota pode nascer a partir do Template da pasta de destino
     validations:
       required: true
 
