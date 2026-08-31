@@ -11,7 +11,7 @@ body:
         pronta para virar branch.
 
         O processo completo está em
-        [`docs/development-process.md`](../blob/main/docs/development-process.md).
+        [`docs/development-process.md`](https://github.com/memorysmithapp/memorysmithapp/blob/main/docs/development-process.md).
 
   - type: textarea
     id: necessidade
