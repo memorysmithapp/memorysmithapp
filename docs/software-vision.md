@@ -30,7 +30,7 @@ Para fatos gerais do domínio (Markdown, MCP, auditoria, LGPD), ver [`knowledge-
 
 ### 1.1 O problema
 
-O que este produto ataca não é a falta de um lugar para guardar arquivo. É a **qualidade da interação entre um time e os agentes de IA com que ele trabalha todos os dias**.
+O foco desse software é potencializar a **eficiência e eficácia da relação humano e agentes de IA** independentemente da plataforma de IA escolhida e o tamanho do time de humanos.
 
 **O retrato de hoje.** Um time toca um projeto: uma auditoria, um processo regulatório, uma pesquisa, uma obra, o lançamento de um produto. Nada disso precisa ser software. Cada pessoa toca a parte dela acompanhada de um agente, e não existe uma plataforma de IA do time: uma trabalha no Claude, outra no ChatGPT, uma terceira no assistente embutido na ferramenta que ela já usava. A escolha é pessoal, muda com o tempo e não há por que uniformizá-la.
 
