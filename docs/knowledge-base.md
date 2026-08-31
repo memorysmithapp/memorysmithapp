@@ -214,6 +214,7 @@ Outros contratos que o mesmo conjunto de clientes impõe ao servidor, e que vale
 Um mesmo servidor MCP remoto pode ser consumido por clientes bem diferentes: aplicações web e desktop, ferramentas de linha de comando, ambientes de trabalho agentivo e IDEs. Isso muda duas coisas para quem escreve o servidor:
 
 - **A descrição da tool é interface de usuário.** É o texto que o modelo lê para decidir se e como chamar. Uma descrição vaga produz chamada errada com a mesma facilidade com que um botão mal rotulado produz clique errado.
+- **A memória de plataforma não atravessa a fronteira do fornecedor.** O que um cliente retém sobre quem o usa, preferências, contexto de projeto, histórico de conversa, é recurso daquele produto e daquele usuário: não é lido pelo cliente de outro fabricante nem pelo agente de outra pessoa. Num grupo em que cada um escolheu a sua ferramenta, memória de plataforma fragmenta por pessoa e por fornecedor ao mesmo tempo. Um servidor MCP é o oposto disso: o estado vive do lado do servidor, e qualquer cliente que fale o protocolo alcança o mesmo estado.
 - **A sessão pode ser longa e não interativa.** Um trabalho de ingestão automatizado roda por muito tempo sem ninguém olhando. Qualquer estado ambíguo que possa mudar no meio do caminho, como qual organização está ativa, precisa ser fixado no início, e não resolvido por omissão a cada chamada.
 
 ### 3.6 Boas práticas de desenho de tools

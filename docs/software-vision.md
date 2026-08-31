@@ -32,15 +32,19 @@ Para fatos gerais do domínio (Markdown, MCP, auditoria, LGPD), ver [`knowledge-
 
 O que este produto ataca não é a falta de um lugar para guardar arquivo. É a **qualidade da interação entre um time e os agentes de IA com que ele trabalha todos os dias**.
 
-Essa interação acontece hoje sobre duas memórias que não se encontram. A do agente termina quando a sessão termina: cada conversa começa do zero e sabe do assunto apenas o que couber na janela daquela vez. A do time existe, mas está espalhada em conversa, documento, planilha, thread de decisão e na cabeça de quem participou. Uma não persiste, a outra não é alcançável por quem precisaria lê-la a cada tarefa.
+**O retrato de hoje.** Um time toca um projeto: uma auditoria, um processo regulatório, uma pesquisa, uma obra, o lançamento de um produto. Nada disso precisa ser software. Cada pessoa toca a parte dela acompanhada de um agente, e não existe uma plataforma de IA do time: uma trabalha no Claude, outra no ChatGPT, uma terceira no assistente embutido na ferramenta que ela já usava. A escolha é pessoal, muda com o tempo e não há por que uniformizá-la.
 
-O custo não aparece como arquivo perdido, aparece como retrabalho e como desconfiança. Retrabalho porque toda tarefa recomeça pela reconstrução do contexto, e a pessoa gasta a maior parte do tempo redescrevendo ao agente o que o time já havia decidido, um pouco diferente a cada vez. Desconfiança porque o resultado volta sem a fonte: conferir custa mais do que aceitar, e aceitar sem conferir é o que corrói a confiança em tudo que a base passa a conter.
+**A memória desse trabalho fragmenta em duas direções ao mesmo tempo.** Na primeira, pelo tempo: a memória do agente termina quando a sessão termina, e a conversa seguinte começa do zero, sabendo do assunto apenas o que couber na janela daquela vez. Na segunda, por fornecedor: o que uma plataforma retém a respeito de quem a usa pertence àquela plataforma e àquela pessoa, não sai de lá e nenhum agente de mais ninguém a lê. Somadas, elas produzem tantas memórias parciais e privadas quantas forem as pessoas multiplicadas pelas plataformas, sobre um trabalho que é um só. O que o time sabe de verdade continua espalhado em conversa, documento, planilha, thread de decisão e na cabeça de quem participou.
 
-O que falta é uma **memória comum entre as pessoas e os agentes**, construída em três movimentos encadeados:
+O custo não aparece como arquivo perdido. Aparece como **retrabalho**, porque toda tarefa recomeça pela reconstrução do contexto e a pessoa gasta a maior parte do tempo redescrevendo ao agente o que o time já havia decidido, um pouco diferente a cada vez. Aparece como **divergência**, porque duas pessoas descrevem o mesmo fato de dois jeitos aos seus agentes e ninguém tem onde conferir qual dos dois vale. E aparece como **desconfiança**, porque o resultado volta sem a fonte: conferir custa mais do que aceitar, e aceitar sem conferir é o que corrói a confiança em tudo que a base passa a conter.
+
+**O que falta é uma fonte única da verdade, comum às pessoas e aos agentes**, que persista além da sessão e não pertença a nenhuma plataforma. Ela se constrói em três movimentos encadeados:
 
 1. **Capturar com evidência.** Norma, legislação, documentação técnica, pesquisa, decisão tomada em reunião. O que entra registra de onde veio e quem o escreveu, humano ou agente, porque afirmação que não se rastreia até a fonte não sustenta decisão depois.
 2. **Curar.** Material capturado ainda não é conhecimento. Alguém precisa julgar o que vale, reconciliar o que se contradiz, ligar o novo ao que já existia e enxergar o que está maduro e o que ainda é rascunho. Curadoria é trabalho humano assistido por agente, nunca subproduto automático da ingestão.
 3. **Servir aos dois lados com o mesmo material.** A base é fonte da verdade para o agente, que a lê a cada tarefa em vez de adivinhar, e superfície de trabalho para a pessoa, que aprende com ela, corrige o que está errado e decide com ela à vista. Dois leitores com exigências diferentes sobre exatamente o mesmo conteúdo.
+
+**Essa fonte é viva.** Ela não é o relatório escrito no fim nem o documento congelado no começo: cresce e se corrige enquanto o projeto anda, e a versão de hoje não é a de duas semanas atrás. Isso é a característica, não o defeito, e é o que impõe a última exigência: a base precisa dizer o que dizia na data em que alguém decidiu apoiado nela.
 
 **Por que isso é condição da colaboração, e não preferência de organização.** As quatro práticas que descrevem a fluência de quem trabalha com IA, *Delegation*, *Description*, *Discernment* e *Diligence* (detalhadas em `knowledge-base.md` §4.4), degradam todas pela mesma causa: a ausência de um corpo de conhecimento compartilhado, persistente e legível pelos dois lados. Sem ele, delega-se a redigitação de contexto em vez da tarefa, descreve-se o mesmo contexto de novo a cada sessão, avalia-se a resposta por plausibilidade em vez de por fonte, e não sobra rastro para responder pelo que foi produzido. Daí a exigência dupla que atravessa o produto: a base precisa ser **barata de escrever**, porque quem mais escreve nela é o agente durante o trabalho, e **barata de ler**, porque a pessoa precisa curar e decidir sem trocar de ferramenta.
 
@@ -50,13 +54,17 @@ O que falta é uma **memória comum entre as pessoas e os agentes**, construída
 2. **Navegação compartilhada:** editores de vault são clientes locais, ruins como cliente de repositório remoto.
 3. **Múltiplos cofres:** separar assuntos exige pastas soltas, sem um lugar que as liste.
 
-A esses três se soma o que a pasta local nunca teve e que os dois últimos movimentos exigem para valer: registro de quem escreveu cada coisa, quando, e com qual agente.
+A esses três se soma o que a pasta local nunca teve e que os movimentos de curar e decidir exigem para valer: registro de quem escreveu cada coisa, quando, e com qual agente.
 
 ### 1.2 A solução
 
 **Cofres de conhecimento em Markdown, com estrutura declarada, acessíveis nativamente pelas ferramentas de IA.**
 
 O MemorySmith.app é o backend remoto do fluxo que já funciona. Mantém o formato (Markdown puro), mantém a prática (orientação na raiz, molde por pasta) e resolve os três pontos de quebra, acrescentando o que a pasta local não tem: acesso remoto autenticado, colaboração com papéis, histórico defensável e descoberta por grafo e por significado.
+
+Sobre a fragmentação por fornecedor ele age pelo protocolo, não pela adesão: o vault é servido por um MCP server remoto, e MCP é padrão aberto falado por clientes de fabricantes diferentes (`knowledge-base.md` §3.5). Cada pessoa continua na plataforma de IA que prefere, e todas alcançam o mesmo vault, com o mesmo conteúdo e sob o mesmo papel.
+
+O nome diz o resto. Uma forja não guarda metal, ela o trabalha: o material entra bruto e sai peça, batido e conferido enquanto está quente. É esse o papel do produto sobre a memória do time, que é forjada durante o trabalho, por pessoas e agentes sobre o mesmo material, e não transcrita depois que o trabalho acabou.
 
 ### 1.3 O ciclo de uso
 
@@ -84,6 +92,7 @@ O outro lado da mesma tese é a leitura humana. Uma base que a pessoa não conse
 |---|---|---|
 | Quem trabalha com agente sobre um corpo de conhecimento | A pasta local não sai da máquina | Vault remoto, conectado nativamente ao cliente de IA |
 | Time que trabalha com agentes todo dia | Cada sessão do agente recomeça do zero, e o contexto é redescrito à mão | Memória comum entre pessoas e agentes, escrita durante o trabalho e lida a cada tarefa |
+| Time em que cada um usa a plataforma de IA que prefere | O que uma plataforma lembra não serve à outra, nem a mais ninguém | Um MCP server remoto: o mesmo vault, com o mesmo papel, em qualquer cliente que fale o protocolo |
 | Times que compartilham uma base | Sincronizar arquivos não resolve edição concorrente | Assinatura com papéis e escrita com detecção de conflito |
 | Trabalho regulado (auditoria, jurídico, compliance) | O parecer emitido não pode ser demonstrado com a base de ontem | Histórico por revisão, autoria de humano e agente, trilha imutável |
 | Quem tem muitos assuntos | Pastas soltas, sem catálogo | Lista de vaults com descrição, cada um autônomo |
