@@ -33,8 +33,8 @@ Para **o que** o produto faz e sob qual regra de negócio, ver [`software-vision
 22. [Checklist de nova funcionalidade](#22-checklist-de-nova-funcionalidade)
 23. [Estratégia de versionamento](#23-estratégia-de-versionamento)
 24. [A linha entre microsserviços e monólito modular](#24-a-linha-entre-microsserviços-e-monólito-modular)
-25. [Sequência de construção](#25-sequência-de-construção)
-26. [Riscos técnicos](#26-riscos-técnicos)
+25. [Decisões de implementação registradas](#25-decisões-de-implementação-registradas)
+26. [Onde vivem a sequência de construção e os riscos técnicos](#26-onde-vivem-a-sequência-de-construção-e-os-riscos-técnicos)
 
 ---
 
@@ -977,7 +977,7 @@ O Cognito não implementa nenhum mecanismo de registro automático de cliente, n
 
 **Alavanca de remoção.** O proxy existe porque o Cognito não fala CIMD. Se um dia falar, o PRM passa a apontar para o issuer do Cognito e o proxy é removido sem migração: o `client_id` CIMD é uma URL hospedada pelo próprio cliente, portável entre authorization servers por construção, então não há estado de registro no nosso lado para carregar. Até lá, o proxy é tratado como componente permanente, com a mesma régua de segurança do resto da borda.
 
-**O spike da entrega 1 (§25) valida este desenho, e continua vindo antes de tudo:** um proxy mínimo com um conector CIMD funcionando de ponta a ponta num cliente desktop e num cliente web, cumprindo os itens 1 a 6. Com a decisão tomada, o risco muda de natureza: deixa de ser escolha de rumo e vira conformidade de integração. A tese, porém, continua dependendo dele (`software-vision.md` §1.4): se o atrito persistir mesmo com o proxy, o plano B é um provedor de identidade com CIMD nativo (WorkOS AuthKit, Auth0), troca contida na stack de identidade e no proxy, sem tocar no domínio.
+**O spike de autenticação que abriu a 0.1.0 validou este desenho, e ele vinha antes de tudo:** um proxy mínimo com um conector CIMD funcionando de ponta a ponta num cliente desktop e num cliente web, cumprindo os itens 1 a 6. Com a decisão tomada, o risco muda de natureza: deixa de ser escolha de rumo e vira conformidade de integração. A tese, porém, continua dependendo dele (`software-vision.md` §1.4): se o atrito persistir mesmo com o proxy, o plano B é um provedor de identidade com CIMD nativo (WorkOS AuthKit, Auth0), troca contida na stack de identidade e no proxy, sem tocar no domínio.
 
 **Referências normativas e de integração:**
 
@@ -1375,32 +1375,11 @@ Uma ressalva: **`svc-audit` é o único que ganha algo real da separação físi
 
 ---
 
-## 25. Sequência de construção
+## 25. Decisões de implementação registradas
 
-Ordem de dependência técnica, com critério de pronto verificável. A coluna **Versão** diz em qual recorte a entrega nasce, e o recorte de produto está em `software-vision.md` §15.
-
-| # | Entrega | Critério de pronto | Versão |
-|---|---|---|---|
-| 1 | **Spike de auth MCP: proxy CIMD** (§13.3) | Conector registrado via CIMD e autenticado pelo Cognito funciona num cliente desktop **e** num cliente web, cumprindo os itens 1 a 6 de §13.3 | 0.1.0 |
-| 2 | Monorepo, kernel, `SubscriptionId`, `Authorship`, taxonomia de erros (§15), CDK, CI com regra de dependência | Build quebra se `domain/` importar SDK da AWS | 0.2.0 |
-| 3 | Domínio do Knowledge: `Vault`, `FolderTree`, `Position`, `Note` | Suíte do domínio verde **sem nenhuma dependência de AWS** | 0.2.0 |
-| 4 | Adaptadores Dynamo, S3 e outbox; `ContentStore` com chave opaca e `ContentRef` completo no evento | 20 reorders concorrentes: nenhuma perda, nenhuma ordem indefinida. **50 notas criadas em paralelo no mesmo vault: nenhum retry por contenção** (§10.2) | 0.2.0 |
-| 5 | `svc-access`: assinatura, seus membros e seu status, authorizer em dois estágios (§14.2) | Teste de isolamento entre assinaturas passa; recurso de outra assinatura devolve `404` e não `403`; token de plataforma não alcança o Knowledge | 0.2.0 |
-| 6 | `svc-knowledge` HTTP completo | Reordenar pasta é 1 write no item da pasta; mover nota entre pastas é 0 bytes no S3; apagar nota mantém `read_note(asOf)` funcionando | 0.2.0 |
-| 7 | `svc-audit` | `read_note(asOf)` devolve o conteúdo correto de uma data passada; update no log falha **por IAM** | 0.2.0 |
-| 8 | `svc-agent`: o catálogo de tools | `get_vault_context` devolve o Markdown de `software-vision.md` §9.2, com as contagens, em **um** `Query` | 0.2.0 |
-| 9 | UI de autoria | Criar um vault do zero, escrever guidance e template, e ler o histórico de uma nota sem tocar na API | 0.2.0 |
-| 10 | `svc-discovery`: grafo, busca e facetas | Link pendente resolve ao criar a nota alvo; uma palavra escrita só no corpo de uma nota é encontrada, com o trecho e o heading de origem; o painel de curadoria sai de um `Query` nos contadores, sem varrer notas | 0.2.0 |
-| 11 | Tools de descoberta; mover nota entre vaults; convites | `NoteId` e histórico preservados na troca de vault; backlinks quebrados avisados antes | 0.2.0 |
-| 12 | `svc-portability` | Zip contém só `.md`, com a ordem legível na própria árvore de arquivos | 0.2.0 |
-
-> **A entrega 3 antes da 4 não é preciosismo:** é o que prova que a inversão de dependência está de pé. Se o domínio precisar da AWS para ser testado, o hexágono já vazou.
-
-### 25.1 O que a 0.2.0 fecha, e o que ela deixa aberto
-
-A 0.2.0 constrói os seis bounded contexts, a infraestrutura inteira e a ligação da interface com a API. As entregas 2 a 12 nascem juntas porque o teste de isolamento, o de contenção e o de imutabilidade só existem quando existe o que testar, e adiar qualquer um deles significaria construir sobre uma propriedade não verificada.
-
-Quatro decisões da implementação valem registro, porque quem lê o desenho precisa saber onde o código diverge dele e por quê:
+Onde o código diverge do desenho descrito acima, e por quê. Cada uma destas decisões foi
+tomada durante a construção, contradiz ou estende algo declarado numa seção anterior, e
+continua valendo hoje.
 
 - **O índice de conteúdo é uma varredura, não um índice invertido** (§11.2). Sob o teto de 2.000 notas por vault, varrer custa cerca de 1.000 unidades de leitura por consulta e dispensa manter postings em dia a cada escrita. A porta `ContentIndex` é o que torna a troca por um índice invertido, ou por um serviço gerenciado, uma mudança de adaptador se o teto do produto algum dia subir.
 - **O Discovery mantém uma projeção própria da estrutura do vault**, alimentada pelos eventos de vault e de pasta. O Vault Context é respondido a partir dela, e consultar o Knowledge para obter o nome do vault e a árvore de pastas inverteria a direção única do §3.1, que é o que torna as projeções reconstruíveis.
@@ -1409,20 +1388,17 @@ Quatro decisões da implementação valem registro, porque quem lê o desenho pr
 
 ---
 
-## 26. Riscos técnicos
+## 26. Onde vivem a sequência de construção e os riscos técnicos
 
-Riscos de produto estão em `software-vision.md` §16.
+Este documento descreve **como o software é construído**, e não em que ordem o que falta
+será construído. A ordem de entrega e os riscos ainda não endereçados descrevem futuro, e
+por isso saíram daqui:
 
-| Risco | Impacto | Resposta |
-|---|---|---|
-| Onboarding do OAuth do MCP ser penoso (Cognito sem CIMD nem DCR) | **Alto, mata a tese** | Proxy CIMD no `svc-agent` (§13.3), validado pelo spike da entrega 1; plano B é provedor de identidade com CIMD nativo |
-| Vazamento entre assinaturas | **Alto** | Assinatura na chave líder, tipo obrigatório e teste de isolamento na suíte (§8, §19) |
-| Contenção no item `META` sob ingestão em lote | **Alto, degrada o caminho quente** | Transação de nota não escreve no `META` (§10.2); contadores em itens próprios; critério de pronto da entrega 4 mede isso |
-| S3 Vectors indisponível ou limitado na região | Médio | Porta `VectorIndex` já isola; plano B é OpenSearch Serverless, **sem tocar no domínio**, que é o tipo de troca que o hexágono existe para tornar barata |
-| Bucket opaco: perder o DynamoDB deixa uma pilha de `.md` sem significado | Médio | PITR na tabela, a trilha do `svc-audit` com todo `(noteId, contentId, versionId)` já visto, e metadados imutáveis no objeto (§9.2) |
-| Trilha de auditoria crescer sem controle | Médio | Evento é pequeno e append-only; retenção por assinatura; o conteúdo pesado fica no S3 |
-| Vault acima do teto declarado degradar a busca | Médio | A varredura é sustentada por RN-KNW-010; subir o teto exige trocar o adaptador de `ContentIndex` antes, e não depois |
-| Órfãos no S3 sem índice por `contentId` | Baixo | Só nascem de falha entre os passos 1 e 3 (§10.5): raros e baratos. Job semanal recolhe. Dívida registrada: a solução limpa custa um GSI no caminho quente e não se paga agora |
-| 6 serviços antes do primeiro usuário | Médio | 0.1.0 sai como monólito modular com `svc-audit` separado (§24); expandir é trocar o composition root |
-| Hexagonal virar só nome de pasta | Médio | Regra de dependência no CI desde a entrega 2 (§5.5, §20) |
-| Chave fracionária de `Position` crescer sem limite | Baixo | Rebalanceamento sob demanda acima de 12 caracteres (§6.4, §17) |
+| O que você procura | Onde está |
+|---|---|
+| Ordem de construção, entregas, versão alvo | O Project do repositório |
+| Riscos técnicos em aberto, com o critério que fecha cada um | Issues com a label `risco-tecnico` |
+| Riscos de produto | Issues com a label `risco` |
+| O que já foi entregue, e quando | `CHANGELOG.md` e os GitHub Releases |
+
+O ciclo completo, da necessidade até o merge, está em `development-process.md`.

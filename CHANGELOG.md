@@ -15,6 +15,12 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **`SECURITY.md`, com canal privado para falha de isolamento.** O repositório é público, e uma issue descrevendo como alcançar dado de outra assinatura seria instrução de exploração à vista de todos. O documento nomeia as sete observações que são falha de segurança, entre elas um recurso alheio respondendo `403` em vez de `404`, e compromete resposta em 72 horas.
 
+### Changed
+
+- **O roadmap, os riscos e as questões em aberto saíram dos documentos e viraram issues.** As seções de recorte de versão, riscos de produto e questões em aberto do `software-vision.md`, e as de sequência de construção e riscos técnicos do `architecture-guide.md`, descreviam o que ainda vamos decidir ou construir, e por isso envelheciam a cada semana enquanto o resto dos documentos envelhecia a cada versão. Quatorze issues foram abertas com o conteúdo que continuava vivo, cada uma com o critério explícito do que a fecha, e as seções foram substituídas por um ponteiro que diz onde cada coisa passou a viver. As quatro decisões de implementação registradas no `architecture-guide.md` §25.1 **permanecem no documento**, porque descrevem onde o código diverge do desenho hoje, o que é estado e não plano.
+
+  Duas questões que já constavam como resolvidas dentro da própria tabela não geraram issue: elas eram histórico, e histórico pertence ao `CHANGELOG.md`. Riscos cuja resposta já está implementada também não geraram issue, porque a resposta deles já está descrita nas seções técnicas dos documentos.
+
 ## [0.3.0] - 2026-08-29
 
 A versão que faz a 0.2.0 aguentar o uso. Nenhum bounded context novo, nenhuma tool nova: o produto inteiro já existia, e o que faltava era ele funcionar na tela em que está sendo lido, contar o que promete contar e mostrar o vault como o vault se escreve.

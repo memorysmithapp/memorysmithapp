@@ -22,9 +22,7 @@ Para fatos gerais do domínio (Markdown, MCP, auditoria, LGPD), ver [`knowledge-
 12. [Domínio: Portability](#12-domínio-portability)
 13. [Interface da aplicação](#13-interface-da-aplicação)
 14. [Limites do produto](#14-limites-do-produto)
-15. [Recorte de versão](#15-recorte-de-versão)
-16. [Riscos de produto](#16-riscos-de-produto)
-17. [Questões em aberto](#17-questões-em-aberto)
+15. [Onde vivem o recorte de versão, os riscos e as questões em aberto](#15-onde-vivem-o-recorte-de-versão-os-riscos-e-as-questões-em-aberto)
 
 ---
 
@@ -817,79 +815,19 @@ Metas de desempenho estão em `architecture-guide.md` §15.
 
 ---
 
-## 15. Recorte de versão
+## 15. Onde vivem o recorte de versão, os riscos e as questões em aberto
 
-### 15.1 Escopo da 0.1.0
+Este documento descreve o que o produto **faz**, e não o que ele vai fazer. Recorte de
+versão, ordem de entrega, risco ainda não endereçado e questão não decidida descrevem
+futuro, e por isso saíram daqui:
 
-Este documento descreve o produto; a 0.1.0 é o recorte que **testa a tese** (§1.4) e nada além dela: um vault escrito por um agente e lido por um agente, com o passado registrado desde o primeiro dia.
-
-| Dentro | Fora |
+| O que você procura | Onde está |
 |---|---|
-| Autenticação do conector MCP, bloqueante | Discovery inteiro: grafo, busca semântica e facetas (§10) |
-| Vault, pastas, ordem, guidance, template, nota | Export (§12) |
-| Onboarding de assinatura, aprovação pelo `PLATFORM_ADMIN`, autorização | Mover nota entre vaults |
-| Auditoria: trilha, `note_history`, `read_note(asOf)` | Convites, `EDITOR`/`VIEWER` e teto por vault (§5.3) |
-| MCP com 8 tools: `whoami`, `list_vaults`, `get_vault_context`, `get_template`, `list_notes`, `read_note`, `create_note`, `update_note` | `search_notes`, `semantic_search`, `related_notes`, `backlinks` |
-| UI de autoria: vault, pastas, guidance, template, nota | Retenção legal e expurgo · telas de saúde, atividade e membros |
-| Área de plataforma: fila de assinaturas, aprovar e rejeitar | Suspensão, reativação e transferência de titularidade |
+| Recorte de versão, ordem de entrega, versão alvo | O Project do repositório |
+| Riscos de produto | Issues com a label `risco` |
+| Questões de produto ainda não decididas | Issues com a label `questao` |
+| Riscos técnicos | Issues com a label `risco-tecnico` |
+| O que já foi entregue, e quando | `CHANGELOG.md` e os GitHub Releases |
 
-Três inclusões que parecem contradizer o recorte, e não contradizem:
-
-- **A auditoria entra.** É contexto "supporting", mas evento não gravado no dia 1 é passado que não se recupera depois. Registrar é barato; retroagir é impossível.
-- **A UI de autoria entra.** Sem Guidance e Template escritos por um humano, não existe nada para o agente ler, e a tese não é testável. É o menor pedaço de UI que fecha o ciclo.
-- **A aprovação de assinatura entra.** Sem billing, ela é o único portão de entrada: sem ela ninguém acessa nada, e a 0.1.0 não teria como ser usada por um primeiro cliente real. O que fica de fora é o resto do ciclo de vida, ou seja suspender, reativar e transferir.
-
-**O que a 0.1.0 assume, e que precisa estar declarado:** a assinatura tem um `OWNER` e nenhum outro membro. A colaboração inteira, com convites, `EDITOR`, `VIEWER` e teto por vault, chega na 0.2.0 (§15.2). O modelo de papéis já existe no domínio desde a primeira linha (PP8); o que não existia na 0.1.0 é a superfície que o exercita.
-
-### 15.2 Depois da 0.1.0
-
-A 0.2.0 fecha o produto descrito neste documento: os seis bounded contexts, a infraestrutura inteira e a interface ligada à API real. Ela entrega, além do recorte da 0.1.0, o Discovery completo (grafo de links, busca literal no texto com linguagem de consulta e facetas de curadoria), as quatro tools de descoberta, a colaboração (convites, `EDITOR`, `VIEWER` e teto de papel por vault), o ciclo de vida completo da assinatura (suspender, reativar, cancelar e transferir titularidade), mover nota entre vaults e a portabilidade.
-
-| Versão | Tema |
-|---|---|
-| 0.2.0 | O produto completo: Discovery, colaboração, ciclo de vida da assinatura, portabilidade e a interface sobre a API real |
-| 0.3.0 | Endurecimento: a interface na tela em que está sendo lida, o grafo como ferramenta de exploração, a quota aplicada e a superfície de leitura fiel ao vault |
-| 0.4.0 | Conformidade: retenção legal, expurgo e relatórios de saúde |
-
-O que fica declaradamente fora da 0.2.0 e da 0.3.0 é a conformidade formal, ou seja a retenção legal (RN-AUD-008), o expurgo de conteúdo (RN-AUD-007) e os relatórios que os sustentam. Os três são atos administrativos com porta própria e evento próprio, e nenhum deles é pré-requisito de nada que já existe: adiar não cobra juros, porque a trilha que eles governam já está sendo escrita desde o primeiro dia.
-
-A ordem técnica de construção, com critérios de pronto, está em `architecture-guide.md` §25.
-
----
-
-## 16. Riscos de produto
-
-| Risco | Impacto | Resposta |
-|---|---|---|
-| Conectar o vault ao cliente de IA ser penoso | **Alto, mata a tese** | É a primeira coisa a ser provada, antes de qualquer outra: se a conexão não for fluida, o produto não se sustenta |
-| Vazamento entre assinaturas | **Alto** | Assinatura na chave de todo dado, tipo obrigatório no código e teste de isolamento na suíte |
-| Guidance e Template fracos degradarem a base sem ninguém perceber | **Alto** | A UI de autoria orienta as seções esperadas; a descrição de pasta é obrigatória; o relatório de saúde expõe o apodrecimento |
-| Dois agentes sobrescreverem a mesma nota | Médio | `baseRevision` obrigatório; conflito devolve o conteúdo atual (RN-AGT-005) |
-| Retry de transporte duplicar nota na ingestão | Médio | Slug único no vault faz a idempotência; `ALREADY_EXISTS` devolve o identificador existente, nunca gera sufixo (RN-AGT-004) |
-| Busca devolver plausível-porém-errado | Médio | Sempre citar a nota de origem; o agente decide com a fonte à vista (RN-DSC-010) |
-| Busca literal não achar a nota que fala do assunto com outras palavras | Médio | Risco assumido na 0.2.0 (§10.2): a busca acha o que está escrito, e quem procura por assunto usa o grafo e as facetas. É o que o MVP vai medir com um vault real |
-| Apagar nota destruir o histórico prometido | **Alto** | Soft delete; destruição de bytes fora do domínio, como ato administrativo com evento (RN-AUD-007) |
-| Usuário em duas assinaturas agir na assinatura errada | **Alto** | Assinatura ativa explícita; conector fixa a assinatura no consentimento (RN-SUB-014) |
-| Cancelamento virar perda ou migração de dados | **Alto** | `SubscriptionId` perpétuo: status controla acesso, nunca endereço (RN-SUB-005). Reativar é mudar um campo |
-| `PLATFORM_ADMIN` alcançar conteúdo de cliente | **Alto** | Sessão de plataforma não carrega assinatura ativa, então não há chave que ela consiga montar (RN-SUB-016); teste na suíte |
-| Aprovação manual virar gargalo de entrada | Médio | Fila visível com data de solicitação; enquanto não há billing, é o custo aceito da decisão de adiar cobrança |
-| `OWNER` indisponível travar a assinatura | Médio | Transferência de titularidade é operação de primeira classe (RN-ACC-002). O caso de indisponibilidade total segue em aberto (Q3) |
-| Grafo explodir em vault denso | Médio | Teto de profundidade e de nós na travessia (RN-DSC-007) |
-| Base crescer além dos limites declarados | Médio | Limites em §14 viram teste e aviso na UI; `get_vault_context` trunca com aviso |
-
-Riscos técnicos e de infraestrutura estão em `architecture-guide.md` §19.
-
----
-
-## 17. Questões em aberto
-
-Registradas aqui em vez de decididas por omissão. Cada uma vira uma decisão datada quando for resolvida.
-
-| # | Questão | Por que ainda não foi decidida |
-|---|---|---|
-| Q1 | **Cobrança** | A quota passou a ser aplicada na 0.3.0 (RN-SUB-021), então o que resta aberto é só a cobrança: não há definição comercial de preço por plano, nem de que caminho a pessoa segue para subir de quota sem passar por um `PLATFORM_ADMIN` |
-| Q2 | **Identidade visual:** cor primária, logotipo, tom | **Resolvida.** Sistema de marca definido no caderno "Livro da marca v1" (Figma): paleta, tipografia, símbolo e regras de uso registrados em `CLAUDE.md` § Identidade visual |
-| Q3 | **Continuidade quando o `OWNER` some** | A transferência exige o próprio `OWNER` (RN-ACC-002). Se ele fica indisponível, hoje só o `PLATFORM_ADMIN` resolveria, e o fluxo não está desenhado |
-| Q4 | **Vault público ou compartilhável por link** | Não está no escopo; entraria como um quarto papel, o que exige revisitar a matriz de §5.2 |
-| Q5 | **Anexos não-Markdown (imagens, PDFs)** | Contradiz PP1 na forma atual. Se entrar, entra como Content Slot de outro tipo, sem virar exceção no modelo |
-| Q6 | **Painel de curadoria e a interpretação de convenções de frontmatter** | **Resolvida.** O painel é a projeção de facetas do Discovery (§10.3, RN-DSC-017 a RN-DSC-024): `maturity` e `reviewed` viram convenção de produto; os demais atributos, definidos pelo Guidance de cada vault, são descobertos pela forma do valor (data, booleano, valor enumerável, lista), com texto livre descartado; e quem lê o frontmatter é o projetor, nunca o core |
+A regra que motiva a separação, e o ciclo que leva uma necessidade da issue até este
+documento, estão em `development-process.md`.
