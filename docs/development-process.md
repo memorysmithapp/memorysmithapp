@@ -266,14 +266,48 @@ construção.
 
 ## 8. Pull request
 
-Toda descrição de PR tem duas seções obrigatórias, **Resumo das mudanças** e **Análise de
-produtividade com IA**, com o formato e o modo de preencher cada campo definidos em
-`CLAUDE.md`.
+Toda descrição de PR tem duas seções obrigatórias: um **Resumo das mudanças** e uma
+**Análise de produtividade com IA**.
 
 No resumo, toda mudança que implementa ou altera uma regra de negócio cita o código
 `RN-XXX` dela, e toda mudança originada de feedback referencia a issue que a originou, com
 `Closes #N`. Essa referência é o que permite, meses depois, responder por que uma regra
 existe apontando para a frase de uma pessoa real que sentiu o atrito.
+
+### 8.1 Análise de produtividade com IA
+
+Acrescente esta seção ao corpo de todo PR. Colete os dados do histórico do git e do diff, sem adivinhar e sem omitir campos.
+
+```
+## Análise de produtividade com IA
+
+| Métrica | Valor |
+|---|---|
+| Linhas de código manipuladas (adicionadas + removidas) | {loc_added + loc_removed} ({loc_added} adicionadas, {loc_removed} removidas) |
+| Duração da branch | {duration} (de `{branch_start_date}` a `{pr_date}`) |
+| Tecnologias envolvidas | {lista separada por vírgula} |
+
+### Esforço humano estimado (sem assistência de IA)
+
+> **Esforço estimado:** {hours}h, equivalente a aproximadamente {total_days} dias de trabalho (8h/dia) ou {total_weeks} semanas de trabalho (40h/semana).
+```
+
+**Como preencher cada campo:**
+
+- **Linhas de código manipuladas:** rode `git diff --stat origin/main...HEAD` e some as inserções e remoções da linha final de totais. Exclua da contagem os arquivos de lock (`pnpm-lock.yaml`, `package-lock.json`).
+- **Duração da branch:** use a data do primeiro commit da branch como início, e a data de hoje como data do PR.
+- **Tecnologias envolvidas:** liste toda linguagem, framework, biblioteca e ferramenta tocada pelo diff, por exemplo TypeScript, Node.js, AWS CDK, DynamoDB, S3, Bedrock, React, Vite, Hono, Zod. Derive das extensões dos arquivos alterados e dos imports, e não liste tecnologias que existem no repositório mas não foram tocadas por este PR.
+- **Esforço humano estimado:** produza uma estimativa realista única de quanto tempo uma pessoa engenheira levaria para entregar o mesmo resultado sozinha, sem assistência de IA. Baseie a estimativa em:
+  - **Volume:** total de linhas manipuladas (adicionadas + removidas), ponderado por complexidade, distinguindo código repetitivo de código com lógica densa.
+  - **Amplitude:** número de tecnologias distintas envolvidas, já que cada tecnologia adicional acrescenta curva de aprendizado e custo de integração.
+  - **Indicadores de escopo:** número de agregados, portas, adaptadores, rotas de API, ferramentas MCP e stacks de CDK novos, além da cobertura de testes acrescentada.
+  - Expresse o resultado em horas, por exemplo `8h` ou `2h`. Se o escopo for muito pequeno (menos de 1h), use `< 1h`.
+- **Esforço total estimado:** use o valor único de horas acima. Em seguida calcule:
+  - `{total_days}` = `{hours}` ÷ 8, arredondado para uma casa decimal
+  - `{total_weeks}` = `{hours}` ÷ 40, arredondado para uma casa decimal
+  - Se a estimativa for `< 1h`, trate como `0.5h` para efeito de conta e registre a aproximação na própria linha.
+
+### 8.2 Merge bloqueado
 
 **Se um merge estiver bloqueado, pare e reporte.** Não se contorna a proteção de branch,
 mesmo tendo direito administrativo para isso: a regra de proteção é a camada real de
@@ -283,11 +317,39 @@ garantia, e contorná-la em silêncio anula o motivo de ela existir.
 
 ## 9. Release
 
-O fluxo completo de nove passos, da propagação da versão até a publicação do GitHub
-Release, está em `CLAUDE.md` § Política de versionamento, e a estratégia em três camadas
-está em `architecture-guide.md` § Estratégia de versionamento.
+A versão canônica do produto vive no `CLAUDE.md`, em § Identidade do projeto → Versão
+base, e precisa ser propagada para todo `package.json` do monorepo e para o
+`CHANGELOG.md` antes do commit de release. Quando incrementar, e a estratégia de
+versionamento em três camadas, estão em `CLAUDE.md` § Política de versionamento e em
+`architecture-guide.md` § Estratégia de versionamento.
 
-Dois pontos que pertencem ao processo e não à política:
+### 9.1 Fluxo de incremento de versão
+
+### Fluxo de incremento de versão
+
+Execute nesta ordem exata:
+
+```
+1. Update  CLAUDE.md                                       ← bump "Versão base" under Identidade do projeto
+2. Update  memorysmith-backend/package.json
+           memorysmith-backend/packages/*/package.json
+           memorysmith-backend/services/*/package.json     ← every service package
+3. Update  memorysmith-frontend/package.json
+4. Update  memorysmith-infra/package.json
+5. Update  CHANGELOG.md                                    ← cut the release section with date and summary
+6. Commit on a release branch  "chore(release): bump version to vX.Y.Z"
+7. Push the branch, open a PR, and merge it into main (never push the bump directly to main)
+8. Tag the merged commit on main  git tag vX.Y.Z && git push origin vX.Y.Z
+9. Publish a GitHub Release for the tag, with notes copied from that version's CHANGELOG section
+   gh release create vX.Y.Z --title "vX.Y.Z" --notes-file <changelog-section>
+```
+
+Os três projetos compartilham uma única versão de produto, porque são implantados juntos e uma divergência entre eles nunca significa nada para o usuário.
+
+Os passos 1 a 5 precisam entrar no mesmo commit da branch de release. O incremento de versão chega à `main` somente pelo PR do passo 7, e nunca por push direto. Nunca marque a tag antes do PR estar mesclado e nunca envie uma tag cujo commit ainda não esteja na `main`. A tag precisa apontar para o commit mesclado, e o GitHub Release do passo 9 é criado a partir dessa tag.
+
+### 9.2 Dois pontos que pertencem ao processo
+
 
 - **A branch de um ciclo é `release/vX.Y.Z`**, e o commit de incremento de versão entra
   nela, não em uma branch separada.
