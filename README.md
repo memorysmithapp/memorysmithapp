@@ -485,6 +485,20 @@ Sem `VITE_API_ORIGIN` a aplicação recusa subir e diz o porquê. Ela já teve u
 | `503 Service Unavailable` intermitente nas primeiras chamadas | Conta nova costuma vir com 10 execuções simultâneas de Lambda. Peça aumento de quota à AWS |
 | `This CDK CLI is not compatible...` | Algum `cdk` global antigo no PATH. Os scripts sempre usam o CLI fixado no projeto |
 
+## Como reportar um problema, ou pedir alguma coisa
+
+Se a tabela acima não resolveu, ou se você usou o produto e ele deixou a desejar em algum ponto, abra uma issue. **Não é preciso saber qual é a solução**, e nem descrever o que deveria ser construído: o mais útil que você pode contar é o que estava tentando fazer, o que aconteceu, e o que esperava que acontecesse.
+
+| Situação | Onde |
+| --- | --- |
+| Alguma coisa custou caro, confundiu ou faltou | [Abrir uma issue de feedback](https://github.com/memorysmithapp/memorysmithapp/issues/new?template=01-feedback.yml) |
+| Você viu dado de outra conta, ou algo que pareça falha de segurança | [Canal privado](https://github.com/memorysmithapp/memorysmithapp/security/advisories/new), nunca uma issue pública. Ver [`SECURITY.md`](SECURITY.md) |
+| Dúvida sobre instalação ou uso | [Abrir uma issue de feedback](https://github.com/memorysmithapp/memorysmithapp/issues/new?template=01-feedback.yml), marcando que é dúvida |
+
+**Este repositório é público.** Ao reportar, não cole conteúdo real das suas notas, nomes de cliente ou dados de negócio. Descreva a situação com exemplos inventados, ou mande identificadores (`vaultId`, `noteId`) no lugar do texto; funciona igual para quem vai ler.
+
+O que acontece com a sua issue depois de aberta, incluindo como ela é triada e por que às vezes a resposta é uma recusa registrada em vez de uma entrega, está em [`docs/development-process.md`](docs/development-process.md).
+
 ## Onde está o quê
 
 ```
@@ -501,5 +515,7 @@ core/
 | [`docs/software-vision.md`](docs/software-vision.md) | O que o produto faz e sob qual regra: visão, linguagem ubíqua, papéis, entidades, regras de negócio, catálogo MCP e telas |
 | [`docs/architecture-guide.md`](docs/architecture-guide.md) | Como ele é construído: DDD tático, hexagonal, single-table no DynamoDB, outbox, MCP e OAuth, infraestrutura e testes |
 | [`docs/knowledge-base.md`](docs/knowledge-base.md) | O domínio em que ele opera: Markdown, gestão de conhecimento, MCP, recuperação, auditoria e LGPD |
+| [`docs/development-process.md`](docs/development-process.md) | Como o trabalho flui: da issue de quem usa até o merge, com triagem, roadmap e o que cada commit precisa tocar |
 | [`CLAUDE.md`](CLAUDE.md) | As regras de trabalho do repositório, incluindo as treze decisões de desenho inegociáveis |
+| [`SECURITY.md`](SECURITY.md) | Como reportar uma falha de isolamento ou vulnerabilidade, em privado |
 | [`CHANGELOG.md`](CHANGELOG.md) | O que mudou em cada versão |
