@@ -1,6 +1,6 @@
 # MemorySmith.app
 
-> **Structured knowledge, natively readable and writable by agents.**
+> **Structured knowledge, natively readable and writable by humans and agents.**
 
 O MemorySmith.app hospeda cofres de conhecimento em **Markdown que se autodescrevem** e os serve nativamente às ferramentas de IA por um **MCP server remoto**. O agente não apenas lê um vault: ele escreve nele, obedecendo à Orientação do próprio vault e ao Modelo de cada pasta.
 

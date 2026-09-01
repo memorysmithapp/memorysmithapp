@@ -21,7 +21,7 @@ memorysmith.app
 O MemorySmith.app hospeda vaults de conhecimento em Markdown que se autodescrevem, com estrutura, ordenação e Guidance de autoria declarados como dado, e os serve nativamente às ferramentas de IA por meio de um MCP server remoto. O agente não apenas lê um vault: ele escreve nele, obedecendo ao Guidance do próprio vault e aos Templates de cada pasta.
 
 ### Slogan
-Structured knowledge, natively readable and writable by agents.
+Structured knowledge, natively readable and writable by humans and agents.
 
 ### Identidade visual
 Definida no caderno de marca "Livro da marca v1" (Figma). O símbolo é um grafo que forma um cérebro: cada círculo é uma nota, cada haste é uma ligação. Nunca redesenhar o símbolo nem criar combinações de cor fora das quatro versões do caderno.

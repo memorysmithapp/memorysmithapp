@@ -76,47 +76,56 @@ A esses três se soma o que a pasta local nunca teve e que os movimentos de cura
 
 **Cofres de conhecimento em Markdown, com estrutura declarada, acessíveis nativamente pelas ferramentas de IA.**
 
-O MemorySmith.app é o backend remoto do fluxo que já funciona. Mantém o formato (Markdown puro), mantém a prática (orientação na raiz, molde por pasta) e resolve os três pontos de quebra, acrescentando o que a pasta local não tem: acesso remoto autenticado, colaboração com papéis, histórico defensável e descoberta por grafo e por significado.
+O MemorySmith.app é a infraestrutura remota de conhecimento que sustenta a persistência de contexto: Vaults em Markdown puro, com estrutura declarada, operáveis nativamente por agentes de IA e por pessoas. Ele é o backend remoto do fluxo que já funciona, porque mantém o formato (Markdown puro), mantém a prática (Guidance na raiz, Template por pasta) e resolve os três pontos em que a pasta local trava, acrescentando as quatro capacidades que nenhum arranjo improvisado tem:
 
-Sobre a fragmentação por fornecedor ele age pelo protocolo, não pela adesão: o vault é servido por um MCP server remoto, e MCP é padrão aberto falado por clientes de fabricantes diferentes (`knowledge-base.md` §3.5). Cada pessoa continua na plataforma de IA que prefere, e todas alcançam o mesmo vault, com o mesmo conteúdo e sob o mesmo papel.
+- **Acesso remoto autenticado.** Um mesmo vault alcançado por vários clientes e agentes, sob identidade verificada (§4).
+- **Colaboração com papéis.** Permissão por papel na assinatura e teto de papel por vault, valendo igual para pessoas e para agentes (§5).
+- **Histórico auditável e imutável.** Cada mudança rastreável até quem a escreveu, com qual agente e o que a nota dizia antes (§11).
+- **Descoberta relacional e por curadoria.** Grafo de links sobre notas atômicas, busca no texto do vault e facetas que mostram a distribuição do conteúdo (§10).
 
-O nome diz o resto. Uma forja não guarda metal, ela o trabalha: o material entra bruto e sai peça, batido e conferido enquanto está quente. É esse o papel do produto sobre a memória do time, que é forjada durante o trabalho, por pessoas e agentes sobre o mesmo material, e não transcrita depois que o trabalho acabou.
+#### Interoperabilidade por protocolo
+
+Contra a fragmentação por fornecedor o produto age na camada de protocolo, e não pela adesão a uma ferramenta proprietária: o vault é servido por um MCP server remoto, e MCP é padrão aberto falado por clientes de fabricantes diferentes (`knowledge-base.md` §3.5). Cada pessoa continua na plataforma de IA que prefere, e todas alcançam o mesmo vault, com o mesmo conteúdo, sob o mesmo papel e na mesma versão da verdade.
+
+#### O conceito
+
+O nome diz o resto. Uma forja não guarda metal, ela o trabalha: o material bruto, que aqui são dados, normas e decisões, entra e sai peça, batido e conferido enquanto está quente. É esse o papel do produto sobre a memória do time, que é forjada durante o trabalho, por pessoas e agentes sobre o mesmo material, e não transcrita depois que o trabalho acabou.
 
 ### 1.3 O ciclo de uso
 
-O agente não só lê o vault, ele o **alimenta**. Os três movimentos de §1.1 aparecem aqui como o caso concreto que o produto serve:
+O agente atua nos dois sentidos: lê o vault e o **alimenta**. Os três movimentos de §1.1 aparecem aqui como o caso concreto que o produto serve:
 
-1. **Ingestão.** O agente lê um corpo de material, como normas, legislação, documentação ou pesquisa, e escreve esse conhecimento como notas no vault, obedecendo ao Guidance (o que este vault é), à estrutura de pastas (onde cada coisa vai) e ao Template da pasta (como a nota se estrutura). Cada escrita registra quem a fez, com qual agente e o que a nota dizia antes (§11).
-2. **Curadoria.** Pessoas leem, corrigem e organizam o que entrou, na mesma superfície: editam a nota e a estrutura, marcam maturidade e revisão humana, acompanham a distribuição do vault pelo painel de curadoria (§10.3) e caçam link quebrado e nota órfã na tela de saúde (§13.1).
-3. **Consumo.** Depois, outro trabalho, como uma auditoria, um relatório ou um parecer, usa o mesmo vault como base de conhecimento estruturada.
+1. **Ingestão.** O agente lê um corpo de material bruto, como normas, legislação, documentação técnica ou pesquisa, e o converte em notas granulares dentro do vault, obedecendo ao Guidance (o que este vault é), à estrutura de pastas (onde cada coisa vai) e ao Template da pasta (como a nota se estrutura). Cada escrita registra quem a fez, com qual agente e o que a nota dizia antes (§11).
+2. **Curadoria.** Pessoas revisam, corrigem e organizam o que entrou, na mesma superfície de trabalho: editam a nota e a estrutura, marcam maturidade e revisão humana, acompanham a distribuição do vault pelo painel de curadoria (§10.3) e caçam link quebrado e nota órfã na tela de saúde (§13.1).
+3. **Consumo.** Depois, em outro momento do projeto, como uma auditoria, um parecer ou um relatório, agentes e pessoas usam o mesmo vault como fonte única da verdade para fundamentar o que entregam.
 
-Três consequências atravessam o produto inteiro:
+**Três princípios que o ciclo impõe ao produto inteiro:**
 
-- **A escrita via MCP é o caminho de ingestão.** Quem popula o vault é o agente, por construção. Escrita não é funcionalidade secundária da API interna.
-- **Guidance, estrutura e template são instruções executáveis, não documentação** (`knowledge-base.md` §4.2). São o que faz o agente escrever a nota certa, na pasta certa, no formato certo. Um Guidance fraco ou uma descrição de pasta vaga degrada a qualidade do que entra, e o efeito só aparece depois, no consumo.
-- **O domínio é regulado.** O vault sustenta trabalho de auditoria, então proveniência e histórico são parte do produto (§11), não conformidade posterior.
+- **A escrita via protocolo é o caminho primário de ingestão.** Quem popula o vault é o agente, por construção. Escrita não é funcionalidade secundária exposta pela API interna.
+- **Guidance, estrutura de pastas e Template são instruções executáveis, não documentação** (`knowledge-base.md` §4.2). São o que faz o agente escrever a nota certa, na pasta certa, no formato certo. Um Guidance fraco ou uma descrição de pasta vaga degrada a qualidade do que entra, e o efeito só aparece depois, no consumo.
+- **Governança e proveniência são de projeto.** O vault sustenta trabalho regulado e auditável, então autoria e rastreabilidade temporal são premissa do sistema (§11), e não conformidade acrescentada depois.
 
 ### 1.4 A tese, em uma frase
 
-O produto não é guardar `.md`, é **entregar contexto estruturado ao agente sem atrito**. Se ler um vault hospedado for mais trabalhoso que ler uma pasta local, o produto perdeu. Por isso o MCP não é acessório: é a interface principal, e a API interna existe para servir a UI.
+O produto não é guardar `.md`, é **entregar contexto estruturado ao agente sem atrito**. Se consultar um vault hospedado custar mais esforço que ler uma pasta local, a proposta de valor está comprometida. Por isso o MCP não é acessório: é a camada primária de integração, e a API interna existe para servir a interface.
 
-O outro lado da mesma tese é a leitura humana. Uma base que a pessoa não consegue ler e corrigir deixa de ser curada, e uma base que ninguém cura deixa de servir como fonte da verdade para o agente (§13).
+O pilar complementar da mesma tese é a leitura e a curadoria humanas. Uma base que a pessoa não consegue navegar e validar deixa de ser curada, e uma base sem curadoria perde a capacidade de servir como fonte confiável ao agente (§13).
 
 ### 1.5 Proposta de valor
 
-| Para quem | Dor | O que o produto entrega |
+| Público-alvo | A dor central | O que o produto entrega |
 |---|---|---|
-| Quem trabalha com agente sobre um corpo de conhecimento | A pasta local não sai da máquina | Vault remoto, conectado nativamente ao cliente de IA |
-| Time que trabalha com agentes todo dia | Cada sessão do agente recomeça do zero, e o contexto é redescrito à mão | Memória comum entre pessoas e agentes, escrita durante o trabalho e lida a cada tarefa |
-| Time em que cada um usa a plataforma de IA que prefere | O que uma plataforma lembra não serve à outra, nem a mais ninguém | Um MCP server remoto: o mesmo vault, com o mesmo papel, em qualquer cliente que fale o protocolo |
-| Times que compartilham uma base | Sincronizar arquivos não resolve edição concorrente | Assinatura com papéis e escrita com detecção de conflito |
-| Trabalho regulado (auditoria, jurídico, compliance) | O parecer emitido não pode ser demonstrado com a base de ontem | Histórico por revisão, autoria de humano e agente, trilha imutável |
-| Quem tem muitos assuntos | Pastas soltas, sem catálogo | Lista de vaults com descrição, cada um autônomo |
-| Quem teme lock-in | Base é ativo de longo prazo | Export de `.md` puros, sem formato proprietário |
+| Quem trabalha com agente sobre um corpo de conhecimento | Os arranjos improvisados são estáticos, isolados ou caros de consultar | Vault remoto em Markdown puro, conectado nativamente ao cliente de IA |
+| Time que trabalha com agentes todo dia | A cada nova sessão o contexto precisa ser reconstruído à mão | Memória comum entre pessoas e agentes, escrita durante o trabalho e lida a cada tarefa |
+| Time em que cada um usa a plataforma de IA que prefere | O silo por fornecedor impede compartilhar o contexto | Um MCP server remoto: o mesmo vault, com o mesmo papel, em qualquer cliente que fale o protocolo |
+| Times que compartilham uma base | Sincronizar arquivos não resolve edição concorrente nem controle de acesso | Assinatura com papéis e escrita com detecção de conflito |
+| Trabalho regulado (auditoria, jurídico, compliance) | Não se demonstra quais premissas fundamentaram um parecer passado | Histórico por revisão, autoria de humano e de agente, trilha imutável |
+| Quem tem muitos assuntos | Pastas soltas, sem catálogo | Catálogo de vaults com descrição, cada um autônomo |
+| Quem teme lock-in | A base é ativo de longo prazo, e formato proprietário a prende | Export de `.md` puros, sem formato proprietário |
 
 ### 1.6 Slogan
 
-**Structured knowledge, natively readable and writable by agents.**
+**Structured knowledge, natively readable and writable by humans and agents.**
 
 ---
 
