@@ -45,7 +45,7 @@ github.com/memorysmithapp/memorysmithapp
 Um monorepo pnpm com **três projetos de primeiro nível**, nomeados a partir do identificador do projeto. Estrutura completa e justificativa em `docs/architecture-guide.md` §5.
 
 ```
-core/
+memorysmithapp/
 ├── memorysmith-backend/     # six bounded contexts + shared kernel + event contracts
 │   ├── packages/            # kernel and contracts
 │   ├── services/            # access, knowledge, discovery, audit, agent, portability
