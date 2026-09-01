@@ -169,23 +169,23 @@ Formatação de data e número é comportamento de runtime, conduzido pelas APIs
 
 ## Regras de desenho inegociáveis
 
-Estas são as decisões estruturais do sistema. Elas estão declaradas por extenso em `docs/architecture-guide.md` e são repetidas aqui porque violar qualquer uma delas não é um defeito para corrigir depois: é uma reescrita. Quando uma tarefa parecer exigir quebrar uma delas, pare e levante a questão em vez de contornar.
+Estas são as decisões estruturais do sistema, e violar qualquer uma não é um defeito para corrigir depois: é uma reescrita. Ficam aqui como enunciado, porque o agente precisa delas antes de escrever a primeira linha. O texto completo, com o mecanismo que garante cada uma, está na seção indicada do [`docs/architecture-guide.md`](docs/architecture-guide.md), e este arquivo não o repete. Quando uma tarefa parecer exigir quebrar uma delas, pare e levante a questão em vez de contornar.
 
-| # | Regra | Onde é garantida |
+| # | Regra | Por extenso em |
 |---|---|---|
-| 1 | **Toda chave começa pela assinatura.** Toda chave de item do DynamoDB começa por `S#{subscriptionId}` e toda chave de S3 por `s/{subscriptionId}/`. Existem exatamente duas exceções, ambas nomeadas no desenho: o elo usuário↔assinatura e o índice da fila de plataforma. | Os construtores de chave aceitam apenas um value object `SubscriptionId` |
-| 2 | **O `subscriptionId` vem da claim do JWT, nunca da requisição.** Não vem de path, query, body nem header. | Lambda Authorizer e `SubscriptionContext` injetado por requisição |
-| 3 | **`domain/` e `application/` não importam o AWS SDK.** Sem exceção, incluindo "só para pegar um tipo". | Regra do `dependency-cruiser` em CI, que quebra o build |
-| 4 | **A chave do S3 é opaca.** Ela não codifica vault, pasta, nome nem papel, apenas um `ContentId`. Renomear, mover e reordenar jamais podem escrever um byte no S3. | `s/{subscriptionId}/c/{contentId}.md` é construída apenas dentro do adaptador de S3 |
-| 5 | **O backend nunca interpreta o conteúdo da nota.** Frontmatter, nomes de campo e convenções pertencem ao Guidance e ao Template do vault. O backend lê apenas sintaxe universal de Markdown (links, headings). | `LinkExtractor` e `FacetExtractor`, ambos em projeções do Discovery, são os únicos leitores de conteúdo; o core não lê conteúdo |
-| 6 | **A trilha de auditoria é append-only por IAM, não por disciplina.** O papel de auditoria carrega um `Deny` explícito em `UpdateItem` e `DeleteItem`. | Política de IAM e um teste de isolamento na suíte |
-| 7 | **Toda operação de domínio que muda estado recebe um `Authorship`.** Não existe mutação anônima; a assinatura do método a torna impossível. | Assinaturas dos métodos de agregado |
-| 8 | **Apagar uma nota nunca destrói bytes.** Apenas soft delete; destruir bytes é ato administrativo com porta própria, papel próprio e evento próprio. | `ContentStore` não tem método `purge` |
-| 9 | **Um recurso proibido devolve `404`, nunca `403`.** O `403` confirmaria a existência de algo que o solicitante não pode ver. | Taxonomia de erros em `memorysmith-backend/packages/kernel` |
-| 10 | **A transação de uma nota nunca escreve no item `META` do vault.** Esse item único viraria o ponto de contenção do vault inteiro sob ingestão em lote. | Formato da transação no repositório e um teste de concorrência |
-| 11 | **O identificador da assinatura é perpétuo.** Nenhuma transição de status, seja aprovar, suspender, cancelar ou reativar, move, rechaveia ou apaga dado. O status governa acesso, nunca endereço. | `SubscriptionId` é `readonly` e nenhum repositório lê status para construir chave |
-| 12 | **Uma sessão de administrador de plataforma não carrega assinatura.** Seu token não tem a claim `subscription_id`, então nenhum repositório de Knowledge pode sequer ser construído sob ela. Nunca acrescente uma checagem de papel como substituto: a impossibilidade é a garantia. | `SubscriptionContext` exige a claim, e um teste de isolamento verifica o modo de falha |
-| 13 | **O teto de papel por vault só rebaixa um papel, nunca eleva.** O papel efetivo é `min(papel de assinatura, teto do vault)`, com o owner da assinatura acima dos dois. | `Role` é um enum ordenado que expõe `Role.min`, e nenhum caminho de código atribui papel diretamente |
+| 1 | **Toda chave começa pela assinatura**, `S#{subscriptionId}` no DynamoDB e `s/{subscriptionId}/` no S3. As duas únicas exceções estão nomeadas no desenho, e não existe uma terceira | §8.2, §8.3 |
+| 2 | **O `subscriptionId` vem da claim do JWT, nunca da requisição**, e portanto nunca de path, query, body ou header | §8.2, §8.5 |
+| 3 | **`domain/` e `application/` não importam o AWS SDK**, sem exceção, incluindo "só para pegar um tipo" | §5.5 |
+| 4 | **A chave do S3 é opaca**: apenas um `ContentId`, jamais vault, pasta, nome ou papel. Renomear, mover e reordenar nunca escrevem um byte no S3 | §9.2 |
+| 5 | **O backend nunca interpreta o conteúdo da nota.** Frontmatter e convenção pertencem ao Guidance e ao Template. O backend lê só sintaxe universal de Markdown, e apenas nos dois extratores sancionados do Discovery | §11.1 e §11.3; PP4 em `software-vision.md` §2 |
+| 6 | **A trilha de auditoria é append-only por IAM, não por disciplina** | §12.2 |
+| 7 | **Toda operação de domínio que muda estado recebe um `Authorship`.** Não existe mutação anônima | §12.1 |
+| 8 | **Apagar uma nota nunca destrói bytes.** Destruir bytes é ato administrativo, com porta, papel e evento próprios | §12.4 |
+| 9 | **Um recurso proibido devolve `404`, nunca `403`**, porque o `403` confirmaria a existência de algo que o solicitante não pode ver | §15 |
+| 10 | **A transação de uma nota nunca escreve no item `META` do vault**, que viraria o ponto de contenção do vault inteiro sob ingestão em lote | §10.2 |
+| 11 | **O identificador da assinatura é perpétuo.** Nenhuma transição de status move, rechaveia ou apaga dado: o status governa acesso, nunca endereço | §8.1 |
+| 12 | **Uma sessão de administrador de plataforma não carrega assinatura**, e por isso nenhum repositório de Knowledge pode sequer ser construído sob ela. Nunca substitua isso por uma checagem de papel: a impossibilidade é a garantia | §8.4 |
+| 13 | **O teto de papel por vault só rebaixa um papel, nunca eleva.** O papel efetivo é `min(papel de assinatura, teto do vault)`, com o owner da assinatura acima dos dois | `software-vision.md` §5.3 |
 
 ---
 
