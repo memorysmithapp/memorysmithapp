@@ -235,23 +235,13 @@ A `main` é protegida. **Toda mudança chega a ela apenas por pull request revis
 
 ### Nomes de branch
 
-| Prefixo | Uso | Exemplo |
-|---|---|---|
-| `release/` | O ciclo que fecha uma versão inteira | `release/v0.4.0` |
-| `feat/` | Funcionalidade pontual | `feat/note-move` |
-| `fix/` | Correção pontual | `fix/graph-touch-target` |
-| `docs/` | Documentação e governança do repositório | `docs/development-process` |
-| `chore/` | Manutenção: dependências, CI, configuração de build | `chore/bump-cdk` |
-
-Nomes de branch são en-US. A convenção anterior, `feature-2026.NNNNNN`, está registrada como histórico em `development-process.md` §7.1 e não é mais usada.
+Nomes de branch são en-US e usam um dos cinco prefixos definidos em `development-process.md` §7.1: `release/` para o ciclo que fecha uma versão inteira, e `feat/`, `fix/`, `docs/` e `chore/` para trabalho pontual. A convenção anterior, `feature-2026.NNNNNN`, não é mais usada.
 
 ### Commits incrementais
 
-Commite e envie ao longo da branch, nunca acumulando tudo no fim. Todo commit precisa ser construível e não pode quebrar os testes existentes.
+Commite ao longo da branch, nunca acumulando tudo no fim, e envie a cada commit ou no mínimo a cada dois ou três. Todo commit precisa ser construível e não pode quebrar os testes existentes. **A unidade de commit é a mudança de comportamento inteira: código, teste, documento e `CHANGELOG.md` no mesmo commit**, e o critério de quando um commit toca cada documento está em `development-process.md` §7.2 e §7.3.
 
-**A unidade de commit é a mudança de comportamento inteira: código, teste, documento e `CHANGELOG.md` no mesmo commit.** O critério de quando um commit toca cada documento está em `development-process.md` §7.3.
-
-Mensagens em modo imperativo e tempo presente, seguindo Conventional Commits, por exemplo `feat(knowledge): adiciona value object Position fracionário`. Envie a cada commit, ou no mínimo a cada dois ou três.
+Mensagens em modo imperativo e tempo presente, seguindo Conventional Commits, por exemplo `feat(knowledge): adiciona value object Position fracionário`.
 
 ### Pull request
 
