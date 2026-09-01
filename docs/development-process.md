@@ -319,12 +319,27 @@ garantia, e contorná-la em silêncio anula o motivo de ela existir.
 A versão canônica do produto vive no `CLAUDE.md`, em § Identidade do projeto → Versão
 base, e precisa ser propagada para todo `package.json` do monorepo e para o
 `CHANGELOG.md` antes do commit de release. Quando incrementar, e a estratégia de
-versionamento em três camadas, estão em `CLAUDE.md` § Política de versionamento e em
-`architecture-guide.md` § Estratégia de versionamento.
+versionamento em três camadas, estão em `CLAUDE.md` § Políticas operacionais → Versionamento
+e em `architecture-guide.md` §23.
+
+O `[Unreleased]` do `CHANGELOG.md` é o buffer entre um ciclo e o próximo. Toda entrada
+nasce nele e espera ali. **Mudança que não altera nada implantável não corta versão**, e
+documentação e governança do repositório são o caso típico: cortar uma versão só para elas
+marcaria uma tag e publicaria um Release apontando para um artefato idêntico ao anterior, e
+o número passaria a afirmar algo que não aconteceu. A mudança espera o próximo ciclo e sai
+dentro dele, com a data do corte, não a data em que foi escrita. Quem precisa da data exata
+de cada mudança tem o histórico do git, que é onde ela vive.
+
+**O corte leva o `[Unreleased]` inteiro, e é o acúmulo que decide o número.** Não se
+escolhe um subconjunto: o intervalo `vX.Y.Z...vX.Y.Z+1` do rodapé do `CHANGELOG.md` cobre
+todos os commits entre as duas tags, e uma seção que omitisse parte deles mentiria sobre o
+que mudou. Por isso o incremento é o **maior que qualquer entrada acumulada exigir**, e não
+o que o último pull request exigiria sozinho. Um `[Unreleased]` com documentação e uma
+correção de defeito fecha como correção; se antes do corte entrar uma ferramenta MCP nova,
+uma rota ou uma funcionalidade visível, o mesmo acúmulo fecha como incremento menor, e a
+correção sai dentro dele.
 
 ### 9.1 Fluxo de incremento de versão
-
-### Fluxo de incremento de versão
 
 Execute nesta ordem exata:
 
@@ -335,7 +350,9 @@ Execute nesta ordem exata:
            memorysmith-backend/services/*/package.json     ← every service package
 3. Update  memorysmith-frontend/package.json
 4. Update  memorysmith-infra/package.json
-5. Update  CHANGELOG.md                                    ← cut the release section with date and summary
+5. Update  CHANGELOG.md                                    ← rename [Unreleased] to [X.Y.Z] with the cut date,
+                                                             open a fresh empty [Unreleased] above it, and add
+                                                             the compare links at the bottom of the file
 6. Commit on a release branch  "chore(release): bump version to vX.Y.Z"
 7. Push the branch, open a PR, and merge it into main (never push the bump directly to main)
 8. Tag the merged commit on main  git tag vX.Y.Z && git push origin vX.Y.Z

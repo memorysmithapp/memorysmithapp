@@ -213,7 +213,7 @@ A versão canônica do produto vive **neste arquivo**, em § Identidade do proje
 
 **Enquanto a versão base for `0.x`, a regra acima não vale:** o SemVer trata essa faixa como instável, e uma quebra de contrato entra como incremento menor, registrada no `CHANGELOG.md` sob `Removed` ou `Changed`. A partir da `1.0.0` ela passa a valer sem exceção, porque aí existe alguém integrado do outro lado.
 
-**Invioláveis:** o incremento de versão chega à `main` somente por PR, nunca por push direto. A tag é criada **depois** do merge e aponta para o commit mesclado. O fluxo de nove passos está em `development-process.md` §9.1.
+**Invioláveis:** o incremento de versão chega à `main` somente por PR, nunca por push direto. A tag é criada **depois** do merge e aponta para o commit mesclado. Mudança que não altera nada implantável, como documentação e governança do repositório, **não corta versão**: espera em `[Unreleased]` o próximo ciclo, que leva o acúmulo inteiro. O fluxo de nove passos está em `development-process.md` §9.1, e o que corta versão, em §9.
 
 ### CHANGELOG
 
