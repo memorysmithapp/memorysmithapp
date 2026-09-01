@@ -9,7 +9,7 @@ O Claude Code o lê automaticamente a cada sessão e a cada invocação de sub-a
 memorysmith
 
 ### Nome do projeto
-core
+memorysmithapp
 
 ### Identificador do projeto
 memorysmith
