@@ -90,15 +90,8 @@ As duas últimas linhas da tabela separam o que mais confunde. O teste: "o outbo
 
 ### Códigos de regra de negócio
 
-Regras de negócio são declaradas apenas no `software-vision.md`, uma regra por linha, com um código estável:
+Regras de negócio são declaradas apenas no `software-vision.md`, uma regra por linha, no formato `RN-{CONTEXT}-{NNN}`, cuja notação e cujos prefixos de contexto estão em [`docs/software-vision.md`](docs/software-vision.md) §6. Os códigos são **append-only**: nunca renumere uma regra e nunca reutilize um código aposentado, porque commits, issues e código os referenciam. Uma regra que deixou de valer é marcada como removida na própria linha, preservando seu número. O momento em que o número é reservado está em [`docs/development-process.md`](docs/development-process.md) §6.
 
-```
-RN-{CONTEXT}-{NNN}
-```
-
-`CONTEXT` é a sigla de três letras do bounded context: `SUB` (assinatura e isolamento), `ACC` (acesso: membros, papéis, convites), `KNW` (conhecimento), `DSC` (discovery), `AUD` (auditoria), `AGT` (acesso de agente / MCP), `PRT` (portabilidade).
-
-Os códigos são **append-only**. Nunca renumere uma regra e nunca reutilize um código aposentado, porque outros documentos, commits e issues os referenciam. Uma regra que deixou de valer é marcada como removida na própria linha, preservando seu número.
 ---
 
 ## Higiene da documentação

@@ -2,6 +2,8 @@
 
 Este documento é a fonte da verdade para **o que o produto faz e sob qual regra**. Descreve visão, linguagem ubíqua, modelo de negócio de assinaturas, papéis, entidades de domínio, regras de negócio (`RN-XXX`), o contrato público de MCP, as telas e o recorte de cada versão.
 
+As regras de negócio são numeradas `RN-{CONTEXT}-{NNN}`, em que `CONTEXT` é o prefixo do bounded context a que a regra pertence (§6). Os códigos são **append-only**: nunca são renumerados nem reutilizados, e uma regra que deixou de valer é marcada como removida na própria linha, preservando o número. O momento em que um número é reservado está em [`development-process.md`](development-process.md) §6.
+
 Para fatos gerais do domínio (Markdown, MCP, auditoria, LGPD), ver [`knowledge-base.md`](knowledge-base.md). Para como o produto é construído (chaves, transações, adaptadores, infraestrutura), ver [`architecture-guide.md`](architecture-guide.md). Este documento **não repete** o conteúdo daqueles dois: referencia por seção.
 
 ---
@@ -381,14 +383,16 @@ O teto não se aplica ao `OWNER`: ele é titular da assinatura e alcança tudo.
 
 Seis bounded contexts. A separação é de responsabilidade e vocabulário; a forma de deploy é decisão de engenharia (`architecture-guide.md` §3 e §17).
 
-| Contexto | Responsabilidade | Tipo |
-|---|---|---|
-| **Access** | Assinaturas e seu ciclo de vida, membros, papéis, tetos de vault, convites, vínculos, autorização | Supporting |
-| **Knowledge** | Vaults, guidance, pastas, ordem, templates, notas | **Core** |
-| **Discovery** | Grafo de links, índice de texto e facetas de curadoria, três projeções | Supporting |
-| **Audit** | Trilha append-only: autoria, revisões, reconstrução por data | Supporting |
-| **Agent Access** | O MCP server; compõe o Vault Context; traduz domínio ↔ tools | Supporting (camada anticorrupção) |
-| **Portability** | Export para árvore de arquivos legível | Generic |
+| Contexto | Responsabilidade | Tipo | Prefixo `RN` |
+|---|---|---|---|
+| **Access** | Assinaturas e seu ciclo de vida, membros, papéis, tetos de vault, convites, vínculos, autorização | Supporting | `SUB`, `ACC` |
+| **Knowledge** | Vaults, guidance, pastas, ordem, templates, notas | **Core** | `KNW` |
+| **Discovery** | Grafo de links, índice de texto e facetas de curadoria, três projeções | Supporting | `DSC` |
+| **Audit** | Trilha append-only: autoria, revisões, reconstrução por data | Supporting | `AUD` |
+| **Agent Access** | O MCP server; compõe o Vault Context; traduz domínio ↔ tools | Supporting (camada anticorrupção) | `AGT` |
+| **Portability** | Export para árvore de arquivos legível | Generic | `PRT` |
+
+O prefixo é o do contexto a que a regra pertence. **Access carrega dois**, porque separa o que é da fronteira do que é de quem entra nela: `SUB` para a assinatura, seu ciclo de vida e o isolamento, `ACC` para membros, papéis, tetos e convites. Nenhum prefixo é aposentado quando um contexto muda de forma, porque os códigos já emitidos continuam referenciados.
 
 **Knowledge é o core domain**, porque é onde está a regra que nenhum concorrente resolve de graça: estrutura declarada, ordem significativa, papéis de conteúdo e escrita concorrente barata. Todo o resto existe para servi-lo ou para transportá-lo.
 
