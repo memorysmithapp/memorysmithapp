@@ -2,6 +2,8 @@
 
 Este documento é a fonte da verdade para **o que o produto faz e sob qual regra**. Descreve visão, linguagem ubíqua, modelo de negócio de assinaturas, papéis, entidades de domínio, regras de negócio (`RN-XXX`), o contrato público de MCP, as telas e o recorte de cada versão.
 
+As regras de negócio são numeradas `RN-{CONTEXT}-{NNN}`, em que `CONTEXT` é o prefixo do bounded context a que a regra pertence (§6). Os códigos são **append-only**: nunca são renumerados nem reutilizados, e uma regra que deixou de valer é marcada como removida na própria linha, preservando o número. O momento em que um número é reservado está em [`development-process.md`](development-process.md) §6.
+
 Para fatos gerais do domínio (Markdown, MCP, auditoria, LGPD), ver [`knowledge-base.md`](knowledge-base.md). Para como o produto é construído (chaves, transações, adaptadores, infraestrutura), ver [`architecture-guide.md`](architecture-guide.md). Este documento **não repete** o conteúdo daqueles dois: referencia por seção.
 
 ---
@@ -22,9 +24,7 @@ Para fatos gerais do domínio (Markdown, MCP, auditoria, LGPD), ver [`knowledge-
 12. [Domínio: Portability](#12-domínio-portability)
 13. [Interface da aplicação](#13-interface-da-aplicação)
 14. [Limites do produto](#14-limites-do-produto)
-15. [Recorte de versão](#15-recorte-de-versão)
-16. [Riscos de produto](#16-riscos-de-produto)
-17. [Questões em aberto](#17-questões-em-aberto)
+15. [Onde vivem o recorte de versão, os riscos e as questões em aberto](#15-onde-vivem-o-recorte-de-versão-os-riscos-e-as-questões-em-aberto)
 
 ---
 
@@ -32,50 +32,100 @@ Para fatos gerais do domínio (Markdown, MCP, auditoria, LGPD), ver [`knowledge-
 
 ### 1.1 O problema
 
-O fluxo que funciona hoje para trabalhar conhecimento com um agente é uma pasta local de arquivos `.md`, com um documento na raiz explicando ao agente como estruturar as notas, e um editor de vault por cima para navegar. O agente lê a pasta sempre que precisa de contexto.
+O foco desse software é potencializar a **eficiência e eficácia da relação humano e agentes de IA** independentemente da plataforma de IA escolhida e o tamanho do time de humanos.
 
-Três coisas quebram nesse arranjo (detalhamento em `knowledge-base.md` §2.5):
+**A memória do trabalho fragmenta em duas direções ao mesmo tempo.** Um time toca um projeto: uma auditoria, um processo regulatório, uma pesquisa, uma obra, o lançamento de um produto. Nada disso precisa ser software. Cada pessoa toca a parte dela acompanhada de um agente, e não existe uma plataforma de IA do time: uma trabalha no Claude, outra no ChatGPT, uma terceira no assistente embutido na ferramenta que ela já usava. A escolha é pessoal, muda com o tempo e não há por que uniformizá-la. Essa diversidade não seria problema se existisse uma camada comum de retenção. Sem ela, a memória se parte em duas dimensões simultâneas:
+
+1. **Pelo tempo, a sessão.** A memória do agente termina quando a sessão termina, e a conversa seguinte começa do zero, sabendo do assunto apenas o que couber na janela daquela vez.
+2. **Pelo fornecedor, o silo.** O que uma plataforma retém a respeito de quem a usa pertence àquela plataforma e àquela pessoa, não sai de lá e nenhum agente de mais ninguém a lê.
+
+Somadas, as duas produzem tantas memórias parciais e privadas quantas forem as pessoas multiplicadas pelas plataformas, sobre um trabalho que é um só. O que o time sabe de verdade continua espalhado em conversa, documento, planilha, thread de decisão e na cabeça de quem participou.
+
+**O custo não aparece como arquivo perdido. Aparece como três gargalos operacionais:**
+
+1. **Retrabalho por reconstrução de contexto.** Toda tarefa recomeça pela reconstrução do contexto, e a pessoa gasta mais tempo redescrevendo ao agente o que o time já havia decidido, um pouco diferente a cada vez, do que executando o trabalho.
+2. **Divergência de premissas.** Duas pessoas descrevem o mesmo fato de dois jeitos aos seus agentes, e não existe ponto central onde conferir qual das duas versões é a que vale.
+3. **Erosão da confiança.** O resultado volta desacompanhado da fonte. Conferir custa mais do que aceitar, aceita-se sem conferir, e é isso que corrói a confiança em tudo que a base passa a conter.
+
+**As quatro práticas que descrevem a fluência de quem trabalha com IA degradam todas pela mesma causa raiz:** a ausência de um corpo de conhecimento compartilhado, persistente e legível pelos dois lados (*Delegation*, *Description*, *Discernment* e *Diligence*, detalhadas em `knowledge-base.md` §4.4). Sem ele, delega-se a redigitação de contexto em vez da tarefa, descreve-se o mesmo cenário de novo a cada sessão, avalia-se a resposta por plausibilidade em vez de por fonte, e não sobra rastro para responder pelo que foi produzido. Daí a exigência dupla que atravessa o produto: a base precisa ser **barata de escrever**, porque quem mais escreve nela é o agente durante o trabalho, e **barata de ler**, porque a pessoa precisa curar e decidir sem trocar de ferramenta.
+
+**O que falta é uma fonte única da verdade, comum às pessoas e aos agentes**, que persista além da sessão e não pertença a nenhuma plataforma. Ela se constrói em três movimentos encadeados:
+
+1. **Capturar com evidência.** Norma, legislação, documentação técnica, pesquisa, decisão tomada em reunião. O que entra registra de onde veio e quem o escreveu, humano ou agente, porque afirmação que não se rastreia até a fonte não sustenta decisão depois.
+2. **Curar.** Material capturado ainda não é conhecimento. Alguém precisa julgar o que vale, reconciliar o que se contradiz, ligar o novo ao que já existia e enxergar o que está maduro e o que ainda é rascunho. Curadoria é trabalho humano assistido por agente, nunca subproduto automático da ingestão.
+3. **Servir aos dois lados com o mesmo material.** A base é fonte da verdade para o agente, que a lê a cada tarefa em vez de adivinhar, e superfície de trabalho para a pessoa, que aprende com ela, corrige o que está errado e decide com ela à vista. Dois leitores com exigências diferentes sobre exatamente o mesmo conteúdo.
+
+**Essa fonte é viva.** Ela não é o relatório escrito no fim nem o documento congelado no começo: cresce e se corrige enquanto o projeto anda, e a versão de hoje não é a de duas semanas atrás. Isso é a característica, não o defeito, e é o que impõe a última exigência: a base precisa dizer o que dizia na data em que alguém decidiu apoiado nela.
+
+**Os arranjos improvisados de centralização falham por atacado**, porque tratam a base como repositório passivo de arquivos e ignoram o que a colaboração entre pessoas e agentes exige:
+
+1. **Monólito de informação, sem granularidade.** Concentrar o conhecimento em documentos extensos cobra dos dois lados. Para a pessoa, a busca e a leitura ficam lentas e inflexíveis. Para o agente, texto longo lota a janela de contexto com ruído, dificulta localizar a evidência e impede ligar com precisão conceito, decisão e referência (`knowledge-base.md` §4.1 e §5.3).
+2. **Formato proprietário e rigidez visual.** Documento formatado para apresentação, como PDF, apresentação e planilha complexa, dificulta extrair e escrever contexto estruturado, e bloqueia a interconexão entre informações (`knowledge-base.md` §1.4).
+3. **Acesso incompatível com agente.** Sem conector padronizado, o agente não navega pela rede de informações, não consulta dependência, não valida metadado e não escreve na base de forma autônoma e segura (`knowledge-base.md` §3.1).
+4. **Ausência de metadado de governança.** Falta a camada de instrução que diz a pessoas e agentes como ler e como atualizar o conteúdo, e faltam data, maturidade (rascunho ou consolidado) e autoria explícita de cada trecho. Sem isso a base vira amontoado, e amontoado induz erro, alucinação e perda de rastreabilidade (`knowledge-base.md` §2.3 e §7.3).
+
+**O arranjo que mais se aproxima disso hoje, e onde ele para.** O fluxo que já funciona é uma pasta local de arquivos `.md`, com um documento na raiz explicando ao agente como escrever nela, e um editor de vault por cima para navegar. Ele acerta o essencial, o formato é legível pelos dois lados e a estrutura está declarada, mas é de uma pessoa só e trava em três pontos previsíveis (detalhamento em `knowledge-base.md` §2.5):
 
 1. **Colaboração:** o conteúdo é local, e duas pessoas não trabalham no mesmo corpo de conhecimento.
 2. **Navegação compartilhada:** editores de vault são clientes locais, ruins como cliente de repositório remoto.
 3. **Múltiplos cofres:** separar assuntos exige pastas soltas, sem um lugar que as liste.
 
+A esses três se soma o que a pasta local nunca teve e que os movimentos de curar e decidir exigem para valer: registro de quem escreveu cada coisa, quando, e com qual agente.
+
 ### 1.2 A solução
 
 **Cofres de conhecimento em Markdown, com estrutura declarada, acessíveis nativamente pelas ferramentas de IA.**
 
-O MemorySmith.app é o backend remoto do fluxo que já funciona. Mantém o formato (Markdown puro), mantém a prática (orientação na raiz, molde por pasta) e resolve os três pontos de quebra, acrescentando o que a pasta local não tem: acesso remoto autenticado, colaboração com papéis, histórico defensável e descoberta por grafo e por significado.
+O MemorySmith.app é a infraestrutura remota de conhecimento que sustenta a persistência de contexto: Vaults em Markdown puro, com estrutura declarada, operáveis nativamente por agentes de IA e por pessoas. Ele é o backend remoto do fluxo que já funciona, porque mantém o formato (Markdown puro), mantém a prática (Guidance na raiz, Template por pasta) e resolve os três pontos em que a pasta local trava, acrescentando as quatro capacidades que nenhum arranjo improvisado tem:
+
+- **Acesso remoto autenticado.** Um mesmo vault alcançado por vários clientes e agentes, sob identidade verificada (§4).
+- **Colaboração com papéis.** Permissão por papel na assinatura e teto de papel por vault, valendo igual para pessoas e para agentes (§5).
+- **Histórico auditável e imutável.** Cada mudança rastreável até quem a escreveu, com qual agente e o que a nota dizia antes (§11).
+- **Descoberta relacional e por curadoria.** Grafo de links sobre notas atômicas, busca no texto do vault e facetas que mostram a distribuição do conteúdo (§10).
+
+#### Interoperabilidade por protocolo
+
+Contra a fragmentação por fornecedor o produto age na camada de protocolo, e não pela adesão a uma ferramenta proprietária: o vault é servido por um MCP server remoto, e MCP é padrão aberto falado por clientes de fabricantes diferentes (`knowledge-base.md` §3.5). Cada pessoa continua na plataforma de IA que prefere, e todas alcançam o mesmo vault, com o mesmo conteúdo, sob o mesmo papel e na mesma versão da verdade.
+
+#### O conceito
+
+O nome diz o resto. Uma forja não guarda metal, ela o trabalha: o material bruto, que aqui são dados, normas e decisões, entra e sai peça, batido e conferido enquanto está quente. É esse o papel do produto sobre a memória do time, que é forjada durante o trabalho, por pessoas e agentes sobre o mesmo material, e não transcrita depois que o trabalho acabou.
 
 ### 1.3 O ciclo de uso
 
-O agente não só lê o vault, ele o **alimenta**. O caso concreto que o produto serve:
+O agente atua nos dois sentidos: lê o vault e o **alimenta**. Os três movimentos de §1.1 aparecem aqui como o caso concreto que o produto serve:
 
-1. **Ingestão.** O agente lê um corpo de material, como normas, legislação, documentação ou pesquisa, e escreve esse conhecimento como notas no vault, obedecendo ao Guidance (o que este vault é), à estrutura de pastas (onde cada coisa vai) e ao Template da pasta (como a nota se estrutura).
-2. **Consumo.** Depois, outro trabalho, como uma auditoria, um relatório ou um parecer, usa o mesmo vault como base de conhecimento estruturada.
+1. **Ingestão.** O agente lê um corpo de material bruto, como normas, legislação, documentação técnica ou pesquisa, e o converte em notas granulares dentro do vault, obedecendo ao Guidance (o que este vault é), à estrutura de pastas (onde cada coisa vai) e ao Template da pasta (como a nota se estrutura). Cada escrita registra quem a fez, com qual agente e o que a nota dizia antes (§11).
+2. **Curadoria.** Pessoas revisam, corrigem e organizam o que entrou, na mesma superfície de trabalho: editam a nota e a estrutura, marcam maturidade e revisão humana, acompanham a distribuição do vault pelo painel de curadoria (§10.3) e caçam link quebrado e nota órfã na tela de saúde (§13.1).
+3. **Consumo.** Depois, em outro momento do projeto, como uma auditoria, um parecer ou um relatório, agentes e pessoas usam o mesmo vault como fonte única da verdade para fundamentar o que entregam.
 
-Três consequências atravessam o produto inteiro:
+**Três princípios que o ciclo impõe ao produto inteiro:**
 
-- **A escrita via MCP é o caminho de ingestão.** Quem popula o vault é o agente, por construção. Escrita não é funcionalidade secundária da API interna.
-- **Guidance, estrutura e template são instruções executáveis, não documentação** (`knowledge-base.md` §4.2). São o que faz o agente escrever a nota certa, na pasta certa, no formato certo. Um Guidance fraco ou uma descrição de pasta vaga degrada a qualidade do que entra, e o efeito só aparece depois, no consumo.
-- **O domínio é regulado.** O vault sustenta trabalho de auditoria, então proveniência e histórico são parte do produto (§11), não conformidade posterior.
+- **A escrita via protocolo é o caminho primário de ingestão.** Quem popula o vault é o agente, por construção. Escrita não é funcionalidade secundária exposta pela API interna.
+- **Guidance, estrutura de pastas e Template são instruções executáveis, não documentação** (`knowledge-base.md` §4.2). São o que faz o agente escrever a nota certa, na pasta certa, no formato certo. Um Guidance fraco ou uma descrição de pasta vaga degrada a qualidade do que entra, e o efeito só aparece depois, no consumo.
+- **Governança e proveniência são de projeto.** O vault sustenta trabalho regulado e auditável, então autoria e rastreabilidade temporal são premissa do sistema (§11), e não conformidade acrescentada depois.
 
 ### 1.4 A tese, em uma frase
 
-O produto não é guardar `.md`, é **entregar contexto estruturado ao agente sem atrito**. Se ler um vault hospedado for mais trabalhoso que ler uma pasta local, o produto perdeu. Por isso o MCP não é acessório: é a interface principal, e a API interna existe para servir a UI.
+O produto não é guardar `.md`, é **entregar contexto estruturado ao agente sem atrito**. Se consultar um vault hospedado custar mais esforço que ler uma pasta local, a proposta de valor está comprometida. Por isso o MCP não é acessório: é a camada primária de integração, e a API interna existe para servir a interface.
+
+O pilar complementar da mesma tese é a leitura e a curadoria humanas. Uma base que a pessoa não consegue navegar e validar deixa de ser curada, e uma base sem curadoria perde a capacidade de servir como fonte confiável ao agente (§13).
 
 ### 1.5 Proposta de valor
 
-| Para quem | Dor | O que o produto entrega |
+| Público-alvo | A dor central | O que o produto entrega |
 |---|---|---|
-| Quem trabalha com agente sobre um corpo de conhecimento | A pasta local não sai da máquina | Vault remoto, conectado nativamente ao cliente de IA |
-| Times que compartilham uma base | Sincronizar arquivos não resolve edição concorrente | Assinatura com papéis e escrita com detecção de conflito |
-| Trabalho regulado (auditoria, jurídico, compliance) | O parecer emitido não pode ser demonstrado com a base de ontem | Histórico por revisão, autoria de humano e agente, trilha imutável |
-| Quem tem muitos assuntos | Pastas soltas, sem catálogo | Lista de vaults com descrição, cada um autônomo |
-| Quem teme lock-in | Base é ativo de longo prazo | Export de `.md` puros, sem formato proprietário |
+| Quem trabalha com agente sobre um corpo de conhecimento | Os arranjos improvisados são estáticos, isolados ou caros de consultar | Vault remoto em Markdown puro, conectado nativamente ao cliente de IA |
+| Time que trabalha com agentes todo dia | A cada nova sessão o contexto precisa ser reconstruído à mão | Memória comum entre pessoas e agentes, escrita durante o trabalho e lida a cada tarefa |
+| Time em que cada um usa a plataforma de IA que prefere | O silo por fornecedor impede compartilhar o contexto | Um MCP server remoto: o mesmo vault, com o mesmo papel, em qualquer cliente que fale o protocolo |
+| Times que compartilham uma base | Sincronizar arquivos não resolve edição concorrente nem controle de acesso | Assinatura com papéis e escrita com detecção de conflito |
+| Trabalho regulado (auditoria, jurídico, compliance) | Não se demonstra quais premissas fundamentaram um parecer passado | Histórico por revisão, autoria de humano e de agente, trilha imutável |
+| Quem tem muitos assuntos | Pastas soltas, sem catálogo | Catálogo de vaults com descrição, cada um autônomo |
+| Quem teme lock-in | A base é ativo de longo prazo, e formato proprietário a prende | Export de `.md` puros, sem formato proprietário |
 
 ### 1.6 Slogan
 
-**Structured knowledge, natively readable and writable by agents.**
+**Structured knowledge, natively readable and writable by humans and agents.**
 
 ---
 
@@ -342,14 +392,16 @@ O teto não se aplica ao `OWNER`: ele é titular da assinatura e alcança tudo.
 
 Seis bounded contexts. A separação é de responsabilidade e vocabulário; a forma de deploy é decisão de engenharia (`architecture-guide.md` §3 e §17).
 
-| Contexto | Responsabilidade | Tipo |
-|---|---|---|
-| **Access** | Assinaturas e seu ciclo de vida, membros, papéis, tetos de vault, convites, vínculos, autorização | Supporting |
-| **Knowledge** | Vaults, guidance, pastas, ordem, templates, notas | **Core** |
-| **Discovery** | Grafo de links, índice de texto e facetas de curadoria, três projeções | Supporting |
-| **Audit** | Trilha append-only: autoria, revisões, reconstrução por data | Supporting |
-| **Agent Access** | O MCP server; compõe o Vault Context; traduz domínio ↔ tools | Supporting (camada anticorrupção) |
-| **Portability** | Export para árvore de arquivos legível | Generic |
+| Contexto | Responsabilidade | Tipo | Prefixo `RN` |
+|---|---|---|---|
+| **Access** | Assinaturas e seu ciclo de vida, membros, papéis, tetos de vault, convites, vínculos, autorização | Supporting | `SUB`, `ACC` |
+| **Knowledge** | Vaults, guidance, pastas, ordem, templates, notas | **Core** | `KNW` |
+| **Discovery** | Grafo de links, índice de texto e facetas de curadoria, três projeções | Supporting | `DSC` |
+| **Audit** | Trilha append-only: autoria, revisões, reconstrução por data | Supporting | `AUD` |
+| **Agent Access** | O MCP server; compõe o Vault Context; traduz domínio ↔ tools | Supporting (camada anticorrupção) | `AGT` |
+| **Portability** | Export para árvore de arquivos legível | Generic | `PRT` |
+
+O prefixo é o do contexto a que a regra pertence. **Access carrega dois**, porque separa o que é da fronteira do que é de quem entra nela: `SUB` para a assinatura, seu ciclo de vida e o isolamento, `ACC` para membros, papéis, tetos e convites. Nenhum prefixo é aposentado quando um contexto muda de forma, porque os códigos já emitidos continuam referenciados.
 
 **Knowledge é o core domain**, porque é onde está a regra que nenhum concorrente resolve de graça: estrutura declarada, ordem significativa, papéis de conteúdo e escrita concorrente barata. Todo o resto existe para servi-lo ou para transportá-lo.
 
@@ -817,79 +869,19 @@ Metas de desempenho estão em `architecture-guide.md` §15.
 
 ---
 
-## 15. Recorte de versão
+## 15. Onde vivem o recorte de versão, os riscos e as questões em aberto
 
-### 15.1 Escopo da 0.1.0
+Este documento descreve o que o produto **faz**, e não o que ele vai fazer. Recorte de
+versão, ordem de entrega, risco ainda não endereçado e questão não decidida descrevem
+futuro, e por isso saíram daqui:
 
-Este documento descreve o produto; a 0.1.0 é o recorte que **testa a tese** (§1.4) e nada além dela: um vault escrito por um agente e lido por um agente, com o passado registrado desde o primeiro dia.
-
-| Dentro | Fora |
+| O que você procura | Onde está |
 |---|---|
-| Autenticação do conector MCP, bloqueante | Discovery inteiro: grafo, busca semântica e facetas (§10) |
-| Vault, pastas, ordem, guidance, template, nota | Export (§12) |
-| Onboarding de assinatura, aprovação pelo `PLATFORM_ADMIN`, autorização | Mover nota entre vaults |
-| Auditoria: trilha, `note_history`, `read_note(asOf)` | Convites, `EDITOR`/`VIEWER` e teto por vault (§5.3) |
-| MCP com 8 tools: `whoami`, `list_vaults`, `get_vault_context`, `get_template`, `list_notes`, `read_note`, `create_note`, `update_note` | `search_notes`, `semantic_search`, `related_notes`, `backlinks` |
-| UI de autoria: vault, pastas, guidance, template, nota | Retenção legal e expurgo · telas de saúde, atividade e membros |
-| Área de plataforma: fila de assinaturas, aprovar e rejeitar | Suspensão, reativação e transferência de titularidade |
+| Recorte de versão, ordem de entrega, versão alvo | O Project do repositório |
+| Riscos de produto | Issues com a label `risco` |
+| Questões de produto ainda não decididas | Issues com a label `questao` |
+| Riscos técnicos | Issues com a label `risco-tecnico` |
+| O que já foi entregue, e quando | `CHANGELOG.md` e os GitHub Releases |
 
-Três inclusões que parecem contradizer o recorte, e não contradizem:
-
-- **A auditoria entra.** É contexto "supporting", mas evento não gravado no dia 1 é passado que não se recupera depois. Registrar é barato; retroagir é impossível.
-- **A UI de autoria entra.** Sem Guidance e Template escritos por um humano, não existe nada para o agente ler, e a tese não é testável. É o menor pedaço de UI que fecha o ciclo.
-- **A aprovação de assinatura entra.** Sem billing, ela é o único portão de entrada: sem ela ninguém acessa nada, e a 0.1.0 não teria como ser usada por um primeiro cliente real. O que fica de fora é o resto do ciclo de vida, ou seja suspender, reativar e transferir.
-
-**O que a 0.1.0 assume, e que precisa estar declarado:** a assinatura tem um `OWNER` e nenhum outro membro. A colaboração inteira, com convites, `EDITOR`, `VIEWER` e teto por vault, chega na 0.2.0 (§15.2). O modelo de papéis já existe no domínio desde a primeira linha (PP8); o que não existia na 0.1.0 é a superfície que o exercita.
-
-### 15.2 Depois da 0.1.0
-
-A 0.2.0 fecha o produto descrito neste documento: os seis bounded contexts, a infraestrutura inteira e a interface ligada à API real. Ela entrega, além do recorte da 0.1.0, o Discovery completo (grafo de links, busca literal no texto com linguagem de consulta e facetas de curadoria), as quatro tools de descoberta, a colaboração (convites, `EDITOR`, `VIEWER` e teto de papel por vault), o ciclo de vida completo da assinatura (suspender, reativar, cancelar e transferir titularidade), mover nota entre vaults e a portabilidade.
-
-| Versão | Tema |
-|---|---|
-| 0.2.0 | O produto completo: Discovery, colaboração, ciclo de vida da assinatura, portabilidade e a interface sobre a API real |
-| 0.3.0 | Endurecimento: a interface na tela em que está sendo lida, o grafo como ferramenta de exploração, a quota aplicada e a superfície de leitura fiel ao vault |
-| 0.4.0 | Conformidade: retenção legal, expurgo e relatórios de saúde |
-
-O que fica declaradamente fora da 0.2.0 e da 0.3.0 é a conformidade formal, ou seja a retenção legal (RN-AUD-008), o expurgo de conteúdo (RN-AUD-007) e os relatórios que os sustentam. Os três são atos administrativos com porta própria e evento próprio, e nenhum deles é pré-requisito de nada que já existe: adiar não cobra juros, porque a trilha que eles governam já está sendo escrita desde o primeiro dia.
-
-A ordem técnica de construção, com critérios de pronto, está em `architecture-guide.md` §25.
-
----
-
-## 16. Riscos de produto
-
-| Risco | Impacto | Resposta |
-|---|---|---|
-| Conectar o vault ao cliente de IA ser penoso | **Alto, mata a tese** | É a primeira coisa a ser provada, antes de qualquer outra: se a conexão não for fluida, o produto não se sustenta |
-| Vazamento entre assinaturas | **Alto** | Assinatura na chave de todo dado, tipo obrigatório no código e teste de isolamento na suíte |
-| Guidance e Template fracos degradarem a base sem ninguém perceber | **Alto** | A UI de autoria orienta as seções esperadas; a descrição de pasta é obrigatória; o relatório de saúde expõe o apodrecimento |
-| Dois agentes sobrescreverem a mesma nota | Médio | `baseRevision` obrigatório; conflito devolve o conteúdo atual (RN-AGT-005) |
-| Retry de transporte duplicar nota na ingestão | Médio | Slug único no vault faz a idempotência; `ALREADY_EXISTS` devolve o identificador existente, nunca gera sufixo (RN-AGT-004) |
-| Busca devolver plausível-porém-errado | Médio | Sempre citar a nota de origem; o agente decide com a fonte à vista (RN-DSC-010) |
-| Busca literal não achar a nota que fala do assunto com outras palavras | Médio | Risco assumido na 0.2.0 (§10.2): a busca acha o que está escrito, e quem procura por assunto usa o grafo e as facetas. É o que o MVP vai medir com um vault real |
-| Apagar nota destruir o histórico prometido | **Alto** | Soft delete; destruição de bytes fora do domínio, como ato administrativo com evento (RN-AUD-007) |
-| Usuário em duas assinaturas agir na assinatura errada | **Alto** | Assinatura ativa explícita; conector fixa a assinatura no consentimento (RN-SUB-014) |
-| Cancelamento virar perda ou migração de dados | **Alto** | `SubscriptionId` perpétuo: status controla acesso, nunca endereço (RN-SUB-005). Reativar é mudar um campo |
-| `PLATFORM_ADMIN` alcançar conteúdo de cliente | **Alto** | Sessão de plataforma não carrega assinatura ativa, então não há chave que ela consiga montar (RN-SUB-016); teste na suíte |
-| Aprovação manual virar gargalo de entrada | Médio | Fila visível com data de solicitação; enquanto não há billing, é o custo aceito da decisão de adiar cobrança |
-| `OWNER` indisponível travar a assinatura | Médio | Transferência de titularidade é operação de primeira classe (RN-ACC-002). O caso de indisponibilidade total segue em aberto (Q3) |
-| Grafo explodir em vault denso | Médio | Teto de profundidade e de nós na travessia (RN-DSC-007) |
-| Base crescer além dos limites declarados | Médio | Limites em §14 viram teste e aviso na UI; `get_vault_context` trunca com aviso |
-
-Riscos técnicos e de infraestrutura estão em `architecture-guide.md` §19.
-
----
-
-## 17. Questões em aberto
-
-Registradas aqui em vez de decididas por omissão. Cada uma vira uma decisão datada quando for resolvida.
-
-| # | Questão | Por que ainda não foi decidida |
-|---|---|---|
-| Q1 | **Cobrança** | A quota passou a ser aplicada na 0.3.0 (RN-SUB-021), então o que resta aberto é só a cobrança: não há definição comercial de preço por plano, nem de que caminho a pessoa segue para subir de quota sem passar por um `PLATFORM_ADMIN` |
-| Q2 | **Identidade visual:** cor primária, logotipo, tom | **Resolvida.** Sistema de marca definido no caderno "Livro da marca v1" (Figma): paleta, tipografia, símbolo e regras de uso registrados em `CLAUDE.md` § Identidade visual |
-| Q3 | **Continuidade quando o `OWNER` some** | A transferência exige o próprio `OWNER` (RN-ACC-002). Se ele fica indisponível, hoje só o `PLATFORM_ADMIN` resolveria, e o fluxo não está desenhado |
-| Q4 | **Vault público ou compartilhável por link** | Não está no escopo; entraria como um quarto papel, o que exige revisitar a matriz de §5.2 |
-| Q5 | **Anexos não-Markdown (imagens, PDFs)** | Contradiz PP1 na forma atual. Se entrar, entra como Content Slot de outro tipo, sem virar exceção no modelo |
-| Q6 | **Painel de curadoria e a interpretação de convenções de frontmatter** | **Resolvida.** O painel é a projeção de facetas do Discovery (§10.3, RN-DSC-017 a RN-DSC-024): `maturity` e `reviewed` viram convenção de produto; os demais atributos, definidos pelo Guidance de cada vault, são descobertos pela forma do valor (data, booleano, valor enumerável, lista), com texto livre descartado; e quem lê o frontmatter é o projetor, nunca o core |
+A regra que motiva a separação, e o ciclo que leva uma necessidade da issue até este
+documento, estão em `development-process.md`.

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Falha de isolamento ou vulnerabilidade
+    url: https://github.com/memorysmithapp/memorysmithapp/security/advisories/new
+    about: Viu dado de outra conta, ou algo que pareça falha de segurança? Reporte em privado, nunca em issue pública.
+  - name: Como funciona o processo de desenvolvimento
+    url: https://github.com/memorysmithapp/memorysmithapp/blob/main/docs/development-process.md
+    about: O caminho que uma necessidade percorre daqui até a main, e o que acontece com a sua issue depois que ela é aberta.

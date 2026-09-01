@@ -1,0 +1,392 @@
+# Processo de desenvolvimento
+
+Este documento é a fonte da verdade para **como o trabalho flui**, da necessidade de quem
+usa até o merge na `main`. Descreve o ciclo de vida de uma mudança, a captura de feedback,
+a triagem, a priorização, a reserva de código `RN-XXX`, o trabalho na branch, o pull
+request e o release. O papel de cada artefato, este inclusive, está em §1.
+
+Ele não diz o que é verdade no domínio ([`knowledge-base.md`](knowledge-base.md)), o que o
+produto faz e sob qual regra ([`software-vision.md`](software-vision.md)) nem como o
+software é construído ([`architecture-guide.md`](architecture-guide.md)).
+
+## Índice
+
+1. [Os artefatos e o papel de cada um](#1-os-artefatos-e-o-papel-de-cada-um)
+2. [O ciclo de vida de uma mudança](#2-o-ciclo-de-vida-de-uma-mudança)
+3. [Captura: de onde vem a necessidade](#3-captura-de-onde-vem-a-necessidade)
+4. [Triagem: destilar necessidade de pedido](#4-triagem-destilar-necessidade-de-pedido)
+5. [Priorização e roadmap](#5-priorização-e-roadmap)
+6. [Reserva de código de regra de negócio](#6-reserva-de-código-de-regra-de-negócio)
+7. [Trabalho na branch](#7-trabalho-na-branch)
+8. [Pull request](#8-pull-request)
+9. [Release](#9-release)
+10. [O que nunca entra em docs/](#10-o-que-nunca-entra-em-docs)
+
+---
+
+## 1. Os artefatos e o papel de cada um
+
+| Artefato | Responde | Para quem | Muda quando |
+|---|---|---|---|
+| `README.md` | "O que é isso e como eu uso" | Quem chega, incluindo quem só usa | O produto ou o procedimento de instalação muda |
+| `docs/software-vision.md` | "O que o produto faz, e sob qual regra" | Quem constrói | Uma `RN-XXX`, entidade ou limite muda |
+| `docs/architecture-guide.md` | "Como o software é construído" | Quem constrói | Uma decisão técnica muda |
+| `docs/knowledge-base.md` | "O que é verdade no domínio" | Quem constrói | Quase nunca, porque independe do produto |
+| `docs/development-process.md` | "Como o trabalho flui" | Quem constrói | Este processo muda |
+| `CLAUDE.md` | "O que o agente nunca pode violar" | O agente | Uma regra inegociável entra ou sai |
+| `CHANGELOG.md` | "O que mudou, quando" | Todos | Todo commit que muda comportamento |
+| **Issues e Project** | "O que ainda vamos decidir, avaliar ou construir" | Todos | O tempo todo |
+
+A última linha é a que governa tudo o mais neste documento. Hipótese de necessidade,
+priorização, roadmap, risco em aberto e questão não decidida vivem **em issue**, nunca em
+`docs/`. Foi assim que este processo nasceu: as seções de recorte de versão, riscos e
+questões em aberto foram removidas dos documentos e viraram issues, porque elas
+envelheciam a cada semana enquanto o resto dos documentos envelhecia a cada versão.
+
+### 1.1 A regra que mantém os documentos honestos
+
+> **O documento nunca descreve futuro. Se está no documento, está em produção.**
+
+Um documento que descreve o que ainda não foi construído é a dívida que este processo
+existe para eliminar, e ela se paga duas vezes: uma quando o plano muda e o texto não
+acompanha, outra quando alguém constrói contra um texto que nunca foi verdade.
+
+A regra é verificável, e não é boa intenção. Toda `RN-XXX` declarada no
+`software-vision.md` tem código que a implementa, hoje em 96 arquivos e mais de 300
+citações. Quando a regra for quebrada, ela será quebrada de forma detectável.
+
+O `README.md` obedece à mesma regra com força dobrada. Um documento interno que descreve o
+inexistente atrapalha quem constrói; um `README` que descreve o inexistente quebra a
+confiança de quem tentou seguir, e essa pessoa é justamente a que aceitou testar primeiro.
+Nada de "em breve" ou "planejado" ali dentro. Direção pública se comunica pelo Project e
+pelos Releases, e o `README` no máximo aponta o link.
+
+---
+
+## 2. O ciclo de vida de uma mudança
+
+| # | Etapa | Onde vive | O que é verdade nessa etapa |
+|---|---|---|---|
+| 1 | **Captura** | Issue `feedback` | É hipótese de necessidade. Ninguém prometeu nada |
+| 2 | **Triagem** | Comentários na issue | O atrito real é destilado do pedido. Sai proposta ou recusa registrada |
+| 3 | **Escopo fechado** | Issue `proposta` + Project | Ganha versão alvo e reserva os códigos `RN-XXX` que vai criar |
+| 4 | **Implementação** | Branch, commits incrementais | Código, teste, documento e changelog avançam juntos |
+| 5 | **Estado consistente** | `main`, pelo PR mesclado | O que está no documento existe e está em produção |
+
+Nenhuma etapa pode ser pulada por pressa, com uma exceção nomeada: um **defeito que impede
+o uso** entra direto na etapa 4, e a issue que o descreve é escrita junto com a correção,
+não antes. Adiar a correção para cumprir o rito seria trocar o propósito do processo pela
+sua forma.
+
+---
+
+## 3. Captura: de onde vem a necessidade
+
+Uma necessidade chega por três caminhos, e todos terminam em issue:
+
+- **Quem usa o produto**, pelo formulário de feedback de uso.
+- **Quem constrói**, ao topar com um atrito ou um risco enquanto trabalha.
+- **A operação**, quando um alarme, uma fatura ou uma medição revela algo.
+
+### 3.1 O formulário de feedback e a ordem das perguntas
+
+O formulário em `.github/ISSUE_TEMPLATE/01-feedback.yml` pergunta, nesta ordem: o que a
+pessoa **estava tentando fazer**, o que **aconteceu**, o que ela **esperava**, como ela
+**contornou**, com que frequência isso ocorre, e só então, por último e explicitamente
+opcional, o que ela faria para resolver.
+
+A ordem é deliberada e é a decisão de desenho mais importante do formulário. Pedidos
+chegam escritos como solução ("queria um botão de duplicar nota") e não como atrito
+("copio a estrutura de nota à mão toda vez que crio uma reunião"). Se o formulário
+perguntasse a solução primeiro, receberia a solução e perderia o atrito, que é a única
+parte que continua verdadeira depois que escolhemos um caminho diferente do sugerido.
+
+A pergunta sobre o contorno costuma render mais que todas as outras: **quem contornou
+mediu a dor**, e o tamanho do contorno é o tamanho dela.
+
+### 3.2 O que nunca vai para issue pública
+
+O repositório é público. Duas coisas ficam de fora:
+
+- **Conteúdo real de vault**, nome de cliente ou dado de negócio. O formulário pede
+  confirmação explícita disso, e uma issue que escapou é editada assim que percebida.
+- **Falha de isolamento ou qualquer vulnerabilidade**, que seguem por `SECURITY.md` e pelo
+  canal privado de advisory. Uma issue pública descrevendo como alcançar dado de outra
+  assinatura é instrução de exploração enquanto a correção não sai.
+
+---
+
+## 4. Triagem: destilar necessidade de pedido
+
+A triagem acontece em lote, semanalmente, e não a cada mensagem que chega. Reagir a cada
+pedido individualmente é como se constrói o produto de uma pessoa só, e com poucos
+usuários cada voz tem peso desproporcional.
+
+O comando `/triagem-feedback` lê as issues abertas com a label `feedback`, agrupa por
+atrito real em vez de por pedido, e devolve uma proposta de classificação para cada grupo.
+
+### 4.1 A primeira pergunta
+
+> **Isto se resolve escrevendo, ou só se resolve construindo?**
+
+Boa parte do que chega como falta de funcionalidade é falta de `README`. "Não consegui
+conectar o vault ao meu agente" pode ser uma lacuna do produto ou um parágrafo faltando.
+Confundir os dois é o erro mais caro do processo, porque constrói funcionalidade para
+resolver um problema de texto.
+
+### 4.2 As quatro saídas
+
+| Saída | Label | Custo | Gera `RN-XXX`? |
+|---|---|---|---|
+| **Documentação** | `tipo:documentacao` | Um PR de minutos | Não |
+| **Defeito** | `tipo:defeito` | Correção | Não, restaura o que a regra já afirma |
+| **Lacuna** | `tipo:lacuna` ou `tipo:atrito` | Entra no roadmap como `proposta` | Em geral sim |
+| **Recusa** | a issue fecha | Um comentário | Não |
+
+**A recusa é uma saída de primeira classe e precisa ser escrita.** Uma issue recusada fecha
+com o motivo em um comentário, dirigido a quem reportou. Backlog sem recusa registrada não
+é backlog, é um depósito, e o custo aparece quando alguém reabre em seis meses a mesma
+discussão que já foi tida.
+
+### 4.3 Classificação
+
+Toda issue triada recebe uma label de contexto (`ctx:SUB`, `ctx:ACC`, `ctx:KNW`,
+`ctx:DSC`, `ctx:AUD`, `ctx:AGT`, `ctx:PRT`, `ctx:UI`, `ctx:Infra`), que é a mesma sigla de
+três letras dos códigos de regra de negócio. Isso faz a triagem já apontar para o bounded
+context, e revela cedo quando um pedido cruza dois deles, que é o sinal de que ele são
+dois pedidos.
+
+---
+
+## 5. Priorização e roadmap
+
+O roadmap vive no **Project do GitHub**, e não em documento. Os campos são poucos de
+propósito, porque campo que ninguém preenche é campo que mente:
+
+| Campo | Valores |
+|---|---|
+| `Status` | Triagem, Aceito, Em construção, Entregue, Recusado, Adiado |
+| `Contexto` | as siglas dos bounded contexts, mais UI e Infra |
+| `Tipo` | Defeito, Atrito, Lacuna, Documentação |
+| `Versão alvo` | `0.4.0`, `0.5.0`, Sem data |
+
+Risco e questão em aberto também vivem em issue, com as labels `risco`, `risco-tecnico` e
+`questao`. A diferença deles para uma `proposta` é que **não fecham por entrega**: fecham
+quando o risco não se materializa mais, quando a questão é decidida, ou quando viram uma
+proposta concreta. Cada um carrega, no corpo, o critério explícito do que o fecha.
+
+---
+
+## 6. Reserva de código de regra de negócio
+
+Os códigos `RN-{CONTEXT}-{NNN}` são append-only: nunca são renumerados nem reutilizados,
+porque commits, PRs e mais de 300 linhas de código os referenciam.
+
+Isso cria uma exigência de coordenação, e ela é resolvida assim:
+
+> **O número da regra é reservado na issue de `proposta`, no passo 3. O texto normativo
+> entra no `software-vision.md` no passo 4, junto com o código que o cumpre.**
+
+A separação protege as duas coisas ao mesmo tempo. O número fica queimado no instante em
+que o escopo fecha, então duas frentes paralelas não colidem no mesmo `RN-KNW-025` mesmo
+que uma delas demore semanas. E o documento não passa a afirmar uma regra que ainda não
+existe, o que preservaria o append-only às custas da regra de §1.1.
+
+Se a branch for abandonada, **o número continua queimado** e a issue é o registro de que
+ele foi consumido. Um código aposentado sem nunca ter existido custa menos que um código
+reutilizado.
+
+---
+
+## 7. Trabalho na branch
+
+A `main` é protegida. Toda mudança chega a ela por pull request revisado, sem exceção,
+incluindo documentação, manutenção e incremento de versão. A única escrita direta são tags
+anotadas sobre commits já mesclados.
+
+### 7.1 Convenção de nomes
+
+O projeto tem dois tipos de branch, e o nome diz qual é:
+
+| Prefixo | Uso | Exemplo |
+|---|---|---|
+| `release/` | O ciclo que fecha uma versão inteira | `release/v0.4.0` |
+| `feat/` | Funcionalidade pontual | `feat/note-move` |
+| `fix/` | Correção pontual | `fix/graph-touch-target` |
+| `docs/` | Documentação e governança do repositório | `docs/development-process` |
+| `chore/` | Manutenção: dependências, CI, configuração de build | `chore/bump-cdk` |
+
+`release/` não usa prefixo de Conventional Commits de propósito: a branch de um ciclo
+contém muitos tipos ao mesmo tempo, e rotulá-la `feat/` seria impreciso no primeiro `fix`
+que entrar nela. Os commits **dentro** dela continuam usando os tipos normais, e é ali que
+o Conventional Commits pertence.
+
+Nomes de branch são escritos em en-US, como todo o restante que não é prosa.
+
+> **Convenção anterior, preservada como histórico:** as branches `feature-2026.000001`,
+> `feature-2026.000002` e `feature-2026.000003` correspondem, na ordem, às versões
+> `0.1.0`, `0.2.0` e `0.3.0`. O sequencial exigia uma tabela de tradução para dizer o que a
+> branch fazia, e é isso que `release/vX.Y.Z` corrige. As branches antigas não são
+> renomeadas, porque estão referenciadas nos pull requests já mesclados.
+
+### 7.2 Commits incrementais
+
+Commite e envie ao longo da branch, nunca acumulando tudo no fim. Todo commit precisa ser
+construível e não pode quebrar os testes existentes.
+
+A unidade de commit é a **mudança de comportamento inteira**: código, teste, documento e
+`CHANGELOG.md` no mesmo commit. Não é trabalho a mais, é o que impede a documentação de
+ser escrita de memória dias depois da decisão, quando o motivo dela já evaporou. Também é
+a tarefa que se corta quando a branch atrasa, e cortá-la é justamente o que não se pode.
+
+### 7.3 Quando o commit toca cada documento
+
+| Toca `docs/` ou `README.md` | Não toca |
+|---|---|
+| Cria ou altera uma `RN-XXX` | Refatoração sem mudança de comportamento |
+| Muda a matriz de permissões ou o teto de papel por vault | Ajuste de teste, lint ou formatação |
+| Muda o contrato de uma ferramenta MCP: nome, argumento ou formato de retorno | Mudança de infraestrutura sem efeito visível |
+| Muda um limite declarado, uma entidade ou a linguagem ubíqua | Correção que **restaura** o comportamento que o documento já descreve |
+| Muda uma decisão de arquitetura registrada | Trabalho intermediário que ainda não mudou nada afirmável |
+| Muda o procedimento de instalação, os pré-requisitos ou os scripts de `deploy-aws/` | |
+| Entra ou sai uma capacidade que o `README.md` cita | |
+
+As três últimas linhas da coluna da esquerda são responsabilidade específica do
+`README.md`, e ele é o único documento **executável na prática**: alguém segue os passos
+dele em uma conta AWS de verdade. Quando um script de `deploy-aws/` muda e o `README` não,
+o defeito só aparece na próxima instalação, quando já custou caro.
+
+Na `main`, documento e código nunca divergem. Dentro da branch eles podem estar à frente do
+que está publicado, porque a branch é espaço de trabalho e os dois avançam em par: se ela
+morrer no meio, nada inconsistente chegou à `main`; se for mesclada, chega tudo junto por
+construção.
+
+---
+
+## 8. Pull request
+
+Toda descrição de PR tem duas seções obrigatórias: um **Resumo das mudanças** e uma
+**Análise de produtividade com IA**.
+
+No resumo, toda mudança que implementa ou altera uma regra de negócio cita o código
+`RN-XXX` dela, e toda mudança originada de feedback referencia a issue que a originou, com
+`Closes #N`. Essa referência é o que permite, meses depois, responder por que uma regra
+existe apontando para a frase de uma pessoa real que sentiu o atrito.
+
+### 8.1 Análise de produtividade com IA
+
+Acrescente esta seção ao corpo de todo PR. Colete os dados do histórico do git e do diff, sem adivinhar e sem omitir campos.
+
+```
+## Análise de produtividade com IA
+
+| Métrica | Valor |
+|---|---|
+| Linhas de código manipuladas (adicionadas + removidas) | {loc_added + loc_removed} ({loc_added} adicionadas, {loc_removed} removidas) |
+| Duração da branch | {duration} (de `{branch_start_date}` a `{pr_date}`) |
+| Tecnologias envolvidas | {lista separada por vírgula} |
+
+### Esforço humano estimado (sem assistência de IA)
+
+> **Esforço estimado:** {hours}h, equivalente a aproximadamente {total_days} dias de trabalho (8h/dia) ou {total_weeks} semanas de trabalho (40h/semana).
+```
+
+**Como preencher cada campo:**
+
+- **Linhas de código manipuladas:** rode `git diff --stat origin/main...HEAD` e some as inserções e remoções da linha final de totais. Exclua da contagem os arquivos de lock (`pnpm-lock.yaml`, `package-lock.json`).
+- **Duração da branch:** use a data do primeiro commit da branch como início, e a data de hoje como data do PR.
+- **Tecnologias envolvidas:** liste toda linguagem, framework, biblioteca e ferramenta tocada pelo diff, por exemplo TypeScript, Node.js, AWS CDK, DynamoDB, S3, Bedrock, React, Vite, Hono, Zod. Derive das extensões dos arquivos alterados e dos imports, e não liste tecnologias que existem no repositório mas não foram tocadas por este PR.
+- **Esforço humano estimado:** produza uma estimativa realista única de quanto tempo uma pessoa engenheira levaria para entregar o mesmo resultado sozinha, sem assistência de IA. Baseie a estimativa em:
+  - **Volume:** total de linhas manipuladas (adicionadas + removidas), ponderado por complexidade, distinguindo código repetitivo de código com lógica densa.
+  - **Amplitude:** número de tecnologias distintas envolvidas, já que cada tecnologia adicional acrescenta curva de aprendizado e custo de integração.
+  - **Indicadores de escopo:** número de agregados, portas, adaptadores, rotas de API, ferramentas MCP e stacks de CDK novos, além da cobertura de testes acrescentada.
+  - Expresse o resultado em horas, por exemplo `8h` ou `2h`. Se o escopo for muito pequeno (menos de 1h), use `< 1h`.
+- **Esforço total estimado:** use o valor único de horas acima. Em seguida calcule:
+  - `{total_days}` = `{hours}` ÷ 8, arredondado para uma casa decimal
+  - `{total_weeks}` = `{hours}` ÷ 40, arredondado para uma casa decimal
+  - Se a estimativa for `< 1h`, trate como `0.5h` para efeito de conta e registre a aproximação na própria linha.
+
+### 8.2 Merge bloqueado
+
+**Se um merge estiver bloqueado, pare e reporte.** Não se contorna a proteção de branch,
+mesmo tendo direito administrativo para isso: a regra de proteção é a camada real de
+garantia, e contorná-la em silêncio anula o motivo de ela existir.
+
+---
+
+## 9. Release
+
+A versão canônica do produto vive no `CLAUDE.md`, em § Identidade do projeto → Versão
+base, e precisa ser propagada para todo `package.json` do monorepo e para o
+`CHANGELOG.md` antes do commit de release. Quando incrementar, e a estratégia de
+versionamento em três camadas, estão em `CLAUDE.md` § Políticas operacionais → Versionamento
+e em `architecture-guide.md` §23.
+
+O `[Unreleased]` do `CHANGELOG.md` é o buffer entre um ciclo e o próximo. Toda entrada
+nasce nele e espera ali. **Mudança que não altera nada implantável não corta versão**, e
+documentação e governança do repositório são o caso típico: cortar uma versão só para elas
+marcaria uma tag e publicaria um Release apontando para um artefato idêntico ao anterior, e
+o número passaria a afirmar algo que não aconteceu. A mudança espera o próximo ciclo e sai
+dentro dele, com a data do corte, não a data em que foi escrita. Quem precisa da data exata
+de cada mudança tem o histórico do git, que é onde ela vive.
+
+**O corte leva o `[Unreleased]` inteiro, e é o acúmulo que decide o número.** Não se
+escolhe um subconjunto: o intervalo `vX.Y.Z...vX.Y.Z+1` do rodapé do `CHANGELOG.md` cobre
+todos os commits entre as duas tags, e uma seção que omitisse parte deles mentiria sobre o
+que mudou. Por isso o incremento é o **maior que qualquer entrada acumulada exigir**, e não
+o que o último pull request exigiria sozinho. Um `[Unreleased]` com documentação e uma
+correção de defeito fecha como correção; se antes do corte entrar uma ferramenta MCP nova,
+uma rota ou uma funcionalidade visível, o mesmo acúmulo fecha como incremento menor, e a
+correção sai dentro dele.
+
+### 9.1 Fluxo de incremento de versão
+
+Execute nesta ordem exata:
+
+```
+1. Update  CLAUDE.md                                       ← bump "Versão base" under Identidade do projeto
+2. Update  memorysmith-backend/package.json
+           memorysmith-backend/packages/*/package.json
+           memorysmith-backend/services/*/package.json     ← every service package
+3. Update  memorysmith-frontend/package.json
+4. Update  memorysmith-infra/package.json
+5. Update  CHANGELOG.md                                    ← rename [Unreleased] to [X.Y.Z] with the cut date,
+                                                             open a fresh empty [Unreleased] above it, and add
+                                                             the compare links at the bottom of the file
+6. Commit on a release branch  "chore(release): bump version to vX.Y.Z"
+7. Push the branch, open a PR, and merge it into main (never push the bump directly to main)
+8. Tag the merged commit on main  git tag vX.Y.Z && git push origin vX.Y.Z
+9. Publish a GitHub Release for the tag, with notes copied from that version's CHANGELOG section
+   gh release create vX.Y.Z --title "vX.Y.Z" --notes-file <changelog-section>
+```
+
+Os três projetos compartilham uma única versão de produto, porque são implantados juntos e uma divergência entre eles nunca significa nada para o usuário.
+
+Os passos 1 a 5 precisam entrar no mesmo commit da branch de release. O incremento de versão chega à `main` somente pelo PR do passo 7, e nunca por push direto. Nunca marque a tag antes do PR estar mesclado e nunca envie uma tag cujo commit ainda não esteja na `main`. A tag precisa apontar para o commit mesclado, e o GitHub Release do passo 9 é criado a partir dessa tag.
+
+### 9.2 Dois pontos que pertencem ao processo
+
+
+- **A branch de um ciclo é `release/vX.Y.Z`**, e o commit de incremento de versão entra
+  nela, não em uma branch separada.
+- **Ao cortar a versão**, as issues entregues no ciclo são fechadas com referência ao PR, e
+  as que ficaram para trás recebem a versão alvo seguinte no Project. Uma issue aceita que
+  ninguém reavaliou no fim do ciclo é uma promessa silenciosa a quem a reportou.
+
+---
+
+## 10. O que nunca entra em `docs/`
+
+| Isto | Vai para |
+|---|---|
+| Hipótese de necessidade, pedido, atrito relatado | Issue `feedback` |
+| Escopo em discussão, alternativa em avaliação | Issue `proposta` |
+| Roadmap, ordem de construção, versão alvo | Project |
+| Risco ainda não endereçado | Issue `risco` ou `risco-tecnico` |
+| Questão não decidida | Issue `questao` |
+| Histórico de mudanças, nota de versão, data de revisão | `CHANGELOG.md` e o histórico do git |
+
+A última linha é anterior a este processo e continua valendo com a mesma força: rodapés do
+tipo "documento para uso interno, última revisão X, versão Y" são proibidos em qualquer
+arquivo de `docs/`. Eles duplicam o que o git já registra, saem de sincronia
+imediatamente, e acrescentam ruído que o leitor precisa filtrar.

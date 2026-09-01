@@ -214,6 +214,7 @@ Outros contratos que o mesmo conjunto de clientes impõe ao servidor, e que vale
 Um mesmo servidor MCP remoto pode ser consumido por clientes bem diferentes: aplicações web e desktop, ferramentas de linha de comando, ambientes de trabalho agentivo e IDEs. Isso muda duas coisas para quem escreve o servidor:
 
 - **A descrição da tool é interface de usuário.** É o texto que o modelo lê para decidir se e como chamar. Uma descrição vaga produz chamada errada com a mesma facilidade com que um botão mal rotulado produz clique errado.
+- **A memória de plataforma não atravessa a fronteira do fornecedor.** O que um cliente retém sobre quem o usa, preferências, contexto de projeto, histórico de conversa, é recurso daquele produto e daquele usuário: não é lido pelo cliente de outro fabricante nem pelo agente de outra pessoa. Num grupo em que cada um escolheu a sua ferramenta, memória de plataforma fragmenta por pessoa e por fornecedor ao mesmo tempo. Um servidor MCP é o oposto disso: o estado vive do lado do servidor, e qualquer cliente que fale o protocolo alcança o mesmo estado.
 - **A sessão pode ser longa e não interativa.** Um trabalho de ingestão automatizado roda por muito tempo sem ninguém olhando. Qualquer estado ambíguo que possa mudar no meio do caminho, como qual organização está ativa, precisa ser fixado no início, e não resolvido por omissão a cada chamada.
 
 ### 3.6 Boas práticas de desenho de tools
@@ -278,6 +279,28 @@ O efeito de um texto fraco em qualquer um dos três níveis é **diferido**: nã
 Um agente diante de uma pasta de arquivos infere a organização a partir dos nomes. Um agente diante de uma estrutura **declarada**, com cada categoria descrevendo o que guarda e com uma ordem deliberada, não precisa inferir nada.
 
 A diferença é maior na escrita que na leitura. Para ler, inferir errado custa uma busca a mais. Para escrever, inferir errado custa uma nota no lugar errado, que só será descoberta depois, se for.
+
+### 4.4 Fluência em IA: os quatro D e a memória comum
+
+Trabalhar bem com um agente é competência descrita, não talento pessoal. O framework de *AI Fluency* organiza essa competência em quatro práticas, os quatro D:
+
+| Prática | O que é |
+|---|---|
+| ***Delegation*** | Decidir o que fica com a pessoa, o que vai para o agente e como o trabalho se divide entre os dois |
+| ***Description*** | Comunicar ao agente o que se quer: o contexto do problema, o produto esperado e o processo a seguir |
+| ***Discernment*** | Avaliar criticamente o que volta, o resultado, o raciocínio e o comportamento, em vez de aceitar por plausibilidade |
+| ***Diligence*** | Responder pelo que se produz com o agente: escolher a ferramenta, ser transparente sobre o uso e verificar antes de publicar |
+
+As quatro compartilham uma dependência pouco discutida: **um corpo de conhecimento compartilhado, persistente e legível pelas duas partes**. Sem ele, cada prática paga um imposto que não é atribuído à causa certa.
+
+| Prática | O imposto quando não há base comum |
+|---|---|
+| *Delegation* | Só se delega tarefa que o agente alcança. Se o material está numa pasta local ou na cabeça de alguém, o que se delega é a redigitação do contexto, não o trabalho |
+| *Description* | O contexto que não está escrito em lugar nenhum é redescrito a cada sessão, um pouco diferente a cada vez, o que move o resultado sem que ninguém identifique a causa |
+| *Discernment* | Avaliar exige referencial. Resposta sem fonte só pode ser julgada por plausibilidade, que é exatamente o critério que um modelo otimiza |
+| *Diligence* | Responder por um trabalho significa poder mostrar em que material ele se apoiou, quem escreveu aquele material e o que ele dizia na data |
+
+É a conclusão de §4.3 vista pelo outro lado. A base compartilhada não é o arquivo onde o resultado é depositado no fim: é a condição de a colaboração ser boa desde o começo. E, para cumprir esse papel, ela precisa ser barata nas duas direções, barata de escrever, porque quem mais escreve nela é o agente durante o trabalho, e barata de ler, porque a pessoa precisa julgar, corrigir e decidir sobre ela sem trocar de ferramenta.
 
 ---
 
@@ -503,6 +526,7 @@ Um sistema de arquivos não tem alguns conceitos que uma base tem: ordem entre i
 
 | Termo | Significado |
 |---|---|
+| **AI Fluency** | Framework de quatro práticas para o trabalho com agentes: *Delegation*, *Description*, *Discernment* e *Diligence* |
 | **Backlink** | Lista das notas que apontam para a nota atual |
 | **Chunk** | Trecho de documento recortado para vetorização |
 | **CommonMark** | Especificação formal e estrita de Markdown |
@@ -551,6 +575,9 @@ Um sistema de arquivos não tem alguns conceitos que uma base tem: ordem entre i
 - RFC 7591: OAuth 2.0 Dynamic Client Registration Protocol
 - RFC 7636: Proof Key for Code Exchange (PKCE)
 - RFC 8707: Resource Indicators for OAuth 2.0
+
+**Colaboração com agentes**
+- Anthropic, *AI Fluency: Framework & Foundations*, curso de Rick Dakan e Joseph Feller: <https://www.anthropic.com/ai-fluency>
 
 **Recuperação**
 - Lewis et al., *Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks* (2020)

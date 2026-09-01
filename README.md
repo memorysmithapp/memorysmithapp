@@ -1,6 +1,6 @@
 # MemorySmith.app
 
-> **Structured knowledge, natively readable and writable by agents.**
+> **Structured knowledge, natively readable and writable by humans and agents.**
 
 O MemorySmith.app hospeda cofres de conhecimento em **Markdown que se autodescrevem** e os serve nativamente às ferramentas de IA por um **MCP server remoto**. O agente não apenas lê um vault: ele escreve nele, obedecendo à Orientação do próprio vault e ao Modelo de cada pasta.
 
@@ -8,15 +8,18 @@ O MemorySmith.app hospeda cofres de conhecimento em **Markdown que se autodescre
 
 ## O problema
 
-O fluxo que hoje funciona para trabalhar conhecimento com um agente é simples: uma pasta local de arquivos `.md`, um documento na raiz explicando ao agente como estruturar as notas, e um editor de vault por cima para navegar. Funciona porque o agente lê a pasta sempre que precisa de contexto, e porque a estrutura da pasta já diz onde cada coisa vai.
+Um time toca um projeto: uma auditoria, um processo regulatório, uma pesquisa, uma obra, o lançamento de um produto. Cada pessoa faz a parte dela acompanhada de um agente, e não é o mesmo agente para todo mundo: uma trabalha no Claude, outra no ChatGPT, uma terceira no assistente que já vem embutido na ferramenta que ela usa. A escolha é pessoal, muda com o tempo e não há por que uniformizá-la.
 
-Ele quebra em três pontos:
+O que não existe é onde essa memória fique. Ela se parte em duas direções ao mesmo tempo:
 
-1. **Colaboração.** O conteúdo é local, e duas pessoas não trabalham no mesmo corpo de conhecimento.
-2. **Navegação compartilhada.** Editores de vault são clientes locais, e cliente local é uma janela ruim para um repositório remoto.
-3. **Muitos cofres.** Separar assuntos vira um punhado de pastas soltas, sem lugar nenhum que as liste.
+- **Pelo tempo.** A memória do agente termina quando a conversa termina. A próxima começa do zero, e alguém redescreve tudo de novo.
+- **Pelo fornecedor.** O que uma plataforma lembra de quem a usa fica nela, e nenhum agente de mais ninguém lê.
 
-O MemorySmith.app é o backend remoto desse mesmo fluxo. Mantém o formato (Markdown puro), mantém a prática (uma orientação na raiz, um molde por pasta) e acrescenta o que a pasta local nunca teve: acesso remoto autenticado, papéis, histórico defensável e descoberta por grafo e por busca.
+Somadas, elas produzem tantas memórias parciais e privadas quantas forem as pessoas multiplicadas pelas plataformas, sobre um trabalho que é um só. A conta chega como **retrabalho**, porque cada tarefa começa redescrevendo ao agente o que o time já tinha decidido; como **divergência**, porque duas pessoas contam o mesmo fato de dois jeitos e não há onde conferir qual vale; e como **desconfiança**, porque a resposta volta sem a fonte, conferir custa mais do que aceitar, e o que se aceita sem conferir vai corroendo o valor de tudo que está guardado.
+
+Falta uma memória comum às pessoas e aos agentes, que dure além da sessão e não pertença a nenhuma plataforma. O arranjo que mais se aproxima disso hoje é uma pasta local de `.md`, com um documento na raiz explicando ao agente como escrever nela e um editor de vault por cima para navegar. Ele acerta o essencial, o formato serve aos dois lados e a estrutura está declarada, mas é de uma pessoa só: o conteúdo não sai da máquina, o editor é um cliente ruim para um repositório remoto, e separar assuntos vira um punhado de pastas soltas que nada lista.
+
+O MemorySmith.app é o backend remoto desse mesmo fluxo. Mantém o formato (Markdown puro), mantém a prática (uma orientação na raiz, um molde por pasta) e acrescenta o que a pasta local nunca teve: acesso remoto autenticado, papéis, histórico defensável e descoberta por grafo e por busca. Contra a divisão por fornecedor ele age pelo protocolo, e não pedindo que todos usem a mesma ferramenta: o vault é servido por MCP, que clientes de fabricantes diferentes já falam, então cada pessoa continua onde prefere trabalhar e todas alcançam o mesmo vault.
 
 A tese cabe em uma frase: **o produto não é guardar `.md`, é entregar contexto estruturado ao agente sem atrito.** Se ler um vault hospedado der mais trabalho que ler uma pasta local, o produto perdeu. É por isso que o MCP aqui não é acessório: ele é a interface principal, e a API interna existe para servir a interface web.
 
@@ -47,13 +50,15 @@ E não são arquivos. São **papéis**: o vault aponta um documento como sua Ori
 
 ## O dia a dia
 
-O ciclo tem duas metades, e a primeira é a que costuma faltar nas ferramentas de conhecimento.
+O ciclo tem três momentos, e o primeiro é o que costuma faltar nas ferramentas de conhecimento.
 
 **Ingestão.** Você entrega ao agente um corpo de material, uma norma publicada, um livro, a documentação de um sistema, um lote de acórdãos, e pede que ele estude e registre. O agente lê o Vault Context e encontra uma pasta cuja descrição diz, com todas as letras:
 
 > **Permanent Notes / Concepts**: conceitos atômicos, independentes da norma que os originou, sempre com a base normativa citada por dispositivo. "Consumidor Livre" é conceito; "o art. 12 diz X" é literatura.
 
 Essa frase é a regra de triagem, e o agente a segue: o resumo do artigo vai para a pasta de literatura, o conceito que o artigo institui vira nota própria em `Concepts`, no formato do Modelo daquela pasta, com os wikilinks apontando para o que já existe. Você não digitou nenhuma dessas notas, e ainda assim elas estão exatamente no padrão que você combinou.
+
+**Curadoria.** Material capturado ainda não é conhecimento. Alguém precisa ler o que entrou, corrigir o que ficou torto, ligar o que ficou solto e julgar o que já está maduro. É na interface web que isso acontece: a nota e a estrutura são editáveis, o `maturity` e o `reviewed` de cada nota dizem em que estágio ela está, e a Visão geral e o grafo mostram como o vault está distribuído. Esse trabalho é humano, assistido pelo agente, e não sai de graça da ingestão.
 
 **Consumo.** Semanas depois, outro trabalho começa: um parecer, uma auditoria, um relatório, um runbook de incidente. O agente entra no mesmo vault, e em vez de reler quinhentas páginas de fonte primária ele lê o que já foi destilado, na ordem em que o vault manda ler, seguindo os links entre as notas.
 
@@ -63,6 +68,7 @@ O que muda na prática:
 - **A estrutura é combinada uma vez.** Quem garante que a nota nova continua no padrão é o vault, não a sua memória nem a do agente.
 - **O que foi escrito é defensável.** Cada revisão registra quem escreveu, quando e com qual agente, e um parecer emitido em março pode ser demonstrado com a base como ela estava em março.
 - **Dá para trabalhar em dois.** A base vive em uma assinatura com papéis, e a escrita concorrente é detectada em vez de sobrescrever em silêncio.
+- **Cada um continua na ferramenta que prefere.** O vault é servido por MCP, que é padrão aberto, então qualquer cliente que fale o protocolo alcança o mesmo vault, com o mesmo conteúdo e sob o mesmo papel.
 - **Sai inteira quando você quiser.** O export devolve `.md` puros em uma árvore legível, sem formato proprietário.
 
 ## Duas interfaces sobre o mesmo vault
@@ -485,6 +491,20 @@ Sem `VITE_API_ORIGIN` a aplicação recusa subir e diz o porquê. Ela já teve u
 | `503 Service Unavailable` intermitente nas primeiras chamadas | Conta nova costuma vir com 10 execuções simultâneas de Lambda. Peça aumento de quota à AWS |
 | `This CDK CLI is not compatible...` | Algum `cdk` global antigo no PATH. Os scripts sempre usam o CLI fixado no projeto |
 
+## Como reportar um problema, ou pedir alguma coisa
+
+Se a tabela acima não resolveu, ou se você usou o produto e ele deixou a desejar em algum ponto, abra uma issue. **Não é preciso saber qual é a solução**, e nem descrever o que deveria ser construído: o mais útil que você pode contar é o que estava tentando fazer, o que aconteceu, e o que esperava que acontecesse.
+
+| Situação | Onde |
+| --- | --- |
+| Alguma coisa custou caro, confundiu ou faltou | [Abrir uma issue de feedback](https://github.com/memorysmithapp/memorysmithapp/issues/new?template=01-feedback.yml) |
+| Você viu dado de outra conta, ou algo que pareça falha de segurança | [Canal privado](https://github.com/memorysmithapp/memorysmithapp/security/advisories/new), nunca uma issue pública. Ver [`SECURITY.md`](SECURITY.md) |
+| Dúvida sobre instalação ou uso | [Abrir uma issue de feedback](https://github.com/memorysmithapp/memorysmithapp/issues/new?template=01-feedback.yml), marcando que é dúvida |
+
+**Este repositório é público.** Ao reportar, não cole conteúdo real das suas notas, nomes de cliente ou dados de negócio. Descreva a situação com exemplos inventados, ou mande identificadores (`vaultId`, `noteId`) no lugar do texto; funciona igual para quem vai ler.
+
+O que acontece com a sua issue depois de aberta, incluindo como ela é triada e por que às vezes a resposta é uma recusa registrada em vez de uma entrega, está em [`docs/development-process.md`](docs/development-process.md).
+
 ## Onde está o quê
 
 ```
@@ -501,5 +521,7 @@ core/
 | [`docs/software-vision.md`](docs/software-vision.md) | O que o produto faz e sob qual regra: visão, linguagem ubíqua, papéis, entidades, regras de negócio, catálogo MCP e telas |
 | [`docs/architecture-guide.md`](docs/architecture-guide.md) | Como ele é construído: DDD tático, hexagonal, single-table no DynamoDB, outbox, MCP e OAuth, infraestrutura e testes |
 | [`docs/knowledge-base.md`](docs/knowledge-base.md) | O domínio em que ele opera: Markdown, gestão de conhecimento, MCP, recuperação, auditoria e LGPD |
+| [`docs/development-process.md`](docs/development-process.md) | Como o trabalho flui: da issue de quem usa até o merge, com triagem, roadmap e o que cada commit precisa tocar |
 | [`CLAUDE.md`](CLAUDE.md) | As regras de trabalho do repositório, incluindo as treze decisões de desenho inegociáveis |
+| [`SECURITY.md`](SECURITY.md) | Como reportar uma falha de isolamento ou vulnerabilidade, em privado |
 | [`CHANGELOG.md`](CHANGELOG.md) | O que mudou em cada versão |

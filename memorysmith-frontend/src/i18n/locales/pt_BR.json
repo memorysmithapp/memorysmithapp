@@ -1,7 +1,7 @@
 {
   "app": {
     "title": "MemorySmith",
-    "tagline": "Conhecimento estruturado, que agentes leem e escrevem nativamente.",
+    "tagline": "Conhecimento estruturado, que humanos e agentes leem e escrevem nativamente.",
     "version": "Versão {{version}}"
   },
   "auth": {

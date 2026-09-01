@@ -1,0 +1,88 @@
+name: Proposta de escopo
+description: A necessidade já destilada, pronta para decisão de roadmap. Saída da triagem, não entrada.
+title: '[proposta] '
+labels: ['proposta']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use este formulário **depois** da triagem, quando o atrito já foi entendido e o
+        escopo está fechado. Uma proposta que ainda não sabe qual regra cria não está
+        pronta para virar branch.
+
+        O processo completo está em
+        [`docs/development-process.md`](https://github.com/memorysmithapp/memorysmithapp/blob/main/docs/development-process.md).
+
+  - type: textarea
+    id: necessidade
+    attributes:
+      label: A necessidade, destilada
+      description: |
+        O atrito real por trás do que foi pedido, escrito na linguagem ubíqua do projeto.
+        Não repita o texto da issue de feedback; diga o que ela revelou.
+    validations:
+      required: true
+
+  - type: input
+    id: origem
+    attributes:
+      label: Issues de feedback que originaram esta proposta
+      description: Números separados por vírgula. Deixe em branco se a origem foi interna.
+      placeholder: '#12, #15'
+    validations:
+      required: false
+
+  - type: dropdown
+    id: tipo
+    attributes:
+      label: Tipo
+      options:
+        - Lacuna, o produto não faz e passará a fazer
+        - Defeito, o produto diverge do que o doc já afirma
+        - Documentação, resolve-se escrevendo
+        - Risco, prevenção antes de doer
+    validations:
+      required: true
+
+  - type: textarea
+    id: regras
+    attributes:
+      label: Regras de negócio criadas ou alteradas
+      description: |
+        Reserve aqui os códigos `RN-XXX`, um por linha, com uma frase do que cada um dirá.
+        **O código é reservado nesta issue e o texto normativo só entra no documento junto
+        com o código que o cumpre.** Se nenhuma regra muda, escreva "nenhuma".
+      placeholder: |
+        RN-KNW-025, cria: uma nota pode nascer a partir do Template da pasta de destino
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: docs
+    attributes:
+      label: Documentos que esta entrega vai atualizar
+      description: Marque o que o commit precisará tocar. Se nada for marcado, justifique abaixo.
+      options:
+        - label: '`docs/software-vision.md`, porque muda uma regra, entidade ou limite'
+        - label: '`docs/architecture-guide.md`, porque muda uma decisão técnica'
+        - label: '`docs/knowledge-base.md`, porque muda um fato do domínio'
+        - label: '`README.md`, porque muda o que quem chega vê, instala ou opera'
+        - label: 'Nenhum, e a justificativa está no critério de pronto'
+
+  - type: textarea
+    id: pronto
+    attributes:
+      label: Critério de pronto
+      description: Verificável, não subjetivo. O que precisa ser verdade para esta issue fechar.
+    validations:
+      required: true
+
+  - type: textarea
+    id: fora
+    attributes:
+      label: O que fica declaradamente de fora
+      description: |
+        O que alguém poderia razoavelmente esperar desta entrega e não vai receber.
+        Escrever isso aqui evita a discussão no meio da branch.
+    validations:
+      required: false
