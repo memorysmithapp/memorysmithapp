@@ -70,65 +70,21 @@ Ao criar um arquivo, decida onde ele fica perguntando o que ele é, não para qu
 
 ---
 
-## Referência de arquitetura
+## Documentação canônica
 
-A arquitetura de engenharia completa vive em um único documento canônico:
-
-| Arquivo | Idioma | Papel |
-|---|---|---|
-| [`docs/architecture-guide.md`](docs/architecture-guide.md) | Português (pt-BR) | **Versão canônica**, fonte única de verdade de todas as decisões de engenharia |
-
-Contém: stack de tecnologia, estrutura do monorepo, DDD tático (agregados, value objects, eventos de domínio), portas e adaptadores hexagonais, isolamento por assinatura, desenho single-table no DynamoDB, Content Slots, transações e outbox, projeções de discovery, armazenamento de proveniência, integração MCP/OAuth, API interna, infraestrutura, requisitos não funcionais, estratégia de testes, CI/CD, antipadrões e as decisões de implementação registradas.
-
-**Não** contém: visão de produto, regras de negócio (códigos `RN-XXX`), telas de usuário ou fatos gerais do domínio. Esses vivem nos dois documentos abaixo.
-
----
-
-## Base de conhecimento
-
-A documentação do projeto se divide em duas outras preocupações, conhecimento de domínio e visão de software:
-
-### Base de conhecimento de domínio (gestão de conhecimento em Markdown e o ecossistema de agentes)
-
-| Arquivo | Idioma | Papel |
-|---|---|---|
-| [`docs/knowledge-base.md`](docs/knowledge-base.md) | Português (pt-BR) | **Versão canônica**, fatos de domínio sobre o espaço em que o produto opera |
-
-Contém **apenas fatos de domínio** que continuariam verdadeiros se este produto não existisse: Markdown e sua sintaxe universal, a prática de gestão de conhecimento pessoal (vaults, wikilinks, backlinks, templates), o Model Context Protocol e seu modelo de autorização, como clientes de agente consomem conectores, engenharia de contexto, recuperação (embeddings, chunking, RAG) e seus modos de falha, grafos de conhecimento, exigências de auditoria e proveniência em trabalho regulado, obrigações da LGPD e conceitos gerais de isolamento em SaaS multi-tenant. Nenhuma entidade do MemorySmith, nenhum código `RN-XXX`, nenhuma arquitetura.
-
-### Visão de software (requisitos de produto e regras de negócio)
-
-| Arquivo | Idioma | Papel |
-|---|---|---|
-| [`docs/software-vision.md`](docs/software-vision.md) | Português (pt-BR) | **Versão canônica**, autoritativa para todas as decisões de implementação |
-
-Contém: visão e tese do produto, princípios de produto, linguagem ubíqua, o **modelo de negócio** (Subscription → Vault, ciclo de vida da assinatura, papéis), matriz de permissões e teto de papel por vault, mapa de bounded contexts do ponto de vista de produto, entidades de domínio com definição de campos, regras de negócio (códigos `RN-XXX`), o catálogo de ferramentas MCP como **contrato de produto**, telas e export.
-
-Para detalhes técnicos de implementação (desenho de chaves do DynamoDB, Content Slots, mecânica do outbox, triggers do Cognito, stacks de CDK), sempre remeta a `docs/architecture-guide.md`. O `software-vision.md` não pode duplicar esse conteúdo.
-
-### Processo de desenvolvimento
-
-| Arquivo | Idioma | Papel |
-|---|---|---|
-| [`docs/development-process.md`](docs/development-process.md) | Português (pt-BR) | **Versão canônica** de como o trabalho flui, da necessidade de quem usa até o merge na `main` |
-
-Contém: o papel de cada artefato, o ciclo de cinco etapas, a captura de feedback, a triagem e suas quatro saídas, a priorização e o roadmap no Project, a reserva de código `RN-XXX`, a convenção de nomes de branch, o critério de quando um commit toca cada documento, o formato do pull request e o fluxo de release.
-
-### Regra de fronteira entre os documentos
-
-Antes de escrever um parágrafo em `docs/`, decida a qual pergunta ele responde:
+Quatro documentos em `docs/`, todos em pt-BR, cada um a fonte única de verdade de uma pergunta. **Cada documento se delimita no próprio preâmbulo**, que diz o que ele contém e o que não contém, e este arquivo não repete esse inventário. Aqui fica só a regra de onde escrever.
 
 | O parágrafo responde | Ele pertence a |
 |---|---|
-| "Isto é verdade sobre Markdown / MCP / auditoria em geral" | `knowledge-base.md` |
-| "Isto é o que o nosso produto faz, e sob qual regra" | `software-vision.md` |
-| "Isto é **como o software é construído**" | `architecture-guide.md` |
-| "Isto é **como o trabalho flui**, da necessidade ao merge" | `development-process.md` |
+| "Isto é verdade sobre Markdown / MCP / auditoria em geral" | [`docs/knowledge-base.md`](docs/knowledge-base.md) |
+| "Isto é o que o nosso produto faz, e sob qual regra" | [`docs/software-vision.md`](docs/software-vision.md) |
+| "Isto é **como o software é construído**" | [`docs/architecture-guide.md`](docs/architecture-guide.md) |
+| "Isto é **como o trabalho flui**, da necessidade ao merge" | [`docs/development-process.md`](docs/development-process.md) |
 | "Isto é o que ainda vamos **decidir, avaliar ou construir**" | **Issue no GitHub, nunca em `docs/`** |
 
 Quando um fato parece caber em dois documentos, ele entra em exatamente um e o outro **o referencia por seção**, jamais o repete. Duplicação entre esses arquivos é o modo de falha que esta estrutura existe para evitar.
 
-As duas últimas linhas separam o que mais confunde. O teste: "o outbox garante entrega ao menos uma vez" muda o código, então é arquitetura; "toda mudança chega à `main` por pull request" não muda uma linha, muda o caminho até ela, então é processo. E a linha final é absoluta: **hipótese de necessidade, roadmap, risco em aberto e questão não decidida nunca entram em `docs/`**, porque descrevem futuro.
+As duas últimas linhas da tabela separam o que mais confunde. O teste: "o outbox garante entrega ao menos uma vez" muda o código, então é arquitetura; "toda mudança chega à `main` por pull request" não muda uma linha, muda o caminho até ela, então é processo. E a linha final é absoluta: **hipótese de necessidade, roadmap, risco em aberto e questão não decidida nunca entram em `docs/`**, porque descrevem futuro.
 
 > **O documento nunca descreve futuro. Se está no documento, está em produção.**
 
@@ -143,7 +99,6 @@ RN-{CONTEXT}-{NNN}
 `CONTEXT` é a sigla de três letras do bounded context: `SUB` (assinatura e isolamento), `ACC` (acesso: membros, papéis, convites), `KNW` (conhecimento), `DSC` (discovery), `AUD` (auditoria), `AGT` (acesso de agente / MCP), `PRT` (portabilidade).
 
 Os códigos são **append-only**. Nunca renumere uma regra e nunca reutilize um código aposentado, porque outros documentos, commits e issues os referenciam. Uma regra que deixou de valer é marcada como removida na própria linha, preservando seu número.
-
 ---
 
 ## Higiene da documentação

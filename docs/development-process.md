@@ -1,14 +1,13 @@
 # Processo de desenvolvimento
 
-Como o trabalho flui neste projeto, da necessidade de quem usa até o merge na `main`.
+Este documento é a fonte da verdade para **como o trabalho flui**, da necessidade de quem
+usa até o merge na `main`. Descreve o ciclo de vida de uma mudança, a captura de feedback,
+a triagem, a priorização, a reserva de código `RN-XXX`, o trabalho na branch, o pull
+request e o release. O papel de cada artefato, este inclusive, está em §1.
 
-Este documento responde a uma pergunta que nenhum dos outros três responde. O
-`knowledge-base.md` diz o que é verdade no domínio, o `software-vision.md` diz o que o
-produto faz e sob qual regra, o `architecture-guide.md` diz como o software é construído,
-e aqui está **como se trabalha**. A distinção entre os dois últimos é a que mais confunde,
-e o teste é simples: "o outbox garante entrega ao menos uma vez" muda o código, então é
-arquitetura; "toda mudança chega à `main` por pull request" não muda uma linha de código,
-muda o caminho até ele, então é processo.
+Ele não diz o que é verdade no domínio ([`knowledge-base.md`](knowledge-base.md)), o que o
+produto faz e sob qual regra ([`software-vision.md`](software-vision.md)) nem como o
+software é construído ([`architecture-guide.md`](architecture-guide.md)).
 
 ## Índice
 
