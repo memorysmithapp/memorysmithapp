@@ -14,7 +14,7 @@ issues each entry cites.
 ### Added
 
 - **`docs/development-process.md`, the fourth canonical document.** Half of `CLAUDE.md` was operational process disguised as agent configuration. The process now has a document of its own: the five-stage cycle from a need to `main`, triage and its four outcomes, the reservation of `RN-XXX` codes, the branch naming convention and when a commit touches each document.
-- **A way in for whoever uses the product.** Two issue forms, one for **usage feedback** and one for **scope proposals**, plus the `/triage-feedback` command that groups open feedback by real friction instead of by request. The feedback form asks for the suggested solution last, and explicitly optional, because the description of the friction outlives the proposed fix.
+- **A way in for whoever uses the product.** Two issue forms, one for **usage feedback** and one for **scope proposals**. The feedback form asks for the suggested solution last, and explicitly optional, because the description of the friction outlives the proposed fix.
 - **`README.md` says how to report.** A section right after troubleshooting, opening with the statement that you do not need to know what the solution is.
 - **`SECURITY.md`, with a private channel for isolation failures.** It names the seven observations that are security failures and commits to a 72-hour acknowledgement.
 

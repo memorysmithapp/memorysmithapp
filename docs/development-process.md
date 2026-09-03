@@ -124,8 +124,16 @@ Triage happens in batches, weekly, and not on every message that arrives. Reacti
 request individually is how the product of a single person gets built, and with few users
 every voice carries disproportionate weight.
 
-The `/triage-feedback` command reads the open issues labelled `feedback`, groups them by
-real friction instead of by request, and returns a proposed classification for each group.
+**Triage is a conversation, not a command.** The open issues labelled `feedback` are read
+in full, grouped by real friction instead of by request, and each group is discussed until
+its outcome is decided. There is no script that runs it: every one of the four outcomes of
+§4.2 is a decision about the product, and a refusal is as much of a decision as a delivery.
+
+What the conversation produces is one proposal per group, with the friction distilled into
+one sentence, the issues it came from, the proposed outcome, the bounded context, and the
+`RN-XXX` that would have to be created or changed. Whoever runs the triage may not create,
+close or label anything before that decision: applying it is always the call of whoever
+owns the product.
 
 ### 4.1 The first question
 
