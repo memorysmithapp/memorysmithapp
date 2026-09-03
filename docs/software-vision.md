@@ -96,7 +96,7 @@ O nome diz o resto. Uma forja não guarda metal, ela o trabalha: o material brut
 O agente atua nos dois sentidos: lê o vault e o **alimenta**. Os três movimentos de §1.1 aparecem aqui como o caso concreto que o produto serve:
 
 1. **Ingestão.** O agente lê um corpo de material bruto, como normas, legislação, documentação técnica ou pesquisa, e o converte em notas granulares dentro do vault, obedecendo ao Guidance (o que este vault é), à estrutura de pastas (onde cada coisa vai) e ao Template da pasta (como a nota se estrutura). Cada escrita registra quem a fez, com qual agente e o que a nota dizia antes (§11).
-2. **Curadoria.** Pessoas revisam, corrigem e organizam o que entrou, na mesma superfície de trabalho: editam a nota e a estrutura, marcam maturidade e revisão humana, acompanham a distribuição do vault pelo painel de curadoria (§10.3) e caçam link quebrado e nota órfã na tela de saúde (§13.1).
+2. **Curadoria.** Pessoas revisam o que entrou e conduzem as correções, e a interface é onde elas leem: a nota e a estrutura como o agente as recebe, a distribuição do vault pelo painel de curadoria (§10.3) e a contagem de links pendentes e de notas órfãs no catálogo. Marcar maturidade, corrigir um trecho ou reorganizar a árvore é escrita, e escrita é do agente (§13).
 3. **Consumo.** Depois, em outro momento do projeto, como uma auditoria, um parecer ou um relatório, agentes e pessoas usam o mesmo vault como fonte única da verdade para fundamentar o que entregam.
 
 **Três princípios que o ciclo impõe ao produto inteiro:**
@@ -800,50 +800,41 @@ Normas e Legislação/
 
 ## 13. Interface da aplicação
 
-**A UI é a única superfície de leitura humana do produto.** Isso levanta a régua da tela de nota e da árvore: elas precisam ser confortáveis para **ler**, não só para editar.
+**A UI é a única superfície de leitura humana do produto.** Isso levanta a régua da tela de nota e da árvore: elas precisam ser confortáveis para **ler**, não só para navegar.
+
+**A interface lê o vault; quem escreve nele é o agente, pelo MCP.** Criar, editar, mover, reordenar e apagar acontecem pelas tools de §9.1, e não há tela que faça qualquer uma dessas coisas. Isso é consequência direta de §1.4, que declara o MCP como a interface principal e não como acessório, e é o que esta seção descreve, e não uma etapa a caminho.
 
 ### 13.1 Telas
 
-**Onboarding e plataforma**
+**Entrada**
 
 | Tela | Conteúdo |
 |---|---|
+| Entrada | Autenticação pelo provedor de identidade, e a volta dele. Não há cadastro aberto: a conta nasce por ato da operação da plataforma (§4.4) |
 | Entrada sem assinatura ativa | Não existe tela de espera dentro do produto. Uma sessão cuja assinatura está ausente, aguardando aprovação ou bloqueada não alcança nada, então ela é encerrada e a pessoa volta à tela de entrada com a mensagem do seu caso: conta sem assinatura, assinatura aguardando autorização ou assinatura inativa. A distinção é deliberada, porque "não há nada aqui" e "seu acesso está suspenso" são fatos diferentes |
 | Solicitação de assinatura | Fora do produto nesta fase. A rota existe na API, e quem solicita e aprova é a operação da plataforma; a interface não oferece o formulário |
-| **Plataforma → Assinaturas** | Área do `PLATFORM_ADMIN`: fila de pendentes, aprovar (`trial` ou `active`), rejeitar com motivo, suspender e reativar. Mostra titular, e-mail, tipo, quota, datas e contagem de membros, **nunca nome de vault nem conteúdo** (§4.6) |
-
-**Assinatura**
-
-| Tela | Conteúdo |
-|---|---|
-| Assinatura → Membros | Emitir convite para um e-mail definindo `EDITOR` ou `VIEWER`, alterar papel, remover; declara o atraso de propagação (RN-ACC-016) |
-| Assinatura → Titularidade | Transferir a titularidade para outro membro, com confirmação explícita de que o titular atual vira `EDITOR` |
 
 **Conhecimento**
 
 | Tela | Conteúdo |
 |---|---|
-| Lista de vaults | Cards: nome, descrição, nº de notas, última atualização |
-| Vault → Guidance | Editor Markdown com preview; ajuda sugerindo seções (propósito, convenções, nomenclatura) |
-| Vault → Contexto do Vault | O vault como o agente o recebe em `get_vault_context` (§9.2): a Orientação e os Modelos como pontos de entrada e a árvore de pastas com a descrição de cada uma. Com arrastar-e-soltar para reordenar e mover pastas **e** notas; criar e renomear pasta; editar descrição inline |
-| Mover nota entre vaults | Ação explícita, não arrastar-e-soltar: mostra antes quantos backlinks vão quebrar e pede confirmação (RN-KNW-024) |
-| Pasta → Template | Editor do Template da pasta |
-| Nota | Leitura e edição; painel lateral com backlinks e relacionadas |
-| Nota → Histórico | Linha do tempo com autoria (humano e agente) e diferença entre revisões |
+| Catálogo de vaults | Cards com nome, descrição, número de notas e última atualização, e sob eles o painel da assinatura: contagem de vaults e de notas, links pendentes, notas órfãs, uso da quota e a distribuição do conteúdo pelas facetas que os vaults declaram (§10.3) |
+| Vault → Contexto do Vault | O vault como o agente o recebe em `get_vault_context` (§9.2): a Orientação e os Modelos como pontos de entrada e a árvore de pastas com a descrição de cada uma. Leitura da estrutura, sem reordenar nem mover |
+| Vault → Guidance | Leitura da Orientação do vault |
+| Pasta | Leitura: a descrição da pasta, o Modelo dela e as notas na ordem declarada (PP9) |
+| Pasta → Template | Leitura do Modelo da pasta |
+| Nota | Leitura: as propriedades do frontmatter e o corpo em Markdown, com os wikilinks navegáveis e os pendentes marcados como tais (RN-DSC-004) |
+| Vault → Grafo | O grafo de links do vault inteiro, navegável, com a nota aberta a partir dele |
 | Vault → Busca | Campo único sobre o texto do vault, aceitando campos e operadores |
-| Vault → Atividade | Quem escreveu o quê no período, em visão de vault e não de nota |
-| Vault → Saúde | Links quebrados e notas órfãs |
-| Vault → Acesso | Lista os membros da assinatura e permite rebaixar um `EDITOR` a `VIEWER` **neste vault** (§5.3). Mostra o papel efetivo de cada um, não só o teto |
-| Vault → Conectar | URL do MCP e passo a passo por cliente |
-| Configurações da assinatura | Titularidade, transferência e troca de assinatura ativa, que só aparecem quando aplicáveis (PP8) |
+| Vault → Export | Baixa o vault inteiro como árvore de arquivos `.md`, no formato de §12 |
+
+**O que a interface não alcança.** O governo da assinatura, ou seja membros, papéis, convites, titularidade, tetos de vault e troca de assinatura ativa, e a área de plataforma de §4.6, existem na API e não têm tela. As leituras de auditoria e de saúde, ou seja histórico de nota, atividade do vault, links quebrados e notas órfãs em lista, também. Quem precisa delas hoje chama a API ou usa os scripts de operação, e o que falta está registrado nas issues do repositório, que é onde o futuro mora.
 
 ### 13.2 Regras de interface
 
-- A troca de assinatura só aparece para quem tem mais de um vínculo (§4.5).
-- A área de plataforma é uma superfície à parte, alcançada por sessão própria; nenhuma tela de conteúdo tem versão "de admin" (§4.6).
 - Uma assinatura fora de `trial` ou `active` encerra a sessão e leva o usuário de volta à tela de entrada com a mensagem do seu caso, e nunca a uma tela de conteúdo vazia. A mensagem diz qual dos três casos é, porque a diferença entre "não há nada aqui" e "seu acesso está suspenso" é a diferença entre um bug aparente e uma informação.
-- Toda operação destrutiva ou de efeito não óbvio, como mover nota entre vaults, remover pasta com conteúdo e transferir titularidade, mostra a consequência **antes** de confirmar, com número concreto quando houver.
-- Onde o papel efetivo difere do papel na assinatura por causa de um teto de vault (§5.3), a UI mostra o efetivo e explica a origem, porque um `EDITOR` que não consegue escrever precisa saber por quê.
+- A superfície de leitura da nota segue as métricas do tema padrão do Obsidian, porque quem lê o vault na web e no Obsidian não deveria precisar reaprender a página.
+- Nenhuma tela interpreta convenção de conteúdo. O frontmatter é apresentado como propriedades e o corpo é renderizado como Markdown universal, o que mantém a interface do mesmo lado de PP4 que o backend.
 
 ---
 

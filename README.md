@@ -58,7 +58,7 @@ O ciclo tem três momentos, e o primeiro é o que costuma faltar nas ferramentas
 
 Essa frase é a regra de triagem, e o agente a segue: o resumo do artigo vai para a pasta de literatura, o conceito que o artigo institui vira nota própria em `Concepts`, no formato do Modelo daquela pasta, com os wikilinks apontando para o que já existe. Você não digitou nenhuma dessas notas, e ainda assim elas estão exatamente no padrão que você combinou.
 
-**Curadoria.** Material capturado ainda não é conhecimento. Alguém precisa ler o que entrou, corrigir o que ficou torto, ligar o que ficou solto e julgar o que já está maduro. É na interface web que isso acontece: a nota e a estrutura são editáveis, o `maturity` e o `reviewed` de cada nota dizem em que estágio ela está, e a Visão geral e o grafo mostram como o vault está distribuído. Esse trabalho é humano, assistido pelo agente, e não sai de graça da ingestão.
+**Curadoria.** Material capturado ainda não é conhecimento. Alguém precisa ler o que entrou, corrigir o que ficou torto, ligar o que ficou solto e julgar o que já está maduro. É na interface web que se lê: a nota e a estrutura como o agente as recebe, o `maturity` e o `reviewed` de cada nota dizendo em que estágio ela está, e a Visão geral e o grafo mostrando como o vault está distribuído. A correção você pede ao agente, que é quem escreve no vault. Esse trabalho é humano, assistido pelo agente, e não sai de graça da ingestão.
 
 **Consumo.** Semanas depois, outro trabalho começa: um parecer, uma auditoria, um relatório, um runbook de incidente. O agente entra no mesmo vault, e em vez de reler quinhentas páginas de fonte primária ele lê o que já foi destilado, na ordem em que o vault manda ler, seguindo os links entre as notas.
 
@@ -67,7 +67,7 @@ O que muda na prática:
 - **A base cresce enquanto você trabalha**, em vez de crescer só quando você para para organizá-la.
 - **A estrutura é combinada uma vez.** Quem garante que a nota nova continua no padrão é o vault, não a sua memória nem a do agente.
 - **O que foi escrito é defensável.** Cada revisão registra quem escreveu, quando e com qual agente, e um parecer emitido em março pode ser demonstrado com a base como ela estava em março.
-- **Dá para trabalhar em dois.** A base vive em uma assinatura com papéis, e a escrita concorrente é detectada em vez de sobrescrever em silêncio.
+- **Dá para trabalhar em dois.** A base vive em uma assinatura com papéis, e a escrita concorrente é detectada em vez de sobrescrever em silêncio. Nesta fase, quem acrescenta alguém à assinatura é a operação da plataforma.
 - **Cada um continua na ferramenta que prefere.** O vault é servido por MCP, que é padrão aberto, então qualquer cliente que fale o protocolo alcança o mesmo vault, com o mesmo conteúdo e sob o mesmo papel.
 - **Sai inteira quando você quiser.** O export devolve `.md` puros em uma árvore legível, sem formato proprietário.
 
@@ -139,14 +139,14 @@ O humano autoriza o conector uma única vez, e é nesse consentimento que a assi
 
 ### A interface web, que é onde o humano lê
 
-A superfície de leitura humana. Ela é uma ferramenta de leitura antes de ser uma ferramenta de edição, e é isso que levanta a régua da tela de nota e da árvore.
+A superfície de leitura humana, e hoje só isso: quem escreve no vault é o agente, pelo conector. É essa vocação que levanta a régua da tela de nota e da árvore.
 
 | Tela | O que faz |
 | --- | --- |
 | Catálogo de vaults | Os vaults da assinatura, com descrição, contagem de notas e a Visão geral montada a partir das facetas que cada vault de fato declara |
 | Contexto do Vault | O vault como o agente o recebe: a Orientação e os Modelos como pontos de entrada, e a árvore de pastas com a descrição de cada uma |
-| Orientação e Modelos | Edição do que governa a escrita do vault e de cada pasta |
-| Nota | Leitura e edição, com o histórico por revisão |
+| Orientação e Modelos | Leitura do que governa a escrita do vault e de cada pasta |
+| Nota | Leitura, com as propriedades do frontmatter e os wikilinks navegáveis |
 | Grafo | O grafo de links do vault, colorido por atributo do frontmatter e com as tags desenhadas |
 | Busca | Campo único sobre o texto do vault, com a mesma linguagem de consulta do `search_notes` |
 | Exportar | Baixa o vault inteiro como `.zip`, na árvore de arquivos legível |
