@@ -96,7 +96,7 @@ O nome diz o resto. Uma forja não guarda metal, ela o trabalha: o material brut
 O agente atua nos dois sentidos: lê o vault e o **alimenta**. Os três movimentos de §1.1 aparecem aqui como o caso concreto que o produto serve:
 
 1. **Ingestão.** O agente lê um corpo de material bruto, como normas, legislação, documentação técnica ou pesquisa, e o converte em notas granulares dentro do vault, obedecendo ao Guidance (o que este vault é), à estrutura de pastas (onde cada coisa vai) e ao Template da pasta (como a nota se estrutura). Cada escrita registra quem a fez, com qual agente e o que a nota dizia antes (§11).
-2. **Curadoria.** Pessoas revisam o que entrou e conduzem as correções, e a interface é onde elas leem: a nota e a estrutura como o agente as recebe, a distribuição do vault pelo painel de curadoria (§10.3) e a contagem de links pendentes e de notas órfãs no catálogo. Marcar maturidade, corrigir um trecho ou reorganizar a árvore é escrita, e escrita é do agente (§13).
+2. **Curadoria.** Pessoas revisam o que entrou e conduzem as correções, e a interface é onde elas leem: a nota e a estrutura como o agente as recebe, a distribuição do vault pelo painel de curadoria (§10.3) e a contagem de links pendentes e de notas órfãs no catálogo (§13).
 3. **Consumo.** Depois, em outro momento do projeto, como uma auditoria, um parecer ou um relatório, agentes e pessoas usam o mesmo vault como fonte única da verdade para fundamentar o que entregam.
 
 **Três princípios que o ciclo impõe ao produto inteiro:**
@@ -801,8 +801,6 @@ Normas e Legislação/
 ## 13. Interface da aplicação
 
 **A UI é a única superfície de leitura humana do produto.** Isso levanta a régua da tela de nota e da árvore: elas precisam ser confortáveis para **ler**, não só para navegar.
-
-**A interface lê o vault; quem escreve nele é o agente, pelo MCP.** Criar, editar, mover, reordenar e apagar acontecem pelas tools de §9.1, e não há tela que faça qualquer uma dessas coisas. Isso é consequência direta de §1.4, que declara o MCP como a interface principal e não como acessório, e é o que esta seção descreve, e não uma etapa a caminho.
 
 ### 13.1 Telas
 

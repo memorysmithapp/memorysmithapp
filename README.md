@@ -58,7 +58,7 @@ O ciclo tem três momentos, e o primeiro é o que costuma faltar nas ferramentas
 
 Essa frase é a regra de triagem, e o agente a segue: o resumo do artigo vai para a pasta de literatura, o conceito que o artigo institui vira nota própria em `Concepts`, no formato do Modelo daquela pasta, com os wikilinks apontando para o que já existe. Você não digitou nenhuma dessas notas, e ainda assim elas estão exatamente no padrão que você combinou.
 
-**Curadoria.** Material capturado ainda não é conhecimento. Alguém precisa ler o que entrou, corrigir o que ficou torto, ligar o que ficou solto e julgar o que já está maduro. É na interface web que se lê: a nota e a estrutura como o agente as recebe, o `maturity` e o `reviewed` de cada nota dizendo em que estágio ela está, e a Visão geral e o grafo mostrando como o vault está distribuído. A correção você pede ao agente, que é quem escreve no vault. Esse trabalho é humano, assistido pelo agente, e não sai de graça da ingestão.
+**Curadoria.** Material capturado ainda não é conhecimento. Alguém precisa ler o que entrou, corrigir o que ficou torto, ligar o que ficou solto e julgar o que já está maduro. É na interface web que se lê: a nota e a estrutura como o agente as recebe, o `maturity` e o `reviewed` de cada nota dizendo em que estágio ela está, e a Visão geral e o grafo mostrando como o vault está distribuído. Esse trabalho é humano, assistido pelo agente, e não sai de graça da ingestão.
 
 **Consumo.** Semanas depois, outro trabalho começa: um parecer, uma auditoria, um relatório, um runbook de incidente. O agente entra no mesmo vault, e em vez de reler quinhentas páginas de fonte primária ele lê o que já foi destilado, na ordem em que o vault manda ler, seguindo os links entre as notas.
 
@@ -139,7 +139,7 @@ O humano autoriza o conector uma única vez, e é nesse consentimento que a assi
 
 ### A interface web, que é onde o humano lê
 
-A superfície de leitura humana, e hoje só isso: quem escreve no vault é o agente, pelo conector. É essa vocação que levanta a régua da tela de nota e da árvore.
+A superfície de leitura humana, e é isso que levanta a régua da tela de nota e da árvore.
 
 | Tela | O que faz |
 | --- | --- |

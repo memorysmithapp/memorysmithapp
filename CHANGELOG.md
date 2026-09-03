@@ -63,6 +63,8 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **Dois comentários de código pararam de citar uma regra removida.** A porta `ContentStore` e o soft delete de vault descreviam a destruição de conteúdo como ato administrativo com porta e evento próprios, apontando para `RN-AUD-007`. Passam a dizer o que passou a valer: nada no produto destrói uma revisão. (#26)
 
+- **A §13 descreve as telas sem declarar quem escreve no produto.** A passagem anterior tinha ido longe demais: além de corrigir cada tela para o que ela é, ela afirmava que a interface lê e que quem escreve é o agente **por consequência de desenho**, e não como estado. Isso é uma decisão sobre o destino do produto que ninguém tomou, e que teria de ser revogada no dia em que uma tela passasse a escrever. As linhas continuam dizendo que a tela de Nota, a de Orientação e as de Modelo são de leitura, porque é o que elas são hoje, e o documento para de dizer que é assim que tem de ser.
+
 ### Fixed
 
 - **O card do catálogo passou a mostrar a última atualização do vault.** A §13.1 promete "nome, descrição, nº de notas, última atualização", e o card mostrava três dos quatro. O dado já vinha na resposta e era descartado no mapeamento para o tipo do frontend. A data é formatada pela API `Intl` no locale ativo, então o mesmo instante se lê `3 Sep 2026` para quem usa a interface em inglês e `3 de set. de 2026` para quem a usa em português. (#43)
