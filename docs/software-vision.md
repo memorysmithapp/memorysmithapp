@@ -122,6 +122,7 @@ O pilar complementar da mesma tese é a leitura e a curadoria humanas. Uma base 
 | Trabalho regulado (auditoria, jurídico, compliance) | Não se demonstra quais premissas fundamentaram um parecer passado | Histórico por revisão, autoria de humano e de agente, trilha imutável |
 | Quem tem muitos assuntos | Pastas soltas, sem catálogo | Catálogo de vaults com descrição, cada um autônomo |
 | Quem teme lock-in | A base é ativo de longo prazo, e formato proprietário a prende | Export de `.md` puros, sem formato proprietário |
+| Quem tem exigência de soberania sobre onde o dado mora | Hospedar em terceiro é decisão que não depende só de tecnologia | O backend inteiro roda na conta AWS de quem instalou, com o mesmo código (§4.9) |
 
 ### 1.6 Slogan
 
@@ -300,6 +301,18 @@ Se um `PLATFORM_ADMIN` também for usuário de alguma assinatura, ele age ali co
 - **RN-SUB-019:** Toda assinatura declara uma `quota` de armazenamento, escolhida na solicitação entre `500MB`, `1GB` e `2GB`, e alterável depois por `PLATFORM_ADMIN`. Ela é aplicada nos termos de RN-SUB-021. *(Até a 0.2.0 esta regra dizia que a quota era declarada e não aplicada.)*
 - **RN-SUB-021:** A `quota` de RN-SUB-019 é aplicada sobre o **conteúdo vigente** da assinatura: a revisão atual de cada nota não apagada, somada a cada `Guidance` e cada `Template`. Revisões substituídas permanecem armazenadas e não são contadas. Uma escrita que aumente esse total é recusada com `LIMIT_EXCEEDED` quando o total resultante ultrapassaria a quota; uma escrita que o reduza ou o mantenha é sempre aceita, inclusive acima do teto. A contagem é mantida fora da transação de escrita e é, portanto, levemente atrasada: a assinatura pode terminar pouco acima do teto, nunca indefinidamente acima dele.
 - **RN-SUB-020:** A assinatura não tem nome. Ela é identificada pelo `SubscriptionId`, e para quem a opera ela é reconhecida pelo e-mail do titular. Nenhuma tela, rota, evento ou item de armazenamento carrega um nome de assinatura.
+
+---
+
+### 4.9 Modos de operação
+
+O produto opera em **dois modos sobre o mesmo código**, e o que muda entre eles não é funcionalidade: é quem ocupa cada papel.
+
+No **serviço hospedado**, o `PLATFORM_ADMIN` é a operação do produto, e a quota da assinatura é o limite comercial dela.
+
+Numa **instalação própria**, quem opera a plataforma é quem instalou. O primeiro membro do grupo de administração nasce no onboarding da instalação, e apenas o primeiro. A quota deixa de ser limite comercial e passa a ser escolha de quem opera.
+
+**Em nenhum dos dois há recurso retido.** Não existe bifurcação por edição em lugar nenhum do código, então o que roda no serviço hospedado é exatamente o que está no repositório, sob licença MIT. O caminho de instalação passo a passo vive no `README.md`, e não aqui.
 
 ---
 

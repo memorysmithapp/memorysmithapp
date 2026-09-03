@@ -4,6 +4,8 @@
 
 O MemorySmith.app hospeda cofres de conhecimento em **Markdown que se autodescrevem** e os serve nativamente às ferramentas de IA por um **MCP server remoto**. O agente não apenas lê um vault: ele escreve nele, obedecendo à Orientação do próprio vault e ao Modelo de cada pasta.
 
+**Duas formas de usar, e o mesmo código nas duas.** O **serviço hospedado** em [memorysmith.app](https://memorysmith.app), cujo acesso é por convite nesta fase, e a **instalação na sua própria conta AWS**, documentada aqui do primeiro comando ao primeiro vault. O projeto é aberto sob licença [MIT](LICENSE), e não existe recurso retido para a versão hospedada.
+
 ---
 
 ## O problema
@@ -174,6 +176,8 @@ Vale registrar a alavanca de saída: o proxy existe porque o Cognito não fala C
 ---
 
 ## Instalar na sua conta AWS
+
+Este é **um dos dois caminhos** de uso do produto, e não o único: quem prefere não operar infraestrutura usa o serviço hospedado, que roda exatamente este código. O que segue vale para quem quer o backend inteiro na própria conta.
 
 Toda a infraestrutura vive em [`memorysmith-infra/`](memorysmith-infra/), em AWS CDK com TypeScript, e o ambiente **sobe e desce por script**, em [`deploy-aws/`](deploy-aws/), nunca por uma sequência de comandos digitados a partir daqui.
 
@@ -525,3 +529,8 @@ core/
 | [`CLAUDE.md`](CLAUDE.md) | As regras de trabalho do repositório, incluindo as treze decisões de desenho inegociáveis |
 | [`SECURITY.md`](SECURITY.md) | Como reportar uma falha de isolamento ou vulnerabilidade, em privado |
 | [`CHANGELOG.md`](CHANGELOG.md) | O que mudou em cada versão |
+| [`LICENSE`](LICENSE) | A licença MIT, que vale para os dois modos de operação |
+
+## Licença
+
+MIT, no arquivo [`LICENSE`](LICENSE). O código é aberto **como está**, e essa é a frase inteira: rodar na sua própria conta é caminho de primeira classe nesta documentação, e não vem com promessa de suporte, de compatibilidade entre versões nem de notas de upgrade. Issue sobre instalação é bem-vinda. Prometer prazo que um projeto deste tamanho não consegue honrar seria pior que não prometer, que é o mesmo critério do [`SECURITY.md`](SECURITY.md).
