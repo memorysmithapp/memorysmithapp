@@ -70,7 +70,7 @@ link.
 |---|---|---|---|
 | 1 | **Capture** | `feedback` issue | It is a hypothesis of a need. Nobody promised anything |
 | 2 | **Triage** | Comments on the issue | The real friction is distilled out of the request. A proposal or a recorded refusal comes out |
-| 3 | **Scope closed** | `proposta` issue + Project | It gets a target version and reserves the `RN-XXX` codes it will create |
+| 3 | **Scope closed** | `proposal` issue + Project | It gets a target version and reserves the `RN-XXX` codes it will create |
 | 4 | **Implementation** | Branch, incremental commits | Code, test, document and changelog move together |
 | 5 | **Consistent state** | `main`, through the merged PR | What is in the document exists and is in production |
 
@@ -124,7 +124,7 @@ Triage happens in batches, weekly, and not on every message that arrives. Reacti
 request individually is how the product of a single person gets built, and with few users
 every voice carries disproportionate weight.
 
-The `/triagem-feedback` command reads the open issues labelled `feedback`, groups them by
+The `/triage-feedback` command reads the open issues labelled `feedback`, groups them by
 real friction instead of by request, and returns a proposed classification for each group.
 
 ### 4.1 The first question
@@ -140,9 +140,9 @@ solve a problem of text.
 
 | Outcome | Label | Cost | Creates an `RN-XXX`? |
 |---|---|---|---|
-| **Documentation** | `tipo:documentacao` | A PR of minutes | No |
-| **Defect** | `tipo:defeito` | A fix | No, it restores what the rule already states |
-| **Gap** | `tipo:lacuna` or `tipo:atrito` | Enters the roadmap as a `proposta` | Usually yes |
+| **Documentation** | `type:documentation` | A PR of minutes | No |
+| **Defect** | `type:defect` | A fix | No, it restores what the rule already states |
+| **Gap** | `type:gap` or `type:friction` | Enters the roadmap as a `proposal` | Usually yes |
 | **Refusal** | the issue closes | A comment | No |
 
 **Refusal is a first-class outcome and it has to be written down.** A refused issue closes
@@ -172,8 +172,8 @@ purpose, because a field nobody fills in is a field that lies:
 | `Type` | Defect, Friction, Gap, Documentation |
 | `Target version` | `0.4.0`, `0.5.0`, No date |
 
-Risks and open questions also live in issues, with the labels `risco`, `risco-tecnico` and
-`questao`. What sets them apart from a `proposta` is that they **do not close on delivery**:
+Risks and open questions also live in issues, with the labels `risk`, `technical-risk` and
+`open-question`. What sets them apart from a `proposal` is that they **do not close on delivery**:
 they close when the risk no longer materialises, when the question is decided, or when they
 turn into a concrete proposal. Each carries, in its body, the explicit criterion of what
 closes it.
@@ -187,7 +187,7 @@ because commits, PRs and more than 300 lines of code reference them.
 
 That creates a coordination requirement, and it is resolved like this:
 
-> **The rule number is reserved in the `proposta` issue, at step 3. The normative text
+> **The rule number is reserved in the `proposal` issue, at step 3. The normative text
 > enters `software-vision.md` at step 4, along with the code that fulfils it.**
 
 The separation protects both things at once. The number is burned the moment the scope
@@ -417,10 +417,10 @@ to point at the merged commit, and the GitHub Release of step 9 is created from 
 | This | Goes to |
 |---|---|
 | A hypothesis of a need, a request, a reported friction | `feedback` issue |
-| Scope under discussion, an alternative being evaluated | `proposta` issue |
+| Scope under discussion, an alternative being evaluated | `proposal` issue |
 | Roadmap, build order, target version | Project |
-| A risk not yet addressed | `risco` or `risco-tecnico` issue |
-| An undecided question | `questao` issue |
+| A risk not yet addressed | `risk` or `technical-risk` issue |
+| An undecided question | `open-question` issue |
 | Change history, release notes, revision dates | `CHANGELOG.md` and the git history |
 
 The last row predates this process and still holds with the same force: footers of the

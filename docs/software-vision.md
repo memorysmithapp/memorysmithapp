@@ -883,9 +883,9 @@ future, and that is why they left this file:
 | What you are looking for | Where it is |
 |---|---|
 | Version scope, delivery order, target version | The Project of the repository |
-| Product risks | Issues labelled `risco` |
-| Product questions not yet decided | Issues labelled `questao` |
-| Technical risks | Issues labelled `risco-tecnico` |
+| Product risks | Issues labelled `risk` |
+| Product questions not yet decided | Issues labelled `open-question` |
+| Technical risks | Issues labelled `technical-risk` |
 | What has been delivered, and when | `CHANGELOG.md` and the GitHub Releases |
 
 The rule that motivates the separation, and the cycle that takes a need from an issue to
