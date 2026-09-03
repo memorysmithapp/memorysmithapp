@@ -177,7 +177,6 @@ Termo único por conceito, do código ao produto. Divergência aqui é o começo
 | **Assinatura Ativa** | A assinatura em cujo nome a sessão age agora, escolhida entre os vínculos | O conjunto das assinaturas do usuário |
 | **Membership** | A relação `(usuário, assinatura)` com papel `EDITOR` ou `VIEWER` | Vínculo, que diz apenas que o usuário alcança a assinatura |
 | **Vault Role Limit** | O teto de papel de um membro num vault específico. Só rebaixa, nunca promove | Papel próprio do vault |
-| **Expurgo** | Destruição deliberada do conteúdo de um Content Slot, com motivo e autorização registrados | Apagar uma nota |
 
 ---
 
@@ -341,8 +340,6 @@ Os três papéis de cliente são da **assinatura**. O `OWNER` alcança todos os 
 | Ver grafo, backlinks e saúde do vault | — | ● | ● | ● |
 | Ver histórico e atividade | — | ● | ● | ● |
 | Exportar vault | — | ● | ● | — |
-| Ativar retenção legal | — | ● | — | — |
-| Expurgar conteúdo | — | ● | — | — |
 
 ¹ Apenas da própria assinatura.
 ² Apenas quando o `EDITOR` alcança os dois vaults envolvidos com papel de escrita, o que inclui não estar rebaixado em nenhum deles (§5.3).
@@ -435,7 +432,6 @@ quota (500MB | 1GB | 2GB),   -- aplicada sobre o conteúdo vigente (RN-SUB-019, 
 requested_at,
 reviewed_by_id?, reviewed_at?,
 rejection_reason?,           -- obrigatório quando status = rejected (RN-SUB-009)
-legal_hold_enabled (bool),   -- retenção legal; ver RN-AUD-009
 created_at,
 members: [{
   user_id,
@@ -770,9 +766,9 @@ payload
 - **RN-AUD-004:** A linha do tempo de uma nota é indexada pelo identificador da nota e sobrevive a ela mudar de pasta e de vault.
 - **RN-AUD-005:** `read_note(asOf)` devolve o conteúdo vigente na data informada, reconstruído a partir da trilha, o que permite refazer um trabalho lendo a base como ela estava na data de emissão.
 - **RN-AUD-006:** Apagar uma nota nunca destrói o conteúdo armazenado; o histórico continua legível.
-- **RN-AUD-007:** Destruir conteúdo (**expurgo**) é ato administrativo restrito ao `OWNER`, exige motivo obrigatório e gera evento próprio. A trilha passa a registrar *"aqui houve apagamento, por este motivo, autorizado por esta pessoa"*, porque uma lacuna silenciosa não é resposta aceitável a um regulador.
-- **RN-AUD-008:** O `OWNER` pode ativar retenção legal para a assinatura, que trava as revisões contra remoção pelo prazo configurado.
-- **RN-AUD-009:** Retenção legal e expurgo são incompatíveis por desenho: com retenção ativa, o expurgo é recusado. Obrigação legal de retenção vence pedido de apagamento (`knowledge-base.md` §7.5), e o produto declara isso na tela em que a retenção é ativada, não no incidente.
+- **RN-AUD-007:** *(removida na 0.4.0)* Tratava do expurgo, a destruição deliberada de conteúdo, como ato administrativo restrito ao `OWNER`, com motivo obrigatório e evento próprio. A capacidade nunca foi construída, e o que o produto de fato garante continua declarado em RN-AUD-006. O número é preservado e nunca será reaproveitado.
+- **RN-AUD-008:** *(removida na 0.4.0)* Tratava da retenção legal da assinatura, que travaria as revisões contra remoção pelo prazo configurado. Nenhum caminho jamais alcançou essa ativação, e o que protege as revisões é a trilha somente-acréscimo de RN-AUD-001. O número é preservado e nunca será reaproveitado.
+- **RN-AUD-009:** *(removida na 0.4.0)* Declarava que retenção legal e expurgo eram incompatíveis por desenho. Removidas as duas capacidades, a regra ficou sem objeto. O número é preservado e nunca será reaproveitado.
 
 ---
 
@@ -839,14 +835,14 @@ Normas e Legislação/
 | Vault → Saúde | Links quebrados e notas órfãs |
 | Vault → Acesso | Lista os membros da assinatura e permite rebaixar um `EDITOR` a `VIEWER` **neste vault** (§5.3). Mostra o papel efetivo de cada um, não só o teto |
 | Vault → Conectar | URL do MCP e passo a passo por cliente |
-| Configurações da assinatura | Titularidade, transferência, retenção legal, expurgo e troca de assinatura ativa, que só aparecem quando aplicáveis (PP8) |
+| Configurações da assinatura | Titularidade, transferência e troca de assinatura ativa, que só aparecem quando aplicáveis (PP8) |
 
 ### 13.2 Regras de interface
 
 - A troca de assinatura só aparece para quem tem mais de um vínculo (§4.5).
 - A área de plataforma é uma superfície à parte, alcançada por sessão própria; nenhuma tela de conteúdo tem versão "de admin" (§4.6).
 - Uma assinatura fora de `trial` ou `active` encerra a sessão e leva o usuário de volta à tela de entrada com a mensagem do seu caso, e nunca a uma tela de conteúdo vazia. A mensagem diz qual dos três casos é, porque a diferença entre "não há nada aqui" e "seu acesso está suspenso" é a diferença entre um bug aparente e uma informação.
-- Toda operação destrutiva ou de efeito não óbvio, como mover nota entre vaults, remover pasta com conteúdo, transferir titularidade, ativar retenção legal e expurgar, mostra a consequência **antes** de confirmar, com número concreto quando houver.
+- Toda operação destrutiva ou de efeito não óbvio, como mover nota entre vaults, remover pasta com conteúdo e transferir titularidade, mostra a consequência **antes** de confirmar, com número concreto quando houver.
 - Onde o papel efetivo difere do papel na assinatura por causa de um teto de vault (§5.3), a UI mostra o efetivo e explica a origem, porque um `EDITOR` que não consegue escrever precisa saber por quê.
 
 ---

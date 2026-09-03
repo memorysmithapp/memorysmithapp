@@ -131,7 +131,7 @@ O desenho-alvo é de seis deployables (D5). **A 0.1.0 sai como monólito modular
 | Roteamento interno | Hono | Dentro do Lambda do serviço |
 | API | API Gateway HTTP API por serviço, atrás de um CloudFront | Roteamento por path |
 | Dados estruturais | DynamoDB on-demand, PITR habilitado | Uma tabela por serviço |
-| Conteúdo | S3 com versionamento; Object Lock opcional por assinatura | Chaves opacas planas |
+| Conteúdo | S3 com versionamento | Chaves opacas planas |
 | Índice de conteúdo | Item `TEXT#` na `mv-discovery`, varrido na função | Sustentado pelo teto de 2.000 notas (§11.2) |
 | Eventos | EventBridge (bus `mv-events`) e DynamoDB Streams para a outbox | |
 | Identidade | Amazon Cognito user pool com trigger de *pre-token-generation* | Registro de cliente MCP via proxy CIMD (§13.3) |
@@ -436,7 +436,6 @@ Knowledge:  VaultCreated · VaultRenamed · GuidanceUpdated · FolderAdded · Fo
             FolderDescribed · FolderMoved · FolderReordered · FolderRemoved · TemplateUpdated
             NoteCreated · NoteUpdated · NoteReordered · NoteMoved · NoteDeleted · NoteRestored
 Discovery:  NoteLinksResolved · NoteIndexed · LinkBroken
-Admin:      ContentErased      (o único evento que registra destruição de conteúdo)
 ```
 
 Todo evento carrega `subscriptionId` e `Authorship`. **Eventos de conteúdo carregam o `ContentRef` completo**, com `contentId`, `versionId`, `sha256` e `bytes`, e não só o `versionId`: é isso que torna a trilha de auditoria um índice de recuperação suficiente para reconstruir o mapeamento entre DynamoDB e S3 do zero (§9.2, §12.3). `NoteMoved` carrega origem e destino (`vaultId`, `folderId`), porque quem consome precisa dos dois lados.
@@ -616,7 +615,7 @@ export class ContentRef {                      // VO imutável
 
 O `S3ContentStore` é quem sabe que `contentId` vira `s/{subscriptionId}/c/{contentId}.md`, e o `subscriptionId` ele obtém do `SubscriptionContext` do construtor, nunca do argumento.
 
-**Um slot nunca é compartilhado.** Chave opaca puxa para endereçamento por conteúdo (`c/{sha256}.md`), com deduplicação de graça. Não fazemos, por três razões: dedup entre assinaturas compartilharia objeto atravessando a fronteira do §8.1 e daria um oráculo de existência; dedup dentro da assinatura exigiria contagem de referências e tornaria "apagar uma nota" uma operação que pode não apagar nada; e o Object Lock (§12.3) é por objeto, então dois donos disputariam uma retenção só. O `sha256` fica onde está, como campo de integridade e não como endereço.
+**Um slot nunca é compartilhado.** Chave opaca puxa para endereçamento por conteúdo (`c/{sha256}.md`), com deduplicação de graça. Não fazemos, por duas razões: dedup entre assinaturas compartilharia objeto atravessando a fronteira do §8.1 e daria um oráculo de existência; dedup dentro da assinatura exigiria contagem de referências e tornaria "apagar uma nota" uma operação que pode não apagar nada. O `sha256` fica onde está, como campo de integridade e não como endereço.
 
 **Custo de mover.** É a propriedade que o desenho compra:
 
@@ -930,23 +929,11 @@ Reconstruir a nota numa data:
 
 Nenhuma consulta ao Knowledge é necessária: **o presente vive no `mv-knowledge`, o passado vive no `mv-audit`**, e o evento traz o par `(contentId, versionId)` que basta para buscar o byte. Como a chave é opaca, mover ou renomear a nota depois não afeta a reconstrução: o slot é o mesmo, e o histórico de revisões permanece num único objeto do S3 em vez de espalhado por objetos criados a cada move.
 
-Para assinaturas com exigência formal de retenção, **S3 Object Lock em modo compliance** trava as versões contra remoção pelo prazo configurado, inclusive contra a conta raiz (RN-AUD-008).
-
 ### 12.4 Apagar não é destruir
 
 **`NoteDeleted` é soft delete.** O item `NOTE` ganha `deletedAt` e `deletedBy`, e **perde os atributos de chave do `GSI2`**: como o índice é esparso (§9.3), a nota some das listagens sem uma linha de filtro em lugar nenhum. O `bodyRef` fica intacto, então `read_note(asOf)` e `note_history` continuam respondendo por `NoteId`. O guard `NSLUG` é apagado na mesma transação, devolvendo o slug ao vault (RN-KNW-030). Restaurar é devolver os atributos de índice, o que sai de graça e vira `NoteRestored`.
 
-**Destruir conteúdo é ato administrativo, nunca operação de domínio.** Por isso `purge` não existe na porta `ContentStore` (§7.1). O expurgo vive num caso de uso próprio, exige o `OWNER` da assinatura, motivo obrigatório e emite evento:
-
-```typescript
-// application/admin/EraseContent.ts — fora do Knowledge, de propósito
-interface ContentEraser {
-  erase(slot: ContentId, reason: ErasureReason, by: Authorship): Promise<void>;
-}
-// → ContentErased { contentId, reason, by, at }
-```
-
-**Object Lock e expurgo são incompatíveis, por desenho** (RN-AUD-009). Com retenção em modo compliance, `erase` falha, e falhar é o comportamento correto.
+**Não existe caminho que destrua conteúdo.** Por isso `purge` não existe na porta `ContentStore` (§7.1), e a ausência está declarada no próprio código como deliberada. Apagar esconde a nota e preserva o byte: nenhuma porta, nenhuma rota e nenhum ato administrativo destroem o que já foi escrito (RN-AUD-006, e RN-AUD-007, removida).
 
 ---
 
@@ -1117,7 +1104,7 @@ O domínio devolve `Result<T, DomainError>`; **exceção existe só na borda**. 
 |---|---|
 | Compute | **Um Lambda por serviço** (Node.js 22, ARM64), roteamento interno com Hono |
 | API | API Gateway HTTP API por serviço, atrás de um CloudFront |
-| Dados | Uma tabela DynamoDB por serviço (on-demand, PITR), bucket S3 versionado com chaves opacas planas (Object Lock opcional) e bucket S3 Vectors |
+| Dados | Uma tabela DynamoDB por serviço (on-demand, PITR), bucket S3 versionado com chaves opacas planas e bucket S3 Vectors |
 | Eventos | EventBridge (bus `mv-events`) e DynamoDB Streams para a outbox |
 | Identidade | Cognito user pool com pre-token-generation trigger (claim `subscription_id`) |
 | DNS | Route 53: hosted zone de `memorysmith.app` e todos os registros criados pelo CDK no `network.stack` |

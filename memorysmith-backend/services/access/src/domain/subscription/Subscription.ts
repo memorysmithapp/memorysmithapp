@@ -69,7 +69,6 @@ export class Subscription {
     private _reviewedBy: UserId | null,
     private _reviewedAt: Instant | null,
     private _rejectionReason: RejectionReason | null,
-    private _legalHold: boolean,
     private _version: number,
     private readonly _members: Map<string, Membership>,
   ) {}
@@ -100,7 +99,6 @@ export class Subscription {
       null,
       null,
       null,
-      false,
       0,
       new Map(),
     );
@@ -125,7 +123,6 @@ export class Subscription {
     reviewedBy: UserId | null;
     reviewedAt: Instant | null;
     rejectionReason: RejectionReason | null;
-    legalHold: boolean;
     version: number;
     members: Membership[];
   }): Subscription {
@@ -140,7 +137,6 @@ export class Subscription {
       input.reviewedBy,
       input.reviewedAt,
       input.rejectionReason,
-      input.legalHold,
       input.version,
       new Map(input.members.map((member) => [member.userId.value, member])),
     );
@@ -169,9 +165,6 @@ export class Subscription {
   }
   get rejectionReason(): RejectionReason | null {
     return this._rejectionReason;
-  }
-  get legalHold(): boolean {
-    return this._legalHold;
   }
   get version(): number {
     return this._version;
@@ -326,11 +319,6 @@ export class Subscription {
       toUserId: to.value,
     });
     return ok(previous);
-  }
-
-  /** Legal hold and erasure are incompatible by design (RN-AUD-009). */
-  setLegalHold(enabled: boolean): void {
-    this._legalHold = enabled;
   }
 
   get hasChanges(): boolean {

@@ -49,6 +49,12 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
   Duas questões que já constavam como resolvidas dentro da própria tabela não geraram issue: elas eram histórico, e histórico pertence ao `CHANGELOG.md`. Riscos cuja resposta já está implementada também não geraram issue, porque a resposta deles já está descrita nas seções técnicas dos documentos.
 
+### Removed
+
+- **O expurgo e a retenção legal deixaram de ser capacidades declaradas.** As duas estavam escritas em regra de negócio, na matriz de permissões e na tela de Configurações da assinatura, e nenhuma das duas jamais teve rota, tela ou caminho de qualquer espécie. A retenção legal chegava a ter campo no agregado, que nascia falso e nunca mudava, e o expurgo tinha um evento declarado no contrato que nada nunca emitiu. `RN-AUD-007`, `RN-AUD-008` e `RN-AUD-009` passam a constar como removidas, preservando os números, e `RN-AUD-006` continua sozinha a dizer o que o produto de fato garante: apagar uma nota nunca destrói o conteúdo armazenado, e o histórico continua legível. As capacidades voltam ao roadmap quando chegarem como necessidade de quem usa o produto, e aí com a porta que hoje não existe. (#26, #27)
+
+- **O `architecture-guide.md` parou de nomear o S3 Object Lock como mecanismo de retenção.** O documento afirmava, em três lugares, que o modo compliance travava as versões contra remoção inclusive contra a conta raiz. Object Lock nunca esteve em nenhuma stack do CDK, então a garantia descrita não existia. O que protege as revisões continua descrito e continua verdadeiro: a trilha somente-acréscimo por IAM. (#27)
+
 ## [0.3.0] - 2026-08-29
 
 A versão que faz a 0.2.0 aguentar o uso. Nenhum bounded context novo, nenhuma tool nova: o produto inteiro já existia, e o que faltava era ele funcionar na tela em que está sendo lido, contar o que promete contar e mostrar o vault como o vault se escreve.

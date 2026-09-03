@@ -180,7 +180,7 @@ Estas são as decisões estruturais do sistema, e violar qualquer uma não é um
 | 5 | **O backend nunca interpreta o conteúdo da nota.** Frontmatter e convenção pertencem ao Guidance e ao Template. O backend lê só sintaxe universal de Markdown, e apenas nos dois extratores sancionados do Discovery | §11.1 e §11.3; PP4 em `software-vision.md` §2 |
 | 6 | **A trilha de auditoria é append-only por IAM, não por disciplina** | §12.2 |
 | 7 | **Toda operação de domínio que muda estado recebe um `Authorship`.** Não existe mutação anônima | §12.1 |
-| 8 | **Apagar uma nota nunca destrói bytes.** Destruir bytes é ato administrativo, com porta, papel e evento próprios | §12.4 |
+| 8 | **Apagar uma nota nunca destrói bytes**, e não existe caminho que os destrua: nem porta de domínio, nem rota, nem ato administrativo | §12.4 |
 | 9 | **Um recurso proibido devolve `404`, nunca `403`**, porque o `403` confirmaria a existência de algo que o solicitante não pode ver | §15 |
 | 10 | **A transação de uma nota nunca escreve no item `META` do vault**, que viraria o ponto de contenção do vault inteiro sob ingestão em lote | §10.2 |
 | 11 | **O identificador da assinatura é perpétuo.** Nenhuma transição de status move, rechaveia ou apaga dado: o status governa acesso, nunca endereço | §8.1 |

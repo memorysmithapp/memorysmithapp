@@ -74,8 +74,6 @@ export const domainEventTypeSchema = z.enum([
   'NoteLinksResolved',
   'NoteIndexed',
   'LinkBroken',
-  // Admin
-  'ContentErased',
 ]);
 
 /** The envelope every event travels in, on the outbox and on the bus. */
@@ -322,11 +320,6 @@ export const linkBrokenPayload = z.object({
   slug: slugSchema,
 });
 
-export const contentErasedPayload = z.object({
-  contentId: ulidSchema,
-  reason: z.string().min(1),
-});
-
 /** Payload schema per event type, for validation on both ends of the bus. */
 export const eventPayloadSchemas = {
   SubscriptionRequested: subscriptionRequestedPayload,
@@ -366,7 +359,6 @@ export const eventPayloadSchemas = {
   NoteLinksResolved: noteLinksResolvedPayload,
   NoteIndexed: noteIndexedPayload,
   LinkBroken: linkBrokenPayload,
-  ContentErased: contentErasedPayload,
 } as const;
 
 export type DomainEventTypeName = z.infer<typeof domainEventTypeSchema>;
