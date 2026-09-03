@@ -19,6 +19,8 @@
  * on the help itself.
  */
 
+import { RECOGNISED_NOTATION, type RecognisedNotation } from '@memorysmith/contracts';
+
 export interface Skill {
   /** Stable identifier, and the argument `get_skill` takes. */
   readonly name: string;
@@ -115,6 +117,70 @@ avoiding the decision the owner already gave you.
 `;
 
 /**
+ * Built from RECOGNISED_NOTATION, never written beside it (RN-AGT-017). The
+ * prose around the table is the part a person wrote; the table itself is the
+ * declaration that Discovery tests against its own extractors, so a notation
+ * that stops being read stops being taught in the same commit.
+ */
+function notationTable(): string {
+  const row = (entry: RecognisedNotation): string =>
+    `| \`${entry.syntax}\` | ${entry.recognised ? 'yes' : '**no**'} | ${entry.effect} |`;
+
+  return [
+    '| Form | Read? | What happens |',
+    '| --- | --- | --- |',
+    ...RECOGNISED_NOTATION.map(row),
+  ].join('\n');
+}
+
+const WRITE_NOTES = `# Writing a note this product can read
+
+The body of a note is Markdown, and it is stored exactly as you send it. Almost
+all of it is text the product never looks at, which is deliberate: what a
+convention means belongs to the vault, not to the server.
+
+There are exactly two places where the product DOES read your content, and this
+is the whole list. Everything else you write is text, and nothing more.
+
+## The notation
+
+${notationTable()}
+
+## What none of this changes
+
+- **The server never validates a note.** It does not check your frontmatter
+  against the guidance, does not check the shape against the template, and does
+  not refuse a note for any of it. The Markdown you send is the Markdown that
+  gets stored.
+- **The frontmatter is not searched.** It is what facets are built from, and
+  keeping it in the searchable text would make every note match its own
+  metadata. Write in the body what you want found by searching.
+- **No key is special.** \`maturity\` and \`reviewed\` are attributes like any
+  other: the vocabulary belongs to the guidance of the vault you are writing in.
+  Read it before inventing a field.
+
+## What is NOT read, and is worth knowing before you rely on it
+
+- A tag written in the body, like \`#procurement\`. Only the frontmatter becomes
+  a facet.
+- A block identifier, like \`^abc123\`. That is a convention of a desktop
+  editor, not universal Markdown.
+- A heading. Headings are searchable text and give a section name to a link
+  anchor; they carry no other meaning.
+- Anything the guidance of the vault invented and the server was never told
+  about. Conventions are for the humans and agents reading the vault, and they
+  work because everyone follows them, not because anything enforces them.
+
+## Searching what you wrote
+
+\`search_notes\` reads the body, not the frontmatter, and its query language is
+the other half of this: \`"exact phrase"\`, \`-exclusion\`, \`OR\`, parentheses,
+and the fields \`title:\`, \`folder:\`, \`section:\` and \`content:\`. Any other
+prefix is read as a frontmatter attribute, which is what makes
+\`maturity:evergreen\` a valid filter without a line of code about it. The
+vocabulary of the vault becomes the query language of the vault.
+`;
+/**
  * One skill per task, and only tasks that fall OUTSIDE the common path. The
  * reading path that `whoami` already teaches covers almost every session and
  * stays inline: spending a round trip to learn it would be friction against
@@ -125,6 +191,11 @@ export const SKILLS: readonly Skill[] = [
     name: 'design-vault',
     task: 'Design a vault from scratch: its guidance, its folders and their templates',
     body: DESIGN_VAULT,
+  },
+  {
+    name: 'write-notes',
+    task: 'Write a note this product can read: the notation it interprets, and the notation it does not',
+    body: WRITE_NOTES,
   },
 ];
 

@@ -4,6 +4,7 @@ import { McpToolAdapter } from '../src/mcp/tools.js';
 import { GatewayError, type AgentCaller } from '../src/mcp/gateway.js';
 import { handleMcpRequest } from '../src/mcp.js';
 import { SKILLS, skillNamed } from '../src/mcp/skills.js';
+import { RECOGNISED_NOTATION } from '@memorysmith/contracts';
 import type { VerifiedAgentToken } from '../src/auth.js';
 import pkg from '../package.json' with { type: 'json' };
 
@@ -513,6 +514,31 @@ describe('skills: the method, indexed by whoami', () => {
     expect(body).toContain('template');
   });
 
+  it('builds the notation skill from the declaration, never beside it', async () => {
+    const body = skillNamed('write-notes')?.body ?? '';
+
+    // Every declared form and its effect are in the text. Discovery tests the
+    // same declaration against its extractors, so a notation that stops being
+    // read stops being taught (RN-AGT-017).
+    for (const entry of RECOGNISED_NOTATION) {
+      expect(body).toContain(entry.syntax);
+      expect(body).toContain(entry.effect);
+    }
+  });
+
+  it('teaches what the product deliberately does not read', () => {
+    const body = skillNamed('write-notes')?.body ?? '';
+    const ignored = RECOGNISED_NOTATION.filter((entry) => !entry.recognised);
+
+    // The half an agent gets wrong is not the notation it mistyped, it is the
+    // one it believed in, so the list of what does nothing is part of the
+    // skill and not an appendix.
+    expect(ignored.length).toBeGreaterThan(0);
+    for (const entry of ignored) {
+      expect(body).toContain(entry.syntax);
+    }
+    expect(body).toContain('is NOT read');
+  });
   it('answers an unknown skill with the ones that exist, not with a bare refusal', async () => {
     const result = await gateways().call('get_skill', { name: 'no-such-skill' }, caller);
 
