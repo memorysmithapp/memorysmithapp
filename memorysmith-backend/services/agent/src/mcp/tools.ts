@@ -13,6 +13,7 @@
 
 import { TOOL_CATALOG } from './catalog.js';
 import { whoAmI } from './whoami.js';
+import { SKILLS, skillNamed } from './skills.js';
 import {
   GatewayError,
   type AgentCaller,
@@ -48,6 +49,26 @@ function requireString(args: Record<string, unknown>, name: string, tool: string
     throw new GatewayError('VALIDATION', `${tool} requires the argument "${name}".`, {
       expected: definition?.inputSchema,
     });
+  }
+  return value;
+}
+
+/**
+ * The revision a write is based on. Null is a legitimate value and means the
+ * slot is empty, so it cannot be defaulted away: a missing argument is a
+ * mistake worth an error, and an explicit null is an assertion about the
+ * current state (RN-AGT-016).
+ */
+function revisionArgument(args: Record<string, unknown>, tool: string): string | null {
+  const value = args['baseRevision'];
+  if (value === null) return null;
+  if (typeof value !== 'string' || value.length === 0) {
+    const definition = TOOL_CATALOG.find((each) => each.name === tool);
+    throw new GatewayError(
+      'VALIDATION',
+      `${tool} requires "baseRevision": the revision you read, or null if nothing is written yet.`,
+      { expected: definition?.inputSchema },
+    );
   }
   return value;
 }
@@ -92,6 +113,19 @@ export class McpToolAdapter {
         return text(whoAmI(caller, vaults));
       }
 
+      case 'get_skill': {
+        const wanted = requireString(args, 'name', 'get_skill');
+        const skill = skillNamed(wanted);
+        if (!skill) {
+          // The names of what exists, so the next attempt is informed rather
+          // than guessed (RN-AGT-003).
+          throw new GatewayError('NOT_FOUND', `There is no skill named "${wanted}".`, {
+            available: SKILLS.map((each) => ({ name: each.name, task: each.task })),
+          });
+        }
+        return text(skill.body);
+      }
+
       case 'list_vaults': {
         const vaults = await knowledge.listVaults(caller);
         if (vaults.length === 0) {
@@ -120,9 +154,31 @@ export class McpToolAdapter {
         );
       }
 
+      case 'get_guidance': {
+        const found = await knowledge.guidance(
+          caller,
+          requireString(args, 'vault', 'get_guidance'),
+        );
+        if (!found) {
+          return text(
+            'This vault has no guidance yet. Write one with set_guidance, passing ' +
+              'baseRevision: null, which is what an empty slot expects.',
+          );
+        }
+        return json(found);
+      }
+
       case 'set_guidance': {
         const vault = requireString(args, 'vault', 'set_guidance');
-        await knowledge.setGuidance(caller, vault, requireString(args, 'content', 'set_guidance'));
+        await knowledge.setGuidance(
+          caller,
+          vault,
+          requireString(args, 'content', 'set_guidance'),
+          // Null is a legitimate value here, and it means the slot is empty,
+          // so it cannot be defaulted away: a missing argument is a mistake,
+          // and a null one is an assertion about the current state.
+          revisionArgument(args, 'set_guidance'),
+        );
         return text(
           'The guidance of this vault was replaced. Read it back with get_vault_context to see ' +
             'it as the next agent will.',
@@ -154,6 +210,7 @@ export class McpToolAdapter {
           vaultId: requireString(args, 'vault', 'set_template'),
           folderId: requireString(args, 'folder', 'set_template'),
           content: requireString(args, 'content', 'set_template'),
+          baseRevision: revisionArgument(args, 'set_template'),
         });
         return text('The template of this folder was replaced. Read it back with get_template.');
       }

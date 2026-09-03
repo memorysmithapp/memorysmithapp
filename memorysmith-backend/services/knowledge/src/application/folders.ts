@@ -16,7 +16,7 @@ import {
 import type { RequestContext } from '../domain/access/AuthorizationPolicy.js';
 import type { Folder } from '../domain/vault/Folder.js';
 import { FolderDescription, FolderName, RemovalPolicy } from '../domain/values.js';
-import { loadAuthorized, type VaultDependencies } from './vaults.js';
+import { guardRevision, loadAuthorized, type VaultDependencies } from './vaults.js';
 import { admitWrite } from '../domain/services/StorageQuota.js';
 
 export class CreateFolder {
@@ -154,6 +154,7 @@ export class PutTemplate {
     vaultId: VaultId;
     folderId: FolderId;
     content: string;
+    baseRevision: string | null;
     by: Authorship;
   }): Promise<Result<void, DomainError>> {
     const vault = await loadAuthorized(this.deps, input.ctx, input.vaultId, 'write');
@@ -161,6 +162,13 @@ export class PutTemplate {
 
     const folder = vault.value.folders.get(input.folderId);
     if (!folder) return err(DomainError.notFound('Folder not found in this vault'));
+
+    const fresh = await guardRevision(
+      (ref) => this.deps.content.read(ref),
+      folder.templateRef,
+      input.baseRevision,
+    );
+    if (!fresh.ok) return fresh;
 
     // Before the write reaches the store, and against the difference: a
     // template replaces the previous one (RN-SUB-021).

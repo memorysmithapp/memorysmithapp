@@ -1,48 +1,48 @@
-Este arquivo é a **fonte única de verdade** de todo o comportamento do agente neste projeto.
-O Claude Code o lê automaticamente a cada sessão e a cada invocação de sub-agente.
+This file is the **single source of truth** for all agent behaviour in this project.
+Claude Code reads it automatically on every session and on every sub-agent invocation.
 
 ---
 
-## Identidade do projeto
+## Project identity
 
-### Organização
+### Organisation
 memorysmithapp
 
-### Nome do projeto
+### Project name
 memorysmithapp
 
-### Identificador do projeto
+### Project identifier
 memorysmith
 
-### Domínio do produto
+### Product domain
 memorysmith.app
 
-### O que faz
-O MemorySmith.app hospeda vaults de conhecimento em Markdown que se autodescrevem, com estrutura, ordenação e Guidance de autoria declarados como dado, e os serve nativamente às ferramentas de IA por meio de um MCP server remoto. O agente não apenas lê um vault: ele escreve nele, obedecendo ao Guidance do próprio vault e aos Templates de cada pasta.
+### What it does
+MemorySmith.app hosts self-describing knowledge vaults in Markdown, with structure, ordering and authoring Guidance declared as data, and serves them natively to AI tools through a remote MCP server. The agent does not merely read a vault: it writes in it, obeying the Guidance of the vault itself and the Templates of each folder.
 
 ### Slogan
 Structured knowledge, natively readable and writable by humans and agents.
 
-### Identidade visual
-Definida no caderno de marca "Livro da marca v1" (Figma). O símbolo é um grafo que forma um cérebro: cada círculo é uma nota, cada haste é uma ligação. Nunca redesenhar o símbolo nem criar combinações de cor fora das quatro versões do caderno.
-- **Cor primária:** Azul cofre `#0F56D7` (estrutura). Acentos: Laranja sinal `#FF8A2B` (captura) e Verde nó `#16A34A` (conexão; nunca conduz uma peça sozinho). Neutros: Tinta `#0E1526` (texto), Papel `#EDEFEC` (fundo claro) e Fundo escuro `#0B1220` (modo escuro). Proporção de uso: fundo 70%, azul 18%, laranja 8%, verde 4%
-- **Tipografia:** Space Grotesk (Bold no logotipo e títulos, Medium em rótulos e interface) e Inter (texto corrido). Tracking de −2,5% no logotipo; o sufixo `.app` do wordmark é sempre Laranja sinal
-- **Tom visual:** sóbrio e legível. A superfície do produto é uma ferramenta de leitura antes de ser uma ferramenta de edição
+### Visual identity
+Defined in the brand book "Livro da marca v1" (Figma). The symbol is a graph forming a brain: each circle is a note, each stem is a link. Never redraw the symbol and never create colour combinations outside the four versions of the book.
+- **Primary colour:** Azul cofre `#0F56D7` (structure). Accents: Laranja sinal `#FF8A2B` (capture) and Verde nó `#16A34A` (connection; it never leads a piece on its own). Neutrals: Tinta `#0E1526` (text), Papel `#EDEFEC` (light background) and Fundo escuro `#0B1220` (dark mode). Usage proportion: background 70%, blue 18%, orange 8%, green 4%
+- **Typography:** Space Grotesk (Bold in the logotype and headings, Medium in labels and interface) and Inter (body text). Tracking of −2.5% in the logotype; the `.app` suffix of the wordmark is always Laranja sinal
+- **Visual tone:** sober and legible. The surface of the product is a reading tool before it is an editing tool
 
-### Versão base
-0.3.0
+### Base version
+0.4.0
 
-### Estado atual
-Versão 0.3.0, que endureceu e poliu o que a 0.2.0 entregou, sem abrir bounded context novo. Ela trouxe a interface responsiva com dois pontos de quebra, o grafo montado por interruptores de atributo, com grupo que se segura ao clique e que responde ao toque, a quota do plano aplicada de fato em vez de apenas declarada, a superfície de leitura das notas seguindo as métricas do tema padrão do Obsidian, e a correção de defeitos de consistência entre a projeção do Discovery e o conteúdo das notas. Antes dela, a 0.2.0 entregou os seis bounded contexts, a infraestrutura inteira em CDK, a interface ligada à API real e o conector MCP com leitura e escrita, autenticado pelo proxy CIMD na frente do Cognito; e a 0.1.0 entregou a documentação canônica, o protótipo navegável do frontend sobre o seed e o spike de autenticação do MCP. O ambiente sobe e desce pelos scripts de `deploy-aws/`, e o deploy na AWS acontece com acompanhamento passo a passo do usuário.
+### Current state
+Version 0.4.0, the cycle that closed the distance between what the documents promised and what the product does, and that opened a door for whoever uses it. The documents stopped describing screens that were never built and an invitation e-mail that was never sent; the roadmap, the risks and the open questions left `docs/` and became issues, because a document never describes the future; and the whole repository was translated to en-US, which is the language of everything the product already exposes. Two issue forms and a `SECURITY.md` gave feedback somewhere to arrive, and `development-process.md` became the fourth canonical document, holding the process half that was disguised as agent configuration. On the product: transclusion renders `![[note]]` where a broken image icon used to be, the task list became clickable and is **the first write the web interface makes**, writing the Guidance and the Template now requires the base revision, which is the contract break of the cycle, and the connector started teaching method through skills, not only operation. Before it, 0.3.0 hardened what 0.2.0 delivered, with the responsive interface, the graph with facets, the plan quota actually enforced and the reading surface following the metrics of the default Obsidian theme; 0.2.0 delivered the six bounded contexts, the whole infrastructure in CDK, the interface wired to the real API and the MCP connector authenticated by the CIMD proxy in front of Cognito; and 0.1.0 delivered the canonical documentation, the navigable prototype over the seed and the MCP authentication spike. The environment goes up and comes down through the scripts in `deploy-aws/`, and deployment to AWS happens with step-by-step supervision by the user.
 
-### Remote do git
+### Git remote
 github.com/memorysmithapp/memorysmithapp
 
 ---
 
-## Layout do repositório
+## Repository layout
 
-Um monorepo pnpm com **três projetos de primeiro nível**, nomeados a partir do identificador do projeto. Estrutura completa e justificativa em `docs/architecture-guide.md` §5.
+A pnpm monorepo with **three first-level projects**, named after the project identifier. The complete structure and its justification are in `docs/architecture-guide.md` §5.
 
 ```
 memorysmithapp/
@@ -54,9 +54,9 @@ memorysmithapp/
 └── memorysmith-infra/       # all CDK: stacks, constructs, IAM policies, pipeline
 ```
 
-**Nunca coloque código de infraestrutura dentro do projeto de backend, e nunca coloque a definição de uma stack dentro de um serviço.** O projeto de infra declara recursos para os três projetos, inclusive o bucket que serve o frontend e o pipeline que faz o deploy de tudo, e por isso não pode viver dentro de nenhum deles. Isso também mantém as credenciais de deploy separáveis do código de aplicação.
+**Never put infrastructure code inside the backend project, and never put the definition of a stack inside a service.** The infra project declares resources for all three projects, the bucket serving the frontend and the pipeline deploying everything included, and therefore it cannot live inside any of them. That also keeps the deploy credentials separable from the application code.
 
-**Direção de dependência entre os projetos, única e verificada em CI:**
+**The dependency direction between the projects, single and checked in CI:**
 
 ```
 memorysmith-infra      →  references backend and frontend artifacts (bundling, deploy)
@@ -64,187 +64,168 @@ memorysmith-backend    →  knows nothing about infra or frontend
 memorysmith-frontend   →  imports @memorysmith/contracts (types only) and calls the API at runtime
 ```
 
-Um `import` de `memorysmith-infra` dentro de `memorysmith-backend` é um erro de arquitetura, não uma questão de estilo. Serviços também nunca se importam entre si: comunicação entre contextos é HTTP com autenticação IAM ou um evento, nunca um `import`.
+An `import` of `memorysmith-infra` inside `memorysmith-backend` is an architecture error, not a matter of style. Services never import each other either: communication between contexts is HTTP with IAM authentication or an event, never an `import`.
 
-Ao criar um arquivo, decida onde ele fica perguntando o que ele é, não para que ele serve: um construct de CDK para a tabela de auditoria pertence a `memorysmith-infra/constructs/`, ainda que só o serviço de auditoria o use.
+When creating a file, decide where it goes by asking what it is, not what it is for: a CDK construct for the audit table belongs in `memorysmith-infra/constructs/`, even if only the audit service uses it.
 
 ---
 
-## Documentação canônica
+## Canonical documentation
 
-Quatro documentos em `docs/`, todos em pt-BR, cada um a fonte única de verdade de uma pergunta. **Cada documento se delimita no próprio preâmbulo**, que diz o que ele contém e o que não contém, e este arquivo não repete esse inventário. Aqui fica só a regra de onde escrever.
+Four documents in `docs/`, each the single source of truth for one question. **Each document bounds itself in its own preamble**, which says what it holds and what it does not, and this file does not repeat that inventory. What stays here is only the rule of where to write.
 
-| O parágrafo responde | Ele pertence a |
+| The paragraph answers | It belongs to |
 |---|---|
-| "Isto é verdade sobre Markdown / MCP / auditoria em geral" | [`docs/knowledge-base.md`](docs/knowledge-base.md) |
-| "Isto é o que o nosso produto faz, e sob qual regra" | [`docs/software-vision.md`](docs/software-vision.md) |
-| "Isto é **como o software é construído**" | [`docs/architecture-guide.md`](docs/architecture-guide.md) |
-| "Isto é **como o trabalho flui**, da necessidade ao merge" | [`docs/development-process.md`](docs/development-process.md) |
-| "Isto é o que ainda vamos **decidir, avaliar ou construir**" | **Issue no GitHub, nunca em `docs/`** |
+| "This is true about Markdown / MCP / auditing in general" | [`docs/knowledge-base.md`](docs/knowledge-base.md) |
+| "This is what our product does, and under which rule" | [`docs/software-vision.md`](docs/software-vision.md) |
+| "This is **how the software is built**" | [`docs/architecture-guide.md`](docs/architecture-guide.md) |
+| "This is **how work flows**, from the need to the merge" | [`docs/development-process.md`](docs/development-process.md) |
+| "This is what we have yet to **decide, evaluate or build**" | **A GitHub issue, never `docs/`** |
 
-Quando um fato parece caber em dois documentos, ele entra em exatamente um e o outro **o referencia por seção**, jamais o repete. Duplicação entre esses arquivos é o modo de falha que esta estrutura existe para evitar.
+When a fact seems to fit in two documents, it goes into exactly one and the other **references it by section**, never repeats it. Duplication between these files is the failure mode this structure exists to avoid.
 
-As duas últimas linhas da tabela separam o que mais confunde. O teste: "o outbox garante entrega ao menos uma vez" muda o código, então é arquitetura; "toda mudança chega à `main` por pull request" não muda uma linha, muda o caminho até ela, então é processo. E a linha final é absoluta: **hipótese de necessidade, roadmap, risco em aberto e questão não decidida nunca entram em `docs/`**, porque descrevem futuro.
+The last two rows of the table separate what confuses most. The test: "the outbox guarantees at-least-once delivery" changes the code, so it is architecture; "every change reaches `main` through a pull request" does not change a line, it changes the path to it, so it is process. And the final row is absolute: **a hypothesis of a need, the roadmap, an open risk and an undecided question never enter `docs/`**, because they describe the future.
 
-> **O documento nunca descreve futuro. Se está no documento, está em produção.**
+> **A document never describes the future. If it is in the document, it is in production.**
 
-### Códigos de regra de negócio
+### Business rule codes
 
-Regras de negócio são declaradas apenas no `software-vision.md`, uma regra por linha, no formato `RN-{CONTEXT}-{NNN}`, cuja notação e cujos prefixos de contexto estão em [`docs/software-vision.md`](docs/software-vision.md) §6. Os códigos são **append-only**: nunca renumere uma regra e nunca reutilize um código aposentado, porque commits, issues e código os referenciam. Uma regra que deixou de valer é marcada como removida na própria linha, preservando seu número. O momento em que o número é reservado está em [`docs/development-process.md`](docs/development-process.md) §6.
-
----
-
-## Higiene da documentação
-
-**Nunca acrescente notas de versão, datas de revisão ou rodapés de uso interno a qualquer arquivo em `docs/`.** Linhas da forma:
-
-```
-*Documento para uso interno de desenvolvimento. Última revisão: … — vX.Y (…)*
-```
-
-são proibidas. Elas duplicam informação já registrada no histórico do git e no `CHANGELOG.md`, saem de sincronia imediatamente e acrescentam ruído que o leitor precisa filtrar.
-
-**Onde o histórico de mudanças pertence:**
-
-- **`CHANGELOG.md`**, o único lugar onde mudanças notáveis do projeto são registradas, incluindo atualizações relevantes de documentação. Acrescente a entrada ao abrir um pull request, e não como nota de rodapé dentro do documento editado.
-- **Mensagens de commit do git**, já que todo commit registra o que mudou, quando e por quê. Essa é a trilha de auditoria das edições de documento.
-
-**Regra:** ao editar qualquer arquivo `docs/*.md`, não adicione, não atualize e não preserve nenhuma nota de rodapé que mencione número de versão, data de revisão ou a expressão "uso interno de desenvolvimento". Se uma nota assim já existir em um arquivo que está sendo editado, remova-a na mesma mudança.
+Business rules are declared only in `software-vision.md`, one rule per line, in the form `RN-{CONTEXT}-{NNN}`, whose notation and context prefixes are in [`docs/software-vision.md`](docs/software-vision.md) §6. The codes are **append-only**: never renumber a rule and never reuse a retired code, because commits, issues and code reference them. A rule that stopped holding is marked as removed on its own line, keeping its number. The moment a number is reserved is in [`docs/development-process.md`](docs/development-process.md) §6.
 
 ---
 
-## Política de idioma
+## Documentation hygiene
 
-**Toda a documentação do repositório é escrita em português do Brasil (pt-BR). Todo o código fonte da solução é escrito em inglês americano (en-US).**
+**Never add version notes, revision dates or internal-use footers to any file in `docs/`.** Lines of the form:
 
-### Escrito em pt-BR
+```
+*Internal development document. Last revised: … — vX.Y (…)*
+```
 
-- `docs/*.md`, os três documentos de arquitetura, produto e domínio
-- `README.md`
-- `CHANGELOG.md`, com exceção dos títulos de categoria do formato Keep a Changelog (`Added`, `Changed`, `Fixed`, `Removed`, `Deprecated`, `Security`), que são vocabulário do padrão e permanecem em inglês
-- `CLAUDE.md`
-- Mensagens de commit e descrições de pull request, preservando em inglês apenas os prefixos e escopos de Conventional Commits (`feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `chore(release)`), que são tokens de ferramenta
-- Qualquer outro documento de prosa criado no repositório
+are forbidden. They duplicate information already recorded in the git history and in `CHANGELOG.md`, fall out of sync immediately, and add noise the reader has to filter out.
 
-### Escrito em en-US
+**Where change history belongs:**
 
-- Código fonte: identificadores, comentários e docblocks
-- Nomes de branch
-- Arquivos de configuração
-- Mensagens de log e de erro no código
-- Nomes de atributo do DynamoDB, componentes de chave do S3, nomes de evento do EventBridge
-- Nomes de endpoint da API, nomes e descrições de ferramentas MCP
-- Textos de interface visíveis ao usuário, que devem usar chaves de tradução i18n e nunca literais no código. `en_US` é o locale canônico e `pt_BR` é o segundo locale obrigatório. Os dois arquivos de tradução precisam permanecer sincronizados
+- **`CHANGELOG.md`**, the only place where notable changes to the project are recorded, relevant documentation updates included. Add the entry when opening a pull request, and not as a footnote inside the edited document.
+- **Git commit messages**, since every commit records what changed, when and why. That is the audit trail of document edits.
 
-### Termos que nunca são traduzidos
+**The rule:** when editing any `docs/*.md` file, do not add, do not update and do not preserve any footnote mentioning a version number, a revision date or the phrase "internal development". If one already exists in a file being edited, remove it in the same change.
 
-Dentro de um texto em pt-BR, **identificadores de código, caminhos de arquivo, nomes de campo de entidade, nomes de evento, nomes de ferramenta e códigos de erro permanecem em en-US e nunca são traduzidos**. Um documento em pt-BR que cita `NoteId`, `get_vault_context` ou `PRECONDITION_FAILED` os escreve exatamente como o código escreve.
+---
 
-O mesmo vale para os termos da **linguagem ubíqua** do produto, que existem simultaneamente como conceito no texto e como símbolo no código: `Vault`, `Subscription`, `Guidance`, `Template`, `Note`, `Content Slot`, `Content Role`, `Vault Context`. Traduzi-los na prosa romperia a correspondência entre o texto e o código, que é justamente o que a linguagem ubíqua existe para garantir. Termos técnicos consagrados de engenharia seguem a mesma regra e permanecem na forma original: bounded context, outbox, single-table design, embeddings, chunking, backlink, value object.
+## Language policy
 
-Um termo em inglês que **não** é símbolo do código nem termo técnico consagrado deve ser escrito em português.
+**The whole repository is written in American English (en-US). Brazilian Portuguese (pt-BR) exists in exactly one place: the `pt_BR` locale of the interface.**
 
-### A exceção do `README.md` e da interface em `pt_BR`
+### Written in en-US
 
-O `README.md` da raiz é vitrine, não especificação: quem o lê ainda não conhece o vocabulário do produto, e um termo em inglês ali cobra do leitor um aprendizado antes de ele entender o que o produto faz. O mesmo vale para quem usa o produto em português: os textos do locale `pt_BR` da interface falam com o usuário final, não com quem lê a especificação. Por isso, **e somente nesses dois lugares**, dois papéis são escritos em português:
+Everything: `docs/*.md`, `README.md`, `CHANGELOG.md`, this file, `SECURITY.md`, the issue templates, the repository labels and the Project field values, commit messages and pull request descriptions, source code (identifiers, comments and docblocks), branch names, configuration files, log and error messages, DynamoDB attribute names, S3 key components, EventBridge event names, API endpoint names, and MCP tool names and descriptions.
 
-| Na linguagem ubíqua e nos `docs/` | No `README.md` e no locale `pt_BR` |
+The reason is not preference. Everything the product exposes is already en-US: the code, the API, the names and descriptions of the MCP tools, the Vault Context the agent receives, the labels the server writes, the canonical locale of the interface. The repository is public and the product addresses AI tools and whoever integrates them, so a second language in the documentation layer charges a cost precisely at the door somebody from outside comes in through.
+
+### Written in pt-BR
+
+- The `pt_BR` locale of the interface, which is mandatory and speaks to whoever uses the product, not to whoever reads the specification.
+- The content of the example vaults in `deploy-aws/`, which is vault content and not repository documentation. It is good that it is in Portuguese: it demonstrates that the product serves a vault in any language and that the backend does not interpret content (PP4).
+- Answers in issues, from whoever reports something. The language of the repository is not a demand on whoever uses the product.
+
+Neither the git history nor issues and pull requests already written are rewritten: they are dated records.
+
+### The two terms translated in the interface
+
+In the `pt_BR` locale, and only there, two ubiquitous language terms are shown translated:
+
+| In the code, the docs and `en_US` | In the `pt_BR` locale |
 |---|---|
 | `Guidance` | Orientação |
 | `Template` | Modelo |
 
-A exceção é deliberada e não se propaga. Em `docs/`, no código, nas ferramentas MCP, no `Content Role` e no locale `en_US` (o canônico), os termos continuam sendo `guidance` e `template`. Nenhum outro termo da linguagem ubíqua é traduzido: `Vault`, `Subscription` e os demais permanecem como estão. `Note` é o caso trivial: "nota" é palavra comum do português e é assim que o locale `pt_BR` a escreve.
+That is interface translation, not project terminology, and it does not propagate. No other ubiquitous language term is translated: `Vault`, `Subscription` and the rest stay as they are. `Note` is the trivial case: "nota" is a common Portuguese word and that is how the `pt_BR` locale writes it.
 
-### Travessão
+### Locale-sensitive formatting
 
-**O travessão (`—`) é proibido na prosa da documentação.** Em português ele produz frases longas e ambíguas, e quase sempre existe uma pontuação melhor: vírgula para aposto, dois pontos para explicação, ponto final para uma oração que se sustenta sozinha, parênteses para incidente.
-
-A proibição vale para a prosa. Continua permitido usar o caractere onde ele não é pontuação: como marcador de célula vazia em tabela, dentro de blocos de código, em desenhos de árvore e em diagramas ASCII.
-
-### Formatação sensível a locale
-
-Formatação de data e número é comportamento de runtime, conduzido pelas APIs `Intl` e governado pelo locale ativo, não por esta política.
+Date and number formatting is runtime behaviour, driven by the `Intl` APIs and governed by the active locale, not by this policy.
 
 ---
 
-## Regras de desenho inegociáveis
+## Non-negotiable design rules
 
-Estas são as decisões estruturais do sistema, e violar qualquer uma não é um defeito para corrigir depois: é uma reescrita. Ficam aqui como enunciado, porque o agente precisa delas antes de escrever a primeira linha. O texto completo, com o mecanismo que garante cada uma, está na seção indicada do [`docs/architecture-guide.md`](docs/architecture-guide.md), e este arquivo não o repete. Quando uma tarefa parecer exigir quebrar uma delas, pare e levante a questão em vez de contornar.
+These are the structural decisions of the system, and violating any of them is not a defect to fix later: it is a rewrite. They stay here as statements, because the agent needs them before writing the first line. The full text, with the mechanism that guarantees each one, is in the indicated section of [`docs/architecture-guide.md`](docs/architecture-guide.md), and this file does not repeat it. When a task seems to require breaking one of them, stop and raise the question instead of working around it.
 
-| # | Regra | Por extenso em |
+| # | Rule | In full in |
 |---|---|---|
-| 1 | **Toda chave começa pela assinatura**, `S#{subscriptionId}` no DynamoDB e `s/{subscriptionId}/` no S3. As duas únicas exceções estão nomeadas no desenho, e não existe uma terceira | §8.2, §8.3 |
-| 2 | **O `subscriptionId` vem da claim do JWT, nunca da requisição**, e portanto nunca de path, query, body ou header | §8.2, §8.5 |
-| 3 | **`domain/` e `application/` não importam o AWS SDK**, sem exceção, incluindo "só para pegar um tipo" | §5.5 |
-| 4 | **A chave do S3 é opaca**: apenas um `ContentId`, jamais vault, pasta, nome ou papel. Renomear, mover e reordenar nunca escrevem um byte no S3 | §9.2 |
-| 5 | **O backend nunca interpreta o conteúdo da nota.** Frontmatter e convenção pertencem ao Guidance e ao Template. O backend lê só sintaxe universal de Markdown, e apenas nos dois extratores sancionados do Discovery | §11.1 e §11.3; PP4 em `software-vision.md` §2 |
-| 6 | **A trilha de auditoria é append-only por IAM, não por disciplina** | §12.2 |
-| 7 | **Toda operação de domínio que muda estado recebe um `Authorship`.** Não existe mutação anônima | §12.1 |
-| 8 | **Apagar uma nota nunca destrói bytes.** Destruir bytes é ato administrativo, com porta, papel e evento próprios | §12.4 |
-| 9 | **Um recurso proibido devolve `404`, nunca `403`**, porque o `403` confirmaria a existência de algo que o solicitante não pode ver | §15 |
-| 10 | **A transação de uma nota nunca escreve no item `META` do vault**, que viraria o ponto de contenção do vault inteiro sob ingestão em lote | §10.2 |
-| 11 | **O identificador da assinatura é perpétuo.** Nenhuma transição de status move, rechaveia ou apaga dado: o status governa acesso, nunca endereço | §8.1 |
-| 12 | **Uma sessão de administrador de plataforma não carrega assinatura**, e por isso nenhum repositório de Knowledge pode sequer ser construído sob ela. Nunca substitua isso por uma checagem de papel: a impossibilidade é a garantia | §8.4 |
-| 13 | **O teto de papel por vault só rebaixa um papel, nunca eleva.** O papel efetivo é `min(papel de assinatura, teto do vault)`, com o owner da assinatura acima dos dois | `software-vision.md` §5.3 |
+| 1 | **Every key starts with the subscription**, `S#{subscriptionId}` in DynamoDB and `s/{subscriptionId}/` in S3. The only two exceptions are named in the design, and there is no third | §8.2, §8.3 |
+| 2 | **The `subscriptionId` comes from the JWT claim, never from the request**, and therefore never from the path, the query, the body or a header | §8.2, §8.5 |
+| 3 | **`domain/` and `application/` do not import the AWS SDK**, without exception, "just to get a type" included | §5.5 |
+| 4 | **The S3 key is opaque**: only a `ContentId`, never a vault, a folder, a name or a role. Renaming, moving and reordering never write a byte to S3 | §9.2 |
+| 5 | **The backend never interprets the content of a note.** Frontmatter and convention belong to the Guidance and the Template. The backend reads only universal Markdown syntax, and only in the two sanctioned Discovery extractors | §11.1 and §11.3; PP4 in `software-vision.md` §2 |
+| 6 | **The audit trail is append-only by IAM, not by discipline** | §12.2 |
+| 7 | **Every domain operation that changes state takes an `Authorship`.** There is no anonymous mutation | §12.1 |
+| 8 | **Deleting a note never destroys bytes**, and there is no path that destroys them: no domain port, no route, no administrative act | §12.4 |
+| 9 | **A forbidden resource returns `404`, never `403`**, because a `403` would confirm the existence of something the requester may not see | §15 |
+| 10 | **A note transaction never writes to the `META` item of the vault**, which would become the contention point of the whole vault under batch ingestion | §10.2 |
+| 11 | **The subscription identifier is perpetual.** No status transition moves, rekeys or deletes data: the status governs access, never address | §8.1 |
+| 12 | **A platform administrator session carries no subscription**, and therefore no Knowledge repository can even be constructed under it. Never replace that with a role check: the impossibility is the guarantee | §8.4 |
+| 13 | **The per-vault role ceiling only lowers a role, never raises it.** The effective role is `min(subscription role, vault ceiling)`, with the owner of the subscription above both | `software-vision.md` §5.3 |
 
 ---
 
-## Políticas operacionais
+## Operational policies
 
-O processo completo, com o ciclo que leva uma necessidade da issue até a `main`, está em [`docs/development-process.md`](docs/development-process.md). O que segue é a forma normativa: o que nunca pode ser violado. O porquê e o detalhe operacional vivem no documento de processo, e **onde este arquivo resume, ele nunca repete o texto de lá**.
+The complete process, with the cycle that takes a need from an issue to `main`, is in [`docs/development-process.md`](docs/development-process.md). What follows is the normative form: what may never be violated. The reasoning and the operational detail live in the process document, and **where this file summarises, it never repeats the text from there**.
 
-### Arquivos ignorados
+### Ignored files
 
-Sempre que criar, mover, apagar ou modificar arquivos e diretórios, avalie se `.gitignore` e `.dockerignore` precisam ser atualizados. Os dois são revisados juntos, porque uma mudança que afeta um normalmente afeta o outro.
+Whenever creating, moving, deleting or modifying files and directories, assess whether `.gitignore` and `.dockerignore` need updating. Both are reviewed together, because a change affecting one usually affects the other.
 
-**Atualize o `.gitignore`** ao surgirem saídas de build (`dist/`, `cdk.out/`, `build/`), dependências (`node_modules/`), ambiente ou segredo (`.env`, `*.key`), cache ou temporários (`.cache/`, `tmp/`, `.turbo/`), arquivos de IDE (`.idea/`, `.vscode/`, `.obsidian/`) ou cobertura (`coverage/`). **Nunca deixe arquivo sensível não rastreado sem entrada.**
+**Update `.gitignore`** when build outputs (`dist/`, `cdk.out/`, `build/`), dependencies (`node_modules/`), environment or secrets (`.env`, `*.key`), cache or temporary files (`.cache/`, `tmp/`, `.turbo/`), IDE files (`.idea/`, `.vscode/`, `.obsidian/`) or coverage (`coverage/`) appear. **Never leave a sensitive untracked file without an entry.**
 
-**Atualize o `.dockerignore`** ao surgir qualquer coisa que não deva entrar no contexto de build. Ele sempre inclui: `.git/`, `.claude/`, `.obsidian/`, `node_modules/`, `dist/`, `cdk.out/`, `coverage/`, `tests/`, `*.log`, `.env`, `.env.*`, `README.md`, `CHANGELOG.md`, `CLAUDE.md`, `docs/`. Se não existir e houver arquivos Docker, crie-o.
+**Update `.dockerignore`** when anything appears that should not enter the build context. It always includes: `.git/`, `.claude/`, `.obsidian/`, `node_modules/`, `dist/`, `cdk.out/`, `coverage/`, `tests/`, `*.log`, `.env`, `.env.*`, `README.md`, `CHANGELOG.md`, `CLAUDE.md`, `docs/`. If it does not exist and there are Docker files, create it.
 
-### Versionamento
+### Versioning
 
-A versão canônica do produto vive **neste arquivo**, em § Identidade do projeto → Versão base, e é propagada para todo `package.json` do monorepo e para o `CHANGELOG.md` antes do commit de release. Os três projetos compartilham uma versão única, porque são implantados juntos.
+The canonical version of the product lives **in this file**, under § Project identity → Base version, and is propagated to every `package.json` of the monorepo and to `CHANGELOG.md` before the release commit. The three projects share a single version, because they are deployed together.
 
-| Tipo de mudança | Incremento |
+| Kind of change | Bump |
 |---|---|
-| Quebra de contrato de ferramenta MCP ou da API, migração destrutiva de chave ou schema | Maior (`2.0.0`) |
-| Nova ferramenta MCP, nova funcionalidade visível, novo serviço, nova rota | Menor (`0.2.0`) |
-| Correção de defeito, ajuste de configuração, refatoração sem impacto externo | Correção (`0.1.1`) |
+| A break in an MCP tool or API contract, a destructive key or schema migration | Major (`2.0.0`) |
+| A new MCP tool, a new visible feature, a new service, a new route | Minor (`0.2.0`) |
+| A defect fix, a configuration adjustment, a refactor with no external impact | Patch (`0.1.1`) |
 
-**Enquanto a versão base for `0.x`, a regra acima não vale:** o SemVer trata essa faixa como instável, e uma quebra de contrato entra como incremento menor, registrada no `CHANGELOG.md` sob `Removed` ou `Changed`. A partir da `1.0.0` ela passa a valer sem exceção, porque aí existe alguém integrado do outro lado.
+**While the base version is `0.x`, the rule above does not hold:** SemVer treats that range as unstable, and a contract break enters as a minor bump, recorded in `CHANGELOG.md` under `Removed` or `Changed`. From `1.0.0` on it holds without exception, because by then somebody is integrated on the other side.
 
-**Invioláveis:** o incremento de versão chega à `main` somente por PR, nunca por push direto. A tag é criada **depois** do merge e aponta para o commit mesclado. Mudança que não altera nada implantável, como documentação e governança do repositório, **não corta versão**: espera em `[Unreleased]` o próximo ciclo, que leva o acúmulo inteiro. O fluxo de nove passos está em `development-process.md` §9.1, e o que corta versão, em §9.
+**Inviolable:** the version bump reaches `main` only through a PR, never through a direct push. The tag is created **after** the merge and points at the merged commit. A change that alters nothing deployable, such as documentation and repository governance, **does not cut a version**: it waits in `[Unreleased]` for the next cycle, which takes the whole accumulation. The nine-step flow is in `development-process.md` §9.1, and what cuts a version, in §9.
 
 ### CHANGELOG
 
-Atualize o `CHANGELOG.md` **no mesmo commit** da mudança que ele documenta, e nunca acumule entradas para o fim da branch.
+Update `CHANGELOG.md` **in the same commit** as the change it documents, and never pile entries up for the end of the branch.
 
-Use as categorias do [Keep a Changelog](https://keepachangelog.com/en/1.1.0/): `Added`, `Changed`, `Fixed`, `Removed`, `Deprecated`, `Security`. Escreva da perspectiva do usuário e do agente, nunca da implementação, e agrupe entradas pequenas sob a mesma categoria em vez de uma por arquivo tocado. Restruturações de documentação em `docs/` recebem entrada.
+Use the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) categories: `Added`, `Changed`, `Fixed`, `Removed`, `Deprecated`, `Security`. Write from the perspective of the user and the agent, never of the implementation, and group small entries under the same category instead of one per file touched. Documentation restructurings in `docs/` get an entry.
 
-**Bom:** `Adicionado o argumento asOf em read_note, que devolve a revisão vigente em uma data`
-**Ruim:** `Atualizado NoteQueryHandler.ts para aceitar um timestamp opcional`
+**Good:** `Added the asOf argument to read_note, which returns the revision in force on a date`
+**Bad:** `Updated NoteQueryHandler.ts to accept an optional timestamp`
 
-### Proteção de branch
+### Branch protection
 
-A `main` é protegida. **Toda mudança chega a ela apenas por pull request revisado e mesclado no GitHub**, valendo igualmente para features, correções, documentação, manutenção e incremento de versão.
+`main` is protected. **Every change reaches it only through a pull request reviewed and merged on GitHub**, holding equally for features, fixes, documentation, maintenance and version bumps.
 
-- Nunca commite nem faça push direto na `main`.
-- Nunca contorne a proteção. Não use "Bypass rules and merge", `gh ... --admin`, `git push --no-verify` nem equivalente, mesmo tendo direito de administrador.
-- Se um merge estiver bloqueado, **pare e reporte**. Pergunte como proceder em vez de sobrepor a regra.
-- As únicas escritas diretas na `main` são tags anotadas sobre commits já mesclados.
+- Never commit or push directly to `main`.
+- Never work around the protection. Do not use "Bypass rules and merge", `gh ... --admin`, `git push --no-verify` or an equivalent, even holding administrator rights.
+- If a merge is blocked, **stop and report**. Ask how to proceed instead of overriding the rule.
+- The only direct writes to `main` are annotated tags on already merged commits.
 
-### Nomes de branch
+### Branch names
 
-Nomes de branch são en-US e usam um dos cinco prefixos definidos em `development-process.md` §7.1: `release/` para o ciclo que fecha uma versão inteira, e `feat/`, `fix/`, `docs/` e `chore/` para trabalho pontual. A convenção anterior, `feature-2026.NNNNNN`, não é mais usada.
+Branch names use one of the five prefixes defined in `development-process.md` §7.1: `release/` for the cycle that closes a whole version, and `feat/`, `fix/`, `docs/` and `chore/` for single pieces of work. The earlier convention, `feature-2026.NNNNNN`, is no longer used.
 
-### Commits incrementais
+### Incremental commits
 
-Commite ao longo da branch, nunca acumulando tudo no fim, e envie a cada commit ou no mínimo a cada dois ou três. Todo commit precisa ser construível e não pode quebrar os testes existentes. **A unidade de commit é a mudança de comportamento inteira: código, teste, documento e `CHANGELOG.md` no mesmo commit**, e o critério de quando um commit toca cada documento está em `development-process.md` §7.2 e §7.3.
+Commit along the branch, never piling everything up at the end, and push on every commit or at least every two or three. Every commit has to build and may not break the existing tests. **The unit of a commit is the whole behaviour change: code, test, document and `CHANGELOG.md` in the same commit**, and the criterion for when a commit touches each document is in `development-process.md` §7.2 and §7.3.
 
-Mensagens em modo imperativo e tempo presente, seguindo Conventional Commits, por exemplo `feat(knowledge): adiciona value object Position fracionário`.
+Messages in the imperative mood and the present tense, following Conventional Commits, for example `feat(knowledge): add fractional Position value object`.
 
 ### Pull request
 
-Toda descrição de PR contém duas seções: um **Resumo das mudanças** e uma **Análise de produtividade com IA**. O formato de ambas, e como preencher cada campo da segunda, estão em `development-process.md` §8.
+Every PR description contains two sections: a **Summary of changes** and an **AI productivity analysis**. The format of both, and how to fill in each field of the second, are in `development-process.md` §8.
 
-Uma mudança que implementa ou altera uma regra de negócio cita o código `RN-XXX` dela. Uma mudança originada de feedback referencia a issue com `Closes #N`.
+A change that implements or alters a business rule cites its `RN-XXX` code. A change originating from feedback references the issue with `Closes #N`.

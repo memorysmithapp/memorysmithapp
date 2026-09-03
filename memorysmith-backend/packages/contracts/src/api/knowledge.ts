@@ -63,6 +63,14 @@ export const renameVaultRequestSchema = z.object({
 
 export const putContentRequestSchema = z.object({
   content: z.string().max(1_048_576),
+  /**
+   * The revision this write is based on, or null when the slot is still
+   * empty. Blind overwrite is not accepted in a vault that sustains auditing:
+   * the guidance is the most shared document of a vault and the likeliest to
+   * be written by two hands at once, one on the web and one over MCP
+   * (RN-KNW-034).
+   */
+  baseRevision: z.string().nullable(),
 });
 
 export const contentSchema = z.object({
@@ -137,19 +145,12 @@ export const moveNoteRequestSchema = z.object({
   afterNoteId: ulidSchema.nullable().default(null),
 });
 
-/** Shown before a cross-vault move is confirmed (RN-KNW-024). */
-export const moveImpactSchema = z.object({
-  backlinksToBreak: z.number().int().nonnegative(),
-  slugConflict: z.boolean(),
-});
-
 export type VaultSummaryDto = z.infer<typeof vaultSummarySchema>;
 export type FolderDto = z.infer<typeof folderSchema>;
 export type VaultDetailDto = z.infer<typeof vaultDetailSchema>;
 export type ContentDto = z.infer<typeof contentSchema>;
 export type NoteSummaryDto = z.infer<typeof noteSummarySchema>;
 export type NoteDto = z.infer<typeof noteSchema>;
-export type MoveImpactDto = z.infer<typeof moveImpactSchema>;
 export type CreateVaultRequest = z.infer<typeof createVaultRequestSchema>;
 export type RenameVaultRequest = z.infer<typeof renameVaultRequestSchema>;
 export type PutContentRequest = z.infer<typeof putContentRequestSchema>;

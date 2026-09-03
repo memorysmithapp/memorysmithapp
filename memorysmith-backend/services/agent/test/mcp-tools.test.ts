@@ -3,7 +3,10 @@ import { READING_PATH, TOOL_CATALOG, catalogIsWellFormed } from '../src/mcp/cata
 import { McpToolAdapter } from '../src/mcp/tools.js';
 import { GatewayError, type AgentCaller } from '../src/mcp/gateway.js';
 import { handleMcpRequest } from '../src/mcp.js';
+import { SKILLS, skillNamed } from '../src/mcp/skills.js';
+import { RECOGNISED_NOTATION } from '@memorysmith/contracts';
 import type { VerifiedAgentToken } from '../src/auth.js';
+import pkg from '../package.json' with { type: 'json' };
 
 const caller: AgentCaller = {
   userId: 'user-1',
@@ -54,6 +57,7 @@ function gateways(overrides: Record<string, unknown> = {}) {
     }),
     deleteVault: async () => undefined,
     setGuidance: async () => undefined,
+    guidance: async () => ({ content: '# Proposito', revision: 'v1' }),
     createFolder: async () => ({
       folderId: 'f2',
       parentFolderId: null,
@@ -106,10 +110,12 @@ describe('The tool catalog is the public contract', () => {
     // an argument changing shape, is a version bump and never a quiet edit.
     expect(TOOL_CATALOG.map((tool) => tool.name)).toEqual([
       'whoami',
+      'get_skill',
       'list_vaults',
       'create_vault',
       'delete_vault',
       'get_vault_context',
+      'get_guidance',
       'set_guidance',
       'create_folder',
       'delete_folder',
@@ -286,13 +292,21 @@ describe('The connector authors the vault, and not only its notes', () => {
   it('creates a vault, its guidance, a folder and its template', async () => {
     const { calls, adapter } = spy();
     await adapter.call('create_vault', { name: 'Achados', description: 'De auditoria' }, caller);
-    await adapter.call('set_guidance', { vault: 'v2', content: '# Proposito' }, caller);
+    await adapter.call(
+      'set_guidance',
+      { vault: 'v2', content: '# Proposito', baseRevision: null },
+      caller,
+    );
     await adapter.call(
       'create_folder',
       { vault: 'v2', name: '2026', description: 'Deste exercicio.', parent: 'f1' },
       caller,
     );
-    await adapter.call('set_template', { vault: 'v2', folder: 'f9', content: '# {{t}}' }, caller);
+    await adapter.call(
+      'set_template',
+      { vault: 'v2', folder: 'f9', content: '# {{t}}', baseRevision: null },
+      caller,
+    );
 
     expect(calls).toEqual([
       'createVault:Achados',
@@ -453,6 +467,22 @@ describe('The MCP transport', () => {
     expect(result.content[0]?.text).toContain('not bound to a subscription');
   });
 
+  it('announces the version of the service manifest on the handshake, never a literal', async () => {
+    const response = await handleMcpRequest(
+      { jsonrpc: '2.0', id: 1, method: 'initialize' },
+      token,
+      gateways(),
+    );
+    const { serverInfo } = (
+      response as { result: { serverInfo: { name: string; version: string } } }
+    ).result;
+    expect(serverInfo.name).toBe('memorysmith-mcp');
+    // Compared against the manifest, not against a number written here: a
+    // literal in the test would have to be edited on every release, which is
+    // the very failure this fixes.
+    expect(serverInfo.version).toBe(pkg.version);
+  });
+
   it('answers notifications with no body', async () => {
     const response = await handleMcpRequest(
       { jsonrpc: '2.0', method: 'notifications/initialized' },
@@ -460,5 +490,155 @@ describe('The MCP transport', () => {
       gateways(),
     );
     expect(response).toBeNull();
+  });
+});
+
+describe('skills: the method, indexed by whoami', () => {
+  it('indexes every registered skill, derived from the registry', async () => {
+    const result = await gateways().call('whoami', {}, caller);
+    const help = result.content[0]?.text ?? '';
+
+    // Derived, not transcribed: every skill in the registry shows up with the
+    // task it teaches, and nothing else can (RN-AGT-018).
+    for (const skill of SKILLS) {
+      expect(help).toContain(skill.name);
+      expect(help).toContain(skill.task);
+    }
+    expect(help).toContain('get_skill');
+  });
+
+  it('serves the body of a skill by name', async () => {
+    const result = await gateways().call('get_skill', { name: 'design-vault' }, caller);
+
+    expect(result.isError).toBe(false);
+    expect(result.content[0]?.text).toBe(skillNamed('design-vault')?.body);
+  });
+
+  it('teaches the two mistakes that a vault designed without method makes', () => {
+    const body = skillNamed('design-vault')?.body ?? '';
+
+    // The evidence this skill exists for: a guidance opening with a heading
+    // the Vault Context already emits, and a folder without a template while
+    // the guidance declares mandatory frontmatter.
+    expect(body).toContain('Do not open with a title');
+    expect(body).toContain('template');
+  });
+
+  it('builds the notation skill from the declaration, never beside it', async () => {
+    const body = skillNamed('write-notes')?.body ?? '';
+
+    // Every declared form and its effect are in the text. Discovery tests the
+    // same declaration against its extractors, so a notation that stops being
+    // read stops being taught (RN-AGT-017).
+    for (const entry of RECOGNISED_NOTATION) {
+      expect(body).toContain(entry.syntax);
+      expect(body).toContain(entry.effect);
+    }
+  });
+
+  it('teaches what the product deliberately does not read', () => {
+    const body = skillNamed('write-notes')?.body ?? '';
+    const ignored = RECOGNISED_NOTATION.filter((entry) => !entry.recognised);
+
+    // The half an agent gets wrong is not the notation it mistyped, it is the
+    // one it believed in, so the list of what does nothing is part of the
+    // skill and not an appendix.
+    expect(ignored.length).toBeGreaterThan(0);
+    for (const entry of ignored) {
+      expect(body).toContain(entry.syntax);
+    }
+    expect(body).toContain('is NOT read');
+  });
+  it('answers an unknown skill with the ones that exist, not with a bare refusal', async () => {
+    const result = await gateways().call('get_skill', { name: 'no-such-skill' }, caller);
+
+    expect(result.isError).toBe(true);
+    const text = result.content[0]?.text ?? '';
+    expect(text).toContain('NOT_FOUND');
+    expect(text).toContain('design-vault');
+  });
+
+  it('refuses a call with no name, saying which argument is missing', async () => {
+    const result = await gateways().call('get_skill', {}, caller);
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('name');
+  });
+});
+
+describe('the connector hands over the Markdown the author wrote (RN-AGT-015)', () => {
+  it('never expands an embed: read_note returns the notation verbatim', async () => {
+    const body = 'The rule in full:\n\n![[Lei 14.133#Article 75]]\n';
+    const adapter = gateways({
+      knowledge: {
+        readNote: async () => ({
+          noteId: 'n1',
+          title: 'Direct contracting',
+          content: body,
+          revision: 'v3',
+          updatedAt: '2026-03-20T10:00:00.000Z',
+        }),
+      },
+    });
+
+    const result = await adapter.call('read_note', { vault: 'v1', note: 'n1' }, caller);
+    const text = result.content[0]?.text ?? '';
+
+    // The agent that wants the target reads the target. Expanding here would
+    // hand it content it never asked for, and hide whose words those are.
+    expect(text).toContain('![[Lei 14.133#Article 75]]');
+  });
+});
+
+describe('writing guidance and template carries the revision (RN-AGT-016)', () => {
+  it('refuses set_guidance with no baseRevision, and says what is missing', async () => {
+    const result = await gateways().call('set_guidance', { vault: 'v1', content: '# New' }, caller);
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('baseRevision');
+  });
+
+  it('accepts an explicit null, which is what an empty slot asserts', async () => {
+    const result = await gateways().call(
+      'set_guidance',
+      { vault: 'v1', content: '# New', baseRevision: null },
+      caller,
+    );
+
+    // Null is not the absence of the argument: it is a claim about the state,
+    // and the server checks it like any other revision.
+    expect(result.isError).toBe(false);
+  });
+
+  it('refuses set_template with no baseRevision', async () => {
+    const result = await gateways().call(
+      'set_template',
+      { vault: 'v1', folder: 'f1', content: '# T' },
+      caller,
+    );
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('baseRevision');
+  });
+
+  it('reads the guidance with the revision a write has to echo back', async () => {
+    const result = await gateways({
+      knowledge: {
+        guidance: async () => ({ content: '# Proposito', revision: 'v7' }),
+      },
+    }).call('get_guidance', { vault: 'v1' }, caller);
+
+    expect(result.isError).toBe(false);
+    expect(result.content[0]?.text).toContain('v7');
+  });
+
+  it('says what to do when the vault has no guidance yet', async () => {
+    const result = await gateways({ knowledge: { guidance: async () => null } }).call(
+      'get_guidance',
+      { vault: 'v1' },
+      caller,
+    );
+
+    expect(result.content[0]?.text).toContain('baseRevision: null');
   });
 });

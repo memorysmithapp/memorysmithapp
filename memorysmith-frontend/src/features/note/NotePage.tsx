@@ -2,9 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getNote, resolveNoteUrl } from '../../shared/api/source';
-import { resolveWikilinks } from '../../shared/api/markdown';
-import { Markdown } from '../../shared/components/Markdown';
+import { getNote } from '../../shared/api/source';
+import { WritableContent } from '../../shared/components/WritableContent';
+import { canWrite, updateNote } from '../../shared/api/source';
+
 import { PropertyValue, propertyType } from '../../shared/components/PropertyValue';
 import { CheckIcon, CopyIcon } from '../../shared/components/icons';
 import { folderTrailForNote } from '../structure/trail';
@@ -51,7 +52,6 @@ export function NotePage({ noteSlug }: { noteSlug: string }) {
   if (isPending) return <p className="status">{t('common.loading')}</p>;
   if (isError || !data) return <p className="status">{t('common.notFound')}</p>;
 
-  const body = resolveWikilinks(data.body, (slug) => resolveNoteUrl(vaultSlug, slug));
   const properties = Object.entries(data.frontmatter).filter(([, value]) => value !== '');
   const lists = new Set(data.listProperties);
 
@@ -99,7 +99,16 @@ export function NotePage({ noteSlug }: { noteSlug: string }) {
         </details>
       )}
 
-      <Markdown>{body}</Markdown>
+      <WritableContent
+        raw={data.raw}
+        vaultSlug={vaultSlug}
+        baseRevision={data.revision}
+        writable={canWrite(structure.effectiveRole)}
+        write={({ raw, baseRevision }) =>
+          updateNote(vaultSlug, data.id, { content: raw, baseRevision: baseRevision ?? '' })
+        }
+        invalidates={['note', vaultSlug, noteSlug]}
+      />
     </article>
   );
 }

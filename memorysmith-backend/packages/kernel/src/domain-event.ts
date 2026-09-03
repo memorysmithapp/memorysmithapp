@@ -72,14 +72,10 @@ export const KNOWLEDGE_EVENT_TYPES = [
 
 export const DISCOVERY_EVENT_TYPES = ['NoteLinksResolved', 'NoteIndexed', 'LinkBroken'] as const;
 
-/** The only event that records destruction of content (RN-AUD-007). */
-export const ADMIN_EVENT_TYPES = ['ContentErased'] as const;
-
 export const DOMAIN_EVENT_TYPES = [
   ...ACCESS_EVENT_TYPES,
   ...KNOWLEDGE_EVENT_TYPES,
   ...DISCOVERY_EVENT_TYPES,
-  ...ADMIN_EVENT_TYPES,
 ] as const;
 
 export type DomainEventType = (typeof DOMAIN_EVENT_TYPES)[number];

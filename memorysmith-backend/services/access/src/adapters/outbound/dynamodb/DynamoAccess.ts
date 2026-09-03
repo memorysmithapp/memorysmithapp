@@ -79,7 +79,6 @@ function subscriptionItem(subscription: Subscription): Item {
     reviewedBy: subscription.reviewedBy?.value ?? null,
     reviewedAt: subscription.reviewedAt?.toISOString() ?? null,
     rejectionReason: subscription.rejectionReason?.value ?? null,
-    legalHold: subscription.legalHold,
     version: subscription.version + 1,
     // The platform queue reads this and nothing else (exception 2).
     GSI2PK: `PLATFORM#${subscription.status.name}`,
@@ -106,7 +105,6 @@ function parseSubscription(item: Item, members: Membership[] = []): Subscription
     rejectionReason: item['rejectionReason']
       ? need(RejectionReason.create(String(item['rejectionReason'])))
       : null,
-    legalHold: Boolean(item['legalHold']),
     version: Number(item['version'] ?? 0),
   });
 }

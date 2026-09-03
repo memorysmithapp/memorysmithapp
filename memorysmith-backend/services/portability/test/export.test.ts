@@ -166,3 +166,28 @@ describe('The archive', () => {
     expect(archive.readUInt16LE(6) & 0x0800).toBe(0x0800);
   });
 });
+
+describe('the export hands back the bytes the author wrote', () => {
+  it('never expands an embed, and never rewrites one', () => {
+    const body = 'The rule in full:\n\n![[Lei 14.133#Article 75]]\n';
+    const tree = buildExportTree({
+      ...vault,
+      notes: [
+        {
+          noteId: 'n9',
+          folderId: 'f1',
+          title: 'Achado',
+          slug: 'achado',
+          position: 'a0',
+          content: body,
+        },
+      ],
+    });
+
+    const file = tree.find((entry) => entry.path.endsWith('achado.md'));
+    // Zero lock-in is the promise, and it is byte for byte: an embed leaves
+    // as the author typed it, so a vault opened in another editor keeps
+    // working the way it worked here.
+    expect(file?.content).toBe(body);
+  });
+});

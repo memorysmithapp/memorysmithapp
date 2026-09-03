@@ -61,8 +61,8 @@ export interface NoteRepository {
  * The content port. There is no `purge` here, and the absence is deliberate:
  * no domain use case may destroy a revision, because if it could, deleting a
  * note would quietly break the historical reconstruction that section 12.3
- * promises. Destroying content is an administrative act with its own port and
- * its own event (RN-AUD-007).
+ * promises. Nothing else destroys one either: there is no administrative path
+ * to it anywhere in the product (RN-AUD-006, and RN-AUD-007, removed).
  */
 export interface ContentStore {
   /** A new slot with its first revision. */

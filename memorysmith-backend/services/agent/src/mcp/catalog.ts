@@ -33,6 +33,14 @@ const vaultArgument = {
   description: 'Identifier of the vault, as returned by list_vaults.',
 };
 
+const baseRevisionArgument = {
+  type: ['string', 'null'],
+  description:
+    'The revision this write is based on, exactly as the matching read returned it, or null ' +
+    'when nothing has been written to this slot yet. A divergence answers CONFLICT with the ' +
+    'current content, so an edit is never lost in silence.',
+};
+
 function object(
   properties: Record<string, unknown>,
   required: string[] = [],
@@ -52,6 +60,24 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'purpose of each folder, and the template of the folder you are about to write in. ' +
       'Call it first when you do not know this vault yet.',
     inputSchema: object({}),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'get_skill',
+    title: 'Read a skill: the method for a task',
+    description:
+      'Returns the written method for one task, by name. The names come from whoami, which ' +
+      'indexes them, and a skill is meant to be read BEFORE the task, not after it went ' +
+      'wrong. It teaches: it never validates and never writes anything.',
+    inputSchema: object(
+      {
+        name: {
+          type: 'string',
+          description: 'Name of the skill, as whoami lists it. For example: design-vault.',
+        },
+      },
+      ['name'],
+    ),
     annotations: { readOnlyHint: true },
   },
   {
@@ -107,19 +133,30 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     annotations: { readOnlyHint: true },
   },
   {
+    name: 'get_guidance',
+    title: 'Read the guidance of a vault, with its revision',
+    description:
+      'The guidance as it is stored, plus the revision to pass back as baseRevision when you ' +
+      'replace it. get_vault_context shows the guidance inside a composed document, which is ' +
+      'what you read to understand the vault; this is what you read to WRITE it.',
+    inputSchema: object({ vault: vaultArgument }, ['vault']),
+    annotations: { readOnlyHint: true },
+  },
+  {
     name: 'set_guidance',
     title: 'Write the guidance of a vault',
     description:
       'Replaces the guidance of a vault, which is the document that declares how THIS vault ' +
       'wants to be written: its conventions, its vocabulary, what belongs in it and what does ' +
       'not. It is read by every agent that writes here, so write it for one, in Markdown, and ' +
-      'read the current one with get_vault_context before replacing it.',
+      'read the current one with get_guidance, which also gives you the baseRevision.',
     inputSchema: object(
       {
         vault: vaultArgument,
         content: { type: 'string', description: 'The complete guidance, in Markdown.' },
+        baseRevision: baseRevisionArgument,
       },
-      ['vault', 'content'],
+      ['vault', 'content', 'baseRevision'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: true },
   },
@@ -194,8 +231,9 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
         vault: vaultArgument,
         folder: { type: 'string', description: 'Folder identifier.' },
         content: { type: 'string', description: 'The template, in Markdown.' },
+        baseRevision: baseRevisionArgument,
       },
-      ['vault', 'folder', 'content'],
+      ['vault', 'folder', 'content', 'baseRevision'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: true },
   },

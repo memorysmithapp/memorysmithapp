@@ -1,8 +1,7 @@
 import { useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { resolveNoteUrl } from '../../shared/api/source';
-import { resolveWikilinks } from '../../shared/api/markdown';
-import { Markdown } from '../../shared/components/Markdown';
+import { canWrite, putGuidance } from '../../shared/api/source';
+import { WritableContent } from '../../shared/components/WritableContent';
 import { VaultBreadcrumb } from '../structure/VaultBreadcrumb';
 import type { VaultOutletContext } from '../structure/VaultLayout';
 
@@ -11,15 +10,22 @@ export function GuidancePanel() {
   const { vaultSlug = '' } = useParams();
   const { structure } = useOutletContext<VaultOutletContext>();
 
-  const body = structure.guidance
-    ? resolveWikilinks(structure.guidance, (slug) => resolveNoteUrl(vaultSlug, slug))
-    : null;
-
   return (
     <article className="content-pane">
       <VaultBreadcrumb items={[{ label: t('structure.guidance') }]} />
       <p className="content-kicker">{t('structure.guidance')}</p>
-      {body ? <Markdown>{body}</Markdown> : <p className="status">{t('common.notFound')}</p>}
+      {structure.guidance ? (
+        <WritableContent
+          raw={structure.guidance}
+          vaultSlug={vaultSlug}
+          baseRevision={structure.guidanceRevision}
+          writable={canWrite(structure.effectiveRole)}
+          write={({ raw, baseRevision }) => putGuidance(vaultSlug, raw, baseRevision)}
+          invalidates={['vault-structure', vaultSlug]}
+        />
+      ) : (
+        <p className="status">{t('common.notFound')}</p>
+      )}
     </article>
   );
 }

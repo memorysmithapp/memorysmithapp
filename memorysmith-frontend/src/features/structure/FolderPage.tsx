@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getTemplate, resolveNoteUrl } from '../../shared/api/source';
-import { splitFrontmatter } from '../../shared/api/markdown';
-import { Markdown } from '../../shared/components/Markdown';
+import { canWrite, getTemplate, putTemplate, resolveNoteUrl } from '../../shared/api/source';
+import { WritableContent } from '../../shared/components/WritableContent';
 import type { VaultOutletContext } from './VaultLayout';
 import { folderTrail } from './trail';
 import { VaultBreadcrumb, folderCrumbs } from './VaultBreadcrumb';
@@ -38,7 +37,14 @@ export function FolderPage() {
         <details className="template-box">
           <summary>{t('folder.template')}</summary>
           <p className="hint">{t('folder.templateHint')}</p>
-          <Markdown>{splitFrontmatter(template.body).body}</Markdown>
+          <WritableContent
+            raw={template.body}
+            vaultSlug={vaultSlug}
+            baseRevision={template.revision}
+            writable={canWrite(structure.effectiveRole)}
+            write={({ raw, baseRevision }) => putTemplate(vaultSlug, folder.id, raw, baseRevision)}
+            invalidates={['template', vaultSlug, folder.id]}
+          />
         </details>
       )}
 

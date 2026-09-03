@@ -1,0 +1,90 @@
+name: Scope proposal
+description: The need already distilled, ready for a roadmap decision. The output of triage, not its input.
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form **after** triage, when the friction has been understood and the scope
+        is closed. A proposal that does not yet know which rule it creates is not ready to
+        become a branch.
+
+        It opens labelled `enhancement`, which is the common case. Triage changes it to
+        `bug` or `documentation` when the type below says so.
+
+        The complete process is in
+        [`docs/development-process.md`](https://github.com/memorysmithapp/memorysmithapp/blob/main/docs/development-process.md).
+
+  - type: textarea
+    id: need
+    attributes:
+      label: The need, distilled
+      description: |
+        The real friction behind what was asked for, written in the ubiquitous language of
+        the project. Do not repeat the text of the feedback issue; say what it revealed.
+    validations:
+      required: true
+
+  - type: input
+    id: origin
+    attributes:
+      label: Feedback issues that originated this proposal
+      description: Comma-separated numbers. Leave blank if the origin was internal.
+      placeholder: '#12, #15'
+    validations:
+      required: false
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      description: The outcome of triage this proposal came out of.
+      options:
+        - Gap, the product does not do it and will
+        - Defect, the product diverges from what the document already states
+        - Documentation, solved by writing
+    validations:
+      required: true
+
+  - type: textarea
+    id: rules
+    attributes:
+      label: Business rules created or changed
+      description: |
+        Reserve the `RN-XXX` codes here, one per line, with a sentence of what each will
+        say. **The code is reserved in this issue and the normative text only enters the
+        document along with the code that fulfils it.** If no rule changes, write "none".
+      placeholder: |
+        RN-KNW-025, creates: a note may be born from the Template of the destination folder
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: docs
+    attributes:
+      label: Documents this delivery will update
+      description: Tick what the commit will have to touch. If nothing is ticked, justify it below.
+      options:
+        - label: '`docs/software-vision.md`, because it changes a rule, an entity or a limit'
+        - label: '`docs/architecture-guide.md`, because it changes a technical decision'
+        - label: '`docs/knowledge-base.md`, because it changes a fact of the domain'
+        - label: '`README.md`, because it changes what whoever arrives sees, installs or operates'
+        - label: 'None, and the justification is in the definition of done'
+
+  - type: textarea
+    id: done
+    attributes:
+      label: Definition of done
+      description: Verifiable, not subjective. What has to be true for this issue to close.
+    validations:
+      required: true
+
+  - type: textarea
+    id: outside
+    attributes:
+      label: What is declaredly left out
+      description: |
+        What somebody could reasonably expect from this delivery and will not get. Writing
+        it here avoids the discussion halfway through the branch.
+    validations:
+      required: false

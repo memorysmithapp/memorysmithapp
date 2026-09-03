@@ -6,13 +6,22 @@ import { LiveDashboard } from './LiveDashboard';
 import { CardCarousel } from '../../shared/components/CardCarousel';
 
 /**
+ * The locale drives the format, never a literal in the code: the same instant
+ * reads 3 Sep 2026 for one reader and 3 de set. de 2026 for another.
+ */
+function formatDate(iso: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(iso));
+}
+
+/**
  * The vault catalogue, and under it what the vaults themselves declare. There
  * used to be a second overview here, charting a fixed set of frontmatter
  * attributes that only the bundled seed guaranteed; the product never imposed
  * that convention, and the seed is gone (live-stats.ts).
  */
 export function DashboardPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'pt_BR' ? 'pt-BR' : 'en-US';
   const { data: vaults } = useQuery({ queryKey: ['vaults'], queryFn: listVaults });
 
   return (
@@ -24,7 +33,11 @@ export function DashboardPage() {
             <h2>{vault.name}</h2>
             <p>{vault.description}</p>
             <footer>
-              <span>{t('vaults.noteCount', { count: vault.noteCount })}</span>
+              <span>
+                {t('vaults.noteCount', { count: vault.noteCount })}
+                {' · '}
+                {t('vaults.updatedAt', { date: formatDate(vault.updatedAt, locale) })}
+              </span>
               <span className="vault-open">{t('vaults.open')} →</span>
             </footer>
           </Link>

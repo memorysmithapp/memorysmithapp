@@ -1238,6 +1238,38 @@ a:hover {
   cursor: help;
 }
 
+/* Transclusion: another note, shown in place. The left rule and the source
+   line exist for one reason: a passage without provenance is indistinguishable
+   from what the author wrote. */
+.embed {
+  margin: 1.2rem 0;
+  padding: 0.1rem 0 0.1rem 1rem;
+  border-left: 3px solid var(--accent-soft);
+  background: var(--surface);
+  border-radius: 0 6px 6px 0;
+}
+.embed-body > .markdown > :first-child {
+  margin-top: 0.6rem;
+}
+.embed-body > .markdown > :last-child {
+  margin-bottom: 0.4rem;
+}
+.embed-source {
+  font-size: 0.82rem;
+  color: var(--text-soft);
+  padding: 0 0 0.5rem;
+}
+.embed-source a {
+  color: var(--text-soft);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--text-soft);
+}
+.embed-missing,
+.embed-pending {
+  color: var(--text-soft);
+  font-size: 0.9rem;
+}
+
 /* Dark mode: brand "Fundo escuro" #0B1220, Papel as text */
 :root[data-theme='dark'] {
   --bg: #0b1220;
@@ -2144,4 +2176,21 @@ a:hover {
   .graph-switch input::after {
     transition: none;
   }
+}
+
+/* A task box that can be ticked. Disabled is the default, and it is what a
+   VIEWER, and an EDITOR demoted in this vault, keep seeing. */
+.markdown li.task-item {
+  list-style: none;
+  margin-left: -1.2rem;
+}
+.markdown li.task-item input[type='checkbox'] {
+  margin-right: 0.5rem;
+  accent-color: var(--accent);
+}
+.markdown li.task-item input[type='checkbox']:not(:disabled) {
+  cursor: pointer;
+}
+.write-failed {
+  color: var(--signal);
 }

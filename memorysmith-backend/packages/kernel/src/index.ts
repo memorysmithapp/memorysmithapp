@@ -20,7 +20,6 @@ export {
   ACCESS_EVENT_TYPES,
   KNOWLEDGE_EVENT_TYPES,
   DISCOVERY_EVENT_TYPES,
-  ADMIN_EVENT_TYPES,
   DOMAIN_EVENT_TYPES,
   type DomainEvent,
   type DomainEventType,

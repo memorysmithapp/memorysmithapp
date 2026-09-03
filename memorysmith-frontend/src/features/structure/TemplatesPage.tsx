@@ -2,9 +2,8 @@ import { useEffect } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import { Link, useLocation, useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getTemplate } from '../../shared/api/source';
-import { splitFrontmatter } from '../../shared/api/markdown';
-import { Markdown } from '../../shared/components/Markdown';
+import { canWrite, getTemplate, putTemplate } from '../../shared/api/source';
+import { WritableContent } from '../../shared/components/WritableContent';
 import type { FolderNode } from '../../shared/types/api';
 import { templateAnchor } from './StructureOutline';
 import { VaultBreadcrumb } from './VaultBreadcrumb';
@@ -76,7 +75,16 @@ export function TemplatesPage() {
               </Link>
             </summary>
             {template ? (
-              <Markdown>{splitFrontmatter(template.body).body}</Markdown>
+              <WritableContent
+                raw={template.body}
+                vaultSlug={vaultSlug}
+                baseRevision={template.revision}
+                writable={canWrite(structure.effectiveRole)}
+                write={({ raw, baseRevision }) =>
+                  putTemplate(vaultSlug, folder.id, raw, baseRevision)
+                }
+                invalidates={['template', vaultSlug, folder.id]}
+              />
             ) : (
               <p className="status">{t('common.loading')}</p>
             )}

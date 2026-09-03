@@ -1,98 +1,100 @@
-name: Feedback de uso
-description: Conte um atrito que você sentiu usando o MemorySmith. Não precisa saber qual é a solução.
-title: '[feedback] '
+name: Usage feedback
+description: Tell us about a friction you felt using MemorySmith. You do not need to know what the solution is.
 labels: ['feedback']
 body:
   - type: markdown
     attributes:
       value: |
-        Obrigado por reportar. Duas coisas antes de começar:
+        Thank you for reporting. Two things before you start.
 
-        **Este repositório é público.** Não cole conteúdo real das suas notas, nomes de
-        cliente, dados de negócio ou qualquer coisa confidencial. Descreva a situação com
-        exemplos inventados; funciona igual para nós.
+        **Answer in whatever language you prefer.** The repository is written in English,
+        and that has nothing to do with how you tell us what happened to you.
 
-        **Se você viu dado de outra conta**, ou qualquer coisa que pareça falha de
-        isolamento, **não abra uma issue**. Use o canal privado descrito em
+        **This repository is public.** Do not paste real content from your notes, customer
+        names, business data or anything confidential. Describe the situation with invented
+        examples; it works just as well for us.
+
+        **If you saw data from another account**, or anything that looks like an isolation
+        failure, **do not open an issue**. Use the private channel described in
         [`SECURITY.md`](https://github.com/memorysmithapp/memorysmithapp/blob/main/SECURITY.md).
 
   - type: textarea
-    id: tarefa
+    id: task
     attributes:
-      label: O que você estava tentando fazer?
-      description: A tarefa real, com suas palavras. Não o que você acha que o produto deveria ter.
+      label: What were you trying to do?
+      description: The real task, in your own words. Not what you think the product should have.
       placeholder: |
-        Exemplo: eu estava criando a décima nota de reunião da semana e queria que ela
-        já nascesse com as mesmas seções das outras.
+        For example: I was creating the tenth meeting note of the week and wanted it to be
+        born with the same sections as the others.
     validations:
       required: true
 
   - type: textarea
-    id: aconteceu
+    id: happened
     attributes:
-      label: O que aconteceu?
-      description: O que o produto fez de fato.
+      label: What happened?
+      description: What the product actually did.
     validations:
       required: true
 
   - type: textarea
-    id: esperava
+    id: expected
     attributes:
-      label: O que você esperava que acontecesse?
+      label: What did you expect to happen?
     validations:
       required: true
 
   - type: textarea
-    id: contorno
+    id: workaround
     attributes:
-      label: Como você contornou?
+      label: How did you work around it?
       description: |
-        Se você deu um jeito, conte qual. O contorno costuma dizer mais sobre o tamanho
-        da dor do que qualquer outra resposta deste formulário.
+        If you found a way, tell us which. The workaround usually says more about the size
+        of the pain than any other answer in this form.
     validations:
       required: false
 
   - type: dropdown
-    id: frequencia
+    id: frequency
     attributes:
-      label: Com que frequência isso acontece com você?
+      label: How often does this happen to you?
       options:
-        - Toda vez que uso
-        - Várias vezes por semana
-        - De vez em quando
-        - Aconteceu uma vez só
+        - Every time I use it
+        - Several times a week
+        - Now and then
+        - It happened once
     validations:
       required: true
 
   - type: dropdown
-    id: onde
+    id: where
     attributes:
-      label: Onde isso acontece?
+      label: Where does it happen?
       options:
-        - Na interface web
-        - No conector MCP, usando um agente
-        - Na instalação ou no deploy
-        - Na documentação (README)
-        - Em outro lugar / não sei dizer
+        - In the web interface
+        - In the MCP connector, using an agent
+        - During installation or deployment
+        - In the documentation (README)
+        - Somewhere else / I cannot tell
     validations:
       required: true
 
   - type: textarea
-    id: ideia
+    id: idea
     attributes:
-      label: Se você fosse resolver, o que faria?
+      label: If you were solving it, what would you do?
       description: |
-        Opcional, e sinta-se livre para deixar em branco. Perguntamos por último e de
-        propósito: a sua descrição do atrito vale mais que a sua proposta de solução, e
-        é comum a gente chegar num caminho diferente do que foi sugerido aqui. Isso não
-        é o pedido sendo ignorado; é o atrito sendo levado a sério.
+        Optional, and feel free to leave it blank. We ask last and on purpose: your
+        description of the friction is worth more than your proposed solution, and we often
+        end up on a different path from the one suggested here. That is not the request
+        being ignored; it is the friction being taken seriously.
     validations:
       required: false
 
   - type: checkboxes
-    id: confidencialidade
+    id: confidentiality
     attributes:
-      label: Confirmação
+      label: Confirmation
       options:
-        - label: Não colei conteúdo confidencial das minhas notas nesta issue.
+        - label: I have not pasted confidential content from my notes into this issue.
           required: true

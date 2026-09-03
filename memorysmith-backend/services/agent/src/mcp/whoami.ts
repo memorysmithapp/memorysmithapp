@@ -15,6 +15,7 @@
  */
 
 import { READING_PATH, TOOL_CATALOG, type ToolDefinition } from './catalog.js';
+import { SKILLS } from './skills.js';
 import type { AgentCaller, VaultListing } from './gateway.js';
 
 function byName(name: string): ToolDefinition | undefined {
@@ -86,6 +87,24 @@ function path(): string {
   ].join('\n');
 }
 
+/**
+ * The index, derived from the registry (RN-AGT-018). A skill that exists is
+ * announced; one that does not exist cannot be, because there is no prose copy
+ * of this list anywhere.
+ */
+function skills(): string {
+  if (SKILLS.length === 0) return '';
+
+  return [
+    '## Skills, for the tasks that leave the common path',
+    '',
+    'The path above is what almost every session needs. These are written methods',
+    'for the tasks it does not cover. Read one with `get_skill` before you start,',
+    'not after.',
+    '',
+    ...SKILLS.map((skill) => `- \`${skill.name}\` — ${skill.task}`),
+  ].join('\n');
+}
 function surface(): string {
   const reading = TOOL_CATALOG.filter((tool) => !writes(tool));
   const writing = TOOL_CATALOG.filter(writes);
@@ -106,5 +125,7 @@ function surface(): string {
 }
 
 export function whoAmI(caller: AgentCaller, vaults: readonly VaultListing[]): string {
-  return [identity(caller), reach(vaults), path(), surface()].join('\n\n');
+  return [identity(caller), reach(vaults), path(), skills(), surface()]
+    .filter((block) => block.length > 0)
+    .join('\n\n');
 }
