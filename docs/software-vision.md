@@ -1,128 +1,128 @@
-# Visão de Software: Plataforma MemorySmith.app
+# Software Vision: the MemorySmith.app platform
 
-Este documento é a fonte da verdade para **o que o produto faz e sob qual regra**. Descreve visão, linguagem ubíqua, modelo de negócio de assinaturas, papéis, entidades de domínio, regras de negócio (`RN-XXX`), o contrato público de MCP, as telas e o recorte de cada versão.
+This document is the source of truth for **what the product does and under which rule**. It describes the vision, the ubiquitous language, the subscription business model, the roles, the domain entities, the business rules (`RN-XXX`), the public MCP contract, the screens and the scope of each version.
 
-As regras de negócio são numeradas `RN-{CONTEXT}-{NNN}`, em que `CONTEXT` é o prefixo do bounded context a que a regra pertence (§6). Os códigos são **append-only**: nunca são renumerados nem reutilizados, e uma regra que deixou de valer é marcada como removida na própria linha, preservando o número. O momento em que um número é reservado está em [`development-process.md`](development-process.md) §6.
+Business rules are numbered `RN-{CONTEXT}-{NNN}`, where `CONTEXT` is the prefix of the bounded context the rule belongs to (§6). The codes are **append-only**: they are never renumbered nor reused, and a rule that stopped holding is marked as removed on its own line, keeping its number. The moment a number is reserved is in [`development-process.md`](development-process.md) §6.
 
-Para fatos gerais do domínio (Markdown, MCP, auditoria, LGPD), ver [`knowledge-base.md`](knowledge-base.md). Para como o produto é construído (chaves, transações, adaptadores, infraestrutura), ver [`architecture-guide.md`](architecture-guide.md). Este documento **não repete** o conteúdo daqueles dois: referencia por seção.
-
----
-
-## Índice
-
-1. [Visão do produto](#1-visão-do-produto)
-2. [Princípios de produto](#2-princípios-de-produto)
-3. [Linguagem ubíqua](#3-linguagem-ubíqua)
-4. [Plataforma e assinaturas](#4-plataforma-e-assinaturas)
-5. [Papéis e permissões](#5-papéis-e-permissões)
-6. [Mapa de domínios](#6-mapa-de-domínios)
-7. [Domínio: Access](#7-domínio-access)
-8. [Domínio: Knowledge](#8-domínio-knowledge)
-9. [Domínio: Agent Access (o contrato público)](#9-domínio-agent-access-o-contrato-público)
-10. [Domínio: Discovery](#10-domínio-discovery)
-11. [Domínio: Audit](#11-domínio-audit)
-12. [Domínio: Portability](#12-domínio-portability)
-13. [Interface da aplicação](#13-interface-da-aplicação)
-14. [Limites do produto](#14-limites-do-produto)
-15. [Onde vivem o recorte de versão, os riscos e as questões em aberto](#15-onde-vivem-o-recorte-de-versão-os-riscos-e-as-questões-em-aberto)
+For general facts of the domain (Markdown, MCP, auditing, data protection law), see [`knowledge-base.md`](knowledge-base.md). For how the product is built (keys, transactions, adapters, infrastructure), see [`architecture-guide.md`](architecture-guide.md). This document **does not repeat** the content of those two: it references them by section.
 
 ---
 
-## 1. Visão do produto
+## Contents
 
-### 1.1 O problema
+1. [Product vision](#1-product-vision)
+2. [Product principles](#2-product-principles)
+3. [Ubiquitous language](#3-ubiquitous-language)
+4. [Platform and subscriptions](#4-platform-and-subscriptions)
+5. [Roles and permissions](#5-roles-and-permissions)
+6. [Map of domains](#6-map-of-domains)
+7. [Domain: Access](#7-domain-access)
+8. [Domain: Knowledge](#8-domain-knowledge)
+9. [Domain: Agent Access (the public contract)](#9-domain-agent-access-the-public-contract)
+10. [Domain: Discovery](#10-domain-discovery)
+11. [Domain: Audit](#11-domain-audit)
+12. [Domain: Portability](#12-domain-portability)
+13. [Application interface](#13-application-interface)
+14. [Product limits](#14-product-limits)
+15. [Where version scope, risks and open questions live](#15-where-version-scope-risks-and-open-questions-live)
 
-O foco desse software é potencializar a **eficiência e eficácia da relação humano e agentes de IA** independentemente da plataforma de IA escolhida e o tamanho do time de humanos.
+---
 
-**A memória do trabalho fragmenta em duas direções ao mesmo tempo.** Um time toca um projeto: uma auditoria, um processo regulatório, uma pesquisa, uma obra, o lançamento de um produto. Nada disso precisa ser software. Cada pessoa toca a parte dela acompanhada de um agente, e não existe uma plataforma de IA do time: uma trabalha no Claude, outra no ChatGPT, uma terceira no assistente embutido na ferramenta que ela já usava. A escolha é pessoal, muda com o tempo e não há por que uniformizá-la. Essa diversidade não seria problema se existisse uma camada comum de retenção. Sem ela, a memória se parte em duas dimensões simultâneas:
+## 1. Product vision
 
-1. **Pelo tempo, a sessão.** A memória do agente termina quando a sessão termina, e a conversa seguinte começa do zero, sabendo do assunto apenas o que couber na janela daquela vez.
-2. **Pelo fornecedor, o silo.** O que uma plataforma retém a respeito de quem a usa pertence àquela plataforma e àquela pessoa, não sai de lá e nenhum agente de mais ninguém a lê.
+### 1.1 The problem
 
-Somadas, as duas produzem tantas memórias parciais e privadas quantas forem as pessoas multiplicadas pelas plataformas, sobre um trabalho que é um só. O que o time sabe de verdade continua espalhado em conversa, documento, planilha, thread de decisão e na cabeça de quem participou.
+The focus of this software is to strengthen the **efficiency and effectiveness of the relationship between people and AI agents**, whatever AI platform is chosen and however large the team of people is.
 
-**O custo não aparece como arquivo perdido. Aparece como três gargalos operacionais:**
+**The memory of the work fragments in two directions at once.** A team runs a project: an audit, a regulatory process, a piece of research, a construction site, a product launch. None of that has to be software. Each person handles their part alongside an agent, and there is no AI platform of the team: one works in Claude, another in ChatGPT, a third in the assistant built into the tool they already used. The choice is personal, it changes over time, and there is no reason to make it uniform. That diversity would not be a problem if a shared layer of retention existed. Without one, the memory breaks along two dimensions at the same time:
 
-1. **Retrabalho por reconstrução de contexto.** Toda tarefa recomeça pela reconstrução do contexto, e a pessoa gasta mais tempo redescrevendo ao agente o que o time já havia decidido, um pouco diferente a cada vez, do que executando o trabalho.
-2. **Divergência de premissas.** Duas pessoas descrevem o mesmo fato de dois jeitos aos seus agentes, e não existe ponto central onde conferir qual das duas versões é a que vale.
-3. **Erosão da confiança.** O resultado volta desacompanhado da fonte. Conferir custa mais do que aceitar, aceita-se sem conferir, e é isso que corrói a confiança em tudo que a base passa a conter.
+1. **By time, the session.** The memory of the agent ends when the session ends, and the next conversation starts from zero, knowing about the subject only what fits in that window.
+2. **By vendor, the silo.** What a platform retains about whoever uses it belongs to that platform and that person, does not leave it, and no agent of anyone else reads it.
 
-**As quatro práticas que descrevem a fluência de quem trabalha com IA degradam todas pela mesma causa raiz:** a ausência de um corpo de conhecimento compartilhado, persistente e legível pelos dois lados (*Delegation*, *Description*, *Discernment* e *Diligence*, detalhadas em `knowledge-base.md` §4.4). Sem ele, delega-se a redigitação de contexto em vez da tarefa, descreve-se o mesmo cenário de novo a cada sessão, avalia-se a resposta por plausibilidade em vez de por fonte, e não sobra rastro para responder pelo que foi produzido. Daí a exigência dupla que atravessa o produto: a base precisa ser **barata de escrever**, porque quem mais escreve nela é o agente durante o trabalho, e **barata de ler**, porque a pessoa precisa curar e decidir sem trocar de ferramenta.
+Added together, the two produce as many partial and private memories as there are people multiplied by platforms, about work that is one single thing. What the team actually knows stays scattered across conversations, documents, spreadsheets, decision threads and the heads of whoever took part.
 
-**O que falta é uma fonte única da verdade, comum às pessoas e aos agentes**, que persista além da sessão e não pertença a nenhuma plataforma. Ela se constrói em três movimentos encadeados:
+**The cost does not show up as a lost file. It shows up as three operational bottlenecks:**
 
-1. **Capturar com evidência.** Norma, legislação, documentação técnica, pesquisa, decisão tomada em reunião. O que entra registra de onde veio e quem o escreveu, humano ou agente, porque afirmação que não se rastreia até a fonte não sustenta decisão depois.
-2. **Curar.** Material capturado ainda não é conhecimento. Alguém precisa julgar o que vale, reconciliar o que se contradiz, ligar o novo ao que já existia e enxergar o que está maduro e o que ainda é rascunho. Curadoria é trabalho humano assistido por agente, nunca subproduto automático da ingestão.
-3. **Servir aos dois lados com o mesmo material.** A base é fonte da verdade para o agente, que a lê a cada tarefa em vez de adivinhar, e superfície de trabalho para a pessoa, que aprende com ela, corrige o que está errado e decide com ela à vista. Dois leitores com exigências diferentes sobre exatamente o mesmo conteúdo.
+1. **Rework from rebuilding context.** Every task starts by rebuilding the context, and the person spends more time redescribing to the agent what the team had already decided, slightly differently each time, than doing the work.
+2. **Diverging premises.** Two people describe the same fact in two ways to their agents, and there is no central point to check which of the two versions holds.
+3. **Erosion of trust.** The answer comes back without its source. Checking costs more than accepting, so it is accepted unchecked, and that is what erodes trust in everything the base comes to hold.
 
-**Essa fonte é viva.** Ela não é o relatório escrito no fim nem o documento congelado no começo: cresce e se corrige enquanto o projeto anda, e a versão de hoje não é a de duas semanas atrás. Isso é a característica, não o defeito, e é o que impõe a última exigência: a base precisa dizer o que dizia na data em que alguém decidiu apoiado nela.
+**The four practices that describe fluency in working with AI all degrade from the same root cause:** the absence of a shared body of knowledge, persistent and readable by both sides (*Delegation*, *Description*, *Discernment* and *Diligence*, detailed in `knowledge-base.md` §4.4). Without it, what gets delegated is the retyping of context instead of the task, the same scenario is described again every session, the answer is judged by plausibility instead of by source, and no trail is left to answer for what was produced. Hence the double requirement running through the product: the base has to be **cheap to write**, because whoever writes in it most is the agent during the work, and **cheap to read**, because the person has to curate and decide without switching tools.
 
-**Os arranjos improvisados de centralização falham por atacado**, porque tratam a base como repositório passivo de arquivos e ignoram o que a colaboração entre pessoas e agentes exige:
+**What is missing is a single source of truth, shared by people and agents**, that survives the session and belongs to no platform. It is built in three linked movements:
 
-1. **Monólito de informação, sem granularidade.** Concentrar o conhecimento em documentos extensos cobra dos dois lados. Para a pessoa, a busca e a leitura ficam lentas e inflexíveis. Para o agente, texto longo lota a janela de contexto com ruído, dificulta localizar a evidência e impede ligar com precisão conceito, decisão e referência (`knowledge-base.md` §4.1 e §5.3).
-2. **Formato proprietário e rigidez visual.** Documento formatado para apresentação, como PDF, apresentação e planilha complexa, dificulta extrair e escrever contexto estruturado, e bloqueia a interconexão entre informações (`knowledge-base.md` §1.4).
-3. **Acesso incompatível com agente.** Sem conector padronizado, o agente não navega pela rede de informações, não consulta dependência, não valida metadado e não escreve na base de forma autônoma e segura (`knowledge-base.md` §3.1).
-4. **Ausência de metadado de governança.** Falta a camada de instrução que diz a pessoas e agentes como ler e como atualizar o conteúdo, e faltam data, maturidade (rascunho ou consolidado) e autoria explícita de cada trecho. Sem isso a base vira amontoado, e amontoado induz erro, alucinação e perda de rastreabilidade (`knowledge-base.md` §2.3 e §7.3).
+1. **Capture with evidence.** A norm, legislation, technical documentation, research, a decision taken in a meeting. What comes in records where it came from and who wrote it, human or agent, because a statement that cannot be traced to its source does not sustain a decision later.
+2. **Curate.** Captured material is not knowledge yet. Someone has to judge what is worth keeping, reconcile what contradicts itself, connect the new to what already existed, and see what is mature and what is still a draft. Curation is human work assisted by an agent, never an automatic by-product of ingestion.
+3. **Serve both sides with the same material.** The base is the source of truth for the agent, which reads it on every task instead of guessing, and the working surface for the person, who learns from it, corrects what is wrong and decides with it in sight. Two readers with different demands on exactly the same content.
 
-**O arranjo que mais se aproxima disso hoje, e onde ele para.** O fluxo que já funciona é uma pasta local de arquivos `.md`, com um documento na raiz explicando ao agente como escrever nela, e um editor de vault por cima para navegar. Ele acerta o essencial, o formato é legível pelos dois lados e a estrutura está declarada, mas é de uma pessoa só e trava em três pontos previsíveis (detalhamento em `knowledge-base.md` §2.5):
+**That source is alive.** It is neither the report written at the end nor the document frozen at the start: it grows and corrects itself while the project runs, and today's version is not the one from two weeks ago. That is the characteristic, not the defect, and it imposes the last requirement: the base has to be able to say what it said on the date someone decided based on it.
 
-1. **Colaboração:** o conteúdo é local, e duas pessoas não trabalham no mesmo corpo de conhecimento.
-2. **Navegação compartilhada:** editores de vault são clientes locais, ruins como cliente de repositório remoto.
-3. **Múltiplos cofres:** separar assuntos exige pastas soltas, sem um lugar que as liste.
+**Improvised arrangements for centralisation fail wholesale**, because they treat the base as a passive file repository and ignore what collaboration between people and agents demands:
 
-A esses três se soma o que a pasta local nunca teve e que os movimentos de curar e decidir exigem para valer: registro de quem escreveu cada coisa, quando, e com qual agente.
+1. **A monolith of information, with no granularity.** Concentrating knowledge in long documents charges both sides. For the person, search and reading become slow and inflexible. For the agent, long text fills the context window with noise, makes the evidence hard to locate, and prevents linking concept, decision and reference precisely (`knowledge-base.md` §4.1 and §5.3).
+2. **Proprietary format and visual rigidity.** A document formatted for presentation, such as a PDF, a slide deck or a complex spreadsheet, makes structured context hard to extract and to write, and blocks interconnection between pieces of information (`knowledge-base.md` §1.4).
+3. **Access incompatible with an agent.** Without a standard connector, the agent does not navigate the network of information, does not follow a dependency, does not validate metadata and does not write into the base autonomously and safely (`knowledge-base.md` §3.1).
+4. **No governance metadata.** The layer of instruction that tells people and agents how to read and how to update the content is missing, and so are the date, the maturity (draft or settled) and the explicit authorship of each passage. Without those the base becomes a pile, and a pile induces error, hallucination and loss of traceability (`knowledge-base.md` §2.3 and §7.3).
 
-### 1.2 A solução
+**The arrangement that comes closest today, and where it stops.** The flow that already works is a local folder of `.md` files, with a document at the root explaining to the agent how to write in it, and a vault editor on top for navigating. It gets the essentials right, the format is readable by both sides and the structure is declared, but it belongs to one person and stops at three predictable points (detailed in `knowledge-base.md` §2.5):
 
-**Cofres de conhecimento em Markdown, com estrutura declarada, acessíveis nativamente pelas ferramentas de IA.**
+1. **Collaboration:** the content is local, and two people do not work on the same body of knowledge.
+2. **Shared navigation:** vault editors are local clients, poor as clients of a remote repository.
+3. **Multiple vaults:** separating subjects requires loose folders, with no place listing them.
 
-O MemorySmith.app é a infraestrutura remota de conhecimento que sustenta a persistência de contexto: Vaults em Markdown puro, com estrutura declarada, operáveis nativamente por agentes de IA e por pessoas. Ele é o backend remoto do fluxo que já funciona, porque mantém o formato (Markdown puro), mantém a prática (Guidance na raiz, Template por pasta) e resolve os três pontos em que a pasta local trava, acrescentando as quatro capacidades que nenhum arranjo improvisado tem:
+To those three add what the local folder never had and what curating and deciding actually require: a record of who wrote each thing, when, and with which agent.
 
-- **Acesso remoto autenticado.** Um mesmo vault alcançado por vários clientes e agentes, sob identidade verificada (§4).
-- **Colaboração com papéis.** Permissão por papel na assinatura e teto de papel por vault, valendo igual para pessoas e para agentes (§5).
-- **Histórico auditável e imutável.** Cada mudança rastreável até quem a escreveu, com qual agente e o que a nota dizia antes (§11).
-- **Descoberta relacional e por curadoria.** Grafo de links sobre notas atômicas, busca no texto do vault e facetas que mostram a distribuição do conteúdo (§10).
+### 1.2 The solution
 
-#### Interoperabilidade por protocolo
+**Knowledge vaults in Markdown, with declared structure, natively reachable by AI tools.**
 
-Contra a fragmentação por fornecedor o produto age na camada de protocolo, e não pela adesão a uma ferramenta proprietária: o vault é servido por um MCP server remoto, e MCP é padrão aberto falado por clientes de fabricantes diferentes (`knowledge-base.md` §3.5). Cada pessoa continua na plataforma de IA que prefere, e todas alcançam o mesmo vault, com o mesmo conteúdo, sob o mesmo papel e na mesma versão da verdade.
+MemorySmith.app is the remote knowledge infrastructure that sustains the persistence of context: vaults in plain Markdown, with declared structure, natively operable by AI agents and by people. It is the remote backend of the flow that already works, because it keeps the format (plain Markdown), keeps the practice (a Guidance at the root, a Template per folder) and solves the three points where the local folder stops, adding the four capabilities no improvised arrangement has:
 
-#### O conceito
+- **Authenticated remote access.** One vault reached by several clients and agents, under a verified identity (§4).
+- **Collaboration with roles.** Permission by role in the subscription and a per-vault role ceiling, holding equally for people and for agents (§5).
+- **Auditable and immutable history.** Every change traceable to who wrote it, with which agent, and what the note said before (§11).
+- **Relational and curation-driven discovery.** A graph of links over atomic notes, search over the text of the vault, and facets showing the distribution of the content (§10).
 
-O nome diz o resto. Uma forja não guarda metal, ela o trabalha: o material bruto, que aqui são dados, normas e decisões, entra e sai peça, batido e conferido enquanto está quente. É esse o papel do produto sobre a memória do time, que é forjada durante o trabalho, por pessoas e agentes sobre o mesmo material, e não transcrita depois que o trabalho acabou.
+#### Interoperability through the protocol
 
-### 1.3 O ciclo de uso
+Against fragmentation by vendor the product acts at the protocol layer, and not by adopting a proprietary tool: the vault is served by a remote MCP server, and MCP is an open standard spoken by clients from different makers (`knowledge-base.md` §3.5). Each person stays on the AI platform they prefer, and all of them reach the same vault, with the same content, under the same role and on the same version of the truth.
 
-O agente atua nos dois sentidos: lê o vault e o **alimenta**. Os três movimentos de §1.1 aparecem aqui como o caso concreto que o produto serve:
+#### The concept
 
-1. **Ingestão.** O agente lê um corpo de material bruto, como normas, legislação, documentação técnica ou pesquisa, e o converte em notas granulares dentro do vault, obedecendo ao Guidance (o que este vault é), à estrutura de pastas (onde cada coisa vai) e ao Template da pasta (como a nota se estrutura). Cada escrita registra quem a fez, com qual agente e o que a nota dizia antes (§11).
-2. **Curadoria.** Pessoas revisam o que entrou e conduzem as correções, e a interface é onde elas leem: a nota e a estrutura como o agente as recebe, a distribuição do vault pelo painel de curadoria (§10.3) e a contagem de links pendentes e de notas órfãs no catálogo (§13).
-3. **Consumo.** Depois, em outro momento do projeto, como uma auditoria, um parecer ou um relatório, agentes e pessoas usam o mesmo vault como fonte única da verdade para fundamentar o que entregam.
+The name says the rest. A forge does not store metal, it works it: the raw material, which here is data, norms and decisions, goes in and comes out as a piece, hammered and checked while it is hot. That is the role of the product over the memory of a team, which is forged during the work, by people and agents over the same material, and not transcribed after the work is done.
 
-**Três princípios que o ciclo impõe ao produto inteiro:**
+### 1.3 The cycle of use
 
-- **A escrita via protocolo é o caminho primário de ingestão.** Quem popula o vault é o agente, por construção. Escrita não é funcionalidade secundária exposta pela API interna.
-- **Guidance, estrutura de pastas e Template são instruções executáveis, não documentação** (`knowledge-base.md` §4.2). São o que faz o agente escrever a nota certa, na pasta certa, no formato certo. Um Guidance fraco ou uma descrição de pasta vaga degrada a qualidade do que entra, e o efeito só aparece depois, no consumo.
-- **Governança e proveniência são de projeto.** O vault sustenta trabalho regulado e auditável, então autoria e rastreabilidade temporal são premissa do sistema (§11), e não conformidade acrescentada depois.
+The agent acts in both directions: it reads the vault and it **feeds** it. The three movements of §1.1 appear here as the concrete case the product serves:
 
-### 1.4 A tese, em uma frase
+1. **Ingestion.** The agent reads a body of raw material, such as norms, legislation, technical documentation or research, and turns it into granular notes inside the vault, obeying the Guidance (what this vault is), the folder structure (where each thing goes) and the Template of the folder (how the note is shaped). Every write records who made it, with which agent, and what the note said before (§11).
+2. **Curation.** People review what came in and drive the corrections, and the interface is where they read: the note and the structure as the agent receives them, the distribution of the vault through the curation panel (§10.3), and the count of pending links and orphan notes in the catalogue (§13).
+3. **Consumption.** Later, at another moment of the project, such as an audit, an opinion or a report, agents and people use the same vault as the single source of truth to ground what they deliver.
 
-O produto não é guardar `.md`, é **entregar contexto estruturado ao agente sem atrito**. Se consultar um vault hospedado custar mais esforço que ler uma pasta local, a proposta de valor está comprometida. Por isso o MCP não é acessório: é a camada primária de integração, e a API interna existe para servir a interface.
+**Three principles the cycle imposes on the whole product:**
 
-O pilar complementar da mesma tese é a leitura e a curadoria humanas. Uma base que a pessoa não consegue navegar e validar deixa de ser curada, e uma base sem curadoria perde a capacidade de servir como fonte confiável ao agente (§13).
+- **Writing through the protocol is the primary path of ingestion.** Whoever populates the vault is the agent, by construction. Writing is not a secondary feature exposed by the internal API.
+- **The Guidance, the folder structure and the Template are executable instructions, not documentation** (`knowledge-base.md` §4.2). They are what makes the agent write the right note, in the right folder, in the right shape. A weak Guidance or a vague folder description degrades the quality of what comes in, and the effect only shows up later, at consumption.
+- **Governance and provenance are by design.** The vault sustains regulated and auditable work, so authorship and temporal traceability are a premise of the system (§11), and not compliance bolted on afterwards.
 
-### 1.5 Proposta de valor
+### 1.4 The thesis, in one sentence
 
-| Público-alvo | A dor central | O que o produto entrega |
+The product is not storing `.md`, it is **delivering structured context to the agent without friction**. If consulting a hosted vault costs more effort than reading a local folder, the value proposition is compromised. That is why MCP is not an accessory: it is the primary integration layer, and the internal API exists to serve the interface.
+
+The complementary pillar of the same thesis is human reading and curation. A base a person cannot navigate and validate stops being curated, and a base without curation loses the ability to serve as a trustworthy source for the agent (§13).
+
+### 1.5 Value proposition
+
+| Audience | The central pain | What the product delivers |
 |---|---|---|
-| Quem trabalha com agente sobre um corpo de conhecimento | Os arranjos improvisados são estáticos, isolados ou caros de consultar | Vault remoto em Markdown puro, conectado nativamente ao cliente de IA |
-| Time que trabalha com agentes todo dia | A cada nova sessão o contexto precisa ser reconstruído à mão | Memória comum entre pessoas e agentes, escrita durante o trabalho e lida a cada tarefa |
-| Time em que cada um usa a plataforma de IA que prefere | O silo por fornecedor impede compartilhar o contexto | Um MCP server remoto: o mesmo vault, com o mesmo papel, em qualquer cliente que fale o protocolo |
-| Times que compartilham uma base | Sincronizar arquivos não resolve edição concorrente nem controle de acesso | Assinatura com papéis e escrita com detecção de conflito |
-| Trabalho regulado (auditoria, jurídico, compliance) | Não se demonstra quais premissas fundamentaram um parecer passado | Histórico por revisão, autoria de humano e de agente, trilha imutável |
-| Quem tem muitos assuntos | Pastas soltas, sem catálogo | Catálogo de vaults com descrição, cada um autônomo |
-| Quem teme lock-in | A base é ativo de longo prazo, e formato proprietário a prende | Export de `.md` puros, sem formato proprietário |
-| Quem tem exigência de soberania sobre onde o dado mora | Hospedar em terceiro é decisão que não depende só de tecnologia | O backend inteiro roda na conta AWS de quem instalou, com o mesmo código (§4.9) |
+| Whoever works with an agent over a body of knowledge | Improvised arrangements are static, isolated or expensive to consult | A remote vault in plain Markdown, natively connected to the AI client |
+| A team working with agents every day | Every new session rebuilds the context by hand | A shared memory between people and agents, written during the work and read on every task |
+| A team where each person uses the AI platform they prefer | The vendor silo prevents sharing the context | One remote MCP server: the same vault, with the same role, in any client that speaks the protocol |
+| Teams sharing one base | Syncing files solves neither concurrent editing nor access control | A subscription with roles, and writing with conflict detection |
+| Regulated work (audit, legal, compliance) | There is no way to show which premises grounded a past opinion | History by revision, authorship of human and agent, an immutable trail |
+| Whoever has many subjects | Loose folders, with no catalogue | A catalogue of vaults with descriptions, each one autonomous |
+| Whoever fears lock-in | The base is a long-term asset, and a proprietary format traps it | Export of plain `.md`, with no proprietary format |
+| Whoever has a sovereignty requirement over where the data lives | Hosting with a third party is a decision that does not rest on technology alone | The whole backend runs in the AWS account of whoever installed it, on the same code (§4.9) |
 
 ### 1.6 Slogan
 
@@ -130,334 +130,332 @@ O pilar complementar da mesma tese é a leitura e a curadoria humanas. Uma base 
 
 ---
 
-## 2. Princípios de produto
+## 2. Product principles
 
-Decisões que valem para o produto inteiro e a que qualquer funcionalidade nova precisa responder. Os princípios de engenharia correspondentes estão em `architecture-guide.md` §2.
+Decisions that hold for the whole product and that any new feature has to answer to. The corresponding engineering principles are in `architecture-guide.md` §2.
 
-| # | Princípio | Consequência prática |
+| # | Principle | Practical consequence |
 |---|---|---|
-| **PP1** | **No fim é tudo Markdown** | O backend organiza e serve; não gera Markdown a partir de esquema tipado, e não impõe estrutura ao conteúdo |
-| **PP2** | **Vault autônomo** | Cada vault se descreve no próprio Guidance. Sem herança entre vaults e, portanto, sem link entre vaults |
-| **PP3** | **Molde é sugestão, não contrato** | O Template orienta a escrita; a nota não é obrigada a segui-lo, e o servidor não valida contra ele |
-| **PP4** | **O backend não interpreta o conteúdo** | O que vai dentro da nota, frontmatter inclusive, é decidido pelo Guidance e pelo Template. O backend lê apenas sintaxe universal de Markdown (link, heading), nunca convenção de vault. As duas exceções sancionadas vivem em projeções do Discovery: o extrator de links e o de facetas (§10.3), que agregam sem atribuir significado e nunca alimentam regra do core |
-| **PP5** | **Descoberta é derivada** | Grafo, busca e facetas nunca são fonte da verdade; são reconstruíveis a partir dos `.md` |
-| **PP6** | **O passado é imutável** | Apagar uma nota não destrói o histórico. Destruir conteúdo é ato administrativo registrado, nunca efeito colateral |
-| **PP7** | **Portável por construção** | Export devolve `.md` puros numa árvore de arquivos legível, sem formato proprietário |
-| **PP8** | **Modelo completo, interface progressiva** | Assinatura, papéis e vínculos existem desde a primeira linha; a UI só mostra cada um quando o usuário chega no caso que o exige |
-| **PP9** | **Ordem é sinal, não enfeite** | A ordem de pastas e de notas é conteúdo: é ela que diz ao agente por onde começar. Por isso é editável e é preservada até no export |
-| **PP10** | **Erro é interface** | Toda recusa devolvida ao agente precisa dizer o que fazer em seguida: argumento faltante devolve as opções válidas, e conflito devolve o conteúdo atual |
+| **PP1** | **In the end it is all Markdown** | The backend organises and serves; it does not generate Markdown from a typed schema, and it does not impose structure on the content |
+| **PP2** | **An autonomous vault** | Each vault describes itself in its own Guidance. No inheritance between vaults and therefore no links between vaults |
+| **PP3** | **A mould is a suggestion, not a contract** | The Template guides the writing; a note is not required to follow it, and the server does not validate against it |
+| **PP4** | **The backend does not interpret the content** | What goes inside a note, frontmatter included, is decided by the Guidance and the Template. The backend reads only universal Markdown syntax (links, headings), never a vault convention. The two sanctioned exceptions live in Discovery projections: the link extractor and the facet extractor (§10.3), which aggregate without assigning meaning and never feed a rule of the core |
+| **PP5** | **Discovery is derived** | The graph, the search and the facets are never the source of truth; they are rebuildable from the `.md` files |
+| **PP6** | **The past is immutable** | Deleting a note does not destroy the history. Destroying content is a recorded administrative act, never a side effect |
+| **PP7** | **Portable by construction** | Export returns plain `.md` in a readable file tree, with no proprietary format |
+| **PP8** | **A complete model, a progressive interface** | Subscriptions, roles and links exist from the first line; the UI only shows each one when the user reaches the case that requires it |
+| **PP9** | **Order is signal, not decoration** | The order of folders and notes is content: it is what tells the agent where to start. That is why it is editable and why it survives even the export |
+| **PP10** | **An error is interface** | Every refusal returned to the agent has to say what to do next: a missing argument returns the valid options, and a conflict returns the current content |
 
 ---
 
-## 3. Linguagem ubíqua
+## 3. Ubiquitous language
 
-Termo único por conceito, do código ao produto. Divergência aqui é o começo de todo modelo anêmico. Estes termos aparecem em inglês no código exatamente como estão na coluna "Termo".
+One term per concept, from the code to the product. Divergence here is the beginning of every anaemic model. These terms appear in the code exactly as they are in the "Term" column.
 
-| Termo | Significa | **Não** confundir com |
+| Term | Means | Do **not** confuse with |
 |---|---|---|
-| **Subscription** | A assinatura: fronteira de isolamento, unidade de colaboração, unidade de cobrança e raiz de tudo. Tem um titular, membros e um estado | Conta de usuário |
-| **Platform Admin** | Quem opera a plataforma e autoriza assinaturas. **Não é papel dentro de assinatura alguma** e não alcança conteúdo | Owner, administrador do cliente |
-| **Owner** | O titular da assinatura: responsável pelo pagamento, convida e remove membros, edita tudo. Um por assinatura | Editor com muitos direitos |
-| **Vault** | Um cofre de conhecimento autodescrito | Repositório, pasta raiz |
-| **Guidance** | O **papel** de "para que serve este vault e como estruturar as notas", desempenhado por um documento apontado pelo vault | Um arquivo chamado `GUIDANCE.md` |
-| **Folder** | Nó ordenado da árvore do vault, com `description` que diz *o que se guarda ali*. A descrição é atributo da pasta, nunca um Content Slot | Diretório físico (não existe), documento de pasta |
-| **Template** | O **papel** de "leiaute sugerido das notas desta pasta", desempenhado por um documento apontado pela pasta | Esquema, validação, um arquivo chamado `TEMPLATE.md` |
-| **Note** | Um documento Markdown; o que vai dentro dele é decidido pelo Guidance e pelo Template | Registro, entidade tipada |
-| **Position** | Chave que ordena irmãos: pastas entre pastas, notas dentro da pasta | Índice denso, campo `order` |
-| **Link** | Referência de uma nota a outra, extraída do Markdown | Hyperlink externo |
-| **Edge** | Link já resolvido para um `NoteId` de destino | Link pendente |
-| **Pending Link** | Link cujo alvo ainda não existe; resolve sozinho quando a nota alvo for criada | Link quebrado |
-| **Facet** | Atributo de frontmatter agregável para curadoria: os padrão `maturity` e `reviewed`, mais os que o Guidance do vault definir, descobertos pela forma do valor | Campo tipado do backend, esquema de nota |
-| **Authorship** | Quem escreveu: o humano **e** o agente usado | Usuário logado |
-| **Revision** | O conteúdo exato de uma nota num instante | Evento, alteração |
-| **Audit Event** | Registro append-only do que aconteceu, com autoria e revisão | Log de aplicação |
-| **Vault Context** | Documento composto (Guidance mais árvore anotada) entregue ao agente. É derivado a cada chamada e nunca armazenado | Dump do vault, documento que alguém edita |
-| **Content Slot** | Um documento Markdown armazenado, endereçado por identificador opaco. Nota, guidance e template são o **mesmo** tipo de coisa; o que difere é quem aponta para ele | Arquivo, caminho |
-| **Content Role** | O significado atribuído a um slot: `body` (nota), `guidance` (vault) ou `template` (pasta) | Nome de arquivo reservado |
-| **Vínculo** | A relação `(usuário, assinatura)` que autoriza aquele usuário a atuar naquela assinatura | Membership |
-| **Assinatura Ativa** | A assinatura em cujo nome a sessão age agora, escolhida entre os vínculos | O conjunto das assinaturas do usuário |
-| **Membership** | A relação `(usuário, assinatura)` com papel `EDITOR` ou `VIEWER` | Vínculo, que diz apenas que o usuário alcança a assinatura |
-| **Vault Role Limit** | O teto de papel de um membro num vault específico. Só rebaixa, nunca promove | Papel próprio do vault |
+| **Subscription** | The subscription: the isolation boundary, the unit of collaboration, the unit of billing and the root of everything. It has an owner, members and a state | A user account |
+| **Platform Admin** | Whoever operates the platform and authorises subscriptions. **It is not a role inside any subscription** and it does not reach content | Owner, customer administrator |
+| **Owner** | The holder of the subscription: responsible for payment, invites and removes members, edits everything. One per subscription | An editor with many rights |
+| **Vault** | A self-describing knowledge vault | A repository, a root folder |
+| **Guidance** | The **role** of "what this vault is for and how to structure its notes", played by a document the vault points at | A file named `GUIDANCE.md` |
+| **Folder** | An ordered node of the vault tree, with a `description` saying *what is kept there*. The description is an attribute of the folder, never a Content Slot | A physical directory (there is none), a folder document |
+| **Template** | The **role** of "the suggested layout of the notes of this folder", played by a document the folder points at | A schema, validation, a file named `TEMPLATE.md` |
+| **Note** | A Markdown document; what goes inside it is decided by the Guidance and the Template | A record, a typed entity |
+| **Position** | The key that orders siblings: folders among folders, notes within a folder | A dense index, an `order` field |
+| **Link** | A reference from one note to another, extracted from the Markdown | An external hyperlink |
+| **Edge** | A link already resolved to a target `NoteId` | A pending link |
+| **Pending Link** | A link whose target does not exist yet; it resolves on its own when the target note is created | A broken link |
+| **Facet** | A frontmatter attribute that can be aggregated for curation: the standard `maturity` and `reviewed`, plus whatever the Guidance of the vault defines, discovered by the shape of the value | A typed backend field, a note schema |
+| **Authorship** | Who wrote: the human **and** the agent used | The logged-in user |
+| **Revision** | The exact content of a note at one instant | An event, a change |
+| **Audit Event** | An append-only record of what happened, with authorship and revision | An application log |
+| **Vault Context** | A composed document (the Guidance plus the annotated tree) delivered to the agent. It is derived on every call and never stored | A dump of the vault, a document somebody edits |
+| **Content Slot** | A stored Markdown document, addressed by an opaque identifier. A note, a guidance and a template are the **same** kind of thing; what differs is who points at it | A file, a path |
+| **Content Role** | The meaning assigned to a slot: `body` (a note), `guidance` (a vault) or `template` (a folder) | A reserved file name |
+| **Subscription Link** | The `(user, subscription)` relation that authorises that user to act in that subscription | Membership |
+| **Active Subscription** | The subscription the session acts on behalf of right now, chosen among the links | The set of the user's subscriptions |
+| **Membership** | The `(user, subscription)` relation with the role `EDITOR` or `VIEWER` | A Subscription Link, which only says the user reaches the subscription |
+| **Vault Role Limit** | The role ceiling of a member in a specific vault. It only lowers, never promotes | A role of the vault's own |
 
 ---
+## 4. Platform and subscriptions
 
-## 4. Plataforma e assinaturas
+### 4.1 Overview of the model
 
-### 4.1 Visão geral do modelo
-
-A assinatura não é uma feature: é a forma do produto. Um cliente é uma **Subscription**, e dentro dela pessoas colaboram nos **Vaults**.
+The subscription is not a feature: it is the shape of the product. A customer is a **Subscription**, and inside it people collaborate on **Vaults**.
 
 ```
-Subscription  (fronteira de isolamento, colaboração, cobrança e identidade: um titular, membros, um estado)
-└── Vault  (o conhecimento em si, autônomo, PP2)
+Subscription  (boundary of isolation, collaboration, billing and identity: one owner, members, one state)
+└── Vault  (the knowledge itself, autonomous, PP2)
     ├── Guidance
-    └── Folder (ordenada, com descrição)
+    └── Folder (ordered, with a description)
         ├── Template
-        └── Note (ordenada)
+        └── Note (ordered)
 ```
 
-**Acima da assinatura existe apenas a plataforma**, operada pelo `PLATFORM_ADMIN`. Ela não é um nível da hierarquia de dados: é uma superfície separada, que autoriza assinaturas e nunca alcança conteúdo (§4.6).
+**Above the subscription there is only the platform**, operated by the `PLATFORM_ADMIN`. It is not a level of the data hierarchy: it is a separate surface, which authorises subscriptions and never reaches content (§4.6).
 
-### 4.2 A assinatura é a fronteira, o status é o estado
+### 4.2 The subscription is the boundary, the status is the state
 
-A assinatura acumula dois papéis que normalmente ficam separados: é o objeto de negócio (quem paga, em que plano, com qual status) **e** a fronteira de isolamento de todos os dados. Isso só é seguro sob uma regra:
+The subscription carries two roles that are usually kept apart: it is the business object (who pays, on which plan, with which status) **and** the isolation boundary of all the data. That is only safe under one rule:
 
-> **O `SubscriptionId` é perpétuo.** Ele é emitido uma vez, nunca é reemitido e nunca muda, independentemente de a assinatura estar pendente, ativa, suspensa ou cancelada. Cancelar altera um campo de status; não move, não re-chaveia e não apaga nada. Recontratar reativa **a mesma assinatura**, com o mesmo identificador, e todos os dados voltam a ser alcançáveis exatamente onde estavam.
+> **The `SubscriptionId` is perpetual.** It is issued once, never reissued and never changed, whether the subscription is pending, active, suspended or cancelled. Cancelling changes a status field; it does not move, does not rekey and does not delete anything. Re-subscribing reactivates **the same subscription**, with the same identifier, and all the data becomes reachable again exactly where it was.
 
-Sem essa regra, "cancelar" viraria migração de dados e "recontratar" viraria importação, e a fronteira de isolamento passaria a depender de um estado que muda. Com ela, o status controla **acesso**, nunca **endereço**.
+Without that rule, "cancelling" would become a data migration and "re-subscribing" an import, and the isolation boundary would come to depend on a state that changes. With it, the status governs **access**, never **address**.
 
-**A assinatura não tem nome** (RN-SUB-020): o que a identifica é o `SubscriptionId`, e quem responde por ela é o titular. Um nome seria mais um campo a manter em dia sem nada que o mantivesse honesto, e não distinguiria nada que o e-mail do titular já não distinga.
+**The subscription has no name** (RN-SUB-020): what identifies it is the `SubscriptionId`, and who answers for it is its owner. A name would be one more field to keep up to date with nothing keeping it honest, and it would distinguish nothing the owner's e-mail does not already distinguish.
 
-Além do status, a assinatura declara **o que ela é e quanto ela pode guardar**: um `type`, que nesta fase só pode ser `individual`, e uma `quota` de armazenamento, que é `500MB`, `1GB` ou `2GB` (RN-SUB-018, RN-SUB-019). Os dois são escolhidos no momento da solicitação e são alteráveis depois por ato do `PLATFORM_ADMIN`.
+Besides its status, the subscription declares **what it is and how much it may hold**: a `type`, which at this stage can only be `individual`, and a storage `quota`, which is `500MB`, `1GB` or `2GB` (RN-SUB-018, RN-SUB-019). Both are chosen when the subscription is requested and can be changed later by an act of the `PLATFORM_ADMIN`.
 
-A quota **é aplicada** (RN-SUB-021). O que ela mede é o **conteúdo vigente**: a revisão atual de cada nota não apagada, mais cada `Guidance` e cada `Template`. Revisões substituídas continuam guardadas, porque apagar bytes é ato administrativo com porta própria, e deliberadamente não entram na conta: cobrar por elas faria o uso subir a cada edição e nunca descer, e apagar uma nota não devolveria nada. Um vault na lixeira continua ocupando o que ocupa, pelo mesmo motivo, e porque ele volta inteiro quando é restaurado.
+The quota **is enforced** (RN-SUB-021). What it measures is the **current content**: the current revision of every note not deleted, plus every `Guidance` and every `Template`. Replaced revisions remain stored, because destroying bytes is an administrative act with a door of its own, and they deliberately do not count: charging for them would make usage rise on every edit and never fall, and deleting a note would give nothing back. A vault in the bin keeps occupying what it occupies, for the same reason, and because it comes back whole when restored.
 
-O que a quota recusa é apenas o que **faz crescer** o conteúdo vigente. Criar nota, aumentar o texto de uma, gravar um `Guidance` maior e restaurar uma nota apagada são recusados com `LIMIT_EXCEEDED` quando não cabem; ler, apagar, mover, reordenar e encurtar continuam funcionando mesmo acima do teto. A razão é simples: um limite que congela tudo prende a pessoa dentro dele, sem conseguir encurtar a própria nota que a levou até lá.
+What the quota refuses is only what **grows** the current content. Creating a note, lengthening one, writing a bigger `Guidance` and restoring a deleted note are refused with `LIMIT_EXCEEDED` when they do not fit; reading, deleting, moving, reordering and shortening keep working even above the ceiling. The reason is simple: a limit that freezes everything traps the person inside it, unable to shorten the very note that took them there.
 
-### 4.3 Hierarquia e por que ela tem dois níveis
+### 4.3 Hierarchy, and why it has two levels
 
-| Nível | Quem manda | Existe para |
+| Level | Who is in charge | Exists for |
 |---|---|---|
-| **Subscription** | `OWNER` (um, o titular) e os membros `EDITOR` · `VIEWER` | Isolamento, colaboração, cobrança, domínio de identidade |
-| **Vault** | herda o papel da assinatura, com teto opcional (§5.3) | O conhecimento em si |
+| **Subscription** | `OWNER` (one, the holder) and the members `EDITOR` · `VIEWER` | Isolation, collaboration, billing, identity domain |
+| **Vault** | inherits the role from the subscription, with an optional ceiling (§5.3) | The knowledge itself |
 
-**Decisão consciente, com um custo declarado.** Existiu um terceiro nível entre os dois, o workspace, e ele foi removido. Ele resolvia um caso: dois times do mesmo cliente que não devem se ver. Sem ele, quem é membro da assinatura alcança todos os vaults dela, e a única granularidade que sobra é o teto por vault, que rebaixa a escrita mas nunca esconde. Separar dois grupos passa a exigir **duas assinaturas**, e portanto duas cobranças. O custo foi pesado e aceito: um nível a menos vale mais para quem usa o produto sozinho ou em time único, que é o caso que o produto atende primeiro, do que a granularidade valeria para o caso que ele ainda não atende.
+**A conscious decision, with a declared cost.** There used to be a third level between the two, the workspace, and it was removed. It solved one case: two teams of the same customer that must not see each other. Without it, whoever is a member of the subscription reaches all its vaults, and the only granularity left is the per-vault ceiling, which lowers writing but never hides. Separating two groups now requires **two subscriptions**, and therefore two bills. The cost was weighed and accepted: one level fewer is worth more to whoever uses the product alone or in a single team, which is the case the product serves first, than the granularity would be worth for the case it does not serve yet.
 
-### 4.4 Onboarding e ciclo de vida da assinatura
+### 4.4 Onboarding and the life cycle of a subscription
 
-Não há processamento automático de pagamento nesta fase. A ativação é um **ato administrativo** do `PLATFORM_ADMIN`, o que mantém o modelo completo enquanto a cobrança não existe.
+There is no automatic payment processing at this stage. Activation is an **administrative act** of the `PLATFORM_ADMIN`, which keeps the model complete while billing does not exist.
 
-| Momento | O que acontece |
+| Moment | What happens |
 |---|---|
-| **Signup** | Cria a conta de usuário. Nenhuma assinatura ainda, nenhum acesso operacional. Não há cadastro aberto nesta fase: a conta nasce por ato da operação da plataforma |
-| **Onboarding** | O usuário solicita uma assinatura, escolhendo tipo e quota, e passa a ser o `OWNER` dela. Status: `pending_approval` |
-| **Autorização** | Um `PLATFORM_ADMIN` aprova (status vira `trial` ou `active`) ou rejeita, com motivo obrigatório |
-| **Configuração** | O `OWNER` cria vaults e escreve Guidance e Templates |
-| **Convite** | O `OWNER` emite um convite endereçado a um e-mail, definindo `EDITOR` ou `VIEWER`. O produto não entrega o convite: quem convida repassa o link por onde quiser |
-| **Aceite** | O convidado ganha vínculo com aquela assinatura. **Não cria assinatura própria e não paga nada** |
-| **Saída** | Remover um membro revoga o acesso; a conta, os demais vínculos e a autoria do que ele escreveu permanecem |
-| **Suspensão / cancelamento** | Acesso operacional cessa; os dados permanecem sob a mesma chave (§4.2) |
+| **Signup** | Creates the user account. No subscription yet, no operational access. There is no open sign-up at this stage: the account is born by an act of platform operations |
+| **Onboarding** | The user requests a subscription, choosing type and quota, and becomes its `OWNER`. Status: `pending_approval` |
+| **Authorisation** | A `PLATFORM_ADMIN` approves (the status becomes `trial` or `active`) or rejects, with a mandatory reason |
+| **Setup** | The `OWNER` creates vaults and writes the Guidance and the Templates |
+| **Invitation** | The `OWNER` issues an invitation addressed to an e-mail, setting `EDITOR` or `VIEWER`. The product does not deliver the invitation: whoever invites passes the link on however they like |
+| **Acceptance** | The invitee gains a link to that subscription. **It creates no subscription of their own and they pay nothing** |
+| **Leaving** | Removing a member revokes access; the account, the other links and the authorship of what they wrote remain |
+| **Suspension / cancellation** | Operational access ceases; the data stays under the same key (§4.2) |
 
-**Estados da assinatura:**
+**Subscription states:**
 
 ```
                     ┌──────────────┐
    onboarding ─────▶│pending_approval│
                     └───┬────────┬─┘
-              aprovação │        │ rejeição (motivo obrigatório)
+               approval │        │ rejection (reason required)
                         ▼        ▼
              ┌───────────────┐  ┌──────────┐
-             │ trial │ active│  │ rejected │──▶ pode solicitar de novo
+             │ trial │ active│  │ rejected │──▶ may request again
              └───┬───────────┘  └──────────┘
                  │
-                 ├──▶ suspended  ──▶ volta para active
-                 └──▶ canceled   ──▶ volta para active (mesma assinatura, §4.2)
+                 ├──▶ suspended  ──▶ back to active
+                 └──▶ canceled   ──▶ back to active (same subscription, §4.2)
 ```
 
-### 4.5 Um usuário, mais de uma assinatura
+### 4.5 One user, more than one subscription
 
-Quem faz onboarding é titular da sua assinatura; quem aceita convite de outra organização passa a participar de uma segunda. Como a assinatura é a fronteira de isolamento, isso não é detalhe de interface.
+Whoever onboards is the holder of their subscription; whoever accepts an invitation from another organisation starts taking part in a second one. Since the subscription is the isolation boundary, this is not an interface detail.
 
-- **Identidade é global; assinatura é vínculo.** A conta de usuário não pertence a assinatura nenhuma. A participação é uma relação com papel próprio em cada uma.
-- **A assinatura ativa é escolhida, não deduzida.** A sessão age em nome de uma assinatura por vez, e trocar é ação explícita.
-- **O conector MCP fixa a assinatura no consentimento.** Ela entra no acesso do conector no instante em que o usuário autoriza e não muda durante a vida daquele acesso. Sem essa regra, um agente com sessão longa trocaria de assinatura no meio de um trabalho de ingestão, e a metade já escrita ficaria no lugar errado. Um conector, uma assinatura; quem trabalha em duas autoriza dois conectores.
+- **Identity is global; a subscription is a link.** The user account belongs to no subscription. Taking part is a relation with a role of its own in each one.
+- **The active subscription is chosen, not inferred.** The session acts on behalf of one subscription at a time, and switching is an explicit action.
+- **The MCP connector fixes the subscription at consent.** It enters the connector's access the moment the user authorises it and does not change for the life of that access. Without that rule, an agent with a long session would switch subscriptions in the middle of an ingestion job, and the half already written would be in the wrong place. One connector, one subscription; whoever works in two authorises two connectors.
 
-### 4.6 A plataforma é uma superfície separada
+### 4.6 The platform is a separate surface
 
-O `PLATFORM_ADMIN` opera a plataforma: aprova, rejeita e suspende assinaturas. **Ele não é papel dentro de assinatura alguma** e, por construção, não alcança conteúdo:
+The `PLATFORM_ADMIN` operates the platform: it approves, rejects and suspends subscriptions. **It is not a role inside any subscription** and, by construction, it does not reach content:
 
-> Uma sessão de plataforma **não carrega assinatura ativa**. Como toda chave de dado do sistema começa pela assinatura, não há chave que uma credencial de admin consiga montar. A impossibilidade é estrutural, não uma verificação que alguém precisa lembrar de escrever.
+> A platform session **carries no active subscription**. Since every data key of the system starts with the subscription, there is no key an admin credential can assemble. The impossibility is structural, not a check somebody has to remember to write.
 
-O que ele vê é metadado de assinatura: titular, e-mail, status, tipo, quota, datas e contagem de membros. Nunca nome de vault, nunca conteúdo de nota.
+What it sees is subscription metadata: the owner, the e-mail, the status, the type, the quota, the dates and the member count. Never a vault name, never note content.
 
-Ele conta ainda com **duas operações administrativas**, que existem para operar um ambiente e não para o fluxo de revisão: definir o status diretamente, sem passar pela máquina de transição de §4.4, e mudar tipo e quota (RN-SUB-018, RN-SUB-019). As duas são registradas como eventos próprios, distintos dos eventos de aprovação, rejeição, suspensão e reativação, justamente porque não foram o caminho comum: a trilha precisa dizer qual dos dois aconteceu.
+It also has **two administrative operations**, which exist to operate an environment and not for the review flow: setting the status directly, without going through the transition machine of §4.4, and changing the type and the quota (RN-SUB-018, RN-SUB-019). Both are recorded as events of their own, distinct from the approval, rejection, suspension and reactivation events, precisely because they were not the common path: the trail has to say which of the two happened.
 
-Se um `PLATFORM_ADMIN` também for usuário de alguma assinatura, ele age ali como qualquer outro membro, com sessão própria. Os dois papéis nunca se somam na mesma sessão.
+If a `PLATFORM_ADMIN` is also a user of some subscription, they act there like any other member, in a session of their own. The two roles never add up in the same session.
 
-### 4.7 Interface progressiva (PP8)
+### 4.7 Progressive interface (PP8)
 
-**A UI esconde a lista de membros enquanto houver só o titular, e esconde a troca de assinatura enquanto houver um só vínculo.** O modelo é completo desde o começo, e a interface é que aparece por etapas.
+**The UI hides the member list while there is only the owner, and hides subscription switching while there is only one link.** The model is complete from the start, and it is the interface that appears in stages.
 
-### 4.8 Regras de negócio: assinatura e isolamento
+### 4.8 Business rules: subscription and isolation
 
-- **RN-SUB-001:** Todo dado do sistema pertence a exatamente uma assinatura; não existe dado compartilhado entre assinaturas.
-- **RN-SUB-002:** A assinatura sob a qual uma requisição opera é determinada pela credencial autenticada, nunca por parâmetro de requisição.
-- **RN-SUB-003:** Nenhuma consulta pode retornar dados de mais de uma assinatura. Duas perguntas atravessam a fronteira e são as únicas: *"de quais assinaturas este usuário participa?"* e a listagem administrativa de assinaturas por status. Nenhuma das duas revela conteúdo.
-- **RN-SUB-004:** Um recurso de outra assinatura é indistinguível de um recurso inexistente: ambos respondem `NOT_FOUND`.
-- **RN-SUB-005:** O `SubscriptionId` é perpétuo: emitido uma vez, nunca reemitido, imutável ao longo de todas as transições de status. Cancelamento e reativação usam o mesmo identificador.
-- **RN-SUB-006:** O signup cria apenas a conta de usuário. Nenhuma assinatura é criada automaticamente e nenhum acesso operacional é concedido.
-- **RN-SUB-007:** Uma assinatura em `pending_approval`, `rejected`, `suspended` ou `canceled` não concede acesso operacional a ninguém, nem ao próprio `OWNER`, nem por MCP.
-- **RN-SUB-008:** Somente `PLATFORM_ADMIN` aprova, rejeita, suspende ou reativa assinaturas.
-- **RN-SUB-009:** A rejeição exige motivo, que é comunicado ao solicitante; ele pode solicitar novamente.
-- **RN-SUB-010:** A aprovação define o status como `trial` ou `active`, a critério do `PLATFORM_ADMIN` conforme o acordo comercial.
-- **RN-SUB-011:** Um usuário pode ter vínculo com múltiplas assinaturas; exatamente uma é a assinatura ativa da sessão.
-- **RN-SUB-012:** Um dos vínculos é marcado como padrão e é assumido quando nenhuma assinatura ativa válida é encontrada.
-- **RN-SUB-013:** Trocar de assinatura ativa é ação explícita do usuário; nenhuma operação de negócio recebe a assinatura como argumento.
-- **RN-SUB-014:** Um conector MCP autorizado opera sempre na assinatura fixada no momento do consentimento, pela vida inteira daquela autorização.
-- **RN-SUB-015:** Índices derivados (busca, grafo, facetas, cache) respeitam a mesma fronteira de assinatura que o dado de origem.
-- **RN-SUB-016:** Uma sessão de `PLATFORM_ADMIN` não carrega assinatura ativa e, portanto, não alcança nenhum dado de vault ou nota.
-- **RN-SUB-017:** Aceitar um convite não cria assinatura para o convidado: ele passa a atuar na assinatura de quem convidou.
-- **RN-SUB-018:** Toda assinatura declara um `type`, escolhido na solicitação, cujo único valor nesta fase é `individual`. Somente `PLATFORM_ADMIN` altera o tipo depois, e é ele também quem pode definir o status diretamente, sem seguir a máquina de transição de §4.4. Um status definido assim é registrado como evento próprio, e definir `rejected` por esse caminho não cumpre RN-SUB-009: rejeitar uma solicitação que alguém aguarda continua exigindo motivo.
-- **RN-SUB-019:** Toda assinatura declara uma `quota` de armazenamento, escolhida na solicitação entre `500MB`, `1GB` e `2GB`, e alterável depois por `PLATFORM_ADMIN`. Ela é aplicada nos termos de RN-SUB-021. *(Até a 0.2.0 esta regra dizia que a quota era declarada e não aplicada.)*
-- **RN-SUB-021:** A `quota` de RN-SUB-019 é aplicada sobre o **conteúdo vigente** da assinatura: a revisão atual de cada nota não apagada, somada a cada `Guidance` e cada `Template`. Revisões substituídas permanecem armazenadas e não são contadas. Uma escrita que aumente esse total é recusada com `LIMIT_EXCEEDED` quando o total resultante ultrapassaria a quota; uma escrita que o reduza ou o mantenha é sempre aceita, inclusive acima do teto. A contagem é mantida fora da transação de escrita e é, portanto, levemente atrasada: a assinatura pode terminar pouco acima do teto, nunca indefinidamente acima dele.
-- **RN-SUB-020:** A assinatura não tem nome. Ela é identificada pelo `SubscriptionId`, e para quem a opera ela é reconhecida pelo e-mail do titular. Nenhuma tela, rota, evento ou item de armazenamento carrega um nome de assinatura.
-
----
-
-### 4.9 Modos de operação
-
-O produto opera em **dois modos sobre o mesmo código**, e o que muda entre eles não é funcionalidade: é quem ocupa cada papel.
-
-No **serviço hospedado**, o `PLATFORM_ADMIN` é a operação do produto, e a quota da assinatura é o limite comercial dela.
-
-Numa **instalação própria**, quem opera a plataforma é quem instalou. O primeiro membro do grupo de administração nasce no onboarding da instalação, e apenas o primeiro. A quota deixa de ser limite comercial e passa a ser escolha de quem opera.
-
-**Em nenhum dos dois há recurso retido.** Não existe bifurcação por edição em lugar nenhum do código, então o que roda no serviço hospedado é exatamente o que está no repositório, sob licença MIT. O caminho de instalação passo a passo vive no `README.md`, e não aqui.
+- **RN-SUB-001:** Every piece of data in the system belongs to exactly one subscription; there is no data shared between subscriptions.
+- **RN-SUB-002:** The subscription a request operates under is determined by the authenticated credential, never by a request parameter.
+- **RN-SUB-003:** No query may return data from more than one subscription. Two questions cross the boundary and they are the only ones: *"which subscriptions does this user take part in?"* and the administrative listing of subscriptions by status. Neither reveals content.
+- **RN-SUB-004:** A resource of another subscription is indistinguishable from a resource that does not exist: both answer `NOT_FOUND`.
+- **RN-SUB-005:** The `SubscriptionId` is perpetual: issued once, never reissued, immutable across every status transition. Cancellation and reactivation use the same identifier.
+- **RN-SUB-006:** Signup creates only the user account. No subscription is created automatically and no operational access is granted.
+- **RN-SUB-007:** A subscription in `pending_approval`, `rejected`, `suspended` or `canceled` grants operational access to nobody, not even to its own `OWNER`, and not over MCP.
+- **RN-SUB-008:** Only a `PLATFORM_ADMIN` approves, rejects, suspends or reactivates subscriptions.
+- **RN-SUB-009:** Rejection requires a reason, which is communicated to the requester; they may request again.
+- **RN-SUB-010:** Approval sets the status to `trial` or `active`, at the discretion of the `PLATFORM_ADMIN` according to the commercial agreement.
+- **RN-SUB-011:** A user may be linked to multiple subscriptions; exactly one is the active subscription of the session.
+- **RN-SUB-012:** One of the links is marked as the default and is assumed when no valid active subscription is found.
+- **RN-SUB-013:** Switching the active subscription is an explicit user action; no business operation takes the subscription as an argument.
+- **RN-SUB-014:** An authorised MCP connector always operates on the subscription fixed at the moment of consent, for the whole life of that authorisation.
+- **RN-SUB-015:** Derived indexes (search, graph, facets, cache) respect the same subscription boundary as the source data.
+- **RN-SUB-016:** A `PLATFORM_ADMIN` session carries no active subscription and therefore reaches no vault or note data.
+- **RN-SUB-017:** Accepting an invitation creates no subscription for the invitee: they start acting inside the subscription of whoever invited them.
+- **RN-SUB-018:** Every subscription declares a `type`, chosen at request time, whose only value at this stage is `individual`. Only a `PLATFORM_ADMIN` changes the type afterwards, and it is also the `PLATFORM_ADMIN` who may set the status directly, without following the transition machine of §4.4. A status set that way is recorded as an event of its own, and setting `rejected` through that path does not satisfy RN-SUB-009: rejecting a request somebody is waiting on still requires a reason.
+- **RN-SUB-019:** Every subscription declares a storage `quota`, chosen at request time among `500MB`, `1GB` and `2GB`, and changeable later by a `PLATFORM_ADMIN`. It is enforced under the terms of RN-SUB-021. *(Up to 0.2.0 this rule said the quota was declared and not enforced.)*
+- **RN-SUB-021:** The `quota` of RN-SUB-019 is enforced over the **current content** of the subscription: the current revision of every note not deleted, plus every `Guidance` and every `Template`. Replaced revisions stay stored and are not counted. A write that increases that total is refused with `LIMIT_EXCEEDED` when the resulting total would exceed the quota; a write that reduces it or keeps it the same is always accepted, even above the ceiling. The count is kept outside the write transaction and is therefore slightly delayed: a subscription may end up a little above the ceiling, never indefinitely above it.
+- **RN-SUB-020:** The subscription has no name. It is identified by the `SubscriptionId`, and to whoever operates it, it is recognised by the owner's e-mail. No screen, route, event or storage item carries a subscription name.
 
 ---
 
-## 5. Papéis e permissões
+### 4.9 Modes of operation
 
-### 5.1 Taxonomia
+The product runs in **two modes over the same code**, and what differs between them is not functionality: it is who occupies each role.
 
-Quatro papéis, em dois planos que nunca se misturam na mesma sessão:
+In the **hosted service**, the `PLATFORM_ADMIN` is product operations, and the quota of the subscription is its commercial limit.
 
-| Papel | Plano | Concedido a | Quantidade |
+In a **self-hosted install**, whoever operates the platform is whoever installed it. The first member of the administration group is born in the onboarding of the install, and only the first. The quota stops being a commercial limit and becomes a choice of whoever operates it.
+
+**In neither of them is any capability held back.** There is no edition fork anywhere in the code, so what runs on the hosted service is exactly what is in the repository, under the MIT licence. The step-by-step install path lives in `README.md`, not here.
+
+---
+
+## 5. Roles and permissions
+
+### 5.1 Taxonomy
+
+Four roles, on two planes that never mix in the same session:
+
+| Role | Plane | Granted to | Count |
 |---|---|---|---|
-| `PLATFORM_ADMIN` | Plataforma | Quem opera o serviço | Vários |
-| `OWNER` | Assinatura | O titular, definido no onboarding | **Exatamente um por assinatura** |
-| `EDITOR` | Assinatura | Convidado que escreve | Vários por assinatura |
-| `VIEWER` | Assinatura | Convidado que só lê, inclusive revisor externo | Vários por assinatura |
+| `PLATFORM_ADMIN` | Platform | Whoever operates the service | Several |
+| `OWNER` | Subscription | The holder, set at onboarding | **Exactly one per subscription** |
+| `EDITOR` | Subscription | An invitee who writes | Several per subscription |
+| `VIEWER` | Subscription | An invitee who only reads, an external reviewer included | Several per subscription |
 
-Os três papéis de cliente são da **assinatura**. O `OWNER` alcança todos os vaults dela sem precisar ser convidado para cada um, e `EDITOR` e `VIEWER` alcançam todos os vaults com o papel que têm, até onde o teto de cada vault permitir (§5.3). Um usuário tem **um** papel por assinatura, e não um papel por recorte.
+The three customer roles belong to the **subscription**. The `OWNER` reaches all of its vaults without having to be invited to each one, and `EDITOR` and `VIEWER` reach all the vaults with the role they hold, as far as the ceiling of each vault allows (§5.3). A user has **one** role per subscription, not one role per slice.
 
-**Transferência.** O `OWNER` pode transferir a titularidade para outro membro da assinatura, e a partir daí ele passa a ser `EDITOR`. A assinatura nunca fica sem titular, porque a transferência é atômica e não é "remover e depois nomear".
+**Transfer.** The `OWNER` may transfer ownership to another member of the subscription, and from then on becomes an `EDITOR`. The subscription is never left without a holder, because the transfer is atomic and is not "remove and then appoint".
 
-### 5.2 Matriz de permissões
+### 5.2 Permission matrix
 
-| Ação | `PLATFORM_ADMIN` | `OWNER` | `EDITOR` | `VIEWER` |
+| Action | `PLATFORM_ADMIN` | `OWNER` | `EDITOR` | `VIEWER` |
 |---|:---:|:---:|:---:|:---:|
-| Aprovar / rejeitar / suspender assinatura | ● | — | — | — |
-| Ver metadados de assinaturas (titular, status, datas) | ● | ●¹ | — | — |
-| Convidar membro, alterar papel, remover membro | — | ● | — | — |
-| Definir o teto de papel de um membro num vault (§5.3) | — | ● | — | — |
-| Transferir titularidade da assinatura | — | ● | — | — |
-| Criar vault | — | ● | ● | — |
-| Renomear / apagar vault | — | ● | — | — |
-| Criar / editar / apagar nota | — | ● | ● | — |
-| Criar / renomear / mover / reordenar pasta | — | ● | ● | — |
-| Editar Guidance e Template | — | ● | ● | — |
-| Mover nota entre vaults | — | ● | ●² | — |
-| Ler vault, pastas, notas | — | ● | ● | ● |
-| Buscar | — | ● | ● | ● |
-| Ver grafo, backlinks e saúde do vault | — | ● | ● | ● |
-| Ver histórico e atividade | — | ● | ● | ● |
-| Exportar vault | — | ● | ● | — |
+| Approve / reject / suspend a subscription | ● | — | — | — |
+| See subscription metadata (owner, status, dates) | ● | ●¹ | — | — |
+| Invite a member, change a role, remove a member | — | ● | — | — |
+| Set the role ceiling of a member in a vault (§5.3) | — | ● | — | — |
+| Transfer ownership of the subscription | — | ● | — | — |
+| Create a vault | — | ● | ● | — |
+| Rename / delete a vault | — | ● | — | — |
+| Create / edit / delete a note | — | ● | ● | — |
+| Create / rename / move / reorder a folder | — | ● | ● | — |
+| Edit the Guidance and the Template | — | ● | ● | — |
+| Move a note between vaults | — | ● | ●² | — |
+| Read the vault, folders, notes | — | ● | ● | ● |
+| Search | — | ● | ● | ● |
+| See the graph, backlinks and vault health | — | ● | ● | ● |
+| See history and activity | — | ● | ● | ● |
+| Export a vault | — | ● | ● | — |
 
-¹ Apenas da própria assinatura.
-² Apenas quando o `EDITOR` alcança os dois vaults envolvidos com papel de escrita, o que inclui não estar rebaixado em nenhum deles (§5.3).
+¹ Of their own subscription only.
+² Only when the `EDITOR` reaches both vaults involved with a writing role, which includes not being demoted in either of them (§5.3).
 
-**A coluna do `PLATFORM_ADMIN` é quase toda vazia, e isso é a garantia, não uma lacuna** (§4.6). Ele opera a plataforma; o conhecimento dos clientes está fora do seu alcance por construção.
+**The `PLATFORM_ADMIN` column is almost entirely empty, and that is the guarantee, not a gap** (§4.6). It operates the platform; the knowledge of the customers is out of its reach by construction.
 
-### 5.3 Teto de papel por vault
+### 5.3 Per-vault role ceiling
 
-Uma assinatura pode conter vaults de sensibilidade diferente. Para isso o `OWNER` pode **rebaixar** o papel de um membro num vault específico.
+A subscription may hold vaults of differing sensitivity. For that the `OWNER` may **lower** the role of a member in a specific vault.
 
-**A permissão efetiva é sempre o menor entre o papel na assinatura e o teto do vault. Nunca promove.**
+**The effective permission is always the lesser of the subscription role and the vault ceiling. It never promotes.**
 
-| Papel na assinatura | Teto no vault | Efetivo |
+| Role in the subscription | Ceiling in the vault | Effective |
 |---|---|---|
-| `EDITOR` | — (nenhum) | `EDITOR` |
+| `EDITOR` | — (none) | `EDITOR` |
 | `EDITOR` | `VIEWER` | `VIEWER` |
-| `VIEWER` | — (nenhum) | `VIEWER` |
+| `VIEWER` | — (none) | `VIEWER` |
 | `VIEWER` | `VIEWER` | `VIEWER` |
-| `VIEWER` | `EDITOR` | **recusado**, porque o teto não promove |
+| `VIEWER` | `EDITOR` | **refused**, because the ceiling does not promote |
 
-Só existe um valor de teto: `VIEWER`. Não há "sem acesso", porque **quem é membro da assinatura enxerga todos os vaults dela**; o que o teto controla é escrever, não ver. Tirar um vault do alcance de alguém exige uma assinatura separada (§4.3), o que mantém a pergunta "quem vê o quê" respondível olhando só a lista de membros.
+There is only one ceiling value: `VIEWER`. There is no "no access", because **whoever is a member of the subscription sees all of its vaults**; what the ceiling controls is writing, not seeing. Taking a vault out of someone's reach requires a separate subscription (§4.3), which keeps the question "who sees what" answerable by looking at the member list alone.
 
-O teto não se aplica ao `OWNER`: ele é titular da assinatura e alcança tudo.
+The ceiling does not apply to the `OWNER`: they hold the subscription and reach everything.
 
-### 5.4 Regras de negócio do Access
+### 5.4 Access business rules
 
-- **RN-ACC-001:** Toda assinatura tem, em qualquer instante, exatamente um `OWNER`. Remover o `OWNER` é recusado; a única saída é a transferência de titularidade.
-- **RN-ACC-002:** A transferência de titularidade é atômica: o novo titular vira `OWNER` e o anterior vira `EDITOR` na mesma operação.
-- **RN-ACC-003:** O e-mail é único entre os membros de uma assinatura.
-- **RN-ACC-004:** Um convite pendente não concede acesso; só o aceite cria o membro.
-- **RN-ACC-005:** O convite é de uso único, vinculado ao e-mail que ele endereça, e expira em 7 dias.
-- **RN-ACC-006:** Somente o `OWNER` convida, altera papel, remove membros e define tetos de vault. `EDITOR` não convida.
-- **RN-ACC-007:** *(removida)* Tratava da criação, renomeação e remoção de workspaces. O nível de workspace deixou de existir (§4.3). O número é preservado e nunca será reaproveitado.
-- **RN-ACC-008:** Um convite só pode ser emitido por assinatura em status `trial` ou `active`.
-- **RN-ACC-009:** Remover um membro revoga o acesso à assinatura e preserva integralmente o que ele escreveu, incluindo a autoria registrada.
-- **RN-ACC-010:** `VIEWER`, seja por papel de assinatura ou por teto de vault, recebe recusa em qualquer operação de escrita, tanto pela UI quanto pelo MCP.
-- **RN-ACC-011:** O teto de papel por vault só rebaixa. Definir um teto maior que o papel do membro na assinatura é recusado com `VALIDATION`.
-- **RN-ACC-012:** O único valor de teto admitido é `VIEWER`; não existe teto que remova a visibilidade do vault.
-- **RN-ACC-013:** O teto de vault não se aplica ao `OWNER`.
-- **RN-ACC-014:** Remover um membro da assinatura remove também todos os tetos de vault dele.
-- **RN-ACC-015:** Toda decisão de autorização é tomada pelo serviço dono do recurso, combinando o papel do usuário na assinatura com o teto do vault.
-- **RN-ACC-016:** Alterações de papel, de teto e remoções podem levar até 5 minutos para surtir efeito em sessões já autenticadas, porque a decisão do authorizer é cacheada por esse tempo.
+- **RN-ACC-001:** Every subscription has, at any instant, exactly one `OWNER`. Removing the `OWNER` is refused; the only way out is a transfer of ownership.
+- **RN-ACC-002:** The transfer of ownership is atomic: the new holder becomes `OWNER` and the previous one becomes `EDITOR` in the same operation.
+- **RN-ACC-003:** The e-mail is unique among the members of a subscription.
+- **RN-ACC-004:** A pending invitation grants no access; only acceptance creates the member.
+- **RN-ACC-005:** The invitation is single-use, bound to the e-mail it addresses, and expires in 7 days.
+- **RN-ACC-006:** Only the `OWNER` invites, changes roles, removes members and sets vault ceilings. An `EDITOR` does not invite.
+- **RN-ACC-007:** *(removed)* It covered the creation, renaming and removal of workspaces. The workspace level no longer exists (§4.3). The number is preserved and will never be reused.
+- **RN-ACC-008:** An invitation may only be issued by a subscription with status `trial` or `active`.
+- **RN-ACC-009:** Removing a member revokes access to the subscription and fully preserves what they wrote, the recorded authorship included.
+- **RN-ACC-010:** A `VIEWER`, whether by subscription role or by vault ceiling, is refused on any write operation, through the UI and through MCP alike.
+- **RN-ACC-011:** The per-vault role ceiling only lowers. Setting a ceiling higher than the member's role in the subscription is refused with `VALIDATION`.
+- **RN-ACC-012:** The only admitted ceiling value is `VIEWER`; there is no ceiling that removes visibility of the vault.
+- **RN-ACC-013:** The vault ceiling does not apply to the `OWNER`.
+- **RN-ACC-014:** Removing a member from the subscription also removes all of their vault ceilings.
+- **RN-ACC-015:** Every authorisation decision is taken by the service that owns the resource, combining the user's role in the subscription with the ceiling of the vault.
+- **RN-ACC-016:** Role changes, ceiling changes and removals may take up to 5 minutes to take effect on already authenticated sessions, because the authorizer decision is cached for that long.
 
 ---
 
-## 6. Mapa de domínios
+## 6. Map of domains
 
-Seis bounded contexts. A separação é de responsabilidade e vocabulário; a forma de deploy é decisão de engenharia (`architecture-guide.md` §3 e §17).
+Six bounded contexts. The separation is one of responsibility and vocabulary; the deployment shape is an engineering decision (`architecture-guide.md` §3 and §17).
 
-| Contexto | Responsabilidade | Tipo | Prefixo `RN` |
+| Context | Responsibility | Type | `RN` prefix |
 |---|---|---|---|
-| **Access** | Assinaturas e seu ciclo de vida, membros, papéis, tetos de vault, convites, vínculos, autorização | Supporting | `SUB`, `ACC` |
-| **Knowledge** | Vaults, guidance, pastas, ordem, templates, notas | **Core** | `KNW` |
-| **Discovery** | Grafo de links, índice de texto e facetas de curadoria, três projeções | Supporting | `DSC` |
-| **Audit** | Trilha append-only: autoria, revisões, reconstrução por data | Supporting | `AUD` |
-| **Agent Access** | O MCP server; compõe o Vault Context; traduz domínio ↔ tools | Supporting (camada anticorrupção) | `AGT` |
-| **Portability** | Export para árvore de arquivos legível | Generic | `PRT` |
+| **Access** | Subscriptions and their life cycle, members, roles, vault ceilings, invitations, links, authorisation | Supporting | `SUB`, `ACC` |
+| **Knowledge** | Vaults, guidance, folders, order, templates, notes | **Core** | `KNW` |
+| **Discovery** | The link graph, the text index and the curation facets, three projections | Supporting | `DSC` |
+| **Audit** | The append-only trail: authorship, revisions, reconstruction by date | Supporting | `AUD` |
+| **Agent Access** | The MCP server; composes the Vault Context; translates domain ↔ tools | Supporting (anticorruption layer) | `AGT` |
+| **Portability** | Export to a readable file tree | Generic | `PRT` |
 
-O prefixo é o do contexto a que a regra pertence. **Access carrega dois**, porque separa o que é da fronteira do que é de quem entra nela: `SUB` para a assinatura, seu ciclo de vida e o isolamento, `ACC` para membros, papéis, tetos e convites. Nenhum prefixo é aposentado quando um contexto muda de forma, porque os códigos já emitidos continuam referenciados.
+The prefix is that of the context the rule belongs to. **Access carries two**, because it separates what belongs to the boundary from what belongs to whoever enters it: `SUB` for the subscription, its life cycle and isolation, `ACC` for members, roles, ceilings and invitations. No prefix is retired when a context changes shape, because the codes already issued stay referenced.
 
-**Knowledge é o core domain**, porque é onde está a regra que nenhum concorrente resolve de graça: estrutura declarada, ordem significativa, papéis de conteúdo e escrita concorrente barata. Todo o resto existe para servi-lo ou para transportá-lo.
+**Knowledge is the core domain**, because that is where the rule no competitor solves for free lives: declared structure, meaningful order, content roles and cheap concurrent writing. Everything else exists to serve it or to carry it.
 
-**Discovery, Audit e Portability nunca são consultados pelo Knowledge.** Só o alimentam com o que ele publica. Essa direção única é o que permite reconstruí-los do zero (PP5).
+**Discovery, Audit and Portability are never consulted by Knowledge.** They only feed on what it publishes. That single direction is what makes it possible to rebuild them from zero (PP5).
 
 ---
+## 7. Domain: Access
 
-## 7. Domínio: Access
+### 7.1 Entities
 
-### 7.1 Entidades
-
-#### Entidade: `User` (identidade global)
+#### Entity: `User` (global identity)
 
 ```
-id,                          -- identidade global; não pertence a assinatura alguma
+id,                          -- global identity; belongs to no subscription
 email, name,
-is_platform_admin (bool),    -- plano de plataforma; nunca se soma a papel de assinatura (§4.6)
+is_platform_admin (bool),    -- platform plane; never adds to a subscription role (section 4.6)
 created_at, last_login?
 ```
 
-#### Entidade: `Subscription` (Agregado Raiz)
+#### Entity: `Subscription` (Aggregate Root)
 
 ```
-id,                          -- PERPÉTUO: emitido uma vez, nunca reemitido (RN-SUB-005)
-                             -- não tem nome: quem a identifica é o id, e quem
-                             -- responde por ela é o titular (RN-SUB-020)
-owner_id,                    -- exatamente um, sempre presente (RN-ACC-001)
+id,                          -- PERPETUAL: issued once, never reissued (RN-SUB-005)
+                             -- it has no name: what identifies it is the id, and who
+                             -- answers for it is the owner (RN-SUB-020)
+owner_id,                    -- exactly one, always present (RN-ACC-001)
 status (pending_approval | trial | active | rejected | suspended | canceled),
-type (individual),           -- o que a assinatura é, comercialmente (RN-SUB-018)
-quota (500MB | 1GB | 2GB),   -- aplicada sobre o conteúdo vigente (RN-SUB-019, RN-SUB-021)
+type (individual),           -- what the subscription is, commercially (RN-SUB-018)
+quota (500MB | 1GB | 2GB),   -- enforced over the current content (RN-SUB-019, RN-SUB-021)
 requested_at,
 reviewed_by_id?, reviewed_at?,
-rejection_reason?,           -- obrigatório quando status = rejected (RN-SUB-009)
+rejection_reason?,           -- required when status = rejected (RN-SUB-009)
 created_at,
 members: [{
   user_id,
-  email,                     -- único entre os membros da assinatura (RN-ACC-003)
-  role (EDITOR | VIEWER),    -- OWNER não é membro: alcança tudo pela titularidade
+  email,                     -- unique among the members of the subscription (RN-ACC-003)
+  role (EDITOR | VIEWER),    -- OWNER is not a member: it reaches everything by ownership
   invited_by_id,
   joined_at
 }]
 ```
 
-O campo `status` controla **acesso**, nunca **endereço** (§4.2). Nenhuma transição de status move ou re-chaveia dado algum.
+The `status` field governs **access**, never **address** (§4.2). No status transition moves or rekeys any data.
 
-#### Entidade: `SubscriptionLink`, o vínculo (§4.5)
+#### Entity: `SubscriptionLink` (§4.5)
 
 ```
 user_id, subscription_id,
@@ -466,186 +464,185 @@ is_default (bool),
 joined_at
 ```
 
-#### Entidade: `VaultRoleLimit`, o teto por vault (§5.3)
+#### Entity: `VaultRoleLimit`, the per-vault ceiling (§5.3)
 
 ```
 vault_id, user_id,
-limit (VIEWER),              -- único valor admitido (RN-ACC-012)
+limit (VIEWER),              -- the only admitted value (RN-ACC-012)
 set_by_id, set_at
 ```
 
-Vive junto do vault, não do membro: quem sabe quais vaults existem é o Knowledge, e a decisão de autorização precisa ser local (`architecture-guide.md` §14.2).
+It lives next to the vault, not next to the member: whoever knows which vaults exist is Knowledge, and the authorisation decision has to be local (`architecture-guide.md` §14.2).
 
-#### Entidade: `Invite`
+#### Entity: `Invite`
 
 ```
 id, subscription_id,
 invitee_email,
 invitee_role (EDITOR | VIEWER),
-invited_by_id,               -- sempre o OWNER (RN-ACC-006)
-token,                       -- uso único
+invited_by_id,               -- always the OWNER (RN-ACC-006)
+token,                       -- single use
 status (pending | accepted | expired | revoked),
 sent_at, expires_at, accepted_at?
 ```
 
-### 7.2 Regras de negócio
+### 7.2 Business rules
 
-As regras de Access estão em §5.4 (`RN-ACC-XXX`), junto da matriz de permissões e do teto por vault que elas governam. As regras de assinatura e isolamento estão em §4.8 (`RN-SUB-XXX`).
+The Access rules are in §5.4 (`RN-ACC-XXX`), next to the permission matrix and the per-vault ceiling they govern. The subscription and isolation rules are in §4.8 (`RN-SUB-XXX`).
 
 ---
 
-## 8. Domínio: Knowledge
+## 8. Domain: Knowledge
 
-O core. Quatro conceitos: o vault, a árvore de pastas, a nota e o conteúdo.
+The core. Four concepts: the vault, the folder tree, the note and the content.
 
-### 8.1 Entidades
+### 8.1 Entities
 
-#### Entidade: `Vault` (Agregado Raiz)
+#### Entity: `Vault` (Aggregate Root)
 
-Fronteira de consistência: o vault e **toda a sua árvore de pastas**.
+Consistency boundary: the vault and **its whole folder tree**.
 
 ```
 id, subscription_id,
-name, slug,                  -- slug único na assinatura (RN-KNW-032)
-description,                 -- o que aparece no catálogo de vaults
-guidance_ref?,               -- ponteiro para o Content Slot que faz o papel de Guidance
-version,                     -- controle de concorrência do agregado
+name, slug,                  -- slug unique within the subscription (RN-KNW-032)
+description,                 -- what shows up in the vault catalogue
+guidance_ref?,               -- pointer to the Content Slot playing the Guidance role
+version,                     -- concurrency control of the aggregate
 created_by (Authorship), created_at, updated_at
 ```
 
-#### Entidade: `Folder`, parte do agregado `Vault`
+#### Entity: `Folder`, part of the `Vault` aggregate
 
 ```
 id, vault_id,
-parent_folder_id?,           -- null = raiz do vault
+parent_folder_id?,           -- null = root of the vault
 name, slug,
-description,                 -- OBRIGATÓRIA, de 1 a 500 caracteres: é ela que orienta o agente
-position,                    -- ordem entre as pastas irmãs
-template_ref?,               -- ponteiro para o Content Slot que faz o papel de Template
+description,                 -- REQUIRED, 1 to 500 characters: it is what guides the agent
+position,                    -- order among sibling folders
+template_ref?,               -- pointer to the Content Slot playing the Template role
 created_by (Authorship), created_at, updated_at
 ```
 
-#### Entidade: `Note`, Agregado Raiz separado
+#### Entity: `Note`, a separate Aggregate Root
 
 ```
 id, vault_id, folder_id,
 title, slug,
-position,                    -- ordem dentro da pasta
-body_ref,                    -- ponteiro para o Content Slot que faz o papel de body
+position,                    -- order within the folder
+body_ref,                    -- pointer to the Content Slot playing the body role
 created_by (Authorship),
 updated_by (Authorship),
 deleted_at?, deleted_by?,    -- soft delete
-version                      -- controle de concorrência
+version                      -- concurrency control
 ```
 
-`Note` é agregado próprio e não parte do `Vault`. A justificativa técnica está em `architecture-guide.md` §6.2; a consequência de produto é o que importa aqui: **escrever nota é barato e concorrente**, que é o caminho por onde o agente alimenta o vault.
+`Note` is an aggregate of its own and not part of the `Vault`. The technical justification is in `architecture-guide.md` §6.2; the product consequence is what matters here: **writing a note is cheap and concurrent**, which is the path through which the agent feeds the vault.
 
-#### Entidade: `ContentSlot` e `ContentRef`
+#### Entity: `ContentSlot` and `ContentRef`
 
-Um Content Slot é um documento Markdown armazenado sob identificador opaco. **Nota, guidance e template são o mesmo tipo de coisa**; o que difere é quem aponta para ele e com qual papel.
+A Content Slot is a Markdown document stored under an opaque identifier. **A note, a guidance and a template are the same kind of thing**; what differs is who points at it and with which role.
 
 ```
 ContentSlot:  content_id, subscription_id, created_at
 ContentRef:   content_id, revision, sha256, bytes
 ```
 
-| Papel (`Content Role`) | Apontado por | Campo |
+| Role (`Content Role`) | Pointed at by | Field |
 |---|---|---|
-| `body` | Nota | `body_ref` |
-| `guidance` | Vault | `guidance_ref` |
-| `template` | Pasta | `template_ref` |
+| `body` | A note | `body_ref` |
+| `guidance` | A vault | `guidance_ref` |
+| `template` | A folder | `template_ref` |
 
-Daí decorre a regra de produto mais contraintuitiva do sistema: **`GUIDANCE.md` e `TEMPLATE.md` não são nomes de arquivo, são papéis.** Não existe nome reservado no armazenamento. Nomes de arquivo só voltam a existir na borda, no export (§12) e na UI.
+From that follows the most counterintuitive product rule of the system: **`GUIDANCE.md` and `TEMPLATE.md` are not file names, they are roles.** There is no reserved name in storage. File names only come back into existence at the edge, in the export (§12) and in the UI.
 
-Quatro coisas parecidas convivem aqui, e confundi-las custa caro:
+Four similar things live together here, and mixing them up is expensive:
 
-| O que é | Onde vive | Quem escreve |
+| What it is | Where it lives | Who writes it |
 |---|---|---|
-| **Guidance** | Content Slot apontado por `guidance_ref`, com revisão e histórico | Um humano |
-| **Descrição da pasta** | Atributo `description` da pasta, de 1 a 500 caracteres, sem revisão | Um humano |
-| **Vault Context** | Nada: é composto a cada leitura (§9.2) | O produto, derivando |
-| **`GUIDANCE.md`, `STRUCTURE.md`, `TEMPLATE.md`** | Só na borda: no export (§12) e nunca no armazenamento | O produto, materializando |
+| **Guidance** | A Content Slot pointed at by `guidance_ref`, with a revision and history | A human |
+| **The folder description** | The `description` attribute of the folder, 1 to 500 characters, with no revision | A human |
+| **Vault Context** | Nowhere: it is composed on every read (§9.2) | The product, deriving |
+| **`GUIDANCE.md`, `STRUCTURE.md`, `TEMPLATE.md`** | Only at the edge: in the export (§12) and never in storage | The product, materialising |
 
-Nenhum desses nomes de arquivo aparece na interface nem na superfície MCP. Lá existem apenas o papel e o documento composto.
+None of those file names appears in the interface or on the MCP surface. There, only the role and the composed document exist.
 
-Isso torna triviais operações que de outro modo seriam código especial: promover uma nota a template da pasta, converter um template em nota, adotar o conteúdo de uma nota como guidance do vault. Todas são troca de ponteiro.
+That makes trivial the operations that would otherwise be special-cased code: promoting a note to the template of the folder, turning a template into a note, adopting the content of a note as the guidance of the vault. All of them are a pointer swap.
 
-#### Valor: `Position`
+#### Value: `Position`
 
-A ordem de pastas e de notas é **conteúdo, não preferência de exibição** (PP9): é sinal para o agente sobre por onde começar e como o assunto se organiza. Por isso é editável, é preservada no Vault Context e sobrevive ao export.
+The order of folders and notes is **content, not a display preference** (PP9): it is a signal to the agent about where to start and how the subject is organised. That is why it is editable, why it is preserved in the Vault Context and why it survives the export.
 
-Ordenação alfabética continua disponível como opção de exibição no cliente, sem alterar a ordem armazenada.
+Alphabetical ordering stays available as a display option in the client, without changing the stored order.
 
-### 8.2 Regras de negócio: vault e estrutura
+### 8.2 Business rules: vault and structure
 
-- **RN-KNW-001:** Todo vault pertence a exatamente uma assinatura, e a uma só.
-- **RN-KNW-002:** O `slug` de uma pasta é único entre suas irmãs (mesmo pai, mesmo vault).
-- **RN-KNW-032:** O `slug` do vault é único **dentro da assinatura**, porque é por ele que a interface endereça o vault. Criar um vault cujo nome gera um `slug` já usado devolve `ALREADY_EXISTS` **com o identificador do vault existente**, e nunca cria um segundo, pela mesma razão de RN-AGT-004: o servidor não gera sufixo automático. Renomear para um `slug` ocupado recebe a mesma recusa. Sem essa regra, dois vaults de mesmo nome dividem um endereço e o segundo fica inalcançável.
-- **RN-KNW-003:** A profundidade máxima da árvore de pastas é 6 níveis.
-- **RN-KNW-004:** Mover uma pasta nunca pode criar ciclo: o destino não pode ser descendente da origem.
-- **RN-KNW-005:** Toda pasta tem uma `position` que a ordena entre as irmãs; toda nota tem uma `position` que a ordena dentro da pasta.
-- **RN-KNW-006:** A `description` da pasta é obrigatória, entre 1 e 500 caracteres. Descrição vazia não é aceita, porque é ela que orienta a escrita do agente.
-- **RN-KNW-007:** Remover uma pasta que contém pastas ou notas exige uma política explícita de remoção (`CASCADE` ou `REJECT_IF_NOT_EMPTY`). Não há padrão implícito.
-- **RN-KNW-008:** Um vault tem no máximo um Guidance e uma pasta no máximo um Template; ambos são opcionais.
-- **RN-KNW-009:** Renomear, reordenar ou mover pasta e nota nunca altera o conteúdo armazenado, apenas ponteiros e ordem.
-- **RN-KNW-010:** Um vault suporta até 200 pastas e 2.000 notas. Acima do teto de pastas, o Vault Context é truncado com aviso explícito.
+- **RN-KNW-001:** Every vault belongs to exactly one subscription, and to one only.
+- **RN-KNW-002:** The `slug` of a folder is unique among its siblings (same parent, same vault).
+- **RN-KNW-032:** The `slug` of the vault is unique **within the subscription**, because that is how the interface addresses the vault. Creating a vault whose name yields an already used `slug` answers `ALREADY_EXISTS` **with the identifier of the existing vault**, and never creates a second one, for the same reason as RN-AGT-004: the server does not generate an automatic suffix. Renaming to a taken `slug` gets the same refusal. Without that rule, two vaults with the same name share an address and the second one becomes unreachable.
+- **RN-KNW-003:** The maximum depth of the folder tree is 6 levels.
+- **RN-KNW-004:** Moving a folder may never create a cycle: the destination may not be a descendant of the source.
+- **RN-KNW-005:** Every folder has a `position` ordering it among its siblings; every note has a `position` ordering it within the folder.
+- **RN-KNW-006:** The `description` of a folder is required, between 1 and 500 characters. An empty description is not accepted, because it is what guides the writing of the agent.
+- **RN-KNW-007:** Removing a folder that contains folders or notes requires an explicit removal policy (`CASCADE` or `REJECT_IF_NOT_EMPTY`). There is no implicit default.
+- **RN-KNW-008:** A vault has at most one Guidance and a folder at most one Template; both are optional.
+- **RN-KNW-009:** Renaming, reordering or moving a folder or a note never changes the stored content, only pointers and order.
+- **RN-KNW-010:** A vault supports up to 200 folders and 2,000 notes. Above the folder ceiling, the Vault Context is truncated with an explicit notice.
 
-### 8.3 Regras de negócio: nota
+### 8.3 Business rules: the note
 
-- **RN-KNW-020:** O `slug` da nota é único **dentro do vault**, e não dentro da pasta, porque é assim que os links resolvem (§10.1).
-- **RN-KNW-021:** Mover uma nota entre pastas do mesmo vault nunca gera conflito de slug.
-- **RN-KNW-022:** Mover uma nota entre vaults exige política explícita para colisão de slug (`REJECT` ou `RENAME`).
-- **RN-KNW-023:** Mover uma nota entre vaults preserva o `NoteId` e, com ele, a linha do tempo inteira da nota.
-- **RN-KNW-024:** Mover uma nota para fora de um vault **quebra todos os backlinks que apontavam para ela naquele vault**. É consequência semântica correta (PP2), e os links que quebram passam a constar como quebrados no Discovery (§10.1).
-- **RN-KNW-025:** Uma nota tem no máximo 1 MB de conteúdo.
-- **RN-KNW-026:** Toda operação que altera estado registra autoria completa: o humano responsável e, quando houver, o agente que executou. Não existe alteração anônima.
-- **RN-KNW-027:** Toda alteração de conteúdo gera uma revisão nova, imutável, referenciada pelo evento correspondente.
-- **RN-KNW-028:** Se o conteúdo enviado for byte a byte idêntico ao atual, não há nova revisão, não há evento e não há reindexação.
-- **RN-KNW-029:** Apagar uma nota é reversível: a nota sai das listagens e da busca, e o histórico permanece consultável pelo identificador da nota.
-- **RN-KNW-030:** Apagar uma nota libera o seu `slug` no vault; restaurá-la exige que o slug esteja livre novamente.
-- **RN-KNW-031:** O backend não valida a nota contra o Template da pasta (PP3), e não interpreta frontmatter nem qualquer convenção de conteúdo (PP4).
-- **RN-KNW-033:** Apagar um vault é reversível e não destrói byte algum: o vault sai de toda listagem e passa a responder `404` em todos os contextos, enquanto pastas, notas e revisões permanecem intactas e o histórico segue consultável. A operação pertence ao papel de administração do vault, como renomear. Apagar libera o nome do vault na assinatura, pela mesma razão de RN-KNW-030, e por isso restaurá-lo exige que o nome esteja livre de novo.
-- **RN-KNW-034:** A escrita de Guidance e de Template exige a **revisão base**, como já exige a de nota, e uma revisão divergente devolve `CONFLICT` com o conteúdo atual em vez de sobrescrever. `null` é valor legítimo e afirma que o slot está vazio: ele não é a ausência do argumento, é uma afirmação sobre o estado atual. A razão de RN-AGT-005 vale aqui com mais força, e não com menos, porque a Guidance é o documento mais compartilhado do vault e o que mais tem chance de ser escrito por duas mãos ao mesmo tempo, uma na web e um agente pelo MCP.
+- **RN-KNW-020:** The `slug` of a note is unique **within the vault**, and not within the folder, because that is how links resolve (§10.1).
+- **RN-KNW-021:** Moving a note between folders of the same vault never produces a slug conflict.
+- **RN-KNW-022:** Moving a note between vaults requires an explicit policy for a slug collision (`REJECT` or `RENAME`).
+- **RN-KNW-023:** Moving a note between vaults preserves the `NoteId` and, with it, the whole timeline of the note.
+- **RN-KNW-024:** Moving a note out of a vault **breaks every backlink that pointed at it in that vault**. It is the semantically correct consequence (PP2), and the links that break start showing up as broken in Discovery (§10.1).
+- **RN-KNW-025:** A note holds at most 1 MB of content.
+- **RN-KNW-026:** Every state-changing operation records complete authorship: the responsible human and, when there is one, the agent that executed it. There is no anonymous change.
+- **RN-KNW-027:** Every content change produces a new, immutable revision, referenced by the corresponding event.
+- **RN-KNW-028:** If the content sent is byte for byte identical to the current one, there is no new revision, no event and no reindexing.
+- **RN-KNW-029:** Deleting a note is reversible: the note leaves the listings and the search, and the history stays readable by the identifier of the note.
+- **RN-KNW-030:** Deleting a note frees its `slug` in the vault; restoring it requires the slug to be free again.
+- **RN-KNW-031:** The backend does not validate the note against the Template of the folder (PP3), and does not interpret frontmatter or any content convention (PP4).
+- **RN-KNW-033:** Deleting a vault is reversible and destroys no byte: the vault leaves every listing and starts answering `404` in every context, while folders, notes and revisions stay intact and the history stays readable. The operation belongs to the vault administration role, like renaming. Deleting frees the name of the vault in the subscription, for the same reason as RN-KNW-030, and that is why restoring it requires the name to be free again.
+- **RN-KNW-034:** Writing the Guidance and the Template requires the **base revision**, as writing a note already does, and a diverging revision answers `CONFLICT` with the current content instead of overwriting. `null` is a legitimate value and asserts that the slot is empty: it is not the absence of the argument, it is a statement about the current state. The reason behind RN-AGT-005 holds here with more force, not less, because the Guidance is the most shared document of a vault and the one most likely to be written by two hands at once, one on the web and an agent over MCP.
 
 ---
+## 9. Domain: Agent Access (the public contract)
 
-## 9. Domínio: Agent Access (o contrato público)
+**MCP is the public contract of the product.** The internal API (`architecture-guide.md` §12) exists to serve the UI. It is the tool catalogue below that external clients consume, and it is that catalogue the versioning policy protects (`CLAUDE.md` § Versioning policy).
 
-**O MCP é o contrato público do produto.** A API interna (`architecture-guide.md` §12) existe para servir a UI. É o catálogo de tools abaixo que os clientes externos consomem, e é ele que a política de versionamento protege (`CLAUDE.md` § Política de versionamento).
+### 9.1 Tool catalogue
 
-### 9.1 Catálogo de tools
-
-| Tool | Assinatura | Papel |
+| Tool | Signature | Role |
 |---|---|---|
-| `whoami` | `()` | Quem está agindo, o que a conexão alcança e **como escrever aqui**: a ordem de leitura do vault, o índice de skills e o catálogo inteiro |
-| `get_skill` | `(name)` | O método escrito de uma tarefa, pelo nome que o `whoami` indexa. Ensina, e nunca valida nem escreve (RN-AGT-019) |
-| `list_vaults` | `()` | Vaults visíveis, com descrição |
-| `create_vault` | `(name, description)` | Cria um vault na assinatura; nome repetido devolve `ALREADY_EXISTS` com o identificador do existente (RN-KNW-032) |
-| `delete_vault` | `(vault)` | Apaga um vault, de forma reversível e sem destruir byte algum (RN-KNW-033) |
-| **`get_vault_context`** | `(vault)` | **A chamada principal.** Guidance integral mais árvore com descrições, ordem, contagem de notas e quais pastas têm template |
-| `get_guidance` | `(vault)` | A Guidance como está armazenada, com a revisão a informar na escrita |
-| `set_guidance` | `(vault, content, baseRevision)` | Escreve a Guidance do vault, com detecção de conflito (RN-KNW-034) |
-| `create_folder` | `(vault, name, description, parent?)` | Cria uma pasta; a descrição é obrigatória, porque é ela que diz o que pertence ali |
-| `delete_folder` | `(vault, folder, policy)` | Remove uma pasta sob política explícita, `REJECT_IF_NOT_EMPTY` ou `CASCADE` (RN-KNW-007) |
-| `get_template` | `(vault, folder)` | O Template da pasta, a ler antes de escrever |
-| `set_template` | `(vault, folder, content, baseRevision)` | Escreve o Template da pasta, com detecção de conflito (RN-KNW-034) |
-| `list_notes` | `(vault, folder?)` | Índice de notas, na ordem definida |
-| `read_note` | `(vault, note, asOf?)` | Markdown completo e a revisão corrente; com `asOf`, a revisão vigente naquela data |
-| `create_note` | `(vault, folder, title, content)` | O caminho de ingestão (§1.3) |
-| `update_note` | `(vault, note, content, baseRevision)` | Atualização com detecção de conflito |
-| `delete_note` | `(vault, note)` | Apaga uma nota, de forma reversível (RN-KNW-029) |
-| `search_notes` | `(vault, query)` | Busca literal no texto do vault, com campos e operadores (§10.2) |
-| `related_notes` | `(vault, note, depth?)` | Árvore de dependências pelo grafo de links |
-| `backlinks` | `(vault, note)` | Quem aponta para esta nota |
-| `note_history` | `(vault, note)` | Linha do tempo: quem alterou, quando, com qual agente |
+| `whoami` | `()` | Who is acting, what the connection reaches and **how to write here**: the reading order of the vault, the skill index and the whole catalogue |
+| `get_skill` | `(name)` | The written method for a task, by the name `whoami` indexes. It teaches, and never validates nor writes (RN-AGT-019) |
+| `list_vaults` | `()` | Visible vaults, with their descriptions |
+| `create_vault` | `(name, description)` | Creates a vault in the subscription; a repeated name answers `ALREADY_EXISTS` with the identifier of the existing one (RN-KNW-032) |
+| `delete_vault` | `(vault)` | Deletes a vault, reversibly and without destroying a single byte (RN-KNW-033) |
+| **`get_vault_context`** | `(vault)` | **The main call.** The full Guidance plus the tree with descriptions, order, note counts and which folders carry a template |
+| `get_guidance` | `(vault)` | The Guidance as it is stored, with the revision to state when writing |
+| `set_guidance` | `(vault, content, baseRevision)` | Writes the Guidance of the vault, with conflict detection (RN-KNW-034) |
+| `create_folder` | `(vault, name, description, parent?)` | Creates a folder; the description is required, because it is what says what belongs there |
+| `delete_folder` | `(vault, folder, policy)` | Removes a folder under an explicit policy, `REJECT_IF_NOT_EMPTY` or `CASCADE` (RN-KNW-007) |
+| `get_template` | `(vault, folder)` | The Template of the folder, to read before writing |
+| `set_template` | `(vault, folder, content, baseRevision)` | Writes the Template of the folder, with conflict detection (RN-KNW-034) |
+| `list_notes` | `(vault, folder?)` | The index of notes, in the defined order |
+| `read_note` | `(vault, note, asOf?)` | The full Markdown and the current revision; with `asOf`, the revision in force on that date |
+| `create_note` | `(vault, folder, title, content)` | The ingestion path (§1.3) |
+| `update_note` | `(vault, note, content, baseRevision)` | An update with conflict detection |
+| `delete_note` | `(vault, note)` | Deletes a note, reversibly (RN-KNW-029) |
+| `search_notes` | `(vault, query)` | Literal search over the text of the vault, with fields and operators (§10.2) |
+| `related_notes` | `(vault, note, depth?)` | A dependency tree through the link graph |
+| `backlinks` | `(vault, note)` | Who points at this note |
+| `note_history` | `(vault, note)` | The timeline: who changed it, when, with which agent |
 
-### 9.2 O Vault Context
+### 9.2 The Vault Context
 
-A saída de `get_vault_context` é **o produto**, não um detalhe de apresentação: é o equivalente exato do que o agente obtém hoje lendo o documento de orientação e rodando `ls -R` na pasta local, em uma única chamada.
+The output of `get_vault_context` is **the product**, not a presentation detail: it is the exact equivalent of what the agent gets today by reading the guidance document and running `ls -R` on the local folder, in a single call.
 
 ```markdown
 # Vault: Normas e Legislação
-<conteúdo integral do Guidance>
+<the full content of the Guidance>
 
 ## Structure
 1. **Normas**: Texto normativo por artigo. Uma norma por nota, sempre com órgão e vigência. (48 notes, has TEMPLATE.md)
@@ -654,156 +651,155 @@ A saída de `get_vault_context` é **o produto**, não um detalhe de apresentaç
    3.1. **2026**: Emitidos neste exercício. (5 notes, has TEMPLATE.md)
 ```
 
-Os rótulos que o produto escreve (`## Structure`, `notes`, `has TEMPLATE.md`) são en-US, como toda a superfície MCP, que é contrato público e tem `en_US` como locale canônico (`CLAUDE.md` § Política de idioma). O que aparece em português no exemplo acima é o conteúdo do vault, escrito por quem o autora, e é assim que sai em qualquer idioma que o vault use.
+The labels the product writes (`## Structure`, `notes`, `has TEMPLATE.md`) are en-US, like the whole MCP surface, which is a public contract and has `en_US` as its canonical locale (`CLAUDE.md` § Language policy). What appears in Portuguese in the example above is the content of the vault, written by whoever authors it, and that is how it comes out in whatever language the vault uses.
 
-Três decisões visíveis nesse formato:
+Three decisions are visible in that format:
 
-- **A descrição de cada pasta vem junto.** É ela que direciona onde o agente escreve, e é por isso que é obrigatória (RN-KNW-006).
-- **A ordem é a ordem definida**, numerada, porque é sinal e não enfeite (PP9).
-- **A contagem de notas vem junto.** O agente sabe onde há massa antes de pedir qualquer listagem.
+- **The description of each folder comes along.** It is what directs where the agent writes, and that is why it is required (RN-KNW-006).
+- **The order is the defined order**, numbered, because it is signal and not decoration (PP9).
+- **The note count comes along.** The agent knows where the mass is before asking for any listing.
 
-### 9.3 Escrita por agente
+### 9.3 Writing by an agent
 
-- **RN-AGT-001:** Toda escrita via MCP registra autoria completa: o humano dono da autorização e a identidade do agente que executou.
-- **RN-AGT-002:** O servidor não valida o conteúdo contra o Template (PP3), mas a descrição da tool instrui a chamar `get_template` antes de escrever.
-- **RN-AGT-003:** Erro de argumento faltante devolve, junto da mensagem, a informação necessária para a próxima tentativa, incluindo o Template da pasta quando pertinente (PP10).
-- **RN-AGT-004:** `create_note` com um slug já existente no vault devolve `ALREADY_EXISTS` **com o identificador da nota existente**, e nunca cria uma segunda nota. O servidor jamais gera sufixo automático, porque é isso que transformaria um retry de transporte em duplicata silenciosa.
-- **RN-AGT-005:** `update_note` exige `baseRevision`. Se a revisão corrente divergir, o servidor devolve `CONFLICT` **com o conteúdo atual anexado**, para o agente decidir entre refazer ou fundir. Sobrescrita cega não é aceita num vault que sustenta auditoria.
-- **RN-AGT-006:** Um usuário com papel `VIEWER` recebe recusa em `create_note` e `update_note`.
-- **RN-AGT-007:** O conector opera sempre na assinatura fixada no consentimento (RN-SUB-014); nenhuma tool recebe a assinatura como argumento.
-- **RN-AGT-008:** Nenhum vocabulário de MCP entra no modelo de domínio: trocar de protocolo não muda regra de negócio.
+- **RN-AGT-001:** Every write over MCP records complete authorship: the human who owns the authorisation and the identity of the agent that executed it.
+- **RN-AGT-002:** The server does not validate the content against the Template (PP3), but the tool description instructs the caller to fetch `get_template` before writing.
+- **RN-AGT-003:** An error about a missing argument returns, along with the message, the information needed for the next attempt, the Template of the folder included when relevant (PP10).
+- **RN-AGT-004:** `create_note` with a slug that already exists in the vault answers `ALREADY_EXISTS` **with the identifier of the existing note**, and never creates a second note. The server never generates an automatic suffix, because that is what would turn a transport retry into a silent duplicate.
+- **RN-AGT-005:** `update_note` requires `baseRevision`. If the current revision diverges, the server answers `CONFLICT` **with the current content attached**, so the agent can decide between redoing and merging. Blind overwrite is not accepted in a vault that sustains auditing.
+- **RN-AGT-006:** A user with the `VIEWER` role is refused on `create_note` and `update_note`.
+- **RN-AGT-007:** The connector always operates on the subscription fixed at consent (RN-SUB-014); no tool takes the subscription as an argument.
+- **RN-AGT-008:** No MCP vocabulary enters the domain model: changing protocol does not change a business rule.
 
-### 9.4 Distribuição do conector
+### 9.4 Distribution of the connector
 
-O conector é o produto na visão de quem chega por uma plataforma de IA, e a forma como ele é encontrado faz parte do contrato público tanto quanto a assinatura das tools. O mecanismo de diretório curado e seus critérios estão em `knowledge-base.md` §3.7; as regras abaixo dizem o que o MemorySmith faz a respeito.
+The connector is the product as seen by whoever arrives through an AI platform, and how it is found is part of the public contract as much as the signature of the tools. The curated directory mechanism and its criteria are in `knowledge-base.md` §3.7; the rules below say what MemorySmith does about it.
 
-- **RN-AGT-009:** Toda tool do catálogo declara um título legível e a marca de leitura ou de destruição. Nenhuma tool entra no catálogo sem as duas coisas. A regra vale desde a primeira tool, e não a partir de uma eventual submissão a diretório: são essas marcas que decidem se o cliente executa a chamada direto ou pede confirmação ao usuário, então a ausência cobra atrito de quem usa o produto, listado ou não.
-- **RN-AGT-014:** O conector escreve o vault inteiro, e não apenas as notas dele. Criar e apagar vault, escrever a Guidance, criar e apagar pasta, escrever o Template e apagar nota existem como tools próprias, sob as mesmas regras de papel que a interface obedece: a decisão é sempre do vault, tomada pelo caso de uso, e nunca do protocolo. A razão é a tese do produto (§1.4): um agente que só pode acrescentar notas a uma estrutura que outra pessoa montou não escreve conhecimento, apenas o deposita.
-- **RN-AGT-015:** `read_note` devolve o corpo como o autor o escreveu, com o `![[…]]` literal, e **nunca expande o embed**. O agente que quiser o conteúdo do alvo chama `read_note` nele, e é quem decide se precisa dele. O mesmo vale para o export: o que sai são os bytes escritos.
-- **RN-AGT-016:** `set_guidance` e `set_template` recebem `baseRevision`, estendendo RN-AGT-005 aos dois Content Slots que ficaram de fora dela. `get_guidance` e `get_template` devolvem a revisão que o agente precisa informar, e o argumento ausente é recusado com a mensagem do que falta, enquanto o `null` explícito é aceito e verificado como qualquer outra revisão.
-- **RN-AGT-017:** O produto serve ao agente, como skill, a descrição das notações que interpreta no corpo da nota, incluindo **as que ele deliberadamente não lê**. O conteúdo é derivado da declaração das notações, e nunca escrito ao lado dela: uma skill que ensina uma notação que o produto deixou de ler é pior que skill nenhuma, porque manda escrever algo que silenciosamente não faz nada. A declaração é a mesma que o Discovery verifica contra os seus dois extratores sancionados.
-- **RN-AGT-018:** O `whoami` indexa as skills disponíveis, uma por tarefa, e **o índice é derivado do registro de skills**, nunca escrito ao lado dele. Uma skill que existe aparece, e uma que não existe não pode ser anunciada, pela mesma razão que RN-AGT-013 dá para a ajuda: um índice mantido à mão diverge na primeira skill renomeada, e apontar para uma skill inexistente manda o agente por um caminho que falha.
-- **RN-AGT-019:** `get_skill(name)` devolve o texto da skill. Um nome que não existe responde `NOT_FOUND` **com a lista das que existem**, para que a próxima tentativa seja informada em vez de adivinhada (RN-AGT-003). A skill ensina o método e não valida coisa alguma: PP3 e PP4 continuam sem exceção, e nada passa a ser recusado por não seguir o que ela orienta.
-- **RN-AGT-010:** Leitura e escrita nunca compartilham uma tool. Não existe tool genérica parametrizada por operação. O catálogo de §9.1 já nasce assim, e a regra existe para que continue assim quando a superfície crescer.
-- **RN-AGT-011:** O registro de cliente OAuth do conector é feito por Client ID Metadata Document. O produto não oferece registro dinâmico de cliente, e os metadados de authorization server anunciam as duas chaves que a seleção de CIMD exige (`knowledge-base.md` §3.4). A decisão tem duas razões: registro dinâmico criaria um cliente OAuth novo a cada conexão, o que é justamente o padrão de tráfego esperado de um conector distribuído, e o provedor de identidade que usamos não implementa nenhum dos dois mecanismos, o que já nos obriga a intermediar o registro.
-- **RN-AGT-013:** `whoami` responde duas perguntas na mesma chamada: **quem** a conexão representa (a pessoa que autorizou, o conector e a assinatura fixada no consentimento) e **como o produto espera ser usado** (a ordem de leitura Guidance, estrutura de pastas com a descrição de cada uma, e Template da pasta de destino). A parte de ajuda é **derivada do próprio catálogo**, nunca escrita ao lado dele: um texto paralelo divergiria na primeira tool renomeada, e uma ajuda que cita tool inexistente manda o agente por um caminho que falha. `whoami` também declara que o servidor **não valida** o conteúdo contra Guidance nem Template (PP4), porque um agente que supuser validação confia numa checagem que nunca acontece.
-- **RN-AGT-012:** A listagem em diretório é objetivo de produto, não do recorte inicial. Ela pressupõe catálogo de tools implementado, política de privacidade publicada, documentação pública e uma conta de demonstração com vaults povoados. Enquanto não houver listagem, o conector é adicionado como conector personalizado, e a documentação do produto precisa dizer ao usuário quais respostas dar no formulário.
-
----
-
-## 10. Domínio: Discovery
-
-Três projeções sobre os mesmos fatos, respondendo perguntas diferentes. Comparação conceitual em `knowledge-base.md` §5.6.
-
-### 10.1 Grafo de links
-
-Cada link escrito no corpo de uma nota vira uma aresta. Duas formas são reconhecidas: `[[wikilink]]` e link Markdown relativo `[texto](caminho.md)`.
-
-**Regra de resolução, uma só para as duas formas.** O alvo é reduzido ao nome do arquivo sem extensão, normalizado, e resolvido **no escopo do vault**.
-
-- **RN-DSC-001:** Segmentos de caminho no link (`../normas/`) são deliberadamente ignorados na resolução. A aresta é entre notas, não entre pastas, e honrar o caminho faria o link quebrar quando a nota mudasse de pasta, que é exatamente o que o produto existe para evitar.
-- **RN-DSC-002:** Âncora (`#seção`) é descartada na resolução e preservada na exibição.
-- **RN-DSC-003:** Link com esquema ou host (`https://…`) é externo: não vira aresta.
-- **RN-DSC-004:** Link cujo alvo ainda não existe não é descartado: vira **link pendente** e resolve sozinho quando uma nota com aquele slug for criada. Sem isso, o grafo mentiria justamente enquanto o vault está sendo escrito, que é quando ele é mais consultado.
-- **RN-DSC-005:** Apagar uma nota remove suas arestas e devolve ao estado pendente os backlinks que apontavam para ela.
-- **RN-DSC-006:** Não existe link entre vaults (PP2). Mover uma nota para outro vault poda suas arestas no vault de origem.
-- **RN-DSC-007:** A travessia do grafo é limitada a profundidade 3 e 200 nós, com ciclos deduplicados. Sem teto, um vault denso devolve o vault inteiro e afoga o agente.
-
-**Saídas:** árvore de dependências a partir de uma nota, backlinks, links quebrados e notas órfãs.
-
-> **No domínio regulado, o grafo é o rastro de fundamentação.** Uma nota de achado cita, no corpo, a nota da norma que a sustenta, e `related_notes` responde *"em que base normativa este achado se apoia?"*. Quem torna isso confiável é o Template da pasta, que manda escrever a fundamentação como link em vez de citar em prosa. O backend não sabe o que é um fundamento: ele vê uma aresta, e é o vault que decide o que ela significa (PP4).
-
-### 10.2 Busca
-
-A busca do produto é **literal sobre o texto do vault**: o corpo de cada nota, o título, a pasta e os headings. Ela responde "onde está escrita esta palavra", e casa por trecho, ignorando acento e caixa, de modo que um termo escrito uma única vez dentro de uma nota é encontrado digitando parte dele.
-
-A consulta aceita vários termos, que precisam casar todos, `"frase exata"`, `-exclusão`, `OR`, parênteses e os campos `title:`, `folder:`, `content:` e `section:`. **Qualquer outro prefixo é lido como atributo de frontmatter do vault**, e é o que torna `maturity:evergreen`, `reviewed:false` ou um `norma:federal` que o vault inventou filtros válidos sem que nada disso esteja escrito no código. O vocabulário pertence ao Guidance (PP4, RN-DSC-020), e a linguagem ubíqua do vault vira a linguagem de consulta.
-
-O que a busca **não** faz é procurar por significado. Uma nota que trate do assunto com outras palavras não volta. Isso existiu como `semantic_search`, apoiada em um índice vetorial, e foi **retirada na 0.2.0**: pontuar similaridade dentro da função exigia ler todos os trechos do vault a cada consulta, e o item de um trecho custava dez vezes o tamanho da nota. Quem procura por assunto conta com o grafo de links (§10.1) e as facetas de curadoria (§10.3) até que a capacidade volte sobre um índice adequado.
-
-- **RN-DSC-010:** A busca sempre devolve a nota de origem junto do resultado, o heading sob o qual o trecho caiu quando houver um, e o trecho recortado do texto como foi escrito. Quem consome decide com a fonte à vista.
-- **RN-DSC-011:** *(removida na 0.2.0)* Cada trecho era enriquecido com o contexto de onde veio, ou seja vault, pasta, descrição da pasta e título da nota, antes de ser vetorizado.
-- **RN-DSC-012:** Mover uma nota de pasta dispara a reprojeção dela, porque a pasta faz parte do retrato que o vault mostra da nota.
-- **RN-DSC-013:** Apagar uma nota a remove das projeções imediatamente, inclusive no soft delete. O que sai da listagem sai da busca, porque conteúdo apagado que continua sendo devolvido é problema de privacidade, não de qualidade.
-- **RN-DSC-014:** Restaurar uma nota a reprojeta.
-- **RN-DSC-015:** *(removida na 0.2.0)* O índice vetorial era isolado por assinatura, não filtrado por metadado dentro de um índice compartilhado. A exigência continua valendo para qualquer índice derivado por RN-SUB-015, e é ela que governa o índice de conteúdo que vier a substituí-lo.
-- **RN-DSC-016:** Grafo, busca e facetas são derivados (PP5): apagar e reconstruir do zero a partir das notas é operação suportada, e é o plano de recuperação de todos.
-- **RN-DSC-025:** A busca casa **trecho literal**, e não palavra inteira nem raiz. `14.133` é encontrado por `14.133` e não por `14133`, porque o separador foi escrito pelo autor e inventar uma normalização de números tornaria o resultado impossível de explicar. Acento e caixa, esses sim, são ignorados dos dois lados.
-- **RN-DSC-026:** Os campos `title`, `folder`, `content` e `section` são os únicos que o backend conhece por nome. Todo outro prefixo de consulta é resolvido como faceta do vault, e um prefixo que não corresponda a faceta nenhuma simplesmente não casa, nunca é erro.
-- **RN-DSC-027:** A busca varre todas as notas do vault a cada consulta, o que é sustentado pelo teto de 2.000 notas por vault (RN-KNW-010). A varredura precisa percorrer o índice inteiro: uma busca que responde de uma parte do vault sem dizer que parou é pior que busca nenhuma.
-- **RN-DSC-028:** O frontmatter não participa do texto pesquisável. Ele é matéria do projetor de facetas (RN-DSC-018), e mantê-lo no corpo faria toda nota casar com o próprio metadado.
-- **RN-DSC-029:** `![[alvo]]` é a forma de embed, e produz **exatamente a mesma aresta** que `[[alvo]]`. O grafo não distingue transclusão de referência, nem sequer contando: embutir uma nota e também linkar para ela é uma aresta só. Um embed cujo alvo ainda não existe segue RN-DSC-004 e vira link pendente.
-
-### 10.3 Facetas de curadoria
-
-O painel de curadoria (a Visão geral do produto) responde perguntas de gestão do conhecimento: quanto do conteúdo está maduro, quanto já passou por revisão humana, como as notas se distribuem por tipo, por tag e por data de criação. A resposta vem da terceira projeção, as **facetas**: atributos de frontmatter agregáveis, extraídos de cada nota no momento em que ela muda e mantidos como contagens por vault. O conjunto de atributos não é fixo: quem define o frontmatter das notas é o Guidance de cada vault, e a projeção o descobre pela forma dos valores.
-
-- **RN-DSC-017:** O painel de curadoria é servido por uma projeção derivada, alimentada pelos eventos de nota. Nenhuma tela e nenhuma tool varre notas para contar; quem conta é o projetor, uma vez, no momento da mudança.
-- **RN-DSC-018:** Quem lê o frontmatter é o projetor de facetas do Discovery, segundo leitor sancionado de conteúdo ao lado do extrator de links. O core Knowledge continua sem ler conteúdo (PP4), e nenhuma faceta participa de regra, validação ou autorização: faceta orienta curadoria, nunca comportamento.
-- **RN-DSC-019:** `maturity` (`seed`, `growing`, `evergreen`) e `reviewed` (`true`, `false`) são as facetas padrão do produto, o único vocabulário de frontmatter que o produto declara: `maturity` registra o estágio de maturação do conteúdo e é reavaliada a cada escrita; `reviewed` marca se a revisão vigente passou por revisão humana, somente um humano a escreve como `true` e qualquer edição posterior de conteúdo a devolve a `false`. Para o projetor elas não são caso especial, são atributos agregáveis como quaisquer outros; o padrão existe para que as telas e as tools do produto possam nomeá-las.
-- **RN-DSC-020:** Os demais atributos são convenção do vault e não são configurados em lugar nenhum: a projeção classifica cada valor pela **forma** e agrega os agregáveis, ou seja datas, booleanos, valores curtos enumeráveis e listas de valores curtos (como `tags`). Texto livre é descartado. O que `type: evidence` quer dizer pertence ao Guidance, nunca ao backend.
-- **RN-DSC-021:** Nota sem uma faceta conta como valor ausente; nunca é rejeitada nem corrigida. A projeção descreve o vault como ele está, e apontar lacuna é papel do painel, não do gravador.
-- **RN-DSC-022:** Nota apagada sai das contagens no soft delete e volta na restauração, espelhando a busca (RN-DSC-013, RN-DSC-014).
-- **RN-DSC-023:** A projeção de facetas é derivada (PP5): eventualmente consistente, apagável e reconstruível do zero a partir das notas, como o grafo e o índice de busca (RN-DSC-016).
-- **RN-DSC-024:** Atributo que se revela texto livre pelo uso deixa de ser agregado: quando a cardinalidade de valores distintos de um atributo ultrapassa o teto por vault, suas contagens são descartadas e ele para de gerar estatística. É esse mecanismo, e não uma lista de exclusão mantida à mão, que impede `title` ou `source` de virarem estatística.
+- **RN-AGT-009:** Every tool of the catalogue declares a readable title and a read-only or destructive hint. No tool enters the catalogue without both. The rule holds from the very first tool, and not from an eventual directory submission: those hints are what decide whether the client runs the call outright or asks the user first, so their absence charges friction to whoever uses the product, listed or not.
+- **RN-AGT-014:** The connector writes the whole vault, and not only its notes. Creating and deleting a vault, writing the Guidance, creating and deleting a folder, writing the Template and deleting a note exist as tools of their own, under the same role rules the interface obeys: the decision always belongs to the vault, taken by the use case, and never to the protocol. The reason is the thesis of the product (§1.4): an agent that can only append notes to a structure somebody else assembled does not write knowledge, it merely deposits it.
+- **RN-AGT-015:** `read_note` returns the body as the author wrote it, with the literal `![[…]]`, and **never expands the embed**. An agent that wants the content of the target calls `read_note` on it, and is the one who decides whether it needs it. The same holds for the export: what comes out are the bytes that were written.
+- **RN-AGT-016:** `set_guidance` and `set_template` take `baseRevision`, extending RN-AGT-005 to the two Content Slots that had been left out of it. `get_guidance` and `get_template` return the revision the agent has to state, and a missing argument is refused with a message saying what is missing, while an explicit `null` is accepted and checked like any other revision.
+- **RN-AGT-017:** The product serves the agent, as a skill, the description of the notation it interprets inside the body of a note, including **the notation it deliberately does not read**. The content is derived from the declaration of the notation, and never written beside it: a skill teaching a notation the product stopped reading is worse than no skill, because it instructs the agent to write something that silently does nothing. The declaration is the same one Discovery checks against its two sanctioned extractors.
+- **RN-AGT-018:** `whoami` indexes the available skills, one per task, and **the index is derived from the skill registry**, never written beside it. A skill that exists shows up, and one that does not exist cannot be announced, for the same reason RN-AGT-013 gives for the help itself: a hand-kept index diverges on the first renamed skill, and pointing at a skill that does not exist sends the agent down a path that fails.
+- **RN-AGT-019:** `get_skill(name)` returns the text of the skill. A name that does not exist answers `NOT_FOUND` **with the list of the ones that do**, so the next attempt is informed instead of guessed (RN-AGT-003). The skill teaches the method and validates nothing: PP3 and PP4 hold without exception, and nothing starts being refused for not following what it advises.
+- **RN-AGT-010:** Reading and writing never share a tool. There is no generic tool parameterised by operation. The catalogue of §9.1 is born that way, and the rule exists so that it stays that way as the surface grows.
+- **RN-AGT-011:** OAuth client registration for the connector is done through a Client ID Metadata Document. The product does not offer dynamic client registration, and the authorization server metadata announces the two keys that CIMD selection requires (`knowledge-base.md` §3.4). The decision has two reasons: dynamic registration would create a new OAuth client on every connection, which is precisely the traffic pattern expected of a distributed connector, and the identity provider we use implements neither mechanism, which already forces us to broker the registration.
+- **RN-AGT-013:** `whoami` answers two questions in the same call: **who** the connection represents (the person who authorised it, the connector and the subscription fixed at consent) and **how the product expects to be used** (the reading order: the Guidance, the folder structure with the description of each folder, and the Template of the destination folder). The help part is **derived from the catalogue itself**, never written beside it: a parallel text would diverge on the first renamed tool, and help that cites a tool that does not exist sends the agent down a path that fails. `whoami` also states that the server **does not validate** the content against the Guidance or the Template (PP4), because an agent that assumes validation trusts a check that never happens.
+- **RN-AGT-012:** A directory listing is a product goal, not part of the initial scope. It presupposes an implemented tool catalogue, a published privacy policy, public documentation and a demo account with populated vaults. Until there is a listing, the connector is added as a custom connector, and the product documentation has to tell the user which answers to give in the form.
 
 ---
 
-## 11. Domínio: Audit
+## 10. Domain: Discovery
 
-O vault sustenta trabalho em ambiente regulado. Isso muda o que "guardar uma nota" significa: além do conteúdo atual, o sistema responde **quem escreveu, com qual agente, quando, e o que a nota dizia na data em que o trabalho foi emitido** (fundamentação em `knowledge-base.md` §7).
+Three projections over the same facts, answering different questions. A conceptual comparison is in `knowledge-base.md` §5.6.
 
-### 11.1 Entidades
+### 10.1 The link graph
 
-#### Valor: `Authorship`
+Every link written in the body of a note becomes an edge. Two forms are recognised: `[[wikilink]]` and the relative Markdown link `[text](path.md)`.
+
+**One resolution rule for both forms.** The target is reduced to the file name without extension, normalised, and resolved **within the scope of the vault**.
+
+- **RN-DSC-001:** Path segments in the link (`../normas/`) are deliberately ignored in resolution. The edge is between notes, not between folders, and honouring the path would make the link break when the note changed folder, which is exactly what the product exists to avoid.
+- **RN-DSC-002:** An anchor (`#section`) is dropped in resolution and preserved in display.
+- **RN-DSC-003:** A link with a scheme or a host (`https://…`) is external: it does not become an edge.
+- **RN-DSC-004:** A link whose target does not exist yet is not discarded: it becomes a **pending link** and resolves on its own when a note with that slug is created. Without that, the graph would lie precisely while the vault is being written, which is when it is consulted the most.
+- **RN-DSC-005:** Deleting a note removes its edges and returns to the pending state the backlinks that pointed at it.
+- **RN-DSC-006:** There are no links between vaults (PP2). Moving a note to another vault prunes its edges in the source vault.
+- **RN-DSC-007:** Graph traversal is limited to depth 3 and 200 nodes, with cycles deduplicated. Without a ceiling, a dense vault returns the whole vault and drowns the agent.
+
+**Outputs:** a dependency tree from a note, backlinks, broken links and orphan notes.
+
+> **In a regulated domain, the graph is the trail of grounding.** A finding note cites, in its body, the note of the norm that sustains it, and `related_notes` answers *"which normative basis does this finding rest on?"*. What makes that reliable is the Template of the folder, which instructs the writer to state the grounding as a link instead of citing it in prose. The backend does not know what a grounding is: it sees an edge, and it is the vault that decides what it means (PP4).
+
+### 10.2 Search
+
+The search of the product is **literal over the text of the vault**: the body of each note, the title, the folder and the headings. It answers "where is this word written", and it matches by substring, ignoring accents and case, so a term written only once inside a note is found by typing part of it.
+
+The query accepts several terms, which all have to match, `"exact phrase"`, `-exclusion`, `OR`, parentheses and the fields `title:`, `folder:`, `content:` and `section:`. **Any other prefix is read as a frontmatter attribute of the vault**, and that is what makes `maturity:evergreen`, `reviewed:false` or a `norma:federal` the vault invented valid filters without any of it being written in the code. The vocabulary belongs to the Guidance (PP4, RN-DSC-020), and the ubiquitous language of the vault becomes the query language.
+
+What the search does **not** do is look for meaning. A note covering the subject in other words does not come back. That existed as `semantic_search`, backed by a vector index, and it was **withdrawn in 0.2.0**: scoring similarity inside the function required reading every chunk of the vault on every query, and the item of a chunk cost ten times the size of the note. Whoever searches by subject relies on the link graph (§10.1) and the curation facets (§10.3) until the capability comes back over an adequate index.
+
+- **RN-DSC-010:** The search always returns the source note along with the result, the heading the passage fell under when there is one, and the passage cut from the text as it was written. Whoever consumes it decides with the source in sight.
+- **RN-DSC-011:** *(removed in 0.2.0)* Each chunk was enriched with the context it came from, that is the vault, the folder, the folder description and the note title, before being vectorised.
+- **RN-DSC-012:** Moving a note between folders triggers its reprojection, because the folder is part of the portrait the vault shows of the note.
+- **RN-DSC-013:** Deleting a note removes it from the projections immediately, soft delete included. What leaves the listing leaves the search, because deleted content that keeps being returned is a privacy problem, not a quality one.
+- **RN-DSC-014:** Restoring a note reprojects it.
+- **RN-DSC-015:** *(removed in 0.2.0)* The vector index was isolated per subscription, not filtered by metadata inside a shared index. The requirement still holds for any index derived under RN-SUB-015, and it is what governs the content index that replaces it.
+- **RN-DSC-016:** The graph, the search and the facets are derived (PP5): deleting and rebuilding them from zero out of the notes is a supported operation, and it is the recovery plan for all of them.
+- **RN-DSC-025:** The search matches a **literal substring**, and not a whole word nor a stem. `14.133` is found by `14.133` and not by `14133`, because the separator was written by the author and inventing a normalisation of numbers would make the result impossible to explain. Accents and case, those are ignored on both sides.
+- **RN-DSC-026:** The fields `title`, `folder`, `content` and `section` are the only ones the backend knows by name. Every other query prefix is resolved as a facet of the vault, and a prefix matching no facet simply does not match, and is never an error.
+- **RN-DSC-027:** The search scans every note of the vault on every query, which is sustained by the ceiling of 2,000 notes per vault (RN-KNW-010). The scan has to walk the whole index: a search that answers from part of the vault without saying it stopped is worse than no search.
+- **RN-DSC-028:** The frontmatter does not take part in the searchable text. It is matter for the facet projector (RN-DSC-018), and keeping it in the body would make every note match its own metadata.
+- **RN-DSC-029:** `![[target]]` is the embed form, and it produces **exactly the same edge** as `[[target]]`. The graph does not tell transclusion from reference apart, not even by counting: embedding a note and also linking to it is one single edge. An embed whose target does not exist yet follows RN-DSC-004 and becomes a pending link.
+
+### 10.3 Curation facets
+
+The curation panel (the Overview of the product) answers knowledge management questions: how much of the content is mature, how much has been through human review, how the notes spread across types, tags and creation dates. The answer comes from the third projection, the **facets**: aggregatable frontmatter attributes, extracted from each note the moment it changes and kept as counts per vault. The set of attributes is not fixed: whoever defines the frontmatter of the notes is the Guidance of each vault, and the projection discovers it by the shape of the values.
+
+- **RN-DSC-017:** The curation panel is served by a derived projection, fed by note events. No screen and no tool scans notes to count; the one that counts is the projector, once, at the moment of the change.
+- **RN-DSC-018:** The one that reads the frontmatter is the facet projector of Discovery, the second sanctioned reader of content next to the link extractor. The Knowledge core still does not read content (PP4), and no facet takes part in a rule, a validation or an authorisation: a facet guides curation, never behaviour.
+- **RN-DSC-019:** `maturity` (`seed`, `growing`, `evergreen`) and `reviewed` (`true`, `false`) are the standard facets of the product, the only frontmatter vocabulary the product declares: `maturity` records the maturation stage of the content and is reassessed on every write; `reviewed` marks whether the current revision has been through human review, only a human writes it as `true` and any later content edit takes it back to `false`. To the projector they are not a special case, they are aggregatable attributes like any other; the standard exists so that the screens and the tools of the product can name them.
+- **RN-DSC-020:** The remaining attributes are a convention of the vault and are configured nowhere: the projection classifies each value by its **shape** and aggregates the aggregatable ones, that is dates, booleans, short enumerable values and lists of short values (such as `tags`). Free text is discarded. What `type: evidence` means belongs to the Guidance, never to the backend.
+- **RN-DSC-021:** A note without a facet counts as a missing value; it is never rejected nor corrected. The projection describes the vault as it is, and pointing out a gap is the job of the panel, not of the writer.
+- **RN-DSC-022:** A deleted note leaves the counts on soft delete and comes back on restore, mirroring the search (RN-DSC-013, RN-DSC-014).
+- **RN-DSC-023:** The facet projection is derived (PP5): eventually consistent, deletable and rebuildable from zero out of the notes, like the graph and the search index (RN-DSC-016).
+- **RN-DSC-024:** An attribute that reveals itself as free text through use stops being aggregated: when the cardinality of distinct values of an attribute passes the per-vault ceiling, its counts are discarded and it stops producing statistics. It is that mechanism, and not a hand-kept exclusion list, that keeps `title` or `source` from becoming statistics.
+
+---
+## 11. Domain: Audit
+
+The vault sustains work in a regulated environment. That changes what "storing a note" means: besides the current content, the system answers **who wrote it, with which agent, when, and what the note said on the date the work was issued** (the grounding is in `knowledge-base.md` §7).
+
+### 11.1 Entities
+
+#### Value: `Authorship`
 
 ```
-user_id,                     -- sempre um humano: o dono da autorização
-agent?: {                    -- ausente = escrita pela UI
+user_id,                     -- always a human: the owner of the authorisation
+agent?: {                    -- absent = written through the UI
   client_id,
   client_name
 },
 at
 ```
 
-O humano é sempre identificado, porque mesmo quando quem grava é o agente a autorização pertence a quem conectou. É esse par que transforma *"escrito por Fulano"* em *"escrito por tal agente, em nome de Fulano, em 12/03"*: a diferença entre um registro e um registro defensável.
+The human is always identified, because even when the one writing is the agent, the authorisation belongs to whoever connected. It is that pair that turns *"written by X"* into *"written by that agent, on behalf of X, on 12 March"*: the difference between a record and a defensible record.
 
-#### Entidade: `AuditEvent`
+#### Entity: `AuditEvent`
 
 ```
 subject (SUBSCRIPTION | MEMBER | VAULT | FOLDER | NOTE),
 subject_id,
 occurred_at,
-type,                        -- o evento de domínio que ocorreu
+type,                        -- the domain event that happened
 authorship,
-content_ref?,                -- a revisão exata do conteúdo naquele instante
+content_ref?,                -- the exact revision of the content at that instant
 payload
 ```
 
-### 11.2 Regras de negócio
+### 11.2 Business rules
 
-- **RN-AUD-001:** A trilha de auditoria é somente-acréscimo. Não existe caminho, de aplicação, de operação ou de administração, que altere ou remova um evento já registrado.
-- **RN-AUD-002:** Todo evento registra autoria completa (humano e, quando houver, agente).
-- **RN-AUD-003:** Todo evento que altera conteúdo carrega a referência à revisão exata daquele instante, não apenas o fato de que houve alteração.
-- **RN-AUD-004:** A linha do tempo de uma nota é indexada pelo identificador da nota e sobrevive a ela mudar de pasta e de vault.
-- **RN-AUD-005:** `read_note(asOf)` devolve o conteúdo vigente na data informada, reconstruído a partir da trilha, o que permite refazer um trabalho lendo a base como ela estava na data de emissão.
-- **RN-AUD-006:** Apagar uma nota nunca destrói o conteúdo armazenado; o histórico continua legível.
-- **RN-AUD-007:** *(removida na 0.4.0)* Tratava do expurgo, a destruição deliberada de conteúdo, como ato administrativo restrito ao `OWNER`, com motivo obrigatório e evento próprio. A capacidade nunca foi construída, e o que o produto de fato garante continua declarado em RN-AUD-006. O número é preservado e nunca será reaproveitado.
-- **RN-AUD-008:** *(removida na 0.4.0)* Tratava da retenção legal da assinatura, que travaria as revisões contra remoção pelo prazo configurado. Nenhum caminho jamais alcançou essa ativação, e o que protege as revisões é a trilha somente-acréscimo de RN-AUD-001. O número é preservado e nunca será reaproveitado.
-- **RN-AUD-009:** *(removida na 0.4.0)* Declarava que retenção legal e expurgo eram incompatíveis por desenho. Removidas as duas capacidades, a regra ficou sem objeto. O número é preservado e nunca será reaproveitado.
+- **RN-AUD-001:** The audit trail is append-only. There is no path, of application, of operations or of administration, that alters or removes an event already recorded.
+- **RN-AUD-002:** Every event records complete authorship (the human and, when there is one, the agent).
+- **RN-AUD-003:** Every event that changes content carries the reference to the exact revision at that instant, and not merely the fact that a change happened.
+- **RN-AUD-004:** The timeline of a note is indexed by the identifier of the note and survives it changing folder and vault.
+- **RN-AUD-005:** `read_note(asOf)` returns the content in force on the given date, reconstructed from the trail, which makes it possible to redo a piece of work reading the base as it stood on the date of issue.
+- **RN-AUD-006:** Deleting a note never destroys the stored content; the history stays readable.
+- **RN-AUD-007:** *(removed in 0.4.0)* It covered purging, the deliberate destruction of content, as an administrative act restricted to the `OWNER`, with a mandatory reason and an event of its own. The capability was never built, and what the product actually guarantees is still declared in RN-AUD-006. The number is preserved and will never be reused.
+- **RN-AUD-008:** *(removed in 0.4.0)* It covered legal hold on the subscription, which would lock revisions against removal for the configured term. No path ever reached that activation, and what protects the revisions is the append-only trail of RN-AUD-001. The number is preserved and will never be reused.
+- **RN-AUD-009:** *(removed in 0.4.0)* It stated that legal hold and purging were incompatible by design. With both capabilities removed, the rule lost its object. The number is preserved and will never be reused.
 
 ---
 
-## 12. Domínio: Portability
+## 12. Domain: Portability
 
-Zero lock-in é requisito, não cortesia: é o que torna o produto seguro de adotar num contexto em que a base precisa sobreviver ao fornecedor (`knowledge-base.md` §10).
+Zero lock-in is a requirement, not a courtesy: it is what makes the product safe to adopt in a context where the base has to outlive the vendor (`knowledge-base.md` §10).
 
-**O export é onde os nomes de arquivo passam a existir.** Dentro do sistema há identificadores opacos e papéis (§8.1); é aqui que `guidance` vira `GUIDANCE.md`, `template` vira `TEMPLATE.md` e o slug da nota vira nome de arquivo. A árvore anotada sai ao lado da Orientação, como `STRUCTURE.md`: as duas são exatamente as duas metades do Vault Context (§9.2), a que um humano escreve e a que o produto deriva.
+**The export is where file names come into existence.** Inside the system there are opaque identifiers and roles (§8.1); it is here that `guidance` becomes `GUIDANCE.md`, `template` becomes `TEMPLATE.md` and the slug of the note becomes a file name. The annotated tree comes out next to the Guidance, as `STRUCTURE.md`: the two are exactly the two halves of the Vault Context (§9.2), the one a human writes and the one the product derives.
 
 ```
 Normas e Legislação/
-├── GUIDANCE.md             ← a Orientação do vault, como um humano a escreveu
-├── STRUCTURE.md            ← a árvore anotada: ordem, descrição de cada pasta e onde há Template
+├── GUIDANCE.md             ← the Guidance of the vault, as a human wrote it
+├── STRUCTURE.md            ← the annotated tree: order, description of each folder and where a Template lives
 ├── 01 Normas/
 │   ├── TEMPLATE.md
 │   └── lei-14133-art-75.md
@@ -811,86 +807,86 @@ Normas e Legislação/
     └── TEMPLATE.md
 ```
 
-- **RN-PRT-001:** O export contém apenas arquivos `.md`, sem componente proprietário e sem índice obrigatório para leitura.
-- **RN-PRT-002:** A ordem de pastas e de notas é codificada como prefixo numérico no nome, que é a única forma de preservá-la num sistema de arquivos, já que ele não tem ordem própria.
-- **RN-PRT-003:** *(revista)* A árvore anotada do vault é materializada como `STRUCTURE.md` na raiz, com a ordem, a descrição de cada pasta, a contagem de notas e quais pastas têm Template. A descrição é atributo da pasta e nunca um documento, então nenhum arquivo é escrito dentro da pasta para carregá-la. Uma pasta sem Template e sem nota, por consequência, não deixa diretório na árvore exportada e sobrevive apenas no `STRUCTURE.md`. *(Até a 0.2.0 a regra dizia que a descrição era materializada como `README.md` dentro de cada pasta.)*
-- **RN-PRT-004:** Os links saem intactos no texto das notas.
-- **RN-PRT-005:** *(revista)* Uma nota cujo slug seja exatamente `guidance`, `structure` ou `template` é exportada com sufixo, e todos os links para ela são reescritos junto. É a única concessão do export, e ela pertence à borda, não ao modelo. *(Até a 0.2.0 os nomes reservados eram `readme` e `template`.)*
-- **RN-PRT-006:** Notas apagadas não entram no export.
+- **RN-PRT-001:** The export contains only `.md` files, with no proprietary component and no index required for reading.
+- **RN-PRT-002:** The order of folders and notes is encoded as a numeric prefix in the name, which is the only way to preserve it in a file system, since a file system has no order of its own.
+- **RN-PRT-003:** *(revised)* The annotated tree of the vault is materialised as `STRUCTURE.md` at the root, with the order, the description of each folder, the note count and which folders carry a Template. The description is an attribute of the folder and never a document, so no file is written inside the folder to carry it. A folder with no Template and no note therefore leaves no directory in the exported tree and survives only in `STRUCTURE.md`. *(Up to 0.2.0 the rule said the description was materialised as a `README.md` inside each folder.)*
+- **RN-PRT-004:** Links come out intact in the text of the notes.
+- **RN-PRT-005:** *(revised)* A note whose slug is exactly `guidance`, `structure` or `template` is exported with a suffix, and every link to it is rewritten along with it. It is the only concession of the export, and it belongs to the edge, not to the model. *(Up to 0.2.0 the reserved names were `readme` and `template`.)*
+- **RN-PRT-006:** Deleted notes do not enter the export.
 
 ---
 
-## 13. Interface da aplicação
+## 13. Application interface
 
-**A UI é a única superfície de leitura humana do produto.** Isso levanta a régua da tela de nota e da árvore: elas precisam ser confortáveis para **ler**, não só para navegar.
+**The UI is the only human reading surface of the product.** That raises the bar for the note screen and the tree: they have to be comfortable to **read**, not merely to navigate.
 
-### 13.1 Telas
+### 13.1 Screens
 
-**Entrada**
+**Entry**
 
-| Tela | Conteúdo |
+| Screen | Content |
 |---|---|
-| Entrada | Autenticação pelo provedor de identidade, e a volta dele. Não há cadastro aberto: a conta nasce por ato da operação da plataforma (§4.4) |
-| Entrada sem assinatura ativa | Não existe tela de espera dentro do produto. Uma sessão cuja assinatura está ausente, aguardando aprovação ou bloqueada não alcança nada, então ela é encerrada e a pessoa volta à tela de entrada com a mensagem do seu caso: conta sem assinatura, assinatura aguardando autorização ou assinatura inativa. A distinção é deliberada, porque "não há nada aqui" e "seu acesso está suspenso" são fatos diferentes |
-| Solicitação de assinatura | Fora do produto nesta fase. A rota existe na API, e quem solicita e aprova é a operação da plataforma; a interface não oferece o formulário |
+| Sign-in | Authentication through the identity provider, and the return from it. There is no open sign-up: the account is born by an act of platform operations (§4.4) |
+| Sign-in with no active subscription | There is no waiting screen inside the product. A session whose subscription is absent, awaiting approval or blocked reaches nothing, so it is ended and the person goes back to the sign-in screen with the message of their case: an account with no subscription, a subscription awaiting authorisation, or an inactive subscription. The distinction is deliberate, because "there is nothing here" and "your access is suspended" are different facts |
+| Subscription request | Outside the product at this stage. The route exists in the API, and whoever requests and approves is platform operations; the interface does not offer the form |
 
-**Conhecimento**
+**Knowledge**
 
-| Tela | Conteúdo |
+| Screen | Content |
 |---|---|
-| Catálogo de vaults | Cards com nome, descrição, número de notas e última atualização, e sob eles o painel da assinatura: contagem de vaults e de notas, links pendentes, notas órfãs, uso da quota e a distribuição do conteúdo pelas facetas que os vaults declaram (§10.3) |
-| Vault → Contexto do Vault | O vault como o agente o recebe em `get_vault_context` (§9.2): a Orientação e os Modelos como pontos de entrada e a árvore de pastas com a descrição de cada uma. Leitura da estrutura, sem reordenar nem mover |
-| Vault → Guidance | Leitura da Orientação do vault, com a task list clicável para quem pode escrever |
-| Pasta | Leitura: a descrição da pasta, o Modelo dela e as notas na ordem declarada (PP9) |
-| Pasta → Template | Leitura do Modelo da pasta, com a task list clicável para quem pode escrever |
-| Nota | Leitura: as propriedades do frontmatter e o corpo em Markdown, com os wikilinks navegáveis, os pendentes marcados como tais (RN-DSC-004), os embeds expandidos em um nível e a task list clicável para quem pode escrever |
-| Vault → Grafo | O grafo de links do vault inteiro, navegável, com a nota aberta a partir dele |
-| Vault → Busca | Campo único sobre o texto do vault, aceitando campos e operadores |
-| Vault → Export | Baixa o vault inteiro como árvore de arquivos `.md`, no formato de §12 |
+| Vault catalogue | Cards with the name, the description, the note count and the last update, and under them the panel of the subscription: the count of vaults and notes, pending links, orphan notes, quota usage and the distribution of the content across the facets the vaults declare (§10.3) |
+| Vault → Vault Context | The vault as the agent receives it in `get_vault_context` (§9.2): the Guidance and the Templates as entry points and the folder tree with the description of each folder. Reading of the structure, with no reordering and no moving |
+| Vault → Guidance | Reading of the Guidance of the vault, with the task list clickable for whoever may write |
+| Folder | Reading: the description of the folder, its Template and the notes in the declared order (PP9) |
+| Folder → Template | Reading of the Template of the folder, with the task list clickable for whoever may write |
+| Note | Reading: the frontmatter properties and the body in Markdown, with wikilinks navigable, the pending ones marked as such (RN-DSC-004), embeds expanded one level, and the task list clickable for whoever may write |
+| Vault → Graph | The link graph of the whole vault, navigable, with the note opened from it |
+| Vault → Search | A single field over the text of the vault, accepting fields and operators |
+| Vault → Export | Downloads the whole vault as a tree of `.md` files, in the format of §12 |
 
-**O que a interface não alcança.** O governo da assinatura, ou seja membros, papéis, convites, titularidade, tetos de vault e troca de assinatura ativa, e a área de plataforma de §4.6, existem na API e não têm tela. As leituras de auditoria e de saúde, ou seja histórico de nota, atividade do vault, links quebrados e notas órfãs em lista, também. Quem precisa delas hoje chama a API ou usa os scripts de operação, e o que falta está registrado nas issues do repositório, que é onde o futuro mora.
+**What the interface does not reach.** The governance of the subscription, that is members, roles, invitations, ownership, vault ceilings and switching the active subscription, and the platform area of §4.6, exist in the API and have no screen. So do the audit and health reads, that is note history, vault activity, and broken links and orphan notes as lists. Whoever needs them today calls the API or uses the operations scripts, and what is missing is recorded in the issues of the repository, which is where the future lives.
 
-### 13.2 Regras de interface
+### 13.2 Interface rules
 
-- Uma assinatura fora de `trial` ou `active` encerra a sessão e leva o usuário de volta à tela de entrada com a mensagem do seu caso, e nunca a uma tela de conteúdo vazia. A mensagem diz qual dos três casos é, porque a diferença entre "não há nada aqui" e "seu acesso está suspenso" é a diferença entre um bug aparente e uma informação.
-- A superfície de leitura da nota segue as métricas do tema padrão do Obsidian, porque quem lê o vault na web e no Obsidian não deveria precisar reaprender a página.
-- Nenhuma tela interpreta convenção de conteúdo. O frontmatter é apresentado como propriedades e o corpo é renderizado como Markdown universal, o que mantém a interface do mesmo lado de PP4 que o backend.
-- A superfície de leitura **expande um nível de transclusão, e apenas um**. Um `![[alvo]]` encontrado dentro do conteúdo transcluído é desenhado como link para o alvo, o que faz um par de notas que se transcluem renderizar sem laço. O bloco transcluído sempre diz de onde veio, com link para a nota de origem, porque um trecho colado sem procedência é indistinguível do que o autor escreveu. Há um teto de embeds expandidos por página, e o que passa dele vira referência em vez de sumir.
-- A **task list é clicável** onde o papel efetivo no vault permite escrever, e permanece desabilitada onde não permite. Cliques em sequência dentro de uma janela curta viram **uma** escrita, para que marcar cinco itens deixe uma entrada no histórico e não cinco. Uma escrita recusada devolve a caixa ao estado anterior e diz o que houve, recarregando o documento quando o motivo for conflito (PP10).
+- A subscription outside `trial` or `active` ends the session and takes the user back to the sign-in screen with the message of their case, and never to an empty content screen. The message says which of the three cases it is, because the difference between "there is nothing here" and "your access is suspended" is the difference between an apparent bug and a piece of information.
+- The reading surface of the note follows the metrics of the default Obsidian theme, because whoever reads the vault on the web and in Obsidian should not have to relearn the page.
+- No screen interprets a content convention. The frontmatter is presented as properties and the body is rendered as universal Markdown, which keeps the interface on the same side of PP4 as the backend.
+- The reading surface **expands one level of transclusion, and only one**. A `![[target]]` found inside transcluded content is drawn as a link to the target, which makes a pair of notes that embed each other render without a loop. The transcluded block always says where it came from, with a link to the source note, because a passage pasted without provenance is indistinguishable from what the author wrote. There is a ceiling of expanded embeds per page, and what goes past it becomes a reference instead of disappearing.
+- The **task list is clickable** where the effective role in the vault allows writing, and stays disabled where it does not. Clicks in sequence within a short window become **one** write, so that ticking five items leaves one entry in the history and not five. A refused write returns the box to its previous state and says what happened, reloading the document when the reason is a conflict (PP10).
 
 ---
 
-## 14. Limites do produto
+## 14. Product limits
 
-Declarados para virarem teste, e não folclore. A tese é "sem atrito" (§1.4), e sem número isso não é verificável.
+Declared so they become tests, and not folklore. The thesis is "without friction" (§1.4), and without a number that is not verifiable.
 
-| | Limite |
+| | Limit |
 |---|---|
-| Tamanho de nota | 1 MB |
-| Pastas por vault | 200 |
-| Notas por vault | 2.000 |
-| Profundidade da árvore | 6 níveis |
-| Profundidade da travessia de grafo | 3, com teto de 200 nós |
-| Propagação de mudança de papel | até 5 minutos |
-| Validade do convite | 7 dias |
+| Note size | 1 MB |
+| Folders per vault | 200 |
+| Notes per vault | 2,000 |
+| Tree depth | 6 levels |
+| Graph traversal depth | 3, with a ceiling of 200 nodes |
+| Propagation of a role change | up to 5 minutes |
+| Invitation validity | 7 days |
 
-Metas de desempenho estão em `architecture-guide.md` §15.
+Performance targets are in `architecture-guide.md` §15.
 
 ---
 
-## 15. Onde vivem o recorte de versão, os riscos e as questões em aberto
+## 15. Where version scope, risks and open questions live
 
-Este documento descreve o que o produto **faz**, e não o que ele vai fazer. Recorte de
-versão, ordem de entrega, risco ainda não endereçado e questão não decidida descrevem
-futuro, e por isso saíram daqui:
+This document describes what the product **does**, and not what it is going to do. Version
+scope, delivery order, a risk not yet addressed and an undecided question describe the
+future, and that is why they left this file:
 
-| O que você procura | Onde está |
+| What you are looking for | Where it is |
 |---|---|
-| Recorte de versão, ordem de entrega, versão alvo | O Project do repositório |
-| Riscos de produto | Issues com a label `risco` |
-| Questões de produto ainda não decididas | Issues com a label `questao` |
-| Riscos técnicos | Issues com a label `risco-tecnico` |
-| O que já foi entregue, e quando | `CHANGELOG.md` e os GitHub Releases |
+| Version scope, delivery order, target version | The Project of the repository |
+| Product risks | Issues labelled `risco` |
+| Product questions not yet decided | Issues labelled `questao` |
+| Technical risks | Issues labelled `risco-tecnico` |
+| What has been delivered, and when | `CHANGELOG.md` and the GitHub Releases |
 
-A regra que motiva a separação, e o ciclo que leva uma necessidade da issue até este
-documento, estão em `development-process.md`.
+The rule that motivates the separation, and the cycle that takes a need from an issue to
+this document, are in `development-process.md`.
