@@ -72,6 +72,7 @@
   "vaults": {
     "heading": "Vaults",
     "noteCount": "{{count}} notas",
+    "updatedAt": "atualizado em {{date}}",
     "open": "Abrir vault"
   },
   "structure": {

@@ -11,8 +11,16 @@ import type { VerifiedAgentToken } from './auth.js';
 import { TOOL_CATALOG } from './mcp/catalog.js';
 import type { McpToolAdapter } from './mcp/tools.js';
 import type { AgentCaller } from './mcp/gateway.js';
+import pkg from '../package.json' with { type: 'json' };
 
 const PROTOCOL_VERSION = '2025-06-18';
+
+/**
+ * The version the handshake announces, derived from the service manifest and
+ * never written beside it: a literal here would still say 0.2.0 three releases
+ * later. It is the same discipline RN-AGT-013 imposes on the whoami help.
+ */
+const SERVER_VERSION = pkg.version;
 
 interface JsonRpcRequest {
   jsonrpc: '2.0';
@@ -74,7 +82,7 @@ export async function handleMcpRequest(
       return result(id, {
         protocolVersion: PROTOCOL_VERSION,
         capabilities: { tools: {} },
-        serverInfo: { name: 'memorysmith-mcp', version: '0.2.0' },
+        serverInfo: { name: 'memorysmith-mcp', version: SERVER_VERSION },
       });
 
     case 'notifications/initialized':

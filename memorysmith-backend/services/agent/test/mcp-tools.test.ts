@@ -4,6 +4,7 @@ import { McpToolAdapter } from '../src/mcp/tools.js';
 import { GatewayError, type AgentCaller } from '../src/mcp/gateway.js';
 import { handleMcpRequest } from '../src/mcp.js';
 import type { VerifiedAgentToken } from '../src/auth.js';
+import pkg from '../package.json' with { type: 'json' };
 
 const caller: AgentCaller = {
   userId: 'user-1',
@@ -451,6 +452,22 @@ describe('The MCP transport', () => {
       .result;
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain('not bound to a subscription');
+  });
+
+  it('announces the version of the service manifest on the handshake, never a literal', async () => {
+    const response = await handleMcpRequest(
+      { jsonrpc: '2.0', id: 1, method: 'initialize' },
+      token,
+      gateways(),
+    );
+    const { serverInfo } = (
+      response as { result: { serverInfo: { name: string; version: string } } }
+    ).result;
+    expect(serverInfo.name).toBe('memorysmith-mcp');
+    // Compared against the manifest, not against a number written here: a
+    // literal in the test would have to be edited on every release, which is
+    // the very failure this fixes.
+    expect(serverInfo.version).toBe(pkg.version);
   });
 
   it('answers notifications with no body', async () => {

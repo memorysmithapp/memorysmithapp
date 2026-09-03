@@ -7,6 +7,8 @@ export interface VaultSummary {
   name: string;
   description: string;
   noteCount: number;
+  /** ISO instant of the last write in the vault, formatted at the edge. */
+  updatedAt: string;
 }
 
 export interface NoteSummary {

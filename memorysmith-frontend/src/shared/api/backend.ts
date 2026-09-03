@@ -41,6 +41,7 @@ function toSummary(vault: VaultSummaryDto): VaultSummary {
     name: vault.name,
     description: vault.description,
     noteCount: vault.noteCount,
+    updatedAt: vault.updatedAt,
   };
 }
 

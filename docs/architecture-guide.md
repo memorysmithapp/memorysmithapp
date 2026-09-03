@@ -989,24 +989,30 @@ Ambas resolvidas sem mecanismo novo:
 Consumidas pela UI; **o contrato público é o MCP**.
 
 ```
-svc-access       GET  /session/subscriptions · POST /session/subscription  { subscriptionId }
+svc-access       GET  /session   (usuário, vínculos e assinatura ativa)
+                 POST /session/subscription  { subscriptionId }
                  POST /subscriptions      { type?, quota? }  (pending_approval)
                  POST /subscriptions/:s/ownership          { toUserId }
                  GET  /members · POST /members             { email, role }
                  PATCH /members/:u  { role } · DELETE /members/:u
-                 POST /invites/:token/accept · GET /authz  (Lambda Authorizer)
+                 POST /invites/:token/accept
 svc-access       GET  /platform/subscriptions?status=      ─┐  sessão de plataforma:
  (plataforma)    POST /platform/subscriptions/:s/approve    ├─ sem claim subscription_id,
                  POST /platform/subscriptions/:s/reject     │  lê só pelo GSI2 (§8.3, §8.4)
                  POST /platform/subscriptions/:s/suspend    │
+                 POST /platform/subscriptions/:s/reactivate │
                  PUT  /platform/subscriptions/:s/status     │  ato administrativo: define o
                  PATCH /platform/subscriptions/:s/plan     ─┘  status sem a máquina de
                                                                transição (RN-SUB-018)
-svc-knowledge    POST /vaults · GET /vaults/:v · PUT /vaults/:v/guidance
-                 POST /vaults/:v/folders · PATCH /vaults/:v/folders/:f
+svc-knowledge    GET  /vaults · POST /vaults
+                 GET|PATCH|DELETE /vaults/:v · POST /vaults/:v/restore   (RN-KNW-033)
+                 GET  /vaults/:v/context   (estrutura e guidance numa resposta só)
+                 PUT  /vaults/:v/guidance
+                 POST /vaults/:v/folders · PATCH|DELETE /vaults/:v/folders/:f
                  POST /vaults/:v/folders/:f/reorder   { afterFolderId | null }
-                 PUT  /vaults/:v/folders/:f/template
-                 POST|GET|PUT|DELETE /vaults/:v/notes[/:n]
+                 GET|PUT /vaults/:v/folders/:f/template
+                 GET|POST /vaults/:v/notes · GET|PUT|DELETE /vaults/:v/notes/:n
+                 GET  /vaults/:v/notes/by-slug/:slug
                  POST /vaults/:v/notes/:n/reorder   { afterNoteId | null }
                  POST /vaults/:v/notes/:n/restore
                  POST /vaults/:v/notes/:n/move   { toVaultId?, toFolderId, onSlugConflict }
@@ -1014,11 +1020,17 @@ svc-knowledge    POST /vaults · GET /vaults/:v · PUT /vaults/:v/guidance
 svc-discovery    GET  /vaults/:v/graph   (grafo inteiro do vault, arestas por índice)
                  GET  /vaults/:v/notes/:n/graph?depth= · GET /vaults/:v/notes/:n/backlinks
                  GET  /vaults/:v/health   (links quebrados, órfãs)
-                 POST /vaults/:v/search   { query, mode: lexical | semantic }
-svc-audit        GET  /notes/:n/history · GET /notes/:n/revisions/:versionId
+                 GET  /vaults/:v/facets  (distribuição do conteúdo, alimenta a Visão geral)
+                 POST /vaults/:v/search   { query, mode: lexical }
+svc-audit        GET  /notes/:n/history
+                 GET  /notes/:n/revisions · GET /notes/:n/revisions/:versionId
                  GET  /vaults/:v/activity?from=&to=
-svc-portability  POST /vaults/:v/exports · GET /exports/:id   → URL pré-assinada
+svc-portability  POST /vaults/:v/export   → a URL pré-assinada volta na mesma resposta
 ```
+
+O authorizer do `svc-access` não aparece aqui porque **não é rota**: é uma função Lambda
+que o API Gateway invoca antes de qualquer uma delas (§14.2). Também não aparecem as rotas
+OAuth do `svc-agent`, que não são consumidas pela UI e estão descritas em §13.3.
 
 **Nenhuma rota recebe `subscriptionId`**, que vem sempre do token (§8.1).
 
