@@ -59,6 +59,10 @@ e o projeto adota o [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **Duas regras de negócio pararam de afirmar comportamento de tela que não existe.** `RN-ACC-016` dizia que o atraso de propagação "é declarado ao usuário nas telas de membros e de vault", e nenhuma das duas existe; ela passa a declarar o fato e a sua causa, que é o cache da decisão do authorizer. `RN-KNW-024` prometia que a UI avisa quantos backlinks serão quebrados antes de confirmar um move entre vaults, e esse aviso não existia em lugar nenhum: nem na tela, nem na API. O `moveImpactSchema` que o sustentaria estava declarado nos contratos e nunca foi usado por rota ou caso de uso, e saiu junto. A regra passa a descrever o que de fato acontece, que é o link quebrado aparecer como tal no Discovery. Os dois números são preservados. (#32, #33)
 
+- **Os dois limites de nota ganharam teste.** `software-vision.md` §14 declara os limites do produto para que eles virem teste, e dois deles não tinham nenhum: o teto de 2.000 notas por vault e o corpo de 1 MB, ambos aplicados em `CreateNote` e ambos removíveis sem quebrar a suíte. Entram quatro casos, incluindo o que fixa que o corpo é medido em bytes e não em caracteres, o que faz uma nota acentuada custar o dobro do que parece. Verificado por mutação: retirar cada guarda faz o teste correspondente falhar. (#14)
+
+- **Dois comentários de código pararam de citar uma regra removida.** A porta `ContentStore` e o soft delete de vault descreviam a destruição de conteúdo como ato administrativo com porta e evento próprios, apontando para `RN-AUD-007`. Passam a dizer o que passou a valer: nada no produto destrói uma revisão. (#26)
+
 ### Fixed
 
 - **O card do catálogo passou a mostrar a última atualização do vault.** A §13.1 promete "nome, descrição, nº de notas, última atualização", e o card mostrava três dos quatro. O dado já vinha na resposta e era descartado no mapeamento para o tipo do frontend. A data é formatada pela API `Intl` no locale ativo, então o mesmo instante se lê `3 Sep 2026` para quem usa a interface em inglês e `3 de set. de 2026` para quem a usa em português. (#43)

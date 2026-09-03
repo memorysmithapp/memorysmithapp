@@ -236,8 +236,8 @@ export class Vault {
    * the vault leaves every listing and NOT ONE BYTE is destroyed. The folders,
    * the notes and every revision they point at stay exactly where they were,
    * which is what makes this reversible and what keeps the audit trail
-   * readable afterwards. Destroying content remains an administrative act with
-   * its own port and its own event (RN-AUD-007).
+   * readable afterwards. Nothing in the product destroys a revision, here or
+   * anywhere else (RN-AUD-006).
    *
    * The slug goes back to being available, exactly as a deleted note frees
    * its own (RN-KNW-030), so restoring requires it to be free again.
