@@ -2,92 +2,92 @@
 
 > **Structured knowledge, natively readable and writable by humans and agents.**
 
-O MemorySmith.app hospeda cofres de conhecimento em **Markdown que se autodescrevem** e os serve nativamente às ferramentas de IA por um **MCP server remoto**. O agente não apenas lê um vault: ele escreve nele, obedecendo à Orientação do próprio vault e ao Modelo de cada pasta.
+MemorySmith.app hosts knowledge vaults in **self-describing Markdown** and serves them natively to AI tools through a **remote MCP server**. The agent does not merely read a vault: it writes in it, obeying the Guidance of the vault itself and the Template of each folder.
 
-**Duas formas de usar, e o mesmo código nas duas.** O **serviço hospedado** em [memorysmith.app](https://memorysmith.app), cujo acesso é por convite nesta fase, e a **instalação na sua própria conta AWS**, documentada aqui do primeiro comando ao primeiro vault. O projeto é aberto sob licença [MIT](LICENSE), e não existe recurso retido para a versão hospedada.
+**Two ways to use it, and the same code in both.** The **hosted service** at [memorysmith.app](https://memorysmith.app), whose access is by invitation at this stage, and **installing it in your own AWS account**, documented here from the first command to the first vault. The project is open under the [MIT](LICENSE) licence, and no capability is held back from the hosted version.
 
 ---
 
-## O problema
+## The problem
 
-Um time toca um projeto: uma auditoria, um processo regulatório, uma pesquisa, uma obra, o lançamento de um produto. Cada pessoa faz a parte dela acompanhada de um agente, e não é o mesmo agente para todo mundo: uma trabalha no Claude, outra no ChatGPT, uma terceira no assistente que já vem embutido na ferramenta que ela usa. A escolha é pessoal, muda com o tempo e não há por que uniformizá-la.
+A team runs a project: an audit, a regulatory process, a piece of research, a construction site, a product launch. Each person does their part alongside an agent, and it is not the same agent for everyone: one works in Claude, another in ChatGPT, a third in the assistant built into the tool they already use. The choice is personal, it changes over time, and there is no reason to make it uniform.
 
-O que não existe é onde essa memória fique. Ela se parte em duas direções ao mesmo tempo:
+What does not exist is somewhere for that memory to live. It breaks in two directions at once:
 
-- **Pelo tempo.** A memória do agente termina quando a conversa termina. A próxima começa do zero, e alguém redescreve tudo de novo.
-- **Pelo fornecedor.** O que uma plataforma lembra de quem a usa fica nela, e nenhum agente de mais ninguém lê.
+- **By time.** The memory of the agent ends when the conversation ends. The next one starts from zero, and somebody describes everything again.
+- **By vendor.** What a platform remembers about whoever uses it stays there, and no agent of anyone else reads it.
 
-Somadas, elas produzem tantas memórias parciais e privadas quantas forem as pessoas multiplicadas pelas plataformas, sobre um trabalho que é um só. A conta chega como **retrabalho**, porque cada tarefa começa redescrevendo ao agente o que o time já tinha decidido; como **divergência**, porque duas pessoas contam o mesmo fato de dois jeitos e não há onde conferir qual vale; e como **desconfiança**, porque a resposta volta sem a fonte, conferir custa mais do que aceitar, e o que se aceita sem conferir vai corroendo o valor de tudo que está guardado.
+Added together, they produce as many partial and private memories as there are people multiplied by platforms, about work that is one single thing. The bill arrives as **rework**, because every task starts by redescribing to the agent what the team had already decided; as **divergence**, because two people tell the same fact in two ways and there is nowhere to check which one holds; and as **distrust**, because the answer comes back with no source, checking costs more than accepting, and what is accepted unchecked keeps eroding the value of everything that is stored.
 
-Falta uma memória comum às pessoas e aos agentes, que dure além da sessão e não pertença a nenhuma plataforma. O arranjo que mais se aproxima disso hoje é uma pasta local de `.md`, com um documento na raiz explicando ao agente como escrever nela e um editor de vault por cima para navegar. Ele acerta o essencial, o formato serve aos dois lados e a estrutura está declarada, mas é de uma pessoa só: o conteúdo não sai da máquina, o editor é um cliente ruim para um repositório remoto, e separar assuntos vira um punhado de pastas soltas que nada lista.
+What is missing is a memory shared by people and agents, one that outlives the session and belongs to no platform. The arrangement that comes closest today is a local folder of `.md` files, with a document at the root explaining to the agent how to write in it and a vault editor on top for navigating. It gets the essentials right, the format serves both sides and the structure is declared, but it belongs to one person: the content does not leave the machine, the editor is a poor client for a remote repository, and separating subjects becomes a handful of loose folders that nothing lists.
 
-O MemorySmith.app é o backend remoto desse mesmo fluxo. Mantém o formato (Markdown puro), mantém a prática (uma orientação na raiz, um molde por pasta) e acrescenta o que a pasta local nunca teve: acesso remoto autenticado, papéis, histórico defensável e descoberta por grafo e por busca. Contra a divisão por fornecedor ele age pelo protocolo, e não pedindo que todos usem a mesma ferramenta: o vault é servido por MCP, que clientes de fabricantes diferentes já falam, então cada pessoa continua onde prefere trabalhar e todas alcançam o mesmo vault.
+MemorySmith.app is the remote backend of that same flow. It keeps the format (plain Markdown), keeps the practice (a guidance at the root, a mould per folder) and adds what the local folder never had: authenticated remote access, roles, defensible history and discovery by graph and by search. Against the split by vendor it acts through the protocol, and not by asking everyone to use the same tool: the vault is served over MCP, which clients from different makers already speak, so each person stays where they prefer to work and all of them reach the same vault.
 
-A tese cabe em uma frase: **o produto não é guardar `.md`, é entregar contexto estruturado ao agente sem atrito.** Se ler um vault hospedado der mais trabalho que ler uma pasta local, o produto perdeu. É por isso que o MCP aqui não é acessório: ele é a interface principal, e a API interna existe para servir a interface web.
+The thesis fits in one sentence: **the product is not storing `.md`, it is delivering structured context to the agent without friction.** If reading a hosted vault takes more work than reading a local folder, the product has lost. That is why MCP here is not an accessory: it is the primary interface, and the internal API exists to serve the web interface.
 
-## Os conceitos que o produto estrutura
+## The concepts the product structures
 
 ```
 Vault
-├── Orientação         ← para que serve este vault e como estruturar as notas
-└── Pastas (ordenadas) ← cada uma com uma descrição: o que se guarda aqui
-    ├── Modelo         ← como as notas desta pasta se estruturam
-    ├── subpastas (ordenadas)
-    └── notas .md
+├── Guidance           ← what this vault is for and how to structure the notes
+└── Folders (ordered)  ← each with a description: what is kept here
+    ├── Template       ← how the notes of this folder are structured
+    ├── subfolders (ordered)
+    └── .md notes
 ```
 
-| Conceito | O que é |
+| Concept | What it is |
 | --- | --- |
-| **Vault** | Um cofre autônomo. Ele se descreve no próprio conteúdo, não herda nada de outro vault e, por isso, também não se liga a outro |
-| **Orientação** | O documento que declara o que este vault é e como se escreve nele. Um por vault |
-| **Pasta** | Uma divisão com **descrição obrigatória** e posição definida. A descrição diz o que pertence ali, e a ordem diz por onde começar |
-| **Modelo** | O molde das notas de uma pasta. Orienta a escrita e não valida: a nota não é obrigada a segui-lo |
-| **Nota** | Markdown puro, com wikilinks. O backend nunca interpreta o que está escrito dentro dela |
-| **Vault Context** | A Orientação integral mais a árvore anotada, em uma única leitura. É o que o agente recebe antes de escrever qualquer coisa |
-| **Assinatura** | A fronteira de tudo. Toda chave de dado começa por ela, e ela vem do token, nunca da requisição |
+| **Vault** | An autonomous vault. It describes itself in its own content, inherits nothing from another vault and therefore does not link to one either |
+| **Guidance** | The document declaring what this vault is and how one writes in it. One per vault |
+| **Folder** | A division with a **mandatory description** and a defined position. The description says what belongs there, and the order says where to start |
+| **Template** | The mould of the notes of a folder. It guides the writing and does not validate: a note is not required to follow it |
+| **Note** | Plain Markdown, with wikilinks. The backend never interprets what is written inside it |
+| **Vault Context** | The full Guidance plus the annotated tree, in a single read. It is what the agent receives before writing anything |
+| **Subscription** | The boundary of everything. Every data key starts with it, and it comes from the token, never from the request |
 
-A Orientação e o Modelo não são documentação: são **instruções executáveis**. São o que faz o agente escrever a nota certa, na pasta certa, no formato certo. Uma Orientação fraca ou uma descrição de pasta vaga degrada o que entra, e o efeito só aparece depois, na hora de consumir.
+The Guidance and the Template are not documentation: they are **executable instructions**. They are what makes the agent write the right note, in the right folder, in the right shape. A weak Guidance or a vague folder description degrades what comes in, and the effect only shows up later, at the moment of consuming it.
 
-E não são arquivos. São **papéis**: o vault aponta um documento como sua Orientação, a pasta aponta outro como seu Modelo. Nomes de arquivo só aparecem na borda, quando o vault é exportado: aí a Orientação sai como `GUIDANCE.md`, a árvore de pastas com suas descrições sai como `STRUCTURE.md` ao lado dela, e o Modelo sai como `TEMPLATE.md` dentro da pasta.
+And they are not files. They are **roles**: the vault points at a document as its Guidance, the folder points at another as its Template. File names only appear at the edge, when the vault is exported: there the Guidance comes out as `GUIDANCE.md`, the folder tree with its descriptions comes out as `STRUCTURE.md` next to it, and the Template comes out as `TEMPLATE.md` inside the folder.
 
-## O dia a dia
+## Day to day
 
-O ciclo tem três momentos, e o primeiro é o que costuma faltar nas ferramentas de conhecimento.
+The cycle has three moments, and the first is the one usually missing from knowledge tools.
 
-**Ingestão.** Você entrega ao agente um corpo de material, uma norma publicada, um livro, a documentação de um sistema, um lote de acórdãos, e pede que ele estude e registre. O agente lê o Vault Context e encontra uma pasta cuja descrição diz, com todas as letras:
+**Ingestion.** You hand the agent a body of material, a published norm, a book, the documentation of a system, a batch of rulings, and ask it to study and record. The agent reads the Vault Context and finds a folder whose description says, in so many words:
 
-> **Permanent Notes / Concepts**: conceitos atômicos, independentes da norma que os originou, sempre com a base normativa citada por dispositivo. "Consumidor Livre" é conceito; "o art. 12 diz X" é literatura.
+> **Permanent Notes / Concepts**: atomic concepts, independent of the norm that originated them, always with the normative basis cited by provision. "Free Consumer" is a concept; "article 12 says X" is literature.
 
-Essa frase é a regra de triagem, e o agente a segue: o resumo do artigo vai para a pasta de literatura, o conceito que o artigo institui vira nota própria em `Concepts`, no formato do Modelo daquela pasta, com os wikilinks apontando para o que já existe. Você não digitou nenhuma dessas notas, e ainda assim elas estão exatamente no padrão que você combinou.
+That sentence is the triage rule, and the agent follows it: the summary of the article goes to the literature folder, the concept the article establishes becomes a note of its own in `Concepts`, in the shape of the Template of that folder, with the wikilinks pointing at what already exists. You typed none of those notes, and they are still exactly in the pattern you agreed on.
 
-**Curadoria.** Material capturado ainda não é conhecimento. Alguém precisa ler o que entrou, corrigir o que ficou torto, ligar o que ficou solto e julgar o que já está maduro. É na interface web que se lê: a nota e a estrutura como o agente as recebe, o `maturity` e o `reviewed` de cada nota dizendo em que estágio ela está, e a Visão geral e o grafo mostrando como o vault está distribuído. Esse trabalho é humano, assistido pelo agente, e não sai de graça da ingestão.
+**Curation.** Captured material is not knowledge yet. Someone has to read what came in, fix what came out crooked, connect what was left loose and judge what is already mature. It is in the web interface that one reads: the note and the structure as the agent receives them, the `maturity` and the `reviewed` of each note saying which stage it is at, and the Overview and the graph showing how the vault is distributed. That work is human, assisted by the agent, and it does not come free out of the ingestion.
 
-**Consumo.** Semanas depois, outro trabalho começa: um parecer, uma auditoria, um relatório, um runbook de incidente. O agente entra no mesmo vault, e em vez de reler quinhentas páginas de fonte primária ele lê o que já foi destilado, na ordem em que o vault manda ler, seguindo os links entre as notas.
+**Consumption.** Weeks later, another piece of work starts: an opinion, an audit, a report, an incident runbook. The agent enters the same vault, and instead of rereading five hundred pages of primary source it reads what has already been distilled, in the order the vault says to read it, following the links between the notes.
 
-O que muda na prática:
+What changes in practice:
 
-- **A base cresce enquanto você trabalha**, em vez de crescer só quando você para para organizá-la.
-- **A estrutura é combinada uma vez.** Quem garante que a nota nova continua no padrão é o vault, não a sua memória nem a do agente.
-- **O que foi escrito é defensável.** Cada revisão registra quem escreveu, quando e com qual agente, e um parecer emitido em março pode ser demonstrado com a base como ela estava em março.
-- **Dá para trabalhar em dois.** A base vive em uma assinatura com papéis, e a escrita concorrente é detectada em vez de sobrescrever em silêncio. Nesta fase, quem acrescenta alguém à assinatura é a operação da plataforma.
-- **Cada um continua na ferramenta que prefere.** O vault é servido por MCP, que é padrão aberto, então qualquer cliente que fale o protocolo alcança o mesmo vault, com o mesmo conteúdo e sob o mesmo papel.
-- **Sai inteira quando você quiser.** O export devolve `.md` puros em uma árvore legível, sem formato proprietário.
+- **The base grows while you work**, instead of growing only when you stop to organise it.
+- **The structure is agreed once.** What guarantees the new note stays in the pattern is the vault, not your memory nor the agent's.
+- **What was written is defensible.** Every revision records who wrote it, when and with which agent, and an opinion issued in March can be demonstrated with the base as it stood in March.
+- **Two people can work on it.** The base lives in a subscription with roles, and concurrent writing is detected instead of overwriting in silence. At this stage, whoever adds somebody to the subscription is platform operations.
+- **Everyone stays in the tool they prefer.** The vault is served over MCP, which is an open standard, so any client that speaks the protocol reaches the same vault, with the same content and under the same role.
+- **It comes out whole whenever you want.** The export returns plain `.md` in a readable tree, with no proprietary format.
 
-## Duas interfaces sobre o mesmo vault
+## Two interfaces over the same vault
 
-### O conector MCP, que é o contrato público
+### The MCP connector, which is the public contract
 
-Um **MCP server remoto** com OAuth 2.1, adicionado como conector nativo nas plataformas de IA. É a superfície que os clientes externos consomem, e a que a política de versionamento protege.
+A **remote MCP server** with OAuth 2.1, added as a native connector in the AI platforms. It is the surface external clients consume, and the one the versioning policy protects.
 
-| Grupo | Tools |
+| Group | Tools |
 | --- | --- |
-| Quem sou eu | `whoami`, que diz quem a conexão representa, o que ela alcança e **como se escreve aqui**: a ordem de leitura e o catálogo inteiro |
-| Ler o vault | `list_vaults`, **`get_vault_context`**, `get_template`, `list_notes`, `read_note` |
-| Escrever conteúdo | `create_note`, `update_note` (com detecção de conflito), `delete_note` |
-| Escrever a estrutura | `create_vault`, `delete_vault`, `set_guidance`, `create_folder`, `delete_folder`, `set_template` |
-| Descobrir | `search_notes`, `related_notes`, `backlinks`, `note_history` |
+| Who am I | `whoami`, which says who the connection represents, what it reaches and **how one writes here**: the reading order and the whole catalogue |
+| Read the vault | `list_vaults`, **`get_vault_context`**, `get_template`, `list_notes`, `read_note` |
+| Write content | `create_note`, `update_note` (with conflict detection), `delete_note` |
+| Write the structure | `create_vault`, `delete_vault`, `set_guidance`, `create_folder`, `delete_folder`, `set_template` |
+| Discover | `search_notes`, `related_notes`, `backlinks`, `note_history` |
 
-A chamada central é **`get_vault_context`**, que devolve a Orientação integral mais a árvore anotada com descrição, ordem, contagem de notas e quais pastas têm Modelo. É o equivalente exato a ler o documento de orientação e rodar `ls -R` na pasta local, em uma única chamada. A parte da árvore se parece com isto:
+The central call is **`get_vault_context`**, which returns the full Guidance plus the tree annotated with the description, the order, the note count and which folders carry a Template. It is the exact equivalent of reading the guidance document and running `ls -R` on the local folder, in a single call. The tree part looks like this:
 
 ```
 1. Plano: Plano de trabalho e auditorias do grafo: o que falta ler, o que foi
@@ -103,360 +103,359 @@ A chamada central é **`get_vault_context`**, que devolve a Orientação integra
         a base normativa citada por dispositivo. (31 notes, has TEMPLATE.md)
 ```
 
-Repare que não há nada aí que o agente precise adivinhar: cada linha diz o que a pasta guarda, em que ordem ela vem, quantas notas já existem e se há um Modelo a buscar antes de escrever.
+The vault content in that example is in Portuguese because it was written that way: the labels the product emits are always en-US, and the content is whatever language the vault uses. Notice there is nothing in there the agent has to guess: each line says what the folder holds, in which order it comes, how many notes exist already and whether there is a Template to fetch before writing.
 
-`search_notes` faz busca **literal** no texto do vault, casando por trecho e ignorando acento e caixa. A consulta aceita vários termos, `"frase exata"`, `-exclusão`, `OR`, parênteses e os campos `title:`, `folder:`, `content:` e `section:`. Qualquer outro prefixo é lido como atributo do frontmatter do vault, e é isso que torna `maturity:evergreen`, `reviewed:false` ou um `norma:federal` que o seu vault inventou um filtro válido, sem uma linha de código a respeito. O vocabulário pertence à Orientação, e a linguagem do vault vira a linguagem de consulta.
+`search_notes` does a **literal** search over the text of the vault, matching by substring and ignoring accents and case. The query accepts several terms, `"exact phrase"`, `-exclusion`, `OR`, parentheses and the fields `title:`, `folder:`, `content:` and `section:`. Any other prefix is read as a frontmatter attribute of the vault, and that is what makes `maturity:evergreen`, `reviewed:false` or a `norma:federal` your vault invented a valid filter, without a line of code about it. The vocabulary belongs to the Guidance, and the language of the vault becomes the query language.
 
-Do consentimento à primeira nota escrita, o caminho é este:
+From consent to the first note written, the path is this:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Humano
-    participant Cliente as Cliente MCP<br/>(plataforma de IA)
-    participant Servidor as MCP server<br/>(MemorySmith.app)
+    actor Human
+    participant Client as MCP client<br/>(AI platform)
+    participant Server as MCP server<br/>(MemorySmith.app)
 
-    Humano->>Cliente: adiciona o conector
-    Cliente->>Servidor: autorização OAuth 2.1
-    Servidor->>Humano: pede consentimento
-    Humano->>Servidor: autoriza (a assinatura fica fixada aqui)
-    Servidor-->>Cliente: token de acesso
+    Human->>Client: adds the connector
+    Client->>Server: OAuth 2.1 authorisation
+    Server->>Human: asks for consent
+    Human->>Server: authorises (the subscription is fixed here)
+    Server-->>Client: access token
 
-    note over Cliente,Servidor: toda chamada seguinte carrega o token
+    note over Client,Server: every later call carries the token
 
-    Cliente->>Servidor: list_vaults()
-    Servidor-->>Cliente: vaults visíveis, cada um com sua descrição
+    Client->>Server: list_vaults()
+    Server-->>Client: visible vaults, each with its description
 
-    Cliente->>Servidor: get_vault_context(vault)
-    Servidor-->>Cliente: Orientação integral + árvore de pastas com propósito e ordem
+    Client->>Server: get_vault_context(vault)
+    Server-->>Client: full Guidance + folder tree with purpose and order
 
-    Cliente->>Servidor: get_template(vault, pasta)
-    Servidor-->>Cliente: o Modelo das notas daquela pasta
+    Client->>Server: get_template(vault, folder)
+    Server-->>Client: the Template of the notes of that folder
 
-    Cliente->>Servidor: create_note(vault, pasta, título, conteúdo)
-    Servidor-->>Cliente: nota criada, com autoria registrada
+    Client->>Server: create_note(vault, folder, title, content)
+    Server-->>Client: note created, with authorship recorded
 ```
 
-O humano autoriza o conector uma única vez, e é nesse consentimento que a assinatura fica amarrada ao token: nenhuma tool a recebe como argumento, então o agente não tem como escrever no lugar errado. Com o token em mãos, o agente descobre os vaults que aquele usuário enxerga (`list_vaults`), lê em uma única chamada a Orientação e a estrutura de pastas com o propósito de cada uma (`get_vault_context`) e, antes de escrever, busca o Modelo da pasta de destino (`get_template`). Só então cria a nota (`create_note`): na pasta certa, no formato certo, com a autoria registrada tanto do humano dono da autorização quanto do agente que executou.
+The human authorises the connector once, and it is in that consent that the subscription is tied to the token: no tool takes it as an argument, so the agent has no way of writing in the wrong place. With the token in hand, the agent discovers the vaults that user sees (`list_vaults`), reads in a single call the Guidance and the folder structure with the purpose of each one (`get_vault_context`) and, before writing, fetches the Template of the destination folder (`get_template`). Only then does it create the note (`create_note`): in the right folder, in the right shape, with the authorship of both the human who owns the authorisation and the agent that executed it.
 
-### A interface web, que é onde o humano lê
+### The web interface, which is where the human reads
 
-A superfície de leitura humana, e é isso que levanta a régua da tela de nota e da árvore.
+The human reading surface, and that is what raises the bar for the note screen and the tree.
 
-| Tela | O que faz |
+| Screen | What it does |
 | --- | --- |
-| Catálogo de vaults | Os vaults da assinatura, com descrição, contagem de notas e a Visão geral montada a partir das facetas que cada vault de fato declara |
-| Contexto do Vault | O vault como o agente o recebe: a Orientação e os Modelos como pontos de entrada, e a árvore de pastas com a descrição de cada uma |
-| Orientação e Modelos | Leitura do que governa a escrita do vault e de cada pasta |
-| Nota | Leitura, com as propriedades do frontmatter e os wikilinks navegáveis |
-| Grafo | O grafo de links do vault, colorido por atributo do frontmatter e com as tags desenhadas |
-| Busca | Campo único sobre o texto do vault, com a mesma linguagem de consulta do `search_notes` |
-| Exportar | Baixa o vault inteiro como `.zip`, na árvore de arquivos legível |
+| Vault catalogue | The vaults of the subscription, with their description, note count and the Overview assembled from the facets each vault actually declares |
+| Vault Context | The vault as the agent receives it: the Guidance and the Templates as entry points, and the folder tree with the description of each one |
+| Guidance and Templates | Reading of what governs the writing of the vault and of each folder |
+| Note | Reading, with the frontmatter properties and the wikilinks navigable |
+| Graph | The link graph of the vault, coloured by frontmatter attribute and with the tags drawn |
+| Search | A single field over the text of the vault, with the same query language as `search_notes` |
+| Export | Downloads the whole vault as a `.zip`, in the readable file tree |
+## Why there is a proxy in front of Cognito
 
-## Por que existe um proxy na frente do Cognito
+This is the risk that nearly killed the thesis, and the reason it was attacked before anything else, back in 0.1.0.
 
-Este é o risco que quase matou a tese, e a razão de ele ter sido atacado antes de qualquer outra coisa, ainda na 0.1.0.
+For a remote connector to show up in claude.ai or chatgpt.com, the client has to **register itself** with the authorization server, because whoever clicks "add connector" is the end user and not an administrator of ours. The current MCP specification deprecated dynamic client registration and recommends **CIMD**, Client ID Metadata Documents, where the `client_id` **is** an HTTPS URL serving a JSON document describing the client. Amazon Cognito implements neither.
 
-Para um conector remoto aparecer no claude.ai ou no chatgpt.com, o cliente precisa **se registrar sozinho** no authorization server, porque quem clica em "adicionar conector" é o usuário final e não um administrador nosso. A especificação atual do MCP depreciou o registro dinâmico de cliente e recomenda **CIMD**, Client ID Metadata Documents, em que o `client_id` **é** uma URL HTTPS que serve um JSON descrevendo o cliente. O Amazon Cognito não implementa nenhum dos dois.
+The way out was to implement CIMD in the agent service itself, which then acts as an **authorisation proxy in front of Cognito**. No new infrastructure component: it is code inside the same Lambda that is already the Resource Server. Cognito keeps issuing every token, and the proxy resolves only client registration.
 
-A saída foi implementar CIMD no próprio serviço de agente, que passa a atuar como **proxy de autorização na frente do Cognito**. Nenhum componente novo de infraestrutura: é código dentro do mesmo Lambda que já é o Resource Server. O Cognito continua emitindo todos os tokens, e o proxy resolve apenas o registro do cliente.
+The mechanism, end to end:
 
-O mecanismo, ponta a ponta:
+1. **Discovery.** An unauthenticated call to `/mcp` answers `401` with `WWW-Authenticate: Bearer resource_metadata="…/.well-known/oauth-protected-resource"`. In the protected resource document, `authorization_servers` points at the agent service itself, and not at Cognito.
+2. **Metadata.** The service serves the RFC 8414 document announcing `client_id_metadata_document_supported: true`, `"none"` in `token_endpoint_auth_methods_supported` and `S256` for PKCE, with the authorisation and token endpoints pointing at the proxy.
+3. **Client validation.** On receiving a `client_id` in URL form, the proxy fetches the document and validates it **before** any redirect: HTTPS required, private address blocking on resolution (anti-SSRF), a size and time ceiling on the fetch, an internal `client_id` identical to the URL, and the `redirect_uri` of the request present in the list of the document, with loopback compared without the port, as RFC 8252 requires.
+4. **Authorisation.** Once validated, the proxy forwards the browser to Cognito using its single pre-registered app client, preserving the PKCE of the client and correlating the two legs by `state`.
+5. **Token.** The proxy exchanges the code with Cognito and returns the JWT **unchanged**. It never issues or modifies a token, and the `subscription_id` and `subscription_status` claims keep entering through the token generation trigger of Cognito itself.
 
-1. **Descoberta.** Uma chamada não autenticada ao `/mcp` devolve `401` com `WWW-Authenticate: Bearer resource_metadata="…/.well-known/oauth-protected-resource"`. No documento de recurso protegido, `authorization_servers` aponta para o próprio serviço de agente, e não para o Cognito.
-2. **Metadados.** O serviço serve o documento RFC 8414 anunciando `client_id_metadata_document_supported: true`, `"none"` em `token_endpoint_auth_methods_supported` e `S256` em PKCE, com os endpoints de autorização e de token apontando para o proxy.
-3. **Validação do cliente.** Ao receber um `client_id` em forma de URL, o proxy busca o documento e o valida **antes** de qualquer redirecionamento: HTTPS obrigatório, bloqueio de endereço privado na resolução (anti-SSRF), teto de tamanho e de tempo na busca, `client_id` interno idêntico à URL, e `redirect_uri` da requisição presente na lista do documento, com loopback comparado sem a porta, como manda a RFC 8252.
-4. **Autorização.** Validado, o proxy encaminha o navegador ao Cognito usando o único app client pré-registrado dele, preservando o PKCE do cliente e correlacionando as duas pernas por `state`.
-5. **Token.** O proxy troca o código com o Cognito e devolve o JWT **inalterado**. Ele jamais emite ou modifica token, e as claims `subscription_id` e `subscription_status` continuam entrando pelo trigger de geração de token do próprio Cognito.
+The 0.1.0 spike brought that proxy up in a real AWS environment, validated the connector end to end on a web and a desktop client, and was torn down afterwards. In 0.2.0 it came back as part of the `MemorysmithAgent` stack, and adding MemorySmith.app in claude.ai or chatgpt.com became pasting a URL.
 
-O spike da 0.1.0 subiu esse proxy em ambiente real na AWS, validou o conector ponta a ponta em cliente web e desktop e foi desmontado em seguida. Na 0.2.0 ele voltou como parte da stack `MemorysmithAgent`, e adicionar o MemorySmith.app no claude.ai ou no chatgpt.com passou a ser colar uma URL.
-
-Vale registrar a alavanca de saída: o proxy existe porque o Cognito não fala CIMD. Se um dia falar, o documento de recurso protegido passa a apontar para o issuer do Cognito e o proxy sai sem migração nenhuma, porque o `client_id` CIMD é uma URL hospedada pelo próprio cliente e não existe estado de registro do nosso lado.
+The exit lever is worth recording: the proxy exists because Cognito does not speak CIMD. If one day it does, the protected resource document starts pointing at the Cognito issuer and the proxy leaves with no migration at all, because the CIMD `client_id` is a URL hosted by the client itself and there is no registration state on our side.
 
 ---
 
-## Instalar na sua conta AWS
+## Installing it in your AWS account
 
-Este é **um dos dois caminhos** de uso do produto, e não o único: quem prefere não operar infraestrutura usa o serviço hospedado, que roda exatamente este código. O que segue vale para quem quer o backend inteiro na própria conta.
+This is **one of the two paths** of using the product, and not the only one: whoever prefers not to operate infrastructure uses the hosted service, which runs exactly this code. What follows is for whoever wants the whole backend in their own account.
 
-Toda a infraestrutura vive em [`memorysmith-infra/`](memorysmith-infra/), em AWS CDK com TypeScript, e o ambiente **sobe e desce por script**, em [`deploy-aws/`](deploy-aws/), nunca por uma sequência de comandos digitados a partir daqui.
+All the infrastructure lives in [`memorysmith-infra/`](memorysmith-infra/), in AWS CDK with TypeScript, and the environment **goes up and comes down through a script**, in [`deploy-aws/`](deploy-aws/), never through a sequence of commands typed from here.
 
-### O que sobe
+### What goes up
 
-O `bin/app.ts` instancia sete stacks, nesta dependência:
+`bin/app.ts` instantiates seven stacks, in this dependency order:
 
-| Stack | O que cria |
+| Stack | What it creates |
 | --- | --- |
-| `MemorysmithNetwork` | Referência à hosted zone do seu domínio e os certificados ACM de `mcp.`, `api.` e do site (com `www` como SAN), todos validados por DNS na própria zona |
-| `MemorysmithIdentity` | User pool do Cognito, trigger de pre-token-generation (injeta `subscription_id` e `subscription_status` no access token), a tela de entrada com a marca em `auth.<domínio>`, o grupo `platform-admin` e dois app clients: o da interface e o do proxy CIMD |
-| `MemorysmithData` | Bucket de conteúdo versionado, o bus `mv-events` e as quatro tabelas: `mv-access`, `mv-knowledge`, `mv-discovery` e `mv-audit`, todas com PITR |
-| `MemorysmithApi` | O deployable principal em `api.<domínio>` e o relay da outbox, com fila de mensagens mortas e alarme de profundidade |
-| `MemorysmithProjections` | O consumidor da auditoria, cujo papel carrega o `Deny` explícito que torna o log imutável, e o projetor do Discovery atrás de fila com DLQ |
-| `MemorysmithAgent` | O MCP server e o proxy CIMD em `mcp.<domínio>` |
-| `MemorysmithFrontend` | Bucket privado, distribuição CloudFront com Origin Access Control e os registros do apex e de `www` |
+| `MemorysmithNetwork` | A reference to the hosted zone of your domain and the ACM certificates of `mcp.`, `api.` and the site (with `www` as a SAN), all validated by DNS in the zone itself |
+| `MemorysmithIdentity` | The Cognito user pool, the pre-token-generation trigger (which injects `subscription_id` and `subscription_status` into the access token), the branded sign-in screen at `auth.<domain>`, the `platform-admin` group and two app clients: the one for the interface and the one for the CIMD proxy |
+| `MemorysmithData` | The versioned content bucket, the `mv-events` bus and the four tables: `mv-access`, `mv-knowledge`, `mv-discovery` and `mv-audit`, all with PITR |
+| `MemorysmithApi` | The main deployable at `api.<domain>` and the outbox relay, with a dead-letter queue and a depth alarm |
+| `MemorysmithProjections` | The audit consumer, whose role carries the explicit `Deny` that makes the log immutable, and the Discovery projector behind a queue with a DLQ |
+| `MemorysmithAgent` | The MCP server and the CIMD proxy at `mcp.<domain>` |
+| `MemorysmithFrontend` | A private bucket, a CloudFront distribution with Origin Access Control and the apex and `www` records |
 
-A ordem de deploy é a da tabela: rede e identidade primeiro, dados em seguida, e o resto depois.
+The deployment order is the order of the table: network and identity first, data next, and the rest afterwards.
 
-### O domínio é seu
+### The domain is yours
 
-O produto atende em quatro nomes sob um domínio próprio, e todos nascem de uma hosted zone pública no Route 53. Antes do primeiro deploy, ajuste o contexto em [`memorysmith-infra/cdk.json`](memorysmith-infra/cdk.json):
+The product answers on four names under a domain of your own, and all of them are born from a public hosted zone in Route 53. Before the first deployment, adjust the context in [`memorysmith-infra/cdk.json`](memorysmith-infra/cdk.json):
 
 ```json
-"hostedZoneName": "seudominio.app",
+"hostedZoneName": "yourdomain.app",
 "hostedZoneId": "Z0123456ABCDEFGHIJKL",
-"cognitoDomainPrefix": "algum-prefixo-unico"
+"cognitoDomainPrefix": "some-unique-prefix"
 ```
 
-Daí saem `seudominio.app` para o site, `api.seudominio.app` para a API, `mcp.seudominio.app` para o conector e `auth.seudominio.app` para a tela de entrada. O prefixo do Cognito é único por região, então escolha um que ninguém tenha usado.
+From that come `yourdomain.app` for the site, `api.yourdomain.app` for the API, `mcp.yourdomain.app` for the connector and `auth.yourdomain.app` for the sign-in screen. The Cognito prefix is unique per region, so pick one nobody has used.
 
-### Pré-requisitos
+### Prerequisites
 
-Você não precisa decorar esta lista: `./deploy-aws/deploy.ps1 -PreflightOnly` confere tudo o que está abaixo e diz o que falta, com o comando que resolve cada caso.
+You do not have to memorise this list: `./deploy-aws/deploy.ps1 -PreflightOnly` checks everything below and says what is missing, with the command that resolves each case.
 
-1. **PowerShell 7 ou superior** (`$PSVersionTable.PSVersion`). Os scripts são escritos para ele, e o Windows PowerShell 5.1 não serve.
-2. **Node.js 22 ou superior** (`node --version`).
-3. **pnpm 11**. Se o `corepack enable pnpm` falhar por permissão no Windows, instale com:
+1. **PowerShell 7 or newer** (`$PSVersionTable.PSVersion`). The scripts are written for it, and Windows PowerShell 5.1 will not do.
+2. **Node.js 22 or newer** (`node --version`).
+3. **pnpm 11**. If `corepack enable pnpm` fails on a permission error on Windows, install it with:
    ```
    npm install -g pnpm@11.22.0
    ```
-4. **Conta AWS** com o seu domínio delegado a uma hosted zone pública no Route 53 (ver [Delegar o domínio para o Route 53](#delegar-o-domínio-para-o-route-53)).
-5. **AWS CLI v2**, usada pelos scripts para ler outputs, checar recursos e verificar o ambiente:
+4. **An AWS account** with your domain delegated to a public hosted zone in Route 53 (see [Delegating the domain to Route 53](#delegating-the-domain-to-route-53)).
+5. **AWS CLI v2**, used by the scripts to read outputs, check resources and verify the environment:
    ```
    winget install -e --id Amazon.AWSCLI
    ```
-6. **Credenciais AWS na máquina**, por um dos caminhos:
-   - `aws configure` (access key, secret e região padrão), ou
-   - `aws configure sso` para contas com IAM Identity Center, ou
-   - arquivo `~/.aws/credentials` criado manualmente.
+6. **AWS credentials on the machine**, through one of these paths:
+   - `aws configure` (access key, secret and default region), or
+   - `aws configure sso` for accounts with IAM Identity Center, or
+   - a `~/.aws/credentials` file created manually.
 
-   O CDK usa a cadeia padrão de credenciais e nenhuma credencial entra em arquivo do repositório. Se as suas estiverem sob um profile nomeado em vez do `default`, passe `-Profile <nome>` aos scripts.
+   The CDK uses the default credential chain and no credential goes into a file of the repository. If yours are under a named profile instead of `default`, pass `-Profile <name>` to the scripts.
 
-A região padrão do app é **`us-east-1`** (definida em `bin/app.ts`). Para usar outra, passe `-Region <região>` aos scripts.
+The default region of the app is **`us-east-1`** (set in `bin/app.ts`). To use another one, pass `-Region <region>` to the scripts.
 
-### Delegar o domínio para o Route 53
+### Delegating the domain to Route 53
 
-O registrador pode continuar sendo quem já é, mas quem responde pelo DNS precisa ser uma hosted zone pública do Route 53. É ela que o `hostedZoneId` do `cdk.json` aponta, é nela que o ACM cria os registros de validação dos certificados e é nela que nascem os aliases do site, da API e do MCP. A delegação é feita uma única vez e não envolve transferência de domínio.
+The registrar may stay whoever it already is, but whoever answers for DNS has to be a public Route 53 hosted zone. It is the one the `hostedZoneId` of `cdk.json` points at, it is where ACM creates the certificate validation records, and it is where the aliases of the site, the API and the MCP are born. Delegation is done once and involves no domain transfer.
 
-Enquanto os nameservers forem os do registrador antigo, o deploy da `MemorysmithNetwork` fica travado esperando uma validação de DNS que nunca chega.
+While the name servers are those of the old registrar, the deployment of `MemorysmithNetwork` hangs waiting for a DNS validation that never arrives.
 
-#### 1. Criar a hosted zone na AWS
+#### 1. Create the hosted zone in AWS
 
-Console → **Route 53** → **Hosted zones** → **Create hosted zone**, com o seu domínio e o tipo **Public hosted zone**.
+Console → **Route 53** → **Hosted zones** → **Create hosted zone**, with your domain and the type **Public hosted zone**.
 
-Abra a zona criada e anote duas coisas: os **quatro nameservers** do registro `NS` do apex (no formato `ns-123.awsdns-45.com`, `ns-678.awsdns-90.net`, `ns-234.awsdns-56.org`, `ns-789.awsdns-01.co.uk`) e o **Hosted zone ID** (formato `Z0123456ABCDEFGHIJKL`), que vai para o `cdk.json`.
+Open the created zone and note two things: the **four name servers** of the apex `NS` record (in the form `ns-123.awsdns-45.com`, `ns-678.awsdns-90.net`, `ns-234.awsdns-56.org`, `ns-789.awsdns-01.co.uk`) and the **Hosted zone ID** (in the form `Z0123456ABCDEFGHIJKL`), which goes into `cdk.json`.
 
-Cada hosted zone custa US$ 0,50 por mês.
+Each hosted zone costs US$ 0.50 per month.
 
-#### 2. Apontar os nameservers no registrador
+#### 2. Point the name servers at the registrar
 
-No caso do Squarespace, que é o registrador de `memorysmith.app`:
+In the case of Squarespace, which is the registrar of `memorysmith.app`:
 
-1. Entre em `account.squarespace.com` e abra **Domains**.
-2. Clique no domínio.
-3. No menu do domínio, vá em **DNS** e localize a seção **Nameservers**, que vem marcada como nameservers do Squarespace.
-4. Troque para a opção de **nameservers personalizados** e cole os quatro da Route 53, um por campo, **sem o ponto final**.
-5. Salve. O aviso de que os registros DNS do Squarespace deixam de valer é o efeito esperado, porque a partir daqui o DNS inteiro do domínio passa a ser servido pela Route 53.
+1. Sign in at `account.squarespace.com` and open **Domains**.
+2. Click the domain.
+3. In the domain menu, go to **DNS** and find the **Nameservers** section, which comes marked as Squarespace name servers.
+4. Switch to the **custom name servers** option and paste the four from Route 53, one per field, **without the trailing dot**.
+5. Save. The warning that the Squarespace DNS records stop applying is the expected effect, because from here on the whole DNS of the domain is served by Route 53.
 
-> Se o domínio estiver servindo um site ou e-mail que precisa continuar no ar, recrie os registros correspondentes na hosted zone **antes** deste passo. Enquanto a troca propaga, os dois conjuntos de nameservers respondem, e só a hosted zone conhece os registros novos.
+> If the domain is serving a site or e-mail that has to stay up, recreate the corresponding records in the hosted zone **before** this step. While the switch propagates, both sets of name servers answer, and only the hosted zone knows the new records.
 
-#### 3. Confirmar a delegação
+#### 3. Confirm the delegation
 
 ```
-nslookup -type=NS seudominio.app 8.8.8.8
+nslookup -type=NS yourdomain.app 8.8.8.8
 ```
 
-A delegação terminou quando a resposta trouxer os nomes `awsdns` no lugar dos antigos. O TTL dos registros NS no TLD `.app` é de até 48 horas, mas na prática a troca costuma valer em minutos ou poucas horas. Só depois disso os certificados conseguem ser emitidos.
+The delegation is finished when the answer brings the `awsdns` names in place of the old ones. The TTL of the NS records in the `.app` TLD is up to 48 hours, but in practice the switch usually takes effect in minutes or a few hours. Only after that can the certificates be issued.
 
-### O deploy é um script
+### The deployment is a script
 
-Nada aqui se faz na mão. A pasta [`deploy-aws/`](deploy-aws/) tem dois scripts em PowerShell que executam o ciclo inteiro, e são eles a forma suportada de subir e derrubar o ambiente:
+Nothing here is done by hand. The [`deploy-aws/`](deploy-aws/) folder has two PowerShell scripts that run the whole cycle, and they are the supported way to bring the environment up and down:
 
-| Script | O que faz |
+| Script | What it does |
 | --- | --- |
-| `deploy-aws/deploy.ps1` | Confere o ambiente, instala o workspace, faz o bootstrap da região quando falta, sintetiza, sobe as seis stacks de backend, escreve o `.env.local` do frontend a partir dos outputs reais, compila a interface, sobe a stack de hospedagem e verifica por HTTP o que ficou no ar |
-| `deploy-aws/destroy.ps1` | Confere o ambiente, lista o que existe de fato na conta, diz o que sobrevive à remoção, pede confirmação digitada, derruba as stacks e termina com o relatório do que ficou para trás |
+| `deploy-aws/deploy.ps1` | Checks the environment, installs the workspace, bootstraps the region when it is missing, synthesises, brings up the six backend stacks, writes the `.env.local` of the frontend from the real outputs, builds the interface, brings up the hosting stack and verifies over HTTP what ended up live |
+| `deploy-aws/destroy.ps1` | Checks the environment, lists what actually exists in the account, says what survives removal, asks for a typed confirmation, tears the stacks down and finishes with a report of what was left behind |
 
-Os dois começam pelo mesmo preflight, e ele **aponta os gaps antes de qualquer coisa ser tocada na conta**: versão do Node e do pnpm, dependências instaladas, AWS CLI, credencial resolvida (com os profiles disponíveis na máquina quando nenhuma resolve), contexto do `cdk.json`, existência da hosted zone, delegação de NS já apontando para a Route 53, bootstrap do CDK, tabelas órfãs de um destroy anterior, colisão no prefixo do domínio Cognito e stack presa em estado que o CloudFormation não atualiza. Cada gap vem acompanhado da linha de comando que o resolve.
+Both start from the same preflight, and it **points out the gaps before anything is touched in the account**: the Node and pnpm versions, installed dependencies, the AWS CLI, a resolved credential (with the profiles available on the machine when none resolves), the `cdk.json` context, the existence of the hosted zone, NS delegation already pointing at Route 53, the CDK bootstrap, orphan tables from a previous destroy, a collision on the Cognito domain prefix and a stack stuck in a state CloudFormation will not update. Each gap comes with the command line that resolves it.
 
-Um gap interrompe a execução; um aviso apenas informa e o script segue.
+A gap stops the run; a warning only informs and the script continues.
 
-#### Olhar o ambiente sem mudar nada
+#### Looking at the environment without changing anything
 
 ```
 ./deploy-aws/deploy.ps1 -PreflightOnly
 ```
 
-É o primeiro comando a rodar em uma máquina nova. Ele não toca em recurso nenhum e responde exatamente o que falta para o deploy funcionar.
+It is the first command to run on a new machine. It touches no resource and answers exactly what is missing for the deployment to work.
 
-#### Subir tudo
+#### Bringing everything up
 
 ```
 ./deploy-aws/deploy.ps1
 ```
 
-Com um profile nomeado em vez da credencial padrão:
+With a named profile instead of the default credential:
 
 ```
 ./deploy-aws/deploy.ps1 -Profile memorysmith
 ```
 
-O script é idempotente: quando algo falha no meio, corrija o que o relatório apontou e rode de novo. Notas de primeira execução:
+The script is idempotent: when something fails midway, fix what the report pointed at and run it again. Notes for the first run:
 
-- Os certificados ACM validam por DNS na própria hosted zone. A emissão costuma levar de 2 a 10 minutos, e a `MemorysmithNetwork` espera por ela.
-- Em uma conta onde nada existe, a hospedagem sobe **antes** da identidade. O Cognito recusa um domínio próprio enquanto o apex não responde um registro A, e é a stack de frontend que cria esse registro. Um ambiente que já está no ar não muda de ordem.
-- A interface é compilada **depois** do backend e **antes** da stack de hospedagem, porque ela precisa embutir a origem da API e o app client reais. É a ordem que o CDK não teria como inferir sozinho, e é a razão de o frontend não entrar num `--all`.
-- O `.env.local` do frontend é escrito a partir dos outputs do CloudFormation, não da sua memória. Para preservar um arquivo editado à mão, use `-KeepFrontendEnv`.
+- The ACM certificates validate by DNS in the hosted zone itself. Issuance usually takes 2 to 10 minutes, and `MemorysmithNetwork` waits for it.
+- In an account where nothing exists, the hosting goes up **before** identity. Cognito refuses a custom domain while the apex does not answer an A record, and it is the frontend stack that creates that record. An environment already live does not change order.
+- The interface is built **after** the backend and **before** the hosting stack, because it has to embed the real API origin and app client. It is the order the CDK would have no way of inferring on its own, and it is the reason the frontend does not go into an `--all`.
+- The `.env.local` of the frontend is written from the CloudFormation outputs, not from your memory. To preserve a hand-edited file, use `-KeepFrontendEnv`.
 
-Ao final, o script imprime conta, região, endereços do site, da API e do MCP, o user pool, o app client da interface e o domínio do Cognito.
+At the end, the script prints the account, the region, the addresses of the site, the API and the MCP, the user pool, the app client of the interface and the Cognito domain.
 
-#### Opções de `deploy.ps1`
+#### Options of `deploy.ps1`
 
-| Opção | Para que serve |
+| Option | What it is for |
 | --- | --- |
-| `-Profile <nome>` | Profile da AWS a usar, em vez da cadeia padrão de credenciais |
-| `-Region <região>` | Região de destino; o padrão vem de `CDK_DEFAULT_REGION`, depois do profile, depois `us-east-1` |
-| `-Stacks <lista>` | Sobe apenas as stacks indicadas, por exemplo `-Stacks MemorysmithApi,MemorysmithAgent` |
-| `-PreflightOnly` | Só o relatório de ambiente |
-| `-SkipInstall` | Não roda `pnpm install`, útil em redeploys seguidos |
-| `-SkipFrontend` | Sobe só o backend |
-| `-SkipSynth`, `-SkipBootstrap`, `-SkipVerify` | Pulam a síntese, o bootstrap e a verificação final |
-| `-KeepFrontendEnv` | Não sobrescreve `memorysmith-frontend/.env.local` |
-| `-EphemeralData` | Cria os recursos de dado com política de remoção destrutiva, para um ambiente descartável |
-| `-IgnoreGaps` | Segue mesmo com gaps abertos, para quando uma checagem está errada sobre a sua máquina |
-| `-HostedZoneId`, `-CognitoDomainPrefix` | Sobrescrevem o contexto do `cdk.json` só naquela execução |
+| `-Profile <name>` | The AWS profile to use, instead of the default credential chain |
+| `-Region <region>` | The target region; the default comes from `CDK_DEFAULT_REGION`, then the profile, then `us-east-1` |
+| `-Stacks <list>` | Brings up only the given stacks, for example `-Stacks MemorysmithApi,MemorysmithAgent` |
+| `-PreflightOnly` | The environment report only |
+| `-SkipInstall` | Does not run `pnpm install`, useful in successive redeploys |
+| `-SkipFrontend` | Brings up the backend only |
+| `-SkipSynth`, `-SkipBootstrap`, `-SkipVerify` | Skip the synthesis, the bootstrap and the final verification |
+| `-KeepFrontendEnv` | Does not overwrite `memorysmith-frontend/.env.local` |
+| `-EphemeralData` | Creates the data resources with a destructive removal policy, for a disposable environment |
+| `-IgnoreGaps` | Continues even with open gaps, for when a check is wrong about your machine |
+| `-HostedZoneId`, `-CognitoDomainPrefix` | Override the `cdk.json` context for that run only |
 
-#### O que o script verifica no fim
+#### What the script verifies at the end
 
-Com o ambiente no ar, ele confere quatro coisas: o `/health` da API responde, o `/mcp` devolve `401` com o header `WWW-Authenticate` apontando para o documento de metadados, os dois `.well-known` do MCP respondem com o conteúdo esperado, e o site responde `200`. Qualquer uma falhando, o script termina com código de saída diferente de zero e diz qual.
+With the environment live, it checks four things: the `/health` of the API answers, `/mcp` returns `401` with the `WWW-Authenticate` header pointing at the metadata document, the two `.well-known` documents of MCP answer with the expected content, and the site answers `200`. If any of them fails, the script exits with a non-zero code and says which one.
 
-#### O que o deploy não faz por você
+#### What the deployment does not do for you
 
-- **Criar conta nenhuma.** O user pool sobe vazio, de propósito: nenhum e-mail de pessoa real fica no repositório e nenhum deploy decide quem opera a plataforma. Quem cria a primeira conta é o `onboard.ps1` logo abaixo.
-- **O fluxo OAuth ponta a ponta**, que precisa de navegador:
+- **Create any account.** The user pool comes up empty, on purpose: no e-mail of a real person stays in the repository and no deployment decides who operates the platform. The one that creates the first account is `onboard.ps1`, just below.
+- **The end-to-end OAuth flow**, which needs a browser:
   ```
   npx @modelcontextprotocol/inspector
   ```
-  No Inspector: transporte **Streamable HTTP**, URL `https://mcp.<domínio>/mcp`, e iniciar a autenticação. O fluxo descobre o authorization server, redireciona ao login do Cognito, volta com o token e lista as tools. Chamar `whoami` deve devolver quem é a conexão, o que ela alcança e como escrever no vault.
-- **Registrar o conector nos clientes de agente.** Claude Desktop, Claude Code, claude.ai e chatgpt.com recebem a mesma URL como conector remoto.
+  In the Inspector: transport **Streamable HTTP**, URL `https://mcp.<domain>/mcp`, and start the authentication. The flow discovers the authorization server, redirects to the Cognito sign-in, comes back with the token and lists the tools. Calling `whoami` should return who the connection is, what it reaches and how to write in the vault.
+- **Register the connector in the agent clients.** Claude Desktop, Claude Code, claude.ai and chatgpt.com all take the same URL as a remote connector.
 
-## Liberar os primeiros usuários
+## Letting the first users in
 
-Um ambiente recém-subido não tem ninguém dentro: o pool é vazio e não existe assinatura, porque assinatura é solicitada por uma pessoa e autorizada por um administrador de plataforma. O `onboard.ps1` fecha esse laço inteiro, sempre pela API do produto e nunca escrevendo no banco à mão:
+A freshly deployed environment has nobody inside: the pool is empty and there is no subscription, because a subscription is requested by a person and authorised by a platform administrator. `onboard.ps1` closes that whole loop, always through the API of the product and never writing into the database by hand:
 
 ```
 ./deploy-aws/onboard.ps1 -Profile memorysmith
 ```
 
-Ele pergunta o que precisa saber e então cria a conta no Cognito, solicita a assinatura com o tipo e a quota escolhidos (a assinatura não tem nome: quem a identifica é o titular), coloca a assinatura no status escolhido e escreve um vault inteiro, com Orientação, pastas, Modelos e notas, a partir de um dos [vaults de exemplo](#os-vaults-de-exemplo).
+It asks what it needs to know and then creates the account in Cognito, requests the subscription with the chosen type and quota (the subscription has no name: what identifies it is its owner), puts the subscription in the chosen status and writes a whole vault, with a Guidance, folders, Templates and notes, from one of the [example vaults](#the-example-vaults).
 
-**A primeira conta de um pool vazio vira administradora de plataforma, e só a primeira.** Alguém precisa autorizar a primeira assinatura, e em um ambiente novo não há ninguém. Depois que o grupo tem um membro, uma execução seguinte pede as credenciais de um administrador existente em vez de entregar a plataforma a quem rodar o script.
+**The first account of an empty pool becomes a platform administrator, and only the first.** Somebody has to authorise the first subscription, and in a new environment there is nobody. Once the group has a member, a later run asks for the credentials of an existing administrator instead of handing the platform to whoever runs the script.
 
-**A conta é entregue com senha provisória.** Solicitar a assinatura e escrever o vault acontecem como a conta, então o script precisa entrar como ela, e entra com uma senha própria que ninguém chega a ver. No fim ele deixa a conta esperando a primeira senha: o Cognito envia por e-mail um convite com uma senha provisória, e a tela de entrada pede uma senha própria no primeiro acesso. Quem roda o script nunca fica sabendo a senha da conta de outra pessoa. `-SetPassword` inverte isso, definindo aqui uma senha definitiva e não enviando e-mail nenhum, que é o que a primeira conta de um ambiente novo quer: ela é a única que não pode depender de um e-mail chegar.
+**The account is handed over with a temporary password.** Requesting the subscription and writing the vault happen as the account, so the script has to sign in as it, and it does so with a password of its own that nobody ever sees. At the end it leaves the account waiting for its first password: Cognito sends an invitation by e-mail with a temporary password, and the sign-in screen asks for a password of their own on first access. Whoever runs the script never learns the password of somebody else's account. `-SetPassword` inverts that, setting a definitive password here and sending no e-mail at all, which is what the first account of a new environment wants: it is the only one that cannot depend on an e-mail arriving.
 
-Para olhar o que um desses vaults viraria, sem criar nada e sem sequer falar com a AWS:
+To look at what one of those vaults would become, without creating anything and without even talking to AWS:
 
 ```
 ./deploy-aws/onboard.ps1 -VaultTemplate engineering-knowledge -PreviewVault
 ```
 
-| Opção | Para que serve |
+| Option | What it is for |
 | --- | --- |
-| `-Email <endereço>` | A conta a criar ou reusar. Perguntado quando não é passado |
-| `-Name <nome>` | Nome de exibição da conta |
-| `-Type individual` | Tipo da assinatura; `individual` é o único desta fase |
-| `-Quota 500MB\|1GB\|2GB` | Quota de armazenamento, declarada e ainda não aplicada |
-| `-Status <status>` | Status final da assinatura, qualquer um dos seis, inclusive um que a máquina de transição recusaria |
-| `-VaultTemplate <slug>` | Vault de `deploy-aws/vaults` a escrever, ou `none` para uma conta sem vault |
-| `-VaultName <nome>` | Nome do vault criado; o padrão é o título do vault de origem |
-| `-StructureOnly` | Escreve Orientação, pastas e Modelos, e nenhuma nota |
-| `-MaxNotes <n>` | Para depois de `n` notas |
-| `-PreviewVault` | Só imprime o que seria escrito, e não cria nada |
-| `-SetPassword` | Define aqui uma senha definitiva em vez de entregar a conta com senha provisória por e-mail |
+| `-Email <address>` | The account to create or reuse. Asked for when not passed |
+| `-Name <name>` | The display name of the account |
+| `-Type individual` | The subscription type; `individual` is the only one at this stage |
+| `-Quota 500MB\|1GB\|2GB` | The storage quota |
+| `-Status <status>` | The final status of the subscription, any of the six, including one the transition machine would refuse |
+| `-VaultTemplate <slug>` | The vault from `deploy-aws/vaults` to write, or `none` for an account with no vault |
+| `-VaultName <name>` | The name of the created vault; the default is the title of the source vault |
+| `-StructureOnly` | Writes the Guidance, the folders and the Templates, and no notes |
+| `-MaxNotes <n>` | Stops after `n` notes |
+| `-PreviewVault` | Only prints what would be written, and creates nothing |
+| `-SetPassword` | Sets a definitive password here instead of handing the account over with a temporary one by e-mail |
 
-Duas coisas que o script faz e vale entender:
+Two things the script does that are worth understanding:
 
-- **Um status que não concede acesso é aplicado no fim.** Escrever o vault exige uma assinatura em `trial` ou `active`, então o vault é escrito com a assinatura ativa e o status pedido é aplicado no último passo, pela rota administrativa que define status sem passar pela máquina de transição.
-- **A claim nasce junto com o token.** A interface só enxerga a assinatura depois de um login novo, então saia e entre de novo em um navegador que já estava aberto.
+- **A status that grants no access is applied last.** Writing the vault requires a subscription in `trial` or `active`, so the vault is written with the subscription active and the requested status is applied in the final step, through the administrative route that sets the status without going through the transition machine.
+- **The claim is born with the token.** The interface only sees the subscription after a fresh sign-in, so sign out and back in on a browser that was already open.
 
-## Os vaults de exemplo
+## The example vaults
 
-As árvores commitadas em [`deploy-aws/vaults/`](deploy-aws/vaults/) são o que o `onboard.ps1` escreve no primeiro vault de uma conta nova. Elas estão no **formato de export do produto**: prefixo numérico codifica a ordem das pastas, `GUIDANCE.md` faz o papel de Orientação na raiz, `STRUCTURE.md` ao lado dele carrega a árvore anotada com a descrição de cada pasta, `TEMPLATE.md` faz o papel de Modelo da pasta, e as notas trazem o corpo byte a byte, com os wikilinks intactos.
+The trees committed in [`deploy-aws/vaults/`](deploy-aws/vaults/) are what `onboard.ps1` writes into the first vault of a new account. They are in the **export format of the product**: a numeric prefix encodes the order of the folders, `GUIDANCE.md` plays the Guidance role at the root, `STRUCTURE.md` next to it carries the annotated tree with the description of each folder, `TEMPLATE.md` plays the Template role of the folder, and the notes carry the body byte for byte, with the wikilinks intact.
 
-Escrever essas árvores **pela API**, e não direto no DynamoDB e no S3, é o que faz um ambiente recém-criado ter os mesmos eventos de domínio e a mesma trilha de auditoria que o produto teria produzido no uso normal.
+Writing those trees **through the API**, and not straight into DynamoDB and S3, is what makes a freshly created environment have the same domain events and the same audit trail the product would have produced in normal use.
 
-| Vault | Conteúdo | Notas |
+| Vault | Content | Notes |
 | --- | --- | --- |
-| `engineering-knowledge` | Base de estudo de engenharia de software: literatura, conceitos e práticas atômicas, MOCs e projetos | 573 |
-| `glpi-discovery` | Descoberta do GLPI 11 por engenharia reversa e documentação oficial, com contrato de evidência e investigações | 758 |
-| `regulacao-energia` | Regulação do setor elétrico brasileiro: normas, conceitos, fichas de dados abertos e o grafo de contexto (indicadores, séries, insights) | 166 |
-| `runbooks-producao` | Runbooks de plantão: sintoma, diagnóstico e procedimento | 4 |
-| `onboarding-engenharia` | O que alguém precisa ler na primeira semana de um time | 4 |
-| `pesquisa-mercado` | Notas de entrevista e sínteses de pesquisa | 3 |
-| `fermentacao` | Receitas e registros de fermentação | 3 |
-| `jurisprudencia-tributaria` | Acórdãos fichados com tese e fundamento | 3 |
+| `engineering-knowledge` | A software engineering study base: literature, atomic concepts and practices, MOCs and projects | 573 |
+| `glpi-discovery` | Discovery of GLPI 11 through reverse engineering and official documentation, with an evidence contract and investigations | 758 |
+| `regulacao-energia` | Regulation of the Brazilian electricity sector: norms, concepts, open data sheets and the context graph (indicators, series, insights) | 166 |
+| `runbooks-producao` | On-call runbooks: symptom, diagnosis and procedure | 4 |
+| `onboarding-engenharia` | What somebody has to read in the first week on a team | 4 |
+| `pesquisa-mercado` | Interview notes and research syntheses | 3 |
+| `fermentacao` | Fermentation recipes and logs | 3 |
+| `jurisprudencia-tributaria` | Rulings recorded with their thesis and grounding | 3 |
 
-Os três primeiros são vaults reais em uso, e mostram o produto no tamanho em que ele fica interessante. Os cinco pequenos existem para dar ao onboard uma opção de poucos segundos, quando o que se quer é um ambiente de pé e não seiscentas notas.
+The first three are real vaults in use, and they show the product at the size where it becomes interesting. The five small ones exist to give the onboarding a few-seconds option, when what is wanted is a live environment and not six hundred notes.
 
-No frontmatter, todos aplicam o vocabulário padrão do produto: `maturity` (`seed`, `growing`, `evergreen`), reavaliado a cada escrita, e `reviewed`, que marca se a revisão vigente passou por revisão humana. É esse vocabulário que a Visão geral e a busca por atributo usam nas telas.
+In the frontmatter, all of them apply the standard vocabulary of the product: `maturity` (`seed`, `growing`, `evergreen`), reassessed on every write, and `reviewed`, which marks whether the current revision has been through human review. It is that vocabulary the Overview and the search by attribute use on the screens.
 
-### Como eles são gerados
+### How they are generated
 
-O material que produz essas árvores fica em [`deploy-aws/vault-sources/`](deploy-aws/vault-sources/):
+The material producing those trees lives in [`deploy-aws/vault-sources/`](deploy-aws/vault-sources/):
 
-- `authoring/`: os textos autorais por vault, ou seja o `guidance.md` que vira o `GUIDANCE.md` da raiz e os `templates/*.md` que viram os `TEMPLATE.md` das pastas.
-- `fictional/`: as fontes dos cinco vaults pequenos, que vivem no próprio repositório.
-- `build-vaults.mjs`: o tradutor. Lê os vaults de origem, aplica o mapeamento de pastas e gera a saída em `deploy-aws/vaults/`.
+- `authoring/`: the authored texts per vault, that is the `guidance.md` that becomes the `GUIDANCE.md` of the root and the `templates/*.md` that become the `TEMPLATE.md` of the folders.
+- `fictional/`: the sources of the five small vaults, which live in the repository itself.
+- `build-vaults.mjs`: the translator. It reads the source vaults, applies the folder mapping and generates the output in `deploy-aws/vaults/`.
 
-Os três vaults reais **não** fazem parte do repositório: eles vivem na máquina do autor, e o que está commitado é a saída. A saída não se edita à mão; alterações se fazem em `authoring/` ou na origem, seguidas de regeração:
+The three real vaults are **not** part of the repository: they live on the machine of the author, and what is committed is the output. The output is not edited by hand; changes are made in `authoring/` or at the source, followed by a regeneration:
 
 ```
 node deploy-aws/vault-sources/build-vaults.mjs
 ```
 
-O script valida os limites do produto (2.000 notas e 200 pastas por vault, profundidade 6, descrição de pasta entre 1 e 500 caracteres), detecta colisão de slug de nota dentro do vault e reporta os avisos ao final. Rodar sem os três vaults reais na máquina esvazia as três árvores correspondentes, porque cada saída é recriada do zero. Se você só quer regerar os pequenos, confira o `git status` antes de commitar.
+The script validates the product limits (2,000 notes and 200 folders per vault, depth 6, a folder description between 1 and 500 characters), detects a note slug collision within the vault and reports the warnings at the end. Running it without the three real vaults on the machine empties the three corresponding trees, because each output is recreated from zero. If you only want to regenerate the small ones, check `git status` before committing.
 
-## Derrubar o ambiente
+## Tearing the environment down
 
 ```
 ./deploy-aws/destroy.ps1
 ```
 
-Antes de apagar qualquer coisa, o script lista as stacks que existem de fato, avisa o que sobrevive e pede que você digite o nome do domínio para confirmar. Para inspecionar sem risco nenhum:
+Before deleting anything, the script lists the stacks that actually exist, warns what survives and asks you to type the name of the domain to confirm. To inspect with no risk at all:
 
 ```
 ./deploy-aws/destroy.ps1 -PreflightOnly
 ```
 
-**O tear down não destrói dado, por desenho.** As quatro tabelas e o bucket de conteúdo nascem com política de retenção, então sobrevivem à stack, e o user pool também. Isso tem uma consequência prática que o relatório final do script repete: os nomes de tabela são fixos, então uma tabela retida faz o próximo deploy falhar com `AlreadyExists`. Ou você apaga a tabela, ou o preflight do `deploy.ps1` vai barrar a subida.
+**The tear down does not destroy data, by design.** The four tables and the content bucket are born with a retention policy, so they survive the stack, and so does the user pool. That has a practical consequence the final report of the script repeats: the table names are fixed, so a retained table makes the next deployment fail with `AlreadyExists`. Either you delete the table, or the preflight of `deploy.ps1` will block the deployment.
 
-**`-PurgeData` não deixa nada.** Ele reimplanta a stack de dados com a política destrutiva antes de apagar, porque a política que vale é a do template já implantado, e depois remove à mão o que política de remoção nenhuma removeria: a trilha de auditoria (`mv-audit`), o user pool com seu prefixo de domínio e qualquer bucket que uma exclusão malsucedida tenha deixado para trás. Essa segunda parte fica no script, e não na infraestrutura, de propósito: apagar a trilha é ato administrativo explícito, pedido na linha de comando, e nunca efeito colateral de um deploy com a flag errada.
+**`-PurgeData` leaves nothing.** It redeploys the data stack with the destructive policy before deleting, because the policy that counts is the one of the already deployed template, and then removes by hand what no removal policy would remove: the audit trail (`mv-audit`), the user pool with its domain prefix and any bucket a failed deletion left behind. That second part lives in the script, and not in the infrastructure, on purpose: deleting the trail is an explicit administrative act, asked for on the command line, and never the side effect of a deployment with the wrong flag.
 
-**Derrubar leva tempo, e o script pode ser interrompido sem prejuízo.** Apagar o domínio do Cognito desprovisiona uma distribuição do CloudFront por baixo dos panos, e essa única exclusão passa da meia hora com facilidade. Matar o script não cancela nada: o CloudFormation continua sozinho. Rodar o script de novo entra na operação já em andamento em vez de disparar outra, e segue de onde parou. Por isso o `cdk destroy` reaproveita a síntese que já está em `cdk.out`: uma exclusão é por nome de stack, e recompilar as seis funções para apagá-las seria só espera.
+**Tearing down takes time, and the script can be interrupted with no harm.** Deleting the Cognito domain deprovisions a CloudFront distribution under the hood, and that single deletion passes half an hour easily. Killing the script cancels nothing: CloudFormation carries on by itself. Running the script again joins the operation already in progress instead of starting another, and continues from where it stopped. That is why `cdk destroy` reuses the synthesis already in `cdk.out`: a deletion is by stack name, and recompiling the six functions in order to delete them would be pure waiting.
 
-| Opção | Para que serve |
+| Option | What it is for |
 | --- | --- |
-| `-Profile <nome>`, `-Region <região>` | Iguais às do deploy |
-| `-Stacks <lista>` | Derruba apenas as stacks indicadas |
-| `-PreflightOnly` | Só o relatório: o que existe e o que sobreviveria |
-| `-PurgeData` | Não deixa nada: tabelas (auditoria inclusive), bucket de conteúdo e user pool com o prefixo de domínio. Irreversível |
-| `-Force` | Pula a confirmação digitada, para execução não assistida |
+| `-Profile <name>`, `-Region <region>` | The same as for the deployment |
+| `-Stacks <list>` | Tears down only the given stacks |
+| `-PreflightOnly` | The report only: what exists and what would survive |
+| `-PurgeData` | Leaves nothing: the tables (the audit one included), the content bucket and the user pool with its domain prefix. Irreversible |
+| `-Force` | Skips the typed confirmation, for an unattended run |
 
 ---
 
-## Rodando na sua máquina
+## Running it on your machine
 
-O monorepo roda inteiro localmente.
+The whole monorepo runs locally.
 
-**A suíte inteira**, que é o que diz se a implementação está de pé:
+**The full suite**, which is what says whether the implementation stands:
 
 ```
-pnpm typecheck      # os três projetos
+pnpm typecheck      # the three projects
 pnpm lint
-pnpm depcruise      # a regra de dependência: quebra se domain/ importar SDK da AWS
-pnpm test           # domínio, casos de uso, contratos e a fatia vertical
+pnpm depcruise      # the dependency rule: it breaks if domain/ imports an AWS SDK
+pnpm test           # the domain, use cases, contracts and the vertical slice
 ```
 
-Os testes de adaptador precisam de DynamoDB Local e MinIO, e são eles que verificam os critérios de concorrência (20 reordenações simultâneas, 50 notas criadas em paralelo):
+The adapter tests need DynamoDB Local and MinIO, and they are the ones verifying the concurrency criteria (20 simultaneous reorderings, 50 notes created in parallel):
 
 ```
 docker compose up -d --wait
@@ -464,14 +463,14 @@ pnpm -r --if-present test:adapters
 docker compose down
 ```
 
-A integração contínua sobe esses dois containers a partir deste mesmo `docker-compose.yml`, com as imagens fixadas em uma versão exata. Uma suíte verde aqui quer dizer uma suíte verde lá.
+Continuous integration brings those two containers up from this same `docker-compose.yml`, with the images pinned to an exact version. A green suite here means a green suite there.
 
-**A interface.** Ela lê e escreve pela API do produto e não tem modo offline, então precisa de um ambiente de pé para rodar. O `deploy.ps1` escreve o `.env.local` sozinho a partir dos outputs das stacks, então na prática ele já existe depois de um deploy. Para preenchê-lo à mão, copie `memorysmith-frontend/.env.example` para `.env.local` e preencha as três variáveis:
+**The interface.** It reads and writes through the API of the product and has no offline mode, so it needs a live environment to run. `deploy.ps1` writes the `.env.local` on its own from the stack outputs, so in practice it already exists after a deployment. To fill it in by hand, copy `memorysmith-frontend/.env.example` to `.env.local` and fill in the three variables:
 
 ```
-VITE_API_ORIGIN=https://api.<domínio>
-VITE_COGNITO_DOMAIN=https://auth.<domínio>
-VITE_COGNITO_CLIENT_ID=<app client da interface>
+VITE_API_ORIGIN=https://api.<domain>
+VITE_COGNITO_DOMAIN=https://auth.<domain>
+VITE_COGNITO_CLIENT_ID=<the app client of the interface>
 ```
 
 ```
@@ -479,58 +478,58 @@ pnpm install
 pnpm -C memorysmith-frontend dev
 ```
 
-Sem `VITE_API_ORIGIN` a aplicação recusa subir e diz o porquê. Ela já teve um seed empacotado que respondia no lugar da API, e ele foi removido: uma segunda fonte que responde em silêncio com outros dados faz a tela parecer certa enquanto mostra outra coisa.
+Without `VITE_API_ORIGIN` the application refuses to start and says why. It once had a bundled seed answering in place of the API, and it was removed: a second source answering silently with other data makes the screen look right while showing something else.
 
-## Solução de problemas
+## Troubleshooting
 
-| Sintoma | Causa provável |
+| Symptom | Likely cause |
 | --- | --- |
-| Preflight acusa `AWS credentials` mesmo com `~/.aws/credentials` preenchido | As credenciais estão sob um profile nomeado e não sob o `default`. O próprio gap lista os profiles da máquina; rode com `-Profile <nome>` |
-| Preflight acusa `DNS delegation` | Os nameservers do registrador ainda não são os da Route 53, ou a troca ainda está propagando (ver [Delegar o domínio para o Route 53](#delegar-o-domínio-para-o-route-53)). O certificado ACM não é emitido enquanto isso |
-| Preflight acusa `Orphan tables` | Um destroy anterior deixou as tabelas retidas. Apague as citadas com `aws dynamodb delete-table --table-name <nome>` antes de subir de novo |
-| Preflight acusa `Stack states` | Ou uma stack ficou em `ROLLBACK_COMPLETE`, estado que o CloudFormation não atualiza, e aí `./deploy-aws/destroy.ps1 -Stacks <nome>` resolve; ou há uma operação em andamento, e aí é esperar. Um destroy que apaga o domínio do Cognito passa da meia hora |
-| Deploy da `MemorysmithNetwork` parado em `CREATE_IN_PROGRESS` | Emissão do certificado aguardando a validação DNS. Passando de 30 minutos, confira se a hosted zone do `hostedZoneId` é a que de fato responde pelo domínio |
-| Colisão no domínio do Cognito | O prefixo é único por região. Suba com `-CognitoDomainPrefix <outro>` |
-| Verificação final falha com `401` também nos `.well-known` | Rota errada ou domínio ainda propagando; os `.well-known` são públicos por desenho |
-| `503 Service Unavailable` intermitente nas primeiras chamadas | Conta nova costuma vir com 10 execuções simultâneas de Lambda. Peça aumento de quota à AWS |
-| `This CDK CLI is not compatible...` | Algum `cdk` global antigo no PATH. Os scripts sempre usam o CLI fixado no projeto |
+| The preflight reports `AWS credentials` even with `~/.aws/credentials` filled in | The credentials are under a named profile and not under `default`. The gap itself lists the profiles on the machine; run with `-Profile <name>` |
+| The preflight reports `DNS delegation` | The registrar name servers are not the Route 53 ones yet, or the switch is still propagating (see [Delegating the domain to Route 53](#delegating-the-domain-to-route-53)). The ACM certificate is not issued meanwhile |
+| The preflight reports `Orphan tables` | A previous destroy left the tables retained. Delete the ones it names with `aws dynamodb delete-table --table-name <name>` before deploying again |
+| The preflight reports `Stack states` | Either a stack ended up in `ROLLBACK_COMPLETE`, a state CloudFormation will not update, and then `./deploy-aws/destroy.ps1 -Stacks <name>` resolves it; or there is an operation in progress, and then it is a matter of waiting. A destroy that deletes the Cognito domain passes half an hour |
+| The `MemorysmithNetwork` deployment stuck in `CREATE_IN_PROGRESS` | Certificate issuance awaiting DNS validation. Past 30 minutes, check whether the hosted zone of `hostedZoneId` is the one that actually answers for the domain |
+| A collision on the Cognito domain | The prefix is unique per region. Deploy with `-CognitoDomainPrefix <another>` |
+| The final verification fails with `401` on the `.well-known` documents too | The wrong route, or the domain still propagating; the `.well-known` documents are public by design |
+| An intermittent `503 Service Unavailable` on the first calls | A new account usually comes with 10 concurrent Lambda executions. Ask AWS for a quota increase |
+| `This CDK CLI is not compatible...` | Some old global `cdk` on the PATH. The scripts always use the CLI pinned in the project |
 
-## Como reportar um problema, ou pedir alguma coisa
+## How to report a problem, or ask for something
 
-Se a tabela acima não resolveu, ou se você usou o produto e ele deixou a desejar em algum ponto, abra uma issue. **Não é preciso saber qual é a solução**, e nem descrever o que deveria ser construído: o mais útil que você pode contar é o que estava tentando fazer, o que aconteceu, e o que esperava que acontecesse.
+If the table above did not solve it, or if you used the product and it fell short somewhere, open an issue. **You do not need to know what the solution is**, nor describe what should be built: the most useful thing you can tell is what you were trying to do, what happened, and what you expected to happen.
 
-| Situação | Onde |
+| Situation | Where |
 | --- | --- |
-| Alguma coisa custou caro, confundiu ou faltou | [Abrir uma issue de feedback](https://github.com/memorysmithapp/memorysmithapp/issues/new?template=01-feedback.yml) |
-| Você viu dado de outra conta, ou algo que pareça falha de segurança | [Canal privado](https://github.com/memorysmithapp/memorysmithapp/security/advisories/new), nunca uma issue pública. Ver [`SECURITY.md`](SECURITY.md) |
-| Dúvida sobre instalação ou uso | [Abrir uma issue de feedback](https://github.com/memorysmithapp/memorysmithapp/issues/new?template=01-feedback.yml), marcando que é dúvida |
+| Something cost you dearly, confused you or was missing | [Open a feedback issue](https://github.com/memorysmithapp/memorysmithapp/issues/new?template=01-feedback.yml) |
+| You saw data from another account, or something that looks like a security failure | [The private channel](https://github.com/memorysmithapp/memorysmithapp/security/advisories/new), never a public issue. See [`SECURITY.md`](SECURITY.md) |
+| A question about installing or using it | [Open a feedback issue](https://github.com/memorysmithapp/memorysmithapp/issues/new?template=01-feedback.yml), marking it as a question |
 
-**Este repositório é público.** Ao reportar, não cole conteúdo real das suas notas, nomes de cliente ou dados de negócio. Descreva a situação com exemplos inventados, ou mande identificadores (`vaultId`, `noteId`) no lugar do texto; funciona igual para quem vai ler.
+**This repository is public.** When reporting, do not paste real content from your notes, customer names or business data. Describe the situation with invented examples, or send identifiers (`vaultId`, `noteId`) in place of the text; it works just as well for whoever reads it.
 
-O que acontece com a sua issue depois de aberta, incluindo como ela é triada e por que às vezes a resposta é uma recusa registrada em vez de uma entrega, está em [`docs/development-process.md`](docs/development-process.md).
+What happens to your issue after it is opened, including how it is triaged and why the answer is sometimes a recorded refusal instead of a delivery, is in [`docs/development-process.md`](docs/development-process.md).
 
-## Onde está o quê
+## Where things are
 
 ```
 core/
-├── memorysmith-backend/     # os seis bounded contexts, o shared kernel e os contratos de evento
-├── memorysmith-frontend/    # a interface web em React
-├── memorysmith-infra/       # todo o CDK: stacks, constructs, políticas de IAM
-├── deploy-aws/              # os scripts de deploy, destroy e onboard, e os vaults de exemplo
-└── docs/                    # a documentação canônica
+├── memorysmith-backend/     # the six bounded contexts, the shared kernel and the event contracts
+├── memorysmith-frontend/    # the web interface in React
+├── memorysmith-infra/       # all the CDK: stacks, constructs, IAM policies
+├── deploy-aws/              # the deploy, destroy and onboard scripts, and the example vaults
+└── docs/                    # the canonical documentation
 ```
 
-| Documento | O que responde |
+| Document | What it answers |
 | --- | --- |
-| [`docs/software-vision.md`](docs/software-vision.md) | O que o produto faz e sob qual regra: visão, linguagem ubíqua, papéis, entidades, regras de negócio, catálogo MCP e telas |
-| [`docs/architecture-guide.md`](docs/architecture-guide.md) | Como ele é construído: DDD tático, hexagonal, single-table no DynamoDB, outbox, MCP e OAuth, infraestrutura e testes |
-| [`docs/knowledge-base.md`](docs/knowledge-base.md) | O domínio em que ele opera: Markdown, gestão de conhecimento, MCP, recuperação, auditoria e LGPD |
-| [`docs/development-process.md`](docs/development-process.md) | Como o trabalho flui: da issue de quem usa até o merge, com triagem, roadmap e o que cada commit precisa tocar |
-| [`CLAUDE.md`](CLAUDE.md) | As regras de trabalho do repositório, incluindo as treze decisões de desenho inegociáveis |
-| [`SECURITY.md`](SECURITY.md) | Como reportar uma falha de isolamento ou vulnerabilidade, em privado |
-| [`CHANGELOG.md`](CHANGELOG.md) | O que mudou em cada versão |
-| [`LICENSE`](LICENSE) | A licença MIT, que vale para os dois modos de operação |
+| [`docs/software-vision.md`](docs/software-vision.md) | What the product does and under which rule: the vision, the ubiquitous language, roles, entities, business rules, the MCP catalogue and the screens |
+| [`docs/architecture-guide.md`](docs/architecture-guide.md) | How it is built: tactical DDD, hexagonal, single-table DynamoDB, the outbox, MCP and OAuth, infrastructure and tests |
+| [`docs/knowledge-base.md`](docs/knowledge-base.md) | The domain it operates in: Markdown, knowledge management, MCP, retrieval, auditing and data protection law |
+| [`docs/development-process.md`](docs/development-process.md) | How work flows: from the issue of whoever uses it to the merge, with triage, roadmap and what each commit has to touch |
+| [`CLAUDE.md`](CLAUDE.md) | The working rules of the repository, including the thirteen non-negotiable design decisions |
+| [`SECURITY.md`](SECURITY.md) | How to report an isolation failure or a vulnerability, in private |
+| [`CHANGELOG.md`](CHANGELOG.md) | What changed in each version |
+| [`LICENSE`](LICENSE) | The MIT licence, which holds for both modes of operation |
 
-## Licença
+## Licence
 
-MIT, no arquivo [`LICENSE`](LICENSE). O código é aberto **como está**, e essa é a frase inteira: rodar na sua própria conta é caminho de primeira classe nesta documentação, e não vem com promessa de suporte, de compatibilidade entre versões nem de notas de upgrade. Issue sobre instalação é bem-vinda. Prometer prazo que um projeto deste tamanho não consegue honrar seria pior que não prometer, que é o mesmo critério do [`SECURITY.md`](SECURITY.md).
+MIT, in the [`LICENSE`](LICENSE) file. The code is open **as is**, and that is the whole sentence: running it in your own account is a first-class path in this documentation, and it comes with no promise of support, of compatibility between versions, or of upgrade notes. An issue about installing it is welcome. Promising a deadline a project this size cannot honour would be worse than not promising, which is the same criterion as [`SECURITY.md`](SECURITY.md).

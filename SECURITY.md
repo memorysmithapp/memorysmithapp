@@ -1,67 +1,67 @@
-# Política de segurança
+# Security policy
 
-## Como reportar
+## How to report
 
-**Nunca abra uma issue pública para uma falha de segurança.** Este repositório é público, e
-uma issue descrevendo como alcançar dado de outra conta é uma instrução de exploração à
-vista de todo mundo enquanto a correção não sai.
+**Never open a public issue for a security failure.** This repository is public, and an
+issue describing how to reach the data of another account is an exploitation instruction in
+plain sight for as long as the fix is not out.
 
-Use o canal privado do GitHub:
+Use the private GitHub channel:
 
 > **Security → Advisories → Report a vulnerability**
 > [github.com/memorysmithapp/memorysmithapp/security/advisories/new](https://github.com/memorysmithapp/memorysmithapp/security/advisories/new)
 
-Só quem mantém o repositório enxerga o relato, e a conversa acontece ali até existir
-correção publicada.
+Only the maintainers of the repository see the report, and the conversation happens there
+until there is a published fix.
 
-O canal vale para os dois modos. Um relato sobre **instalação própria** informa a versão
-instalada e diz que é instalação própria, porque a instância hospedada é observável por
-quem mantém o projeto e a de terceiro não é.
+The channel holds for both modes of operation. A report about a **self-hosted install**
+states the installed version and says that it is a self-hosted install, because the hosted
+instance is observable by whoever maintains the project and a third-party one is not.
 
-## O que reportar por aqui
+## What to report through here
 
-Qualquer coisa que quebre uma das garantias abaixo é falha de segurança, mesmo que pareça
-pequena e mesmo que você não tenha certeza:
+Anything that breaks one of the guarantees below is a security failure, even if it looks
+small and even if you are not sure:
 
-| Você observou | Por que é grave |
+| What you observed | Why it is serious |
 |---|---|
-| Conteúdo, nome de vault, nota ou membro de **outra assinatura** | O isolamento por assinatura é a garantia central do produto: toda chave de dado começa pela assinatura, e nenhuma requisição pode escolher qual |
-| Um recurso que não é seu respondendo **`403`** em vez de `404` | O `403` confirma que aquilo existe, e essa confirmação já é vazamento |
-| Uma sessão de administrador de plataforma alcançando **conteúdo de cliente** | Um token de plataforma não carrega assinatura, então não deveria existir chave que ele consiga montar |
-| Um registro da **trilha de auditoria** alterado ou apagado | A trilha é append-only por política de IAM, não por disciplina |
-| Um **token do conector MCP** aceito fora da assinatura que o consentiu | O consentimento fixa a assinatura, e o token não deveria valer em outra |
-| Bytes de nota **destruídos** por qualquer operação | Apagar é sempre reversível, e nada no produto destrói uma revisão: não existe porta, rota nem ato administrativo que o faça |
-| Qualquer credencial, chave ou segredo exposto no repositório ou em resposta da API | |
+| Content, a vault name, a note or a member of **another subscription** | Isolation by subscription is the central guarantee of the product: every data key starts with the subscription, and no request may choose which one |
+| A resource that is not yours answering **`403`** instead of `404` | The `403` confirms that the thing exists, and that confirmation is already a leak |
+| A platform administrator session reaching **customer content** | A platform token carries no subscription, so there should be no key it can assemble |
+| A record of the **audit trail** altered or deleted | The trail is append-only by IAM policy, not by discipline |
+| An **MCP connector token** accepted outside the subscription that consented to it | Consent fixes the subscription, and the token should not work in another |
+| Note bytes **destroyed** by any operation | Deleting is always reversible, and nothing in the product destroys a revision: there is no port, route or administrative act that does it |
+| Any credential, key or secret exposed in the repository or in an API response | |
 
-Vale reportar mesmo que você tenha topado com isso por acidente e não saiba reproduzir.
-Um relato impreciso de vazamento vale mais que um silêncio educado.
+It is worth reporting even if you ran into it by accident and cannot reproduce it. An
+imprecise report of a leak is worth more than a polite silence.
 
-## O que **não** é caso para este canal
+## What is **not** a case for this channel
 
-Atrito de uso, funcionalidade faltando, defeito que não vaza dado nem quebra autorização,
-e dúvida sobre instalação seguem pelo caminho normal:
-[abrir uma issue de feedback](https://github.com/memorysmithapp/memorysmithapp/issues/new?template=01-feedback.yml).
+Friction in use, a missing feature, a defect that leaks no data and breaks no authorisation,
+and questions about installing follow the normal path:
+[open a feedback issue](https://github.com/memorysmithapp/memorysmithapp/issues/new?template=01-feedback.yml).
 
-## Conteúdo de vault em relatos
+## Vault content in reports
 
-Ao reportar, **não cole conteúdo real das suas notas**, nomes de cliente ou dados de
-negócio, nem aqui nem em issue pública. Descreva a forma do problema com exemplos
-inventados, e mande identificadores (`vaultId`, `noteId`) em vez de texto. Se a correção
-depender de ver o conteúdo, pedimos por um caminho combinado.
+When reporting, **do not paste real content from your notes**, customer names or business
+data, neither here nor in a public issue. Describe the shape of the problem with invented
+examples, and send identifiers (`vaultId`, `noteId`) instead of text. If the fix depends on
+seeing the content, we will ask for it through an agreed path.
 
-## Resposta
+## Response
 
-Este é um projeto pequeno, e prometer prazo que não se cumpre é pior que não prometer.
-O compromisso é: **acusar o recebimento em até 72 horas** e manter você informado no
-próprio advisory até existir correção ou uma decisão registrada de não corrigir, com o
-motivo.
+This is a small project, and promising a deadline that is not met is worse than not
+promising. The commitment is: **acknowledge receipt within 72 hours** and keep you informed
+in the advisory itself until there is a fix or a recorded decision not to fix, with the
+reason.
 
-## Versões cobertas
+## Versions covered
 
-O produto está em `0.x` e é implantado como uma versão única nos três projetos. Só a
-versão publicada mais recente recebe correção; não há backport para versões anteriores
-enquanto a `1.0.0` não existir.
+The product is on `0.x` and is deployed as a single version across the three projects. Only
+the most recently published version receives a fix; there is no backport to earlier
+versions while `1.0.0` does not exist.
 
-Isso vale para os dois modos de operação (`software-vision.md` §4.9). **Quem roda a própria
-instância recebe a correção pelo repositório e é responsável por aplicá-la:** não há
-atualização automática e não há aviso dirigido a quem instalou.
+That holds for both modes of operation (`software-vision.md` §4.9). **Whoever runs their own
+instance receives the fix through the repository and is responsible for applying it:** there
+is no automatic update and no notice directed at whoever installed it.
