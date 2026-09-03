@@ -44,6 +44,7 @@ issues each entry cites.
 
 ### Fixed
 
+- **The `app:version` tag on every AWS resource is derived from `package.json` instead of typed by hand.** It had been asserting `0.2.0` since that release, through two cuts, so every resource in production is answering the wrong version to whoever asks the billing console or the tag editor. A version repeated by hand is a version that drifts.
 - **The catalogue card shows the last update of the vault**, which was already in the response and was discarded in the mapping. The date is formatted by `Intl` in the active locale. (#43)
 - **The `serverInfo` of the MCP stopped announcing a fixed version.** It answered `0.2.0` with the product on `0.3.0`, because the version was a literal. It is now derived from the manifest of the service itself, with a test comparing the answer to the manifest. (#46)
 - **The route map of `architecture-guide.md` §14.1 matches the code again.** It documented two export routes that do not exist and omitted thirteen that do, and three further divergences left with it: the session answers at `GET /session`, the search accepts only `mode: lexical`, and the authorizer is not a route. (#44, #45)

@@ -9,6 +9,7 @@
  */
 
 import { App, Tags } from 'aws-cdk-lib';
+import pkg from '../package.json' with { type: 'json' };
 import { NetworkStack } from '../stacks/network.stack.js';
 import { IdentityStack } from '../stacks/identity.stack.js';
 import { DataStack } from '../stacks/data.stack.js';
@@ -73,4 +74,6 @@ new FrontendHostingStack(app, 'MemorysmithFrontend', {
 });
 
 Tags.of(app).add('app:project', 'memorysmith');
-Tags.of(app).add('app:version', '0.2.0');
+// Derived, never written literally: a version repeated by hand is a version that
+// drifts, and this tag had been asserting 0.2.0 through two releases.
+Tags.of(app).add('app:version', pkg.version);
