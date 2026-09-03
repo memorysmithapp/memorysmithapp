@@ -1,6 +1,5 @@
 name: Usage feedback
 description: Tell us about a friction you felt using MemorySmith. You do not need to know what the solution is.
-title: '[feedback] '
 labels: ['feedback']
 body:
   - type: markdown

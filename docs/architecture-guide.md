@@ -1388,9 +1388,8 @@ future, and that is why they left this file:
 
 | What you are looking for | Where it is |
 |---|---|
-| Build order, deliveries, target version | The Project of the repository |
-| Open technical risks, with the criterion that closes each one | Issues labelled `technical-risk` |
-| Product risks | Issues labelled `risk` |
+| Build order, deliveries, the scope of a version | The milestone of that version |
+| Open technical risks, with the criterion that closes each one | Issues labelled `question` |
 | What has been delivered, and when | `CHANGELOG.md` and the GitHub Releases |
 
 The complete cycle, from the need to the merge, is in `development-process.md`.

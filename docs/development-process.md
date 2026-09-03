@@ -35,7 +35,7 @@ the software is built ([`architecture-guide.md`](architecture-guide.md)).
 | `docs/development-process.md` | "How work flows" | Whoever builds it | This process changes |
 | `CLAUDE.md` | "What the agent may never violate" | The agent | A non-negotiable rule enters or leaves |
 | `CHANGELOG.md` | "What changed, and when" | Everyone | Every commit that changes behaviour |
-| **Issues and Project** | "What we have yet to decide, evaluate or build" | Everyone | All the time |
+| **Issues and milestones** | "What we have yet to decide, evaluate or build" | Everyone | All the time |
 
 The last row governs everything else in this document. A hypothesis of a need,
 prioritisation, the roadmap, an open risk and an undecided question live **in an issue**,
@@ -59,7 +59,7 @@ citations. When the rule is broken, it will be broken detectably.
 does not exist gets in the way of whoever builds; a `README` describing what does not exist
 breaks the trust of whoever tried to follow it, and that person is precisely the one who
 agreed to try it first. No "coming soon" or "planned" in there. Public direction is
-communicated through the Project and the Releases, and the `README` at most points at the
+communicated through the milestones and the Releases, and the `README` at most points at the
 link.
 
 ---
@@ -70,7 +70,7 @@ link.
 |---|---|---|---|
 | 1 | **Capture** | `feedback` issue | It is a hypothesis of a need. Nobody promised anything |
 | 2 | **Triage** | Comments on the issue | The real friction is distilled out of the request. A proposal or a recorded refusal comes out |
-| 3 | **Scope closed** | `proposal` issue + Project | It gets a target version and reserves the `RN-XXX` codes it will create |
+| 3 | **Scope closed** | The issue, in a milestone | It gets a target version and reserves the `RN-XXX` codes it will create |
 | 4 | **Implementation** | Branch, incremental commits | Code, test, document and changelog move together |
 | 5 | **Consistent state** | `main`, through the merged PR | What is in the document exists and is in production |
 
@@ -148,10 +148,15 @@ solve a problem of text.
 
 | Outcome | Label | Cost | Creates an `RN-XXX`? |
 |---|---|---|---|
-| **Documentation** | `type:documentation` | A PR of minutes | No |
-| **Defect** | `type:defect` | A fix | No, it restores what the rule already states |
-| **Gap** | `type:gap` or `type:friction` | Enters the roadmap as a `proposal` | Usually yes |
-| **Refusal** | the issue closes | A comment | No |
+| **Documentation** | `documentation` | A PR of minutes | No |
+| **Defect** | `bug` | A fix | No, it restores what the rule already states |
+| **Gap** | `enhancement` | Enters a milestone when accepted | Usually yes |
+| **Refusal** | the issue closes as `not planned` | A comment | No |
+
+The four labels above are the ones GitHub already ships. The project does not create a
+label for what a native one already says, and it does not create one for a state either:
+being accepted for a version is the **milestone**, and having been delivered or refused is
+the way the issue was **closed**.
 
 **Refusal is a first-class outcome and it has to be written down.** A refused issue closes
 with the reason in a comment, addressed to whoever reported it. A backlog without recorded
@@ -160,31 +165,42 @@ months the same discussion that was already had.
 
 ### 4.3 Classification
 
-Every triaged issue gets a context label (`ctx:SUB`, `ctx:ACC`, `ctx:KNW`, `ctx:DSC`,
-`ctx:AUD`, `ctx:AGT`, `ctx:PRT`, `ctx:UI`, `ctx:Infra`), which is the same three-letter
-prefix as the business rule codes. That makes triage point at the bounded context already,
-and reveals early when a request crosses two of them, which is the sign that it is two
-requests.
+Every triaged issue also says **where in the system it lives**, which is what makes triage
+point at the document it will force to change, and what reveals early when a request
+crosses two places, the sign that it is two requests.
+
+| Label | What it covers |
+|---|---|
+| `domain:subscription` | The customer account: status, plan, quota, isolation |
+| `domain:access` | Who may do what: members, roles, invitations, ceilings, ownership |
+| `domain:knowledge` | The content itself: vaults, folders, notes, Guidance, Templates |
+| `domain:discovery` | Finding things: search, the link graph, backlinks, facets |
+| `domain:audit` | The history: who wrote what, when, and what it said on a date |
+| `domain:mcp` | The connector for the agent: tools, the Vault Context, skills |
+| `domain:export` | Taking the vault out as `.md` files |
+| `layer:web` | The web interface |
+| `layer:infra` | AWS, the stacks, the deployment scripts |
+
+The seven `domain:` labels are the bounded contexts of §6 of `software-vision.md`, and each
+one maps to the prefix of its business rules: an issue on `domain:knowledge` creates an
+`RN-KNW-XXX`. That correspondence lives in that table, and not in the name of the label,
+which is read by a person scanning a list. The two `layer:` ones carry a different prefix
+because they are not domains: the interface consumes all seven, and the infrastructure
+sustains all seven.
 
 ---
 
 ## 5. Prioritisation and roadmap
 
-The roadmap lives in the **GitHub Project**, not in a document. The fields are few on
-purpose, because a field nobody fills in is a field that lies:
+**The scope of a version is the milestone of that version**, and there is no field to fill
+in beyond it: an issue in `v0.4.0` is an issue accepted for that cycle, and one with no
+milestone has not been decided yet. Everything else the roadmap would need is already in
+the native state of the issue, which §7.4 defines.
 
-| Field | Values |
-|---|---|
-| `Status` | Triage, Accepted, In progress, Delivered, Refused, Deferred |
-| `Context` | the bounded context prefixes, plus UI and Infra |
-| `Type` | Defect, Friction, Gap, Documentation |
-| `Target version` | `0.4.0`, `0.5.0`, No date |
-
-Risks and open questions also live in issues, with the labels `risk`, `technical-risk` and
-`open-question`. What sets them apart from a `proposal` is that they **do not close on delivery**:
-they close when the risk no longer materialises, when the question is decided, or when they
-turn into a concrete proposal. Each carries, in its body, the explicit criterion of what
-closes it.
+Risks and questions not yet decided live in issues labelled `question`. What sets them
+apart from a delivery is that they **do not close on delivery**: they close when the risk no
+longer materialises, when the question is decided, or when they turn into a concrete
+proposal. Each carries, in its body, the explicit criterion of what closes it.
 
 ---
 
@@ -195,7 +211,7 @@ because commits, PRs and more than 300 lines of code reference them.
 
 That creates a coordination requirement, and it is resolved like this:
 
-> **The rule number is reserved in the `proposal` issue, at step 3. The normative text
+> **The rule number is reserved in the issue whose scope closed, at step 3. The normative text
 > enters `software-vision.md` at step 4, along with the code that fulfils it.**
 
 The separation protects both things at once. The number is burned the moment the scope
@@ -425,10 +441,10 @@ to point at the merged commit, and the GitHub Release of step 9 is created from 
 | This | Goes to |
 |---|---|
 | A hypothesis of a need, a request, a reported friction | `feedback` issue |
-| Scope under discussion, an alternative being evaluated | `proposal` issue |
-| Roadmap, build order, target version | Project |
-| A risk not yet addressed | `risk` or `technical-risk` issue |
-| An undecided question | `open-question` issue |
+| Scope under discussion, an alternative being evaluated | The issue itself, before a milestone |
+| Roadmap, build order, target version | The milestone of the version |
+| A risk not yet addressed | `question` issue |
+| An undecided question | `question` issue |
 | Change history, release notes, revision dates | `CHANGELOG.md` and the git history |
 
 The last row predates this process and still holds with the same force: footers of the

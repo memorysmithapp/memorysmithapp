@@ -1,7 +1,6 @@
 name: Scope proposal
 description: The need already distilled, ready for a roadmap decision. The output of triage, not its input.
-title: '[proposal] '
-labels: ['proposal']
+labels: ['enhancement']
 body:
   - type: markdown
     attributes:
@@ -9,6 +8,9 @@ body:
         Use this form **after** triage, when the friction has been understood and the scope
         is closed. A proposal that does not yet know which rule it creates is not ready to
         become a branch.
+
+        It opens labelled `enhancement`, which is the common case. Triage changes it to
+        `bug` or `documentation` when the type below says so.
 
         The complete process is in
         [`docs/development-process.md`](https://github.com/memorysmithapp/memorysmithapp/blob/main/docs/development-process.md).
@@ -36,11 +38,11 @@ body:
     id: type
     attributes:
       label: Type
+      description: The outcome of triage this proposal came out of.
       options:
         - Gap, the product does not do it and will
         - Defect, the product diverges from what the document already states
         - Documentation, solved by writing
-        - Risk, prevention before it hurts
     validations:
       required: true
 
