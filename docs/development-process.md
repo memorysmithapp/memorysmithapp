@@ -261,6 +261,22 @@ que está publicado, porque a branch é espaço de trabalho e os dois avançam e
 morrer no meio, nada inconsistente chegou à `main`; se for mesclada, chega tudo junto por
 construção.
 
+### 7.4 Quando a issue fecha
+
+A issue de uma entrega fecha **quando o commit dela está na branch do ciclo**, e não quando
+a branch chega à `main`. Ela fecha como `completed`, com um comentário dizendo em que commit
+está. Uma issue recusada fecha como `not planned`, com o motivo escrito, que é a quarta
+saída da triagem (§4.2).
+
+A consequência precisa ser dita, porque é contraintuitiva: durante o ciclo coexistem issues
+fechadas e um produto que ainda não faz aquilo. Quem declara o escopo da versão é o
+**milestone**, e o que leva tudo à `main` é o pull request único do ciclo, no fim. Fechar
+antes é o que torna o progresso visível enquanto a branch corre, e o preço é aceitar que,
+aqui, "fechada" significa "está na branch da versão".
+
+Não se abre um pull request por issue. Ele exigiria uma branch por issue, e sobre a branch
+de ciclo deixaria um botão de merge disponível durante semanas, com a versão pela metade.
+
 ---
 
 ## 8. Pull request

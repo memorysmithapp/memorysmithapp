@@ -228,11 +228,11 @@ Não há processamento automático de pagamento nesta fase. A ativação é um *
 
 | Momento | O que acontece |
 |---|---|
-| **Signup** | Cria a conta de usuário. Nenhuma assinatura ainda, nenhum acesso operacional |
+| **Signup** | Cria a conta de usuário. Nenhuma assinatura ainda, nenhum acesso operacional. Não há cadastro aberto nesta fase: a conta nasce por ato da operação da plataforma |
 | **Onboarding** | O usuário solicita uma assinatura, escolhendo tipo e quota, e passa a ser o `OWNER` dela. Status: `pending_approval` |
 | **Autorização** | Um `PLATFORM_ADMIN` aprova (status vira `trial` ou `active`) ou rejeita, com motivo obrigatório |
 | **Configuração** | O `OWNER` cria vaults e escreve Guidance e Templates |
-| **Convite** | O `OWNER` convida por e-mail para a assinatura, definindo `EDITOR` ou `VIEWER` |
+| **Convite** | O `OWNER` emite um convite endereçado a um e-mail, definindo `EDITOR` ou `VIEWER`. O produto não entrega o convite: quem convida repassa o link por onde quiser |
 | **Aceite** | O convidado ganha vínculo com aquela assinatura. **Não cria assinatura própria e não paga nada** |
 | **Saída** | Remover um membro revoga o acesso; a conta, os demais vínculos e a autoria do que ele escreveu permanecem |
 | **Suspensão / cancelamento** | Acesso operacional cessa; os dados permanecem sob a mesma chave (§4.2) |
@@ -370,7 +370,7 @@ O teto não se aplica ao `OWNER`: ele é titular da assinatura e alcança tudo.
 - **RN-ACC-002:** A transferência de titularidade é atômica: o novo titular vira `OWNER` e o anterior vira `EDITOR` na mesma operação.
 - **RN-ACC-003:** O e-mail é único entre os membros de uma assinatura.
 - **RN-ACC-004:** Um convite pendente não concede acesso; só o aceite cria o membro.
-- **RN-ACC-005:** O convite é de uso único, vinculado ao e-mail para o qual foi enviado, e expira em 7 dias.
+- **RN-ACC-005:** O convite é de uso único, vinculado ao e-mail que ele endereça, e expira em 7 dias.
 - **RN-ACC-006:** Somente o `OWNER` convida, altera papel, remove membros e define tetos de vault. `EDITOR` não convida.
 - **RN-ACC-007:** *(removida)* Tratava da criação, renomeação e remoção de workspaces. O nível de workspace deixou de existir (§4.3). O número é preservado e nunca será reaproveitado.
 - **RN-ACC-008:** Um convite só pode ser emitido por assinatura em status `trial` ou `active`.
@@ -816,7 +816,7 @@ Normas e Legislação/
 
 | Tela | Conteúdo |
 |---|---|
-| Assinatura → Membros | Convidar por e-mail definindo `EDITOR` ou `VIEWER`, alterar papel, remover; declara o atraso de propagação (RN-ACC-016) |
+| Assinatura → Membros | Emitir convite para um e-mail definindo `EDITOR` ou `VIEWER`, alterar papel, remover; declara o atraso de propagação (RN-ACC-016) |
 | Assinatura → Titularidade | Transferir a titularidade para outro membro, com confirmação explícita de que o titular atual vira `EDITOR` |
 
 **Conhecimento**
