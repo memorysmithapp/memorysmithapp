@@ -66,6 +66,18 @@ export const RECOGNISED_NOTATION: readonly RecognisedNotation[] = [
     recognised: true,
   },
   {
+    id: 'embed',
+    reader: 'links',
+    syntax: '![[Target note]]  ·  ![[Target note#Section]]',
+    example: 'The rule is stated in full here:\n\n![[Lei 14.133#Article 75]]\n',
+    effect:
+      'The wikilink prefixed by `!` is an embed: the reading surface shows the content of the ' +
+      'target in place, and the graph gets exactly the same edge as a plain link. Use it when ' +
+      'the target is part of what you are asserting, not merely worth seeing. Tools never ' +
+      'expand it: read_note returns the `![[...]]` you wrote.',
+    recognised: true,
+  },
+  {
     id: 'markdown-relative-link',
     reader: 'links',
     syntax: '[what the reader sees](target-note.md)',

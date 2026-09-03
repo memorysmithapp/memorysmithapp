@@ -677,6 +677,7 @@ O conector é o produto na visão de quem chega por uma plataforma de IA, e a fo
 
 - **RN-AGT-009:** Toda tool do catálogo declara um título legível e a marca de leitura ou de destruição. Nenhuma tool entra no catálogo sem as duas coisas. A regra vale desde a primeira tool, e não a partir de uma eventual submissão a diretório: são essas marcas que decidem se o cliente executa a chamada direto ou pede confirmação ao usuário, então a ausência cobra atrito de quem usa o produto, listado ou não.
 - **RN-AGT-014:** O conector escreve o vault inteiro, e não apenas as notas dele. Criar e apagar vault, escrever a Guidance, criar e apagar pasta, escrever o Template e apagar nota existem como tools próprias, sob as mesmas regras de papel que a interface obedece: a decisão é sempre do vault, tomada pelo caso de uso, e nunca do protocolo. A razão é a tese do produto (§1.4): um agente que só pode acrescentar notas a uma estrutura que outra pessoa montou não escreve conhecimento, apenas o deposita.
+- **RN-AGT-015:** `read_note` devolve o corpo como o autor o escreveu, com o `![[…]]` literal, e **nunca expande o embed**. O agente que quiser o conteúdo do alvo chama `read_note` nele, e é quem decide se precisa dele. O mesmo vale para o export: o que sai são os bytes escritos.
 - **RN-AGT-017:** O produto serve ao agente, como skill, a descrição das notações que interpreta no corpo da nota, incluindo **as que ele deliberadamente não lê**. O conteúdo é derivado da declaração das notações, e nunca escrito ao lado dela: uma skill que ensina uma notação que o produto deixou de ler é pior que skill nenhuma, porque manda escrever algo que silenciosamente não faz nada. A declaração é a mesma que o Discovery verifica contra os seus dois extratores sancionados.
 - **RN-AGT-018:** O `whoami` indexa as skills disponíveis, uma por tarefa, e **o índice é derivado do registro de skills**, nunca escrito ao lado dele. Uma skill que existe aparece, e uma que não existe não pode ser anunciada, pela mesma razão que RN-AGT-013 dá para a ajuda: um índice mantido à mão diverge na primeira skill renomeada, e apontar para uma skill inexistente manda o agente por um caminho que falha.
 - **RN-AGT-019:** `get_skill(name)` devolve o texto da skill. Um nome que não existe responde `NOT_FOUND` **com a lista das que existem**, para que a próxima tentativa seja informada em vez de adivinhada (RN-AGT-003). A skill ensina o método e não valida coisa alguma: PP3 e PP4 continuam sem exceção, e nada passa a ser recusado por não seguir o que ela orienta.
@@ -728,6 +729,7 @@ O que a busca **não** faz é procurar por significado. Uma nota que trate do as
 - **RN-DSC-026:** Os campos `title`, `folder`, `content` e `section` são os únicos que o backend conhece por nome. Todo outro prefixo de consulta é resolvido como faceta do vault, e um prefixo que não corresponda a faceta nenhuma simplesmente não casa, nunca é erro.
 - **RN-DSC-027:** A busca varre todas as notas do vault a cada consulta, o que é sustentado pelo teto de 2.000 notas por vault (RN-KNW-010). A varredura precisa percorrer o índice inteiro: uma busca que responde de uma parte do vault sem dizer que parou é pior que busca nenhuma.
 - **RN-DSC-028:** O frontmatter não participa do texto pesquisável. Ele é matéria do projetor de facetas (RN-DSC-018), e mantê-lo no corpo faria toda nota casar com o próprio metadado.
+- **RN-DSC-029:** `![[alvo]]` é a forma de embed, e produz **exatamente a mesma aresta** que `[[alvo]]`. O grafo não distingue transclusão de referência, nem sequer contando: embutir uma nota e também linkar para ela é uma aresta só. Um embed cujo alvo ainda não existe segue RN-DSC-004 e vira link pendente.
 
 ### 10.3 Facetas de curadoria
 
@@ -838,7 +840,7 @@ Normas e Legislação/
 | Vault → Guidance | Leitura da Orientação do vault |
 | Pasta | Leitura: a descrição da pasta, o Modelo dela e as notas na ordem declarada (PP9) |
 | Pasta → Template | Leitura do Modelo da pasta |
-| Nota | Leitura: as propriedades do frontmatter e o corpo em Markdown, com os wikilinks navegáveis e os pendentes marcados como tais (RN-DSC-004) |
+| Nota | Leitura: as propriedades do frontmatter e o corpo em Markdown, com os wikilinks navegáveis, os pendentes marcados como tais (RN-DSC-004) e os embeds expandidos em um nível |
 | Vault → Grafo | O grafo de links do vault inteiro, navegável, com a nota aberta a partir dele |
 | Vault → Busca | Campo único sobre o texto do vault, aceitando campos e operadores |
 | Vault → Export | Baixa o vault inteiro como árvore de arquivos `.md`, no formato de §12 |
@@ -850,6 +852,7 @@ Normas e Legislação/
 - Uma assinatura fora de `trial` ou `active` encerra a sessão e leva o usuário de volta à tela de entrada com a mensagem do seu caso, e nunca a uma tela de conteúdo vazia. A mensagem diz qual dos três casos é, porque a diferença entre "não há nada aqui" e "seu acesso está suspenso" é a diferença entre um bug aparente e uma informação.
 - A superfície de leitura da nota segue as métricas do tema padrão do Obsidian, porque quem lê o vault na web e no Obsidian não deveria precisar reaprender a página.
 - Nenhuma tela interpreta convenção de conteúdo. O frontmatter é apresentado como propriedades e o corpo é renderizado como Markdown universal, o que mantém a interface do mesmo lado de PP4 que o backend.
+- A superfície de leitura **expande um nível de transclusão, e apenas um**. Um `![[alvo]]` encontrado dentro do conteúdo transcluído é desenhado como link para o alvo, o que faz um par de notas que se transcluem renderizar sem laço. O bloco transcluído sempre diz de onde veio, com link para a nota de origem, porque um trecho colado sem procedência é indistinguível do que o autor escreveu. Há um teto de embeds expandidos por página, e o que passa dele vira referência em vez de sumir.
 
 ---
 

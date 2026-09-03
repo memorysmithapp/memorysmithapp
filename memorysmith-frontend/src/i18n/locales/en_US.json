@@ -104,6 +104,7 @@
   },
   "note": {
     "properties": "Properties",
+    "embedSectionMissing": "The section \"{{section}}\" is not in this note.",
     "pendingLink": "Pending link: the target note does not exist yet.",
     "copy": "Copy",
     "copied": "Copied",

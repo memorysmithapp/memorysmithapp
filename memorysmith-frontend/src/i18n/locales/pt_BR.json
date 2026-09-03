@@ -104,6 +104,7 @@
   },
   "note": {
     "properties": "Propriedades",
+    "embedSectionMissing": "A seção \"{{section}}\" não existe nesta nota.",
     "pendingLink": "Link pendente: a nota alvo ainda não existe.",
     "copy": "Copiar",
     "copied": "Copiado",

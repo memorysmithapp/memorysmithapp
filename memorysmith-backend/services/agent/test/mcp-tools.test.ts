@@ -555,3 +555,27 @@ describe('skills: the method, indexed by whoami', () => {
     expect(result.content[0]?.text).toContain('name');
   });
 });
+
+describe('the connector hands over the Markdown the author wrote (RN-AGT-015)', () => {
+  it('never expands an embed: read_note returns the notation verbatim', async () => {
+    const body = 'The rule in full:\n\n![[Lei 14.133#Article 75]]\n';
+    const adapter = gateways({
+      knowledge: {
+        readNote: async () => ({
+          noteId: 'n1',
+          title: 'Direct contracting',
+          content: body,
+          revision: 'v3',
+          updatedAt: '2026-03-20T10:00:00.000Z',
+        }),
+      },
+    });
+
+    const result = await adapter.call('read_note', { vault: 'v1', note: 'n1' }, caller);
+    const text = result.content[0]?.text ?? '';
+
+    // The agent that wants the target reads the target. Expanding here would
+    // hand it content it never asked for, and hide whose words those are.
+    expect(text).toContain('![[Lei 14.133#Article 75]]');
+  });
+});
