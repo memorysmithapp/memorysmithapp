@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getNote } from '../../shared/api/source';
-import { NoteContent } from '../../shared/components/NoteContent';
+import { WritableContent } from '../../shared/components/WritableContent';
+import { canWrite, updateNote } from '../../shared/api/source';
 
 import { PropertyValue, propertyType } from '../../shared/components/PropertyValue';
 import { CheckIcon, CopyIcon } from '../../shared/components/icons';
@@ -98,7 +99,16 @@ export function NotePage({ noteSlug }: { noteSlug: string }) {
         </details>
       )}
 
-      <NoteContent body={data.body} vaultSlug={vaultSlug} />
+      <WritableContent
+        raw={data.raw}
+        vaultSlug={vaultSlug}
+        baseRevision={data.revision}
+        writable={canWrite(structure.effectiveRole)}
+        write={({ raw, baseRevision }) =>
+          updateNote(vaultSlug, data.id, { content: raw, baseRevision: baseRevision ?? '' })
+        }
+        invalidates={['note', vaultSlug, noteSlug]}
+      />
     </article>
   );
 }

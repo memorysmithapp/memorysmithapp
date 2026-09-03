@@ -605,6 +605,7 @@ Ordenação alfabética continua disponível como opção de exibição no clien
 - **RN-KNW-030:** Apagar uma nota libera o seu `slug` no vault; restaurá-la exige que o slug esteja livre novamente.
 - **RN-KNW-031:** O backend não valida a nota contra o Template da pasta (PP3), e não interpreta frontmatter nem qualquer convenção de conteúdo (PP4).
 - **RN-KNW-033:** Apagar um vault é reversível e não destrói byte algum: o vault sai de toda listagem e passa a responder `404` em todos os contextos, enquanto pastas, notas e revisões permanecem intactas e o histórico segue consultável. A operação pertence ao papel de administração do vault, como renomear. Apagar libera o nome do vault na assinatura, pela mesma razão de RN-KNW-030, e por isso restaurá-lo exige que o nome esteja livre de novo.
+- **RN-KNW-034:** A escrita de Guidance e de Template exige a **revisão base**, como já exige a de nota, e uma revisão divergente devolve `CONFLICT` com o conteúdo atual em vez de sobrescrever. `null` é valor legítimo e afirma que o slot está vazio: ele não é a ausência do argumento, é uma afirmação sobre o estado atual. A razão de RN-AGT-005 vale aqui com mais força, e não com menos, porque a Guidance é o documento mais compartilhado do vault e o que mais tem chance de ser escrito por duas mãos ao mesmo tempo, uma na web e um agente pelo MCP.
 
 ---
 
@@ -622,11 +623,12 @@ Ordenação alfabética continua disponível como opção de exibição no clien
 | `create_vault` | `(name, description)` | Cria um vault na assinatura; nome repetido devolve `ALREADY_EXISTS` com o identificador do existente (RN-KNW-032) |
 | `delete_vault` | `(vault)` | Apaga um vault, de forma reversível e sem destruir byte algum (RN-KNW-033) |
 | **`get_vault_context`** | `(vault)` | **A chamada principal.** Guidance integral mais árvore com descrições, ordem, contagem de notas e quais pastas têm template |
-| `set_guidance` | `(vault, content)` | Escreve a Guidance do vault, que é o documento que declara como este vault quer ser escrito |
+| `get_guidance` | `(vault)` | A Guidance como está armazenada, com a revisão a informar na escrita |
+| `set_guidance` | `(vault, content, baseRevision)` | Escreve a Guidance do vault, com detecção de conflito (RN-KNW-034) |
 | `create_folder` | `(vault, name, description, parent?)` | Cria uma pasta; a descrição é obrigatória, porque é ela que diz o que pertence ali |
 | `delete_folder` | `(vault, folder, policy)` | Remove uma pasta sob política explícita, `REJECT_IF_NOT_EMPTY` ou `CASCADE` (RN-KNW-007) |
 | `get_template` | `(vault, folder)` | O Template da pasta, a ler antes de escrever |
-| `set_template` | `(vault, folder, content)` | Escreve o Template da pasta |
+| `set_template` | `(vault, folder, content, baseRevision)` | Escreve o Template da pasta, com detecção de conflito (RN-KNW-034) |
 | `list_notes` | `(vault, folder?)` | Índice de notas, na ordem definida |
 | `read_note` | `(vault, note, asOf?)` | Markdown completo e a revisão corrente; com `asOf`, a revisão vigente naquela data |
 | `create_note` | `(vault, folder, title, content)` | O caminho de ingestão (§1.3) |
@@ -678,6 +680,7 @@ O conector é o produto na visão de quem chega por uma plataforma de IA, e a fo
 - **RN-AGT-009:** Toda tool do catálogo declara um título legível e a marca de leitura ou de destruição. Nenhuma tool entra no catálogo sem as duas coisas. A regra vale desde a primeira tool, e não a partir de uma eventual submissão a diretório: são essas marcas que decidem se o cliente executa a chamada direto ou pede confirmação ao usuário, então a ausência cobra atrito de quem usa o produto, listado ou não.
 - **RN-AGT-014:** O conector escreve o vault inteiro, e não apenas as notas dele. Criar e apagar vault, escrever a Guidance, criar e apagar pasta, escrever o Template e apagar nota existem como tools próprias, sob as mesmas regras de papel que a interface obedece: a decisão é sempre do vault, tomada pelo caso de uso, e nunca do protocolo. A razão é a tese do produto (§1.4): um agente que só pode acrescentar notas a uma estrutura que outra pessoa montou não escreve conhecimento, apenas o deposita.
 - **RN-AGT-015:** `read_note` devolve o corpo como o autor o escreveu, com o `![[…]]` literal, e **nunca expande o embed**. O agente que quiser o conteúdo do alvo chama `read_note` nele, e é quem decide se precisa dele. O mesmo vale para o export: o que sai são os bytes escritos.
+- **RN-AGT-016:** `set_guidance` e `set_template` recebem `baseRevision`, estendendo RN-AGT-005 aos dois Content Slots que ficaram de fora dela. `get_guidance` e `get_template` devolvem a revisão que o agente precisa informar, e o argumento ausente é recusado com a mensagem do que falta, enquanto o `null` explícito é aceito e verificado como qualquer outra revisão.
 - **RN-AGT-017:** O produto serve ao agente, como skill, a descrição das notações que interpreta no corpo da nota, incluindo **as que ele deliberadamente não lê**. O conteúdo é derivado da declaração das notações, e nunca escrito ao lado dela: uma skill que ensina uma notação que o produto deixou de ler é pior que skill nenhuma, porque manda escrever algo que silenciosamente não faz nada. A declaração é a mesma que o Discovery verifica contra os seus dois extratores sancionados.
 - **RN-AGT-018:** O `whoami` indexa as skills disponíveis, uma por tarefa, e **o índice é derivado do registro de skills**, nunca escrito ao lado dele. Uma skill que existe aparece, e uma que não existe não pode ser anunciada, pela mesma razão que RN-AGT-013 dá para a ajuda: um índice mantido à mão diverge na primeira skill renomeada, e apontar para uma skill inexistente manda o agente por um caminho que falha.
 - **RN-AGT-019:** `get_skill(name)` devolve o texto da skill. Um nome que não existe responde `NOT_FOUND` **com a lista das que existem**, para que a próxima tentativa seja informada em vez de adivinhada (RN-AGT-003). A skill ensina o método e não valida coisa alguma: PP3 e PP4 continuam sem exceção, e nada passa a ser recusado por não seguir o que ela orienta.
@@ -837,10 +840,10 @@ Normas e Legislação/
 |---|---|
 | Catálogo de vaults | Cards com nome, descrição, número de notas e última atualização, e sob eles o painel da assinatura: contagem de vaults e de notas, links pendentes, notas órfãs, uso da quota e a distribuição do conteúdo pelas facetas que os vaults declaram (§10.3) |
 | Vault → Contexto do Vault | O vault como o agente o recebe em `get_vault_context` (§9.2): a Orientação e os Modelos como pontos de entrada e a árvore de pastas com a descrição de cada uma. Leitura da estrutura, sem reordenar nem mover |
-| Vault → Guidance | Leitura da Orientação do vault |
+| Vault → Guidance | Leitura da Orientação do vault, com a task list clicável para quem pode escrever |
 | Pasta | Leitura: a descrição da pasta, o Modelo dela e as notas na ordem declarada (PP9) |
-| Pasta → Template | Leitura do Modelo da pasta |
-| Nota | Leitura: as propriedades do frontmatter e o corpo em Markdown, com os wikilinks navegáveis, os pendentes marcados como tais (RN-DSC-004) e os embeds expandidos em um nível |
+| Pasta → Template | Leitura do Modelo da pasta, com a task list clicável para quem pode escrever |
+| Nota | Leitura: as propriedades do frontmatter e o corpo em Markdown, com os wikilinks navegáveis, os pendentes marcados como tais (RN-DSC-004), os embeds expandidos em um nível e a task list clicável para quem pode escrever |
 | Vault → Grafo | O grafo de links do vault inteiro, navegável, com a nota aberta a partir dele |
 | Vault → Busca | Campo único sobre o texto do vault, aceitando campos e operadores |
 | Vault → Export | Baixa o vault inteiro como árvore de arquivos `.md`, no formato de §12 |
@@ -853,6 +856,7 @@ Normas e Legislação/
 - A superfície de leitura da nota segue as métricas do tema padrão do Obsidian, porque quem lê o vault na web e no Obsidian não deveria precisar reaprender a página.
 - Nenhuma tela interpreta convenção de conteúdo. O frontmatter é apresentado como propriedades e o corpo é renderizado como Markdown universal, o que mantém a interface do mesmo lado de PP4 que o backend.
 - A superfície de leitura **expande um nível de transclusão, e apenas um**. Um `![[alvo]]` encontrado dentro do conteúdo transcluído é desenhado como link para o alvo, o que faz um par de notas que se transcluem renderizar sem laço. O bloco transcluído sempre diz de onde veio, com link para a nota de origem, porque um trecho colado sem procedência é indistinguível do que o autor escreveu. Há um teto de embeds expandidos por página, e o que passa dele vira referência em vez de sumir.
+- A **task list é clicável** onde o papel efetivo no vault permite escrever, e permanece desabilitada onde não permite. Cliques em sequência dentro de uma janela curta viram **uma** escrita, para que marcar cinco itens deixe uma entrada no histórico e não cinco. Uma escrita recusada devolve a caixa ao estado anterior e diz o que houve, recarregando o documento quando o motivo for conflito (PP10).
 
 ---
 

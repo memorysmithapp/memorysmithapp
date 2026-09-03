@@ -63,6 +63,14 @@ export const renameVaultRequestSchema = z.object({
 
 export const putContentRequestSchema = z.object({
   content: z.string().max(1_048_576),
+  /**
+   * The revision this write is based on, or null when the slot is still
+   * empty. Blind overwrite is not accepted in a vault that sustains auditing:
+   * the guidance is the most shared document of a vault and the likeliest to
+   * be written by two hands at once, one on the web and one over MCP
+   * (RN-KNW-034).
+   */
+  baseRevision: z.string().nullable(),
 });
 
 export const contentSchema = z.object({

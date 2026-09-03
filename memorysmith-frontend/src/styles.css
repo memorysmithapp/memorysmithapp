@@ -2177,3 +2177,20 @@ a:hover {
     transition: none;
   }
 }
+
+/* A task box that can be ticked. Disabled is the default, and it is what a
+   VIEWER, and an EDITOR demoted in this vault, keep seeing. */
+.markdown li.task-item {
+  list-style: none;
+  margin-left: -1.2rem;
+}
+.markdown li.task-item input[type='checkbox'] {
+  margin-right: 0.5rem;
+  accent-color: var(--accent);
+}
+.markdown li.task-item input[type='checkbox']:not(:disabled) {
+  cursor: pointer;
+}
+.write-failed {
+  color: var(--signal);
+}

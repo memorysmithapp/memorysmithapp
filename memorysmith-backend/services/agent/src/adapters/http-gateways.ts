@@ -100,11 +100,32 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     await callApi(this.origin, caller, `/knowledge/vaults/${vaultId}`, { method: 'DELETE' });
   }
 
-  async setGuidance(caller: AgentCaller, vaultId: string, content: string): Promise<void> {
+  async setGuidance(
+    caller: AgentCaller,
+    vaultId: string,
+    content: string,
+    baseRevision: string | null,
+  ): Promise<void> {
     await callApi(this.origin, caller, `/knowledge/vaults/${vaultId}/guidance`, {
       method: 'PUT',
-      body: { content },
+      body: { content, baseRevision },
     });
+  }
+
+  /**
+   * The guidance with its revision. The Vault Context is a document and cannot
+   * carry one, so a write that has to echo the revision back needs this.
+   */
+  async guidance(
+    caller: AgentCaller,
+    vaultId: string,
+  ): Promise<{ content: string; revision: string } | null> {
+    const detail = await callApi<{
+      guidance: { content: string; revision: { versionId: string } } | null;
+    }>(this.origin, caller, `/knowledge/vaults/${vaultId}`);
+    return detail.guidance
+      ? { content: detail.guidance.content, revision: detail.guidance.revision.versionId }
+      : null;
   }
 
   async createFolder(
@@ -141,13 +162,13 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
 
   async setTemplate(
     caller: AgentCaller,
-    input: { vaultId: string; folderId: string; content: string },
+    input: { vaultId: string; folderId: string; content: string; baseRevision: string | null },
   ): Promise<void> {
     await callApi(
       this.origin,
       caller,
       `/knowledge/vaults/${input.vaultId}/folders/${input.folderId}/template`,
-      { method: 'PUT', body: { content: input.content } },
+      { method: 'PUT', body: { content: input.content, baseRevision: input.baseRevision } },
     );
   }
 
@@ -176,15 +197,19 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     caller: AgentCaller,
     vaultId: string,
     folderId: string,
-  ): Promise<{ content: string; folderName: string } | null> {
-    const found = await callApi<{ content: string | null; folderName?: string }>(
-      this.origin,
-      caller,
-      `/knowledge/vaults/${vaultId}/folders/${folderId}/template`,
-    );
+  ): Promise<{ content: string; folderName: string; revision: string } | null> {
+    const found = await callApi<{
+      content: string | null;
+      folderName?: string;
+      revision?: { versionId: string };
+    }>(this.origin, caller, `/knowledge/vaults/${vaultId}/folders/${folderId}/template`);
     return found.content === null
       ? null
-      : { content: found.content, folderName: found.folderName ?? '' };
+      : {
+          content: found.content,
+          folderName: found.folderName ?? '',
+          revision: found.revision?.versionId ?? '',
+        };
   }
 
   async listNotes(caller: AgentCaller, vaultId: string, folderId?: string): Promise<NoteListing[]> {

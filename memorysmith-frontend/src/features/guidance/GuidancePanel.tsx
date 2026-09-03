@@ -1,6 +1,7 @@
 import { useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { NoteContent } from '../../shared/components/NoteContent';
+import { canWrite, putGuidance } from '../../shared/api/source';
+import { WritableContent } from '../../shared/components/WritableContent';
 import { VaultBreadcrumb } from '../structure/VaultBreadcrumb';
 import type { VaultOutletContext } from '../structure/VaultLayout';
 
@@ -14,7 +15,14 @@ export function GuidancePanel() {
       <VaultBreadcrumb items={[{ label: t('structure.guidance') }]} />
       <p className="content-kicker">{t('structure.guidance')}</p>
       {structure.guidance ? (
-        <NoteContent body={structure.guidance} vaultSlug={vaultSlug} />
+        <WritableContent
+          raw={structure.guidance}
+          vaultSlug={vaultSlug}
+          baseRevision={structure.guidanceRevision}
+          writable={canWrite(structure.effectiveRole)}
+          write={({ raw, baseRevision }) => putGuidance(vaultSlug, raw, baseRevision)}
+          invalidates={['vault-structure', vaultSlug]}
+        />
       ) : (
         <p className="status">{t('common.notFound')}</p>
       )}

@@ -228,12 +228,16 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     const request = c.get('knowledge');
     const vaultId = parseVaultId(c.req.param('v'));
     if (!vaultId.ok) return fail(c, vaultId.error);
-    const body = (await c.req.json().catch(() => ({}))) as { content?: string };
+    const body = (await c.req.json().catch(() => ({}))) as {
+      content?: string;
+      baseRevision?: string | null;
+    };
 
     const written = await useCases.putGuidance(request).execute({
       ctx: request.ctx,
       vaultId: vaultId.value,
       content: String(body.content ?? ''),
+      baseRevision: body.baseRevision ?? null,
       by: request.authorship,
     });
     return present(c, written, (ref) => ({ revision: ref.toJSON() }));
@@ -374,7 +378,10 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     if (!vaultId.ok) return fail(c, vaultId.error);
     const folderId = FolderId.create(c.req.param('f') ?? '');
     if (!folderId.ok) return fail(c, folderId.error);
-    const body = (await c.req.json().catch(() => ({}))) as { content?: string };
+    const body = (await c.req.json().catch(() => ({}))) as {
+      content?: string;
+      baseRevision?: string | null;
+    };
 
     return noContent(
       c,
@@ -383,6 +390,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
         vaultId: vaultId.value,
         folderId: folderId.value,
         content: String(body.content ?? ''),
+        baseRevision: body.baseRevision ?? null,
         by: request.authorship,
       }),
     );

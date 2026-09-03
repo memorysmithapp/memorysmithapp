@@ -53,6 +53,26 @@ function requireString(args: Record<string, unknown>, name: string, tool: string
   return value;
 }
 
+/**
+ * The revision a write is based on. Null is a legitimate value and means the
+ * slot is empty, so it cannot be defaulted away: a missing argument is a
+ * mistake worth an error, and an explicit null is an assertion about the
+ * current state (RN-AGT-016).
+ */
+function revisionArgument(args: Record<string, unknown>, tool: string): string | null {
+  const value = args['baseRevision'];
+  if (value === null) return null;
+  if (typeof value !== 'string' || value.length === 0) {
+    const definition = TOOL_CATALOG.find((each) => each.name === tool);
+    throw new GatewayError(
+      'VALIDATION',
+      `${tool} requires "baseRevision": the revision you read, or null if nothing is written yet.`,
+      { expected: definition?.inputSchema },
+    );
+  }
+  return value;
+}
+
 function renderRelated(node: RelatedNode, indent = 0): string {
   const line = `${'  '.repeat(indent)}- ${node.title} (${node.noteId})`;
   return [line, ...node.children.map((child) => renderRelated(child, indent + 1))].join('\n');
@@ -134,9 +154,31 @@ export class McpToolAdapter {
         );
       }
 
+      case 'get_guidance': {
+        const found = await knowledge.guidance(
+          caller,
+          requireString(args, 'vault', 'get_guidance'),
+        );
+        if (!found) {
+          return text(
+            'This vault has no guidance yet. Write one with set_guidance, passing ' +
+              'baseRevision: null, which is what an empty slot expects.',
+          );
+        }
+        return json(found);
+      }
+
       case 'set_guidance': {
         const vault = requireString(args, 'vault', 'set_guidance');
-        await knowledge.setGuidance(caller, vault, requireString(args, 'content', 'set_guidance'));
+        await knowledge.setGuidance(
+          caller,
+          vault,
+          requireString(args, 'content', 'set_guidance'),
+          // Null is a legitimate value here, and it means the slot is empty,
+          // so it cannot be defaulted away: a missing argument is a mistake,
+          // and a null one is an assertion about the current state.
+          revisionArgument(args, 'set_guidance'),
+        );
         return text(
           'The guidance of this vault was replaced. Read it back with get_vault_context to see ' +
             'it as the next agent will.',
@@ -168,6 +210,7 @@ export class McpToolAdapter {
           vaultId: requireString(args, 'vault', 'set_template'),
           folderId: requireString(args, 'folder', 'set_template'),
           content: requireString(args, 'content', 'set_template'),
+          baseRevision: revisionArgument(args, 'set_template'),
         });
         return text('The template of this folder was replaced. Read it back with get_template.');
       }

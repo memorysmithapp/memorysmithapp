@@ -90,3 +90,43 @@ export function exportVault(vaultSlug: string): Promise<ExportJobDto> {
 export function searchNotes(vaultSlug: string, query: string, k: number): Promise<SearchHit[]> {
   return backend.searchVault(vaultSlug, query, k);
 }
+
+/**
+ * The three writes the reading surface makes. They are the whole write surface
+ * of the UI today, and each carries the revision it is based on: a vault that
+ * sustains auditing does not accept blind overwrite (RN-KNW-034).
+ */
+export function updateNote(
+  vaultSlug: string,
+  noteId: string,
+  input: { content: string; baseRevision: string },
+): Promise<unknown> {
+  return backend.updateNote(vaultSlug, noteId, input);
+}
+
+export function putGuidance(
+  vaultSlug: string,
+  content: string,
+  baseRevision: string | null,
+): Promise<void> {
+  return backend.putGuidance(vaultSlug, content, baseRevision);
+}
+
+export function putTemplate(
+  vaultSlug: string,
+  folderId: string,
+  content: string,
+  baseRevision: string | null,
+): Promise<void> {
+  return backend.putTemplate(vaultSlug, folderId, content, baseRevision);
+}
+
+/**
+ * Who may tick a box: whoever may write in THIS vault. The effective role is
+ * min(subscription role, vault ceiling), and it is the only thing that decides
+ * (section 5.3). Never the role in the subscription, which would let an EDITOR
+ * demoted in this vault write here.
+ */
+export function canWrite(effectiveRole: string): boolean {
+  return effectiveRole === 'OWNER' || effectiveRole === 'EDITOR';
+}

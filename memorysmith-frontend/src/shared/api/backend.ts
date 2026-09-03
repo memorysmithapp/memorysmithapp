@@ -109,6 +109,8 @@ export async function getVaultStructure(vaultSlug: string): Promise<VaultStructu
   return {
     vault: toSummary(detail),
     guidance: detail.guidance?.content ?? null,
+    guidanceRevision: detail.guidance?.revision.versionId ?? null,
+    effectiveRole: detail.effectiveRole,
     folders: nest(detail.folders, notes),
   };
 }
@@ -116,9 +118,14 @@ export async function getVaultStructure(vaultSlug: string): Promise<VaultStructu
 export async function getNote(vaultSlug: string, noteSlug: string): Promise<NoteDetail> {
   const vaultId = await vaultIdOf(vaultSlug);
   const [note, detail] = await Promise.all([
-    request<{ noteId: string; title: string; slug: string; folderId: string; content: string }>(
-      `/knowledge/vaults/${vaultId}/notes/by-slug/${encodeURIComponent(noteSlug)}`,
-    ),
+    request<{
+      noteId: string;
+      title: string;
+      slug: string;
+      folderId: string;
+      content: string;
+      revision: string;
+    }>(`/knowledge/vaults/${vaultId}/notes/by-slug/${encodeURIComponent(noteSlug)}`),
     request<VaultDetailDto>(`/knowledge/vaults/${vaultId}`),
   ]);
 
@@ -142,6 +149,7 @@ export async function getNote(vaultSlug: string, noteSlug: string): Promise<Note
     listProperties: [...lists],
     body,
     raw: note.content,
+    revision: note.revision,
   };
 }
 
@@ -150,10 +158,12 @@ export async function getTemplate(
   folderId: string,
 ): Promise<TemplateDetail | null> {
   const vaultId = await vaultIdOf(vaultSlug);
-  const template = await request<{ content: string | null }>(
+  const template = await request<{ content: string | null; revision?: { versionId: string } }>(
     `/knowledge/vaults/${vaultId}/folders/${folderId}/template`,
   );
-  return template.content === null ? null : { folderId, body: template.content };
+  return template.content === null
+    ? null
+    : { folderId, body: template.content, revision: template.revision?.versionId ?? '' };
 }
 
 /** The composed document the agent reads, shown in the connect screen. */
@@ -213,15 +223,27 @@ export async function createFolder(
   });
 }
 
+export async function putGuidance(
+  vaultSlug: string,
+  content: string,
+  baseRevision: string | null,
+): Promise<void> {
+  const vaultId = await vaultIdOf(vaultSlug);
+  await request(`/knowledge/vaults/${vaultId}/guidance`, {
+    method: 'PUT',
+    body: { content, baseRevision },
+  });
+}
 export async function putTemplate(
   vaultSlug: string,
   folderId: string,
   content: string,
+  baseRevision: string | null,
 ): Promise<void> {
   const vaultId = await vaultIdOf(vaultSlug);
   await request(`/knowledge/vaults/${vaultId}/folders/${folderId}/template`, {
     method: 'PUT',
-    body: { content },
+    body: { content, baseRevision },
   });
 }
 

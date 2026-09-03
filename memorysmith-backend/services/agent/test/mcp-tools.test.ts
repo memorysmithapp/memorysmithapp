@@ -57,6 +57,7 @@ function gateways(overrides: Record<string, unknown> = {}) {
     }),
     deleteVault: async () => undefined,
     setGuidance: async () => undefined,
+    guidance: async () => ({ content: '# Proposito', revision: 'v1' }),
     createFolder: async () => ({
       folderId: 'f2',
       parentFolderId: null,
@@ -114,6 +115,7 @@ describe('The tool catalog is the public contract', () => {
       'create_vault',
       'delete_vault',
       'get_vault_context',
+      'get_guidance',
       'set_guidance',
       'create_folder',
       'delete_folder',
@@ -290,13 +292,21 @@ describe('The connector authors the vault, and not only its notes', () => {
   it('creates a vault, its guidance, a folder and its template', async () => {
     const { calls, adapter } = spy();
     await adapter.call('create_vault', { name: 'Achados', description: 'De auditoria' }, caller);
-    await adapter.call('set_guidance', { vault: 'v2', content: '# Proposito' }, caller);
+    await adapter.call(
+      'set_guidance',
+      { vault: 'v2', content: '# Proposito', baseRevision: null },
+      caller,
+    );
     await adapter.call(
       'create_folder',
       { vault: 'v2', name: '2026', description: 'Deste exercicio.', parent: 'f1' },
       caller,
     );
-    await adapter.call('set_template', { vault: 'v2', folder: 'f9', content: '# {{t}}' }, caller);
+    await adapter.call(
+      'set_template',
+      { vault: 'v2', folder: 'f9', content: '# {{t}}', baseRevision: null },
+      caller,
+    );
 
     expect(calls).toEqual([
       'createVault:Achados',
@@ -577,5 +587,58 @@ describe('the connector hands over the Markdown the author wrote (RN-AGT-015)', 
     // The agent that wants the target reads the target. Expanding here would
     // hand it content it never asked for, and hide whose words those are.
     expect(text).toContain('![[Lei 14.133#Article 75]]');
+  });
+});
+
+describe('writing guidance and template carries the revision (RN-AGT-016)', () => {
+  it('refuses set_guidance with no baseRevision, and says what is missing', async () => {
+    const result = await gateways().call('set_guidance', { vault: 'v1', content: '# New' }, caller);
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('baseRevision');
+  });
+
+  it('accepts an explicit null, which is what an empty slot asserts', async () => {
+    const result = await gateways().call(
+      'set_guidance',
+      { vault: 'v1', content: '# New', baseRevision: null },
+      caller,
+    );
+
+    // Null is not the absence of the argument: it is a claim about the state,
+    // and the server checks it like any other revision.
+    expect(result.isError).toBe(false);
+  });
+
+  it('refuses set_template with no baseRevision', async () => {
+    const result = await gateways().call(
+      'set_template',
+      { vault: 'v1', folder: 'f1', content: '# T' },
+      caller,
+    );
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('baseRevision');
+  });
+
+  it('reads the guidance with the revision a write has to echo back', async () => {
+    const result = await gateways({
+      knowledge: {
+        guidance: async () => ({ content: '# Proposito', revision: 'v7' }),
+      },
+    }).call('get_guidance', { vault: 'v1' }, caller);
+
+    expect(result.isError).toBe(false);
+    expect(result.content[0]?.text).toContain('v7');
+  });
+
+  it('says what to do when the vault has no guidance yet', async () => {
+    const result = await gateways({ knowledge: { guidance: async () => null } }).call(
+      'get_guidance',
+      { vault: 'v1' },
+      caller,
+    );
+
+    expect(result.content[0]?.text).toContain('baseRevision: null');
   });
 });

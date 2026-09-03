@@ -35,6 +35,10 @@ export interface FolderNode {
 export interface VaultStructure {
   vault: VaultSummary;
   guidance: string | null;
+  /** The revision of the guidance slot, null when nothing is written yet. */
+  guidanceRevision: string | null;
+  /** min(papel de assinatura, teto do vault), owner acima dos dois. */
+  effectiveRole: string;
   folders: FolderNode[];
 }
 
@@ -49,6 +53,8 @@ export interface NoteDetail {
   listProperties: string[];
   body: string;
   raw: string;
+  /** The revision a write has to echo back (RN-AGT-005). */
+  revision: string;
 }
 
 /**
@@ -67,4 +73,6 @@ export interface SearchHit {
 export interface TemplateDetail {
   folderId: string;
   body: string;
+  /** The revision a write has to echo back (RN-KNW-034). */
+  revision: string;
 }

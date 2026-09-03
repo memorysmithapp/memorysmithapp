@@ -84,7 +84,18 @@ export interface KnowledgeGateway {
   ): Promise<VaultListing>;
   /** Soft delete: the vault leaves the listings and no byte is destroyed. */
   deleteVault(caller: AgentCaller, vaultId: string): Promise<void>;
-  setGuidance(caller: AgentCaller, vaultId: string, content: string): Promise<void>;
+  /** The revision the write is based on, null when the slot is still empty. */
+  setGuidance(
+    caller: AgentCaller,
+    vaultId: string,
+    content: string,
+    baseRevision: string | null,
+  ): Promise<void>;
+  /** The guidance with its revision, which is what a write has to echo back. */
+  guidance(
+    caller: AgentCaller,
+    vaultId: string,
+  ): Promise<{ content: string; revision: string } | null>;
   createFolder(
     caller: AgentCaller,
     input: { vaultId: string; name: string; description: string; parentFolderId?: string },
@@ -96,7 +107,7 @@ export interface KnowledgeGateway {
   ): Promise<{ removedFolderIds: string[] }>;
   setTemplate(
     caller: AgentCaller,
-    input: { vaultId: string; folderId: string; content: string },
+    input: { vaultId: string; folderId: string; content: string; baseRevision: string | null },
   ): Promise<void>;
   deleteNote(caller: AgentCaller, vaultId: string, noteId: string): Promise<void>;
   vaultContext(caller: AgentCaller, vaultId: string): Promise<string>;
@@ -104,7 +115,7 @@ export interface KnowledgeGateway {
     caller: AgentCaller,
     vaultId: string,
     folderId: string,
-  ): Promise<{ content: string; folderName: string } | null>;
+  ): Promise<{ content: string; folderName: string; revision: string } | null>;
   listNotes(caller: AgentCaller, vaultId: string, folderId?: string): Promise<NoteListing[]>;
   readNote(caller: AgentCaller, vaultId: string, noteId: string): Promise<NoteContent>;
   createNote(

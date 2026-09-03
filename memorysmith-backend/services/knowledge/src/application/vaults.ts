@@ -258,6 +258,34 @@ export class RestoreVault {
  * collected by the weekly orphan job. The reverse order would produce a
  * pointer to content that does not exist, in the middle of the hot path.
  */
+
+/**
+ * The revision guard of the two Content Slots that are not notes (RN-KNW-034).
+ *
+ * The reason RN-AGT-005 gives for notes holds here with more force, not less:
+ * the guidance is the most shared document of a vault, and the one most likely
+ * to be written by two hands at once, a person on the web and an agent over
+ * MCP. Last-write-wins there would erase, without a word, what the other just
+ * wrote.
+ *
+ * The current content travels with the refusal, so the caller can choose
+ * between redoing and merging instead of guessing what changed.
+ */
+export async function guardRevision(
+  read: (ref: ContentRef) => Promise<string>,
+  current: ContentRef | null,
+  baseRevision: string | null,
+): Promise<Result<void, DomainError>> {
+  const now = current?.versionId ?? null;
+  if (now === baseRevision) return ok();
+
+  return err(
+    DomainError.conflict('The content changed since the revision you based this write on', {
+      currentRevision: now,
+      currentContent: current ? await read(current) : null,
+    }),
+  );
+}
 export class PutGuidance {
   constructor(private readonly deps: VaultDependencies) {}
 
@@ -265,12 +293,20 @@ export class PutGuidance {
     ctx: RequestContext;
     vaultId: VaultId;
     content: string;
+    baseRevision: string | null;
     by: Authorship;
   }): Promise<Result<ContentRef, DomainError>> {
     const vault = await loadAuthorized(this.deps, input.ctx, input.vaultId, 'write');
     if (!vault.ok) return vault;
 
     const current = vault.value.guidanceRef;
+    const fresh = await guardRevision(
+      (ref) => this.deps.content.read(ref),
+      current,
+      input.baseRevision,
+    );
+    if (!fresh.ok) return fresh;
+
     // Checked BEFORE the content is written, so a refused write leaves nothing
     // behind in the store: a guidance replaces the previous one, so what it
     // costs is the difference between them.
