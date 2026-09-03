@@ -381,7 +381,7 @@ O teto não se aplica ao `OWNER`: ele é titular da assinatura e alcança tudo.
 - **RN-ACC-013:** O teto de vault não se aplica ao `OWNER`.
 - **RN-ACC-014:** Remover um membro da assinatura remove também todos os tetos de vault dele.
 - **RN-ACC-015:** Toda decisão de autorização é tomada pelo serviço dono do recurso, combinando o papel do usuário na assinatura com o teto do vault.
-- **RN-ACC-016:** Alterações de papel, de teto e remoções podem levar até 5 minutos para surtir efeito em sessões já autenticadas. Esse atraso é declarado ao usuário nas telas de membros e de vault.
+- **RN-ACC-016:** Alterações de papel, de teto e remoções podem levar até 5 minutos para surtir efeito em sessões já autenticadas, porque a decisão do authorizer é cacheada por esse tempo.
 
 ---
 
@@ -583,7 +583,7 @@ Ordenação alfabética continua disponível como opção de exibição no clien
 - **RN-KNW-021:** Mover uma nota entre pastas do mesmo vault nunca gera conflito de slug.
 - **RN-KNW-022:** Mover uma nota entre vaults exige política explícita para colisão de slug (`REJECT` ou `RENAME`).
 - **RN-KNW-023:** Mover uma nota entre vaults preserva o `NoteId` e, com ele, a linha do tempo inteira da nota.
-- **RN-KNW-024:** Mover uma nota para fora de um vault **quebra todos os backlinks que apontavam para ela naquele vault**. É consequência semântica correta (PP2), e a UI avisa quantos links serão quebrados antes de confirmar.
+- **RN-KNW-024:** Mover uma nota para fora de um vault **quebra todos os backlinks que apontavam para ela naquele vault**. É consequência semântica correta (PP2), e os links que quebram passam a constar como quebrados no Discovery (§10.1).
 - **RN-KNW-025:** Uma nota tem no máximo 1 MB de conteúdo.
 - **RN-KNW-026:** Toda operação que altera estado registra autoria completa: o humano responsável e, quando houver, o agente que executou. Não existe alteração anônima.
 - **RN-KNW-027:** Toda alteração de conteúdo gera uma revisão nova, imutável, referenciada pelo evento correspondente.

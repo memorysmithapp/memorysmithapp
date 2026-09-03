@@ -137,19 +137,12 @@ export const moveNoteRequestSchema = z.object({
   afterNoteId: ulidSchema.nullable().default(null),
 });
 
-/** Shown before a cross-vault move is confirmed (RN-KNW-024). */
-export const moveImpactSchema = z.object({
-  backlinksToBreak: z.number().int().nonnegative(),
-  slugConflict: z.boolean(),
-});
-
 export type VaultSummaryDto = z.infer<typeof vaultSummarySchema>;
 export type FolderDto = z.infer<typeof folderSchema>;
 export type VaultDetailDto = z.infer<typeof vaultDetailSchema>;
 export type ContentDto = z.infer<typeof contentSchema>;
 export type NoteSummaryDto = z.infer<typeof noteSummarySchema>;
 export type NoteDto = z.infer<typeof noteSchema>;
-export type MoveImpactDto = z.infer<typeof moveImpactSchema>;
 export type CreateVaultRequest = z.infer<typeof createVaultRequestSchema>;
 export type RenameVaultRequest = z.infer<typeof renameVaultRequestSchema>;
 export type PutContentRequest = z.infer<typeof putContentRequestSchema>;
