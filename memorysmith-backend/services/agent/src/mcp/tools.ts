@@ -13,6 +13,7 @@
 
 import { TOOL_CATALOG } from './catalog.js';
 import { whoAmI } from './whoami.js';
+import { SKILLS, skillNamed } from './skills.js';
 import {
   GatewayError,
   type AgentCaller,
@@ -90,6 +91,19 @@ export class McpToolAdapter {
         // actually open would be a help that lies on its first step.
         const vaults = await knowledge.listVaults(caller);
         return text(whoAmI(caller, vaults));
+      }
+
+      case 'get_skill': {
+        const wanted = requireString(args, 'name', 'get_skill');
+        const skill = skillNamed(wanted);
+        if (!skill) {
+          // The names of what exists, so the next attempt is informed rather
+          // than guessed (RN-AGT-003).
+          throw new GatewayError('NOT_FOUND', `There is no skill named "${wanted}".`, {
+            available: SKILLS.map((each) => ({ name: each.name, task: each.task })),
+          });
+        }
+        return text(skill.body);
       }
 
       case 'list_vaults': {

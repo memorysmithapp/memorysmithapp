@@ -3,6 +3,7 @@ import { READING_PATH, TOOL_CATALOG, catalogIsWellFormed } from '../src/mcp/cata
 import { McpToolAdapter } from '../src/mcp/tools.js';
 import { GatewayError, type AgentCaller } from '../src/mcp/gateway.js';
 import { handleMcpRequest } from '../src/mcp.js';
+import { SKILLS, skillNamed } from '../src/mcp/skills.js';
 import type { VerifiedAgentToken } from '../src/auth.js';
 import pkg from '../package.json' with { type: 'json' };
 
@@ -107,6 +108,7 @@ describe('The tool catalog is the public contract', () => {
     // an argument changing shape, is a version bump and never a quiet edit.
     expect(TOOL_CATALOG.map((tool) => tool.name)).toEqual([
       'whoami',
+      'get_skill',
       'list_vaults',
       'create_vault',
       'delete_vault',
@@ -477,5 +479,53 @@ describe('The MCP transport', () => {
       gateways(),
     );
     expect(response).toBeNull();
+  });
+});
+
+describe('skills: the method, indexed by whoami', () => {
+  it('indexes every registered skill, derived from the registry', async () => {
+    const result = await gateways().call('whoami', {}, caller);
+    const help = result.content[0]?.text ?? '';
+
+    // Derived, not transcribed: every skill in the registry shows up with the
+    // task it teaches, and nothing else can (RN-AGT-018).
+    for (const skill of SKILLS) {
+      expect(help).toContain(skill.name);
+      expect(help).toContain(skill.task);
+    }
+    expect(help).toContain('get_skill');
+  });
+
+  it('serves the body of a skill by name', async () => {
+    const result = await gateways().call('get_skill', { name: 'design-vault' }, caller);
+
+    expect(result.isError).toBe(false);
+    expect(result.content[0]?.text).toBe(skillNamed('design-vault')?.body);
+  });
+
+  it('teaches the two mistakes that a vault designed without method makes', () => {
+    const body = skillNamed('design-vault')?.body ?? '';
+
+    // The evidence this skill exists for: a guidance opening with a heading
+    // the Vault Context already emits, and a folder without a template while
+    // the guidance declares mandatory frontmatter.
+    expect(body).toContain('Do not open with a title');
+    expect(body).toContain('template');
+  });
+
+  it('answers an unknown skill with the ones that exist, not with a bare refusal', async () => {
+    const result = await gateways().call('get_skill', { name: 'no-such-skill' }, caller);
+
+    expect(result.isError).toBe(true);
+    const text = result.content[0]?.text ?? '';
+    expect(text).toContain('NOT_FOUND');
+    expect(text).toContain('design-vault');
+  });
+
+  it('refuses a call with no name, saying which argument is missing', async () => {
+    const result = await gateways().call('get_skill', {}, caller);
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('name');
   });
 });

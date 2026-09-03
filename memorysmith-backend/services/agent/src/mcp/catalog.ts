@@ -55,6 +55,24 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     annotations: { readOnlyHint: true },
   },
   {
+    name: 'get_skill',
+    title: 'Read a skill: the method for a task',
+    description:
+      'Returns the written method for one task, by name. The names come from whoami, which ' +
+      'indexes them, and a skill is meant to be read BEFORE the task, not after it went ' +
+      'wrong. It teaches: it never validates and never writes anything.',
+    inputSchema: object(
+      {
+        name: {
+          type: 'string',
+          description: 'Name of the skill, as whoami lists it. For example: design-vault.',
+        },
+      },
+      ['name'],
+    ),
+    annotations: { readOnlyHint: true },
+  },
+  {
     name: 'list_vaults',
     title: 'List vaults',
     description:
