@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-03
+
 ### Added
 
 - **`docs/development-process.md`, the fourth canonical document.** Half of `CLAUDE.md` was operational process disguised as agent configuration. The process now has a document of its own: the five-stage cycle from a need to `main`, triage and its four outcomes, the reservation of `RN-XXX` codes, the branch naming convention and when a commit touches each document.
@@ -168,7 +170,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/memorysmithapp/memorysmithapp/releases/tag/v0.1.0
