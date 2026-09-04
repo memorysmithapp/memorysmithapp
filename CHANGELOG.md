@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The Vault Context carries the identifier of every folder, so a session that created nothing can still write.** The identifier was returned exactly once, by `create_folder`, and every folder tool takes it as an argument: `create_note`, `get_template`, `set_template`, `delete_folder`, `list_notes` and the `parent` of a new folder. It lived as long as the session that built the structure, so opening a new session, or connecting from a different AI platform, left the agent reading a vault it could not name a single folder of. The tree it already reads before writing now prints the identifier next to each folder name, at every depth, which is what §9.2 promised when it called the Vault Context the equivalent of an `ls -R`: a listing whose entries the next command can open (RN-AGT-020). `STRUCTURE.md` is the one place the identifier does not go, because the export is where opaque identifiers stop existing and file names come into being. (#50)
+
 ## [0.4.0] - 2026-09-03
 
 ### Added

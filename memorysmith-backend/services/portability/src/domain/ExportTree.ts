@@ -154,11 +154,17 @@ export function buildExportTree(input: ExportInput): ExportFile[] {
 }
 
 /**
- * The annotated tree, in the exact line format of the `## Structure` section
- * of the Vault Context (software-vision.md, 9.2). The format is declared
- * there, not here: this service cannot import the composer of svc-knowledge,
- * and the document is what keeps the two ends honest. Changing one without
- * the other breaks the promise that an export reads like what the agent gets.
+ * The annotated tree, in the line format of the `## Structure` section of the
+ * Vault Context (software-vision.md, 9.2), with ONE deliberate difference:
+ * the folder identifier is not written here. It is an address for calling a
+ * tool, and there is nothing to address in a folder of files, which is where
+ * opaque identifiers stop existing and names come into being (RN-AGT-020,
+ * software-vision.md 12). Everything else has to match.
+ *
+ * The format is declared there, not here: this service cannot import the
+ * composer of svc-knowledge, and the document is what keeps the two ends
+ * honest. Changing one without the other breaks the promise that an export
+ * reads like what the agent gets.
  *
  * The numbering is what makes the file machine-readable without an index: a
  * line numbered `2.1.` is the folder reached by the first child of the second

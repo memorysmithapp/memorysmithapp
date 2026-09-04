@@ -645,19 +645,22 @@ The output of `get_vault_context` is **the product**, not a presentation detail:
 <the full content of the Guidance>
 
 ## Structure
-1. **Normas**: Texto normativo por artigo. Uma norma por nota, sempre com órgão e vigência. (48 notes, has TEMPLATE.md)
-2. **Achados**: Achados de auditoria. Todo achado cita a norma que o fundamenta. (23 notes, has TEMPLATE.md)
-3. **Trabalhos/**: Relatórios emitidos. (5 notes)
-   3.1. **2026**: Emitidos neste exercício. (5 notes, has TEMPLATE.md)
+1. **Normas** `01J2Q4X8V6ZK9M3B7C5D1F0GHT`: Texto normativo por artigo. Uma norma por nota, sempre com órgão e vigência. (48 notes, has TEMPLATE.md)
+2. **Achados** `01J2Q4X8V6ZK9M3B7C5D1F0GHV`: Achados de auditoria. Todo achado cita a norma que o fundamenta. (23 notes, has TEMPLATE.md)
+3. **Trabalhos/** `01J2Q4X8V6ZK9M3B7C5D1F0GHW`: Relatórios emitidos. (5 notes)
+   3.1. **2026** `01J2Q4X8V6ZK9M3B7C5D1F0GHX`: Emitidos neste exercício. (5 notes, has TEMPLATE.md)
 ```
 
 The labels the product writes (`## Structure`, `notes`, `has TEMPLATE.md`) are en-US, like the whole MCP surface, which is a public contract and has `en_US` as its canonical locale (`CLAUDE.md` § Language policy). What appears in Portuguese in the example above is the content of the vault, written by whoever authors it, and that is how it comes out in whatever language the vault uses.
 
-Three decisions are visible in that format:
+Four decisions are visible in that format:
 
 - **The description of each folder comes along.** It is what directs where the agent writes, and that is why it is required (RN-KNW-006).
 - **The order is the defined order**, numbered, because it is signal and not decoration (PP9).
 - **The note count comes along.** The agent knows where the mass is before asking for any listing.
+- **The identifier of each folder comes along** (RN-AGT-020). It is the argument every folder tool takes, and this document is where the agent gets it. The numbering is not an address: it is derived from the current position among siblings, so reordering a folder changes it, while the identifier is what stays.
+
+The identifier is **the one element the Vault Context carries that `STRUCTURE.md` does not** (§12). Inside the system a folder is an opaque identifier and the tree is what names it; on the way out, the export is where names come into being, and a ULID printed next to a directory that already exists on disk addresses nothing the reader can call.
 
 ### 9.3 Writing by an agent
 
@@ -669,6 +672,7 @@ Three decisions are visible in that format:
 - **RN-AGT-006:** A user with the `VIEWER` role is refused on `create_note` and `update_note`.
 - **RN-AGT-007:** The connector always operates on the subscription fixed at consent (RN-SUB-014); no tool takes the subscription as an argument.
 - **RN-AGT-008:** No MCP vocabulary enters the domain model: changing protocol does not change a business rule.
+- **RN-AGT-020:** The Vault Context carries the identifier of every folder it renders. It is the argument every folder tool takes, and it has to be readable from the document the agent already reads before writing: a vault describes itself to whoever arrives (PP1), and an agent addressing a folder it did not create itself is the ordinary case, not the exception. Returning the identifier only from `create_folder` bounds writing to the session that built the structure, which is the opposite of what the product promises.
 
 ### 9.4 Distribution of the connector
 
@@ -794,7 +798,7 @@ payload
 
 Zero lock-in is a requirement, not a courtesy: it is what makes the product safe to adopt in a context where the base has to outlive the vendor (`knowledge-base.md` §10).
 
-**The export is where file names come into existence.** Inside the system there are opaque identifiers and roles (§8.1); it is here that `guidance` becomes `GUIDANCE.md`, `template` becomes `TEMPLATE.md` and the slug of the note becomes a file name. The annotated tree comes out next to the Guidance, as `STRUCTURE.md`: the two are exactly the two halves of the Vault Context (§9.2), the one a human writes and the one the product derives.
+**The export is where file names come into existence.** Inside the system there are opaque identifiers and roles (§8.1); it is here that `guidance` becomes `GUIDANCE.md`, `template` becomes `TEMPLATE.md` and the slug of the note becomes a file name. The annotated tree comes out next to the Guidance, as `STRUCTURE.md`: the two are exactly the two halves of the Vault Context (§9.2), the one a human writes and the one the product derives. `STRUCTURE.md` reproduces that tree line by line **except for the folder identifier** (RN-AGT-020), which is an address for calling a tool and has nothing to address in a folder of files.
 
 ```
 Normas e Legislação/

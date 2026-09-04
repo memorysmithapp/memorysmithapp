@@ -170,8 +170,26 @@ describe('The authoring cycle', () => {
     expect(markdown).toContain('# Vault: Normas e Legislacao');
     expect(markdown).toContain('Uma norma por nota.');
     expect(markdown).toContain('## Structure');
-    expect(markdown).toContain('1. **Normas**:');
+    expect(markdown).toContain(`1. **Normas** \`${folderId}\`:`);
     expect(markdown).toContain('has TEMPLATE.md');
+  });
+
+  it('gives the Vault Context everything a fresh session needs to write, the folder identifier included', async () => {
+    // The whole point of RN-AGT-020: a session that created nothing reads the
+    // context and writes from it alone. Nothing here reuses the identifier
+    // seedVault returned; it is parsed back out of the document.
+    const { vaultId } = await seedVault();
+    const markdown = await (await call(`/knowledge/vaults/${vaultId}/context`)).text();
+
+    const addressed = /\*\*Normas\*\* `([0-9A-HJKMNP-TV-Z]{26})`:/.exec(markdown);
+    expect(addressed).not.toBeNull();
+    const folderFromContext = addressed?.[1] ?? '';
+
+    const created = await call(`/knowledge/vaults/${vaultId}/notes`, {
+      method: 'POST',
+      body: { folderId: folderFromContext, title: 'Lei 14.133, art. 75', content: '# Lei' },
+    });
+    expect(created.status).toBe(201);
   });
 });
 
