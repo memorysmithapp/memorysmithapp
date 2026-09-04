@@ -87,23 +87,27 @@ A **remote MCP server** with OAuth 2.1, added as a native connector in the AI pl
 | Write the structure | `create_vault`, `delete_vault`, `set_guidance`, `create_folder`, `delete_folder`, `set_template` |
 | Discover | `search_notes`, `related_notes`, `backlinks`, `note_history` |
 
-The central call is **`get_vault_context`**, which returns the full Guidance plus the tree annotated with the description, the order, the note count and which folders carry a Template. It is the exact equivalent of reading the guidance document and running `ls -R` on the local folder, in a single call. The tree part looks like this:
+The central call is **`get_vault_context`**, which returns the full Guidance plus the tree annotated with the identifier of each folder, its description, the order, the note count and which folders carry a Template. It is the exact equivalent of reading the guidance document and running `ls -R` on the local folder, in a single call. The tree part looks like this:
 
 ```
-1. Plano: Plano de trabalho e auditorias do grafo: o que falta ler, o que foi
-   auditado e quando. Registros de curadoria, não de conhecimento normativo. (2 notes)
-2. Literature/: Fonte normativa: o registro de leitura de cada norma, preso ao texto
-   original daquela versão. Nunca é reescrito quando a norma muda: a alteração vira
-   nota nova. (0 notes)
-   2.1. Normas/: Uma subpasta por norma, com o índice e uma nota por título, capítulo
-        ou anexo relevante. (0 notes)
-        2.1.2. Lei 14.300-2022: Leitura de "Lei 14.300-2022". (8 notes, has TEMPLATE.md)
-3. Permanent Notes/: O que a norma diz, decomposto em conhecimento permanente. (0 notes)
-   3.1. Concepts: Conceitos atômicos, independentes da norma que os originou, sempre com
-        a base normativa citada por dispositivo. (31 notes, has TEMPLATE.md)
+1. Plano `01J2Q4X8V6ZK9M3B7C5D1F0GHT`: Plano de trabalho e auditorias do grafo: o que
+   falta ler, o que foi auditado e quando. Registros de curadoria, não de conhecimento
+   normativo. (2 notes)
+2. Literature/ `01J2Q4X8V6ZK9M3B7C5D1F0GHV`: Fonte normativa: o registro de leitura de
+   cada norma, preso ao texto original daquela versão. Nunca é reescrito quando a norma
+   muda: a alteração vira nota nova. (0 notes)
+   2.1. Normas/ `01J2Q4X8V6ZK9M3B7C5D1F0GHW`: Uma subpasta por norma, com o índice e uma
+        nota por título, capítulo ou anexo relevante. (0 notes)
+        2.1.2. Lei 14.300-2022 `01J2Q4X8V6ZK9M3B7C5D1F0GHX`: Leitura de
+               "Lei 14.300-2022". (8 notes, has TEMPLATE.md)
+3. Permanent Notes/ `01J2Q4X8V6ZK9M3B7C5D1F0GHY`: O que a norma diz, decomposto em
+   conhecimento permanente. (0 notes)
+   3.1. Concepts `01J2Q4X8V6ZK9M3B7C5D1F0GHZ`: Conceitos atômicos, independentes da norma
+        que os originou, sempre com a base normativa citada por dispositivo.
+        (31 notes, has TEMPLATE.md)
 ```
 
-The vault content in that example is in Portuguese because it was written that way: the labels the product emits are always en-US, and the content is whatever language the vault uses. Notice there is nothing in there the agent has to guess: each line says what the folder holds, in which order it comes, how many notes exist already and whether there is a Template to fetch before writing.
+The vault content in that example is in Portuguese because it was written that way: the labels the product emits are always en-US, and the content is whatever language the vault uses. Notice there is nothing in there the agent has to guess: each line says what the folder holds, in which order it comes, how many notes exist already, whether there is a Template to fetch before writing, and the identifier to pass back when writing there.
 
 `search_notes` does a **literal** search over the text of the vault, matching by substring and ignoring accents and case. The query accepts several terms, `"exact phrase"`, `-exclusion`, `OR`, parentheses and the fields `title:`, `folder:`, `content:` and `section:`. Any other prefix is read as a frontmatter attribute of the vault, and that is what makes `maturity:evergreen`, `reviewed:false` or a `norma:federal` your vault invented a valid filter, without a line of code about it. The vocabulary belongs to the Guidance, and the language of the vault becomes the query language.
 

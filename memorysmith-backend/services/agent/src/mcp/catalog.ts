@@ -33,6 +33,16 @@ const vaultArgument = {
   description: 'Identifier of the vault, as returned by list_vaults.',
 };
 
+/**
+ * Where the identifier comes from is part of the argument (RN-AGT-020). It is
+ * printed next to the name of every folder in the vault context, so an agent
+ * that created nothing addresses the tree just as well as the one that built it.
+ */
+const folderArgument = {
+  type: 'string',
+  description: 'Folder identifier, as get_vault_context prints it next to the folder name.',
+};
+
 const baseRevisionArgument = {
   type: ['string', 'null'],
   description:
@@ -126,9 +136,10 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     title: 'Read the vault context',
     description:
       'THE MAIN CALL. Returns the guidance of the vault in full, followed by its folder tree ' +
-      'with the description, the defined order, the note count and which folders carry a ' +
-      'template. Read this before writing anything: the guidance declares the conventions of ' +
-      'this vault, and the folder descriptions say what belongs where.',
+      'with the identifier of each folder, its description, the defined order, the note count ' +
+      'and which folders carry a template. Read this before writing anything: the guidance ' +
+      'declares the conventions of this vault, the folder descriptions say what belongs where, ' +
+      'and the identifiers are what you pass to get_template, create_note and list_notes.',
     inputSchema: object({ vault: vaultArgument }, ['vault']),
     annotations: { readOnlyHint: true },
   },
@@ -177,7 +188,9 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
         },
         parent: {
           type: 'string',
-          description: 'Optional: identifier of the folder this one goes under.',
+          description:
+            'Optional: identifier of the folder this one goes under, as get_vault_context ' +
+            'prints it next to the folder name.',
         },
       },
       ['vault', 'name', 'description'],
@@ -195,7 +208,7 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     inputSchema: object(
       {
         vault: vaultArgument,
-        folder: { type: 'string', description: 'Folder identifier.' },
+        folder: folderArgument,
         policy: {
           type: 'string',
           enum: ['REJECT_IF_NOT_EMPTY', 'CASCADE'],
@@ -213,10 +226,7 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'Returns the template of a folder, which is the suggested layout of the notes kept ' +
       'there. Call this before create_note whenever the folder has one; the server does not ' +
       'validate content against it, so following it is what keeps the vault coherent.',
-    inputSchema: object(
-      { vault: vaultArgument, folder: { type: 'string', description: 'Folder identifier.' } },
-      ['vault', 'folder'],
-    ),
+    inputSchema: object({ vault: vaultArgument, folder: folderArgument }, ['vault', 'folder']),
     annotations: { readOnlyHint: true },
   },
   {
@@ -229,7 +239,7 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     inputSchema: object(
       {
         vault: vaultArgument,
-        folder: { type: 'string', description: 'Folder identifier.' },
+        folder: folderArgument,
         content: { type: 'string', description: 'The template, in Markdown.' },
         baseRevision: baseRevisionArgument,
       },
@@ -246,7 +256,11 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     inputSchema: object(
       {
         vault: vaultArgument,
-        folder: { type: 'string', description: 'Optional: restrict to one folder.' },
+        folder: {
+          type: 'string',
+          description:
+            'Optional: restrict to one folder, by the identifier get_vault_context prints.',
+        },
       },
       ['vault'],
     ),
@@ -283,7 +297,12 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     inputSchema: object(
       {
         vault: vaultArgument,
-        folder: { type: 'string', description: 'Folder that will hold the note.' },
+        folder: {
+          type: 'string',
+          description:
+            'Folder that will hold the note, by the identifier get_vault_context prints ' +
+            'next to its name.',
+        },
         title: { type: 'string', description: 'Title; the slug is derived from it.' },
         content: { type: 'string', description: 'The Markdown body of the note.' },
       },

@@ -7,12 +7,18 @@
  * today by reading the guidance and running `ls -R` on a local folder,
  * in a single call.
  *
- * Three decisions are visible in the format:
+ * Four decisions are visible in the format:
  *  - the description of each folder comes along, because it is what steers
  *    where the agent writes, and that is why it is mandatory (RN-KNW-006);
  *  - the order is the DEFINED order, numbered, because it is signal (PP9);
  *  - the note count comes along, so the agent knows where the mass is before
- *    asking for any listing.
+ *    asking for any listing;
+ *  - the IDENTIFIER of each folder comes along (RN-AGT-020), because it is the
+ *    argument every folder tool takes and the only stable address a folder
+ *    has. The numbering is derived from the current position among siblings,
+ *    so reordering changes it and it can never serve as an address. Without
+ *    the identifier here it is returned exactly once, by `create_folder`, and
+ *    a session that created nothing can read this vault and not write in it.
  *
  * The labels are en-US because the MCP surface is the public contract and the
  * canonical locale is en_US (CLAUDE.md, language policy). The vault content
@@ -99,5 +105,7 @@ function describe(folder: Folder, vault: Vault, hasChildren: boolean): string {
   const notes = vault.noteCountOf(folder.id);
   const annotations = [`${notes} ${notes === 1 ? 'note' : 'notes'}`];
   if (folder.hasTemplate) annotations.push('has TEMPLATE.md');
-  return `**${name}**: ${folder.description.value} (${annotations.join(', ')})`;
+  // The identifier is fenced as code so that reading it and copying it into
+  // the next call are the same gesture (RN-AGT-020).
+  return `**${name}** \`${folder.id.value}\`: ${folder.description.value} (${annotations.join(', ')})`;
 }

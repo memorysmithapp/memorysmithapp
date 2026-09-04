@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import type { FolderId } from '@memorysmith/kernel';
 import { NoteId, Position, Role, Slug, VaultRoleLimit } from '@memorysmith/kernel';
+import type { Folder } from '../src/domain/vault/Folder.js';
 import { NotePlacement } from '../src/domain/services/NotePlacement.js';
 import { NoteRelocation } from '../src/domain/services/NoteRelocation.js';
 import { composeVaultContext } from '../src/domain/services/VaultContextComposer.js';
@@ -114,7 +116,7 @@ describe('VaultContextComposer', () => {
         authorship(),
       ),
     );
-    unwrap(
+    const year2026 = unwrap(
       vault.addFolder(
         trabalhos.id,
         folderName('2026'),
@@ -129,19 +131,62 @@ describe('VaultContextComposer', () => {
     expect(context).toContain('# Vault: Normas e Legislacao');
     expect(context).toContain('## Purpose\nOne norm per note.');
     expect(context).toContain('## Structure');
-    // Order is the defined order, numbered, and the counts come along.
-    expect(context).toContain('1. **Normas**: Texto normativo por artigo. (48 notes)');
-    expect(context).toContain('2. **Achados**:');
+    // Order is the defined order, numbered, and the counts come along. The
+    // identifier of each folder comes along too (RN-AGT-020).
+    expect(context).toContain(
+      `1. **Normas** \`${folderId.value}\`: Texto normativo por artigo. (48 notes)`,
+    );
+    expect(context).toContain('2. **Achados** `');
     // A folder with children is rendered with a trailing slash, and its
     // children are numbered underneath it.
-    expect(context).toContain('3. **Trabalhos/**: Relatorios emitidos. (0 notes)');
-    expect(context).toContain('   3.1. **2026**: Emitidos neste exercicio. (0 notes)');
+    expect(context).toContain(
+      `3. **Trabalhos/** \`${trabalhos.id.value}\`: Relatorios emitidos. (0 notes)`,
+    );
+    expect(context).toContain(
+      `   3.1. **2026** \`${year2026.id.value}\`: Emitidos neste exercicio. (0 notes)`,
+    );
+  });
+
+  it('addresses every folder of a deep tree, so no level is reachable only by having created it', () => {
+    // The defect this guards: the identifier used to be returned exactly once,
+    // by create_folder, so a later session could read the tree and name none of
+    // it. Every rendered folder carries its own identifier, at every depth
+    // (RN-AGT-020).
+    const { vault, folderId } = rehydratedVaultWithNotes(0);
+    let parent: FolderId | null = folderId;
+    const nested: FolderId[] = [folderId];
+    // RN-KNW-003 caps the tree at 6 levels; the root fixture is the first.
+    for (const level of ['L2', 'L3', 'L4', 'L5', 'L6']) {
+      const child: Folder = unwrap(
+        vault.addFolder(
+          parent,
+          folderName(level),
+          folderDescription(`Level ${level}.`),
+          null,
+          authorship(),
+        ),
+      );
+      nested.push(child.id);
+      parent = child.id;
+    }
+
+    const context = composeVaultContext({ vault, guidance: null });
+
+    for (const id of nested) expect(context).toContain(`\`${id.value}\``);
+    // The deepest one is indented and numbered, and still addressable.
+    expect(context).toContain(
+      `               1.1.1.1.1.1. **L6** \`${nested[5]?.value}\`: Level L6. (0 notes)`,
+    );
   });
 
   it('flags a folder that has a template', () => {
     const { vault, folderId } = rehydratedVaultWithNotes(2);
     unwrap(vault.attachTemplate(folderId, contentRef('f'.repeat(64)), authorship()));
-    expect(composeVaultContext({ vault, guidance: null })).toContain('(2 notes, has TEMPLATE.md)');
+    const context = composeVaultContext({ vault, guidance: null });
+    expect(context).toContain('(2 notes, has TEMPLATE.md)');
+    // The folder that has a template is exactly the folder get_template needs
+    // an identifier for (RN-AGT-020).
+    expect(context).toContain(`\`${folderId.value}\`:`);
   });
 
   it('says so when there is no guidance yet, instead of pretending', () => {
