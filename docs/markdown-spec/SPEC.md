@@ -1,6 +1,6 @@
 # The MemorySmith Markdown Profile
 
-**Version 0.1.0** · Draft · <https://md.memorysmith.app>
+**Version 0.2.0** · Draft · <https://md.memorysmith.app>
 
 A profile of Markdown for knowledge vaults: plain `.md` files, linked to each other, written by people and by agents, and read by software that has to build a graph and an index out of them without deciding what the content means.
 

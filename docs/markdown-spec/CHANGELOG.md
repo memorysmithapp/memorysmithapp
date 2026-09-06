@@ -9,6 +9,32 @@ major version. While the profile is `0.x`, a breaking change may arrive in a min
 
 ## [Unreleased]
 
+Governance only. Nothing here changes a notation, so none of it cuts a version.
+
+### Added
+
+- `CONTRIBUTING.md`, the process a change travels from an issue to `main`: the life cycle,
+  the two issue forms, the four outcomes of triage, the branch names, the commit convention
+  and the table of what cuts which version bump.
+- `CLAUDE.md`, the single source of truth for agent behaviour in this repository.
+- The two issue forms — a notation report and a notation proposal — and the pull request
+  template, which asks for the summary, what an implementation has to do, and the three
+  files a notation lives in.
+- `tools/check-profile.mjs` and `npm run check`: the consistency check that refuses
+  `SPEC.md`, `profile.json` and `tests/conformance.json` drifting apart. It validates the
+  profile against its schema, requires a case for every notation an indexer decides,
+  resolves every section reference to a real heading, and holds every file carrying the
+  version to the one in `profile.json`. No dependencies.
+- A CI workflow running that check on every pull request, and `.gitattributes` fixing the
+  line ending at LF so the check reads the same bytes on every operating system.
+
+### Fixed
+
+- The header of `SPEC.md` said version 0.1.0 while `profile.json` said 0.2.0. It is the
+  first thing the new check caught, on its first run and without anybody looking for it,
+  and the reason it now holds every file carrying the version to the one in
+  `profile.json`.
+
 ## [0.2.0] — 2026-09-06
 
 The rest of the vault ring, and the two things the profile had been silent about on purpose

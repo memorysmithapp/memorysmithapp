@@ -1,0 +1,81 @@
+name: Notation report
+description: You wrote something in a note and the effect was not the one the profile led you to expect.
+labels: ['feedback']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is the common form, and it is welcome even when the document turns out to be
+        right: a notation that had to be reported is a notation the document explained
+        badly, and that is a defect of its own.
+
+        **Never paste real vault content, customer names or business data.** This
+        repository is public. Reduce the case to the smallest note that still shows it.
+
+        The process an issue travels from here is in
+        [`CONTRIBUTING.md`](https://github.com/memorysmithapp/markdown-profile/blob/main/CONTRIBUTING.md).
+
+  - type: textarea
+    id: written
+    attributes:
+      label: What you wrote
+      description: The Markdown, verbatim, in the smallest note that still shows the problem.
+      render: markdown
+      placeholder: |
+        ---
+        tags: [contracts]
+        ---
+
+        See [[Lei 14.133#Article 75]] for the exception.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: |
+        What you believed that notation would do — an edge, an attribute, a rendering.
+        Say which section of `SPEC.md` led you to expect it, if one did.
+    validations:
+      required: true
+
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened instead
+      description: What you observed. If nothing happened at all, say so: a notation that silently does nothing is the failure this profile exists to prevent.
+    validations:
+      required: true
+
+  - type: input
+    id: implementation
+    attributes:
+      label: Where you observed it
+      description: The implementation and its version, and the profile version it claims to track.
+      placeholder: 'MemorySmith.app 0.5.4, tracking profile 0.1.0'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ring
+    attributes:
+      label: Which ring you believe it belongs to
+      description: A guess is fine. Triage decides, and getting it wrong here costs nothing.
+      options:
+        - Base, it is CommonMark
+        - Extended, it is GFM
+        - MemorySmith, it is a wikilink, frontmatter, a callout or an embed
+        - I do not know
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checked
+    attributes:
+      label: Before opening
+      options:
+        - label: The note contains no real vault content, customer name or business data.
+          required: true
+        - label: I looked for the form in `SPEC.md` § 6, the section of what the profile deliberately does not read.
+          required: false

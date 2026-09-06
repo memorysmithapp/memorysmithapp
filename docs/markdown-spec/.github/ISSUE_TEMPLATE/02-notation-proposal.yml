@@ -1,0 +1,127 @@
+name: Notation proposal
+description: A notation the profile should declare, or an effect it should change. The output of triage, not its input.
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form **after** triage, when the need is understood and the scope is
+        closed. A proposal that cannot yet say what its conformance case looks like is not
+        ready to become a branch.
+
+        Remember what the answer may be: **declaring that a notation means nothing is a
+        valid outcome of this form**, and `SPEC.md` § 6 exists to hold those. A proposal
+        that ends there was not refused, it was published.
+
+  - type: textarea
+    id: need
+    attributes:
+      label: The need
+      description: |
+        The friction behind the proposal, in the language of the profile. Do not repeat the
+        text of the report it came from; say what it revealed.
+    validations:
+      required: true
+
+  - type: input
+    id: origin
+    attributes:
+      label: Reports that originated this proposal
+      description: Comma-separated numbers. Leave blank if the origin was internal.
+      placeholder: '#12, #15'
+    validations:
+      required: false
+
+  - type: input
+    id: syntax
+    attributes:
+      label: The syntax
+      description: The form exactly as an author would type it.
+      placeholder: '[[Target note#^block-id]]'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ring
+    attributes:
+      label: Ring
+      options:
+        - MemorySmith, the profile declares it
+        - Extended, it already exists in GFM and the profile has to say what it does
+        - Base, it already exists in CommonMark and the profile has to say what it does
+    validations:
+      required: true
+
+  - type: dropdown
+    id: reader
+    attributes:
+      label: Which reader decides it
+      description: |
+        An indexer has exactly two readers of content, links and frontmatter, and adding a
+        third is a change to `SPEC.md` § 1.4 that this form is not enough to make.
+      options:
+        - links, it produces an edge
+        - frontmatter, it produces an attribute
+        - reading-surface, it is display and produces nothing
+    validations:
+      required: true
+
+  - type: textarea
+    id: effect
+    attributes:
+      label: The observable effect
+      description: |
+        What happens that can be observed from outside. "Nothing" is a complete answer, and
+        a strong one: write it if that is the proposal.
+    validations:
+      required: true
+
+  - type: textarea
+    id: cases
+    attributes:
+      label: The conformance cases it adds
+      description: |
+        At least one, as an input and an expected result. Include the case whose expected
+        result is nothing, if there is one — those carry as much of the profile as the
+        others.
+      render: json
+      placeholder: |
+        {
+          "id": "wikilink/block-anchor-resolves-to-the-note",
+          "notation": "wikilink-block-anchor",
+          "markdown": "See [[Lei 14.133#^p75]].",
+          "links": [{ "slug": "lei-14133", "anchor": "^p75" }]
+        }
+    validations:
+      required: true
+
+  - type: dropdown
+    id: bump
+    attributes:
+      label: Version impact
+      description: The table is in `CONTRIBUTING.md` § 6.
+      options:
+        - Minor, a notation added or an effect gained
+        - Patch, prose or a case for a notation already declared
+        - Major, a notation removed or an existing effect changed
+    validations:
+      required: true
+
+  - type: textarea
+    id: prior
+    attributes:
+      label: What other tools do with this form
+      description: |
+        Obsidian, Logseq, Roam, GitHub, Quartz — whichever apply. Where two lineages read
+        the same characters incompatibly, say so: that is the argument that has decided the
+        hardest questions in this profile, and it is what `SPEC.md` § 6.1 is made of.
+    validations:
+      required: false
+
+  - type: textarea
+    id: outside
+    attributes:
+      label: What is declaredly left out
+      description: What somebody could reasonably expect from this and will not get. Writing it here avoids the discussion halfway through the branch.
+    validations:
+      required: false

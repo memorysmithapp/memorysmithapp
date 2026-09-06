@@ -59,6 +59,14 @@ Each release is published at a stable URL under <https://md.memorysmith.app>; th
 
 Questions, gaps and disagreements are issues. A change to the notation is a change to `SPEC.md`, `profile.json` and `tests/conformance.json` **in the same pull request** — a notation without a case is not part of the profile.
 
+`main` is protected and every change reaches it through a reviewed pull request. Before committing, run the consistency check, which needs no dependencies and takes under a second:
+
+```sh
+npm run check
+```
+
+The whole process — the two issue forms, the four outcomes of triage, the branch names, the commit convention and what cuts a version — is in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 ## Licence
 
 The text of the specification is licensed under [CC BY 4.0](LICENSE-TEXT). `profile.json`, the schema and the conformance suite are licensed under [MIT](LICENSE).

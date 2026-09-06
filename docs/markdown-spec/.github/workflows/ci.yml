@@ -1,0 +1,35 @@
+# Continuous integration.
+#
+# This repository builds nothing and ships no code. What CI has to establish is the one
+# claim the profile makes about itself: that SPEC.md, profile.json and
+# tests/conformance.json say the same thing. The check needs no dependencies, so there is
+# nothing to install and nothing to cache.
+#
+# The job name below is what the ruleset on main requires. Renaming it silently disables
+# the protection, so rename it in the ruleset in the same change.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  consistency:
+    name: Profile consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: The three files agree
+        run: npm run check
