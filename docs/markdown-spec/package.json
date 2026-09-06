@@ -1,0 +1,38 @@
+{
+  "name": "@memorysmith/markdown-profile",
+  "version": "0.1.0",
+  "description": "The MemorySmith Markdown Profile: the notation a knowledge vault is written in, as data, with the suite that proves an implementation reads it.",
+  "license": "MIT",
+  "homepage": "https://md.memorysmith.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/memorysmithapp/markdown-profile.git"
+  },
+  "type": "module",
+  "exports": {
+    "./profile.json": "./profile.json",
+    "./conformance.json": "./tests/conformance.json",
+    "./schema.json": "./schema/profile.schema.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "profile.json",
+    "schema/profile.schema.json",
+    "tests/conformance.json",
+    "tests/README.md",
+    "SPEC.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "LICENSE-TEXT"
+  ],
+  "keywords": [
+    "markdown",
+    "commonmark",
+    "gfm",
+    "wikilink",
+    "frontmatter",
+    "knowledge-vault",
+    "specification",
+    "conformance"
+  ]
+}

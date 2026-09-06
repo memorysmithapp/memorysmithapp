@@ -34,6 +34,11 @@ implementation, plus the decisions taken while writing it down.
   an interactive task list.
 - `profile.json`, the machine-readable profile, with its JSON Schema.
 - The conformance suite, including the cases whose expected result is nothing.
+- A `package.json`, so an implementation depends on this profile **by version** instead of
+  keeping a copy of it. It declares no build and no dependency: the three artefacts are exposed
+  as `@memorysmith/markdown-profile/profile.json`, `/conformance.json` and `/schema.json`. An
+  implementation that vendors a copy drifts from the specification silently, which is the
+  failure this profile exists to prevent one layer up.
 
 ### Rejected, and declared as such
 
