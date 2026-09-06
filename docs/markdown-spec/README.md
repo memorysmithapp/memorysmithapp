@@ -18,11 +18,13 @@ This profile closes the gap in the only way that survives contact with a second 
 
 Three rings, and the third is the one nobody else writes down:
 
-| Ring | What |
-|---|---|
-| **Base** | CommonMark 0.31.2, in full |
-| **Extended** | GFM 0.29-gfm, in full |
-| **MemorySmith** | Wikilinks, aliases, anchors, embeds, the resolution rule, frontmatter, the reserved vocabulary, callouts, diagrams, transclusion, pending links |
+| Ring | What | Where |
+|---|---|---|
+| **Base** | CommonMark 0.31.2, in full | Restated in [§3](SPEC.md#3-the-base-ring--commonmark) |
+| **Extended** | GFM 0.29-gfm, in full | Restated in [§4](SPEC.md#4-the-extended-ring--gfm) |
+| **MemorySmith** | Wikilinks, aliases, anchors, embeds, the resolution rule, frontmatter, the reserved vocabulary, callouts, diagrams, transclusion, marked text, comments, block identifiers, math, pending links | Specified in [§5 to §8](SPEC.md#5-links-between-notes) |
+
+The specification **can be read alone**. The two base rings are restated inside it in full, so writing a note does not mean holding three documents open — and the join between them, which is the part no base specification can state, is written down where an author meets it: a `[[link]]` inside a code fence produces no edge, a block quote opening `[!warning]` is a callout, raw HTML parses and is not rendered. CommonMark and GFM stay the normative sources: where the restatement and its source disagree, the source governs.
 
 And, with equal weight, **what it rejects**: an inline `#tag`, an external link as an edge, prose in the frontmatter. A profile that only lists what works is half a profile — most of what goes wrong is a notation somebody believed in, not one they typed wrongly.
 

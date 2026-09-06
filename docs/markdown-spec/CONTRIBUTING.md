@@ -154,8 +154,9 @@ npm run check
 
 No dependencies, no build. It verifies that `profile.json` matches its schema, that every
 notation an indexer decides has at least one conformance case, that every case names a
-notation that exists, that identifiers are unique, that the section references resolve to
-real headings of `SPEC.md`, and that every file carrying the version agrees on it.
+notation that exists, that identifiers are unique, that every section reference resolves to
+a real heading of `SPEC.md` — from `profile.json` and from the prose of the document itself
+— and that every file carrying the version agrees on it.
 
 ## 8. Licence
 

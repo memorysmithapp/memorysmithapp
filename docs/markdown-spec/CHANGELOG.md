@@ -9,10 +9,28 @@ major version. While the profile is `0.x`, a breaking change may arrive in a min
 
 ## [Unreleased]
 
-Governance only. Nothing here changes a notation, so none of it cuts a version.
+The cycle in which the document stopped being a specification you read with two other
+specifications open, and the repository gained the rules of working on it. One change to
+what the profile publishes — the name of the third ring — cuts a minor version; the rest
+adds no notation and removes none.
 
 ### Added
 
+- **The base and the extended ring are restated in the document, in full** (§3 and §4).
+  Every block and every inline of CommonMark 0.31.2 and of GFM 0.29-gfm, with the form as it
+  is typed and what it produces. CommonMark and GFM remain the normative sources, and §2.1
+  states the precedence: where the restatement and its source disagree, the source governs
+  and this document is in error. The specification had been naming two other documents and
+  sending the reader off to find them, which left the **join** between the three written
+  down nowhere — a `[[link]]` in a code fence producing no edge, a block quote opening
+  `[!warning]` being a callout, raw HTML parsing and not being rendered — because that join
+  is invisible from either side alone. Each crossing is now stated where an author meets it,
+  and again in the section that governs it.
+- **`profile.json` carries the base and extended forms as entries**, 23 of them, so the
+  machine-readable profile is as complete as the prose. An implementation that builds its
+  documentation from that file now gets the whole notation and not only the third ring.
+- **Appendix B, the notation at a glance**: every form in one table, with what it does
+  beyond being rendered, including the rows whose answer is nothing.
 - `CONTRIBUTING.md`, the process a change travels from an issue to `main`: the life cycle,
   the two issue forms, the four outcomes of triage, the branch names, the commit convention
   and the table of what cuts which version bump.
@@ -23,17 +41,11 @@ Governance only. Nothing here changes a notation, so none of it cuts a version.
 - `tools/check-profile.mjs` and `npm run check`: the consistency check that refuses
   `SPEC.md`, `profile.json` and `tests/conformance.json` drifting apart. It validates the
   profile against its schema, requires a case for every notation an indexer decides,
-  resolves every section reference to a real heading, and holds every file carrying the
-  version to the one in `profile.json`. No dependencies.
+  resolves every section reference to a real heading — from `profile.json` and from the
+  prose of the document itself — and holds every file carrying the version to the one in
+  `profile.json`. No dependencies.
 - A CI workflow running that check on every pull request, and `.gitattributes` fixing the
   line ending at LF so the check reads the same bytes on every operating system.
-
-### Fixed
-
-- The header of `SPEC.md` said version 0.1.0 while `profile.json` said 0.2.0. It is the
-  first thing the new check caught, on its first run and without anybody looking for it,
-  and the reason it now holds every file carrying the version to the one in
-  `profile.json`.
 
 ### Changed
 
@@ -46,6 +58,21 @@ Governance only. Nothing here changes a notation, so none of it cuts a version.
   place of `vault`, which is a break for anything reading that field: in `0.x` it arrives as
   a minor version. Released entries below keep the old name, because they are dated records
   of what the ring was called then.
+- **The sections after the two new rings are renumbered.** Links, frontmatter, the reading
+  surface and the rejections move from §3–§6 to §5–§8, and everything after them by the same
+  two. Every reference in the document and every `spec` field of `profile.json` follows. No
+  notation changed and the conformance suite is untouched.
+
+### Fixed
+
+- The header of `SPEC.md` said version 0.1.0 while `profile.json` said 0.2.0. It is the
+  first thing the new check caught, on its first run and without anybody looking for it,
+  and the reason it now holds every file carrying the version to the one in
+  `profile.json`.
+- The `task-list` entry of `profile.json` pointed at §5.5, which stopped being "Task lists"
+  when 0.2.0 inserted "Marked text" there. It points at §4.2 and §7.11 now. A reference that
+  resolves to the **wrong** heading is the one thing the check cannot see, and it took the
+  renumbering to find it.
 
 ## [0.2.0] — 2026-09-06
 
