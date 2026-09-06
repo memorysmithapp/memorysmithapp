@@ -44,7 +44,7 @@
             "description": "Stable identifier. Never renamed and never reused."
           },
           "ring": {
-            "enum": ["base", "extended", "vault"],
+            "enum": ["base", "extended", "memorysmith"],
             "description": "Which ring the notation belongs to: CommonMark, GFM, or this profile."
           },
           "reader": {

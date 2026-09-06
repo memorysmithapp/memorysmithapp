@@ -22,7 +22,7 @@ Three rings, and the third is the one nobody else writes down:
 |---|---|
 | **Base** | CommonMark 0.31.2, in full |
 | **Extended** | GFM 0.29-gfm, in full |
-| **Vault** | Wikilinks, aliases, anchors, embeds, the resolution rule, frontmatter, the reserved vocabulary, callouts, diagrams, transclusion, pending links |
+| **MemorySmith** | Wikilinks, aliases, anchors, embeds, the resolution rule, frontmatter, the reserved vocabulary, callouts, diagrams, transclusion, pending links |
 
 And, with equal weight, **what it rejects**: an inline `#tag`, an external link as an edge, prose in the frontmatter. A profile that only lists what works is half a profile — most of what goes wrong is a notation somebody believed in, not one they typed wrongly.
 
