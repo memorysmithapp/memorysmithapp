@@ -64,7 +64,7 @@ proposal is not a rejection to be buried: it is a candidate for that section. Cl
 issue with the reason, addressed to whoever opened it.
 
 The classification labels say which ring the issue lives in — `ring:base`, `ring:extended`,
-`ring:vault` — plus `conformance` when the suite is what changes.
+`ring:memorysmith` — plus `conformance` when the suite is what changes.
 
 ## 4. Work on the branch
 

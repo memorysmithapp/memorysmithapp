@@ -21,7 +21,7 @@
   "notations": [
     {
       "id": "wikilink",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "links",
       "syntax": "[[Target note]]",
       "example": "See [[Lei 14.133]] for the general rule.",
@@ -31,7 +31,7 @@
     },
     {
       "id": "wikilink-alias",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "links",
       "syntax": "[[Target note|what the reader sees]]",
       "example": "See [[Lei 14.133|the procurement act]] for the general rule.",
@@ -41,7 +41,7 @@
     },
     {
       "id": "wikilink-anchor",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "links",
       "syntax": "[[Target note#Section]]",
       "example": "See [[Lei 14.133#Article 75]] for the exception.",
@@ -51,7 +51,7 @@
     },
     {
       "id": "embed",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "links",
       "syntax": "![[Target note]]  ·  ![[Target note#Section]]",
       "example": "The rule is stated in full here:\n\n![[Lei 14.133#Article 75]]\n",
@@ -61,7 +61,7 @@
     },
     {
       "id": "markdown-relative-link",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "links",
       "syntax": "[what the reader sees](target-note.md)",
       "example": "See [the procurement act](lei-14133.md) for the general rule.",
@@ -71,7 +71,7 @@
     },
     {
       "id": "external-link",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "links",
       "syntax": "[what the reader sees](https://example.org/page)",
       "example": "See [the official text](https://example.org/lei-14133) for the general rule.",
@@ -81,7 +81,7 @@
     },
     {
       "id": "link-in-code",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "links",
       "syntax": "`[[Target note]]` inside a code span or fence",
       "example": "Write a link as `[[Lei 14.133]]` in the body.",
@@ -91,7 +91,7 @@
     },
     {
       "id": "frontmatter-enum",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "key: short-value",
       "example": "---\nmaturity: evergreen\n---\n\nBody.",
@@ -101,7 +101,7 @@
     },
     {
       "id": "frontmatter-list",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "key: [one, two]  ·  or a dash list under the key",
       "example": "---\ntags: [contracts, procurement]\n---\n\nBody.",
@@ -111,7 +111,7 @@
     },
     {
       "id": "frontmatter-boolean",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "key: true  ·  key: false",
       "example": "---\nreviewed: false\n---\n\nBody.",
@@ -121,7 +121,7 @@
     },
     {
       "id": "frontmatter-date",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "key: 2026-09-03",
       "example": "---\nreviewed_at: 2026-09-03\n---\n\nBody.",
@@ -131,7 +131,7 @@
     },
     {
       "id": "frontmatter-aliases",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "aliases: [RTO, Recovery Time]",
       "example": "---\naliases: [RTO]\n---\n\nBody.",
@@ -141,7 +141,7 @@
     },
     {
       "id": "frontmatter-tags",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "tags: [contracts, procurement]",
       "example": "---\ntags: [contracts]\n---\n\nBody.",
@@ -151,7 +151,7 @@
     },
     {
       "id": "frontmatter-created",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "created: 2026-09-03",
       "example": "---\ncreated: 2026-09-03\n---\n\nBody.",
@@ -161,7 +161,7 @@
     },
     {
       "id": "frontmatter-updated",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "updated: 2026-09-03",
       "example": "---\nupdated: 2026-09-03\n---\n\nBody.",
@@ -171,7 +171,7 @@
     },
     {
       "id": "frontmatter-title",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "title: Whatever the note is called",
       "example": "---\ntitle: Lei 14.133\n---\n\nBody.",
@@ -181,7 +181,7 @@
     },
     {
       "id": "frontmatter-prose",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "key: a whole sentence, longer than forty characters",
       "example": "---\nsummary: This note explains the general rule of direct contracting and its exceptions.\n---\n\nBody.",
@@ -191,7 +191,7 @@
     },
     {
       "id": "inline-tag",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "links",
       "syntax": "#subject",
       "example": "The decision touches #procurement and #contracts.",
@@ -201,7 +201,7 @@
     },
     {
       "id": "callout",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "> [!type] Optional title",
       "example": "> [!warning] What can go wrong\n> The body of the notice.\n",
@@ -211,7 +211,7 @@
     },
     {
       "id": "mermaid",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "```mermaid",
       "example": "```mermaid\nflowchart LR\n  A --> B\n```\n",
@@ -221,7 +221,7 @@
     },
     {
       "id": "transclusion",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "![[Target note]]  ·  ![[Target note#Section]]",
       "example": "![[Lei 14.133#Article 75]]\n",
@@ -231,7 +231,7 @@
     },
     {
       "id": "pending-link-display",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "[[A note that does not exist yet]]",
       "example": "See [[A note nobody has written]] for the rest.",
@@ -251,7 +251,7 @@
     },
     {
       "id": "highlight",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "==highlight==",
       "example": "The exception is ==only for the cases listed in article 75==.",
@@ -261,7 +261,7 @@
     },
     {
       "id": "comment",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "%%comment%%",
       "example": "The rule holds. %%check this against the 2027 revision%%",
@@ -271,7 +271,7 @@
     },
     {
       "id": "block-id",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "A paragraph. ^identifier",
       "example": "The rule is stated once, here. ^article-75\n",
@@ -281,7 +281,7 @@
     },
     {
       "id": "block-embed",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "links",
       "syntax": "![[Target note#^identifier]]",
       "example": "The rule, in full:\n\n![[Lei 14.133#^article-75]]\n",
@@ -291,7 +291,7 @@
     },
     {
       "id": "math-inline",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "$formula$",
       "example": "The ceiling is $n \\log n$ in the worst case.",
@@ -301,7 +301,7 @@
     },
     {
       "id": "math-block",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "$$formula$$",
       "example": "$$\nE = mc^2\n$$\n",
@@ -311,7 +311,7 @@
     },
     {
       "id": "sub-sup",
-      "ring": "vault",
+      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "~subscript~  ·  ^superscript^",
       "example": "The formula is H~2~O, and the area is 3 m^2^.",

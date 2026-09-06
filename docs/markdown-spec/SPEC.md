@@ -15,7 +15,7 @@ This profile defines **which notation a conforming implementation reads, and wha
 The profile covers three things and nothing else:
 
 1. Which base specifications a conforming implementation supports.
-2. Which vault notations it reads, and their **observable effect**.
+2. Which MemorySmith notations it reads, and their **observable effect**.
 3. Which notations it **deliberately does not read**, and what to write instead.
 
 The third point is not an appendix. Most of what goes wrong when writing into a knowledge base is not a notation typed wrongly, it is a notation the author believed in: a link that was expected to become a connection, a line of metadata that was expected to become a category. A profile that only lists what works is half a profile.
@@ -48,9 +48,9 @@ An implementation MUST state which roles it claims. An implementation that claim
 |---|---|---|
 | **Base** | [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/) | Normative. An implementation MUST support it in full |
 | **Extended** | [GFM 0.29-gfm](https://github.github.com/gfm/): tables, task list items, strikethrough, extended autolinks, disallowed raw HTML | Normative. An implementation MUST support it in full |
-| **Vault** | This document, §3 to §6 | Normative |
+| **MemorySmith** | This document, §3 to §6 | Normative |
 
-The vault ring is where implementations of Markdown usually diverge in silence. Everything in it is specified here with a syntax, an example and an effect, and every entry has a machine-readable counterpart in [`profile.json`](profile.json) and at least one case in the [conformance suite](tests/).
+The MemorySmith ring is where implementations of Markdown usually diverge in silence. Everything in it is specified here with a syntax, an example and an effect, and every entry has a machine-readable counterpart in [`profile.json`](profile.json) and at least one case in the [conformance suite](tests/).
 
 ---
 

@@ -35,6 +35,18 @@ Governance only. Nothing here changes a notation, so none of it cuts a version.
   and the reason it now holds every file carrying the version to the one in
   `profile.json`.
 
+### Changed
+
+- **The third ring is named MemorySmith**, and no longer Vault. In a document that uses
+  "vault" on nearly every page for the thing a person keeps — the folder resolution may not
+  cross, the boundary an edge stays inside — the same word named a layer of the
+  specification, and the reader had to tell the two apart from context. A ring is named
+  after the specification that governs it, and the one that governs this ring is this
+  document. `profile.json` carries `"ring": "memorysmith"` and the schema accepts it in
+  place of `vault`, which is a break for anything reading that field: in `0.x` it arrives as
+  a minor version. Released entries below keep the old name, because they are dated records
+  of what the ring was called then.
+
 ## [0.2.0] — 2026-09-06
 
 The rest of the vault ring, and the two things the profile had been silent about on purpose
