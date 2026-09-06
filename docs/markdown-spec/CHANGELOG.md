@@ -9,6 +9,55 @@ major version. While the profile is `0.x`, a breaking change may arrive in a min
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-09-06
+
+The rest of the vault ring, and the two things the profile had been silent about on purpose
+without saying so. Everything here was already written in real vaults and did nothing.
+
+### Added
+
+- **`==highlight==`**, marked text, carrying no meaning beyond emphasis.
+- **`%%comment%%`**, text the author does not want read on the page. It disappears from the
+  reading surface and **stays in the bytes**: a tool that returns the note returns it, an
+  export writes it, and a search may find it. An agent therefore sees what a person on the
+  page does not, and that asymmetry is declared rather than discovered — text somebody did
+  not want on the page is still text they wrote, and this profile asks nobody to delete bytes
+  to make a page tidier.
+- **`^block-id` and `![[note#^id]]`**, the identified block and the embed that resolves to it.
+  The edge is **exactly** the edge a plain wikilink produces: the graph does not tell an embed
+  from a reference apart, and does not tell a block embed from either.
+- **`$inline$` and `$$block$$`**, mathematics, with the rule that a `$` which is not opening
+  or closing a formula stays text. A price and a shell variable are not formulas, and the
+  conformance suite carries the negatives as well as the positives.
+- **Date intervals in a query** (§4.8): `created:>=2026-01-01`, and the range
+  `created:2026-01-01..2026-03-31` as sugar for two comparisons, both ends inclusive. One
+  semantics, so there is one thing to implement, one to test and one to explain. An interval
+  over an attribute that is not a date, and one whose ends are inverted, are errors and not
+  empty results: an empty result reads as "there is nothing", and both of those mean "you
+  asked something that has no answer".
+
+### Rejected, and declared as such
+
+- **Superscript and subscript.** There is nothing to inherit: GitHub writes them with raw
+  HTML, which §5.10 declares off, and the Pandoc forms `~x~` and `^x^` render in no vault
+  editor — a note written with them would read correctly here and look broken in every other
+  tool its author uses, and `^x^` would collide with a block identifier.
+- **Raw HTML.** Not rendered, stored and returned as written, shown as text. It is stated as a
+  **security boundary** rather than left to each implementation: a vault is written by several
+  people and by agents, and a page that renders arbitrary HTML out of it is a script injection
+  whose trigger is written by whoever wrote the note.
+
+### Changed
+
+- **`aliases` gained the reason it does not resolve wikilinks** (§4.4). Resolution is
+  behaviour; and while a title collision cannot happen, an alias collision can, created from
+  outside by editing a third note that is neither end of the link. A link that does not
+  resolve is at least visible, as a pending link.
+- **§6.4 shrank.** Most of what it listed as unspecified is now specified. What stays absent
+  on purpose says so where it belongs, and everything else is absent because nobody has
+  written it down yet — a different statement, and a smaller one.
+
+
 ## [0.1.0] — 2026-09-06
 
 The first published version. It declares the notation that is already in production in the first
@@ -52,5 +101,6 @@ implementation, plus the decisions taken while writing it down.
 - **Anything not specified here** — `==highlight==`, `%%comment%%`, `^block-id`, `$math$`, raw HTML.
   Absence from this document is a statement, not an oversight.
 
-[Unreleased]: https://github.com/memorysmithapp/markdown-profile/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/markdown-profile/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/memorysmithapp/markdown-profile/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/memorysmithapp/markdown-profile/releases/tag/v0.1.0

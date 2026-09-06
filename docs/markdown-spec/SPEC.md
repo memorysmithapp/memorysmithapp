@@ -162,6 +162,15 @@ The profile reserves **four** attribute names. They are always written in en-US;
 | Key | Shape | Effect |
 |---|---|---|
 | `aliases` | list of short values | Alternative spellings of this note. They MUST join the search index as spellings of the note. They MUST NOT resolve wikilinks (§3.2 resolves by title slug only) |
+
+`aliases` join the search index and stop there, and the reason is worth stating so the
+question does not return without new evidence. Resolution is **behaviour**: it decides an
+edge, a backlink, a pending link and a navigation. Letting an attribute of the content
+govern it would put the frontmatter in charge of the graph, which §1.4 keeps it out of. And
+while a title collision cannot happen, an alias collision can — and it is created from
+outside, by editing a third note that is neither end of the link, which would move an
+existing edge with nothing on screen saying so. A link that does not resolve is at least
+visible: it renders as pending (§3.5).
 | `tags` | list of short values | Subjects of this note, filterable and countable like any other list attribute |
 | `created` | ISO 8601 date | The date the author states the note was created. See §4.6 |
 | `updated` | ISO 8601 date | The date the author states the content was last revised. See §4.6 |
@@ -187,6 +196,36 @@ created:2026-09-03      the day
 ```
 
 Prefix, not substring: `created:09` MUST NOT match `2026-09-03`.
+
+### 4.8 Date intervals in a query
+
+A point is not enough for the ordinary question of curation: what came in during the first
+quarter, what has not been revised since March, what was written before a decision. A query
+over a `date` attribute MUST support an interval, in two forms with **one** meaning:
+
+```
+created:>=2026-01-01 created:<2026-04-01     comparison, the primitive
+created:2026-01-01..2026-03-31               range, sugar for two comparisons
+```
+
+The comparison operators are `>=`, `>`, `<=` and `<`. The range `a..b` MUST be equivalent to
+`>=a` and `<=b`: **both ends inclusive**, which is what `..` means everywhere a person has
+met it before. An exclusive end is written with a comparison, which is what comparisons are
+for. Defining the range as sugar is deliberate: there is one semantics to implement, one to
+test and one to explain.
+
+An operand keeps the prefix granularity of §4.7. `created:>=2026-02` is the first instant
+matching `2026-02` and `created:<=2026-02` is the last, so a month is a legal end of an
+interval and not only a point. That falls out of lexicographic comparison over canonicalised
+ISO 8601 rather than being a rule of its own, which is why ISO 8601 was chosen.
+
+Two things MUST be errors rather than empty results, because an empty result reads as "there
+is nothing" and both of these mean "you asked something that has no answer":
+
+- a comparison or a range over an attribute that is not of kind `date`;
+- a range whose ends are inverted.
+
+Relative and named dates (`last-7-days` and friends) are **not** part of this profile.
 
 ---
 
@@ -227,7 +266,75 @@ An embed MUST NOT be expanded anywhere but on the reading surface. What an inter
 
 A Reader MUST render a wikilink as a navigation to the resolved note, using the alias as the visible text when one is present. A wikilink whose target does not exist yet MUST be visibly distinguished from a resolved one, and MUST NOT be rendered as a broken link or hidden.
 
-### 5.5 Task lists
+### 5.5 Marked text
+
+`==highlight==` marks a run of text. A Reader SHOULD render it as marked and MUST NOT render
+the `==` as characters. It carries no meaning beyond emphasis: no edge, no attribute, no
+index entry.
+
+### 5.6 Comments
+
+`%%comment%%` is text the author does not want read on the page. A Reader MUST NOT render it,
+inline or as a block.
+
+**The bytes are untouched, and the asymmetry is the decision.** The comment stays in the
+file: a tool that returns the note returns it, an export writes it, and a search MAY find
+it. So an agent reading the note sees what a person reading the page does not. That is
+deliberate — text the author does not want *on the page* is still text the author wrote, and
+deleting bytes to make a page tidier is not something this profile asks of anyone — but it
+MUST be declared to whoever writes one, or it is a surprise instead of a feature.
+
+### 5.7 Block identifiers
+
+```markdown
+The rule is stated once, here. ^article-75
+
+![[Lei 14.133#^article-75]]
+```
+
+A `^identifier` at the **end of a block** names that block. The identifier is `[A-Za-z0-9-]+`
+and is unique within the note. A Reader MUST NOT render it as text.
+
+`![[target#^identifier]]` embeds the named block rather than the whole note or a section.
+Resolution of the *note* is unchanged (§3.2), and the edge it produces is **exactly the edge
+`[[target]]` produces** (§3.7): the graph does not tell an embed from a reference apart, and
+it does not tell a block embed from either.
+
+A `^identifier` that names nothing, or an embed of an identifier that does not exist, MUST be
+reported the way a pending link is (§3.5) and MUST NOT be an error.
+
+### 5.8 Math
+
+`$inline$` and `$$block$$` are mathematics. A Reader SHOULD render them, and one that cannot
+MUST show the source rather than hide it.
+
+A `$` that is not opening or closing a formula MUST NOT become one: a price, a shell variable
+and a lone currency symbol are text. In practice a Reader MUST NOT treat `$` as an opening
+delimiter when it is followed by whitespace, nor as a closing one when preceded by it.
+
+### 5.9 Superscript and subscript: no notation
+
+This profile has **no notation** for superscript or subscript, and the absence is a decision
+rather than an omission.
+
+There is nothing to inherit. GitHub writes `<sub>` and `<sup>`, which needs raw HTML, and
+§5.10 declares raw HTML off. Pandoc writes `~x~` and `^x^`, which no vault editor renders —
+a vault written with it would read correctly here and look broken in every other tool its
+author uses, which is the opposite of what this profile is for. The `^` form would also
+collide with §5.7.
+
+### 5.10 Raw HTML
+
+A Reader MUST NOT render raw HTML found in a note. It is stored and returned as written, and
+displayed as text.
+
+This is a **security boundary and not a rendering preference**, which is why it is stated
+rather than left to each implementation. A vault is written by several people and by agents,
+and a reading surface that renders arbitrary HTML out of it is a script injection whose
+trigger is written by whoever wrote the note. CommonMark admits raw HTML; this profile does
+not, and an implementation MUST NOT claim conformance while rendering it.
+
+### 5.11 Task lists
 
 GFM task list items MAY be interactive. A Reader that lets a person toggle one MUST write back exactly the one character that changed, and MUST NOT rewrite, reformat or re-serialise the rest of the note.
 
@@ -255,7 +362,12 @@ A value longer than 40 characters is read and discarded (§4.3). A summary belon
 
 ### 6.4 Anything not specified here
 
-`==highlight==`, `%%comment%%`, `^block-id`, `$math$`, `#tag`, raw HTML: notation absent from this document is **not part of the profile**. An implementation MAY render it and MUST NOT claim conformance on account of it, and MUST NOT derive meaning from it.
+Notation absent from this document is **not part of the profile**. An implementation MAY
+render it, MUST NOT claim conformance on account of it, and MUST NOT derive meaning from it.
+
+Two things are absent **on purpose** and say so where they belong: superscript and subscript
+(§5.9) and raw HTML (§5.10). Everything else is absent because nobody has written it down
+yet, which is a different statement and a smaller one.
 
 ---
 
