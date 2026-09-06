@@ -1,12 +1,22 @@
 {
   "$schema": "./schema/profile.schema.json",
   "profile": "MemorySmith Markdown Profile",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "variant": "MemorySmith",
   "url": "https://md.memorysmith.app",
   "base": [
-    { "id": "commonmark", "name": "CommonMark", "version": "0.31.2", "url": "https://spec.commonmark.org/0.31.2/" },
-    { "id": "gfm", "name": "GitHub Flavored Markdown", "version": "0.29-gfm", "url": "https://github.github.com/gfm/" }
+    {
+      "id": "commonmark",
+      "name": "CommonMark",
+      "version": "0.31.2",
+      "url": "https://spec.commonmark.org/0.31.2/"
+    },
+    {
+      "id": "gfm",
+      "name": "GitHub Flavored Markdown",
+      "version": "0.29-gfm",
+      "url": "https://github.github.com/gfm/"
+    }
   ],
   "notations": [
     {
@@ -125,7 +135,7 @@
       "reader": "frontmatter",
       "syntax": "aliases: [RTO, Recovery Time]",
       "example": "---\naliases: [RTO]\n---\n\nBody.",
-      "effect": "Reserved: alternative spellings of this note, which join the search index. They do not resolve wikilinks — a link resolves by the slug of the title.",
+      "effect": "Reserved: alternative spellings of this note, which join the search index and rank as the title does. They do NOT resolve wikilinks, and that is a decision rather than a gap: resolution is behaviour, and an alias collision can be created by editing a third note that is neither end of the link, moving an existing edge with nothing on screen saying so. A link that does not resolve is at least visible, as a pending link.",
       "recognised": true,
       "spec": "4.4"
     },
@@ -238,6 +248,86 @@
       "effect": "GFM task list items. A reading surface may let a person toggle one, and a toggle writes back exactly the one character that changed, never a reformatted note.",
       "recognised": true,
       "spec": "5.5"
+    },
+    {
+      "id": "highlight",
+      "ring": "vault",
+      "reader": "reading-surface",
+      "syntax": "==highlight==",
+      "example": "The exception is ==only for the cases listed in article 75==.",
+      "effect": "Marks a run of text. Rendered as marked, with the `==` never shown as characters. It carries no meaning beyond emphasis: no edge, no attribute, no index entry.",
+      "recognised": true,
+      "spec": "5.5"
+    },
+    {
+      "id": "comment",
+      "ring": "vault",
+      "reader": "reading-surface",
+      "syntax": "%%comment%%",
+      "example": "The rule holds. %%check this against the 2027 revision%%",
+      "effect": "Text the author does not want read on the page: it disappears from the reading surface and stays in the bytes. A tool that returns the note returns it, and an export writes it, so an agent sees what a person on the page does not. That asymmetry is deliberate and is declared here rather than discovered.",
+      "recognised": true,
+      "spec": "5.6"
+    },
+    {
+      "id": "block-id",
+      "ring": "vault",
+      "reader": "reading-surface",
+      "syntax": "A paragraph. ^identifier",
+      "example": "The rule is stated once, here. ^article-75\n",
+      "effect": "Names the block it ends, so an embed can resolve to that block instead of to the whole note. The identifier is never rendered as text. It names nothing outside its own note.",
+      "recognised": true,
+      "spec": "5.7"
+    },
+    {
+      "id": "block-embed",
+      "ring": "vault",
+      "reader": "links",
+      "syntax": "![[Target note#^identifier]]",
+      "example": "The rule, in full:\n\n![[Lei 14.133#^article-75]]\n",
+      "effect": "Embeds the named block rather than the whole note. The edge it produces is exactly the edge `[[Target note]]` produces: the graph does not tell an embed from a reference apart, and does not tell a block embed from either.",
+      "recognised": true,
+      "spec": "5.7"
+    },
+    {
+      "id": "math-inline",
+      "ring": "vault",
+      "reader": "reading-surface",
+      "syntax": "$formula$",
+      "example": "The ceiling is $n \\log n$ in the worst case.",
+      "effect": "Rendered as mathematics. A `$` that is not opening or closing a formula stays text: a price and a shell variable are not formulas.",
+      "recognised": true,
+      "spec": "5.8"
+    },
+    {
+      "id": "math-block",
+      "ring": "vault",
+      "reader": "reading-surface",
+      "syntax": "$$formula$$",
+      "example": "$$\nE = mc^2\n$$\n",
+      "effect": "Rendered as mathematics, as a block of its own.",
+      "recognised": true,
+      "spec": "5.8"
+    },
+    {
+      "id": "sub-sup",
+      "ring": "vault",
+      "reader": "reading-surface",
+      "syntax": "~subscript~  ·  ^superscript^",
+      "example": "The formula is H~2~O, and the area is 3 m^2^.",
+      "effect": "NOT part of this profile, and deliberately so. GitHub writes these with raw HTML, which this profile does not render; the Pandoc forms render in no vault editor, so a note written with them would look broken in every other tool its author uses, and the `^` form would collide with a block identifier. Write the character itself when it exists, or a formula.",
+      "recognised": false,
+      "spec": "5.9"
+    },
+    {
+      "id": "raw-html",
+      "ring": "extended",
+      "reader": "reading-surface",
+      "syntax": "<div>anything</div>",
+      "example": "The notice: <b>read the act</b>.",
+      "effect": "NOT rendered. Stored and returned exactly as written, and shown as text. This is a security boundary and not a rendering preference: a vault is written by several people and by agents, and a page that renders arbitrary HTML out of it is a script injection whose trigger is written by whoever wrote the note.",
+      "recognised": false,
+      "spec": "5.10"
     }
   ]
 }

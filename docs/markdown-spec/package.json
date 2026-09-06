@@ -1,6 +1,6 @@
 {
   "name": "@memorysmith/markdown-profile",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The MemorySmith Markdown Profile: the notation a knowledge vault is written in, as data, with the suite that proves an implementation reads it.",
   "license": "MIT",
   "homepage": "https://md.memorysmith.app",
