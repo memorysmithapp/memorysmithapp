@@ -9,9 +9,11 @@ major version. While the profile is `0.x`, a breaking change may arrive in a min
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-09-06
+
 The cycle in which the document stopped being a specification you read with two other
 specifications open, and the repository gained the rules of working on it. One change to
-what the profile publishes — the name of the third ring — cuts a minor version; the rest
+what the profile publishes — the name of the third ring — cuts the minor version; the rest
 adds no notation and removes none.
 
 ### Added
@@ -166,6 +168,7 @@ implementation, plus the decisions taken while writing it down.
 - **Anything not specified here** — `==highlight==`, `%%comment%%`, `^block-id`, `$math$`, raw HTML.
   Absence from this document is a statement, not an oversight.
 
-[Unreleased]: https://github.com/memorysmithapp/markdown-profile/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/markdown-profile/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/memorysmithapp/markdown-profile/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/memorysmithapp/markdown-profile/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/memorysmithapp/markdown-profile/releases/tag/v0.1.0
