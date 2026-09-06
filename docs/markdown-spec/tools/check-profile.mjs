@@ -177,6 +177,17 @@ for (const entry of notations) {
   }
 }
 
+// The document points at itself constantly — a form is stated where an author meets it and
+// again in the section that governs it — and a renumbering is what breaks all of those at
+// once. Every § in the prose has to resolve too.
+const danglingRefs = new Set();
+for (const match of spec.matchAll(/§(\d+(?:\.\d+)*)/g)) {
+  if (!headings.has(match[1])) danglingRefs.add(match[1]);
+}
+for (const section of [...danglingRefs].sort()) {
+  fail('SPEC.md', `refers to § ${section}, which has no heading`);
+}
+
 // ---------------------------------------------------------------------------
 // One canonical version, mirrored in three places.
 //
