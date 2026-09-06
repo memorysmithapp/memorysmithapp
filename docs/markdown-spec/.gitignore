@@ -1,0 +1,6 @@
+# The profile carries no build. Nothing here is generated.
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+node_modules/

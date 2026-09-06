@@ -1,0 +1,243 @@
+{
+  "$schema": "./schema/profile.schema.json",
+  "profile": "MemorySmith Markdown Profile",
+  "version": "0.1.0",
+  "variant": "MemorySmith",
+  "url": "https://md.memorysmith.app",
+  "base": [
+    { "id": "commonmark", "name": "CommonMark", "version": "0.31.2", "url": "https://spec.commonmark.org/0.31.2/" },
+    { "id": "gfm", "name": "GitHub Flavored Markdown", "version": "0.29-gfm", "url": "https://github.github.com/gfm/" }
+  ],
+  "notations": [
+    {
+      "id": "wikilink",
+      "ring": "vault",
+      "reader": "links",
+      "syntax": "[[Target note]]",
+      "example": "See [[Lei 14.133]] for the general rule.",
+      "effect": "Becomes an edge in the graph and a backlink on the target. The target is resolved by slug within this vault, never across vaults. A target that does not exist yet becomes a pending link, which is expected while a vault is being written.",
+      "recognised": true,
+      "spec": "3.1"
+    },
+    {
+      "id": "wikilink-alias",
+      "ring": "vault",
+      "reader": "links",
+      "syntax": "[[Target note|what the reader sees]]",
+      "example": "See [[Lei 14.133|the procurement act]] for the general rule.",
+      "effect": "The same edge as the plain form. The alias changes the text, never the target.",
+      "recognised": true,
+      "spec": "3.1"
+    },
+    {
+      "id": "wikilink-anchor",
+      "ring": "vault",
+      "reader": "links",
+      "syntax": "[[Target note#Section]]",
+      "example": "See [[Lei 14.133#Article 75]] for the exception.",
+      "effect": "The same edge as the plain form: the anchor is kept for display and dropped in resolution. Two links to two sections of one note are two links to the same note.",
+      "recognised": true,
+      "spec": "3.2"
+    },
+    {
+      "id": "embed",
+      "ring": "vault",
+      "reader": "links",
+      "syntax": "![[Target note]]  ·  ![[Target note#Section]]",
+      "example": "The rule is stated in full here:\n\n![[Lei 14.133#Article 75]]\n",
+      "effect": "A wikilink prefixed by `!` is an embed: for the graph it is exactly the same edge as a plain link, and for a reader the content of the target is shown in place. Tools never expand it: a reader of the raw note gets the `![[...]]` that was written.",
+      "recognised": true,
+      "spec": "3.7"
+    },
+    {
+      "id": "markdown-relative-link",
+      "ring": "vault",
+      "reader": "links",
+      "syntax": "[what the reader sees](target-note.md)",
+      "example": "See [the procurement act](lei-14133.md) for the general rule.",
+      "effect": "Becomes the same edge as a wikilink. The target is reduced to its basename without extension and resolved by slug, so a path with folders in it resolves to the note and not to the path.",
+      "recognised": true,
+      "spec": "3.2"
+    },
+    {
+      "id": "external-link",
+      "ring": "vault",
+      "reader": "links",
+      "syntax": "[what the reader sees](https://example.org/page)",
+      "example": "See [the official text](https://example.org/lei-14133) for the general rule.",
+      "effect": "NEVER becomes an edge. Anything with a scheme or a host is external, and the graph is about the notes of this vault. Use it freely for sources; do not use it expecting a connection.",
+      "recognised": false,
+      "spec": "6.2"
+    },
+    {
+      "id": "link-in-code",
+      "ring": "vault",
+      "reader": "links",
+      "syntax": "`[[Target note]]` inside a code span or fence",
+      "example": "Write a link as `[[Lei 14.133]]` in the body.",
+      "effect": "A link inside code is an example, not a reference, and produces no edge.",
+      "recognised": false,
+      "spec": "3.6"
+    },
+    {
+      "id": "frontmatter-enum",
+      "ring": "vault",
+      "reader": "frontmatter",
+      "syntax": "key: short-value",
+      "example": "---\nmaturity: evergreen\n---\n\nBody.",
+      "effect": "Becomes an attribute you can filter and count by, and a search filter written as `maturity:evergreen`. The vocabulary is yours: no key is special.",
+      "recognised": true,
+      "spec": "4.3"
+    },
+    {
+      "id": "frontmatter-list",
+      "ring": "vault",
+      "reader": "frontmatter",
+      "syntax": "key: [one, two]  ·  or a dash list under the key",
+      "example": "---\ntags: [contracts, procurement]\n---\n\nBody.",
+      "effect": "Becomes an attribute with several values, each one filterable on its own.",
+      "recognised": true,
+      "spec": "4.3"
+    },
+    {
+      "id": "frontmatter-boolean",
+      "ring": "vault",
+      "reader": "frontmatter",
+      "syntax": "key: true  ·  key: false",
+      "example": "---\nreviewed: false\n---\n\nBody.",
+      "effect": "Becomes a boolean attribute, which is what makes \"what has nobody reviewed\" answerable.",
+      "recognised": true,
+      "spec": "4.3"
+    },
+    {
+      "id": "frontmatter-date",
+      "ring": "vault",
+      "reader": "frontmatter",
+      "syntax": "key: 2026-09-03",
+      "example": "---\nreviewed_at: 2026-09-03\n---\n\nBody.",
+      "effect": "Becomes a date attribute, queryable by prefix: the year, the month or the day. An ISO 8601 date is recognised as a date; other formats are not.",
+      "recognised": true,
+      "spec": "4.3, 4.7"
+    },
+    {
+      "id": "frontmatter-aliases",
+      "ring": "vault",
+      "reader": "frontmatter",
+      "syntax": "aliases: [RTO, Recovery Time]",
+      "example": "---\naliases: [RTO]\n---\n\nBody.",
+      "effect": "Reserved: alternative spellings of this note, which join the search index. They do not resolve wikilinks — a link resolves by the slug of the title.",
+      "recognised": true,
+      "spec": "4.4"
+    },
+    {
+      "id": "frontmatter-tags",
+      "ring": "vault",
+      "reader": "frontmatter",
+      "syntax": "tags: [contracts, procurement]",
+      "example": "---\ntags: [contracts]\n---\n\nBody.",
+      "effect": "Reserved: the subjects of this note. This is where a tag lives in this profile, and it is filterable and countable like any other list attribute.",
+      "recognised": true,
+      "spec": "4.4"
+    },
+    {
+      "id": "frontmatter-created",
+      "ring": "vault",
+      "reader": "frontmatter",
+      "syntax": "created: 2026-09-03",
+      "example": "---\ncreated: 2026-09-03\n---\n\nBody.",
+      "effect": "Reserved: what the author states about when the content came to be. It is never the history of the file; an implementation that knows the real history treats that as authoritative.",
+      "recognised": true,
+      "spec": "4.4, 4.6"
+    },
+    {
+      "id": "frontmatter-updated",
+      "ring": "vault",
+      "reader": "frontmatter",
+      "syntax": "updated: 2026-09-03",
+      "example": "---\nupdated: 2026-09-03\n---\n\nBody.",
+      "effect": "Reserved: what the author states about when the content was last revised. Like `created`, it is a statement about the content and not the history of the file.",
+      "recognised": true,
+      "spec": "4.4, 4.6"
+    },
+    {
+      "id": "frontmatter-title",
+      "ring": "vault",
+      "reader": "frontmatter",
+      "syntax": "title: Whatever the note is called",
+      "example": "---\ntitle: Lei 14.133\n---\n\nBody.",
+      "effect": "NOT reserved and NOT special. The title of a note is structural: `title:` never renames it and never takes part in link resolution. As an ordinary attribute it is prose that is unique per note, which the cardinality ceiling stops indexing on its own.",
+      "recognised": false,
+      "spec": "4.5"
+    },
+    {
+      "id": "frontmatter-prose",
+      "ring": "vault",
+      "reader": "frontmatter",
+      "syntax": "key: a whole sentence, longer than forty characters",
+      "example": "---\nsummary: This note explains the general rule of direct contracting and its exceptions.\n---\n\nBody.",
+      "effect": "Is read and DISCARDED. Above forty characters a value is prose, not a category, and an attribute of unique sentences would be a list of everything. Put prose in the body.",
+      "recognised": false,
+      "spec": "4.3, 6.3"
+    },
+    {
+      "id": "inline-tag",
+      "ring": "vault",
+      "reader": "links",
+      "syntax": "#subject",
+      "example": "The decision touches #procurement and #contracts.",
+      "effect": "Carries NO meaning in this profile: neither an edge nor an attribute, and rendered as plain text. To group notes by subject write `tags:` in the frontmatter; to connect a note to a subject worth a note of its own, write [[subject]].",
+      "recognised": false,
+      "spec": "6.1"
+    },
+    {
+      "id": "callout",
+      "ring": "vault",
+      "reader": "reading-surface",
+      "syntax": "> [!type] Optional title",
+      "example": "> [!warning] What can go wrong\n> The body of the notice.\n",
+      "effect": "A blockquote whose first line begins with `[!type]` is drawn as a callout, not as a quotation with a marker in front of it. The five GitHub alert types are recognised and the vocabulary is open. A `[!type]` inside a code fence is not a callout.",
+      "recognised": true,
+      "spec": "5.1"
+    },
+    {
+      "id": "mermaid",
+      "ring": "vault",
+      "reader": "reading-surface",
+      "syntax": "```mermaid",
+      "example": "```mermaid\nflowchart LR\n  A --> B\n```\n",
+      "effect": "A fenced block whose info string is `mermaid` is rendered as a diagram. A reader that cannot render it shows the source, never nothing.",
+      "recognised": true,
+      "spec": "5.2"
+    },
+    {
+      "id": "transclusion",
+      "ring": "vault",
+      "reader": "reading-surface",
+      "syntax": "![[Target note]]  ·  ![[Target note#Section]]",
+      "example": "![[Lei 14.133#Article 75]]\n",
+      "effect": "The reading surface shows the content of the target in place, one level deep: an embed inside embedded content is drawn as a link. The bytes never change, and tools return the `![[...]]` that was written.",
+      "recognised": true,
+      "spec": "5.3"
+    },
+    {
+      "id": "pending-link-display",
+      "ring": "vault",
+      "reader": "reading-surface",
+      "syntax": "[[A note that does not exist yet]]",
+      "example": "See [[A note nobody has written]] for the rest.",
+      "effect": "A wikilink whose target does not exist is shown as visibly pending, never as a broken link and never hidden. It is the gesture of writing the note that is missing.",
+      "recognised": true,
+      "spec": "5.4"
+    },
+    {
+      "id": "task-list",
+      "ring": "extended",
+      "reader": "reading-surface",
+      "syntax": "- [ ] item  ·  - [x] item",
+      "example": "- [ ] Read the act\n- [x] Summarise article 75\n",
+      "effect": "GFM task list items. A reading surface may let a person toggle one, and a toggle writes back exactly the one character that changed, never a reformatted note.",
+      "recognised": true,
+      "spec": "5.5"
+    }
+  ]
+}

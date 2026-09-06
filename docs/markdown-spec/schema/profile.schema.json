@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://md.memorysmith.app/schema/profile.schema.json",
+  "title": "MemorySmith Markdown Profile",
+  "description": "The machine-readable half of the profile: every notation it declares, with its observable effect and whether it is recognised.",
+  "type": "object",
+  "required": ["profile", "version", "base", "notations"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "profile": { "type": "string" },
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "variant": {
+      "type": "string",
+      "description": "The value of the variant parameter of text/markdown, per RFC 7763."
+    },
+    "url": { "type": "string", "format": "uri" },
+    "base": {
+      "type": "array",
+      "description": "The specifications this profile builds on, in full.",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "version", "url"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "version": { "type": "string" },
+          "url": { "type": "string", "format": "uri" }
+        }
+      }
+    },
+    "notations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "ring", "reader", "syntax", "example", "effect", "recognised"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "description": "Stable identifier. Never renamed and never reused."
+          },
+          "ring": {
+            "enum": ["base", "extended", "vault"],
+            "description": "Which ring the notation belongs to: CommonMark, GFM, or this profile."
+          },
+          "reader": {
+            "enum": ["links", "frontmatter", "reading-surface"],
+            "description": "Which reader decides this notation. The first two are the only readers of content an indexer has; the third is display."
+          },
+          "syntax": { "type": "string", "description": "The form, as an author would type it." },
+          "example": { "type": "string", "description": "A body exercising the form, used verbatim by the conformance suite." },
+          "effect": { "type": "string", "description": "What observably happens. Written for whoever writes a note, not for the code." },
+          "recognised": {
+            "type": "boolean",
+            "description": "False when the point of the entry is that NOTHING happens. Those entries are as normative as the others."
+          },
+          "spec": { "type": "string", "description": "The section or sections of SPEC.md that govern it." }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,175 @@
+{
+  "profile": "MemorySmith Markdown Profile",
+  "version": "0.1.0",
+  "cases": [
+    {
+      "id": "wikilink/plain",
+      "notation": "wikilink",
+      "markdown": "See [[Lei 14.133]] for the general rule.",
+      "links": [{ "slug": "lei-14133", "anchor": null }]
+    },
+    {
+      "id": "wikilink/alias-does-not-change-the-target",
+      "notation": "wikilink-alias",
+      "markdown": "See [[Lei 14.133|the procurement act]] for the general rule.",
+      "links": [{ "slug": "lei-14133", "anchor": null }]
+    },
+    {
+      "id": "wikilink/anchor-is-kept-and-not-resolved",
+      "notation": "wikilink-anchor",
+      "markdown": "See [[Lei 14.133#Article 75]] for the exception.",
+      "links": [{ "slug": "lei-14133", "anchor": "article-75" }]
+    },
+    {
+      "id": "wikilink/accents-and-digits",
+      "notation": "wikilink",
+      "markdown": "Ver [[Contratação Direta 2.0]].",
+      "links": [{ "slug": "contratacao-direta-20", "anchor": null }]
+    },
+    {
+      "id": "embed/same-edge-as-a-plain-link",
+      "notation": "embed",
+      "markdown": "![[Lei 14.133]]",
+      "links": [{ "slug": "lei-14133", "anchor": null }]
+    },
+    {
+      "id": "embed/collapses-with-a-link-to-the-same-note",
+      "notation": "embed",
+      "markdown": "![[Lei 14.133]]\n\nSee also [[Lei 14.133]].",
+      "links": [{ "slug": "lei-14133", "anchor": null }]
+    },
+    {
+      "id": "relative-link/path-segments-are-discarded",
+      "notation": "markdown-relative-link",
+      "markdown": "See [the procurement act](../decisions/lei-14133.md).",
+      "links": [{ "slug": "lei-14133", "anchor": null }]
+    },
+    {
+      "id": "external-link/never-an-edge",
+      "notation": "external-link",
+      "markdown": "See [the official text](https://example.org/lei-14133).",
+      "links": []
+    },
+    {
+      "id": "external-link/protocol-relative-is-external",
+      "notation": "external-link",
+      "markdown": "See [the mirror](//example.org/lei-14133).",
+      "links": []
+    },
+    {
+      "id": "code/a-link-in-a-fence-is-an-example",
+      "notation": "link-in-code",
+      "markdown": "```\n[[Lei 14.133]]\n```\n",
+      "links": []
+    },
+    {
+      "id": "code/a-link-in-a-span-is-an-example",
+      "notation": "link-in-code",
+      "markdown": "Write it as `[[Lei 14.133]]` in the body.",
+      "links": []
+    },
+    {
+      "id": "inline-tag/carries-no-meaning",
+      "notation": "inline-tag",
+      "markdown": "The decision touches #procurement and #contracts.",
+      "links": [],
+      "facets": {}
+    },
+    {
+      "id": "inline-tag/a-heading-is-not-a-tag",
+      "notation": "inline-tag",
+      "markdown": "# Direct contracting\n\nThe rule.",
+      "links": [],
+      "facets": {}
+    },
+    {
+      "id": "frontmatter/enum",
+      "notation": "frontmatter-enum",
+      "markdown": "---\nmaturity: evergreen\n---\n\nBody.",
+      "facets": { "maturity": { "kind": "enum", "values": ["evergreen"] } }
+    },
+    {
+      "id": "frontmatter/inline-list",
+      "notation": "frontmatter-list",
+      "markdown": "---\ntags: [contracts, procurement]\n---\n\nBody.",
+      "facets": { "tags": { "kind": "list", "values": ["contracts", "procurement"] } }
+    },
+    {
+      "id": "frontmatter/dash-list-reads-as-the-inline-one",
+      "notation": "frontmatter-list",
+      "markdown": "---\ntags:\n  - contracts\n  - procurement\n---\n\nBody.",
+      "facets": { "tags": { "kind": "list", "values": ["contracts", "procurement"] } }
+    },
+    {
+      "id": "frontmatter/boolean-is-canonicalised",
+      "notation": "frontmatter-boolean",
+      "markdown": "---\nreviewed: yes\n---\n\nBody.",
+      "facets": { "reviewed": { "kind": "boolean", "values": ["true"] } }
+    },
+    {
+      "id": "frontmatter/date-is-canonicalised-to-ten-characters",
+      "notation": "frontmatter-date",
+      "markdown": "---\nreviewed_at: 2026-09-03T14:20:00\n---\n\nBody.",
+      "facets": { "reviewed_at": { "kind": "date", "values": ["2026-09-03"] } }
+    },
+    {
+      "id": "frontmatter/prose-is-discarded",
+      "notation": "frontmatter-prose",
+      "markdown": "---\nsummary: This note explains the general rule of direct contracting and its exceptions.\n---\n\nBody.",
+      "facets": {}
+    },
+    {
+      "id": "frontmatter/a-list-of-one-is-still-a-list",
+      "notation": "frontmatter-list",
+      "markdown": "---\ntags: [contracts]\n---\n\nBody.",
+      "facets": { "tags": { "kind": "list", "values": ["contracts"] } }
+    },
+    {
+      "id": "frontmatter/reserved-keys",
+      "notation": "frontmatter-tags",
+      "markdown": "---\naliases: [RTO]\ntags: [continuity]\ncreated: 2026-09-03\nupdated: 2026-09-05\n---\n\nBody.",
+      "facets": {
+        "aliases": { "kind": "list", "values": ["RTO"] },
+        "tags": { "kind": "list", "values": ["continuity"] },
+        "created": { "kind": "date", "values": ["2026-09-03"] },
+        "updated": { "kind": "date", "values": ["2026-09-05"] }
+      }
+    },
+    {
+      "id": "frontmatter/aliases-are-read-as-a-list",
+      "notation": "frontmatter-aliases",
+      "markdown": "---\naliases: [RTO, Recovery Time]\n---\n\nBody.",
+      "facets": { "aliases": { "kind": "list", "values": ["RTO", "Recovery Time"] } }
+    },
+    {
+      "id": "frontmatter/updated-is-a-date",
+      "notation": "frontmatter-updated",
+      "markdown": "---\nupdated: 2026-09-05\n---\n\nBody.",
+      "facets": { "updated": { "kind": "date", "values": ["2026-09-05"] } }
+    },
+    {
+      "id": "frontmatter/title-is-an-ordinary-attribute",
+      "notation": "frontmatter-title",
+      "markdown": "---\ntitle: Lei 14.133\n---\n\nBody.",
+      "facets": { "title": { "kind": "enum", "values": ["Lei 14.133"] } }
+    },
+    {
+      "id": "frontmatter/a-reserved-key-of-the-wrong-shape-degrades",
+      "notation": "frontmatter-created",
+      "markdown": "---\ncreated: manually\n---\n\nBody.",
+      "facets": { "created": { "kind": "enum", "values": ["manually"] } }
+    },
+    {
+      "id": "frontmatter/an-attribute-in-another-language-is-ordinary",
+      "notation": "frontmatter-enum",
+      "markdown": "---\nnorma: federal\n---\n\nBody.",
+      "facets": { "norma": { "kind": "enum", "values": ["federal"] } }
+    },
+    {
+      "id": "frontmatter/not-at-the-first-line-is-not-frontmatter",
+      "notation": "frontmatter-enum",
+      "markdown": "A paragraph.\n\n---\nmaturity: evergreen\n---\n",
+      "facets": {}
+    }
+  ]
+}
