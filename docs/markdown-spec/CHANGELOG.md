@@ -9,6 +9,18 @@ major version. While the profile is `0.x`, a breaking change may arrive in a min
 
 ## [Unreleased]
 
+Governance only. Nothing here changes a notation, so none of it cuts a version.
+
+### Added
+
+- `CONTRIBUTING.md`, the process a change travels from an issue to `main`: the life cycle,
+  the two issue forms, the four outcomes of triage, the branch names, the commit convention
+  and the table of what cuts which version bump.
+- `CLAUDE.md`, the single source of truth for agent behaviour in this repository.
+- The two issue forms — a notation report and a notation proposal — and the pull request
+  template, which asks for the summary, what an implementation has to do, and the three
+  files a notation lives in.
+
 ## [0.2.0] — 2026-09-06
 
 The rest of the vault ring, and the two things the profile had been silent about on purpose

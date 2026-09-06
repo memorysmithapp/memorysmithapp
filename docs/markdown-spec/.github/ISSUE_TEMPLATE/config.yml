@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: A form that does nothing on purpose
+    url: https://github.com/memorysmithapp/markdown-profile/blob/main/SPEC.md#6-what-the-profile-rejects
+    about: An inline #tag, an external link as an edge, prose in the frontmatter. If the form you wrote is here, it was declined deliberately and the section says what to write instead.
+  - name: Something the product does, not something the profile says
+    url: https://github.com/memorysmithapp/memorysmithapp/issues/new/choose
+    about: MemorySmith.app implements this profile and is not its definition. A rendering that looks wrong in the product, and that the profile already specifies, is an issue there.
+  - name: How this profile is changed
+    url: https://github.com/memorysmithapp/markdown-profile/blob/main/CONTRIBUTING.md
+    about: The path a need travels from here to main, and what happens to your issue after it is opened.
