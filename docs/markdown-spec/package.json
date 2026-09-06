@@ -9,6 +9,12 @@
     "url": "git+https://github.com/memorysmithapp/markdown-profile.git"
   },
   "type": "module",
+  "scripts": {
+    "check": "node tools/check-profile.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "exports": {
     "./profile.json": "./profile.json",
     "./conformance.json": "./tests/conformance.json",

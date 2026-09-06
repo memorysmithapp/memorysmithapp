@@ -20,6 +20,13 @@ Governance only. Nothing here changes a notation, so none of it cuts a version.
 - The two issue forms — a notation report and a notation proposal — and the pull request
   template, which asks for the summary, what an implementation has to do, and the three
   files a notation lives in.
+- `tools/check-profile.mjs` and `npm run check`: the consistency check that refuses
+  `SPEC.md`, `profile.json` and `tests/conformance.json` drifting apart. It validates the
+  profile against its schema, requires a case for every notation an indexer decides,
+  resolves every section reference to a real heading, and holds the three files to one
+  version. No dependencies.
+- A CI workflow running that check on every pull request, and `.gitattributes` fixing the
+  line ending at LF so the check reads the same bytes on every operating system.
 
 ## [0.2.0] — 2026-09-06
 

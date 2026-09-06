@@ -1,0 +1,8 @@
+# One line ending in the repository, LF, so that a check on Windows and a check
+# on Linux read the same bytes. The conformance suite compares strings.
+* text=auto eol=lf
+
+# Binaries
+*.png binary
+*.jpg binary
+*.ico binary
