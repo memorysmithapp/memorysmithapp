@@ -179,8 +179,13 @@ for (const entry of notations) {
 
 // ---------------------------------------------------------------------------
 // One canonical version, mirrored in three places.
+//
+// The mirrors are SPEC.md, tests/conformance.json and package.json, and every one of them
+// is a place somebody forgets. This check exists because it already happened: 0.2.0 was
+// released with the header of SPEC.md still saying 0.1.0.
 // ---------------------------------------------------------------------------
 
+const packageJson = readJson('package.json');
 const specVersion = spec.match(/^\*\*Version\s+([0-9]+\.[0-9]+\.[0-9]+)\*\*/m)?.[1];
 
 if (!specVersion) {
@@ -191,6 +196,10 @@ if (!specVersion) {
 
 if (conformance.version !== profile.version) {
   fail('tests/conformance.json', `says version ${conformance.version} and profile.json says ${profile.version}`);
+}
+
+if (packageJson && packageJson.version !== profile.version) {
+  fail('package.json', `says version ${packageJson.version} and profile.json says ${profile.version}. The package is a distribution of the profile and carries its version`);
 }
 
 if (conformance.profile !== profile.profile) {

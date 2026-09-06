@@ -29,9 +29,11 @@ It is not an implementation, and no code that reads a note lives here. The suite
 and carries no runner, so that an implementation in any language can consume it.
 
 ### Canonical version
-The `version` field of [`profile.json`](profile.json). `SPEC.md` and
-`tests/conformance.json` mirror it and CI refuses a divergence. **This file never carries a
-copy of the version**, because a second place to update is a second place to forget.
+The `version` field of [`profile.json`](profile.json). `SPEC.md`,
+`tests/conformance.json` and `package.json` mirror it, and `npm run check` refuses a
+divergence. **This file never carries a copy of the version**, because a second place to
+update is a second place to forget — and that failure is not hypothetical here: 0.2.0 was
+released with the header of `SPEC.md` still saying 0.1.0, and nothing caught it.
 
 ### Git remote
 github.com/memorysmithapp/markdown-profile
@@ -54,6 +56,7 @@ markdown-profile/
 ├── schema/profile.schema.json  # the JSON Schema of profile.json
 ├── tests/conformance.json      # the executable half: input and expected result
 ├── tools/check-profile.mjs     # the consistency check, no dependencies
+├── package.json                # the npm distribution of the data, and `npm run check`
 ├── CHANGELOG.md                # Keep a Changelog, updated in the same commit
 ├── CONTRIBUTING.md             # the process: from an issue to main
 └── README.md                   # what this is and why, for whoever arrives

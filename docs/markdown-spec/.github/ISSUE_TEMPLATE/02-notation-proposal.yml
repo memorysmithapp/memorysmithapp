@@ -10,7 +10,7 @@ body:
         ready to become a branch.
 
         Remember what the answer may be: **declaring that a notation means nothing is a
-        valid outcome of this form**, and `SPEC.md` § 8 exists to hold those. A proposal
+        valid outcome of this form**, and `SPEC.md` § 6 exists to hold those. A proposal
         that ends there was not refused, it was published.
 
   - type: textarea
@@ -114,7 +114,7 @@ body:
       description: |
         Obsidian, Logseq, Roam, GitHub, Quartz — whichever apply. Where two lineages read
         the same characters incompatibly, say so: that is the argument that has decided the
-        hardest questions in this profile, and it is what `SPEC.md` § 8.1 is made of.
+        hardest questions in this profile, and it is what `SPEC.md` § 6.1 is made of.
     validations:
       required: false
 

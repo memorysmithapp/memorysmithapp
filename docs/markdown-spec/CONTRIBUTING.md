@@ -59,12 +59,12 @@ Reduce the case to the smallest note that still shows it.
 | **Refusal** | closed as `not planned` | A comment | No |
 
 **Refusal is a first-class outcome, and it is written down.** This profile is as much a
-list of what it declines to mean as a list of what it means (`SPEC.md` §8), so a refused
+list of what it declines to mean as a list of what it means (`SPEC.md` §6), so a refused
 proposal is not a rejection to be buried: it is a candidate for that section. Close the
 issue with the reason, addressed to whoever opened it.
 
 The classification labels say which ring the issue lives in — `ring:base`, `ring:extended`,
-`ring:memorysmith` — plus `conformance` when the suite is what changes.
+`ring:vault` — plus `conformance` when the suite is what changes.
 
 ## 4. Work on the branch
 
@@ -137,8 +137,10 @@ The profile carries its own version, independent of any implementation, and foll
 While the version is `0.x`, a breaking change may arrive in a minor version, recorded in
 `CHANGELOG.md` under `Changed` or `Removed`.
 
-**The canonical version is the `version` field of `profile.json`.** `SPEC.md` and
-`tests/conformance.json` mirror it, and CI refuses a pull request where the three disagree.
+**The canonical version is the `version` field of `profile.json`.** `SPEC.md`,
+`tests/conformance.json` and `package.json` mirror it, and CI refuses a pull request where
+the four disagree. Every mirror is a place somebody forgets, and this one already happened:
+0.2.0 was released with the header of `SPEC.md` still saying 0.1.0.
 A change that alters no notation — governance, CI, prose — **does not cut a version**: it
 waits in `[Unreleased]` for the next cycle.
 
@@ -153,7 +155,7 @@ npm run check
 No dependencies, no build. It verifies that `profile.json` matches its schema, that every
 notation an indexer decides has at least one conformance case, that every case names a
 notation that exists, that identifiers are unique, that the section references resolve to
-real headings of `SPEC.md`, and that the three files agree on the version.
+real headings of `SPEC.md`, and that every file carrying the version agrees on it.
 
 ## 8. Licence
 
