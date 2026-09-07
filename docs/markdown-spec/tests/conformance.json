@@ -98,6 +98,12 @@
       "links": []
     },
     {
+      "id": "diagram/a-link-in-a-diagram-is-not-an-edge",
+      "notation": "link-in-code",
+      "markdown": "```mermaid\ngraph TD\n  A[[Lei 14.133]] --> B\n```\n",
+      "links": []
+    },
+    {
       "id": "code/a-link-in-a-span-is-an-example",
       "notation": "link-in-code",
       "markdown": "Write it as `[[Lei 14.133]]` in the body.",

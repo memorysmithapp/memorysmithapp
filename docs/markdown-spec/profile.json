@@ -165,8 +165,8 @@
       "reader": "reading-surface",
       "syntax": "![alt text](image.png \"optional title\")",
       "example": "![The seal of the act](seal.png)",
-      "effect": "An image. The alt text is the description and a Reader MUST NOT drop it. A `!` in front of a wikilink is not this: `![[target]]` is an embed.",
-      "spec": "3.14"
+      "effect": "An image. The alt text is the description and a Reader MUST NOT drop it — which is what a person gets when the image does not load. A destination naming a host makes the image a request to that host when the note is opened, and §7.10 governs what a Reader may do about that. A `!` in front of a wikilink is not this: `![[target]]` is an embed.",
+      "spec": "3.14, 7.10"
     },
     {
       "id": "autolink",
@@ -214,7 +214,7 @@
       "syntax": "- [ ] item  ·  - [x] item",
       "example": "- [ ] Read the act\n- [x] Summarise article 75\n",
       "effect": "GFM task list items. A reading surface may let a person toggle one, and a toggle writes back exactly the one character that changed, never a reformatted note.",
-      "spec": "4.2, 7.10"
+      "spec": "4.2, 7.11"
     },
     {
       "id": "raw-html",
@@ -373,7 +373,7 @@
       "reader": "reading-surface",
       "syntax": "```mermaid",
       "example": "```mermaid\nflowchart LR\n  A --> B\n```\n",
-      "effect": "A fenced block whose info string is `mermaid` is rendered as a diagram. A reader that cannot render it shows the source, never nothing.",
+      "effect": "A fenced block whose info string is `mermaid` is rendered as a diagram. A reader that cannot render it shows the source, never nothing. It is a fenced block, so nothing inside it produces an edge: a node drawn as a link is navigation, never a graph connection.",
       "spec": "7.2"
     },
     {

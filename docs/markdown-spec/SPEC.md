@@ -279,6 +279,8 @@ An image is a link with `!` in front of it.
 
 The alt text is the description of the image and a Reader MUST NOT drop it. A `!` in front of a **wikilink** is a different thing entirely: `![[target]]` is the embed of §5.7.
 
+A destination naming a host makes this image a request to that host when the note is opened. What a Reader may and may not do about that is §7.10.
+
 ### 3.15 Autolinks
 
 An absolute URI or an email address between angle brackets.
@@ -338,7 +340,7 @@ A list item whose text begins with `[ ]` or `[x]` — case-insensitive — follo
 - [x] Summarise article 75
 ```
 
-The brackets MUST be the first thing in the item. In every other respect it is an ordinary list item, and §7.10 governs what a Reader may do when it lets somebody toggle one.
+The brackets MUST be the first thing in the item. In every other respect it is an ordinary list item, and §7.11 governs what a Reader may do when it lets somebody toggle one.
 
 ### 4.3 Strikethrough
 
@@ -570,6 +572,10 @@ A `[!type]` inside a code fence is not a callout. A conforming Reader therefore 
 
 A fenced code block whose info string is `mermaid` is a diagram. A Reader SHOULD render it. A Reader that cannot MUST fall back to showing the source as a code block, never to hiding it.
 
+A diagram **is** a fenced code block, so §5.6 applies to everything inside it: nothing in a diagram produces an edge, whatever it looks like. A Reader MAY draw a node as a link to a note — the diagram languages have their own way of asking for that — and such a link is navigation and never an edge. It appears in no graph and generates no backlink. An author who wants the connection in the graph writes the wikilink in the body as well.
+
+The diagram language itself is not restated here. `mermaid` is an info string this profile attaches a rendering rule to, not a grammar it specifies; its own documentation governs, the way §2.1 hands parsing detail back to a source.
+
 ### 7.3 Transclusion
 
 `![[target]]` and `![[target#section]]` are embeds. A Reader SHOULD render the content of the target in place: the whole note for the plain form, the named section for the anchored form.
@@ -650,7 +656,33 @@ and a reading surface that renders arbitrary HTML out of it is a script injectio
 trigger is written by whoever wrote the note. CommonMark admits raw HTML; this profile does
 not, and an implementation MUST NOT claim conformance while rendering it.
 
-### 7.10 Task lists
+### 7.10 Remote resources
+
+§7.9 says what a Reader MUST NOT execute. This says what it may fetch.
+
+An image whose destination names a host is a **request to that host**, made when the note is
+opened, by whoever opens it. The trigger was written by whoever wrote the note — the same
+sentence §7.9 uses — and what travels with the request is the reader's address, their
+user-agent and the moment they read it.
+
+A Reader MUST state whether opening a note causes a request to a host named inside it. Three
+answers conform: it never does; it does only on the reader's action; or it does, and the
+implementation says so where a reader can find it. **What does not conform is leaving it
+unstated**, because a person cannot decline what nobody told them about.
+
+*How* is not this profile's business — proxying, caching and content policy belong to the
+implementation (§1.2). The rule is the observable effect and the disclosure, in the shape
+§6.3 already uses for the cardinality ceiling: the profile does not choose the number, it
+requires that the choice be documented.
+
+A Reader that does not load a remote image still owes the person something to read, and
+§3.14 already says what it is: the alt text is the description and MUST NOT be dropped.
+
+The image of §3.14 is the only notation here that fetches. A diagram (§7.2) and
+mathematics (§7.8) render locally, and a link — bracketed, bare or autolinked — is a
+navigation the person initiates rather than a request the page makes.
+
+### 7.11 Task lists
 
 GFM task list items MAY be interactive. A Reader that lets a person toggle one MUST write back exactly the one character that changed, and MUST NOT rewrite, reformat or re-serialise the rest of the note.
 
@@ -746,7 +778,7 @@ Every form this document declares, in one table. The last column is the section 
 | Emphasis, strong | `*a*`, `**a**` | — | 3.12 |
 | Inline link | `[text](url)` | An edge when the target is internal | 3.13, 5.2 |
 | Reference link | `[text][label]` | An edge when the target is internal | 3.13, 5.2 |
-| Image | `![alt](image.png)` | — | 3.14 |
+| Image | `![alt](image.png)` | A remote destination is a request when the note opens | 3.14, 7.10 |
 | Autolink | `<https://example.org>` | Never an edge | 3.15, 5.2 |
 | Raw inline HTML | `<abbr>…</abbr>` | Kept in the bytes, shown as text | 3.16, 7.10 |
 | Hard line break | trailing `\` | — | 3.17 |
@@ -767,7 +799,7 @@ Every form this document declares, in one table. The last column is the section 
 | Date value | `key: 2026-09-03` | A `date` attribute, queried by prefix and interval | 6.3, 6.7, 6.8 |
 | Reserved keys | `aliases`, `tags`, `created`, `updated` | Search spellings, subjects, the author's dates | 6.4 |
 | Callout | `> [!warning] Title` | Drawn as a callout, not as a quotation | 7.1 |
-| Mermaid diagram | ` ```mermaid ` | Drawn as a diagram, or shown as source | 7.2 |
+| Mermaid diagram | ` ```mermaid ` | Drawn as a diagram, or shown as source; opaque to the link reader | 7.2 |
 | Marked text | `==highlight==` | Nothing beyond emphasis | 7.5 |
 | Comment | `%%comment%%` | Off the page, kept in the bytes | 7.6 |
 | Block identifier | `^article-75` | Names a block; not rendered | 7.7 |

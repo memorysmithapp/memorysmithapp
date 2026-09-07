@@ -9,6 +9,29 @@ major version. While the profile is `0.x`, a breaking change may arrive in a min
 
 ## [Unreleased]
 
+### Added
+
+- **§7.10, what a Reader may fetch**, stated beside §7.9, which says what it must not
+  execute. An image whose destination names a host is a request to that host, made when the
+  note is opened, carrying the reader's address and the moment they read it — with the
+  trigger written by whoever wrote the note, which is the sentence §7.9 uses to refuse raw
+  HTML. The two forms sat on opposite sides of a line nobody had drawn: `<img src="https://…">`
+  was refused by name and `![](https://…)` was never mentioned. A Reader MUST now state
+  whether opening a note causes such a request; never doing it, doing it only on the reader's
+  action, and doing it and saying so all conform, and **only silence does not**. How is left
+  to the implementation, as §1.2 requires, and the disclosure takes the shape §6.3 already
+  uses for the cardinality ceiling.
+- **A diagram is opaque to the link reader** (§7.2), which the section on diagrams did not
+  say. A diagram is a fenced code block, so §5.6 applies to everything inside it: nothing in
+  one produces an edge. A Reader MAY draw a node as a link to a note — the diagram languages
+  have their own way of asking for that — and such a link is **navigation and never an
+  edge**, appearing in no graph and generating no backlink. The answer was derivable in two
+  hops from a section about code blocks, and an author who wants a linked diagram is reading
+  §7.2, where none of it appeared. A conformance case now holds it, next to the two for a
+  link in a code fence and a code span.
+- Task lists move from §7.10 to §7.11, following the section added above. No effect changes
+  with them.
+
 ### Changed
 
 - **CommonMark 0.31.2 and GFM 0.29-gfm are reference sources, not rings the profile is built
