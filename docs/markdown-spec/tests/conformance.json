@@ -1,6 +1,6 @@
 {
   "profile": "MemorySmith Markdown Profile",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "cases": [
     {
       "id": "wikilink/plain",
@@ -17,6 +17,39 @@
       "id": "wikilink/alias-does-not-change-the-target",
       "notation": "wikilink-alias",
       "markdown": "See [[Lei 14.133|the procurement act]] for the general rule.",
+      "links": [
+        {
+          "slug": "lei-14133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "table/a-link-in-a-cell-is-an-ordinary-link",
+      "notation": "wikilink",
+      "markdown": "| Rule | Where |\n|---|---|\n| The general one | [[Lei 14.133]] |\n",
+      "links": [
+        {
+          "slug": "lei-14133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "table/an-escaped-pipe-keeps-the-alias",
+      "notation": "wikilink-alias",
+      "markdown": "| Rule | Where |\n|---|---|\n| The exception | [[Lei 14.133\\|article 75]] |\n",
+      "links": [
+        {
+          "slug": "lei-14133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "table/the-outer-pipes-are-optional",
+      "notation": "wikilink",
+      "markdown": "Rule | Where\n--- | ---\nThe general one | [[Lei 14.133]]\n",
       "links": [
         {
           "slug": "lei-14133",
@@ -98,24 +131,16 @@
       "links": []
     },
     {
+      "id": "diagram/a-link-in-a-diagram-is-not-an-edge",
+      "notation": "link-in-code",
+      "markdown": "```mermaid\ngraph TD\n  A[[Lei 14.133]] --> B\n```\n",
+      "links": []
+    },
+    {
       "id": "code/a-link-in-a-span-is-an-example",
       "notation": "link-in-code",
       "markdown": "Write it as `[[Lei 14.133]]` in the body.",
       "links": []
-    },
-    {
-      "id": "inline-tag/carries-no-meaning",
-      "notation": "inline-tag",
-      "markdown": "The decision touches #procurement and #contracts.",
-      "links": [],
-      "facets": {}
-    },
-    {
-      "id": "inline-tag/a-heading-is-not-a-tag",
-      "notation": "inline-tag",
-      "markdown": "# Direct contracting\n\nThe rule.",
-      "links": [],
-      "facets": {}
     },
     {
       "id": "frontmatter/enum",
@@ -360,13 +385,6 @@
       "id": "raw-html/never-becomes-an-edge",
       "notation": "raw-html",
       "markdown": "The notice: <a href=\"https://example.org\">read the act</a>.",
-      "links": [],
-      "facets": {}
-    },
-    {
-      "id": "sub-sup/carries-no-meaning",
-      "notation": "sub-sup",
-      "markdown": "The formula is H~2~O, and the area is 3 m^2^.",
       "links": [],
       "facets": {}
     }

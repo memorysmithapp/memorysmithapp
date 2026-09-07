@@ -58,14 +58,13 @@ body:
       required: true
 
   - type: dropdown
-    id: ring
+    id: source
     attributes:
-      label: Which ring you believe it belongs to
+      label: Where you believe the form comes from
       description: A guess is fine. Triage decides, and getting it wrong here costs nothing.
       options:
-        - Base, it is CommonMark
-        - Extended, it is GFM
-        - MemorySmith, it is a wikilink, frontmatter, a callout or an embed
+        - Ordinary Markdown, it works everywhere
+        - A vault editor, it is a wikilink, frontmatter, a callout or an embed
         - I do not know
     validations:
       required: true

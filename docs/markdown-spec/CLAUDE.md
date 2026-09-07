@@ -21,8 +21,9 @@ md.memorysmith.app
 The MemorySmith Markdown Profile: a specification of the Markdown notation a knowledge
 vault is written in, published as prose, as data and as an executable conformance suite. It
 is a profile, not a syntax — every form it declares comes from CommonMark, from GFM or from
-the vault editors that established it — and its distinguishing claim is that it states the
-**observable effect** of each form, including the forms it deliberately gives no effect to.
+the vault editors that established it, chiefly Obsidian — and its distinguishing claim is
+that it states the **observable effect** of each form, including the forms it deliberately
+gives no effect to.
 
 ### What it is not
 It is not an implementation, and no code that reads a note lives here. The suite is data
@@ -178,9 +179,9 @@ Update `CHANGELOG.md` **in the same commit** as the change it documents, using t
 perspective of whoever writes a note or implements the profile, never of the file that was
 edited.
 
-A rejected notation is recorded as explicitly as an accepted one, under the heading the
-0.1.0 entry established. Absence is a statement in this profile, and the changelog is where
-it is dated.
+A notation **removed** is recorded as explicitly as one added, and under `Removed`. What is
+not recorded is a form the profile declines: `SPEC.md` §8 covers every one of them with a
+single rule, and a refusal that changes no file belongs in the issue that argued it.
 
 **Good:** `Added the anchor form of the wikilink, which links to a section and resolves to the note`
 **Bad:** `Updated section 3.1 of SPEC.md and added two entries to profile.json`

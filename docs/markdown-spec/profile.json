@@ -1,10 +1,10 @@
 {
   "$schema": "./schema/profile.schema.json",
   "profile": "MemorySmith Markdown Profile",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "variant": "MemorySmith",
   "url": "https://md.memorysmith.app",
-  "base": [
+  "sources": [
     {
       "id": "commonmark",
       "name": "CommonMark",
@@ -16,548 +16,437 @@
       "name": "GitHub Flavored Markdown",
       "version": "0.29-gfm",
       "url": "https://github.github.com/gfm/"
+    },
+    {
+      "id": "obsidian",
+      "name": "Obsidian",
+      "url": "https://help.obsidian.md/syntax"
     }
   ],
   "notations": [
     {
       "id": "paragraph",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "Lines of text, ended by a blank line",
       "example": "A paragraph.\n\nA second one.\n",
       "effect": "The default block: consecutive lines are one paragraph and a blank line ends it. It is also the unit a block identifier names, since a `^id` at the end of one names that block.",
-      "recognised": true,
       "spec": "3.1"
     },
     {
       "id": "backslash-escape",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "\\ before an ASCII punctuation character",
-      "example": "Write \\*this\\* without emphasis, and \\[\\[this\\]\\] without a link.",
-      "effect": "Makes the next character literal. It is how an author writes the notation of this profile as text, and it matters more here than in plain CommonMark: `[[`, `![[`, `==`, `%%`, `$` and a trailing `^` all carry meaning that CommonMark does not give them.",
-      "recognised": true,
+      "example": "To name the forms without invoking them: \\[\\[wikilink\\]\\], \\=\\=marked\\=\\=, \\%\\%comment\\%\\%, \\$formula\\$.",
+      "effect": "The character that follows is literal. It is how this profile's own notation is written as text — `\\[\\[`, `\\=\\=`, `\\%\\%`, `\\$` — and how a line is stopped from becoming a list, with the backslash before the period rather than before the number.",
       "spec": "3.2"
     },
     {
       "id": "character-reference",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "&amp;  ·  &#35;  ·  &#X1F600;",
       "example": "The ampersand is written &amp; and the hash &#35;.",
       "effect": "Resolves to the character it names, anywhere a literal character is allowed. Only the HTML5 named references are valid; anything else stays as it was typed.",
-      "recognised": true,
       "spec": "3.2"
     },
     {
       "id": "heading-atx",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "# Title  ·  ###### Title",
       "example": "## Direct contracting\n\nThe rule.\n",
       "effect": "A heading of levels one to six. A heading is what a wikilink anchor points at: `[[Target#Direct contracting]]` names one, and the anchor is kept for display without changing which note is resolved.",
-      "recognised": true,
       "spec": "3.3"
     },
     {
       "id": "heading-setext",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "Title, then a line of === or ---",
       "example": "Direct contracting\n==================\n\nThe rule.\n",
       "effect": "A heading of level one or two, equivalent to the ATX form at those levels. A `---` directly under a paragraph is this, and not a thematic break.",
-      "recognised": true,
       "spec": "3.3"
     },
     {
       "id": "thematic-break",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "---  ·  ***  ·  ___",
-      "example": "Before.\n\n***\n\nAfter.\n",
+      "example": "The general rule ends here.\n\n---\n\nThe exception begins.\n",
       "effect": "A horizontal division. `---` is context-dependent and all three readings are correct in their place: on the first line of the file it opens frontmatter, directly under a paragraph it is a setext heading, anywhere else it is a thematic break.",
-      "recognised": true,
       "spec": "3.4"
     },
     {
       "id": "block-quote",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "> text",
-      "example": "> A quotation.\n",
+      "example": "> The administration is bound by the notice.\n>\n> > And by the one that preceded it.\n",
       "effect": "A quotation, which may hold any block including another quotation. A block quote whose first line begins with `[!type]` is a callout instead, and that is the only thing that tells the two apart.",
-      "recognised": true,
       "spec": "3.5"
     },
     {
       "id": "list-bullet",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "- item  ·  + item  ·  * item",
-      "example": "- one\n- two\n  - nested\n",
+      "example": "- Preliminary study\n  1. Estimate the demand\n  2. Price the market\n- Draft the notice\n  - [ ] Attach the price research\n",
       "effect": "An unordered list. Changing the marker character starts a new list, and a blank line between items makes the list loose, which is what changes the spacing.",
-      "recognised": true,
       "spec": "3.6"
     },
     {
       "id": "list-ordered",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "1. item  ·  1) item",
-      "example": "1. first\n2. second\n",
+      "example": "1. Publish the notice\n1. Receive the proposals\n1. Judge and rank\n",
       "effect": "An ordered list. The number of the first item sets where it starts and the numbers of the rest are ignored, so a list written entirely with `1.` numbers itself correctly.",
-      "recognised": true,
       "spec": "3.6"
     },
     {
       "id": "code-fenced",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "Three or more backticks or tildes, with an optional info string",
-      "example": "```sql\nselect 1;\n```\n",
-      "effect": "A code block. Nothing inside is parsed: no emphasis, no links, no wikilinks, no callouts. `mermaid` is the one info string this profile attaches a rendering rule to.",
-      "recognised": true,
+      "example": "````\nHere is how a diagram is written:\n\n```mermaid\ngraph TD\n  Notice --> Proposals\n```\n````\n",
+      "effect": "A code block. Nothing inside is parsed: no emphasis, no links, no wikilinks, no callouts. A fence closes only on the same character at the same length or longer, so a fence nests — an outer fence uses more characters than any inside it, or a different character. `mermaid` is the one info string this profile attaches a rendering rule to.",
       "spec": "3.7"
     },
     {
       "id": "code-indented",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "four spaces, or one tab",
       "example": "    an indented code block\n",
       "effect": "A code block written by indentation. It suppresses every notation inside it exactly as a fenced block does.",
-      "recognised": true,
       "spec": "3.7"
     },
     {
       "id": "link-reference-definition",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "[label]: /url \"Optional title\"",
       "example": "[the act]: https://example.org/lei-14133\n\nSee [the act].\n",
       "effect": "Binds a label to a destination and renders nothing where it stands. A reference with no definition renders as literal text, brackets and all.",
-      "recognised": true,
       "spec": "3.8"
     },
     {
       "id": "code-span",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "`code`  ·  ``a span holding a ` backtick``",
-      "example": "Write a link as `[[Lei 14.133]]` in the body.",
-      "effect": "Inline code. It is where an author writes notation without invoking it, and an Indexer MUST NOT extract a link found inside one.",
-      "recognised": true,
+      "example": "The closing fence is ``a run of ` characters`` at least as long as the opening one.",
+      "effect": "Inline code. A run of one or more backticks closes on a run of exactly the same length, so a span can hold a backtick by using two. One leading and one trailing space are stripped when both are present. It is where an author writes notation without invoking it, and an Indexer MUST NOT extract a link found inside one.",
       "spec": "3.11"
     },
     {
       "id": "emphasis",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "*text*  ·  _text_",
-      "example": "The rule is *usually* the exception.",
-      "effect": "Emphasis. `_` does not open or close inside a word, so `snake_case_name` is one word; `*` does, so `un*frigging*believable` works.",
-      "recognised": true,
+      "example": "The rule is *usually* the exception, and **the notice binds _both_ sides**.",
+      "effect": "Emphasis. It nests inside strong emphasis — `**a _b_ c**` — where the inner delimiter uses the other character, because a run of the same one would close the outer form instead of opening an inner one. `_` does not open or close inside a word, so `snake_case_name` is one word; `*` does, so `un*frigging*believable` works.",
       "spec": "3.12"
     },
     {
       "id": "strong",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "**text**  ·  __text__",
       "example": "This is **not** optional.",
       "effect": "Strong emphasis. `==highlight==` is neither this nor CommonMark: it is marked text, and it belongs to the MemorySmith ring.",
-      "recognised": true,
+      "spec": "3.12"
+    },
+    {
+      "id": "strong-emphasis",
+      "reader": "reading-surface",
+      "syntax": "***text***  ·  ___text___",
+      "example": "The deadline is ***not*** negotiable.",
+      "effect": "Emphasis and strong emphasis at once. `___` alone on a line is a thematic break instead, because blocks are resolved before inlines.",
       "spec": "3.12"
     },
     {
       "id": "link-inline",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "[text](destination \"optional title\")",
       "example": "See [the official text](https://example.org/lei-14133).",
       "effect": "A link. Whether it becomes an edge is decided by the destination alone: a relative target inside the vault does, anything carrying a scheme or a host does not.",
-      "recognised": true,
       "spec": "3.13"
     },
     {
       "id": "link-reference",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "[text][label]  ·  [label][]  ·  [label]",
       "example": "See [the act][] for the general rule.",
       "effect": "A link resolved against a reference definition. The three forms are equivalent once resolved, and the destination decides the edge exactly as in the inline form.",
-      "recognised": true,
       "spec": "3.13"
     },
     {
       "id": "image",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "![alt text](image.png \"optional title\")",
       "example": "![The seal of the act](seal.png)",
-      "effect": "An image. The alt text is the description and a Reader MUST NOT drop it. A `!` in front of a wikilink is not this: `![[target]]` is an embed.",
-      "recognised": true,
-      "spec": "3.14"
+      "effect": "An image. The alt text is the description and a Reader MUST NOT drop it — which is what a person gets when the image does not load. A destination naming a host makes the image a request to that host when the note is opened, and §7.10 governs what a Reader may do about that. A `!` in front of a wikilink is not this: `![[target]]` is an embed.",
+      "spec": "3.14, 7.10"
     },
     {
       "id": "autolink",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "<https://example.org/page>  ·  <someone@example.org>",
       "example": "The text is at <https://example.org/lei-14133>.",
       "effect": "A URI or an email address linked as itself. It is external, and therefore never an edge.",
-      "recognised": true,
-      "spec": "3.15, 8.2"
+      "spec": "3.15, 5.2"
     },
     {
       "id": "hard-line-break",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "a trailing backslash, or two trailing spaces",
       "example": "first line\\\nsecond line\n",
       "effect": "A line break inside a paragraph. A Writer SHOULD use the backslash: trailing spaces do not survive an editor that trims them, and a break that disappears on save is worse than one never written.",
-      "recognised": true,
       "spec": "3.17"
     },
     {
       "id": "table",
-      "ring": "extended",
       "reader": "reading-surface",
       "syntax": "| a | b | over a delimiter row of --- with optional :",
-      "example": "| Key | Indexed |\n|---|:---:|\n| `tags` | yes |\n",
-      "effect": "A table. The header row fixes the number of columns and a cell holds inlines, never blocks. A cell is a place text lives and not a boundary an Indexer stops at: a wikilink inside one is a link like any other, and a literal pipe is written `\\|`.",
-      "recognised": true,
+      "example": "| Rule | Where |\n|---|:---:|\n| The general one | [[Lei 14.133]] |\n| The exception | [[Lei 14.133\\|article 75]] |\n",
+      "effect": "A table. The header row fixes the number of columns and a cell holds inlines, never blocks. A cell is a place text lives and not a boundary an Indexer stops at: a wikilink inside one is a link like any other, a literal pipe is written `\\|`, and an embed of a note is drawn as a link because no block fits in a cell.",
       "spec": "4.1"
     },
     {
       "id": "strikethrough",
-      "ring": "extended",
       "reader": "reading-surface",
-      "syntax": "~text~  ·  ~~text~~",
-      "example": "The earlier rule is ~~still in force~~ revoked.",
-      "effect": "Struck-through text. Three or more tildes strike nothing.",
-      "recognised": true,
+      "syntax": "~~text~~",
+      "example": "Water is H~2~O, and the earlier rule is ~~revoked~~.",
+      "effect": "Struck-through text. Two tildes and only two: one strikes nothing and neither do three or more. GFM defines the form as `~~`, and the single tilde GitHub's renderer accepts is outside its own specification, so `H~2~O` stays literal here.",
       "spec": "4.3"
     },
     {
       "id": "autolink-extended",
-      "ring": "extended",
       "reader": "reading-surface",
       "syntax": "www.example.org  ·  https://example.org/page  ·  a bare email address",
       "example": "The text is at https://example.org/lei-14133.",
       "effect": "A link recognised without angle brackets around it. Trailing punctuation is left out, so a URL at the end of a sentence does not swallow the full stop. Bracketed or bare, it is external and never an edge.",
-      "recognised": true,
-      "spec": "4.4, 8.2"
+      "spec": "4.4, 5.2"
     },
     {
       "id": "task-list",
-      "ring": "extended",
       "reader": "reading-surface",
       "syntax": "- [ ] item  ·  - [x] item",
-      "example": "- [ ] Read the act\n- [x] Summarise article 75\n",
+      "example": "- [ ] Price research\n  - [X] Three quotes gathered\n  - [ ] Attached to the file\n",
       "effect": "GFM task list items. A reading surface may let a person toggle one, and a toggle writes back exactly the one character that changed, never a reformatted note.",
-      "recognised": true,
       "spec": "4.2, 7.11"
     },
     {
       "id": "raw-html",
-      "ring": "extended",
       "reader": "reading-surface",
       "syntax": "<div>anything</div>",
       "example": "The notice: <b>read the act</b>.",
-      "effect": "NOT rendered. Stored and returned exactly as written, and shown as text. This is a security boundary and not a rendering preference: a vault is written by several people and by agents, and a page that renders arbitrary HTML out of it is a script injection whose trigger is written by whoever wrote the note.",
-      "recognised": false,
-      "spec": "3.9, 3.16, 7.10"
+      "effect": "Stored and returned exactly as written, and shown as text rather than rendered. This is a security boundary and not a rendering preference: a vault is written by several people and by agents, and a page that renders arbitrary HTML out of it is a script injection whose trigger is written by whoever wrote the note.",
+      "spec": "3.9, 3.16, 7.9"
     },
     {
       "id": "wikilink",
-      "ring": "memorysmith",
       "reader": "links",
       "syntax": "[[Target note]]",
       "example": "See [[Lei 14.133]] for the general rule.",
       "effect": "Becomes an edge in the graph and a backlink on the target. The target is resolved by slug within this vault, never across vaults. A target that does not exist yet becomes a pending link, which is expected while a vault is being written.",
-      "recognised": true,
       "spec": "5.1"
     },
     {
       "id": "wikilink-alias",
-      "ring": "memorysmith",
       "reader": "links",
       "syntax": "[[Target note|what the reader sees]]",
       "example": "See [[Lei 14.133|the procurement act]] for the general rule.",
       "effect": "The same edge as the plain form. The alias changes the text, never the target.",
-      "recognised": true,
       "spec": "5.1"
     },
     {
       "id": "wikilink-anchor",
-      "ring": "memorysmith",
       "reader": "links",
       "syntax": "[[Target note#Section]]",
       "example": "See [[Lei 14.133#Article 75]] for the exception.",
       "effect": "The same edge as the plain form: the anchor is kept for display and dropped in resolution. Two links to two sections of one note are two links to the same note.",
-      "recognised": true,
       "spec": "5.2"
     },
     {
       "id": "embed",
-      "ring": "memorysmith",
       "reader": "links",
       "syntax": "![[Target note]]  ·  ![[Target note#Section]]",
       "example": "The rule is stated in full here:\n\n![[Lei 14.133#Article 75]]\n",
       "effect": "A wikilink prefixed by `!` is an embed: for the graph it is exactly the same edge as a plain link, and for a reader the content of the target is shown in place. Tools never expand it: a reader of the raw note gets the `![[...]]` that was written.",
-      "recognised": true,
       "spec": "5.7"
     },
     {
       "id": "markdown-relative-link",
-      "ring": "memorysmith",
       "reader": "links",
       "syntax": "[what the reader sees](target-note.md)",
       "example": "See [the procurement act](lei-14133.md) for the general rule.",
       "effect": "Becomes the same edge as a wikilink. The target is reduced to its basename without extension and resolved by slug, so a path with folders in it resolves to the note and not to the path.",
-      "recognised": true,
       "spec": "5.2"
     },
     {
       "id": "external-link",
-      "ring": "memorysmith",
       "reader": "links",
       "syntax": "[what the reader sees](https://example.org/page)",
       "example": "See [the official text](https://example.org/lei-14133) for the general rule.",
-      "effect": "NEVER becomes an edge. Anything with a scheme or a host is external, and the graph is about the notes of this vault. Use it freely for sources; do not use it expecting a connection.",
-      "recognised": false,
-      "spec": "8.2"
+      "effect": "Renders as a link and is never an edge. A destination with a scheme, or one beginning `//`, refers to the world and not to the vault, so it is not resolved against any note. Use external links freely as sources; a connection is not one of the things they make.",
+      "spec": "5.1, 5.2"
     },
     {
       "id": "link-in-code",
-      "ring": "memorysmith",
       "reader": "links",
       "syntax": "`[[Target note]]` inside a code span or fence",
       "example": "Write a link as `[[Lei 14.133]]` in the body.",
       "effect": "A link inside code is an example, not a reference, and produces no edge.",
-      "recognised": false,
       "spec": "5.6"
     },
     {
       "id": "frontmatter-enum",
-      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "key: short-value",
       "example": "---\nmaturity: evergreen\n---\n\nBody.",
       "effect": "Becomes an attribute you can filter and count by, and a search filter written as `maturity:evergreen`. The vocabulary is yours: no key is special.",
-      "recognised": true,
       "spec": "6.3"
     },
     {
       "id": "frontmatter-list",
-      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "key: [one, two]  ·  or a dash list under the key",
       "example": "---\ntags: [contracts, procurement]\n---\n\nBody.",
       "effect": "Becomes an attribute with several values, each one filterable on its own.",
-      "recognised": true,
       "spec": "6.3"
     },
     {
       "id": "frontmatter-boolean",
-      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "key: true  ·  key: false",
       "example": "---\nreviewed: false\n---\n\nBody.",
       "effect": "Becomes a boolean attribute, which is what makes \"what has nobody reviewed\" answerable.",
-      "recognised": true,
       "spec": "6.3"
     },
     {
       "id": "frontmatter-date",
-      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "key: 2026-09-03",
       "example": "---\nreviewed_at: 2026-09-03\n---\n\nBody.",
       "effect": "Becomes a date attribute, queryable by prefix: the year, the month or the day. An ISO 8601 date is recognised as a date; other formats are not.",
-      "recognised": true,
       "spec": "6.3, 6.7"
     },
     {
       "id": "frontmatter-aliases",
-      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "aliases: [RTO, Recovery Time]",
       "example": "---\naliases: [RTO]\n---\n\nBody.",
       "effect": "Reserved: alternative spellings of this note, which join the search index and rank as the title does. They do NOT resolve wikilinks, and that is a decision rather than a gap: resolution is behaviour, and an alias collision can be created by editing a third note that is neither end of the link, moving an existing edge with nothing on screen saying so. A link that does not resolve is at least visible, as a pending link.",
-      "recognised": true,
       "spec": "6.4"
     },
     {
       "id": "frontmatter-tags",
-      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "tags: [contracts, procurement]",
       "example": "---\ntags: [contracts]\n---\n\nBody.",
       "effect": "Reserved: the subjects of this note. This is where a tag lives in this profile, and it is filterable and countable like any other list attribute.",
-      "recognised": true,
       "spec": "6.4"
     },
     {
       "id": "frontmatter-created",
-      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "created: 2026-09-03",
       "example": "---\ncreated: 2026-09-03\n---\n\nBody.",
       "effect": "Reserved: what the author states about when the content came to be. It is never the history of the file; an implementation that knows the real history treats that as authoritative.",
-      "recognised": true,
       "spec": "6.4, 6.6"
     },
     {
       "id": "frontmatter-updated",
-      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "updated: 2026-09-03",
       "example": "---\nupdated: 2026-09-03\n---\n\nBody.",
       "effect": "Reserved: what the author states about when the content was last revised. Like `created`, it is a statement about the content and not the history of the file.",
-      "recognised": true,
       "spec": "6.4, 6.6"
     },
     {
       "id": "frontmatter-title",
-      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "title: Whatever the note is called",
       "example": "---\ntitle: Lei 14.133\n---\n\nBody.",
-      "effect": "NOT reserved and NOT special. The title of a note is structural: `title:` never renames it and never takes part in link resolution. As an ordinary attribute it is prose that is unique per note, which the cardinality ceiling stops indexing on its own.",
-      "recognised": false,
+      "effect": "Indexed as an ordinary attribute, like any other key. The title of a note is structural: `title:` never renames it and never takes part in link resolution. As an ordinary attribute it is prose that is unique per note, which the cardinality ceiling stops indexing on its own.",
       "spec": "6.5"
     },
     {
       "id": "frontmatter-prose",
-      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "key: a whole sentence, longer than forty characters",
       "example": "---\nsummary: This note explains the general rule of direct contracting and its exceptions.\n---\n\nBody.",
-      "effect": "Is read and DISCARDED. Above forty characters a value is prose, not a category, and an attribute of unique sentences would be a list of everything. Put prose in the body.",
-      "recognised": false,
-      "spec": "6.3, 8.3"
-    },
-    {
-      "id": "inline-tag",
-      "ring": "memorysmith",
-      "reader": "links",
-      "syntax": "#subject",
-      "example": "The decision touches #procurement and #contracts.",
-      "effect": "Carries NO meaning in this profile: neither an edge nor an attribute, and rendered as plain text. To group notes by subject write `tags:` in the frontmatter; to connect a note to a subject worth a note of its own, write [[subject]].",
-      "recognised": false,
-      "spec": "8.1"
+      "effect": "Read and discarded. Above forty characters a value is prose rather than a category, and an attribute of unique sentences would be a list of everything. Prose belongs in the body, where it is searchable.",
+      "spec": "6.3"
     },
     {
       "id": "callout",
-      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "> [!type] Optional title",
       "example": "> [!warning] What can go wrong\n> The body of the notice.\n",
       "effect": "A blockquote whose first line begins with `[!type]` is drawn as a callout, not as a quotation with a marker in front of it. The five GitHub alert types are recognised and the vocabulary is open. A `[!type]` inside a code fence is not a callout.",
-      "recognised": true,
       "spec": "7.1"
     },
     {
       "id": "mermaid",
-      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "```mermaid",
       "example": "```mermaid\nflowchart LR\n  A --> B\n```\n",
-      "effect": "A fenced block whose info string is `mermaid` is rendered as a diagram. A reader that cannot render it shows the source, never nothing.",
-      "recognised": true,
+      "effect": "A fenced block whose info string is `mermaid` is rendered as a diagram. A reader that cannot render it shows the source, never nothing. It is a fenced block, so nothing inside it produces an edge: a node drawn as a link is navigation, never a graph connection.",
       "spec": "7.2"
     },
     {
       "id": "transclusion",
-      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "![[Target note]]  ·  ![[Target note#Section]]",
       "example": "![[Lei 14.133#Article 75]]\n",
-      "effect": "The reading surface shows the content of the target in place, one level deep: an embed inside embedded content is drawn as a link. The bytes never change, and tools return the `![[...]]` that was written.",
-      "recognised": true,
-      "spec": "7.3"
+      "effect": "The reading surface shows the content of the target in place, one level deep: an embed inside embedded content is drawn as a link, and so is one past the ceiling a Reader sets, and so is one in a table cell, where no block fits. Where an embed cannot expand it becomes a link and is never dropped. The bytes never change, and tools return the `![[...]]` that was written.",
+      "spec": "4.1, 7.3"
     },
     {
       "id": "pending-link-display",
-      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "[[A note that does not exist yet]]",
       "example": "See [[A note nobody has written]] for the rest.",
       "effect": "A wikilink whose target does not exist is shown as visibly pending, never as a broken link and never hidden. It is the gesture of writing the note that is missing.",
-      "recognised": true,
       "spec": "7.4"
     },
     {
       "id": "highlight",
-      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "==highlight==",
       "example": "The exception is ==only for the cases listed in article 75==.",
       "effect": "Marks a run of text. Rendered as marked, with the `==` never shown as characters. It carries no meaning beyond emphasis: no edge, no attribute, no index entry.",
-      "recognised": true,
       "spec": "7.5"
     },
     {
       "id": "comment",
-      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "%%comment%%",
       "example": "The rule holds. %%check this against the 2027 revision%%",
       "effect": "Text the author does not want read on the page: it disappears from the reading surface and stays in the bytes. A tool that returns the note returns it, and an export writes it, so an agent sees what a person on the page does not. That asymmetry is deliberate and is declared here rather than discovered.",
-      "recognised": true,
       "spec": "7.6"
     },
     {
       "id": "block-id",
-      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "A paragraph. ^identifier",
       "example": "The rule is stated once, here. ^article-75\n",
       "effect": "Names the block it ends, so an embed can resolve to that block instead of to the whole note. The identifier is never rendered as text. It names nothing outside its own note.",
-      "recognised": true,
       "spec": "7.7"
     },
     {
       "id": "block-embed",
-      "ring": "memorysmith",
       "reader": "links",
       "syntax": "![[Target note#^identifier]]",
       "example": "The rule, in full:\n\n![[Lei 14.133#^article-75]]\n",
       "effect": "Embeds the named block rather than the whole note. The edge it produces is exactly the edge `[[Target note]]` produces: the graph does not tell an embed from a reference apart, and does not tell a block embed from either.",
-      "recognised": true,
       "spec": "7.7"
     },
     {
       "id": "math-inline",
-      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "$formula$",
-      "example": "The ceiling is $n \\log n$ in the worst case.",
-      "effect": "Rendered as mathematics. A `$` that is not opening or closing a formula stays text: a price and a shell variable are not formulas.",
-      "recognised": true,
+      "example": "O item custa R$100 e o frete R$200, e a complexidade é $n \\log n$.",
+      "effect": "Rendered as mathematics. A `$` immediately preceded by an alphanumeric character does not open a formula and one immediately followed by a digit does not close one, so `R$100 e o frete R$200` is a price and stays text. A `$` written for any other purpose belongs in a code span.",
       "spec": "7.8"
     },
     {
       "id": "math-block",
-      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "$$formula$$",
       "example": "$$\nE = mc^2\n$$\n",
       "effect": "Rendered as mathematics, as a block of its own.",
-      "recognised": true,
       "spec": "7.8"
-    },
-    {
-      "id": "sub-sup",
-      "ring": "memorysmith",
-      "reader": "reading-surface",
-      "syntax": "~subscript~  ·  ^superscript^",
-      "example": "The formula is H~2~O, and the area is 3 m^2^.",
-      "effect": "NOT part of this profile, and deliberately so. GitHub writes these with raw HTML, which this profile does not render; the Pandoc forms render in no vault editor, so a note written with them would look broken in every other tool its author uses, and the `^` form would collide with a block identifier. Write the character itself when it exists, or a formula.",
-      "recognised": false,
-      "spec": "7.9"
     }
   ]
 }

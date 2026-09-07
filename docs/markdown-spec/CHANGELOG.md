@@ -9,6 +9,178 @@ major version. While the profile is `0.x`, a breaking change may arrive in a min
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-09-07
+
+The cycle in which the document stopped describing itself in tiers and stopped keeping a
+list of what it refuses. What it says now is one thing: the notation it accepts, and what
+each form produces. Anything not on that list is answered by a single closing rule instead
+of by a catalogue that could never be finished.
+
+Two notations leave, which cuts the minor version while the profile is `0.x`. Neither was
+ever read, so no vault behaves differently on account of them — what changes for an
+implementation is that `profile.json` no longer carries the `ring` or `recognised` fields.
+
+### Added
+
+- **Bold and italic together, and nested emphasis** (§3.12). `***a***` appeared only inside
+  a code sample, with no sentence saying what it produced; `___a___` appeared nowhere as
+  emphasis at all, since both occurrences of `___` in the document were the thematic break;
+  and nothing anywhere said that emphasis nests, which is the form an author writes without
+  ever wondering whether it is allowed. `profile.json` gains a `strong-emphasis` entry, so
+  the form has an id an implementation can cite, and nesting is stated in the effect of
+  `emphasis`, since it is a composition rule rather than a form of its own.
+- **The crossing between `___` and the thematic break is written down.** Alone on a line it
+  is a thematic break, because blocks are resolved before inlines — the same order that makes
+  a `[!warning]` inside a fence code and a `[[wikilink]]` inside a code span text.
+
+- **§7.10, what a Reader may fetch**, stated beside §7.9, which says what it must not
+  execute. An image whose destination names a host is a request to that host, made when the
+  note is opened, carrying the reader's address and the moment they read it — with the
+  trigger written by whoever wrote the note, which is the sentence §7.9 uses to refuse raw
+  HTML. The two forms sat on opposite sides of a line nobody had drawn: `<img src="https://…">`
+  was refused by name and `![](https://…)` was never mentioned. A Reader MUST now state
+  whether opening a note causes such a request; never doing it, doing it only on the reader's
+  action, and doing it and saying so all conform, and **only silence does not**. How is left
+  to the implementation, as §1.2 requires, and the disclosure takes the shape §6.3 already
+  uses for the cardinality ceiling.
+- **A diagram is opaque to the link reader** (§7.2), which the section on diagrams did not
+  say. A diagram is a fenced code block, so §5.6 applies to everything inside it: nothing in
+  one produces an edge. A Reader MAY draw a node as a link to a note — the diagram languages
+  have their own way of asking for that — and such a link is **navigation and never an
+  edge**, appearing in no graph and generating no backlink. The answer was derivable in two
+  hops from a section about code blocks, and an author who wants a linked diagram is reading
+  §7.2, where none of it appeared. A conformance case now holds it, next to the two for a
+  link in a code fence and a code span.
+- Task lists move from §7.10 to §7.11, following the section added above. No effect changes
+  with them.
+- **An embed inside a table cell is drawn as a link** (§4.1, §7.3). A cell holds inlines and
+  never blocks, and an embed of a note asks for blocks, so the two sections could not both
+  hold and the profile said nothing about which won. It is the answer §7.3 already gives
+  wherever expansion cannot happen — inside embedded content, and past the ceiling a Reader
+  sets — so a cell is the third such place and the rule everywhere is one rule: where an
+  embed cannot expand it becomes a link, and it is never dropped. The graph is untouched,
+  since an embed is the same edge as a plain link. An embed whose target is an image is an
+  inline and fits a cell as an image does.
+- **The first tables in the conformance suite.** §4.1 made two claims an Indexer has to
+  honour — that a wikilink in a cell is an ordinary link, and that `[[Target\|alias]]`
+  resolves to `Target` with the escape consumed by the table — and the suite had no table in
+  it at all; one case in the whole file contained a pipe. The claims lived only in §4.1's
+  prose, and the check requires a case per *entry*, never per prose claim, so a rule stated
+  in a section whose entry is display was invisible to it by construction. Three cases now
+  hold it, including one on a table written without the outer pipes.
+
+### Changed
+
+- **Eight examples now exercise the rule stated beside them.** The schema calls an example
+  'a body exercising the form, used verbatim by the conformance suite', so an example that
+  misses the interesting part of a form is a case that tests nothing. Eight entries stated a
+  rule in `effect` and illustrated it with the one case where the rule does not show:
+  `thematic-break` explained that `---` has three readings and showed `***`; `list-ordered`
+  said the numbers after the first are ignored and numbered its items by hand; `list-bullet`,
+  `block-quote`, `task-list`, `code-fenced`, `code-span` and `backslash-escape` the same. All
+  eight are `reading-surface`, which is why nothing caught it: they back no conformance case,
+  so nothing was checking.
+- **Four traps are now drawn in the prose**, next to the form they catch: `---` directly under
+  a paragraph is a setext heading and not a break, and one blank line is the whole difference;
+  `- - -` is a break and not a bullet item holding `- -`; changing the marker character starts
+  a new list with no visible sign; and a fence nests, because it closes only on the same
+  character at the same length or longer, which is what lets a code block hold a code block
+  and is how this document writes its own examples.
+
+- **CommonMark 0.31.2 and GFM 0.29-gfm are reference sources, not rings the profile is built
+  out of.** The document was organised in three tiers, and the tier a form belonged to was the
+  first thing it said about that form — which is the least useful thing it can say to somebody
+  deciding whether a form works and what it produces. §3 and §4 keep every form they had and
+  lose the framing; §2 names the sources once, and each form cites the one it came from. An
+  implementation is no longer asked to support a source *in full*: what it is asked to support
+  is the notation this document lists, which is the version of that requirement that can be
+  checked.
+- **`profile.json` no longer carries a `ring` field, and its `base` array is now `sources`.**
+  Provenance is stated in the prose of `SPEC.md`, per form, and is no longer an axis of the
+  data. An implementation that selected notations by ring now reads them all; one that read
+  `base` for the specifications behind the profile reads `sources`.
+- Appendix B loses its Ring column, the two issue forms lose their ring dropdown, and the
+  labels `ring:base`, `ring:extended` and `ring:memorysmith` are retired.
+- **Obsidian is named as a reference source**, alongside CommonMark and GFM, and carried in
+  the `sources` array of `profile.json`. Seven notation families came from it — the wikilink
+  and its alias, anchor, embed and block forms, callouts, marked text, comments and block
+  identifiers — and the document credited them to *the vault editors*, an unnamed plural.
+  It is named as a **source and never as a compatibility claim**: where Obsidian and this
+  document differ, this document governs, which is the opposite of the precedence CommonMark
+  and GFM hold. Two other lineages are named where their form is specified: the `---`
+  frontmatter block is Jekyll's (§6) and the alert form of the callout is GitHub's (§7.1).
+- A source in `profile.json` may now omit `version`. Obsidian publishes documentation rather
+  than a versioned specification, and pinning an app release would claim a precision the
+  documentation does not have.
+- **The profile no longer keeps a catalogue of the forms it declines.** §8 was four
+  subsections listing notation the profile refused, and it could never be complete: every
+  form of every other dialect was a candidate for it, so it grew with each dialect that
+  shipped and was sampled rather than maintained — footnotes were refused in prose and never
+  got an entry in `profile.json` at all. It is now **one rule**: §3 to §7 are the whole of
+  the notation this profile accepts, and anything not described there may be rendered however
+  an implementation likes, must yield no meaning, and cannot be claimed as conformance. The
+  three consequences are stated separately because they are easy to run together — in
+  particular, this document not describing a form is not this document forbidding it.
+- **Three rules moved out of §8 into the section that governs them**, and are stated as
+  effects rather than as refusals. That an external destination renders as a link and is
+  never resolved against the vault is §5.2, the first step of resolution. That a frontmatter
+  value over forty characters is read and discarded is §6.3, beside the rule that sets the
+  ceiling. §3.15 and §4.4, which pointed at §8.2 for the rule that an autolink is never an
+  edge, point at §5.2.
+- **§4.6 is gone.** It took a position on five forms GitHub renders and GFM does not
+  specify; three of those positions were provenance, which §2 now states as a source, and two
+  were the catalogue.
+- **`profile.json` no longer carries a `recognised` field.** It marked an entry whose point
+  was that nothing happens, and no entry has that point any more: the five that carried
+  `recognised: false` for another reason — `external-link`, `raw-html`, `link-in-code`,
+  `frontmatter-prose` and `frontmatter-title` — now state what the form **does**, positively,
+  and keep their conformance cases. An implementation that filtered on the field reads every
+  entry as declared.
+- Raw HTML moves from §7.10 to §7.9 and task lists from §7.11 to §7.10, following the
+  removal above. No effect changes with them.
+
+### Fixed
+
+- **Strikethrough is `~~text~~` and nothing else.** §4.3 gave the syntax as one or two
+  tildes, and GFM 0.29-gfm defines it as two: the single tilde is GitHub's renderer going
+  past its own specification, and §2.1 makes the source govern. `H~2~O` now reaches the page
+  as those exact characters instead of striking its middle. The Appendix B row had said `~~`
+  alone since it was written, so the document disagreed with itself in three places.
+- **The implementations table said `Tracking 0.1.0` while the implementation tracked 0.3.0**,
+  and its '1 open' deviation pointed at an issue that had been closed. Both were wrong
+  because the table was duplicated verbatim in `README.md` and `SPEC.md` with nothing able to
+  check either copy — a fact about another repository, held in two places here. Appendix A of
+  `SPEC.md` now holds it alone and the README links to it, which is also the more honest
+  place: conformance is the suite passing in public, never a claim in a README.
+
+- **The rule that keeps a price from becoming a formula now keeps a price from becoming a
+  formula.** §7.8 named three things it protected — a price, a shell variable and a lone
+  currency symbol — and stated two prohibitions that covered only the third. Both looked at
+  the delimiter's outside edge: what follows an opener, what precedes a closer. Every case
+  that failed was decided by the inside edge, so `R$100 e o frete R$200` opened a formula at
+  the first `$`, closed it at the second, and ate the middle of the sentence. A `$`
+  immediately preceded by an alphanumeric character no longer opens one, and a `$`
+  immediately followed by a digit no longer closes one.
+- The claim that a **shell variable** is protected is withdrawn rather than left standing.
+  `$HOME` and `$PATH` in one sentence present two delimiters that look legal by every local
+  rule, and the honest answer is a code span, which §3.7 makes opaque. The profile is better
+  off protecting one thing truthfully than three nominally.
+- `math-inline`'s example exercised no part of this rule, which is why it shipped broken. It
+  is now one body carrying both directions: two `$` that stay text and two that become a
+  formula.
+
+### Removed
+
+- **The inline tag `#subject` is no longer a declared notation.** Its two conformance cases
+  go with it. Nothing about the form changes for whoever writes a note — it was never read
+  and it still is not — but the profile stops carrying a section, an entry and two cases to
+  say so, because §8 now says it about every undescribed form at once. To group notes by
+  subject write `tags:` in the frontmatter; to connect a note to a subject worth a note of
+  its own, write `[[subject]]`.
+- **Superscript and subscript are no longer a declared absence.** §7.9 existed to say the
+  profile has no notation for them; its entry and its conformance case go. `~x~` and `^x^`
+  are undescribed notation like any other, and §8 covers them.
+
 ## [0.3.0] — 2026-09-06
 
 The cycle in which the document stopped being a specification you read with two other
@@ -168,7 +340,8 @@ implementation, plus the decisions taken while writing it down.
 - **Anything not specified here** — `==highlight==`, `%%comment%%`, `^block-id`, `$math$`, raw HTML.
   Absence from this document is a statement, not an oversight.
 
-[Unreleased]: https://github.com/memorysmithapp/markdown-profile/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/markdown-profile/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/memorysmithapp/markdown-profile/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/memorysmithapp/markdown-profile/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/memorysmithapp/markdown-profile/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/memorysmithapp/markdown-profile/releases/tag/v0.1.0

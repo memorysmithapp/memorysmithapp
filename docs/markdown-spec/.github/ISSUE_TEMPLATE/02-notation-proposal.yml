@@ -9,9 +9,10 @@ body:
         closed. A proposal that cannot yet say what its conformance case looks like is not
         ready to become a branch.
 
-        Remember what the answer may be: **declaring that a notation means nothing is a
-        valid outcome of this form**, and `SPEC.md` § 6 exists to hold those. A proposal
-        that ends there was not refused, it was published.
+        Remember what the answer may be: **not every proposal becomes a notation.** A form
+        the profile declines is covered by `SPEC.md` § 8, which needs no entry of its own,
+        so a refusal here changes no file — the reason is recorded in this issue and stays
+        findable there.
 
   - type: textarea
     id: need
@@ -38,17 +39,6 @@ body:
       label: The syntax
       description: The form exactly as an author would type it.
       placeholder: '[[Target note#^block-id]]'
-    validations:
-      required: true
-
-  - type: dropdown
-    id: ring
-    attributes:
-      label: Ring
-      options:
-        - MemorySmith, the profile declares it
-        - Extended, it already exists in GFM and the profile has to say what it does
-        - Base, it already exists in CommonMark and the profile has to say what it does
     validations:
       required: true
 

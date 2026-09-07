@@ -40,7 +40,7 @@ Two forms, in [`.github/ISSUE_TEMPLATE`](.github/ISSUE_TEMPLATE):
   is welcome even when it turns out the document was right: a form that had to be reported
   is a form the document explained badly.
 - **A notation proposal.** The output of triage, not its input: the need already
-  understood, with the form, the ring, the effect and the cases it would add.
+  understood, with the form, the effect and the cases it would add.
 
 **A report says what was written and what happened.** Paste the Markdown verbatim, in a
 fenced block, and name the implementation and its version. A profile exists so that two
@@ -58,13 +58,12 @@ Reduce the case to the smallest note that still shows it.
 | **The profile has to say something new** | `enhancement` | A notation, in the three files | Minor |
 | **Refusal** | closed as `not planned` | A comment | No |
 
-**Refusal is a first-class outcome, and it is written down.** This profile is as much a
-list of what it declines to mean as a list of what it means (`SPEC.md` §6), so a refused
-proposal is not a rejection to be buried: it is a candidate for that section. Close the
-issue with the reason, addressed to whoever opened it.
+**Refusal is a first-class outcome, and the reason is written down in the issue.** The
+profile carries no catalogue of the forms it declines — `SPEC.md` §8 is one rule covering
+all of them — so a refusal changes no file and leaves its record where it was argued. Close
+the issue with the reason, addressed to whoever opened it, and it stays findable there.
 
-The classification labels say which ring the issue lives in — `ring:base`, `ring:extended`,
-`ring:memorysmith` — plus `conformance` when the suite is what changes.
+The label `conformance` is added on top of the outcome when the suite is what changes.
 
 ## 4. Work on the branch
 
