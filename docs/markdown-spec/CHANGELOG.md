@@ -31,6 +31,21 @@ major version. While the profile is `0.x`, a breaking change may arrive in a min
   link in a code fence and a code span.
 - Task lists move from §7.10 to §7.11, following the section added above. No effect changes
   with them.
+- **An embed inside a table cell is drawn as a link** (§4.1, §7.3). A cell holds inlines and
+  never blocks, and an embed of a note asks for blocks, so the two sections could not both
+  hold and the profile said nothing about which won. It is the answer §7.3 already gives
+  wherever expansion cannot happen — inside embedded content, and past the ceiling a Reader
+  sets — so a cell is the third such place and the rule everywhere is one rule: where an
+  embed cannot expand it becomes a link, and it is never dropped. The graph is untouched,
+  since an embed is the same edge as a plain link. An embed whose target is an image is an
+  inline and fits a cell as an image does.
+- **The first tables in the conformance suite.** §4.1 made two claims an Indexer has to
+  honour — that a wikilink in a cell is an ordinary link, and that `[[Target\|alias]]`
+  resolves to `Target` with the escape consumed by the table — and the suite had no table in
+  it at all; one case in the whole file contained a pipe. The claims lived only in §4.1's
+  prose, and the check requires a case per *entry*, never per prose claim, so a rule stated
+  in a section whose entry is display was invisible to it by construction. Three cases now
+  hold it, including one on a table written without the outer pipes.
 
 ### Changed
 

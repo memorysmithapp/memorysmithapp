@@ -188,8 +188,8 @@
       "id": "table",
       "reader": "reading-surface",
       "syntax": "| a | b | over a delimiter row of --- with optional :",
-      "example": "| Key | Indexed |\n|---|:---:|\n| `tags` | yes |\n",
-      "effect": "A table. The header row fixes the number of columns and a cell holds inlines, never blocks. A cell is a place text lives and not a boundary an Indexer stops at: a wikilink inside one is a link like any other, and a literal pipe is written `\\|`.",
+      "example": "| Rule | Where |\n|---|:---:|\n| The general one | [[Lei 14.133]] |\n| The exception | [[Lei 14.133\\|article 75]] |\n",
+      "effect": "A table. The header row fixes the number of columns and a cell holds inlines, never blocks. A cell is a place text lives and not a boundary an Indexer stops at: a wikilink inside one is a link like any other, a literal pipe is written `\\|`, and an embed of a note is drawn as a link because no block fits in a cell.",
       "spec": "4.1"
     },
     {
@@ -381,8 +381,8 @@
       "reader": "reading-surface",
       "syntax": "![[Target note]]  ·  ![[Target note#Section]]",
       "example": "![[Lei 14.133#Article 75]]\n",
-      "effect": "The reading surface shows the content of the target in place, one level deep: an embed inside embedded content is drawn as a link. The bytes never change, and tools return the `![[...]]` that was written.",
-      "spec": "7.3"
+      "effect": "The reading surface shows the content of the target in place, one level deep: an embed inside embedded content is drawn as a link, and so is one past the ceiling a Reader sets, and so is one in a table cell, where no block fits. Where an embed cannot expand it becomes a link and is never dropped. The bytes never change, and tools return the `![[...]]` that was written.",
+      "spec": "4.1, 7.3"
     },
     {
       "id": "pending-link-display",

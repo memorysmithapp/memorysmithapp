@@ -25,6 +25,39 @@
       ]
     },
     {
+      "id": "table/a-link-in-a-cell-is-an-ordinary-link",
+      "notation": "wikilink",
+      "markdown": "| Rule | Where |\n|---|---|\n| The general one | [[Lei 14.133]] |\n",
+      "links": [
+        {
+          "slug": "lei-14133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "table/an-escaped-pipe-keeps-the-alias",
+      "notation": "wikilink-alias",
+      "markdown": "| Rule | Where |\n|---|---|\n| The exception | [[Lei 14.133\\|article 75]] |\n",
+      "links": [
+        {
+          "slug": "lei-14133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "table/the-outer-pipes-are-optional",
+      "notation": "wikilink",
+      "markdown": "Rule | Where\n--- | ---\nThe general one | [[Lei 14.133]]\n",
+      "links": [
+        {
+          "slug": "lei-14133",
+          "anchor": null
+        }
+      ]
+    },
+    {
       "id": "wikilink/anchor-is-kept-and-not-resolved",
       "notation": "wikilink-anchor",
       "markdown": "See [[Lei 14.133#Article 75]] for the exception.",

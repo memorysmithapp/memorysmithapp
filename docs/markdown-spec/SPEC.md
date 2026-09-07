@@ -329,7 +329,9 @@ A header row, a delimiter row, and zero or more body rows. Colons in the delimit
 
 The header row fixes the number of columns: a body row with fewer cells is padded, one with more is truncated. A cell holds inlines and never blocks — no lists, no fenced code, no paragraphs — and a literal pipe inside a cell is written `\|`. The table ends at the first blank line, or at the first line that is not a row.
 
-A table is display. A wikilink written inside a cell is a link like any other (§5): a cell is a place text lives, not a boundary an Indexer stops at. The pipe is the one character to watch, because it is also what separates a wikilink from its alias: inside a cell, `[[Target|alias]]` has to be written `[[Target\|alias]]`, or the cell ends where the alias begins.
+A table is display. A wikilink written inside a cell is a link like any other (§5): a cell is a place text lives, not a boundary an Indexer stops at. The pipe is the one character to watch, because it is also what separates a wikilink from its alias: inside a cell, `[[Target|alias]]` has to be written `[[Target\|alias]]`, or the cell ends where the alias begins. Both rules carry conformance cases, because both decide an edge.
+
+A cell holds no blocks, and an embed of a note asks for blocks (§7.3), so **an embed inside a cell is drawn as a link to its target** rather than expanded. That is the answer §7.3 already gives wherever expansion cannot happen, and it changes nothing in the graph: an embed is the same edge as a plain link (§5.7). An embed whose target is an image is an inline and fits a cell as an image does.
 
 ### 4.2 Task list items
 
@@ -584,6 +586,8 @@ Expansion MUST be limited to **one level**: an embed found inside embedded conte
 
 A Reader SHOULD impose a ceiling on how many embeds one page expands, and MUST render the ones past the ceiling as links rather than dropping them.
 
+A **table cell** is the third place expansion cannot happen: a cell holds inlines and never blocks (§4.1), so an embed of a note in a cell is drawn as a link too. The rule everywhere is the same — where an embed cannot expand it becomes a link, and it is never dropped.
+
 An embed MUST NOT be expanded anywhere but on the reading surface. What an interface renders is display; what a tool returns is the note. A reader of the raw note gets the `![[...]]` that was written.
 
 ### 7.4 Wikilinks
@@ -782,7 +786,7 @@ Every form this document declares, in one table. The last column is the section 
 | Autolink | `<https://example.org>` | Never an edge | 3.15, 5.2 |
 | Raw inline HTML | `<abbr>…</abbr>` | Kept in the bytes, shown as text | 3.16, 7.10 |
 | Hard line break | trailing `\` | — | 3.17 |
-| Table | `\| a \| b \|` | Cells hold links like any other text | 4.1 |
+| Table | `\| a \| b \|` | Cells hold links like any other text; an embed is drawn as a link | 4.1 |
 | Task list item | `- [ ]`, `- [x]` | A toggle writes back one character | 4.2, 7.10 |
 | Strikethrough | `~~struck~~` | — | 4.3 |
 | Extended autolink | `www.example.org` | Never an edge | 4.4, 5.2 |
