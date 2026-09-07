@@ -786,7 +786,7 @@ The variant is not registered with IANA at this version.
 
 | Implementation | Roles | Profile version | Known deviations |
 |---|---|---|---|
-| [MemorySmith.app](https://memorysmith.app) | Reader, Indexer, Writer | Tracking 0.3.0 | None known |
+| [MemorySmith.app](https://memorysmith.app) | Reader, Indexer, Writer | Tracking 0.4.0 | None known |
 
 An implementation is listed here when it runs the conformance suite in public. Conformance is the suite passing, never a claim in a README.
 
