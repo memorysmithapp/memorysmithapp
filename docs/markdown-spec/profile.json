@@ -1,7 +1,7 @@
 {
   "$schema": "./schema/profile.schema.json",
   "profile": "MemorySmith Markdown Profile",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "variant": "MemorySmith",
   "url": "https://md.memorysmith.app",
   "sources": [

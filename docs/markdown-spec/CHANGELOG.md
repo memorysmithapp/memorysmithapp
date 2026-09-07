@@ -9,6 +9,17 @@ major version. While the profile is `0.x`, a breaking change may arrive in a min
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-09-07
+
+The cycle in which the document stopped describing itself in tiers and stopped keeping a
+list of what it refuses. What it says now is one thing: the notation it accepts, and what
+each form produces. Anything not on that list is answered by a single closing rule instead
+of by a catalogue that could never be finished.
+
+Two notations leave, which cuts the minor version while the profile is `0.x`. Neither was
+ever read, so no vault behaves differently on account of them — what changes for an
+implementation is that `profile.json` no longer carries the `ring` or `recognised` fields.
+
 ### Added
 
 - **Bold and italic together, and nested emphasis** (§3.12). `***a***` appeared only inside
@@ -329,7 +340,8 @@ implementation, plus the decisions taken while writing it down.
 - **Anything not specified here** — `==highlight==`, `%%comment%%`, `^block-id`, `$math$`, raw HTML.
   Absence from this document is a statement, not an oversight.
 
-[Unreleased]: https://github.com/memorysmithapp/markdown-profile/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/markdown-profile/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/memorysmithapp/markdown-profile/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/memorysmithapp/markdown-profile/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/memorysmithapp/markdown-profile/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/memorysmithapp/markdown-profile/releases/tag/v0.1.0
