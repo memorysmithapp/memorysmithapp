@@ -203,9 +203,9 @@
     {
       "id": "strikethrough",
       "reader": "reading-surface",
-      "syntax": "~text~  ·  ~~text~~",
-      "example": "The earlier rule is ~~still in force~~ revoked.",
-      "effect": "Struck-through text. Three or more tildes strike nothing.",
+      "syntax": "~~text~~",
+      "example": "Water is H~2~O, and the earlier rule is ~~revoked~~.",
+      "effect": "Struck-through text. Two tildes and only two: one strikes nothing and neither do three or more. GFM defines the form as `~~`, and the single tilde GitHub's renderer accepts is outside its own specification, so `H~2~O` stays literal here.",
       "spec": "4.3"
     },
     {

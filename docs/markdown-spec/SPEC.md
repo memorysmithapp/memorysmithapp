@@ -375,7 +375,9 @@ The brackets MUST be the first thing in the item. In every other respect it is a
 
 ### 4.3 Strikethrough
 
-One or two tildes around the text: `~struck~`, `~~struck~~`. Three or more strike nothing.
+Two tildes around the text: `~~struck~~`. One tilde strikes nothing, and neither do three or more.
+
+GFM 0.29-gfm defines strikethrough as `~~` and nothing else. GitHub's renderer also accepts a single tilde, which is its renderer going past its own specification — and where this document and a source disagree the source governs (§2.1), so the single tilde is not part of this profile. `H~2~O` reaches the page as those exact characters.
 
 ### 4.4 Autolinks, extended
 
@@ -784,7 +786,7 @@ The variant is not registered with IANA at this version.
 
 | Implementation | Roles | Profile version | Known deviations |
 |---|---|---|---|
-| [MemorySmith.app](https://memorysmith.app) | Reader, Indexer, Writer | Tracking 0.1.0 | [1 open](https://github.com/memorysmithapp/memorysmithapp/issues/70) |
+| [MemorySmith.app](https://memorysmith.app) | Reader, Indexer, Writer | Tracking 0.3.0 | None known |
 
 An implementation is listed here when it runs the conformance suite in public. Conformance is the suite passing, never a claim in a README.
 

@@ -130,6 +130,18 @@ major version. While the profile is `0.x`, a breaking change may arrive in a min
 
 ### Fixed
 
+- **Strikethrough is `~~text~~` and nothing else.** §4.3 gave the syntax as one or two
+  tildes, and GFM 0.29-gfm defines it as two: the single tilde is GitHub's renderer going
+  past its own specification, and §2.1 makes the source govern. `H~2~O` now reaches the page
+  as those exact characters instead of striking its middle. The Appendix B row had said `~~`
+  alone since it was written, so the document disagreed with itself in three places.
+- **The implementations table said `Tracking 0.1.0` while the implementation tracked 0.3.0**,
+  and its '1 open' deviation pointed at an issue that had been closed. Both were wrong
+  because the table was duplicated verbatim in `README.md` and `SPEC.md` with nothing able to
+  check either copy — a fact about another repository, held in two places here. Appendix A of
+  `SPEC.md` now holds it alone and the README links to it, which is also the more honest
+  place: conformance is the suite passing in public, never a claim in a README.
+
 - **The rule that keeps a price from becoming a formula now keeps a price from becoming a
   formula.** §7.8 named three things it protected — a price, a shell variable and a lone
   currency symbol — and stated two prohibitions that covered only the third. Both looked at

@@ -47,11 +47,7 @@ Build your documentation from the first, run the second in your CI, and the two 
 
 An implementation claims one or more roles — **Reader**, **Indexer**, **Writer** — and conformance is stated per role. See [SPEC.md §1.4](SPEC.md#14-roles).
 
-Conformance is the suite passing in public. It is never a claim in a README, including this one.
-
-| Implementation | Roles | Profile version | Known deviations |
-|---|---|---|---|
-| [MemorySmith.app](https://memorysmith.app) | Reader, Indexer, Writer | Tracking 0.1.0 | [1 open](https://github.com/memorysmithapp/memorysmithapp/issues/70) |
+Conformance is the suite passing in public. It is never a claim in a README, including this one — which is why the implementations are listed in the specification and not here: [SPEC.md Appendix A](SPEC.md#appendix-a-implementations).
 
 ## Versioning
 
