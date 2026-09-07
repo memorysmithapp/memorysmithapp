@@ -60,6 +60,22 @@ major version. While the profile is `0.x`, a breaking change may arrive in a min
 
 ### Changed
 
+- **Eight examples now exercise the rule stated beside them.** The schema calls an example
+  'a body exercising the form, used verbatim by the conformance suite', so an example that
+  misses the interesting part of a form is a case that tests nothing. Eight entries stated a
+  rule in `effect` and illustrated it with the one case where the rule does not show:
+  `thematic-break` explained that `---` has three readings and showed `***`; `list-ordered`
+  said the numbers after the first are ignored and numbered its items by hand; `list-bullet`,
+  `block-quote`, `task-list`, `code-fenced`, `code-span` and `backslash-escape` the same. All
+  eight are `reading-surface`, which is why nothing caught it: they back no conformance case,
+  so nothing was checking.
+- **Four traps are now drawn in the prose**, next to the form they catch: `---` directly under
+  a paragraph is a setext heading and not a break, and one blank line is the whole difference;
+  `- - -` is a break and not a bullet item holding `- -`; changing the marker character starts
+  a new list with no visible sign; and a fence nests, because it closes only on the same
+  character at the same length or longer, which is what lets a code block hold a code block
+  and is how this document writes its own examples.
+
 - **CommonMark 0.31.2 and GFM 0.29-gfm are reference sources, not rings the profile is built
   out of.** The document was organised in three tiers, and the tier a form belonged to was the
   first thing it said about that form — which is the least useful thing it can say to somebody

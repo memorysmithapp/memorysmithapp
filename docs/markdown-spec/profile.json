@@ -36,8 +36,8 @@
       "id": "backslash-escape",
       "reader": "reading-surface",
       "syntax": "\\ before an ASCII punctuation character",
-      "example": "Write \\*this\\* without emphasis, and \\[\\[this\\]\\] without a link.",
-      "effect": "Makes the next character literal. It is how an author writes the notation of this profile as text, and it matters more here than in plain CommonMark: `[[`, `![[`, `==`, `%%`, `$` and a trailing `^` all carry meaning that CommonMark does not give them.",
+      "example": "To name the forms without invoking them: \\[\\[wikilink\\]\\], \\=\\=marked\\=\\=, \\%\\%comment\\%\\%, \\$formula\\$.",
+      "effect": "The character that follows is literal. It is how this profile's own notation is written as text — `\\[\\[`, `\\=\\=`, `\\%\\%`, `\\$` — and how a line is stopped from becoming a list, with the backslash before the period rather than before the number.",
       "spec": "3.2"
     },
     {
@@ -68,7 +68,7 @@
       "id": "thematic-break",
       "reader": "reading-surface",
       "syntax": "---  ·  ***  ·  ___",
-      "example": "Before.\n\n***\n\nAfter.\n",
+      "example": "The general rule ends here.\n\n---\n\nThe exception begins.\n",
       "effect": "A horizontal division. `---` is context-dependent and all three readings are correct in their place: on the first line of the file it opens frontmatter, directly under a paragraph it is a setext heading, anywhere else it is a thematic break.",
       "spec": "3.4"
     },
@@ -76,7 +76,7 @@
       "id": "block-quote",
       "reader": "reading-surface",
       "syntax": "> text",
-      "example": "> A quotation.\n",
+      "example": "> The administration is bound by the notice.\n>\n> > And by the one that preceded it.\n",
       "effect": "A quotation, which may hold any block including another quotation. A block quote whose first line begins with `[!type]` is a callout instead, and that is the only thing that tells the two apart.",
       "spec": "3.5"
     },
@@ -84,7 +84,7 @@
       "id": "list-bullet",
       "reader": "reading-surface",
       "syntax": "- item  ·  + item  ·  * item",
-      "example": "- one\n- two\n  - nested\n",
+      "example": "- Preliminary study\n  1. Estimate the demand\n  2. Price the market\n- Draft the notice\n  - [ ] Attach the price research\n",
       "effect": "An unordered list. Changing the marker character starts a new list, and a blank line between items makes the list loose, which is what changes the spacing.",
       "spec": "3.6"
     },
@@ -92,7 +92,7 @@
       "id": "list-ordered",
       "reader": "reading-surface",
       "syntax": "1. item  ·  1) item",
-      "example": "1. first\n2. second\n",
+      "example": "1. Publish the notice\n1. Receive the proposals\n1. Judge and rank\n",
       "effect": "An ordered list. The number of the first item sets where it starts and the numbers of the rest are ignored, so a list written entirely with `1.` numbers itself correctly.",
       "spec": "3.6"
     },
@@ -100,8 +100,8 @@
       "id": "code-fenced",
       "reader": "reading-surface",
       "syntax": "Three or more backticks or tildes, with an optional info string",
-      "example": "```sql\nselect 1;\n```\n",
-      "effect": "A code block. Nothing inside is parsed: no emphasis, no links, no wikilinks, no callouts. `mermaid` is the one info string this profile attaches a rendering rule to.",
+      "example": "````\nHere is how a diagram is written:\n\n```mermaid\ngraph TD\n  Notice --> Proposals\n```\n````\n",
+      "effect": "A code block. Nothing inside is parsed: no emphasis, no links, no wikilinks, no callouts. A fence closes only on the same character at the same length or longer, so a fence nests — an outer fence uses more characters than any inside it, or a different character. `mermaid` is the one info string this profile attaches a rendering rule to.",
       "spec": "3.7"
     },
     {
@@ -124,8 +124,8 @@
       "id": "code-span",
       "reader": "reading-surface",
       "syntax": "`code`  ·  ``a span holding a ` backtick``",
-      "example": "Write a link as `[[Lei 14.133]]` in the body.",
-      "effect": "Inline code. It is where an author writes notation without invoking it, and an Indexer MUST NOT extract a link found inside one.",
+      "example": "The closing fence is ``a run of ` characters`` at least as long as the opening one.",
+      "effect": "Inline code. A run of one or more backticks closes on a run of exactly the same length, so a span can hold a backtick by using two. One leading and one trailing space are stripped when both are present. It is where an author writes notation without invoking it, and an Indexer MUST NOT extract a link found inside one.",
       "spec": "3.11"
     },
     {
@@ -220,7 +220,7 @@
       "id": "task-list",
       "reader": "reading-surface",
       "syntax": "- [ ] item  ·  - [x] item",
-      "example": "- [ ] Read the act\n- [x] Summarise article 75\n",
+      "example": "- [ ] Price research\n  - [X] Three quotes gathered\n  - [ ] Attached to the file\n",
       "effect": "GFM task list items. A reading surface may let a person toggle one, and a toggle writes back exactly the one character that changed, never a reformatted note.",
       "spec": "4.2, 7.11"
     },

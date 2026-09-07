@@ -101,14 +101,20 @@ A paragraph is also the unit a block identifier names: `^article-75` at the end 
 A backslash before any ASCII punctuation character makes that character literal.
 
 ```markdown
-\*not emphasis\*   \[\[not a wikilink\]\]   \# not a heading
+To name the forms without invoking them: \[\[wikilink\]\], \=\=marked\=\=, \%\%comment\%\%, \$formula\$.
 ```
 
 A backslash before anything else is a literal backslash. Escapes have no effect inside code spans, code blocks, autolinks or raw HTML — there is nothing to escape from.
 
 Named and numeric character references are recognised wherever a literal character is: `&amp;`, `&copy;`, `&#35;`, `&#X1F600;`. Only the [HTML5 named references](https://html.spec.whatwg.org/multipage/named-characters.html) are valid; anything else stays as it was typed.
 
-**A Writer escapes more here than in plain CommonMark**, because this profile gives meaning to characters CommonMark leaves alone: `[[`, `![[`, `==`, `%%`, `$` and a trailing `^`. Whatever is meant literally SHOULD be escaped or put in a code span. A notation invoked by accident is the failure this profile exists to prevent, and it is as easy to commit while writing prose as while writing a link.
+A backslash also stops a line from becoming something it was not meant to be. The escape goes before the character that carries the meaning, not before what precedes it:
+
+```markdown
+1\. Not a list item, just a sentence that starts with a number.
+```
+
+**A Writer escapes more here than in plain CommonMark**, because this profile gives meaning to characters CommonMark leaves alone: `[[`, `![[`, `==`, `%%`, `$` and a trailing `^`. The last of those is the only one whose meaning depends on **position** rather than on the characters themselves (§7.7). Whatever is meant literally SHOULD be escaped or put in a code span. A notation invoked by accident is the failure this profile exists to prevent, and it is as easy to commit while writing prose as while writing a link.
 
 ### 3.3 Headings
 
@@ -144,7 +150,16 @@ Three or more `*`, `-` or `_` alone on a line, spaces between them allowed.
 ___
 ```
 
-`---` is context-dependent, and all three readings are correct in their place: on the **first line of the file** it opens frontmatter (§6.1), **directly under a paragraph** it is a level-two setext heading (§3.3), and **anywhere else** it is a thematic break.
+`---` is context-dependent, and all three readings are correct in their place: on the **first line of the file** it opens frontmatter (§6.1), **directly under a paragraph** it is a level-two setext heading (§3.3), and **anywhere else** it is a thematic break. One blank line is what separates the second reading from the third:
+
+```markdown
+The general rule ends here
+---
+```
+
+is a heading, and the same three characters with a blank line above them are a break.
+
+`- - -` could also be read as a bullet item holding `- -`. It is not: a thematic break wins over a list item.
 
 ### 3.5 Block quotes
 
@@ -173,7 +188,12 @@ A bullet item starts with `-`, `+` or `*`. An ordered item starts with a number 
 7) a list that starts at seven
 ```
 
-The number of the first item sets where the list starts; the numbers of the rest are ignored, so a list written entirely with `1.` numbers itself correctly. Changing the marker character starts a new list.
+The number of the first item sets where the list starts; the numbers of the rest are ignored, so a list written entirely with `1.` numbers itself correctly. Changing the marker character starts a **new list**, which costs an author a list without any visible sign:
+
+```markdown
+- one list
+* a different list, because the marker changed
+```
 
 A list is **tight** when no blank line separates its items and **loose** when one does; a loose list wraps each item in a paragraph, which is the whole of why blank lines between items change the spacing. Continuation content of an item is indented to the column where that item's text began.
 
@@ -190,6 +210,8 @@ select 1;
 ````
 
 The word after the opening fence is the **info string**, and by convention it names the language. `mermaid` is the one info string this profile attaches a rendering rule to (§7.2). A tilde fence may carry backticks in its info string; a backtick fence may not.
+
+Because a fence closes only on the same character at the same length or longer, **a fence nests**: an outer fence uses more characters than any fence inside it, or a different character. That is the only way to write a code block holding a code block, which is what documenting this profile requires — and it is how the examples in this document are written.
 
 **Indented**, with four spaces or one tab:
 
@@ -344,8 +366,9 @@ A cell holds no blocks, and an embed of a note asks for blocks (§7.3), so **an 
 A list item whose text begins with `[ ]` or `[x]` — case-insensitive — followed by a space is a task list item.
 
 ```markdown
-- [ ] Read the act
-- [x] Summarise article 75
+- [ ] Price research
+  - [X] Three quotes gathered
+  - [ ] Attached to the file
 ```
 
 The brackets MUST be the first thing in the item. In every other respect it is an ordinary list item, and §7.11 governs what a Reader may do when it lets somebody toggle one.
