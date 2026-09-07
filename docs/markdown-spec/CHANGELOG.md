@@ -63,6 +63,24 @@ major version. While the profile is `0.x`, a breaking change may arrive in a min
 - Raw HTML moves from §7.10 to §7.9 and task lists from §7.11 to §7.10, following the
   removal above. No effect changes with them.
 
+### Fixed
+
+- **The rule that keeps a price from becoming a formula now keeps a price from becoming a
+  formula.** §7.8 named three things it protected — a price, a shell variable and a lone
+  currency symbol — and stated two prohibitions that covered only the third. Both looked at
+  the delimiter's outside edge: what follows an opener, what precedes a closer. Every case
+  that failed was decided by the inside edge, so `R$100 e o frete R$200` opened a formula at
+  the first `$`, closed it at the second, and ate the middle of the sentence. A `$`
+  immediately preceded by an alphanumeric character no longer opens one, and a `$`
+  immediately followed by a digit no longer closes one.
+- The claim that a **shell variable** is protected is withdrawn rather than left standing.
+  `$HOME` and `$PATH` in one sentence present two delimiters that look legal by every local
+  rule, and the honest answer is a code span, which §3.7 makes opaque. The profile is better
+  off protecting one thing truthfully than three nominally.
+- `math-inline`'s example exercised no part of this rule, which is why it shipped broken. It
+  is now one body carrying both directions: two `$` that stay text and two that become a
+  formula.
+
 ### Removed
 
 - **The inline tag `#subject` is no longer a declared notation.** Its two conformance cases

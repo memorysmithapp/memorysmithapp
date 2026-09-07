@@ -626,9 +626,18 @@ reported the way a pending link is (§5.5) and MUST NOT be an error.
 `$inline$` and `$$block$$` are mathematics. A Reader SHOULD render them, and one that cannot
 MUST show the source rather than hide it.
 
-A `$` that is not opening or closing a formula MUST NOT become one: a price, a shell variable
-and a lone currency symbol are text. In practice a Reader MUST NOT treat `$` as an opening
-delimiter when it is followed by whitespace, nor as a closing one when preceded by it.
+A `$` that is not opening or closing a formula MUST NOT become one. A Reader MUST NOT treat
+`$` as an **opening** delimiter when it is followed by whitespace, nor when it is
+immediately preceded by an alphanumeric character; and MUST NOT treat it as a **closing**
+delimiter when it is preceded by whitespace, nor when it is immediately followed by a
+digit.
+
+Each rule has an outside edge and an inside one, and the inside edge is what keeps a price
+whole. `R$ 100` is safe on the outside edge alone. `R$100 e o frete R$200` is not: neither
+`$` there sits next to a space, so without the inside edge the sentence loses its middle to
+a formula. A `$` written for any other purpose SHOULD go in a code span, which §3.7 makes
+opaque to everything — and for `$HOME` and `$PATH` in one sentence that is the only thing
+that protects them, because both delimiters look legal by every local rule.
 
 ### 7.9 Raw HTML
 

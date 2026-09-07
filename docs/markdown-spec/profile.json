@@ -428,8 +428,8 @@
       "id": "math-inline",
       "reader": "reading-surface",
       "syntax": "$formula$",
-      "example": "The ceiling is $n \\log n$ in the worst case.",
-      "effect": "Rendered as mathematics. A `$` that is not opening or closing a formula stays text: a price and a shell variable are not formulas.",
+      "example": "O item custa R$100 e o frete R$200, e a complexidade é $n \\log n$.",
+      "effect": "Rendered as mathematics. A `$` immediately preceded by an alphanumeric character does not open a formula and one immediately followed by a digit does not close one, so `R$100 e o frete R$200` is a price and stays text. A `$` written for any other purpose belongs in a code span.",
       "spec": "7.8"
     },
     {
