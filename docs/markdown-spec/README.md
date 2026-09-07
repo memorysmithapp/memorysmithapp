@@ -8,7 +8,7 @@
 
 ## Why this exists
 
-There are exactly two formal specifications in the Markdown family. [CommonMark](https://spec.commonmark.org/) is strict and has a test suite. [GFM](https://github.github.com/gfm/) documents a superset of it: tables, task lists, strikethrough, autolinks. Everything above that line — wikilinks, embeds, callouts, frontmatter, the notation every knowledge vault is actually written in — is convention, and each tool means something slightly different by it. Not even GitHub stays inside its own spec: alerts, footnotes and diagrams are rendered outside it.
+There are exactly two formal specifications in the Markdown family. [CommonMark](https://spec.commonmark.org/) is strict and has a test suite. [GFM](https://github.github.com/gfm/) documents a superset of it: tables, task lists, strikethrough, autolinks. Everything above that line — wikilinks, embeds, callouts, frontmatter, the notation every knowledge vault is actually written in — is convention. Most of it was established by [Obsidian](https://help.obsidian.md/syntax), which documents what its forms look like and not what software should derive from them, and each tool that followed means something slightly different by them. Not even GitHub stays inside its own spec: alerts, footnotes and diagrams are rendered outside it.
 
 That is tolerable for prose that a person reads. It stops being tolerable the moment software has to derive a graph and an index out of the same files, and it stops being tolerable much faster when an **agent** is doing the writing: an agent cannot see that the tag it typed did nothing.
 
@@ -24,7 +24,7 @@ One list of the notation a knowledge vault is written in, and what each form pro
 | Tables, task list items, strikethrough, extended autolinks, disallowed raw HTML | [§4](SPEC.md#4-tables-task-lists-and-further-inlines) |
 | Wikilinks, aliases, anchors, embeds, the resolution rule, frontmatter, the reserved vocabulary, callouts, diagrams, transclusion, marked text, comments, block identifiers, math, pending links | [§5 to §8](SPEC.md#5-links-between-notes) |
 
-The specification **can be read alone**: every form it accepts is stated in it, so writing a note does not mean holding three documents open. [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/) and [GFM 0.29-gfm](https://github.github.com/gfm/) are its reference sources — where the forms were established and where the parsing detail lives — cited per form, and governing wherever the two disagree.
+The specification **can be read alone**: every form it accepts is stated in it, so writing a note does not mean holding three documents open. [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/), [GFM 0.29-gfm](https://github.github.com/gfm/) and [Obsidian](https://help.obsidian.md/syntax) are its reference sources — where the forms were established and where their established meaning can be checked — named in [§2](SPEC.md#2-reference-sources) and cited on the forms that came from them. The two specifications govern wherever they and this document disagree; Obsidian does not, and this profile does not undertake to follow it.
 
 And the join no source can state is written down where an author meets it: a `[[link]]` inside a code fence produces no edge, a block quote opening `[!warning]` is a callout, raw HTML parses and is not rendered.
 

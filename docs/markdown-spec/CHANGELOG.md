@@ -25,6 +25,17 @@ major version. While the profile is `0.x`, a breaking change may arrive in a min
   `base` for the specifications behind the profile reads `sources`.
 - Appendix B loses its Ring column, the two issue forms lose their ring dropdown, and the
   labels `ring:base`, `ring:extended` and `ring:memorysmith` are retired.
+- **Obsidian is named as a reference source**, alongside CommonMark and GFM, and carried in
+  the `sources` array of `profile.json`. Seven notation families came from it — the wikilink
+  and its alias, anchor, embed and block forms, callouts, marked text, comments and block
+  identifiers — and the document credited them to *the vault editors*, an unnamed plural.
+  It is named as a **source and never as a compatibility claim**: where Obsidian and this
+  document differ, this document governs, which is the opposite of the precedence CommonMark
+  and GFM hold. Two other lineages are named where their form is specified: the `---`
+  frontmatter block is Jekyll's (§6) and the alert form of the callout is GitHub's (§7.1).
+- A source in `profile.json` may now omit `version`. Obsidian publishes documentation rather
+  than a versioned specification, and pinning an app release would claim a precision the
+  documentation does not have.
 
 ## [0.3.0] — 2026-09-06
 

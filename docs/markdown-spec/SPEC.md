@@ -10,7 +10,7 @@ A profile of Markdown for knowledge vaults: plain `.md` files, linked to each ot
 
 ### 1.1 What this document is
 
-This profile defines **which notation a conforming implementation reads, and what it does with it**. It is a profile, not a new syntax: every form specified here is taken from CommonMark, from GitHub Flavored Markdown, or from the vault editors that established it. Nothing is invented.
+This profile defines **which notation a conforming implementation reads, and what it does with it**. It is a profile, not a new syntax: every form specified here was taken from CommonMark, from GitHub Flavored Markdown, or from the vault editors that established it — chiefly Obsidian. Nothing is invented, and §2 names each source.
 
 It is also **self-contained**. §3 and §4 state every block and every inline the profile accepts, with the form as it is typed and what it produces, so that writing a note, or implementing one, does not mean reading three specifications side by side with a finger in each. Where this document and the source a form was taken from disagree, the source governs (§2.1).
 
@@ -53,6 +53,11 @@ Nothing here is invented. Every form this profile declares was taken from somewh
 |---|---|---|
 | [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/) | Blocks and inlines | §3 |
 | [GFM 0.29-gfm](https://github.github.com/gfm/) | Tables, task list items, strikethrough, extended autolinks, disallowed raw HTML | §4 |
+| [Obsidian](https://help.obsidian.md/syntax) | The wikilink and its alias, anchor, embed and block forms; callouts; marked text; comments; block identifiers | §5, §7 |
+
+Obsidian is a source and not an authority. It publishes documentation rather than a versioned specification, so it carries no version above, and where it and this document differ **this document governs** — the opposite of the precedence CommonMark and GFM hold in §2.1. This profile is not *Obsidian compatible* and does not undertake to follow it; Obsidian is where a form was established and where its established meaning can be checked.
+
+Two other lineages are named where the form they established is specified: the `---` frontmatter block, which is Jekyll's (§6), and the alert form of the callout, which is GitHub's (§7.1).
 
 A source is where a form was established and where its parsing detail lives. It is not a tier this document is built out of, and an implementation is never asked to support a source *in full*: what it is asked to support is the notation this document lists.
 
@@ -373,6 +378,8 @@ A **link** is a reference from one note to another note of the same vault. Links
 
 This is where §3.13 stops being about rendering. A link is one of the forms below, and what decides whether it becomes an edge is its **destination** — never its text, never the syntax it was written in, and never where in the note it appears.
 
+The `[[…]]` form is older than any vault editor and was established for vaults by Obsidian (§2), along with the alias, anchor, embed and block forms below. What is specified here is not its syntax but its **resolution**, which is where implementations diverge.
+
 ### 5.1 Forms
 
 | Form | Syntax | Becomes an edge |
@@ -428,7 +435,7 @@ A link inside a code span or a fenced code block is an example, not a reference.
 
 ## 6. Frontmatter
 
-Frontmatter is a block at the top of the file delimited by `---`, written in a YAML subset. It is part of neither CommonMark nor GFM; this profile specifies it because it is the **only** place a vault declares attributes about a note, and the second and last place an Indexer is allowed to read.
+Frontmatter is a block at the top of the file delimited by `---`, written in a YAML subset. The form is Jekyll's, adopted since by every vault editor. It is part of neither CommonMark nor GFM; this profile specifies it because it is the **only** place a vault declares attributes about a note, and the second and last place an Indexer is allowed to read.
 
 ### 6.1 The block
 
@@ -548,7 +555,9 @@ Relative and named dates (`last-7-days` and friends) are **not** part of this pr
 
 A **Reader** renders a note for a person. Everything in this section is display: none of it produces an edge, an attribute or an index entry, and none of it changes the bytes of the note.
 
-Every form here is built out of the blocks and inlines of §3 and §4, and stays legible as ordinary Markdown in an editor that does not know the convention: a callout is a block quote, a diagram is a fenced block, an embed is an image whose target happens to be a note. That is deliberate. A note is a plain file first, and a profile that made its files unreadable elsewhere would have taken more than it gave. §7.9 and §7.10 are the two places the profile subtracts rather than adds, and both say why.
+Every form here is built out of the blocks and inlines of §3 and §4, and stays legible as ordinary Markdown in an editor that does not know the convention: a callout is a block quote, a diagram is a fenced block, an embed is an image whose target happens to be a note. That is deliberate. A note is a plain file first, and a profile that made its files unreadable elsewhere would have taken more than it gave.
+
+Callouts, marked text, comments and block identifiers were established by Obsidian, and math and diagrams by the wider convention both it and GitHub follow (§2). None of them is invented here; what is specified is the effect each one has. §7.9 and §7.10 are the two places the profile subtracts rather than adds, and both say why.
 
 ### 7.1 Callouts
 
@@ -560,6 +569,8 @@ Every form here is built out of the blocks and inlines of §3 and §4, and stays
 A blockquote whose first line begins with `[!type]` is a **callout**. The type is the word between `[!` and `]`, case-insensitive; the rest of that line, if any, is its title. A Reader MUST render it as a callout rather than as a quotation with a marker in front of it, and MUST NOT render the marker as text.
 
 An optional `+` or `-` immediately after `]` marks the callout as foldable, expanded or collapsed respectively. A Reader MAY honour it.
+
+This form has two lineages that arrived at the same characters: GitHub's alerts, which admit five fixed types, and Obsidian's callouts, which admit any word and a title. This profile follows the second, which is the more general — so a note written for either renders here.
 
 The type vocabulary is open. The five types of GitHub alerts — `note`, `tip`, `important`, `warning`, `caution` — MUST be recognised; a Reader SHOULD render an unknown type as a generic callout rather than as plain text.
 

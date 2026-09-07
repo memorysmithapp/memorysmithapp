@@ -20,12 +20,12 @@
       "description": "Where the forms this profile declares were established. A source is cited per form in SPEC.md; it is not a tier the profile is built out of.",
       "items": {
         "type": "object",
-        "required": ["id", "name", "version", "url"],
+        "required": ["id", "name", "url"],
         "additionalProperties": false,
         "properties": {
           "id": { "type": "string" },
           "name": { "type": "string" },
-          "version": { "type": "string" },
+          "version": { "type": "string", "description": "Absent for a source that publishes documentation rather than a versioned specification." },
           "url": { "type": "string", "format": "uri" }
         }
       }

@@ -21,8 +21,9 @@ md.memorysmith.app
 The MemorySmith Markdown Profile: a specification of the Markdown notation a knowledge
 vault is written in, published as prose, as data and as an executable conformance suite. It
 is a profile, not a syntax — every form it declares comes from CommonMark, from GFM or from
-the vault editors that established it — and its distinguishing claim is that it states the
-**observable effect** of each form, including the forms it deliberately gives no effect to.
+the vault editors that established it, chiefly Obsidian — and its distinguishing claim is
+that it states the **observable effect** of each form, including the forms it deliberately
+gives no effect to.
 
 ### What it is not
 It is not an implementation, and no code that reads a note lives here. The suite is data
