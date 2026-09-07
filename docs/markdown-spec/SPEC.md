@@ -246,10 +246,16 @@ One leading and one trailing space are stripped when both are present and the co
 ### 3.12 Emphasis and strong emphasis
 
 ```markdown
-*emphasis*   _emphasis_   **strong**   __strong__   ***both***
+*emphasis*   _emphasis_   **strong**   __strong__   ***both***   ___both___
 ```
 
-`_` does not open or close emphasis inside a word, so `snake_case_name` is one word. `*` does, so `un*frigging*believable` works. The full flanking rules are CommonMark's; the working rule for a Writer is to use `*` and `**` and never the underscores.
+Two characters and three lengths. One delimiter is emphasis, two are strong emphasis, and **three are both at once**: `***a***` and `___a___` are emphasised and strong together.
+
+Emphasis **nests**. `**Bold text and _nested italic_ text**` is strong emphasis holding emphasis, and the inner form is written with the other character because a run of the same one would close the outer delimiter instead of opening an inner one.
+
+`_` does not open or close emphasis inside a word, so `snake_case_name` is one word. `*` does, so `un*frigging*believable` works. The full flanking rules are CommonMark's; the working rule for a Writer is `*`, `**` and `***`, with the underscores kept for the inner delimiter of a nested form.
+
+`___` alone on a line is a thematic break and not emphasis (§3.4). Blocks are resolved before inlines, so that line never reaches the inline pass — the same order that makes a `[!warning]` inside a fence code (§7.1) and a `[[wikilink]]` inside a code span text (§5.6).
 
 Marked text, `==highlight==`, is not emphasis and not CommonMark. It is §7.5.
 
@@ -779,7 +785,7 @@ Every form this document declares, in one table. The last column is the section 
 | Link reference definition | `[label]: /url` | — | 3.8 |
 | HTML block | `<div>…</div>` | Kept in the bytes, shown as text | 3.9, 7.10 |
 | Code span | `` `code` `` | Suppresses every notation inside | 3.11 |
-| Emphasis, strong | `*a*`, `**a**` | — | 3.12 |
+| Emphasis, strong, both | `*a*`, `**a**`, `***a***` | Nests: `**a _b_ c**` | 3.12 |
 | Inline link | `[text](url)` | An edge when the target is internal | 3.13, 5.2 |
 | Reference link | `[text][label]` | An edge when the target is internal | 3.13, 5.2 |
 | Image | `![alt](image.png)` | A remote destination is a request when the note opens | 3.14, 7.10 |

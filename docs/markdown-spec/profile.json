@@ -132,8 +132,8 @@
       "id": "emphasis",
       "reader": "reading-surface",
       "syntax": "*text*  ·  _text_",
-      "example": "The rule is *usually* the exception.",
-      "effect": "Emphasis. `_` does not open or close inside a word, so `snake_case_name` is one word; `*` does, so `un*frigging*believable` works.",
+      "example": "The rule is *usually* the exception, and **the notice binds _both_ sides**.",
+      "effect": "Emphasis. It nests inside strong emphasis — `**a _b_ c**` — where the inner delimiter uses the other character, because a run of the same one would close the outer form instead of opening an inner one. `_` does not open or close inside a word, so `snake_case_name` is one word; `*` does, so `un*frigging*believable` works.",
       "spec": "3.12"
     },
     {
@@ -142,6 +142,14 @@
       "syntax": "**text**  ·  __text__",
       "example": "This is **not** optional.",
       "effect": "Strong emphasis. `==highlight==` is neither this nor CommonMark: it is marked text, and it belongs to the MemorySmith ring.",
+      "spec": "3.12"
+    },
+    {
+      "id": "strong-emphasis",
+      "reader": "reading-surface",
+      "syntax": "***text***  ·  ___text___",
+      "example": "The deadline is ***not*** negotiable.",
+      "effect": "Emphasis and strong emphasis at once. `___` alone on a line is a thematic break instead, because blocks are resolved before inlines.",
       "spec": "3.12"
     },
     {

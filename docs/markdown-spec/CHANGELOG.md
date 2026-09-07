@@ -11,6 +11,17 @@ major version. While the profile is `0.x`, a breaking change may arrive in a min
 
 ### Added
 
+- **Bold and italic together, and nested emphasis** (§3.12). `***a***` appeared only inside
+  a code sample, with no sentence saying what it produced; `___a___` appeared nowhere as
+  emphasis at all, since both occurrences of `___` in the document were the thematic break;
+  and nothing anywhere said that emphasis nests, which is the form an author writes without
+  ever wondering whether it is allowed. `profile.json` gains a `strong-emphasis` entry, so
+  the form has an id an implementation can cite, and nesting is stated in the effect of
+  `emphasis`, since it is a composition rule rather than a form of its own.
+- **The crossing between `___` and the thematic break is written down.** Alone on a line it
+  is a thematic break, because blocks are resolved before inlines — the same order that makes
+  a `[!warning]` inside a fence code and a `[[wikilink]]` inside a code span text.
+
 - **§7.10, what a Reader may fetch**, stated beside §7.9, which says what it must not
   execute. An image whose destination names a host is a request to that host, made when the
   note is opened, carrying the reader's address and the moment they read it — with the
