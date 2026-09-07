@@ -12,11 +12,11 @@ A profile of Markdown for knowledge vaults: plain `.md` files, linked to each ot
 
 This profile defines **which notation a conforming implementation reads, and what it does with it**. It is a profile, not a new syntax: every form specified here is taken from CommonMark, from GitHub Flavored Markdown, or from the vault editors that established it. Nothing is invented.
 
-It is also **self-contained**. §3 and §4 restate the base and the extended ring in full — every block and every inline, with the form as it is typed and what it produces — so that writing a note, or implementing one, does not mean reading three specifications side by side with a finger in each. The restatement carries no authority of its own: where it and its source disagree, the source governs (§2.1).
+It is also **self-contained**. §3 and §4 state every block and every inline the profile accepts, with the form as it is typed and what it produces, so that writing a note, or implementing one, does not mean reading three specifications side by side with a finger in each. Where this document and the source a form was taken from disagree, the source governs (§2.1).
 
 The profile covers four things and nothing else:
 
-1. Which base specifications a conforming implementation supports, and what they look like written down (§3, §4).
+1. Which blocks and inlines it accepts, with the form as it is typed and what it produces (§3, §4).
 2. Which MemorySmith notations it reads, and their **observable effect** (§5 to §7).
 3. Which notations it **deliberately does not read**, and what to write instead (§8).
 4. How all of that is published as data, and proved (§9, §10).
@@ -45,35 +45,36 @@ An implementation MUST state which roles it claims. An implementation that claim
 
 ---
 
-## 2. The three rings
+## 2. Reference sources
 
-| Ring | Specification | Restated in | Status here |
-|---|---|---|---|
-| **Base** | [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/) | §3 | Normative. An implementation MUST support it in full |
-| **Extended** | [GFM 0.29-gfm](https://github.github.com/gfm/): tables, task list items, strikethrough, extended autolinks, disallowed raw HTML | §4 | Normative. An implementation MUST support it in full |
-| **MemorySmith** | This document, §5 to §8 | — | Normative |
+Nothing here is invented. Every form this profile declares was taken from somewhere, and the places it was taken from are named once here and cited again on each form that came from them.
 
-The MemorySmith ring is where implementations of Markdown usually diverge in silence. Everything in it is specified here with a syntax, an example and an effect, and every entry has a machine-readable counterpart in [`profile.json`](profile.json) and at least one case in the [conformance suite](tests/).
+| Source | What it established | Declared in |
+|---|---|---|
+| [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/) | Blocks and inlines | §3 |
+| [GFM 0.29-gfm](https://github.github.com/gfm/) | Tables, task list items, strikethrough, extended autolinks, disallowed raw HTML | §4 |
 
-### 2.1 How to read the restatement
+A source is where a form was established and where its parsing detail lives. It is not a tier this document is built out of, and an implementation is never asked to support a source *in full*: what it is asked to support is the notation this document lists.
 
-§3 and §4 are a **restatement, not a fork**. Where this document and CommonMark 0.31.2 disagree on what a sequence of characters means, CommonMark governs and this document is in error; where this document and GFM 0.29-gfm disagree, GFM governs. Either case is a bug to report against this document, and never a licence to parse differently.
+### 2.1 What a source governs, and what it does not
 
-The restatement is also not a copy. It does not reproduce the flanking rules for emphasis, the seven kinds of HTML block or the tables of Unicode punctuation: it says what an author types and what comes out, and points at the source for the rest. An implementation is written against the source; a note is written against this.
+Where this document and the source a form came from disagree on what a sequence of characters means, **the source governs and this document is in error**. That is a bug to report here, and never a licence to parse differently.
 
-What the restatement adds is the part no base specification can give: the place where each form meets the MemorySmith ring. A fenced code block is CommonMark, and that a `[[link]]` inside one produces no edge is §5.6. A block quote is CommonMark, and that one beginning `[!warning]` is a callout is §7.1. CommonMark admits raw HTML, and that a Reader here MUST NOT render it is §7.10 — a security boundary, and the one place this profile narrows its base rather than extending it. Each crossing is stated where an author meets it, and again in the section that governs it.
+This document does not reproduce a source. It does not carry the flanking rules for emphasis, the seven kinds of HTML block or the tables of Unicode punctuation: it says what an author types and what comes out, and points at the source for the rest. An implementation is written against the source; a note is written against this.
 
-From §5 onward there is no source above this document. That is where it stops restating and starts specifying.
+What no source can give is the place where a form meets the rest of this profile, and that is what §3 and §4 add. A fenced code block is CommonMark, and that a `[[link]]` inside one produces no edge is §5.6. A block quote is CommonMark, and that one beginning `[!warning]` is a callout is §7.1. CommonMark admits raw HTML, and that a Reader here MUST NOT render it is §7.10 — a security boundary, and the one place this profile narrows a source rather than following it. Each crossing is stated where an author meets it, and again in the section that governs it.
+
+From §5 onward no source stands above this document. That is where implementations of Markdown usually diverge in silence, and every form there is stated with a syntax, an example and an effect, with a machine-readable counterpart in [`profile.json`](profile.json) and at least one case in the [conformance suite](tests/).
 
 ---
 
-## 3. The base ring — CommonMark
+## 3. Blocks and inlines
 
-A note is a CommonMark document. This section states what that gives an author: every block and every inline of [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/), with the form as it is typed and what it produces. An implementation MUST support all of it, and MUST NOT require an extension of its own to obtain any of it.
+A note is a Markdown document. This section states every block and every inline the profile accepts, with the form as it is typed and what it produces. All of them were established by [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/), which is where their parsing detail lives (§2.1). An implementation MUST support every form listed here, and MUST NOT require an extension of its own to obtain any of it.
 
 None of this notation produces an edge, an attribute or an index entry. It is structure and display. The two readers that derive meaning are §5 and §6, and they are the only ones.
 
-CommonMark parses a document in two passes: **block structure first**, then inline content inside the blocks it found. That order is not an implementation detail, it decides what a character means. A `[!warning]` inside a fenced code block is code because the fence was resolved first (§7.1), and a `[[wikilink]]` inside a code span is text for the same reason (§5.6).
+A document is parsed in two passes: **block structure first**, then inline content inside the blocks it found. That order is not an implementation detail, it decides what a character means. A `[!warning]` inside a fenced code block is code because the fence was resolved first (§7.1), and a `[[wikilink]]` inside a code span is text for the same reason (§5.6).
 
 ### 3.1 Paragraphs and blank lines
 
@@ -304,9 +305,9 @@ A tab advances to the next multiple of four columns wherever indentation is bein
 
 ---
 
-## 4. The extended ring — GFM
+## 4. Tables, task lists and further inlines
 
-[GFM 0.29-gfm](https://github.github.com/gfm/) is CommonMark plus five extensions. All five are normative here, and an implementation MUST support them in full.
+Five more forms, established by [GFM 0.29-gfm](https://github.github.com/gfm/), which is where their parsing detail lives (§2.1). An implementation MUST support all five.
 
 ### 4.1 Tables
 
@@ -547,7 +548,7 @@ Relative and named dates (`last-7-days` and friends) are **not** part of this pr
 
 A **Reader** renders a note for a person. Everything in this section is display: none of it produces an edge, an attribute or an index entry, and none of it changes the bytes of the note.
 
-Every form here is built out of the base ring and stays legible as base-ring notation in an editor that does not know the convention: a callout is a block quote, a diagram is a fenced block, an embed is an image whose target happens to be a note. That is deliberate. A note is a plain file first, and a profile that made its files unreadable elsewhere would have taken more than it gave. §7.9 and §7.10 are the two places the profile subtracts rather than adds, and both say why.
+Every form here is built out of the blocks and inlines of §3 and §4, and stays legible as ordinary Markdown in an editor that does not know the convention: a callout is a block quote, a diagram is a fenced block, an embed is an image whose target happens to be a note. That is deliberate. A note is a plain file first, and a profile that made its files unreadable elsewhere would have taken more than it gave. §7.9 and §7.10 are the two places the profile subtracts rather than adds, and both say why.
 
 ### 7.1 Callouts
 
@@ -689,7 +690,7 @@ yet, which is a different statement and a smaller one.
 
 ## 9. The machine-readable profile
 
-[`profile.json`](profile.json) carries every notation of §3 to §8 as data: an identifier, the ring, which reader decides it, the syntax, a worked example, the observable effect, and whether it is recognised. It is validated by [`schema/profile.schema.json`](schema/profile.schema.json).
+[`profile.json`](profile.json) carries every notation of §3 to §8 as data: an identifier, which reader decides it, the syntax, a worked example, the observable effect, and whether it is recognised. It is validated by [`schema/profile.schema.json`](schema/profile.schema.json).
 
 It exists so that a specification and an implementation cannot drift apart in prose. An implementation SHOULD build its own documentation, and anything it teaches an agent, from this file rather than from a copy of it.
 
@@ -699,7 +700,7 @@ It exists so that a specification and an implementation cannot drift apart in pr
 
 An implementation claiming the Indexer role SHOULD run the suite in its own continuous integration. See [`tests/README.md`](tests/README.md) for the format.
 
-The base and the extended ring carry no cases here, and need none: CommonMark and GFM each ship a suite of their own, and an implementation claims those rings by passing them. What this suite covers is the part nobody else tests, which is the same reason §5 to §8 exist.
+The forms of §3 and §4 carry no cases here, and need none: CommonMark and GFM each ship a suite of their own, and an implementation demonstrates those forms by passing it. What this suite covers is the part nobody else tests, which is the same reason §5 to §8 exist.
 
 ## 11. Versioning
 
@@ -729,58 +730,58 @@ An implementation is listed here when it runs the conformance suite in public. C
 
 ## Appendix B. Notation at a glance
 
-Every form this document declares, in one table. The last column is the section that governs it; the third says what it does **beyond being rendered**, which for most of the base ring is nothing at all.
+Every form this document declares, in one table. The last column is the section that governs it; the third says what it does **beyond being rendered**, which for most of §3 is nothing at all.
 
-| Ring | Notation | Written | Beyond rendering | § |
-|---|---|---|---|---|
-| Base | Paragraph | text, blank line, text | Names a block when it ends in `^id` | 3.1 |
-| Base | Backslash escape | `\*literal\*` | The way to write this profile's own notation as text | 3.2 |
-| Base | Character reference | `&amp;`, `&#35;` | — | 3.2 |
-| Base | ATX heading | `## Title` | Anchor target of a wikilink | 3.3 |
-| Base | Setext heading | `Title` over `===` | Anchor target of a wikilink | 3.3 |
-| Base | Thematic break | `---`, `***`, `___` | On line 1, opens frontmatter instead | 3.4 |
-| Base | Block quote | `> text` | A callout when it opens with `[!type]` | 3.5 |
-| Base | Bullet list | `- item` | — | 3.6 |
-| Base | Ordered list | `1. item` | — | 3.6 |
-| Base | Fenced code block | ` ```lang ` | Suppresses every notation inside | 3.7 |
-| Base | Indented code block | four spaces | Suppresses every notation inside | 3.7 |
-| Base | Link reference definition | `[label]: /url` | — | 3.8 |
-| Base | HTML block | `<div>…</div>` | Kept in the bytes, shown as text | 3.9, 7.10 |
-| Base | Code span | `` `code` `` | Suppresses every notation inside | 3.11 |
-| Base | Emphasis, strong | `*a*`, `**a**` | — | 3.12 |
-| Base | Inline link | `[text](url)` | An edge when the target is internal | 3.13, 5.2 |
-| Base | Reference link | `[text][label]` | An edge when the target is internal | 3.13, 5.2 |
-| Base | Image | `![alt](image.png)` | — | 3.14 |
-| Base | Autolink | `<https://example.org>` | Never an edge | 3.15, 8.2 |
-| Base | Raw inline HTML | `<abbr>…</abbr>` | Kept in the bytes, shown as text | 3.16, 7.10 |
-| Base | Hard line break | trailing `\` | — | 3.17 |
-| Extended | Table | `\| a \| b \|` | Cells hold links like any other text | 4.1 |
-| Extended | Task list item | `- [ ]`, `- [x]` | A toggle writes back one character | 4.2, 7.11 |
-| Extended | Strikethrough | `~~struck~~` | — | 4.3 |
-| Extended | Extended autolink | `www.example.org` | Never an edge | 4.4, 8.2 |
-| Extended | Disallowed raw HTML | `<script>` | Moot here: no raw HTML is rendered | 4.5, 7.10 |
-| MemorySmith | Wikilink | `[[Target note]]` | An edge, a backlink, pending when unresolved | 5.1 |
-| MemorySmith | Wikilink with alias | `[[Target\|text]]` | The same edge; the alias is display | 5.1 |
-| MemorySmith | Wikilink with anchor | `[[Target#Section]]` | The same edge; the anchor is display | 5.2 |
-| MemorySmith | Embed | `![[Target note]]` | The same edge, plus transclusion | 5.7, 7.3 |
-| MemorySmith | Relative Markdown link | `[text](target.md)` | An edge, by basename and slug | 5.2 |
-| MemorySmith | Frontmatter block | `---` on line 1 | The only source of attributes | 6.1 |
-| MemorySmith | Short value | `key: value` | An `enum` attribute | 6.3 |
-| MemorySmith | List value | `key: [a, b]` | A `list` attribute, each value on its own | 6.3 |
-| MemorySmith | Boolean value | `key: true` | A `boolean` attribute | 6.3 |
-| MemorySmith | Date value | `key: 2026-09-03` | A `date` attribute, queried by prefix and interval | 6.3, 6.7, 6.8 |
-| MemorySmith | Reserved keys | `aliases`, `tags`, `created`, `updated` | Search spellings, subjects, the author's dates | 6.4 |
-| MemorySmith | Callout | `> [!warning] Title` | Drawn as a callout, not as a quotation | 7.1 |
-| MemorySmith | Mermaid diagram | ` ```mermaid ` | Drawn as a diagram, or shown as source | 7.2 |
-| MemorySmith | Marked text | `==highlight==` | Nothing beyond emphasis | 7.5 |
-| MemorySmith | Comment | `%%comment%%` | Off the page, kept in the bytes | 7.6 |
-| MemorySmith | Block identifier | `^article-75` | Names a block; not rendered | 7.7 |
-| MemorySmith | Block embed | `![[note#^id]]` | The same edge as a plain wikilink | 7.7 |
-| MemorySmith | Math | `$x$`, `$$x$$` | Drawn as mathematics, or shown as source | 7.8 |
-| — | Inline tag | `#subject` | **Nothing.** Plain text | 8.1 |
-| — | External link | `[text](https://…)` | **Nothing.** Never an edge | 8.2 |
-| — | Prose in frontmatter | over 40 characters | **Nothing.** Read and discarded | 8.3 |
-| — | `title:` | in the frontmatter | **Nothing structural.** An ordinary attribute | 6.5 |
-| — | Superscript, subscript | `<sup>`, `~x~`, `^x^` | **No notation**, and the reason is written down | 7.9 |
-| — | Raw HTML | `<div>`, `<abbr>` | **Not rendered.** A security boundary | 7.10 |
-| — | Footnotes, and anything else absent | `[^1]` | **Nothing.** Not part of the profile | 8.4 |
+| Notation | Written | Beyond rendering | § |
+|---|---|---|---|
+| Paragraph | text, blank line, text | Names a block when it ends in `^id` | 3.1 |
+| Backslash escape | `\*literal\*` | The way to write this profile's own notation as text | 3.2 |
+| Character reference | `&amp;`, `&#35;` | — | 3.2 |
+| ATX heading | `## Title` | Anchor target of a wikilink | 3.3 |
+| Setext heading | `Title` over `===` | Anchor target of a wikilink | 3.3 |
+| Thematic break | `---`, `***`, `___` | On line 1, opens frontmatter instead | 3.4 |
+| Block quote | `> text` | A callout when it opens with `[!type]` | 3.5 |
+| Bullet list | `- item` | — | 3.6 |
+| Ordered list | `1. item` | — | 3.6 |
+| Fenced code block | ` ```lang ` | Suppresses every notation inside | 3.7 |
+| Indented code block | four spaces | Suppresses every notation inside | 3.7 |
+| Link reference definition | `[label]: /url` | — | 3.8 |
+| HTML block | `<div>…</div>` | Kept in the bytes, shown as text | 3.9, 7.10 |
+| Code span | `` `code` `` | Suppresses every notation inside | 3.11 |
+| Emphasis, strong | `*a*`, `**a**` | — | 3.12 |
+| Inline link | `[text](url)` | An edge when the target is internal | 3.13, 5.2 |
+| Reference link | `[text][label]` | An edge when the target is internal | 3.13, 5.2 |
+| Image | `![alt](image.png)` | — | 3.14 |
+| Autolink | `<https://example.org>` | Never an edge | 3.15, 8.2 |
+| Raw inline HTML | `<abbr>…</abbr>` | Kept in the bytes, shown as text | 3.16, 7.10 |
+| Hard line break | trailing `\` | — | 3.17 |
+| Table | `\| a \| b \|` | Cells hold links like any other text | 4.1 |
+| Task list item | `- [ ]`, `- [x]` | A toggle writes back one character | 4.2, 7.11 |
+| Strikethrough | `~~struck~~` | — | 4.3 |
+| Extended autolink | `www.example.org` | Never an edge | 4.4, 8.2 |
+| Disallowed raw HTML | `<script>` | Moot here: no raw HTML is rendered | 4.5, 7.10 |
+| Wikilink | `[[Target note]]` | An edge, a backlink, pending when unresolved | 5.1 |
+| Wikilink with alias | `[[Target\|text]]` | The same edge; the alias is display | 5.1 |
+| Wikilink with anchor | `[[Target#Section]]` | The same edge; the anchor is display | 5.2 |
+| Embed | `![[Target note]]` | The same edge, plus transclusion | 5.7, 7.3 |
+| Relative Markdown link | `[text](target.md)` | An edge, by basename and slug | 5.2 |
+| Frontmatter block | `---` on line 1 | The only source of attributes | 6.1 |
+| Short value | `key: value` | An `enum` attribute | 6.3 |
+| List value | `key: [a, b]` | A `list` attribute, each value on its own | 6.3 |
+| Boolean value | `key: true` | A `boolean` attribute | 6.3 |
+| Date value | `key: 2026-09-03` | A `date` attribute, queried by prefix and interval | 6.3, 6.7, 6.8 |
+| Reserved keys | `aliases`, `tags`, `created`, `updated` | Search spellings, subjects, the author's dates | 6.4 |
+| Callout | `> [!warning] Title` | Drawn as a callout, not as a quotation | 7.1 |
+| Mermaid diagram | ` ```mermaid ` | Drawn as a diagram, or shown as source | 7.2 |
+| Marked text | `==highlight==` | Nothing beyond emphasis | 7.5 |
+| Comment | `%%comment%%` | Off the page, kept in the bytes | 7.6 |
+| Block identifier | `^article-75` | Names a block; not rendered | 7.7 |
+| Block embed | `![[note#^id]]` | The same edge as a plain wikilink | 7.7 |
+| Math | `$x$`, `$$x$$` | Drawn as mathematics, or shown as source | 7.8 |
+| Inline tag | `#subject` | **Nothing.** Plain text | 8.1 |
+| External link | `[text](https://…)` | **Nothing.** Never an edge | 8.2 |
+| Prose in frontmatter | over 40 characters | **Nothing.** Read and discarded | 8.3 |
+| `title:` | in the frontmatter | **Nothing structural.** An ordinary attribute | 6.5 |
+| Superscript, subscript | `<sup>`, `~x~`, `^x^` | **No notation**, and the reason is written down | 7.9 |
+| Raw HTML | `<div>`, `<abbr>` | **Not rendered.** A security boundary | 7.10 |
+| Footnotes, and anything else absent | `[^1]` | **Nothing.** Not part of the profile | 8.4 |

@@ -9,6 +9,23 @@ major version. While the profile is `0.x`, a breaking change may arrive in a min
 
 ## [Unreleased]
 
+### Changed
+
+- **CommonMark 0.31.2 and GFM 0.29-gfm are reference sources, not rings the profile is built
+  out of.** The document was organised in three tiers, and the tier a form belonged to was the
+  first thing it said about that form — which is the least useful thing it can say to somebody
+  deciding whether a form works and what it produces. §3 and §4 keep every form they had and
+  lose the framing; §2 names the sources once, and each form cites the one it came from. An
+  implementation is no longer asked to support a source *in full*: what it is asked to support
+  is the notation this document lists, which is the version of that requirement that can be
+  checked.
+- **`profile.json` no longer carries a `ring` field, and its `base` array is now `sources`.**
+  Provenance is stated in the prose of `SPEC.md`, per form, and is no longer an axis of the
+  data. An implementation that selected notations by ring now reads them all; one that read
+  `base` for the specifications behind the profile reads `sources`.
+- Appendix B loses its Ring column, the two issue forms lose their ring dropdown, and the
+  labels `ring:base`, `ring:extended` and `ring:memorysmith` are retired.
+
 ## [0.3.0] — 2026-09-06
 
 The cycle in which the document stopped being a specification you read with two other

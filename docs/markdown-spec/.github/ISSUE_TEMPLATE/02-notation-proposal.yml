@@ -42,17 +42,6 @@ body:
       required: true
 
   - type: dropdown
-    id: ring
-    attributes:
-      label: Ring
-      options:
-        - MemorySmith, the profile declares it
-        - Extended, it already exists in GFM and the profile has to say what it does
-        - Base, it already exists in CommonMark and the profile has to say what it does
-    validations:
-      required: true
-
-  - type: dropdown
     id: reader
     attributes:
       label: Which reader decides it

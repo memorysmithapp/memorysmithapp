@@ -4,7 +4,7 @@
   "title": "MemorySmith Markdown Profile",
   "description": "The machine-readable half of the profile: every notation it declares, with its observable effect and whether it is recognised.",
   "type": "object",
-  "required": ["profile", "version", "base", "notations"],
+  "required": ["profile", "version", "sources", "notations"],
   "additionalProperties": false,
   "properties": {
     "$schema": { "type": "string" },
@@ -15,9 +15,9 @@
       "description": "The value of the variant parameter of text/markdown, per RFC 7763."
     },
     "url": { "type": "string", "format": "uri" },
-    "base": {
+    "sources": {
       "type": "array",
-      "description": "The specifications this profile builds on, in full.",
+      "description": "Where the forms this profile declares were established. A source is cited per form in SPEC.md; it is not a tier the profile is built out of.",
       "items": {
         "type": "object",
         "required": ["id", "name", "version", "url"],
@@ -35,17 +35,13 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["id", "ring", "reader", "syntax", "example", "effect", "recognised"],
+        "required": ["id", "reader", "syntax", "example", "effect", "recognised"],
         "additionalProperties": false,
         "properties": {
           "id": {
             "type": "string",
             "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
             "description": "Stable identifier. Never renamed and never reused."
-          },
-          "ring": {
-            "enum": ["base", "extended", "memorysmith"],
-            "description": "Which ring the notation belongs to: CommonMark, GFM, or this profile."
           },
           "reader": {
             "enum": ["links", "frontmatter", "reading-surface"],

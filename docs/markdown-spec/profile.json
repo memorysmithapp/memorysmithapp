@@ -4,7 +4,7 @@
   "version": "0.3.0",
   "variant": "MemorySmith",
   "url": "https://md.memorysmith.app",
-  "base": [
+  "sources": [
     {
       "id": "commonmark",
       "name": "CommonMark",
@@ -21,7 +21,6 @@
   "notations": [
     {
       "id": "paragraph",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "Lines of text, ended by a blank line",
       "example": "A paragraph.\n\nA second one.\n",
@@ -31,7 +30,6 @@
     },
     {
       "id": "backslash-escape",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "\\ before an ASCII punctuation character",
       "example": "Write \\*this\\* without emphasis, and \\[\\[this\\]\\] without a link.",
@@ -41,7 +39,6 @@
     },
     {
       "id": "character-reference",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "&amp;  ·  &#35;  ·  &#X1F600;",
       "example": "The ampersand is written &amp; and the hash &#35;.",
@@ -51,7 +48,6 @@
     },
     {
       "id": "heading-atx",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "# Title  ·  ###### Title",
       "example": "## Direct contracting\n\nThe rule.\n",
@@ -61,7 +57,6 @@
     },
     {
       "id": "heading-setext",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "Title, then a line of === or ---",
       "example": "Direct contracting\n==================\n\nThe rule.\n",
@@ -71,7 +66,6 @@
     },
     {
       "id": "thematic-break",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "---  ·  ***  ·  ___",
       "example": "Before.\n\n***\n\nAfter.\n",
@@ -81,7 +75,6 @@
     },
     {
       "id": "block-quote",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "> text",
       "example": "> A quotation.\n",
@@ -91,7 +84,6 @@
     },
     {
       "id": "list-bullet",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "- item  ·  + item  ·  * item",
       "example": "- one\n- two\n  - nested\n",
@@ -101,7 +93,6 @@
     },
     {
       "id": "list-ordered",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "1. item  ·  1) item",
       "example": "1. first\n2. second\n",
@@ -111,7 +102,6 @@
     },
     {
       "id": "code-fenced",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "Three or more backticks or tildes, with an optional info string",
       "example": "```sql\nselect 1;\n```\n",
@@ -121,7 +111,6 @@
     },
     {
       "id": "code-indented",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "four spaces, or one tab",
       "example": "    an indented code block\n",
@@ -131,7 +120,6 @@
     },
     {
       "id": "link-reference-definition",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "[label]: /url \"Optional title\"",
       "example": "[the act]: https://example.org/lei-14133\n\nSee [the act].\n",
@@ -141,7 +129,6 @@
     },
     {
       "id": "code-span",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "`code`  ·  ``a span holding a ` backtick``",
       "example": "Write a link as `[[Lei 14.133]]` in the body.",
@@ -151,7 +138,6 @@
     },
     {
       "id": "emphasis",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "*text*  ·  _text_",
       "example": "The rule is *usually* the exception.",
@@ -161,7 +147,6 @@
     },
     {
       "id": "strong",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "**text**  ·  __text__",
       "example": "This is **not** optional.",
@@ -171,7 +156,6 @@
     },
     {
       "id": "link-inline",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "[text](destination \"optional title\")",
       "example": "See [the official text](https://example.org/lei-14133).",
@@ -181,7 +165,6 @@
     },
     {
       "id": "link-reference",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "[text][label]  ·  [label][]  ·  [label]",
       "example": "See [the act][] for the general rule.",
@@ -191,7 +174,6 @@
     },
     {
       "id": "image",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "![alt text](image.png \"optional title\")",
       "example": "![The seal of the act](seal.png)",
@@ -201,7 +183,6 @@
     },
     {
       "id": "autolink",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "<https://example.org/page>  ·  <someone@example.org>",
       "example": "The text is at <https://example.org/lei-14133>.",
@@ -211,7 +192,6 @@
     },
     {
       "id": "hard-line-break",
-      "ring": "base",
       "reader": "reading-surface",
       "syntax": "a trailing backslash, or two trailing spaces",
       "example": "first line\\\nsecond line\n",
@@ -221,7 +201,6 @@
     },
     {
       "id": "table",
-      "ring": "extended",
       "reader": "reading-surface",
       "syntax": "| a | b | over a delimiter row of --- with optional :",
       "example": "| Key | Indexed |\n|---|:---:|\n| `tags` | yes |\n",
@@ -231,7 +210,6 @@
     },
     {
       "id": "strikethrough",
-      "ring": "extended",
       "reader": "reading-surface",
       "syntax": "~text~  ·  ~~text~~",
       "example": "The earlier rule is ~~still in force~~ revoked.",
@@ -241,7 +219,6 @@
     },
     {
       "id": "autolink-extended",
-      "ring": "extended",
       "reader": "reading-surface",
       "syntax": "www.example.org  ·  https://example.org/page  ·  a bare email address",
       "example": "The text is at https://example.org/lei-14133.",
@@ -251,7 +228,6 @@
     },
     {
       "id": "task-list",
-      "ring": "extended",
       "reader": "reading-surface",
       "syntax": "- [ ] item  ·  - [x] item",
       "example": "- [ ] Read the act\n- [x] Summarise article 75\n",
@@ -261,7 +237,6 @@
     },
     {
       "id": "raw-html",
-      "ring": "extended",
       "reader": "reading-surface",
       "syntax": "<div>anything</div>",
       "example": "The notice: <b>read the act</b>.",
@@ -271,7 +246,6 @@
     },
     {
       "id": "wikilink",
-      "ring": "memorysmith",
       "reader": "links",
       "syntax": "[[Target note]]",
       "example": "See [[Lei 14.133]] for the general rule.",
@@ -281,7 +255,6 @@
     },
     {
       "id": "wikilink-alias",
-      "ring": "memorysmith",
       "reader": "links",
       "syntax": "[[Target note|what the reader sees]]",
       "example": "See [[Lei 14.133|the procurement act]] for the general rule.",
@@ -291,7 +264,6 @@
     },
     {
       "id": "wikilink-anchor",
-      "ring": "memorysmith",
       "reader": "links",
       "syntax": "[[Target note#Section]]",
       "example": "See [[Lei 14.133#Article 75]] for the exception.",
@@ -301,7 +273,6 @@
     },
     {
       "id": "embed",
-      "ring": "memorysmith",
       "reader": "links",
       "syntax": "![[Target note]]  ·  ![[Target note#Section]]",
       "example": "The rule is stated in full here:\n\n![[Lei 14.133#Article 75]]\n",
@@ -311,7 +282,6 @@
     },
     {
       "id": "markdown-relative-link",
-      "ring": "memorysmith",
       "reader": "links",
       "syntax": "[what the reader sees](target-note.md)",
       "example": "See [the procurement act](lei-14133.md) for the general rule.",
@@ -321,7 +291,6 @@
     },
     {
       "id": "external-link",
-      "ring": "memorysmith",
       "reader": "links",
       "syntax": "[what the reader sees](https://example.org/page)",
       "example": "See [the official text](https://example.org/lei-14133) for the general rule.",
@@ -331,7 +300,6 @@
     },
     {
       "id": "link-in-code",
-      "ring": "memorysmith",
       "reader": "links",
       "syntax": "`[[Target note]]` inside a code span or fence",
       "example": "Write a link as `[[Lei 14.133]]` in the body.",
@@ -341,7 +309,6 @@
     },
     {
       "id": "frontmatter-enum",
-      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "key: short-value",
       "example": "---\nmaturity: evergreen\n---\n\nBody.",
@@ -351,7 +318,6 @@
     },
     {
       "id": "frontmatter-list",
-      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "key: [one, two]  ·  or a dash list under the key",
       "example": "---\ntags: [contracts, procurement]\n---\n\nBody.",
@@ -361,7 +327,6 @@
     },
     {
       "id": "frontmatter-boolean",
-      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "key: true  ·  key: false",
       "example": "---\nreviewed: false\n---\n\nBody.",
@@ -371,7 +336,6 @@
     },
     {
       "id": "frontmatter-date",
-      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "key: 2026-09-03",
       "example": "---\nreviewed_at: 2026-09-03\n---\n\nBody.",
@@ -381,7 +345,6 @@
     },
     {
       "id": "frontmatter-aliases",
-      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "aliases: [RTO, Recovery Time]",
       "example": "---\naliases: [RTO]\n---\n\nBody.",
@@ -391,7 +354,6 @@
     },
     {
       "id": "frontmatter-tags",
-      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "tags: [contracts, procurement]",
       "example": "---\ntags: [contracts]\n---\n\nBody.",
@@ -401,7 +363,6 @@
     },
     {
       "id": "frontmatter-created",
-      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "created: 2026-09-03",
       "example": "---\ncreated: 2026-09-03\n---\n\nBody.",
@@ -411,7 +372,6 @@
     },
     {
       "id": "frontmatter-updated",
-      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "updated: 2026-09-03",
       "example": "---\nupdated: 2026-09-03\n---\n\nBody.",
@@ -421,7 +381,6 @@
     },
     {
       "id": "frontmatter-title",
-      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "title: Whatever the note is called",
       "example": "---\ntitle: Lei 14.133\n---\n\nBody.",
@@ -431,7 +390,6 @@
     },
     {
       "id": "frontmatter-prose",
-      "ring": "memorysmith",
       "reader": "frontmatter",
       "syntax": "key: a whole sentence, longer than forty characters",
       "example": "---\nsummary: This note explains the general rule of direct contracting and its exceptions.\n---\n\nBody.",
@@ -441,7 +399,6 @@
     },
     {
       "id": "inline-tag",
-      "ring": "memorysmith",
       "reader": "links",
       "syntax": "#subject",
       "example": "The decision touches #procurement and #contracts.",
@@ -451,7 +408,6 @@
     },
     {
       "id": "callout",
-      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "> [!type] Optional title",
       "example": "> [!warning] What can go wrong\n> The body of the notice.\n",
@@ -461,7 +417,6 @@
     },
     {
       "id": "mermaid",
-      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "```mermaid",
       "example": "```mermaid\nflowchart LR\n  A --> B\n```\n",
@@ -471,7 +426,6 @@
     },
     {
       "id": "transclusion",
-      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "![[Target note]]  ·  ![[Target note#Section]]",
       "example": "![[Lei 14.133#Article 75]]\n",
@@ -481,7 +435,6 @@
     },
     {
       "id": "pending-link-display",
-      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "[[A note that does not exist yet]]",
       "example": "See [[A note nobody has written]] for the rest.",
@@ -491,7 +444,6 @@
     },
     {
       "id": "highlight",
-      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "==highlight==",
       "example": "The exception is ==only for the cases listed in article 75==.",
@@ -501,7 +453,6 @@
     },
     {
       "id": "comment",
-      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "%%comment%%",
       "example": "The rule holds. %%check this against the 2027 revision%%",
@@ -511,7 +462,6 @@
     },
     {
       "id": "block-id",
-      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "A paragraph. ^identifier",
       "example": "The rule is stated once, here. ^article-75\n",
@@ -521,7 +471,6 @@
     },
     {
       "id": "block-embed",
-      "ring": "memorysmith",
       "reader": "links",
       "syntax": "![[Target note#^identifier]]",
       "example": "The rule, in full:\n\n![[Lei 14.133#^article-75]]\n",
@@ -531,7 +480,6 @@
     },
     {
       "id": "math-inline",
-      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "$formula$",
       "example": "The ceiling is $n \\log n$ in the worst case.",
@@ -541,7 +489,6 @@
     },
     {
       "id": "math-block",
-      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "$$formula$$",
       "example": "$$\nE = mc^2\n$$\n",
@@ -551,7 +498,6 @@
     },
     {
       "id": "sub-sup",
-      "ring": "memorysmith",
       "reader": "reading-surface",
       "syntax": "~subscript~  ·  ^superscript^",
       "example": "The formula is H~2~O, and the area is 3 m^2^.",
