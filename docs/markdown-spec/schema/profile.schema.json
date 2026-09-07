@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://md.memorysmith.app/schema/profile.schema.json",
   "title": "MemorySmith Markdown Profile",
-  "description": "The machine-readable half of the profile: every notation it declares, with its observable effect and whether it is recognised.",
+  "description": "The machine-readable half of the profile: every notation it declares, with its observable effect.",
   "type": "object",
   "required": ["profile", "version", "sources", "notations"],
   "additionalProperties": false,
@@ -35,7 +35,7 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["id", "reader", "syntax", "example", "effect", "recognised"],
+        "required": ["id", "reader", "syntax", "example", "effect"],
         "additionalProperties": false,
         "properties": {
           "id": {
@@ -50,10 +50,6 @@
           "syntax": { "type": "string", "description": "The form, as an author would type it." },
           "example": { "type": "string", "description": "A body exercising the form, used verbatim by the conformance suite." },
           "effect": { "type": "string", "description": "What observably happens. Written for whoever writes a note, not for the code." },
-          "recognised": {
-            "type": "boolean",
-            "description": "False when the point of the entry is that NOTHING happens. Those entries are as normative as the others."
-          },
           "spec": { "type": "string", "description": "The section or sections of SPEC.md that govern it." }
         }
       }

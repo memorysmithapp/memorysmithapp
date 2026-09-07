@@ -36,6 +36,44 @@ major version. While the profile is `0.x`, a breaking change may arrive in a min
 - A source in `profile.json` may now omit `version`. Obsidian publishes documentation rather
   than a versioned specification, and pinning an app release would claim a precision the
   documentation does not have.
+- **The profile no longer keeps a catalogue of the forms it declines.** §8 was four
+  subsections listing notation the profile refused, and it could never be complete: every
+  form of every other dialect was a candidate for it, so it grew with each dialect that
+  shipped and was sampled rather than maintained — footnotes were refused in prose and never
+  got an entry in `profile.json` at all. It is now **one rule**: §3 to §7 are the whole of
+  the notation this profile accepts, and anything not described there may be rendered however
+  an implementation likes, must yield no meaning, and cannot be claimed as conformance. The
+  three consequences are stated separately because they are easy to run together — in
+  particular, this document not describing a form is not this document forbidding it.
+- **Three rules moved out of §8 into the section that governs them**, and are stated as
+  effects rather than as refusals. That an external destination renders as a link and is
+  never resolved against the vault is §5.2, the first step of resolution. That a frontmatter
+  value over forty characters is read and discarded is §6.3, beside the rule that sets the
+  ceiling. §3.15 and §4.4, which pointed at §8.2 for the rule that an autolink is never an
+  edge, point at §5.2.
+- **§4.6 is gone.** It took a position on five forms GitHub renders and GFM does not
+  specify; three of those positions were provenance, which §2 now states as a source, and two
+  were the catalogue.
+- **`profile.json` no longer carries a `recognised` field.** It marked an entry whose point
+  was that nothing happens, and no entry has that point any more: the five that carried
+  `recognised: false` for another reason — `external-link`, `raw-html`, `link-in-code`,
+  `frontmatter-prose` and `frontmatter-title` — now state what the form **does**, positively,
+  and keep their conformance cases. An implementation that filtered on the field reads every
+  entry as declared.
+- Raw HTML moves from §7.10 to §7.9 and task lists from §7.11 to §7.10, following the
+  removal above. No effect changes with them.
+
+### Removed
+
+- **The inline tag `#subject` is no longer a declared notation.** Its two conformance cases
+  go with it. Nothing about the form changes for whoever writes a note — it was never read
+  and it still is not — but the profile stops carrying a section, an entry and two cases to
+  say so, because §8 now says it about every undescribed form at once. To group notes by
+  subject write `tags:` in the frontmatter; to connect a note to a subject worth a note of
+  its own, write `[[subject]]`.
+- **Superscript and subscript are no longer a declared absence.** §7.9 existed to say the
+  profile has no notation for them; its entry and its conformance case go. `~x~` and `^x^`
+  are undescribed notation like any other, and §8 covers them.
 
 ## [0.3.0] — 2026-09-06
 

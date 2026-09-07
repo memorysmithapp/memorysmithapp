@@ -22,13 +22,13 @@ One list of the notation a knowledge vault is written in, and what each form pro
 |---|---|
 | Paragraphs, headings, lists, code, links, images, emphasis — every block and every inline | [§3](SPEC.md#3-blocks-and-inlines) |
 | Tables, task list items, strikethrough, extended autolinks, disallowed raw HTML | [§4](SPEC.md#4-tables-task-lists-and-further-inlines) |
-| Wikilinks, aliases, anchors, embeds, the resolution rule, frontmatter, the reserved vocabulary, callouts, diagrams, transclusion, marked text, comments, block identifiers, math, pending links | [§5 to §8](SPEC.md#5-links-between-notes) |
+| Wikilinks, aliases, anchors, embeds, the resolution rule, frontmatter, the reserved vocabulary, callouts, diagrams, transclusion, marked text, comments, block identifiers, math, pending links | [§5 to §7](SPEC.md#5-links-between-notes) |
 
 The specification **can be read alone**: every form it accepts is stated in it, so writing a note does not mean holding three documents open. [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/), [GFM 0.29-gfm](https://github.github.com/gfm/) and [Obsidian](https://help.obsidian.md/syntax) are its reference sources — where the forms were established and where their established meaning can be checked — named in [§2](SPEC.md#2-reference-sources) and cited on the forms that came from them. The two specifications govern wherever they and this document disagree; Obsidian does not, and this profile does not undertake to follow it.
 
 And the join no source can state is written down where an author meets it: a `[[link]]` inside a code fence produces no edge, a block quote opening `[!warning]` is a callout, raw HTML parses and is not rendered.
 
-And, with equal weight, **what it rejects**: an inline `#tag`, an external link as an edge, prose in the frontmatter. A profile that only lists what works is half a profile — most of what goes wrong is a notation somebody believed in, not one they typed wrongly.
+And one closing rule, which is the other half of a list: **anything not described here is not accepted.** An implementation may render such a form however it likes, must derive no meaning from it, and must not claim conformance on account of it. Most of what goes wrong is a notation somebody believed in rather than one they typed wrongly — an inline `#tag`, an external link expected to become an edge — and one rule answers all of them at once, which no list of refusals could ever finish doing.
 
 ## What it does not specify
 
@@ -38,8 +38,8 @@ Storage, transport, authentication, an API, a file layout, or how a vault should
 
 The profile is published as data as much as prose, so an implementation never has to keep a copy of the specification in its own words:
 
-- [`profile.json`](profile.json) — every notation, with its syntax, an example, its effect and whether it is recognised. Validated by [`schema/profile.schema.json`](schema/profile.schema.json).
-- [`tests/conformance.json`](tests/conformance.json) — the cases, including the ones whose expected result is nothing.
+- [`profile.json`](profile.json) — every notation, with its syntax, an example and its observable effect. Validated by [`schema/profile.schema.json`](schema/profile.schema.json).
+- [`tests/conformance.json`](tests/conformance.json) — the cases, including the ones whose expected result is nothing: a link inside a code fence, an external destination.
 
 Build your documentation from the first, run the second in your CI, and the two cannot drift apart.
 

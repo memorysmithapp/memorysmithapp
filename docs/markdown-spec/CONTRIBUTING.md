@@ -58,10 +58,10 @@ Reduce the case to the smallest note that still shows it.
 | **The profile has to say something new** | `enhancement` | A notation, in the three files | Minor |
 | **Refusal** | closed as `not planned` | A comment | No |
 
-**Refusal is a first-class outcome, and it is written down.** This profile is as much a
-list of what it declines to mean as a list of what it means (`SPEC.md` §6), so a refused
-proposal is not a rejection to be buried: it is a candidate for that section. Close the
-issue with the reason, addressed to whoever opened it.
+**Refusal is a first-class outcome, and the reason is written down in the issue.** The
+profile carries no catalogue of the forms it declines — `SPEC.md` §8 is one rule covering
+all of them — so a refusal changes no file and leaves its record where it was argued. Close
+the issue with the reason, addressed to whoever opened it, and it stays findable there.
 
 The label `conformance` is added on top of the outcome when the suite is what changes.
 

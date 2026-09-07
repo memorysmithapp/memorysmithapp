@@ -104,20 +104,6 @@
       "links": []
     },
     {
-      "id": "inline-tag/carries-no-meaning",
-      "notation": "inline-tag",
-      "markdown": "The decision touches #procurement and #contracts.",
-      "links": [],
-      "facets": {}
-    },
-    {
-      "id": "inline-tag/a-heading-is-not-a-tag",
-      "notation": "inline-tag",
-      "markdown": "# Direct contracting\n\nThe rule.",
-      "links": [],
-      "facets": {}
-    },
-    {
       "id": "frontmatter/enum",
       "notation": "frontmatter-enum",
       "markdown": "---\nmaturity: evergreen\n---\n\nBody.",
@@ -360,13 +346,6 @@
       "id": "raw-html/never-becomes-an-edge",
       "notation": "raw-html",
       "markdown": "The notice: <a href=\"https://example.org\">read the act</a>.",
-      "links": [],
-      "facets": {}
-    },
-    {
-      "id": "sub-sup/carries-no-meaning",
-      "notation": "sub-sup",
-      "markdown": "The formula is H~2~O, and the area is 3 m^2^.",
       "links": [],
       "facets": {}
     }
