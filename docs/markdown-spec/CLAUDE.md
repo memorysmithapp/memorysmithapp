@@ -125,8 +125,11 @@ door somebody from outside comes in through.
 Two exceptions, both deliberate:
 
 - **Examples inside `SPEC.md` and the conformance suite** may be in any language, and some
-  are in Portuguese on purpose: `[[Contratação Direta 2.0]]` is what proves the slug rule
-  folds accents, and an English-only suite would have shipped without ever testing it.
+  are not in English on purpose: `[[Contratação Direta 2.0]]` is what proves an accent is
+  carried into the key rather than folded out of it, and that the NFC and NFD spellings of
+  one title are one note; `[[日本語]]` is what proves a title in a non-Latin script is a
+  title at all. An English-only suite would have shipped without ever testing either — and
+  did, until the key stopped being a slug.
 - **Answers in issues**, in the language of whoever opened it. The language of the
   repository is not a demand on whoever reports a problem.
 

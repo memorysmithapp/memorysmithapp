@@ -136,7 +136,7 @@ Level two
 ---------
 ```
 
-Headings are what an anchor points at: `[[Target note#Section]]` names a heading of the target, and §5.2 keeps it for display without letting it change which note is resolved.
+Headings are what an anchor points at: `[[Target note#Section]]` names a heading of the target, and §5.2 keeps it for display without letting it change which note is resolved. The **first level-1 heading of a note is its title**, which is the key every link resolves against (§5.3).
 
 A `#` that is not opening a heading is not a subject either: `#procurement` in the middle of a line is plain text, because nothing in this document describes it (§8).
 
@@ -411,40 +411,54 @@ The `[[…]]` form is older than any vault editor and was established for vaults
 | Wikilink with alias | `[[Target note\|what the reader sees]]` | Yes |
 | Wikilink with anchor | `[[Target note#Section]]` | Yes |
 | Embed | `![[Target note]]`, `![[Target note#Section]]` | Yes |
-| Relative Markdown link | `[what the reader sees](target-note.md)` | Yes |
+| Markdown link to a note | `[what the reader sees](Target%20note)` | Yes |
 | External link | `[text](https://example.org/page)` | **No** |
+
+**The wikilink is canonical.** It is what a Writer emits, what documentation teaches and what an agent generates, and its target is a literal title: nothing in it is decoded, no extension is removed and no path segment is discarded.
+
+**The Markdown form is input tolerance.** An Indexer MUST read it and it produces an ordinary edge; a Writer MUST NOT emit it. It survives because importing is not exporting: a vault arriving from an editor configured to write Markdown-style links would otherwise arrive with no edges at all. The three tolerances of §5.2 — the path, the extension and percent-decoding — exist for it and are confined to it.
 
 ### 5.2 Resolution
 
 An Indexer MUST resolve every form above by the following rule, and by no other:
 
 1. If the target carries a **scheme** (`https:`, `mailto:`, any `[a-z][a-z0-9+.-]*:`) or begins with `//`, it is **external**. It refers to the world and not to the vault: it renders as a link, it MUST NOT become an edge, and it MUST NOT be resolved against any note. Use external links freely as sources; a connection is not one of the things they make.
-2. The target is split at the first `#`. What precedes it is the path; what follows is the **anchor**.
-3. Path segments MUST be discarded: the basename is taken. `../decisions/lei-14133.md` and `lei-14133` resolve to the same target. An edge is between notes, never between folders, and honouring the path would break the link the moment a note changed folder.
-4. A trailing `.md` or `.mdx` extension MUST be removed.
-5. The result is reduced to a **slug** by the rule in §5.3, and resolved **by slug, within the same vault**. Resolution MUST NOT cross vault boundaries.
-6. The anchor MUST be preserved for display and MUST NOT take part in resolution. Two links to two sections of the same note are two links to the same note.
+2. The target is split at the first **unencoded** `#`. What precedes it is the target; what follows is the **anchor**.
+3. *Markdown form only:* path segments MUST be discarded and the last one kept, so `[the act](../decisions/Lei%2014.133.md)` addresses the note titled `Lei 14.133`. An edge is between notes, never between folders.
+4. *Markdown form only:* a trailing `.md` or `.mdx` extension MUST be removed.
+5. *Markdown form only:* the result MUST be percent-decoded. An escape that is not one — the `%` of `[Half](50%)` opens nothing — MUST be left exactly as written, and MUST NOT be an error.
+6. The result is normalised to **NFC** and compared, **case-exact**, against the title of every note (§5.3) **of the same vault**. Resolution MUST NOT cross vault boundaries.
+7. **Every note whose title matches becomes an edge** (§5.4). A target that matches none is a pending link (§5.5).
+8. The anchor MUST be preserved for display — percent-decoded in the Markdown form, literal in the wikilink — and MUST NOT take part in resolution. Two links to two sections of the same note are two links to the same note.
 
-### 5.3 Slug
+**The order of steps 2 to 5 is normative, not incidental.** Decoding earlier would undo the escaping it exists for: `C%23%20basics` would become `C# basics` and then split at a `#` the author encoded precisely so it would not be read as a delimiter, and `and%2For` would become `and/or` and lose its first half to the path rule. Delimiters first, decode after, compare last.
 
-The slug is produced deterministically:
+### 5.3 The title of a note
 
-1. Normalise to Unicode NFD.
-2. A `.` or `,` **between two digits** is removed, so `Lei 14.133` becomes `lei-14133` and not `lei-14-133`.
-3. Remove combining marks (accents are folded, `ç` becomes `c`).
-4. Lowercase.
-5. Replace every run of characters that is neither `a-z` nor `0-9` with a single `-`.
-6. Trim leading and trailing `-`, truncate to 80 characters, and trim any `-` the truncation left at the end.
+**The title of a note is the plain text of its first level-1 heading**, and that is what a link resolves against. Six things follow from it, and each is a place two implementations would otherwise disagree:
 
-The same title MUST always produce the same slug.
+- **ATX or Setext.** §3.3 declares both and they produce the same heading, so they produce the same title. A note's identity does not depend on which of two equivalent forms was typed.
+- **Plain text, after inline parsing.** `# **Lei** 14.133` is titled `Lei 14.133`, never `**Lei** 14.133` — otherwise `[[Lei 14.133]]` would not match its own note.
+- **Trimmed** of leading and trailing whitespace.
+- **The first level-1 heading of the note, not its first line.** Frontmatter comes before it (§6.1), and prose may as well.
+- **Blocks before inlines** (§3): a `# Title` inside a fenced code block is code and names nothing, the same crossing §5.6 states for links.
+- **A second level-1 heading is an ordinary heading**, and an anchor target like any other.
 
-### 5.4 Deduplication
+Comparison is **case-exact**, after normalising both sides to **NFC**, and nothing else is folded. `[[Lei]]` finds `Lei` and does not find `lei`; a link whose case does not match is a pending link (§5.5) like any other miss. Normalising is not a fold: `Ação` exists as two byte sequences — one codepoint for `ç`, or `c` followed by a combining cedilla — that render identically and are typed by different editors, and NFC is what keeps them one note instead of two.
+
+**Four characters have no place in a title:** `#`, `[`, `]` and `|`, the delimiters of the form that addresses it. This document cannot forbid bytes in a file, so it states a consequence rather than a prohibition: **a note whose heading carries one of them has no addressable title.** It exists, it renders, it links outward and it is searchable, and no link can name it. A Writer MUST NOT produce such a heading; a Reader and an Indexer MUST report it the way a pending link is reported (§5.5). A note with no level-1 heading at all is the same case: it has no title, and it is reported rather than passed over in silence.
+
+A `/` is **not** one of them. A slash is an ordinary character in a title — `Reunião 03/09/2026` and `and/or` are ordinary notes — because folders play no part in identity: a link addresses a title and nothing else, `./` and `../` mean nothing in either form, and a path the Markdown form arrives with is discarded rather than read (§5.2).
+
+### 5.4 One edge per target, and every note that matches
 
 Several links to the same target in one note are **one** edge. An embed and a plain link to the same target are also one edge: the graph does not distinguish transclusion from reference, not even by counting.
 
+Two notes may carry the same title, in one folder or in two. That is a property of the content, and constraining the content is not this document's business; what is its business is saying what happens then. **Every note whose title matches becomes an edge** — not the first one, because there is no order to appeal to. `created` is what the author says and not what the file did (§6.6), folder order would put folders back into identity, and storage order diverges between implementations. Two edges is also what an interface needs to offer a choice, and what a backlink can honestly show on both notes, since which one was meant is not knowable from the link.
+
 ### 5.5 A target that does not exist
 
-A link whose target has no note is **not an error and MUST NOT be discarded**. It is a *pending link*: it is kept, it is reported as pending, and it resolves on its own if a note with that slug is later created. Discarding it would make the graph lie precisely while a vault is being written, which is when it is consulted most.
+A link whose target has no note is **not an error and MUST NOT be discarded**. It is a *pending link*: it is kept, it is reported as pending, and it resolves on its own if a note with that title is later created. Discarding it would make the graph lie precisely while a vault is being written, which is when it is consulted most.
 
 ### 5.6 Code
 
@@ -508,25 +522,18 @@ The specification reserves **four** attribute names. They are always written in 
 
 | Key | Shape | Effect |
 |---|---|---|
-| `aliases` | list of short values | Alternative spellings of this note. They MUST join the search index as spellings of the note. They MUST NOT resolve wikilinks (§5.2 resolves by title slug only) |
-
-`aliases` join the search index and stop there, and the reason is worth stating so the
-question does not return without new evidence. Resolution is **behaviour**: it decides an
-edge, a backlink, a pending link and a navigation. Letting an attribute of the content
-govern it would put the frontmatter in charge of the graph, which §1.4 keeps it out of. And
-while a title collision cannot happen, an alias collision can — and it is created from
-outside, by editing a third note that is neither end of the link, which would move an
-existing edge with nothing on screen saying so. A link that does not resolve is at least
-visible: it renders as pending (§5.5).
+| `aliases` | list of short values | Alternative spellings of this note. They MUST join the search index as spellings of the note. They MUST NOT resolve links (§5.2 resolves against the title, and against nothing else) |
 | `tags` | list of short values | Subjects of this note, filterable and countable like any other list attribute |
 | `created` | ISO 8601 date | The date the author states the note was created. See §6.6 |
 | `updated` | ISO 8601 date | The date the author states the content was last revised. See §6.6 |
+
+`aliases` join the search index and stop there, and the reason is worth stating so the question does not return without new evidence. Resolution is **behaviour**: it decides an edge, a backlink, a pending link and a navigation. Letting an attribute of the content govern it would put the frontmatter in charge of the graph, which §1.4 keeps it out of. An alias would also be the one thing capable of capturing a link **invisibly**: two notes that share a title collide in the open, since the title is the heading at the top of each of them and both become edges (§5.4), while an alias that captured a link could not be explained by reading either end of it.
 
 A reserved key whose value does not have the expected shape **MUST NOT be an error**. It degrades to an ordinary attribute and is classified by §6.3 like any other. This specification never validates content.
 
 ### 6.5 `title` is not reserved
 
-The title of a note is structural: it is what the note is called, and what §5 resolves against. A `title` key in the frontmatter is an ordinary attribute; it MUST NOT rename the note and MUST NOT take part in resolution. In practice it is prose that is unique per note, and the cardinality ceiling of §6.3 stops indexing it on its own.
+The title of a note is structural: it is the plain text of its first level-1 heading (§5.3), and it is what §5 resolves against. A `title` key in the frontmatter is an ordinary attribute; it MUST NOT rename the note and MUST NOT take part in resolution. In practice it is prose that is unique per note, and the cardinality ceiling of §6.3 stops indexing it on its own.
 
 ### 6.6 Dates are the author's statement, not the file's history
 
@@ -818,7 +825,7 @@ Every form this document declares, in one table. The last column is the section 
 | Wikilink with alias | `[[Target\|text]]` | The same edge; the alias is display | 5.1 |
 | Wikilink with anchor | `[[Target#Section]]` | The same edge; the anchor is display | 5.2 |
 | Embed | `![[Target note]]` | The same edge, plus transclusion | 5.7, 7.3 |
-| Relative Markdown link | `[text](target.md)` | An edge, by basename and slug | 5.2 |
+| Markdown link to a note | `[text](Target%20note)` | An edge, by title, once the path and the extension are discarded | 5.1, 5.2 |
 | Frontmatter block | `---` on line 1 | The only source of attributes | 6.1 |
 | Short value | `key: value` | An `enum` attribute | 6.3 |
 | List value | `key: [a, b]` | A `list` attribute, each value on its own | 6.3 |

@@ -11,6 +11,51 @@ major version. While the specification is `0.x`, a breaking change may arrive in
 
 ### Changed
 
+- **A link resolves against the title of a note, and the slug is gone** (§5.2, §5.3). The
+  key used to be a slug — lowercased, accent-folded, punctuation collapsed — and it was not
+  injective: `Lei 14.133` and `Lei 14133` were one key, `Ação` and `Acao` were one key, and
+  every title in a non-Latin script was the *same* key, the empty string. Two notes landed
+  on one address with no rule saying which won, and creating a third note could move an
+  existing edge with nothing on screen saying so — which is the exact harm §6.4 cites to
+  refuse resolving aliases, and which its own resolution rule had. The key is now the
+  title, compared case-exact after Unicode NFC and folded in no other way. **This changes
+  what every link in every vault resolves to.** What is lost is tolerance: `[[Lei 14133]]`
+  and `[[lei-14133]]` used to find `Lei 14.133` and now do not — they are pending links
+  (§5.5), which is visible, where a collision was silent. A wikilink written by an editor
+  configured for "shortest path when possible", `[[Decisões/Índice]]`, is now a lookup for a
+  note titled exactly that, and pending until one exists.
+- **The title of a note is defined** (§5.3): the plain text of its first level-1 heading,
+  ATX or Setext, after inline parsing, trimmed. It was never written down, which was
+  survivable while the slug was the de facto key and is not now that the title *is* the key.
+  `#`, `[`, `]` and `|` are the delimiters of the form that addresses a title, so a heading
+  carrying one — and a note with no level-1 heading at all — has no addressable title: it
+  exists, it renders, it links outward and it is searchable, and it is reported rather than
+  passed over in silence. A slash is not one of them: `Reunião 03/09/2026` is an ordinary
+  title, because folders play no part in identity.
+- **The wikilink is canonical and the Markdown form is input tolerance** (§5.1).
+  `[[Title]]` is what a Writer emits; `[text](Target%20note)` is read and never written, and
+  it survives because importing is not exporting — a vault written with Markdown-style links
+  would otherwise arrive with no edges at all. The three tolerances belong to it alone: the
+  path, the `.md`, and percent-decoding. Their order is normative — delimiters first, decode
+  after, compare last — so that a `%23` an author encoded *to avoid* an anchor is not turned
+  into one, and a malformed escape like the `%` of `[Half](50%)` is left as written and is
+  never an error.
+- **Two notes with one title produce two edges from a single link** (§5.4). A vault may hold
+  them, and constraining the content is not this document's business, so it states what
+  happens instead: every note whose title matches becomes an edge, never the first one.
+  There is no order to appeal to, and two edges is what an interface needs in order to offer
+  a choice, and what a backlink can honestly show on both notes.
+- **§6.4 stops arguing from a premise that was false.** It refused resolving aliases partly
+  because "a title collision cannot happen" — it can, and now it has a rule. The refusal
+  stands on what actually separates the two: a shared title collides in the open, on the
+  heading at the top of both notes, while an alias could capture a link without either end
+  of it showing why.
+- **The suite speaks of titles.** Every expectation carries `title` where it carried `slug`,
+  an anchor is the heading text as written — `Article 75`, `^article-75` — instead of a
+  slugged one, and a case may now claim a `title`, which is what made §5.3 testable.
+  Seventeen cases were added, among them the first case in the suite with a `%` in it, and
+  the first note titled in a non-Latin script.
+
 - **The name is the MemorySmith Markdown Specification, and the repository is
   `markdown-spec`.** No notation changes and no vault behaves differently. What changes for
   an implementation is every path it imports: `profile.json` is now
@@ -23,6 +68,8 @@ major version. While the specification is `0.x`, a breaking change may arrive in
 
 ### Removed
 
+- **The slug.** Nothing derives a key from a title any more. An implementation that stored
+  slugs rebuilds its index from titles, and one that resolved by slug resolves by title.
 - **The implementations table.** `SPEC.md` no longer lists who implements the specification. An
   implementation states the roles it claims and the version it adopts (§1.4), where that
   fact can be observed; this document does not keep a copy of it. It was the one claim here

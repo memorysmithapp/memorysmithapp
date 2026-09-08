@@ -145,8 +145,8 @@ for (const testCase of cases) {
   if (typeof testCase.markdown !== 'string') {
     fail('tests/conformance.json', `the case "${testCase.id}" carries no markdown input`);
   }
-  if (!('links' in testCase) && !('facets' in testCase)) {
-    fail('tests/conformance.json', `the case "${testCase.id}" claims neither links nor facets, so it asserts nothing`);
+  if (!('links' in testCase) && !('facets' in testCase) && !('title' in testCase)) {
+    fail('tests/conformance.json', `the case "${testCase.id}" claims neither a title, nor links, nor facets, so it asserts nothing`);
   }
 }
 

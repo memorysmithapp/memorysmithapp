@@ -80,7 +80,7 @@ body:
           "id": "wikilink/block-anchor-resolves-to-the-note",
           "notation": "wikilink-block-anchor",
           "markdown": "See [[Lei 14.133#^p75]].",
-          "links": [{ "slug": "lei-14133", "anchor": "^p75" }]
+          "links": [{ "title": "Lei 14.133", "anchor": "^p75" }]
         }
     validations:
       required: true

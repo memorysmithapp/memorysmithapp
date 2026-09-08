@@ -11,7 +11,7 @@ The executable half. A specification is a claim; this is the part that can be ch
   "id": "wikilink/anchor-is-kept-and-not-resolved",
   "notation": "wikilink-anchor",
   "markdown": "See [[Lei 14.133#Article 75]] for the exception.",
-  "links": [{ "slug": "lei-14133", "anchor": "article-75" }]
+  "links": [{ "title": "Lei 14.133", "anchor": "Article 75" }]
 }
 ```
 
@@ -20,6 +20,7 @@ The executable half. A specification is a claim; this is the part that can be ch
 | `id` | Stable identifier of the case. Never renamed, never reused |
 | `notation` | The `id` of the entry in `spec.json` this case exercises |
 | `markdown` | The input, verbatim, including the frontmatter when there is one |
+| `title` | The title the note carries, which is the key a link resolves against (`SPEC.md` §5.3). `null` says the note has no addressable title. Absent means the case makes no claim about it |
 | `links` | The edges a conforming Indexer produces, in any order. Absent means the case makes no claim about links |
 | `facets` | The attributes a conforming Indexer produces, as `name → { kind, values }`. Absent means the case makes no claim about attributes |
 
@@ -31,7 +32,7 @@ The suite is data, not code: it carries no runner, so that an implementation in 
 
 Rules a runner has to follow:
 
-- **Order does not matter** in `links`; identity does. Compare as sets keyed by `slug`.
+- **Order does not matter** in `links`; identity does. Compare as sets keyed by `title`, after normalising both sides to NFC.
 - **A missing field is not an empty expectation.** A case with no `facets` key says nothing about attributes; a case with `"facets": {}` says there are none.
 - **Every case must run.** Skipping a case is a conformance failure, not a local decision.
 

@@ -233,11 +233,19 @@
       "spec": "3.9, 3.16, 7.9"
     },
     {
+      "id": "note-title",
+      "reader": "links",
+      "syntax": "# Title",
+      "example": "# Lei 14.133\n\nThe general rule.\n",
+      "effect": "The plain text of the first level-1 heading is the title of the note, and the key every link resolves against. ATX and Setext give the same title, inline markup is not part of it — `# **Lei** 14.133` is titled `Lei 14.133` — and a heading inside a code fence names nothing. A note with no level-1 heading, or one whose heading carries `#`, `[`, `]` or `|`, has no addressable title: it exists, it renders and it links outward, no link can name it, and that is reported rather than passed over in silence.",
+      "spec": "5.3"
+    },
+    {
       "id": "wikilink",
       "reader": "links",
       "syntax": "[[Target note]]",
       "example": "See [[Lei 14.133]] for the general rule.",
-      "effect": "Becomes an edge in the graph and a backlink on the target. The target is resolved by slug within this vault, never across vaults. A target that does not exist yet becomes a pending link, which is expected while a vault is being written.",
+      "effect": "Becomes an edge in the graph and a backlink on the target. The target is the title of a note — the plain text of its first level-1 heading — compared case-exact after Unicode NFC, within this vault and never across vaults. Every note carrying that title becomes an edge; a title no note carries becomes a pending link, which is expected while a vault is being written.",
       "spec": "5.1"
     },
     {
@@ -253,7 +261,7 @@
       "reader": "links",
       "syntax": "[[Target note#Section]]",
       "example": "See [[Lei 14.133#Article 75]] for the exception.",
-      "effect": "The same edge as the plain form: the anchor is kept for display and dropped in resolution. Two links to two sections of one note are two links to the same note.",
+      "effect": "The same edge as the plain form: the anchor is the heading text as written, kept for display and dropped in resolution. Two links to two sections of one note are two links to the same note.",
       "spec": "5.2"
     },
     {
@@ -267,9 +275,9 @@
     {
       "id": "markdown-relative-link",
       "reader": "links",
-      "syntax": "[what the reader sees](target-note.md)",
-      "example": "See [the procurement act](lei-14133.md) for the general rule.",
-      "effect": "Becomes the same edge as a wikilink. The target is reduced to its basename without extension and resolved by slug, so a path with folders in it resolves to the note and not to the path.",
+      "syntax": "[what the reader sees](Target%20note)",
+      "example": "See [the procurement act](Lei%2014.133) for the general rule.",
+      "effect": "Becomes the same edge as a wikilink, and survives so that a vault written by an editor configured for Markdown links keeps its edges when it is imported. It is the one form in which a path is discarded, a trailing `.md` or `.mdx` is removed and the target is percent-decoded — in that order, before the title is compared. A Writer never emits it: the wikilink is the canonical form.",
       "spec": "5.2"
     },
     {

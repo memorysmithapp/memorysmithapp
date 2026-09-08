@@ -81,7 +81,7 @@ and report it.**
 |---|---|---|
 | `release/` | The cycle that closes a whole version of the specification | `release/v0.2.0` |
 | `feat/` | A notation added, or an effect gained | `feat/callout-folding` |
-| `fix/` | A defect in the text, the data or a case | `fix/slug-truncation` |
+| `fix/` | A defect in the text, the data or a case | `fix/anchor-not-decoded` |
 | `docs/` | Prose that changes no notation | `docs/self-contained-spec` |
 | `chore/` | Governance, CI, tooling | `chore/repository-governance` |
 
