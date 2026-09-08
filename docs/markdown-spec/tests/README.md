@@ -23,6 +23,8 @@ The executable half. A specification is a claim; this is the part that can be ch
 | `title` | The title the note carries, which is the key a link resolves against (`SPEC.md` §5.3). `null` says the note has no addressable title. Absent means the case makes no claim about it |
 | `links` | The edges a conforming Indexer produces, in any order. Absent means the case makes no claim about links |
 | `facets` | The attributes a conforming Indexer produces, as `name → { kind, values }`. Absent means the case makes no claim about attributes |
+| `vault` | The notes and attachments that exist while this case runs: `notes` is a list of whole Markdown documents, `attachments` a list of names. Absent means the case makes no claim that depends on a vault |
+| `resolution` | What each target resolves to once the vault is there: `target`, `kind` (`note`, `attachment` or `pending`) and `edges`. Requires `vault`, and `vault` requires it |
 
 An expectation of `[]` or `{}` is a claim, and a strong one: it says the input produces **nothing**. Those cases carry as much of the specification as the positive ones, because the failure they prevent — a notation that quietly does nothing while somebody believes in it — is the failure a specification exists to prevent.
 
@@ -34,6 +36,13 @@ Rules a runner has to follow:
 
 - **Order does not matter** in `links`; identity does. Compare as sets keyed by `title`, after normalising both sides to NFC.
 - **A missing field is not an empty expectation.** A case with no `facets` key says nothing about attributes; a case with `"facets": {}` says there are none.
+- **A fixture note carries a body, never a declared title.** The title is derived from it by
+  `SPEC.md` §5.3, which is the rule these cases exist to exercise — a fixture that announced
+  its own title would let a runner skip it.
+- **`resolution` is not `links`.** `links` is what one note *extracts*, and holds with no vault
+  at all; `resolution` is what those targets *become* once other notes and attachments exist.
+  Only a note produces an edge, one per note that matches: an attachment produces none, and a
+  target that matches nothing is `pending` and produces none.
 - **Every case must run.** Skipping a case is a conformance failure, not a local decision.
 
 ## Coverage

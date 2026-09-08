@@ -132,6 +132,8 @@ for (const entry of notations) {
   seenNotations.add(entry.id);
 }
 
+const KINDS = new Set(['note', 'attachment', 'pending']);
+
 const seenCases = new Set();
 for (const testCase of cases) {
   if (seenCases.has(testCase.id)) fail('tests/conformance.json', `declares the case "${testCase.id}" twice`);
@@ -145,8 +147,65 @@ for (const testCase of cases) {
   if (typeof testCase.markdown !== 'string') {
     fail('tests/conformance.json', `the case "${testCase.id}" carries no markdown input`);
   }
-  if (!('links' in testCase) && !('facets' in testCase) && !('title' in testCase)) {
-    fail('tests/conformance.json', `the case "${testCase.id}" claims neither a title, nor links, nor facets, so it asserts nothing`);
+  if (
+    !('links' in testCase) &&
+    !('facets' in testCase) &&
+    !('title' in testCase) &&
+    !('resolution' in testCase)
+  ) {
+    fail('tests/conformance.json', `the case "${testCase.id}" claims neither a title, nor links, nor facets, nor a resolution, so it asserts nothing`);
+  }
+
+  // A resolution is a claim about a vault, and a vault is only there to be resolved
+  // against. One without the other is half a case, and the half that is missing is the
+  // one that would have made it fail.
+  const hasVault = 'vault' in testCase;
+  const hasResolution = 'resolution' in testCase;
+  if (hasVault !== hasResolution) {
+    fail(
+      'tests/conformance.json',
+      hasVault
+        ? `the case "${testCase.id}" builds a vault and claims no resolution against it`
+        : `the case "${testCase.id}" claims a resolution and gives no vault to resolve against`,
+    );
+  }
+
+  if (hasVault) {
+    const vault = testCase.vault ?? {};
+    const notes = vault.notes ?? [];
+    const attachments = vault.attachments ?? [];
+    if (!Array.isArray(notes) || notes.some((note) => typeof note !== 'string')) {
+      fail('tests/conformance.json', `the case "${testCase.id}" has a vault whose "notes" is not a list of Markdown documents`);
+    }
+    if (!Array.isArray(attachments) || attachments.some((name) => typeof name !== 'string')) {
+      fail('tests/conformance.json', `the case "${testCase.id}" has a vault whose "attachments" is not a list of names`);
+    }
+    if (notes.length === 0 && attachments.length === 0) {
+      fail('tests/conformance.json', `the case "${testCase.id}" has an empty vault, which resolves nothing`);
+    }
+  }
+
+  for (const outcome of testCase.resolution ?? []) {
+    const where = `the case "${testCase.id}"`;
+    if (typeof outcome.target !== 'string') {
+      fail('tests/conformance.json', `${where} has a resolution with no target`);
+      continue;
+    }
+    if (!KINDS.has(outcome.kind)) {
+      fail('tests/conformance.json', `${where} resolves "${outcome.target}" to the kind "${outcome.kind}", which is not one of ${[...KINDS].join(', ')}`);
+    }
+    if (!Number.isInteger(outcome.edges) || outcome.edges < 0) {
+      fail('tests/conformance.json', `${where} resolves "${outcome.target}" to an edge count that is not a whole number`);
+      continue;
+    }
+    // SPEC.md 5.4, 5.5 and 5.8: only a note produces an edge, and a note that matches
+    // produces one per match.
+    if (outcome.kind !== 'note' && outcome.edges !== 0) {
+      fail('tests/conformance.json', `${where} resolves "${outcome.target}" to the kind ${outcome.kind} and to ${outcome.edges} edges. Only a note produces an edge`);
+    }
+    if (outcome.kind === 'note' && outcome.edges < 1) {
+      fail('tests/conformance.json', `${where} resolves "${outcome.target}" to a note and to no edge`);
+    }
   }
 }
 

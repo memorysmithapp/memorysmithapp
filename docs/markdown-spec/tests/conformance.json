@@ -579,6 +579,191 @@
       "notation": "image-dimensions",
       "markdown": "![Engelbart|100x145](https://example.org/engelbart.jpg)",
       "links": []
+    },
+    {
+      "id": "resolution/one-title-in-two-notes-is-two-edges",
+      "notation": "wikilink",
+      "vault": {
+        "notes": [
+          "# Índice\n",
+          "# Índice\n\nOutra nota, mesmo título.\n"
+        ]
+      },
+      "markdown": "Ver [[Índice]].",
+      "links": [
+        {
+          "title": "Índice",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Índice",
+          "kind": "note",
+          "edges": 2
+        }
+      ]
+    },
+    {
+      "id": "resolution/a-title-no-note-carries-is-pending",
+      "notation": "wikilink",
+      "vault": {
+        "notes": [
+          "# Lei 14.133\n"
+        ]
+      },
+      "markdown": "See [[Lei 14.134]].",
+      "links": [
+        {
+          "title": "Lei 14.134",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Lei 14.134",
+          "kind": "pending",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/case-must-match-exactly",
+      "notation": "wikilink",
+      "vault": {
+        "notes": [
+          "# Lei 14.133\n"
+        ]
+      },
+      "markdown": "See [[lei 14.133]].",
+      "links": [
+        {
+          "title": "lei 14.133",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "lei 14.133",
+          "kind": "pending",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/nfd-and-nfc-name-one-note",
+      "notation": "wikilink",
+      "vault": {
+        "notes": [
+          "# Ação\n"
+        ]
+      },
+      "markdown": "Ver [[Ação]].",
+      "links": [
+        {
+          "title": "Ação",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Ação",
+          "kind": "note",
+          "edges": 1
+        }
+      ]
+    },
+    {
+      "id": "resolution/a-note-with-no-level-1-heading-cannot-be-addressed",
+      "notation": "note-title",
+      "vault": {
+        "notes": [
+          "## Article 75\n\nThe exception.\n"
+        ]
+      },
+      "markdown": "See [[Article 75]].",
+      "links": [
+        {
+          "title": "Article 75",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Article 75",
+          "kind": "pending",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/an-attachment-is-not-an-edge",
+      "notation": "attachment",
+      "vault": {
+        "attachments": [
+          "engelbart.jpg"
+        ]
+      },
+      "markdown": "![[engelbart.jpg]]",
+      "links": [
+        {
+          "title": "engelbart.jpg",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "engelbart.jpg",
+          "kind": "attachment",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/the-pipe-is-a-dimension-when-the-target-is-an-attachment",
+      "notation": "image-dimensions",
+      "vault": {
+        "attachments": [
+          "engelbart.jpg"
+        ]
+      },
+      "markdown": "![[engelbart.jpg|100x145]]",
+      "links": [
+        {
+          "title": "engelbart.jpg",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "engelbart.jpg",
+          "kind": "attachment",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/the-markdown-form-reaches-the-same-note",
+      "notation": "markdown-relative-link",
+      "vault": {
+        "notes": [
+          "# Lei 14.133\n"
+        ]
+      },
+      "markdown": "See [the procurement act](../decisions/Lei%2014.133.md).",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Lei 14.133",
+          "kind": "note",
+          "edges": 1
+        }
+      ]
     }
   ]
 }

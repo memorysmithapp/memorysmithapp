@@ -11,6 +11,19 @@ major version. While the specification is `0.x`, a breaking change may arrive in
 
 ### Added
 
+- **The suite can build a vault**, which is what made the three sharpest rules of §5
+  provable. A case may carry a `vault` — `notes`, as whole Markdown documents, and
+  `attachments`, as names — and a `resolution` saying what each target becomes: its `kind`
+  (`note`, `attachment` or `pending`) and how many `edges` it produces. The two fields
+  require each other, and `tools/check-spec.mjs` refuses a case carrying one without the
+  other, an attachment or a pending target that produces an edge, or a note that produces
+  none. A fixture note declares no title of its own: it is derived from the body by §5.3,
+  which is the rule the cases exist to exercise. Eight cases now cover what nothing covered
+  before — two notes with one title producing two edges, a title no note carries, a case
+  that differs only in capitalisation, NFD and NFC naming one note, a note with no level-1
+  heading, an attachment producing no edge, the pipe read as a dimension because the target
+  is an attachment, and the Markdown form reaching the note the wikilink reaches. `links`
+  keeps meaning exactly what it meant: what one note extracts, with no vault at all.
 - **An image carries its dimensions in the alt text** (§3.14): `![Engelbart|100x145](…)`
   sets width and height, `![Engelbart|100](…)` sets the width and keeps the aspect ratio,
   both in CSS pixels. The form was established and this document did not declare it, which

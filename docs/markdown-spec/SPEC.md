@@ -785,7 +785,7 @@ It exists so that a specification and an implementation cannot drift apart in pr
 
 ## 10. The conformance suite
 
-[`tests/conformance.json`](tests/conformance.json) is the executable half of this document: each case is a Markdown input and the links and attributes a conforming Indexer produces from it. A case whose expectation is *nothing* — a link inside a code fence, an external destination — is as normative as any other.
+[`tests/conformance.json`](tests/conformance.json) is the executable half of this document: each case is a Markdown input and the links and attributes a conforming Indexer produces from it. A case that exercises a rule about the rest of the vault — §5.4, §5.5 and §5.8, where what a target becomes depends on what else exists — carries the notes and attachments it needs alongside the input. A case whose expectation is *nothing* — a link inside a code fence, an external destination — is as normative as any other.
 
 An implementation claiming the Indexer role SHOULD run the suite in its own continuous integration. See [`tests/README.md`](tests/README.md) for the format.
 
