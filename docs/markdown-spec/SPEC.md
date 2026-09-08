@@ -534,7 +534,7 @@ Scalars, inline lists and dash lists. One layer of matching quotes around a valu
 
 ### 6.3 The shape of the value decides indexing
 
-**No attribute name is special**, save the five §6.4 reserves — and of those, only `title` is read differently rather than merely named: it is the identity of the note (§5.3) and produces no attribute at all (§6.5). Everything else an Indexer meets it MUST classify by the shape of its value, holding no list of known keys:
+**No attribute name is special**, save the ones §6.4 reserves — and of those, only `title` is read differently rather than merely named: it is the identity of the note (§5.3) and produces no attribute at all (§6.5). Everything else an Indexer meets it MUST classify by the shape of its value, holding no list of known keys:
 
 | Shape | Kind | Indexed |
 |---|---|---|
