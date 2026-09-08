@@ -782,15 +782,7 @@ The variant is not registered with IANA at this version.
 
 ---
 
-## Appendix A. Implementations
-
-| Implementation | Roles | Profile version | Known deviations |
-|---|---|---|---|
-| [MemorySmith.app](https://memorysmith.app) | Reader, Indexer, Writer | Tracking 0.4.0 | None known |
-
-An implementation is listed here when it runs the conformance suite in public. Conformance is the suite passing, never a claim in a README.
-
-## Appendix B. Notation at a glance
+## Appendix A. Notation at a glance
 
 Every form this document declares, in one table. The last column is the section that governs it; the third says what it does **beyond being rendered**, which for most of §3 is nothing at all.
 

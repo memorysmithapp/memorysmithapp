@@ -9,13 +9,15 @@ major version. While the profile is `0.x`, a breaking change may arrive in a min
 
 ## [Unreleased]
 
-### Fixed
+### Removed
 
-- **The implementations table says 0.4.0**, which is what the first implementation now
-  tracks — it upgraded on the day this version shipped. The cell is a statement this
-  document makes about somebody else's build, and it can only ever be as current as the
-  last time a person edited it: 0.4.0 corrected it from `Tracking 0.1.0` while the
-  implementation was on 0.3.0, and it was one version stale again within a day. See #25.
+- **The implementations table.** `SPEC.md` no longer lists who implements the profile. An
+  implementation states the roles it claims and the version it adopts (§1.4), where that
+  fact can be observed; this document does not keep a copy of it. It was the one claim here
+  about a build in another repository — neither the suite nor `npm run check` could ever
+  see it, and it was wrong in two consecutive versions. The last correction to the cell
+  never reached a release: it is removed here along with the table it corrected.
+  *Notation at a glance* moves from Appendix B to Appendix A.
 
 ## [0.4.0] — 2026-09-07
 
