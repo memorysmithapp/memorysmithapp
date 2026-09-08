@@ -9,6 +9,33 @@ major version. While the specification is `0.x`, a breaking change may arrive in
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-09-08
+
+The cycle in which the frontmatter got to say what a note is called.
+
+0.5.0 made the title the key every link resolves against and read it from one place, the
+first level-1 heading. Measured afterwards against ten real vaults — 1,522 notes and 10,303
+wikilinks, most of them arriving from Obsidian — that rule resolved **24.7%** of the links
+their authors had written. The chain of `title:` and then the heading resolves **95.1%**, and
+the reason is structural: where a vault comes from an editor keyed by file name, `title:` is
+that name carried into the file, and it is what the links were written against. Every link in
+every vault resolves differently after this, for the second version running, and an index
+keyed by title has to be rebuilt.
+
+Around it, two decisions that had been refused came back with something they did not have the
+first time. **`title` as a reserved key** was declared refused in 0.1.0 — the entry is still
+below, dated — and it is reserved now, because the reserved vocabulary turned out to be the
+internationalisation contract of this document and the name of the note was outside it.
+**Aliases resolving links** was refused from 0.2.0 onward, and its argument was rebuilt as
+recently as 0.5.0: an alias could capture a link with neither end of it showing why, moving
+an edge from a third note that is neither. The argument was not wrong, and it stops applying
+once an alias may only fill the empty. A title always wins, and an alias that cannot take a
+link away from the note it landed on cannot move one in the dark.
+
+And authorship got a key, `author` and `co-author`, which gain no behaviour at all: `tags` is
+the precedent, and what a reserved name gives is a vault in any language declaring the same
+attribute under the same bytes.
+
 ### Added
 
 - **`title` is a reserved attribute name** (§6.4). The reserved vocabulary is what
@@ -537,7 +564,8 @@ implementation, plus the decisions taken while writing it down.
 - **Anything not specified here** — `==highlight==`, `%%comment%%`, `^block-id`, `$math$`, raw HTML.
   Absence from this document is a statement, not an oversight.
 
-[Unreleased]: https://github.com/memorysmithapp/markdown-spec/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/markdown-spec/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/memorysmithapp/markdown-spec/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/memorysmithapp/markdown-spec/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/memorysmithapp/markdown-spec/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/memorysmithapp/markdown-spec/compare/v0.2.0...v0.3.0

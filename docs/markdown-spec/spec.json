@@ -1,7 +1,7 @@
 {
   "$schema": "./schema/spec.schema.json",
   "spec": "MemorySmith Markdown Specification",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "variant": "MemorySmith",
   "url": "https://md.memorysmith.app",
   "sources": [
