@@ -9,6 +9,14 @@ major version. While the profile is `0.x`, a breaking change may arrive in a min
 
 ## [Unreleased]
 
+### Fixed
+
+- **The implementations table says 0.4.0**, which is what the first implementation now
+  tracks — it upgraded on the day this version shipped. The cell is a statement this
+  document makes about somebody else's build, and it can only ever be as current as the
+  last time a person edited it: 0.4.0 corrected it from `Tracking 0.1.0` while the
+  implementation was on 0.3.0, and it was one version stale again within a day. See #25.
+
 ## [0.4.0] — 2026-09-07
 
 The cycle in which the document stopped describing itself in tiers and stopped keeping a
