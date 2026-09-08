@@ -6,7 +6,7 @@
   "homepage": "https://md.memorysmith.app",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/memorysmithapp/markdown-profile.git"
+    "url": "git+https://github.com/memorysmithapp/markdown-spec.git"
   },
   "type": "module",
   "scripts": {

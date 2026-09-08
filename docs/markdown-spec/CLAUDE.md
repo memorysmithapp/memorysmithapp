@@ -9,10 +9,10 @@ Claude Code reads it automatically on every session and on every sub-agent invoc
 memorysmithapp
 
 ### Project name
-markdown-profile
+markdown-spec
 
 ### Project identifier
-markdown-profile
+markdown-spec
 
 ### Product domain
 md.memorysmith.app
@@ -37,7 +37,7 @@ update is a second place to forget — and that failure is not hypothetical here
 released with the header of `SPEC.md` still saying 0.1.0, and nothing caught it.
 
 ### Git remote
-github.com/memorysmithapp/markdown-profile
+github.com/memorysmithapp/markdown-spec
 
 ### The relationship to the product
 [memorysmithapp/memorysmithapp](https://github.com/memorysmithapp/memorysmithapp)
@@ -51,7 +51,7 @@ repository, opened after the merge here, and never a commit that reaches across.
 ## Repository layout
 
 ```
-markdown-profile/
+markdown-spec/
 ├── SPEC.md                     # the specification in prose, the normative document
 ├── profile.json                # every notation as data, validated by the schema
 ├── schema/profile.schema.json  # the JSON Schema of profile.json

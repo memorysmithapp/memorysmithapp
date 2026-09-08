@@ -13,7 +13,7 @@ body:
         repository is public. Reduce the case to the smallest note that still shows it.
 
         The process an issue travels from here is in
-        [`CONTRIBUTING.md`](https://github.com/memorysmithapp/markdown-profile/blob/main/CONTRIBUTING.md).
+        [`CONTRIBUTING.md`](https://github.com/memorysmithapp/markdown-spec/blob/main/CONTRIBUTING.md).
 
   - type: textarea
     id: written

@@ -350,8 +350,8 @@ implementation, plus the decisions taken while writing it down.
 - **Anything not specified here** — `==highlight==`, `%%comment%%`, `^block-id`, `$math$`, raw HTML.
   Absence from this document is a statement, not an oversight.
 
-[Unreleased]: https://github.com/memorysmithapp/markdown-profile/compare/v0.4.0...HEAD
-[0.4.0]: https://github.com/memorysmithapp/markdown-profile/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/memorysmithapp/markdown-profile/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/memorysmithapp/markdown-profile/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/memorysmithapp/markdown-profile/releases/tag/v0.1.0
+[Unreleased]: https://github.com/memorysmithapp/markdown-spec/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/memorysmithapp/markdown-spec/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/memorysmithapp/markdown-spec/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/memorysmithapp/markdown-spec/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/memorysmithapp/markdown-spec/releases/tag/v0.1.0
