@@ -303,11 +303,17 @@ An image is a link with `!` in front of it.
 
 ```markdown
 ![alt text](image.png "a title")
+![Engelbart|100x145](engelbart.jpg)
+![Engelbart|100](engelbart.jpg)
 ```
 
-The alt text is the description of the image and a Reader MUST NOT drop it. A `!` in front of a **wikilink** is a different thing entirely: `![[target]]` is the embed of §5.7.
+The alt text is the description of the image and a Reader MUST NOT drop it.
 
-A destination naming a host makes this image a request to that host when the note is opened. What a Reader may and may not do about that is §7.10.
+**A `|` inside the alt text separates the description from the image's dimensions.** What precedes it is the description and MUST NOT be dropped; what follows it is not description and MUST NOT be rendered as text. The dimensions are `width` or `width x height`, in CSS pixels, written as digits and nothing else: `100` sets the width and keeps the aspect ratio, `100x145` sets both. A value after the pipe that is neither is **not a dimension** — it stays part of the description, because silently deleting what an author wrote into an accessibility label is the worse of the two failures.
+
+A `!` in front of a **wikilink** is a different thing entirely: `![[target]]` is the embed of §5.7, and there the dimensions go inside the brackets — `![[engelbart.jpg|100x145]]`. The same pipe means the alias of §5.1 when the target is a note, and that crossing is §5.8.
+
+Where an image that is not remote is found is §5.8. A destination naming a host makes this image a request to that host when the note is opened, and what a Reader may and may not do about that is §7.10.
 
 ### 3.15 Autolinks
 
@@ -467,6 +473,20 @@ A link inside a code span or a fenced code block is an example, not a reference.
 ### 5.7 Embeds
 
 `![[target]]` is the embed form. For an Indexer it is identical to `[[target]]` in every respect. For a Reader, see §7.3.
+
+### 5.8 Attachments
+
+An **attachment** is a file of the vault that is not a note: an image, a PDF, anything with bytes and no prose this document reads. It is not a note, so a reference to one is not a link in the sense this section opens with — it is here because it is resolved here, and because an attachment and a note are the only two things a `![[…]]` can name.
+
+**An attachment is addressed by its name**, which is the whole of it, extension included: `diagram.png`, never `diagram`. The comparison is the one §5.3 states for a title — normalised to NFC, case-exact, folded in no other way — and the tolerances of §5.2 apply the same way they do to a note: `![alt](../assets/diagram%20final.png)` addresses the attachment named `diagram final.png`, because a path plays no part in identity here either.
+
+A note has a title and an attachment has a name, and they are keys of the same shape for the same reason: an address that survives the file being moved, and that two implementations cannot read differently.
+
+**An attachment reference is never an edge.** The graph is between notes (§5.1). An embed of an attachment renders, it is deduplicated like anything else, and it appears in no graph and generates no backlink. A name that matches nothing in the vault is reported the way a pending link is (§5.5), and MUST NOT be an error.
+
+**`![[target|value]]` is read by what the target is.** When the target is a note, the pipe is the alias of §5.1. When it is an attachment, the pipe carries the dimensions of §3.14. When the target resolves to neither — the common case while a vault is being written — **the pipe is an alias**, because a reference to a note that does not exist yet is what §5.5 exists to keep visible, and reading it as a dimension would discard the text an author wrote.
+
+Whichever it is, **the pipe never changes the target**: `[[Lei 14.133|100]]` and `![[engelbart.jpg|100]]` address `Lei 14.133` and `engelbart.jpg`, and what follows the pipe is display in both.
 
 ---
 
@@ -813,6 +833,8 @@ Every form this document declares, in one table. The last column is the section 
 | Inline link | `[text](url)` | An edge when the target is internal | 3.13, 5.2 |
 | Reference link | `[text][label]` | An edge when the target is internal | 3.13, 5.2 |
 | Image | `![alt](image.png)` | A remote destination is a request when the note opens | 3.14, 7.10 |
+| Image dimensions | `![alt\|100x145](image.png)` | Sizes the image; not part of the description | 3.14 |
+| Attachment | `![[diagram.png]]` | Resolved by name; never an edge | 5.8 |
 | Autolink | `<https://example.org>` | Never an edge | 3.15, 5.2 |
 | Raw inline HTML | `<abbr>…</abbr>` | Kept in the bytes, shown as text | 3.16, 7.10 |
 | Hard line break | trailing `\` | — | 3.17 |

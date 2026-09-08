@@ -562,6 +562,23 @@
       "markdown": "# Lei 14.133\n\nThe general rule.\n\n# Article 75\n\nThe exception.\n",
       "title": "Lei 14.133",
       "links": []
+    },
+    {
+      "id": "wikilink/a-numeric-alias-is-still-an-alias",
+      "notation": "wikilink-alias",
+      "markdown": "See [[Lei 14.133|100]] for the general rule.",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "image/dimensions-in-the-alt-text-are-not-a-link",
+      "notation": "image-dimensions",
+      "markdown": "![Engelbart|100x145](https://example.org/engelbart.jpg)",
+      "links": []
     }
   ]
 }

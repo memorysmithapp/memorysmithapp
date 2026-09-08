@@ -173,7 +173,7 @@
       "reader": "reading-surface",
       "syntax": "![alt text](image.png \"optional title\")",
       "example": "![The seal of the act](seal.png)",
-      "effect": "An image. The alt text is the description and a Reader MUST NOT drop it — which is what a person gets when the image does not load. A destination naming a host makes the image a request to that host when the note is opened, and §7.10 governs what a Reader may do about that. A `!` in front of a wikilink is not this: `![[target]]` is an embed.",
+      "effect": "An image. The alt text is the description and a Reader MUST NOT drop it — which is what a person gets when the image does not load. A `|` inside the alt text separates that description from the image's dimensions (see `image-dimensions`). Where a destination that names no host is found is §5.8; a destination naming a host makes the image a request to that host when the note is opened, and §7.10 governs what a Reader may do about that. A `!` in front of a wikilink is not this: `![[target]]` is an embed.",
       "spec": "3.14, 7.10"
     },
     {
@@ -269,7 +269,7 @@
       "reader": "links",
       "syntax": "![[Target note]]  ·  ![[Target note#Section]]",
       "example": "The rule is stated in full here:\n\n![[Lei 14.133#Article 75]]\n",
-      "effect": "A wikilink prefixed by `!` is an embed: for the graph it is exactly the same edge as a plain link, and for a reader the content of the target is shown in place. Tools never expand it: a reader of the raw note gets the `![[...]]` that was written.",
+      "effect": "A wikilink prefixed by `!` is an embed: when its target is a note it is exactly the same edge as a plain link for the graph, and for a reader the content of the target is shown in place. When its target is an attachment (§5.8) the file is shown in place and no edge is produced at all. Tools never expand it: a reader of the raw note gets the `![[...]]` that was written.",
       "spec": "5.7"
     },
     {
@@ -279,6 +279,22 @@
       "example": "See [the procurement act](Lei%2014.133) for the general rule.",
       "effect": "Becomes the same edge as a wikilink, and survives so that a vault written by an editor configured for Markdown links keeps its edges when it is imported. It is the one form in which a path is discarded, a trailing `.md` or `.mdx` is removed and the target is percent-decoded — in that order, before the title is compared. A Writer never emits it: the wikilink is the canonical form.",
       "spec": "5.2"
+    },
+    {
+      "id": "attachment",
+      "reader": "reading-surface",
+      "syntax": "![[diagram.png]]",
+      "example": "![[engelbart.jpg]]",
+      "effect": "A file of the vault that is not a note. It is addressed by its name, extension included, compared the way a title is — normalised to NFC, case-exact, folded in no other way — with a path playing no part in identity. It renders in place and is never an edge: the graph is between notes, so an attachment appears in no graph and generates no backlink. A name that matches nothing in the vault is reported the way a pending link is, and is not an error.",
+      "spec": "5.8"
+    },
+    {
+      "id": "image-dimensions",
+      "reader": "reading-surface",
+      "syntax": "![alt text|100x145](image.png)",
+      "example": "![Engelbart|100x145](engelbart.jpg)",
+      "effect": "A `|` separates the description of an image from its dimensions: `100` sets the width and keeps the aspect ratio, `100x145` sets both, in CSS pixels. What precedes the pipe is the description and a Reader MUST NOT drop it; what follows it is not description and MUST NOT be rendered as text. A value that is neither form is not a dimension and stays part of the description, since deleting what an author wrote into an accessibility label is the worse failure. In a wikilink the dimensions go inside the brackets — `![[engelbart.jpg|100x145]]` — and the same pipe means the alias of §5.1 when the target is a note.",
+      "spec": "3.14, 5.8"
     },
     {
       "id": "external-link",

@@ -9,6 +9,35 @@ major version. While the specification is `0.x`, a breaking change may arrive in
 
 ## [Unreleased]
 
+### Added
+
+- **An image carries its dimensions in the alt text** (§3.14): `![Engelbart|100x145](…)`
+  sets width and height, `![Engelbart|100](…)` sets the width and keeps the aspect ratio,
+  both in CSS pixels. The form was established and this document did not declare it, which
+  after the closing rule of §8 meant an imported note displayed the pipe and the digits on
+  screen — and, worse, that §3.14's own rule mandated it: the alt text is the description
+  and a Reader MUST NOT drop it, so `Engelbart|100x145` was required to be rendered as the
+  image's accessibility label. The rule now has a seam: what precedes the pipe is the
+  description and is never dropped, what follows it is not description and is never
+  rendered as text. A value that is neither `100` nor `100x145` is **not** a dimension and
+  stays part of the description, because deleting what an author wrote into a label meant
+  for a screen reader is the worse of the two failures.
+- **§5.8, how an attachment is addressed.** An attachment — an image, a PDF, any file of
+  the vault that is not a note — is addressed **by its name, extension included**, compared
+  exactly the way §5.3 compares a title: normalised to NFC, case-exact, with a path playing
+  no part. A note has a title and an attachment has a name, and they are keys of the same
+  shape for the same reason. Nothing in the document said how a Reader found `diagram.png`
+  before, and after the title became the key there was no rule left to fall back on, since
+  an attachment has no level-1 heading and never will.
+- **An attachment reference is never an edge** (§5.8). The graph is between notes: an embed
+  of an attachment renders, and appears in no graph and generates no backlink. A name that
+  matches nothing is reported the way a pending link is (§5.5) and is not an error.
+- **`![[target|value]]` is read by what the target is** (§5.8). A note takes the alias of
+  §5.1, an attachment takes the dimensions of §3.14, and a target that resolves to neither
+  — the common case while a vault is being written — takes the **alias**, because reading
+  it as a dimension would discard text an author wrote and §5.5 exists to keep exactly that
+  reference visible. Whichever it is, the pipe never changes the target.
+
 ### Changed
 
 - **A link resolves against the title of a note, and the slug is gone** (§5.2, §5.3). The
@@ -55,7 +84,6 @@ major version. While the specification is `0.x`, a breaking change may arrive in
   slugged one, and a case may now claim a `title`, which is what made §5.3 testable.
   Seventeen cases were added, among them the first case in the suite with a `%` in it, and
   the first note titled in a non-Latin script.
-
 - **The name is the MemorySmith Markdown Specification, and the repository is
   `markdown-spec`.** No notation changes and no vault behaves differently. What changes for
   an implementation is every path it imports: `profile.json` is now
