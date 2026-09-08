@@ -361,6 +361,22 @@
       "spec": "6.4"
     },
     {
+      "id": "frontmatter-author",
+      "reader": "frontmatter",
+      "syntax": "author: Heitor Rapcinski  ·  or a list of them",
+      "example": "---\nauthor: Heitor Rapcinski\n---\n\nBody.",
+      "effect": "Reserved: who the author states wrote this note. It is indexed exactly as it would be under any other name — a short value is an enum, a written list is a list, each value filterable on its own — and the reservation is of the name and not of a behaviour: it is what lets a vault in any language declare authorship under one key. Nothing derives it from a file, a commit or an account.",
+      "spec": "6.4"
+    },
+    {
+      "id": "frontmatter-co-author",
+      "reader": "frontmatter",
+      "syntax": "co-author: [Ana Prado, Claude]",
+      "example": "---\nauthor: Heitor Rapcinski\nco-author: [Ana Prado]\n---\n\nBody.",
+      "effect": "Reserved: who the author states contributed to this note without being its author — a person, an institution or an agent. Indexed exactly as `author` is and never merged into it, since the distinction is the whole of what the key was written to say. Like `created` and `updated`, it is what the note says about itself and never what a system observed.",
+      "spec": "6.4"
+    },
+    {
       "id": "frontmatter-created",
       "reader": "frontmatter",
       "syntax": "created: 2026-09-03",

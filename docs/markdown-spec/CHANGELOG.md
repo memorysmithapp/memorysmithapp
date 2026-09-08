@@ -11,12 +11,24 @@ major version. While the specification is `0.x`, a breaking change may arrive in
 
 ### Added
 
-- **`title` is a reserved attribute name**, the fifth (§6.4). The reserved vocabulary is what
+- **`title` is a reserved attribute name** (§6.4). The reserved vocabulary is what
   lets a vault written in any language declare its structural attributes under one key —
   always in en-US, with the *label* translatable and the bytes in the file not — and the name
   of the note, which is the most structural datum there is, was outside it. A vault in pt-BR
   writes `title: Recuperação de desastre` under an interface that shows "Título", the same way
   it already writes `tags`, `created` and `updated`.
+- **`author` and `co-author` are reserved attribute names** (§6.4). Who wrote a note is asked
+  of every vault, and the specification had no key for it — not because it declined one, but
+  because §6.3 answered it by accident: `author: Ana` was already a facet, exactly like
+  `maturity: evergreen`. What was missing was the name. Both are indexed exactly as they would
+  be under any other name — a short value is an `enum`, a written list is a `list`, the
+  40-character ceiling applies unchanged — and `tags` is the precedent for that: a reserved key
+  need gain no behaviour, and what it gives is a name every vault can rely on. `autor:` stays
+  legal and stays indexed as the ordinary attribute it is; a reserved key is a guarantee, not a
+  prohibition. `co-author` is what a note says about having been written with somebody — a
+  colleague, an institution or an agent — and it is never merged into `author`. Like `created`
+  and `updated`, both are what the author states: nothing derives them from a file, a commit or
+  an account.
 - **An alias resolves a target that no title matched** (§5.2, step 8; §6.4). It fills the empty
   and never moves an edge that exists: a target that a title matched is never taken by an
   alias, and a note written later under that title takes the link back from whoever held it by
