@@ -1,6 +1,6 @@
 # The MemorySmith Markdown Specification
 
-**Version 0.4.0** · Draft · <https://md.memorysmith.app>
+**Version 0.5.0** · Draft · <https://md.memorysmith.app>
 
 A specification of the Markdown a knowledge vault is written in: plain `.md` files, linked to each other, written by people and by agents, and read by software that has to build a graph and an index out of them without deciding what the content means.
 

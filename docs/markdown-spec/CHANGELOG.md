@@ -9,6 +9,25 @@ major version. While the specification is `0.x`, a breaking change may arrive in
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-09-08
+
+The cycle in which a link stopped resolving to a key the document computed and started
+resolving to the note itself. The slug folded accents, joined digits, lowercased and
+collapsed punctuation, and it was not injective: `Lei 14.133` and `Lei 14133` were one key,
+`Ação` and `Acao` were one key, and every title in a non-Latin script was the same key, the
+empty string. Two notes landed on one address with no rule saying which won.
+
+**Every link in every vault resolves differently after this**, which is the largest change
+this document can make. It cuts the minor version while the specification is `0.x`. What is
+traded away is tolerance — only the title resolves now, and a near miss is a pending link
+instead of a confident landing on the wrong note. A miss is visible; a collision was not.
+
+Around it, the image side of the embed family finally got specified: dimensions have a
+notation, and an attachment has an address for the first time. And the suite learned to
+build a vault, because the three sharpest rules of §5 decide what a target *becomes* rather
+than what a note extracts, and none of them could be proved by a case that only holds one
+note.
+
 ### Added
 
 - **The suite can build a vault**, which is what made the three sharpest rules of §5
@@ -450,7 +469,8 @@ implementation, plus the decisions taken while writing it down.
 - **Anything not specified here** — `==highlight==`, `%%comment%%`, `^block-id`, `$math$`, raw HTML.
   Absence from this document is a statement, not an oversight.
 
-[Unreleased]: https://github.com/memorysmithapp/markdown-spec/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/markdown-spec/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/memorysmithapp/markdown-spec/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/memorysmithapp/markdown-spec/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/memorysmithapp/markdown-spec/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/memorysmithapp/markdown-spec/compare/v0.1.0...v0.2.0
