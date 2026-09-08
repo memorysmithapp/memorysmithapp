@@ -1,6 +1,6 @@
 {
-  "profile": "MemorySmith Markdown Profile",
-  "version": "0.4.0",
+  "spec": "MemorySmith Markdown Specification",
+  "version": "0.5.0",
   "cases": [
     {
       "id": "wikilink/plain",
@@ -8,7 +8,7 @@
       "markdown": "See [[Lei 14.133]] for the general rule.",
       "links": [
         {
-          "slug": "lei-14133",
+          "title": "Lei 14.133",
           "anchor": null
         }
       ]
@@ -19,7 +19,7 @@
       "markdown": "See [[Lei 14.133|the procurement act]] for the general rule.",
       "links": [
         {
-          "slug": "lei-14133",
+          "title": "Lei 14.133",
           "anchor": null
         }
       ]
@@ -30,7 +30,7 @@
       "markdown": "| Rule | Where |\n|---|---|\n| The general one | [[Lei 14.133]] |\n",
       "links": [
         {
-          "slug": "lei-14133",
+          "title": "Lei 14.133",
           "anchor": null
         }
       ]
@@ -41,7 +41,7 @@
       "markdown": "| Rule | Where |\n|---|---|\n| The exception | [[Lei 14.133\\|article 75]] |\n",
       "links": [
         {
-          "slug": "lei-14133",
+          "title": "Lei 14.133",
           "anchor": null
         }
       ]
@@ -52,7 +52,7 @@
       "markdown": "Rule | Where\n--- | ---\nThe general one | [[Lei 14.133]]\n",
       "links": [
         {
-          "slug": "lei-14133",
+          "title": "Lei 14.133",
           "anchor": null
         }
       ]
@@ -63,8 +63,8 @@
       "markdown": "See [[Lei 14.133#Article 75]] for the exception.",
       "links": [
         {
-          "slug": "lei-14133",
-          "anchor": "article-75"
+          "title": "Lei 14.133",
+          "anchor": "Article 75"
         }
       ]
     },
@@ -74,7 +74,7 @@
       "markdown": "Ver [[Contratação Direta 2.0]].",
       "links": [
         {
-          "slug": "contratacao-direta-20",
+          "title": "Contratação Direta 2.0",
           "anchor": null
         }
       ]
@@ -85,7 +85,7 @@
       "markdown": "![[Lei 14.133]]",
       "links": [
         {
-          "slug": "lei-14133",
+          "title": "Lei 14.133",
           "anchor": null
         }
       ]
@@ -96,7 +96,7 @@
       "markdown": "![[Lei 14.133]]\n\nSee also [[Lei 14.133]].",
       "links": [
         {
-          "slug": "lei-14133",
+          "title": "Lei 14.133",
           "anchor": null
         }
       ]
@@ -104,10 +104,10 @@
     {
       "id": "relative-link/path-segments-are-discarded",
       "notation": "markdown-relative-link",
-      "markdown": "See [the procurement act](../decisions/lei-14133.md).",
+      "markdown": "See [the procurement act](../decisions/Lei%2014.133.md).",
       "links": [
         {
-          "slug": "lei-14133",
+          "title": "Lei 14.133",
           "anchor": null
         }
       ]
@@ -337,8 +337,8 @@
       "markdown": "![[Lei 14.133#^article-75]]",
       "links": [
         {
-          "slug": "lei-14133",
-          "anchor": "article-75"
+          "title": "Lei 14.133",
+          "anchor": "^article-75"
         }
       ]
     },
@@ -348,8 +348,8 @@
       "markdown": "![[Lei 14.133#^article-75]]\n\nSee also [[Lei 14.133]].",
       "links": [
         {
-          "slug": "lei-14133",
-          "anchor": "article-75"
+          "title": "Lei 14.133",
+          "anchor": "^article-75"
         }
       ]
     },
@@ -387,6 +387,383 @@
       "markdown": "The notice: <a href=\"https://example.org\">read the act</a>.",
       "links": [],
       "facets": {}
+    },
+    {
+      "id": "wikilink/an-accent-is-not-folded",
+      "notation": "wikilink",
+      "markdown": "Ver [[Ação]] e [[Acao]].",
+      "links": [
+        {
+          "title": "Ação",
+          "anchor": null
+        },
+        {
+          "title": "Acao",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "wikilink/nfd-and-nfc-are-one-title",
+      "notation": "wikilink",
+      "markdown": "Ver [[Ação]] e de novo [[Ação]].",
+      "links": [
+        {
+          "title": "Ação",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "wikilink/case-is-exact",
+      "notation": "wikilink",
+      "markdown": "See [[lei 14.133]] and [[Lei 14.133]].",
+      "links": [
+        {
+          "title": "lei 14.133",
+          "anchor": null
+        },
+        {
+          "title": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "wikilink/a-non-latin-title-is-a-title",
+      "notation": "wikilink",
+      "markdown": "参照 [[日本語]]。",
+      "links": [
+        {
+          "title": "日本語",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "wikilink/a-slash-is-an-ordinary-character",
+      "notation": "wikilink",
+      "markdown": "Ver [[Reunião 03/09/2026]] e [[and/or]].",
+      "links": [
+        {
+          "title": "Reunião 03/09/2026",
+          "anchor": null
+        },
+        {
+          "title": "and/or",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "wikilink/an-extension-is-part-of-the-title",
+      "notation": "wikilink",
+      "markdown": "See [[Lei 14.133.md]].",
+      "links": [
+        {
+          "title": "Lei 14.133.md",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "wikilink/a-percent-escape-is-literal",
+      "notation": "wikilink",
+      "markdown": "See [[Lei%2014.133]].",
+      "links": [
+        {
+          "title": "Lei%2014.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "relative-link/percent-escapes-are-decoded",
+      "notation": "markdown-relative-link",
+      "markdown": "See [the procurement act](Reuni%C3%A3o%2003%2F09%2F2026) and [half](100%25%20done).",
+      "links": [
+        {
+          "title": "Reunião 03/09/2026",
+          "anchor": null
+        },
+        {
+          "title": "100% done",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "relative-link/the-anchor-splits-at-the-unencoded-hash",
+      "notation": "markdown-relative-link",
+      "markdown": "See [the exception](Lei%2014.133#Article%2075).",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": "Article 75"
+        }
+      ]
+    },
+    {
+      "id": "relative-link/a-malformed-escape-is-left-as-written",
+      "notation": "markdown-relative-link",
+      "markdown": "See [half](50%).",
+      "links": [
+        {
+          "title": "50%",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "title/is-the-plain-text-of-the-heading",
+      "notation": "note-title",
+      "markdown": "# **Lei** 14.133\n\nThe general rule.\n",
+      "title": "Lei 14.133",
+      "links": []
+    },
+    {
+      "id": "title/a-setext-heading-gives-the-same-title",
+      "notation": "note-title",
+      "markdown": "Lei 14.133\n==========\n\nThe general rule.\n",
+      "title": "Lei 14.133",
+      "links": []
+    },
+    {
+      "id": "title/frontmatter-does-not-displace-it",
+      "notation": "note-title",
+      "markdown": "---\ntags: [contracts]\n---\n\n# Lei 14.133\n\nThe general rule.\n",
+      "title": "Lei 14.133",
+      "links": []
+    },
+    {
+      "id": "title/a-heading-in-a-fence-is-not-a-title",
+      "notation": "note-title",
+      "markdown": "```markdown\n# Lei 14.133\n```\n",
+      "title": null,
+      "links": []
+    },
+    {
+      "id": "title/a-note-with-no-level-1-heading-has-none",
+      "notation": "note-title",
+      "markdown": "## Article 75\n\nThe exception.\n",
+      "title": null,
+      "links": []
+    },
+    {
+      "id": "title/a-reserved-character-leaves-no-addressable-title",
+      "notation": "note-title",
+      "markdown": "# C# basics\n\nNotes on the language.\n",
+      "title": null,
+      "links": []
+    },
+    {
+      "id": "title/the-second-level-1-heading-is-an-ordinary-heading",
+      "notation": "note-title",
+      "markdown": "# Lei 14.133\n\nThe general rule.\n\n# Article 75\n\nThe exception.\n",
+      "title": "Lei 14.133",
+      "links": []
+    },
+    {
+      "id": "wikilink/a-numeric-alias-is-still-an-alias",
+      "notation": "wikilink-alias",
+      "markdown": "See [[Lei 14.133|100]] for the general rule.",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "image/dimensions-in-the-alt-text-are-not-a-link",
+      "notation": "image-dimensions",
+      "markdown": "![Engelbart|100x145](https://example.org/engelbart.jpg)",
+      "links": []
+    },
+    {
+      "id": "resolution/one-title-in-two-notes-is-two-edges",
+      "notation": "wikilink",
+      "vault": {
+        "notes": [
+          "# Índice\n",
+          "# Índice\n\nOutra nota, mesmo título.\n"
+        ]
+      },
+      "markdown": "Ver [[Índice]].",
+      "links": [
+        {
+          "title": "Índice",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Índice",
+          "kind": "note",
+          "edges": 2
+        }
+      ]
+    },
+    {
+      "id": "resolution/a-title-no-note-carries-is-pending",
+      "notation": "wikilink",
+      "vault": {
+        "notes": [
+          "# Lei 14.133\n"
+        ]
+      },
+      "markdown": "See [[Lei 14.134]].",
+      "links": [
+        {
+          "title": "Lei 14.134",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Lei 14.134",
+          "kind": "pending",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/case-must-match-exactly",
+      "notation": "wikilink",
+      "vault": {
+        "notes": [
+          "# Lei 14.133\n"
+        ]
+      },
+      "markdown": "See [[lei 14.133]].",
+      "links": [
+        {
+          "title": "lei 14.133",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "lei 14.133",
+          "kind": "pending",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/nfd-and-nfc-name-one-note",
+      "notation": "wikilink",
+      "vault": {
+        "notes": [
+          "# Ação\n"
+        ]
+      },
+      "markdown": "Ver [[Ação]].",
+      "links": [
+        {
+          "title": "Ação",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Ação",
+          "kind": "note",
+          "edges": 1
+        }
+      ]
+    },
+    {
+      "id": "resolution/a-note-with-no-level-1-heading-cannot-be-addressed",
+      "notation": "note-title",
+      "vault": {
+        "notes": [
+          "## Article 75\n\nThe exception.\n"
+        ]
+      },
+      "markdown": "See [[Article 75]].",
+      "links": [
+        {
+          "title": "Article 75",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Article 75",
+          "kind": "pending",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/an-attachment-is-not-an-edge",
+      "notation": "attachment",
+      "vault": {
+        "attachments": [
+          "engelbart.jpg"
+        ]
+      },
+      "markdown": "![[engelbart.jpg]]",
+      "links": [
+        {
+          "title": "engelbart.jpg",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "engelbart.jpg",
+          "kind": "attachment",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/the-pipe-is-a-dimension-when-the-target-is-an-attachment",
+      "notation": "image-dimensions",
+      "vault": {
+        "attachments": [
+          "engelbart.jpg"
+        ]
+      },
+      "markdown": "![[engelbart.jpg|100x145]]",
+      "links": [
+        {
+          "title": "engelbart.jpg",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "engelbart.jpg",
+          "kind": "attachment",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/the-markdown-form-reaches-the-same-note",
+      "notation": "markdown-relative-link",
+      "vault": {
+        "notes": [
+          "# Lei 14.133\n"
+        ]
+      },
+      "markdown": "See [the procurement act](../decisions/Lei%2014.133.md).",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Lei 14.133",
+          "kind": "note",
+          "edges": 1
+        }
+      ]
     }
   ]
 }

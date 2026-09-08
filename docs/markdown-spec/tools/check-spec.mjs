@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// The consistency check of the profile.
+// The consistency check of the specification.
 //
-// A notation lives in three files at once — SPEC.md, profile.json and
+// A notation lives in three files at once — SPEC.md, spec.json and
 // tests/conformance.json — and the failure this repository exists to prevent is the three
 // of them drifting apart in silence. This is what refuses that in CI, and it is the whole
 // of CI: no dependencies, no build, no network.
 //
-// It validates profile.json against schema/profile.schema.json with a validator that
+// It validates spec.json against schema/spec.schema.json with a validator that
 // implements only the keywords the schema actually uses, and that FAILS on any keyword it
 // does not implement. A validator that ignores what it does not understand is worse than
 // no validator, because it reports success it did not establish.
@@ -29,12 +29,12 @@ const readJson = (relative) => {
   }
 };
 
-const schema = readJson('schema/profile.schema.json');
-const profile = readJson('profile.json');
+const schema = readJson('schema/spec.schema.json');
+const spec = readJson('spec.json');
 const conformance = readJson('tests/conformance.json');
-const spec = readFileSync(join(root, 'SPEC.md'), 'utf8');
+const specText = readFileSync(join(root, 'SPEC.md'), 'utf8');
 
-if (!schema || !profile || !conformance) {
+if (!schema || !spec || !conformance) {
   report();
 }
 
@@ -66,7 +66,7 @@ const typeOf = (value) => {
 function validate(value, node, path) {
   for (const keyword of Object.keys(node)) {
     if (!ANNOTATIONS.has(keyword) && !IMPLEMENTED.has(keyword)) {
-      fail('schema/profile.schema.json', `uses the keyword "${keyword}", which this checker does not implement. Implement it in tools/check-profile.mjs or drop it from the schema`);
+      fail('schema/spec.schema.json', `uses the keyword "${keyword}", which this checker does not implement. Implement it in tools/check-spec.mjs or drop it from the schema`);
     }
   }
 
@@ -115,22 +115,24 @@ function validate(value, node, path) {
   }
 }
 
-validate(profile, schema, 'profile.json');
+validate(spec, schema, 'spec.json');
 
 // ---------------------------------------------------------------------------
 // The three files have to agree.
 // ---------------------------------------------------------------------------
 
-const notations = profile.notations ?? [];
+const notations = spec.notations ?? [];
 const cases = conformance.cases ?? [];
 
 // Identifiers are stable: never renamed, never reused. Duplicates break that promise
 // before anybody has a chance to rely on it.
 const seenNotations = new Set();
 for (const entry of notations) {
-  if (seenNotations.has(entry.id)) fail('profile.json', `declares the notation "${entry.id}" twice`);
+  if (seenNotations.has(entry.id)) fail('spec.json', `declares the notation "${entry.id}" twice`);
   seenNotations.add(entry.id);
 }
+
+const KINDS = new Set(['note', 'attachment', 'pending']);
 
 const seenCases = new Set();
 for (const testCase of cases) {
@@ -140,13 +142,70 @@ for (const testCase of cases) {
   if (!testCase.notation) {
     fail('tests/conformance.json', `the case "${testCase.id}" names no notation`);
   } else if (!seenNotations.has(testCase.notation)) {
-    fail('tests/conformance.json', `the case "${testCase.id}" exercises "${testCase.notation}", which profile.json does not declare`);
+    fail('tests/conformance.json', `the case "${testCase.id}" exercises "${testCase.notation}", which spec.json does not declare`);
   }
   if (typeof testCase.markdown !== 'string') {
     fail('tests/conformance.json', `the case "${testCase.id}" carries no markdown input`);
   }
-  if (!('links' in testCase) && !('facets' in testCase)) {
-    fail('tests/conformance.json', `the case "${testCase.id}" claims neither links nor facets, so it asserts nothing`);
+  if (
+    !('links' in testCase) &&
+    !('facets' in testCase) &&
+    !('title' in testCase) &&
+    !('resolution' in testCase)
+  ) {
+    fail('tests/conformance.json', `the case "${testCase.id}" claims neither a title, nor links, nor facets, nor a resolution, so it asserts nothing`);
+  }
+
+  // A resolution is a claim about a vault, and a vault is only there to be resolved
+  // against. One without the other is half a case, and the half that is missing is the
+  // one that would have made it fail.
+  const hasVault = 'vault' in testCase;
+  const hasResolution = 'resolution' in testCase;
+  if (hasVault !== hasResolution) {
+    fail(
+      'tests/conformance.json',
+      hasVault
+        ? `the case "${testCase.id}" builds a vault and claims no resolution against it`
+        : `the case "${testCase.id}" claims a resolution and gives no vault to resolve against`,
+    );
+  }
+
+  if (hasVault) {
+    const vault = testCase.vault ?? {};
+    const notes = vault.notes ?? [];
+    const attachments = vault.attachments ?? [];
+    if (!Array.isArray(notes) || notes.some((note) => typeof note !== 'string')) {
+      fail('tests/conformance.json', `the case "${testCase.id}" has a vault whose "notes" is not a list of Markdown documents`);
+    }
+    if (!Array.isArray(attachments) || attachments.some((name) => typeof name !== 'string')) {
+      fail('tests/conformance.json', `the case "${testCase.id}" has a vault whose "attachments" is not a list of names`);
+    }
+    if (notes.length === 0 && attachments.length === 0) {
+      fail('tests/conformance.json', `the case "${testCase.id}" has an empty vault, which resolves nothing`);
+    }
+  }
+
+  for (const outcome of testCase.resolution ?? []) {
+    const where = `the case "${testCase.id}"`;
+    if (typeof outcome.target !== 'string') {
+      fail('tests/conformance.json', `${where} has a resolution with no target`);
+      continue;
+    }
+    if (!KINDS.has(outcome.kind)) {
+      fail('tests/conformance.json', `${where} resolves "${outcome.target}" to the kind "${outcome.kind}", which is not one of ${[...KINDS].join(', ')}`);
+    }
+    if (!Number.isInteger(outcome.edges) || outcome.edges < 0) {
+      fail('tests/conformance.json', `${where} resolves "${outcome.target}" to an edge count that is not a whole number`);
+      continue;
+    }
+    // SPEC.md 5.4, 5.5 and 5.8: only a note produces an edge, and a note that matches
+    // produces one per match.
+    if (outcome.kind !== 'note' && outcome.edges !== 0) {
+      fail('tests/conformance.json', `${where} resolves "${outcome.target}" to the kind ${outcome.kind} and to ${outcome.edges} edges. Only a note produces an edge`);
+    }
+    if (outcome.kind === 'note' && outcome.edges < 1) {
+      fail('tests/conformance.json', `${where} resolves "${outcome.target}" to a note and to no edge`);
+    }
   }
 }
 
@@ -156,7 +215,7 @@ for (const testCase of cases) {
 const exercised = new Set(cases.map((testCase) => testCase.notation));
 for (const entry of notations) {
   if (entry.reader !== 'reading-surface' && !exercised.has(entry.id)) {
-    fail('tests/conformance.json', `has no case for "${entry.id}". A notation without a case is not part of the profile`);
+    fail('tests/conformance.json', `has no case for "${entry.id}". A notation without a case is not part of the specification`);
   }
 }
 
@@ -165,14 +224,14 @@ for (const entry of notations) {
 // ---------------------------------------------------------------------------
 
 const headings = new Set(
-  [...spec.matchAll(/^#{2,6}\s+([0-9]+(?:\.[0-9]+)*)\.?\s/gm)].map((match) => match[1]),
+  [...specText.matchAll(/^#{2,6}\s+([0-9]+(?:\.[0-9]+)*)\.?\s/gm)].map((match) => match[1]),
 );
 
 for (const entry of notations) {
   if (!entry.spec) continue;
   for (const section of entry.spec.split(',').map((value) => value.trim())) {
     if (!headings.has(section)) {
-      fail('profile.json', `the notation "${entry.id}" points at SPEC.md § ${section}, which has no heading`);
+      fail('spec.json', `the notation "${entry.id}" points at SPEC.md § ${section}, which has no heading`);
     }
   }
 }
@@ -181,7 +240,7 @@ for (const entry of notations) {
 // again in the section that governs it — and a renumbering is what breaks all of those at
 // once. Every § in the prose has to resolve too.
 const danglingRefs = new Set();
-for (const match of spec.matchAll(/§(\d+(?:\.\d+)*)/g)) {
+for (const match of specText.matchAll(/§(\d+(?:\.\d+)*)/g)) {
   if (!headings.has(match[1])) danglingRefs.add(match[1]);
 }
 for (const section of [...danglingRefs].sort()) {
@@ -197,24 +256,24 @@ for (const section of [...danglingRefs].sort()) {
 // ---------------------------------------------------------------------------
 
 const packageJson = readJson('package.json');
-const specVersion = spec.match(/^\*\*Version\s+([0-9]+\.[0-9]+\.[0-9]+)\*\*/m)?.[1];
+const specVersion = specText.match(/^\*\*Version\s+([0-9]+\.[0-9]+\.[0-9]+)\*\*/m)?.[1];
 
 if (!specVersion) {
   fail('SPEC.md', 'carries no "**Version X.Y.Z**" line, so nothing can be checked against it');
-} else if (specVersion !== profile.version) {
-  fail('SPEC.md', `says version ${specVersion} and profile.json says ${profile.version}. The canonical version is the one in profile.json`);
+} else if (specVersion !== spec.version) {
+  fail('SPEC.md', `says version ${specVersion} and spec.json says ${spec.version}. The canonical version is the one in spec.json`);
 }
 
-if (conformance.version !== profile.version) {
-  fail('tests/conformance.json', `says version ${conformance.version} and profile.json says ${profile.version}`);
+if (conformance.version !== spec.version) {
+  fail('tests/conformance.json', `says version ${conformance.version} and spec.json says ${spec.version}`);
 }
 
-if (packageJson && packageJson.version !== profile.version) {
-  fail('package.json', `says version ${packageJson.version} and profile.json says ${profile.version}. The package is a distribution of the profile and carries its version`);
+if (packageJson && packageJson.version !== spec.version) {
+  fail('package.json', `says version ${packageJson.version} and spec.json says ${spec.version}. The package is a distribution of the specification and carries its version`);
 }
 
-if (conformance.profile !== profile.profile) {
-  fail('tests/conformance.json', `names the profile "${conformance.profile}" and profile.json names it "${profile.profile}"`);
+if (conformance.spec !== spec.spec) {
+  fail('tests/conformance.json', `names the specification "${conformance.spec}" and spec.json names it "${spec.spec}"`);
 }
 
 report();
@@ -223,11 +282,11 @@ function report() {
   if (errors.length === 0) {
     const surface = notations.filter((entry) => entry.reader === 'reading-surface').length;
     console.log(
-      `The profile is consistent: ${notations.length} notations (${notations.length - surface} an indexer decides, ${surface} rendering), ${cases.length} conformance cases, version ${profile.version}.`,
+      `The specification is consistent: ${notations.length} notations (${notations.length - surface} an indexer decides, ${surface} rendering), ${cases.length} conformance cases, version ${spec.version}.`,
     );
     process.exit(0);
   }
-  console.error(`The profile is inconsistent. ${errors.length} problem${errors.length === 1 ? '' : 's'}:\n`);
+  console.error(`The specification is inconsistent. ${errors.length} problem${errors.length === 1 ? '' : 's'}:\n`);
   for (const error of errors) console.error(`  - ${error}`);
   console.error('');
   process.exit(1);

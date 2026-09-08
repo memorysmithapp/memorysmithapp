@@ -1,8 +1,8 @@
-# The MemorySmith Markdown Profile
+# The MemorySmith Markdown Specification
 
-**Version 0.4.0** · Draft · <https://md.memorysmith.app>
+**Version 0.5.0** · Draft · <https://md.memorysmith.app>
 
-A profile of Markdown for knowledge vaults: plain `.md` files, linked to each other, written by people and by agents, and read by software that has to build a graph and an index out of them without deciding what the content means.
+A specification of the Markdown a knowledge vault is written in: plain `.md` files, linked to each other, written by people and by agents, and read by software that has to build a graph and an index out of them without deciding what the content means.
 
 ---
 
@@ -10,18 +10,18 @@ A profile of Markdown for knowledge vaults: plain `.md` files, linked to each ot
 
 ### 1.1 What this document is
 
-This profile defines **which notation a conforming implementation reads, and what it does with it**. It is a profile, not a new syntax: every form specified here was taken from CommonMark, from GitHub Flavored Markdown, or from the vault editors that established it — chiefly Obsidian. Nothing is invented, and §2 names each source.
+This specification defines **which notation a conforming implementation reads, and what it does with it**. It declares no syntax of its own: it profiles CommonMark, GitHub Flavored Markdown and the vault editors that established the rest — chiefly Obsidian — and every form specified here was taken from one of them. Nothing is invented, and §2 names each source.
 
-It is also **self-contained**. §3 and §4 state every block and every inline the profile accepts, with the form as it is typed and what it produces, so that writing a note, or implementing one, does not mean reading three specifications side by side with a finger in each. Where this document and the source a form was taken from disagree, the source governs (§2.1).
+It is also **self-contained**. §3 and §4 state every block and every inline the specification accepts, with the form as it is typed and what it produces, so that writing a note, or implementing one, does not mean reading three specifications side by side with a finger in each. Where this document and the source a form was taken from disagree, the source governs (§2.1).
 
-The profile covers four things and nothing else:
+The specification covers four things and nothing else:
 
 1. Which blocks and inlines it accepts, with the form as it is typed and what it produces (§3, §4).
 2. Which MemorySmith notations it reads, and their **observable effect** (§5 to §7).
 3. What happens to notation this document does not describe (§8).
 4. How all of that is published as data, and proved (§9, §10).
 
-The list is the profile. Most of what goes wrong when writing into a knowledge base is not a notation typed wrongly, it is a notation the author believed in — a link that was expected to become a connection, a line of metadata that was expected to become a category — and the answer to every one of them is the same: **if it is not described here, it is not read.** One rule, stated once, covers every form of every other dialect at once, which no list of refusals could ever do.
+The list is the specification. Most of what goes wrong when writing into a knowledge base is not a notation typed wrongly, it is a notation the author believed in — a link that was expected to become a connection, a line of metadata that was expected to become a category — and the answer to every one of them is the same: **if it is not described here, it is not read.** One rule, stated once, covers every form of every other dialect at once, which no list of refusals could ever do.
 
 ### 1.2 What this document is not
 
@@ -39,7 +39,7 @@ An implementation may take any of three roles, and conformance is stated per rol
 |---|---|---|
 | **Reader** | Renders a note for a person | It renders every notation of §3, §4 and §7 as specified |
 | **Indexer** | Derives links and attributes from a note | It extracts exactly what §5 and §6 specify, and nothing from anywhere else |
-| **Writer** | Produces notes | It emits only notation this profile declares |
+| **Writer** | Produces notes | It emits only notation this specification declares |
 
 An implementation MUST state which roles it claims. An implementation that claims the Indexer role MUST NOT derive meaning from any part of a note other than the two readers defined in §5 and §6.
 
@@ -47,7 +47,7 @@ An implementation MUST state which roles it claims. An implementation that claim
 
 ## 2. Reference sources
 
-Nothing here is invented. Every form this profile declares was taken from somewhere, and the places it was taken from are named once here and cited again on each form that came from them.
+Nothing here is invented. Every form this specification declares was taken from somewhere, and the places it was taken from are named once here and cited again on each form that came from them.
 
 | Source | What it established | Declared in |
 |---|---|---|
@@ -55,7 +55,7 @@ Nothing here is invented. Every form this profile declares was taken from somewh
 | [GFM 0.29-gfm](https://github.github.com/gfm/) | Tables, task list items, strikethrough, extended autolinks, disallowed raw HTML | §4 |
 | [Obsidian](https://help.obsidian.md/syntax) | The wikilink and its alias, anchor, embed and block forms; callouts; marked text; comments; block identifiers | §5, §7 |
 
-Obsidian is a source and not an authority. It publishes documentation rather than a versioned specification, so it carries no version above, and where it and this document differ **this document governs** — the opposite of the precedence CommonMark and GFM hold in §2.1. This profile is not *Obsidian compatible* and does not undertake to follow it; Obsidian is where a form was established and where its established meaning can be checked.
+Obsidian is a source and not an authority. It publishes documentation rather than a versioned specification, so it carries no version above, and where it and this document differ **this document governs** — the opposite of the precedence CommonMark and GFM hold in §2.1. This specification is not *Obsidian compatible* and does not undertake to follow it; Obsidian is where a form was established and where its established meaning can be checked.
 
 Two other lineages are named where the form they established is specified: the `---` frontmatter block, which is Jekyll's (§6), and the alert form of the callout, which is GitHub's (§7.1).
 
@@ -67,15 +67,15 @@ Where this document and the source a form came from disagree on what a sequence 
 
 This document does not reproduce a source. It does not carry the flanking rules for emphasis, the seven kinds of HTML block or the tables of Unicode punctuation: it says what an author types and what comes out, and points at the source for the rest. An implementation is written against the source; a note is written against this.
 
-What no source can give is the place where a form meets the rest of this profile, and that is what §3 and §4 add. A fenced code block is CommonMark, and that a `[[link]]` inside one produces no edge is §5.6. A block quote is CommonMark, and that one beginning `[!warning]` is a callout is §7.1. CommonMark admits raw HTML, and that a Reader here MUST NOT render it is §7.9 — a security boundary, and the one place this profile narrows a source rather than following it. Each crossing is stated where an author meets it, and again in the section that governs it.
+What no source can give is the place where a form meets the rest of this specification, and that is what §3 and §4 add. A fenced code block is CommonMark, and that a `[[link]]` inside one produces no edge is §5.6. A block quote is CommonMark, and that one beginning `[!warning]` is a callout is §7.1. CommonMark admits raw HTML, and that a Reader here MUST NOT render it is §7.9 — a security boundary, and the one place this specification narrows a source rather than following it. Each crossing is stated where an author meets it, and again in the section that governs it.
 
-From §5 onward no source stands above this document. That is where implementations of Markdown usually diverge in silence, and every form there is stated with a syntax, an example and an effect, with a machine-readable counterpart in [`profile.json`](profile.json) and at least one case in the [conformance suite](tests/).
+From §5 onward no source stands above this document. That is where implementations of Markdown usually diverge in silence, and every form there is stated with a syntax, an example and an effect, with a machine-readable counterpart in [`spec.json`](spec.json) and at least one case in the [conformance suite](tests/).
 
 ---
 
 ## 3. Blocks and inlines
 
-A note is a Markdown document. This section states every block and every inline the profile accepts, with the form as it is typed and what it produces. All of them were established by [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/), which is where their parsing detail lives (§2.1). An implementation MUST support every form listed here, and MUST NOT require an extension of its own to obtain any of it.
+A note is a Markdown document. This section states every block and every inline the specification accepts, with the form as it is typed and what it produces. All of them were established by [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/), which is where their parsing detail lives (§2.1). An implementation MUST support every form listed here, and MUST NOT require an extension of its own to obtain any of it.
 
 None of this notation produces an edge, an attribute or an index entry. It is structure and display. The two readers that derive meaning are §5 and §6, and they are the only ones.
 
@@ -114,7 +114,7 @@ A backslash also stops a line from becoming something it was not meant to be. Th
 1\. Not a list item, just a sentence that starts with a number.
 ```
 
-**A Writer escapes more here than in plain CommonMark**, because this profile gives meaning to characters CommonMark leaves alone: `[[`, `![[`, `==`, `%%`, `$` and a trailing `^`. The last of those is the only one whose meaning depends on **position** rather than on the characters themselves (§7.7). Whatever is meant literally SHOULD be escaped or put in a code span. A notation invoked by accident is the failure this profile exists to prevent, and it is as easy to commit while writing prose as while writing a link.
+**A Writer escapes more here than in plain CommonMark**, because this specification gives meaning to characters CommonMark leaves alone: `[[`, `![[`, `==`, `%%`, `$` and a trailing `^`. The last of those is the only one whose meaning depends on **position** rather than on the characters themselves (§7.7). Whatever is meant literally SHOULD be escaped or put in a code span. A notation invoked by accident is the failure this specification exists to prevent, and it is as easy to commit while writing prose as while writing a link.
 
 ### 3.3 Headings
 
@@ -136,7 +136,7 @@ Level two
 ---------
 ```
 
-Headings are what an anchor points at: `[[Target note#Section]]` names a heading of the target, and §5.2 keeps it for display without letting it change which note is resolved.
+Headings are what an anchor points at: `[[Target note#Section]]` names a heading of the target, and §5.2 keeps it for display without letting it change which note is resolved. The **first level-1 heading of a note is its title**, which is the key every link resolves against (§5.3).
 
 A `#` that is not opening a heading is not a subject either: `#procurement` in the middle of a line is plain text, because nothing in this document describes it (§8).
 
@@ -209,9 +209,9 @@ select 1;
 ```
 ````
 
-The word after the opening fence is the **info string**, and by convention it names the language. `mermaid` is the one info string this profile attaches a rendering rule to (§7.2). A tilde fence may carry backticks in its info string; a backtick fence may not.
+The word after the opening fence is the **info string**, and by convention it names the language. `mermaid` is the one info string this specification attaches a rendering rule to (§7.2). A tilde fence may carry backticks in its info string; a backtick fence may not.
 
-Because a fence closes only on the same character at the same length or longer, **a fence nests**: an outer fence uses more characters than any fence inside it, or a different character. That is the only way to write a code block holding a code block, which is what documenting this profile requires — and it is how the examples in this document are written.
+Because a fence closes only on the same character at the same length or longer, **a fence nests**: an outer fence uses more characters than any fence inside it, or a different character. That is the only way to write a code block holding a code block, which is what documenting this specification requires — and it is how the examples in this document are written.
 
 **Indented**, with four spaces or one tab:
 
@@ -243,7 +243,7 @@ A line that begins with `<` and a recognised tag opens an HTML block, whose cont
 </div>
 ```
 
-**The block structure is CommonMark's; what a Reader does with the result is not.** §7.9 declares raw HTML unrendered, as a security boundary, and it is the one place this profile narrows its base instead of extending it. The bytes are kept and returned as written; an Indexer derives nothing from them; a Writer SHOULD NOT emit them.
+**The block structure is CommonMark's; what a Reader does with the result is not.** §7.9 declares raw HTML unrendered, as a security boundary, and it is the one place this specification narrows its base instead of extending it. The bytes are kept and returned as written; an Indexer derives nothing from them; a Writer SHOULD NOT emit them.
 
 ### 3.10 Inlines, and what binds tighter than what
 
@@ -303,11 +303,17 @@ An image is a link with `!` in front of it.
 
 ```markdown
 ![alt text](image.png "a title")
+![Engelbart|100x145](engelbart.jpg)
+![Engelbart|100](engelbart.jpg)
 ```
 
-The alt text is the description of the image and a Reader MUST NOT drop it. A `!` in front of a **wikilink** is a different thing entirely: `![[target]]` is the embed of §5.7.
+The alt text is the description of the image and a Reader MUST NOT drop it.
 
-A destination naming a host makes this image a request to that host when the note is opened. What a Reader may and may not do about that is §7.10.
+**A `|` inside the alt text separates the description from the image's dimensions.** What precedes it is the description and MUST NOT be dropped; what follows it is not description and MUST NOT be rendered as text. The dimensions are `width` or `width x height`, in CSS pixels, written as digits and nothing else: `100` sets the width and keeps the aspect ratio, `100x145` sets both. A value after the pipe that is neither is **not a dimension** — it stays part of the description, because silently deleting what an author wrote into an accessibility label is the worse of the two failures.
+
+A `!` in front of a **wikilink** is a different thing entirely: `![[target]]` is the embed of §5.7, and there the dimensions go inside the brackets — `![[engelbart.jpg|100x145]]`. The same pipe means the alias of §5.1 when the target is a note, and that crossing is §5.8.
+
+Where an image that is not remote is found is §5.8. A destination naming a host makes this image a request to that host when the note is opened, and what a Reader may and may not do about that is §7.10.
 
 ### 3.15 Autolinks
 
@@ -377,7 +383,7 @@ The brackets MUST be the first thing in the item. In every other respect it is a
 
 Two tildes around the text: `~~struck~~`. One tilde strikes nothing, and neither do three or more.
 
-GFM 0.29-gfm defines strikethrough as `~~` and nothing else. GitHub's renderer also accepts a single tilde, which is its renderer going past its own specification — and where this document and a source disagree the source governs (§2.1), so the single tilde is not part of this profile. `H~2~O` reaches the page as those exact characters.
+GFM 0.29-gfm defines strikethrough as `~~` and nothing else. GitHub's renderer also accepts a single tilde, which is its renderer going past its own specification — and where this document and a source disagree the source governs (§2.1), so the single tilde is not part of this specification. `H~2~O` reaches the page as those exact characters.
 
 ### 4.4 Autolinks, extended
 
@@ -391,7 +397,7 @@ Bracketed or bare, an autolink is external and never an edge (§5.2).
 
 GFM neutralises nine tags — `<title>`, `<textarea>`, `<style>`, `<xmp>`, `<iframe>`, `<noembed>`, `<noframes>`, `<script>`, `<plaintext>` — by escaping the opening `<`, so that they appear as text instead of taking effect.
 
-In this profile the question does not arise, because §7.9 renders no raw HTML at all. The GFM rule is stated here for completeness and because it marks the distance: that list is a compatibility floor for a platform that does render HTML, and this profile does not need a list of exceptions to a thing it does not do.
+In this specification the question does not arise, because §7.9 renders no raw HTML at all. The GFM rule is stated here for completeness and because it marks the distance: that list is a compatibility floor for a platform that does render HTML, and this specification does not need a list of exceptions to a thing it does not do.
 
 ---
 
@@ -411,40 +417,54 @@ The `[[…]]` form is older than any vault editor and was established for vaults
 | Wikilink with alias | `[[Target note\|what the reader sees]]` | Yes |
 | Wikilink with anchor | `[[Target note#Section]]` | Yes |
 | Embed | `![[Target note]]`, `![[Target note#Section]]` | Yes |
-| Relative Markdown link | `[what the reader sees](target-note.md)` | Yes |
+| Markdown link to a note | `[what the reader sees](Target%20note)` | Yes |
 | External link | `[text](https://example.org/page)` | **No** |
+
+**The wikilink is canonical.** It is what a Writer emits, what documentation teaches and what an agent generates, and its target is a literal title: nothing in it is decoded, no extension is removed and no path segment is discarded.
+
+**The Markdown form is input tolerance.** An Indexer MUST read it and it produces an ordinary edge; a Writer MUST NOT emit it. It survives because importing is not exporting: a vault arriving from an editor configured to write Markdown-style links would otherwise arrive with no edges at all. The three tolerances of §5.2 — the path, the extension and percent-decoding — exist for it and are confined to it.
 
 ### 5.2 Resolution
 
 An Indexer MUST resolve every form above by the following rule, and by no other:
 
 1. If the target carries a **scheme** (`https:`, `mailto:`, any `[a-z][a-z0-9+.-]*:`) or begins with `//`, it is **external**. It refers to the world and not to the vault: it renders as a link, it MUST NOT become an edge, and it MUST NOT be resolved against any note. Use external links freely as sources; a connection is not one of the things they make.
-2. The target is split at the first `#`. What precedes it is the path; what follows is the **anchor**.
-3. Path segments MUST be discarded: the basename is taken. `../decisions/lei-14133.md` and `lei-14133` resolve to the same target. An edge is between notes, never between folders, and honouring the path would break the link the moment a note changed folder.
-4. A trailing `.md` or `.mdx` extension MUST be removed.
-5. The result is reduced to a **slug** by the rule in §5.3, and resolved **by slug, within the same vault**. Resolution MUST NOT cross vault boundaries.
-6. The anchor MUST be preserved for display and MUST NOT take part in resolution. Two links to two sections of the same note are two links to the same note.
+2. The target is split at the first **unencoded** `#`. What precedes it is the target; what follows is the **anchor**.
+3. *Markdown form only:* path segments MUST be discarded and the last one kept, so `[the act](../decisions/Lei%2014.133.md)` addresses the note titled `Lei 14.133`. An edge is between notes, never between folders.
+4. *Markdown form only:* a trailing `.md` or `.mdx` extension MUST be removed.
+5. *Markdown form only:* the result MUST be percent-decoded. An escape that is not one — the `%` of `[Half](50%)` opens nothing — MUST be left exactly as written, and MUST NOT be an error.
+6. The result is normalised to **NFC** and compared, **case-exact**, against the title of every note (§5.3) **of the same vault**. Resolution MUST NOT cross vault boundaries.
+7. **Every note whose title matches becomes an edge** (§5.4). A target that matches none is a pending link (§5.5).
+8. The anchor MUST be preserved for display — percent-decoded in the Markdown form, literal in the wikilink — and MUST NOT take part in resolution. Two links to two sections of the same note are two links to the same note.
 
-### 5.3 Slug
+**The order of steps 2 to 5 is normative, not incidental.** Decoding earlier would undo the escaping it exists for: `C%23%20basics` would become `C# basics` and then split at a `#` the author encoded precisely so it would not be read as a delimiter, and `and%2For` would become `and/or` and lose its first half to the path rule. Delimiters first, decode after, compare last.
 
-The slug is produced deterministically:
+### 5.3 The title of a note
 
-1. Normalise to Unicode NFD.
-2. A `.` or `,` **between two digits** is removed, so `Lei 14.133` becomes `lei-14133` and not `lei-14-133`.
-3. Remove combining marks (accents are folded, `ç` becomes `c`).
-4. Lowercase.
-5. Replace every run of characters that is neither `a-z` nor `0-9` with a single `-`.
-6. Trim leading and trailing `-`, truncate to 80 characters, and trim any `-` the truncation left at the end.
+**The title of a note is the plain text of its first level-1 heading**, and that is what a link resolves against. Six things follow from it, and each is a place two implementations would otherwise disagree:
 
-The same title MUST always produce the same slug.
+- **ATX or Setext.** §3.3 declares both and they produce the same heading, so they produce the same title. A note's identity does not depend on which of two equivalent forms was typed.
+- **Plain text, after inline parsing.** `# **Lei** 14.133` is titled `Lei 14.133`, never `**Lei** 14.133` — otherwise `[[Lei 14.133]]` would not match its own note.
+- **Trimmed** of leading and trailing whitespace.
+- **The first level-1 heading of the note, not its first line.** Frontmatter comes before it (§6.1), and prose may as well.
+- **Blocks before inlines** (§3): a `# Title` inside a fenced code block is code and names nothing, the same crossing §5.6 states for links.
+- **A second level-1 heading is an ordinary heading**, and an anchor target like any other.
 
-### 5.4 Deduplication
+Comparison is **case-exact**, after normalising both sides to **NFC**, and nothing else is folded. `[[Lei]]` finds `Lei` and does not find `lei`; a link whose case does not match is a pending link (§5.5) like any other miss. Normalising is not a fold: `Ação` exists as two byte sequences — one codepoint for `ç`, or `c` followed by a combining cedilla — that render identically and are typed by different editors, and NFC is what keeps them one note instead of two.
+
+**Four characters have no place in a title:** `#`, `[`, `]` and `|`, the delimiters of the form that addresses it. This document cannot forbid bytes in a file, so it states a consequence rather than a prohibition: **a note whose heading carries one of them has no addressable title.** It exists, it renders, it links outward and it is searchable, and no link can name it. A Writer MUST NOT produce such a heading; a Reader and an Indexer MUST report it the way a pending link is reported (§5.5). A note with no level-1 heading at all is the same case: it has no title, and it is reported rather than passed over in silence.
+
+A `/` is **not** one of them. A slash is an ordinary character in a title — `Reunião 03/09/2026` and `and/or` are ordinary notes — because folders play no part in identity: a link addresses a title and nothing else, `./` and `../` mean nothing in either form, and a path the Markdown form arrives with is discarded rather than read (§5.2).
+
+### 5.4 One edge per target, and every note that matches
 
 Several links to the same target in one note are **one** edge. An embed and a plain link to the same target are also one edge: the graph does not distinguish transclusion from reference, not even by counting.
 
+Two notes may carry the same title, in one folder or in two. That is a property of the content, and constraining the content is not this document's business; what is its business is saying what happens then. **Every note whose title matches becomes an edge** — not the first one, because there is no order to appeal to. `created` is what the author says and not what the file did (§6.6), folder order would put folders back into identity, and storage order diverges between implementations. Two edges is also what an interface needs to offer a choice, and what a backlink can honestly show on both notes, since which one was meant is not knowable from the link.
+
 ### 5.5 A target that does not exist
 
-A link whose target has no note is **not an error and MUST NOT be discarded**. It is a *pending link*: it is kept, it is reported as pending, and it resolves on its own if a note with that slug is later created. Discarding it would make the graph lie precisely while a vault is being written, which is when it is consulted most.
+A link whose target has no note is **not an error and MUST NOT be discarded**. It is a *pending link*: it is kept, it is reported as pending, and it resolves on its own if a note with that title is later created. Discarding it would make the graph lie precisely while a vault is being written, which is when it is consulted most.
 
 ### 5.6 Code
 
@@ -454,11 +474,25 @@ A link inside a code span or a fenced code block is an example, not a reference.
 
 `![[target]]` is the embed form. For an Indexer it is identical to `[[target]]` in every respect. For a Reader, see §7.3.
 
+### 5.8 Attachments
+
+An **attachment** is a file of the vault that is not a note: an image, a PDF, anything with bytes and no prose this document reads. It is not a note, so a reference to one is not a link in the sense this section opens with — it is here because it is resolved here, and because an attachment and a note are the only two things a `![[…]]` can name.
+
+**An attachment is addressed by its name**, which is the whole of it, extension included: `diagram.png`, never `diagram`. The comparison is the one §5.3 states for a title — normalised to NFC, case-exact, folded in no other way — and the tolerances of §5.2 apply the same way they do to a note: `![alt](../assets/diagram%20final.png)` addresses the attachment named `diagram final.png`, because a path plays no part in identity here either.
+
+A note has a title and an attachment has a name, and they are keys of the same shape for the same reason: an address that survives the file being moved, and that two implementations cannot read differently.
+
+**An attachment reference is never an edge.** The graph is between notes (§5.1). An embed of an attachment renders, it is deduplicated like anything else, and it appears in no graph and generates no backlink. A name that matches nothing in the vault is reported the way a pending link is (§5.5), and MUST NOT be an error.
+
+**`![[target|value]]` is read by what the target is.** When the target is a note, the pipe is the alias of §5.1. When it is an attachment, the pipe carries the dimensions of §3.14. When the target resolves to neither — the common case while a vault is being written — **the pipe is an alias**, because a reference to a note that does not exist yet is what §5.5 exists to keep visible, and reading it as a dimension would discard the text an author wrote.
+
+Whichever it is, **the pipe never changes the target**: `[[Lei 14.133|100]]` and `![[engelbart.jpg|100]]` address `Lei 14.133` and `engelbart.jpg`, and what follows the pipe is display in both.
+
 ---
 
 ## 6. Frontmatter
 
-Frontmatter is a block at the top of the file delimited by `---`, written in a YAML subset. The form is Jekyll's, adopted since by every vault editor. It is part of neither CommonMark nor GFM; this profile specifies it because it is the **only** place a vault declares attributes about a note, and the second and last place an Indexer is allowed to read.
+Frontmatter is a block at the top of the file delimited by `---`, written in a YAML subset. The form is Jekyll's, adopted since by every vault editor. It is part of neither CommonMark nor GFM; this specification specifies it because it is the **only** place a vault declares attributes about a note, and the second and last place an Indexer is allowed to read.
 
 ### 6.1 The block
 
@@ -480,7 +514,7 @@ block:
 ---
 ```
 
-Scalars, inline lists and dash lists. One layer of matching quotes around a value is stripped. Nesting, anchors, multi-line scalars and typed tags are **not** part of this profile: an implementation MAY store them, and MUST NOT derive anything from them.
+Scalars, inline lists and dash lists. One layer of matching quotes around a value is stripped. Nesting, anchors, multi-line scalars and typed tags are **not** part of this specification: an implementation MAY store them, and MUST NOT derive anything from them.
 
 ### 6.3 The shape of the value decides indexing
 
@@ -504,29 +538,22 @@ An implementation SHOULD additionally stop indexing an attribute whose distinct 
 
 ### 6.4 The reserved vocabulary
 
-The profile reserves **four** attribute names. They are always written in en-US; an implementation MAY translate the *label* it shows and MUST NOT translate the bytes in the file. Every other attribute keeps the name whoever wrote the note gave it, in whatever language they wrote it.
+The specification reserves **four** attribute names. They are always written in en-US; an implementation MAY translate the *label* it shows and MUST NOT translate the bytes in the file. Every other attribute keeps the name whoever wrote the note gave it, in whatever language they wrote it.
 
 | Key | Shape | Effect |
 |---|---|---|
-| `aliases` | list of short values | Alternative spellings of this note. They MUST join the search index as spellings of the note. They MUST NOT resolve wikilinks (§5.2 resolves by title slug only) |
-
-`aliases` join the search index and stop there, and the reason is worth stating so the
-question does not return without new evidence. Resolution is **behaviour**: it decides an
-edge, a backlink, a pending link and a navigation. Letting an attribute of the content
-govern it would put the frontmatter in charge of the graph, which §1.4 keeps it out of. And
-while a title collision cannot happen, an alias collision can — and it is created from
-outside, by editing a third note that is neither end of the link, which would move an
-existing edge with nothing on screen saying so. A link that does not resolve is at least
-visible: it renders as pending (§5.5).
+| `aliases` | list of short values | Alternative spellings of this note. They MUST join the search index as spellings of the note. They MUST NOT resolve links (§5.2 resolves against the title, and against nothing else) |
 | `tags` | list of short values | Subjects of this note, filterable and countable like any other list attribute |
 | `created` | ISO 8601 date | The date the author states the note was created. See §6.6 |
 | `updated` | ISO 8601 date | The date the author states the content was last revised. See §6.6 |
 
-A reserved key whose value does not have the expected shape **MUST NOT be an error**. It degrades to an ordinary attribute and is classified by §6.3 like any other. This profile never validates content.
+`aliases` join the search index and stop there, and the reason is worth stating so the question does not return without new evidence. Resolution is **behaviour**: it decides an edge, a backlink, a pending link and a navigation. Letting an attribute of the content govern it would put the frontmatter in charge of the graph, which §1.4 keeps it out of. An alias would also be the one thing capable of capturing a link **invisibly**: two notes that share a title collide in the open, since the title is the heading at the top of each of them and both become edges (§5.4), while an alias that captured a link could not be explained by reading either end of it.
+
+A reserved key whose value does not have the expected shape **MUST NOT be an error**. It degrades to an ordinary attribute and is classified by §6.3 like any other. This specification never validates content.
 
 ### 6.5 `title` is not reserved
 
-The title of a note is structural: it is what the note is called, and what §5 resolves against. A `title` key in the frontmatter is an ordinary attribute; it MUST NOT rename the note and MUST NOT take part in resolution. In practice it is prose that is unique per note, and the cardinality ceiling of §6.3 stops indexing it on its own.
+The title of a note is structural: it is the plain text of its first level-1 heading (§5.3), and it is what §5 resolves against. A `title` key in the frontmatter is an ordinary attribute; it MUST NOT rename the note and MUST NOT take part in resolution. In practice it is prose that is unique per note, and the cardinality ceiling of §6.3 stops indexing it on its own.
 
 ### 6.6 Dates are the author's statement, not the file's history
 
@@ -572,7 +599,7 @@ is nothing" and both of these mean "you asked something that has no answer":
 - a comparison or a range over an attribute that is not of kind `date`;
 - a range whose ends are inverted.
 
-Relative and named dates (`last-7-days` and friends) are **not** part of this profile.
+Relative and named dates (`last-7-days` and friends) are **not** part of this specification.
 
 ---
 
@@ -580,9 +607,9 @@ Relative and named dates (`last-7-days` and friends) are **not** part of this pr
 
 A **Reader** renders a note for a person. Everything in this section is display: none of it produces an edge, an attribute or an index entry, and none of it changes the bytes of the note.
 
-Every form here is built out of the blocks and inlines of §3 and §4, and stays legible as ordinary Markdown in an editor that does not know the convention: a callout is a block quote, a diagram is a fenced block, an embed is an image whose target happens to be a note. That is deliberate. A note is a plain file first, and a profile that made its files unreadable elsewhere would have taken more than it gave.
+Every form here is built out of the blocks and inlines of §3 and §4, and stays legible as ordinary Markdown in an editor that does not know the convention: a callout is a block quote, a diagram is a fenced block, an embed is an image whose target happens to be a note. That is deliberate. A note is a plain file first, and a specification that made its files unreadable elsewhere would have taken more than it gave.
 
-Callouts, marked text, comments and block identifiers were established by Obsidian, and math and diagrams by the wider convention both it and GitHub follow (§2). None of them is invented here; what is specified is the effect each one has. §7.9 is the one place the profile narrows a source rather than following it, and it says why.
+Callouts, marked text, comments and block identifiers were established by Obsidian, and math and diagrams by the wider convention both it and GitHub follow (§2). None of them is invented here; what is specified is the effect each one has. §7.9 is the one place the specification narrows a source rather than following it, and it says why.
 
 ### 7.1 Callouts
 
@@ -595,7 +622,7 @@ A blockquote whose first line begins with `[!type]` is a **callout**. The type i
 
 An optional `+` or `-` immediately after `]` marks the callout as foldable, expanded or collapsed respectively. A Reader MAY honour it.
 
-This form has two lineages that arrived at the same characters: GitHub's alerts, which admit five fixed types, and Obsidian's callouts, which admit any word and a title. This profile follows the second, which is the more general — so a note written for either renders here.
+This form has two lineages that arrived at the same characters: GitHub's alerts, which admit five fixed types, and Obsidian's callouts, which admit any word and a title. This specification follows the second, which is the more general — so a note written for either renders here.
 
 The type vocabulary is open. The five types of GitHub alerts — `note`, `tip`, `important`, `warning`, `caution` — MUST be recognised; a Reader SHOULD render an unknown type as a generic callout rather than as plain text.
 
@@ -607,7 +634,7 @@ A fenced code block whose info string is `mermaid` is a diagram. A Reader SHOULD
 
 A diagram **is** a fenced code block, so §5.6 applies to everything inside it: nothing in a diagram produces an edge, whatever it looks like. A Reader MAY draw a node as a link to a note — the diagram languages have their own way of asking for that — and such a link is navigation and never an edge. It appears in no graph and generates no backlink. An author who wants the connection in the graph writes the wikilink in the body as well.
 
-The diagram language itself is not restated here. `mermaid` is an info string this profile attaches a rendering rule to, not a grammar it specifies; its own documentation governs, the way §2.1 hands parsing detail back to a source.
+The diagram language itself is not restated here. `mermaid` is an info string this specification attaches a rendering rule to, not a grammar it specifies; its own documentation governs, the way §2.1 hands parsing detail back to a source.
 
 ### 7.3 Transclusion
 
@@ -640,7 +667,7 @@ inline or as a block.
 file: a tool that returns the note returns it, an export writes it, and a search MAY find
 it. So an agent reading the note sees what a person reading the page does not. That is
 deliberate — text the author does not want *on the page* is still text the author wrote, and
-deleting bytes to make a page tidier is not something this profile asks of anyone — but it
+deleting bytes to make a page tidier is not something this specification asks of anyone — but it
 MUST be declared to whoever writes one, or it is a surprise instead of a feature.
 
 ### 7.7 Block identifiers
@@ -688,7 +715,7 @@ displayed as text.
 This is a **security boundary and not a rendering preference**, which is why it is stated
 rather than left to each implementation. A vault is written by several people and by agents,
 and a reading surface that renders arbitrary HTML out of it is a script injection whose
-trigger is written by whoever wrote the note. CommonMark admits raw HTML; this profile does
+trigger is written by whoever wrote the note. CommonMark admits raw HTML; this specification does
 not, and an implementation MUST NOT claim conformance while rendering it.
 
 ### 7.10 Remote resources
@@ -705,9 +732,9 @@ answers conform: it never does; it does only on the reader's action; or it does,
 implementation says so where a reader can find it. **What does not conform is leaving it
 unstated**, because a person cannot decline what nobody told them about.
 
-*How* is not this profile's business — proxying, caching and content policy belong to the
+*How* is not this specification's business — proxying, caching and content policy belong to the
 implementation (§1.2). The rule is the observable effect and the disclosure, in the shape
-§6.3 already uses for the cardinality ceiling: the profile does not choose the number, it
+§6.3 already uses for the cardinality ceiling: the specification does not choose the number, it
 requires that the choice be documented.
 
 A Reader that does not load a remote image still owes the person something to read, and
@@ -725,8 +752,8 @@ GFM task list items MAY be interactive. A Reader that lets a person toggle one M
 
 ## 8. Notation not described here
 
-§3 to §7 are the whole of the notation this profile accepts. **Anything not described
-there is not part of the profile**, with three consequences that are easy to run together
+§3 to §7 are the whole of the notation this specification accepts. **Anything not described
+there is not part of the specification**, with three consequences that are easy to run together
 and mean different things:
 
 - An implementation **MAY render it** however it likes. This document not describing a
@@ -738,7 +765,7 @@ and mean different things:
   suite passing, and a form outside the suite is outside the claim.
 
 That is the whole rule, and it is deliberately the only one of its kind. A list of the
-forms this profile declines would need an entry for every form of every other dialect, it
+forms this specification declines would need an entry for every form of every other dialect, it
 would grow with each one that ships, and it could never be finished — so it would be
 sampled rather than maintained, which is worse than not having it. One rule, stated once,
 is complete on the day it is written.
@@ -750,15 +777,15 @@ note to one that deserves a note of its own.
 
 ---
 
-## 9. The machine-readable profile
+## 9. The machine-readable specification
 
-[`profile.json`](profile.json) carries every notation of §3 to §7 as data: an identifier, which reader decides it, the syntax, a worked example and the observable effect. It is validated by [`schema/profile.schema.json`](schema/profile.schema.json).
+[`spec.json`](spec.json) carries every notation of §3 to §7 as data: an identifier, which reader decides it, the syntax, a worked example and the observable effect. It is validated by [`schema/spec.schema.json`](schema/spec.schema.json).
 
 It exists so that a specification and an implementation cannot drift apart in prose. An implementation SHOULD build its own documentation, and anything it teaches an agent, from this file rather than from a copy of it.
 
 ## 10. The conformance suite
 
-[`tests/conformance.json`](tests/conformance.json) is the executable half of this document: each case is a Markdown input and the links and attributes a conforming Indexer produces from it. A case whose expectation is *nothing* — a link inside a code fence, an external destination — is as normative as any other.
+[`tests/conformance.json`](tests/conformance.json) is the executable half of this document: each case is a Markdown input and the links and attributes a conforming Indexer produces from it. A case that exercises a rule about the rest of the vault — §5.4, §5.5 and §5.8, where what a target becomes depends on what else exists — carries the notes and attachments it needs alongside the input. A case whose expectation is *nothing* — a link inside a code fence, an external destination — is as normative as any other.
 
 An implementation claiming the Indexer role SHOULD run the suite in its own continuous integration. See [`tests/README.md`](tests/README.md) for the format.
 
@@ -766,13 +793,13 @@ The forms of §3 and §4 carry no cases here, and need none: CommonMark and GFM 
 
 ## 11. Versioning
 
-This profile carries a version of its own, independent of any implementation. It follows [Semantic Versioning](https://semver.org): a notation added is a minor version, a notation removed or an effect changed is a major version, and while the version is `0.x` a breaking change may arrive in a minor one.
+This specification carries a version of its own, independent of any implementation. It follows [Semantic Versioning](https://semver.org): a notation added is a minor version, a notation removed or an effect changed is a major version, and while the version is `0.x` a breaking change may arrive in a minor one.
 
 Each released version is published at a stable URL under <https://md.memorysmith.app>, and the unversioned root always serves the latest.
 
 ## 12. Media type
 
-A document written in this profile is `text/markdown`. When the variant is declared per [RFC 7763](https://www.rfc-editor.org/rfc/rfc7763.html) and [RFC 7764](https://datatracker.ietf.org/doc/rfc7764/):
+A document written in this specification is `text/markdown`. When the variant is declared per [RFC 7763](https://www.rfc-editor.org/rfc/rfc7763.html) and [RFC 7764](https://datatracker.ietf.org/doc/rfc7764/):
 
 ```
 Content-Type: text/markdown; charset=utf-8; variant=MemorySmith
@@ -782,22 +809,14 @@ The variant is not registered with IANA at this version.
 
 ---
 
-## Appendix A. Implementations
-
-| Implementation | Roles | Profile version | Known deviations |
-|---|---|---|---|
-| [MemorySmith.app](https://memorysmith.app) | Reader, Indexer, Writer | Tracking 0.4.0 | None known |
-
-An implementation is listed here when it runs the conformance suite in public. Conformance is the suite passing, never a claim in a README.
-
-## Appendix B. Notation at a glance
+## Appendix A. Notation at a glance
 
 Every form this document declares, in one table. The last column is the section that governs it; the third says what it does **beyond being rendered**, which for most of §3 is nothing at all.
 
 | Notation | Written | Beyond rendering | § |
 |---|---|---|---|
 | Paragraph | text, blank line, text | Names a block when it ends in `^id` | 3.1 |
-| Backslash escape | `\*literal\*` | The way to write this profile's own notation as text | 3.2 |
+| Backslash escape | `\*literal\*` | The way to write this specification's own notation as text | 3.2 |
 | Character reference | `&amp;`, `&#35;` | — | 3.2 |
 | ATX heading | `## Title` | Anchor target of a wikilink | 3.3 |
 | Setext heading | `Title` over `===` | Anchor target of a wikilink | 3.3 |
@@ -814,6 +833,8 @@ Every form this document declares, in one table. The last column is the section 
 | Inline link | `[text](url)` | An edge when the target is internal | 3.13, 5.2 |
 | Reference link | `[text][label]` | An edge when the target is internal | 3.13, 5.2 |
 | Image | `![alt](image.png)` | A remote destination is a request when the note opens | 3.14, 7.10 |
+| Image dimensions | `![alt\|100x145](image.png)` | Sizes the image; not part of the description | 3.14 |
+| Attachment | `![[diagram.png]]` | Resolved by name; never an edge | 5.8 |
 | Autolink | `<https://example.org>` | Never an edge | 3.15, 5.2 |
 | Raw inline HTML | `<abbr>…</abbr>` | Kept in the bytes, shown as text | 3.16, 7.10 |
 | Hard line break | trailing `\` | — | 3.17 |
@@ -826,7 +847,7 @@ Every form this document declares, in one table. The last column is the section 
 | Wikilink with alias | `[[Target\|text]]` | The same edge; the alias is display | 5.1 |
 | Wikilink with anchor | `[[Target#Section]]` | The same edge; the anchor is display | 5.2 |
 | Embed | `![[Target note]]` | The same edge, plus transclusion | 5.7, 7.3 |
-| Relative Markdown link | `[text](target.md)` | An edge, by basename and slug | 5.2 |
+| Markdown link to a note | `[text](Target%20note)` | An edge, by title, once the path and the extension are discarded | 5.1, 5.2 |
 | Frontmatter block | `---` on line 1 | The only source of attributes | 6.1 |
 | Short value | `key: value` | An `enum` attribute | 6.3 |
 | List value | `key: [a, b]` | A `list` attribute, each value on its own | 6.3 |

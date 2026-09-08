@@ -1,7 +1,7 @@
 # Continuous integration.
 #
 # This repository builds nothing and ships no code. What CI has to establish is the one
-# claim the profile makes about itself: that SPEC.md, profile.json and
+# claim the specification makes about itself: that SPEC.md, spec.json and
 # tests/conformance.json say the same thing. The check needs no dependencies, so there is
 # nothing to install and nothing to cache.
 #
@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   consistency:
-    name: Profile consistency
+    name: Specification consistency
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

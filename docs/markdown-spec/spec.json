@@ -1,7 +1,7 @@
 {
-  "$schema": "./schema/profile.schema.json",
-  "profile": "MemorySmith Markdown Profile",
-  "version": "0.4.0",
+  "$schema": "./schema/spec.schema.json",
+  "spec": "MemorySmith Markdown Specification",
+  "version": "0.5.0",
   "variant": "MemorySmith",
   "url": "https://md.memorysmith.app",
   "sources": [
@@ -37,7 +37,7 @@
       "reader": "reading-surface",
       "syntax": "\\ before an ASCII punctuation character",
       "example": "To name the forms without invoking them: \\[\\[wikilink\\]\\], \\=\\=marked\\=\\=, \\%\\%comment\\%\\%, \\$formula\\$.",
-      "effect": "The character that follows is literal. It is how this profile's own notation is written as text — `\\[\\[`, `\\=\\=`, `\\%\\%`, `\\$` — and how a line is stopped from becoming a list, with the backslash before the period rather than before the number.",
+      "effect": "The character that follows is literal. It is how this specification's own notation is written as text — `\\[\\[`, `\\=\\=`, `\\%\\%`, `\\$` — and how a line is stopped from becoming a list, with the backslash before the period rather than before the number.",
       "spec": "3.2"
     },
     {
@@ -101,7 +101,7 @@
       "reader": "reading-surface",
       "syntax": "Three or more backticks or tildes, with an optional info string",
       "example": "````\nHere is how a diagram is written:\n\n```mermaid\ngraph TD\n  Notice --> Proposals\n```\n````\n",
-      "effect": "A code block. Nothing inside is parsed: no emphasis, no links, no wikilinks, no callouts. A fence closes only on the same character at the same length or longer, so a fence nests — an outer fence uses more characters than any inside it, or a different character. `mermaid` is the one info string this profile attaches a rendering rule to.",
+      "effect": "A code block. Nothing inside is parsed: no emphasis, no links, no wikilinks, no callouts. A fence closes only on the same character at the same length or longer, so a fence nests — an outer fence uses more characters than any inside it, or a different character. `mermaid` is the one info string this specification attaches a rendering rule to.",
       "spec": "3.7"
     },
     {
@@ -173,7 +173,7 @@
       "reader": "reading-surface",
       "syntax": "![alt text](image.png \"optional title\")",
       "example": "![The seal of the act](seal.png)",
-      "effect": "An image. The alt text is the description and a Reader MUST NOT drop it — which is what a person gets when the image does not load. A destination naming a host makes the image a request to that host when the note is opened, and §7.10 governs what a Reader may do about that. A `!` in front of a wikilink is not this: `![[target]]` is an embed.",
+      "effect": "An image. The alt text is the description and a Reader MUST NOT drop it — which is what a person gets when the image does not load. A `|` inside the alt text separates that description from the image's dimensions (see `image-dimensions`). Where a destination that names no host is found is §5.8; a destination naming a host makes the image a request to that host when the note is opened, and §7.10 governs what a Reader may do about that. A `!` in front of a wikilink is not this: `![[target]]` is an embed.",
       "spec": "3.14, 7.10"
     },
     {
@@ -233,11 +233,19 @@
       "spec": "3.9, 3.16, 7.9"
     },
     {
+      "id": "note-title",
+      "reader": "links",
+      "syntax": "# Title",
+      "example": "# Lei 14.133\n\nThe general rule.\n",
+      "effect": "The plain text of the first level-1 heading is the title of the note, and the key every link resolves against. ATX and Setext give the same title, inline markup is not part of it — `# **Lei** 14.133` is titled `Lei 14.133` — and a heading inside a code fence names nothing. A note with no level-1 heading, or one whose heading carries `#`, `[`, `]` or `|`, has no addressable title: it exists, it renders and it links outward, no link can name it, and that is reported rather than passed over in silence.",
+      "spec": "5.3"
+    },
+    {
       "id": "wikilink",
       "reader": "links",
       "syntax": "[[Target note]]",
       "example": "See [[Lei 14.133]] for the general rule.",
-      "effect": "Becomes an edge in the graph and a backlink on the target. The target is resolved by slug within this vault, never across vaults. A target that does not exist yet becomes a pending link, which is expected while a vault is being written.",
+      "effect": "Becomes an edge in the graph and a backlink on the target. The target is the title of a note — the plain text of its first level-1 heading — compared case-exact after Unicode NFC, within this vault and never across vaults. Every note carrying that title becomes an edge; a title no note carries becomes a pending link, which is expected while a vault is being written.",
       "spec": "5.1"
     },
     {
@@ -253,7 +261,7 @@
       "reader": "links",
       "syntax": "[[Target note#Section]]",
       "example": "See [[Lei 14.133#Article 75]] for the exception.",
-      "effect": "The same edge as the plain form: the anchor is kept for display and dropped in resolution. Two links to two sections of one note are two links to the same note.",
+      "effect": "The same edge as the plain form: the anchor is the heading text as written, kept for display and dropped in resolution. Two links to two sections of one note are two links to the same note.",
       "spec": "5.2"
     },
     {
@@ -261,16 +269,32 @@
       "reader": "links",
       "syntax": "![[Target note]]  ·  ![[Target note#Section]]",
       "example": "The rule is stated in full here:\n\n![[Lei 14.133#Article 75]]\n",
-      "effect": "A wikilink prefixed by `!` is an embed: for the graph it is exactly the same edge as a plain link, and for a reader the content of the target is shown in place. Tools never expand it: a reader of the raw note gets the `![[...]]` that was written.",
+      "effect": "A wikilink prefixed by `!` is an embed: when its target is a note it is exactly the same edge as a plain link for the graph, and for a reader the content of the target is shown in place. When its target is an attachment (§5.8) the file is shown in place and no edge is produced at all. Tools never expand it: a reader of the raw note gets the `![[...]]` that was written.",
       "spec": "5.7"
     },
     {
       "id": "markdown-relative-link",
       "reader": "links",
-      "syntax": "[what the reader sees](target-note.md)",
-      "example": "See [the procurement act](lei-14133.md) for the general rule.",
-      "effect": "Becomes the same edge as a wikilink. The target is reduced to its basename without extension and resolved by slug, so a path with folders in it resolves to the note and not to the path.",
+      "syntax": "[what the reader sees](Target%20note)",
+      "example": "See [the procurement act](Lei%2014.133) for the general rule.",
+      "effect": "Becomes the same edge as a wikilink, and survives so that a vault written by an editor configured for Markdown links keeps its edges when it is imported. It is the one form in which a path is discarded, a trailing `.md` or `.mdx` is removed and the target is percent-decoded — in that order, before the title is compared. A Writer never emits it: the wikilink is the canonical form.",
       "spec": "5.2"
+    },
+    {
+      "id": "attachment",
+      "reader": "reading-surface",
+      "syntax": "![[diagram.png]]",
+      "example": "![[engelbart.jpg]]",
+      "effect": "A file of the vault that is not a note. It is addressed by its name, extension included, compared the way a title is — normalised to NFC, case-exact, folded in no other way — with a path playing no part in identity. It renders in place and is never an edge: the graph is between notes, so an attachment appears in no graph and generates no backlink. A name that matches nothing in the vault is reported the way a pending link is, and is not an error.",
+      "spec": "5.8"
+    },
+    {
+      "id": "image-dimensions",
+      "reader": "reading-surface",
+      "syntax": "![alt text|100x145](image.png)",
+      "example": "![Engelbart|100x145](engelbart.jpg)",
+      "effect": "A `|` separates the description of an image from its dimensions: `100` sets the width and keeps the aspect ratio, `100x145` sets both, in CSS pixels. What precedes the pipe is the description and a Reader MUST NOT drop it; what follows it is not description and MUST NOT be rendered as text. A value that is neither form is not a dimension and stays part of the description, since deleting what an author wrote into an accessibility label is the worse failure. In a wikilink the dimensions go inside the brackets — `![[engelbart.jpg|100x145]]` — and the same pipe means the alias of §5.1 when the target is a note.",
+      "spec": "3.14, 5.8"
     },
     {
       "id": "external-link",
@@ -333,7 +357,7 @@
       "reader": "frontmatter",
       "syntax": "tags: [contracts, procurement]",
       "example": "---\ntags: [contracts]\n---\n\nBody.",
-      "effect": "Reserved: the subjects of this note. This is where a tag lives in this profile, and it is filterable and countable like any other list attribute.",
+      "effect": "Reserved: the subjects of this note. This is where a tag lives in this specification, and it is filterable and countable like any other list attribute.",
       "spec": "6.4"
     },
     {

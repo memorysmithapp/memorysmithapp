@@ -1,29 +1,29 @@
 {
-  "name": "@memorysmith/markdown-profile",
-  "version": "0.4.0",
-  "description": "The MemorySmith Markdown Profile: the notation a knowledge vault is written in, as data, with the suite that proves an implementation reads it.",
+  "name": "@memorysmith/markdown-spec",
+  "version": "0.5.0",
+  "description": "The MemorySmith Markdown Specification: the notation a knowledge vault is written in, as data, with the suite that proves an implementation reads it.",
   "license": "MIT",
   "homepage": "https://md.memorysmith.app",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/memorysmithapp/markdown-profile.git"
+    "url": "git+https://github.com/memorysmithapp/markdown-spec.git"
   },
   "type": "module",
   "scripts": {
-    "check": "node tools/check-profile.mjs"
+    "check": "node tools/check-spec.mjs"
   },
   "engines": {
     "node": ">=20"
   },
   "exports": {
-    "./profile.json": "./profile.json",
+    "./spec.json": "./spec.json",
     "./conformance.json": "./tests/conformance.json",
-    "./schema.json": "./schema/profile.schema.json",
+    "./schema.json": "./schema/spec.schema.json",
     "./package.json": "./package.json"
   },
   "files": [
-    "profile.json",
-    "schema/profile.schema.json",
+    "spec.json",
+    "schema/spec.schema.json",
     "tests/conformance.json",
     "tests/README.md",
     "SPEC.md",

@@ -1,21 +1,142 @@
 # Changelog
 
-All notable changes to this profile are recorded here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the profile follows
+All notable changes to this specification are recorded here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the specification follows
 [Semantic Versioning](https://semver.org).
 
 A notation **added** is a minor version. A notation **removed**, or an effect **changed**, is a
-major version. While the profile is `0.x`, a breaking change may arrive in a minor version.
+major version. While the specification is `0.x`, a breaking change may arrive in a minor version.
 
 ## [Unreleased]
 
-### Fixed
+## [0.5.0] — 2026-09-08
 
-- **The implementations table says 0.4.0**, which is what the first implementation now
-  tracks — it upgraded on the day this version shipped. The cell is a statement this
-  document makes about somebody else's build, and it can only ever be as current as the
-  last time a person edited it: 0.4.0 corrected it from `Tracking 0.1.0` while the
-  implementation was on 0.3.0, and it was one version stale again within a day. See #25.
+The cycle in which a link stopped resolving to a key the document computed and started
+resolving to the note itself. The slug folded accents, joined digits, lowercased and
+collapsed punctuation, and it was not injective: `Lei 14.133` and `Lei 14133` were one key,
+`Ação` and `Acao` were one key, and every title in a non-Latin script was the same key, the
+empty string. Two notes landed on one address with no rule saying which won.
+
+**Every link in every vault resolves differently after this**, which is the largest change
+this document can make. It cuts the minor version while the specification is `0.x`. What is
+traded away is tolerance — only the title resolves now, and a near miss is a pending link
+instead of a confident landing on the wrong note. A miss is visible; a collision was not.
+
+Around it, the image side of the embed family finally got specified: dimensions have a
+notation, and an attachment has an address for the first time. And the suite learned to
+build a vault, because the three sharpest rules of §5 decide what a target *becomes* rather
+than what a note extracts, and none of them could be proved by a case that only holds one
+note.
+
+### Added
+
+- **The suite can build a vault**, which is what made the three sharpest rules of §5
+  provable. A case may carry a `vault` — `notes`, as whole Markdown documents, and
+  `attachments`, as names — and a `resolution` saying what each target becomes: its `kind`
+  (`note`, `attachment` or `pending`) and how many `edges` it produces. The two fields
+  require each other, and `tools/check-spec.mjs` refuses a case carrying one without the
+  other, an attachment or a pending target that produces an edge, or a note that produces
+  none. A fixture note declares no title of its own: it is derived from the body by §5.3,
+  which is the rule the cases exist to exercise. Eight cases now cover what nothing covered
+  before — two notes with one title producing two edges, a title no note carries, a case
+  that differs only in capitalisation, NFD and NFC naming one note, a note with no level-1
+  heading, an attachment producing no edge, the pipe read as a dimension because the target
+  is an attachment, and the Markdown form reaching the note the wikilink reaches. `links`
+  keeps meaning exactly what it meant: what one note extracts, with no vault at all.
+- **An image carries its dimensions in the alt text** (§3.14): `![Engelbart|100x145](…)`
+  sets width and height, `![Engelbart|100](…)` sets the width and keeps the aspect ratio,
+  both in CSS pixels. The form was established and this document did not declare it, which
+  after the closing rule of §8 meant an imported note displayed the pipe and the digits on
+  screen — and, worse, that §3.14's own rule mandated it: the alt text is the description
+  and a Reader MUST NOT drop it, so `Engelbart|100x145` was required to be rendered as the
+  image's accessibility label. The rule now has a seam: what precedes the pipe is the
+  description and is never dropped, what follows it is not description and is never
+  rendered as text. A value that is neither `100` nor `100x145` is **not** a dimension and
+  stays part of the description, because deleting what an author wrote into a label meant
+  for a screen reader is the worse of the two failures.
+- **§5.8, how an attachment is addressed.** An attachment — an image, a PDF, any file of
+  the vault that is not a note — is addressed **by its name, extension included**, compared
+  exactly the way §5.3 compares a title: normalised to NFC, case-exact, with a path playing
+  no part. A note has a title and an attachment has a name, and they are keys of the same
+  shape for the same reason. Nothing in the document said how a Reader found `diagram.png`
+  before, and after the title became the key there was no rule left to fall back on, since
+  an attachment has no level-1 heading and never will.
+- **An attachment reference is never an edge** (§5.8). The graph is between notes: an embed
+  of an attachment renders, and appears in no graph and generates no backlink. A name that
+  matches nothing is reported the way a pending link is (§5.5) and is not an error.
+- **`![[target|value]]` is read by what the target is** (§5.8). A note takes the alias of
+  §5.1, an attachment takes the dimensions of §3.14, and a target that resolves to neither
+  — the common case while a vault is being written — takes the **alias**, because reading
+  it as a dimension would discard text an author wrote and §5.5 exists to keep exactly that
+  reference visible. Whichever it is, the pipe never changes the target.
+
+### Changed
+
+- **A link resolves against the title of a note, and the slug is gone** (§5.2, §5.3). The
+  key used to be a slug — lowercased, accent-folded, punctuation collapsed — and it was not
+  injective: `Lei 14.133` and `Lei 14133` were one key, `Ação` and `Acao` were one key, and
+  every title in a non-Latin script was the *same* key, the empty string. Two notes landed
+  on one address with no rule saying which won, and creating a third note could move an
+  existing edge with nothing on screen saying so — which is the exact harm §6.4 cites to
+  refuse resolving aliases, and which its own resolution rule had. The key is now the
+  title, compared case-exact after Unicode NFC and folded in no other way. **This changes
+  what every link in every vault resolves to.** What is lost is tolerance: `[[Lei 14133]]`
+  and `[[lei-14133]]` used to find `Lei 14.133` and now do not — they are pending links
+  (§5.5), which is visible, where a collision was silent. A wikilink written by an editor
+  configured for "shortest path when possible", `[[Decisões/Índice]]`, is now a lookup for a
+  note titled exactly that, and pending until one exists.
+- **The title of a note is defined** (§5.3): the plain text of its first level-1 heading,
+  ATX or Setext, after inline parsing, trimmed. It was never written down, which was
+  survivable while the slug was the de facto key and is not now that the title *is* the key.
+  `#`, `[`, `]` and `|` are the delimiters of the form that addresses a title, so a heading
+  carrying one — and a note with no level-1 heading at all — has no addressable title: it
+  exists, it renders, it links outward and it is searchable, and it is reported rather than
+  passed over in silence. A slash is not one of them: `Reunião 03/09/2026` is an ordinary
+  title, because folders play no part in identity.
+- **The wikilink is canonical and the Markdown form is input tolerance** (§5.1).
+  `[[Title]]` is what a Writer emits; `[text](Target%20note)` is read and never written, and
+  it survives because importing is not exporting — a vault written with Markdown-style links
+  would otherwise arrive with no edges at all. The three tolerances belong to it alone: the
+  path, the `.md`, and percent-decoding. Their order is normative — delimiters first, decode
+  after, compare last — so that a `%23` an author encoded *to avoid* an anchor is not turned
+  into one, and a malformed escape like the `%` of `[Half](50%)` is left as written and is
+  never an error.
+- **Two notes with one title produce two edges from a single link** (§5.4). A vault may hold
+  them, and constraining the content is not this document's business, so it states what
+  happens instead: every note whose title matches becomes an edge, never the first one.
+  There is no order to appeal to, and two edges is what an interface needs in order to offer
+  a choice, and what a backlink can honestly show on both notes.
+- **§6.4 stops arguing from a premise that was false.** It refused resolving aliases partly
+  because "a title collision cannot happen" — it can, and now it has a rule. The refusal
+  stands on what actually separates the two: a shared title collides in the open, on the
+  heading at the top of both notes, while an alias could capture a link without either end
+  of it showing why.
+- **The suite speaks of titles.** Every expectation carries `title` where it carried `slug`,
+  an anchor is the heading text as written — `Article 75`, `^article-75` — instead of a
+  slugged one, and a case may now claim a `title`, which is what made §5.3 testable.
+  Seventeen cases were added, among them the first case in the suite with a `%` in it, and
+  the first note titled in a non-Latin script.
+- **The name is the MemorySmith Markdown Specification, and the repository is
+  `markdown-spec`.** No notation changes and no vault behaves differently. What changes for
+  an implementation is every path it imports: `profile.json` is now
+  [`spec.json`](spec.json), `schema/profile.schema.json` is
+  [`schema/spec.schema.json`](schema/spec.schema.json), the `profile` field of `spec.json`
+  and of `tests/conformance.json` is `spec`, the schema `$id` follows the file, and the
+  package is `@memorysmith/markdown-spec` — exporting `./spec.json`, `./conformance.json`
+  and `./schema.json`. The document still declares no syntax of its own: it profiles
+  CommonMark, GFM and the vault editors, and §1.1 says so in those words.
+
+### Removed
+
+- **The slug.** Nothing derives a key from a title any more. An implementation that stored
+  slugs rebuilds its index from titles, and one that resolved by slug resolves by title.
+- **The implementations table.** `SPEC.md` no longer lists who implements the specification. An
+  implementation states the roles it claims and the version it adopts (§1.4), where that
+  fact can be observed; this document does not keep a copy of it. It was the one claim here
+  about a build in another repository — neither the suite nor `npm run check` could ever
+  see it, and it was wrong in two consecutive versions. The last correction to the cell
+  never reached a release: it is removed here along with the table it corrected.
+  *Notation at a glance* moves from Appendix B to Appendix A.
 
 ## [0.4.0] — 2026-09-07
 
@@ -348,8 +469,9 @@ implementation, plus the decisions taken while writing it down.
 - **Anything not specified here** — `==highlight==`, `%%comment%%`, `^block-id`, `$math$`, raw HTML.
   Absence from this document is a statement, not an oversight.
 
-[Unreleased]: https://github.com/memorysmithapp/markdown-profile/compare/v0.4.0...HEAD
-[0.4.0]: https://github.com/memorysmithapp/markdown-profile/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/memorysmithapp/markdown-profile/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/memorysmithapp/markdown-profile/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/memorysmithapp/markdown-profile/releases/tag/v0.1.0
+[Unreleased]: https://github.com/memorysmithapp/markdown-spec/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/memorysmithapp/markdown-spec/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/memorysmithapp/markdown-spec/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/memorysmithapp/markdown-spec/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/memorysmithapp/markdown-spec/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/memorysmithapp/markdown-spec/releases/tag/v0.1.0

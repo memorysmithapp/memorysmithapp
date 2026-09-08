@@ -1,8 +1,8 @@
-# MemorySmith Markdown Profile
+# MemorySmith Markdown Specification
 
 **The Markdown notation a knowledge vault is written in — with the suite that proves an implementation reads it.**
 
-📄 **[Read the specification](SPEC.md)** · 🔧 [`profile.json`](profile.json) · ✅ [Conformance suite](tests/)
+📄 **[Read the specification](SPEC.md)** · 🔧 [`spec.json`](spec.json) · ✅ [Conformance suite](tests/)
 
 ---
 
@@ -12,7 +12,7 @@ There are exactly two formal specifications in the Markdown family. [CommonMark]
 
 That is tolerable for prose that a person reads. It stops being tolerable the moment software has to derive a graph and an index out of the same files, and it stops being tolerable much faster when an **agent** is doing the writing: an agent cannot see that the tag it typed did nothing.
 
-This profile closes the gap in the only way that survives contact with a second implementation: **a notation declared with its observable effect, and a conformance suite that proves it.**
+This specification closes the gap in the only way that survives contact with a second implementation: **a notation declared with its observable effect, and a conformance suite that proves it.**
 
 ## What it specifies
 
@@ -24,7 +24,7 @@ One list of the notation a knowledge vault is written in, and what each form pro
 | Tables, task list items, strikethrough, extended autolinks, disallowed raw HTML | [§4](SPEC.md#4-tables-task-lists-and-further-inlines) |
 | Wikilinks, aliases, anchors, embeds, the resolution rule, frontmatter, the reserved vocabulary, callouts, diagrams, transclusion, marked text, comments, block identifiers, math, pending links | [§5 to §7](SPEC.md#5-links-between-notes) |
 
-The specification **can be read alone**: every form it accepts is stated in it, so writing a note does not mean holding three documents open. [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/), [GFM 0.29-gfm](https://github.github.com/gfm/) and [Obsidian](https://help.obsidian.md/syntax) are its reference sources — where the forms were established and where their established meaning can be checked — named in [§2](SPEC.md#2-reference-sources) and cited on the forms that came from them. The two specifications govern wherever they and this document disagree; Obsidian does not, and this profile does not undertake to follow it.
+The specification **can be read alone**: every form it accepts is stated in it, so writing a note does not mean holding three documents open. [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/), [GFM 0.29-gfm](https://github.github.com/gfm/) and [Obsidian](https://help.obsidian.md/syntax) are its reference sources — where the forms were established and where their established meaning can be checked — named in [§2](SPEC.md#2-reference-sources) and cited on the forms that came from them. The two specifications govern wherever they and this document disagree; Obsidian does not, and this specification does not undertake to follow it.
 
 And the join no source can state is written down where an author meets it: a `[[link]]` inside a code fence produces no edge, a block quote opening `[!warning]` is a callout, raw HTML parses and is not rendered.
 
@@ -36,9 +36,9 @@ Storage, transport, authentication, an API, a file layout, or how a vault should
 
 ## Using it
 
-The profile is published as data as much as prose, so an implementation never has to keep a copy of the specification in its own words:
+The specification is published as data as much as prose, so an implementation never has to keep a copy of it in its own words:
 
-- [`profile.json`](profile.json) — every notation, with its syntax, an example and its observable effect. Validated by [`schema/profile.schema.json`](schema/profile.schema.json).
+- [`spec.json`](spec.json) — every notation, with its syntax, an example and its observable effect. Validated by [`schema/spec.schema.json`](schema/spec.schema.json).
 - [`tests/conformance.json`](tests/conformance.json) — the cases, including the ones whose expected result is nothing: a link inside a code fence, an external destination.
 
 Build your documentation from the first, run the second in your CI, and the two cannot drift apart.
@@ -47,17 +47,17 @@ Build your documentation from the first, run the second in your CI, and the two 
 
 An implementation claims one or more roles — **Reader**, **Indexer**, **Writer** — and conformance is stated per role. See [SPEC.md §1.4](SPEC.md#14-roles).
 
-Conformance is the suite passing in public. It is never a claim in a README, including this one — which is why the implementations are listed in the specification and not here: [SPEC.md Appendix A](SPEC.md#appendix-a-implementations).
+Conformance is the suite passing in public. It is never a claim in a README, including this one.
 
 ## Versioning
 
-The profile carries its own version, independent of any implementation, and follows [Semantic Versioning](https://semver.org): a notation added is a minor version, a notation removed or an effect changed is a major one. While the version is `0.x`, a breaking change may arrive in a minor version.
+The specification carries its own version, independent of any implementation, and follows [Semantic Versioning](https://semver.org): a notation added is a minor version, a notation removed or an effect changed is a major one. While the version is `0.x`, a breaking change may arrive in a minor version.
 
 Each release is published at a stable URL under <https://md.memorysmith.app>; the unversioned root always serves the latest.
 
 ## Contributing
 
-Questions, gaps and disagreements are issues. A change to the notation is a change to `SPEC.md`, `profile.json` and `tests/conformance.json` **in the same pull request** — a notation without a case is not part of the profile.
+Questions, gaps and disagreements are issues. A change to the notation is a change to `SPEC.md`, `spec.json` and `tests/conformance.json` **in the same pull request** — a notation without a case is not part of the specification.
 
 `main` is protected and every change reaches it through a reviewed pull request. Before committing, run the consistency check, which needs no dependencies and takes under a second:
 
@@ -69,6 +69,6 @@ The whole process — the two issue forms, the four outcomes of triage, the bran
 
 ## Licence
 
-The text of the specification is licensed under [CC BY 4.0](LICENSE-TEXT). `profile.json`, the schema and the conformance suite are licensed under [MIT](LICENSE).
+The text of the specification is licensed under [CC BY 4.0](LICENSE-TEXT). `spec.json`, the schema and the conformance suite are licensed under [MIT](LICENSE).
 
-*MemorySmith* is a trademark. Anyone may implement this profile; only an implementation that passes the conformance suite may describe itself as conforming to it.
+*MemorySmith* is a trademark. Anyone may implement this specification; only an implementation that passes the conformance suite may describe itself as conforming to it.

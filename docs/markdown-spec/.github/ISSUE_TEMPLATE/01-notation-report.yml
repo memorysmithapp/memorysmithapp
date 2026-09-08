@@ -1,5 +1,5 @@
 name: Notation report
-description: You wrote something in a note and the effect was not the one the profile led you to expect.
+description: You wrote something in a note and the effect was not the one the specification led you to expect.
 labels: ['feedback']
 body:
   - type: markdown
@@ -13,7 +13,7 @@ body:
         repository is public. Reduce the case to the smallest note that still shows it.
 
         The process an issue travels from here is in
-        [`CONTRIBUTING.md`](https://github.com/memorysmithapp/markdown-profile/blob/main/CONTRIBUTING.md).
+        [`CONTRIBUTING.md`](https://github.com/memorysmithapp/markdown-spec/blob/main/CONTRIBUTING.md).
 
   - type: textarea
     id: written
@@ -44,7 +44,7 @@ body:
     id: happened
     attributes:
       label: What happened instead
-      description: What you observed. If nothing happened at all, say so: a notation that silently does nothing is the failure this profile exists to prevent.
+      description: What you observed. If nothing happened at all, say so: a notation that silently does nothing is the failure this specification exists to prevent.
     validations:
       required: true
 
@@ -52,8 +52,8 @@ body:
     id: implementation
     attributes:
       label: Where you observed it
-      description: The implementation and its version, and the profile version it claims to track.
-      placeholder: 'MemorySmith.app 0.5.4, tracking profile 0.1.0'
+      description: The implementation and its version, and the specification version it claims to track.
+      placeholder: 'MemorySmith.app 0.5.4, tracking specification 0.1.0'
     validations:
       required: true
 
@@ -76,5 +76,5 @@ body:
       options:
         - label: The note contains no real vault content, customer name or business data.
           required: true
-        - label: I looked for the form in `SPEC.md` § 6, the section of what the profile deliberately does not read.
+        - label: I looked for the form in `SPEC.md` § 8, the section on notation the specification does not describe.
           required: false

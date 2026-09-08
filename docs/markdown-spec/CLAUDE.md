@@ -9,40 +9,40 @@ Claude Code reads it automatically on every session and on every sub-agent invoc
 memorysmithapp
 
 ### Project name
-markdown-profile
+markdown-spec
 
 ### Project identifier
-markdown-profile
+markdown-spec
 
 ### Product domain
 md.memorysmith.app
 
 ### What it is
-The MemorySmith Markdown Profile: a specification of the Markdown notation a knowledge
-vault is written in, published as prose, as data and as an executable conformance suite. It
-is a profile, not a syntax — every form it declares comes from CommonMark, from GFM or from
-the vault editors that established it, chiefly Obsidian — and its distinguishing claim is
-that it states the **observable effect** of each form, including the forms it deliberately
-gives no effect to.
+The MemorySmith Markdown Specification: the Markdown notation a knowledge vault is written
+in, published as prose, as data and as an executable conformance suite. It declares no
+syntax of its own — every form it states comes from CommonMark, from GFM or from the vault
+editors that established it, chiefly Obsidian — and its distinguishing claim is that it
+states the **observable effect** of each form, including the forms it deliberately gives no
+effect to.
 
 ### What it is not
 It is not an implementation, and no code that reads a note lives here. The suite is data
 and carries no runner, so that an implementation in any language can consume it.
 
 ### Canonical version
-The `version` field of [`profile.json`](profile.json). `SPEC.md`,
+The `version` field of [`spec.json`](spec.json). `SPEC.md`,
 `tests/conformance.json` and `package.json` mirror it, and `npm run check` refuses a
 divergence. **This file never carries a copy of the version**, because a second place to
 update is a second place to forget — and that failure is not hypothetical here: 0.2.0 was
 released with the header of `SPEC.md` still saying 0.1.0, and nothing caught it.
 
 ### Git remote
-github.com/memorysmithapp/markdown-profile
+github.com/memorysmithapp/markdown-spec
 
 ### The relationship to the product
 [memorysmithapp/memorysmithapp](https://github.com/memorysmithapp/memorysmithapp)
-implements this profile and pins a version of it. It is the first implementation, never the
-definition: a behaviour is part of the profile when it is in these files, not when the
+implements this specification and pins a version of it. It is the first implementation, never the
+definition: a behaviour is part of the specification when it is in these files, not when the
 product does it. When work here would force a change there, that is an issue in the other
 repository, opened after the merge here, and never a commit that reaches across.
 
@@ -51,12 +51,12 @@ repository, opened after the merge here, and never a commit that reaches across.
 ## Repository layout
 
 ```
-markdown-profile/
+markdown-spec/
 ├── SPEC.md                     # the specification in prose, the normative document
-├── profile.json                # every notation as data, validated by the schema
-├── schema/profile.schema.json  # the JSON Schema of profile.json
+├── spec.json                   # every notation as data, validated by the schema
+├── schema/spec.schema.json     # the JSON Schema of spec.json
 ├── tests/conformance.json      # the executable half: input and expected result
-├── tools/check-profile.mjs     # the consistency check, no dependencies
+├── tools/check-spec.mjs        # the consistency check, no dependencies
 ├── package.json                # the npm distribution of the data, and `npm run check`
 ├── CHANGELOG.md                # Keep a Changelog, updated in the same commit
 ├── CONTRIBUTING.md             # the process: from an issue to main
@@ -71,15 +71,15 @@ command does not belong in this repository.
 ## The rule that governs every change
 
 > **The unit of work is a notation, and a notation lives in three files at once:
-> `SPEC.md`, `profile.json` and `tests/conformance.json`. They move in the same commit.**
+> `SPEC.md`, `spec.json` and `tests/conformance.json`. They move in the same commit.**
 
-A notation without a conformance case is not part of the profile. A `profile.json` entry
+A notation without a conformance case is not part of the specification. A `spec.json` entry
 with no section in `SPEC.md` is data nobody can read. A section of `SPEC.md` with no entry
-in `profile.json` is the drift this repository exists to prevent.
+in `spec.json` is the drift this repository exists to prevent.
 
 The one exception is stated where it applies: an entry whose `reader` is `reading-surface`
 is rendering, and what a callout looks like is not something a JSON file can assert.
-`tools/check-profile.mjs` knows the exception; it does not need to be argued again in a
+`tools/check-spec.mjs` knows the exception; it does not need to be argued again in a
 pull request.
 
 Run `npm run check` before every commit. It is the whole of CI, it needs no dependencies,
@@ -95,7 +95,7 @@ Each document answers one question, and where one of them already answers it, th
 | The paragraph answers | It belongs to |
 |---|---|
 | "This notation means this, and produces this" | `SPEC.md` |
-| "This is what the profile is for, and why it exists" | `README.md` |
+| "This is what the specification is for, and why it exists" | `README.md` |
 | "This is how work flows, from an issue to `main`" | `CONTRIBUTING.md` |
 | "This is what changed, and in which version" | `CHANGELOG.md` |
 | "This is what we have yet to decide, evaluate or declare" | **A GitHub issue, never a file** |
@@ -114,7 +114,7 @@ it in the same change.
 ## Language policy
 
 **The whole repository is written in American English (en-US).** Everything: `SPEC.md`, the
-prose of `profile.json`, `README.md`, `CHANGELOG.md`, this file, `CONTRIBUTING.md`, the
+prose of `spec.json`, `README.md`, `CHANGELOG.md`, this file, `CONTRIBUTING.md`, the
 issue and pull request templates, the labels, commit messages, pull request descriptions,
 branch names, identifiers and comments in `tools/`.
 
@@ -125,8 +125,11 @@ door somebody from outside comes in through.
 Two exceptions, both deliberate:
 
 - **Examples inside `SPEC.md` and the conformance suite** may be in any language, and some
-  are in Portuguese on purpose: `[[Contratação Direta 2.0]]` is what proves the slug rule
-  folds accents, and an English-only suite would have shipped without ever testing it.
+  are not in English on purpose: `[[Contratação Direta 2.0]]` is what proves an accent is
+  carried into the key rather than folded out of it, and that the NFC and NFD spellings of
+  one title are one note; `[[日本語]]` is what proves a title in a non-Latin script is a
+  title at all. An English-only suite would have shipped without ever testing either — and
+  did, until the key stopped being a slug.
 - **Answers in issues**, in the language of whoever opened it. The language of the
   repository is not a demand on whoever reports a problem.
 
@@ -162,6 +165,12 @@ description are in `CONTRIBUTING.md` §4 and §5. Commit along the branch and pu
 commit, or at least every two or three: a branch that exists only on this machine is work
 nobody can see and nobody can recover.
 
+**Close the issue when its commit lands on the branch, not when the branch reaches `main`**
+(`CONTRIBUTING.md` §4.3). `Closes #N` in the message is the record, and GitHub acts on it
+only at the merge — so closing it by hand, with a comment naming the commit, is what keeps
+the milestone honest while the cycle runs. Waiting for the merge leaves the whole cycle
+looking untouched.
+
 ### Versioning
 
 The table of what cuts which bump is in `CONTRIBUTING.md` §6. Two rules stay here because
@@ -176,15 +185,15 @@ they are the ones an agent breaks:
 
 Update `CHANGELOG.md` **in the same commit** as the change it documents, using the
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) categories. Write from the
-perspective of whoever writes a note or implements the profile, never of the file that was
+perspective of whoever writes a note or implements the specification, never of the file that was
 edited.
 
 A notation **removed** is recorded as explicitly as one added, and under `Removed`. What is
-not recorded is a form the profile declines: `SPEC.md` §8 covers every one of them with a
+not recorded is a form the specification declines: `SPEC.md` §8 covers every one of them with a
 single rule, and a refusal that changes no file belongs in the issue that argued it.
 
 **Good:** `Added the anchor form of the wikilink, which links to a section and resolves to the note`
-**Bad:** `Updated section 3.1 of SPEC.md and added two entries to profile.json`
+**Bad:** `Updated section 3.1 of SPEC.md and added two entries to spec.json`
 
 ### Issues
 

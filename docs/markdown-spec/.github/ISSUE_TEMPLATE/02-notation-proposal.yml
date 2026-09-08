@@ -1,5 +1,5 @@
 name: Notation proposal
-description: A notation the profile should declare, or an effect it should change. The output of triage, not its input.
+description: A notation the specification should declare, or an effect it should change. The output of triage, not its input.
 labels: ['enhancement']
 body:
   - type: markdown
@@ -10,7 +10,7 @@ body:
         ready to become a branch.
 
         Remember what the answer may be: **not every proposal becomes a notation.** A form
-        the profile declines is covered by `SPEC.md` § 8, which needs no entry of its own,
+        the specification declines is covered by `SPEC.md` § 8, which needs no entry of its own,
         so a refusal here changes no file — the reason is recorded in this issue and stays
         findable there.
 
@@ -19,7 +19,7 @@ body:
     attributes:
       label: The need
       description: |
-        The friction behind the proposal, in the language of the profile. Do not repeat the
+        The friction behind the proposal, in the language of the specification. Do not repeat the
         text of the report it came from; say what it revealed.
     validations:
       required: true
@@ -72,7 +72,7 @@ body:
       label: The conformance cases it adds
       description: |
         At least one, as an input and an expected result. Include the case whose expected
-        result is nothing, if there is one — those carry as much of the profile as the
+        result is nothing, if there is one — those carry as much of the specification as the
         others.
       render: json
       placeholder: |
@@ -80,7 +80,7 @@ body:
           "id": "wikilink/block-anchor-resolves-to-the-note",
           "notation": "wikilink-block-anchor",
           "markdown": "See [[Lei 14.133#^p75]].",
-          "links": [{ "slug": "lei-14133", "anchor": "^p75" }]
+          "links": [{ "title": "Lei 14.133", "anchor": "^p75" }]
         }
     validations:
       required: true
@@ -104,7 +104,7 @@ body:
       description: |
         Obsidian, Logseq, Roam, GitHub, Quartz — whichever apply. Where two lineages read
         the same characters incompatibly, say so: that is the argument that has decided the
-        hardest questions in this profile, and it is what `SPEC.md` § 6.1 is made of.
+        hardest questions in this specification, and it is what `SPEC.md` § 6.1 is made of.
     validations:
       required: false
 
