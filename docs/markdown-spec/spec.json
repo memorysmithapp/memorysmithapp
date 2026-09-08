@@ -237,7 +237,7 @@
       "reader": "links",
       "syntax": "title: Lei 14.133  ·  or # Lei 14.133",
       "example": "---\ntitle: Lei 14.133\n---\n\n# The general rule\n",
-      "effect": "The title of a note is read in a chain — `title:` in the frontmatter when it is there and its value is a single short text value, and the plain text of the first level-1 heading when it is not — and it is the key every link resolves against. A `title:` that is there ends the chain; one of any other shape falls to the heading and is never an error. In the heading step ATX and Setext give the same title, inline markup is not part of it — `# **Lei** 14.133` is titled `Lei 14.133` — and a heading inside a code fence names nothing. A note that reaches the end of the chain with nothing, or whose title carries `#`, `[`, `]` or `|`, has no addressable title: it exists, it renders and it links outward, no link can name it, and that is reported rather than passed over in silence.",
+      "effect": "The title of a note is read in a chain — `title:` in the frontmatter when it is there and its value is a single text value of any length, and the plain text of the first level-1 heading when it is not — and it is the key every link resolves against. A `title:` that is there ends the chain; one of any other shape falls to the heading and is never an error. In the heading step ATX and Setext give the same title, inline markup is not part of it — `# **Lei** 14.133` is titled `Lei 14.133` — and a heading inside a code fence names nothing. A note that reaches the end of the chain with nothing, or whose title carries `#`, `[`, `]` or `|`, has no addressable title: it exists, it renders and it links outward, no link can name it, and that is reported rather than passed over in silence.",
       "spec": "5.3"
     },
     {
@@ -397,7 +397,7 @@
       "reader": "frontmatter",
       "syntax": "title: Lei 14.133",
       "example": "---\ntitle: Lei 14.133\n---\n\nBody.",
-      "effect": "Reserved: the name of the note, and the first step of the chain that reads its title. It is what every link resolves against, and it is the only frontmatter key that decides anything outside §6 — identity, never behaviour. A value of any other shape falls to the first level-1 heading and is never an error, and `title` never becomes an attribute: it is not indexed, not filterable and produces no facet, whatever its shape.",
+      "effect": "Reserved: the name of the note, and the first step of the chain that reads its title. It is what every link resolves against, and it is the only frontmatter key that decides anything outside §6 — identity, never behaviour. A value of any other shape — a list, a nested block, an empty value — falls to the first level-1 heading and is never an error, while length is not one of those shapes and a long title is a title, and `title` never becomes an attribute: it is not indexed, not filterable and produces no facet, whatever its shape.",
       "spec": "6.4, 6.5"
     },
     {

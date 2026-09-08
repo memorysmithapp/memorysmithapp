@@ -680,6 +680,13 @@
       "links": []
     },
     {
+      "id": "title/a-frontmatter-title-is-not-capped-at-forty-characters",
+      "notation": "note-title",
+      "markdown": "---\ntitle: Plano de continuidade de negócios e recuperação de desastres\n---\n\n# PCN\n\nO plano.\n",
+      "title": "Plano de continuidade de negócios e recuperação de desastres",
+      "links": []
+    },
+    {
       "id": "title/a-title-written-in-pt-br-is-a-title",
       "notation": "note-title",
       "markdown": "---\ntitle: Recuperação de desastre\n---\n\n# RD\n\nO plano.\n",

@@ -447,7 +447,7 @@ An Indexer MUST resolve every form above by the following rule, and by no other:
 
 **The title of a note is read in a chain**, and what the chain yields is what a link resolves against:
 
-1. **`title:` in the frontmatter** (§6.4), when it is there and its value is a single short text value — the `enum` shape of §6.3, with one layer of quotes stripped (§6.2).
+1. **`title:` in the frontmatter** (§6.4), when it is there and its value is a single text value — a scalar, on one line, with one layer of quotes stripped (§6.2). **Its length is not capped**: the 40-character ceiling of §6.3 decides when a value stops being a category, and a title is not one (§6.5). A note called `Plano de continuidade de negócios e recuperação de desastres` is called that.
 2. **The plain text of the first level-1 heading**, when `title:` is absent, empty or of any other shape.
 3. **Neither**, and the note has no addressable title, which is the case this section closes with.
 
@@ -558,7 +558,7 @@ The specification reserves **seven** attribute names. They are always written in
 
 | Key | Shape | Effect |
 |---|---|---|
-| `title` | a single short text value | The title of the note, which is what §5 resolves against. It is read before the first level-1 heading and a value of any other shape falls to that heading, never to an error (§5.3, §6.5) |
+| `title` | a single text value, of any length | The title of the note, which is what §5 resolves against. It is read before the first level-1 heading and a value of any other shape falls to that heading, never to an error (§5.3, §6.5) |
 | `aliases` | list of short values | Alternative spellings of this note. They MUST join the search index as spellings of the note, and they resolve **only** a target that no title matched (§5.2, step 8) |
 | `tags` | list of short values | Subjects of this note, filterable and countable like any other list attribute |
 | `author` | a short value, or a list of them | Who the author states wrote this note. Filterable and countable like any other attribute of its kind |
@@ -578,9 +578,9 @@ A reserved key whose value does not have the expected shape **MUST NOT be an err
 
 ### 6.5 `title` names the note, and never fails
 
-`title:` is the first step of the chain of §5.3: when it is there and its value is a single short text value, it is the title of the note and it is what every link resolves against. It is the only attribute of the frontmatter that decides anything outside §6, and it decides identity rather than behaviour — which is the boundary §6.4 draws and the reason resolution can be handed to it at all.
+`title:` is the first step of the chain of §5.3: when it is there and its value is a single text value, it is the title of the note and it is what every link resolves against. It is the only attribute of the frontmatter that decides anything outside §6, and it decides identity rather than behaviour — which is the boundary §6.4 draws and the reason resolution can be handed to it at all.
 
-**A `title:` of any other shape falls to the heading, and is never an error.** A list, a nested block, a value over the 40-character ceiling of §6.3, an empty value: each of them means the frontmatter stated no title, and §5.3 reads the first level-1 heading instead. An implementation MUST NOT reject the note, MUST NOT report the note as malformed and MUST NOT invent a title out of the value it did not use. This specification never validates content (§6.4), and a note whose frontmatter is odd is a note that still has to open.
+**A `title:` of any other shape falls to the heading, and is never an error.** A list, a nested block, an empty value: each of them means the frontmatter stated no title, and §5.3 reads the first level-1 heading instead. An implementation MUST NOT reject the note, MUST NOT report the note as malformed and MUST NOT invent a title out of the value it did not use. This specification never validates content (§6.4), and a note whose frontmatter is odd is a note that still has to open. **Length is not one of those shapes.** The 40-character ceiling of §6.3 is where a value stops being a category, and `title` is never a category: a long title is a title, and truncating one would change what a note is called.
 
 **`title` never becomes an attribute.** It is not indexed, it is not filterable, it produces no facet, and this holds whatever its shape — including the shapes that fall to the heading. A title is what a note *is*, not a category it belongs to; it is unique per note by construction, so the cardinality ceiling of §6.3 would have stopped indexing it in any case, and a facet that appears only when the value happens to be the wrong shape is the kind of surprise §6.3 exists to prevent. An attribute that groups notes by what they are called is `aliases` or `tags`.
 

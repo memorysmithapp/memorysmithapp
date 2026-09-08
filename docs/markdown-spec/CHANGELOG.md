@@ -61,8 +61,10 @@ major version. While the specification is `0.x`, a breaking change may arrive in
   a target is declared pending; and any index keyed by title, which has to be rebuilt, because
   a note that carried `title:` changes address.
 - **A `title:` of any other shape falls to the heading, and is never an error** (§6.5). A list,
-  a nested block, an empty value or a value over the 40-character ceiling means the frontmatter
-  stated no title. The note is not rejected and not reported as malformed.
+  a nested block or an empty value means the frontmatter stated no title, and the note is
+  neither rejected nor reported as malformed. **Length is not one of those shapes:** the
+  40-character ceiling of §6.3 is where a value stops being a category, a title is never a
+  category, and a long title is a title.
 - **`title` never becomes an attribute** (§6.5), where it used to be indexed as an ordinary
   one. It is not filterable and produces no facet, whatever its shape: a title is what a note
   is, not a category it belongs to. The case `frontmatter/title-is-an-ordinary-attribute` is
@@ -72,7 +74,7 @@ major version. While the specification is `0.x`, a breaking change may arrive in
   from** (§5.3), the frontmatter included. Four characters, one rule, and no repair: a `title:`
   that is there ends the chain rather than falling through to the heading.
 - **§6.3 no longer claims that no attribute name is special**, which stopped being true the
-  moment one of them decided identity. It names the five §6.4 reserves and keeps the rule for
+  moment one of them decided identity. It names the keys §6.4 reserves and keeps the rule for
   everything else: an Indexer holds no list of known keys and classifies by shape.
 
 ## [0.5.0] — 2026-09-08
