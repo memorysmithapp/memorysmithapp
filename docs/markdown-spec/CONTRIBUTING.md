@@ -23,7 +23,7 @@ to any one of them alone is not a change to the specification.
 | 1 | **Capture** | An issue | Somebody wrote a notation and got an effect they did not expect. Nobody promised anything |
 | 2 | **Triage** | Comments on the issue | The question behind the report is distilled. One of the four outcomes of §3 comes out |
 | 3 | **Scope closed** | The issue, in a milestone | It gets a target version of the specification |
-| 4 | **Implementation** | A branch, incremental commits | Prose, data and cases move together |
+| 4 | **Implementation** | A branch, incremental commits | Prose, data and cases move together, and the issue closes on the commit that delivers it (§4.3) |
 | 5 | **Published** | `main`, through the merged pull request | What the document says, the suite proves |
 
 No stage is skipped, with one named exception: a **contradiction inside the document** —
@@ -110,6 +110,26 @@ chore(ci): check that the three files carry the same version
 **The unit of a commit is the whole change to a notation:** prose, data, cases and the
 `CHANGELOG.md` entry in the same commit. Piling the changelog up for the end of the branch
 is how an entry gets written from memory, days after the reason for it evaporated.
+
+### 4.3 When an issue closes
+
+An issue closes **when the commit that delivers it is on the branch of the cycle**, and not
+when the branch reaches `main`. It closes as `completed`, with a comment naming the commit.
+A refused issue closes as `not planned`, with the reason (§3).
+
+The consequence is counterintuitive, so it is stated rather than discovered: while a cycle
+runs there are closed issues and a `main` that does not say that thing yet. What declares
+the scope of a version is the **milestone**, and what carries everything to `main` is the
+single pull request of the cycle, at the end. Closing on the commit is what makes progress
+visible while the branch runs, and the price of it is that here *closed* means "it is on the
+branch of the version".
+
+`Closes #N` is still written in the commit message — it is the link between the commit and
+the reason it exists — but GitHub acts on that keyword only at the merge, which is weeks
+after the moment somebody needs to see the milestone move.
+
+**No pull request is opened per issue.** It would take a branch per issue, and over a cycle
+it would leave a merge button available for weeks with the version half done.
 
 ## 5. The pull request
 

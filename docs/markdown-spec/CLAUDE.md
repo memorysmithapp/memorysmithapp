@@ -162,6 +162,12 @@ description are in `CONTRIBUTING.md` §4 and §5. Commit along the branch and pu
 commit, or at least every two or three: a branch that exists only on this machine is work
 nobody can see and nobody can recover.
 
+**Close the issue when its commit lands on the branch, not when the branch reaches `main`**
+(`CONTRIBUTING.md` §4.3). `Closes #N` in the message is the record, and GitHub acts on it
+only at the merge — so closing it by hand, with a comment naming the commit, is what keeps
+the milestone honest while the cycle runs. Waiting for the merge leaves the whole cycle
+looking untouched.
+
 ### Versioning
 
 The table of what cuts which bump is in `CONTRIBUTING.md` §6. Two rules stay here because
