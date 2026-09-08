@@ -1,7 +1,7 @@
 {
   "$schema": "./schema/spec.schema.json",
   "spec": "MemorySmith Markdown Specification",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "variant": "MemorySmith",
   "url": "https://md.memorysmith.app",
   "sources": [
@@ -235,9 +235,9 @@
     {
       "id": "note-title",
       "reader": "links",
-      "syntax": "# Title",
-      "example": "# Lei 14.133\n\nThe general rule.\n",
-      "effect": "The plain text of the first level-1 heading is the title of the note, and the key every link resolves against. ATX and Setext give the same title, inline markup is not part of it — `# **Lei** 14.133` is titled `Lei 14.133` — and a heading inside a code fence names nothing. A note with no level-1 heading, or one whose heading carries `#`, `[`, `]` or `|`, has no addressable title: it exists, it renders and it links outward, no link can name it, and that is reported rather than passed over in silence.",
+      "syntax": "title: Lei 14.133  ·  or # Lei 14.133",
+      "example": "---\ntitle: Lei 14.133\n---\n\n# The general rule\n",
+      "effect": "The title of a note is read in a chain — `title:` in the frontmatter when it is there and its value is a single text value of any length, and the plain text of the first level-1 heading when it is not — and it is the key every link resolves against. A `title:` that is there ends the chain; one of any other shape falls to the heading and is never an error. In the heading step ATX and Setext give the same title, inline markup is not part of it — `# **Lei** 14.133` is titled `Lei 14.133` — and a heading inside a code fence names nothing. A note that reaches the end of the chain with nothing, or whose title carries `#`, `[`, `]` or `|`, has no addressable title: it exists, it renders and it links outward, no link can name it, and that is reported rather than passed over in silence.",
       "spec": "5.3"
     },
     {
@@ -245,7 +245,7 @@
       "reader": "links",
       "syntax": "[[Target note]]",
       "example": "See [[Lei 14.133]] for the general rule.",
-      "effect": "Becomes an edge in the graph and a backlink on the target. The target is the title of a note — the plain text of its first level-1 heading — compared case-exact after Unicode NFC, within this vault and never across vaults. Every note carrying that title becomes an edge; a title no note carries becomes a pending link, which is expected while a vault is being written.",
+      "effect": "Becomes an edge in the graph and a backlink on the target. The target is the title of a note, read by the chain of §5.3 — `title:` in the frontmatter, then the first level-1 heading — and compared case-exact after Unicode NFC, within this vault and never across vaults. Every note carrying that title becomes an edge. Only when no title matches is the target compared against `aliases`, and every note carrying it as an alias becomes an edge then; a target that matches neither becomes a pending link, which is expected while a vault is being written.",
       "spec": "5.1"
     },
     {
@@ -349,8 +349,8 @@
       "reader": "frontmatter",
       "syntax": "aliases: [RTO, Recovery Time]",
       "example": "---\naliases: [RTO]\n---\n\nBody.",
-      "effect": "Reserved: alternative spellings of this note, which join the search index and rank as the title does. They do NOT resolve wikilinks, and that is a decision rather than a gap: resolution is behaviour, and an alias collision can be created by editing a third note that is neither end of the link, moving an existing edge with nothing on screen saying so. A link that does not resolve is at least visible, as a pending link.",
-      "spec": "6.4"
+      "effect": "Reserved: alternative spellings of this note, which join the search index and rank as the title does. They resolve a wikilink only where no title matched it, and never take one that a title matched: an alias fills the empty and never moves an edge that exists. A note written later under that title takes the link back, and the edge that existed by alias stops existing. Two notes carrying the same alias for a target no title matched are two edges, by the rule of §5.4.",
+      "spec": "5.2, 6.4"
     },
     {
       "id": "frontmatter-tags",
@@ -358,6 +358,22 @@
       "syntax": "tags: [contracts, procurement]",
       "example": "---\ntags: [contracts]\n---\n\nBody.",
       "effect": "Reserved: the subjects of this note. This is where a tag lives in this specification, and it is filterable and countable like any other list attribute.",
+      "spec": "6.4"
+    },
+    {
+      "id": "frontmatter-author",
+      "reader": "frontmatter",
+      "syntax": "author: Heitor Rapcinski  ·  or a list of them",
+      "example": "---\nauthor: Heitor Rapcinski\n---\n\nBody.",
+      "effect": "Reserved: who the author states wrote this note. It is indexed exactly as it would be under any other name — a short value is an enum, a written list is a list, each value filterable on its own — and the reservation is of the name and not of a behaviour: it is what lets a vault in any language declare authorship under one key. Nothing derives it from a file, a commit or an account.",
+      "spec": "6.4"
+    },
+    {
+      "id": "frontmatter-co-author",
+      "reader": "frontmatter",
+      "syntax": "co-author: [Ana Prado, Claude]",
+      "example": "---\nauthor: Heitor Rapcinski\nco-author: [Ana Prado]\n---\n\nBody.",
+      "effect": "Reserved: who the author states contributed to this note without being its author — a person, an institution or an agent. Indexed exactly as `author` is and never merged into it, since the distinction is the whole of what the key was written to say. Like `created` and `updated`, it is what the note says about itself and never what a system observed.",
       "spec": "6.4"
     },
     {
@@ -379,10 +395,10 @@
     {
       "id": "frontmatter-title",
       "reader": "frontmatter",
-      "syntax": "title: Whatever the note is called",
+      "syntax": "title: Lei 14.133",
       "example": "---\ntitle: Lei 14.133\n---\n\nBody.",
-      "effect": "Indexed as an ordinary attribute, like any other key. The title of a note is structural: `title:` never renames it and never takes part in link resolution. As an ordinary attribute it is prose that is unique per note, which the cardinality ceiling stops indexing on its own.",
-      "spec": "6.5"
+      "effect": "Reserved: the name of the note, and the first step of the chain that reads its title. It is what every link resolves against, and it is the only frontmatter key that decides anything outside §6 — identity, never behaviour. A value of any other shape — a list, a nested block, an empty value — falls to the first level-1 heading and is never an error, while length is not one of those shapes and a long title is a title, and `title` never becomes an attribute: it is not indexed, not filterable and produces no facet, whatever its shape.",
+      "spec": "6.4, 6.5"
     },
     {
       "id": "frontmatter-prose",

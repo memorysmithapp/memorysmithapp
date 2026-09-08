@@ -9,6 +9,101 @@ major version. While the specification is `0.x`, a breaking change may arrive in
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-09-08
+
+The cycle in which the frontmatter got to say what a note is called.
+
+0.5.0 made the title the key every link resolves against and read it from one place, the
+first level-1 heading. Measured afterwards against ten real vaults — 1,522 notes and 10,303
+wikilinks, most of them arriving from Obsidian — that rule resolved **24.7%** of the links
+their authors had written. The chain of `title:` and then the heading resolves **95.1%**, and
+the reason is structural: where a vault comes from an editor keyed by file name, `title:` is
+that name carried into the file, and it is what the links were written against. Every link in
+every vault resolves differently after this, for the second version running, and an index
+keyed by title has to be rebuilt.
+
+Around it, two decisions that had been refused came back with something they did not have the
+first time. **`title` as a reserved key** was declared refused in 0.1.0 — the entry is still
+below, dated — and it is reserved now, because the reserved vocabulary turned out to be the
+internationalisation contract of this document and the name of the note was outside it.
+**Aliases resolving links** was refused from 0.2.0 onward, and its argument was rebuilt as
+recently as 0.5.0: an alias could capture a link with neither end of it showing why, moving
+an edge from a third note that is neither. The argument was not wrong, and it stops applying
+once an alias may only fill the empty. A title always wins, and an alias that cannot take a
+link away from the note it landed on cannot move one in the dark.
+
+And authorship got a key, `author` and `co-author`, which gain no behaviour at all: `tags` is
+the precedent, and what a reserved name gives is a vault in any language declaring the same
+attribute under the same bytes.
+
+### Added
+
+- **`title` is a reserved attribute name** (§6.4). The reserved vocabulary is what
+  lets a vault written in any language declare its structural attributes under one key —
+  always in en-US, with the *label* translatable and the bytes in the file not — and the name
+  of the note, which is the most structural datum there is, was outside it. A vault in pt-BR
+  writes `title: Recuperação de desastre` under an interface that shows "Título", the same way
+  it already writes `tags`, `created` and `updated`.
+- **`author` and `co-author` are reserved attribute names** (§6.4). Who wrote a note is asked
+  of every vault, and the specification had no key for it — not because it declined one, but
+  because §6.3 answered it by accident: `author: Ana` was already a facet, exactly like
+  `maturity: evergreen`. What was missing was the name. Both are indexed exactly as they would
+  be under any other name — a short value is an `enum`, a written list is a `list`, the
+  40-character ceiling applies unchanged — and `tags` is the precedent for that: a reserved key
+  need gain no behaviour, and what it gives is a name every vault can rely on. `autor:` stays
+  legal and stays indexed as the ordinary attribute it is; a reserved key is a guarantee, not a
+  prohibition. `co-author` is what a note says about having been written with somebody — a
+  colleague, an institution or an agent — and it is never merged into `author`. Like `created`
+  and `updated`, both are what the author states: nothing derives them from a file, a commit or
+  an account.
+- **An alias resolves a target that no title matched** (§5.2, step 8; §6.4). It fills the empty
+  and never moves an edge that exists: a target that a title matched is never taken by an
+  alias, and a note written later under that title takes the link back from whoever held it by
+  alias. Two notes carrying that alias are two edges, by the rule §5.4 already states for two
+  notes carrying one title.
+
+### Changed
+
+- **The title of a note is read in a chain: `title:` in the frontmatter, then the first
+  level-1 heading** (§5.3). Every link in every vault resolves against that chain now. What
+  decided it was measuring the candidate rules against 1,522 notes and 10,303 wikilinks across
+  ten vaults, most of them arriving from Obsidian:
+
+  | Rule | Links that resolve | Notes with no title | Repeated titles |
+  |---|---|---|---|
+  | The heading alone, as 0.5.0 stated it | 24.7% (2,548) | 819 | 5 |
+  | `title:` alone | 95.1% (9,794) | 22 | 0 |
+  | `title:`, then the heading | 95.1% (9,794) | 22 | 0 |
+  | The heading, then `title:` | 88.0% (9,065) | 22 | 5 |
+
+  The reason is structural rather than statistical: where a vault comes from an editor keyed by
+  file name, `title:` is that name carried into the file, and it is what the links were written
+  against. The heading, where it exists, the author wrote in a shorter form or did not write at
+  all — which is why reading it first both resolves less and produces titles two notes share.
+  An implementation with no file name to fall back on has only the frontmatter to carry this,
+  and a specification that assumed one would be about a storage model rather than about vaults.
+
+  **What an implementation has to redo:** the title extractor, which now reads the frontmatter
+  before the body; the resolver, which gains the alias step after the title step and before
+  a target is declared pending; and any index keyed by title, which has to be rebuilt, because
+  a note that carried `title:` changes address.
+- **A `title:` of any other shape falls to the heading, and is never an error** (§6.5). A list,
+  a nested block or an empty value means the frontmatter stated no title, and the note is
+  neither rejected nor reported as malformed. **Length is not one of those shapes:** the
+  40-character ceiling of §6.3 is where a value stops being a category, a title is never a
+  category, and a long title is a title.
+- **`title` never becomes an attribute** (§6.5), where it used to be indexed as an ordinary
+  one. It is not filterable and produces no facet, whatever its shape: a title is what a note
+  is, not a category it belongs to. The case `frontmatter/title-is-an-ordinary-attribute` is
+  gone, and `frontmatter/title-names-the-note-and-is-not-a-facet` states the opposite; the
+  identifier is not reused.
+- **A title carrying `#`, `[`, `]` or `|` leaves the note unaddressable wherever the title came
+  from** (§5.3), the frontmatter included. Four characters, one rule, and no repair: a `title:`
+  that is there ends the chain rather than falling through to the heading.
+- **§6.3 no longer claims that no attribute name is special**, which stopped being true the
+  moment one of them decided identity. It names the keys §6.4 reserves and keeps the rule for
+  everything else: an Indexer holds no list of known keys and classifies by shape.
+
 ## [0.5.0] — 2026-09-08
 
 The cycle in which a link stopped resolving to a key the document computed and started
@@ -469,7 +564,8 @@ implementation, plus the decisions taken while writing it down.
 - **Anything not specified here** — `==highlight==`, `%%comment%%`, `^block-id`, `$math$`, raw HTML.
   Absence from this document is a statement, not an oversight.
 
-[Unreleased]: https://github.com/memorysmithapp/markdown-spec/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/markdown-spec/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/memorysmithapp/markdown-spec/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/memorysmithapp/markdown-spec/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/memorysmithapp/markdown-spec/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/memorysmithapp/markdown-spec/compare/v0.2.0...v0.3.0

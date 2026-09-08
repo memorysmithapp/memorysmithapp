@@ -1,6 +1,6 @@
 # The MemorySmith Markdown Specification
 
-**Version 0.5.0** · Draft · <https://md.memorysmith.app>
+**Version 0.6.0** · Draft · <https://md.memorysmith.app>
 
 A specification of the Markdown a knowledge vault is written in: plain `.md` files, linked to each other, written by people and by agents, and read by software that has to build a graph and an index out of them without deciding what the content means.
 
@@ -136,7 +136,7 @@ Level two
 ---------
 ```
 
-Headings are what an anchor points at: `[[Target note#Section]]` names a heading of the target, and §5.2 keeps it for display without letting it change which note is resolved. The **first level-1 heading of a note is its title**, which is the key every link resolves against (§5.3).
+Headings are what an anchor points at: `[[Target note#Section]]` names a heading of the target, and §5.2 keeps it for display without letting it change which note is resolved. The **first level-1 heading of a note is its title** when the frontmatter does not state one (§5.3), and the title is the key every link resolves against.
 
 A `#` that is not opening a heading is not a subject either: `#procurement` in the middle of a line is plain text, because nothing in this document describes it (§8).
 
@@ -434,14 +434,28 @@ An Indexer MUST resolve every form above by the following rule, and by no other:
 4. *Markdown form only:* a trailing `.md` or `.mdx` extension MUST be removed.
 5. *Markdown form only:* the result MUST be percent-decoded. An escape that is not one — the `%` of `[Half](50%)` opens nothing — MUST be left exactly as written, and MUST NOT be an error.
 6. The result is normalised to **NFC** and compared, **case-exact**, against the title of every note (§5.3) **of the same vault**. Resolution MUST NOT cross vault boundaries.
-7. **Every note whose title matches becomes an edge** (§5.4). A target that matches none is a pending link (§5.5).
-8. The anchor MUST be preserved for display — percent-decoded in the Markdown form, literal in the wikilink — and MUST NOT take part in resolution. Two links to two sections of the same note are two links to the same note.
+7. **Every note whose title matches becomes an edge** (§5.4).
+8. **Only if no title matched**, the same result is compared, in the same way, against every value of `aliases` (§6.4) of every note of the vault, and every note whose alias matches becomes an edge. An alias resolves what nothing else resolved: it MUST NOT take a target a title has already matched, and it MUST NOT move an edge that exists.
+9. A target that matches no title and no alias is a pending link (§5.5).
+10. The anchor MUST be preserved for display — percent-decoded in the Markdown form, literal in the wikilink — and MUST NOT take part in resolution. Two links to two sections of the same note are two links to the same note.
+
+**The order of step 7 before step 8 is normative**, and it is the whole of what keeps the frontmatter out of the graph: a title always wins, an alias only fills the empty. §6.4 states the consequence an author sees.
 
 **The order of steps 2 to 5 is normative, not incidental.** Decoding earlier would undo the escaping it exists for: `C%23%20basics` would become `C# basics` and then split at a `#` the author encoded precisely so it would not be read as a delimiter, and `and%2For` would become `and/or` and lose its first half to the path rule. Delimiters first, decode after, compare last.
 
 ### 5.3 The title of a note
 
-**The title of a note is the plain text of its first level-1 heading**, and that is what a link resolves against. Six things follow from it, and each is a place two implementations would otherwise disagree:
+**The title of a note is read in a chain**, and what the chain yields is what a link resolves against:
+
+1. **`title:` in the frontmatter** (§6.4), when it is there and its value is a single text value — a scalar, on one line, with one layer of quotes stripped (§6.2). **Its length is not capped**: the 40-character ceiling of §6.3 decides when a value stops being a category, and a title is not one (§6.5). A note called `Plano de continuidade de negócios e recuperação de desastres` is called that.
+2. **The plain text of the first level-1 heading**, when `title:` is absent, empty or of any other shape.
+3. **Neither**, and the note has no addressable title, which is the case this section closes with.
+
+The frontmatter comes first because it is the only place a title can be *stated*. A heading is the title a note happens to open with, and the two diverge constantly in vaults that already exist: a note whose links were written against one name carries a heading in a shorter form, or carries no heading at all. It is also the only place available to an implementation that has no file name to fall back on, and a specification that assumed one would be about a storage model rather than about vaults (§1.2).
+
+**A `title:` that is there ends the chain.** The heading is where the title is read when the frontmatter states none — it is not a repair for one the author wrote. A `title:` carrying one of the four characters below leaves the note with no addressable title; it does not fall through to the heading.
+
+Six things follow from the heading step, and each is a place two implementations would otherwise disagree:
 
 - **ATX or Setext.** §3.3 declares both and they produce the same heading, so they produce the same title. A note's identity does not depend on which of two equivalent forms was typed.
 - **Plain text, after inline parsing.** `# **Lei** 14.133` is titled `Lei 14.133`, never `**Lei** 14.133` — otherwise `[[Lei 14.133]]` would not match its own note.
@@ -450,9 +464,9 @@ An Indexer MUST resolve every form above by the following rule, and by no other:
 - **Blocks before inlines** (§3): a `# Title` inside a fenced code block is code and names nothing, the same crossing §5.6 states for links.
 - **A second level-1 heading is an ordinary heading**, and an anchor target like any other.
 
-Comparison is **case-exact**, after normalising both sides to **NFC**, and nothing else is folded. `[[Lei]]` finds `Lei` and does not find `lei`; a link whose case does not match is a pending link (§5.5) like any other miss. Normalising is not a fold: `Ação` exists as two byte sequences — one codepoint for `ç`, or `c` followed by a combining cedilla — that render identically and are typed by different editors, and NFC is what keeps them one note instead of two.
+Everything from here holds for the title **wherever the chain read it**. Comparison is **case-exact**, after normalising both sides to **NFC**, and nothing else is folded. `[[Lei]]` finds `Lei` and does not find `lei`; a link whose case does not match is a pending link (§5.5) like any other miss. Normalising is not a fold: `Ação` exists as two byte sequences — one codepoint for `ç`, or `c` followed by a combining cedilla — that render identically and are typed by different editors, and NFC is what keeps them one note instead of two.
 
-**Four characters have no place in a title:** `#`, `[`, `]` and `|`, the delimiters of the form that addresses it. This document cannot forbid bytes in a file, so it states a consequence rather than a prohibition: **a note whose heading carries one of them has no addressable title.** It exists, it renders, it links outward and it is searchable, and no link can name it. A Writer MUST NOT produce such a heading; a Reader and an Indexer MUST report it the way a pending link is reported (§5.5). A note with no level-1 heading at all is the same case: it has no title, and it is reported rather than passed over in silence.
+**Four characters have no place in a title:** `#`, `[`, `]` and `|`, the delimiters of the form that addresses it. This document cannot forbid bytes in a file, so it states a consequence rather than a prohibition: **a note whose title carries one of them has no addressable title.** It exists, it renders, it links outward and it is searchable, and no link can name it. A Writer MUST NOT produce such a title, in a heading or in the frontmatter; a Reader and an Indexer MUST report it the way a pending link is reported (§5.5). A note that reaches the end of the chain with nothing — no `title:` and no level-1 heading — is the same case: it has no title, and it is reported rather than passed over in silence.
 
 A `/` is **not** one of them. A slash is an ordinary character in a title — `Reunião 03/09/2026` and `and/or` are ordinary notes — because folders play no part in identity: a link addresses a title and nothing else, `./` and `../` mean nothing in either form, and a path the Markdown form arrives with is discarded rather than read (§5.2).
 
@@ -462,9 +476,11 @@ Several links to the same target in one note are **one** edge. An embed and a pl
 
 Two notes may carry the same title, in one folder or in two. That is a property of the content, and constraining the content is not this document's business; what is its business is saying what happens then. **Every note whose title matches becomes an edge** — not the first one, because there is no order to appeal to. `created` is what the author says and not what the file did (§6.6), folder order would put folders back into identity, and storage order diverges between implementations. Two edges is also what an interface needs to offer a choice, and what a backlink can honestly show on both notes, since which one was meant is not knowable from the link.
 
+The rule is the same one step down: a target that no title matched and that two notes carry as an alias (§5.2, step 8) becomes two edges, for the same reasons and with the same answer — the interface offers the choice, the document does not invent an order.
+
 ### 5.5 A target that does not exist
 
-A link whose target has no note is **not an error and MUST NOT be discarded**. It is a *pending link*: it is kept, it is reported as pending, and it resolves on its own if a note with that title is later created. Discarding it would make the graph lie precisely while a vault is being written, which is when it is consulted most.
+A link whose target matches no title and no alias is **not an error and MUST NOT be discarded**. It is a *pending link*: it is kept, it is reported as pending, and it resolves on its own if a note carrying that title, or that alias, is later written. Discarding it would make the graph lie precisely while a vault is being written, which is when it is consulted most.
 
 ### 5.6 Code
 
@@ -518,7 +534,7 @@ Scalars, inline lists and dash lists. One layer of matching quotes around a valu
 
 ### 6.3 The shape of the value decides indexing
 
-**No attribute name is special.** An Indexer MUST NOT hold a list of known keys, and MUST classify each attribute by the shape of its value:
+**No attribute name is special**, save the ones §6.4 reserves — and of those, only `title` is read differently rather than merely named: it is the identity of the note (§5.3) and produces no attribute at all (§6.5). Everything else an Indexer meets it MUST classify by the shape of its value, holding no list of known keys:
 
 | Shape | Kind | Indexed |
 |---|---|---|
@@ -538,22 +554,35 @@ An implementation SHOULD additionally stop indexing an attribute whose distinct 
 
 ### 6.4 The reserved vocabulary
 
-The specification reserves **four** attribute names. They are always written in en-US; an implementation MAY translate the *label* it shows and MUST NOT translate the bytes in the file. Every other attribute keeps the name whoever wrote the note gave it, in whatever language they wrote it.
+The specification reserves **seven** attribute names. They are always written in en-US; an implementation MAY translate the *label* it shows and MUST NOT translate the bytes in the file. Every other attribute keeps the name whoever wrote the note gave it, in whatever language they wrote it. That is the whole of the internationalisation contract of this document: a vault in pt-BR writes `title: Recuperação de desastre` under an interface that shows "Título", and the structural attributes of a vault are the same seven keys in every language.
 
 | Key | Shape | Effect |
 |---|---|---|
-| `aliases` | list of short values | Alternative spellings of this note. They MUST join the search index as spellings of the note. They MUST NOT resolve links (§5.2 resolves against the title, and against nothing else) |
+| `title` | a single text value, of any length | The title of the note, which is what §5 resolves against. It is read before the first level-1 heading and a value of any other shape falls to that heading, never to an error (§5.3, §6.5) |
+| `aliases` | list of short values | Alternative spellings of this note. They MUST join the search index as spellings of the note, and they resolve **only** a target that no title matched (§5.2, step 8) |
 | `tags` | list of short values | Subjects of this note, filterable and countable like any other list attribute |
+| `author` | a short value, or a list of them | Who the author states wrote this note. Filterable and countable like any other attribute of its kind |
+| `co-author` | a short value, or a list of them | Who the author states contributed without being the author — a person, an institution or an agent. Indexed the same way, and never merged into `author` |
 | `created` | ISO 8601 date | The date the author states the note was created. See §6.6 |
 | `updated` | ISO 8601 date | The date the author states the content was last revised. See §6.6 |
 
-`aliases` join the search index and stop there, and the reason is worth stating so the question does not return without new evidence. Resolution is **behaviour**: it decides an edge, a backlink, a pending link and a navigation. Letting an attribute of the content govern it would put the frontmatter in charge of the graph, which §1.4 keeps it out of. An alias would also be the one thing capable of capturing a link **invisibly**: two notes that share a title collide in the open, since the title is the heading at the top of each of them and both become edges (§5.4), while an alias that captured a link could not be explained by reading either end of it.
+**Most of these keys gain no behaviour from being reserved, and that is not a defect of the list.** `tags`, `author` and `co-author` are indexed exactly as they would be under any other name: the shape of the value decides the kind (§6.3), each value is filterable on its own, and the 40-character ceiling applies unchanged — an institutional author written longer than that is prose and is not indexed. What the reservation gives is the **name**, and the name is the one thing a vault cannot invent for itself without leaving every other vault behind: unreserved, one vault writes `autor:`, another writes `author:`, and no interface can offer one column over both. `autor:` stays legal and stays indexed — it is an ordinary attribute, which is what every attribute this section does not name is. **A reserved key is a guarantee, not a prohibition.**
 
-A reserved key whose value does not have the expected shape **MUST NOT be an error**. It degrades to an ordinary attribute and is classified by §6.3 like any other. This specification never validates content.
+`author` and `co-author` are what the author **states**, in the same family as `created` and `updated` (§6.6). Nothing derives them from a file, a commit, a session or an account: an implementation that knows who actually edited what holds a history, and a history is authoritative for the file and MUST NOT be presented in place of what the note says about itself. `co-author` is the note's own record of having been written with somebody — a colleague, an institution or an agent — and it is never merged into `author`, because the distinction is the whole of what it was written to say.
 
-### 6.5 `title` is not reserved
+**An alias fills the empty, and never moves what is there.** The boundary is worth stating in one line, because everything the frontmatter is allowed to do to the graph is on one side of it: **the frontmatter may say what a note is called; what it may not do is redirect a link that has already found a note.** Identity is not behaviour.
 
-The title of a note is structural: it is the plain text of its first level-1 heading (§5.3), and it is what §5 resolves against. A `title` key in the frontmatter is an ordinary attribute; it MUST NOT rename the note and MUST NOT take part in resolution. In practice it is prose that is unique per note, and the cardinality ceiling of §6.3 stops indexing it on its own.
+That line is what makes an alias safe here, and the objection it answers is the one this section used to raise against resolving them at all. An alias that could capture any target would be the one thing capable of moving an edge **invisibly**: editing a third note, which is neither end of the link, would take a link away from the note it had landed on, and no one reading either end could explain it. An alias that resolves only what nothing else resolved cannot do that. What it can do is create an edge where a pending link was — which is the one place a reader is already looking, since a pending link is reported (§5.5) — and lose it again the day a note is written under that title. **A title always wins**: the note that carries the title takes the link, the edge that existed by alias stops existing, and both ends of that change are legible, because a title is either the heading at the top of a note or the `title:` at the top of its file.
+
+A reserved key whose value does not have the expected shape **MUST NOT be an error**. It degrades to an ordinary attribute and is classified by §6.3 like any other. This specification never validates content. `title` is the one exception, and it is an exception in the other direction: it degrades to the heading (§6.5) and it is never an attribute at all.
+
+### 6.5 `title` names the note, and never fails
+
+`title:` is the first step of the chain of §5.3: when it is there and its value is a single text value, it is the title of the note and it is what every link resolves against. It is the only attribute of the frontmatter that decides anything outside §6, and it decides identity rather than behaviour — which is the boundary §6.4 draws and the reason resolution can be handed to it at all.
+
+**A `title:` of any other shape falls to the heading, and is never an error.** A list, a nested block, an empty value: each of them means the frontmatter stated no title, and §5.3 reads the first level-1 heading instead. An implementation MUST NOT reject the note, MUST NOT report the note as malformed and MUST NOT invent a title out of the value it did not use. This specification never validates content (§6.4), and a note whose frontmatter is odd is a note that still has to open. **Length is not one of those shapes.** The 40-character ceiling of §6.3 is where a value stops being a category, and `title` is never a category: a long title is a title, and truncating one would change what a note is called.
+
+**`title` never becomes an attribute.** It is not indexed, it is not filterable, it produces no facet, and this holds whatever its shape — including the shapes that fall to the heading. A title is what a note *is*, not a category it belongs to; it is unique per note by construction, so the cardinality ceiling of §6.3 would have stopped indexing it in any case, and a facet that appears only when the value happens to be the wrong shape is the kind of surprise §6.3 exists to prevent. An attribute that groups notes by what they are called is `aliases` or `tags`.
 
 ### 6.6 Dates are the author's statement, not the file's history
 
@@ -853,7 +882,7 @@ Every form this document declares, in one table. The last column is the section 
 | List value | `key: [a, b]` | A `list` attribute, each value on its own | 6.3 |
 | Boolean value | `key: true` | A `boolean` attribute | 6.3 |
 | Date value | `key: 2026-09-03` | A `date` attribute, queried by prefix and interval | 6.3, 6.7, 6.8 |
-| Reserved keys | `aliases`, `tags`, `created`, `updated` | Search spellings, subjects, the author's dates | 6.4 |
+| Reserved keys | `title`, `aliases`, `tags`, `author`, `co-author`, `created`, `updated` | The name of the note, spellings that catch a target no title matched, subjects, who wrote it, the author's dates | 6.4 |
 | Callout | `> [!warning] Title` | Drawn as a callout, not as a quotation | 7.1 |
 | Mermaid diagram | ` ```mermaid ` | Drawn as a diagram, or shown as source; opaque to the link reader | 7.2 |
 | Marked text | `==highlight==` | Nothing beyond emphasis | 7.5 |
@@ -863,5 +892,5 @@ Every form this document declares, in one table. The last column is the section 
 | Math | `$x$`, `$$x$$` | Drawn as mathematics, or shown as source | 7.8 |
 | External link | `[text](https://…)` | Renders as a link; never an edge | 5.2 |
 | Prose in frontmatter | over 40 characters | Read and discarded | 6.3 |
-| `title:` | in the frontmatter | Indexed as an ordinary attribute | 6.5 |
+| `title:` | in the frontmatter | The title of the note, read before the heading; never an attribute | 5.3, 6.5 |
 | Raw HTML | `<div>`, `<abbr>` | Shown as text, never rendered. A security boundary | 7.9 |
