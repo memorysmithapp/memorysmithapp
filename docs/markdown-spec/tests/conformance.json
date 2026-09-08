@@ -231,7 +231,8 @@
     {
       "id": "frontmatter/reserved-keys",
       "notation": "frontmatter-tags",
-      "markdown": "---\naliases: [RTO]\ntags: [continuity]\ncreated: 2026-09-03\nupdated: 2026-09-05\n---\n\nBody.",
+      "markdown": "---\ntitle: Recovery Time Objective\naliases: [RTO]\ntags: [continuity]\ncreated: 2026-09-03\nupdated: 2026-09-05\n---\n\nBody.",
+      "title": "Recovery Time Objective",
       "facets": {
         "aliases": {
           "kind": "list",
@@ -287,17 +288,18 @@
       }
     },
     {
-      "id": "frontmatter/title-is-an-ordinary-attribute",
+      "id": "frontmatter/title-names-the-note-and-is-not-a-facet",
       "notation": "frontmatter-title",
       "markdown": "---\ntitle: Lei 14.133\n---\n\nBody.",
-      "facets": {
-        "title": {
-          "kind": "enum",
-          "values": [
-            "Lei 14.133"
-          ]
-        }
-      }
+      "title": "Lei 14.133",
+      "facets": {}
+    },
+    {
+      "id": "frontmatter/a-title-of-the-wrong-shape-is-not-a-facet-either",
+      "notation": "frontmatter-title",
+      "markdown": "---\ntitle: [one, two]\n---\n\n# Lei 14.133\n",
+      "title": "Lei 14.133",
+      "facets": {}
     },
     {
       "id": "frontmatter/a-reserved-key-of-the-wrong-shape-degrades",
@@ -564,6 +566,55 @@
       "links": []
     },
     {
+      "id": "title/frontmatter-title-wins-over-the-heading",
+      "notation": "note-title",
+      "markdown": "---\ntitle: Lei 14.133\n---\n\n# The general rule\n\nThe body.\n",
+      "title": "Lei 14.133",
+      "links": []
+    },
+    {
+      "id": "title/frontmatter-title-with-no-heading-at-all",
+      "notation": "note-title",
+      "markdown": "---\ntitle: Lei 14.133\n---\n\nThe general rule.\n",
+      "title": "Lei 14.133",
+      "links": []
+    },
+    {
+      "id": "title/an-empty-frontmatter-title-falls-back-to-the-heading",
+      "notation": "note-title",
+      "markdown": "---\ntitle:\n---\n\n# Lei 14.133\n\nThe general rule.\n",
+      "title": "Lei 14.133",
+      "links": []
+    },
+    {
+      "id": "title/a-list-shaped-frontmatter-title-falls-back-to-the-heading",
+      "notation": "note-title",
+      "markdown": "---\ntitle:\n  - Lei 14.133\n  - Lei 14133\n---\n\n# Lei 14.133\n\nThe general rule.\n",
+      "title": "Lei 14.133",
+      "links": []
+    },
+    {
+      "id": "title/a-frontmatter-title-carrying-a-delimiter-has-no-address",
+      "notation": "note-title",
+      "markdown": "---\ntitle: Lei 14.133 [revogada]\n---\n\n# Lei 14.133\n\nThe general rule.\n",
+      "title": null,
+      "links": []
+    },
+    {
+      "id": "title/no-frontmatter-title-and-no-heading-is-no-title",
+      "notation": "note-title",
+      "markdown": "---\ntags: [contracts]\n---\n\nThe general rule.\n",
+      "title": null,
+      "links": []
+    },
+    {
+      "id": "title/a-title-written-in-pt-br-is-a-title",
+      "notation": "note-title",
+      "markdown": "---\ntitle: Recuperação de desastre\n---\n\n# RD\n\nO plano.\n",
+      "title": "Recuperação de desastre",
+      "links": []
+    },
+    {
       "id": "wikilink/a-numeric-alias-is-still-an-alias",
       "notation": "wikilink-alias",
       "markdown": "See [[Lei 14.133|100]] for the general rule.",
@@ -762,6 +813,109 @@
           "target": "Lei 14.133",
           "kind": "note",
           "edges": 1
+        }
+      ]
+    },
+    {
+      "id": "resolution/a-link-resolves-against-the-frontmatter-title",
+      "notation": "note-title",
+      "vault": {
+        "notes": [
+          "---\ntitle: Lei 14.133\n---\n\n# The general rule\n"
+        ]
+      },
+      "markdown": "See [[Lei 14.133]], not [[The general rule]].",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": null
+        },
+        {
+          "title": "The general rule",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Lei 14.133",
+          "kind": "note",
+          "edges": 1
+        },
+        {
+          "target": "The general rule",
+          "kind": "pending",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/an-alias-catches-a-target-no-title-matches",
+      "notation": "frontmatter-aliases",
+      "vault": {
+        "notes": [
+          "---\naliases: [RTO]\n---\n\n# Recovery Time Objective\n"
+        ]
+      },
+      "markdown": "See [[RTO]].",
+      "links": [
+        {
+          "title": "RTO",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "RTO",
+          "kind": "note",
+          "edges": 1
+        }
+      ]
+    },
+    {
+      "id": "resolution/an-alias-does-not-take-a-link-a-title-already-matches",
+      "notation": "frontmatter-aliases",
+      "vault": {
+        "notes": [
+          "---\naliases: [Índice]\n---\n\n# Recovery Time Objective\n",
+          "# Índice\n"
+        ]
+      },
+      "markdown": "Ver [[Índice]].",
+      "links": [
+        {
+          "title": "Índice",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Índice",
+          "kind": "note",
+          "edges": 1
+        }
+      ]
+    },
+    {
+      "id": "resolution/one-target-matching-two-aliases-is-two-edges",
+      "notation": "frontmatter-aliases",
+      "vault": {
+        "notes": [
+          "---\naliases: [RTO]\n---\n\n# Recovery Time Objective\n",
+          "---\naliases: [RTO]\n---\n\n# Objetivo de tempo de recuperação\n"
+        ]
+      },
+      "markdown": "See [[RTO]].",
+      "links": [
+        {
+          "title": "RTO",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "RTO",
+          "kind": "note",
+          "edges": 2
         }
       ]
     }

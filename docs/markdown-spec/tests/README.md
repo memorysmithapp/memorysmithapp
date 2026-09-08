@@ -36,13 +36,16 @@ Rules a runner has to follow:
 
 - **Order does not matter** in `links`; identity does. Compare as sets keyed by `title`, after normalising both sides to NFC.
 - **A missing field is not an empty expectation.** A case with no `facets` key says nothing about attributes; a case with `"facets": {}` says there are none.
-- **A fixture note carries a body, never a declared title.** The title is derived from it by
-  `SPEC.md` §5.3, which is the rule these cases exist to exercise — a fixture that announced
-  its own title would let a runner skip it.
+- **A fixture note carries a document, never a declared title.** The title is derived from it
+  by `SPEC.md` §5.3, which is the rule these cases exist to exercise — a fixture that
+  announced its own title outside the document would let a runner skip it. A fixture whose
+  document opens with a frontmatter stating `title:` or `aliases:` is not announcing anything:
+  it is the input, and reading it is the rule under test.
 - **`resolution` is not `links`.** `links` is what one note *extracts*, and holds with no vault
   at all; `resolution` is what those targets *become* once other notes and attachments exist.
-  Only a note produces an edge, one per note that matches: an attachment produces none, and a
-  target that matches nothing is `pending` and produces none.
+  Only a note produces an edge, one per note that matches — by title, or, when no title
+  matched the target, by alias (§5.2, step 8). An attachment produces none, and a target that
+  matches nothing is `pending` and produces none.
 - **Every case must run.** Skipping a case is a conformance failure, not a local decision.
 
 ## Coverage

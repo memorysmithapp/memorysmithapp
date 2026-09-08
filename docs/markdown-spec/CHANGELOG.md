@@ -9,6 +9,60 @@ major version. While the specification is `0.x`, a breaking change may arrive in
 
 ## [Unreleased]
 
+### Added
+
+- **`title` is a reserved attribute name**, the fifth (§6.4). The reserved vocabulary is what
+  lets a vault written in any language declare its structural attributes under one key —
+  always in en-US, with the *label* translatable and the bytes in the file not — and the name
+  of the note, which is the most structural datum there is, was outside it. A vault in pt-BR
+  writes `title: Recuperação de desastre` under an interface that shows "Título", the same way
+  it already writes `tags`, `created` and `updated`.
+- **An alias resolves a target that no title matched** (§5.2, step 8; §6.4). It fills the empty
+  and never moves an edge that exists: a target that a title matched is never taken by an
+  alias, and a note written later under that title takes the link back from whoever held it by
+  alias. Two notes carrying that alias are two edges, by the rule §5.4 already states for two
+  notes carrying one title.
+
+### Changed
+
+- **The title of a note is read in a chain: `title:` in the frontmatter, then the first
+  level-1 heading** (§5.3). Every link in every vault resolves against that chain now. What
+  decided it was measuring the candidate rules against 1,522 notes and 10,303 wikilinks across
+  ten vaults, most of them arriving from Obsidian:
+
+  | Rule | Links that resolve | Notes with no title | Repeated titles |
+  |---|---|---|---|
+  | The heading alone, as 0.5.0 stated it | 24.7% (2,548) | 819 | 5 |
+  | `title:` alone | 95.1% (9,794) | 22 | 0 |
+  | `title:`, then the heading | 95.1% (9,794) | 22 | 0 |
+  | The heading, then `title:` | 88.0% (9,065) | 22 | 5 |
+
+  The reason is structural rather than statistical: where a vault comes from an editor keyed by
+  file name, `title:` is that name carried into the file, and it is what the links were written
+  against. The heading, where it exists, the author wrote in a shorter form or did not write at
+  all — which is why reading it first both resolves less and produces titles two notes share.
+  An implementation with no file name to fall back on has only the frontmatter to carry this,
+  and a specification that assumed one would be about a storage model rather than about vaults.
+
+  **What an implementation has to redo:** the title extractor, which now reads the frontmatter
+  before the body; the resolver, which gains the alias step after the title step and before
+  a target is declared pending; and any index keyed by title, which has to be rebuilt, because
+  a note that carried `title:` changes address.
+- **A `title:` of any other shape falls to the heading, and is never an error** (§6.5). A list,
+  a nested block, an empty value or a value over the 40-character ceiling means the frontmatter
+  stated no title. The note is not rejected and not reported as malformed.
+- **`title` never becomes an attribute** (§6.5), where it used to be indexed as an ordinary
+  one. It is not filterable and produces no facet, whatever its shape: a title is what a note
+  is, not a category it belongs to. The case `frontmatter/title-is-an-ordinary-attribute` is
+  gone, and `frontmatter/title-names-the-note-and-is-not-a-facet` states the opposite; the
+  identifier is not reused.
+- **A title carrying `#`, `[`, `]` or `|` leaves the note unaddressable wherever the title came
+  from** (§5.3), the frontmatter included. Four characters, one rule, and no repair: a `title:`
+  that is there ends the chain rather than falling through to the heading.
+- **§6.3 no longer claims that no attribute name is special**, which stopped being true the
+  moment one of them decided identity. It names the five §6.4 reserves and keeps the rule for
+  everything else: an Indexer holds no list of known keys and classifies by shape.
+
 ## [0.5.0] — 2026-09-08
 
 The cycle in which a link stopped resolving to a key the document computed and started
