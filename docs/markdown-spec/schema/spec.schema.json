@@ -1,14 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://md.memorysmith.app/schema/profile.schema.json",
-  "title": "MemorySmith Markdown Profile",
-  "description": "The machine-readable half of the profile: every notation it declares, with its observable effect.",
+  "$id": "https://md.memorysmith.app/schema/spec.schema.json",
+  "title": "MemorySmith Markdown Specification",
+  "description": "The machine-readable half of the specification: every notation it declares, with its observable effect.",
   "type": "object",
-  "required": ["profile", "version", "sources", "notations"],
+  "required": ["spec", "version", "sources", "notations"],
   "additionalProperties": false,
   "properties": {
     "$schema": { "type": "string" },
-    "profile": { "type": "string" },
+    "spec": { "type": "string" },
     "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
     "variant": {
       "type": "string",
@@ -17,7 +17,7 @@
     "url": { "type": "string", "format": "uri" },
     "sources": {
       "type": "array",
-      "description": "Where the forms this profile declares were established. A source is cited per form in SPEC.md; it is not a tier the profile is built out of.",
+      "description": "Where the forms this specification declares were established. A source is cited per form in SPEC.md; it is not a tier the specification is built out of.",
       "items": {
         "type": "object",
         "required": ["id", "name", "url"],

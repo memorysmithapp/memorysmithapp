@@ -1,6 +1,6 @@
 # The conformance suite
 
-The executable half of the profile. A specification is a claim; this is the part that can be checked.
+The executable half. A specification is a claim; this is the part that can be checked.
 
 ## The format
 
@@ -18,12 +18,12 @@ The executable half of the profile. A specification is a claim; this is the part
 | Field | Meaning |
 |---|---|
 | `id` | Stable identifier of the case. Never renamed, never reused |
-| `notation` | The `id` of the entry in `profile.json` this case exercises |
+| `notation` | The `id` of the entry in `spec.json` this case exercises |
 | `markdown` | The input, verbatim, including the frontmatter when there is one |
 | `links` | The edges a conforming Indexer produces, in any order. Absent means the case makes no claim about links |
 | `facets` | The attributes a conforming Indexer produces, as `name → { kind, values }`. Absent means the case makes no claim about attributes |
 
-An expectation of `[]` or `{}` is a claim, and a strong one: it says the input produces **nothing**. Those cases carry as much of the profile as the positive ones, because the failure they prevent — a notation that quietly does nothing while somebody believes in it — is the failure a specification exists to prevent.
+An expectation of `[]` or `{}` is a claim, and a strong one: it says the input produces **nothing**. Those cases carry as much of the specification as the positive ones, because the failure they prevent — a notation that quietly does nothing while somebody believes in it — is the failure a specification exists to prevent.
 
 ## Running it
 
@@ -37,4 +37,4 @@ Rules a runner has to follow:
 
 ## Coverage
 
-Every entry of `profile.json` whose `reader` is `links` or `frontmatter` has at least one case here. Entries whose reader is `reading-surface` are rendering, and are verified by the implementation against its own renderer: what a callout looks like is not something a JSON file can assert.
+Every entry of `spec.json` whose `reader` is `links` or `frontmatter` has at least one case here. Entries whose reader is `reading-surface` are rendering, and are verified by the implementation against its own renderer: what a callout looks like is not something a JSON file can assert.

@@ -6,7 +6,7 @@ Delete this comment before submitting.
 ## Summary of changes
 
 <!--
-What the profile says now that it did not say before, and what an implementation has to
+What the specification says now that it did not say before, and what an implementation has to
 change to keep conforming. Reference the issue that originated it with `Closes #N`.
 -->
 
@@ -20,12 +20,12 @@ Written for whoever maintains an implementation, not for whoever reviews this di
 ## The three files
 
 <!--
-A notation lives in SPEC.md, profile.json and tests/conformance.json at once. Tick what
+A notation lives in SPEC.md, spec.json and tests/conformance.json at once. Tick what
 this pull request touched, and if the three are not in step, say why on the line below.
 -->
 
 - [ ] `SPEC.md`, because the prose of a notation changed
-- [ ] `profile.json`, because an entry was added, changed or removed
+- [ ] `spec.json`, because an entry was added, changed or removed
 - [ ] `tests/conformance.json`, because a case was added or its expectation changed
 - [ ] `CHANGELOG.md`, in the same commit as the change it documents
 - [ ] None of the above: this pull request changes no notation

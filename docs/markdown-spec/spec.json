@@ -1,6 +1,6 @@
 {
-  "$schema": "./schema/profile.schema.json",
-  "profile": "MemorySmith Markdown Profile",
+  "$schema": "./schema/spec.schema.json",
+  "spec": "MemorySmith Markdown Specification",
   "version": "0.4.0",
   "variant": "MemorySmith",
   "url": "https://md.memorysmith.app",
@@ -37,7 +37,7 @@
       "reader": "reading-surface",
       "syntax": "\\ before an ASCII punctuation character",
       "example": "To name the forms without invoking them: \\[\\[wikilink\\]\\], \\=\\=marked\\=\\=, \\%\\%comment\\%\\%, \\$formula\\$.",
-      "effect": "The character that follows is literal. It is how this profile's own notation is written as text — `\\[\\[`, `\\=\\=`, `\\%\\%`, `\\$` — and how a line is stopped from becoming a list, with the backslash before the period rather than before the number.",
+      "effect": "The character that follows is literal. It is how this specification's own notation is written as text — `\\[\\[`, `\\=\\=`, `\\%\\%`, `\\$` — and how a line is stopped from becoming a list, with the backslash before the period rather than before the number.",
       "spec": "3.2"
     },
     {
@@ -101,7 +101,7 @@
       "reader": "reading-surface",
       "syntax": "Three or more backticks or tildes, with an optional info string",
       "example": "````\nHere is how a diagram is written:\n\n```mermaid\ngraph TD\n  Notice --> Proposals\n```\n````\n",
-      "effect": "A code block. Nothing inside is parsed: no emphasis, no links, no wikilinks, no callouts. A fence closes only on the same character at the same length or longer, so a fence nests — an outer fence uses more characters than any inside it, or a different character. `mermaid` is the one info string this profile attaches a rendering rule to.",
+      "effect": "A code block. Nothing inside is parsed: no emphasis, no links, no wikilinks, no callouts. A fence closes only on the same character at the same length or longer, so a fence nests — an outer fence uses more characters than any inside it, or a different character. `mermaid` is the one info string this specification attaches a rendering rule to.",
       "spec": "3.7"
     },
     {
@@ -333,7 +333,7 @@
       "reader": "frontmatter",
       "syntax": "tags: [contracts, procurement]",
       "example": "---\ntags: [contracts]\n---\n\nBody.",
-      "effect": "Reserved: the subjects of this note. This is where a tag lives in this profile, and it is filterable and countable like any other list attribute.",
+      "effect": "Reserved: the subjects of this note. This is where a tag lives in this specification, and it is filterable and countable like any other list attribute.",
       "spec": "6.4"
     },
     {
