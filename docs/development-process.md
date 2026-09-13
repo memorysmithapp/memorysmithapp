@@ -313,8 +313,9 @@ validation** and an **AI productivity analysis**.
 
 In the summary, every change that implements or alters a business rule cites its `RN-XXX`
 code, and every change originating from feedback references the issue that originated it,
-with `Closes #N`. That reference is what makes it possible, months later, to answer why a
-rule exists by pointing at the sentence of a real person who felt the friction.
+by its number, `#N`, and never with a closing keyword: that issue closed already, when its
+commit landed on the branch of the cycle (§7.4). That reference is what makes it possible,
+months later, to answer why a rule exists by pointing at the sentence of a real person who felt the friction.
 
 ### 8.1 Staging validation
 
@@ -448,8 +449,9 @@ only after production serves the version (`architecture-guide.md` §20).
   each case, is posted on the issue of the cycle. Like the staging validation, it informs the
   merge and never blocks it. A defect a round finds becomes a case before it is fixed, and a
   case changes only in a commit of its own, never inside the round that reads it.
-- **When cutting the version**, the issues delivered in the cycle are closed with a
-  reference to the PR, and the ones left behind move to the milestone of the next version.
+- **When cutting the version**, every issue delivered in the cycle is closed already, each
+  when its work landed on the branch (§7.4), and the ones left behind move to the milestone
+  of the next version.
   An accepted issue that nobody reassessed at the end of the cycle is a silent promise to
   whoever reported it.
 

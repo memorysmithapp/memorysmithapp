@@ -240,4 +240,4 @@ Messages in the imperative mood and the present tense, following Conventional Co
 
 Every PR description contains three sections: a **Summary of changes**, a **Staging validation** and an **AI productivity analysis**. Before a PR is opened, run `pnpm staging:status` and warn the author when the head commit did not run on staging; never block on it. The format of the three, and how to fill in each field of the last, are in `development-process.md` §8.
 
-A change that implements or alters a business rule cites its `RN-XXX` code. A change originating from feedback references the issue with `Closes #N`.
+A change that implements or alters a business rule cites its `RN-XXX` code. A change originating from feedback references the issue by its number, `#N`, and never with `Closes #N`: the issue closed when its work landed on the branch of the cycle (`development-process.md` §7.4).
