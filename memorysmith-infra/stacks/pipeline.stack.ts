@@ -385,14 +385,30 @@ export class PipelineStack extends Stack {
       const buckets = `arn:${this.partition}:s3:::${prefix.toLowerCase()}*`;
       const artifacts = `arn:${this.partition}:s3:::${stackId(environment, 'Pipeline').toLowerCase()}*`;
 
-      allow(
-        [
-          'codeconnections:UseConnection',
-          'codestar-connections:UseConnection',
-          'codeconnections:GetConnectionToken',
-          'codestar-connections:GetConnectionToken',
+      /**
+       * The right to read the repository, in a policy of its own. CodeBuild
+       * checks, when the project is created, that its role may already use the
+       * connection, and refuses it with "User is not authorized to access
+       * connection" otherwise, so the project waits for this policy. It cannot be
+       * the default policy of the role: that one names the project, and a project
+       * waiting for a policy that names it is a cycle.
+       */
+      const connection = new iam.Policy(this, 'DestroyStagingConnection', {
+        roles: teardown.role ? [teardown.role] : [],
+        statements: [
+          new iam.PolicyStatement({
+            actions: [
+              'codeconnections:UseConnection',
+              'codestar-connections:UseConnection',
+              'codeconnections:GetConnectionToken',
+              'codestar-connections:GetConnectionToken',
+            ],
+            resources: [environment.pipeline.connectionArn],
+          }),
         ],
-        [environment.pipeline.connectionArn],
+      });
+      (teardown.node.defaultChild as codebuild.CfnProject).addDependency(
+        connection.node.defaultChild as iam.CfnPolicy,
       );
       allow(
         [

@@ -200,6 +200,26 @@ describe('the teardown of an environment', () => {
     expect(resources).toContain(':s3:::memorysmithstagingpipeline*');
   });
 
+  it('is created only once its role may use the connection, which CodeBuild checks on creation', () => {
+    const resources = pipelineOf('staging').template.toJSON().Resources as Record<
+      string,
+      { Type: string; Properties?: Record<string, unknown>; DependsOn?: string[] }
+    >;
+    const teardown = Object.values(resources).find(
+      (resource) =>
+        resource.Type === 'AWS::CodeBuild::Project' &&
+        resource.Properties?.['Name'] === 'memorysmith-destroy-staging',
+    );
+    const [policy, granting] =
+      Object.entries(resources).find(
+        ([id, resource]) =>
+          resource.Type === 'AWS::IAM::Policy' && id.startsWith('DestroyStagingConnection'),
+      ) ?? [];
+    expect(policy).toBeDefined();
+    expect(JSON.stringify(granting)).toContain('codeconnections:GetConnectionToken');
+    expect(teardown?.DependsOn).toContain(policy);
+  });
+
   it('deletes a user pool only when the pool is tagged staging, because production may share the account', () => {
     const statements = touching(statementsOf('staging', 'DestroyStaging'), 'cognito-idp');
     expect(statements).toHaveLength(1);
