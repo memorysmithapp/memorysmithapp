@@ -23,9 +23,11 @@
     "staging:destroy": "tsx commands/staging-destroy.ts",
     "recount-storage": "tsx commands/maintenance.ts recount-storage",
     "reproject-links": "tsx commands/maintenance.ts reproject-links",
-    "functional": "playwright test -c functional/playwright.config.ts"
+    "functional": "playwright test -c functional/playwright.config.ts",
+    "agent-eval": "tsx agent-eval/run.ts"
   },
   "dependencies": {
+    "@memorysmith/contracts": "workspace:*",
     "@aws-sdk/client-cloudformation": "^3.1131.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.1131.0",
     "@aws-sdk/client-codebuild": "^3.1131.0",

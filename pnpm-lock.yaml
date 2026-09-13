@@ -343,6 +343,9 @@ importers:
       '@aws-sdk/client-sts':
         specifier: ^3.1131.0
         version: 3.1131.0
+      '@memorysmith/contracts':
+        specifier: workspace:*
+        version: link:../memorysmith-backend/packages/contracts
       aws-cdk-lib:
         specifier: ^2.220.0
         version: 2.266.0(constructs@10.8.1)

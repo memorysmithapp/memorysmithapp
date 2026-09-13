@@ -1,0 +1,30 @@
+{
+  "id": "AE-03",
+  "title": "A second agent writes into the notebook the first one designed",
+  "exercises": "The thesis: whether the notebook AE-01 designed is enough for an agent that did not design it.",
+  "skills": ["write-notes"],
+  "turns": 1,
+  "checks": [
+    "room-held",
+    "whoami-before-first-write",
+    "notes-state-a-name",
+    "frontmatter-follows-templates",
+    "folders-with-notes-have-templates",
+    "links-land",
+    "no-duplicate-writes"
+  ],
+  "rubric": [
+    "Each item lands in the folder whose description says it goes there.",
+    "Each note follows the Template of its folder and the conventions of the Guidance, without inventing properties.",
+    "The follow-up of a case links to the case it continues."
+  ],
+  "variants": [
+    {
+      "id": "pt_BR",
+      "person": "marina",
+      "request": "No meu caderno do consultório, registre estas cinco coisas:\n\n1. Caso novo: J.P., 29 anos, síndrome do intestino irritável, piora com leite. Vamos testar a retirada de lactose por 3 semanas. Retorno em 21 dias.\n2. R.M. voltou hoje: a HbA1c caiu de 6,1 para 5,8 e a fome à tarde melhorou. Manter o plano, retorno em 60 dias.\n3. Protocolo de baixa FODMAP em três fases: exclusão por 4 semanas, reintrodução por grupo de alimentos e manutenção personalizada.\n4. Artigo: probióticos na síndrome do intestino irritável, meta-análise de 2023. O efeito é pequeno e depende da cepa.\n5. Artigo: proteína no café da manhã e saciedade à tarde, ensaio clínico de 2022. Reduziu a fome à tarde em mulheres adultas.",
+      "persona": null,
+      "setup": { "kind": "from-case", "case": "AE-01", "variant": "pt_BR" }
+    }
+  ]
+}

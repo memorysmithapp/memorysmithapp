@@ -1,0 +1,29 @@
+{
+  "id": "AE-04",
+  "title": "Notes written into a notebook a person designed",
+  "exercises": "The reading path alone. Beside AE-03, it tells a defect of the design skill from one of whoami and the tools.",
+  "skills": ["write-notes"],
+  "turns": 1,
+  "checks": [
+    "room-held",
+    "whoami-before-first-write",
+    "notes-state-a-name",
+    "frontmatter-follows-templates",
+    "links-land",
+    "no-duplicate-writes"
+  ],
+  "rubric": [
+    "The note lands in the folder the notebook's own descriptions point to.",
+    "It follows the Template and the vocabulary of the Guidance, in the language of the notebook.",
+    "The comparison the person wants to make later is recorded where the notebook keeps what is still to do."
+  ],
+  "variants": [
+    {
+      "id": "pt_BR",
+      "person": "helena",
+      "request": "No caderno de enologia, registre a degustação que fiz ontem de um Tannat 2024 da Campanha Gaúcha: cor granada intensa, nariz de ameixa e couro, taninos firmes, acidez alta e final longo. Dou nota 4 de 5. Anote também que quero comparar com o Tannat uruguaio que vou abrir no mês que vem.",
+      "persona": null,
+      "setup": { "kind": "tree", "path": "notebooks/trees/enologia" }
+    }
+  ]
+}

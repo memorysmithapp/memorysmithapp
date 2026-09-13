@@ -1,0 +1,29 @@
+{
+  "id": "AE-06",
+  "title": "A notebook of inline tags, converted only as far as the person accepts",
+  "exercises": "The skill that converts inline tags: propose, wait, write only what was accepted, never touch the body.",
+  "skills": ["convert-inline-tags"],
+  "turns": 6,
+  "checks": [
+    "room-held",
+    "whoami-before-first-write",
+    "wrote-after-acceptance",
+    "bodies-untouched",
+    "notes-state-a-name",
+    "no-duplicate-writes"
+  ],
+  "rubric": [
+    "The executor proposes a conversion and waits for an answer before writing anything.",
+    "Only the tags the person accepted become properties; the refused one stays as it was.",
+    "The text of every note is left exactly as it was written, inline tags included."
+  ],
+  "variants": [
+    {
+      "id": "pt_BR",
+      "person": "rita",
+      "request": "Minhas notas antigas estão cheias de #etiquetas no meio do texto e eu não consigo filtrar nada. Dá pra organizar isso?",
+      "persona": "persona-pt_BR.md",
+      "setup": { "kind": "tree", "path": "memorysmith-infra/agent-eval/fixtures/inline-tags" }
+    }
+  ]
+}

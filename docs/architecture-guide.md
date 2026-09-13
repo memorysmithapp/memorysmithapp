@@ -297,8 +297,9 @@ Beside `stacks/` and `constructs/`, two folders that are not infrastructure them
 - **`config/environments.ts`**, which reads the two environments from `cdk.json` (§17).
 - **`commands/`**, what operates the product from outside: the version a deploy serves, the checks a release passes and its notes (§20, §23.3). They are `pnpm` scripts of this package, so a workstation and a pipeline run the same thing.
 - **`functional/`**, the functional suite, in Playwright Test, which tests a deployed environment from outside (§19).
+- **`agent-eval/`**, the blind agent evaluation: its cases, the clean room an agent runs them in, and the checks and the scorecard of a round (§19).
 
-Two rules of `dependency-cruiser` keep `commands/` and `functional/` apart: nothing in `bin/`, `config/`, `stacks/` or `constructs/` imports either, so a synth never loads what operates or tests the product; and neither imports anything of the backend, the frontend or the infrastructure but `@memorysmith/contracts`, because both reach the product the way anybody outside does.
+Two rules of `dependency-cruiser` keep `commands/`, `functional/` and `agent-eval/` apart: nothing in `bin/`, `config/`, `stacks/` or `constructs/` imports any of them, so a synth never loads what operates or tests the product; and none of them imports anything of the backend, the frontend or the infrastructure but `@memorysmith/contracts`, because all three reach the product the way anybody outside does.
 
 Two constructs carry an architectural guarantee, not a convenience:
 
@@ -1325,6 +1326,7 @@ Initial numbers, so they become tests and not folklore. The thesis of the produc
 | Event contracts | Zod schemas validated on both sides (producer and consumer) |
 | End to end | Per vertical slice, in process |
 | Functional | Against the deployed staging, in Playwright Test, after its adapter tests: a case for every route of the core, checked in the Quality stage against `routes.json`, the manifest a test of the core keeps equal to the routes its app mounts; and a case for every tool of the connector, checked against its live `tools/list` and called through the official MCP SDK with a token the run obtains through the whole OAuth flow of the connector, in Chromium, as a client whose Client ID Metadata Document it publishes on the site of the environment; and a case for every page of the interface, in `en_US` and in `pt_BR`, checked in the Quality stage against the router, beside journeys that cross the surfaces: an agent that writes by the Guidance and the Template, a person who ticks its box on the web, and the history of the note naming both. A run creates accounts of its own through the Cognito admin API, asks for their subscriptions and approves them through the product, and deletes the accounts at the end. A projection is awaited by polling up to the target of §18, never by sleeping, and the latency of every route is recorded in the report and never gated |
+| Agent evaluation | Against the connector of the deployed staging, from a workstation, before the pull request of a release is merged: whether an agent that knows nothing but what the connector serves leaves a notebook the method describes. A catalogue of cases under `agent-eval/cases`, each a request in a person's words, the sheet of the person a simulated user plays, the setup it starts from, its mechanical checks and the rubric a judge reads it against. Every run gets an account of its own and a token obtained through the whole OAuth flow, and the executor is a separate headless Claude Code process in an empty directory outside any git repository, loading no setting source, no skill and no built-in tool, with the connector as its only MCP server; the simulated user is another such process with no server at all. A round plays every case three times per model, reads the notebooks before and after each run through the API, and ends in a scorecard of passes per check. It refuses to start when a skill `whoami` announces has no case; AE-00 asks what only this repository answers, so an open room is caught; and a run whose executor used a term the server never sent is discarded rather than scored |
 
 **Three tests that are not optional and exist from the first delivery that makes them possible:**
 
@@ -1395,6 +1397,7 @@ staging:destroy   starts the teardown of staging, whose project runs destroy-sta
 onboard           an account, its subscription and its first notebook, through the API
 recount-storage   rebuilds the storage counter of every subscription (§10.3)
 reproject-links   rebuilds the link graph of every notebook (§11)
+agent-eval        a round of the blind agent evaluation against staging (§19)
 ```
 
 **End to end.** The vertical slice is verified in process, in the Quality stage, with `InMemory` adapters and the routes mounted the way `core-monolith` mounts them. Against a deployed environment, the Smoke stage proves which version every surface serves.

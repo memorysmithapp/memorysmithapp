@@ -105,23 +105,23 @@ module.exports = {
     {
       name: 'infrastructure-never-loads-what-operates-it',
       comment:
-        'The stacks, the constructs and the app describe infrastructure. The commands and the ' +
-        'functional suite operate and test it ' +
+        'The stacks, the constructs and the app describe infrastructure. The commands, the ' +
+        'functional suite and the agent evaluation operate and test it ' +
         'from outside, through its surfaces, and a synth that loaded them would load their ' +
         'dependencies too (architecture-guide.md, section 5.4).',
       severity: 'error',
       from: { path: '^memorysmith-infra/(bin|config|stacks|constructs)/' },
-      to: { path: '^memorysmith-infra/(commands|functional)/' },
+      to: { path: '^memorysmith-infra/(commands|functional|agent-eval)/' },
     },
     {
       name: 'operations-reach-the-product-through-its-contracts',
       comment:
-        'The commands and the functional suite reach the product the way anybody outside does, ' +
-        'through its surfaces: of ' +
+        'The commands, the functional suite and the agent evaluation reach the product the way ' +
+        'anybody outside does, through its surfaces: of ' +
         'this repository they import @memorysmith/contracts and nothing else, not a service and ' +
         'not a stack (architecture-guide.md, section 5.4).',
       severity: 'error',
-      from: { path: '^memorysmith-infra/(commands|functional)/' },
+      from: { path: '^memorysmith-infra/(commands|functional|agent-eval)/' },
       to: {
         path: '^memorysmith-(backend|frontend)/|^memorysmith-infra/(bin|config|stacks|constructs)/',
         pathNot: CONTRACTS,

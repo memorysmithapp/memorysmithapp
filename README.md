@@ -485,6 +485,12 @@ pnpm -C memorysmith-infra exec playwright install chromium
 FUNCTIONAL_ENVIRONMENT=staging pnpm -C memorysmith-infra functional
 ```
 
+The blind agent evaluation runs from a workstation, against staging, before the pull request of a release is merged. It needs Claude Code signed in, credentials of the account and Chromium, and it spends tokens of the models it plays. Its transcripts and scorecard land in `memorysmith-infra/agent-eval/runs/`, which git ignores:
+
+```
+pnpm -C memorysmith-infra agent-eval --environment staging [--models sonnet,haiku] [--runs 3] [--cases AE-01,AE-03]
+```
+
 **The interface.** It reads and writes through the API of the product and has no offline mode, so it needs a live environment to run. It reads where that environment is at runtime, from `/config.json`, and the dev server answers that file from `memorysmith-frontend/config.local.json`, which is untracked. Copy `config.example.json` to it and point it at the environment:
 
 ```json

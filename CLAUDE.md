@@ -134,6 +134,7 @@ The reason is not preference. Everything the product exposes is already en-US: t
 - The `pt_BR` locale of the interface, which is mandatory and speaks to whoever uses the product, not to whoever reads the specification.
 - The content of the example notebooks in `notebooks/`, which is notebook content and not repository documentation. It is good that it is in Portuguese: it demonstrates that the product serves a notebook in any language and that the backend does not interpret content (PP4).
 - Answers in issues, from whoever reports something. The language of the repository is not a demand on whoever uses the product.
+- The words of the person in a case of the agent evaluation, in `memorysmith-infra/agent-eval/`: the request of a `pt_BR` variant, the sheet of the person its simulated user plays and the notes of the notebook it starts from. They are what a person says to an agent, not what the repository says, and a case in one language only would never test the other. The rest of a case, its title, checks and rubric included, is en-US.
 
 ### Examples of the specification, in any language
 

@@ -38,3 +38,6 @@ tmp/
 # The functional suite: its report, and what a run knows while it runs
 memorysmith-infra/functional-report/
 memorysmith-infra/functional/.state/
+
+# The agent evaluation: the transcripts, snapshots and scorecard of every round
+memorysmith-infra/agent-eval/runs/

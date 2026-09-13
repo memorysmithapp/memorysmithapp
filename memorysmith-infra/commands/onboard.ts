@@ -47,6 +47,7 @@ import { countTree, readNotebookTree, type TreeFolder } from './lib/notebook-tre
 import { workingPassword } from './lib/passwords.js';
 import { ProductApi } from './lib/product-api.js';
 import { readText, REPOSITORY_ROOT } from './lib/repository.js';
+import { writeNotebookTree } from './lib/write-notebook.js';
 
 const QUOTAS = ['500MB', '1GB', '2GB'];
 const STATUSES = ['pending_approval', 'trial', 'active', 'rejected', 'suspended', 'canceled'];
@@ -337,56 +338,21 @@ say(`Subscription ${subscriptionId}: ${workingStatus}, ${quota}.`);
 
 // ---- The notebook ------------------------------------------------------------
 
-let written = { folders: 0, notes: 0 };
 if (tree) {
   // The claim is minted with the token, so the session that writes is a new one.
   token = await signIn(email, password);
-  const notebook = await api.call<{ notebookId: string }>('POST', '/knowledge/notebooks', token, {
-    name: values['notebook-name'] ?? tree.name,
-    description: '',
+  const notebook = await writeNotebookTree({
+    api,
+    token,
+    tree,
+    name: values['notebook-name'],
+    structureOnly: values['structure-only'],
+    maxNotes,
+    progress: (written) => {
+      if (written.notes % 25 === 0) say(`  ${written.notes} notes written`);
+    },
   });
-  if (tree.guidance) {
-    await api.call('PUT', `/knowledge/notebooks/${notebook.notebookId}/guidance`, token, {
-      content: tree.guidance,
-      baseRevision: null,
-    });
-  }
-
-  const writeFolders = async (folders: readonly TreeFolder[], parentFolderId: string | null) => {
-    for (const folder of folders) {
-      const created = await api.call<{ folderId: string }>(
-        'POST',
-        `/knowledge/notebooks/${notebook.notebookId}/folders`,
-        token,
-        { parentFolderId, name: folder.title, description: folder.description },
-      );
-      written = { ...written, folders: written.folders + 1 };
-      if (folder.template) {
-        await api.call(
-          'PUT',
-          `/knowledge/notebooks/${notebook.notebookId}/folders/${created.folderId}/template`,
-          token,
-          { content: folder.template, baseRevision: null },
-        );
-      }
-      if (!values['structure-only']) {
-        for (const note of folder.notes) {
-          if (maxNotes > 0 && written.notes >= maxNotes) break;
-          // The content exactly as the tree carries it: nothing is derived from
-          // a file name, and a note written without name: has no name.
-          await api.call('POST', `/knowledge/notebooks/${notebook.notebookId}/notes`, token, {
-            folderId: created.folderId,
-            content: note.content,
-          });
-          written = { ...written, notes: written.notes + 1 };
-          if (written.notes % 25 === 0) say(`  ${written.notes} notes written`);
-        }
-      }
-      await writeFolders(folder.children, created.folderId);
-    }
-  };
-  await writeFolders(tree.folders, null);
-  say(`Notebook ${notebook.notebookId}: ${written.folders} folder(s), ${written.notes} note(s).`);
+  say(`Notebook ${notebook.notebookId}: ${notebook.folders} folder(s), ${notebook.notes} note(s).`);
   if (tree.orphanNotes > 0)
     say(`${tree.orphanNotes} note(s) at the root of the tree were skipped.`);
 }

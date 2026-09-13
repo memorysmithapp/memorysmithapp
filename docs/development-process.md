@@ -439,10 +439,15 @@ reaches `main` only through the PR of step 7, and never through a direct push. N
 by hand: a tag ruleset lets only the release App create a `v*` tag, and the pipeline writes it
 only after production serves the version (`architecture-guide.md` §20).
 
-### 9.2 Two points that belong to the process
+### 9.2 Three points that belong to the process
 
 - **The branch of a cycle is `release/vX.Y.Z`**, and the version bump commit lands in it,
   not in a separate branch.
+- **Before the pull request of a release is merged**, a round of the agent evaluation runs
+  against staging (`architecture-guide.md` §19), and its scorecard, with the judgement of
+  each case, is posted on the issue of the cycle. Like the staging validation, it informs the
+  merge and never blocks it. A defect a round finds becomes a case before it is fixed, and a
+  case changes only in a commit of its own, never inside the round that reads it.
 - **When cutting the version**, the issues delivered in the cycle are closed with a
   reference to the PR, and the ones left behind move to the milestone of the next version.
   An accepted issue that nobody reassessed at the end of the cycle is a silent promise to

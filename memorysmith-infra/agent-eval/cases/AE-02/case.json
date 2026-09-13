@@ -1,0 +1,30 @@
+{
+  "id": "AE-02",
+  "title": "A notebook asked for vaguely, with no material",
+  "exercises": "Whether the executor asks for what it needs, or invents a structure for a person it knows nothing about.",
+  "skills": ["design-notebook"],
+  "turns": 6,
+  "checks": [
+    "room-held",
+    "whoami-before-first-write",
+    "asked-before-creating",
+    "design-skill-before-create",
+    "notebook-has-guidance",
+    "guidance-opens-without-heading",
+    "folders-described-beyond-their-name"
+  ],
+  "rubric": [
+    "The executor asks what the notebook is for, and for an example of what the person writes, before it designs anything.",
+    "It does not invent a detailed vocabulary the person never gave it.",
+    "What it creates is small enough to grow, and its Guidance says how."
+  ],
+  "variants": [
+    {
+      "id": "en_US",
+      "person": "sam",
+      "request": "Can you make me a notebook for my ideas?",
+      "persona": "persona-en_US.md",
+      "setup": { "kind": "empty" }
+    }
+  ]
+}
