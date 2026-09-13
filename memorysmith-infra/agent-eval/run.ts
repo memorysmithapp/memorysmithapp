@@ -62,11 +62,6 @@ const { values } = parseArgs({
 
 const say = (line: string): void => void process.stdout.write(`${line}\n`);
 
-function fail(message: string): never {
-  console.error(message);
-  process.exit(1);
-}
-
 const catalogue = loadCases();
 const wanted = values.cases?.split(',').map((id) => id.trim());
 const cases = wanted ? catalogue.filter((each) => wanted.includes(each.id)) : catalogue;
@@ -76,9 +71,15 @@ const models = values.models
   .filter(Boolean);
 const runs = Number(values.runs);
 
-const environment = await openEnvironment(values.environment);
-const browser = await chromium.launch();
+// Whatever refuses a round refuses it from here on by throwing, never by
+// exiting, so the finally below always closes the browser and deletes the
+// accounts the round created.
 const root = roomsRoot();
+const browser = await chromium.launch();
+const environment = await openEnvironment(values.environment).catch(async (error: unknown) => {
+  await browser.close();
+  throw error;
+});
 
 async function accountFor(variant: CaseVariant, left: Map<string, Account>): Promise<Account> {
   switch (variant.setup.kind) {
@@ -195,9 +196,13 @@ try {
   const announced = skillsAnnounced(
     await whoamiText(environment, await connectorToken(environment, probe, browser)),
   );
-  if (announced.length === 0) fail('whoami announced no skill, so the index could not be read.');
+  if (announced.length === 0) {
+    throw new Error('whoami announced no skill, so the index could not be read.');
+  }
   const uncovered = uncoveredSkills(announced, catalogue);
-  if (uncovered.length > 0) fail(`No case exercises ${uncovered.join(', ')}. Write one first.`);
+  if (uncovered.length > 0) {
+    throw new Error(`No case exercises ${uncovered.join(', ')}. Write one first.`);
+  }
   say(
     `${environment.name} serves ${environment.version}; skills announced: ${announced.join(', ')}.`,
   );
