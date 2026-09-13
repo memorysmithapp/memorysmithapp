@@ -349,3 +349,19 @@ describe('the connector is bound to the token it was issued (item 4 of 13.3)', (
     expect(calls).toEqual([]);
   });
 });
+
+describe('what this host says about itself (architecture-guide.md, 23.3)', () => {
+  it('carries the environment and the version on every answer, the OAuth challenge included', async () => {
+    const deployed = createApp(config, resolveStateSecret, tools, recordingBinder().binder, {
+      environment: 'staging',
+      version: '0.6.0-rc.12+a1b2c3d',
+      commit: 'a1b2c3d',
+    });
+
+    const challenge = await deployed.request('/mcp', { method: 'POST' });
+
+    expect(challenge.status).toBe(401);
+    expect(challenge.headers.get('x-memorysmith-environment')).toBe('staging');
+    expect(challenge.headers.get('x-memorysmith-version')).toBe('0.6.0-rc.12+a1b2c3d');
+  });
+});

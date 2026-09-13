@@ -19,7 +19,7 @@ import { verifyAccessToken } from './auth.js';
 import { handleMcpRequest } from './mcp.js';
 import type { McpToolAdapter } from './mcp/tools.js';
 import type { ConnectorBinder } from './connector-binding.js';
-import type { Deployment } from '@memorysmith/contracts';
+import { DEPLOYMENT_HEADERS, type Deployment } from '@memorysmith/contracts';
 import { PRODUCTION_DEFAULT } from './mcp/environment.js';
 
 /** The longest connector name an authorship keeps. */
@@ -60,6 +60,18 @@ export function createApp(
   deployment: Deployment = PRODUCTION_DEFAULT,
 ): Hono {
   const app = new Hono();
+
+  /**
+   * Every response says what answered it, the OAuth challenge included: it is
+   * the one answer of this host a smoke can read without signing in, and after
+   * a deploy the version on the wire is the proof that the new artefact is the
+   * one serving (architecture-guide.md, 23.3).
+   */
+  app.use('*', async (c, next) => {
+    await next();
+    c.res.headers.set(DEPLOYMENT_HEADERS.environment, deployment.environment);
+    c.res.headers.set(DEPLOYMENT_HEADERS.version, deployment.version);
+  });
   const challenge = `Bearer resource_metadata="${config.publicOrigin}/.well-known/oauth-protected-resource"`;
 
   // ---- Discovery (items 1 and 2) -------------------------------------------
