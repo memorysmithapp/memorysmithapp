@@ -292,6 +292,13 @@ memorysmith-infra/
 └── package.json
 ```
 
+Beside `stacks/` and `constructs/`, two folders that are not infrastructure themselves:
+
+- **`config/environments.ts`**, which reads the two environments from `cdk.json` (§17).
+- **`commands/`**, what operates the product from outside: the version a deploy serves, the checks a release passes and its notes (§20, §23.3). They are `pnpm` scripts of this package, so a workstation and a pipeline run the same thing.
+
+Two rules of `dependency-cruiser` keep `commands/` apart: nothing in `bin/`, `config/`, `stacks/` or `constructs/` imports it, so a synth never loads what operates the product; and it imports nothing of this repository but `@memorysmith/contracts`, because it reaches the product the way anybody outside does.
+
 Two constructs carry an architectural guarantee, not a convenience:
 
 - **`append-only-table`** is where PE4 stops being policy and becomes permission. The explicit `Deny` on `UpdateItem` and `DeleteItem` lives here, and this is where the immutability test of §19 points.

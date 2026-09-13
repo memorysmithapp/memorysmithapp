@@ -103,6 +103,29 @@ module.exports = {
       to: { path: '(^|/)docs/markdown-spec/|(^|/)@memorysmith/markdown-spec(/|$)' },
     },
     {
+      name: 'infrastructure-never-loads-what-operates-it',
+      comment:
+        'The stacks, the constructs and the app describe infrastructure. The commands operate it ' +
+        'from outside, through its surfaces, and a synth that loaded them would load their ' +
+        'dependencies too (architecture-guide.md, section 5.4).',
+      severity: 'error',
+      from: { path: '^memorysmith-infra/(bin|config|stacks|constructs)/' },
+      to: { path: '^memorysmith-infra/commands/' },
+    },
+    {
+      name: 'operations-reach-the-product-through-its-contracts',
+      comment:
+        'The commands reach the product the way anybody outside does, through its surfaces: of ' +
+        'this repository they import @memorysmith/contracts and nothing else, not a service and ' +
+        'not a stack (architecture-guide.md, section 5.4).',
+      severity: 'error',
+      from: { path: '^memorysmith-infra/commands/' },
+      to: {
+        path: '^memorysmith-(backend|frontend)/|^memorysmith-infra/(bin|config|stacks|constructs)/',
+        pathNot: CONTRACTS,
+      },
+    },
+    {
       name: 'contracts-stay-standalone',
       comment:
         'The published language depends on nothing of ours: the frontend imports it, so a ' +

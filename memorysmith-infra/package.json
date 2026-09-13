@@ -8,6 +8,9 @@
     "typecheck": "tsc --noEmit",
     "synth": "cdk synth",
     "test": "vitest run",
+    "served-version": "tsx commands/served-version.ts",
+    "release-checks": "tsx commands/release-checks.ts",
+    "release-notes": "tsx commands/release-notes.ts",
     "deploy": "cdk deploy"
   },
   "dependencies": {
