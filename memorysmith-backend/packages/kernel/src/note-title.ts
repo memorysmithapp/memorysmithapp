@@ -9,7 +9,7 @@
  * disagree about what a note is called (RN-KNW-035).
  *
  * What it reads is the notation the specification declares — the first level-1
- * heading, and one reserved key of the frontmatter — and never a vault
+ * heading, and one reserved key of the frontmatter — and never a notebook
  * convention or a vocabulary this backend holds a list of (PP4).
  */
 

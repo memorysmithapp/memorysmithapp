@@ -62,13 +62,13 @@ export class SubscriptionId extends UlidIdentifier {
   }
 }
 
-export class VaultId extends UlidIdentifier {
-  private readonly __vaultId!: void;
-  static create(raw: string): Result<VaultId, DomainError> {
-    return parseUlid(raw, 'VaultId', (value) => new VaultId(value));
+export class NotebookId extends UlidIdentifier {
+  private readonly __notebookId!: void;
+  static create(raw: string): Result<NotebookId, DomainError> {
+    return parseUlid(raw, 'NotebookId', (value) => new NotebookId(value));
   }
-  static generate(): VaultId {
-    return new VaultId(ulid());
+  static generate(): NotebookId {
+    return new NotebookId(ulid());
   }
 }
 

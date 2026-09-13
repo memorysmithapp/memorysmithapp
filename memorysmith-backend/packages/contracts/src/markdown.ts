@@ -12,7 +12,7 @@
  * That is the whole reason this file holds no list. A specification and an
  * implementation that keep separate copies of the same list drift apart on the
  * first cycle, and the drift is silent — which is exactly the failure the
- * specification exists to prevent one layer up, for the vaults. Keeping a
+ * specification exists to prevent one layer up, for the notebooks. Keeping a
  * private transcription here would be that same mistake, made by us.
  *
  * It is re-exported from this package, and not read directly by whoever needs
@@ -58,9 +58,9 @@ export interface RecognisedNotation {
  * One case of the published suite. Absent expectations assert nothing.
  *
  * A case may state four different things, and 0.6.0 added the last two: what
- * a note is CALLED (`title`), and what a target BECOMES once a vault exists to
- * resolve it against (`vault` plus `resolution`). The last pair cannot be run
- * against an extractor alone — it needs the resolver and a vault to give it.
+ * a note is CALLED (`title`), and what a target BECOMES once a notebook exists to
+ * resolve it against (`notebook` plus `resolution`). The last pair cannot be run
+ * against an extractor alone — it needs the resolver and a notebook to give it.
  */
 export interface ConformanceCase {
   readonly id: string;
@@ -70,8 +70,8 @@ export interface ConformanceCase {
   readonly facets?: Readonly<Record<string, { readonly kind: string; readonly values: string[] }>>;
   /** What the chain reads out of `markdown`, or `null` for no addressable title. */
   readonly title?: string | null;
-  /** The vault the targets are resolved against: note bodies and attachment names. */
-  readonly vault?: {
+  /** The notebook the targets are resolved against: note bodies and attachment names. */
+  readonly notebook?: {
     readonly notes?: readonly string[];
     readonly attachments?: readonly string[];
   };
@@ -136,7 +136,7 @@ export const CONFORMANCE_CASES: readonly ConformanceCase[] =
  *
  * **This list is a decision of ours, and it used to be a field.** Until profile
  * v0.4.0 every entry carried a `ring`, and two guards — the reading-surface
- * expectations and the two demonstration vaults — were scoped to everything
+ * expectations and the two demonstration notebooks — were scoped to everything
  * outside the `base` one. The profile dropped the tier for a good reason: an
  * implementation is asked for the notation the document lists and not for a
  * specification in full. But the reason those two guards were scoped did not
@@ -145,7 +145,7 @@ export const CONFORMANCE_CASES: readonly ConformanceCase[] =
  *
  * The reason, unchanged: asserting that emphasis renders as `<em>` is a claim
  * about react-markdown and not about this surface, and forcing a setext
- * heading into two hand-written vaults turns them into the list of specimens
+ * heading into two hand-written notebooks turns them into the list of specimens
  * they exist to not be. CommonMark is the floor every renderer already stands
  * on; what those two guards prove is what this profile adds on top of it.
  *
@@ -208,7 +208,7 @@ export const DELEGATED_TO_THE_BASE_PARSER: ReadonlySet<string> = new Set([
  * about the behaviour: `#subject` in the body of a note becomes no edge and no
  * facet, and the reading surface draws it as plain text with no chip and
  * nothing to click (RN-DSC-033, and RN-PRT-007 depends on it). The rule is
- * ours, argued from PP4 and from a survey of the example vaults, and it needs
+ * ours, argued from PP4 and from a survey of the example notebooks, and it needs
  * somewhere to live now that it is not a row in `spec.json`.
  *
  * The guard that watches it is the reason this list is not simply deleted. Of
@@ -263,8 +263,8 @@ export const DECLARED_SILENCE: readonly DeclaredSilence[] = [
  * differently when it classifies a value: `created: manually` degrades to an
  * ordinary enum rather than being an error, and `autor:` stays legal and stays
  * indexed as the ordinary attribute it is. What the reservation buys is the
- * **name** — the one thing a vault cannot invent for itself without leaving
- * every other vault behind, because unreserved, one vault writes `autor:` and
+ * **name** — the one thing a notebook cannot invent for itself without leaving
+ * every other notebook behind, because unreserved, one notebook writes `autor:` and
  * another writes `author:` and no interface can offer one column over both.
  *
  * `title` is the exception in both directions: it is reserved and it is never

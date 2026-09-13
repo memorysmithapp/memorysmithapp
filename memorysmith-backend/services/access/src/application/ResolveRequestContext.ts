@@ -3,8 +3,8 @@
  *
  * It validates that the active subscription is in trial or active (RN-SUB-007),
  * resolves ownership and the role in the subscription, and injects all of it
- * into the request context. IT DOES NOT KNOW WHAT A VAULT IS, and could not:
- * whoever holds the per-vault ceiling is the Knowledge context.
+ * into the request context. IT DOES NOT KNOW WHAT A NOTEBOOK IS, and could not:
+ * whoever holds the per-notebook ceiling is the Knowledge context.
  *
  * The result is cached for five minutes, which is the declared propagation
  * delay of a role change (RN-ACC-016).
@@ -25,7 +25,7 @@ import type { SubscriptionRepository } from '../domain/ports/index.js';
 export interface ResolvedContext {
   readonly user: UserId;
   readonly isOwner: boolean;
-  /** One role for the whole subscription; a vault ceiling can only lower it. */
+  /** One role for the whole subscription; a notebook ceiling can only lower it. */
   readonly role: Role;
 }
 

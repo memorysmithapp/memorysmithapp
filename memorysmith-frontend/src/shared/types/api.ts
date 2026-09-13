@@ -1,13 +1,13 @@
 // DTO shapes mirror the future internal API (architecture-guide.md §14.1).
 // The seed adapter fills them today; the HTTP client will fill them tomorrow.
 
-export interface VaultSummary {
+export interface NotebookSummary {
   id: string;
   slug: string;
   name: string;
   description: string;
   noteCount: number;
-  /** ISO instant of the last write in the vault, formatted at the edge. */
+  /** ISO instant of the last write in the notebook, formatted at the edge. */
   updatedAt: string;
 }
 
@@ -32,19 +32,19 @@ export interface FolderNode {
   children: FolderNode[];
 }
 
-export interface VaultStructure {
-  vault: VaultSummary;
+export interface NotebookStructure {
+  notebook: NotebookSummary;
   guidance: string | null;
   /** The revision of the guidance slot, null when nothing is written yet. */
   guidanceRevision: string | null;
-  /** min(papel de assinatura, teto do vault), owner acima dos dois. */
+  /** min(papel de assinatura, teto do caderno), owner acima dos dois. */
   effectiveRole: string;
   folders: FolderNode[];
 }
 
 export interface NoteDetail {
   id: string;
-  vaultSlug: string;
+  notebookSlug: string;
   /** Where the note lives, which the address carries as decoration. */
   folderId: string;
   /** `null` when the content of the note states no title a link could name. */
@@ -57,7 +57,7 @@ export interface NoteDetail {
   titleFrom: 'frontmatter' | 'heading' | null;
   folderNames: string[];
   frontmatter: Record<string, string>;
-  /** Which of those the vault wrote as a list; they are drawn as chips. */
+  /** Which of those the notebook wrote as a list; they are drawn as chips. */
   listProperties: string[];
   body: string;
   raw: string;
@@ -66,7 +66,7 @@ export interface NoteDetail {
 }
 
 /**
- * One hit of a vault search. The identifier is the note's, which the caller
+ * One hit of a notebook search. The identifier is the note's, which the caller
  * resolves against the structure it has already loaded; the excerpt is the
  * passage around the match, cut from the text as the author wrote it, and the
  * section is the heading it fell under when it fell under one.

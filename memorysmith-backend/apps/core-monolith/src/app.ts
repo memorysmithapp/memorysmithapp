@@ -7,8 +7,8 @@
  * The middleware chain is the two-stage authorization of section 14.2:
  *   1. authenticate  -> claims, and a SubscriptionContext when there is one;
  *   2. resolve       -> ownership and workspace roles, cached five minutes.
- * A third stage does not exist here: the decision about a vault belongs to the
- * service that owns the vault, and it happens inside its use cases.
+ * A third stage does not exist here: the decision about a notebook belongs to the
+ * service that owns the notebook, and it happens inside its use cases.
  */
 
 import { Hono, type Context, type Next } from 'hono';
@@ -39,7 +39,7 @@ import {
   type PortabilityRequest,
   type PortabilityUseCases,
 } from '@memorysmith/svc-portability/adapters/http';
-import type { VaultWriter } from '@memorysmith/svc-portability/application/import';
+import type { NotebookWriter } from '@memorysmith/svc-portability/application/import';
 
 export interface AppDependencies {
   readonly verifier: TokenVerifier;
@@ -49,20 +49,20 @@ export interface AppDependencies {
   readonly auditUseCases: AuditUseCases;
   readonly discoveryUseCases: DiscoveryUseCases;
   readonly portabilityUseCases: PortabilityUseCases;
-  /** Stage 1 of authorization, for the routes that need a vault decision. */
+  /** Stage 1 of authorization, for the routes that need a notebook decision. */
   readonly resolveContext: (
     request: AccessRequest,
   ) => Promise<{ ok: true; value: KnowledgeRequest } | { ok: false; error: DomainError }>;
   /**
-   * Whether this session may read a given vault. Discovery answers about
-   * vaults it does not own, so the decision comes from whoever does.
+   * Whether this session may read a given notebook. Discovery answers about
+   * notebooks it does not own, so the decision comes from whoever does.
    */
-  readonly canReadVault: (request: KnowledgeRequest, vaultId: string) => Promise<boolean>;
+  readonly canReadNotebook: (request: KnowledgeRequest, notebookId: string) => Promise<boolean>;
   /**
-   * What an import writes a vault with. It is built here, per request, because
+   * What an import writes a notebook with. It is built here, per request, because
    * it joins two contexts that may not import each other.
    */
-  readonly vaultWriterFor: (request: KnowledgeRequest) => VaultWriter;
+  readonly notebookWriterFor: (request: KnowledgeRequest) => NotebookWriter;
 }
 
 type Variables = {
@@ -109,7 +109,7 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
   });
 
   /**
-   * Knowledge, Discovery, Audit and Portability all need the vault decision,
+   * Knowledge, Discovery, Audit and Portability all need the notebook decision,
    * so they share the same second stage. A platform session carries no
    * subscription, so nothing downstream is even constructible: it fails HERE,
    * at composition, and not at a role check (RN-SUB-016).
@@ -125,22 +125,22 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
       if (!resolved.ok) return fail(c, resolved.error);
       c.set('knowledge', resolved.value);
       c.set('audit', { subscription: resolved.value.subscription });
-      const canRead = (vaultId: string): Promise<boolean> =>
-        deps.canReadVault(resolved.value, vaultId);
+      const canRead = (notebookId: string): Promise<boolean> =>
+        deps.canReadNotebook(resolved.value, notebookId);
       c.set('discovery', {
         subscription: resolved.value.subscription,
-        // Discovery holds no vault, so whether the caller may read one is
+        // Discovery holds no notebook, so whether the caller may read one is
         // answered by the context that owns it.
         canRead,
       });
-      // Portability holds no vault either, and asks the same question — plus
+      // Portability holds no notebook either, and asks the same question — plus
       // one more, because an import WRITES: whoever is importing is who every
       // write of it is attributed to (rule 7).
       c.set('portability', {
         subscription: resolved.value.subscription,
         canRead,
         authorship: resolved.value.authorship,
-        write: deps.vaultWriterFor(resolved.value),
+        write: deps.notebookWriterFor(resolved.value),
       });
       await next();
     },

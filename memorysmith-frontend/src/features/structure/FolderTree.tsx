@@ -5,7 +5,7 @@ import type { FolderNode } from '../../shared/types/api';
 import { noteAddress, noteIdOf } from '../../shared/api/note-address';
 
 interface FolderTreeProps {
-  vaultSlug: string;
+  notebookSlug: string;
   folders: FolderNode[];
 }
 
@@ -14,17 +14,17 @@ interface FolderTreeProps {
 // expands and the active item scrolls into view. Manual toggles still work;
 // entering a folder's subtree just forces it open again.
 function TreeNote({
-  vaultSlug,
+  notebookSlug,
   folder,
   note,
 }: {
-  vaultSlug: string;
+  notebookSlug: string;
   folder: FolderNode;
   note: FolderNode['notes'][number];
 }) {
   const { t } = useTranslation();
   const { '*': path } = useParams();
-  const address = noteAddress(vaultSlug, folder.slugPath, note.title, note.id);
+  const address = noteAddress(notebookSlug, folder.slugPath, note.title, note.id);
   // The identifier is what decides, because the label is decoration and may be
   // stale in the address somebody is standing on (RN-DSC-045).
   const active = noteIdOf(path?.split('/').pop() ?? '') === note.id;
@@ -43,7 +43,7 @@ function TreeNote({
   );
 }
 
-function FolderItem({ vaultSlug, folder }: { vaultSlug: string; folder: FolderNode }) {
+function FolderItem({ notebookSlug, folder }: { notebookSlug: string; folder: FolderNode }) {
   const { '*': folderPath } = useParams();
   const isActive = folderPath === folder.slugPath;
   const onActivePath = isActive || (folderPath?.startsWith(`${folder.slugPath}/`) ?? false);
@@ -71,7 +71,7 @@ function FolderItem({ vaultSlug, folder }: { vaultSlug: string; folder: FolderNo
         </button>
         <Link
           ref={linkRef}
-          to={`/vaults/${vaultSlug}/root/${folder.slugPath}`}
+          to={`/notebooks/${notebookSlug}/root/${folder.slugPath}`}
           title={folder.description}
         >
           {folder.name}
@@ -81,10 +81,10 @@ function FolderItem({ vaultSlug, folder }: { vaultSlug: string; folder: FolderNo
       {open && (
         <ul className="tree-children">
           {folder.children.map((child) => (
-            <FolderItem key={child.id} vaultSlug={vaultSlug} folder={child} />
+            <FolderItem key={child.id} notebookSlug={notebookSlug} folder={child} />
           ))}
           {folder.notes.map((note) => (
-            <TreeNote key={note.id} vaultSlug={vaultSlug} folder={folder} note={note} />
+            <TreeNote key={note.id} notebookSlug={notebookSlug} folder={folder} note={note} />
           ))}
         </ul>
       )}
@@ -92,20 +92,20 @@ function FolderItem({ vaultSlug, folder }: { vaultSlug: string; folder: FolderNo
   );
 }
 
-// The tree opens at the vault content root, mirroring the /root namespace of
+// The tree opens at the notebook content root, mirroring the /root namespace of
 // the URL and the reserved crumb of the trail.
-export function FolderTree({ vaultSlug, folders }: FolderTreeProps) {
+export function FolderTree({ notebookSlug, folders }: FolderTreeProps) {
   const { t } = useTranslation();
   const { '*': splat } = useParams();
   return (
     <ul className="tree-root">
       <li>
         <div className={`tree-folder${splat === '' ? ' active' : ''}`}>
-          <Link to={`/vaults/${vaultSlug}/root`}>{t('structure.root')}</Link>
+          <Link to={`/notebooks/${notebookSlug}/root`}>{t('structure.root')}</Link>
         </div>
         <ul className="tree-children">
           {folders.map((folder) => (
-            <FolderItem key={folder.id} vaultSlug={vaultSlug} folder={folder} />
+            <FolderItem key={folder.id} notebookSlug={notebookSlug} folder={folder} />
           ))}
         </ul>
       </li>

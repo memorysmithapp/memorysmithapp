@@ -86,16 +86,19 @@ export async function handler(event: QueueEvent): Promise<void> {
       : null;
 
     switch (envelope.type) {
-      case 'VaultCreated':
-      case 'VaultRenamed':
-        await projectors.structure.onVault(String(payload['vaultId']), String(payload['name']));
+      case 'NotebookCreated':
+      case 'NotebookRenamed':
+        await projectors.structure.onNotebook(
+          String(payload['notebookId']),
+          String(payload['name']),
+        );
         break;
 
       case 'FolderAdded':
       case 'FolderRenamed':
       case 'FolderDescribed':
       case 'FolderMoved':
-        await projectors.structure.onFolder(String(payload['vaultId']), {
+        await projectors.structure.onFolder(String(payload['notebookId']), {
           folderId: String(payload['folderId']),
           name: String(payload['name'] ?? ''),
           description: String(payload['description'] ?? ''),
@@ -105,7 +108,7 @@ export async function handler(event: QueueEvent): Promise<void> {
 
       case 'FolderRemoved':
         await projectors.structure.onFoldersRemoved(
-          String(payload['vaultId']),
+          String(payload['notebookId']),
           (envelope.payload['removedFolderIds'] as string[]) ?? [],
         );
         break;
@@ -113,7 +116,7 @@ export async function handler(event: QueueEvent): Promise<void> {
       case 'NoteCreated':
       case 'NoteUpdated':
         await projectors.note.onWritten({
-          vaultId: String(payload['vaultId']),
+          notebookId: String(payload['notebookId']),
           noteId: String(payload['noteId']),
           folderId: String(payload['folderId']),
           contentRef,
@@ -124,8 +127,8 @@ export async function handler(event: QueueEvent): Promise<void> {
         // The folder is part of the embedded prefix, so a move reindexes the
         // note even though its words did not change (RN-DSC-012).
         await projectors.note.onMoved({
-          vaultId: String(payload['toVaultId']),
-          fromVaultId: String(payload['fromVaultId']),
+          notebookId: String(payload['toNotebookId']),
+          fromNotebookId: String(payload['fromNotebookId']),
           noteId: String(payload['noteId']),
           folderId: String(payload['toFolderId']),
           contentRef,
@@ -134,7 +137,7 @@ export async function handler(event: QueueEvent): Promise<void> {
 
       case 'NoteDeleted':
         await projectors.note.onDeleted({
-          vaultId: String(payload['vaultId']),
+          notebookId: String(payload['notebookId']),
           noteId: String(payload['noteId']),
           folderId: String(payload['folderId']),
           contentRef: null,
@@ -143,7 +146,7 @@ export async function handler(event: QueueEvent): Promise<void> {
 
       case 'NoteRestored':
         await projectors.note.onRestored({
-          vaultId: String(payload['vaultId']),
+          notebookId: String(payload['notebookId']),
           noteId: String(payload['noteId']),
           folderId: String(payload['folderId']),
           contentRef,

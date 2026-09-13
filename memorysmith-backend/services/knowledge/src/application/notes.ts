@@ -3,12 +3,12 @@
  * (architecture-guide.md, section 10.2).
  *
  * One rule of the public contract lives here, and it is what makes an agent
- * safe to point at a vault: update_note requires baseRevision, and a
+ * safe to point at a notebook: update_note requires baseRevision, and a
  * divergence answers CONFLICT WITH THE CURRENT CONTENT attached, so the caller
  * can choose between redoing and merging (RN-AGT-005).
  *
  * The other one used to be idempotency, and it is gone with the key it stood
- * on: **create_note always creates** (RN-AGT-024). Nothing in a vault is
+ * on: **create_note always creates** (RN-AGT-024). Nothing in a notebook is
  * unique, two notes may carry one title (RN-KNW-037), and a repeated call
  * writes a second note. Answering ALREADY_EXISTS would mean the API refusing
  * what the model allows.
@@ -21,18 +21,18 @@ import {
   type FolderId,
   NoteId,
   ok,
-  type VaultId,
+  type NotebookId,
   type Result,
 } from '@memorysmith/kernel';
 import type { RequestContext } from '../domain/access/AuthorizationPolicy.js';
 import { Note } from '../domain/note/Note.js';
 import { NotePlacement } from '../domain/services/NotePlacement.js';
-import { VAULT_LIMITS } from '../domain/values.js';
+import { NOTEBOOK_LIMITS } from '../domain/values.js';
 import type { NoteRepository } from '../domain/ports/index.js';
-import { loadAuthorized, type VaultDependencies } from './vaults.js';
+import { loadAuthorized, type NotebookDependencies } from './notebooks.js';
 import { admitWrite } from '../domain/services/StorageQuota.js';
 
-export interface NoteDependencies extends VaultDependencies {
+export interface NoteDependencies extends NotebookDependencies {
   readonly notes: NoteRepository;
 }
 
@@ -55,16 +55,16 @@ export class ListNotes {
 
   async execute(input: {
     ctx: RequestContext;
-    vaultId: VaultId;
+    notebookId: NotebookId;
     folderId?: FolderId | undefined;
   }): Promise<Result<Note[], DomainError>> {
-    const vault = await loadAuthorized(this.deps, input.ctx, input.vaultId, 'read');
-    if (!vault.ok) return vault;
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'read');
+    if (!notebook.ok) return notebook;
 
     return ok(
       input.folderId
-        ? await this.deps.notes.listByFolder(input.vaultId, input.folderId)
-        : await this.deps.notes.listByVault(input.vaultId),
+        ? await this.deps.notes.listByFolder(input.notebookId, input.folderId)
+        : await this.deps.notes.listByNotebook(input.notebookId),
     );
   }
 }
@@ -74,13 +74,13 @@ export class ReadNote {
 
   async execute(input: {
     ctx: RequestContext;
-    vaultId: VaultId;
+    notebookId: NotebookId;
     noteId: NoteId;
   }): Promise<Result<{ note: Note; content: string }, DomainError>> {
-    const vault = await loadAuthorized(this.deps, input.ctx, input.vaultId, 'read');
-    if (!vault.ok) return vault;
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'read');
+    if (!notebook.ok) return notebook;
 
-    const note = await this.deps.notes.findById(input.vaultId, input.noteId);
+    const note = await this.deps.notes.findById(input.notebookId, input.noteId);
     if (!note || note.isDeleted) return err(DomainError.notFound('Note not found'));
 
     return ok({ note, content: await this.deps.content.read(note.bodyRef) });
@@ -92,23 +92,25 @@ export class CreateNote {
 
   async execute(input: {
     ctx: RequestContext;
-    vaultId: VaultId;
+    notebookId: NotebookId;
     folderId: FolderId;
     content: string;
     afterNoteId: NoteId | null;
     by: Authorship;
   }): Promise<Result<Note, DomainError>> {
-    const vault = await loadAuthorized(this.deps, input.ctx, input.vaultId, 'write');
-    if (!vault.ok) return vault;
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    if (!notebook.ok) return notebook;
 
-    if (!vault.value.folders.has(input.folderId)) {
-      return err(DomainError.notFound('Folder not found in this vault'));
+    if (!notebook.value.folders.has(input.folderId)) {
+      return err(DomainError.notFound('Folder not found in this notebook'));
     }
-    if (Buffer.byteLength(input.content, 'utf8') > VAULT_LIMITS.maxNoteBytes) {
+    if (Buffer.byteLength(input.content, 'utf8') > NOTEBOOK_LIMITS.maxNoteBytes) {
       return err(DomainError.limitExceeded('A note holds at most 1 MB of content'));
     }
-    if (vault.value.noteCount >= VAULT_LIMITS.maxNotes) {
-      return err(DomainError.limitExceeded(`A vault holds at most ${VAULT_LIMITS.maxNotes} notes`));
+    if (notebook.value.noteCount >= NOTEBOOK_LIMITS.maxNotes) {
+      return err(
+        DomainError.limitExceeded(`A notebook holds at most ${NOTEBOOK_LIMITS.maxNotes} notes`),
+      );
     }
     // A new note costs its whole body, and the check runs before the content
     // is written so a refused write leaves nothing in the store (RN-SUB-021).
@@ -120,7 +122,7 @@ export class CreateNote {
 
     // Content first, pointer second (section 10.5).
     const body = await this.deps.content.create(input.content);
-    const siblings = await this.deps.notes.siblingOrder(input.vaultId, input.folderId);
+    const siblings = await this.deps.notes.siblingOrder(input.notebookId, input.folderId);
     const position = input.afterNoteId
       ? NotePlacement.place(siblings, input.afterNoteId)
       : ok(NotePlacement.append(siblings));
@@ -128,8 +130,8 @@ export class CreateNote {
 
     const note = Note.create({
       id: NoteId.generate(),
-      subscriptionId: vault.value.subscriptionId,
-      vaultId: input.vaultId,
+      subscriptionId: notebook.value.subscriptionId,
+      notebookId: input.notebookId,
       folderId: input.folderId,
       body: input.content,
       position: position.value,
@@ -148,26 +150,26 @@ export class UpdateNote {
 
   async execute(input: {
     ctx: RequestContext;
-    vaultId: VaultId;
+    notebookId: NotebookId;
     noteId: NoteId;
     content: string;
     baseRevision: string;
     by: Authorship;
   }): Promise<Result<Note, DomainError>> {
-    const vault = await loadAuthorized(this.deps, input.ctx, input.vaultId, 'write');
-    if (!vault.ok) return vault;
-    if (Buffer.byteLength(input.content, 'utf8') > VAULT_LIMITS.maxNoteBytes) {
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    if (!notebook.ok) return notebook;
+    if (Buffer.byteLength(input.content, 'utf8') > NOTEBOOK_LIMITS.maxNoteBytes) {
       return err(DomainError.limitExceeded('A note holds at most 1 MB of content'));
     }
 
     return withRetry(async () => {
-      const note = await this.deps.notes.findById(input.vaultId, input.noteId);
+      const note = await this.deps.notes.findById(input.notebookId, input.noteId);
       if (!note || note.isDeleted) return err(DomainError.notFound('Note not found'));
 
       if (note.revision !== input.baseRevision) {
         // The current content travels with the conflict, so the caller can
         // decide between redoing and merging. Blind overwrite is not accepted
-        // in a vault that sustains auditing.
+        // in a notebook that sustains auditing.
         return err(
           DomainError.conflict('The note changed since the revision you based this edit on', {
             currentRevision: note.revision,
@@ -200,18 +202,18 @@ export class ReorderNote {
 
   async execute(input: {
     ctx: RequestContext;
-    vaultId: VaultId;
+    notebookId: NotebookId;
     noteId: NoteId;
     afterNoteId: NoteId | null;
     by: Authorship;
   }): Promise<Result<void, DomainError>> {
-    const vault = await loadAuthorized(this.deps, input.ctx, input.vaultId, 'write');
-    if (!vault.ok) return vault;
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    if (!notebook.ok) return notebook;
 
-    const note = await this.deps.notes.findById(input.vaultId, input.noteId);
+    const note = await this.deps.notes.findById(input.notebookId, input.noteId);
     if (!note || note.isDeleted) return err(DomainError.notFound('Note not found'));
 
-    const siblings = await this.deps.notes.siblingOrder(input.vaultId, note.folderId);
+    const siblings = await this.deps.notes.siblingOrder(input.notebookId, note.folderId);
     const position = NotePlacement.place(siblings, input.afterNoteId, note.id);
     if (!position.ok) return position;
 
@@ -224,8 +226,8 @@ export class ReorderNote {
 }
 
 /**
- * Moving between folders costs zero bytes in S3. Moving between vaults is the
- * only operation that writes into two vault partitions in one transaction, and
+ * Moving between folders costs zero bytes in S3. Moving between notebooks is the
+ * only operation that writes into two notebook partitions in one transaction, and
  * it preserves the NoteId, and with it the whole timeline (RN-KNW-023).
  *
  * Nothing is resolved against the destination on the way in: a title collides
@@ -236,31 +238,31 @@ export class MoveNote {
 
   async execute(input: {
     ctx: RequestContext;
-    vaultId: VaultId;
+    notebookId: NotebookId;
     noteId: NoteId;
-    toVaultId: VaultId | null;
+    toNotebookId: NotebookId | null;
     toFolderId: FolderId;
     afterNoteId: NoteId | null;
     by: Authorship;
   }): Promise<Result<Note, DomainError>> {
-    const origin = await loadAuthorized(this.deps, input.ctx, input.vaultId, 'write');
+    const origin = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
     if (!origin.ok) return origin;
 
-    const destinationVaultId = input.toVaultId ?? input.vaultId;
-    const crossVault = !destinationVaultId.equals(input.vaultId);
-    const destination = crossVault
-      ? await loadAuthorized(this.deps, input.ctx, destinationVaultId, 'write')
+    const destinationNotebookId = input.toNotebookId ?? input.notebookId;
+    const crossNotebook = !destinationNotebookId.equals(input.notebookId);
+    const destination = crossNotebook
+      ? await loadAuthorized(this.deps, input.ctx, destinationNotebookId, 'write')
       : origin;
     if (!destination.ok) return destination;
 
     if (!destination.value.folders.has(input.toFolderId)) {
-      return err(DomainError.notFound('Folder not found in the destination vault'));
+      return err(DomainError.notFound('Folder not found in the destination notebook'));
     }
 
-    const note = await this.deps.notes.findById(input.vaultId, input.noteId);
+    const note = await this.deps.notes.findById(input.notebookId, input.noteId);
     if (!note || note.isDeleted) return err(DomainError.notFound('Note not found'));
 
-    const siblings = await this.deps.notes.siblingOrder(destinationVaultId, input.toFolderId);
+    const siblings = await this.deps.notes.siblingOrder(destinationNotebookId, input.toFolderId);
     const position = input.afterNoteId
       ? NotePlacement.place(siblings, input.afterNoteId, note.id)
       : ok(NotePlacement.append(siblings));
@@ -268,7 +270,7 @@ export class MoveNote {
 
     const moved = note.moveTo(
       {
-        vaultId: destinationVaultId,
+        notebookId: destinationNotebookId,
         folderId: input.toFolderId,
         position: position.value,
       },
@@ -276,8 +278,8 @@ export class MoveNote {
     );
     if (!moved.ok) return moved;
 
-    const saved = crossVault
-      ? await this.deps.notes.saveMoved(note, { vaultId: input.vaultId })
+    const saved = crossNotebook
+      ? await this.deps.notes.saveMoved(note, { notebookId: input.notebookId })
       : await this.deps.notes.save(note);
     return saved.ok ? ok(note) : err(saved.error);
   }
@@ -289,14 +291,14 @@ export class DeleteNote {
 
   async execute(input: {
     ctx: RequestContext;
-    vaultId: VaultId;
+    notebookId: NotebookId;
     noteId: NoteId;
     by: Authorship;
   }): Promise<Result<void, DomainError>> {
-    const vault = await loadAuthorized(this.deps, input.ctx, input.vaultId, 'write');
-    if (!vault.ok) return vault;
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    if (!notebook.ok) return notebook;
 
-    const note = await this.deps.notes.findById(input.vaultId, input.noteId);
+    const note = await this.deps.notes.findById(input.notebookId, input.noteId);
     if (!note || note.isDeleted) return err(DomainError.notFound('Note not found'));
 
     const deleted = note.delete(input.by);
@@ -312,14 +314,14 @@ export class RestoreNote {
 
   async execute(input: {
     ctx: RequestContext;
-    vaultId: VaultId;
+    notebookId: NotebookId;
     noteId: NoteId;
     by: Authorship;
   }): Promise<Result<void, DomainError>> {
-    const vault = await loadAuthorized(this.deps, input.ctx, input.vaultId, 'write');
-    if (!vault.ok) return vault;
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    if (!notebook.ok) return notebook;
 
-    const note = await this.deps.notes.findById(input.vaultId, input.noteId);
+    const note = await this.deps.notes.findById(input.notebookId, input.noteId);
     if (!note) return err(DomainError.notFound('Note not found'));
 
     // Nothing has to be free for a note to come back: another note may have

@@ -1,4 +1,4 @@
-// The vault search.
+// The notebook search.
 //
 // What it types goes to the source untouched: the whole query language lives
 // in the backend (software-vision.md 10.2), and a box that pre-filtered here
@@ -10,7 +10,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import type { FolderNode, SearchHit, VaultStructure } from '../../shared/types/api';
+import type { FolderNode, SearchHit, NotebookStructure } from '../../shared/types/api';
 import { searchNotes } from '../../shared/api/source';
 import { noteAddress } from '../../shared/api/note-address';
 import { ApiError } from '../../shared/api/error-mapper';
@@ -28,17 +28,17 @@ interface FlatNote {
   folderPath: string;
 }
 
-function flatten(vaultSlug: string, folders: FolderNode[], trail: string[] = []): FlatNote[] {
+function flatten(notebookSlug: string, folders: FolderNode[], trail: string[] = []): FlatNote[] {
   return folders.flatMap((folder) => {
     const path = [...trail, folder.name];
     return [
       ...folder.notes.map((note) => ({
         id: note.id,
-        address: noteAddress(vaultSlug, folder.slugPath, note.title, note.id),
+        address: noteAddress(notebookSlug, folder.slugPath, note.title, note.id),
         title: note.title,
         folderPath: path.join(' / '),
       })),
-      ...flatten(vaultSlug, folder.children, path),
+      ...flatten(notebookSlug, folder.children, path),
     ];
   });
 }
@@ -73,11 +73,11 @@ function readable(excerpt: string): string {
 }
 
 interface SearchBoxProps {
-  vaultSlug: string;
-  structure: VaultStructure;
+  notebookSlug: string;
+  structure: NotebookStructure;
 }
 
-export function SearchBox({ vaultSlug, structure }: SearchBoxProps) {
+export function SearchBox({ notebookSlug, structure }: SearchBoxProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -90,13 +90,13 @@ export function SearchBox({ vaultSlug, structure }: SearchBoxProps) {
   // A hit names a note by identifier; the tree the page is already showing is
   // what turns it into a title, a path and a link.
   const byId = useMemo(
-    () => new Map(flatten(vaultSlug, structure.folders).map((note) => [note.id, note])),
-    [structure, vaultSlug],
+    () => new Map(flatten(notebookSlug, structure.folders).map((note) => [note.id, note])),
+    [structure, notebookSlug],
   );
 
   const { data, isFetching, error } = useQuery({
-    queryKey: ['vault-search', vaultSlug, debounced],
-    queryFn: () => searchNotes(vaultSlug, debounced, MAX_HITS),
+    queryKey: ['notebook-search', notebookSlug, debounced],
+    queryFn: () => searchNotes(notebookSlug, debounced, MAX_HITS),
     enabled: debounced !== '',
     // The previous answer stays on screen while the next one is in flight, so
     // the list does not blink empty between two keystrokes.

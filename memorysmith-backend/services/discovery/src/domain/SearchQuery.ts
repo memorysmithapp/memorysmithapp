@@ -6,7 +6,7 @@
  * about where the content came from, which is what lets the whole language be
  * tested without infrastructure.
  *
- * The shape follows what people already know from a Markdown vault:
+ * The shape follows what people already know from a Markdown notebook:
  *
  *   lei 14133            every bare term must match (implicit AND)
  *   "lei 14.133"         a quoted phrase matches as one literal string
@@ -17,18 +17,18 @@
  *   folder:normas        match the folder name only
  *   content:prazo        match the body only
  *   section:vigencia     match a heading of the note
- *   maturity:evergreen   match a FACET, whatever the vault happens to call it
+ *   maturity:evergreen   match a FACET, whatever the notebook happens to call it
  *
  * The field list is deliberately NOT closed. `title`, `folder`, `content` and
  * `section` are the four the backend knows how to answer by itself; anything
- * else is looked up as a facet, so a vault that writes `norma: federal` in its
+ * else is looked up as a facet, so a notebook that writes `norma: federal` in its
  * frontmatter gets `norma:federal` as a filter without a line of code being
- * written for it (PP4, RN-DSC-020). The ubiquitous language of the vault is
+ * written for it (PP4, RN-DSC-020). The ubiquitous language of the notebook is
  * the query language.
  *
  * Matching is by SUBSTRING over a normalized form, not by token. That is what
  * makes a word invented inside one note findable by typing part of it, and it
- * is the behaviour a vault user expects from every other tool they use.
+ * is the behaviour a notebook user expects from every other tool they use.
  */
 
 /** The four fields the backend answers from its own projections. */
@@ -61,7 +61,7 @@ export interface Candidate {
   /**
    * The other spellings of the title, from the reserved `aliases`
    * (RN-DSC-032). They are searched wherever the title is, because that is
-   * what an alias is: a vault of technical terms lives on acronyms, and
+   * what an alias is: a notebook of technical terms lives on acronyms, and
    * requiring the full title in every search is what makes people stop
    * finding things. They do NOT resolve wikilinks — that is a different
    * question, decided in the negative, and it stays that way.
@@ -83,7 +83,7 @@ export class QuerySyntaxError extends Error {}
 /**
  * Normalization is the whole difference between a search that finds and one
  * that almost finds: case folded, diacritics stripped. `Vigência` and
- * `vigencia` are the same word to someone typing in a hurry, and a vault in
+ * `vigencia` are the same word to someone typing in a hurry, and a notebook in
  * Portuguese makes that the common case rather than the exception.
  *
  * It is done character by character, and every character contributes exactly
@@ -335,8 +335,8 @@ function intervalOf(facet: string, raw: string): QueryNode | null {
 
 /**
  * Every facet an interval is asked over. The caller checks them against what
- * the vault actually holds, because "is this attribute a date" is a question
- * about the vault and not about the query string (RN-DSC-034).
+ * the notebook actually holds, because "is this attribute a date" is a question
+ * about the notebook and not about the query string (RN-DSC-034).
  */
 export function comparedFacets(node: QueryNode): string[] {
   switch (node.kind) {
@@ -384,7 +384,7 @@ export function matches(node: QueryNode, candidate: Candidate): boolean {
     case 'compare': {
       // Only a date is comparable. A note whose attribute is of another kind
       // simply does not match; whether the QUERY made sense at all is decided
-      // once per vault by the caller, against what the vault holds.
+      // once per notebook by the caller, against what the notebook holds.
       if (candidate.facetKinds[node.facet] !== 'date') return false;
       return (candidate.facets[node.facet] ?? []).some((value) => compare(value, node));
     }

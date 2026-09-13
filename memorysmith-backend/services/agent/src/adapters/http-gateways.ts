@@ -25,7 +25,7 @@ import {
   type NoteListing,
   type RelatedNode,
   type SearchHit,
-  type VaultListing,
+  type NotebookListing,
 } from '../mcp/gateway.js';
 
 /** The bearer token travels with the caller, and only inside this process. */
@@ -66,63 +66,63 @@ async function callApi<T>(
 export class HttpKnowledgeGateway implements KnowledgeGateway {
   constructor(private readonly origin: string) {}
 
-  async listVaults(caller: AgentCaller): Promise<VaultListing[]> {
-    const vaults = await callApi<
-      Array<{ vaultId: string; name: string; description: string; noteCount: number }>
-    >(this.origin, caller, '/knowledge/vaults');
-    return vaults.map((vault) => ({
-      vaultId: vault.vaultId,
-      name: vault.name,
-      description: vault.description,
-      noteCount: vault.noteCount,
+  async listNotebooks(caller: AgentCaller): Promise<NotebookListing[]> {
+    const notebooks = await callApi<
+      Array<{ notebookId: string; name: string; description: string; noteCount: number }>
+    >(this.origin, caller, '/knowledge/notebooks');
+    return notebooks.map((notebook) => ({
+      notebookId: notebook.notebookId,
+      name: notebook.name,
+      description: notebook.description,
+      noteCount: notebook.noteCount,
     }));
   }
 
-  async createVault(
+  async createNotebook(
     caller: AgentCaller,
     input: { name: string; description: string },
-  ): Promise<VaultListing> {
-    const created = await callApi<{ vaultId: string; name: string; description: string }>(
+  ): Promise<NotebookListing> {
+    const created = await callApi<{ notebookId: string; name: string; description: string }>(
       this.origin,
       caller,
-      '/knowledge/vaults',
+      '/knowledge/notebooks',
       { method: 'POST', body: input },
     );
     return {
-      vaultId: created.vaultId,
+      notebookId: created.notebookId,
       name: created.name,
       description: created.description,
       noteCount: 0,
     };
   }
 
-  async deleteVault(caller: AgentCaller, vaultId: string): Promise<void> {
-    await callApi(this.origin, caller, `/knowledge/vaults/${vaultId}`, { method: 'DELETE' });
+  async deleteNotebook(caller: AgentCaller, notebookId: string): Promise<void> {
+    await callApi(this.origin, caller, `/knowledge/notebooks/${notebookId}`, { method: 'DELETE' });
   }
 
   async setGuidance(
     caller: AgentCaller,
-    vaultId: string,
+    notebookId: string,
     content: string,
     baseRevision: string | null,
   ): Promise<void> {
-    await callApi(this.origin, caller, `/knowledge/vaults/${vaultId}/guidance`, {
+    await callApi(this.origin, caller, `/knowledge/notebooks/${notebookId}/guidance`, {
       method: 'PUT',
       body: { content, baseRevision },
     });
   }
 
   /**
-   * The guidance with its revision. The Vault Context is a document and cannot
+   * The guidance with its revision. The Notebook Context is a document and cannot
    * carry one, so a write that has to echo the revision back needs this.
    */
   async guidance(
     caller: AgentCaller,
-    vaultId: string,
+    notebookId: string,
   ): Promise<{ content: string; revision: string } | null> {
     const detail = await callApi<{
       guidance: { content: string; revision: { versionId: string } } | null;
-    }>(this.origin, caller, `/knowledge/vaults/${vaultId}`);
+    }>(this.origin, caller, `/knowledge/notebooks/${notebookId}`);
     return detail.guidance
       ? { content: detail.guidance.content, revision: detail.guidance.revision.versionId }
       : null;
@@ -130,12 +130,12 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
 
   async createFolder(
     caller: AgentCaller,
-    input: { vaultId: string; name: string; description: string; parentFolderId?: string },
+    input: { notebookId: string; name: string; description: string; parentFolderId?: string },
   ): Promise<FolderListing> {
     return callApi<FolderListing>(
       this.origin,
       caller,
-      `/knowledge/vaults/${input.vaultId}/folders`,
+      `/knowledge/notebooks/${input.notebookId}/folders`,
       {
         method: 'POST',
         body: {
@@ -149,45 +149,45 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
 
   async deleteFolder(
     caller: AgentCaller,
-    input: { vaultId: string; folderId: string; policy: string },
+    input: { notebookId: string; folderId: string; policy: string },
   ): Promise<{ removedFolderIds: string[] }> {
     // The policy travels in the query, and there is no default (RN-KNW-007).
     return callApi<{ removedFolderIds: string[] }>(
       this.origin,
       caller,
-      `/knowledge/vaults/${input.vaultId}/folders/${input.folderId}?policy=${encodeURIComponent(input.policy)}`,
+      `/knowledge/notebooks/${input.notebookId}/folders/${input.folderId}?policy=${encodeURIComponent(input.policy)}`,
       { method: 'DELETE' },
     );
   }
 
   async setTemplate(
     caller: AgentCaller,
-    input: { vaultId: string; folderId: string; content: string; baseRevision: string | null },
+    input: { notebookId: string; folderId: string; content: string; baseRevision: string | null },
   ): Promise<void> {
     await callApi(
       this.origin,
       caller,
-      `/knowledge/vaults/${input.vaultId}/folders/${input.folderId}/template`,
+      `/knowledge/notebooks/${input.notebookId}/folders/${input.folderId}/template`,
       { method: 'PUT', body: { content: input.content, baseRevision: input.baseRevision } },
     );
   }
 
-  async deleteNote(caller: AgentCaller, vaultId: string, noteId: string): Promise<void> {
-    await callApi(this.origin, caller, `/knowledge/vaults/${vaultId}/notes/${noteId}`, {
+  async deleteNote(caller: AgentCaller, notebookId: string, noteId: string): Promise<void> {
+    await callApi(this.origin, caller, `/knowledge/notebooks/${notebookId}/notes/${noteId}`, {
       method: 'DELETE',
     });
   }
 
-  async vaultContext(caller: AgentCaller, vaultId: string): Promise<string> {
+  async notebookContext(caller: AgentCaller, notebookId: string): Promise<string> {
     const token = (caller as TokenCarrier).bearerToken;
-    const response = await fetch(`${this.origin}/knowledge/vaults/${vaultId}/context`, {
+    const response = await fetch(`${this.origin}/knowledge/notebooks/${notebookId}/context`, {
       headers: { authorization: `Bearer ${token}` },
     });
     if (!response.ok) {
       const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
       throw new GatewayError(
         String(payload['code'] ?? 'INTERNAL'),
-        String(payload['message'] ?? 'Vault not found'),
+        String(payload['message'] ?? 'Notebook not found'),
       );
     }
     return response.text();
@@ -195,14 +195,14 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
 
   async template(
     caller: AgentCaller,
-    vaultId: string,
+    notebookId: string,
     folderId: string,
   ): Promise<{ content: string; folderName: string; revision: string } | null> {
     const found = await callApi<{
       content: string | null;
       folderName?: string;
       revision?: { versionId: string };
-    }>(this.origin, caller, `/knowledge/vaults/${vaultId}/folders/${folderId}/template`);
+    }>(this.origin, caller, `/knowledge/notebooks/${notebookId}/folders/${folderId}/template`);
     return found.content === null
       ? null
       : {
@@ -212,22 +212,26 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
         };
   }
 
-  async listNotes(caller: AgentCaller, vaultId: string, folderId?: string): Promise<NoteListing[]> {
+  async listNotes(
+    caller: AgentCaller,
+    notebookId: string,
+    folderId?: string,
+  ): Promise<NoteListing[]> {
     const query = folderId ? `?folderId=${encodeURIComponent(folderId)}` : '';
     const notes = await callApi<
       Array<{ noteId: string; title: string | null; folderId: string; position: string }>
-    >(this.origin, caller, `/knowledge/vaults/${vaultId}/notes${query}`);
+    >(this.origin, caller, `/knowledge/notebooks/${notebookId}/notes${query}`);
     return notes;
   }
 
-  async readNote(caller: AgentCaller, vaultId: string, noteId: string): Promise<NoteContent> {
+  async readNote(caller: AgentCaller, notebookId: string, noteId: string): Promise<NoteContent> {
     const note = await callApi<{
       noteId: string;
       title: string | null;
       content: string;
       revision: { versionId: string };
       updatedAt: string;
-    }>(this.origin, caller, `/knowledge/vaults/${vaultId}/notes/${noteId}`);
+    }>(this.origin, caller, `/knowledge/notebooks/${notebookId}/notes/${noteId}`);
     return {
       noteId: note.noteId,
       title: note.title,
@@ -239,35 +243,40 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
 
   async createNote(
     caller: AgentCaller,
-    input: { vaultId: string; folderId: string; content: string },
+    input: { notebookId: string; folderId: string; content: string },
   ): Promise<NoteContent> {
     const created = await callApi<{
       noteId: string;
       title: string | null;
       updatedAt: string;
-    }>(this.origin, caller, `/knowledge/vaults/${input.vaultId}/notes`, {
+    }>(this.origin, caller, `/knowledge/notebooks/${input.notebookId}/notes`, {
       method: 'POST',
       body: { folderId: input.folderId, content: input.content },
     });
-    return this.readNote(caller, input.vaultId, created.noteId);
+    return this.readNote(caller, input.notebookId, created.noteId);
   }
 
   async updateNote(
     caller: AgentCaller,
-    input: { vaultId: string; noteId: string; content: string; baseRevision: string },
+    input: { notebookId: string; noteId: string; content: string; baseRevision: string },
   ): Promise<NoteContent> {
-    await callApi(this.origin, caller, `/knowledge/vaults/${input.vaultId}/notes/${input.noteId}`, {
-      method: 'PUT',
-      body: { content: input.content, baseRevision: input.baseRevision },
-    });
-    return this.readNote(caller, input.vaultId, input.noteId);
+    await callApi(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${input.notebookId}/notes/${input.noteId}`,
+      {
+        method: 'PUT',
+        body: { content: input.content, baseRevision: input.baseRevision },
+      },
+    );
+    return this.readNote(caller, input.notebookId, input.noteId);
   }
 
-  async searchNotes(caller: AgentCaller, vaultId: string, query: string): Promise<SearchHit[]> {
+  async searchNotes(caller: AgentCaller, notebookId: string, query: string): Promise<SearchHit[]> {
     const found = await callApi<{ hits: SearchHit[] }>(
       this.origin,
       caller,
-      `/discovery/vaults/${vaultId}/search`,
+      `/discovery/notebooks/${notebookId}/search`,
       { method: 'POST', body: { query } },
     );
     return found.hits;
@@ -279,21 +288,21 @@ export class HttpDiscoveryGateway implements DiscoveryGateway {
 
   async relatedNotes(
     caller: AgentCaller,
-    input: { vaultId: string; noteId: string; depth?: number },
+    input: { notebookId: string; noteId: string; depth?: number },
   ): Promise<RelatedNode> {
     const depth = input.depth ? `?depth=${input.depth}` : '';
     return callApi<RelatedNode>(
       this.origin,
       caller,
-      `/discovery/vaults/${input.vaultId}/notes/${input.noteId}/graph${depth}`,
+      `/discovery/notebooks/${input.notebookId}/notes/${input.noteId}/graph${depth}`,
     );
   }
 
-  async backlinks(caller: AgentCaller, vaultId: string, noteId: string): Promise<NoteListing[]> {
+  async backlinks(caller: AgentCaller, notebookId: string, noteId: string): Promise<NoteListing[]> {
     const found = await callApi<{ backlinks: NoteListing[] }>(
       this.origin,
       caller,
-      `/discovery/vaults/${vaultId}/notes/${noteId}/backlinks`,
+      `/discovery/notebooks/${notebookId}/notes/${noteId}/backlinks`,
     );
     return found.backlinks;
   }
@@ -304,7 +313,7 @@ export class HttpAuditGateway implements AuditGateway {
 
   async noteHistory(
     caller: AgentCaller,
-    _vaultId: string,
+    _notebookId: string,
     noteId: string,
   ): Promise<HistoryEntry[]> {
     const history = await callApi<{
@@ -327,7 +336,7 @@ export class HttpAuditGateway implements AuditGateway {
 
   async revisionAt(
     caller: AgentCaller,
-    input: { vaultId: string; noteId: string; asOf: string },
+    input: { notebookId: string; noteId: string; asOf: string },
   ): Promise<NoteContent> {
     const revision = await callApi<{
       noteId: string;

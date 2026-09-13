@@ -28,7 +28,7 @@ function note(overrides: Partial<Candidate> = {}): Candidate {
   };
 }
 
-describe('The query language parses what a vault user already types', () => {
+describe('The query language parses what a notebook user already types', () => {
   it('treats several bare terms as all of them having to match', () => {
     const query = parseQuery('lei contratacao');
     expect(matches(query, note())).toBe(true);
@@ -97,10 +97,10 @@ describe('Fields restrict where a term is looked for', () => {
   });
 });
 
-describe('Any attribute of the vault becomes a filter, with no code for it', () => {
+describe('Any attribute of the notebook becomes a filter, with no code for it', () => {
   /**
    * RN-DSC-020: the vocabulary belongs to the guidance. The backend never
-   * holds a list of facet names, so a vault that invents one gets the filter
+   * holds a list of facet names, so a notebook that invents one gets the filter
    * the same day it starts writing it.
    */
   it('filters by the facets the product declares', () => {
@@ -109,7 +109,7 @@ describe('Any attribute of the vault becomes a filter, with no code for it', () 
     expect(matches(parseQuery('reviewed:true'), note())).toBe(true);
   });
 
-  it('filters by a facet the vault invented, unknown to the code', () => {
+  it('filters by a facet the notebook invented, unknown to the code', () => {
     const invented = note({ facets: { norma: ['federal'], instancia: ['segunda'] } });
     expect(matches(parseQuery('norma:federal'), invented)).toBe(true);
     expect(matches(parseQuery('instancia:primeira'), invented)).toBe(false);
@@ -242,7 +242,7 @@ describe('The reserved vocabulary of the specification (RN-DSC-030)', () => {
     expect(TITLE_KEY).toBe(SPECIFIED_TITLE_KEY);
   });
 
-  it('is a guarantee and not a prohibition: an attribute the vault invented keeps working', () => {
+  it('is a guarantee and not a prohibition: an attribute the notebook invented keeps working', () => {
     expect(extractFacets('---\nautor: Ana\n---')['autor']).toEqual({
       facet: 'autor',
       kind: 'enum',
@@ -310,7 +310,7 @@ describe('A date facet matches by prefix, never by substring (RN-DSC-031)', () =
   });
 
   it('keeps substring matching for every other kind', () => {
-    // A vault that files `norma: federal-2026` still wants `norma:federal`.
+    // A notebook that files `norma: federal-2026` still wants `norma:federal`.
     const other = note({ facets: { norma: ['federal-2026'] }, facetKinds: { norma: 'enum' } });
     expect(matches(parseQuery('norma:federal'), other)).toBe(true);
   });
@@ -417,7 +417,7 @@ describe('A date is searchable over an interval, not only at a point (RN-DSC-034
     // An empty result reads as "there is nothing filed under that". This means
     // "you asked something that has no answer", which is a different thing to
     // be told, and the difference decides whether you fix the query or doubt
-    // the vault.
+    // the notebook.
     expect(() => parseQuery('created:2026-03-31..2026-01-01')).toThrow(QuerySyntaxError);
   });
 

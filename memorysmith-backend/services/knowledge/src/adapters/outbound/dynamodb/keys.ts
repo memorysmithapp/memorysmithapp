@@ -13,9 +13,9 @@
  * it.
  */
 
-import type { FolderId, NoteId, Position, SubscriptionId, VaultId } from '@memorysmith/kernel';
+import type { FolderId, NoteId, Position, SubscriptionId, NotebookId } from '@memorysmith/kernel';
 
-/** The sort key of the vault item itself. */
+/** The sort key of the notebook item itself. */
 export const META = 'META';
 /** Lower bound of the single-Query range that loads the whole aggregate. */
 export const AGGREGATE_RANGE_START = 'FOLDER#';
@@ -25,9 +25,9 @@ export const AGGREGATE_RANGE_END = META;
 export class KnowledgeKeys {
   constructor(private readonly subscriptionId: SubscriptionId) {}
 
-  /** Every item of a vault lives in this one partition. */
-  vault(vaultId: VaultId): string {
-    return `S#${this.subscriptionId.value}#VAULT#${vaultId.value}`;
+  /** Every item of a notebook lives in this one partition. */
+  notebook(notebookId: NotebookId): string {
+    return `S#${this.subscriptionId.value}#NOTEBOOK#${notebookId.value}`;
   }
 
   folder(folderId: FolderId): string {
@@ -39,8 +39,8 @@ export class KnowledgeKeys {
     return `FSTAT#${folderId.value}`;
   }
 
-  /** Note counter of the whole vault, projected into GSI1 as VSTAT#. */
-  vaultStat(): string {
+  /** Note counter of the whole notebook, projected into GSI1 as NBSTAT#. */
+  notebookStat(): string {
     return 'FSTAT';
   }
 
@@ -67,30 +67,30 @@ export class KnowledgeKeys {
     return `SEEN#${eventId}`;
   }
 
-  // ---- GSI1: vaults of the subscription, already carrying the count --------
+  // ---- GSI1: notebooks of the subscription, already carrying the count --------
 
   /**
-   * One partition per subscription, which is what listing vaults asks for now
-   * that nothing sits between the subscription and the vault. It doubles as
+   * One partition per subscription, which is what listing notebooks asks for now
+   * that nothing sits between the subscription and the notebook. It doubles as
    * the table partition of the slug guard below: same string, different table
    * attribute, and both start with the subscription (rule 1).
    */
-  subscriptionVaults(): string {
-    return `S#${this.subscriptionId.value}#VAULTS`;
+  subscriptionNotebooks(): string {
+    return `S#${this.subscriptionId.value}#NOTEBOOKS`;
   }
 
-  gsi1Vault(vaultId: VaultId): string {
-    return `VAULT#${vaultId.value}`;
+  gsi1Notebook(notebookId: NotebookId): string {
+    return `NOTEBOOK#${notebookId.value}`;
   }
 
-  gsi1VaultStat(vaultId: VaultId): string {
-    return `VSTAT#${vaultId.value}`;
+  gsi1NotebookStat(notebookId: NotebookId): string {
+    return `NBSTAT#${notebookId.value}`;
   }
 
   /**
    * Stored bytes of the whole subscription, maintained by the outbox relay
    * (RN-SUB-021). It lives in the subscription's partition and not in a
-   * vault's, because a plan limits the subscription, and a vault in the bin is
+   * notebook's, because a plan limits the subscription, and a notebook in the bin is
    * still holding what it holds.
    */
   storageUsage(): string {
@@ -98,12 +98,12 @@ export class KnowledgeKeys {
   }
 
   /**
-   * Unique WITHIN THE SUBSCRIPTION (RN-KNW-032). It lives in the vaults
+   * Unique WITHIN THE SUBSCRIPTION (RN-KNW-032). It lives in the notebooks
    * partition of the TABLE, not in GSI1, because a transaction cannot condition
    * on an index: the guard has to be an item the write can lock against.
    */
-  vaultSlugGuard(slug: string): string {
-    return `VSLUG#${slug}`;
+  notebookSlugGuard(slug: string): string {
+    return `NBSLUG#${slug}`;
   }
 
   // ---- GSI2: notes of a folder, in the defined order -----------------------

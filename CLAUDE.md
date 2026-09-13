@@ -18,7 +18,7 @@ memorysmith
 memorysmith.app
 
 ### What it does
-MemorySmith.app hosts self-describing knowledge vaults in Markdown, with structure, ordering and authoring Guidance declared as data, and serves them natively to AI tools through a remote MCP server. The agent does not merely read a vault: it writes in it, obeying the Guidance of the vault itself and the Templates of each folder.
+MemorySmith.app hosts self-describing knowledge notebooks in Markdown, with structure, ordering and authoring Guidance declared as data, and serves them natively to AI tools through a remote MCP server. The agent does not merely read a notebook: it writes in it, obeying the Guidance of the notebook itself and the Templates of each folder.
 
 ### Slogan
 Structured knowledge, natively readable and writable by humans and agents.
@@ -127,12 +127,12 @@ are forbidden. They duplicate information already recorded in the git history an
 
 Everything: `docs/*.md`, `README.md`, `CHANGELOG.md`, this file, `SECURITY.md`, the issue templates, the repository labels, commit messages and pull request descriptions, source code (identifiers, comments and docblocks), branch names, configuration files, log and error messages, DynamoDB attribute names, S3 key components, EventBridge event names, API endpoint names, and MCP tool names and descriptions.
 
-The reason is not preference. Everything the product exposes is already en-US: the code, the API, the names and descriptions of the MCP tools, the Vault Context the agent receives, the labels the server writes, the canonical locale of the interface. The repository is public and the product addresses AI tools and whoever integrates them, so a second language in the documentation layer charges a cost precisely at the door somebody from outside comes in through.
+The reason is not preference. Everything the product exposes is already en-US: the code, the API, the names and descriptions of the MCP tools, the Notebook Context the agent receives, the labels the server writes, the canonical locale of the interface. The repository is public and the product addresses AI tools and whoever integrates them, so a second language in the documentation layer charges a cost precisely at the door somebody from outside comes in through.
 
 ### Written in pt-BR
 
 - The `pt_BR` locale of the interface, which is mandatory and speaks to whoever uses the product, not to whoever reads the specification.
-- The content of the example vaults in `deploy-aws/`, which is vault content and not repository documentation. It is good that it is in Portuguese: it demonstrates that the product serves a vault in any language and that the backend does not interpret content (PP4).
+- The content of the example notebooks in `deploy-aws/`, which is notebook content and not repository documentation. It is good that it is in Portuguese: it demonstrates that the product serves a notebook in any language and that the backend does not interpret content (PP4).
 - Answers in issues, from whoever reports something. The language of the repository is not a demand on whoever uses the product.
 
 ### Examples of the specification, in any language
@@ -141,16 +141,17 @@ The examples inside `docs/markdown-spec/SPEC.md` and its conformance suite may b
 
 Neither the git history nor issues and pull requests already written are rewritten: they are dated records.
 
-### The two terms translated in the interface
+### The three terms translated in the interface
 
-In the `pt_BR` locale, and only there, two ubiquitous language terms are shown translated:
+In the `pt_BR` locale, and only there, three ubiquitous language terms are shown translated:
 
 | In the code, the docs and `en_US` | In the `pt_BR` locale |
 |---|---|
 | `Guidance` | Orientação |
 | `Template` | Modelo |
+| `Notebook`, `Notebooks` | Caderno, Cadernos |
 
-That is interface translation, not project terminology, and it does not propagate. No other ubiquitous language term is translated: `Vault`, `Subscription` and the rest stay as they are. `Note` is the trivial case: "nota" is a common Portuguese word and that is how the `pt_BR` locale writes it.
+That is interface translation, not project terminology, and it does not propagate. No other ubiquitous language term is translated: `Subscription` and the rest stay as they are. `Note` is the trivial case: "nota" is a common Portuguese word and that is how the `pt_BR` locale writes it.
 
 ### Locale-sensitive formatting
 
@@ -167,16 +168,16 @@ These are the structural decisions of the system, and violating any of them is n
 | 1 | **Every key starts with the subscription**, `S#{subscriptionId}` in DynamoDB and `s/{subscriptionId}/` in S3. The only two exceptions are named in the design, and there is no third | §8.2, §8.3 |
 | 2 | **The `subscriptionId` comes from the JWT claim, never from the request**, and therefore never from the path, the query, the body or a header | §8.2, §8.5 |
 | 3 | **`domain/` and `application/` do not import the AWS SDK**, without exception, "just to get a type" included | §5.5 |
-| 4 | **The S3 key is opaque**: only a `ContentId`, never a vault, a folder, a name or a role. Renaming, moving and reordering never write a byte to S3 | §9.2 |
+| 4 | **The S3 key is opaque**: only a `ContentId`, never a notebook, a folder, a name or a role. Renaming, moving and reordering never write a byte to S3 | §9.2 |
 | 5 | **The backend never interprets the content of a note.** Frontmatter and convention belong to the Guidance and the Template. The backend reads only the notation the specification declares, and only in **three** sanctioned readers: the two Discovery extractors, and `noteTitle` in the kernel, which reads the frontmatter block and the first level-1 heading in order to name a note (RN-KNW-035) | §11, §11.1 and §11.3; PP4 in `software-vision.md` §2 |
 | 6 | **The audit trail is append-only by IAM, not by discipline** | §12.2 |
 | 7 | **Every domain operation that changes state takes an `Authorship`.** There is no anonymous mutation | §12.1 |
 | 8 | **Deleting a note never destroys bytes**, and there is no path that destroys them: no domain port, no route, no administrative act | §12.4 |
 | 9 | **A forbidden resource returns `404`, never `403`**, because a `403` would confirm the existence of something the requester may not see | §15 |
-| 10 | **A note transaction never writes to the `META` item of the vault**, which would become the contention point of the whole vault under batch ingestion | §10.2 |
+| 10 | **A note transaction never writes to the `META` item of the notebook**, which would become the contention point of the whole notebook under batch ingestion | §10.2 |
 | 11 | **The subscription identifier is perpetual.** No status transition moves, rekeys or deletes data: the status governs access, never address | §8.1 |
 | 12 | **A platform administrator session carries no subscription**, and therefore no Knowledge repository can even be constructed under it. Never replace that with a role check: the impossibility is the guarantee | §8.4 |
-| 13 | **The per-vault role ceiling only lowers a role, never raises it.** The effective role is `min(subscription role, vault ceiling)`, with the owner of the subscription above both | `software-vision.md` §5.3 |
+| 13 | **The per-notebook role ceiling only lowers a role, never raises it.** The effective role is `min(subscription role, notebook ceiling)`, with the owner of the subscription above both | `software-vision.md` §5.3 |
 
 ---
 

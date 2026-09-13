@@ -2,7 +2,7 @@
  * S3ContentStore: the only piece of the system that knows what an S3 key looks
  * like (architecture-guide.md, sections 9.2 and 10.5).
  *
- * The key is `s/{subscriptionId}/c/{contentId}.md` and encodes NO vault, NO
+ * The key is `s/{subscriptionId}/c/{contentId}.md` and encodes NO notebook, NO
  * folder, NO name and NO role. That is the difference between opaque as an
  * intention and opaque as a structural property: renaming, moving or
  * reordering cannot touch S3, because the key holds no field those operations
@@ -59,7 +59,7 @@ export class S3ContentStore implements ContentStore {
         Key: this.keyOf(contentId),
         Body: body,
         ContentType: 'text/markdown; charset=utf-8',
-        // Only what never changes. Deliberately NOT vaultId, folderId or
+        // Only what never changes. Deliberately NOT notebookId, folderId or
         // title: those turn into lies on the first move, and keeping them
         // current would hand S3 back exactly the write we are removing.
         Metadata: {

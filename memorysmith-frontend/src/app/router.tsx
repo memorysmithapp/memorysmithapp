@@ -9,7 +9,7 @@ import { TemplatesPage } from '../features/structure/TemplatesPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { GraphPage } from '../features/graph/GraphPage';
 import { LinkTargetPage } from '../features/note/LinkTargetPage';
-import { VaultLayout } from '../features/structure/VaultLayout';
+import { NotebookLayout } from '../features/structure/NotebookLayout';
 import { RequireSession, RootLayout } from './RootLayout';
 
 export const router = createBrowserRouter([
@@ -26,8 +26,8 @@ export const router = createBrowserRouter([
             children: [
               { path: '/', element: <DashboardPage /> },
               {
-                path: '/vaults/:vaultSlug',
-                element: <VaultLayout />,
+                path: '/notebooks/:notebookSlug',
+                element: <NotebookLayout />,
                 children: [
                   { index: true, element: <ResumeReading /> },
                   { path: 'guidance', element: <GuidancePanel /> },

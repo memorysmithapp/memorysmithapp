@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { FolderId } from '@memorysmith/kernel';
-import { NoteId, Position, Role, VaultRoleLimit } from '@memorysmith/kernel';
-import type { Folder } from '../src/domain/vault/Folder.js';
+import { NoteId, Position, Role, NotebookRoleLimit } from '@memorysmith/kernel';
+import type { Folder } from '../src/domain/notebook/Folder.js';
 import { NotePlacement } from '../src/domain/services/NotePlacement.js';
 import { RESERVED_FRONTMATTER_KEYS } from '@memorysmith/contracts';
-import { composeVaultContext } from '../src/domain/services/VaultContextComposer.js';
+import { composeNotebookContext } from '../src/domain/services/NotebookContextComposer.js';
 import {
   AuthorizationPolicy,
   type RequestContext,
@@ -15,9 +15,9 @@ import {
   expectErr,
   folderDescription,
   folderName,
-  newVault,
+  newNotebook,
   otherUser,
-  rehydratedVaultWithNotes,
+  rehydratedNotebookWithNotes,
   unwrap,
   user,
 } from './fixtures.js';
@@ -62,11 +62,11 @@ describe('NotePlacement', () => {
   });
 });
 
-describe('VaultContextComposer', () => {
+describe('NotebookContextComposer', () => {
   it('renders guidance in full, then the numbered annotated tree', () => {
-    const { vault, folderId } = rehydratedVaultWithNotes(48);
+    const { notebook, folderId } = rehydratedNotebookWithNotes(48);
     unwrap(
-      vault.addFolder(
+      notebook.addFolder(
         null,
         folderName('Achados'),
         folderDescription('Achados de auditoria. Todo achado cita a norma que o fundamenta.'),
@@ -75,16 +75,16 @@ describe('VaultContextComposer', () => {
       ),
     );
     const trabalhos = unwrap(
-      vault.addFolder(
+      notebook.addFolder(
         null,
         folderName('Trabalhos'),
         folderDescription('Relatorios emitidos.'),
-        vault.folders.childrenOf(null)[1]?.id ?? null,
+        notebook.folders.childrenOf(null)[1]?.id ?? null,
         authorship(),
       ),
     );
     const year2026 = unwrap(
-      vault.addFolder(
+      notebook.addFolder(
         trabalhos.id,
         folderName('2026'),
         folderDescription('Emitidos neste exercicio.'),
@@ -93,13 +93,13 @@ describe('VaultContextComposer', () => {
       ),
     );
 
-    const context = composeVaultContext({
-      vault,
+    const context = composeNotebookContext({
+      notebook,
       guidance: '## Purpose\nOne norm per note.',
       reservedVocabulary: VOCABULARY,
     });
 
-    expect(context).toContain('# Vault: Normas e Legislacao');
+    expect(context).toContain('# Notebook: Normas e Legislacao');
     expect(context).toContain('## Purpose\nOne norm per note.');
     expect(context).toContain('## Structure');
     // Order is the defined order, numbered, and the counts come along. The
@@ -123,13 +123,13 @@ describe('VaultContextComposer', () => {
     // by create_folder, so a later session could read the tree and name none of
     // it. Every rendered folder carries its own identifier, at every depth
     // (RN-AGT-020).
-    const { vault, folderId } = rehydratedVaultWithNotes(0);
+    const { notebook, folderId } = rehydratedNotebookWithNotes(0);
     let parent: FolderId | null = folderId;
     const nested: FolderId[] = [folderId];
     // RN-KNW-003 caps the tree at 6 levels; the root fixture is the first.
     for (const level of ['L2', 'L3', 'L4', 'L5', 'L6']) {
       const child: Folder = unwrap(
-        vault.addFolder(
+        notebook.addFolder(
           parent,
           folderName(level),
           folderDescription(`Level ${level}.`),
@@ -141,7 +141,11 @@ describe('VaultContextComposer', () => {
       parent = child.id;
     }
 
-    const context = composeVaultContext({ vault, guidance: null, reservedVocabulary: VOCABULARY });
+    const context = composeNotebookContext({
+      notebook,
+      guidance: null,
+      reservedVocabulary: VOCABULARY,
+    });
 
     for (const id of nested) expect(context).toContain(`\`${id.value}\``);
     // The deepest one is indented and numbered, and still addressable.
@@ -151,9 +155,13 @@ describe('VaultContextComposer', () => {
   });
 
   it('flags a folder that has a template', () => {
-    const { vault, folderId } = rehydratedVaultWithNotes(2);
-    unwrap(vault.attachTemplate(folderId, contentRef('f'.repeat(64)), authorship()));
-    const context = composeVaultContext({ vault, guidance: null, reservedVocabulary: VOCABULARY });
+    const { notebook, folderId } = rehydratedNotebookWithNotes(2);
+    unwrap(notebook.attachTemplate(folderId, contentRef('f'.repeat(64)), authorship()));
+    const context = composeNotebookContext({
+      notebook,
+      guidance: null,
+      reservedVocabulary: VOCABULARY,
+    });
     expect(context).toContain('(2 notes, has TEMPLATE.md)');
     // The folder that has a template is exactly the folder get_template needs
     // an identifier for (RN-AGT-020).
@@ -162,11 +170,11 @@ describe('VaultContextComposer', () => {
 
   it('declares the reserved vocabulary, and exactly the one the specification carries', () => {
     // RN-AGT-025. An agent landing here has no other way to tell an attribute
-    // name that means something everywhere from one that belongs to this vault
+    // name that means something everywhere from one that belongs to this notebook
     // alone, and a list typed beside the specification would be the fourth
     // copy this cycle removed.
-    const context = composeVaultContext({
-      vault: newVault(),
+    const context = composeNotebookContext({
+      notebook: newNotebook(),
       guidance: null,
       reservedVocabulary: VOCABULARY,
     });
@@ -180,8 +188,8 @@ describe('VaultContextComposer', () => {
   });
 
   it('says what author and co-author mean here, and that the product never writes them', () => {
-    const context = composeVaultContext({
-      vault: newVault(),
+    const context = composeNotebookContext({
+      notebook: newNotebook(),
       guidance: null,
       reservedVocabulary: VOCABULARY,
     });
@@ -192,8 +200,8 @@ describe('VaultContextComposer', () => {
   });
 
   it('declares nothing when the vocabulary is empty, rather than an empty heading', () => {
-    const context = composeVaultContext({
-      vault: newVault(),
+    const context = composeNotebookContext({
+      notebook: newNotebook(),
       guidance: null,
       reservedVocabulary: [],
     });
@@ -201,15 +209,19 @@ describe('VaultContextComposer', () => {
   });
 
   it('says so when there is no guidance yet, instead of pretending', () => {
-    const vault = newVault();
-    const context = composeVaultContext({ vault, guidance: null, reservedVocabulary: VOCABULARY });
+    const notebook = newNotebook();
+    const context = composeNotebookContext({
+      notebook,
+      guidance: null,
+      reservedVocabulary: VOCABULARY,
+    });
     expect(context).toContain('has no guidance yet');
     expect(context).toContain('no folders yet');
   });
 });
 
 describe('AuthorizationPolicy', () => {
-  const vault = newVault();
+  const notebook = newNotebook();
 
   function context(overrides: Partial<RequestContext> = {}): RequestContext {
     return {
@@ -221,53 +233,53 @@ describe('AuthorizationPolicy', () => {
   }
 
   it('lets the subscription owner reach everything', () => {
-    const role = AuthorizationPolicy.effectiveRole(context({ user, isOwner: true }), vault);
+    const role = AuthorizationPolicy.effectiveRole(context({ user, isOwner: true }), notebook);
     expect(role).toBe(Role.OWNER);
   });
 
-  it('answers 404, never 403, for a vault the caller cannot see', () => {
+  it('answers 404, never 403, for a notebook the caller cannot see', () => {
     // RN-SUB-004: a forbidden resource is indistinguishable from a missing one.
     const outsider = context({ role: Role.NONE });
-    const error = expectErr(AuthorizationPolicy.require(outsider, vault, 'read'));
+    const error = expectErr(AuthorizationPolicy.require(outsider, notebook, 'read'));
     expect(error.code).toBe('FORBIDDEN');
     expect(error.revealsExistence).toBe(false);
   });
 
   it('lets an EDITOR write', () => {
-    expect(unwrap(AuthorizationPolicy.require(context(), vault, 'write'))).toBe(Role.EDITOR);
+    expect(unwrap(AuthorizationPolicy.require(context(), notebook, 'write'))).toBe(Role.EDITOR);
   });
 
-  it('demotes an EDITOR to VIEWER through the vault ceiling', () => {
-    const limited = newVault();
-    unwrap(limited.setRoleLimit(otherUser, VaultRoleLimit.VIEWER, authorship()));
+  it('demotes an EDITOR to VIEWER through the notebook ceiling', () => {
+    const limited = newNotebook();
+    unwrap(limited.setRoleLimit(otherUser, NotebookRoleLimit.VIEWER, authorship()));
     const ctx = context({ role: Role.EDITOR });
 
     expect(AuthorizationPolicy.effectiveRole(ctx, limited)).toBe(Role.VIEWER);
     const error = expectErr(AuthorizationPolicy.require(ctx, limited, 'write'));
     // The one deliberate exception to the 404: the member already sees this
-    // vault in their list, so a 404 here would protect nothing (RN-ACC-012).
+    // notebook in their list, so a 404 here would protect nothing (RN-ACC-012).
     expect(error.revealsExistence).toBe(true);
     expect(error.message).toContain('limited to VIEWER');
   });
 
   it('never lets a ceiling promote anyone', () => {
-    const limited = newVault();
-    unwrap(limited.setRoleLimit(otherUser, VaultRoleLimit.VIEWER, authorship()));
+    const limited = newNotebook();
+    unwrap(limited.setRoleLimit(otherUser, NotebookRoleLimit.VIEWER, authorship()));
     const viewer = context({ role: Role.VIEWER });
     expect(AuthorizationPolicy.effectiveRole(viewer, limited)).toBe(Role.VIEWER);
   });
 
   it('reserves administration for the owner', () => {
-    const error = expectErr(AuthorizationPolicy.require(context(), vault, 'administer'));
+    const error = expectErr(AuthorizationPolicy.require(context(), notebook, 'administer'));
     expect(error.revealsExistence).toBe(true);
     expect(
-      unwrap(AuthorizationPolicy.require(context({ isOwner: true }), vault, 'administer')),
+      unwrap(AuthorizationPolicy.require(context({ isOwner: true }), notebook, 'administer')),
     ).toBe(Role.OWNER);
   });
 
   it('refuses a VIEWER any write, by subscription role alone', () => {
     const viewer = context({ role: Role.VIEWER });
-    const error = expectErr(AuthorizationPolicy.require(viewer, vault, 'write'));
+    const error = expectErr(AuthorizationPolicy.require(viewer, notebook, 'write'));
     expect(error.message).toContain('EDITOR');
   });
 });

@@ -10,8 +10,8 @@
  */
 
 import { DomainError, err, ok, Position, type FolderId, type Result } from '@memorysmith/kernel';
-import type { FolderTree } from '../vault/FolderTree.js';
-import { VAULT_LIMITS } from '../values.js';
+import type { FolderTree } from '../notebook/FolderTree.js';
+import { NOTEBOOK_LIMITS } from '../values.js';
 
 export interface Placement {
   readonly parentFolderId: FolderId | null;
@@ -26,11 +26,13 @@ export const FolderTreePlacement = {
     afterFolderId: FolderId | null,
   ): Result<Placement, DomainError> {
     if (parentFolderId && !tree.has(parentFolderId)) {
-      return err(DomainError.notFound('The parent folder does not exist in this vault'));
+      return err(DomainError.notFound('The parent folder does not exist in this notebook'));
     }
-    if (tree.depthUnder(parentFolderId) > VAULT_LIMITS.maxDepth) {
+    if (tree.depthUnder(parentFolderId) > NOTEBOOK_LIMITS.maxDepth) {
       return err(
-        DomainError.validation(`The folder tree goes at most ${VAULT_LIMITS.maxDepth} levels deep`),
+        DomainError.validation(
+          `The folder tree goes at most ${NOTEBOOK_LIMITS.maxDepth} levels deep`,
+        ),
       );
     }
     // A new folder with no anchor goes to the END of its level.
@@ -46,18 +48,18 @@ export const FolderTreePlacement = {
     afterFolderId: FolderId | null,
   ): Result<Placement, DomainError> {
     const folder = tree.get(folderId);
-    if (!folder) return err(DomainError.notFound('Folder not found in this vault'));
+    if (!folder) return err(DomainError.notFound('Folder not found in this notebook'));
     if (newParentFolderId && !tree.has(newParentFolderId)) {
-      return err(DomainError.notFound('The destination folder does not exist in this vault'));
+      return err(DomainError.notFound('The destination folder does not exist in this notebook'));
     }
     if (newParentFolderId && tree.isDescendant(newParentFolderId, folderId)) {
       return err(DomainError.validation('A folder cannot be moved into its own subtree'));
     }
     const resultingDepth = tree.depthUnder(newParentFolderId) + tree.heightOf(folderId) - 1;
-    if (resultingDepth > VAULT_LIMITS.maxDepth) {
+    if (resultingDepth > NOTEBOOK_LIMITS.maxDepth) {
       return err(
         DomainError.validation(
-          `The move would push the tree past ${VAULT_LIMITS.maxDepth} levels deep`,
+          `The move would push the tree past ${NOTEBOOK_LIMITS.maxDepth} levels deep`,
         ),
       );
     }
@@ -80,7 +82,7 @@ export const FolderTreePlacement = {
     afterFolderId: FolderId | null,
   ): Result<Position, DomainError> {
     const folder = tree.get(folderId);
-    if (!folder) return err(DomainError.notFound('Folder not found in this vault'));
+    if (!folder) return err(DomainError.notFound('Folder not found in this notebook'));
     if (afterFolderId?.equals(folderId)) {
       return err(DomainError.validation('A folder cannot be placed after itself'));
     }

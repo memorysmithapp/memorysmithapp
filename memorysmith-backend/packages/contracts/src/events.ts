@@ -21,14 +21,14 @@ import {
   subscriptionTypeSchema,
   ulidSchema,
   userIdSchema,
-  vaultRoleLimitSchema,
+  notebookRoleLimitSchema,
 } from './common.js';
 
 export const eventSubjectSchema = z.enum([
   'SUBSCRIPTION',
   'WORKSPACE',
   'MEMBER',
-  'VAULT',
+  'NOTEBOOK',
   'FOLDER',
   'NOTE',
 ]);
@@ -49,13 +49,13 @@ export const domainEventTypeSchema = z.enum([
   'MemberJoined',
   'MemberRoleChanged',
   'MemberRemoved',
-  'VaultRoleLimitSet',
-  'VaultRoleLimitCleared',
+  'NotebookRoleLimitSet',
+  'NotebookRoleLimitCleared',
   // Knowledge
-  'VaultCreated',
-  'VaultRenamed',
-  'VaultDeleted',
-  'VaultRestored',
+  'NotebookCreated',
+  'NotebookRenamed',
+  'NotebookDeleted',
+  'NotebookRestored',
   'GuidanceUpdated',
   'FolderAdded',
   'FolderRenamed',
@@ -164,47 +164,47 @@ export const memberRemovedPayload = z.object({
   userId: userIdSchema,
 });
 
-export const vaultRoleLimitPayload = z.object({
-  vaultId: ulidSchema,
+export const notebookRoleLimitPayload = z.object({
+  notebookId: ulidSchema,
   userId: userIdSchema,
-  limit: vaultRoleLimitSchema.optional(),
+  limit: notebookRoleLimitSchema.optional(),
 });
 
-export const vaultCreatedPayload = z.object({
-  vaultId: ulidSchema,
+export const notebookCreatedPayload = z.object({
+  notebookId: ulidSchema,
   name: z.string().min(1),
   slug: slugSchema,
   description: z.string(),
 });
 
-export const vaultRenamedPayload = z.object({
-  vaultId: ulidSchema,
+export const notebookRenamedPayload = z.object({
+  notebookId: ulidSchema,
   name: z.string().min(1),
   slug: slugSchema,
 });
 
 /**
- * Deleting a vault is REVERSIBLE and destroys no byte, exactly as deleting a
- * note is (RN-KNW-033): the vault leaves every listing, its slug goes back to
+ * Deleting a notebook is REVERSIBLE and destroys no byte, exactly as deleting a
+ * note is (RN-KNW-033): the notebook leaves every listing, its slug goes back to
  * being available, and the content it points at is untouched.
  */
-export const vaultDeletedPayload = z.object({
-  vaultId: ulidSchema,
+export const notebookDeletedPayload = z.object({
+  notebookId: ulidSchema,
   slug: slugSchema,
   noteCount: z.number().int().nonnegative(),
 });
 
-export const vaultRestoredPayload = z.object({
-  vaultId: ulidSchema,
+export const notebookRestoredPayload = z.object({
+  notebookId: ulidSchema,
   slug: slugSchema,
 });
 
 export const guidanceUpdatedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
 });
 
 export const folderAddedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   folderId: ulidSchema,
   parentFolderId: ulidSchema.nullable(),
   name: z.string().min(1),
@@ -214,20 +214,20 @@ export const folderAddedPayload = z.object({
 });
 
 export const folderRenamedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   folderId: ulidSchema,
   name: z.string().min(1),
   slug: slugSchema,
 });
 
 export const folderDescribedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   folderId: ulidSchema,
   description: z.string().min(1).max(500),
 });
 
 export const folderMovedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   folderId: ulidSchema,
   fromParentFolderId: ulidSchema.nullable(),
   toParentFolderId: ulidSchema.nullable(),
@@ -235,19 +235,19 @@ export const folderMovedPayload = z.object({
 });
 
 export const folderReorderedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   folderId: ulidSchema,
   position: positionSchema,
 });
 
 export const folderRemovedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   folderId: ulidSchema,
   removedFolderIds: z.array(ulidSchema),
 });
 
 export const templateUpdatedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   folderId: ulidSchema,
 });
 
@@ -259,7 +259,7 @@ export const templateUpdatedPayload = z.object({
  * resolves against is the title itself.
  */
 export const noteCreatedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   noteId: ulidSchema,
   folderId: ulidSchema,
   title: z.string().min(1).nullable(),
@@ -267,14 +267,14 @@ export const noteCreatedPayload = z.object({
 });
 
 export const noteUpdatedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   noteId: ulidSchema,
   folderId: ulidSchema,
   title: z.string().min(1).nullable(),
 });
 
 export const noteReorderedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   noteId: ulidSchema,
   folderId: ulidSchema,
   position: positionSchema,
@@ -283,41 +283,41 @@ export const noteReorderedPayload = z.object({
 /** Carries BOTH sides, because whoever consumes it needs both (section 6.5). */
 export const noteMovedPayload = z.object({
   noteId: ulidSchema,
-  fromVaultId: ulidSchema,
+  fromNotebookId: ulidSchema,
   fromFolderId: ulidSchema,
-  toVaultId: ulidSchema,
+  toNotebookId: ulidSchema,
   toFolderId: ulidSchema,
   position: positionSchema,
 });
 
 export const noteDeletedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   noteId: ulidSchema,
   folderId: ulidSchema,
 });
 
 export const noteRestoredPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   noteId: ulidSchema,
   folderId: ulidSchema,
   position: positionSchema,
 });
 
 export const noteLinksResolvedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   noteId: ulidSchema,
   resolved: z.array(z.object({ toNoteId: ulidSchema, slug: slugSchema })),
   pending: z.array(slugSchema),
 });
 
 export const noteIndexedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   noteId: ulidSchema,
   chunkCount: z.number().int().nonnegative(),
 });
 
 export const linkBrokenPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   fromNoteId: ulidSchema,
   slug: slugSchema,
 });
@@ -338,12 +338,12 @@ export const eventPayloadSchemas = {
   MemberJoined: memberJoinedPayload,
   MemberRoleChanged: memberRoleChangedPayload,
   MemberRemoved: memberRemovedPayload,
-  VaultRoleLimitSet: vaultRoleLimitPayload,
-  VaultRoleLimitCleared: vaultRoleLimitPayload,
-  VaultCreated: vaultCreatedPayload,
-  VaultRenamed: vaultRenamedPayload,
-  VaultDeleted: vaultDeletedPayload,
-  VaultRestored: vaultRestoredPayload,
+  NotebookRoleLimitSet: notebookRoleLimitPayload,
+  NotebookRoleLimitCleared: notebookRoleLimitPayload,
+  NotebookCreated: notebookCreatedPayload,
+  NotebookRenamed: notebookRenamedPayload,
+  NotebookDeleted: notebookDeletedPayload,
+  NotebookRestored: notebookRestoredPayload,
   GuidanceUpdated: guidanceUpdatedPayload,
   FolderAdded: folderAddedPayload,
   FolderRenamed: folderRenamedPayload,

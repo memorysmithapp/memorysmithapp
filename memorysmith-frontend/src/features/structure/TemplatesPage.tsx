@@ -9,8 +9,8 @@ import { TemplateSkeleton } from '../../shared/components/skeletons';
 import { WritableContent } from '../../shared/components/WritableContent';
 import type { FolderNode } from '../../shared/types/api';
 import { templateAnchor } from './StructureOutline';
-import { VaultBreadcrumb } from './VaultBreadcrumb';
-import type { VaultOutletContext } from './VaultLayout';
+import { NotebookBreadcrumb } from './NotebookBreadcrumb';
+import type { NotebookOutletContext } from './NotebookLayout';
 
 interface TemplatedFolder {
   folder: FolderNode;
@@ -25,20 +25,20 @@ function collectTemplated(folders: FolderNode[], trail: string[] = []): Template
   });
 }
 
-// Every Template of the vault, one per folder that declares one, in folder
+// Every Template of the notebook, one per folder that declares one, in folder
 // order. The template is the folder's suggested note layout; the server never
 // validates against it.
 export function TemplatesPage() {
   const { t } = useTranslation();
-  const { vaultSlug = '' } = useParams();
+  const { notebookSlug = '' } = useParams();
   const { hash } = useLocation();
-  const { structure } = useOutletContext<VaultOutletContext>();
+  const { structure } = useOutletContext<NotebookOutletContext>();
   const templated = collectTemplated(structure.folders);
 
   const queries = useQueries({
     queries: templated.map(({ folder }) => ({
-      queryKey: ['template', vaultSlug, folder.id],
-      queryFn: () => getTemplate(vaultSlug, folder.id),
+      queryKey: ['template', notebookSlug, folder.id],
+      queryFn: () => getTemplate(notebookSlug, folder.id),
     })),
   });
   const allLoaded = queries.every((q) => !q.isPending);
@@ -52,9 +52,9 @@ export function TemplatesPage() {
 
   return (
     <article className="content-pane">
-      <VaultBreadcrumb items={[{ label: t('structure.templates') }]} />
+      <NotebookBreadcrumb items={[{ label: t('structure.templates') }]} />
       <p className="content-kicker">{t('structure.templates')}</p>
-      <h1>{structure.vault.name}</h1>
+      <h1>{structure.notebook.name}</h1>
       <p className="hint">{t('folder.templateHint')}</p>
 
       {templated.length === 0 && <p>{t('structure.noTemplates')}</p>}
@@ -77,7 +77,7 @@ export function TemplatesPage() {
             <summary>
               {path.join(' / ')}
               <Link
-                to={`/vaults/${vaultSlug}/root/${folder.slugPath}`}
+                to={`/notebooks/${notebookSlug}/root/${folder.slugPath}`}
                 className="template-folder-link"
               >
                 {t('structure.openFolder')}
@@ -86,15 +86,15 @@ export function TemplatesPage() {
             {template ? (
               <WritableContent
                 raw={template.body}
-                vaultSlug={vaultSlug}
+                notebookSlug={notebookSlug}
                 baseRevision={template.revision}
                 writable={canWrite(structure.effectiveRole)}
                 write={({ raw, baseRevision, keepalive }) =>
-                  putTemplate(vaultSlug, folder.id, raw, baseRevision, {
+                  putTemplate(notebookSlug, folder.id, raw, baseRevision, {
                     keepalive: keepalive ?? false,
                   })
                 }
-                invalidates={['template', vaultSlug, folder.id]}
+                invalidates={['template', notebookSlug, folder.id]}
               />
             ) : failed ? (
               <p className="status">{t(messageKeyOf(query?.error))}</p>

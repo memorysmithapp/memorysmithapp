@@ -6,17 +6,17 @@
  *   1. the NOTE item with ConditionExpression version = :expected, so the lock
  *      is on the item itself;
  *   2. a ConditionCheck with attribute_exists on the destination FOLDER item
- *      and, on a cross-vault move, on the destination META item too;
+ *      and, on a cross-notebook move, on the destination META item too;
  *   3. the event, into the outbox.
  *
- * There is no third write any more. The NSLUG guard held one name per vault,
- * and a vault has no key to guard: two notes may carry one title (RN-KNW-037),
+ * There is no third write any more. The NSLUG guard held one name per notebook,
+ * and a notebook has no key to guard: two notes may carry one title (RN-KNW-037),
  * so nothing is reserved on a write and nothing is released on a delete.
  *
  * NO NOTE TRANSACTION EVER WRITES TO THE META ITEM (PE8). That single rule,
  * and not the aggregate split by itself, is what keeps the hot path free of
  * contention: META is one item, and an agent writing fifty notes in a row
- * would turn it into the bottleneck of the entire vault.
+ * would turn it into the bottleneck of the entire notebook.
  */
 
 import {
@@ -27,7 +27,7 @@ import {
   type FolderId,
   type Result,
   type SubscriptionContext,
-  type VaultId,
+  type NotebookId,
 } from '@memorysmith/kernel';
 import type { DynamoDBDocumentClient, TransactWriteCommandInput } from '@aws-sdk/lib-dynamodb';
 import { GetCommand, QueryCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
@@ -35,14 +35,14 @@ import type { Note } from '../../../domain/note/Note.js';
 import type { NoteOrder } from '../../../domain/services/NotePlacement.js';
 import type { NoteRepository } from '../../../domain/ports/index.js';
 import { KnowledgeKeys } from './keys.js';
-import { isTransactionCanceled } from './DynamoVaultRepository.js';
+import { isTransactionCanceled } from './DynamoNotebookRepository.js';
 import { noteItem, outboxItem, parseNote, unwrapOrThrow, type Item } from './items.js';
 
 type TransactItem = NonNullable<TransactWriteCommandInput['TransactItems']>[number];
 
 interface NoteSnapshot {
   version: number;
-  vaultId: string;
+  notebookId: string;
   deleted: boolean;
 }
 
@@ -58,11 +58,11 @@ export class DynamoNoteRepository implements NoteRepository {
     this.keys = new KnowledgeKeys(sub.subscriptionId);
   }
 
-  async findById(vault: VaultId, id: NoteId): Promise<Note | null> {
+  async findById(notebook: NotebookId, id: NoteId): Promise<Note | null> {
     const response = await this.db.send(
       new GetCommand({
         TableName: this.tableName,
-        Key: { PK: this.keys.vault(vault), SK: this.keys.note(id) },
+        Key: { PK: this.keys.notebook(notebook), SK: this.keys.note(id) },
       }),
     );
     if (!response.Item) return null;
@@ -72,7 +72,7 @@ export class DynamoNoteRepository implements NoteRepository {
   }
 
   /** GSI2 already returns the notes of a folder IN THE DEFINED ORDER. */
-  async listByFolder(_vault: VaultId, folder: FolderId): Promise<Note[]> {
+  async listByFolder(_notebook: NotebookId, folder: FolderId): Promise<Note[]> {
     const response = await this.db.send(
       new QueryCommand({
         TableName: this.tableName,
@@ -86,12 +86,12 @@ export class DynamoNoteRepository implements NoteRepository {
     );
   }
 
-  async listByVault(vault: VaultId): Promise<Note[]> {
+  async listByNotebook(notebook: NotebookId): Promise<Note[]> {
     const response = await this.db.send(
       new QueryCommand({
         TableName: this.tableName,
         KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-        ExpressionAttributeValues: { ':pk': this.keys.vault(vault), ':prefix': 'NOTE#' },
+        ExpressionAttributeValues: { ':pk': this.keys.notebook(notebook), ':prefix': 'NOTE#' },
       }),
     );
     return ((response.Items ?? []) as Item[])
@@ -100,7 +100,7 @@ export class DynamoNoteRepository implements NoteRepository {
   }
 
   /** Identity and order key only: all a placement decision needs. */
-  async siblingOrder(_vault: VaultId, folder: FolderId): Promise<NoteOrder[]> {
+  async siblingOrder(_notebook: NotebookId, folder: FolderId): Promise<NoteOrder[]> {
     const response = await this.db.send(
       new QueryCommand({
         TableName: this.tableName,
@@ -124,18 +124,21 @@ export class DynamoNoteRepository implements NoteRepository {
   }
 
   /**
-   * The cross-vault move: the only operation that writes into two vault
+   * The cross-notebook move: the only operation that writes into two notebook
    * partitions in one transaction (section 9.2). It does not lock either
-   * vault, since the tree does not change; existence ConditionChecks are
+   * notebook, since the tree does not change; existence ConditionChecks are
    * enough.
    */
-  async saveMoved(note: Note, from: { vaultId: VaultId }): Promise<Result<void, ConcurrencyError>> {
+  async saveMoved(
+    note: Note,
+    from: { notebookId: NotebookId },
+  ): Promise<Result<void, ConcurrencyError>> {
     const snapshot = this.snapshots.get(note.id.value);
     const items: TransactItem[] = [
       {
         Delete: {
           TableName: this.tableName,
-          Key: { PK: this.keys.vault(from.vaultId), SK: this.keys.note(note.id) },
+          Key: { PK: this.keys.notebook(from.notebookId), SK: this.keys.note(note.id) },
           ...(snapshot
             ? {
                 ConditionExpression: 'version = :expected',
@@ -144,11 +147,11 @@ export class DynamoNoteRepository implements NoteRepository {
             : {}),
         },
       },
-      // The destination vault must exist at the instant of the write.
+      // The destination notebook must exist at the instant of the write.
       {
         ConditionCheck: {
           TableName: this.tableName,
-          Key: { PK: this.keys.vault(note.vaultId), SK: 'META' },
+          Key: { PK: this.keys.notebook(note.notebookId), SK: 'META' },
           ConditionExpression: 'attribute_exists(PK)',
         },
       },
@@ -158,7 +161,7 @@ export class DynamoNoteRepository implements NoteRepository {
   }
 
   private writesFor(note: Note, snapshot: NoteSnapshot | undefined): TransactItem[] {
-    const pk = this.keys.vault(note.vaultId);
+    const pk = this.keys.notebook(note.notebookId);
     const items: TransactItem[] = [];
 
     // 1. The note item, locked on its own version.
@@ -193,7 +196,7 @@ export class DynamoNoteRepository implements NoteRepository {
   }
 
   private async commit(note: Note, items: TransactItem[]): Promise<Result<void, ConcurrencyError>> {
-    const pk = this.keys.vault(note.vaultId);
+    const pk = this.keys.notebook(note.notebookId);
     // 3. The event, into the outbox, in the same transaction.
     const events = note.pullEvents();
     const all = [
@@ -224,7 +227,7 @@ export class DynamoNoteRepository implements NoteRepository {
   private remember(note: Note): void {
     this.snapshots.set(note.id.value, {
       version: note.version,
-      vaultId: note.vaultId.value,
+      notebookId: note.notebookId.value,
       deleted: note.isDeleted,
     });
   }

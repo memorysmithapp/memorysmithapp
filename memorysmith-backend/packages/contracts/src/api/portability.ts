@@ -11,12 +11,12 @@ import { z } from 'zod';
 import { instantSchema, ulidSchema } from '../common.js';
 
 export const exportRequestSchema = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
 });
 
 export const exportJobSchema = z.object({
   exportId: ulidSchema,
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   status: z.enum(['pending', 'ready', 'failed']),
   requestedAt: instantSchema,
   /** Pre-signed and short-lived; present only once the job is ready. */

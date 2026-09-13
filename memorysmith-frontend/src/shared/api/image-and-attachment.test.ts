@@ -1,7 +1,7 @@
 /**
  * The two halves of the image family the specification finished: the
  * dimensions an image carries in its alt text (§3.14, RN-DSC-048) and the
- * attachment a vault keeps beside its notes (§5.8, RN-DSC-049).
+ * attachment a notebook keeps beside its notes (§5.8, RN-DSC-049).
  *
  * The crossing between them is the pipe, and it is read by WHAT THE TARGET IS:
  * a note takes the alias, an attachment takes the dimensions, and a target
@@ -54,7 +54,7 @@ describe('the pipe in an alt text separates the description from the dimensions'
   });
 });
 
-describe('an attachment is a file of the vault that is not a note', () => {
+describe('an attachment is a file of the notebook that is not a note', () => {
   it('is told from a title by its extension, and a title may carry a dot', () => {
     expect(isAttachmentName('engelbart.jpg')).toBe(true);
     expect(isAttachmentName('colheita-2026.csv')).toBe(true);

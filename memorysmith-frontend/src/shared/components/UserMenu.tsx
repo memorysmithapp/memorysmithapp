@@ -37,8 +37,8 @@ interface Identity {
 
 /**
  * The chip shows the role in the subscription, which the API already resolved.
- * A vault ceiling can lower it for a given vault but never raise it
- * (RN-ACC-011), so it belongs on the vault screen and not here.
+ * A notebook ceiling can lower it for a given notebook but never raise it
+ * (RN-ACC-011), so it belongs on the notebook screen and not here.
  */
 function identityOf(live: LiveSession): Identity {
   return {
@@ -237,7 +237,7 @@ export function UserMenu() {
           {/*
             The version, at the foot of the panel and in the quietest type on
             it. It is the first thing anyone is asked for when something looks
-            wrong, and the last thing anyone needs while reading a vault, so it
+            wrong, and the last thing anyone needs while reading a notebook, so it
             is present and never in the way.
           */}
           <p className="user-menu-version">{t('app.version', { version: __APP_VERSION__ })}</p>

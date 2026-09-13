@@ -21,8 +21,8 @@ export interface AgentCaller {
   readonly subscriptionId: string;
 }
 
-export interface VaultListing {
-  readonly vaultId: string;
+export interface NotebookListing {
+  readonly notebookId: string;
   readonly name: string;
   readonly description: string;
   readonly noteCount: number;
@@ -81,71 +81,71 @@ export interface FolderListing {
 
 /** Everything a tool can ask of the Knowledge context. */
 export interface KnowledgeGateway {
-  listVaults(caller: AgentCaller): Promise<VaultListing[]>;
-  createVault(
+  listNotebooks(caller: AgentCaller): Promise<NotebookListing[]>;
+  createNotebook(
     caller: AgentCaller,
     input: { name: string; description: string },
-  ): Promise<VaultListing>;
-  /** Soft delete: the vault leaves the listings and no byte is destroyed. */
-  deleteVault(caller: AgentCaller, vaultId: string): Promise<void>;
+  ): Promise<NotebookListing>;
+  /** Soft delete: the notebook leaves the listings and no byte is destroyed. */
+  deleteNotebook(caller: AgentCaller, notebookId: string): Promise<void>;
   /** The revision the write is based on, null when the slot is still empty. */
   setGuidance(
     caller: AgentCaller,
-    vaultId: string,
+    notebookId: string,
     content: string,
     baseRevision: string | null,
   ): Promise<void>;
   /** The guidance with its revision, which is what a write has to echo back. */
   guidance(
     caller: AgentCaller,
-    vaultId: string,
+    notebookId: string,
   ): Promise<{ content: string; revision: string } | null>;
   createFolder(
     caller: AgentCaller,
-    input: { vaultId: string; name: string; description: string; parentFolderId?: string },
+    input: { notebookId: string; name: string; description: string; parentFolderId?: string },
   ): Promise<FolderListing>;
   /** The policy is explicit or it is not: there is no implicit default. */
   deleteFolder(
     caller: AgentCaller,
-    input: { vaultId: string; folderId: string; policy: string },
+    input: { notebookId: string; folderId: string; policy: string },
   ): Promise<{ removedFolderIds: string[] }>;
   setTemplate(
     caller: AgentCaller,
-    input: { vaultId: string; folderId: string; content: string; baseRevision: string | null },
+    input: { notebookId: string; folderId: string; content: string; baseRevision: string | null },
   ): Promise<void>;
-  deleteNote(caller: AgentCaller, vaultId: string, noteId: string): Promise<void>;
-  vaultContext(caller: AgentCaller, vaultId: string): Promise<string>;
+  deleteNote(caller: AgentCaller, notebookId: string, noteId: string): Promise<void>;
+  notebookContext(caller: AgentCaller, notebookId: string): Promise<string>;
   template(
     caller: AgentCaller,
-    vaultId: string,
+    notebookId: string,
     folderId: string,
   ): Promise<{ content: string; folderName: string; revision: string } | null>;
-  listNotes(caller: AgentCaller, vaultId: string, folderId?: string): Promise<NoteListing[]>;
-  readNote(caller: AgentCaller, vaultId: string, noteId: string): Promise<NoteContent>;
+  listNotes(caller: AgentCaller, notebookId: string, folderId?: string): Promise<NoteListing[]>;
+  readNote(caller: AgentCaller, notebookId: string, noteId: string): Promise<NoteContent>;
   createNote(
     caller: AgentCaller,
-    input: { vaultId: string; folderId: string; content: string },
+    input: { notebookId: string; folderId: string; content: string },
   ): Promise<NoteContent>;
   updateNote(
     caller: AgentCaller,
-    input: { vaultId: string; noteId: string; content: string; baseRevision: string },
+    input: { notebookId: string; noteId: string; content: string; baseRevision: string },
   ): Promise<NoteContent>;
-  searchNotes(caller: AgentCaller, vaultId: string, query: string): Promise<SearchHit[]>;
+  searchNotes(caller: AgentCaller, notebookId: string, query: string): Promise<SearchHit[]>;
 }
 
 export interface DiscoveryGateway {
   relatedNotes(
     caller: AgentCaller,
-    input: { vaultId: string; noteId: string; depth?: number },
+    input: { notebookId: string; noteId: string; depth?: number },
   ): Promise<RelatedNode>;
-  backlinks(caller: AgentCaller, vaultId: string, noteId: string): Promise<NoteListing[]>;
+  backlinks(caller: AgentCaller, notebookId: string, noteId: string): Promise<NoteListing[]>;
 }
 
 export interface AuditGateway {
-  noteHistory(caller: AgentCaller, vaultId: string, noteId: string): Promise<HistoryEntry[]>;
+  noteHistory(caller: AgentCaller, notebookId: string, noteId: string): Promise<HistoryEntry[]>;
   revisionAt(
     caller: AgentCaller,
-    input: { vaultId: string; noteId: string; asOf: string },
+    input: { notebookId: string; noteId: string; asOf: string },
   ): Promise<NoteContent>;
 }
 

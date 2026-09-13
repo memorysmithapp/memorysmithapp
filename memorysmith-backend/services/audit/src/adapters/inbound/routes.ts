@@ -4,7 +4,7 @@
  *   GET /notes/:n/history
  *   GET /notes/:n/revisions/:versionId
  *   GET /notes/:n/revisions?asOf=
- *   GET /vaults/:v/activity?from=&to=
+ *   GET /notebooks/:v/activity?from=&to=
  *
  * Everything here is a read. There is no write route, because the only writer
  * is the event consumer, and there is no update route anywhere, because the
@@ -19,7 +19,7 @@ import {
   type SubscriptionContext,
 } from '@memorysmith/kernel';
 import type { AuditEvent } from '../../domain/index.js';
-import type { GetNoteHistory, GetVaultActivity, ReadRevision } from '../../application/index.js';
+import type { GetNoteHistory, GetNotebookActivity, ReadRevision } from '../../application/index.js';
 
 /**
  * The verified context travels with the request. Passing the subscription as a
@@ -32,7 +32,7 @@ export interface AuditRequest {
 
 export interface AuditUseCases {
   readonly noteHistory: (request: AuditRequest) => GetNoteHistory;
-  readonly vaultActivity: (request: AuditRequest) => GetVaultActivity;
+  readonly notebookActivity: (request: AuditRequest) => GetNotebookActivity;
   readonly readRevision: (request: AuditRequest) => ReadRevision;
 }
 
@@ -104,16 +104,16 @@ export function createAuditRoutes(useCases: AuditUseCases): Hono<{ Variables: Va
     }));
   });
 
-  app.get('/vaults/:v/activity', async (c) => {
+  app.get('/notebooks/:v/activity', async (c) => {
     const request = c.get('audit');
-    const vaultId = c.req.param('v') ?? '';
-    const activity = await useCases.vaultActivity(request).execute({
-      vaultId,
+    const notebookId = c.req.param('v') ?? '';
+    const activity = await useCases.notebookActivity(request).execute({
+      notebookId,
       from: c.req.query('from'),
       to: c.req.query('to'),
     });
     return present(c, activity, (entries) => ({
-      vaultId,
+      notebookId,
       entries: entries.map(entryToDto),
     }));
   });

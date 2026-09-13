@@ -1,8 +1,8 @@
 /**
- * Where the reading stopped, per vault and per browser.
+ * Where the reading stopped, per notebook and per browser.
  *
  * Everything here has to survive a browser that refuses storage, because the
- * feature is a convenience and the vault opening is not: a throw from
+ * feature is a convenience and the notebook opening is not: a throw from
  * `localStorage` may never be what keeps somebody out of their own notes.
  */
 
@@ -48,13 +48,13 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('the last note is remembered per vault', () => {
+describe('the last note is remembered per notebook', () => {
   it('gives back what was remembered', () => {
     rememberNote('procurement', 'decisions/lei-14133');
     expect(lastNoteOf('procurement')).toBe('decisions/lei-14133');
   });
 
-  it('keeps one note per vault, without the vaults touching each other', () => {
+  it('keeps one note per notebook, without the notebooks touching each other', () => {
     rememberNote('procurement', 'decisions/lei-14133');
     rememberNote('journal', '2026/september');
 
@@ -62,18 +62,18 @@ describe('the last note is remembered per vault', () => {
     expect(lastNoteOf('journal')).toBe('2026/september');
   });
 
-  it('replaces the note of a vault instead of piling entries up', () => {
+  it('replaces the note of a notebook instead of piling entries up', () => {
     rememberNote('procurement', 'decisions/lei-14133');
     rememberNote('procurement', 'decisions/article-75');
 
     expect(lastNoteOf('procurement')).toBe('decisions/article-75');
   });
 
-  it('answers null for a vault nothing was read in', () => {
+  it('answers null for a notebook nothing was read in', () => {
     expect(lastNoteOf('never-opened')).toBeNull();
   });
 
-  it('forgets one vault and leaves the others alone', () => {
+  it('forgets one notebook and leaves the others alone', () => {
     rememberNote('procurement', 'decisions/lei-14133');
     rememberNote('journal', '2026/september');
     forgetNote('procurement');
@@ -82,7 +82,7 @@ describe('the last note is remembered per vault', () => {
     expect(lastNoteOf('journal')).toBe('2026/september');
   });
 
-  it('ignores an empty vault or an empty path, rather than storing one', () => {
+  it('ignores an empty notebook or an empty path, rather than storing one', () => {
     rememberNote('', 'decisions/lei-14133');
     rememberNote('procurement', '');
 
@@ -90,7 +90,7 @@ describe('the last note is remembered per vault', () => {
   });
 });
 
-describe('nothing here can keep a vault from opening', () => {
+describe('nothing here can keep a notebook from opening', () => {
   it('reads null out of stored nonsense instead of throwing', () => {
     localStorage.setItem('memorysmith.lastNote', 'not json at all');
     expect(lastNoteOf('procurement')).toBeNull();

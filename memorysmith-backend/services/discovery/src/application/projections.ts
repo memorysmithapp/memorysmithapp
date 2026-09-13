@@ -4,8 +4,8 @@
  * Discovery is never consulted by the core: it only ever receives what the
  * core publishes. That one-way direction is what makes every projection
  * rebuildable from zero (PE5), and it is why this service keeps its own small
- * projection of the vault structure instead of asking the Knowledge context
- * for it: the vault context is answered from here, and querying the core for
+ * projection of the notebook structure instead of asking the Knowledge context
+ * for it: the notebook context is answered from here, and querying the core for
  * the folder tree would invert the arrow.
  */
 
@@ -36,10 +36,10 @@ function headingsOf(markdown: string): string[] {
   return headings;
 }
 
-/** What the projector knows about the shape of a vault, from events. */
-export interface VaultStructure {
-  readonly vaultId: string;
-  readonly vaultName: string;
+/** What the projector knows about the shape of a notebook, from events. */
+export interface NotebookStructure {
+  readonly notebookId: string;
+  readonly notebookName: string;
   readonly folders: Map<
     string,
     { name: string; description: string; parentFolderId: string | null }
@@ -47,13 +47,13 @@ export interface VaultStructure {
 }
 
 export interface StructureProjection {
-  get(vaultId: string): Promise<VaultStructure | null>;
-  upsertVault(vaultId: string, name: string): Promise<void>;
+  get(notebookId: string): Promise<NotebookStructure | null>;
+  upsertNotebook(notebookId: string, name: string): Promise<void>;
   upsertFolder(
-    vaultId: string,
+    notebookId: string,
     folder: { folderId: string; name: string; description: string; parentFolderId: string | null },
   ): Promise<void>;
-  removeFolders(vaultId: string, folderIds: string[]): Promise<void>;
+  removeFolders(notebookId: string, folderIds: string[]): Promise<void>;
 }
 
 /** Reads one revision of content, by the ref the event carried. */
@@ -77,7 +77,7 @@ export interface ProjectionDependencies {
  * that no longer takes part in the graph anyway.
  */
 export interface NoteEvent {
-  readonly vaultId: string;
+  readonly notebookId: string;
   readonly noteId: string;
   readonly folderId: string;
   readonly contentRef: { contentId: string; versionId: string } | null;
@@ -103,7 +103,7 @@ export class ProjectNote {
 
   /**
    * Runs on NoteCreated and NoteUpdated, and on NoteMoved, because a note that
-   * changes folder changes the portrait the vault shows of it (RN-DSC-012).
+   * changes folder changes the portrait the notebook shows of it (RN-DSC-012).
    */
   async onWritten(event: NoteEvent): Promise<void> {
     const markdown = event.contentRef ? await this.deps.content.read(event.contentRef) : '';
@@ -113,21 +113,21 @@ export class ProjectNote {
     // 1. Links. A target that does not exist yet becomes PENDING and resolves
     // on its own when the note is created (RN-DSC-004).
     await this.deps.graph.replaceOutgoing(
-      event.vaultId,
+      event.notebookId,
       note,
       extractLinks(markdown).map((link) => ({ title: link.title, anchor: link.anchor })),
     );
-    await this.deps.graph.resolvePending(event.vaultId, note);
+    await this.deps.graph.resolvePending(event.notebookId, note);
 
     // 2. Facets, from the frontmatter block and nothing else.
     const facets = extractFacets(markdown);
-    await this.deps.facets.replaceFacets(event.vaultId, event.noteId, facets);
+    await this.deps.facets.replaceFacets(event.notebookId, event.noteId, facets);
 
     // 3. The searchable portrait, normalized once here so no search ever
     // normalizes on the hot path.
-    const structure = await this.deps.structure.get(event.vaultId);
+    const structure = await this.deps.structure.get(event.notebookId);
     const body = stripFrontmatter(markdown);
-    await this.deps.index.replaceNote(event.vaultId, {
+    await this.deps.index.replaceNote(event.notebookId, {
       noteId: event.noteId,
       title: normalize(title),
       folderId: event.folderId,
@@ -143,7 +143,7 @@ export class ProjectNote {
       ),
       // The reserved `aliases`, indexed as other spellings of the title
       // (RN-DSC-032). It is the one reserved key with an effect of its own:
-      // the other three are named so every vault spells them alike, and this
+      // the other three are named so every notebook spells them alike, and this
       // one changes what the search finds.
       aliases: (facets?.['aliases']?.values ?? []).map(normalize),
       facetKinds: Object.fromEntries(
@@ -158,9 +158,9 @@ export class ProjectNote {
    * withdraws its facet portrait (RN-DSC-022).
    */
   async onDeleted(event: NoteEvent): Promise<void> {
-    await this.deps.graph.removeNote(event.vaultId, event.noteId);
-    await this.deps.facets.replaceFacets(event.vaultId, event.noteId, null);
-    await this.deps.index.removeNote(event.vaultId, event.noteId);
+    await this.deps.graph.removeNote(event.notebookId, event.noteId);
+    await this.deps.facets.replaceFacets(event.notebookId, event.noteId, null);
+    await this.deps.index.removeNote(event.notebookId, event.noteId);
   }
 
   /** Restoring reindexes everything (RN-DSC-014). */
@@ -169,14 +169,14 @@ export class ProjectNote {
   }
 
   /**
-   * A cross-vault move prunes the edges in the origin vault (RN-DSC-006) and
+   * A cross-notebook move prunes the edges in the origin notebook (RN-DSC-006) and
    * re-resolves the outgoing ones against the slugs of the destination.
    */
-  async onMoved(event: NoteEvent & { fromVaultId: string }): Promise<void> {
-    if (event.fromVaultId !== event.vaultId) {
-      await this.deps.graph.removeNote(event.fromVaultId, event.noteId);
-      await this.deps.facets.replaceFacets(event.fromVaultId, event.noteId, null);
-      await this.deps.index.removeNote(event.fromVaultId, event.noteId);
+  async onMoved(event: NoteEvent & { fromNotebookId: string }): Promise<void> {
+    if (event.fromNotebookId !== event.notebookId) {
+      await this.deps.graph.removeNote(event.fromNotebookId, event.noteId);
+      await this.deps.facets.replaceFacets(event.fromNotebookId, event.noteId, null);
+      await this.deps.index.removeNote(event.fromNotebookId, event.noteId);
     }
     await this.onWritten(event);
   }
@@ -186,18 +186,18 @@ export class ProjectNote {
 export class ProjectStructure {
   constructor(private readonly structure: StructureProjection) {}
 
-  async onVault(vaultId: string, name: string): Promise<void> {
-    await this.structure.upsertVault(vaultId, name);
+  async onNotebook(notebookId: string, name: string): Promise<void> {
+    await this.structure.upsertNotebook(notebookId, name);
   }
 
   async onFolder(
-    vaultId: string,
+    notebookId: string,
     folder: { folderId: string; name: string; description: string; parentFolderId: string | null },
   ): Promise<void> {
-    await this.structure.upsertFolder(vaultId, folder);
+    await this.structure.upsertFolder(notebookId, folder);
   }
 
-  async onFoldersRemoved(vaultId: string, folderIds: string[]): Promise<void> {
-    await this.structure.removeFolders(vaultId, folderIds);
+  async onFoldersRemoved(notebookId: string, folderIds: string[]): Promise<void> {
+    await this.structure.removeFolders(notebookId, folderIds);
   }
 }

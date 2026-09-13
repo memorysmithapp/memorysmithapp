@@ -38,9 +38,9 @@ describe('a placeholder occupies the frame of what it stands in for', () => {
     expect(html).toContain('skeleton');
   });
 
-  it('draws a row of vault cards where the catalogue was simply empty', () => {
-    const html = render(<parts.VaultCatalogueSkeleton cards={3} />);
-    expect((html.match(/vault-card-skeleton/g) ?? []).length).toBe(3);
+  it('draws a row of notebook cards where the catalogue was simply empty', () => {
+    const html = render(<parts.NotebookCatalogueSkeleton cards={3} />);
+    expect((html.match(/notebook-card-skeleton/g) ?? []).length).toBe(3);
   });
 
   it('draws four tiles and the charts of the overview', () => {
@@ -71,7 +71,7 @@ describe('a placeholder occupies the frame of what it stands in for', () => {
 describe('a placeholder never talks over the screen reader', () => {
   const all = () => [
     'AppSkeleton',
-    'VaultCatalogueSkeleton',
+    'NotebookCatalogueSkeleton',
     'DashboardSkeleton',
     'NoteSkeleton',
     'TemplateSkeleton',

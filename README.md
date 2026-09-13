@@ -2,9 +2,9 @@
 
 > **Structured knowledge, natively readable and writable by humans and agents.**
 
-MemorySmith.app hosts knowledge vaults in **self-describing Markdown** and serves them natively to AI tools through a **remote MCP server**. The agent does not merely read a vault: it writes in it, obeying the Guidance of the vault itself and the Template of each folder.
+MemorySmith.app hosts knowledge notebooks in **self-describing Markdown** and serves them natively to AI tools through a **remote MCP server**. The agent does not merely read a notebook: it writes in it, obeying the Guidance of the notebook itself and the Template of each folder.
 
-**Two ways to use it, and the same code in both.** The **hosted service** at [memorysmith.app](https://memorysmith.app), whose access is by invitation at this stage, and **installing it in your own AWS account**, documented here from the first command to the first vault. The project is open under the [MIT](LICENSE) licence, and no capability is held back from the hosted version.
+**Two ways to use it, and the same code in both.** The **hosted service** at [memorysmith.app](https://memorysmith.app), whose access is by invitation at this stage, and **installing it in your own AWS account**, documented here from the first command to the first notebook. The project is open under the [MIT](LICENSE) licence, and no capability is held back from the hosted version.
 
 ---
 
@@ -21,15 +21,15 @@ Added together, they produce as many partial and private memories as there are p
 
 What is missing is a memory shared by people and agents, one that outlives the session and belongs to no platform. The arrangement that comes closest today is a local folder of `.md` files, with a document at the root explaining to the agent how to write in it and a vault editor on top for navigating. It gets the essentials right, the format serves both sides and the structure is declared, but it belongs to one person: the content does not leave the machine, the editor is a poor client for a remote repository, and separating subjects becomes a handful of loose folders that nothing lists.
 
-MemorySmith.app is the remote backend of that same flow. It keeps the format (plain Markdown), keeps the practice (a guidance at the root, a mould per folder) and adds what the local folder never had: authenticated remote access, roles, defensible history and discovery by graph and by search. Against the split by vendor it acts through the protocol, and not by asking everyone to use the same tool: the vault is served over MCP, which clients from different makers already speak, so each person stays where they prefer to work and all of them reach the same vault.
+MemorySmith.app is the remote backend of that same flow. It keeps the format (plain Markdown), keeps the practice (a guidance at the root, a mould per folder) and adds what the local folder never had: authenticated remote access, roles, defensible history and discovery by graph and by search. Against the split by vendor it acts through the protocol, and not by asking everyone to use the same tool: the notebook is served over MCP, which clients from different makers already speak, so each person stays where they prefer to work and all of them reach the same notebook.
 
-The thesis fits in one sentence: **the product is not storing `.md`, it is delivering structured context to the agent without friction.** If reading a hosted vault takes more work than reading a local folder, the product has lost. That is why MCP here is not an accessory: it is the primary interface, and the internal API exists to serve the web interface.
+The thesis fits in one sentence: **the product is not storing `.md`, it is delivering structured context to the agent without friction.** If reading a hosted notebook takes more work than reading a local folder, the product has lost. That is why MCP here is not an accessory: it is the primary interface, and the internal API exists to serve the web interface.
 
 ## The concepts the product structures
 
 ```
-Vault
-├── Guidance           ← what this vault is for and how to structure the notes
+Notebook
+├── Guidance           ← what this notebook is for and how to structure the notes
 └── Folders (ordered)  ← each with a description: what is kept here
     ├── Template       ← how the notes of this folder are structured
     ├── subfolders (ordered)
@@ -38,42 +38,42 @@ Vault
 
 | Concept | What it is |
 | --- | --- |
-| **Vault** | An autonomous vault. It describes itself in its own content, inherits nothing from another vault and therefore does not link to one either |
-| **Guidance** | The document declaring what this vault is and how one writes in it. One per vault |
+| **Notebook** | An autonomous notebook. It describes itself in its own content, inherits nothing from another notebook and therefore does not link to one either |
+| **Guidance** | The document declaring what this notebook is and how one writes in it. One per notebook |
 | **Folder** | A division with a **mandatory description** and a defined position. The description says what belongs there, and the order says where to start |
 | **Template** | The mould of the notes of a folder. It guides the writing and does not validate: a note is not required to follow it |
 | **Note** | Plain Markdown, with wikilinks. The backend never interprets what is written inside it |
-| **Vault Context** | The full Guidance plus the annotated tree, in a single read. It is what the agent receives before writing anything |
+| **Notebook Context** | The full Guidance plus the annotated tree, in a single read. It is what the agent receives before writing anything |
 | **Subscription** | The boundary of everything. Every data key starts with it, and it comes from the token, never from the request |
 
 The Guidance and the Template are not documentation: they are **executable instructions**. They are what makes the agent write the right note, in the right folder, in the right shape. A weak Guidance or a vague folder description degrades what comes in, and the effect only shows up later, at the moment of consuming it.
 
-And they are not files. They are **roles**: the vault points at a document as its Guidance, the folder points at another as its Template. Neither ever has a file name inside the product, and neither gets one on the way out: a vault leaves as **one document**, where the Guidance is a field of the vault and the Template a field of the folder that holds it.
+And they are not files. They are **roles**: the notebook points at a document as its Guidance, the folder points at another as its Template. Neither ever has a file name inside the product, and neither gets one on the way out: a notebook leaves as **one document**, where the Guidance is a field of the notebook and the Template a field of the folder that holds it.
 
 ## Day to day
 
 The cycle has three moments, and the first is the one usually missing from knowledge tools.
 
-**Ingestion.** You hand the agent a body of material, a published norm, a book, the documentation of a system, a batch of rulings, and ask it to study and record. The agent reads the Vault Context and finds a folder whose description says, in so many words:
+**Ingestion.** You hand the agent a body of material, a published norm, a book, the documentation of a system, a batch of rulings, and ask it to study and record. The agent reads the Notebook Context and finds a folder whose description says, in so many words:
 
 > **Permanent Notes / Concepts**: atomic concepts, independent of the norm that originated them, always with the normative basis cited by provision. "Free Consumer" is a concept; "article 12 says X" is literature.
 
 That sentence is the triage rule, and the agent follows it: the summary of the article goes to the literature folder, the concept the article establishes becomes a note of its own in `Concepts`, in the shape of the Template of that folder, with the wikilinks pointing at what already exists. You typed none of those notes, and they are still exactly in the pattern you agreed on.
 
-**Curation.** Captured material is not knowledge yet. Someone has to read what came in, fix what came out crooked, connect what was left loose and judge what is already mature. It is in the web interface that one reads: the note and the structure as the agent receives them, the `maturity` and the `reviewed` of each note saying which stage it is at, and the Overview and the graph showing how the vault is distributed. That work is human, assisted by the agent, and it does not come free out of the ingestion.
+**Curation.** Captured material is not knowledge yet. Someone has to read what came in, fix what came out crooked, connect what was left loose and judge what is already mature. It is in the web interface that one reads: the note and the structure as the agent receives them, the `maturity` and the `reviewed` of each note saying which stage it is at, and the Overview and the graph showing how the notebook is distributed. That work is human, assisted by the agent, and it does not come free out of the ingestion.
 
-**Consumption.** Weeks later, another piece of work starts: an opinion, an audit, a report, an incident runbook. The agent enters the same vault, and instead of rereading five hundred pages of primary source it reads what has already been distilled, in the order the vault says to read it, following the links between the notes.
+**Consumption.** Weeks later, another piece of work starts: an opinion, an audit, a report, an incident runbook. The agent enters the same notebook, and instead of rereading five hundred pages of primary source it reads what has already been distilled, in the order the notebook says to read it, following the links between the notes.
 
 What changes in practice:
 
 - **The base grows while you work**, instead of growing only when you stop to organise it.
-- **The structure is agreed once.** What guarantees the new note stays in the pattern is the vault, not your memory nor the agent's.
+- **The structure is agreed once.** What guarantees the new note stays in the pattern is the notebook, not your memory nor the agent's.
 - **What was written is defensible.** Every revision records who wrote it, when and with which agent, and an opinion issued in March can be demonstrated with the base as it stood in March.
 - **Two people can work on it.** The base lives in a subscription with roles, and concurrent writing is detected instead of overwriting in silence. At this stage, whoever adds somebody to the subscription is platform operations.
-- **Everyone stays in the tool they prefer.** The vault is served over MCP, which is an open standard, so any client that speaks the protocol reaches the same vault, with the same content and under the same role.
-- **It comes out whole whenever you want, and it goes back in.** The export is one open, specified JSON document — every note body plain Markdown, byte for byte — zipped as a `.vault` file, and the product **reads it back**: a backup that restores, a vault that moves between installations, an account seeded from another. An import always creates a new vault, so there is nothing to overwrite and nothing to confirm.
+- **Everyone stays in the tool they prefer.** The notebook is served over MCP, which is an open standard, so any client that speaks the protocol reaches the same notebook, with the same content and under the same role.
+- **It comes out whole whenever you want, and it goes back in.** The export is one open, specified JSON document — every note body plain Markdown, byte for byte — zipped as a `.notebook` file, and the product **reads it back**: a backup that restores, a notebook that moves between installations, an account seeded from another. An import always creates a new notebook, so there is nothing to overwrite and nothing to confirm.
 
-## Two interfaces over the same vault
+## Two interfaces over the same notebook
 
 ### The MCP connector, which is the public contract
 
@@ -82,12 +82,12 @@ A **remote MCP server** with OAuth 2.1, added as a native connector in the AI pl
 | Group | Tools |
 | --- | --- |
 | Who am I | `whoami`, which says who the connection represents, what it reaches and **how one writes here**: the reading order and the whole catalogue |
-| Read the vault | `list_vaults`, **`get_vault_context`**, `get_template`, `list_notes`, `read_note` |
+| Read the notebook | `list_notebooks`, **`get_notebook_context`**, `get_template`, `list_notes`, `read_note` |
 | Write content | `create_note`, `update_note` (with conflict detection), `delete_note` |
-| Write the structure | `create_vault`, `delete_vault`, `set_guidance`, `create_folder`, `delete_folder`, `set_template` |
+| Write the structure | `create_notebook`, `delete_notebook`, `set_guidance`, `create_folder`, `delete_folder`, `set_template` |
 | Discover | `search_notes`, `related_notes`, `backlinks`, `note_history` |
 
-The central call is **`get_vault_context`**, which returns the full Guidance plus the tree annotated with the identifier of each folder, its description, the order, the note count and which folders carry a Template. It is the exact equivalent of reading the guidance document and running `ls -R` on the local folder, in a single call. The tree part looks like this:
+The central call is **`get_notebook_context`**, which returns the full Guidance plus the tree annotated with the identifier of each folder, its description, the order, the note count and which folders carry a Template. It is the exact equivalent of reading the guidance document and running `ls -R` on the local folder, in a single call. The tree part looks like this:
 
 ```
 1. Plano `01J2Q4X8V6ZK9M3B7C5D1F0GHT`: Plano de trabalho e auditorias do grafo: o que
@@ -107,9 +107,9 @@ The central call is **`get_vault_context`**, which returns the full Guidance plu
         (31 notes, has TEMPLATE.md)
 ```
 
-The vault content in that example is in Portuguese because it was written that way: the labels the product emits are always en-US, and the content is whatever language the vault uses. Notice there is nothing in there the agent has to guess: each line says what the folder holds, in which order it comes, how many notes exist already, whether there is a Template to fetch before writing, and the identifier to pass back when writing there.
+The notebook content in that example is in Portuguese because it was written that way: the labels the product emits are always en-US, and the content is whatever language the notebook uses. Notice there is nothing in there the agent has to guess: each line says what the folder holds, in which order it comes, how many notes exist already, whether there is a Template to fetch before writing, and the identifier to pass back when writing there.
 
-`search_notes` does a **literal** search over the text of the vault, matching by substring and ignoring accents and case. The query accepts several terms, `"exact phrase"`, `-exclusion`, `OR`, parentheses and the fields `title:`, `folder:`, `content:` and `section:`. Any other prefix is read as a frontmatter attribute of the vault, and that is what makes `maturity:evergreen`, `reviewed:false` or a `norma:federal` your vault invented a valid filter, without a line of code about it. The vocabulary belongs to the Guidance, and the language of the vault becomes the query language.
+`search_notes` does a **literal** search over the text of the notebook, matching by substring and ignoring accents and case. The query accepts several terms, `"exact phrase"`, `-exclusion`, `OR`, parentheses and the fields `title:`, `folder:`, `content:` and `section:`. Any other prefix is read as a frontmatter attribute of the notebook, and that is what makes `maturity:evergreen`, `reviewed:false` or a `norma:federal` your notebook invented a valid filter, without a line of code about it. The vocabulary belongs to the Guidance, and the language of the notebook becomes the query language.
 
 From consent to the first note written, the path is this:
 
@@ -128,20 +128,20 @@ sequenceDiagram
 
     note over Client,Server: every later call carries the token
 
-    Client->>Server: list_vaults()
-    Server-->>Client: visible vaults, each with its description
+    Client->>Server: list_notebooks()
+    Server-->>Client: visible notebooks, each with its description
 
-    Client->>Server: get_vault_context(vault)
+    Client->>Server: get_notebook_context(notebook)
     Server-->>Client: full Guidance + folder tree with purpose and order
 
-    Client->>Server: get_template(vault, folder)
+    Client->>Server: get_template(notebook, folder)
     Server-->>Client: the Template of the notes of that folder
 
-    Client->>Server: create_note(vault, folder, content)
+    Client->>Server: create_note(notebook, folder, content)
     Server-->>Client: note created, with authorship recorded
 ```
 
-The human authorises the connector once, and it is in that consent that the subscription is tied to the token: no tool takes it as an argument, so the agent has no way of writing in the wrong place. With the token in hand, the agent discovers the vaults that user sees (`list_vaults`), reads in a single call the Guidance and the folder structure with the purpose of each one (`get_vault_context`) and, before writing, fetches the Template of the destination folder (`get_template`). Only then does it create the note (`create_note`): in the right folder, in the right shape, with the authorship of both the human who owns the authorisation and the agent that executed it.
+The human authorises the connector once, and it is in that consent that the subscription is tied to the token: no tool takes it as an argument, so the agent has no way of writing in the wrong place. With the token in hand, the agent discovers the notebooks that user sees (`list_notebooks`), reads in a single call the Guidance and the folder structure with the purpose of each one (`get_notebook_context`) and, before writing, fetches the Template of the destination folder (`get_template`). Only then does it create the note (`create_note`): in the right folder, in the right shape, with the authorship of both the human who owns the authorisation and the agent that executed it.
 
 ### The web interface, which is where the human reads
 
@@ -149,13 +149,13 @@ The human reading surface, and that is what raises the bar for the note screen a
 
 | Screen | What it does |
 | --- | --- |
-| Vault catalogue | The vaults of the subscription, with their description, note count and the Overview assembled from the facets each vault actually declares |
-| Vault Context | The vault as the agent receives it: the Guidance and the Templates as entry points, and the folder tree with the description of each one |
-| Guidance and Templates | Reading of what governs the writing of the vault and of each folder |
+| Notebook catalogue | The notebooks of the subscription, with their description, note count and the Overview assembled from the facets each notebook actually declares |
+| Notebook Context | The notebook as the agent receives it: the Guidance and the Templates as entry points, and the folder tree with the description of each one |
+| Guidance and Templates | Reading of what governs the writing of the notebook and of each folder |
 | Note | Reading, with the frontmatter properties and the wikilinks navigable |
-| Graph | The link graph of the vault, coloured by frontmatter attribute and with the tags drawn |
-| Search | A single field over the text of the vault, with the same query language as `search_notes` |
-| Export | Downloads the whole vault as a `.vault` file: one open JSON document, every note body plain Markdown |
+| Graph | The link graph of the notebook, coloured by frontmatter attribute and with the tags drawn |
+| Search | A single field over the text of the notebook, with the same query language as `search_notes` |
+| Export | Downloads the whole notebook as a `.notebook` file: one open JSON document, every note body plain Markdown |
 ## Why there is a proxy in front of Cognito
 
 This is the risk that nearly killed the thesis, and the reason it was attacked before anything else, back in 0.1.0.
@@ -334,11 +334,11 @@ With the environment live, it checks four things: the `/health` of the API answe
 
 #### Upgrading an environment already in use to 0.6.0
 
-**A vault written before 0.6.0 needs a migration, and the migration has to run BEFORE the deploy.**
+**A notebook written before 0.6.0 needs a migration, and the migration has to run BEFORE the deploy.**
 
 Until 0.6.0 a note carried its title as an attribute of the note and nothing in its content, and every
 link in it was written to be found by a slug that folded case, accents and punctuation. From 0.6.0 the
-title is read from the content and a link addresses a title exactly. Deployed over vaults already
+title is read from the content and a link addresses a title exactly. Deployed over notebooks already
 written, that turns into notes with no addressable title, every wikilink pending and a graph with no
 edges — and the deploy destroys what the repair needs, because after it there is no stored title to
 write into the content.
@@ -347,9 +347,9 @@ So the order is fixed, and the release does not go up before step 1 has run:
 
 | | Step | What it does |
 | --- | --- | --- |
-| 1 | `./deploy-aws/retitle-vaults.ps1 -Apply` | Against the version **still in production**: writes `title:` into the frontmatter of every note from its stored title, and retargets every link from the old slug to the exact title |
+| 1 | `./deploy-aws/retitle-notebooks.ps1 -Apply` | Against the version **still in production**: writes `title:` into the frontmatter of every note from its stored title, and retargets every link from the old slug to the exact title |
 | 2 | `./deploy-aws/deploy.ps1` | The release itself |
-| 3 | `./deploy-aws/reproject-links.ps1 -Apply` | Rebuilds the link graph of every vault under the new rule, since the one in the table was built by the rule that just retired |
+| 3 | `./deploy-aws/reproject-links.ps1 -Apply` | Rebuilds the link graph of every notebook under the new rule, since the one in the table was built by the rule that just retired |
 
 Both scripts report first and write only with `-Apply`, and running either of them twice changes nothing.
 Read the report of step 1 before applying it: it names the notes whose frontmatter already stated
@@ -364,7 +364,7 @@ edge was lost, which means step 1 did not reach some note.
   ```
   npx @modelcontextprotocol/inspector
   ```
-  In the Inspector: transport **Streamable HTTP**, URL `https://mcp.<domain>/mcp`, and start the authentication. The flow discovers the authorization server, redirects to the Cognito sign-in, comes back with the token and lists the tools. Calling `whoami` should return who the connection is, what it reaches and how to write in the vault.
+  In the Inspector: transport **Streamable HTTP**, URL `https://mcp.<domain>/mcp`, and start the authentication. The flow discovers the authorization server, redirects to the Cognito sign-in, comes back with the token and lists the tools. Calling `whoami` should return who the connection is, what it reaches and how to write in the notebook.
 - **Register the connector in the agent clients.** Claude Desktop, Claude Code, claude.ai and chatgpt.com all take the same URL as a remote connector.
 
 ## Letting the first users in
@@ -375,16 +375,16 @@ A freshly deployed environment has nobody inside: the pool is empty and there is
 ./deploy-aws/onboard.ps1 -Profile memorysmith
 ```
 
-It asks what it needs to know and then creates the account in Cognito, requests the subscription with the chosen type and quota (the subscription has no name: what identifies it is its owner), puts the subscription in the chosen status and writes a whole vault, with a Guidance, folders, Templates and notes, from one of the [example vaults](#the-example-vaults).
+It asks what it needs to know and then creates the account in Cognito, requests the subscription with the chosen type and quota (the subscription has no name: what identifies it is its owner), puts the subscription in the chosen status and writes a whole notebook, with a Guidance, folders, Templates and notes, from one of the [example notebooks](#the-example-notebooks).
 
 **The first account of an empty pool becomes a platform administrator, and only the first.** Somebody has to authorise the first subscription, and in a new environment there is nobody. Once the group has a member, a later run asks for the credentials of an existing administrator instead of handing the platform to whoever runs the script.
 
-**The account is handed over with a temporary password.** Requesting the subscription and writing the vault happen as the account, so the script has to sign in as it, and it does so with a password of its own that nobody ever sees. At the end it leaves the account waiting for its first password: Cognito sends an invitation by e-mail with a temporary password, and the sign-in screen asks for a password of their own on first access. **That message, and the code sent for a forgotten password, carry the product's own words, in Portuguese and in English.** What they do not yet carry is the product's address: the sending account is still the Cognito default, so they leave from `no-reply@verificationemail.com` and are capped at 50 a day. Fixing the sender needs SES out of the sandbox, which is a request to AWS with a human on the other side, and it is [#57](https://github.com/memorysmithapp/memorysmithapp/issues/57). Whoever runs the script never learns the password of somebody else's account. `-SetPassword` inverts that, setting a definitive password here and sending no e-mail at all, which is what the first account of a new environment wants: it is the only one that cannot depend on an e-mail arriving.
+**The account is handed over with a temporary password.** Requesting the subscription and writing the notebook happen as the account, so the script has to sign in as it, and it does so with a password of its own that nobody ever sees. At the end it leaves the account waiting for its first password: Cognito sends an invitation by e-mail with a temporary password, and the sign-in screen asks for a password of their own on first access. **That message, and the code sent for a forgotten password, carry the product's own words, in Portuguese and in English.** What they do not yet carry is the product's address: the sending account is still the Cognito default, so they leave from `no-reply@verificationemail.com` and are capped at 50 a day. Fixing the sender needs SES out of the sandbox, which is a request to AWS with a human on the other side, and it is [#57](https://github.com/memorysmithapp/memorysmithapp/issues/57). Whoever runs the script never learns the password of somebody else's account. `-SetPassword` inverts that, setting a definitive password here and sending no e-mail at all, which is what the first account of a new environment wants: it is the only one that cannot depend on an e-mail arriving.
 
-To look at what one of those vaults would become, without creating anything and without even talking to AWS:
+To look at what one of those notebooks would become, without creating anything and without even talking to AWS:
 
 ```
-./deploy-aws/onboard.ps1 -VaultTemplate engineering-knowledge -PreviewVault
+./deploy-aws/onboard.ps1 -NotebookTemplate engineering-knowledge -PreviewNotebook
 ```
 
 | Option | What it is for |
@@ -394,25 +394,25 @@ To look at what one of those vaults would become, without creating anything and 
 | `-Type individual` | The subscription type; `individual` is the only one at this stage |
 | `-Quota 500MB\|1GB\|2GB` | The storage quota |
 | `-Status <status>` | The final status of the subscription, any of the six, including one the transition machine would refuse |
-| `-VaultTemplate <slug>` | The vault from `deploy-aws/vaults` to write, or `none` for an account with no vault |
-| `-VaultName <name>` | The name of the created vault; the default is the title of the source vault |
+| `-NotebookTemplate <slug>` | The notebook from `deploy-aws/notebooks` to write, or `none` for an account with no notebook |
+| `-NotebookName <name>` | The name of the created notebook; the default is the title of the source notebook |
 | `-StructureOnly` | Writes the Guidance, the folders and the Templates, and no notes |
 | `-MaxNotes <n>` | Stops after `n` notes |
-| `-PreviewVault` | Only prints what would be written, and creates nothing |
+| `-PreviewNotebook` | Only prints what would be written, and creates nothing |
 | `-SetPassword` | Sets a definitive password here instead of handing the account over with a temporary one by e-mail |
 
 Two things the script does that are worth understanding:
 
-- **A status that grants no access is applied last.** Writing the vault requires a subscription in `trial` or `active`, so the vault is written with the subscription active and the requested status is applied in the final step, through the administrative route that sets the status without going through the transition machine.
+- **A status that grants no access is applied last.** Writing the notebook requires a subscription in `trial` or `active`, so the notebook is written with the subscription active and the requested status is applied in the final step, through the administrative route that sets the status without going through the transition machine.
 - **The claim is born with the token.** The interface only sees the subscription after a fresh sign-in, so sign out and back in on a browser that was already open.
 
-## The example vaults
+## The example notebooks
 
-The trees committed in [`deploy-aws/vaults/`](deploy-aws/vaults/) are what `onboard.ps1` writes into the first vault of a new account. They are a **tree of files, and no longer the export format**: a numeric prefix encodes the order of the folders, `GUIDANCE.md` carries the Guidance at the root, `STRUCTURE.md` next to it the annotated tree with the description of each folder, `TEMPLATE.md` the Template of a folder, and the notes their body byte for byte, wikilinks intact. It is the shape a vault arrives in from an editor, which is what makes it the right shape for a script that writes one by replaying API calls.
+The trees committed in [`deploy-aws/notebooks/`](deploy-aws/notebooks/) are what `onboard.ps1` writes into the first notebook of a new account. They are a **tree of files, and no longer the export format**: a numeric prefix encodes the order of the folders, `GUIDANCE.md` carries the Guidance at the root, `STRUCTURE.md` next to it the annotated tree with the description of each folder, `TEMPLATE.md` the Template of a folder, and the notes their body byte for byte, wikilinks intact. It is the shape a notebook arrives in from an editor, which is what makes it the right shape for a script that writes one by replaying API calls.
 
 Writing those trees **through the API**, and not straight into DynamoDB and S3, is what makes a freshly created environment have the same domain events and the same audit trail the product would have produced in normal use.
 
-| Vault | Content | Notes |
+| Notebook | Content | Notes |
 | --- | --- | --- |
 | `engineering-knowledge` | A software engineering study base: literature, atomic concepts and practices, MOCs and projects | 573 |
 | `glpi-discovery` | Discovery of GLPI 11 through reverse engineering and official documentation, with an evidence contract and investigations | 758 |
@@ -425,35 +425,35 @@ Writing those trees **through the API**, and not straight into DynamoDB and S3, 
 | `continuity-engineering` | **A demonstration of the Markdown Specification, in en-US**: recovery objectives, the runbooks that restore them and the exercises that measured them | 4 |
 | `enologia` | **A demonstration of the Markdown Specification, in pt-BR**: grape varieties, vinification protocols and the record of each harvest | 4 |
 
-The first three are real vaults in use, and they show the product at the size where it becomes interesting. The five small ones exist to give the onboarding a few-seconds option, when what is wanted is a live environment and not six hundred notes.
+The first three are real notebooks in use, and they show the product at the size where it becomes interesting. The five small ones exist to give the onboarding a few-seconds option, when what is wanted is a live environment and not six hundred notes.
 
 **The last two exist for a different reason.** `continuity-engineering` and `enologia` are the only place the [MemorySmith Markdown Specification](docs/markdown-spec/SPEC.md) can be *read* rather than proved: a conformance suite shows that the notation is implemented, and these show it doing its work — a callout that is drawn, an alias that finds a note by its acronym, an embed that expands to a single identified block, a formula, a checklist that writes back.
 
-They are **not translations of each other**. The same notations carried by different subject matter, so the pair reads as two vaults and not as one typed twice — and so it can show the thing a single vault cannot: the four reserved keys (`aliases`, `tags`, `created`, `updated`) are written in en-US in **both**, while everything around them, `regiao` and `tipo` and `colhida_em`, is in the language of whoever keeps the vault. That is the language decision of the profile shown instead of stated, and the same evidence that the backend does not interpret content (PP4).
+They are **not translations of each other**. The same notations carried by different subject matter, so the pair reads as two notebooks and not as one typed twice — and so it can show the thing a single notebook cannot: the four reserved keys (`aliases`, `tags`, `created`, `updated`) are written in en-US in **both**, while everything around them, `regiao` and `tipo` and `colhida_em`, is in the language of whoever keeps the notebook. That is the language decision of the profile shown instead of stated, and the same evidence that the backend does not interpret content (PP4).
 
-They also carry the half of the specification no other vault will ever show: **the rejections**, each one written where somebody would have reached for it, beside the sentence saying what happens instead. An inline `#tag` that files nothing, a summary in the frontmatter that is discarded, HTML that is not rendered, a subscript that has no notation here.
+They also carry the half of the specification no other notebook will ever show: **the rejections**, each one written where somebody would have reached for it, beside the sentence saying what happens instead. An inline `#tag` that files nothing, a summary in the frontmatter that is discarded, HTML that is not rendered, a subscript that has no notation here.
 
 And, since 0.6.0, the cases that decide what a note is **called**: a `title:` that says one thing while the heading says another, a title carrying a `#` that no link can name, two notes under one title where a single link becomes two edges, an alias catching a target no title matched beside the sentence saying a title always wins, and an attachment addressed by its name that appears in no graph.
 
-A test guards them in both directions: every entry of the declared notation appears in each vault, and neither vault demonstrates a notation the profile does not declare. Without it they would be the first thing to age when the notation changes, and they would age while teaching the wrong version to precisely the person who is learning.
+A test guards them in both directions: every entry of the declared notation appears in each notebook, and neither notebook demonstrates a notation the profile does not declare. Without it they would be the first thing to age when the notation changes, and they would age while teaching the wrong version to precisely the person who is learning.
 
 In the frontmatter, all of them apply the standard vocabulary of the product: `maturity` (`seed`, `growing`, `evergreen`), reassessed on every write, and `reviewed`, which marks whether the current revision has been through human review. It is that vocabulary the Overview and the search by attribute use on the screens.
 
 ### How they are generated
 
-The material producing those trees lives in [`deploy-aws/vault-sources/`](deploy-aws/vault-sources/):
+The material producing those trees lives in [`deploy-aws/notebook-sources/`](deploy-aws/notebook-sources/):
 
-- `authoring/`: the authored texts per vault, that is the `guidance.md` that becomes the `GUIDANCE.md` of the root and the `templates/*.md` that become the `TEMPLATE.md` of the folders.
-- `fictional/`: the sources of the seven small vaults, which live in the repository itself.
-- `build-vaults.mjs`: the translator. It reads the source vaults, applies the folder mapping and generates the output in `deploy-aws/vaults/`.
+- `authoring/`: the authored texts per notebook, that is the `guidance.md` that becomes the `GUIDANCE.md` of the root and the `templates/*.md` that become the `TEMPLATE.md` of the folders.
+- `fictional/`: the sources of the seven small notebooks, which live in the repository itself.
+- `build-notebooks.mjs`: the translator. It reads the source notebooks, applies the folder mapping and generates the output in `deploy-aws/notebooks/`.
 
 The three real vaults are **not** part of the repository: they live on the machine of the author, and what is committed is the output. The output is not edited by hand; changes are made in `authoring/` or at the source, followed by a regeneration:
 
 ```
-node deploy-aws/vault-sources/build-vaults.mjs
+node deploy-aws/notebook-sources/build-notebooks.mjs
 ```
 
-The script validates the product limits (2,000 notes and 200 folders per vault, depth 6, a folder description between 1 and 500 characters) and reports the warnings at the end. It also **writes the file name of a note into its frontmatter as `title:`** where the source states none: the title of a note is read from the note, and a tree exported from an editor keyed by file name carries that name nowhere inside the file. Two notes under one title are no longer a warning, because nothing in a vault is a key. Running it without the three real vaults on the machine empties the three corresponding trees, because each output is recreated from zero. If you only want to regenerate the small ones, check `git status` before committing.
+The script validates the product limits (2,000 notes and 200 folders per notebook, depth 6, a folder description between 1 and 500 characters) and reports the warnings at the end. It also **writes the file name of a note into its frontmatter as `title:`** where the source states none: the title of a note is read from the note, and a tree exported from an editor keyed by file name carries that name nowhere inside the file. Two notes under one title are no longer a warning, because nothing in a notebook is a key. Running it without the three real vaults on the machine empties the three corresponding trees, because each output is recreated from zero. If you only want to regenerate the small ones, check `git status` before committing.
 
 ## Tearing the environment down
 
@@ -545,7 +545,7 @@ If the table above did not solve it, or if you used the product and it fell shor
 | You saw data from another account, or something that looks like a security failure | [The private channel](https://github.com/memorysmithapp/memorysmithapp/security/advisories/new), never a public issue. See [`SECURITY.md`](SECURITY.md) |
 | A question about installing or using it | [Open a feedback issue](https://github.com/memorysmithapp/memorysmithapp/issues/new?template=01-feedback.yml), marking it as a question |
 
-**This repository is public.** When reporting, do not paste real content from your notes, customer names or business data. Describe the situation with invented examples, or send identifiers (`vaultId`, `noteId`) in place of the text; it works just as well for whoever reads it.
+**This repository is public.** When reporting, do not paste real content from your notes, customer names or business data. Describe the situation with invented examples, or send identifiers (`notebookId`, `noteId`) in place of the text; it works just as well for whoever reads it.
 
 What happens to your issue after it is opened, including how it is triaged and why the answer is sometimes a recorded refusal instead of a delivery, is in [`docs/development-process.md`](docs/development-process.md).
 
@@ -556,7 +556,7 @@ core/
 ├── memorysmith-backend/     # the six bounded contexts, the shared kernel and the event contracts
 ├── memorysmith-frontend/    # the web interface in React
 ├── memorysmith-infra/       # all the CDK: stacks, constructs, IAM policies
-├── deploy-aws/              # the deploy, destroy and onboard scripts, and the example vaults
+├── deploy-aws/              # the deploy, destroy and onboard scripts, and the example notebooks
 └── docs/                    # the canonical documentation, and the Markdown specification
 ```
 

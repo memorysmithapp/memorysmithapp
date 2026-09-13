@@ -1,17 +1,17 @@
 /**
  * HTTP surface of svc-portability (architecture-guide.md, sections 14.1, 16):
  *
- *   POST /vaults/:v/export     ->  a ready archive and a short-lived link
- *   POST /imports              ->  a short-lived address to upload a .vault to
- *   POST /imports/apply        ->  reads what was uploaded and writes the vault
+ *   POST /notebooks/:v/export     ->  a ready archive and a short-lived link
+ *   POST /imports              ->  a short-lived address to upload a .notebook to
+ *   POST /imports/apply        ->  reads what was uploaded and writes the notebook
  *
- * The export is answered as a LINK and never as a body. A vault of two
+ * The export is answered as a LINK and never as a body. A notebook of two
  * thousand notes is megabytes of Markdown, and a synchronous response has a
- * ceiling that a large vault would hit exactly when the export matters most.
+ * ceiling that a large notebook would hit exactly when the export matters most.
  * The link points at one object, expires in fifteen minutes and is the only
  * way to reach it: the bucket blocks public access.
  *
- * Portability holds no vault, so whether the caller may read it is answered by
+ * Portability holds no notebook, so whether the caller may read it is answered by
  * the context that owns it, exactly as Discovery does (section 14.2).
  */
 
@@ -24,27 +24,31 @@ import {
   type Result,
   type SubscriptionContext,
 } from '@memorysmith/kernel';
-import type { ExportVault } from '../application/ExportVault.js';
-import type { ImportVault, PrepareImport, VaultWriter } from '../application/ImportVault.js';
+import type { ExportNotebook } from '../application/ExportNotebook.js';
+import type {
+  ImportNotebook,
+  PrepareImport,
+  NotebookWriter,
+} from '../application/ImportNotebook.js';
 
 export interface PortabilityRequest {
   readonly subscription: SubscriptionContext;
-  readonly canRead: (vaultId: string) => Promise<boolean>;
+  readonly canRead: (notebookId: string) => Promise<boolean>;
   /** Who is importing. Every write of an import carries it (rule 7). */
   readonly authorship: Authorship;
   /**
-   * What an import writes with. Writing a vault belongs to the Knowledge
+   * What an import writes with. Writing a notebook belongs to the Knowledge
    * context, which this service may not import, so it arrives already built
    * for this request — the same arrangement `canRead` uses to ask a question
    * this service cannot answer either.
    */
-  readonly write: VaultWriter;
+  readonly write: NotebookWriter;
 }
 
 export interface PortabilityUseCases {
-  readonly exportVault: (request: PortabilityRequest) => ExportVault;
+  readonly exportNotebook: (request: PortabilityRequest) => ExportNotebook;
   readonly prepareImport: (request: PortabilityRequest) => PrepareImport;
-  readonly importVault: (request: PortabilityRequest) => ImportVault;
+  readonly importNotebook: (request: PortabilityRequest) => ImportNotebook;
 }
 
 type Variables = { portability: PortabilityRequest };
@@ -62,18 +66,18 @@ export function createPortabilityRoutes(
 ): Hono<{ Variables: Variables }> {
   const app = new Hono<{ Variables: Variables }>();
 
-  app.post('/vaults/:v/export', async (c) => {
+  app.post('/notebooks/:v/export', async (c) => {
     const request = c.get('portability');
-    const vaultId = c.req.param('v') ?? '';
-    // A vault the caller cannot read is indistinguishable from a missing one.
-    if (!(await request.canRead(vaultId))) {
-      return fail(c, DomainError.forbidden('Vault not found'));
+    const notebookId = c.req.param('v') ?? '';
+    // A notebook the caller cannot read is indistinguishable from a missing one.
+    if (!(await request.canRead(notebookId))) {
+      return fail(c, DomainError.forbidden('Notebook not found'));
     }
 
-    const job = await useCases.exportVault(request).execute({ vaultId, now: Instant.now() });
+    const job = await useCases.exportNotebook(request).execute({ notebookId, now: Instant.now() });
     return present(c, job, (value) => ({
       exportId: value.exportId,
-      vaultId: value.vaultId,
+      notebookId: value.notebookId,
       status: value.status,
       requestedAt: Instant.now().toISOString(),
       downloadUrl: value.downloadUrl,
@@ -85,7 +89,7 @@ export function createPortabilityRoutes(
 
   /**
    * The file is uploaded, not posted. A request body has a ceiling a real
-   * vault clears easily, so the client asks for a place to put the file,
+   * notebook clears easily, so the client asks for a place to put the file,
    * uploads it there, and then asks for it to be applied — the mirror image of
    * how the export hands an object over by a short-lived URL.
    */
@@ -105,14 +109,14 @@ export function createPortabilityRoutes(
       uploadKey?: string;
       name?: string;
     };
-    const job = await useCases.importVault(request).execute({
+    const job = await useCases.importNotebook(request).execute({
       uploadKey: String(body.uploadKey ?? ''),
       name: typeof body.name === 'string' && body.name.trim() ? body.name.trim() : null,
       by: request.authorship,
     });
     return present(c, job, (value) => ({
       importId: value.importId,
-      vaultId: value.vaultId,
+      notebookId: value.notebookId,
       status: value.status,
       folderCount: value.folderCount,
       noteCount: value.noteCount,

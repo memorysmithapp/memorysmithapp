@@ -19,14 +19,14 @@ import {
   Slug,
   type SubscriptionId,
   UserId,
-  VaultId,
-  VaultRoleLimit,
+  NotebookId,
+  NotebookRoleLimit,
   type DomainEvent,
 } from '@memorysmith/kernel';
-import { Folder } from '../../../domain/vault/Folder.js';
+import { Folder } from '../../../domain/notebook/Folder.js';
 import { Note } from '../../../domain/note/Note.js';
-import { Vault } from '../../../domain/vault/Vault.js';
-import { FolderDescription, FolderName, ShortText, VaultName } from '../../../domain/values.js';
+import { Notebook } from '../../../domain/notebook/Notebook.js';
+import { FolderDescription, FolderName, ShortText, NotebookName } from '../../../domain/values.js';
 
 /** A raw item as the DynamoDB document client hands it over. */
 export type Item = Record<string, unknown>;
@@ -67,27 +67,27 @@ export function parseAuthorship(raw: unknown): Authorship {
   return Authorship.byAgent(user, agent, at);
 }
 
-// ---- Vault ------------------------------------------------------------------
+// ---- Notebook ------------------------------------------------------------------
 
-export function vaultMetaItem(vault: Vault, pk: string): Item {
+export function notebookMetaItem(notebook: Notebook, pk: string): Item {
   const item: Item = {
     PK: pk,
     SK: 'META',
-    entity: 'VAULT',
-    vaultId: vault.id.value,
-    name: vault.name.value,
-    slug: vault.slug.value,
-    description: vault.description.value,
-    guidanceRef: serializeContentRef(vault.guidanceRef),
-    version: vault.version + 1,
-    createdBy: serializeAuthorship(vault.createdBy),
-    createdAt: vault.createdBy.at.toISOString(),
-    updatedAt: vault.updatedAt.toISOString(),
+    entity: 'NOTEBOOK',
+    notebookId: notebook.id.value,
+    name: notebook.name.value,
+    slug: notebook.slug.value,
+    description: notebook.description.value,
+    guidanceRef: serializeContentRef(notebook.guidanceRef),
+    version: notebook.version + 1,
+    createdBy: serializeAuthorship(notebook.createdBy),
+    createdAt: notebook.createdBy.at.toISOString(),
+    updatedAt: notebook.updatedAt.toISOString(),
   };
-  // The repository projects this item into GSI1 only while the vault is live,
+  // The repository projects this item into GSI1 only while the notebook is live,
   // exactly as a note leaves GSI2 when it is deleted: the listing needs no
-  // filter, because a deleted vault is not in the index at all.
-  if (vault.isDeleted) item['deletedAt'] = vault.deletedAt?.toISOString();
+  // filter, because a deleted notebook is not in the index at all.
+  if (notebook.isDeleted) item['deletedAt'] = notebook.deletedAt?.toISOString();
   return item;
 }
 
@@ -127,37 +127,37 @@ export function parseFolder(item: Item): Folder {
  * Rebuilds the aggregate from the items of ONE Query: the META item, the
  * folders, the counters and the ceilings, all from the same partition.
  */
-export function parseVault(items: Item[], subscriptionId: SubscriptionId): Vault | null {
+export function parseNotebook(items: Item[], subscriptionId: SubscriptionId): Notebook | null {
   const meta = items.find((item) => item['SK'] === 'META');
   if (!meta) return null;
 
   const folders: Folder[] = [];
   const noteCounts = new Map<string, number>();
-  const limits = new Map<string, VaultRoleLimit>();
-  let vaultNoteCount = 0;
+  const limits = new Map<string, NotebookRoleLimit>();
+  let notebookNoteCount = 0;
 
   for (const item of items) {
     const sk = String(item['SK']);
     if (sk.startsWith('FOLDER#')) folders.push(parseFolder(item));
-    else if (sk === 'FSTAT') vaultNoteCount = Number(item['noteCount'] ?? 0);
+    else if (sk === 'FSTAT') notebookNoteCount = Number(item['noteCount'] ?? 0);
     else if (sk.startsWith('FSTAT#')) {
       noteCounts.set(sk.slice('FSTAT#'.length), Number(item['noteCount'] ?? 0));
     } else if (sk.startsWith('LIMIT#')) {
-      limits.set(sk.slice('LIMIT#'.length), VaultRoleLimit.VIEWER);
+      limits.set(sk.slice('LIMIT#'.length), NotebookRoleLimit.VIEWER);
     }
   }
 
-  return Vault.rehydrate({
-    id: unwrapOrThrow(VaultId.create(String(meta['vaultId']))),
+  return Notebook.rehydrate({
+    id: unwrapOrThrow(NotebookId.create(String(meta['notebookId']))),
     subscriptionId,
-    name: unwrapOrThrow(VaultName.create(String(meta['name']))),
+    name: unwrapOrThrow(NotebookName.create(String(meta['name']))),
     slug: unwrapOrThrow(Slug.create(String(meta['slug']))),
     description: unwrapOrThrow(ShortText.create(String(meta['description'] ?? ''))),
     guidanceRef: parseContentRef(meta['guidanceRef']),
     folders,
     limits,
     noteCounts,
-    vaultNoteCount,
+    notebookNoteCount,
     version: Number(meta['version'] ?? 0),
     createdBy: parseAuthorship(meta['createdBy']),
     updatedAt: unwrapOrThrow(Instant.fromISO(String(meta['updatedAt']))),
@@ -176,7 +176,7 @@ export function noteItem(
     SK: keys.sk,
     entity: 'NOTE',
     noteId: note.id.value,
-    vaultId: note.vaultId.value,
+    notebookId: note.notebookId.value,
     folderId: note.folderId.value,
     position: note.position.value,
     bodyRef: serializeContentRef(note.bodyRef),
@@ -207,7 +207,7 @@ export function parseNote(item: Item, subscriptionId: SubscriptionId): Note {
   return Note.rehydrate({
     id: unwrapOrThrow(NoteId.create(String(item['noteId']))),
     subscriptionId,
-    vaultId: unwrapOrThrow(VaultId.create(String(item['vaultId']))),
+    notebookId: unwrapOrThrow(NotebookId.create(String(item['notebookId']))),
     folderId: unwrapOrThrow(FolderId.create(String(item['folderId']))),
     title: item['title'] === undefined ? null : String(item['title']),
     position: unwrapOrThrow(Position.create(String(item['position']))),

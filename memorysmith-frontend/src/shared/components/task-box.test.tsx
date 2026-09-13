@@ -1,7 +1,7 @@
 /**
  * The task box, which is the first write the web interface makes.
  *
- * It did not work on any note, in any vault, and the cause was one line:
+ * It did not work on any note, in any notebook, and the cause was one line:
  * `TaskItem` decided with `node.checked`, and react-markdown 9 hands a
  * component the **hast** element, which has no such property. Every item fell
  * through to the plain branch and reached the screen as GFM's own checkbox,
@@ -52,7 +52,7 @@ beforeAll(async () => {
         <MemoryRouter>
           <WritableContent
             raw={markdown}
-            vaultSlug="a-vault"
+            notebookSlug="a-notebook"
             baseRevision="rev-1"
             writable={writable}
             write={() => Promise.resolve('rev-2')}

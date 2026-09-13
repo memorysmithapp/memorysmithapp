@@ -31,17 +31,17 @@ export class RecordEvents {
 export class GetNoteHistory {
   constructor(private readonly trail: AuditTrail) {}
 
-  /** Indexed by NoteId, so it survives the note changing vault (RN-AUD-004). */
+  /** Indexed by NoteId, so it survives the note changing notebook (RN-AUD-004). */
   async execute(noteId: string): Promise<Result<AuditEvent[], DomainError>> {
     return ok(await this.trail.timelineOf('NOTE', noteId));
   }
 }
 
-export class GetVaultActivity {
+export class GetNotebookActivity {
   constructor(private readonly trail: AuditTrail) {}
 
   async execute(input: {
-    vaultId: string;
+    notebookId: string;
     from?: string | undefined;
     to?: string | undefined;
   }): Promise<Result<AuditEvent[], DomainError>> {
@@ -52,7 +52,7 @@ export class GetVaultActivity {
 
     return ok(
       await this.trail.activityOf(
-        input.vaultId,
+        input.notebookId,
         from?.ok ? from.value : null,
         to?.ok ? to.value : null,
       ),

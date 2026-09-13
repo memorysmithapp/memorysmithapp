@@ -81,7 +81,7 @@ describe('a path names a note by its identifier, or it does not', () => {
     expect(noteAt(folders, 'decisions/2026')).toBeNull();
   });
 
-  it('says no to the vault root', () => {
+  it('says no to the notebook root', () => {
     expect(noteAt(folders, '')).toBeNull();
   });
 

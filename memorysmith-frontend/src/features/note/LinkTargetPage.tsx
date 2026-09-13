@@ -5,31 +5,31 @@ import { resolveLinkTarget } from '../../shared/api/source';
 import { noteAddress } from '../../shared/api/note-address';
 import { NoteSkeleton } from '../../shared/components/skeletons';
 import { folderTrailForNote } from '../structure/trail';
-import type { VaultOutletContext } from '../structure/VaultLayout';
+import type { NotebookOutletContext } from '../structure/NotebookLayout';
 
 /**
  * The address of a **link target**, which is a wikilink concept and not a note
  * (RN-DSC-046).
  *
  * A URL is an address and names one note; a wikilink is a name and may match
- * several — deliberately, because nothing in a vault is unique (RN-KNW-037).
+ * several — deliberately, because nothing in a notebook is unique (RN-KNW-037).
  * When a target answers with exactly one note the link goes straight there and
  * never reaches this page. When it answers with none or with several, the
  * target itself gets an address, and this is where the encoding of a name
  * legitimately lives: a route reached by clicking, never by typing.
  *
- * It is **vault-wide**, because resolution is: binding the choice to a folder
+ * It is **notebook-wide**, because resolution is: binding the choice to a folder
  * trail was always slightly wrong.
  */
 export function LinkTargetPage() {
   const { t } = useTranslation();
-  const { vaultSlug = '', target = '' } = useParams();
-  const { structure } = useOutletContext<VaultOutletContext>();
+  const { notebookSlug = '', target = '' } = useParams();
+  const { structure } = useOutletContext<NotebookOutletContext>();
   const decoded = decodeURIComponent(target).normalize('NFC');
 
   const { data, isPending, isError } = useQuery({
-    queryKey: ['link-target', vaultSlug, decoded],
-    queryFn: () => resolveLinkTarget(vaultSlug, decoded),
+    queryKey: ['link-target', notebookSlug, decoded],
+    queryFn: () => resolveLinkTarget(notebookSlug, decoded),
     enabled: decoded !== '',
   });
 
@@ -43,7 +43,7 @@ export function LinkTargetPage() {
       noteId: note.noteId,
       title: note.title,
       folderPath: trail.map((each) => each.name).join(' / '),
-      address: noteAddress(vaultSlug, folder?.slugPath ?? '', note.title, note.noteId),
+      address: noteAddress(notebookSlug, folder?.slugPath ?? '', note.title, note.noteId),
     };
   });
 

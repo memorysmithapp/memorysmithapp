@@ -17,7 +17,7 @@ import {
   subscriptionTypeSchema,
   ulidSchema,
   userIdSchema,
-  vaultRoleLimitSchema,
+  notebookRoleLimitSchema,
 } from '../common.js';
 
 /** One link between a user and a subscription (architecture-guide.md 8.3). */
@@ -55,8 +55,8 @@ export const sessionSchema = z.object({
   /**
    * The role of this user in the ACTIVE subscription, already resolved: OWNER
    * for the holder, EDITOR or VIEWER for a member, NONE for a session that
-   * carries no subscription at all. A per-vault ceiling can lower it, never
-   * raise it (RN-ACC-011), and that lives with the vault.
+   * carries no subscription at all. A per-notebook ceiling can lower it, never
+   * raise it (RN-ACC-011), and that lives with the notebook.
    */
   role: roleSchema,
   /**
@@ -116,12 +116,12 @@ export const transferOwnershipRequestSchema = z.object({
   toUserId: userIdSchema,
 });
 
-export const setVaultRoleLimitRequestSchema = z.object({
-  limit: vaultRoleLimitSchema,
+export const setNotebookRoleLimitRequestSchema = z.object({
+  limit: notebookRoleLimitSchema,
 });
 
 /**
- * The platform queue. Metadata only: never a vault name, never content
+ * The platform queue. Metadata only: never a notebook name, never content
  * (software-vision.md, section 4.6). The projection of GSI2 is exactly this
  * list of fields, and widening it is a privacy decision.
  */
@@ -170,7 +170,7 @@ export type RequestSubscriptionRequest = z.infer<typeof requestSubscriptionReque
 export type InviteMemberRequest = z.infer<typeof inviteMemberRequestSchema>;
 export type ChangeMemberRoleRequest = z.infer<typeof changeMemberRoleRequestSchema>;
 export type TransferOwnershipRequest = z.infer<typeof transferOwnershipRequestSchema>;
-export type SetVaultRoleLimitRequest = z.infer<typeof setVaultRoleLimitRequestSchema>;
+export type SetNotebookRoleLimitRequest = z.infer<typeof setNotebookRoleLimitRequestSchema>;
 export type ApproveSubscriptionRequest = z.infer<typeof approveSubscriptionRequestSchema>;
 export type RejectSubscriptionRequest = z.infer<typeof rejectSubscriptionRequestSchema>;
 export type SetSubscriptionStatusRequest = z.infer<typeof setSubscriptionStatusRequestSchema>;

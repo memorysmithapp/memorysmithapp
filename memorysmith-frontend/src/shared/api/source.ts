@@ -15,8 +15,8 @@ import type {
   NoteDetail,
   SearchHit,
   TemplateDetail,
-  VaultStructure,
-  VaultSummary,
+  NotebookStructure,
+  NotebookSummary,
 } from '../types/api';
 
 const configuredOrigin = (import.meta.env['VITE_API_ORIGIN'] as string | undefined)?.replace(
@@ -43,16 +43,19 @@ export const apiOrigin: string = configuredOrigin;
  * issue replaces it with the identifier.
  */
 function resolveFromStructure(
-  vaultSlug: string,
+  notebookSlug: string,
   target: string,
-  structure: VaultStructure | undefined,
+  structure: NotebookStructure | undefined,
 ): string | null {
   if (!structure) return null;
   const wanted = target.normalize('NFC');
-  const found: Array<{ folder: VaultStructure['folders'][number]; noteId: string; title: string }> =
-    [];
+  const found: Array<{
+    folder: NotebookStructure['folders'][number];
+    noteId: string;
+    title: string;
+  }> = [];
 
-  const walk = (nodes: VaultStructure['folders']): void => {
+  const walk = (nodes: NotebookStructure['folders']): void => {
     for (const node of nodes) {
       for (const note of node.notes) {
         if ((note.title ?? '').normalize('NFC') === wanted) {
@@ -69,7 +72,7 @@ function resolveFromStructure(
   // more than one note and an address may not (RN-DSC-046).
   const only = found.length === 1 ? found[0] : undefined;
   if (!only) return null;
-  return noteAddress(vaultSlug, only.folder.slugPath, only.title, only.noteId);
+  return noteAddress(notebookSlug, only.folder.slugPath, only.title, only.noteId);
 }
 
 /**
@@ -77,24 +80,27 @@ function resolveFromStructure(
  * this instead of asking the API again: the tree it needs is the tree the page
  * is already showing.
  */
-const loaded = new Map<string, VaultStructure>();
+const loaded = new Map<string, NotebookStructure>();
 
-export function listVaults(): Promise<VaultSummary[]> {
-  return backend.listVaults();
+export function listNotebooks(): Promise<NotebookSummary[]> {
+  return backend.listNotebooks();
 }
 
-export async function getVaultStructure(vaultSlug: string): Promise<VaultStructure> {
-  const structure = await backend.getVaultStructure(vaultSlug);
-  loaded.set(vaultSlug, structure);
+export async function getNotebookStructure(notebookSlug: string): Promise<NotebookStructure> {
+  const structure = await backend.getNotebookStructure(notebookSlug);
+  loaded.set(notebookSlug, structure);
   return structure;
 }
 
-export function getNote(vaultSlug: string, noteSlug: string): Promise<NoteDetail> {
-  return backend.getNote(vaultSlug, noteSlug);
+export function getNote(notebookSlug: string, noteSlug: string): Promise<NoteDetail> {
+  return backend.getNote(notebookSlug, noteSlug);
 }
 
-export function getTemplate(vaultSlug: string, folderId: string): Promise<TemplateDetail | null> {
-  return backend.getTemplate(vaultSlug, folderId);
+export function getTemplate(
+  notebookSlug: string,
+  folderId: string,
+): Promise<TemplateDetail | null> {
+  return backend.getTemplate(notebookSlug, folderId);
 }
 
 /**
@@ -102,8 +108,8 @@ export function getTemplate(vaultSlug: string, folderId: string): Promise<Templa
  * resolve to exactly one note — which is where the reading surface writes a
  * `pending:` link and the link target page takes over (RN-DSC-046).
  */
-export function resolveNoteUrl(vaultSlug: string, target: string): string | null {
-  return resolveFromStructure(vaultSlug, target, loaded.get(vaultSlug));
+export function resolveNoteUrl(notebookSlug: string, target: string): string | null {
+  return resolveFromStructure(notebookSlug, target, loaded.get(notebookSlug));
 }
 
 /**
@@ -117,21 +123,21 @@ export function resolveNoteUrl(vaultSlug: string, target: string): string | null
  * ever resolves what no title matched, so a target no title answers goes to
  * the target page, which asks Discovery.
  */
-export function wikilinkUrl(vaultSlug: string, target: string): string | null {
-  const carried = notesTitled(vaultSlug, target);
-  if (carried === 1) return resolveNoteUrl(vaultSlug, target);
-  return linkTargetAddress(vaultSlug, target);
+export function wikilinkUrl(notebookSlug: string, target: string): string | null {
+  const carried = notesTitled(notebookSlug, target);
+  if (carried === 1) return resolveNoteUrl(notebookSlug, target);
+  return linkTargetAddress(notebookSlug, target);
 }
 
 /**
  * How many notes of the loaded structure carry that title. One is a link, none
  * is pending, and several is the choice.
  */
-export function notesTitled(vaultSlug: string, target: string): number {
-  const structure = loaded.get(vaultSlug);
+export function notesTitled(notebookSlug: string, target: string): number {
+  const structure = loaded.get(notebookSlug);
   if (!structure) return 0;
   const wanted = target.normalize('NFC');
-  const count = (nodes: VaultStructure['folders']): number =>
+  const count = (nodes: NotebookStructure['folders']): number =>
     nodes.reduce(
       (total, node) =>
         total +
@@ -142,7 +148,7 @@ export function notesTitled(vaultSlug: string, target: string): number {
   return count(structure.folders);
 }
 
-/** The whole vault as a downloadable archive, prepared on demand. */
+/** The whole notebook as a downloadable archive, prepared on demand. */
 export function prepareImport() {
   return backend.prepareImport();
 }
@@ -151,25 +157,25 @@ export function applyImport(uploadKey: string, name: string) {
   return backend.applyImport(uploadKey, name);
 }
 
-export function exportVault(vaultSlug: string): Promise<ExportJobDto> {
-  return backend.exportVault(vaultSlug);
+export function exportNotebook(notebookSlug: string): Promise<ExportJobDto> {
+  return backend.exportNotebook(notebookSlug);
 }
 
-export function resolveLinkTarget(vaultSlug: string, target: string) {
-  return backend.resolveLinkTarget(vaultSlug, target);
+export function resolveLinkTarget(notebookSlug: string, target: string) {
+  return backend.resolveLinkTarget(notebookSlug, target);
 }
 
-export function searchNotes(vaultSlug: string, query: string, k: number): Promise<SearchHit[]> {
-  return backend.searchVault(vaultSlug, query, k);
+export function searchNotes(notebookSlug: string, query: string, k: number): Promise<SearchHit[]> {
+  return backend.searchNotebook(notebookSlug, query, k);
 }
 
 /**
  * The three writes the reading surface makes. They are the whole write surface
- * of the UI today, and each carries the revision it is based on: a vault that
+ * of the UI today, and each carries the revision it is based on: a notebook that
  * sustains auditing does not accept blind overwrite (RN-KNW-034).
  */
 export function updateNote(
-  vaultSlug: string,
+  notebookSlug: string,
   noteId: string,
   input: { content: string; baseRevision: string },
   options: { keepalive?: boolean } = {},
@@ -177,34 +183,34 @@ export function updateNote(
   // The version the write produced. Every writer of a Content Slot answers
   // it, so the caller can chain a second write without reloading the note.
   return backend
-    .updateNote(vaultSlug, noteId, input, options)
+    .updateNote(notebookSlug, noteId, input, options)
     .then((note) => note.revision.versionId);
 }
 
 export function putGuidance(
-  vaultSlug: string,
+  notebookSlug: string,
   content: string,
   baseRevision: string | null,
   options: { keepalive?: boolean } = {},
 ): Promise<string> {
-  return backend.putGuidance(vaultSlug, content, baseRevision, options);
+  return backend.putGuidance(notebookSlug, content, baseRevision, options);
 }
 
 export function putTemplate(
-  vaultSlug: string,
+  notebookSlug: string,
   folderId: string,
   content: string,
   baseRevision: string | null,
   options: { keepalive?: boolean } = {},
 ): Promise<string> {
-  return backend.putTemplate(vaultSlug, folderId, content, baseRevision, options);
+  return backend.putTemplate(notebookSlug, folderId, content, baseRevision, options);
 }
 
 /**
- * Who may tick a box: whoever may write in THIS vault. The effective role is
- * min(subscription role, vault ceiling), and it is the only thing that decides
+ * Who may tick a box: whoever may write in THIS notebook. The effective role is
+ * min(subscription role, notebook ceiling), and it is the only thing that decides
  * (section 5.3). Never the role in the subscription, which would let an EDITOR
- * demoted in this vault write here.
+ * demoted in this notebook write here.
  */
 export function canWrite(effectiveRole: string): boolean {
   return effectiveRole === 'OWNER' || effectiveRole === 'EDITOR';

@@ -39,7 +39,7 @@ describe('a block identifier names the block it ends (profile 5.7)', () => {
   });
 
   it('answers null for an identifier that names nothing, and never throws', () => {
-    // Reported the way a pending link is: a vault is read most while it is
+    // Reported the way a pending link is: a notebook is read most while it is
     // still being written, so a target that is not there yet is expected.
     expect(blockOf(note, 'does-not-exist')).toBeNull();
   });

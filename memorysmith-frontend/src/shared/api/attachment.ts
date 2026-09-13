@@ -7,10 +7,10 @@
  * the way a pending link is (RN-DSC-049). What it must not be is what it was —
  * a `![[diagram.png]]` fell through the wikilink path and was drawn as a link
  * to a note nobody will ever write, telling the reader the wrong thing about
- * their own vault.
+ * their own notebook.
  *
  * The extension is what tells a file from a title, and a title may carry a
- * dot: this is the list of what a vault actually keeps beside its notes, so
+ * dot: this is the list of what a notebook actually keeps beside its notes, so
  * `Lei 14.133` is a note and `engelbart.jpg` is not.
  */
 const ATTACHMENT =

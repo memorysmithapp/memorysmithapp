@@ -20,11 +20,11 @@ import {
   GetFacetStats,
   RelatedNotes,
   SearchNotes,
-  VaultGraphQuery,
-  VaultHealth,
+  NotebookGraphQuery,
+  NotebookHealth,
 } from '../src/application/queries.js';
 
-const VAULT = 'vault-1';
+const NOTEBOOK = 'notebook-1';
 
 describe('LinkExtractor: a target is a title', () => {
   it('reads both link forms, and only the Markdown one is touched', () => {
@@ -182,8 +182,8 @@ describe('The projections, driven by events', () => {
     project = new ProjectNote({ graph, facets, index, structure, content: reader });
 
     const structureProjector = new ProjectStructure(structure);
-    await structureProjector.onVault(VAULT, 'Normas e Legislacao');
-    await structureProjector.onFolder(VAULT, {
+    await structureProjector.onNotebook(NOTEBOOK, 'Normas e Legislacao');
+    await structureProjector.onFolder(NOTEBOOK, {
       folderId: 'f1',
       name: 'Normas',
       description: 'Texto normativo por artigo',
@@ -200,7 +200,7 @@ describe('The projections, driven by events', () => {
     const ref = { contentId: `c-${input.noteId}`, versionId: `v-${content.size + 1}` };
     content.set(`${ref.contentId}#${ref.versionId}`, input.markdown);
     await project.onWritten({
-      vaultId: VAULT,
+      notebookId: NOTEBOOK,
       noteId: input.noteId,
       folderId: 'f1',
       contentRef: ref,
@@ -210,26 +210,31 @@ describe('The projections, driven by events', () => {
   it('resolves a pending link when the target note is finally created', async () => {
     await write({ noteId: 'n1', markdown: '# Achado 12\n\nFundamento: [[Lei 14.133]].' });
     // The target does not exist yet, so the link waits instead of vanishing.
-    expect(await graph.backlinks(VAULT, 'n2')).toHaveLength(0);
-    expect(await graph.broken(VAULT)).toHaveLength(1);
+    expect(await graph.backlinks(NOTEBOOK, 'n2')).toHaveLength(0);
+    expect(await graph.broken(NOTEBOOK)).toHaveLength(1);
 
     await write({ noteId: 'n2', markdown: '# Lei 14.133' });
 
-    const backlinks = await graph.backlinks(VAULT, 'n2');
+    const backlinks = await graph.backlinks(NOTEBOOK, 'n2');
     expect(backlinks.map((note) => note.noteId)).toEqual(['n1']);
-    expect(await graph.broken(VAULT)).toHaveLength(0);
+    expect(await graph.broken(NOTEBOOK)).toHaveLength(0);
   });
 
   it('returns backlinks to pending when the target note is deleted', async () => {
     await write({ noteId: 'n2', markdown: '# Lei 14.133' });
     await write({ noteId: 'n1', markdown: '# Achado 12\n\nFundamento: [[Lei 14.133]].' });
-    expect(await graph.backlinks(VAULT, 'n2')).toHaveLength(1);
+    expect(await graph.backlinks(NOTEBOOK, 'n2')).toHaveLength(1);
 
-    await project.onDeleted({ vaultId: VAULT, noteId: 'n2', folderId: 'f1', contentRef: null });
+    await project.onDeleted({
+      notebookId: NOTEBOOK,
+      noteId: 'n2',
+      folderId: 'f1',
+      contentRef: null,
+    });
 
     // RN-DSC-005: the edge is gone and the link is pending again.
-    expect(await graph.backlinks(VAULT, 'n2')).toHaveLength(0);
-    expect((await graph.broken(VAULT)).map((link) => link.targetTitle)).toEqual(['Lei 14.133']);
+    expect(await graph.backlinks(NOTEBOOK, 'n2')).toHaveLength(0);
+    expect((await graph.broken(NOTEBOOK)).map((link) => link.targetTitle)).toEqual(['Lei 14.133']);
   });
 
   it('makes two edges out of one link when two notes carry the title', async () => {
@@ -238,22 +243,22 @@ describe('The projections, driven by events', () => {
     await write({ noteId: 'n2', markdown: '# Índice\n\nOutro.' });
     await write({ noteId: 'n3', markdown: '# Achado\n\nVer [[Índice]].' });
 
-    expect((await graph.backlinks(VAULT, 'n1')).map((note) => note.noteId)).toEqual(['n3']);
-    expect((await graph.backlinks(VAULT, 'n2')).map((note) => note.noteId)).toEqual(['n3']);
+    expect((await graph.backlinks(NOTEBOOK, 'n1')).map((note) => note.noteId)).toEqual(['n3']);
+    expect((await graph.backlinks(NOTEBOOK, 'n2')).map((note) => note.noteId)).toEqual(['n3']);
   });
 
   it('lets an alias catch a target no title matched', async () => {
     // RN-DSC-052: the alias fills an empty, and only an empty.
     await write({ noteId: 'n1', markdown: '# Achado\n\nVer [[RPO]].' });
-    expect(await graph.broken(VAULT)).toHaveLength(1);
+    expect(await graph.broken(NOTEBOOK)).toHaveLength(1);
 
     await write({
       noteId: 'n2',
       markdown: '---\naliases: [RPO]\n---\n\n# Recovery Point Objective\n',
     });
 
-    expect((await graph.backlinks(VAULT, 'n2')).map((note) => note.noteId)).toEqual(['n1']);
-    expect(await graph.broken(VAULT)).toHaveLength(0);
+    expect((await graph.backlinks(NOTEBOOK, 'n2')).map((note) => note.noteId)).toEqual(['n1']);
+    expect(await graph.broken(NOTEBOOK)).toHaveLength(0);
   });
 
   it('takes the edge back the day a note carries that title, and gives it again', async () => {
@@ -261,17 +266,22 @@ describe('The projections, driven by events', () => {
     // note DESTROYS an edge in a third note, whose own bytes did not change.
     await write({ noteId: 'n1', markdown: '# Achado\n\nVer [[RPO]].' });
     await write({ noteId: 'n2', markdown: '---\naliases: [RPO]\n---\n\n# Objetivo de ponto\n' });
-    expect((await graph.backlinks(VAULT, 'n2')).map((note) => note.noteId)).toEqual(['n1']);
+    expect((await graph.backlinks(NOTEBOOK, 'n2')).map((note) => note.noteId)).toEqual(['n1']);
 
     // A note titled exactly RPO arrives, and the title wins.
     await write({ noteId: 'n3', markdown: '# RPO\n\nA nota que se chama assim.' });
-    expect(await graph.backlinks(VAULT, 'n2')).toHaveLength(0);
-    expect((await graph.backlinks(VAULT, 'n3')).map((note) => note.noteId)).toEqual(['n1']);
+    expect(await graph.backlinks(NOTEBOOK, 'n2')).toHaveLength(0);
+    expect((await graph.backlinks(NOTEBOOK, 'n3')).map((note) => note.noteId)).toEqual(['n1']);
 
     // And it goes back when that note is deleted, because the alias is still
     // there, waiting, in a note nobody touched either time.
-    await project.onDeleted({ vaultId: VAULT, noteId: 'n3', folderId: 'f1', contentRef: null });
-    expect((await graph.backlinks(VAULT, 'n2')).map((note) => note.noteId)).toEqual(['n1']);
+    await project.onDeleted({
+      notebookId: NOTEBOOK,
+      noteId: 'n3',
+      folderId: 'f1',
+      contentRef: null,
+    });
+    expect((await graph.backlinks(NOTEBOOK, 'n2')).map((note) => note.noteId)).toEqual(['n1']);
   });
 
   it('never lets an alias take a link a title already matched', async () => {
@@ -279,21 +289,21 @@ describe('The projections, driven by events', () => {
     await write({ noteId: 'n2', markdown: '---\naliases: [Lei 14.133]\n---\n\n# Outra nota\n' });
     await write({ noteId: 'n3', markdown: '# Achado\n\nVer [[Lei 14.133]].' });
 
-    expect((await graph.backlinks(VAULT, 'n1')).map((note) => note.noteId)).toEqual(['n3']);
-    expect(await graph.backlinks(VAULT, 'n2')).toHaveLength(0);
+    expect((await graph.backlinks(NOTEBOOK, 'n1')).map((note) => note.noteId)).toEqual(['n3']);
+    expect(await graph.backlinks(NOTEBOOK, 'n2')).toHaveLength(0);
   });
 
-  it('prunes everything in the origin vault on a cross-vault move', async () => {
-    // RN-DSC-006: there is no link between vaults.
+  it('prunes everything in the origin notebook on a cross-notebook move', async () => {
+    // RN-DSC-006: there is no link between notebooks.
     content.set('c1#v1', '# Nota\n\n[[outra]]');
     await project.onWritten({
-      vaultId: VAULT,
+      notebookId: NOTEBOOK,
       noteId: 'n1',
       folderId: 'f1',
       contentRef: { contentId: 'c1', versionId: 'v1' },
     });
-    await structure.upsertVault('vault-2', 'Outro');
-    await structure.upsertFolder('vault-2', {
+    await structure.upsertNotebook('notebook-2', 'Outro');
+    await structure.upsertFolder('notebook-2', {
       folderId: 'f9',
       name: 'Destino',
       description: 'Destino',
@@ -301,14 +311,14 @@ describe('The projections, driven by events', () => {
     });
 
     await project.onMoved({
-      vaultId: 'vault-2',
-      fromVaultId: VAULT,
+      notebookId: 'notebook-2',
+      fromNotebookId: NOTEBOOK,
       noteId: 'n1',
       folderId: 'f9',
       contentRef: { contentId: 'c1', versionId: 'v1' },
     });
 
-    expect(await graph.backlinks(VAULT, 'n1')).toHaveLength(0);
+    expect(await graph.backlinks(NOTEBOOK, 'n1')).toHaveLength(0);
   });
 
   it('counts facets and withdraws the portrait when the note goes', async () => {
@@ -316,15 +326,20 @@ describe('The projections, driven by events', () => {
     await write({ noteId: 'n2', markdown: '---\nmaturity: seed\nreviewed: true\n---\n\n# Outra' });
 
     const stats = await new GetFacetStats({ graph, facets, catalog, content: index }).execute({
-      vaultId: VAULT,
+      notebookId: NOTEBOOK,
     });
     expect(stats.ok).toBe(true);
     if (!stats.ok) return;
     const maturity = stats.value.facets.find((facet) => facet.facet === 'maturity');
     expect(maturity?.values).toEqual([{ value: 'seed', count: 2 }]);
 
-    await project.onDeleted({ vaultId: VAULT, noteId: 'n1', folderId: 'f1', contentRef: null });
-    const afterDeletion = await facets.vaultFacetStats(VAULT);
+    await project.onDeleted({
+      notebookId: NOTEBOOK,
+      noteId: 'n1',
+      folderId: 'f1',
+      contentRef: null,
+    });
+    const afterDeletion = await facets.notebookFacetStats(NOTEBOOK);
     expect(afterDeletion.facets.find((facet) => facet.facet === 'maturity')?.values).toEqual([
       { value: 'seed', count: 1 },
     ]);
@@ -339,7 +354,7 @@ describe('The projections, driven by events', () => {
         markdown: `---\nsource: doc-${index}\nmaturity: seed\n---\n\n# Nota`,
       });
     }
-    const stats = await facets.vaultFacetStats(VAULT);
+    const stats = await facets.notebookFacetStats(NOTEBOOK);
     const source = stats.facets.find((facet) => facet.facet === 'source');
     expect(source?.discarded).toBe(true);
     expect(source?.values).toEqual([]);
@@ -390,16 +405,16 @@ describe('Discovery queries', () => {
         folderName: 'Achados',
       },
     ];
-    await graph.replaceOutgoing(VAULT, notes[1] as never, []);
-    await graph.replaceOutgoing(VAULT, notes[2] as never, []);
-    await graph.replaceOutgoing(VAULT, notes[0] as never, [
+    await graph.replaceOutgoing(NOTEBOOK, notes[1] as never, []);
+    await graph.replaceOutgoing(NOTEBOOK, notes[2] as never, []);
+    await graph.replaceOutgoing(NOTEBOOK, notes[0] as never, [
       { title: 'Lei 14.133', anchor: null },
       { title: 'Portaria 9', anchor: null },
     ]);
-    await graph.replaceOutgoing(VAULT, notes[3] as never, []);
+    await graph.replaceOutgoing(NOTEBOOK, notes[3] as never, []);
 
     const catalog = new InMemoryNoteCatalog();
-    catalog.set(VAULT, notes);
+    catalog.set(NOTEBOOK, notes);
     const content = new InMemoryContentIndex();
     /**
      * The body is what makes this a content search: `xpto010101` appears in
@@ -413,7 +428,7 @@ describe('Discovery queries', () => {
     };
     for (const note of notes) {
       const body = bodies[note.noteId] ?? '';
-      await content.replaceNote(VAULT, {
+      await content.replaceNote(NOTEBOOK, {
         noteId: note.noteId,
         title: normalize(note.title),
         folderId: note.folderId,
@@ -428,7 +443,11 @@ describe('Discovery queries', () => {
   });
 
   it('walks the dependency tree with a depth cap', async () => {
-    const tree = await new RelatedNotes(deps).execute({ vaultId: VAULT, noteId: 'n1', depth: 2 });
+    const tree = await new RelatedNotes(deps).execute({
+      notebookId: NOTEBOOK,
+      noteId: 'n1',
+      depth: 2,
+    });
     expect(tree.ok).toBe(true);
     if (!tree.ok) return;
     expect(tree.value.note.noteId).toBe('n1');
@@ -439,19 +458,23 @@ describe('Discovery queries', () => {
   });
 
   it('caps the depth at three even when more is asked for', async () => {
-    const tree = await new RelatedNotes(deps).execute({ vaultId: VAULT, noteId: 'n1', depth: 99 });
+    const tree = await new RelatedNotes(deps).execute({
+      notebookId: NOTEBOOK,
+      noteId: 'n1',
+      depth: 99,
+    });
     expect(tree.ok).toBe(true);
   });
 
   it('lists who points at a note', async () => {
-    const found = await new Backlinks(deps).execute({ vaultId: VAULT, noteId: 'n2' });
+    const found = await new Backlinks(deps).execute({ notebookId: NOTEBOOK, noteId: 'n2' });
     expect(found.ok).toBe(true);
     if (!found.ok) return;
     expect(found.value.map((note) => note.noteId)).toEqual(['n1']);
   });
 
-  it('draws the whole vault as nodes and index pairs', async () => {
-    const drawn = await new VaultGraphQuery(deps).execute({ vaultId: VAULT });
+  it('draws the whole notebook as nodes and index pairs', async () => {
+    const drawn = await new NotebookGraphQuery(deps).execute({ notebookId: NOTEBOOK });
     expect(drawn.ok).toBe(true);
     if (!drawn.ok) return;
 
@@ -474,15 +497,15 @@ describe('Discovery queries', () => {
     // The extractor classified by shape; nothing here knows what `maturity`
     // means. What the graph promises is only that the node carries what the
     // note says about itself, and `{}` when it says nothing.
-    await deps.facets.replaceFacets(VAULT, 'n1', {
+    await deps.facets.replaceFacets(NOTEBOOK, 'n1', {
       maturity: { facet: 'maturity', kind: 'enum', values: ['seed'] },
       tags: { facet: 'tags', kind: 'list', values: ['contrato', 'prazo'] },
     });
-    await deps.facets.replaceFacets(VAULT, 'n2', {
+    await deps.facets.replaceFacets(NOTEBOOK, 'n2', {
       maturity: { facet: 'maturity', kind: 'enum', values: ['evergreen'] },
     });
 
-    const drawn = await new VaultGraphQuery(deps).execute({ vaultId: VAULT });
+    const drawn = await new NotebookGraphQuery(deps).execute({ notebookId: NOTEBOOK });
     expect(drawn.ok).toBe(true);
     if (!drawn.ok) return;
 
@@ -505,14 +528,14 @@ describe('Discovery queries', () => {
       { noteId: 'i1', title: 'Índice', aliases: [], folderId: 'f1' },
       { noteId: 'i2', title: 'Índice', aliases: [], folderId: 'f2' },
     ];
-    for (const note of both) await graph.replaceOutgoing(VAULT, note, []);
+    for (const note of both) await graph.replaceOutgoing(NOTEBOOK, note, []);
     await graph.replaceOutgoing(
-      VAULT,
+      NOTEBOOK,
       { noteId: 'n9', title: 'Achado', aliases: [], folderId: 'f1' },
       [{ title: 'Índice', anchor: null }],
     );
 
-    const drawn = await graph.wholeGraph(VAULT);
+    const drawn = await graph.wholeGraph(NOTEBOOK);
     expect(drawn.nodes.filter((node) => node.title === 'Índice')).toHaveLength(2);
     expect(drawn.edges).toHaveLength(2);
     expect(drawn.pending).toHaveLength(0);
@@ -528,14 +551,14 @@ describe('Discovery queries', () => {
       { noteId: 'a1', title: 'Primeira', aliases: ['RPO'], folderId: 'f1' },
       { noteId: 'a2', title: 'Segunda', aliases: ['RPO'], folderId: 'f2' },
     ];
-    for (const note of holders) await graph.replaceOutgoing(VAULT, note, []);
+    for (const note of holders) await graph.replaceOutgoing(NOTEBOOK, note, []);
     await graph.replaceOutgoing(
-      VAULT,
+      NOTEBOOK,
       { noteId: 'n9', title: 'Achado', aliases: [], folderId: 'f1' },
       [{ title: 'RPO', anchor: null }],
     );
 
-    const drawn = await graph.wholeGraph(VAULT);
+    const drawn = await graph.wholeGraph(NOTEBOOK);
     // §5.4 makes no distinction between an edge found by a title and one found
     // by an alias, not even by counting.
     expect(drawn.edges).toHaveLength(2);
@@ -544,12 +567,12 @@ describe('Discovery queries', () => {
 
   it('keeps an unresolved link in the graph instead of dropping it', async () => {
     await deps.graph.replaceOutgoing(
-      VAULT,
+      NOTEBOOK,
       { noteId: 'n9', title: 'Aponta para o futuro', aliases: [], folderId: 'f1' },
       [{ title: 'ainda-nao-existe', anchor: null }],
     );
 
-    const drawn = await new VaultGraphQuery(deps).execute({ vaultId: VAULT });
+    const drawn = await new NotebookGraphQuery(deps).execute({ notebookId: NOTEBOOK });
     expect(drawn.ok).toBe(true);
     if (!drawn.ok) return;
 
@@ -558,30 +581,33 @@ describe('Discovery queries', () => {
   });
 
   it('reports broken links and orphan notes', async () => {
-    const health = await new VaultHealth(deps).execute({ vaultId: VAULT });
+    const health = await new NotebookHealth(deps).execute({ notebookId: NOTEBOOK });
     expect(health.ok).toBe(true);
     if (!health.ok) return;
     expect(health.value.orphans.map((note) => note.title)).toEqual(['Nota solta']);
   });
 
   it('searches over the title', async () => {
-    const found = await new SearchNotes(deps).execute({ vaultId: VAULT, query: 'lei 14.133' });
+    const found = await new SearchNotes(deps).execute({
+      notebookId: NOTEBOOK,
+      query: 'lei 14.133',
+    });
     expect(found.ok).toBe(true);
     if (!found.ok) return;
     expect(found.value[0]?.noteId).toBe('n2');
   });
 
-  it('refuses an interval over an attribute this vault does not hold as a date', async () => {
+  it('refuses an interval over an attribute this notebook does not hold as a date', async () => {
     /**
-     * Whether an attribute is a date is a fact about the VAULT, so it cannot
-     * be decided while parsing and it is decided here, once, with the vault in
+     * Whether an attribute is a date is a fact about the NOTEBOOK, so it cannot
+     * be decided while parsing and it is decided here, once, with the notebook in
      * hand (RN-DSC-034). It is refused rather than answered empty: an empty
      * result reads as "there is nothing filed under that", and this means "the
      * question has no answer", which is the difference between fixing the
-     * query and doubting the vault.
+     * query and doubting the notebook.
      */
     const refused = await new SearchNotes(deps).execute({
-      vaultId: VAULT,
+      notebookId: NOTEBOOK,
       query: 'maturity:>=evergreen',
     });
 
@@ -598,23 +624,29 @@ describe('Discovery queries', () => {
      * one runs over prose, and inventing separators the author did not write
      * would make the result impossible to explain.
      */
-    const exact = await new SearchNotes(deps).execute({ vaultId: VAULT, query: '14.133' });
+    const exact = await new SearchNotes(deps).execute({ notebookId: NOTEBOOK, query: '14.133' });
     expect(exact.ok && exact.value.map((hit) => hit.noteId)).toEqual(['n2']);
 
-    const without = await new SearchNotes(deps).execute({ vaultId: VAULT, query: '14133' });
+    const without = await new SearchNotes(deps).execute({ notebookId: NOTEBOOK, query: '14133' });
     expect(without.ok && without.value).toEqual([]);
   });
 
   it('finds a word that exists only in the body of one note', async () => {
-    // The behaviour a vault user expects: write a word, find the note.
-    const found = await new SearchNotes(deps).execute({ vaultId: VAULT, query: 'xpto010101' });
+    // The behaviour a notebook user expects: write a word, find the note.
+    const found = await new SearchNotes(deps).execute({
+      notebookId: NOTEBOOK,
+      query: 'xpto010101',
+    });
     expect(found.ok).toBe(true);
     if (!found.ok) return;
     expect(found.value.map((hit) => hit.noteId)).toEqual(['n2']);
   });
 
   it('cites the section the match fell under, and shows the passage', async () => {
-    const found = await new SearchNotes(deps).execute({ vaultId: VAULT, query: 'xpto010101' });
+    const found = await new SearchNotes(deps).execute({
+      notebookId: NOTEBOOK,
+      query: 'xpto010101',
+    });
     expect(found.ok).toBe(true);
     if (!found.ok) return;
     expect(found.value[0]?.section).toBe(normalize('Vigência'));
@@ -623,9 +655,9 @@ describe('Discovery queries', () => {
     expect(found.value[0]?.excerpt).toContain('Contratação');
   });
 
-  it('narrows a body term with a facet the vault declared', async () => {
+  it('narrows a body term with a facet the notebook declared', async () => {
     const withFacet = await new SearchNotes(deps).execute({
-      vaultId: VAULT,
+      notebookId: NOTEBOOK,
       query: 'prazo maturity:seed',
     });
     expect(withFacet.ok).toBe(true);
@@ -635,7 +667,7 @@ describe('Discovery queries', () => {
 
   it('excludes with a negation', async () => {
     const found = await new SearchNotes(deps).execute({
-      vaultId: VAULT,
+      notebookId: NOTEBOOK,
       query: 'prazo -portaria',
     });
     expect(found.ok).toBe(true);
@@ -646,7 +678,7 @@ describe('Discovery queries', () => {
   it('does not search the frontmatter as if it were prose', async () => {
     // RN-DSC-018: frontmatter belongs to the facet projector. If it leaked
     // into the body every note would match its own metadata.
-    const found = await new SearchNotes(deps).execute({ vaultId: VAULT, query: 'maturity' });
+    const found = await new SearchNotes(deps).execute({ notebookId: NOTEBOOK, query: 'maturity' });
     expect(found.ok).toBe(true);
     if (!found.ok) return;
     expect(found.value).toEqual([]);
@@ -654,7 +686,7 @@ describe('Discovery queries', () => {
 
   it('refuses an empty query', async () => {
     const refused = await new SearchNotes(deps).execute({
-      vaultId: VAULT,
+      notebookId: NOTEBOOK,
       query: '   ',
     });
     expect(refused.ok).toBe(false);
@@ -664,13 +696,13 @@ describe('Discovery queries', () => {
 describe('The scan walks every page, which is the whole correctness of it', () => {
   /**
    * The search this one replaced answered from the first megabyte of a Query
-   * and dropped the rest without a word. In a vault at the declared ceiling
+   * and dropped the rest without a word. In a notebook at the declared ceiling
    * that meant deciding over a fraction of the content while looking exactly
    * like a search that had read all of it.
    *
    * A fake DynamoDB that hands back pages proves the adapter keeps asking.
    */
-  it('keeps following LastEvaluatedKey until the vault is exhausted', async () => {
+  it('keeps following LastEvaluatedKey until the notebook is exhausted', async () => {
     const PAGES = 9;
     const perPage = 40;
     let sent = 0;
@@ -703,7 +735,7 @@ describe('The scan walks every page, which is the whole correctness of it', () =
       'mv-discovery',
     );
 
-    const notes = await index.scanVault(VAULT);
+    const notes = await index.scanNotebook(NOTEBOOK);
 
     expect(sent).toBe(PAGES);
     expect(notes).toHaveLength(PAGES * perPage);
@@ -750,7 +782,7 @@ describe('The facet projection writes every counter and reads every page', () =>
     const { db, transactions } = fakeDb();
     const index = new DynamoFacetIndex(SUBSCRIPTION, db as never, TABLE);
 
-    await index.replaceFacets(VAULT, 'note-1', {
+    await index.replaceFacets(NOTEBOOK, 'note-1', {
       tags: {
         facet: 'tags',
         kind: 'list',
@@ -774,7 +806,7 @@ describe('The facet projection writes every counter and reads every page', () =>
   it('reads the portrait of every note, not of the first page', async () => {
     // The graph colours a note by the portrait this query returns. A first
     // page answer would paint an attribute on the notes that fitted and leave
-    // the others bare, which reads as a vault where half the notes forgot
+    // the others bare, which reads as a notebook where half the notes forgot
     // their own frontmatter.
     const pages = [
       [{ noteId: 'n1', facets: { type: { facet: 'type', kind: 'enum', values: ['nota'] } } }],
@@ -784,7 +816,7 @@ describe('The facet projection writes every counter and reads every page', () =>
     const { db, pages: queried } = fakeDb(pages);
     const index = new DynamoFacetIndex(SUBSCRIPTION, db as never, TABLE);
 
-    const portraits = await index.vaultNoteFacets(VAULT);
+    const portraits = await index.notebookNoteFacets(NOTEBOOK);
 
     expect(queried()).toBe(3);
     expect([...portraits.keys()]).toEqual(['n1', 'n2', 'n3']);

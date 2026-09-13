@@ -101,7 +101,7 @@ export async function handleMcpRequest(
       }
       const caller = callerFrom(token, bearerToken);
       if (!caller) {
-        // A token with no subscription claim cannot reach a vault, and the
+        // A token with no subscription claim cannot reach a notebook, and the
         // failure is structural rather than a permission check (RN-SUB-016).
         return result(id, {
           content: [

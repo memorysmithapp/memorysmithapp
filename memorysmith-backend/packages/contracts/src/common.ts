@@ -18,7 +18,7 @@ export const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
 
 export const roleSchema = z.enum(['NONE', 'VIEWER', 'EDITOR', 'OWNER']);
 export const membershipRoleSchema = z.enum(['EDITOR', 'VIEWER']);
-export const vaultRoleLimitSchema = z.literal('VIEWER');
+export const notebookRoleLimitSchema = z.literal('VIEWER');
 
 export const subscriptionStatusSchema = z.enum([
   'pending_approval',

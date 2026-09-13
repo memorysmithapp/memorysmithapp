@@ -6,7 +6,7 @@
  * request or a stream, and it needs no session at all. Run it with
  * `deploy-aws/reproject-links.ps1`, as the third step of:
  *
- *   1. `deploy-aws/retitle-vaults.ps1`, against the version in production
+ *   1. `deploy-aws/retitle-notebooks.ps1`, against the version in production
  *   2. the deploy of 0.6.0
  *   3. this
  *
@@ -29,7 +29,7 @@ import { DynamoLinkGraph } from '@memorysmith/svc-discovery/adapters/aws';
 import {
   LinkReprojection,
   type PlannedEdge,
-  type VaultPlan,
+  type NotebookPlan,
 } from '@memorysmith/svc-discovery/adapters/reprojection';
 
 function required(name: string): string {
@@ -39,7 +39,7 @@ function required(name: string): string {
 }
 
 /** A note as a person reads it in the report, never as the table stores it. */
-function naming(plan: VaultPlan): (noteId: string) => string {
+function naming(plan: NotebookPlan): (noteId: string) => string {
   const titles = new Map(plan.notes.map((note) => [note.noteId, note.title]));
   return (noteId) => titles.get(noteId) || `(untitled ${noteId.slice(-6)})`;
 }
@@ -49,10 +49,10 @@ function describe(edge: PlannedEdge, name: (noteId: string) => string): string {
   return `${name(edge.from)} -> ${name(edge.to)}  (${because})`;
 }
 
-function print(plan: VaultPlan): void {
+function print(plan: NotebookPlan): void {
   const name = naming(plan);
   console.log('');
-  console.log(`  vault ${plan.vaultId}  (${plan.notes.length} notes)`);
+  console.log(`  notebook ${plan.notebookId}  (${plan.notes.length} notes)`);
   console.log(`    edges before          ${plan.before}`);
   console.log(`    edges after           ${plan.after.length}`);
   console.log(`    links left pending    ${plan.pending}`);
@@ -100,7 +100,7 @@ export async function main(argv: readonly string[]): Promise<number> {
 
   const plans = await reprojection.plan();
   if (plans.length === 0) {
-    console.log('No vault holds a note yet: there is no graph to rebuild.');
+    console.log('No notebook holds a note yet: there is no graph to rebuild.');
     return 0;
   }
 
@@ -109,7 +109,7 @@ export async function main(argv: readonly string[]): Promise<number> {
   const lost = plans.reduce((total, plan) => total + plan.lost.length, 0);
   const gained = plans.reduce((total, plan) => total + plan.gained.length, 0);
   console.log('');
-  console.log(`${plans.length} vault(s): ${gained} edge(s) gained, ${lost} lost.`);
+  console.log(`${plans.length} notebook(s): ${gained} edge(s) gained, ${lost} lost.`);
 
   if (!write) {
     console.log('\nDry run: nothing was written. Pass --apply to rebuild these graphs.');
@@ -117,7 +117,7 @@ export async function main(argv: readonly string[]): Promise<number> {
   }
 
   for (const plan of plans) await reprojection.apply(plan);
-  console.log(`\nRebuilt the link projection of ${plans.length} vault(s).`);
+  console.log(`\nRebuilt the link projection of ${plans.length} notebook(s).`);
   // A lost edge is not a reason to refuse the rebuild — the projection was
   // already wrong — but it IS the one number whoever ran the release has to
   // look at, so it decides the exit code.

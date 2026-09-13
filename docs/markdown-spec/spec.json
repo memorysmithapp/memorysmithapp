@@ -156,7 +156,7 @@
       "reader": "reading-surface",
       "syntax": "[text](destination \"optional title\")",
       "example": "See [the official text](https://example.org/lei-14133).",
-      "effect": "A link. Whether it becomes an edge is decided by the destination alone: a relative target inside the vault does, anything carrying a scheme or a host does not.",
+      "effect": "A link. Whether it becomes an edge is decided by the destination alone: a relative target inside the notebook does, anything carrying a scheme or a host does not.",
       "spec": "3.13"
     },
     {
@@ -228,7 +228,7 @@
       "reader": "reading-surface",
       "syntax": "<div>anything</div>",
       "example": "The notice: <b>read the act</b>.",
-      "effect": "Stored and returned exactly as written, and shown as text rather than rendered. This is a security boundary and not a rendering preference: a vault is written by several people and by agents, and a page that renders arbitrary HTML out of it is a script injection whose trigger is written by whoever wrote the note.",
+      "effect": "Stored and returned exactly as written, and shown as text rather than rendered. This is a security boundary and not a rendering preference: a notebook is written by several people and by agents, and a page that renders arbitrary HTML out of it is a script injection whose trigger is written by whoever wrote the note.",
       "spec": "3.9, 3.16, 7.9"
     },
     {
@@ -244,7 +244,7 @@
       "reader": "links",
       "syntax": "[[Target note]]",
       "example": "See [[Lei 14.133]] for the general rule.",
-      "effect": "Becomes an edge in the graph and a backlink on the target. The target is the title of a note, read by the chain of §5.3 — `title:` in the frontmatter, then the first level-1 heading — and compared case-exact after Unicode NFC, within this vault and never across vaults. Every note carrying that title becomes an edge. Only when no title matches is the target compared against `aliases`, and every note carrying it as an alias becomes an edge then; a target that matches neither becomes a pending link, which is expected while a vault is being written.",
+      "effect": "Becomes an edge in the graph and a backlink on the target. The target is the title of a note, read by the chain of §5.3 — `title:` in the frontmatter, then the first level-1 heading — and compared case-exact after Unicode NFC, within this notebook and never across notebooks. Every note carrying that title becomes an edge. Only when no title matches is the target compared against `aliases`, and every note carrying it as an alias becomes an edge then; a target that matches neither becomes a pending link, which is expected while a notebook is being written.",
       "spec": "5.1"
     },
     {
@@ -276,7 +276,7 @@
       "reader": "links",
       "syntax": "[what the reader sees](Target%20note)",
       "example": "See [the procurement act](Lei%2014.133) for the general rule.",
-      "effect": "Becomes the same edge as a wikilink, and survives so that a vault written by an editor configured for Markdown links keeps its edges when it is imported. It is the one form in which a path is discarded, a trailing `.md` or `.mdx` is removed and the target is percent-decoded — in that order, before the title is compared. A Writer never emits it: the wikilink is the canonical form.",
+      "effect": "Becomes the same edge as a wikilink, and survives so that a notebook written by an editor configured for Markdown links keeps its edges when it is imported. It is the one form in which a path is discarded, a trailing `.md` or `.mdx` is removed and the target is percent-decoded — in that order, before the title is compared. A Writer never emits it: the wikilink is the canonical form.",
       "spec": "5.2"
     },
     {
@@ -284,7 +284,7 @@
       "reader": "reading-surface",
       "syntax": "![[diagram.png]]",
       "example": "![[engelbart.jpg]]",
-      "effect": "A file of the vault that is not a note. It is addressed by its name, extension included, compared the way a title is — normalised to NFC, case-exact, folded in no other way — with a path playing no part in identity. It renders in place and is never an edge: the graph is between notes, so an attachment appears in no graph and generates no backlink. A name that matches nothing in the vault is reported the way a pending link is, and is not an error.",
+      "effect": "A file of the notebook that is not a note. It is addressed by its name, extension included, compared the way a title is — normalised to NFC, case-exact, folded in no other way — with a path playing no part in identity. It renders in place and is never an edge: the graph is between notes, so an attachment appears in no graph and generates no backlink. A name that matches nothing in the notebook is reported the way a pending link is, and is not an error.",
       "spec": "5.8"
     },
     {
@@ -300,7 +300,7 @@
       "reader": "links",
       "syntax": "[what the reader sees](https://example.org/page)",
       "example": "See [the official text](https://example.org/lei-14133) for the general rule.",
-      "effect": "Renders as a link and is never an edge. A destination with a scheme, or one beginning `//`, refers to the world and not to the vault, so it is not resolved against any note. Use external links freely as sources; a connection is not one of the things they make.",
+      "effect": "Renders as a link and is never an edge. A destination with a scheme, or one beginning `//`, refers to the world and not to the notebook, so it is not resolved against any note. Use external links freely as sources; a connection is not one of the things they make.",
       "spec": "5.1, 5.2"
     },
     {
@@ -364,7 +364,7 @@
       "reader": "frontmatter",
       "syntax": "author: Heitor Rapcinski  ·  or a list of them",
       "example": "---\nauthor: Heitor Rapcinski\n---\n\nBody.",
-      "effect": "Reserved: who the author states wrote this note. It is indexed exactly as it would be under any other name — a short value is an enum, a written list is a list, each value filterable on its own — and the reservation is of the name and not of a behaviour: it is what lets a vault in any language declare authorship under one key. Nothing derives it from a file, a commit or an account.",
+      "effect": "Reserved: who the author states wrote this note. It is indexed exactly as it would be under any other name — a short value is an enum, a written list is a list, each value filterable on its own — and the reservation is of the name and not of a behaviour: it is what lets a notebook in any language declare authorship under one key. Nothing derives it from a file, a commit or an account.",
       "spec": "6.4"
     },
     {

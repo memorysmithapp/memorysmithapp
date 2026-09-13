@@ -4,21 +4,24 @@
  * that way (architecture-guide.md, section 5.5).
  */
 
-export { Vault } from './vault/Vault.js';
-export { Folder } from './vault/Folder.js';
-export { FolderTree } from './vault/FolderTree.js';
+export { Notebook } from './notebook/Notebook.js';
+export { Folder } from './notebook/Folder.js';
+export { FolderTree } from './notebook/FolderTree.js';
 export { Note } from './note/Note.js';
 export {
   FolderDescription,
   FolderName,
   RemovalPolicy,
   ShortText,
-  VaultName,
-  VAULT_LIMITS,
+  NotebookName,
+  NOTEBOOK_LIMITS,
 } from './values.js';
 export { FolderTreePlacement, type Placement } from './services/FolderTreePlacement.js';
 export { NotePlacement, type NoteOrder } from './services/NotePlacement.js';
-export { composeVaultContext, type VaultContextInput } from './services/VaultContextComposer.js';
+export {
+  composeNotebookContext,
+  type NotebookContextInput,
+} from './services/NotebookContextComposer.js';
 export { admitWrite, type StorageBudget, type StorageState } from './services/StorageQuota.js';
 export {
   AuthorizationPolicy,
@@ -29,5 +32,5 @@ export type {
   ContentStore,
   EventPublisher,
   NoteRepository,
-  VaultRepository,
+  NotebookRepository,
 } from './ports/index.js';

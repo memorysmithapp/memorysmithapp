@@ -140,7 +140,7 @@ a:hover {
   color: var(--text-soft);
 }
 
-/* Vault catalog */
+/* Notebook catalog */
 .card-carousel {
   position: relative;
 }
@@ -175,7 +175,7 @@ a:hover {
   color: var(--accent);
 }
 
-.vault-grid {
+.notebook-grid {
   display: flex;
   gap: 1rem;
   overflow-x: auto;
@@ -183,7 +183,7 @@ a:hover {
   margin-bottom: 1.25rem;
   scroll-snap-type: x proximity;
 }
-.vault-card {
+.notebook-card {
   flex: 1 0 20rem;
   scroll-snap-align: start;
   display: flex;
@@ -195,37 +195,37 @@ a:hover {
   padding: 1.25rem;
   color: var(--text);
 }
-.vault-card:hover {
+.notebook-card:hover {
   border-color: var(--accent);
   text-decoration: none;
 }
-.vault-card h2 {
+.notebook-card h2 {
   margin: 0;
   font-size: 1.05rem;
 }
-.vault-card p {
+.notebook-card p {
   margin: 0;
   color: var(--text-soft);
   font-size: 0.9rem;
   flex: 1;
 }
-.vault-card footer {
+.notebook-card footer {
   display: flex;
   justify-content: space-between;
   font-size: 0.8rem;
   color: var(--text-soft);
 }
-.vault-open {
+.notebook-open {
   color: var(--accent);
 }
 
-/* Vault layout */
-.vault-layout {
+/* Notebook layout */
+.notebook-layout {
   display: flex;
   min-height: 0;
   width: 100%;
 }
-.vault-sidebar {
+.notebook-sidebar {
   width: 22rem;
   min-width: 16rem;
   border-right: 1px solid var(--border);
@@ -241,10 +241,10 @@ a:hover {
   font-size: 0.8rem;
   color: var(--text-soft);
 }
-.vault-title-link {
+.notebook-title-link {
   color: var(--text);
 }
-.vault-title-link h2 {
+.notebook-title-link h2 {
   margin: 0.35rem 0 0.75rem;
   font-size: 1rem;
 }
@@ -311,7 +311,7 @@ a:hover {
   font-weight: 600;
 }
 
-.vault-content {
+.notebook-content {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
@@ -377,7 +377,7 @@ a:hover {
 
 /* ── The reading surface ────────────────────────────────────────────────────
    A note, a Guidance, a folder page and a template are read here the way the
-   vault that wrote them is read, so the rendered Markdown follows the metrics
+   notebook that wrote them is read, so the rendered Markdown follows the metrics
    of the default theme of the desktop vault editors: its heading scale, its
    paragraph and list spacing, its quiet blockquote, its code and table
    treatment, its callouts and its property rows.
@@ -389,7 +389,7 @@ a:hover {
 
    Inside this surface headings are set in the text face and not in Space
    Grotesk, which is the one place the brand's display face steps aside: what
-   is drawn here is the vault's content, not the product's chrome, and the
+   is drawn here is the notebook's content, not the product's chrome, and the
    modular scale is half of why a note in those editors reads as one. */
 
 .content-pane {
@@ -422,7 +422,7 @@ a:hover {
 
 /* Every heading of the reading surface takes the text face and the modular
    scale, whether it came out of the Markdown or from the page around it: the
-   title of a note, of a folder and of a vault are all the vault talking. No
+   title of a note, of a folder and of a notebook are all the notebook talking. No
    rule under any of them, which is how the default theme draws them. */
 .content-pane :is(h1, h2, h3, h4, h5, h6) {
   font-family: var(--sans);
@@ -592,7 +592,7 @@ a:hover {
 }
 
 /* ── Callouts ───────────────────────────────────────────────────────────────
-   The element the vault meant when it wrote `> [!warning]`, drawn the way the
+   The element the notebook meant when it wrote `> [!warning]`, drawn the way the
    default theme draws it: a tinted field, a coloured title and a line icon.
    The icon is a mask and not an image, so it takes the colour of the callout
    without a second file per hue, which is the reference theme's own technique.
@@ -787,7 +787,7 @@ a:hover {
   overflow-wrap: anywhere;
 }
 
-/* A vault held in one hand has no room for two columns, so the key takes its
+/* A notebook held in one hand has no room for two columns, so the key takes its
    own line and the value follows under it. */
 @media (max-width: 560px) {
   .metadata-container {
@@ -1170,7 +1170,7 @@ a:hover {
   overflow: visible;
 }
 
-/* Vault graph */
+/* Notebook graph */
 .graph-page {
   display: flex;
   flex-direction: column;
@@ -1186,7 +1186,7 @@ a:hover {
   font-size: 1.05rem;
 }
 /* What is said about the drawing as a whole: the gestures it answers to, and
-   the warning that it is not the whole vault. They stack in one centred column
+   the warning that it is not the whole notebook. They stack in one centred column
    instead of being two absolutely positioned lines that have to be kept from
    colliding, and they wrap rather than run off a narrow screen. */
 .graph-footer {
@@ -1249,7 +1249,7 @@ a:hover {
   cursor: help;
 }
 
-/* A file of the vault that is not a note. This product stores no attachment,
+/* A file of the notebook that is not a note. This product stores no attachment,
    so the reference resolves to nothing — which is not an error, and is said
    the way a pending link is said, and never drawn as a link to a note nobody
    will ever write. It reads as a file name, in the monospace the rest of the
@@ -1881,14 +1881,14 @@ a:hover {
   color: var(--text-soft);
 }
 
-/* Vault sidebar navigation */
-.vault-nav {
+/* Notebook sidebar navigation */
+.notebook-nav {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   margin-bottom: 0.9rem;
 }
-.vault-nav-link {
+.notebook-nav-link {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -1900,12 +1900,12 @@ a:hover {
   border-radius: 6px;
   border: 1px solid var(--border);
 }
-.vault-nav-link:hover {
+.notebook-nav-link:hover {
   border-color: var(--accent);
   color: var(--accent);
   text-decoration: none;
 }
-.vault-nav-action {
+.notebook-nav-action {
   background: none;
   font: inherit;
   font-family: var(--display);
@@ -1913,11 +1913,11 @@ a:hover {
   text-align: left;
   cursor: pointer;
 }
-.vault-nav-action:disabled {
+.notebook-nav-action:disabled {
   cursor: progress;
   color: var(--text-soft);
 }
-.vault-nav-link.active {
+.notebook-nav-link.active {
   background: var(--accent-soft);
   color: var(--accent);
   border-color: var(--accent);
@@ -1970,19 +1970,19 @@ a:hover {
   font-weight: 400;
   color: var(--text-soft);
 }
-.vault-breadcrumb {
+.notebook-breadcrumb {
   margin-bottom: 0.75rem;
 }
-.vault-breadcrumb a {
+.notebook-breadcrumb a {
   color: var(--text-soft);
 }
-.vault-breadcrumb a:hover {
+.notebook-breadcrumb a:hover {
   color: var(--accent);
 }
-.vault-breadcrumb [aria-current] {
+.notebook-breadcrumb [aria-current] {
   color: var(--text);
 }
-.note-header .vault-breadcrumb {
+.note-header .notebook-breadcrumb {
   margin-bottom: 0.25rem;
 }
 .graph-title {
@@ -1999,14 +1999,14 @@ a:hover {
   color: #b42318;
   font-size: 0.85rem;
 }
-/* ── Vault navigation drawer ────────────────────────────────────────────────
+/* ── Notebook navigation drawer ────────────────────────────────────────────────
    On a wide screen the sidebar is a permanent column and these three controls
    do not exist. They come into being at the breakpoint below, where the same
    sidebar becomes a drawer. */
-.vault-nav-toggle,
-.vault-nav-close,
-.vault-nav-head,
-.vault-nav-scrim {
+.notebook-nav-toggle,
+.notebook-nav-close,
+.notebook-nav-head,
+.notebook-nav-scrim {
   display: none;
 }
 
@@ -2022,7 +2022,7 @@ a:hover {
            column, which is the layout that screen has room for. */
 
 @media (max-width: 1180px) {
-  .vault-sidebar {
+  .notebook-sidebar {
     width: 18rem;
     min-width: 14rem;
   }
@@ -2068,10 +2068,10 @@ a:hover {
   }
 
   /* The column becomes a drawer. */
-  .vault-layout {
+  .notebook-layout {
     display: block;
   }
-  .vault-nav-toggle {
+  .notebook-nav-toggle {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -2091,17 +2091,17 @@ a:hover {
     padding: 0.6rem 1rem;
     cursor: pointer;
   }
-  .vault-nav-toggle span {
+  .notebook-nav-toggle span {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .vault-nav-toggle svg {
+  .notebook-nav-toggle svg {
     flex-shrink: 0;
     width: 20px;
     height: 20px;
   }
-  .vault-sidebar {
+  .notebook-sidebar {
     position: fixed;
     top: 0;
     left: 0;
@@ -2115,12 +2115,12 @@ a:hover {
     transition: transform 0.18s ease-out;
     box-shadow: 0 0 40px rgba(14, 21, 38, 0.25);
   }
-  .vault-layout.nav-open .vault-sidebar {
+  .notebook-layout.nav-open .notebook-sidebar {
     transform: translateX(0);
   }
   /* `hidden` on the element is what closes it; the rule has to respect that,
      or the scrim would sit over the page with nothing behind it. */
-  .vault-nav-scrim:not([hidden]) {
+  .notebook-nav-scrim:not([hidden]) {
     display: block;
     position: fixed;
     inset: 0;
@@ -2131,7 +2131,7 @@ a:hover {
      opens with a band of its own the same height as that header: the brand on
      the left, where the brand was a moment ago, and the close control on the
      right. Without it the drawer began with an empty strip. */
-  .vault-nav-head {
+  .notebook-nav-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -2148,15 +2148,15 @@ a:hover {
     z-index: 1;
     background: var(--surface);
   }
-  .vault-nav-head .brand {
+  .notebook-nav-head .brand {
     min-width: 0;
     overflow: hidden;
   }
-  .vault-nav-head .brand-word {
+  .notebook-nav-head .brand-word {
     font-size: 1.05rem;
     white-space: nowrap;
   }
-  .vault-nav-close {
+  .notebook-nav-close {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2169,18 +2169,18 @@ a:hover {
     color: var(--text);
     cursor: pointer;
   }
-  .vault-nav-close:hover {
+  .notebook-nav-close:hover {
     background: var(--accent-soft);
     color: var(--accent);
   }
-  .vault-nav-close svg {
+  .notebook-nav-close svg {
     width: 20px;
     height: 20px;
   }
 
   /* With the sidebar gone from the flow, the document scrolls, not a box
      inside it. That is what lets the phone browser hide its own toolbar. */
-  .vault-content {
+  .notebook-content {
     max-height: none;
     overflow: visible;
   }
@@ -2215,7 +2215,7 @@ a:hover {
   .carousel-arrow {
     display: none;
   }
-  .vault-card {
+  .notebook-card {
     flex: 0 0 min(20rem, 86%);
   }
 
@@ -2269,7 +2269,7 @@ a:hover {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .vault-sidebar,
+  .notebook-sidebar,
   .graph-switch input,
   .graph-switch input::after {
     transition: none;
@@ -2282,7 +2282,7 @@ a:hover {
 }
 
 /* A task box that can be ticked. Disabled is the default, and it is what a
-   VIEWER, and an EDITOR demoted in this vault, keep seeing. */
+   VIEWER, and an EDITOR demoted in this notebook, keep seeing. */
 .markdown li.task-item {
   list-style: none;
   margin-left: -1.2rem;
@@ -2352,7 +2352,7 @@ a:hover {
   gap: 1rem;
 }
 
-.vault-card-skeleton {
+.notebook-card-skeleton {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -2488,8 +2488,8 @@ a:hover {
   }
 }
 
-/* The heading of the vault catalogue, with the one action that belongs beside
-   it rather than inside a vault: importing a `.vault` makes a new one. */
+/* The heading of the notebook catalogue, with the one action that belongs beside
+   it rather than inside a notebook: importing a `.notebook` makes a new one. */
 .dashboard-heading-row {
   display: flex;
   align-items: baseline;

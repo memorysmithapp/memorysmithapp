@@ -16,18 +16,18 @@ import type {
   ResolvedTargetDto,
   SessionDto,
   FacetStatsDto,
-  VaultDetailDto,
-  VaultGraphDto,
-  VaultHealthDto,
-  VaultSummaryDto,
+  NotebookDetailDto,
+  NotebookGraphDto,
+  NotebookHealthDto,
+  NotebookSummaryDto,
 } from '@memorysmith/contracts';
 import type {
   FolderNode,
   NoteDetail,
   SearchHit,
   TemplateDetail,
-  VaultStructure,
-  VaultSummary,
+  NotebookStructure,
+  NotebookSummary,
 } from '../types/api';
 import { splitFrontmatter, statedInFrontmatter } from './markdown';
 import { request } from './http';
@@ -37,28 +37,30 @@ export async function getSession(): Promise<SessionDto> {
   return request<SessionDto>('/access/session');
 }
 
-function toSummary(vault: VaultSummaryDto): VaultSummary {
+function toSummary(notebook: NotebookSummaryDto): NotebookSummary {
   return {
-    id: vault.vaultId,
-    slug: vault.slug,
-    name: vault.name,
-    description: vault.description,
-    noteCount: vault.noteCount,
-    updatedAt: vault.updatedAt,
+    id: notebook.notebookId,
+    slug: notebook.slug,
+    name: notebook.name,
+    description: notebook.description,
+    noteCount: notebook.noteCount,
+    updatedAt: notebook.updatedAt,
   };
 }
 
-export async function listVaults(): Promise<VaultSummary[]> {
-  const vaults = await request<VaultSummaryDto[]>('/knowledge/vaults');
-  return vaults.map(toSummary);
+export async function listNotebooks(): Promise<NotebookSummary[]> {
+  const notebooks = await request<NotebookSummaryDto[]>('/knowledge/notebooks');
+  return notebooks.map(toSummary);
 }
 
 /** Slug to identifier, from the listing the shell already loads. */
-async function vaultIdOf(vaultSlug: string): Promise<string> {
-  const vaults = await request<VaultSummaryDto[]>('/knowledge/vaults');
-  const found = vaults.find((vault) => vault.slug === vaultSlug || vault.vaultId === vaultSlug);
-  if (!found) throw new ApiError('NOT_FOUND', 'Vault not found', 404);
-  return found.vaultId;
+async function notebookIdOf(notebookSlug: string): Promise<string> {
+  const notebooks = await request<NotebookSummaryDto[]>('/knowledge/notebooks');
+  const found = notebooks.find(
+    (notebook) => notebook.slug === notebookSlug || notebook.notebookId === notebookSlug,
+  );
+  if (!found) throw new ApiError('NOT_FOUND', 'Notebook not found', 404);
+  return found.notebookId;
 }
 
 /**
@@ -101,15 +103,15 @@ function nest(folders: FolderDto[], notes: NoteSummaryDto[]): FolderNode[] {
   return build(null, '');
 }
 
-export async function getVaultStructure(vaultSlug: string): Promise<VaultStructure> {
-  const vaultId = await vaultIdOf(vaultSlug);
+export async function getNotebookStructure(notebookSlug: string): Promise<NotebookStructure> {
+  const notebookId = await notebookIdOf(notebookSlug);
   const [detail, notes] = await Promise.all([
-    request<VaultDetailDto>(`/knowledge/vaults/${vaultId}`),
-    request<NoteSummaryDto[]>(`/knowledge/vaults/${vaultId}/notes`),
+    request<NotebookDetailDto>(`/knowledge/notebooks/${notebookId}`),
+    request<NoteSummaryDto[]>(`/knowledge/notebooks/${notebookId}/notes`),
   ]);
 
   return {
-    vault: toSummary(detail),
+    notebook: toSummary(detail),
     guidance: detail.guidance?.content ?? null,
     guidanceRevision: detail.guidance?.revision.versionId ?? null,
     effectiveRole: detail.effectiveRole,
@@ -118,22 +120,22 @@ export async function getVaultStructure(vaultSlug: string): Promise<VaultStructu
 }
 
 /**
- * What one wikilink target resolves to in this vault: the notes it reaches and
+ * What one wikilink target resolves to in this notebook: the notes it reaches and
  * whether a title or an alias answered (RN-DSC-046). Resolution belongs to
- * Discovery, which is the context that holds the index a vault answers with.
+ * Discovery, which is the context that holds the index a notebook answers with.
  */
 export async function resolveLinkTarget(
-  vaultSlug: string,
+  notebookSlug: string,
   target: string,
 ): Promise<ResolvedTargetDto> {
-  const vaultId = await vaultIdOf(vaultSlug);
+  const notebookId = await notebookIdOf(notebookSlug);
   return request<ResolvedTargetDto>(
-    `/discovery/vaults/${vaultId}/links/${encodeURIComponent(target)}`,
+    `/discovery/notebooks/${notebookId}/links/${encodeURIComponent(target)}`,
   );
 }
 
-export async function getNote(vaultSlug: string, noteId: string): Promise<NoteDetail> {
-  const vaultId = await vaultIdOf(vaultSlug);
+export async function getNote(notebookSlug: string, noteId: string): Promise<NoteDetail> {
+  const notebookId = await notebookIdOf(notebookSlug);
   const [note, detail] = await Promise.all([
     /**
      * Typed by the DTO the API publishes, and NOT by a shape retyped here.
@@ -149,8 +151,8 @@ export async function getNote(vaultSlug: string, noteId: string): Promise<NoteDe
      * cannot check. Taking the DTO is what makes the next divergence a build
      * error instead of a screen that fails.
      */
-    request<NoteDto>(`/knowledge/vaults/${vaultId}/notes/${noteId}`),
-    request<VaultDetailDto>(`/knowledge/vaults/${vaultId}`),
+    request<NoteDto>(`/knowledge/notebooks/${notebookId}/notes/${noteId}`),
+    request<NotebookDetailDto>(`/knowledge/notebooks/${notebookId}`),
   ]);
 
   // The breadcrumb wants the names of the folders above it.
@@ -165,7 +167,7 @@ export async function getNote(vaultSlug: string, noteId: string): Promise<NoteDe
   const { frontmatter, lists, body } = splitFrontmatter(note.content);
   return {
     id: note.noteId,
-    vaultSlug,
+    notebookSlug,
     folderId: note.folderId,
     title: note.title,
     // Which step of the chain answered, which decides who draws the title
@@ -184,10 +186,10 @@ export async function getNote(vaultSlug: string, noteId: string): Promise<NoteDe
 }
 
 export async function getTemplate(
-  vaultSlug: string,
+  notebookSlug: string,
   folderId: string,
 ): Promise<TemplateDetail | null> {
-  const vaultId = await vaultIdOf(vaultSlug);
+  const notebookId = await notebookIdOf(notebookSlug);
   /**
    * The route answers `{ content: null }` when the folder carries no template
    * yet, and the published `ContentDto` when it does. That union is the
@@ -195,7 +197,7 @@ export async function getTemplate(
    * made optional — which is how the note DTO drifted.
    */
   const template = await request<ContentDto | { content: null }>(
-    `/knowledge/vaults/${vaultId}/folders/${folderId}/template`,
+    `/knowledge/notebooks/${notebookId}/folders/${folderId}/template`,
   );
   return template.content === null
     ? null
@@ -205,34 +207,34 @@ export async function getTemplate(
 /** The composed document the agent reads, shown in the connect screen. */
 /**
  * The two Discovery reads the dashboard aggregates. Both take an identifier,
- * not a slug, because the caller already listed the vaults and holds it: going
+ * not a slug, because the caller already listed the notebooks and holds it: going
  * back through the slug would be a second round trip for something it knows.
  */
-export async function getFacetsById(vaultId: string): Promise<FacetStatsDto> {
-  return request<FacetStatsDto>(`/discovery/vaults/${vaultId}/facets`);
+export async function getFacetsById(notebookId: string): Promise<FacetStatsDto> {
+  return request<FacetStatsDto>(`/discovery/notebooks/${notebookId}/facets`);
 }
 
-export async function getHealthById(vaultId: string): Promise<VaultHealthDto> {
-  return request<VaultHealthDto>(`/discovery/vaults/${vaultId}/health`);
+export async function getHealthById(notebookId: string): Promise<NotebookHealthDto> {
+  return request<NotebookHealthDto>(`/discovery/notebooks/${notebookId}/health`);
 }
 
 /**
- * The whole link graph of a vault, drawn by the graph view. The API answers
+ * The whole link graph of a notebook, drawn by the graph view. The API answers
  * with edges as index pairs, and the note identifiers it names are resolved
  * against the structure the screen already loaded, so a click can open a note
  * without another round trip.
  */
-export async function getVaultGraph(vaultSlug: string): Promise<VaultGraphDto> {
-  const vaultId = await vaultIdOf(vaultSlug);
-  return request<VaultGraphDto>(`/discovery/vaults/${vaultId}/graph`);
+export async function getNotebookGraph(notebookSlug: string): Promise<NotebookGraphDto> {
+  const notebookId = await notebookIdOf(notebookSlug);
+  return request<NotebookGraphDto>(`/discovery/notebooks/${notebookId}/graph`);
 }
 
 /**
- * The export of a whole vault, as a folder of Markdown inside a ZIP. The API
+ * The export of a whole notebook, as a folder of Markdown inside a ZIP. The API
  * answers with a short-lived link rather than with the bytes, so what comes
  * back here is where to fetch it and until when.
  */
-/** A short-lived address to upload a `.vault` file to (RN-PRT-014). */
+/** A short-lived address to upload a `.notebook` file to (RN-PRT-014). */
 export async function prepareImport(): Promise<{ uploadKey: string; uploadUrl: string }> {
   return request<{ uploadKey: string; uploadUrl: string }>('/portability/imports', {
     method: 'POST',
@@ -240,94 +242,94 @@ export async function prepareImport(): Promise<{ uploadKey: string; uploadUrl: s
   });
 }
 
-/** Reads what was uploaded and writes the vault it describes. */
+/** Reads what was uploaded and writes the notebook it describes. */
 export async function applyImport(
   uploadKey: string,
   name: string,
-): Promise<{ vaultId: string; noteCount: number; folderCount: number }> {
-  return request<{ vaultId: string; noteCount: number; folderCount: number }>(
+): Promise<{ notebookId: string; noteCount: number; folderCount: number }> {
+  return request<{ notebookId: string; noteCount: number; folderCount: number }>(
     '/portability/imports/apply',
     { method: 'POST', body: { uploadKey, name } },
   );
 }
 
-export async function exportVault(vaultSlug: string): Promise<ExportJobDto> {
-  const vaultId = await vaultIdOf(vaultSlug);
-  return request<ExportJobDto>(`/portability/vaults/${vaultId}/export`, { method: 'POST' });
+export async function exportNotebook(notebookSlug: string): Promise<ExportJobDto> {
+  const notebookId = await notebookIdOf(notebookSlug);
+  return request<ExportJobDto>(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
 }
 
 // ---- Writes ----------------------------------------------------------------
 
-export async function createVault(input: {
+export async function createNotebook(input: {
   name: string;
   description: string;
-}): Promise<VaultSummary> {
+}): Promise<NotebookSummary> {
   return toSummary(
-    await request<VaultSummaryDto>('/knowledge/vaults', { method: 'POST', body: input }),
+    await request<NotebookSummaryDto>('/knowledge/notebooks', { method: 'POST', body: input }),
   );
 }
 
 export async function createFolder(
-  vaultSlug: string,
+  notebookSlug: string,
   input: { parentFolderId: string | null; name: string; description: string },
 ): Promise<FolderDto> {
-  const vaultId = await vaultIdOf(vaultSlug);
-  return request<FolderDto>(`/knowledge/vaults/${vaultId}/folders`, {
+  const notebookId = await notebookIdOf(notebookSlug);
+  return request<FolderDto>(`/knowledge/notebooks/${notebookId}/folders`, {
     method: 'POST',
     body: input,
   });
 }
 
 export async function putGuidance(
-  vaultSlug: string,
+  notebookSlug: string,
   content: string,
   baseRevision: string | null,
   options: { keepalive?: boolean } = {},
 ): Promise<string> {
-  const vaultId = await vaultIdOf(vaultSlug);
+  const notebookId = await notebookIdOf(notebookSlug);
   // The revision this write produced, which the next write has to name.
   const written = await request<{ revision: { versionId: string } }>(
-    `/knowledge/vaults/${vaultId}/guidance`,
+    `/knowledge/notebooks/${notebookId}/guidance`,
     { method: 'PUT', body: { content, baseRevision }, ...options },
   );
   return written.revision.versionId;
 }
 export async function putTemplate(
-  vaultSlug: string,
+  notebookSlug: string,
   folderId: string,
   content: string,
   baseRevision: string | null,
   options: { keepalive?: boolean } = {},
 ): Promise<string> {
-  const vaultId = await vaultIdOf(vaultSlug);
+  const notebookId = await notebookIdOf(notebookSlug);
   const written = await request<{ revision: { versionId: string } }>(
-    `/knowledge/vaults/${vaultId}/folders/${folderId}/template`,
+    `/knowledge/notebooks/${notebookId}/folders/${folderId}/template`,
     { method: 'PUT', body: { content, baseRevision }, ...options },
   );
   return written.revision.versionId;
 }
 
 export async function createNote(
-  vaultSlug: string,
+  notebookSlug: string,
   input: { folderId: string; title: string; content: string },
 ): Promise<NoteSummaryDto> {
-  const vaultId = await vaultIdOf(vaultSlug);
-  return request<NoteSummaryDto>(`/knowledge/vaults/${vaultId}/notes`, {
+  const notebookId = await notebookIdOf(notebookSlug);
+  return request<NoteSummaryDto>(`/knowledge/notebooks/${notebookId}/notes`, {
     method: 'POST',
     body: input,
   });
 }
 
 export async function updateNote(
-  vaultSlug: string,
+  notebookSlug: string,
   noteId: string,
   input: { content: string; baseRevision: string; title?: string },
   options: { keepalive?: boolean } = {},
 ): Promise<NoteDto> {
-  const vaultId = await vaultIdOf(vaultSlug);
+  const notebookId = await notebookIdOf(notebookSlug);
   // The answer carries the revision this write produced, which is what the
   // NEXT write has to be based on.
-  return request<NoteDto>(`/knowledge/vaults/${vaultId}/notes/${noteId}`, {
+  return request<NoteDto>(`/knowledge/notebooks/${notebookId}/notes/${noteId}`, {
     method: 'PUT',
     body: input,
     ...options,
@@ -343,28 +345,28 @@ export interface BacklinkDto {
   folderId: string;
 }
 
-export async function backlinksOf(vaultSlug: string, noteId: string): Promise<BacklinkDto[]> {
-  const vaultId = await vaultIdOf(vaultSlug);
+export async function backlinksOf(notebookSlug: string, noteId: string): Promise<BacklinkDto[]> {
+  const notebookId = await notebookIdOf(notebookSlug);
   const found = await request<{ backlinks: BacklinkDto[] }>(
-    `/discovery/vaults/${vaultId}/notes/${noteId}/backlinks`,
+    `/discovery/notebooks/${notebookId}/notes/${noteId}/backlinks`,
   );
   return found.backlinks;
 }
 
 /**
- * The search of the Discovery context, which reads the text of the whole vault
+ * The search of the Discovery context, which reads the text of the whole notebook
  * and answers the query language of `SearchQuery` (software-vision.md 10.2).
  * The screen sends what the person typed, verbatim: the fields, the quotes,
  * the exclusions and the facets are parsed by the backend, not here.
  */
-export async function searchVault(
-  vaultSlug: string,
+export async function searchNotebook(
+  notebookSlug: string,
   query: string,
   k: number,
 ): Promise<SearchHit[]> {
-  const vaultId = await vaultIdOf(vaultSlug);
+  const notebookId = await notebookIdOf(notebookSlug);
   const found = await request<{ mode: string; hits: SearchHit[] }>(
-    `/discovery/vaults/${vaultId}/search`,
+    `/discovery/notebooks/${notebookId}/search`,
     { method: 'POST', body: { query, k } },
   );
   return found.hits;

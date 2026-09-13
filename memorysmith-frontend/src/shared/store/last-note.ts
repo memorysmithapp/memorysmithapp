@@ -1,5 +1,5 @@
 /**
- * Where the reading stopped, per vault, in this browser.
+ * Where the reading stopped, per notebook, in this browser.
  *
  * It is deliberately NOT in the product. Remembering across devices would mean
  * a write on every note opened — on the hottest path of the reading surface,
@@ -9,7 +9,7 @@
  * machine, is never exported and is never seen by anybody else.
  *
  * Everything here is inside a try/catch, because a browser can refuse storage
- * outright and none of this may ever keep somebody from opening a vault.
+ * outright and none of this may ever keep somebody from opening a notebook.
  */
 
 const KEY = 'memorysmith.lastNote';
@@ -38,25 +38,25 @@ function write(next: Remembered): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(next));
   } catch {
-    // Storage refused or full: the vault still opens, at the tree.
+    // Storage refused or full: the notebook still opens, at the tree.
   }
 }
 
-/** The path of the note inside the vault, as `root/*` spells it. */
-export function rememberNote(vaultSlug: string, path: string): void {
-  if (!vaultSlug || !path) return;
+/** The path of the note inside the notebook, as `root/*` spells it. */
+export function rememberNote(notebookSlug: string, path: string): void {
+  if (!notebookSlug || !path) return;
   const current = read();
-  if (current[vaultSlug] === path) return; // no write per re-render
-  write({ ...current, [vaultSlug]: path });
+  if (current[notebookSlug] === path) return; // no write per re-render
+  write({ ...current, [notebookSlug]: path });
 }
 
-export function lastNoteOf(vaultSlug: string): string | null {
-  return read()[vaultSlug] ?? null;
+export function lastNoteOf(notebookSlug: string): string | null {
+  return read()[notebookSlug] ?? null;
 }
 
-export function forgetNote(vaultSlug: string): void {
+export function forgetNote(notebookSlug: string): void {
   const current = read();
-  if (!(vaultSlug in current)) return;
-  const { [vaultSlug]: _removed, ...rest } = current;
+  if (!(notebookSlug in current)) return;
+  const { [notebookSlug]: _removed, ...rest } = current;
   write(rest);
 }

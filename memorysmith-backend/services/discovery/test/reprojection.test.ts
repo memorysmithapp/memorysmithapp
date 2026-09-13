@@ -3,7 +3,7 @@
  * checked against: after the retitling migration, NO EDGE IS LOST, and every
  * edge gained is one an alias explains.
  *
- * The vault below is the shape of the real thing: three notes that pointed at
+ * The notebook below is the shape of the real thing: three notes that pointed at
  * each other by slug, migrated so each states its title, plus a note carrying
  * an alias that used to answer nothing.
  */
@@ -30,8 +30,8 @@ const edgesOf = (notes: ReadNote[]): string[] =>
     .edges.map((edge) => `${edge.from}->${edge.to}`)
     .sort();
 
-describe('rebuilding the graph of a migrated vault', () => {
-  const vault = [
+describe('rebuilding the graph of a migrated notebook', () => {
+  const notebook = [
     read('lei', '---\ntitle: Lei 14.133\n---\n\nVer [[Recovery Time Objective]].\n'),
     read(
       'rto',
@@ -40,24 +40,24 @@ describe('rebuilding the graph of a migrated vault', () => {
     read('ata', '---\ntitle: Reunião de Time\n---\n\nFalamos de [[RTO]] e da [[Lei 14.133]].\n'),
   ];
 
-  it('finds every edge the vault used to have', () => {
+  it('finds every edge the notebook used to have', () => {
     // What the retired rule found: the two links written with the exact name
     // of their target, which slugified to the same thing on both sides.
     const before = ['ata->lei', 'lei->rto', 'rto->lei'];
-    expect(edgesOf(vault)).toEqual(expect.arrayContaining(before));
+    expect(edgesOf(notebook)).toEqual(expect.arrayContaining(before));
   });
 
   it('gains the edge an alias explains, and says which alias', () => {
     // `[[RTO]]` resolved to nothing under the retired rule, because no note was
     // called RTO. It is an edge now, and the report can name why.
-    const gained = resolveAll(vault).edges.find((edge) => edge.by === 'alias');
+    const gained = resolveAll(notebook).edges.find((edge) => edge.by === 'alias');
     expect(gained).toEqual({ from: 'ata', to: 'rto', target: 'RTO', by: 'alias' });
   });
 
   it('lets a title take back what an alias was answering', () => {
     // Non-monotonic resolution, seen from the rebuild: a note written under the
     // title somebody else was aliasing takes the edge away (RN-DSC-053).
-    const withOwner = [...vault, read('rto2', '---\ntitle: RTO\n---\n\nA sigla.\n')];
+    const withOwner = [...notebook, read('rto2', '---\ntitle: RTO\n---\n\nA sigla.\n')];
     const alias = resolveAll(withOwner).edges.filter((edge) => edge.by === 'alias');
 
     expect(alias).toEqual([]);

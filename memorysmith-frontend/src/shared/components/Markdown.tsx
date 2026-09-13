@@ -65,10 +65,10 @@ function MarkdownImage({ alt, ...rest }: ImgHTMLAttributes<HTMLImageElement>) {
 
 function MarkdownAnchor({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAnchorElement>) {
   const { t } = useTranslation();
-  // An attachment is a file of the vault that is not a note, and this product
+  // An attachment is a file of the notebook that is not a note, and this product
   // stores none: the reference resolves to nothing, and saying so is what the
   // specification asks for. Drawing it as a link to a note nobody will ever
-  // write told the reader the wrong thing about their own vault (RN-DSC-049).
+  // write told the reader the wrong thing about their own notebook (RN-DSC-049).
   if (href?.startsWith('attachment:')) {
     return (
       <span className="attachment-missing" title={t('note.attachmentMissing')}>
@@ -265,7 +265,7 @@ export function Markdown({ children, source, onToggleTask, writable = false }: M
         // Raw HTML is NOT enabled, and its absence is the point: no
         // `rehype-raw` is loaded, so a note carrying `<script>` is text. It is
         // a security boundary rather than a rendering preference, because a
-        // vault is written by several people and by agents (profile 5.10).
+        // notebook is written by several people and by agents (profile 5.10).
         rehypePlugins={[[rehypeKatex, { throwOnError: false }]]}
         // Which addresses this surface will follow, and the reason the stock
         // filter is not doing it, are in `address.ts` (RN-DSC-039).

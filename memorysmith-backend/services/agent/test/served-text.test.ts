@@ -5,7 +5,7 @@
  * The codes address a line of `docs/software-vision.md`, a document whoever
  * reads the MCP surface does not have. Inside a served answer `RN-AGT-020` is
  * a symbol that does not resolve: an agent drops it as noise, or reads it as
- * something addressable — a vault, a folder, a rule to cite back — and spends
+ * something addressable — a notebook, a folder, a rule to cite back — and spends
  * a step on it. The sentence around it always stated the whole fact anyway.
  *
  * The traceability is real and it stays where the other ~50 occurrences are:
@@ -19,7 +19,7 @@ import { DECLARED_SILENCE, RECOGNISED_NOTATION } from '@memorysmith/contracts';
 import { TOOL_CATALOG } from '../src/mcp/catalog.js';
 import { SKILLS, skillNamed } from '../src/mcp/skills.js';
 import { whoAmI } from '../src/mcp/whoami.js';
-import type { AgentCaller, VaultListing } from '../src/mcp/gateway.js';
+import type { AgentCaller, NotebookListing } from '../src/mcp/gateway.js';
 
 const RULE_CODE = /RN-[A-Z]{3}-\d{3}/;
 
@@ -31,15 +31,15 @@ const caller: AgentCaller = {
   subscriptionId: 'sub-1',
 };
 
-const vaults: readonly VaultListing[] = [
-  { vaultId: 'v-1', name: 'Procurement', description: 'What we decided and why', noteCount: 12 },
+const notebooks: readonly NotebookListing[] = [
+  { notebookId: 'v-1', name: 'Procurement', description: 'What we decided and why', noteCount: 12 },
 ];
 
 /** Everything the connector puts in front of an agent, in one list. */
 function servedText(): Array<{ where: string; text: string }> {
   return [
-    { where: 'whoami', text: whoAmI(caller, vaults) },
-    { where: 'whoami, with no vault to reach', text: whoAmI(caller, []) },
+    { where: 'whoami', text: whoAmI(caller, notebooks) },
+    { where: 'whoami, with no notebook to reach', text: whoAmI(caller, []) },
     ...TOOL_CATALOG.flatMap((tool) => [
       { where: `${tool.name}.title`, text: tool.title },
       { where: `${tool.name}.description`, text: tool.description },
@@ -71,7 +71,7 @@ describe('the MCP surface does not cite the repository at the agent', () => {
   });
 
   it('still says the whole fact the folder-identifier paragraph carried', () => {
-    const text = whoAmI(caller, vaults);
+    const text = whoAmI(caller, notebooks);
 
     expect(text).toContain('the identifier of each folder');
     expect(text).toContain('never have to have');
@@ -84,7 +84,7 @@ describe('the MCP surface does not cite the repository at the agent', () => {
 });
 
 /**
- * The conversion a vault arriving with inline tags is offered (RN-PRT-007).
+ * The conversion a notebook arriving with inline tags is offered (RN-PRT-007).
  *
  * It is a SKILL and not a tool, for a structural reason: reading `#subject`
  * for meaning would make the backend a third sanctioned reader of content,
@@ -98,7 +98,7 @@ describe('the product teaches the conversion instead of performing it', () => {
 
   it('exists, and whoami indexes it, because the index is derived', () => {
     expect(skill).toBeDefined();
-    expect(whoAmI(caller, vaults)).toContain('convert-inline-tags');
+    expect(whoAmI(caller, notebooks)).toContain('convert-inline-tags');
   });
 
   it('teaches what is NOT a tag, which is where the false positives live', () => {

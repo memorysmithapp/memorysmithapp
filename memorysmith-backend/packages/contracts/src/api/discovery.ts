@@ -50,22 +50,22 @@ export const graphNodeSchema: z.ZodType<{
 );
 
 /**
- * A node of the whole-vault graph: the note, plus the portrait the facet
+ * A node of the whole-notebook graph: the note, plus the portrait the facet
  * projection keeps of it, so a reader can color the graph by an attribute the
- * vault itself declares. The values were classified BY SHAPE (RN-DSC-019), so
+ * notebook itself declares. The values were classified BY SHAPE (RN-DSC-019), so
  * the backend still interprets nothing: what an attribute means is a decision
- * of whoever authored the vault. A note with no frontmatter carries `{}`.
+ * of whoever authored the notebook. A note with no frontmatter carries `{}`.
  */
 export const graphNoteRefSchema = noteRefSchema.extend({
   facets: z.record(z.string(), z.array(z.string())),
 });
 
 /**
- * The whole link graph of a vault. Edges are index pairs into `nodes`, because
+ * The whole link graph of a notebook. Edges are index pairs into `nodes`, because
  * a graph repeats every identifier twice per edge and an index is two bytes
  * where a ULID is twenty-six.
  */
-export const vaultGraphSchema = z.object({
+export const notebookGraphSchema = z.object({
   nodes: z.array(graphNoteRefSchema),
   edges: z.array(z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()])),
   pending: z.array(
@@ -85,7 +85,7 @@ export const brokenLinkSchema = z.object({
   targetTitle: z.string().min(1),
 });
 
-export const vaultHealthSchema = z.object({
+export const notebookHealthSchema = z.object({
   brokenLinks: z.array(brokenLinkSchema),
   orphans: z.array(noteRefSchema),
   /** A link whose target does not exist YET is pending, not broken (RN-DSC-004). */
@@ -130,10 +130,10 @@ export type NoteRefDto = z.infer<typeof noteRefSchema>;
 export type ResolvedTargetDto = z.infer<typeof resolvedTargetSchema>;
 export type GraphNodeDto = z.infer<typeof graphNodeSchema>;
 export type GraphNoteRefDto = z.infer<typeof graphNoteRefSchema>;
-export type VaultGraphDto = z.infer<typeof vaultGraphSchema>;
+export type NotebookGraphDto = z.infer<typeof notebookGraphSchema>;
 export type BacklinksDto = z.infer<typeof backlinksSchema>;
 export type BrokenLinkDto = z.infer<typeof brokenLinkSchema>;
-export type VaultHealthDto = z.infer<typeof vaultHealthSchema>;
+export type NotebookHealthDto = z.infer<typeof notebookHealthSchema>;
 export type SearchRequest = z.infer<typeof searchRequestSchema>;
 export type SearchHitDto = z.infer<typeof searchHitSchema>;
 export type SearchResultDto = z.infer<typeof searchResultSchema>;

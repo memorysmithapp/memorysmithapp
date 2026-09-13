@@ -14,8 +14,8 @@ import { noteTitle } from '@memorysmith/kernel';
 import { extractLinks } from '@memorysmith/svc-discovery/domain/links';
 import { oldSlug, retargetLinks, unaddressable, withStatedTitle } from '../src/retitle.js';
 
-/** What a vault of three notes answered to, under the rule that retired. */
-const VAULT = new Map([
+/** What a notebook of three notes answered to, under the rule that retired. */
+const NOTEBOOK = new Map([
   ['lei-14133', 'Lei 14.133'],
   ['recovery-time-objective', 'Recovery Time Objective'],
   ['reuniao-de-time', 'Reunião de Time'],
@@ -76,7 +76,7 @@ describe('writing the stored title into the frontmatter', () => {
   });
 
   it('states the title even when the body already opens with a heading', () => {
-    // The stored title is what every link in the vault was written against,
+    // The stored title is what every link in the notebook was written against,
     // and the heading the author typed says something shorter.
     const body = '# A lei\n\nO corpo.\n';
     const written = withStatedTitle(body, 'Lei 14.133');
@@ -127,7 +127,7 @@ describe('writing the stored title into the frontmatter', () => {
 
 describe('retargeting the links', () => {
   it('rewrites a wikilink to the exact title of the note it used to reach', () => {
-    const written = retargetLinks('Ver [[lei-14133]].', VAULT);
+    const written = retargetLinks('Ver [[lei-14133]].', NOTEBOOK);
 
     expect(written.content).toBe('Ver [[Lei 14.133]].');
     expect(written.rewritten).toBe(1);
@@ -141,7 +141,7 @@ describe('retargeting the links', () => {
       '![[lei-14133]]',
       '![[lei-14133#^b3f2a1]]',
     ].join('\n');
-    const written = retargetLinks(body, VAULT);
+    const written = retargetLinks(body, NOTEBOOK);
 
     expect(written.content).toBe(
       [
@@ -155,13 +155,13 @@ describe('retargeting the links', () => {
   });
 
   it('resolves a target written in another casing, as the retired rule did', () => {
-    const written = retargetLinks('[[recovery time objective]]', VAULT);
+    const written = retargetLinks('[[recovery time objective]]', NOTEBOOK);
     expect(written.content).toBe('[[Recovery Time Objective]]');
     expect(titlesPointedAt(written.content)).toEqual(['Recovery Time Objective']);
   });
 
   it('rewrites the Markdown form so the reader reaches the same note', () => {
-    const written = retargetLinks('Ver [a lei](../leis/lei-14133.md).', VAULT);
+    const written = retargetLinks('Ver [a lei](../leis/lei-14133.md).', NOTEBOOK);
 
     expect(written.rewritten).toBe(1);
     expect(titlesPointedAt(written.content)).toEqual(['Lei 14.133']);
@@ -169,7 +169,7 @@ describe('retargeting the links', () => {
 
   it('rewrites a destination declared apart from the link that uses it', () => {
     const body = 'Ver [a lei][lei].\n\n[lei]: ../leis/lei-14133.md\n';
-    const written = retargetLinks(body, VAULT);
+    const written = retargetLinks(body, NOTEBOOK);
 
     expect(titlesPointedAt(written.content)).toEqual(['Lei 14.133']);
   });
@@ -184,7 +184,7 @@ describe('retargeting the links', () => {
       '',
       'E aqui [[lei-14133]] vale.',
     ].join('\n');
-    const written = retargetLinks(body, VAULT);
+    const written = retargetLinks(body, NOTEBOOK);
 
     expect(written.rewritten).toBe(1);
     expect(written.content).toContain('`[[lei-14133]]`');
@@ -193,7 +193,7 @@ describe('retargeting the links', () => {
   });
 
   it('leaves what did not resolve exactly as written, and reports it', () => {
-    const written = retargetLinks('Ver [[uma-nota-que-nao-existe]].', VAULT);
+    const written = retargetLinks('Ver [[uma-nota-que-nao-existe]].', NOTEBOOK);
 
     expect(written.content).toBe('Ver [[uma-nota-que-nao-existe]].');
     expect(written.rewritten).toBe(0);
@@ -202,14 +202,14 @@ describe('retargeting the links', () => {
 
   it('leaves an external link and an image alone', () => {
     const body = 'Veja [o texto](https://www.planalto.gov.br/lei-14133) e ![curva](./curva.png).';
-    expect(retargetLinks(body, VAULT).content).toBe(body);
+    expect(retargetLinks(body, NOTEBOOK).content).toBe(body);
   });
 
   it('never points a link at a title no link could name', () => {
     // The note exists and renders; what it has no more is an address, and a
     // link rewritten to it would resolve to nothing.
-    const vault = new Map([['plano-b', 'Plano [B]']]);
-    const written = retargetLinks('Ver [[plano-b]].', vault);
+    const notebook = new Map([['plano-b', 'Plano [B]']]);
+    const written = retargetLinks('Ver [[plano-b]].', notebook);
 
     expect(written.content).toBe('Ver [[plano-b]].');
     expect(written.pending).toEqual(['plano-b']);
@@ -218,8 +218,8 @@ describe('retargeting the links', () => {
 
   it('changes nothing on a second run', () => {
     const body = 'Ver [[lei-14133]] e [a lei](lei-14133.md).';
-    const once = retargetLinks(body, VAULT);
-    const twice = retargetLinks(once.content, VAULT);
+    const once = retargetLinks(body, NOTEBOOK);
+    const twice = retargetLinks(once.content, NOTEBOOK);
 
     expect(twice.content).toBe(once.content);
     // Nothing to do, and the report says so: `rewritten` counts targets that
@@ -231,7 +231,7 @@ describe('retargeting the links', () => {
 });
 
 describe('a whole note, migrated', () => {
-  it('is read by 0.6.0 as the vault meant it', () => {
+  it('is read by 0.6.0 as the notebook meant it', () => {
     const body = [
       '---',
       'maturity: draft',
@@ -249,7 +249,7 @@ describe('a whole note, migrated', () => {
     ].join('\n');
 
     const stated = withStatedTitle(body, 'Lei 14.133');
-    const migrated = retargetLinks(stated.content, VAULT);
+    const migrated = retargetLinks(stated.content, NOTEBOOK);
 
     expect(noteTitle(migrated.content)).toBe('Lei 14.133');
     expect(new Set(titlesPointedAt(migrated.content))).toEqual(

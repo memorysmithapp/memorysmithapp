@@ -17,7 +17,7 @@ interface Call {
   readonly body: Record<string, unknown> | null;
 }
 
-const VAULT = { vaultId: 'v1', name: 'Contratos' };
+const NOTEBOOK = { notebookId: 'v1', name: 'Contratos' };
 const SUMMARY = { noteId: 'n1', title: 'Lei 14.133', slug: 'lei-14133' };
 const NOTE = {
   ...SUMMARY,
@@ -37,7 +37,11 @@ function stubApi(notes: Array<Record<string, unknown>> = [SUMMARY]): Call[] {
     });
 
     const answer =
-      path === '/knowledge/vaults' ? [VAULT] : path === '/knowledge/vaults/v1/notes' ? notes : NOTE;
+      path === '/knowledge/notebooks'
+        ? [NOTEBOOK]
+        : path === '/knowledge/notebooks/v1/notes'
+          ? notes
+          : NOTE;
     return Promise.resolve({
       ok: true,
       status: 200,
@@ -72,7 +76,7 @@ describe('the migration run', () => {
 
     const written = calls.filter((call) => call.method === 'PUT');
     expect(written).toHaveLength(1);
-    expect(written[0]?.path).toBe('/knowledge/vaults/v1/notes/n1');
+    expect(written[0]?.path).toBe('/knowledge/notebooks/v1/notes/n1');
     expect(written[0]?.body).toEqual({
       content: '---\ntitle: Lei 14.133\n---\n\nVer [[Lei 14.133]].\n',
       // The revision this write is based on, not the whole content reference:

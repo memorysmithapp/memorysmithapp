@@ -1,6 +1,6 @@
 # The MemorySmith Markdown Specification
 
-A specification of the Markdown a knowledge vault is written in: plain `.md` files, linked to each other, written by people and by agents, and read by software that has to build a graph and an index out of them without deciding what the content means.
+A specification of the Markdown a knowledge notebook is written in: plain `.md` files, linked to each other, written by people and by agents, and read by software that has to build a graph and an index out of them without deciding what the content means.
 
 ---
 
@@ -23,7 +23,7 @@ The list is the specification. Most of what goes wrong when writing into a knowl
 
 ### 1.2 What this document is not
 
-It does not specify storage, transport, authentication, an API or a file layout. It does not specify how a vault is organised, what a note should contain, or which frontmatter attributes a given vault ought to use. Those belong to the vault, never to the format.
+It does not specify storage, transport, authentication, an API or a file layout. It does not specify how a notebook is organised, what a note should contain, or which frontmatter attributes a given notebook ought to use. Those belong to the notebook, never to the format.
 
 ### 1.3 Requirement keywords
 
@@ -401,7 +401,7 @@ In this specification the question does not arise, because §7.9 renders no raw 
 
 ## 5. Links between notes
 
-A **link** is a reference from one note to another note of the same vault. Links are what turn a folder of files into a graph, and they are the first of the two places an Indexer is allowed to read.
+A **link** is a reference from one note to another note of the same notebook. Links are what turn a folder of files into a graph, and they are the first of the two places an Indexer is allowed to read.
 
 This is where §3.13 stops being about rendering. A link is one of the forms below, and what decides whether it becomes an edge is its **destination** — never its text, never the syntax it was written in, and never where in the note it appears.
 
@@ -426,14 +426,14 @@ The `[[…]]` form is older than any vault editor and was established for vaults
 
 An Indexer MUST resolve every form above by the following rule, and by no other:
 
-1. If the target carries a **scheme** (`https:`, `mailto:`, any `[a-z][a-z0-9+.-]*:`) or begins with `//`, it is **external**. It refers to the world and not to the vault: it renders as a link, it MUST NOT become an edge, and it MUST NOT be resolved against any note. Use external links freely as sources; a connection is not one of the things they make.
+1. If the target carries a **scheme** (`https:`, `mailto:`, any `[a-z][a-z0-9+.-]*:`) or begins with `//`, it is **external**. It refers to the world and not to the notebook: it renders as a link, it MUST NOT become an edge, and it MUST NOT be resolved against any note. Use external links freely as sources; a connection is not one of the things they make.
 2. The target is split at the first **unencoded** `#`. What precedes it is the target; what follows is the **anchor**.
 3. *Markdown form only:* path segments MUST be discarded and the last one kept, so `[the act](../decisions/Lei%2014.133.md)` addresses the note titled `Lei 14.133`. An edge is between notes, never between folders.
 4. *Markdown form only:* a trailing `.md` or `.mdx` extension MUST be removed.
 5. *Markdown form only:* the result MUST be percent-decoded. An escape that is not one — the `%` of `[Half](50%)` opens nothing — MUST be left exactly as written, and MUST NOT be an error.
-6. The result is normalised to **NFC** and compared, **case-exact**, against the title of every note (§5.3) **of the same vault**. Resolution MUST NOT cross vault boundaries.
+6. The result is normalised to **NFC** and compared, **case-exact**, against the title of every note (§5.3) **of the same notebook**. Resolution MUST NOT cross notebook boundaries.
 7. **Every note whose title matches becomes an edge** (§5.4).
-8. **Only if no title matched**, the same result is compared, in the same way, against every value of `aliases` (§6.4) of every note of the vault, and every note whose alias matches becomes an edge. An alias resolves what nothing else resolved: it MUST NOT take a target a title has already matched, and it MUST NOT move an edge that exists.
+8. **Only if no title matched**, the same result is compared, in the same way, against every value of `aliases` (§6.4) of every note of the notebook, and every note whose alias matches becomes an edge. An alias resolves what nothing else resolved: it MUST NOT take a target a title has already matched, and it MUST NOT move an edge that exists.
 9. A target that matches no title and no alias is a pending link (§5.5).
 10. The anchor MUST be preserved for display — percent-decoded in the Markdown form, literal in the wikilink — and MUST NOT take part in resolution. Two links to two sections of the same note are two links to the same note.
 
@@ -449,7 +449,7 @@ An Indexer MUST resolve every form above by the following rule, and by no other:
 2. **The plain text of the first level-1 heading**, when `title:` is absent, empty or of any other shape.
 3. **Neither**, and the note has no addressable title, which is the case this section closes with.
 
-The frontmatter comes first because it is the only place a title can be *stated*. A heading is the title a note happens to open with, and the two diverge constantly in vaults that already exist: a note whose links were written against one name carries a heading in a shorter form, or carries no heading at all. It is also the only place available to an implementation that has no file name to fall back on, and a specification that assumed one would be about a storage model rather than about vaults (§1.2).
+The frontmatter comes first because it is the only place a title can be *stated*. A heading is the title a note happens to open with, and the two diverge constantly in notebooks that already exist: a note whose links were written against one name carries a heading in a shorter form, or carries no heading at all. It is also the only place available to an implementation that has no file name to fall back on, and a specification that assumed one would be about a storage model rather than about notebooks (§1.2).
 
 **A `title:` that is there ends the chain.** The heading is where the title is read when the frontmatter states none — it is not a repair for one the author wrote. A `title:` carrying one of the four characters below leaves the note with no addressable title; it does not fall through to the heading.
 
@@ -478,7 +478,7 @@ The rule is the same one step down: a target that no title matched and that two 
 
 ### 5.5 A target that does not exist
 
-A link whose target matches no title and no alias is **not an error and MUST NOT be discarded**. It is a *pending link*: it is kept, it is reported as pending, and it resolves on its own if a note carrying that title, or that alias, is later written. Discarding it would make the graph lie precisely while a vault is being written, which is when it is consulted most.
+A link whose target matches no title and no alias is **not an error and MUST NOT be discarded**. It is a *pending link*: it is kept, it is reported as pending, and it resolves on its own if a note carrying that title, or that alias, is later written. Discarding it would make the graph lie precisely while a notebook is being written, which is when it is consulted most.
 
 ### 5.6 Code
 
@@ -490,15 +490,15 @@ A link inside a code span or a fenced code block is an example, not a reference.
 
 ### 5.8 Attachments
 
-An **attachment** is a file of the vault that is not a note: an image, a PDF, anything with bytes and no prose this document reads. It is not a note, so a reference to one is not a link in the sense this section opens with — it is here because it is resolved here, and because an attachment and a note are the only two things a `![[…]]` can name.
+An **attachment** is a file of the notebook that is not a note: an image, a PDF, anything with bytes and no prose this document reads. It is not a note, so a reference to one is not a link in the sense this section opens with — it is here because it is resolved here, and because an attachment and a note are the only two things a `![[…]]` can name.
 
 **An attachment is addressed by its name**, which is the whole of it, extension included: `diagram.png`, never `diagram`. The comparison is the one §5.3 states for a title — normalised to NFC, case-exact, folded in no other way — and the tolerances of §5.2 apply the same way they do to a note: `![alt](../assets/diagram%20final.png)` addresses the attachment named `diagram final.png`, because a path plays no part in identity here either.
 
 A note has a title and an attachment has a name, and they are keys of the same shape for the same reason: an address that survives the file being moved, and that two implementations cannot read differently.
 
-**An attachment reference is never an edge.** The graph is between notes (§5.1). An embed of an attachment renders, it is deduplicated like anything else, and it appears in no graph and generates no backlink. A name that matches nothing in the vault is reported the way a pending link is (§5.5), and MUST NOT be an error.
+**An attachment reference is never an edge.** The graph is between notes (§5.1). An embed of an attachment renders, it is deduplicated like anything else, and it appears in no graph and generates no backlink. A name that matches nothing in the notebook is reported the way a pending link is (§5.5), and MUST NOT be an error.
 
-**`![[target|value]]` is read by what the target is.** When the target is a note, the pipe is the alias of §5.1. When it is an attachment, the pipe carries the dimensions of §3.14. When the target resolves to neither — the common case while a vault is being written — **the pipe is an alias**, because a reference to a note that does not exist yet is what §5.5 exists to keep visible, and reading it as a dimension would discard the text an author wrote.
+**`![[target|value]]` is read by what the target is.** When the target is a note, the pipe is the alias of §5.1. When it is an attachment, the pipe carries the dimensions of §3.14. When the target resolves to neither — the common case while a notebook is being written — **the pipe is an alias**, because a reference to a note that does not exist yet is what §5.5 exists to keep visible, and reading it as a dimension would discard the text an author wrote.
 
 Whichever it is, **the pipe never changes the target**: `[[Lei 14.133|100]]` and `![[engelbart.jpg|100]]` address `Lei 14.133` and `engelbart.jpg`, and what follows the pipe is display in both.
 
@@ -506,7 +506,7 @@ Whichever it is, **the pipe never changes the target**: `[[Lei 14.133|100]]` and
 
 ## 6. Frontmatter
 
-Frontmatter is a block at the top of the file delimited by `---`, written in a YAML subset. The form is Jekyll's, adopted since by every vault editor. It is part of neither CommonMark nor GFM; this specification specifies it because it is the **only** place a vault declares attributes about a note, and the second and last place an Indexer is allowed to read.
+Frontmatter is a block at the top of the file delimited by `---`, written in a YAML subset. The form is Jekyll's, adopted since by every vault editor. It is part of neither CommonMark nor GFM; this specification specifies it because it is the **only** place a notebook declares attributes about a note, and the second and last place an Indexer is allowed to read.
 
 ### 6.1 The block
 
@@ -544,7 +544,7 @@ Scalars, inline lists and dash lists. One layer of matching quotes around a valu
 | Anything longer than 40 characters | — | **No.** Above that a value is prose, not a category |
 | An empty value | — | No |
 
-That is what lets the vocabulary belong to the vault: a vault that starts writing `norma: federal` gets `norma:federal` as a filter the same day, with no configuration anywhere.
+That is what lets the vocabulary belong to the notebook: a notebook that starts writing `norma: federal` gets `norma:federal` as a filter the same day, with no configuration anywhere.
 
 The 40-character ceiling is where an attribute stops being a category. A summary written into the frontmatter is read and discarded, and it belongs in the body, where it is searchable, rather than in an attribute that would become a category of one.
 
@@ -552,7 +552,7 @@ An implementation SHOULD additionally stop indexing an attribute whose distinct 
 
 ### 6.4 The reserved vocabulary
 
-The specification reserves **seven** attribute names. They are always written in en-US; an implementation MAY translate the *label* it shows and MUST NOT translate the bytes in the file. Every other attribute keeps the name whoever wrote the note gave it, in whatever language they wrote it. That is the whole of the internationalisation contract of this document: a vault in pt-BR writes `title: Recuperação de desastre` under an interface that shows "Título", and the structural attributes of a vault are the same seven keys in every language.
+The specification reserves **seven** attribute names. They are always written in en-US; an implementation MAY translate the *label* it shows and MUST NOT translate the bytes in the file. Every other attribute keeps the name whoever wrote the note gave it, in whatever language they wrote it. That is the whole of the internationalisation contract of this document: a notebook in pt-BR writes `title: Recuperação de desastre` under an interface that shows "Título", and the structural attributes of a notebook are the same seven keys in every language.
 
 | Key | Shape | Effect |
 |---|---|---|
@@ -564,7 +564,7 @@ The specification reserves **seven** attribute names. They are always written in
 | `created` | ISO 8601 date | The date the author states the note was created. See §6.6 |
 | `updated` | ISO 8601 date | The date the author states the content was last revised. See §6.6 |
 
-**Most of these keys gain no behaviour from being reserved, and that is not a defect of the list.** `tags`, `author` and `co-author` are indexed exactly as they would be under any other name: the shape of the value decides the kind (§6.3), each value is filterable on its own, and the 40-character ceiling applies unchanged — an institutional author written longer than that is prose and is not indexed. What the reservation gives is the **name**, and the name is the one thing a vault cannot invent for itself without leaving every other vault behind: unreserved, one vault writes `autor:`, another writes `author:`, and no interface can offer one column over both. `autor:` stays legal and stays indexed — it is an ordinary attribute, which is what every attribute this section does not name is. **A reserved key is a guarantee, not a prohibition.**
+**Most of these keys gain no behaviour from being reserved, and that is not a defect of the list.** `tags`, `author` and `co-author` are indexed exactly as they would be under any other name: the shape of the value decides the kind (§6.3), each value is filterable on its own, and the 40-character ceiling applies unchanged — an institutional author written longer than that is prose and is not indexed. What the reservation gives is the **name**, and the name is the one thing a notebook cannot invent for itself without leaving every other notebook behind: unreserved, one notebook writes `autor:`, another writes `author:`, and no interface can offer one column over both. `autor:` stays legal and stays indexed — it is an ordinary attribute, which is what every attribute this section does not name is. **A reserved key is a guarantee, not a prohibition.**
 
 `author` and `co-author` are what the author **states**, in the same family as `created` and `updated` (§6.6). Nothing derives them from a file, a commit, a session or an account: an implementation that knows who actually edited what holds a history, and a history is authoritative for the file and MUST NOT be presented in place of what the note says about itself. `co-author` is the note's own record of having been written with somebody — a colleague, an institution or an agent — and it is never merged into `author`, because the distinction is the whole of what it was written to say.
 
@@ -740,7 +740,7 @@ A Reader MUST NOT render raw HTML found in a note. It is stored and returned as 
 displayed as text.
 
 This is a **security boundary and not a rendering preference**, which is why it is stated
-rather than left to each implementation. A vault is written by several people and by agents,
+rather than left to each implementation. A notebook is written by several people and by agents,
 and a reading surface that renders arbitrary HTML out of it is a script injection whose
 trigger is written by whoever wrote the note. CommonMark admits raw HTML; this specification does
 not, and an implementation MUST NOT claim conformance while rendering it.
@@ -812,7 +812,7 @@ It exists so that a specification and an implementation cannot drift apart in pr
 
 ## 10. The conformance suite
 
-[`tests/conformance.json`](tests/conformance.json) is the executable half of this document: each case is a Markdown input and the links and attributes a conforming Indexer produces from it. A case that exercises a rule about the rest of the vault — §5.4, §5.5 and §5.8, where what a target becomes depends on what else exists — carries the notes and attachments it needs alongside the input. A case whose expectation is *nothing* — a link inside a code fence, an external destination — is as normative as any other.
+[`tests/conformance.json`](tests/conformance.json) is the executable half of this document: each case is a Markdown input and the links and attributes a conforming Indexer produces from it. A case that exercises a rule about the rest of the notebook — §5.4, §5.5 and §5.8, where what a target becomes depends on what else exists — carries the notes and attachments it needs alongside the input. A case whose expectation is *nothing* — a link inside a code fence, an external destination — is as normative as any other.
 
 An implementation claiming the Indexer role SHOULD run the suite in its own continuous integration. See [`tests/README.md`](tests/README.md) for the format.
 

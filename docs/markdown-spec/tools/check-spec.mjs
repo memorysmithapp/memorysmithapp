@@ -167,40 +167,40 @@ for (const testCase of cases) {
     );
   }
 
-  // A resolution is a claim about a vault, and a vault is only there to be resolved
+  // A resolution is a claim about a notebook, and a notebook is only there to be resolved
   // against. One without the other is half a case, and the half that is missing is the
   // one that would have made it fail.
-  const hasVault = 'vault' in testCase;
+  const hasNotebook = 'notebook' in testCase;
   const hasResolution = 'resolution' in testCase;
-  if (hasVault !== hasResolution) {
+  if (hasNotebook !== hasResolution) {
     fail(
       'tests/conformance.json',
-      hasVault
-        ? `the case "${testCase.id}" builds a vault and claims no resolution against it`
-        : `the case "${testCase.id}" claims a resolution and gives no vault to resolve against`,
+      hasNotebook
+        ? `the case "${testCase.id}" builds a notebook and claims no resolution against it`
+        : `the case "${testCase.id}" claims a resolution and gives no notebook to resolve against`,
     );
   }
 
-  if (hasVault) {
-    const vault = testCase.vault ?? {};
-    const notes = vault.notes ?? [];
-    const attachments = vault.attachments ?? [];
+  if (hasNotebook) {
+    const notebook = testCase.notebook ?? {};
+    const notes = notebook.notes ?? [];
+    const attachments = notebook.attachments ?? [];
     if (!Array.isArray(notes) || notes.some((note) => typeof note !== 'string')) {
       fail(
         'tests/conformance.json',
-        `the case "${testCase.id}" has a vault whose "notes" is not a list of Markdown documents`,
+        `the case "${testCase.id}" has a notebook whose "notes" is not a list of Markdown documents`,
       );
     }
     if (!Array.isArray(attachments) || attachments.some((name) => typeof name !== 'string')) {
       fail(
         'tests/conformance.json',
-        `the case "${testCase.id}" has a vault whose "attachments" is not a list of names`,
+        `the case "${testCase.id}" has a notebook whose "attachments" is not a list of names`,
       );
     }
     if (notes.length === 0 && attachments.length === 0) {
       fail(
         'tests/conformance.json',
-        `the case "${testCase.id}" has an empty vault, which resolves nothing`,
+        `the case "${testCase.id}" has an empty notebook, which resolves nothing`,
       );
     }
   }

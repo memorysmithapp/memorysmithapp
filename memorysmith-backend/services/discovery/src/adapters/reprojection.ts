@@ -1,5 +1,5 @@
 /**
- * Rebuilding the link projection of every vault, after 0.6.0 is deployed
+ * Rebuilding the link projection of every notebook, after 0.6.0 is deployed
  * (#102).
  *
  * Every projection of this service is derived and rebuildable from zero (PE5),
@@ -10,7 +10,7 @@
  * title a note states, exactly, and against the aliases it declares. Every
  * edge in the table is an assertion the current rule never made.
  *
- * So it is not repaired, it is rebuilt: the edges are forgotten, what the vault
+ * So it is not repaired, it is rebuilt: the edges are forgotten, what the notebook
  * answers to is restated from the notes, and the ordinary write path resolves
  * every target again. An edge then exists because the new rule says so, and
  * not because an old projection said so.
@@ -36,13 +36,13 @@ import { noteTitle, SubscriptionId } from '@memorysmith/kernel';
 
 import { extractLinks } from '../domain/LinkExtractor.js';
 import { extractFrontmatterAliases } from '../domain/Aliases.js';
-import { resolveTarget, vaultNames } from '../domain/LinkResolver.js';
+import { resolveTarget, notebookNames } from '../domain/LinkResolver.js';
 import type { NoteRef } from '../domain/ports.js';
 import type { ContentReader } from '../application/projections.js';
 import type { DynamoLinkGraph } from './aws.js';
 
-/** `S#{subscriptionId}#VAULT#{vaultId}`, which is where a note item lives. */
-const VAULT_PARTITION = /^S#([^#]+)#VAULT#(.+)$/;
+/** `S#{subscriptionId}#NOTEBOOK#{notebookId}`, which is where a note item lives. */
+const NOTEBOOK_PARTITION = /^S#([^#]+)#NOTEBOOK#(.+)$/;
 
 export interface ReprojectionDependencies {
   readonly db: DynamoDBDocumentClient;
@@ -65,10 +65,10 @@ export interface PlannedEdge {
   readonly by: 'title' | 'alias';
 }
 
-/** What one vault held, what it will hold, and the difference between them. */
-export interface VaultPlan {
+/** What one notebook held, what it will hold, and the difference between them. */
+export interface NotebookPlan {
   readonly subscriptionId: string;
-  readonly vaultId: string;
+  readonly notebookId: string;
   readonly notes: readonly ReadNote[];
   readonly before: number;
   readonly after: readonly PlannedEdge[];
@@ -100,29 +100,29 @@ export class LinkReprojection {
   constructor(private readonly deps: ReprojectionDependencies) {}
 
   /**
-   * What every vault will hold, worked out without writing anything.
+   * What every notebook will hold, worked out without writing anything.
    *
    * The after-state is computed here with the same two functions the adapter
    * resolves with, so the report and the write cannot disagree about what the
    * rule says: what differs is only who performs it.
    */
-  async plan(): Promise<VaultPlan[]> {
-    const plans: VaultPlan[] = [];
+  async plan(): Promise<NotebookPlan[]> {
+    const plans: NotebookPlan[] = [];
     for (const [partition, notes] of await this.liveNotes()) {
-      const match = VAULT_PARTITION.exec(partition);
+      const match = NOTEBOOK_PARTITION.exec(partition);
       if (!match) continue;
       const subscriptionId = subscriptionOf(match[1] ?? '');
-      const vaultId = match[2] ?? '';
+      const notebookId = match[2] ?? '';
 
       const read = await this.readNotes(subscriptionId, notes);
       const after = resolveAll(read);
-      const before = await this.deps.graphFor(subscriptionId).currentEdges(vaultId);
+      const before = await this.deps.graphFor(subscriptionId).currentEdges(notebookId);
 
       const held = new Set(before.map(edgeKey));
       const found = new Set(after.edges.map(edgeKey));
       plans.push({
         subscriptionId: subscriptionId.value,
-        vaultId,
+        notebookId,
         notes: read,
         before: before.length,
         after: after.edges,
@@ -135,7 +135,7 @@ export class LinkReprojection {
   }
 
   /**
-   * Writes one vault's plan: the edges are forgotten, what the vault answers to
+   * Writes one notebook's plan: the edges are forgotten, what the notebook answers to
    * is restated, and every note is re-resolved by the ordinary write path.
    *
    * The last step is deliberately the product's own code and not a shortcut
@@ -143,9 +143,9 @@ export class LinkReprojection {
    * to the table would be a second implementation of the projection, and the
    * day the two disagreed the rebuild would be the one nobody tested.
    */
-  async apply(plan: VaultPlan): Promise<void> {
+  async apply(plan: NotebookPlan): Promise<void> {
     const graph = this.deps.graphFor(subscriptionOf(plan.subscriptionId));
-    // The note item carries what the vault ANSWERS to and nothing else: the
+    // The note item carries what the notebook ANSWERS to and nothing else: the
     // targets belong to this plan, not to the projection.
     const refs = plan.notes.map(({ noteId, title, aliases, folderId }): NoteRef => ({
       noteId,
@@ -153,12 +153,12 @@ export class LinkReprojection {
       aliases,
       folderId,
     }));
-    await graph.forgetLinks(plan.vaultId);
-    await graph.seedNotes(plan.vaultId, refs);
+    await graph.forgetLinks(plan.notebookId);
+    await graph.seedNotes(plan.notebookId, refs);
     for (const note of plan.notes) {
       const { targets, ...ref } = note;
       await graph.replaceOutgoing(
-        plan.vaultId,
+        plan.notebookId,
         ref,
         targets.map((title) => ({ title, anchor: null })),
       );
@@ -166,10 +166,10 @@ export class LinkReprojection {
   }
 
   /**
-   * Every live note of every vault, by the partition it sits in.
+   * Every live note of every notebook, by the partition it sits in.
    *
    * A Scan, deliberately, and for the reason the recount scans: there is no
-   * index that lists vaults, and inventing one to serve a maintenance job would
+   * index that lists notebooks, and inventing one to serve a maintenance job would
    * put a cost on every write to save a job that runs by hand. It projects the
    * four attributes it reads.
    */
@@ -227,12 +227,12 @@ export class LinkReprojection {
 }
 
 /**
- * Every edge the current rule finds in a vault, and how many targets found
+ * Every edge the current rule finds in a notebook, and how many targets found
  * none. It is exported because it is where the whole difference between the
  * two rules lands, and the difference is what the report is about.
  */
 export function resolveAll(notes: readonly ReadNote[]): { edges: PlannedEdge[]; pending: number } {
-  const names = vaultNames(notes.map((note) => ({ ...note, title: note.title || null })));
+  const names = notebookNames(notes.map((note) => ({ ...note, title: note.title || null })));
   const edges: PlannedEdge[] = [];
   let pending = 0;
 

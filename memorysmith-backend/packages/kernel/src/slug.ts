@@ -1,7 +1,7 @@
 /**
- * Slug: the normalized, URL-safe name a vault or a folder is addressed by.
+ * Slug: the normalized, URL-safe name a notebook or a folder is addressed by.
  *
- * Vault slugs are unique within the subscription (RN-KNW-032); folder slugs are
+ * Notebook slugs are unique within the subscription (RN-KNW-032); folder slugs are
  * unique among siblings (RN-KNW-002). A note carries none: it is addressed by
  * its identifier and named by its title (RN-KNW-035). This type only
  * guarantees the shape; uniqueness is the repository's to enforce.

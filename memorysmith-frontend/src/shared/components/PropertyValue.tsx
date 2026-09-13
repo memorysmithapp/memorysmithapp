@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { DRAWN_RESERVED_KEYS, TITLE_KEY } from '@memorysmith/contracts';
 import { wikilinkUrl } from '../api/source';
 
-// Frontmatter values are vault content, so they may carry [[wikilinks]],
+// Frontmatter values are notebook content, so they may carry [[wikilinks]],
 // markdown links and raw URLs. This renderer makes them navigable without
 // interpreting anything else.
 const TOKEN =
@@ -12,15 +12,15 @@ const TOKEN =
 
 interface PropertyValueProps {
   value: string;
-  /** The vault wrote this one as a list, so it is drawn as chips. */
+  /** The notebook wrote this one as a list, so it is drawn as chips. */
   list: boolean;
-  vaultSlug: string;
+  notebookSlug: string;
 }
 
 /**
  * Which icon names the property, by the shape of its value and never by its
  * key. It is the same reading the facet projector does (FacetExtractor.ts):
- * the vocabulary of a vault belongs to its Guidance, so a list of blessed key
+ * the vocabulary of a notebook belongs to its Guidance, so a list of blessed key
  * names here would be this layer deciding what `status` means.
  */
 /**
@@ -40,7 +40,7 @@ const RESERVED = DRAWN_RESERVED_KEYS;
  * other attribute keeps the name whoever wrote the note gave it, in whatever
  * language they gave it.
  *
- * The translation stops at the label and never reaches the bytes. A vault
+ * The translation stops at the label and never reaches the bytes. A notebook
  * written in Portuguese still stores `created`, still exports `created`, and
  * still answers `created:2026-09` in the search — the word on screen is the
  * only thing that changes, which is the same line PP4 draws everywhere else.
@@ -51,11 +51,11 @@ export function propertyLabel(key: string, t: (key: string) => string): string {
 
 /**
  * The properties in the order they are drawn: the reserved keys first, in the
- * order the specification declares them, and then the vocabulary of the vault
+ * order the specification declares them, and then the vocabulary of the notebook
  * in the order the note wrote it (RN-DSC-051).
  *
  * That is the honest shape of the block. The first group is the same in every
- * vault of every language and is what the product can say something about; the
+ * notebook of every language and is what the product can say something about; the
  * second belongs to the Guidance, and the product knows nothing about it
  * beyond the shape of its value. Drawing them shuffled together, which is what
  * the written order did, asked the reader to know which was which.
@@ -84,7 +84,7 @@ export function propertyType(value: string, list: boolean): 'list' | 'date' | 'c
   return 'text';
 }
 
-function renderRich(value: string, vaultSlug: string, pendingHint: string): ReactNode[] {
+function renderRich(value: string, notebookSlug: string, pendingHint: string): ReactNode[] {
   const parts: ReactNode[] = [];
   let cursor = 0;
   let key = 0;
@@ -96,7 +96,7 @@ function renderRich(value: string, vaultSlug: string, pendingHint: string): Reac
     if (wikiTarget) {
       const label = (wikiLabel ?? wikiTarget).trim();
       const target = wikiTarget.split('#')[0]?.trim() ?? '';
-      const url = target ? wikilinkUrl(vaultSlug, target.normalize('NFC')) : null;
+      const url = target ? wikilinkUrl(notebookSlug, target.normalize('NFC')) : null;
       parts.push(
         url ? (
           <Link key={key++} className="wikilink" to={url}>
@@ -127,7 +127,7 @@ function renderRich(value: string, vaultSlug: string, pendingHint: string): Reac
   return parts;
 }
 
-export function PropertyValue({ value, list, vaultSlug }: PropertyValueProps) {
+export function PropertyValue({ value, list, notebookSlug }: PropertyValueProps) {
   const { t } = useTranslation();
 
   if (list) {
@@ -145,5 +145,5 @@ export function PropertyValue({ value, list, vaultSlug }: PropertyValueProps) {
     );
   }
 
-  return <>{renderRich(value, vaultSlug, t('note.pendingLink'))}</>;
+  return <>{renderRich(value, notebookSlug, t('note.pendingLink'))}</>;
 }

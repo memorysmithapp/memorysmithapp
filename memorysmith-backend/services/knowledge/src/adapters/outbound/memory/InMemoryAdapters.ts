@@ -22,14 +22,18 @@ import {
   type Result,
   type Slug,
   type SubscriptionContext,
-  type VaultId,
+  type NotebookId,
 } from '@memorysmith/kernel';
 import { createHash } from 'node:crypto';
 import type { Note } from '../../../domain/note/Note.js';
 import type { NoteOrder } from '../../../domain/services/NotePlacement.js';
-import type { ContentStore, NoteRepository, VaultRepository } from '../../../domain/ports/index.js';
+import type {
+  ContentStore,
+  NoteRepository,
+  NotebookRepository,
+} from '../../../domain/ports/index.js';
 import type { StorageBudget, StorageState } from '../../../domain/services/StorageQuota.js';
-import type { Vault } from '../../../domain/vault/Vault.js';
+import type { Notebook } from '../../../domain/notebook/Notebook.js';
 
 /** Records what was published, so a test can assert on the event stream. */
 export class RecordingEventPublisher implements EventPublisher {
@@ -75,68 +79,68 @@ export class InMemoryStorageBudget implements StorageBudget {
 
 /** The shared "database", so several repositories can see the same state. */
 export class InMemoryDatabase {
-  readonly vaults = new Map<string, { vault: Vault; version: number }>();
+  readonly notebooks = new Map<string, { notebook: Notebook; version: number }>();
   readonly notes = new Map<string, { note: Note; version: number }>();
   readonly content = new Map<string, { revisions: Map<string, string>; latest: string }>();
 
   clear(): void {
-    this.vaults.clear();
+    this.notebooks.clear();
     this.notes.clear();
     this.content.clear();
   }
 }
 
-function vaultKey(sub: SubscriptionContext, id: VaultId): string {
-  return `S#${sub.subscriptionId.value}#VAULT#${id.value}`;
+function notebookKey(sub: SubscriptionContext, id: NotebookId): string {
+  return `S#${sub.subscriptionId.value}#NOTEBOOK#${id.value}`;
 }
 
-function noteKey(sub: SubscriptionContext, vault: VaultId, note: NoteId): string {
-  return `${vaultKey(sub, vault)}#NOTE#${note.value}`;
+function noteKey(sub: SubscriptionContext, notebook: NotebookId, note: NoteId): string {
+  return `${notebookKey(sub, notebook)}#NOTE#${note.value}`;
 }
 
-export class InMemoryVaultRepository implements VaultRepository {
+export class InMemoryNotebookRepository implements NotebookRepository {
   constructor(
     private readonly sub: SubscriptionContext,
     private readonly db: InMemoryDatabase,
     private readonly events: EventPublisher,
   ) {}
 
-  async findById(id: VaultId): Promise<Vault | null> {
-    return this.db.vaults.get(vaultKey(this.sub, id))?.vault ?? null;
+  async findById(id: NotebookId): Promise<Notebook | null> {
+    return this.db.notebooks.get(notebookKey(this.sub, id))?.notebook ?? null;
   }
 
   /**
-   * A deleted vault is out, with no filter needed in the caller: in DynamoDB
+   * A deleted notebook is out, with no filter needed in the caller: in DynamoDB
    * that is GSI1 being sparse, and here it is this line.
    */
-  async listAll(): Promise<Vault[]> {
-    const prefix = `S#${this.sub.subscriptionId.value}#VAULT#`;
-    return [...this.db.vaults.entries()]
+  async listAll(): Promise<Notebook[]> {
+    const prefix = `S#${this.sub.subscriptionId.value}#NOTEBOOK#`;
+    return [...this.db.notebooks.entries()]
       .filter(([key]) => key.startsWith(prefix))
-      .map(([, entry]) => entry.vault)
-      .filter((vault) => !vault.isDeleted);
+      .map(([, entry]) => entry.notebook)
+      .filter((notebook) => !notebook.isDeleted);
   }
 
   /**
-   * Same answer the database gives, from the same question: which vault of
+   * Same answer the database gives, from the same question: which notebook of
    * this subscription holds this slug. The adapter in memory has no guard item,
    * so it looks through the list, which is the honest equivalent at this size.
-   * A deleted vault holds no slug, exactly as its guard item is released.
+   * A deleted notebook holds no slug, exactly as its guard item is released.
    */
-  async findBySlug(slug: Slug): Promise<Vault | null> {
-    const vaults = await this.listAll();
-    return vaults.find((vault) => vault.slug.value === slug.value) ?? null;
+  async findBySlug(slug: Slug): Promise<Notebook | null> {
+    const notebooks = await this.listAll();
+    return notebooks.find((notebook) => notebook.slug.value === slug.value) ?? null;
   }
 
-  async save(vault: Vault): Promise<Result<void, ConcurrencyError>> {
-    const key = vaultKey(this.sub, vault.id);
-    const stored = this.db.vaults.get(key);
-    if (stored && stored.version !== vault.version) {
+  async save(notebook: Notebook): Promise<Result<void, ConcurrencyError>> {
+    const key = notebookKey(this.sub, notebook.id);
+    const stored = this.db.notebooks.get(key);
+    if (stored && stored.version !== notebook.version) {
       return { ok: false, error: new ConcurrencyError() };
     }
-    const events = vault.pullEvents();
-    vault.markPersisted();
-    this.db.vaults.set(key, { vault, version: vault.version });
+    const events = notebook.pullEvents();
+    notebook.markPersisted();
+    this.db.notebooks.set(key, { notebook, version: notebook.version });
     await this.events.publish(events);
     return ok();
   }
@@ -149,33 +153,33 @@ export class InMemoryNoteRepository implements NoteRepository {
     private readonly events: EventPublisher,
   ) {}
 
-  async findById(vault: VaultId, id: NoteId): Promise<Note | null> {
-    return this.db.notes.get(noteKey(this.sub, vault, id))?.note ?? null;
+  async findById(notebook: NotebookId, id: NoteId): Promise<Note | null> {
+    return this.db.notes.get(noteKey(this.sub, notebook, id))?.note ?? null;
   }
 
-  async listByFolder(vault: VaultId, folder: FolderId): Promise<Note[]> {
-    return (await this.listByVault(vault))
+  async listByFolder(notebook: NotebookId, folder: FolderId): Promise<Note[]> {
+    return (await this.listByNotebook(notebook))
       .filter((note) => note.folderId.equals(folder))
       .sort((left, right) => left.position.compare(right.position));
   }
 
-  async listByVault(vault: VaultId): Promise<Note[]> {
-    const prefix = `${vaultKey(this.sub, vault)}#NOTE#`;
+  async listByNotebook(notebook: NotebookId): Promise<Note[]> {
+    const prefix = `${notebookKey(this.sub, notebook)}#NOTE#`;
     return [...this.db.notes.entries()]
       .filter(([key]) => key.startsWith(prefix))
       .map(([, entry]) => entry.note)
       .filter((note) => !note.isDeleted);
   }
 
-  async siblingOrder(vault: VaultId, folder: FolderId): Promise<NoteOrder[]> {
-    return (await this.listByFolder(vault, folder)).map((note) => ({
+  async siblingOrder(notebook: NotebookId, folder: FolderId): Promise<NoteOrder[]> {
+    return (await this.listByFolder(notebook, folder)).map((note) => ({
       noteId: note.id,
       position: note.position,
     }));
   }
 
   async save(note: Note): Promise<Result<void, ConcurrencyError>> {
-    const key = noteKey(this.sub, note.vaultId, note.id);
+    const key = noteKey(this.sub, note.notebookId, note.id);
     const stored = this.db.notes.get(key);
     if (stored && stored.version !== note.version) {
       return { ok: false, error: new ConcurrencyError() };
@@ -188,10 +192,13 @@ export class InMemoryNoteRepository implements NoteRepository {
     return ok();
   }
 
-  async saveMoved(note: Note, from: { vaultId: VaultId }): Promise<Result<void, ConcurrencyError>> {
+  async saveMoved(
+    note: Note,
+    from: { notebookId: NotebookId },
+  ): Promise<Result<void, ConcurrencyError>> {
     // The item key itself changes, so the old one is deleted and a new one is
     // written.
-    this.db.notes.delete(noteKey(this.sub, from.vaultId, note.id));
+    this.db.notes.delete(noteKey(this.sub, from.notebookId, note.id));
     return this.save(note);
   }
 }

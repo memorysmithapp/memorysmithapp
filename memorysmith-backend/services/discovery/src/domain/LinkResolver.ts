@@ -1,5 +1,5 @@
 /**
- * What a target becomes, once there is a vault to resolve it against.
+ * What a target becomes, once there is a notebook to resolve it against.
  *
  * Resolution used to be a lookup: one slug, one note, one edge. Specification
  * 0.6.0 makes it a question with three answers and, for the first one, a
@@ -22,8 +22,8 @@
  * alias whenever a title appears, changes or goes.
  */
 
-/** What a vault answers to: its titles, its aliases and its attachments. */
-export interface VaultNames {
+/** What a notebook answers to: its titles, its aliases and its attachments. */
+export interface NotebookNames {
   /** Note identifiers by the title they carry. Several notes may share one. */
   readonly byTitle: ReadonlyMap<string, readonly string[]>;
   /** Note identifiers by each alias they declare (RN-DSC-052). */
@@ -47,19 +47,19 @@ export interface Resolution {
 const asName = (raw: string): string => raw.normalize('NFC');
 
 /**
- * Builds the index a vault is resolved against. The titles come from the chain
+ * Builds the index a notebook is resolved against. The titles come from the chain
  * of the specification, read by the kernel, and the aliases from the
  * frontmatter — which is the reason resolution stopped being the business of
  * one extractor: a note points with its body and answers with both.
  */
-export function vaultNames(
+export function notebookNames(
   notes: ReadonlyArray<{
     readonly noteId: string;
     readonly title: string | null;
     readonly aliases?: readonly string[];
   }>,
   attachments: readonly string[] = [],
-): VaultNames {
+): NotebookNames {
   const byTitle = new Map<string, string[]>();
   const byAlias = new Map<string, string[]>();
 
@@ -87,7 +87,7 @@ export function vaultNames(
  * is between notes, and a name matching nothing is reported as pending rather
  * than treated as an error.
  */
-export function resolveTarget(target: string, names: VaultNames): Resolution {
+export function resolveTarget(target: string, names: NotebookNames): Resolution {
   const key = asName(target);
 
   const byTitle = names.byTitle.get(key);
@@ -107,10 +107,10 @@ export function resolveTarget(target: string, names: VaultNames): Resolution {
   return { target: key, kind: 'pending', by: null, noteIds: [] };
 }
 
-/** Every target of one note, resolved against the same vault. */
+/** Every target of one note, resolved against the same notebook. */
 export function resolveTargets(
   targets: readonly string[],
-  names: VaultNames,
+  names: NotebookNames,
 ): readonly Resolution[] {
   return targets.map((target) => resolveTarget(target, names));
 }

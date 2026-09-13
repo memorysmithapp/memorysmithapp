@@ -1,7 +1,7 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-  Creates an account, gives it a subscription and fills its first vault.
+  Creates an account, gives it a subscription and fills its first notebook.
 
 .DESCRIPTION
   A deploy seeds nothing: the user pool comes up empty and no subscription is
@@ -12,8 +12,8 @@
   This script closes that loop end to end, and never by hand: it creates the
   account in Cognito, signs in as it, asks for the subscription with the type
   and the quota that were chosen, puts it in the status that was chosen, and
-  then writes a whole vault through the product API, from a vault tree under
-  deploy-aws/vaults. Nothing is written into DynamoDB or S3
+  then writes a whole notebook through the product API, from a notebook tree under
+  deploy-aws/notebooks. Nothing is written into DynamoDB or S3
   directly, so the domain events and the audit trail are the ones the product
   would have produced.
 
@@ -23,7 +23,7 @@
   admin instead of quietly handing out the platform to whoever runs it.
 
   THE ACCOUNT IS HANDED OVER WITH A PROVISIONAL PASSWORD. Asking for the
-  subscription and writing the vault are done as the account, so the script
+  subscription and writing the notebook are done as the account, so the script
   needs to sign in as it, and it signs in with a password of its own that
   nobody ever sees. At the end it leaves the account waiting for its first
   password: Cognito e-mails an invitation with a temporary one, and the
@@ -51,23 +51,23 @@
   transition machine would refuse: the platform route that sets it is the
   administrative override, and this is what it exists for (RN-SUB-018).
 
-.PARAMETER VaultTemplate
-  Slug of the vault to write, or 'none' for an account with no vault. Asked
-  for when it is not given; the list is what exists under deploy-aws/vaults.
+.PARAMETER NotebookTemplate
+  Slug of the notebook to write, or 'none' for an account with no notebook. Asked
+  for when it is not given; the list is what exists under deploy-aws/notebooks.
 
-.PARAMETER VaultName
-  Name of the created vault. Defaults to the title of the source vault.
+.PARAMETER NotebookName
+  Name of the created notebook. Defaults to the title of the source notebook.
 
 .PARAMETER StructureOnly
   Writes the Guidance, the folders and the Templates, and no notes. Useful on a
-  large vault, where the notes are the slow part by far.
+  large notebook, where the notes are the slow part by far.
 
 .PARAMETER MaxNotes
-  Stops after this many notes. 0, the default, means every note of the vault.
+  Stops after this many notes. 0, the default, means every note of the notebook.
 
-.PARAMETER PreviewVault
-  Prints the vault that WOULD be written, folder by folder, and stops. It
-  creates nothing and calls neither the API nor Cognito, so it is how a vault
+.PARAMETER PreviewNotebook
+  Prints the notebook that WOULD be written, folder by folder, and stops. It
+  creates nothing and calls neither the API nor Cognito, so it is how a notebook
   of six hundred notes is inspected before it is uploaded.
 
 .PARAMETER SetPassword
@@ -86,15 +86,15 @@
 .EXAMPLE
   ./deploy-aws/onboard.ps1 -Profile memorysmith
   Asks for everything it needs and creates the account, the subscription and
-  the vault.
+  the notebook.
 
 .EXAMPLE
-  ./deploy-aws/onboard.ps1 -VaultTemplate engineering-knowledge -PreviewVault
-  Prints what that vault would become, and changes nothing.
+  ./deploy-aws/onboard.ps1 -NotebookTemplate engineering-knowledge -PreviewNotebook
+  Prints what that notebook would become, and changes nothing.
 
 .EXAMPLE
-  ./deploy-aws/onboard.ps1 -Email ana@example.com -Quota 2GB -Status active -VaultTemplate fermentacao
-  A subscription of 2 GB, active, with a small vault written into it. Ana gets
+  ./deploy-aws/onboard.ps1 -Email ana@example.com -Quota 2GB -Status active -NotebookTemplate fermentacao
+  A subscription of 2 GB, active, with a small notebook written into it. Ana gets
   an e-mail with a provisional password and chooses her own on the first
   sign-in; nobody else ever knows it.
 
@@ -111,11 +111,11 @@ param(
   [ValidateSet('500MB', '1GB', '2GB')][string]$Quota,
   [ValidateSet('pending_approval', 'trial', 'active', 'rejected', 'suspended', 'canceled')]
   [string]$Status,
-  [string]$VaultTemplate,
-  [string]$VaultName,
+  [string]$NotebookTemplate,
+  [string]$NotebookName,
   [switch]$StructureOnly,
   [int]$MaxNotes = 0,
-  [switch]$PreviewVault,
+  [switch]$PreviewNotebook,
   [switch]$SetPassword,
   [string]$Region,
   [Alias('Profile')][string]$ProfileName
@@ -246,8 +246,8 @@ function Send-Invitation {
   return $temporary
 }
 
-function Get-VaultText {
-  <# A file of the vault tree as text, always decoded as UTF-8. #>
+function Get-NotebookText {
+  <# A file of the notebook tree as text, always decoded as UTF-8. #>
   param([Parameter(Mandatory)][string]$Path)
   return [System.IO.File]::ReadAllText($Path, [System.Text.UTF8Encoding]::new($false))
 }
@@ -262,8 +262,8 @@ function Add-StatedTitle {
     nobody linked to, or with no addressable title at all (RN-KNW-036).
 
     So the file name is written into the frontmatter as `title:`, and only
-    where the source states none. It is the same repair `build-vaults.mjs`
-    applies to a committed tree and the migration applies to a live vault, and
+    where the source states none. It is the same repair `build-notebooks.mjs`
+    applies to a committed tree and the migration applies to a live notebook, and
     it never overwrites a title the author wrote.
   #>
   param([Parameter(Mandatory)][string]$Text, [Parameter(Mandatory)][string]$FileName)
@@ -308,9 +308,9 @@ function Limit-Description {
 
 function Get-StructureTree {
   <#
-    THE STRUCTURE OF A VAULT COMES FROM ITS STRUCTURE.md, NOT FROM THE
+    THE STRUCTURE OF A NOTEBOOK COMES FROM ITS STRUCTURE.md, NOT FROM THE
     DIRECTORIES. The description of a folder is an attribute of the folder and
-    never a document, so the export writes every description once, at the vault
+    never a document, so the export writes every description once, at the notebook
     root, and writes nothing inside the folder to carry it. A folder holding no
     template and no note leaves no directory behind at all, and only that
     document remembers it.
@@ -323,16 +323,16 @@ function Get-StructureTree {
 
     Returns the root nodes, in order, each with its Children.
   #>
-  param([Parameter(Mandatory)][string]$VaultRoot)
+  param([Parameter(Mandatory)][string]$NotebookRoot)
 
-  $path = Join-Path $VaultRoot 'STRUCTURE.md'
+  $path = Join-Path $NotebookRoot 'STRUCTURE.md'
   if (-not (Test-Path -LiteralPath $path)) { return @() }
 
   $roots = [System.Collections.ArrayList]::new()
   $byNumbering = @{}
-  $dirByNumbering = @{ '' = $VaultRoot }
+  $dirByNumbering = @{ '' = $NotebookRoot }
 
-  foreach ($line in (Get-VaultText -Path $path) -split "`r?`n") {
+  foreach ($line in (Get-NotebookText -Path $path) -split "`r?`n") {
     if ($line -notmatch '^\s*([\d.]+)\.\s+\*\*(.+?)/?\*\*:\s*(.*?)\s*(?:\(\d+\s+notes?[^()]*\))?\s*$') {
       continue
     }
@@ -370,7 +370,7 @@ function Get-StructureTree {
   return $roots.ToArray()
 }
 
-function Get-VaultNotes {
+function Get-NotebookNotes {
   <# The notes of a folder: every .md that is not a reserved name of the export. #>
   param([Parameter(Mandatory)][string]$Directory)
   return @(Get-ChildItem -LiteralPath $Directory -File -Filter '*.md' |
@@ -378,7 +378,7 @@ function Get-VaultNotes {
       Sort-Object Name)
 }
 
-function Write-VaultFolders {
+function Write-NotebookFolders {
   <#
     One level of the structure, and then its children: the folder, its Template,
     its notes and its subfolders, in that order and in the order the structure
@@ -392,7 +392,7 @@ function Write-VaultFolders {
   #>
   param(
     [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Nodes,
-    [string]$VaultId,
+    [string]$NotebookId,
     [string]$Token,
     [string]$ParentFolderId,
     [switch]$Preview,
@@ -407,7 +407,7 @@ function Write-VaultFolders {
     $notes = if ($StructureOnly -or -not $node.Directory) {
       @()
     } else {
-      Get-VaultNotes -Directory $node.Directory
+      Get-NotebookNotes -Directory $node.Directory
     }
     $folderId = $null
 
@@ -419,15 +419,15 @@ function Write-VaultFolders {
       $suffix = if ($marks.Count -gt 0) { "  [$($marks -join ', ')]" } else { '' }
       Write-Host "         $indent$title$suffix" -ForegroundColor DarkGray
     } else {
-      $folder = Invoke-Api -Method 'POST' -Path "/knowledge/vaults/$VaultId/folders" -Token $Token `
+      $folder = Invoke-Api -Method 'POST' -Path "/knowledge/notebooks/$NotebookId/folders" -Token $Token `
         -Body @{ parentFolderId = $ParentFolderId; name = $title; description = $description }
       $folderId = $folder.folderId
       Write-Detail "folder  $title"
 
       if ($hasTemplate) {
         Invoke-Api -Method 'PUT' `
-          -Path "/knowledge/vaults/$VaultId/folders/$folderId/template" -Token $Token `
-          -Body @{ content = (Get-VaultText -Path $templatePath) } | Out-Null
+          -Path "/knowledge/notebooks/$NotebookId/folders/$folderId/template" -Token $Token `
+          -Body @{ content = (Get-NotebookText -Path $templatePath) } | Out-Null
       }
     }
     $script:FolderCount++
@@ -439,10 +439,10 @@ function Write-VaultFolders {
       }
       if (-not $Preview) {
         $stated = Add-StatedTitle `
-          -Text (Get-VaultText -Path $note.FullName) `
+          -Text (Get-NotebookText -Path $note.FullName) `
           -FileName ([System.IO.Path]::GetFileNameWithoutExtension($note.Name))
         if ($stated.Repaired) { $script:RepairedTitles++ }
-        Invoke-Api -Method 'POST' -Path "/knowledge/vaults/$VaultId/notes" -Token $Token -Body @{
+        Invoke-Api -Method 'POST' -Path "/knowledge/notebooks/$NotebookId/notes" -Token $Token -Body @{
           folderId = $folderId
           content  = $stated.Text
         } | Out-Null
@@ -453,7 +453,7 @@ function Write-VaultFolders {
       }
     }
 
-    Write-VaultFolders -Nodes $node.Children.ToArray() -VaultId $VaultId -Token $Token `
+    Write-NotebookFolders -Nodes $node.Children.ToArray() -NotebookId $NotebookId -Token $Token `
       -ParentFolderId $folderId -Preview:$Preview -Depth ($Depth + 1)
   }
 }
@@ -466,10 +466,10 @@ $context = Get-CdkContext
 $zoneName = $context.hostedZoneName
 Set-ApiOrigin -Origin "https://api.$zoneName"
 
-$vaultsRoot = Join-Path $PSScriptRoot 'vaults'
-$sourceVaults = @()
-if (Test-Path $vaultsRoot) {
-  $sourceVaults = @(Get-ChildItem -LiteralPath $vaultsRoot -Directory | Sort-Object Name |
+$notebooksRoot = Join-Path $PSScriptRoot 'notebooks'
+$sourceNotebooks = @()
+if (Test-Path $notebooksRoot) {
+  $sourceNotebooks = @(Get-ChildItem -LiteralPath $notebooksRoot -Directory | Sort-Object Name |
       ForEach-Object { $_.Name })
 }
 
@@ -478,7 +478,7 @@ if (Test-Path $vaultsRoot) {
 Write-Step 'What is being created'
 
 # A preview creates nothing, so it needs no account and no plan.
-if (-not $PreviewVault) {
+if (-not $PreviewNotebook) {
   if (-not $Email) { $Email = (Read-Host '  e-mail of the account').Trim() }
   if (-not $Email) { throw 'No account to onboard: pass -Email.' }
   $Email = $Email.ToLowerInvariant()
@@ -495,52 +495,52 @@ if (-not $PreviewVault) {
   }
 }
 
-if (-not $VaultTemplate) {
-  if ($sourceVaults.Count -eq 0) {
-    $VaultTemplate = 'none'
-    Write-Warn "no vault tree under $vaultsRoot; the account gets no vault"
+if (-not $NotebookTemplate) {
+  if ($sourceNotebooks.Count -eq 0) {
+    $NotebookTemplate = 'none'
+    Write-Warn "no notebook tree under $notebooksRoot; the account gets no notebook"
   } else {
-    $VaultTemplate = Read-Choice -Title 'vault to write' -Options ($sourceVaults + 'none') `
-      -Default $sourceVaults[0]
+    $NotebookTemplate = Read-Choice -Title 'notebook to write' -Options ($sourceNotebooks + 'none') `
+      -Default $sourceNotebooks[0]
   }
 }
-if ($VaultTemplate -ne 'none' -and $sourceVaults -notcontains $VaultTemplate) {
-  throw "There is no vault called '$VaultTemplate'. Available: $($sourceVaults -join ', ')."
+if ($NotebookTemplate -ne 'none' -and $sourceNotebooks -notcontains $NotebookTemplate) {
+  throw "There is no notebook called '$NotebookTemplate'. Available: $($sourceNotebooks -join ', ')."
 }
 
-$writesVault = $VaultTemplate -ne 'none'
-$vaultRoot = if ($writesVault) { Join-Path $vaultsRoot $VaultTemplate } else { $null }
+$writesNotebook = $NotebookTemplate -ne 'none'
+$notebookRoot = if ($writesNotebook) { Join-Path $notebooksRoot $NotebookTemplate } else { $null }
 $guidance = ''
 $structure = @()
-if ($writesVault) {
-  $guidancePath = Join-Path $vaultRoot 'GUIDANCE.md'
-  if (Test-Path -LiteralPath $guidancePath) { $guidance = Get-VaultText -Path $guidancePath }
-  # The name of the vault is the first heading of its Guidance, which is what
+if ($writesNotebook) {
+  $guidancePath = Join-Path $notebookRoot 'GUIDANCE.md'
+  if (Test-Path -LiteralPath $guidancePath) { $guidance = Get-NotebookText -Path $guidancePath }
+  # The name of the notebook is the first heading of its Guidance, which is what
   # the export wrote there; the slug is the fallback when there is none.
-  if (-not $VaultName) {
+  if (-not $NotebookName) {
     $heading = [regex]::Match($guidance, '(?m)^#\s+(.+?)\s*$')
-    $VaultName = if ($heading.Success) { $heading.Groups[1].Value } else { $VaultTemplate }
+    $NotebookName = if ($heading.Success) { $heading.Groups[1].Value } else { $NotebookTemplate }
   }
-  $structure = Get-StructureTree -VaultRoot $vaultRoot
+  $structure = Get-StructureTree -NotebookRoot $notebookRoot
 }
 
-if (-not $PreviewVault) {
+if (-not $PreviewNotebook) {
   Write-Host ''
   Write-Host "  account          $Email"
   Write-Host "  subscription     $Type, $Quota, $Status"
-  Write-Host "  vault            $VaultTemplate"
+  Write-Host "  notebook            $NotebookTemplate"
 }
 
 # --- 3. Preview, which stops here --------------------------------------------
 
-if ($PreviewVault) {
-  if (-not $writesVault) {
-    Write-Warn 'nothing to preview: no vault was chosen'
+if ($PreviewNotebook) {
+  if (-not $writesNotebook) {
+    Write-Warn 'nothing to preview: no notebook was chosen'
     exit 0
   }
-  Write-Step "The vault '$VaultName' would be written as"
+  Write-Step "The notebook '$NotebookName' would be written as"
   if ($guidance) { Write-Detail "Guidance, $($guidance.Length) characters" }
-  Write-VaultFolders -Nodes $structure -Preview
+  Write-NotebookFolders -Nodes $structure -Preview
   Write-Host ''
   Write-Ok "$($script:FolderCount) folder(s), $($script:NoteCount) note(s)"
   if ($StructureOnly) { Write-Detail 'notes left out by -StructureOnly' }
@@ -550,9 +550,9 @@ if ($PreviewVault) {
   if ($script:SkippedNotes -gt 0) {
     Write-Detail "$($script:SkippedNotes) note(s) left out by -MaxNotes $MaxNotes"
   }
-  $orphans = @(Get-VaultNotes -Directory $vaultRoot)
+  $orphans = @(Get-NotebookNotes -Directory $notebookRoot)
   if ($orphans.Count -gt 0) {
-    Write-Warn "$($orphans.Count) note(s) sit at the root of the vault tree and have no folder; they would be skipped"
+    Write-Warn "$($orphans.Count) note(s) sit at the root of the notebook tree and have no folder; they would be skipped"
   }
   Write-Detail 'nothing was created: this was a preview'
   exit 0
@@ -632,7 +632,7 @@ if ($claimed) {
 
   <#
     The password of this stretch is the script's own unless it was asked for:
-    it exists because the subscription and the vault are written as the
+    it exists because the subscription and the notebook are written as the
     account, and an account waiting for its first password answers every
     sign-in with a challenge instead of a token. It is permanent for the same
     reason, and it is replaced by a provisional one at the end.
@@ -737,14 +737,14 @@ if ($mine.Count -gt 0) {
 }
 
 <#
-  Writing the vault needs a subscription that grants operational access
-  (RN-SUB-007), and the status that was asked for may not be one. The vault is
+  Writing the notebook needs a subscription that grants operational access
+  (RN-SUB-007), and the status that was asked for may not be one. The notebook is
   therefore written under `active`, and the chosen status is applied last. Both
   moves go through the administrative override, which is the route that sets a
   status without walking the transition machine (RN-SUB-018).
 #>
 $operational = @('trial', 'active')
-$workingStatus = if ($writesVault -and $operational -notcontains $Status) { 'active' } else { $Status }
+$workingStatus = if ($writesNotebook -and $operational -notcontains $Status) { 'active' } else { $Status }
 
 Invoke-Api -Method 'PUT' -Path "/access/platform/subscriptions/$subscriptionId/status" `
   -Token $adminToken -Body @{ status = $workingStatus } | Out-Null
@@ -752,43 +752,43 @@ Invoke-Api -Method 'PATCH' -Path "/access/platform/subscriptions/$subscriptionId
   -Token $adminToken -Body @{ type = $Type; quota = $Quota } | Out-Null
 Write-Ok "$workingStatus, $Type, $Quota"
 if ($workingStatus -ne $Status) {
-  Write-Detail "temporarily, so the vault can be written; it ends as $Status"
+  Write-Detail "temporarily, so the notebook can be written; it ends as $Status"
 }
 
-# --- 8. The vault ------------------------------------------------------------
+# --- 8. The notebook ------------------------------------------------------------
 
-$vaultId = $null
+$notebookId = $null
 
-if ($writesVault) {
-  # The claim is minted with the token, so the session that writes the vault is
+if ($writesNotebook) {
+  # The claim is minted with the token, so the session that writes the notebook is
   # a NEW one: the token from step 6 carries no subscription at all.
   Write-Step 'Signing in again, now with the subscription in the token'
   $token = Get-CognitoToken -UserPoolId $userPoolId -ClientId $clientId `
     -Username $Email -Password $password -ZoneName $zoneName
   Write-Ok 'the token carries the subscription'
 
-  Write-Step "Writing the vault '$VaultName'"
-  $vault = Invoke-Api -Method 'POST' -Path '/knowledge/vaults' -Token $token `
-    -Body @{ name = $VaultName; description = '' }
-  $vaultId = $vault.vaultId
-  if (-not $vaultId) { throw 'Creating the vault returned no id.' }
-  Write-Ok $vaultId
+  Write-Step "Writing the notebook '$NotebookName'"
+  $notebook = Invoke-Api -Method 'POST' -Path '/knowledge/notebooks' -Token $token `
+    -Body @{ name = $NotebookName; description = '' }
+  $notebookId = $notebook.notebookId
+  if (-not $notebookId) { throw 'Creating the notebook returned no id.' }
+  Write-Ok $notebookId
 
   if ($guidance) {
-    Invoke-Api -Method 'PUT' -Path "/knowledge/vaults/$vaultId/guidance" -Token $token `
+    Invoke-Api -Method 'PUT' -Path "/knowledge/notebooks/$notebookId/guidance" -Token $token `
       -Body @{ content = $guidance } | Out-Null
     Write-Detail 'Guidance written'
   }
 
-  # A note at the root of the vault tree has no folder to go in, and a note without a
+  # A note at the root of the notebook tree has no folder to go in, and a note without a
   # folder is not representable in the product. Saying so beats writing five
   # hundred notes and leaving three behind in silence.
-  $orphans = @(Get-VaultNotes -Directory $vaultRoot)
+  $orphans = @(Get-NotebookNotes -Directory $notebookRoot)
   if ($orphans.Count -gt 0) {
-    Write-Warn "$($orphans.Count) note(s) sit at the root of the vault tree and have no folder; skipped"
+    Write-Warn "$($orphans.Count) note(s) sit at the root of the notebook tree and have no folder; skipped"
   }
 
-  Write-VaultFolders -Nodes $structure -VaultId $vaultId -Token $token
+  Write-NotebookFolders -Nodes $structure -NotebookId $notebookId -Token $token
   Write-Ok "$($script:FolderCount) folder(s), $($script:NoteCount) note(s)"
   if ($StructureOnly) { Write-Detail 'notes left out by -StructureOnly' }
   if ($script:RepairedTitles -gt 0) {
@@ -832,8 +832,8 @@ Write-Step 'Done'
 $adminNote = if ($isAdmin) { '  (platform admin)' } else { '' }
 Write-Host "  account          $Email$adminNote"
 Write-Host "  subscription     $subscriptionId  ($Type, $Quota, $Status)"
-if ($vaultId) {
-  Write-Host "  vault            $vaultId  ($($script:FolderCount) folders, $($script:NoteCount) notes)"
+if ($notebookId) {
+  Write-Host "  notebook            $notebookId  ($($script:FolderCount) folders, $($script:NoteCount) notes)"
 }
 
 Write-Host ''

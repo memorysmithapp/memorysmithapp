@@ -1,5 +1,5 @@
 /**
- * Note: an Aggregate Root of its own, deliberately NOT part of Vault.
+ * Note: an Aggregate Root of its own, deliberately NOT part of Notebook.
  *
  * If it were inside, creating a note would have to load and lock the whole
  * tree, and the structural invariants do not depend on note content. "A folder
@@ -9,9 +9,9 @@
  * concurrent (architecture-guide.md, section 6.2).
  *
  * Two details follow from it:
- *  - vaultId is NOT readonly: moving between vaults is a first-class operation
+ *  - notebookId is NOT readonly: moving between notebooks is a first-class operation
  *    and the NoteId is preserved (RN-KNW-023), which is what keeps the audit
- *    timeline intact, since its key is by subject and not by vault.
+ *    timeline intact, since its key is by subject and not by notebook.
  *  - replaceBody takes an ALREADY written ContentRef: whoever talks to S3 is
  *    the use case, never the aggregate.
  *
@@ -19,7 +19,7 @@
  * chain of the specification, here, on every write, so a note cannot exist
  * whose title disagrees with its content (RN-KNW-035). It is `null` when the
  * content states none a link could name (RN-KNW-036), and there is no slug:
- * nothing in a vault is a key, and two notes may be called the same thing
+ * nothing in a notebook is a key, and two notes may be called the same thing
  * (RN-KNW-037).
  */
 
@@ -36,7 +36,7 @@ import {
   noteTitle,
   type Position,
   type SubscriptionId,
-  type VaultId,
+  type NotebookId,
   type DomainEvent,
   type Result,
 } from '@memorysmith/kernel';
@@ -46,7 +46,7 @@ export class Note {
   private constructor(
     readonly id: NoteId,
     readonly subscriptionId: SubscriptionId,
-    private _vaultId: VaultId,
+    private _notebookId: NotebookId,
     private _folderId: FolderId,
     private _title: string | null,
     private _position: Position,
@@ -65,7 +65,7 @@ export class Note {
   static create(input: {
     id: NoteId;
     subscriptionId: SubscriptionId;
-    vaultId: VaultId;
+    notebookId: NotebookId;
     folderId: FolderId;
     body: string;
     position: Position;
@@ -76,7 +76,7 @@ export class Note {
     const note = new Note(
       input.id,
       input.subscriptionId,
-      input.vaultId,
+      input.notebookId,
       input.folderId,
       title,
       input.position,
@@ -90,7 +90,7 @@ export class Note {
       'NoteCreated',
       input.by,
       {
-        vaultId: input.vaultId.value,
+        notebookId: input.notebookId.value,
         noteId: input.id.value,
         folderId: input.folderId.value,
         title,
@@ -105,7 +105,7 @@ export class Note {
   static rehydrate(input: {
     id: NoteId;
     subscriptionId: SubscriptionId;
-    vaultId: VaultId;
+    notebookId: NotebookId;
     folderId: FolderId;
     title: string | null;
     position: Position;
@@ -118,7 +118,7 @@ export class Note {
     return new Note(
       input.id,
       input.subscriptionId,
-      input.vaultId,
+      input.notebookId,
       input.folderId,
       input.title,
       input.position,
@@ -140,8 +140,8 @@ export class Note {
     this._version += 1;
   }
 
-  get vaultId(): VaultId {
-    return this._vaultId;
+  get notebookId(): NotebookId {
+    return this._notebookId;
   }
   get folderId(): FolderId {
     return this._folderId;
@@ -194,7 +194,7 @@ export class Note {
       'NoteUpdated',
       by,
       {
-        vaultId: this._vaultId.value,
+        notebookId: this._notebookId.value,
         noteId: this.id.value,
         folderId: this._folderId.value,
         title: this._title,
@@ -206,7 +206,7 @@ export class Note {
   }
 
   /**
-   * A single write on this item: zero bytes in S3, and the vault META item is
+   * A single write on this item: zero bytes in S3, and the notebook META item is
    * not touched (PE8). The Position itself is computed by the use case, which
    * is the only layer that can see the siblings.
    */
@@ -215,7 +215,7 @@ export class Note {
     this._position = position;
     this._updatedBy = by;
     this.record('NoteReordered', by, {
-      vaultId: this._vaultId.value,
+      notebookId: this._notebookId.value,
       noteId: this.id.value,
       folderId: this._folderId.value,
       position: position.value,
@@ -229,30 +229,33 @@ export class Note {
    * exactly where it matters.
    *
    * A destination has nothing to refuse: a title collides with nothing, in
-   * one vault or in two (RN-KNW-037), so there is no conflict policy left to
+   * one notebook or in two (RN-KNW-037), so there is no conflict policy left to
    * apply (RN-KNW-022, removed).
    */
   moveTo(
-    destination: { vaultId: VaultId; folderId: FolderId; position: Position },
+    destination: { notebookId: NotebookId; folderId: FolderId; position: Position },
     by: Authorship,
   ): Result<void, DomainError> {
     if (this.isDeleted) return err(DomainError.notFound('This note is deleted'));
 
-    const fromVaultId = this._vaultId;
+    const fromNotebookId = this._notebookId;
     const fromFolderId = this._folderId;
-    if (fromVaultId.equals(destination.vaultId) && fromFolderId.equals(destination.folderId)) {
+    if (
+      fromNotebookId.equals(destination.notebookId) &&
+      fromFolderId.equals(destination.folderId)
+    ) {
       return err(DomainError.validation('The note is already in that folder'));
     }
 
-    this._vaultId = destination.vaultId;
+    this._notebookId = destination.notebookId;
     this._folderId = destination.folderId;
     this._position = destination.position;
     this._updatedBy = by;
     this.record('NoteMoved', by, {
       noteId: this.id.value,
-      fromVaultId: fromVaultId.value,
+      fromNotebookId: fromNotebookId.value,
       fromFolderId: fromFolderId.value,
-      toVaultId: destination.vaultId.value,
+      toNotebookId: destination.notebookId.value,
       toFolderId: destination.folderId.value,
       position: destination.position.value,
     });
@@ -262,7 +265,7 @@ export class Note {
   /**
    * Soft delete: the note leaves the listings and the search, the bodyRef stays
    * intact and the timeline keeps answering by NoteId (RN-KNW-029). Nothing is
-   * released with it, because the note held no name the vault was keeping
+   * released with it, because the note held no name the notebook was keeping
    * (RN-KNW-030, removed).
    */
   delete(by: Authorship): Result<void, DomainError> {
@@ -275,7 +278,7 @@ export class Note {
       'NoteDeleted',
       by,
       {
-        vaultId: this._vaultId.value,
+        notebookId: this._notebookId.value,
         noteId: this.id.value,
         folderId: this._folderId.value,
       },
@@ -294,7 +297,7 @@ export class Note {
       'NoteRestored',
       by,
       {
-        vaultId: this._vaultId.value,
+        notebookId: this._notebookId.value,
         noteId: this.id.value,
         folderId: this._folderId.value,
         position: this._position.value,

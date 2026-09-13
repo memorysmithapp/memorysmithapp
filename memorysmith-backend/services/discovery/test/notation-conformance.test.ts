@@ -28,7 +28,7 @@ import {
 import { noteTitle } from '@memorysmith/kernel';
 import { extractLinks } from '../src/domain/LinkExtractor.js';
 import { extractFacets } from '../src/domain/FacetExtractor.js';
-import { resolveTarget, vaultNames } from '../src/domain/LinkResolver.js';
+import { resolveTarget, notebookNames } from '../src/domain/LinkResolver.js';
 import { extractFrontmatterAliases } from '../src/domain/Aliases.js';
 
 const withLinks = CONFORMANCE_CASES.filter((each) => each.links !== undefined);
@@ -37,17 +37,17 @@ const withTitle = CONFORMANCE_CASES.filter((each) => each.title !== undefined);
 const withResolution = CONFORMANCE_CASES.filter((each) => each.resolution !== undefined);
 
 /**
- * The vault a resolution case is resolved against, built the way the product
+ * The notebook a resolution case is resolved against, built the way the product
  * builds one: the title of each note read by the chain, the aliases read from
  * its frontmatter, and the attachments named by the case.
  */
-function vaultOf(each: ConformanceCase) {
-  const notes = (each.vault?.notes ?? []).map((body, index) => ({
+function notebookOf(each: ConformanceCase) {
+  const notes = (each.notebook?.notes ?? []).map((body, index) => ({
     noteId: `n${index + 1}`,
     title: noteTitle(body),
     aliases: extractFrontmatterAliases(body),
   }));
-  return vaultNames(notes, [...(each.vault?.attachments ?? [])]);
+  return notebookNames(notes, [...(each.notebook?.attachments ?? [])]);
 }
 
 /** The extractor output reduced to what a case states, and nothing else. */
@@ -78,23 +78,26 @@ describe('the conformance suite of the specification', () => {
     expect(noteTitle(each.markdown)).toEqual(each.title ?? null);
   });
 
-  it.each(withResolution)('$id resolves each target against a vault', (each: ConformanceCase) => {
-    // These cannot run against an extractor alone: a target becomes something
-    // only once there is a vault to answer it, so the case carries one.
-    const names = vaultOf(each);
-    const resolved = extractLinks(each.markdown).map((link) => {
-      const answer = resolveTarget(link.title, names);
-      return { target: answer.target, kind: answer.kind, edges: answer.noteIds.length };
-    });
+  it.each(withResolution)(
+    '$id resolves each target against a notebook',
+    (each: ConformanceCase) => {
+      // These cannot run against an extractor alone: a target becomes something
+      // only once there is a notebook to answer it, so the case carries one.
+      const names = notebookOf(each);
+      const resolved = extractLinks(each.markdown).map((link) => {
+        const answer = resolveTarget(link.title, names);
+        return { target: answer.target, kind: answer.kind, edges: answer.noteIds.length };
+      });
 
-    expect(resolved).toEqual([...(each.resolution ?? [])]);
-  });
+      expect(resolved).toEqual([...(each.resolution ?? [])]);
+    },
+  );
 
   it('runs a suite that exists, so a silent empty import cannot pass', () => {
     expect(CONFORMANCE_CASES.length).toBeGreaterThan(20);
     expect(withLinks.length).toBeGreaterThan(0);
     expect(withFacets.length).toBeGreaterThan(0);
-    // The twelve cases that build a vault, which are what prove the resolver
+    // The twelve cases that build a notebook, which are what prove the resolver
     // and not only the reader.
     expect(withResolution.length).toBeGreaterThan(10);
     expect(withTitle.length).toBeGreaterThan(10);
@@ -225,7 +228,7 @@ describe('a base notation that means something different here', () => {
     // spaces of code from four spaces of a nested list item needs the block
     // context a parser has and this one does not (PP4). Of the two ways to be
     // wrong, a spurious pending link is cheap and a dropped edge is the graph
-    // lying about the vault. The declared behaviour is this one.
+    // lying about the notebook. The declared behaviour is this one.
     expect(extractLinks('Prose.\n\n    [[Lei 14.133]]\n').map((l) => l.title)).toEqual([
       'Lei 14.133',
     ]);

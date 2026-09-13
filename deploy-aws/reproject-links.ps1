@@ -1,7 +1,7 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-  Rebuilds the link graph of every vault, after 0.6.0 is deployed.
+  Rebuilds the link graph of every notebook, after 0.6.0 is deployed.
 
 .DESCRIPTION
   The link projection is derived and rebuildable from zero (PE5), and the one
@@ -10,14 +10,14 @@
   against the title a note states, exactly, and against the aliases it declares.
   Every edge sitting in the table is an assertion the current rule never made.
 
-  So it is not repaired, it is rebuilt: the edges are forgotten, what each vault
+  So it is not repaired, it is rebuilt: the edges are forgotten, what each notebook
   answers to is restated from the notes themselves, and the ordinary write path
   resolves every target again. An edge then exists because the current rule says
   so, and not because an old projection said so.
 
   This is the THIRD step of three, and the order is not negotiable:
 
-    1. ./deploy-aws/retitle-vaults.ps1, against the version in production
+    1. ./deploy-aws/retitle-notebooks.ps1, against the version in production
     2. the deploy of 0.6.0
     3. this script
 
@@ -45,7 +45,7 @@
 
 .EXAMPLE
   ./deploy-aws/reproject-links.ps1 -Apply
-  Rebuilds the link projection of every vault.
+  Rebuilds the link projection of every notebook.
 #>
 
 [CmdletBinding()]

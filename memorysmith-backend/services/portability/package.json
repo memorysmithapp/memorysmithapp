@@ -3,14 +3,14 @@
   "version": "0.5.7",
   "private": true,
   "type": "module",
-  "description": "Portability bounded context: export of a vault as a readable folder of Markdown files. Zero lock-in is a requirement, not a courtesy.",
+  "description": "Portability bounded context: export of a notebook as a readable folder of Markdown files. Zero lock-in is a requirement, not a courtesy.",
   "exports": {
     "./adapters/http": "./src/adapters/http.ts",
     "./adapters/s3": "./src/adapters/s3.ts",
     "./adapters/zip": "./src/adapters/zip.ts",
-    "./application": "./src/application/ExportVault.ts",
-    "./domain": "./src/domain/VaultDocumentBuilder.ts",
-    "./application/import": "./src/application/ImportVault.ts"
+    "./application": "./src/application/ExportNotebook.ts",
+    "./domain": "./src/domain/NotebookDocumentBuilder.ts",
+    "./application/import": "./src/application/ImportNotebook.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

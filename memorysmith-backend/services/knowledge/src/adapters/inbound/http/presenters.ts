@@ -9,14 +9,14 @@ import type {
   FolderDto,
   NoteDto,
   NoteSummaryDto,
-  VaultDetailDto,
-  VaultSummaryDto,
+  NotebookDetailDto,
+  NotebookSummaryDto,
 } from '@memorysmith/contracts';
 import type { Note } from '../../../domain/note/Note.js';
-import type { Vault } from '../../../domain/vault/Vault.js';
-import type { Folder } from '../../../domain/vault/Folder.js';
+import type { Notebook } from '../../../domain/notebook/Notebook.js';
+import type { Folder } from '../../../domain/notebook/Folder.js';
 
-export function folderToDto(folder: Folder, vault: Vault): FolderDto {
+export function folderToDto(folder: Folder, notebook: Notebook): FolderDto {
   return {
     folderId: folder.id.value,
     parentFolderId: folder.parentFolderId?.value ?? null,
@@ -25,31 +25,35 @@ export function folderToDto(folder: Folder, vault: Vault): FolderDto {
     description: folder.description.value,
     position: folder.position.value,
     hasTemplate: folder.hasTemplate,
-    noteCount: vault.noteCountOf(folder.id),
+    noteCount: notebook.noteCountOf(folder.id),
   };
 }
 
-export function vaultToSummary(vault: Vault, role: Role): VaultSummaryDto {
+export function notebookToSummary(notebook: Notebook, role: Role): NotebookSummaryDto {
   return {
-    vaultId: vault.id.value,
-    name: vault.name.value,
-    slug: vault.slug.value,
-    description: vault.description.value,
-    noteCount: vault.noteCount,
-    hasGuidance: vault.hasGuidance,
-    updatedAt: vault.updatedAt.toISOString(),
+    notebookId: notebook.id.value,
+    name: notebook.name.value,
+    slug: notebook.slug.value,
+    description: notebook.description.value,
+    noteCount: notebook.noteCount,
+    hasGuidance: notebook.hasGuidance,
+    updatedAt: notebook.updatedAt.toISOString(),
     effectiveRole: role.name,
   };
 }
 
-export function vaultToDetail(vault: Vault, role: Role, guidance: string | null): VaultDetailDto {
+export function notebookToDetail(
+  notebook: Notebook,
+  role: Role,
+  guidance: string | null,
+): NotebookDetailDto {
   return {
-    ...vaultToSummary(vault, role),
+    ...notebookToSummary(notebook, role),
     // The tree in the DEFINED order, which is signal and not decoration (PP9).
-    folders: vault.folders.inOrder().map((folder) => folderToDto(folder, vault)),
+    folders: notebook.folders.inOrder().map((folder) => folderToDto(folder, notebook)),
     guidance:
-      guidance !== null && vault.guidanceRef
-        ? { content: guidance, revision: vault.guidanceRef.toJSON() }
+      guidance !== null && notebook.guidanceRef
+        ? { content: guidance, revision: notebook.guidanceRef.toJSON() }
         : null,
   };
 }
@@ -57,7 +61,7 @@ export function vaultToDetail(vault: Vault, role: Role, guidance: string | null)
 export function noteToSummary(note: Note): NoteSummaryDto {
   return {
     noteId: note.id.value,
-    vaultId: note.vaultId.value,
+    notebookId: note.notebookId.value,
     folderId: note.folderId.value,
     title: note.title,
     position: note.position.value,

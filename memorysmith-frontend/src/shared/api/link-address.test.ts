@@ -17,7 +17,7 @@ const ID = '01J8X2K9QZ3M4N5P6R7S8T9V0W';
 describe('the address of a note names one note and never two', () => {
   it('is the trail, a readable label and the identifier', () => {
     expect(noteAddress('enologia', '01-castas', 'Índice', ID)).toBe(
-      '/vaults/enologia/root/01-castas/indice--01j8x2k9qz3m4n5p6r7s8t9v0w',
+      '/notebooks/enologia/root/01-castas/indice--01j8x2k9qz3m4n5p6r7s8t9v0w',
     );
   });
 
@@ -36,7 +36,7 @@ describe('the address of a note names one note and never two', () => {
     // for: `useParams()['*']` hands an inner `%2F` back as `/`, and cuts a
     // title in half. None of that exists when the segment is ASCII.
     const address = noteAddress('a', 'f', 'Reunião 03/09/2026', ID);
-    expect(address).toBe('/vaults/a/root/f/reuniao-03-09-2026--01j8x2k9qz3m4n5p6r7s8t9v0w');
+    expect(address).toBe('/notebooks/a/root/f/reuniao-03-09-2026--01j8x2k9qz3m4n5p6r7s8t9v0w');
     expect(address.split('/')).toHaveLength(6);
   });
 });
@@ -44,7 +44,7 @@ describe('the address of a note names one note and never two', () => {
 describe('the address of a link target names a name', () => {
   it('is where the encoding of a name legitimately lives', () => {
     expect(linkTargetAddress('a', 'Reunião 03/09/2026')).toBe(
-      '/vaults/a/links/Reuni%C3%A3o%2003%2F09%2F2026',
+      '/notebooks/a/links/Reuni%C3%A3o%2003%2F09%2F2026',
     );
   });
 

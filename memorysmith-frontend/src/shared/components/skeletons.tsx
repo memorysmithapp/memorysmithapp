@@ -10,10 +10,10 @@ import { SkeletonBar, SkeletonRegion, SkeletonText } from './Skeleton';
  * avoid, and so would six hand-rolled ones.
  */
 
-/** A vault card in the catalogue. */
-export function VaultCardSkeleton() {
+/** A notebook card in the catalogue. */
+export function NotebookCardSkeleton() {
   return (
-    <div className="vault-card vault-card-skeleton" aria-hidden="true">
+    <div className="notebook-card notebook-card-skeleton" aria-hidden="true">
       <SkeletonBar width="70%" height="1.4rem" />
       <SkeletonText lines={2} />
       <SkeletonBar width="55%" height="0.8rem" />
@@ -22,12 +22,12 @@ export function VaultCardSkeleton() {
 }
 
 /** The catalogue strip, which used to be simply empty while it loaded. */
-export function VaultCatalogueSkeleton({ cards = 3 }: { cards?: number }) {
+export function NotebookCatalogueSkeleton({ cards = 3 }: { cards?: number }) {
   return (
     <SkeletonRegion>
       <div className="card-row-skeleton">
         {Array.from({ length: cards }, (_, index) => (
-          <VaultCardSkeleton key={index} />
+          <NotebookCardSkeleton key={index} />
         ))}
       </div>
     </SkeletonRegion>

@@ -21,7 +21,7 @@ describe('an address the surface follows', () => {
   });
 
   it('keeps what has no scheme at all: a route, a relative target, an anchor', () => {
-    expect(followable('/v/a-vault/note/lei-14133')).toBe('/v/a-vault/note/lei-14133');
+    expect(followable('/v/a-notebook/note/lei-14133')).toBe('/v/a-notebook/note/lei-14133');
     expect(followable('./outra-nota.md')).toBe('./outra-nota.md');
     expect(followable('../normas/lei.md')).toBe('../normas/lei.md');
     expect(followable('#article-75')).toBe('#article-75');
@@ -30,7 +30,7 @@ describe('an address the surface follows', () => {
 
 describe('an address the surface does not follow', () => {
   it('refuses the scheme of a desktop editor, which is a decision', () => {
-    // It opens the vault of whoever has that editor and that vault on that
+    // It opens the notebook of whoever has that editor and that notebook on that
     // machine: it works for the author and does nothing for every other
     // reader of the same note.
     expect(followable('obsidian://open?vault=Notas&file=Lei')).toBe('');

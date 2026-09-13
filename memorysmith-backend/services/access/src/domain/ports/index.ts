@@ -9,7 +9,7 @@
  *  - UserLinkRepository answers "which subscriptions do I take part in?" and
  *    nothing else. Identity is global; a subscription is a link (RN-SUB-011).
  *  - PlatformSubscriptionAdmin serves the platform queue, reading metadata
- *    only through GSI2. It never reaches a vault or a note, and
+ *    only through GSI2. It never reaches a notebook or a note, and
  *    it could not: those keys start with a subscription it cannot build.
  *  - SubscriptionOnboarding writes the first items of a brand new
  *    subscription, at the one moment when no context exists yet.

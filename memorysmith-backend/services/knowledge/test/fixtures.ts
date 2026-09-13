@@ -15,13 +15,13 @@ import {
   Slug,
   SubscriptionId,
   UserId,
-  VaultId,
+  NotebookId,
   type Result,
 } from '@memorysmith/kernel';
-import { Vault } from '../src/domain/vault/Vault.js';
-import { Folder } from '../src/domain/vault/Folder.js';
+import { Notebook } from '../src/domain/notebook/Notebook.js';
+import { Folder } from '../src/domain/notebook/Folder.js';
 import { Note } from '../src/domain/note/Note.js';
-import { FolderDescription, FolderName, ShortText, VaultName } from '../src/domain/values.js';
+import { FolderDescription, FolderName, ShortText, NotebookName } from '../src/domain/values.js';
 import { NotePlacement, type NoteOrder } from '../src/domain/services/NotePlacement.js';
 
 export function unwrap<T>(result: Result<T, { message: string }>): T {
@@ -52,8 +52,8 @@ export function contentRef(sha = 'a'.repeat(64), bytes = 42): ContentRef {
   );
 }
 
-export function vaultName(value: string): VaultName {
-  return unwrap(VaultName.create(value));
+export function notebookName(value: string): NotebookName {
+  return unwrap(NotebookName.create(value));
 }
 
 export function folderName(value: string): FolderName {
@@ -73,44 +73,44 @@ export function noteBody(title: string): string {
   return `# ${title}\n\nThe general rule.\n`;
 }
 
-export function newVault(name = 'Normas e Legislacao'): Vault {
+export function newNotebook(name = 'Normas e Legislacao'): Notebook {
   return unwrap(
-    Vault.create({
-      id: VaultId.generate(),
+    Notebook.create({
+      id: NotebookId.generate(),
       subscriptionId: SubscriptionId.generate(),
-      name: vaultName(name),
+      name: notebookName(name),
       description: unwrap(ShortText.create('Texto normativo por artigo')),
       by: authorship(),
     }),
   );
 }
 
-/** A vault with a small tree, enough to exercise ordering and depth. */
-export function vaultWithTree(): {
-  vault: Vault;
-  normas: ReturnType<Vault['addFolder']>;
+/** A notebook with a small tree, enough to exercise ordering and depth. */
+export function notebookWithTree(): {
+  notebook: Notebook;
+  normas: ReturnType<Notebook['addFolder']>;
 } {
-  const vault = newVault();
-  const normas = vault.addFolder(
+  const notebook = newNotebook();
+  const normas = notebook.addFolder(
     null,
     folderName('Normas'),
     folderDescription('Texto normativo por artigo. Uma norma por nota.'),
     null,
     authorship(),
   );
-  vault.addFolder(
+  notebook.addFolder(
     null,
     folderName('Achados'),
     folderDescription('Achados de auditoria.'),
     unwrap(normas).id,
     authorship(),
   );
-  vault.pullEvents();
-  return { vault, normas };
+  notebook.pullEvents();
+  return { notebook, normas };
 }
 
 export function newNote(
-  vault: Vault,
+  notebook: Notebook,
   folderId: FolderId,
   title = 'Lei 14.133',
   siblings: NoteOrder[] = [],
@@ -118,8 +118,8 @@ export function newNote(
   return unwrap(
     Note.create({
       id: NoteId.generate(),
-      subscriptionId: vault.subscriptionId,
-      vaultId: vault.id,
+      subscriptionId: notebook.subscriptionId,
+      notebookId: notebook.id,
       folderId,
       body: noteBody(title),
       position: NotePlacement.append(siblings),
@@ -130,10 +130,13 @@ export function newNote(
 }
 
 /**
- * A vault as it comes back from storage, with the folder note counters that
+ * A notebook as it comes back from storage, with the folder note counters that
  * travel in the same Query (architecture-guide.md, section 9.3).
  */
-export function rehydratedVaultWithNotes(notes: number): { vault: Vault; folderId: FolderId } {
+export function rehydratedNotebookWithNotes(notes: number): {
+  notebook: Notebook;
+  folderId: FolderId;
+} {
   const folderId = FolderId.generate();
   const folder = Folder.rehydrate({
     id: folderId,
@@ -146,21 +149,21 @@ export function rehydratedVaultWithNotes(notes: number): { vault: Vault; folderI
     createdBy: authorship(),
     updatedAt: Instant.now(),
   });
-  const vault = Vault.rehydrate({
-    id: VaultId.generate(),
+  const notebook = Notebook.rehydrate({
+    id: NotebookId.generate(),
     subscriptionId: SubscriptionId.generate(),
-    name: vaultName('Normas e Legislacao'),
+    name: notebookName('Normas e Legislacao'),
     slug: unwrap(Slug.from('Normas e Legislacao')),
     description: unwrap(ShortText.create('')),
     guidanceRef: null,
     folders: [folder],
     limits: new Map(),
     noteCounts: new Map([[folderId.value, notes]]),
-    vaultNoteCount: notes,
+    notebookNoteCount: notes,
     version: 7,
     createdBy: authorship(),
     updatedAt: Instant.now(),
     deletedAt: null,
   });
-  return { vault, folderId };
+  return { notebook, folderId };
 }

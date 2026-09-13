@@ -9,7 +9,7 @@
  * function in this repository that finds the frontmatter of a body.
  *
  * It reads the notation the specification declares and nothing else: no key is
- * special here, no vault convention is known, and nothing is validated. What a
+ * special here, no notebook convention is known, and nothing is validated. What a
  * value means belongs to the guidance, never to the backend (PP4).
  */
 
@@ -53,7 +53,7 @@ export function bodyWithoutFrontmatter(markdown: string): string {
  * A deliberately small YAML reader: scalars, inline lists and dash lists, and
  * nothing else (§6.2). Nesting, anchors, multi-line scalars and typed tags are
  * outside the specification — they may be stored and nothing may be derived
- * from them — so reading more than this would be interpreting the vault.
+ * from them — so reading more than this would be interpreting the notebook.
  *
  * The written form travels out alongside the values, because flattening both
  * into an array is what made a list of one item indistinguishable from a

@@ -16,11 +16,11 @@ import { TransclusionSkeleton } from './skeletons';
  * knowing who asserted what.
  */
 export function Transclusion({
-  vaultSlug,
+  notebookSlug,
   target,
   anchor,
 }: {
-  vaultSlug: string;
+  notebookSlug: string;
   target: string;
   anchor: string | null;
 }) {
@@ -29,16 +29,16 @@ export function Transclusion({
   // A transclusion expands ONE note, so it expands what a wikilink would
   // navigate to: an ambiguous target is a choice a reader makes and not a
   // passage the page can inline on their behalf.
-  const url = resolveNoteUrl(vaultSlug, title);
+  const url = resolveNoteUrl(notebookSlug, title);
   const noteId = url ? (noteIdOf(url.split('/').pop() ?? '') ?? '') : '';
 
   const { data, isPending, isError } = useQuery({
-    queryKey: ['note', vaultSlug, noteId],
-    queryFn: () => getNote(vaultSlug, noteId),
+    queryKey: ['note', notebookSlug, noteId],
+    queryFn: () => getNote(notebookSlug, noteId),
     enabled: url !== null,
   });
 
-  // The same pending marker a wikilink uses. A vault is read most while it is
+  // The same pending marker a wikilink uses. A notebook is read most while it is
   // still being written, so a target that does not exist yet is an expected
   // state and never an error that stops the page.
   if (url === null || isError) {
@@ -82,7 +82,7 @@ export function Transclusion({
            * implemented halfway.
            */
           <Markdown>
-            {resolveWikilinks(demoteEmbeds(cut), (each) => wikilinkUrl(vaultSlug, each))}
+            {resolveWikilinks(demoteEmbeds(cut), (each) => wikilinkUrl(notebookSlug, each))}
           </Markdown>
         )}
       </div>

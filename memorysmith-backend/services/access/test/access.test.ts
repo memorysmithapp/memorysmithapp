@@ -267,8 +267,8 @@ describe('Platform surface', () => {
       requestedAt: expect.any(String),
       memberCount: 0,
     });
-    // Nothing about vaults or content is even representable in this view.
-    expect(Object.keys(queue[0] ?? {})).not.toContain('vaults');
+    // Nothing about notebooks or content is even representable in this view.
+    expect(Object.keys(queue[0] ?? {})).not.toContain('notebooks');
   });
 
   it('answers 404 to a caller who is not a platform admin', async () => {

@@ -12,7 +12,7 @@
  *
  *  - A user with no link gets NO SUBSCRIPTION claim, and a session with no
  *    such claim reaches no
- *    workspace, vault or note. That is also what a platform admin session is:
+ *    workspace, notebook or note. That is also what a platform admin session is:
  *    the impossibility is structural, not a role check (RN-SUB-016).
  *  - The status travels inside the token and therefore AGES WITH IT: a
  *    suspension takes effect on the next refresh. The delay is declared, and

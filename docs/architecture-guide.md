@@ -45,11 +45,11 @@ For **what** the product does and under which business rule, see [`software-visi
 | # | Decision | Alternative discarded |
 |---|---|---|
 | **D1** | **Agent access through a remote MCP server** (OAuth 2.1, Streamable HTTP) | REST with a manual token |
-| **D2** | **DynamoDB holds all the meaning; S3 holds Markdown blobs with no meaning** | S3 only; PostgreSQL; one git repository per vault |
+| **D2** | **DynamoDB holds all the meaning; S3 holds Markdown blobs with no meaning** | S3 only; PostgreSQL; one git repository per notebook |
 | **D3** | **Isolation by subscription from the first line**, with the `SubscriptionId` in the leading key of every item, in every service | Introducing the boundary later, which amounts to rekeying everything |
-| **D4** | **Subscription → Vault**, where the subscription is the boundary, the unit of collaboration **and** the business object | A technical tenant separate from the subscription; an intermediate workspace level (removed, `software-vision.md` §4.3) |
+| **D4** | **Subscription → Notebook**, where the subscription is the boundary, the unit of collaboration **and** the business object | A technical tenant separate from the subscription; an intermediate workspace level (removed, `software-vision.md` §4.3) |
 | **D5** | **Tactical DDD plus Hexagonal, one deployable per bounded context** as the target design | A modular monolith (see §24) |
-| **D6** | **Discovery by link graph, by text and by facets, the three projections of events.** The search is literal and scans the vault under the declared ceiling; the vector one was withdrawn in 0.2.0 (§11.2) | Search by title only |
+| **D6** | **Discovery by link graph, by text and by facets, the three projections of events.** The search is literal and scans the notebook under the declared ceiling; the vector one was withdrawn in 0.2.0 (§11.2) | Search by title only |
 | **D7** | **Provenance and immutable history in the core** | An application log; versioning in S3 only |
 
 ### 1.2 Topology
@@ -90,7 +90,7 @@ The technical counterpart of the product principles (`software-vision.md` §2). 
 | **PE5** | **Discovery is derived** | Projections rebuildable from the events and the `.md` files; none of them is read by the core (§11) |
 | **PE6** | **No anonymous mutation** | `Authorship` is a required argument of every aggregate operation that changes state (§6.1) |
 | **PE7** | **An AWS error never reaches the domain** | The adapter translates an infrastructure exception into a typed `DomainError` (§15) |
-| **PE8** | **The hot path has no single point of contention** | A note transaction does not write to the `META` item of the vault (§10.2) |
+| **PE8** | **The hot path has no single point of contention** | A note transaction does not write to the `META` item of the notebook (§10.2) |
 
 ---
 
@@ -232,9 +232,9 @@ memorysmith-frontend/
 │   │   ├── router.tsx                  # lazy per feature
 │   │   └── query-client.ts
 │   ├── features/                       # one folder per UI area (software-vision.md §13.1)
-│   │   ├── vaults/                     # the vault catalogue
+│   │   ├── notebooks/                     # the notebook catalogue
 │   │   ├── structure/                  # the tree: folders, order, drag-and-drop
-│   │   ├── guidance/                   # the editor of the vault Guidance
+│   │   ├── guidance/                   # the editor of the notebook Guidance
 │   │   ├── template/                   # the editor of the folder Template
 │   │   ├── note/                       # reading, editing, backlinks, related notes
 │   │   ├── history/                    # the timeline and the diff between revisions
@@ -256,7 +256,7 @@ memorysmith-frontend/
 └── .env.example
 ```
 
-**A query is never refetched on its own, and a write invalidates what it wrote.** `staleTime: Infinity` is the policy and it is deliberate: nothing in a vault changes without somebody writing it, so time is the wrong trigger for a read. The trigger is the write, and `WritableContent` invalidates its own query on success and on conflict alike. Leaving that half out is what made the screen keep showing content the application itself had just overwritten — a reload fixed it, because a reload drops the cache with the page. `retry: false` belongs to the same decision: a failed read is information, and retrying it silently turns a message into a wait.
+**A query is never refetched on its own, and a write invalidates what it wrote.** `staleTime: Infinity` is the policy and it is deliberate: nothing in a notebook changes without somebody writing it, so time is the wrong trigger for a read. The trigger is the write, and `WritableContent` invalidates its own query on success and on conflict alike. Leaving that half out is what made the screen keep showing content the application itself had just overwritten — a reload fixed it, because a reload drops the cache with the page. `retry: false` belongs to the same decision: a failed read is information, and retrying it silently turns a message into a wait.
 
 **Every reading surface resolves its wikilinks before rendering.** `NoteContent`, `WritableContent` and `Transclusion` all do, and the third one did not: a `[[link]]` inside transcluded content reached the page with its brackets. It matters most for the link the one-level rule creates itself, since an embed found inside embedded content is demoted to a wikilink and §13.2 says it is drawn as a link to its target.
 
@@ -317,23 +317,23 @@ The same configuration declares the rules between the projects of §5.1: `memory
 ---
 ## 6. Domain model (tactical DDD)
 
-### 6.1 `Vault`, Aggregate Root of the Knowledge Context
+### 6.1 `Notebook`, Aggregate Root of the Knowledge Context
 
-Consistency boundary: the vault and **its whole folder tree**.
+Consistency boundary: the notebook and **its whole folder tree**.
 
 ```typescript
-// memorysmith-backend/services/knowledge/src/domain/vault/Vault.ts — zero AWS imports
-export class Vault {
+// memorysmith-backend/services/knowledge/src/domain/notebook/Notebook.ts — zero AWS imports
+export class Notebook {
   private constructor(
-    private readonly id: VaultId,
-    private name: VaultName,
+    private readonly id: NotebookId,
+    private name: NotebookName,
     private description: ShortText,
     private guidance: ContentRef | null,       // opaque pointer; the aggregate never sees the Markdown
     private readonly folders: FolderTree,
     private version: number,
   ) {}
 
-  static create(...): Result<Vault, DomainError>
+  static create(...): Result<Notebook, DomainError>
 
   addFolder(parentId: FolderId | null, name: FolderName, description: FolderDescription, by: Authorship): Result<Folder>
   renameFolder(id: FolderId, name: FolderName, by: Authorship): Result<void>
@@ -367,7 +367,7 @@ export class Vault {
 export class Note {
   private constructor(
     private readonly id: NoteId,
-    private vaultId: VaultId,
+    private notebookId: NotebookId,
     private folderId: FolderId,
     private title: string | null,       // read from the body (RN-KNW-035)
     private position: Position,         // order within the folder (§6.4)
@@ -382,23 +382,23 @@ export class Note {
 
   replaceBody(ref: ContentRef, body: string, by: Authorship): Result<boolean>
   reorder(after: NoteId | null, by: Authorship): Result<void>
-  moveTo(vault: VaultId, folder: FolderId, by: Authorship): Result<void>
+  moveTo(notebook: NotebookId, folder: FolderId, by: Authorship): Result<void>
   delete(by: Authorship): Result<void>          // marks; does not destroy content
   pullEvents(): DomainEvent[]
 }
 ```
 
-> **Why did `Note` stay outside the `Vault` aggregate?** If it were inside, creating a note would require loading and locking the whole tree, and the structural invariants do not depend on the content of the notes. The rule "a folder with notes may not be removed without a policy" is **eventual consistency** (through an event), not a transactional invariant. It is the most important modelling decision of the system, because it is what keeps writing a note cheap and concurrent, and writing a note is the hot path through which the agent feeds the vault.
+> **Why did `Note` stay outside the `Notebook` aggregate?** If it were inside, creating a note would require loading and locking the whole tree, and the structural invariants do not depend on the content of the notes. The rule "a folder with notes may not be removed without a policy" is **eventual consistency** (through an event), not a transactional invariant. It is the most important modelling decision of the system, because it is what keeps writing a note cheap and concurrent, and writing a note is the hot path through which the agent feeds the notebook.
 
 Details that follow from it:
 
-- `vaultId` is **not `readonly`**: moving between vaults is a first-class operation and the `NoteId` is preserved (RN-KNW-023). That is what keeps the timeline intact in `svc-audit`, whose key is by subject and not by vault (§12.2). "Moving" implemented as delete plus create would lose the history exactly where it matters.
+- `notebookId` is **not `readonly`**: moving between notebooks is a first-class operation and the `NoteId` is preserved (RN-KNW-023). That is what keeps the timeline intact in `svc-audit`, whose key is by subject and not by notebook (§12.2). "Moving" implemented as delete plus create would lose the history exactly where it matters.
 - **There is no `retitle`, and no `NoteTitle` to pass to one.** A note is named by what it says, and `replaceBody` is where the title is read (RN-KNW-035, RN-KNW-038). It takes the body **and** the reference to it, because a use case that passed a title in could pass one the content does not state: the derivation belongs inside the aggregate, where it cannot be skipped.
-- **`moveTo` carries no conflict policy.** A title collides with nothing, in one vault or in two (RN-KNW-037), so a destination has nothing to refuse and `SlugConflictPolicy` is gone with the rule that motivated it (RN-KNW-022, removed).
+- **`moveTo` carries no conflict policy.** A title collides with nothing, in one notebook or in two (RN-KNW-037), so a destination has nothing to refuse and `SlugConflictPolicy` is gone with the rule that motivated it (RN-KNW-022, removed).
 - `replaceBody` takes a `ContentRef` that is already written: whoever talks to S3 is the use case, never the aggregate (§10.3).
 - `delete` marks, it does not destroy: the `bodyRef` remains and the timeline stays readable by `NoteId`.
 
-> **The separation of the aggregates only holds if persistence respects it.** Having `Note` outside `Vault` in the domain is worth nothing if every note write still writes to the item representing the vault. The rule that closes the argument is in §10.2: **a note transaction never touches the `META` item**. Without it, the decision of this section is a statement of intent.
+> **The separation of the aggregates only holds if persistence respects it.** Having `Note` outside `Notebook` in the domain is worth nothing if every note write still writes to the item representing the notebook. The rule that closes the argument is in §10.2: **a note transaction never touches the `META` item**. Without it, the decision of this section is a statement of intent.
 
 ### 6.3 The other aggregates
 
@@ -406,14 +406,14 @@ Details that follow from it:
 |---|---|---|
 | `Subscription` | Access | Exactly one `owner` (RN-ACC-001), guaranteed by being a field and not a collection; status transitions valid only per the machine of `software-vision.md` §4.4; a mandatory reason on rejection; the `SubscriptionId` is `readonly` and no method touches it (§8.1) |
 | `Subscription` | Access | Exactly one `OWNER`, always present; a unique e-mail among members; a pending invitation is not a member; a member role is `EDITOR` or `VIEWER`, since `OWNER` is not a membership (§9.4) |
-| `NoteGraph` · `VaultIndex` | Discovery | Projections, rebuildable at any moment (PE5) |
+| `NoteGraph` · `NotebookIndex` | Discovery | Projections, rebuildable at any moment (PE5) |
 | `AuditTrail` | Audit | Append-only: the only operation is `append` |
 
 ### 6.4 Value Objects
 
-`SubscriptionId` `VaultId` `FolderId` `NoteId` `ContentId` (ULID) · `Slug` (of a vault and of a folder only) · `Position` · `FolderDescription` (1 to 500 characters, required) · `ContentRef` · `Revision` · `RemovalPolicy` · `ErasureReason` · `SubscriptionStatus` · `Role` · `VaultRoleLimit` · `Authorship` · `AgentIdentity` · `LinkTarget`.
+`SubscriptionId` `NotebookId` `FolderId` `NoteId` `ContentId` (ULID) · `Slug` (of a notebook and of a folder only) · `Position` · `FolderDescription` (1 to 500 characters, required) · `ContentRef` · `Revision` · `RemovalPolicy` · `ErasureReason` · `SubscriptionStatus` · `Role` · `NotebookRoleLimit` · `Authorship` · `AgentIdentity` · `LinkTarget`.
 
-`Role` is an **ordered** enumeration (`NONE < VIEWER < EDITOR < OWNER`) and exposes `Role.min(a, b)`. It is that ordering that lets the vault ceiling be written as a minimum (§14.2) instead of a chain of conditionals, and it is what makes it impossible, by type, for a ceiling to promote anyone.
+`Role` is an **ordered** enumeration (`NONE < VIEWER < EDITOR < OWNER`) and exposes `Role.min(a, b)`. It is that ordering that lets the notebook ceiling be written as a minimum (§14.2) instead of a chain of conditionals, and it is what makes it impossible, by type, for a ceiling to promote anyone.
 
 All of them immutable, self-validating in the constructor, compared by value. **No raw `string` crosses the boundary of the domain.**
 
@@ -437,23 +437,23 @@ Ties, possible under concurrency, are broken by the ULID of the item, so the ord
 Access:     SubscriptionRequested · SubscriptionApproved · SubscriptionRejected
             SubscriptionSuspended · SubscriptionReactivated · SubscriptionCanceled
             OwnershipTransferred · MemberInvited · MemberJoined
-            MemberRoleChanged · MemberRemoved · VaultRoleLimitSet · VaultRoleLimitCleared
-Knowledge:  VaultCreated · VaultRenamed · GuidanceUpdated · FolderAdded · FolderRenamed
+            MemberRoleChanged · MemberRemoved · NotebookRoleLimitSet · NotebookRoleLimitCleared
+Knowledge:  NotebookCreated · NotebookRenamed · GuidanceUpdated · FolderAdded · FolderRenamed
             FolderDescribed · FolderMoved · FolderReordered · FolderRemoved · TemplateUpdated
             NoteCreated · NoteUpdated · NoteReordered · NoteMoved · NoteDeleted · NoteRestored
 Discovery:  NoteLinksResolved · NoteIndexed · LinkBroken
 ```
 
-Every event carries the `subscriptionId` and the `Authorship`. **Content events carry the complete `ContentRef`**, with `contentId`, `versionId`, `sha256` and `bytes`, and not only the `versionId`: that is what makes the audit trail a recovery index sufficient to rebuild the mapping between DynamoDB and S3 from zero (§9.2, §12.3). `NoteMoved` carries source and destination (`vaultId`, `folderId`), because whoever consumes it needs both sides.
+Every event carries the `subscriptionId` and the `Authorship`. **Content events carry the complete `ContentRef`**, with `contentId`, `versionId`, `sha256` and `bytes`, and not only the `versionId`: that is what makes the audit trail a recovery index sufficient to rebuild the mapping between DynamoDB and S3 from zero (§9.2, §12.3). `NoteMoved` carries source and destination (`notebookId`, `folderId`), because whoever consumes it needs both sides.
 
 Published through a **transactional outbox** (§10.4). Adding a consumer does not touch the core.
 
 ### 6.6 Domain services
 
 - **`FolderTreePlacement`** resolves "place after X inside Y" into `(parentId, Position)`, validating I2 and I3.
-- **`LinkExtractor`** extracts `[[wikilinks]]` and relative Markdown links from the **body** of the note. Universal syntax only: no field name, no vault convention (PP4). The resolution rule is in §11.1.
-- **`VaultContextComposer`** assembles the Vault Context out of the aggregate and the `ContentStore`. **It lives in the domain because the format of that document is the product** (`software-vision.md` §9.2), not a presentation detail.
-- **`AuthorizationPolicy`** decides `(role in the subscription, vault ceiling, action)`. It is a domain service, not an infrastructure port (§14.2).
+- **`LinkExtractor`** extracts `[[wikilinks]]` and relative Markdown links from the **body** of the note. Universal syntax only: no field name, no notebook convention (PP4). The resolution rule is in §11.1.
+- **`NotebookContextComposer`** assembles the Notebook Context out of the aggregate and the `ContentStore`. **It lives in the domain because the format of that document is the product** (`software-vision.md` §9.2), not a presentation detail.
+- **`AuthorizationPolicy`** decides `(role in the subscription, notebook ceiling, action)`. It is a domain service, not an infrastructure port (§14.2).
 
 ---
 
@@ -462,15 +462,15 @@ Published through a **transactional outbox** (§10.4). Adding a consumer does no
 ### 7.1 Knowledge ports
 
 ```typescript
-// domain/ports/VaultRepository.ts
-export interface VaultRepository {
-  findById(id: VaultId): Promise<Vault | null>;   // no subscriptionId in the argument — see §8
-  save(vault: Vault): Promise<Result<void, ConcurrencyError>>;
+// domain/ports/NotebookRepository.ts
+export interface NotebookRepository {
+  findById(id: NotebookId): Promise<Notebook | null>;   // no subscriptionId in the argument — see §8
+  save(notebook: Notebook): Promise<Result<void, ConcurrencyError>>;
 }
 
 // domain/ports/NoteRepository.ts
 export interface NoteRepository {
-  findById(vault: VaultId, id: NoteId): Promise<Note | null>;   // and by nothing else
+  findById(notebook: NotebookId, id: NoteId): Promise<Note | null>;   // and by nothing else
   save(note: Note): Promise<Result<void, ConcurrencyError>>;
 }
 
@@ -491,7 +491,7 @@ export interface EventPublisher { publish(events: DomainEvent[]): Promise<void>;
 
 | Port | Production adapter | Test adapter |
 |---|---|---|
-| `VaultRepository` · `NoteRepository` | `DynamoVaultRepository` · `DynamoNoteRepository` | `InMemory*` |
+| `NotebookRepository` · `NoteRepository` | `DynamoNotebookRepository` · `DynamoNoteRepository` | `InMemory*` |
 | `ContentStore` | `S3ContentStore` | `InMemoryContentStore` |
 | `EventPublisher` | `OutboxEventPublisher` (writes in the same transaction) | `RecordingEventPublisher` |
 | `LinkGraph` | `DynamoLinkGraph` | `InMemoryLinkGraph` |
@@ -520,8 +520,8 @@ A design consequence, and not an implementation detail: **no persistence code ma
 **2. A type, not discipline (PE2).** The repository ports take a `SubscriptionContext` in the constructor, and the key builders accept only a `SubscriptionId`, a value object creatable only from the JWT claim.
 
 ```typescript
-// adapters/outbound/dynamodb/DynamoVaultRepository.ts
-export class DynamoVaultRepository implements VaultRepository {
+// adapters/outbound/dynamodb/DynamoNotebookRepository.ts
+export class DynamoNotebookRepository implements NotebookRepository {
   constructor(private readonly sub: SubscriptionContext, private readonly db: DynamoDBDocumentClient) {}
   // the subscription belongs to the repository, resolved per request — never a method argument
 }
@@ -529,7 +529,7 @@ export class DynamoVaultRepository implements VaultRepository {
 
 The composition root instantiates the repositories **per request**, with the subscription coming from the token. There is no code path that builds a repository without a subscription: the compiler rejects it. That trades a rule depending on code review for one depending on `tsc`.
 
-**3. The origin of the `SubscriptionId`: always the claim, never the request.** The `subscriptionId` comes out of the JWT (a custom claim, injected by the Cognito *pre-token-generation* trigger) and **never** out of the path, the query or the body (RN-SUB-002). That is what closes the IDOR door: asking for `/vaults/{id}` of another subscription answers `404`, because the assembled key does not even get there.
+**3. The origin of the `SubscriptionId`: always the claim, never the request.** The `subscriptionId` comes out of the JWT (a custom claim, injected by the Cognito *pre-token-generation* trigger) and **never** out of the path, the query or the body (RN-SUB-002). That is what closes the IDOR door: asking for `/notebooks/{id}` of another subscription answers `404`, because the assembled key does not even get there.
 
 > **An extension point.** For customers requiring strong cryptographic isolation, the next step is an STS credential per request with `dynamodb:LeadingKeys` and an S3 prefix in the *session policy*, that is isolation in IAM and not in the application. The `SubscriptionContext` is already where the credential would be resolved; wiring it is configuration, not a redesign.
 
@@ -585,7 +585,7 @@ For the MCP connector, the `subscription_id` enters the access token at the mome
 | **DynamoDB** | **All the meaning**: structure, order, descriptions, the identity of the note (title, slug, folder, authorship), which blob is a guidance and which is a template, members, graph edges, the audit trail | Queryable, transactional, conditional |
 | **S3** | **Markdown blobs with no meaning**, addressed by an opaque ID, in every revision | No 400 KB ceiling, native versioning, lower cost per GB |
 
-The split is not "metadata here, content there". It is stronger: **S3 does not know what it holds.** A vault, a folder and a note are logical concepts existing entirely in DynamoDB; in S3 there is a flat pile of blobs, all alike.
+The split is not "metadata here, content there". It is stronger: **S3 does not know what it holds.** A notebook, a folder and a note are logical concepts existing entirely in DynamoDB; in S3 there is a flat pile of blobs, all alike.
 
 ### 9.2 Content Slots, the link between DynamoDB and S3
 
@@ -597,7 +597,7 @@ s/{subscriptionId}/c/{contentId}.md
 
 `contentId` is a ULID generated when the slot is created. `subscriptionId` is there because it is the isolation boundary in IAM (§8.1), not because it means anything about the content. The `.md` suffix is a courtesy to humans and to `Content-Type`; nothing reads it.
 
-The key **does not encode the vault, the folder, the name or the role**. That is the difference between "opaque" as an intention and "opaque" as a structural property: renaming, moving or reordering cannot touch S3, because there is no field in the key those operations would change. It is not a rule to defend in every new operation, it is an impossibility (PE3).
+The key **does not encode the notebook, the folder, the name or the role**. That is the difference between "opaque" as an intention and "opaque" as a structural property: renaming, moving or reordering cannot touch S3, because there is no field in the key those operations would change. It is not a rule to defend in every new operation, it is an impossibility (PE3).
 
 **The link.** DynamoDB never stores Markdown; it stores a pointer to a **specific revision** of a slot:
 
@@ -630,48 +630,50 @@ The `S3ContentStore` is the one that knows a `contentId` becomes `s/{subscriptio
 | Rename / reorder a folder | 0 bytes | 1 transaction (2 writes): the `FOLDER` item + the optimistic lock of `META` | — |
 | Reorder a note | **0 bytes** | 1 transaction (2 writes): `position` on the `NOTE` item, the event | — |
 | Move a note between folders | **0 bytes** | 1 transaction (2 writes + 1 check): `folderId`/`position` on the `NOTE` item, a `ConditionCheck` on the destination folder, the event | Reprojection of the note (§11.2) |
-| Move a note between vaults | **0 bytes** | 1 transaction (6 writes + 2 checks): `Delete`+`Put` of the `NOTE` item (the PK changes), `Delete`+`Put` of the slug guard, `ConditionCheck` on the destination vault and folder, the event | Reprojection + pruning of the edges at the source |
+| Move a note between notebooks | **0 bytes** | 1 transaction (6 writes + 2 checks): `Delete`+`Put` of the `NOTE` item (the PK changes), `Delete`+`Put` of the slug guard, `ConditionCheck` on the destination notebook and folder, the event | Reprojection + pruning of the edges at the source |
 | Replace the body of a note | 1 `PutObject` | 1 transaction (2 writes): the `NOTE` item, the event | Reprojection of links and facets |
 
-Moving between vaults is the **only operation in the system that writes to two vault partitions in the same transaction**. It locks neither of them: the tree does not change, so existence `ConditionCheck`s are enough. The slug guard of the source is deleted along with the item, and forgetting it would trap that slug in the source vault forever.
+Moving between notebooks is the **only operation in the system that writes to two notebook partitions in the same transaction**. It locks neither of them: the tree does not change, so existence `ConditionCheck`s are enough. The slug guard of the source is deleted along with the item, and forgetting it would trap that slug in the source notebook forever.
 
 **The trade-off: the bucket becomes unreadable to humans.** Two answers, both cheap:
 
-1. **Immutable metadata on `PutObject`**, with `subscription-id`, `content-id` and `created-at`. Only what never changes. We deliberately do **not** write `vaultId`, `folderId` or the title: they become lies on the first move, and keeping them up to date would give S3 back exactly the write we are eliminating.
+1. **Immutable metadata on `PutObject`**, with `subscription-id`, `content-id` and `created-at`. Only what never changes. We deliberately do **not** write `notebookId`, `folderId` or the title: they become lies on the first move, and keeping them up to date would give S3 back exactly the write we are eliminating.
 2. **The audit trail is the recovery index.** Since every content event carries the complete `ContentRef` (§6.5), `svc-audit` holds every `(noteId, contentId, versionId)` tuple that has ever existed. With the Knowledge table lost beyond the PITR window, the mapping is rebuildable from it.
 
 ### 9.3 Single-table design: `mv-knowledge`
 
 | Item | PK | SK | Attributes |
 |---|---|---|---|
-| Vault | `S#{s}#VAULT#{v}` | `META` | name, slug, description, **guidanceRef**, version |
-| Folder | `S#{s}#VAULT#{v}` | `FOLDER#{folderId}` | parentFolderId, name, slug, description, position, **templateRef** |
-| Folder counter | `S#{s}#VAULT#{v}` | `FSTAT#{folderId}` | noteCount, updatedAt (asynchronous projection, §10.3) |
-| Subscription usage | `S#{s}#VAULTS` | `USAGE` | storedBytes, updatedAt (asynchronous projection, §10.3, RN-SUB-021) |
-| Vault counter | `S#{s}#VAULT#{v}` | `FSTAT` | noteCount, updatedAt; indexed in `GSI1` as `VSTAT#{v}` |
-| Role ceiling in the vault | `S#{s}#VAULT#{v}` | `LIMIT#{userId}` | limit (`VIEWER`), setBy, setAt: the demotion of §5.3 of the product |
-| Note | `S#{s}#VAULT#{v}` | `NOTE#{noteId}` | folderId, title, slug, position, **bodyRef**, createdBy, updatedBy, version, `deletedAt?`, `deletedBy?` |
-| Folder slug guard | `S#{s}#VAULT#{v}` | `SLUG#{parentId}#{slug}` | enforces I1 through `attribute_not_exists` |
-| Projection dedup | `S#{s}#VAULT#{v}` | `SEEN#{eventUlid}` | ttl; makes the counter exactly-once |
-| Outbox | `S#{s}#VAULT#{v}` | `EVENT#{ulid}` | payload, ttl |
+| Notebook | `S#{s}#NOTEBOOK#{v}` | `META` | name, slug, description, **guidanceRef**, version |
+| Folder | `S#{s}#NOTEBOOK#{v}` | `FOLDER#{folderId}` | parentFolderId, name, slug, description, position, **templateRef** |
+| Folder counter | `S#{s}#NOTEBOOK#{v}` | `FSTAT#{folderId}` | noteCount, updatedAt (asynchronous projection, §10.3) |
+| Subscription usage | `S#{s}#NOTEBOOKS` | `USAGE` | storedBytes, updatedAt (asynchronous projection, §10.3, RN-SUB-021) |
+| Notebook counter | `S#{s}#NOTEBOOK#{v}` | `FSTAT` | noteCount, updatedAt; indexed in `GSI1` as `NBSTAT#{v}` |
+| Role ceiling in the notebook | `S#{s}#NOTEBOOK#{v}` | `LIMIT#{userId}` | limit (`VIEWER`), setBy, setAt: the demotion of §5.3 of the product |
+| Note | `S#{s}#NOTEBOOK#{v}` | `NOTE#{noteId}` | folderId, title, slug, position, **bodyRef**, createdBy, updatedBy, version, `deletedAt?`, `deletedBy?` |
+| Folder slug guard | `S#{s}#NOTEBOOK#{v}` | `SLUG#{parentId}#{slug}` | enforces I1 through `attribute_not_exists` |
+| Projection dedup | `S#{s}#NOTEBOOK#{v}` | `SEEN#{eventUlid}` | ttl; makes the counter exactly-once |
+| Outbox | `S#{s}#NOTEBOOK#{v}` | `EVENT#{ulid}` | payload, ttl |
 
 The three `…Ref`s are a serialised `ContentRef`, **the only link to S3 in the whole system**.
 
 **The lexicographic order of the sort keys is chosen, not accidental.** `FSTAT#` and `LIMIT#` fall between `FOLDER#` and `META`, so the whole aggregate, the counters **and** the role ceilings come in a single `Query`, in a single partition:
 
 ```
-Query  PK = S#{s}#VAULT#{v}   AND   SK BETWEEN 'FOLDER#' AND 'META'
+Query  PK = S#{s}#NOTEBOOK#{v}   AND   SK BETWEEN 'FOLDER#' AND 'META'
 → every folder + every counter + every ceiling + the META item
        FOLDER#…    FSTAT / FSTAT#…       LIMIT#…          META
 ```
 
-`EVENT#` falls before the range; `NOTE#`, `SEEN#` and `SLUG#` fall after it. It is that property that makes `get_vault_context` return the annotated tree with the note count of each folder **without one query per folder**.
+`EVENT#` falls before the range; `NOTE#`, `SEEN#` and `SLUG#` fall after it. It is that property that makes `get_notebook_context` return the annotated tree with the note count of each folder **without one query per folder**.
 
-> **`LIMIT#` was named to fall in that range, and the name also describes what it is**, a ceiling and not a grant (the ceiling only lowers, RN-ACC-011). The alternative would be a second query per request, on the hottest path of the system, to answer an authorisation question that has to be answered **before** everything else (§14.2). The cost is loading the ceilings of every member along with the vault; since members number in the dozens and the partition is the same, it is free in latency.
+**Every key component ends in `#`, and one pair is why that is a rule rather than a habit.** `NOTE` is a prefix of `NOTEBOOK`, so a `begins_with` on a bare `NOTE` would reach a notebook item wherever the two meet; `NOTE#` never reaches `NOTEBOOK#`. The adapter suite asserts it against the table and against `GSI1`, where the notebook items live.
+
+> **`LIMIT#` was named to fall in that range, and the name also describes what it is**, a ceiling and not a grant (the ceiling only lowers, RN-ACC-011). The alternative would be a second query per request, on the hottest path of the system, to answer an authorisation question that has to be answered **before** everything else (§14.2). The cost is loading the ceilings of every member along with the notebook; since members number in the dozens and the partition is the same, it is free in latency.
 
 | Index | PK | SK | Serves |
 |---|---|---|---|
-| `GSI1` | `S#{s}#VAULTS` | `VAULT#{v}` · `VSTAT#{v}` | listing the vaults of the subscription, with the count already |
+| `GSI1` | `S#{s}#NOTEBOOKS` | `NOTEBOOK#{v}` · `NBSTAT#{v}` | listing the notebooks of the subscription, with the count already |
 | `GSI2` | `S#{s}#FOLDER#{f}` | `NOTE#{position}#{noteId}` | listing the notes of a folder, **in the defined order** |
 
 `GSI2` is **sparse**: the attributes forming its key only exist while `deletedAt` does not. A deleted note disappears from the listings without a line of filtering anywhere (§12.4). Alphabetical ordering stays available as a display ordering, done in the client over the result.
@@ -700,7 +702,7 @@ The invitation has a TTL equal to its expiry: an expired invitation disappears o
 
 Every mutation is **one** `TransactWriteItems`, but there are **two shapes** of transaction, and the difference between them is what keeps writing a note cheap (§6.2).
 
-### 10.1 Shape A: a tree mutation (the `Vault` aggregate)
+### 10.1 Shape A: a tree mutation (the `Notebook` aggregate)
 
 Creating, renaming, describing, moving, reordering or removing a folder; replacing a guidance or a template.
 
@@ -714,12 +716,12 @@ Creating, renaming, describing, moving, reordering or removing a folder; replaci
 Creating, editing, retitling, reordering, moving, deleting.
 
 1. A `Put`/`Update`/`Delete` of the `NOTE` item with `ConditionExpression: version = :expected`, where the lock belongs to the item itself
-2. A `ConditionCheck` with `attribute_exists` on the destination `FOLDER#{f}` item and, on a move between vaults, also on the `META` of the destination vault
+2. A `ConditionCheck` with `attribute_exists` on the destination `FOLDER#{f}` item and, on a move between notebooks, also on the `META` of the destination notebook
 3. A `Put` of the event into the outbox
 
-There is no fourth write. The `NSLUG` guard held one name per vault, and a vault has no name to hold: nothing is reserved on a write and nothing is released on a delete (RN-KNW-037).
+There is no fourth write. The `NSLUG` guard held one name per notebook, and a notebook has no name to hold: nothing is reserved on a write and nothing is released on a delete (RN-KNW-037).
 
-> **No note transaction writes to the `META` item** (PE8). It is this rule, and not the separation of the aggregates on its own, that keeps the hot path free of contention. `META` is a single item: an agent writing fifty notes in a row would turn it into the bottleneck of the whole vault, and the retry would only turn the contention into latency. The `ConditionCheck` gives the same guarantee that matters, *"the folder existed at the instant of the write"*, without writing to it, and the `FOLDER` item is only written when the folder is renamed or moved, which is a rare event.
+> **No note transaction writes to the `META` item** (PE8). It is this rule, and not the separation of the aggregates on its own, that keeps the hot path free of contention. `META` is a single item: an agent writing fifty notes in a row would turn it into the bottleneck of the whole notebook, and the retry would only turn the contention into latency. The `ConditionCheck` gives the same guarantee that matters, *"the folder existed at the instant of the write"*, without writing to it, and the `FOLDER` item is only written when the folder is renamed or moved, which is a rare event.
 
 A conflict produces a `TransactionCanceledException`, the repository translates it into a `ConcurrencyError` and the use case retries, up to 3 times. **The domain never sees an AWS exception** (PE7).
 
@@ -739,18 +741,18 @@ An eventually consistent count is acceptable on purpose: the number guides the a
 
 ```
 TransactWriteItems
-  Put     PK = S#{s}#VAULT#{v}   SK = SEEN#{eventUlid}   attribute_not_exists(SK)   (TTL 7d)
-  Update  PK = S#{s}#VAULT#{v}   SK = FSTAT#{folderId}   ADD noteCount   :delta
-  Update  PK = S#{s}#VAULTS      SK = USAGE              ADD storedBytes :bytes
+  Put     PK = S#{s}#NOTEBOOK#{v}   SK = SEEN#{eventUlid}   attribute_not_exists(SK)   (TTL 7d)
+  Update  PK = S#{s}#NOTEBOOK#{v}   SK = FSTAT#{folderId}   ADD noteCount   :delta
+  Update  PK = S#{s}#NOTEBOOKS      SK = USAGE              ADD storedBytes :bytes
 ```
 
 The two counters travel in the **same** transaction because they share the dedup item: in two transactions, the second would be refused by the `SEEN` the first one wrote.
 
 **The delta is declared by the aggregate, not derived from the event type.** `NoteUpdated` is emitted both by a rename, which moves no byte, and by a new body, which moves the difference between two revisions; only the aggregate knows which of the two happened. Deriving it from the type would make the counter grow on every rename, and the error would be silent: nothing would break, the number would merely stop being true.
 
-**Why the counter does not live in the user transaction.** A single item per subscription touched by every note write is exactly the contention PE8 forbids for the `META` of the vault, and worse, because it is one item for the whole account. That is why it sits in the relay, and that is why quota enforcement is slightly delayed: a burst of writes may cross the line before the counter catches up. The trade-off is deliberate and the drift is bounded by what is in flight, since the check runs on every write.
+**Why the counter does not live in the user transaction.** A single item per subscription touched by every note write is exactly the contention PE8 forbids for the `META` of the notebook, and worse, because it is one item for the whole account. That is why it sits in the relay, and that is why quota enforcement is slightly delayed: a burst of writes may cross the line before the counter catches up. The trade-off is deliberate and the drift is bounded by what is in flight, since the check runs on every write.
 
-**The counter is derived, and it is rebuildable.** Every projection of this system owes an answer to the same question, which is how it remakes itself when it is wrong (PE5), and the counter's answer is `deploy-aws/recount-storage.ps1`: it scans `mv-knowledge`, adds up the current content of each subscription and writes the `USAGE` item. It reports first and only writes with `-Apply`. It had to exist at least once for real, because the counter came into existence after the vaults, and every subscription older than it started at zero while holding a vault full of notes. A write happening during the scan may be counted by it **and** applied by the relay, and the write then discards the relay delta; the error is bounded by what was written while the job ran and disappears in the next recount, so it runs with the accounts idle.
+**The counter is derived, and it is rebuildable.** Every projection of this system owes an answer to the same question, which is how it remakes itself when it is wrong (PE5), and the counter's answer is `deploy-aws/recount-storage.ps1`: it scans `mv-knowledge`, adds up the current content of each subscription and writes the `USAGE` item. It reports first and only writes with `-Apply`. It had to exist at least once for real, because the counter came into existence after the notebooks, and every subscription older than it started at zero while holding a notebook full of notes. A write happening during the scan may be counted by it **and** applied by the relay, and the write then discards the relay delta; the error is bounded by what was written while the job ran and disappears in the next recount, so it runs with the accounts idle.
 
 **Whoever reads the counter does not know the limit.** The stored bytes are a fact of Knowledge and the ceiling is a fact of Access, and no context reads the table of the other: the one that joins the two halves at the `StorageBudget` port is the composition root (§24).
 
@@ -781,11 +783,11 @@ None of that happens in the aggregate: whoever talks to the `ContentStore` is th
 
 Three projections over the same events. All of them **derived** (PE5): deleting and rebuilding from zero is a supported operation, and it is the recovery plan for all three. The business rules are in `software-vision.md` §10.
 
-**And for the link graph it is a script, not a plan.** `deploy-aws/reproject-links.ps1` forgets every edge, backlink, pending link and alias edge of a vault, restates what the vault answers to from the notes themselves, and lets the ordinary write path resolve every target again — deliberately the product's own code, because a rebuild taking its own path to the table would be a second implementation of the projection, and the day the two disagreed the rebuild would be the one nobody tested. It reports first and writes only with `-Apply`. It exists because 0.6.0 retired the rule the graph in the table had been built by, and it stays because that is what PE5 costs.
+**And for the link graph it is a script, not a plan.** `deploy-aws/reproject-links.ps1` forgets every edge, backlink, pending link and alias edge of a notebook, restates what the notebook answers to from the notes themselves, and lets the ordinary write path resolve every target again — deliberately the product's own code, because a rebuild taking its own path to the table would be a second implementation of the projection, and the day the two disagreed the rebuild would be the one nobody tested. It reports first and writes only with `-Apply`. It exists because 0.6.0 retired the rule the graph in the table had been built by, and it stays because that is what PE5 costs.
 
 **There are three sanctioned readers of content, and the third one is not here.** `noteTitle`, in `packages/kernel`, reads the title of a note in the chain of the specification: `title:` of the frontmatter, then the first level-1 heading (RN-KNW-035). It lives in the kernel because **Knowledge needs it synchronously, on the write** — a listing cannot wait for a projection to know what a note is called — and Discovery needs the same answer when it resolves a link. One function, two contexts, and no way for them to disagree.
 
-That amends the rule "only the two extractors read content", deliberately and in the open, and it is a smaller amendment than it looks: what the third reader reads is **the same frontmatter block §11.3 already reads**, plus a heading. The reason of the rule is untouched — what is read is the notation the specification declares and nothing else, never a vault convention and never a vocabulary this backend holds a list of (PP4).
+That amends the rule "only the two extractors read content", deliberately and in the open, and it is a smaller amendment than it looks: what the third reader reads is **the same frontmatter block §11.3 already reads**, plus a heading. The reason of the rule is untouched — what is read is the notation the specification declares and nothing else, never a notebook convention and never a vocabulary this backend holds a list of (PP4).
 
 The frontmatter block and the YAML subset of §6.2 live in the kernel with it, and `FacetExtractor` reads them from there. **There is exactly one function in this repository that finds the frontmatter of a body**, which is the property `slugify` lost by being written twice.
 
@@ -808,7 +810,7 @@ The frontmatter block and the YAML subset of §6.2 live in the kernel with it, a
 **What each layer is asked for, since specification v0.3.0 restated CommonMark and GFM as data.** The declared notation went from 31 entries to 54, and most of the new ones are forms a base parser already produces. The three layers do not answer that the same way, and the difference is a decision recorded here rather than a filter somebody added quietly:
 
 - **The published suite** runs whatever the profile ships. Nothing is scoped: a case is a case.
-- **The reading-surface expectations** and **the two demonstration vaults** are asked for everything the profile **adds** to what a base parser already does. Writing an expectation that emphasis renders as `<em>` asserts that react-markdown works, which is a claim about a library; forcing a setext heading and an indented code block into two hand-written vaults turns them into the list of specimens they exist to not be. CommonMark is the floor every renderer already stands on, and what these two prove is what this profile adds on top of it. GFM stays in: a table, a struck word and a bare address are not universal, and each carries a crossing of its own.
+- **The reading-surface expectations** and **the two demonstration notebooks** are asked for everything the profile **adds** to what a base parser already does. Writing an expectation that emphasis renders as `<em>` asserts that react-markdown works, which is a claim about a library; forcing a setext heading and an indented code block into two hand-written notebooks turns them into the list of specimens they exist to not be. CommonMark is the floor every renderer already stands on, and what these two prove is what this profile adds on top of it. GFM stays in: a table, a struck word and a bare address are not universal, and each carries a crossing of its own.
 - **The skill** teaches the whole table, the inherited forms included, and that is the same decision reaching the opposite answer. In this profile an inherited entry does not restate the syntax, it states **where this profile changes what the syntax means** — a link inside a code span is not extracted, `![[x]]` is an embed and not an image, a wikilink in a table cell is an edge like any other. Those crossings are invisible from CommonMark alone and are exactly what an agent gets wrong, so the reader who most needs them is the one reading that table.
 
 **Which forms those are is written in `packages/contracts`, and it used to be a field.** Specification v0.4.0 removed the ring, because an implementation is asked for the notation the document lists and not for a source *in full* — the version of that requirement that can be checked. The decision above survived the field, so `DELEGATED_TO_THE_BASE_PARSER` names the exempt entries and `DECLARED_SILENCE` carries what the product answers about forms the profile no longer describes at all (RN-DSC-033). Both are asserted against the profile rather than trusted: a stale id, a silence the specification started declaring, and an entry landing in neither list all fail the build, which is what the removed fields gave for free.
@@ -822,7 +824,7 @@ The frontmatter block and the YAML subset of §6.2 live in the kernel with it, a
 - **`singleTilde: false` on `remark-gfm`.** GFM specifies strikethrough as `~~x~~`; GitHub also accepts one tilde, outside its own specification. Left on, it strikes the middle of `H~2~O` — a subscript is not notation here, so the characters are meant to stay on the page, and a form that renders wrongly is a worse answer than one that renders as itself. The profile stated the same conclusion from its side in v0.4.0, where `~~` became the only declared form.
 - **`remarkMathDollarRule`, after `remark-math`.** The library opens a formula at any `$` and closes it at the next one, so two prices in one paragraph become mathematics. The plugin gives back to the text any inline formula whose delimiters break the profile's rule, reading the source through the node's position, because the delimiters are gone from the node by then.
 - **No `rehype-raw`, and that absence is the boundary.** Raw HTML is escaped and shown as text, so a note carrying `<script>` is characters on a page. It is asserted with that payload rather than with a `<b>`.
-- **Syntax highlighting, in `shared/api/highlight.ts`.** It is the one thing on this surface the profile does not ask for: a rendering rule is attached to exactly one info string, `mermaid`, and §8 leaves every other undescribed form to the implementation to draw as it likes. What the profile does constrain is the four things around it, and each is asserted: the bytes never change, an unknown language falls through to plain code rather than to nothing, `mermaid` is checked first so a highlighter cannot swallow a diagram, and **the tokens arrive as elements**. That last one is the §7.9 boundary held where a highlighter would otherwise breach it — a library returning an HTML string to be injected takes the body of a note as its input. `refractor` produces a hast tree and `toJsxRuntime` builds React from it, so nothing note-derived is ever parsed as markup. The grammars are enumerated rather than bundled, because Prism carries close to three hundred and a vault writes in a handful.
+- **Syntax highlighting, in `shared/api/highlight.ts`.** It is the one thing on this surface the profile does not ask for: a rendering rule is attached to exactly one info string, `mermaid`, and §8 leaves every other undescribed form to the implementation to draw as it likes. What the profile does constrain is the four things around it, and each is asserted: the bytes never change, an unknown language falls through to plain code rather than to nothing, `mermaid` is checked first so a highlighter cannot swallow a diagram, and **the tokens arrive as elements**. That last one is the §7.9 boundary held where a highlighter would otherwise breach it — a library returning an HTML string to be injected takes the body of a note as its input. `refractor` produces a hast tree and `toJsxRuntime` builds React from it, so nothing note-derived is ever parsed as markup. The grammars are enumerated rather than bundled, because Prism carries close to three hundred and a notebook writes in a handful.
 - **The remote-image disclosure, in `WritableContent` (RN-DSC-040).** §7.10 of the profile is the one section about what a Reader may *fetch* rather than what it renders, and it forbids exactly one answer: saying nothing. The destination of an image reaches `<img src>` and React preloads it, so this surface fetches, and the notice at the foot of a note that does is what makes that an answer instead of a silence. `remoteImageHosts` reads it off the raw body, outside code, because an image inside a fence is an example and asks nobody for anything.
 - **`urlTransform` is `followable`, in `shared/api/address.ts` (RN-DSC-039).** It was the identity — the stock filter switched off — because an unresolved wikilink is rendered as `[text](pending:target)` and the stock filter does not know `pending:`, so it erased the pending link from the page. A whole protection had been traded for one scheme, and every other scheme reached the `href` with it: `javascript:` was stopped only by React itself, and `data:text/html` was not stopped at all. The list now says what passes, and a refused address keeps its text and loses its affordance.
 
@@ -834,8 +836,8 @@ A block embed resolves through `blockOf` in `transclusion.ts`, told apart from a
 
 | Address | What it names | Ambiguous? |
 |---|---|---|
-| `/vaults/:vaultSlug/root/<trail>/<label>--<noteId>` | One note. The identifier answers; the trail and the label are decoration, corrected on load (RN-DSC-045, RN-DSC-055) | Never, by construction |
-| `/vaults/:vaultSlug/links/<target>` | A link target. It leads to the note when one answers, renders the choice when several do and the pending state when none does (RN-DSC-046) | By design |
+| `/notebooks/:notebookSlug/root/<trail>/<label>--<noteId>` | One note. The identifier answers; the trail and the label are decoration, corrected on load (RN-DSC-045, RN-DSC-055) | Never, by construction |
+| `/notebooks/:notebookSlug/links/<target>` | A link target. It leads to the note when one answers, renders the choice when several do and the pending state when none does (RN-DSC-046) | By design |
 
 The first is ASCII end to end and carries no percent escape, which is what removes a whole class of routing problem: `useParams()['*']` hands an inner `%2F` back as `/` and would cut `Reunião 03/09/2026` in half. The second is where the encoding of a name legitimately lives — a route reached by clicking and never by typing.
 
@@ -849,61 +851,61 @@ The split is not tidiness. A rendering assertion cannot live in a JSON file — 
 
 **A target is a title, and the two forms reach it differently.** A wikilink target is literal: nothing in it is decoded, no extension is removed and no path segment is discarded (RN-DSC-043). The three tolerances belong to the Markdown form, in the order the specification fixes — split at the first unencoded `#`, then the path, then the extension, then decode. Decoding earlier undoes the escaping it exists for: `C%23%20basics` would split at a `#` its author encoded precisely so it would not be a delimiter.
 
-**Resolution answers three things, and for the first one it counts.** Every note whose title matches becomes an edge (RN-DSC-042); only when none did is the target compared against the `aliases` of the vault (RN-DSC-052); an attachment renders and is never an edge (RN-DSC-044); anything else is pending. The order of title before alias is normative and it is the whole of what keeps the frontmatter out of the graph.
+**Resolution answers three things, and for the first one it counts.** Every note whose title matches becomes an edge (RN-DSC-042); only when none did is the target compared against the `aliases` of the notebook (RN-DSC-052); an attachment renders and is never an edge (RN-DSC-044); anything else is pending. The order of title before alias is normative and it is the whole of what keeps the frontmatter out of the graph.
 
-**And that order is what makes resolution stop being monotonic.** An edge that exists by alias disappears the day somebody writes a note carrying that title — in a third note nobody touched, whose own bytes did not change (RN-DSC-053). So the projection carries an `ALIAS#{title}#{from}#{to}` item for every edge it resolved that way, and a note arriving under that title takes them back. The in-memory adapter does not need it: it keeps what each note points at and derives the edges from the vault as it stands, which is the same answer computed rather than maintained, and it is the implementation the DynamoDB one has to agree with.
+**And that order is what makes resolution stop being monotonic.** An edge that exists by alias disappears the day somebody writes a note carrying that title — in a third note nobody touched, whose own bytes did not change (RN-DSC-053). So the projection carries an `ALIAS#{title}#{from}#{to}` item for every edge it resolved that way, and a note arriving under that title takes them back. The in-memory adapter does not need it: it keeps what each note points at and derives the edges from the notebook as it stands, which is the same answer computed rather than maintained, and it is the implementation the DynamoDB one has to agree with.
 
 **An image is not a link (RN-DSC-038).** The extractor matched `[alt](destination)` without looking at the `!` in front of it, so a picture became a note: `![Curve](./curve.png)` produced a pending link called `curve-png`. A public image never showed it, because an address with a scheme is external and dropped by RN-DSC-003 — the relative form is where it bit. The embed keeps its edge: it is read by the wikilink pattern, which requires no parenthesis, and the two patterns never meet.
 
 **Three forms of one link, and code that is not a link.** The wikilink, the inline Markdown link and the **reference** form all produce the same edge, because the destination decides it and not the syntax that carried it (RN-DSC-037); a definition nobody used produces nothing, since it renders nothing where it stands. A link written inside a fenced block or a code span is an example and not a reference, and produces no edge (RN-DSC-036) — the same rule the reading surface applies before it rewrites a wikilink, which is why `` `[[Target]]` `` now survives on the page instead of being turned into a link to the note it was describing.
 
-**The indented code block is the declared exception, and the reason is the cost of being wrong.** The profile says it suppresses notation exactly as a fenced block does. Neither sanctioned reader implements it, because telling four spaces of code from four spaces of a nested list item needs the block context only a parser has, and this reader has none by design (PP4). Of the two ways to be wrong, reading a link that was an example costs one spurious pending link; skipping a nested list item costs a **real edge**, which is the graph lying about what the vault says. The cheaper mistake is the one that stays, and it is asserted as behaviour so that nobody has to rediscover it.
+**The indented code block is the declared exception, and the reason is the cost of being wrong.** The profile says it suppresses notation exactly as a fenced block does. Neither sanctioned reader implements it, because telling four spaces of code from four spaces of a nested list item needs the block context only a parser has, and this reader has none by design (PP4). Of the two ways to be wrong, reading a link that was an example costs one spurious pending link; skipping a nested list item costs a **real edge**, which is the graph lying about what the notebook says. The cheaper mistake is the one that stays, and it is asserted as behaviour so that nobody has to rediscover it.
 
 **The `mv-discovery` table:**
 
 | Item | PK | SK |
 |---|---|---|
-| Outgoing edge | `S#{s}#VAULT#{v}` | `OUT#{fromNoteId}#{toNoteId}` |
-| Incoming edge (backlink) | `S#{s}#VAULT#{v}` | `IN#{toNoteId}#{fromNoteId}` |
-| Pending link | `S#{s}#VAULT#{v}` | `PENDING#{title}#{fromNoteId}` |
-| Edge held by an alias | `S#{s}#VAULT#{v}` | `ALIAS#{title}#{fromNoteId}#{toNoteId}` |
+| Outgoing edge | `S#{s}#NOTEBOOK#{v}` | `OUT#{fromNoteId}#{toNoteId}` |
+| Incoming edge (backlink) | `S#{s}#NOTEBOOK#{v}` | `IN#{toNoteId}#{fromNoteId}` |
+| Pending link | `S#{s}#NOTEBOOK#{v}` | `PENDING#{title}#{fromNoteId}` |
+| Edge held by an alias | `S#{s}#NOTEBOOK#{v}` | `ALIAS#{title}#{fromNoteId}#{toNoteId}` |
 
 The edge is written in both directions: a backlink becomes a `Query`, not a scan. Traversal is BFS with a maximum depth of 3 and a ceiling of 200 nodes, deduplicating cycles (RN-DSC-007).
 
-`NoteMoved` between folders **does not touch the graph**, because an edge is `noteId → noteId` and the folder takes no part in it. `NoteMoved` between vaults prunes the edges of the note in the source vault and re-resolves the outgoing ones against the titles of the destination.
+`NoteMoved` between folders **does not touch the graph**, because an edge is `noteId → noteId` and the folder takes no part in it. `NoteMoved` between notebooks prunes the edges of the note in the source notebook and re-resolves the outgoing ones against the titles of the destination.
 
 ### 11.2 Search
 
-The search is **literal over the text of the vault**, answered from one item per note in `mv-discovery`:
+The search is **literal over the text of the notebook**, answered from one item per note in `mv-discovery`:
 
 | Item | PK | SK |
 |---|---|---|
-| Searchable portrait | `S#{s}#VAULT#{v}` | `TEXT#{noteId}` |
+| Searchable portrait | `S#{s}#NOTEBOOK#{v}` | `TEXT#{noteId}` |
 
 The item holds the title, the folder, the headings, the facets and the body **twice**: normalised for matching, and as it was written for the excerpt. Normalisation is done character by character, and each character contributes exactly the size it occupied, so a position in the normalised text is the same position in the original. That is what makes it possible to cut the excerpt out of the text the person wrote: an `NFD` over the whole string shifts every offset after the first accent, and the reader would get a passage cut a few characters off, or lowered prose nobody typed.
 
-**The scan covers the whole vault, and that is a choice, not a shortcut.** The ceiling is 2,000 notes per vault (`software-vision.md` §14), around 8 MB, and at that size scanning costs 1,061 read units per query, something like US$ 0.00027. An inverted index would be cheaper per query and far more expensive to keep correct: every write would have to update the postings of every term, and the difference in money, at the declared ceiling, is cents per month. The comparison with the vector index that left is the whole argument:
+**The scan covers the whole notebook, and that is a choice, not a shortcut.** The ceiling is 2,000 notes per notebook (`software-vision.md` §14), around 8 MB, and at that size scanning costs 1,061 read units per query, something like US$ 0.00027. An inverted index would be cheaper per query and far more expensive to keep correct: every write would have to update the postings of every term, and the difference in money, at the declared ceiling, is cents per month. The comparison with the vector index that left is the whole argument:
 
-| | Bytes per vault at the ceiling | Amplification over the Markdown | Reads per query |
+| | Bytes per notebook at the ceiling | Amplification over the Markdown | Reads per query |
 |---|---|---|---|
 | `CHUNK#` with a vector (removed) | 82.8 MB | 10.6× | 10,597 RRU |
 | `TEXT#` with the body | 8.3 MB | 1.06× | 1,061 RRU |
 
-**What the scan may not do is stop early.** `scanVault` walks every page of the `Query`, and there is a test with nine fake pages proving it. It is not an optimisation detail: it was exactly a `Query` stopping at the first 1 MB page that broke the previous search, and 8 MB is eight pages.
+**What the scan may not do is stop early.** `scanNotebook` walks every page of the `Query`, and there is a test with nine fake pages proving it. It is not an optimisation detail: it was exactly a `Query` stopping at the first 1 MB page that broke the previous search, and 8 MB is eight pages.
 
-**The query language** (`SearchQuery.ts`) is pure domain, with no AWS and no I/O, and therefore tested entirely without infrastructure. It knows four fields by name, `title`, `folder`, `content` and `section`, and resolves **any other prefix as a facet**. No list of facet names exists in the code, which is the same decision as in `FacetExtractor` (§11.3) carried through to the query: the vocabulary belongs to the Guidance, so a vault that starts writing `norma: federal` gets `norma:federal` as a filter the same day.
+**The query language** (`SearchQuery.ts`) is pure domain, with no AWS and no I/O, and therefore tested entirely without infrastructure. It knows four fields by name, `title`, `folder`, `content` and `section`, and resolves **any other prefix as a facet**. No list of facet names exists in the code, which is the same decision as in `FacetExtractor` (§11.3) carried through to the query: the vocabulary belongs to the Guidance, so a notebook that starts writing `norma: federal` gets `norma:federal` as a filter the same day.
 
-**What was there before, and why it left.** Up to 0.1.0 Discovery kept a vector index: notes were cut into chunks by heading, each chunk got a context prefix (`vault › folder › folder description › title`), went to Bedrock Titan Text Embeddings V2 at 1024 dimensions, and the vector was written as a list of `Number` in the `mv-discovery` table itself, in `CHUNK#{noteId}#{i}` items.
+**What was there before, and why it left.** Up to 0.1.0 Discovery kept a vector index: notes were cut into chunks by heading, each chunk got a context prefix (`notebook › folder › folder description › title`), went to Bedrock Titan Text Embeddings V2 at 1024 dimensions, and the vector was written as a list of `Number` in the `mv-discovery` table itself, in `CHUNK#{noteId}#{i}` items.
 
 Three measurements taken in the real environment condemned the design:
 
 | Measurement | Value | Consequence |
 |---|---|---|
 | The item of a chunk | 14,473 bytes, of which 14,175 are the vector | 1 GB of Markdown becomes 10.6 GB of items |
-| Reads per query | The whole vault, with no `ProjectionExpression` | The cost per question grows with the size of the vault |
+| Reads per query | The whole notebook, with no `ProjectionExpression` | The cost per question grows with the size of the notebook |
 | The `Query` page | 1 MB, and the method did not paginate | The search saw 65 chunks and ignored the rest in silence |
 
-The third item is the decisive one: the search **looked** like it worked because the 1 MB cut kept it fast, while it scanned less than 0.01% of a large vault. An index that lies silently is worse than the absence of one, which is declared.
+The third item is the decisive one: the search **looked** like it worked because the 1 MB cut kept it fast, while it scanned less than 0.01% of a large notebook. An index that lies silently is worse than the absence of one, which is declared.
 
 **What is still absent is search by meaning**, the one that finds the note covering the subject in other words. That one does not come back through a scan: it requires a vector index with real retrieval, and the candidate is S3 Vectors, which stores a vector at US$ 0.06 per GB per month and does not read everything on every query. The difference from what left is that it will come back as an addition to a search that works, and not as the only search there is.
 
@@ -913,13 +915,13 @@ The third item is the decisive one: the search **looked** like it worked because
 
 The third projection, the one that serves the curation panel. The business rules are in `software-vision.md` §10.3.
 
-`FacetExtractor` runs on every `NoteCreated`, `NoteUpdated`, `NoteDeleted` and `NoteRestored`: it loads the blob through the `ContentRef` of the event, reads **only the frontmatter block** and classifies each key-value pair by the **shape of the value**: a date, a boolean, a short enumerable value and a list of short values are aggregatable; free text is discarded (RN-DSC-020). There is no key list in the code and no per-vault configuration: the vocabulary belongs to the Guidance, and `maturity` and `reviewed`, the standard facets of the product, are to the extractor attributes like any other. It is the second sanctioned reader of content, next to `LinkExtractor`, and like it, it lives outside the core (PP4).
+`FacetExtractor` runs on every `NoteCreated`, `NoteUpdated`, `NoteDeleted` and `NoteRestored`: it loads the blob through the `ContentRef` of the event, reads **only the frontmatter block** and classifies each key-value pair by the **shape of the value**: a date, a boolean, a short enumerable value and a list of short values are aggregatable; free text is discarded (RN-DSC-020). There is no key list in the code and no per-notebook configuration: the vocabulary belongs to the Guidance, and `maturity` and `reviewed`, the standard facets of the product, are to the extractor attributes like any other. It is the second sanctioned reader of content, next to `LinkExtractor`, and like it, it lives outside the core (PP4).
 
 **The shape rule is a published contract, not a code comment.** What decides the kind is the **form the author wrote**, and never how many values that form happens to hold: a bracketed or dash list is a list at any length, and a scalar is an enum. `parseFrontmatter` therefore carries the written form out alongside the values, because flattening both into an array is what made a list of one item indistinguishable from a scalar — and adding a second value to an attribute must not change what the attribute is (RN-DSC-020).
 
-**The first operator of the query language is in `SearchQuery.ts`, and its shape is a precedent** (RN-DSC-034). The comparison is the node — `{ kind: 'compare', facet, op, value }` — and the range is desugared into two of them **at parse time**, so everything past the parser sees one shape and there is one semantics to test. Comparison is lexicographic over the canonicalised date, cut to the length of the operand, which is what makes `created:<=2026-02` include the fifteenth of February instead of excluding most of the month. Two refusals are part of the operator rather than of the caller: a range with inverted ends is a `QuerySyntaxError` at parse time, and an interval over an attribute this vault does not hold as a date is refused in `SearchNotes`, once, against the kinds the scan already carries — because "is this attribute a date" is a fact about the vault and not about the query string.
+**The first operator of the query language is in `SearchQuery.ts`, and its shape is a precedent** (RN-DSC-034). The comparison is the node — `{ kind: 'compare', facet, op, value }` — and the range is desugared into two of them **at parse time**, so everything past the parser sees one shape and there is one semantics to test. Comparison is lexicographic over the canonicalised date, cut to the length of the operand, which is what makes `created:<=2026-02` include the fifteenth of February instead of excluding most of the month. Two refusals are part of the operator rather than of the caller: a range with inverted ends is a `QuerySyntaxError` at parse time, and an interval over an attribute this notebook does not hold as a date is refused in `SearchNotes`, once, against the kinds the scan already carries — because "is this attribute a date" is a fact about the notebook and not about the query string.
 
-**Four keys are reserved, and reserving is declaring** (RN-DSC-030). `aliases`, `tags`, `created` and `updated` are spelled in en-US in every vault, and this extractor still treats them like any other attribute: a reserved key of the wrong shape degrades instead of failing. Two of them reach further than the counts. The kind of every facet travels into the content index, because a facet of kind `date` is matched by **prefix** in the query language and not by substring (RN-DSC-031), and the values of `aliases` travel there as other spellings of the title, answering wherever the title does (RN-DSC-032). Both fields are optional on `IndexedNote`: an item written before they existed answers without them, so a search keeps working while the projection is rebuilt rather than going silent.
+**Four keys are reserved, and reserving is declaring** (RN-DSC-030). `aliases`, `tags`, `created` and `updated` are spelled in en-US in every notebook, and this extractor still treats them like any other attribute: a reserved key of the wrong shape degrades instead of failing. Two of them reach further than the counts. The kind of every facet travels into the content index, because a facet of kind `date` is matched by **prefix** in the query language and not by substring (RN-DSC-031), and the values of `aliases` travel there as other spellings of the title, answering wherever the title does (RN-DSC-032). Both fields are optional on `IndexedNote`: an item written before they existed answers without them, so a search keeps working while the projection is rebuilt rather than going silent.
 
 **Consumption:** an EventBridge rule → SQS → Lambda, with a DLQ. The queue absorbs a burst of batch ingestion, and a retry or a failure of the projector never touches the hot path of the write.
 
@@ -927,18 +929,18 @@ The third projection, the one that serves the curation panel. The business rules
 
 | Item | PK | SK | Attributes |
 |---|---|---|---|
-| Facet portrait of the note | `S#{s}#VAULT#{v}` | `FACET#{noteId}` | a map `{attribute: value(s)}` of the aggregatable ones, version |
-| Aggregate counter | `S#{s}#VAULT#{v}` | `STAT#{facet}#{value}` | count |
-| State of the attribute | `S#{s}#VAULT#{v}` | `FDEF#{facet}` | inferred type, distinctCount, `discarded?` |
-| Event dedup | `S#{s}#VAULT#{v}` | `SEEN#{eventUlid}` | TTL 7d |
+| Facet portrait of the note | `S#{s}#NOTEBOOK#{v}` | `FACET#{noteId}` | a map `{attribute: value(s)}` of the aggregatable ones, version |
+| Aggregate counter | `S#{s}#NOTEBOOK#{v}` | `STAT#{facet}#{value}` | count |
+| State of the attribute | `S#{s}#NOTEBOOK#{v}` | `FDEF#{facet}` | inferred type, distinctCount, `discarded?` |
+| Event dedup | `S#{s}#NOTEBOOK#{v}` | `SEEN#{eventUlid}` | TTL 7d |
 
 **The per-note portrait is what makes the delta exact.** An update and a deletion have to decrement the old value ("the note was `growing`, it became `evergreen`"), and the old value is not in the event: it is in the portrait. The projector reads `FACET#{noteId}`, computes the delta and applies everything in a single transaction, in the same pattern as the folder counters (§10.3): a `Put` of `SEEN#{eventUlid}` with `attribute_not_exists`, a `Put` of the new portrait and `ADD count :delta` on the affected counters. Reprocessing the queue is a no-op through the dedup; an out-of-order event loses to the higher `version` already portrayed.
 
-One counter item **per facet value**, and not a single statistics item per vault: fifty notes written in parallel increment different counters, and the single item would become the same bottleneck the `META` rule (PE8) exists to avoid.
+One counter item **per facet value**, and not a single statistics item per notebook: fifty notes written in parallel increment different counters, and the single item would become the same bottleneck the `META` rule (PE8) exists to avoid.
 
-**The cardinality ceiling is the free-text detector** (RN-DSC-024). `FDEF#{facet}` tracks how many distinct values the attribute has produced in the vault; on passing the ceiling, the projector marks the attribute as `discarded`, deletes its `STAT#` items and starts ignoring it. That is how `title` and `source` never become statistics, with no exclusion list in the code: an attribute whose value is unique per note gives itself away through its cardinality.
+**The cardinality ceiling is the free-text detector** (RN-DSC-024). `FDEF#{facet}` tracks how many distinct values the attribute has produced in the notebook; on passing the ceiling, the projector marks the attribute as `discarded`, deletes its `STAT#` items and starts ignoring it. That is how `title` and `source` never become statistics, with no exclusion list in the code: an attribute whose value is unique per note gives itself away through its cardinality.
 
-**Assembling the panel is one `Query`** with the `STAT#` prefix per vault, without touching a single note. Rebuilding (PE5): delete the `FACET#` and `STAT#` items of the vault and reprocess the notes.
+**Assembling the panel is one `Query`** with the `STAT#` prefix per notebook, without touching a single note. Rebuilding (PE5): delete the `FACET#` and `STAT#` items of the notebook and reprocess the notes.
 
 ### 11.4 Ports
 
@@ -947,22 +949,22 @@ export interface LinkGraph {
   replaceOutgoing(note: NoteId, links: LinkTarget[]): Promise<void>;
   dependencyTree(root: NoteId, depth: Depth): Promise<GraphNode>;
   backlinks(note: NoteId): Promise<NoteRef[]>;
-  broken(vault: VaultId): Promise<BrokenLink[]>;
-  orphans(vault: VaultId): Promise<NoteRef[]>;
+  broken(notebook: NotebookId): Promise<BrokenLink[]>;
+  orphans(notebook: NotebookId): Promise<NoteRef[]>;
 }
 
 export interface ContentIndex {
-  replaceNote(vault: VaultId, note: IndexedNote): Promise<void>;
-  removeNote(vault: VaultId, note: NoteId): Promise<void>;
+  replaceNote(notebook: NotebookId, note: IndexedNote): Promise<void>;
+  removeNote(notebook: NotebookId, note: NoteId): Promise<void>;
   /** Every page. A partial scan that claims to be whole is worse than none. */
-  scanVault(vault: VaultId): Promise<IndexedNote[]>;
+  scanNotebook(notebook: NotebookId): Promise<IndexedNote[]>;
 }
 
 export interface FacetExtractor { extract(frontmatter: string): FacetSnapshot; }
 
 export interface FacetIndex {
   replaceFacets(note: NoteId, facets: FacetSnapshot | null): Promise<void>; // null: a deleted note
-  vaultFacetStats(vault: VaultId): Promise<FacetStats>;
+  notebookFacetStats(notebook: NotebookId): Promise<FacetStats>;
 }
 ```
 
@@ -997,9 +999,9 @@ A consumer of **every** event on the bus, from every service.
 |---|---|---|---|
 | Audit Event | `S#{s}#{subject}#{subjectId}` | `AT#{timestamp}#{eventUlid}` | type, authorship, contentRef, payload |
 
-with `subject ∈ {SUBSCRIPTION, MEMBER, VAULT, FOLDER, NOTE}`. One `Query` by `PK` returns the complete timeline of any object, in chronological order, with no scan.
+with `subject ∈ {SUBSCRIPTION, MEMBER, NOTEBOOK, FOLDER, NOTE}`. One `Query` by `PK` returns the complete timeline of any object, in chronological order, with no scan.
 
-The key is **by subject, not by vault**, and that is not a detail: it is what makes the timeline of a note survive it changing folder and vault, as long as the `NoteId` is preserved. It is the reason `moveTo` exists as a command instead of being implemented as delete plus create (§6.2).
+The key is **by subject, not by notebook**, and that is not a detail: it is what makes the timeline of a note survive it changing folder and notebook, as long as the `NoteId` is preserved. It is the reason `moveTo` exists as a command instead of being implemented as delete plus create (§6.2).
 
 **Immutability is not a convention (PE4): the role of the Lambda has an explicit `Deny` on `UpdateItem` and `DeleteItem` on the table.** There is no path, neither through a bug nor through an operator, that rewrites the past. It is the difference between "we do not alter the log" and "we cannot alter the log", and only the second one serves in front of a regulator.
 
@@ -1016,7 +1018,7 @@ No query to Knowledge is needed: **the present lives in `mv-knowledge`, the past
 
 ### 12.4 Deleting is not destroying
 
-**`NoteDeleted` is a soft delete.** The `NOTE` item gains `deletedAt` and `deletedBy`, and **loses the key attributes of `GSI2`**: since the index is sparse (§9.3), the note disappears from the listings without a line of filtering anywhere. The `bodyRef` stays intact, so `read_note(asOf)` and `note_history` keep answering by `NoteId`. Nothing else is written: there is no guard to release, because a vault reserves no name (RN-KNW-030, removed). Restoring is giving the index attributes back, which is free and becomes `NoteRestored`.
+**`NoteDeleted` is a soft delete.** The `NOTE` item gains `deletedAt` and `deletedBy`, and **loses the key attributes of `GSI2`**: since the index is sparse (§9.3), the note disappears from the listings without a line of filtering anywhere. The `bodyRef` stays intact, so `read_note(asOf)` and `note_history` keep answering by `NoteId`. Nothing else is written: there is no guard to release, because a notebook reserves no name (RN-KNW-030, removed). Restoring is giving the index attributes back, which is free and becomes `NoteRestored`.
 
 **There is no path that destroys content.** That is why `purge` does not exist on the `ContentStore` port (§7.1), and the absence is declared in the code itself as deliberate. Deleting hides the note and preserves the byte: no port, no route and no administrative act destroys what has already been written (RN-AUD-006, and RN-AUD-007, removed).
 
@@ -1024,7 +1026,7 @@ No query to Knowledge is needed: **the present lives in `mv-knowledge`, the past
 
 ## 13. MCP server
 
-Endpoint: `https://mcp.memorysmith.app/mcp` (Streamable HTTP, OAuth 2.1). The tool catalogue and the format of the Vault Context are in `software-vision.md` §9, because **the catalogue is a public contract and lives there, not here**.
+Endpoint: `https://mcp.memorysmith.app/mcp` (Streamable HTTP, OAuth 2.1). The tool catalogue and the format of the Notebook Context are in `software-vision.md` §9, because **the catalogue is a public contract and lives there, not here**.
 
 ### 13.1 `svc-agent` as an anticorruption layer
 
@@ -1062,7 +1064,7 @@ Cognito implements no automatic client registration mechanism, neither DCR nor C
 
 Both solved with no new mechanism:
 
-- **There is no idempotency, and its absence is the decision.** A note transaction writes no guard item, because a vault holds no key: two notes may carry one title (RN-KNW-037) and a repeated `create_note` writes a second note (RN-AGT-024). The tool says so, and declares itself as not idempotent, which is what lets a client tell a retry that costs nothing from one that costs a duplicate.
+- **There is no idempotency, and its absence is the decision.** A note transaction writes no guard item, because a notebook holds no key: two notes may carry one title (RN-KNW-037) and a repeated `create_note` writes a second note (RN-AGT-024). The tool says so, and declares itself as not idempotent, which is what lets a client tell a retry that costs nothing from one that costs a duplicate.
 - **Concurrency.** `update_note` requires `baseRevision`, and a divergence answers `CONFLICT` with the current content attached (RN-AGT-005).
 
 ---
@@ -1089,14 +1091,14 @@ svc-access       GET  /platform/subscriptions?status=      ─┐  platform sess
                  PUT  /platform/subscriptions/:s/status     │  administrative act: sets the
                  PATCH /platform/subscriptions/:s/plan     ─┘  status without the transition
                                                                machine (RN-SUB-018)
-svc-knowledge    GET  /vaults · POST /vaults
-                 GET|PATCH|DELETE /vaults/:v · POST /vaults/:v/restore   (RN-KNW-033)
-                 GET  /vaults/:v/context   (structure and guidance in a single answer)
-                 PUT  /vaults/:v/guidance
-                 POST /vaults/:v/folders · PATCH|DELETE /vaults/:v/folders/:f
-                 POST /vaults/:v/folders/:f/reorder   { afterFolderId | null }
-                 GET|PUT /vaults/:v/folders/:f/template
-                 GET|POST /vaults/:v/notes · GET|PUT|DELETE /vaults/:v/notes/:n
+svc-knowledge    GET  /notebooks · POST /notebooks
+                 GET|PATCH|DELETE /notebooks/:v · POST /notebooks/:v/restore   (RN-KNW-033)
+                 GET  /notebooks/:v/context   (structure and guidance in a single answer)
+                 PUT  /notebooks/:v/guidance
+                 POST /notebooks/:v/folders · PATCH|DELETE /notebooks/:v/folders/:f
+                 POST /notebooks/:v/folders/:f/reorder   { afterFolderId | null }
+                 GET|PUT /notebooks/:v/folders/:f/template
+                 GET|POST /notebooks/:v/notes · GET|PUT|DELETE /notebooks/:v/notes/:n
                  ── POST takes { folderId, content }: a note is created from its
                     content, and the title is read from it (RN-AGT-024)
                  ── the three writes of a Content Slot answer THE REVISION THEY
@@ -1104,23 +1106,23 @@ svc-knowledge    GET  /vaults · POST /vaults
                     (RN-AGT-005): the guidance and the template as { revision },
                     the note as the full DTO. Answering less made a person
                     conflict with themselves on the second write.
-                 POST /vaults/:v/notes/:n/reorder   { afterNoteId | null }
-                 POST /vaults/:v/notes/:n/restore
-                 POST /vaults/:v/notes/:n/move   { toVaultId?, toFolderId }
-                 PUT|DELETE /vaults/:v/limits/:userId   { limit: VIEWER }   (§9.3)
-svc-discovery    GET  /vaults/:v/links/:target   what one wikilink target resolves
+                 POST /notebooks/:v/notes/:n/reorder   { afterNoteId | null }
+                 POST /notebooks/:v/notes/:n/restore
+                 POST /notebooks/:v/notes/:n/move   { toNotebookId?, toFolderId }
+                 PUT|DELETE /notebooks/:v/limits/:userId   { limit: VIEWER }   (§9.3)
+svc-discovery    GET  /notebooks/:v/links/:target   what one wikilink target resolves
                     to: the notes it reaches and whether a title or an alias
                     answered. The interface asks it for the two cases an
                     address cannot answer — none and several (RN-DSC-046)
-                 GET  /vaults/:v/graph   (the whole vault graph, edges from the index)
-                 GET  /vaults/:v/notes/:n/graph?depth= · GET /vaults/:v/notes/:n/backlinks
-                 GET  /vaults/:v/health   (broken links, orphans)
-                 GET  /vaults/:v/facets  (content distribution, feeds the Overview)
-                 POST /vaults/:v/search   { query, mode: lexical }
+                 GET  /notebooks/:v/graph   (the whole notebook graph, edges from the index)
+                 GET  /notebooks/:v/notes/:n/graph?depth= · GET /notebooks/:v/notes/:n/backlinks
+                 GET  /notebooks/:v/health   (broken links, orphans)
+                 GET  /notebooks/:v/facets  (content distribution, feeds the Overview)
+                 POST /notebooks/:v/search   { query, mode: lexical }
 svc-audit        GET  /notes/:n/history
                  GET  /notes/:n/revisions · GET /notes/:n/revisions/:versionId
-                 GET  /vaults/:v/activity?from=&to=
-svc-portability  POST /vaults/:v/export   → the pre-signed URL comes back in the same answer
+                 GET  /notebooks/:v/activity?from=&to=
+svc-portability  POST /notebooks/:v/export   → the pre-signed URL comes back in the same answer
 ```
 
 The authorizer of `svc-access` does not appear here because **it is not a route**: it is a
@@ -1135,31 +1137,31 @@ Routing by path on a single CloudFront (`api.memorysmith.app/knowledge/*` and so
 
 Leaving this implicit is how authz holes are born. Each stage has an explicit owner:
 
-1. **The authorizer (`svc-access`).** It validates the Cognito JWT, confirms the active subscription is in `trial` or `active` (RN-SUB-007), resolves ownership (`isOwner`) and the role of the user in the subscription, and injects all of it into the request context (5 min cache). **It does not know what a vault is**, nor could it: whoever holds the per-vault ceiling is Knowledge.
+1. **The authorizer (`svc-access`).** It validates the Cognito JWT, confirms the active subscription is in `trial` or `active` (RN-SUB-007), resolves ownership (`isOwner`) and the role of the user in the subscription, and injects all of it into the request context (5 min cache). **It does not know what a notebook is**, nor could it: whoever holds the per-notebook ceiling is Knowledge.
 2. **The service that owns the resource.** The `AuthorizationPolicy`, a domain service and not an infrastructure port (§6.6), decides locally, with no network call.
 
-**The stage 2 decision, in one expression.** The effective role is the lesser of the subscription role and the vault ceiling, and ownership overrides both:
+**The stage 2 decision, in one expression.** The effective role is the lesser of the subscription role and the notebook ceiling, and ownership overrides both:
 
 ```typescript
 // domain/access/AuthorizationPolicy.ts — no I/O, no SDK
-effectiveRole(ctx: RequestContext, vault: Vault): Role {
+effectiveRole(ctx: RequestContext, notebook: Notebook): Role {
   if (ctx.isOwner) return Role.OWNER;                     // the holder reaches everything (RN-ACC-013)
   if (!ctx.role.canRead()) return Role.NONE;             // EDITOR | VIEWER | none
-  return Role.min(ctx.role, vault.limitFor(ctx.user));   // the ceiling only lowers (RN-ACC-011)
+  return Role.min(ctx.role, notebook.limitFor(ctx.user));   // the ceiling only lowers (RN-ACC-011)
 }
 ```
 
-The three inputs arrive at no extra cost: `isOwner` and the role come from the context injected by the authorizer, and the ceilings come from the **same `Query`** that already loaded the vault (§9.3). No additional query enters the hot path because of authorisation.
+The three inputs arrive at no extra cost: `isOwner` and the role come from the context injected by the authorizer, and the ceilings come from the **same `Query`** that already loaded the notebook (§9.3). No additional query enters the hot path because of authorisation.
 
-**A fixed rule, with no exception:** every Knowledge use case loads the vault and calls `policy.require(action, vault)` **before anything else**. And **a forbidden resource returns the same `404` as a non-existent one** (RN-SUB-004), because a `403` would confirm the existence of a vault the requester may not see.
+**A fixed rule, with no exception:** every Knowledge use case loads the notebook and calls `policy.require(action, notebook)` **before anything else**. And **a forbidden resource returns the same `404` as a non-existent one** (RN-SUB-004), because a `403` would confirm the existence of a notebook the requester may not see.
 
-> **One deliberate exception to the `404`:** a write refused by a vault ceiling returns a real `FORBIDDEN`, not a `404`. The member **already knows** the vault exists, because they see it in the list (RN-ACC-012: the ceiling never hides). Returning a `404` there would protect no information and would produce the worst possible experience: a vault that shows up on screen and disappears when written to. The `404` rule protects existence; where there is no existence to protect, it does not apply.
+> **One deliberate exception to the `404`:** a write refused by a notebook ceiling returns a real `FORBIDDEN`, not a `404`. The member **already knows** the notebook exists, because they see it in the list (RN-ACC-012: the ceiling never hides). Returning a `404` there would protect no information and would produce the worst possible experience: a notebook that shows up on screen and disappears when written to. The `404` rule protects existence; where there is no existence to protect, it does not apply.
 
 **Three clocks, all declared:**
 
 | Change | Time until it takes effect | Why |
 |---|---|---|
-| Role in the subscription, vault ceiling, member removal | up to 5 min | the authorizer cache (RN-ACC-016) |
+| Role in the subscription, notebook ceiling, member removal | up to 5 min | the authorizer cache (RN-ACC-016) |
 | Subscription status (suspension) | the life of the token | the `subscription_status` claim ages with it (§8.5) |
 | Ownership transferred | up to 5 min | the same cache |
 
@@ -1196,15 +1198,15 @@ The domain returns `Result<T, DomainError>`; **exceptions exist only at the edge
 
 ## 16. Export
 
-`svc-portability` assembles a `.vault` archive and returns a pre-signed URL. The format and the rules are in `software-vision.md` §12.
+`svc-portability` assembles a `.notebook` archive and returns a pre-signed URL. The format and the rules are in `software-vision.md` §12.
 
-**Implementation:** the document is built from the `Vault` aggregate and the notes; the bodies come from the `ContentStore` through the current `ContentRef`s and are copied, never processed. The archive is a zip with **one entry**, `vault.json`, and the object key ends in `.vault` like the file the browser saves.
+**Implementation:** the document is built from the `Notebook` aggregate and the notes; the bodies come from the `ContentStore` through the current `ContentRef`s and are copied, never processed. The archive is a zip with **one entry**, `notebook.json`, and the object key ends in `.notebook` like the file the browser saves.
 
-**This is where file names used to come back into existence, and they do not any more.** `GUIDANCE.md`, `TEMPLATE.md`, `STRUCTURE.md`, the numeric prefix, the reserved-name renaming and the link rewriting were all **derivations**, and a derivation on the way out is a second source of truth for what the vault says (RN-PRT-010). What is written is what is held.
+**This is where file names used to come back into existence, and they do not any more.** `GUIDANCE.md`, `TEMPLATE.md`, `STRUCTURE.md`, the numeric prefix, the reserved-name renaming and the link rewriting were all **derivations**, and a derivation on the way out is a second source of truth for what the notebook says (RN-PRT-010). What is written is what is held.
 
-**The import is the same door, from the other side.** `POST /imports` answers a short-lived address under `s/{subscriptionId}/imports/`, the client uploads the file there, and `POST /imports/apply` reads it and writes the vault — because a request body has a ceiling a real vault clears easily. Writing belongs to the Knowledge context, which Portability may not import, so the composition root builds a `VaultWriter` over the ordinary use cases and hands it to the request: an import goes through the same quota, the same limits and the same events as any other write, and every one of them carries the `Authorship` of whoever imported.
+**The import is the same door, from the other side.** `POST /imports` answers a short-lived address under `s/{subscriptionId}/imports/`, the client uploads the file there, and `POST /imports/apply` reads it and writes the notebook — because a request body has a ceiling a real notebook clears easily. Writing belongs to the Knowledge context, which Portability may not import, so the composition root builds a `NotebookWriter` over the ordinary use cases and hands it to the request: an import goes through the same quota, the same limits and the same events as any other write, and every one of them carries the `Authorship` of whoever imported.
 
-**The schema lives in the contracts package and the validation happens at the edge.** `domain/` imports only the kernel and a zod schema is not the kernel, so the document is shaped in the domain, and the composition root is what serialises it through `vaultDocumentSchema` — which is what makes "the export writes nothing the schema does not describe" a fact rather than an intention (RN-PRT-011).
+**The schema lives in the contracts package and the validation happens at the edge.** `domain/` imports only the kernel and a zod schema is not the kernel, so the document is shaped in the domain, and the composition root is what serialises it through `notebookDocumentSchema` — which is what makes "the export writes nothing the schema does not describe" a fact rather than an intention (RN-PRT-011).
 
 ---
 
@@ -1272,11 +1274,11 @@ The fixed cost of the whole DNS and TLS layer is therefore the hosted zone: arou
 
 ## 18. Non-functional requirements
 
-Initial numbers, so they become tests and not folklore. The thesis of the product is "without friction", and without a number that is not verifiable. Product limits (note size, per-vault ceilings) are in `software-vision.md` §14.
+Initial numbers, so they become tests and not folklore. The thesis of the product is "without friction", and without a number that is not verifiable. Product limits (note size, per-notebook ceilings) are in `software-vision.md` §14.
 
 | | Target |
 |---|---|
-| `get_vault_context` p95 | ≤ 400 ms warm · ≤ 1.5 s cold |
+| `get_notebook_context` p95 | ≤ 400 ms warm · ≤ 1.5 s cold |
 | `create_note` / `update_note` p95 | ≤ 600 ms (not counting the projection, which is asynchronous) |
 | `read_note` p95 | ≤ 300 ms warm |
 | Reindexing delay after a write | ≤ 30 s p95 |
@@ -1334,7 +1336,7 @@ deploy-aws/deploy.ps1     checks the toolchain and the account, installs the wor
                           backend stacks, writes the .env.local of the SPA from the real
                           outputs, builds the SPA, deploys the hosting and verifies the
                           result over HTTP
-deploy-aws/onboard.ps1    creates the first account, the subscription and the first vault,
+deploy-aws/onboard.ps1    creates the first account, the subscription and the first notebook,
                           always through the API of the product
 deploy-aws/destroy.ps1    tears the stacks down, preserves the data by default and reports
                           what survived
@@ -1366,7 +1368,7 @@ Three reasons sustain the choice. There is no staging environment, and a pipelin
 - A note transaction that writes to the `META` item (§10.2).
 - A dense integer `order` field instead of a fractional `Position`.
 - Writing Markdown into DynamoDB.
-- Encoding the vault, the folder, the name or the role in the S3 key.
+- Encoding the notebook, the folder, the name or the role in the S3 key.
 - Reading the table of another service.
 - Filtering by subscription after the query instead of in the key.
 
@@ -1408,7 +1410,7 @@ Three reasons sustain the choice. There is no staging environment, and a pipelin
 - [ ] Does the event carry the complete `ContentRef`, when content is involved?
 
 **Edge**
-- [ ] `policy.require(action, vault)` before anything else.
+- [ ] `policy.require(action, notebook)` before anything else.
 - [ ] A forbidden resource returns a `404`.
 - [ ] The returned error is actionable.
 - [ ] If it is a new MCP tool: it enters the catalogue of `software-vision.md` §9.1 and triggers a minor bump (§23).
@@ -1477,9 +1479,9 @@ Where the code diverges from the design described above, and why. Each of these 
 was taken during construction, contradicts or extends something declared in an earlier
 section, and still holds today.
 
-- **The content index is a scan, not an inverted index** (§11.2). Under the ceiling of 2,000 notes per vault, scanning costs around 1,000 read units per query and saves keeping postings up to date on every write. The `ContentIndex` port is what makes swapping it for an inverted index, or for a managed service, an adapter change if the product ceiling ever rises.
-- **Discovery keeps a projection of the vault structure of its own**, fed by vault and folder events. The Vault Context is answered from it, and querying Knowledge to get the vault name and the folder tree would invert the single direction of §3.1, which is what makes the projections rebuildable.
-- **Discovery gained a sixth route, `GET /vaults/:v/graph`**, which returns the whole link graph of a vault. §14.1 declared only the tree from a note, under a depth ceiling, and this one answers a different question: the graph screen draws the whole vault, with no root. The link projection already held exactly that in the vault partition, so the route is a query by prefix and nothing new is stored. The edges come back as index pairs over the node list, and the ceiling of 2,000 nodes is declared in the answer, because a truncated graph claiming to be whole is worse than no graph.
+- **The content index is a scan, not an inverted index** (§11.2). Under the ceiling of 2,000 notes per notebook, scanning costs around 1,000 read units per query and saves keeping postings up to date on every write. The `ContentIndex` port is what makes swapping it for an inverted index, or for a managed service, an adapter change if the product ceiling ever rises.
+- **Discovery keeps a projection of the notebook structure of its own**, fed by notebook and folder events. The Notebook Context is answered from it, and querying Knowledge to get the notebook name and the folder tree would invert the single direction of §3.1, which is what makes the projections rebuildable.
+- **Discovery gained a sixth route, `GET /notebooks/:v/graph`**, which returns the whole link graph of a notebook. §14.1 declared only the tree from a note, under a depth ceiling, and this one answers a different question: the graph screen draws the whole notebook, with no root. The link projection already held exactly that in the notebook partition, so the route is a query by prefix and nothing new is stored. The edges come back as index pairs over the node list, and the ceiling of 2,000 nodes is declared in the answer, because a truncated graph claiming to be whole is worse than no graph.
 - **The composition of the modular monolith lives in `memorysmith-backend/apps/core-monolith`**, and it is the only place that knows two contexts at once. The services still do not import each other, and the split into six deployables is a swap of that file (§24).
 
 ---

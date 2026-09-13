@@ -12,7 +12,7 @@ import { QueryClient } from '@tanstack/react-query';
  * fixed it, because a reload drops the cache with the page.
  *
  * The policy is the one written here, and it is deliberate rather than
- * inherited. Nothing in a vault changes without somebody writing it, so time
+ * inherited. Nothing in a notebook changes without somebody writing it, so time
  * is the wrong trigger for a refetch: a write is. `WritableContent`
  * invalidates what it wrote, on success and on conflict alike, and that is
  * the whole of the policy.

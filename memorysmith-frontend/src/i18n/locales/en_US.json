@@ -37,7 +37,7 @@
     "handingOver": "Taking you to the sign-in page...",
     "handoverFailed": "The sign-in did not complete. Try again.",
     "sessionExpired": "Your session expired and was ended here. Signing in again picks up exactly where you left off: nothing was lost.",
-    "noneSubscription": "This account reaches no subscription yet. A subscription is what holds your vaults, and it is granted by hand while there is no automatic billing.",
+    "noneSubscription": "This account reaches no subscription yet. A subscription is what holds your notebooks, and it is granted by hand while there is no automatic billing.",
     "pendingSubscription": "Your subscription is waiting for approval. Approval is manual at this stage, and the product opens as soon as it is granted.",
     "blockedSubscription": "This subscription is not active at the moment. Nothing was lost: the data stays exactly where it is and becomes reachable again once access is restored."
   },
@@ -75,18 +75,18 @@
     "pt_BR": "Português"
   },
   "search": {
-    "placeholder": "Search the whole vault…",
+    "placeholder": "Search the whole notebook…",
     "searching": "Searching…",
     "empty": "No notes match.",
     "invalid": "Invalid query. Check the quotes, parentheses and operators.",
     "failed": "The search failed. Try again.",
     "syntaxHint": "Searches the whole text. Accepts \"exact phrase\", -exclude, OR, title:, folder:, section:, content: and frontmatter attributes, such as maturity:evergreen."
   },
-  "vaults": {
-    "heading": "Vaults",
+  "notebooks": {
+    "heading": "Notebooks",
     "noteCount": "{{count}} notes",
     "updatedAt": "updated {{date}}",
-    "open": "Open vault"
+    "open": "Open notebook"
   },
   "structure": {
     "guidance": "Guidance",
@@ -94,20 +94,20 @@
     "root": "Root",
     "hasTemplate": "template",
     "outlineHint": "The folder tree with each folder's description. It is what tells the agent where each note goes.",
-    "backToVaults": "All vaults",
-    "openNavigation": "Vault navigation",
+    "backToNotebooks": "All notebooks",
+    "openNavigation": "Notebook navigation",
     "closeNavigation": "Close navigation",
-    "heading": "Vault Context",
-    "intro": "How this vault describes itself, and what the agent receives from get_vault_context: the Guidance says what the vault is, each folder says what belongs in it, and the folder Template says how a note is laid out.",
-    "guidanceHint": "What this vault is and how to write in it",
+    "heading": "Notebook Context",
+    "intro": "How this notebook describes itself, and what the agent receives from get_notebook_context: the Guidance says what the notebook is, each folder says what belongs in it, and the folder Template says how a note is laid out.",
+    "guidanceHint": "What this notebook is and how to write in it",
     "templates": "Templates",
     "templatesHint_one": "{{count}} folder with a suggested layout",
     "templatesHint_other": "{{count}} folders with a suggested layout",
-    "noTemplates": "No folder in this vault declares a Template.",
+    "noTemplates": "No folder in this notebook declares a Template.",
     "templateOf": "Template of folder {{folder}}",
     "openFolder": "Open folder",
     "content": "Content",
-    "breadcrumb": "Vault context trail"
+    "breadcrumb": "Notebook context trail"
   },
   "folder": {
     "notesHeading": "Notes in this folder",
@@ -127,7 +127,7 @@
     "copied": "Copied",
     "copyHint": "Copy the note's Markdown to the clipboard",
     "untitled": "Untitled note",
-    "attachmentMissing": "This vault holds no file by that name. Attachments are not stored here.",
+    "attachmentMissing": "This notebook holds no file by that name. Attachments are not stored here.",
     "targetPending": "No note carries the title “{{target}}” yet. The link is kept and resolves on its own when one does.",
     "targetAmbiguous_one": "One note answers this target.",
     "targetAmbiguous_other": "{{count}} notes carry this title, so the link reaches all of them. Which one did you mean?",
@@ -140,39 +140,39 @@
   },
   "dashboard": {
     "heading": "Overview",
-    "kpiVaults": "Vaults",
+    "kpiNotebooks": "Notebooks",
     "kpiNotes": "Notes",
     "kpiPending": "Pending links",
     "otherTypes": "Other",
-    "selectVault": "Open a vault",
-    "prevVaults": "Previous vaults",
-    "nextVaults": "Next vaults",
+    "selectNotebook": "Open a notebook",
+    "prevNotebooks": "Previous notebooks",
+    "nextNotebooks": "Next notebooks",
     "kpiOrphans": "Orphan notes",
-    "noFacets": "These vaults declare no attributes in their notes yet, so there is nothing to chart.",
+    "noFacets": "These notebooks declare no attributes in their notes yet, so there is nothing to chart.",
     "moreFacets": "{{count}} more attribute(s) counted but not charted.",
     "discardedFacets": "{{count}} attribute(s) left out of the statistics as free text: {{names}}.",
-    "unavailableVaults": "{{count}} vault(s) did not answer, so these totals are short."
+    "unavailableNotebooks": "{{count}} notebook(s) did not answer, so these totals are short."
   },
   "portability": {
-    "download": "Download vault (.vault)",
+    "download": "Download notebook (.notebook)",
     "preparing": "Preparing the archive…",
     "failed": "Could not prepare the archive",
-    "import": "Import a vault (.vault)",
+    "import": "Import a notebook (.notebook)",
     "uploading": "Uploading…",
-    "importing": "Writing the vault…",
+    "importing": "Writing the notebook…",
     "importFailed": "Could not import that file"
   },
   "graph": {
-    "heading": "Vault graph",
-    "navLabel": "Vault graph",
+    "heading": "Notebook graph",
+    "navLabel": "Notebook graph",
     "controls": "Controls",
     "openControls": "Open controls",
     "closeControls": "Close controls",
     "attributeNodes": "Add",
     "hint": "Scroll to zoom · drag to pan · click a note to open it, an attribute to hold its notes",
     "hintTouch": "Pinch to zoom · drag to pan · tap a note to open it, an attribute to hold its notes",
-    "empty": "This vault has no notes to draw yet.",
-    "truncated": "Showing the first 2000 notes of this vault."
+    "empty": "This notebook has no notes to draw yet.",
+    "truncated": "Showing the first 2000 notes of this notebook."
   },
   "errors": {
     "validation": "Something in what was sent is not accepted.",

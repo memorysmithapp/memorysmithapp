@@ -1,12 +1,12 @@
 /**
- * Vault callouts, rendered as callouts.
+ * Notebook callouts, rendered as callouts.
  *
  * A callout is a blockquote whose first line is a type marker:
  *
  *     > [!warning] O que pode dar errado
  *     > O corpo do aviso.
  *
- * It is a vault convention and not universal Markdown, so nothing in the
+ * It is a notebook convention and not universal Markdown, so nothing in the
  * backend knows about it (PP4). What used to happen here was a pass over the
  * string that swapped the marker for an emoji and left the blockquote behind,
  * which reads as a quotation with a picture in front of it. This turns it into

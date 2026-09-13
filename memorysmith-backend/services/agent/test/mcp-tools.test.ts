@@ -21,10 +21,10 @@ const caller: AgentCaller = {
 
 function gateways(overrides: Record<string, unknown> = {}) {
   const knowledge = {
-    listVaults: async () => [
-      { vaultId: 'v1', name: 'Normas', description: 'Texto normativo', noteCount: 48 },
+    listNotebooks: async () => [
+      { notebookId: 'v1', name: 'Normas', description: 'Texto normativo', noteCount: 48 },
     ],
-    vaultContext: async () => '# Vault: Normas\n\n## Structure\n1. **Normas**: (48 notes)\n',
+    notebookContext: async () => '# Notebook: Normas\n\n## Structure\n1. **Normas**: (48 notes)\n',
     template: async () => ({ content: '# Modelo\n\n## Vigencia', folderName: 'Normas' }),
     listNotes: async () => [
       { noteId: 'n1', title: 'Lei 14.133', slug: 'lei-14133', folderId: 'f1', position: 'a0' },
@@ -53,13 +53,13 @@ function gateways(overrides: Record<string, unknown> = {}) {
     searchNotes: async () => [
       { noteId: 'n1', title: 'Lei 14.133', section: null, excerpt: 'Lei 14.133', score: 1 },
     ],
-    createVault: async () => ({
-      vaultId: 'v2',
+    createNotebook: async () => ({
+      notebookId: 'v2',
       name: 'Achados',
       description: 'Achados de auditoria',
       noteCount: 0,
     }),
-    deleteVault: async () => undefined,
+    deleteNotebook: async () => undefined,
     setGuidance: async () => undefined,
     guidance: async () => ({ content: '# Proposito', revision: 'v1' }),
     createFolder: async () => ({
@@ -115,10 +115,10 @@ describe('The tool catalog is the public contract', () => {
     expect(TOOL_CATALOG.map((tool) => tool.name)).toEqual([
       'whoami',
       'get_skill',
-      'list_vaults',
-      'create_vault',
-      'delete_vault',
-      'get_vault_context',
+      'list_notebooks',
+      'create_notebook',
+      'delete_notebook',
+      'get_notebook_context',
       'get_guidance',
       'set_guidance',
       'create_folder',
@@ -160,8 +160,8 @@ describe('The tool catalog is the public contract', () => {
     // RN-AGT-010: there is no generic tool parameterized by operation.
     const writers = TOOL_CATALOG.filter((tool) => tool.annotations.readOnlyHint === false);
     expect(writers.map((tool) => tool.name)).toEqual([
-      'create_vault',
-      'delete_vault',
+      'create_notebook',
+      'delete_notebook',
       'set_guidance',
       'create_folder',
       'delete_folder',
@@ -179,7 +179,7 @@ describe('The tool catalog is the public contract', () => {
 
   it('declares create_note as NOT idempotent, and update_note as destructive', () => {
     // RN-AGT-024: a repeated call writes a second note, because nothing in a
-    // vault is a key. Declaring it idempotent would tell a client that a retry
+    // notebook is a key. Declaring it idempotent would tell a client that a retry
     // is free, and it is not.
     const create = TOOL_CATALOG.find((tool) => tool.name === 'create_note');
     const update = TOOL_CATALOG.find((tool) => tool.name === 'update_note');
@@ -194,7 +194,7 @@ describe('The tool catalog is the public contract', () => {
     // leaves the title to a heading it may not write gets a note no link can
     // name (RN-KNW-036).
     const create = TOOL_CATALOG.find((tool) => tool.name === 'create_note');
-    expect(create?.inputSchema.required).toEqual(['vault', 'folder', 'content']);
+    expect(create?.inputSchema.required).toEqual(['notebook', 'folder', 'content']);
     expect(create?.description).toContain('frontmatter');
     expect(TOOL_CATALOG.find((tool) => tool.name === 'update_note')?.description).toContain(
       'retitled',
@@ -232,17 +232,17 @@ describe('whoami answers who is acting and how to write here', () => {
     expect(result.content[0]?.text ?? '').toContain('user-1');
   });
 
-  it('lists the vaults actually within reach, not a description of them', async () => {
+  it('lists the notebooks actually within reach, not a description of them', async () => {
     const result = await gateways().call('whoami', {}, caller);
     const answer = result.content[0]?.text ?? '';
     expect(answer).toContain('Normas');
     expect(answer).toContain('48 note(s)');
   });
 
-  it('says plainly when there is no vault yet', async () => {
-    const empty = gateways({ knowledge: { listVaults: async () => [] } });
+  it('says plainly when there is no notebook yet', async () => {
+    const empty = gateways({ knowledge: { listNotebooks: async () => [] } });
     const result = await empty.call('whoami', {}, caller);
-    expect(result.content[0]?.text ?? '').toContain('No vault yet');
+    expect(result.content[0]?.text ?? '').toContain('No notebook yet');
   });
 
   it('walks the reading path and names every tool of the catalog', async () => {
@@ -265,21 +265,21 @@ describe('whoami answers who is acting and how to write here', () => {
   });
 });
 
-describe('The connector authors the vault, and not only its notes', () => {
+describe('The connector authors the notebook, and not only its notes', () => {
   /** Each write tool reaches its own use case; none is parameterized by operation. */
   function spy(): { calls: string[]; adapter: ReturnType<typeof gateways> } {
     const calls: string[] = [];
     const adapter = gateways({
       knowledge: {
-        createVault: async (_caller: unknown, input: { name: string }) => {
-          calls.push(`createVault:${input.name}`);
-          return { vaultId: 'v2', name: input.name, description: '', noteCount: 0 };
+        createNotebook: async (_caller: unknown, input: { name: string }) => {
+          calls.push(`createNotebook:${input.name}`);
+          return { notebookId: 'v2', name: input.name, description: '', noteCount: 0 };
         },
-        deleteVault: async (_caller: unknown, vaultId: string) => {
-          calls.push(`deleteVault:${vaultId}`);
+        deleteNotebook: async (_caller: unknown, notebookId: string) => {
+          calls.push(`deleteNotebook:${notebookId}`);
         },
-        setGuidance: async (_caller: unknown, vaultId: string, content: string) => {
-          calls.push(`setGuidance:${vaultId}:${content}`);
+        setGuidance: async (_caller: unknown, notebookId: string, content: string) => {
+          calls.push(`setGuidance:${notebookId}:${content}`);
         },
         createFolder: async (
           _caller: unknown,
@@ -301,64 +301,68 @@ describe('The connector authors the vault, and not only its notes', () => {
         setTemplate: async (_caller: unknown, input: { folderId: string }) => {
           calls.push(`setTemplate:${input.folderId}`);
         },
-        deleteNote: async (_caller: unknown, vaultId: string, noteId: string) => {
-          calls.push(`deleteNote:${vaultId}:${noteId}`);
+        deleteNote: async (_caller: unknown, notebookId: string, noteId: string) => {
+          calls.push(`deleteNote:${notebookId}:${noteId}`);
         },
       },
     });
     return { calls, adapter };
   }
 
-  it('creates a vault, its guidance, a folder and its template', async () => {
+  it('creates a notebook, its guidance, a folder and its template', async () => {
     const { calls, adapter } = spy();
-    await adapter.call('create_vault', { name: 'Achados', description: 'De auditoria' }, caller);
+    await adapter.call('create_notebook', { name: 'Achados', description: 'De auditoria' }, caller);
     await adapter.call(
       'set_guidance',
-      { vault: 'v2', content: '# Proposito', baseRevision: null },
+      { notebook: 'v2', content: '# Proposito', baseRevision: null },
       caller,
     );
     await adapter.call(
       'create_folder',
-      { vault: 'v2', name: '2026', description: 'Deste exercicio.', parent: 'f1' },
+      { notebook: 'v2', name: '2026', description: 'Deste exercicio.', parent: 'f1' },
       caller,
     );
     await adapter.call(
       'set_template',
-      { vault: 'v2', folder: 'f9', content: '# {{t}}', baseRevision: null },
+      { notebook: 'v2', folder: 'f9', content: '# {{t}}', baseRevision: null },
       caller,
     );
 
     expect(calls).toEqual([
-      'createVault:Achados',
+      'createNotebook:Achados',
       'setGuidance:v2:# Proposito',
       'createFolder:2026:f1',
       'setTemplate:f9',
     ]);
   });
 
-  it('deletes a note, a folder and a vault, each through its own tool', async () => {
+  it('deletes a note, a folder and a notebook, each through its own tool', async () => {
     const { calls, adapter } = spy();
-    await adapter.call('delete_note', { vault: 'v1', note: 'n1' }, caller);
-    await adapter.call('delete_folder', { vault: 'v1', folder: 'f2', policy: 'CASCADE' }, caller);
-    await adapter.call('delete_vault', { vault: 'v1' }, caller);
+    await adapter.call('delete_note', { notebook: 'v1', note: 'n1' }, caller);
+    await adapter.call(
+      'delete_folder',
+      { notebook: 'v1', folder: 'f2', policy: 'CASCADE' },
+      caller,
+    );
+    await adapter.call('delete_notebook', { notebook: 'v1' }, caller);
 
-    expect(calls).toEqual(['deleteNote:v1:n1', 'deleteFolder:f2:CASCADE', 'deleteVault:v1']);
+    expect(calls).toEqual(['deleteNote:v1:n1', 'deleteFolder:f2:CASCADE', 'deleteNotebook:v1']);
   });
 
   it('refuses to remove a folder without an explicit policy', async () => {
     // RN-KNW-007: there is no implicit default, so the tool asks rather than
     // guessing between refusing and cascading over a subtree.
-    const result = await gateways().call('delete_folder', { vault: 'v1', folder: 'f2' }, caller);
+    const result = await gateways().call('delete_folder', { notebook: 'v1', folder: 'f2' }, caller);
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain('delete_folder requires the argument "policy"');
   });
 
   it('says plainly that a deletion destroyed nothing', async () => {
     const { adapter } = spy();
-    const note = await adapter.call('delete_note', { vault: 'v1', note: 'n1' }, caller);
-    const vault = await adapter.call('delete_vault', { vault: 'v1' }, caller);
+    const note = await adapter.call('delete_note', { notebook: 'v1', note: 'n1' }, caller);
+    const notebook = await adapter.call('delete_notebook', { notebook: 'v1' }, caller);
     expect(note.content[0]?.text).toContain('history');
-    expect(vault.content[0]?.text).toContain('Nothing was destroyed');
+    expect(notebook.content[0]?.text).toContain('Nothing was destroyed');
   });
 
   it('passes a refusal by role through, instead of pretending it wrote', async () => {
@@ -366,28 +370,28 @@ describe('The connector authors the vault, and not only its notes', () => {
     // refusal reaches the agent as an error with text it can act on.
     const adapter = gateways({
       knowledge: {
-        createVault: async () => {
-          throw new GatewayError('FORBIDDEN', 'Creating a vault requires the EDITOR role');
+        createNotebook: async () => {
+          throw new GatewayError('FORBIDDEN', 'Creating a notebook requires the EDITOR role');
         },
       },
     });
-    const result = await adapter.call('create_vault', { name: 'X', description: 'Y' }, caller);
+    const result = await adapter.call('create_notebook', { name: 'X', description: 'Y' }, caller);
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain('EDITOR');
   });
 });
 
 describe('The tool adapter translates in both directions', () => {
-  it('returns the vault context as Markdown, not as JSON', async () => {
-    const result = await gateways().call('get_vault_context', { vault: 'v1' }, caller);
+  it('returns the notebook context as Markdown, not as JSON', async () => {
+    const result = await gateways().call('get_notebook_context', { notebook: 'v1' }, caller);
     expect(result.isError).toBe(false);
-    expect(result.content[0]?.text).toContain('# Vault: Normas');
+    expect(result.content[0]?.text).toContain('# Notebook: Normas');
     expect(result.content[0]?.text).toContain('## Structure');
   });
 
   it('answers a missing argument with the schema of the tool', async () => {
     // RN-AGT-003: the error carries what the next attempt needs.
-    const result = await gateways().call('create_note', { vault: 'v1' }, caller);
+    const result = await gateways().call('create_note', { notebook: 'v1' }, caller);
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain('create_note requires the argument "folder"');
     expect(result.content[0]?.text).toContain('content');
@@ -406,7 +410,7 @@ describe('The tool adapter translates in both directions', () => {
     });
     const result = await adapter.call(
       'update_note',
-      { vault: 'v1', note: 'n1', content: '# Nova', baseRevision: 'v3' },
+      { notebook: 'v1', note: 'n1', content: '# Nova', baseRevision: 'v3' },
       caller,
     );
     expect(result.content[0]?.text).toContain('Conteudo atual');
@@ -415,22 +419,22 @@ describe('The tool adapter translates in both directions', () => {
   it('reads a past revision through the audit trail when asOf is given', async () => {
     const result = await gateways().call(
       'read_note',
-      { vault: 'v1', note: 'n1', asOf: '2026-03-15T00:00:00.000Z' },
+      { notebook: 'v1', note: 'n1', asOf: '2026-03-15T00:00:00.000Z' },
       caller,
     );
     expect(result.content[0]?.text).toContain('Como estava em marco');
   });
 
   it('renders the dependency tree as an indented outline', async () => {
-    const result = await gateways().call('related_notes', { vault: 'v1', note: 'n1' }, caller);
+    const result = await gateways().call('related_notes', { notebook: 'v1', note: 'n1' }, caller);
     expect(result.content[0]?.text).toBe('- Achado 12 (n1)\n  - Lei 14.133 (n2)');
   });
 
-  it('says something useful when the connector reaches no vault', async () => {
-    const adapter = gateways({ knowledge: { listVaults: async () => [] } });
-    const result = await adapter.call('list_vaults', {}, caller);
+  it('says something useful when the connector reaches no notebook', async () => {
+    const adapter = gateways({ knowledge: { listNotebooks: async () => [] } });
+    const result = await adapter.call('list_notebooks', {}, caller);
     expect(result.isError).toBe(false);
-    expect(result.content[0]?.text).toContain('reaches no vault yet');
+    expect(result.content[0]?.text).toContain('reaches no notebook yet');
   });
 });
 
@@ -456,7 +460,7 @@ describe('The MCP transport', () => {
   it('refuses a tool call from a token with no subscription', async () => {
     const unbound: VerifiedAgentToken = { sub: 'user-1', clientId: 'x', payload: {} };
     const response = await handleMcpRequest(
-      { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'list_vaults' } },
+      { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'list_notebooks' } },
       unbound,
       gateways(),
     );
@@ -507,17 +511,17 @@ describe('skills: the method, indexed by whoami', () => {
   });
 
   it('serves the body of a skill by name', async () => {
-    const result = await gateways().call('get_skill', { name: 'design-vault' }, caller);
+    const result = await gateways().call('get_skill', { name: 'design-notebook' }, caller);
 
     expect(result.isError).toBe(false);
-    expect(result.content[0]?.text).toBe(skillNamed('design-vault')?.body);
+    expect(result.content[0]?.text).toBe(skillNamed('design-notebook')?.body);
   });
 
-  it('teaches the two mistakes that a vault designed without method makes', () => {
-    const body = skillNamed('design-vault')?.body ?? '';
+  it('teaches the two mistakes that a notebook designed without method makes', () => {
+    const body = skillNamed('design-notebook')?.body ?? '';
 
     // The evidence this skill exists for: a guidance opening with a heading
-    // the Vault Context already emits, and a folder without a template while
+    // the Notebook Context already emits, and a folder without a template while
     // the guidance declares mandatory frontmatter.
     expect(body).toContain('Do not open with a title');
     expect(body).toContain('template');
@@ -582,7 +586,7 @@ describe('skills: the method, indexed by whoami', () => {
     expect(result.isError).toBe(true);
     const text = result.content[0]?.text ?? '';
     expect(text).toContain('NOT_FOUND');
-    expect(text).toContain('design-vault');
+    expect(text).toContain('design-notebook');
   });
 
   it('refuses a call with no name, saying which argument is missing', async () => {
@@ -608,7 +612,7 @@ describe('the connector hands over the Markdown the author wrote (RN-AGT-015)', 
       },
     });
 
-    const result = await adapter.call('read_note', { vault: 'v1', note: 'n1' }, caller);
+    const result = await adapter.call('read_note', { notebook: 'v1', note: 'n1' }, caller);
     const text = result.content[0]?.text ?? '';
 
     // The agent that wants the target reads the target. Expanding here would
@@ -619,7 +623,11 @@ describe('the connector hands over the Markdown the author wrote (RN-AGT-015)', 
 
 describe('writing guidance and template carries the revision (RN-AGT-016)', () => {
   it('refuses set_guidance with no baseRevision, and says what is missing', async () => {
-    const result = await gateways().call('set_guidance', { vault: 'v1', content: '# New' }, caller);
+    const result = await gateways().call(
+      'set_guidance',
+      { notebook: 'v1', content: '# New' },
+      caller,
+    );
 
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain('baseRevision');
@@ -628,7 +636,7 @@ describe('writing guidance and template carries the revision (RN-AGT-016)', () =
   it('accepts an explicit null, which is what an empty slot asserts', async () => {
     const result = await gateways().call(
       'set_guidance',
-      { vault: 'v1', content: '# New', baseRevision: null },
+      { notebook: 'v1', content: '# New', baseRevision: null },
       caller,
     );
 
@@ -640,7 +648,7 @@ describe('writing guidance and template carries the revision (RN-AGT-016)', () =
   it('refuses set_template with no baseRevision', async () => {
     const result = await gateways().call(
       'set_template',
-      { vault: 'v1', folder: 'f1', content: '# T' },
+      { notebook: 'v1', folder: 'f1', content: '# T' },
       caller,
     );
 
@@ -653,16 +661,16 @@ describe('writing guidance and template carries the revision (RN-AGT-016)', () =
       knowledge: {
         guidance: async () => ({ content: '# Proposito', revision: 'v7' }),
       },
-    }).call('get_guidance', { vault: 'v1' }, caller);
+    }).call('get_guidance', { notebook: 'v1' }, caller);
 
     expect(result.isError).toBe(false);
     expect(result.content[0]?.text).toContain('v7');
   });
 
-  it('says what to do when the vault has no guidance yet', async () => {
+  it('says what to do when the notebook has no guidance yet', async () => {
     const result = await gateways({ knowledge: { guidance: async () => null } }).call(
       'get_guidance',
-      { vault: 'v1' },
+      { notebook: 'v1' },
       caller,
     );
 

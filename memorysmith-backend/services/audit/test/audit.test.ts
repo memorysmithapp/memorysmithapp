@@ -3,7 +3,7 @@ import { Instant } from '@memorysmith/kernel';
 import { InMemoryAuditTrail } from '../src/adapters/outbound/DynamoAuditTrail.js';
 import {
   GetNoteHistory,
-  GetVaultActivity,
+  GetNotebookActivity,
   ReadRevision,
   RecordEvents,
 } from '../src/application/index.js';
@@ -12,7 +12,7 @@ import type { RevisionReader } from '../src/domain/index.js';
 import type { ContentRef } from '@memorysmith/kernel';
 
 const SUBSCRIPTION = '01JBQ2X0000000000000000000';
-const VAULT = '01JBQ2X0000000000000000001';
+const NOTEBOOK = '01JBQ2X0000000000000000001';
 const NOTE = '01JBQ2X0000000000000000002';
 const FOLDER = '01JBQ2X0000000000000000003';
 const CONTENT = '01JBQ2X0000000000000000004';
@@ -51,7 +51,7 @@ function envelope(input: {
       ? { contentId: CONTENT, versionId: input.versionId, sha256: 'a'.repeat(64), bytes: 10 }
       : null,
     payload: input.payload ?? {
-      vaultId: VAULT,
+      notebookId: NOTEBOOK,
       noteId: NOTE,
       folderId: FOLDER,
       title: 'Lei 14.133',
@@ -76,7 +76,7 @@ async function seedTrail() {
       at: '2026-03-10T10:00:00.000Z',
       versionId: 'v2',
       payload: {
-        vaultId: VAULT,
+        notebookId: NOTEBOOK,
         noteId: NOTE,
         folderId: FOLDER,
         title: 'Lei 14.133',
@@ -90,7 +90,7 @@ async function seedTrail() {
       at: '2026-03-20T10:00:00.000Z',
       versionId: 'v3',
       payload: {
-        vaultId: VAULT,
+        notebookId: NOTEBOOK,
         noteId: NOTE,
         folderId: FOLDER,
         title: 'Lei 14.133',
@@ -200,7 +200,7 @@ describe('read_note(asOf) rebuilds the past', () => {
         eventId: '01JBQ2X000000000000000000D',
         type: 'NoteDeleted',
         at: '2026-03-25T10:00:00.000Z',
-        payload: { vaultId: VAULT, noteId: NOTE, folderId: FOLDER, slug: 'lei-14133' },
+        payload: { notebookId: NOTEBOOK, noteId: NOTE, folderId: FOLDER, slug: 'lei-14133' },
       }),
     ]);
 
@@ -223,7 +223,7 @@ describe('History and activity', () => {
     expect(history.value).toHaveLength(3);
   });
 
-  it('survives the note changing vault, because the key is by subject', async () => {
+  it('survives the note changing notebook, because the key is by subject', async () => {
     const { trail } = await seedTrail();
     await new AuditEventConsumer(new RecordEvents(trail)).consume([
       {
@@ -237,9 +237,9 @@ describe('History and activity', () => {
         contentRef: null,
         payload: {
           noteId: NOTE,
-          fromVaultId: VAULT,
+          fromNotebookId: NOTEBOOK,
           fromFolderId: FOLDER,
-          toVaultId: '01JBQ2X0000000000000000009',
+          toNotebookId: '01JBQ2X0000000000000000009',
           toFolderId: '01JBQ2X000000000000000000F',
           slug: 'lei-14133',
           position: 'a1',
@@ -250,14 +250,14 @@ describe('History and activity', () => {
     const history = await new GetNoteHistory(trail).execute(NOTE);
     expect(history.ok).toBe(true);
     if (!history.ok) return;
-    // Four events, across two vaults, under one identifier (RN-AUD-004).
+    // Four events, across two notebooks, under one identifier (RN-AUD-004).
     expect(history.value).toHaveLength(4);
   });
 
-  it('filters the activity of a vault by period', async () => {
+  it('filters the activity of a notebook by period', async () => {
     const { trail } = await seedTrail();
-    const activity = await new GetVaultActivity(trail).execute({
-      vaultId: VAULT,
+    const activity = await new GetNotebookActivity(trail).execute({
+      notebookId: NOTEBOOK,
       from: '2026-03-05T00:00:00.000Z',
       to: '2026-03-21T00:00:00.000Z',
     });
@@ -270,7 +270,10 @@ describe('History and activity', () => {
 
   it('rejects a malformed period', async () => {
     const { trail } = await seedTrail();
-    const bad = await new GetVaultActivity(trail).execute({ vaultId: VAULT, from: 'ontem' });
+    const bad = await new GetNotebookActivity(trail).execute({
+      notebookId: NOTEBOOK,
+      from: 'ontem',
+    });
     expect(bad.ok).toBe(false);
   });
 
@@ -281,7 +284,7 @@ describe('History and activity', () => {
         eventId: '01JBQ2X000000000000000000G',
         type: 'NoteReordered',
         at: '2026-03-02T10:00:00.000Z',
-        payload: { vaultId: VAULT, noteId: NOTE, folderId: FOLDER, position: 'a1' },
+        payload: { notebookId: NOTEBOOK, noteId: NOTE, folderId: FOLDER, position: 'a1' },
       }),
     ]);
     const timeline = await trail.timelineOf('NOTE', NOTE);

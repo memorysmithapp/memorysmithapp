@@ -1,13 +1,13 @@
 /**
  * The skill registry: method, not operation.
  *
- * The product rests on a premise, that a vault carries its own instructions
+ * The product rests on a premise, that a notebook carries its own instructions
  * and an agent that reads them writes like the owner would. There is exactly
- * one task where the premise cannot hold: CREATING the vault, because the
+ * one task where the premise cannot hold: CREATING the notebook, because the
  * guidance is what is being produced. That is where the only quality lever the
  * product has is absent, and it is where it would pay off most.
  *
- * What is missing there is not an operation. `create_vault`, `set_guidance`,
+ * What is missing there is not an operation. `create_notebook`, `set_guidance`,
  * `create_folder` and `set_template` already exist and are enough. What is
  * missing is METHOD: which questions to ask, in what order, what makes a
  * guidance good, and when to stop asking and start writing.
@@ -37,16 +37,16 @@ export interface Skill {
   readonly body: string;
 }
 
-const DESIGN_VAULT = `# Designing a vault from scratch
+const DESIGN_NOTEBOOK = `# Designing a notebook from scratch
 
-You are about to create a vault. This is the one moment where the vault cannot
+You are about to create a notebook. This is the one moment where the notebook cannot
 tell you what it is, because you are the one deciding it. Everything written
 here is what the product would have told you if it could.
 
 ## Start from samples, never from a questionnaire
 
-Do not ask "what is this vault for?". An abstract question about purpose
-produces a generic vault, and a generic vault produces vague folder
+Do not ask "what is this notebook for?". An abstract question about purpose
+produces a generic notebook, and a generic notebook produces vague folder
 descriptions, which is what makes an agent guess where a note goes.
 
 Ask instead:
@@ -55,7 +55,7 @@ Ask instead:
 
 Real material, as it exists today: a norm, a meeting note, a paper, an incident
 report, a contract clause. You usually already have them in the conversation or
-in the work at hand. The shape of a vault is derived from the material that
+in the work at hand. The shape of a notebook is derived from the material that
 will live in it.
 
 From three samples you can already see what a folder is, what a note is, and
@@ -63,9 +63,9 @@ which fields repeat. From a paragraph about purpose you can see none of that.
 
 ## Then decide, in this order
 
-1. **What this vault is, in one paragraph.** What belongs, and what
+1. **What this notebook is, in one paragraph.** What belongs, and what
    deliberately does not. The second half is the one that saves work later: a
-   vault that never says what it excludes accumulates everything.
+   notebook that never says what it excludes accumulates everything.
 2. **The kinds of note it recognises.** Two or three, no more, each with a name
    the owner would use out loud. If a kind cannot be told apart from another by
    its content, it is one kind.
@@ -82,11 +82,11 @@ which fields repeat. From a paragraph about purpose you can see none of that.
 The guidance is the document the next agent reads before writing. Write it for
 that reader, not for a human browsing a wiki.
 
-- **Do not open with a title.** The Vault Context already emits a heading with
-  the vault name above whatever you write, so a \`# My vault\` at the top shows
-  up twice. Start with the paragraph that says what this vault is.
+- **Do not open with a title.** The Notebook Context already emits a heading with
+  the notebook name above whatever you write, so a \`# My notebook\` at the top shows
+  up twice. Start with the paragraph that says what this notebook is.
 - **Name the vocabulary.** If the owner calls something a "finding" and not an
-  "issue", write that down. The vocabulary of the vault becomes the query
+  "issue", write that down. The vocabulary of the notebook becomes the query
   language of the search: any frontmatter attribute is a filter.
 - **State the naming convention** for note titles, and give one example of a
   good title and one of a bad one.
@@ -105,7 +105,7 @@ unambiguous.
 Check these four, in order. The first two are the mistakes that actually
 happened when this was done without a method:
 
-1. Does the guidance open with a heading that repeats the vault name? Remove it.
+1. Does the guidance open with a heading that repeats the notebook name? Remove it.
 2. Does every folder that receives notes have a template? A guidance that
    declares mandatory frontmatter and a folder without a template is a
    contradiction the next agent will resolve by guessing.
@@ -140,7 +140,7 @@ avoiding the decision the owner already gave you.
  * invisible from CommonMark alone and are exactly what an agent gets wrong, so
  * the reader who most needs them is the one reading this table. The two guards
  * scoped the other way — the reading-surface expectations and the
- * demonstration vaults — were scoped for reasons that do not apply here.
+ * demonstration notebooks — were scoped for reasons that do not apply here.
  *
  * The `Read?` column left with specification v0.4.0, and it left because the answer
  * stopped being a field: the profile no longer lists what it declines, so what
@@ -232,12 +232,12 @@ function sources(): string {
   ].join('\n');
 }
 
-const CONVERT_INLINE_TAGS = `# Bringing a vault that used inline tags
+const CONVERT_INLINE_TAGS = `# Bringing a notebook that used inline tags
 
-A vault written in an editor that reads \`#subject\` in the body as metadata
+A notebook written in an editor that reads \`#subject\` in the body as metadata
 arrives here intact. Nothing breaks and no note is refused. But the curation
 those tags carried is **lost**: here they are ordinary text, countable by
-nobody, and the person who spent a year filing notes with them has a vault that
+nobody, and the person who spent a year filing notes with them has a notebook that
 looks the same and answers nothing.
 
 That is the declared cost of a decision, and it is paid at the door by whoever
@@ -280,13 +280,13 @@ letter, running to whitespace or punctuation. Nested forms like
 ## The method
 
 1. **Find the candidates.** \`search_notes\` reads the body, so a query for the
-   marker narrows the vault to the notes worth reading. Read them with
+   marker narrows the notebook to the notes worth reading. Read them with
    \`read_note\`.
-2. **Read the guidance first.** The vault may already say what its frontmatter
+2. **Read the guidance first.** The notebook may already say what its frontmatter
    vocabulary is. A tag that contradicts it is a question for the owner, not a
    write.
 3. **Propose, per note, in full.** Show the note, the tags you found, and the
-   \`tags:\` you would write. If the vault already has a \`tags:\` on that note,
+   \`tags:\` you would write. If the notebook already has a \`tags:\` on that note,
    show the MERGED list: you are adding to curation, never replacing it.
    List separately anything you rejected and why, because a rejection you got
    wrong is invisible unless you say it out loud.
@@ -310,7 +310,7 @@ migration, which is the thing this is not.
 
 ## What not to do
 
-- Do not run it over a vault without being asked to.
+- Do not run it over a notebook without being asked to.
 - Do not write a note the person did not see.
 - Do not "finish the rest the same way" after one acceptance. Each note is a
   note somebody wrote.
@@ -321,7 +321,7 @@ const WRITE_NOTES = `# Writing a note this product can read
 
 The body of a note is Markdown, and it is stored exactly as you send it. Almost
 all of it is text the product never looks at, which is deliberate: what a
-convention means belongs to the vault, not to the server.
+convention means belongs to the notebook, not to the server.
 
 There are exactly three places where the product DOES read your content, and
 this is the whole list: **the title of the note, the frontmatter and the
@@ -380,7 +380,7 @@ ${silence()}
   keeping it in the searchable text would make every note match its own
   metadata. Write in the body what you want found by searching.
 - **No key is special.** \`maturity\` and \`reviewed\` are attributes like any
-  other: the vocabulary belongs to the guidance of the vault you are writing in.
+  other: the vocabulary belongs to the guidance of the notebook you are writing in.
   Read it before inventing a field.
 
 ## What is read, and what is only drawn
@@ -394,8 +394,8 @@ the frontmatter and the links are read.
   carries no other meaning, and a heading is not a tag.
 - A block identifier, like \`^abc123\`, names a block so an embed can address
   it. It is drawn nowhere and it means nothing outside its own note.
-- Anything the guidance of the vault invented and the server was never told
-  about. Conventions are for the humans and agents reading the vault, and they
+- Anything the guidance of the notebook invented and the server was never told
+  about. Conventions are for the humans and agents reading the notebook, and they
   work because everyone follows them, not because anything enforces them.
 
 ## Searching what you wrote
@@ -405,7 +405,7 @@ the other half of this: \`"exact phrase"\`, \`-exclusion\`, \`OR\`, parentheses,
 and the fields \`title:\`, \`folder:\`, \`section:\` and \`content:\`. Any other
 prefix is read as a frontmatter attribute, which is what makes
 \`maturity:evergreen\` a valid filter without a line of code about it. The
-vocabulary of the vault becomes the query language of the vault.
+vocabulary of the notebook becomes the query language of the notebook.
 `;
 /**
  * One skill per task, and only tasks that fall OUTSIDE the common path. The
@@ -415,9 +415,9 @@ vocabulary of the vault becomes the query language of the vault.
  */
 export const SKILLS: readonly Skill[] = [
   {
-    name: 'design-vault',
-    task: 'Design a vault from scratch: its guidance, its folders and their templates',
-    body: DESIGN_VAULT,
+    name: 'design-notebook',
+    task: 'Design a notebook from scratch: its guidance, its folders and their templates',
+    body: DESIGN_NOTEBOOK,
   },
   {
     name: 'write-notes',
@@ -426,7 +426,7 @@ export const SKILLS: readonly Skill[] = [
   },
   {
     name: 'convert-inline-tags',
-    task: 'Bring a vault that used inline #tags: propose the equivalent frontmatter, note by note',
+    task: 'Bring a notebook that used inline #tags: propose the equivalent frontmatter, note by note',
     body: CONVERT_INLINE_TAGS,
   },
 ];

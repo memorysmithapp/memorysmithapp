@@ -8,8 +8,8 @@
  * answer for the storage counter.
  *
  * It is needed at least once for real: the counter started existing after the
- * vaults did, so every subscription written before it began at zero while
- * holding a vault full of notes. It is also the repair for the ordinary ways a
+ * notebooks did, so every subscription written before it began at zero while
+ * holding a notebook full of notes. It is also the repair for the ordinary ways a
  * delta can be lost — a stream record dropped past its retries, a relay bug —
  * and it costs nothing to keep around.
  *
@@ -22,7 +22,7 @@
  *
  * WHAT IT COUNTS is what RN-SUB-021 defines as live content, and nothing else:
  * the current revision of every note that is not deleted, plus each guidance
- * and each template. A vault in the bin still holds its bytes, which is both
+ * and each template. A notebook in the bin still holds its bytes, which is both
  * the rule and the truth: nothing was released, and restoring brings it all
  * back.
  */
@@ -43,7 +43,7 @@ export interface SubscriptionUsage {
   readonly templates: number;
 }
 
-/** `S#{subscriptionId}#VAULT#{vaultId}` and `S#{subscriptionId}#VAULTS`. */
+/** `S#{subscriptionId}#NOTEBOOK#{notebookId}` and `S#{subscriptionId}#NOTEBOOKS`. */
 const SUBSCRIPTION_OF_KEY = /^S#([^#]+)#/;
 
 /** Reads `bytes` off a serialized ContentRef, tolerating a missing pointer. */
@@ -103,7 +103,7 @@ export class StorageRecount {
             }
             break;
           }
-          case 'VAULT': {
+          case 'NOTEBOOK': {
             const bytes = bytesOf(item['guidanceRef']);
             if (bytes > 0) {
               current.bytes += bytes;
@@ -155,7 +155,7 @@ export class StorageRecount {
         new PutCommand({
           TableName: this.deps.tableName,
           Item: {
-            PK: `S#${each.subscriptionId}#VAULTS`,
+            PK: `S#${each.subscriptionId}#NOTEBOOKS`,
             SK: 'USAGE',
             entity: 'USAGE',
             storedBytes: each.storedBytes,

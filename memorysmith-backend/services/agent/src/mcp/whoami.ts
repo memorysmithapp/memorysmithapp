@@ -1,9 +1,9 @@
 /**
  * The answer of the `whoami` tool.
  *
- * It exists because of the thesis of the product: a vault carries its own
+ * It exists because of the thesis of the product: a notebook carries its own
  * instructions, and an agent that reads them writes like the person who owns
- * the vault would. That only pays off if the agent knows the instructions are
+ * the notebook would. That only pays off if the agent knows the instructions are
  * there, and nothing in the MCP protocol tells it. So the connector says it,
  * once, in the one call an agent makes when it does not know where it landed.
  *
@@ -16,7 +16,7 @@
 
 import { READING_PATH, TOOL_CATALOG, type ToolDefinition } from './catalog.js';
 import { SKILLS } from './skills.js';
-import type { AgentCaller, VaultListing } from './gateway.js';
+import type { AgentCaller, NotebookListing } from './gateway.js';
 
 function byName(name: string): ToolDefinition | undefined {
   return TOOL_CATALOG.find((tool) => tool.name === name);
@@ -42,12 +42,12 @@ function identity(caller: AgentCaller): string {
   ].join('\n');
 }
 
-function reach(vaults: readonly VaultListing[]): string {
-  if (vaults.length === 0) {
+function reach(notebooks: readonly NotebookListing[]): string {
+  if (notebooks.length === 0) {
     return [
       '## What you can reach',
       '',
-      'No vault yet. Whoever authorized this connector has not created one, or has',
+      'No notebook yet. Whoever authorized this connector has not created one, or has',
       'not been given access to any. Nothing below will return content until then.',
     ].join('\n');
   }
@@ -55,10 +55,10 @@ function reach(vaults: readonly VaultListing[]): string {
   return [
     '## What you can reach',
     '',
-    ...vaults.map(
-      (vault) =>
-        `- **${vault.name}** (\`${vault.vaultId}\`), ${vault.noteCount} note(s)` +
-        (vault.description ? `: ${vault.description}` : ''),
+    ...notebooks.map(
+      (notebook) =>
+        `- **${notebook.name}** (\`${notebook.notebookId}\`), ${notebook.noteCount} note(s)` +
+        (notebook.description ? `: ${notebook.description}` : ''),
     ),
   ].join('\n');
 }
@@ -72,22 +72,22 @@ function path(): string {
   return [
     '## How to write here',
     '',
-    'This vault describes itself. Read it before writing, in this order:',
+    'This notebook describes itself. Read it before writing, in this order:',
     '',
     ...steps.map((tool, index) => `${index + 1}. **\`${tool.name}\`** — ${tool.title}.`),
     '',
-    'The guidance says what this vault is for and the conventions it keeps. The',
+    'The guidance says what this notebook is for and the conventions it keeps. The',
     'folder descriptions say what belongs in each folder, which is how you choose',
     'where a note goes instead of guessing. The template is the shape the notes of',
     'that folder take.',
     '',
-    'The vault context also gives you the identifier of each folder, next to its',
+    'The notebook context also gives you the identifier of each folder, next to its',
     'name, and that is the argument every folder tool takes. You never have to have',
     'created a folder to write in it.',
     '',
     'The server does NOT validate what you write against any of them. It stores the',
     'Markdown you send, whatever it is. Following the guidance and the template is',
-    'what keeps a vault coherent, and it is the whole reason they are readable.',
+    'what keeps a notebook coherent, and it is the whole reason they are readable.',
   ].join('\n');
 }
 
@@ -128,8 +128,8 @@ function surface(): string {
   ].join('\n');
 }
 
-export function whoAmI(caller: AgentCaller, vaults: readonly VaultListing[]): string {
-  return [identity(caller), reach(vaults), path(), skills(), surface()]
+export function whoAmI(caller: AgentCaller, notebooks: readonly NotebookListing[]): string {
+  return [identity(caller), reach(notebooks), path(), skills(), surface()]
     .filter((block) => block.length > 0)
     .join('\n\n');
 }

@@ -17,10 +17,10 @@
 
 import {
   RESERVED_FRONTMATTER_KEYS,
-  VAULT_DOCUMENT_ENTRY,
-  vaultDocumentSchema,
+  NOTEBOOK_DOCUMENT_ENTRY,
+  notebookDocumentSchema,
 } from '@memorysmith/contracts';
-import type { VaultDocument } from '@memorysmith/svc-portability/domain';
+import type { NotebookDocument } from '@memorysmith/svc-portability/domain';
 import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import type { S3Client } from '@aws-sdk/client-s3';
 import {
@@ -45,7 +45,7 @@ import {
 } from '@memorysmith/svc-access/application/context';
 import { ACCESS_LIMITS, StorageQuota } from '@memorysmith/svc-access/domain/values';
 import { DynamoNoteRepository } from '@memorysmith/svc-knowledge/adapters/notes';
-import { DynamoVaultRepository } from '@memorysmith/svc-knowledge/adapters/vaults';
+import { DynamoNotebookRepository } from '@memorysmith/svc-knowledge/adapters/notebooks';
 import { S3ContentStore } from '@memorysmith/svc-knowledge/adapters/content';
 import { DynamoStorageMeter } from '@memorysmith/svc-knowledge/adapters/storage';
 import type { StorageState } from '@memorysmith/svc-knowledge/domain';
@@ -95,37 +95,37 @@ export function buildAccess(infra: Infrastructure, context: SubscriptionContext 
  * takes a SubscriptionContext, so a platform session has nothing to pass.
  */
 /**
- * The one entry of a `.vault` archive, validated against the schema the
+ * The one entry of a `.notebook` archive, validated against the schema the
  * contracts package publishes before a byte of it is written (RN-PRT-011).
  *
  * It lives here because the schema is zod and neither `domain/` nor
  * `application/` may import it — and because the version of the specification
  * the build implements is a fact of the composition root, not of the export.
  */
-export function serializeVaultDocument(document: unknown): { entry: string; content: string } {
+export function serializeNotebookDocument(document: unknown): { entry: string; content: string } {
   return {
-    entry: VAULT_DOCUMENT_ENTRY,
-    content: JSON.stringify(vaultDocumentSchema.parse(document), null, 2),
+    entry: NOTEBOOK_DOCUMENT_ENTRY,
+    content: JSON.stringify(notebookDocumentSchema.parse(document), null, 2),
   };
 }
 
 /**
- * Reads a vault document, validated against the published schema. The mirror
- * of `serializeVaultDocument`, and here for the same reason: the schema is zod
+ * Reads a notebook document, validated against the published schema. The mirror
+ * of `serializeNotebookDocument`, and here for the same reason: the schema is zod
  * and neither `domain/` nor `application/` may import it (RN-PRT-014).
  */
-export function parseVaultDocument(json: string): VaultDocument {
-  return vaultDocumentSchema.parse(JSON.parse(json)) as VaultDocument;
+export function parseNotebookDocument(json: string): NotebookDocument {
+  return notebookDocumentSchema.parse(JSON.parse(json)) as NotebookDocument;
 }
 
 export function buildKnowledge(infra: Infrastructure, context: SubscriptionContext) {
   return {
-    vaults: new DynamoVaultRepository(context, infra.db, infra.knowledgeTable),
+    notebooks: new DynamoNotebookRepository(context, infra.db, infra.knowledgeTable),
     notes: new DynamoNoteRepository(context, infra.db, infra.knowledgeTable),
     content: new S3ContentStore(context, infra.s3, infra.contentBucket),
     storage: { current: () => readStorageBudget(infra, context) },
     // The one layer allowed to know which version of the specification the
-    // product implements. The Vault Context declares these names to the agent
+    // product implements. The Notebook Context declares these names to the agent
     // (RN-AGT-025), and neither the domain nor the application reads a
     // specification to find them.
     reservedVocabulary: RESERVED_FRONTMATTER_KEYS,

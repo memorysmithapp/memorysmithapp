@@ -22,17 +22,17 @@ function bounded(
   return ok(trimmed);
 }
 
-export class VaultName {
-  private readonly __vaultName!: void;
+export class NotebookName {
+  private readonly __notebookName!: void;
   private constructor(readonly value: string) {}
 
-  static create(raw: string): Result<VaultName, DomainError> {
-    const bounds = bounded(raw, 1, 120, 'The vault name');
-    return bounds.ok ? ok(new VaultName(bounds.value)) : bounds;
+  static create(raw: string): Result<NotebookName, DomainError> {
+    const bounds = bounded(raw, 1, 120, 'The notebook name');
+    return bounds.ok ? ok(new NotebookName(bounds.value)) : bounds;
   }
 
   equals(other: unknown): boolean {
-    return other instanceof VaultName && other.value === this.value;
+    return other instanceof NotebookName && other.value === this.value;
   }
 
   toString(): string {
@@ -40,7 +40,7 @@ export class VaultName {
   }
 }
 
-/** What shows up in the vault catalogue. Optional, unlike a folder description. */
+/** What shows up in the notebook catalogue. Optional, unlike a folder description. */
 export class ShortText {
   private readonly __shortText!: void;
   private constructor(readonly value: string) {}
@@ -147,7 +147,7 @@ export class RemovalPolicy {
 }
 
 /** Product limits, declared so they become tests (software-vision.md, 14). */
-export const VAULT_LIMITS = {
+export const NOTEBOOK_LIMITS = {
   maxFolders: 200,
   maxNotes: 2000,
   maxDepth: 6,

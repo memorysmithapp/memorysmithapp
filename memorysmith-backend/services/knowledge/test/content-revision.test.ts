@@ -3,25 +3,25 @@
  *
  * Writing a note was already protected against blind overwrite by RN-AGT-005,
  * and the justification written there holds here with MORE force: the guidance
- * is the most shared document of a vault and the one most likely to be written
+ * is the most shared document of a notebook and the one most likely to be written
  * by two hands at once, a person on the web and an agent over MCP. Whoever
  * wrote last used to win, in silence.
  */
 
 import { describe, expect, it } from 'vitest';
 import { Role, type ContentRef } from '@memorysmith/kernel';
-import { PutGuidance } from '../src/application/vaults.js';
+import { PutGuidance } from '../src/application/notebooks.js';
 import { PutTemplate } from '../src/application/folders.js';
-import type { Vault } from '../src/domain/vault/Vault.js';
-import { authorship, contentRef, expectErr, unwrap, user, vaultWithTree } from './fixtures.js';
+import type { Notebook } from '../src/domain/notebook/Notebook.js';
+import { authorship, contentRef, expectErr, unwrap, user, notebookWithTree } from './fixtures.js';
 
 const ctx = { user, isOwner: true, role: Role.OWNER };
 
-function deps(vault: Vault, stored = 'the current content') {
+function deps(notebook: Notebook, stored = 'the current content') {
   return {
-    vaults: {
-      findById: async () => vault,
-      listAll: async () => [vault],
+    notebooks: {
+      findById: async () => notebook,
+      listAll: async () => [notebook],
       findBySlug: async () => null,
       save: async () => ({ ok: true as const, value: undefined }),
     },
@@ -37,12 +37,12 @@ function deps(vault: Vault, stored = 'the current content') {
 }
 
 describe('guidance: the write echoes the revision it is based on', () => {
-  it('accepts null when the vault has no guidance yet', async () => {
-    const { vault } = vaultWithTree();
+  it('accepts null when the notebook has no guidance yet', async () => {
+    const { notebook } = notebookWithTree();
 
-    const written = await new PutGuidance(deps(vault)).execute({
+    const written = await new PutGuidance(deps(notebook)).execute({
       ctx,
-      vaultId: vault.id,
+      notebookId: notebook.id,
       content: '# Proposito',
       baseRevision: null,
       by: authorship(),
@@ -52,12 +52,12 @@ describe('guidance: the write echoes the revision it is based on', () => {
   });
 
   it('refuses null when a guidance is already there', async () => {
-    const { vault } = vaultWithTree();
-    unwrap(vault.setGuidance(contentRef('a'.repeat(64), 20), authorship()));
+    const { notebook } = notebookWithTree();
+    unwrap(notebook.setGuidance(contentRef('a'.repeat(64), 20), authorship()));
 
-    const refused = await new PutGuidance(deps(vault)).execute({
+    const refused = await new PutGuidance(deps(notebook)).execute({
       ctx,
-      vaultId: vault.id,
+      notebookId: notebook.id,
       content: '# Outro',
       baseRevision: null,
       by: authorship(),
@@ -67,12 +67,12 @@ describe('guidance: the write echoes the revision it is based on', () => {
   });
 
   it('answers a divergence with the current content attached', async () => {
-    const { vault } = vaultWithTree();
-    unwrap(vault.setGuidance(contentRef('a'.repeat(64), 20), authorship()));
+    const { notebook } = notebookWithTree();
+    unwrap(notebook.setGuidance(contentRef('a'.repeat(64), 20), authorship()));
 
-    const refused = await new PutGuidance(deps(vault, 'what the other hand wrote')).execute({
+    const refused = await new PutGuidance(deps(notebook, 'what the other hand wrote')).execute({
       ctx,
-      vaultId: vault.id,
+      notebookId: notebook.id,
       content: '# Outro',
       baseRevision: 'a-revision-that-is-not-the-current-one',
       by: authorship(),
@@ -86,13 +86,13 @@ describe('guidance: the write echoes the revision it is based on', () => {
   });
 
   it('goes through when the revision matches', async () => {
-    const { vault } = vaultWithTree();
+    const { notebook } = notebookWithTree();
     const current = contentRef('a'.repeat(64), 20);
-    unwrap(vault.setGuidance(current, authorship()));
+    unwrap(notebook.setGuidance(current, authorship()));
 
-    const written = await new PutGuidance(deps(vault)).execute({
+    const written = await new PutGuidance(deps(notebook)).execute({
       ctx,
-      vaultId: vault.id,
+      notebookId: notebook.id,
       content: '# Outro',
       baseRevision: current.versionId,
       by: authorship(),
@@ -104,13 +104,13 @@ describe('guidance: the write echoes the revision it is based on', () => {
 
 describe('template: the same guard, for the same reason', () => {
   it('refuses a stale revision', async () => {
-    const { vault, normas } = vaultWithTree();
+    const { notebook, normas } = notebookWithTree();
     const folderId = unwrap(normas).id;
-    unwrap(vault.attachTemplate(folderId, contentRef('a'.repeat(64), 20), authorship()));
+    unwrap(notebook.attachTemplate(folderId, contentRef('a'.repeat(64), 20), authorship()));
 
-    const refused = await new PutTemplate(deps(vault)).execute({
+    const refused = await new PutTemplate(deps(notebook)).execute({
       ctx,
-      vaultId: vault.id,
+      notebookId: notebook.id,
       folderId,
       content: '# Novo modelo',
       baseRevision: 'stale',
@@ -121,12 +121,12 @@ describe('template: the same guard, for the same reason', () => {
   });
 
   it('accepts null on a folder with no template yet', async () => {
-    const { vault, normas } = vaultWithTree();
+    const { notebook, normas } = notebookWithTree();
     const folderId = unwrap(normas).id;
 
-    const written = await new PutTemplate(deps(vault)).execute({
+    const written = await new PutTemplate(deps(notebook)).execute({
       ctx,
-      vaultId: vault.id,
+      notebookId: notebook.id,
       folderId,
       content: '# Modelo',
       baseRevision: null,

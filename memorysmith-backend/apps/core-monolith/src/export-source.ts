@@ -1,26 +1,26 @@
 /**
  * What the Knowledge context hands over for an export. It lives HERE, in the
- * composition root, for the same reason the note catalogue does: the vault and
+ * composition root, for the same reason the note catalogue does: the notebook and
  * its notes belong to Knowledge, and having Portability query them directly
  * would invert the one-way arrow between the contexts (architecture-guide.md,
  * section 3.1).
  *
- * Deleted notes never reach here: `listByVault` already leaves them out, which
+ * Deleted notes never reach here: `listByNotebook` already leaves them out, which
  * is what RN-PRT-006 asks for.
  */
 
-import { VaultId } from '@memorysmith/kernel';
+import { NotebookId } from '@memorysmith/kernel';
 import type {
   ContentStore,
   NoteRepository,
-  VaultRepository,
+  NotebookRepository,
 } from '@memorysmith/svc-knowledge/domain';
 import type { ExportSource } from '@memorysmith/svc-portability/application';
 import type { ExportInput } from '@memorysmith/svc-portability/domain';
 
 /**
  * How many blobs are read from the object store at once. One at a time makes
- * a six-hundred-note vault take longer than the request is allowed to live;
+ * a six-hundred-note notebook take longer than the request is allowed to live;
  * all at once opens six hundred sockets and gets throttled. This is the middle.
  */
 const READ_CONCURRENCY = 24;
@@ -44,7 +44,7 @@ async function mapWithConcurrency<T, U>(
 }
 
 interface KnowledgeSide {
-  readonly vaults: VaultRepository;
+  readonly notebooks: NotebookRepository;
   readonly notes: NoteRepository;
   readonly content: ContentStore;
 }
@@ -52,20 +52,22 @@ interface KnowledgeSide {
 export class KnowledgeExportSource implements ExportSource {
   constructor(private readonly knowledge: KnowledgeSide) {}
 
-  async load(vaultId: string): Promise<ExportInput | null> {
-    const parsed = VaultId.create(vaultId);
+  async load(notebookId: string): Promise<ExportInput | null> {
+    const parsed = NotebookId.create(notebookId);
     if (!parsed.ok) return null;
 
-    const vault = await this.knowledge.vaults.findById(parsed.value);
-    // A vault of another subscription never even reaches here: the key the
+    const notebook = await this.knowledge.notebooks.findById(parsed.value);
+    // A notebook of another subscription never even reaches here: the key the
     // repository builds carries the subscription of the token (RN-SUB-004).
-    if (!vault) return null;
+    if (!notebook) return null;
 
-    const folders = vault.folders.all();
-    const notes = await this.knowledge.notes.listByVault(parsed.value);
+    const folders = notebook.folders.all();
+    const notes = await this.knowledge.notes.listByNotebook(parsed.value);
 
     const [guidance, templates, bodies] = await Promise.all([
-      vault.guidanceRef ? this.knowledge.content.read(vault.guidanceRef) : Promise.resolve(null),
+      notebook.guidanceRef
+        ? this.knowledge.content.read(notebook.guidanceRef)
+        : Promise.resolve(null),
       mapWithConcurrency(folders, READ_CONCURRENCY, async (folder) =>
         folder.templateRef ? this.knowledge.content.read(folder.templateRef) : null,
       ),
@@ -75,8 +77,8 @@ export class KnowledgeExportSource implements ExportSource {
     ]);
 
     return {
-      vaultName: vault.name.value,
-      vaultDescription: vault.description.value,
+      notebookName: notebook.name.value,
+      notebookDescription: notebook.description.value,
       guidance,
       folders: folders.map((folder, index) => ({
         folderId: folder.id.value,

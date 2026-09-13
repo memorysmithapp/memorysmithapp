@@ -81,7 +81,7 @@ beforeAll(async () => {
         <MemoryRouter>
           <WritableContent
             raw={markdown}
-            vaultSlug="a-vault"
+            notebookSlug="a-notebook"
             baseRevision={null}
             writable={true}
             write={() => Promise.resolve('rev-2')}
@@ -118,7 +118,7 @@ const EXPECTED: Record<string, (html: string) => void> = {
     expect(html).toMatch(/embed|status/);
   },
   attachment: (html) => {
-    // A file of the vault that is not a note. This product stores none, so the
+    // A file of the notebook that is not a note. This product stores none, so the
     // reference resolves to nothing and says so — reported the way a pending
     // link is, and never drawn as a link to a note nobody will ever write
     // (RN-DSC-049).
@@ -331,7 +331,7 @@ describe('a rejected notation is rendered as what it is: text', () => {
 /**
  * The raw HTML policy is a **security boundary** and not a rendering
  * preference, which is why it is asserted with the payload that would matter
- * rather than with a `<b>` (profile 5.10). A vault is written by several
+ * rather than with a `<b>` (profile 5.10). A notebook is written by several
  * people and by agents; a page that renders arbitrary HTML out of one is a
  * script injection whose trigger is written by whoever wrote the note.
  */

@@ -2,8 +2,8 @@
  * The address this interface gives a note, and the label inside it.
  *
  * ```
- * /vaults/:vaultSlug/root/<folder slugs>/<label>--<noteId>
- * /vaults/enologia/root/01-castas/indice--01j8x2k9qz3m4n5p6r7s8t9v0w
+ * /notebooks/:notebookSlug/root/<folder slugs>/<label>--<noteId>
+ * /notebooks/enologia/root/01-castas/indice--01j8x2k9qz3m4n5p6r7s8t9v0w
  * ```
  *
  * **The identifier is the address; everything before it is decoration.** A URL
@@ -72,19 +72,19 @@ export function noteIdOf(segment: string): string | null {
 
 /** The whole address of a note, which is what every surface links to. */
 export function noteAddress(
-  vaultSlug: string,
+  notebookSlug: string,
   folderSlugPath: string,
   title: string | null,
   noteId: string,
 ): string {
   const trail = folderSlugPath ? `${folderSlugPath}/` : '';
-  return `/vaults/${vaultSlug}/root/${trail}${noteSegment(title, noteId)}`;
+  return `/notebooks/${notebookSlug}/root/${trail}${noteSegment(title, noteId)}`;
 }
 
 /**
  * The address of a link target, which is where a name legitimately gets
  * encoded: a route reached by clicking and never by typing (RN-DSC-046).
  */
-export function linkTargetAddress(vaultSlug: string, target: string): string {
-  return `/vaults/${vaultSlug}/links/${encodeURIComponent(target.normalize('NFC'))}`;
+export function linkTargetAddress(notebookSlug: string, target: string): string {
+  return `/notebooks/${notebookSlug}/links/${encodeURIComponent(target.normalize('NFC'))}`;
 }

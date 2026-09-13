@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { FolderId, VaultId } from '@memorysmith/kernel';
+import { FolderId, NotebookId } from '@memorysmith/kernel';
 import { NotePlacement } from '../src/domain/services/NotePlacement.js';
 import {
   authorship,
   contentRef,
   expectErr,
   newNote,
-  newVault,
+  newNotebook,
   noteBody,
   unwrap,
 } from './fixtures.js';
@@ -15,8 +15,8 @@ const folderId = FolderId.generate();
 
 describe('Note: creation', () => {
   it('records NoteCreated carrying the complete ContentRef', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId, 'Lei 14.133, art. 75');
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId, 'Lei 14.133, art. 75');
 
     // The title is what the content says, and nothing was passed in.
     expect(note.title).toBe('Lei 14.133, art. 75');
@@ -28,16 +28,16 @@ describe('Note: creation', () => {
   });
 
   it('exposes the revision a caller must echo back on update', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId);
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId);
     expect(note.revision).toBe(note.bodyRef.versionId);
   });
 });
 
 describe('Note: editing', () => {
   it('replaces the body and records NoteUpdated with the new ref', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId);
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId);
     note.pullEvents();
 
     const next = contentRef('d'.repeat(64), 900);
@@ -50,8 +50,8 @@ describe('Note: editing', () => {
 
   it('is a no-op when the content is byte-for-byte identical', () => {
     // RN-KNW-028: no new revision, no event, no re-indexing.
-    const vault = newVault();
-    const note = newNote(vault, folderId);
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId);
     note.pullEvents();
 
     const sameBytes = contentRef(note.bodyRef.sha256, note.bodyRef.bytes);
@@ -62,8 +62,8 @@ describe('Note: editing', () => {
   it('retitles a note by editing the content that states the title', () => {
     // RN-KNW-038: there is no operation that renames a note apart from its
     // content, and this is what one looks like.
-    const vault = newVault();
-    const note = newNote(vault, folderId);
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId);
     note.pullEvents();
 
     const rewritten = contentRef('f'.repeat(64), 1500);
@@ -80,8 +80,8 @@ describe('Note: editing', () => {
   it('leaves a note with no addressable title, and writes it anyway', () => {
     // RN-KNW-036: the content states nothing a link could name. The note is
     // written, and what is reported is the absence, not an error.
-    const vault = newVault();
-    const note = newNote(vault, folderId);
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId);
     note.pullEvents();
 
     unwrap(note.replaceBody(contentRef('b'.repeat(64), 40), 'Just prose.\n', authorship()));
@@ -93,13 +93,13 @@ describe('Note: editing', () => {
   it('keeps the two events of a move and a reorder apart', () => {
     // Only NoteUpdated is a snapshot. A transition is a fact of its own, and
     // collapsing two of those would lose one.
-    const vault = newVault();
-    const note = newNote(vault, folderId);
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId);
     note.pullEvents();
 
     unwrap(
       note.moveTo(
-        { vaultId: vault.id, folderId: FolderId.generate(), position: note.position },
+        { notebookId: notebook.id, folderId: FolderId.generate(), position: note.position },
         authorship(),
       ),
     );
@@ -111,9 +111,9 @@ describe('Note: editing', () => {
 
 describe('Note: ordering', () => {
   it('reorders with a single write, zero bytes in S3', () => {
-    const vault = newVault();
-    const first = newNote(vault, folderId, 'Lei 14.133');
-    const second = newNote(vault, folderId, 'Lei 8.666', [
+    const notebook = newNotebook();
+    const first = newNote(notebook, folderId, 'Lei 14.133');
+    const second = newNote(notebook, folderId, 'Lei 8.666', [
       { noteId: first.id, position: first.position },
     ]);
     const before = second.position;
@@ -137,8 +137,8 @@ describe('Note: ordering', () => {
   });
 
   it('refuses to place a note after itself', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId);
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId);
     const placement = NotePlacement.place(
       [{ noteId: note.id, position: note.position }],
       note.id,
@@ -151,16 +151,16 @@ describe('Note: ordering', () => {
 describe('Note: moving', () => {
   it('preserves the NoteId and reports both sides of the move', () => {
     // RN-KNW-023: the identifier survives, and with it the whole timeline.
-    const vault = newVault();
-    const note = newNote(vault, folderId);
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId);
     const originalId = note.id.value;
     note.pullEvents();
 
-    const toVault = VaultId.generate();
+    const toNotebook = NotebookId.generate();
     const toFolder = FolderId.generate();
     unwrap(
       note.moveTo(
-        { vaultId: toVault, folderId: toFolder, position: NotePlacement.append([]) },
+        { notebookId: toNotebook, folderId: toFolder, position: NotePlacement.append([]) },
         authorship(),
       ),
     );
@@ -169,17 +169,17 @@ describe('Note: moving', () => {
     const [event] = note.pullEvents();
     expect(event?.type).toBe('NoteMoved');
     expect(event?.payload).toMatchObject({
-      fromVaultId: vault.id.value,
-      toVaultId: toVault.value,
+      fromNotebookId: notebook.id.value,
+      toNotebookId: toNotebook.value,
       toFolderId: toFolder.value,
     });
   });
 
   it('refuses a move that changes nothing', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId);
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId);
     const move = note.moveTo(
-      { vaultId: note.vaultId, folderId: note.folderId, position: note.position },
+      { notebookId: note.notebookId, folderId: note.folderId, position: note.position },
       authorship(),
     );
     expect(expectErr(move).code).toBe('VALIDATION');
@@ -188,8 +188,8 @@ describe('Note: moving', () => {
 
 describe('Note: deleting is not destroying', () => {
   it('marks the note, keeps the bodyRef and records NoteDeleted', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId);
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId);
     const bodyBefore = note.bodyRef;
     note.pullEvents();
 
@@ -202,8 +202,8 @@ describe('Note: deleting is not destroying', () => {
   });
 
   it('refuses every write on a deleted note', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId);
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId);
     unwrap(note.delete(authorship()));
     note.pullEvents();
 
@@ -215,8 +215,8 @@ describe('Note: deleting is not destroying', () => {
   });
 
   it('restores a deleted note', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId);
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId);
     unwrap(note.delete(authorship()));
     note.pullEvents();
 
@@ -226,8 +226,8 @@ describe('Note: deleting is not destroying', () => {
   });
 
   it('refuses to restore a note that was never deleted', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId);
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId);
     expect(expectErr(note.restore(authorship())).code).toBe('CONFLICT');
   });
 });

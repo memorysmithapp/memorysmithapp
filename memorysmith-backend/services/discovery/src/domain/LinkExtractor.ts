@@ -1,7 +1,7 @@
 /**
  * LinkExtractor: the first of the two sanctioned readers of content
  * (architecture-guide.md, section 11.1). It reads ONLY the notation the
- * specification declares - no field name, no vault convention - because what a
+ * specification declares - no field name, no notebook convention - because what a
  * convention means belongs to the guidance, never to the backend (PP4).
  *
  * **A target is a title, and the two forms reach it differently.** A wikilink
@@ -96,7 +96,7 @@ function fromWikilink(target: string): ExtractedLink | null {
 function fromMarkdownLink(target: string): ExtractedLink | null {
   const trimmed = target.trim();
   if (trimmed.length === 0) return null;
-  // Step 1: a scheme or a host means the world and never the vault
+  // Step 1: a scheme or a host means the world and never the notebook
   // (RN-DSC-003).
   if (HAS_SCHEME.test(trimmed) || trimmed.startsWith('//')) return null;
 
@@ -190,7 +190,7 @@ function labelKey(label: string): string {
  * context only a parser has, and this reader has none by design (PP4). Of the
  * two ways to be wrong, reading a link that was an example costs a spurious
  * pending link, and skipping a nested list item costs a real edge — the graph
- * lying about what the vault says, which is what the product exists to
+ * lying about what the notebook says, which is what the product exists to
  * prevent. So the cheaper mistake is the one that stays.
  */
 function stripCodeBlocks(markdown: string): string {

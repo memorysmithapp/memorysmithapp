@@ -7,11 +7,11 @@ import { FoldersIndexPage } from './FoldersIndexPage';
 import { folderTrail, folderTrailForNote, noteAt } from './trail';
 import { noteAddress } from '../../shared/api/note-address';
 import { rememberNote } from '../../shared/store/last-note';
-import type { VaultOutletContext } from './VaultLayout';
+import type { NotebookOutletContext } from './NotebookLayout';
 
 /**
- * The `root/*` namespace holds the whole vault content, so folder and note
- * names can never collide with reserved pages: an empty path is the vault root
+ * The `root/*` namespace holds the whole notebook content, so folder and note
+ * names can never collide with reserved pages: an empty path is the notebook root
  * listing, a full match on folder slugs is a folder page, and a last segment
  * carrying an identifier is a note.
  *
@@ -23,8 +23,8 @@ import type { VaultOutletContext } from './VaultLayout';
  */
 export function FolderRoute() {
   const { t } = useTranslation();
-  const { '*': splat = '', vaultSlug = '' } = useParams();
-  const { structure } = useOutletContext<VaultOutletContext>();
+  const { '*': splat = '', notebookSlug = '' } = useParams();
+  const { structure } = useOutletContext<NotebookOutletContext>();
   const path = splat.replace(/\/+$/, '');
   const noteId = noteAt(structure.folders, path);
 
@@ -37,11 +37,13 @@ export function FolderRoute() {
   const folder = trail[trail.length - 1];
   const note = folder?.notes.find((each) => each.id === noteId);
   const canonical =
-    noteId && folder ? noteAddress(vaultSlug, folder.slugPath, note?.title ?? null, noteId) : null;
+    noteId && folder
+      ? noteAddress(notebookSlug, folder.slugPath, note?.title ?? null, noteId)
+      : null;
 
   useEffect(() => {
-    if (canonical) rememberNote(vaultSlug, canonical.split('/root/')[1] ?? '');
-  }, [vaultSlug, canonical]);
+    if (canonical) rememberNote(notebookSlug, canonical.split('/root/')[1] ?? '');
+  }, [notebookSlug, canonical]);
 
   if (!path) return <FoldersIndexPage />;
   if (folderTrail(structure.folders, path).length) return <FolderPage />;
@@ -50,7 +52,7 @@ export function FolderRoute() {
     // address still resolves and the page corrects the label and the trail in
     // place — no round trip and no redirect anybody has to notice
     // (RN-DSC-045, RN-DSC-057).
-    if (canonical && canonical !== `/vaults/${vaultSlug}/root/${path}`) {
+    if (canonical && canonical !== `/notebooks/${notebookSlug}/root/${path}`) {
       return <Navigate to={canonical} replace />;
     }
     return <NotePage noteId={noteId} />;

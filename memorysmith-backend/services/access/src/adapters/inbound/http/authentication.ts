@@ -8,7 +8,7 @@
  *  - a business session, with a subscription_id claim, which yields a context;
  *  - a PLATFORM session, which carries no such claim and therefore yields
  *    NULL. Under it, no subscription-scoped repository is constructible, so no
- *    workspace, vault or note can be reached. The impossibility is the
+ *    workspace, notebook or note can be reached. The impossibility is the
  *    guarantee; a role check would not be (RN-SUB-016, section 8.4).
  */
 

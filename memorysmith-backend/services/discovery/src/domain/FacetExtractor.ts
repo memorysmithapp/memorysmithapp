@@ -9,7 +9,7 @@
  * body, because two readers of the same bytes is the defect this cycle is
  * paying off.
  *
- * There is no list of keys in the code and no per-vault configuration: the
+ * There is no list of keys in the code and no per-notebook configuration: the
  * vocabulary belongs to the guidance, and `maturity` and `reviewed`, the two
  * facets the product declares, are to this extractor attributes like any other
  * (RN-DSC-019, RN-DSC-020).
@@ -32,10 +32,10 @@ export type FacetKind = 'date' | 'boolean' | 'enum' | 'list';
  * **There is no list of reserved keys in this extractor, and there never was
  * one it used.** Reserved means declared, not enforced: every attribute is
  * classified by the shape of its value, so `created: manually` degrades to an
- * ordinary enum instead of being an error and `autor:` written by a vault in
+ * ordinary enum instead of being an error and `autor:` written by a notebook in
  * pt-BR stays legal and stays indexed. What the reservation buys is the name,
  * and the name is read from the specification where it is needed — the
- * Vault Context that declares it to an agent (RN-AGT-025) and the interface
+ * Notebook Context that declares it to an agent (RN-AGT-025) and the interface
  * that may translate its label (RN-DSC-030), never the bytes.
  *
  * The one key this file does know is the one it must never index, and it
@@ -58,7 +58,7 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2})?)?/;
 /**
  * The kind, decided by the form the author wrote (RN-DSC-020). Deciding it by
  * the number of values gave one attribute two kinds across the notes of a
- * single vault, settled by a fact about whichever note was being read.
+ * single notebook, settled by a fact about whichever note was being read.
  */
 function kindOf({ written, values }: FrontmatterEntry): FacetKind | null {
   if (values.length === 0) return null;
@@ -84,7 +84,7 @@ function canonical(kind: FacetKind, value: string): string {
  *
  * `title` produces nothing here, whatever the shape of its value
  * (RN-DSC-050). It names the note (RN-KNW-035) and a note is not a category of
- * itself; leaving it to the cardinality ceiling would mean a small vault
+ * itself; leaving it to the cardinality ceiling would mean a small notebook
  * showing a facet made of titles, and a `title:` of the wrong shape surfacing
  * as one — a facet that appears only when a value is malformed is exactly the
  * surprise the shape rule exists to prevent.

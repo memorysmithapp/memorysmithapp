@@ -74,8 +74,8 @@ export class ProjectionsStack extends Stack {
       eventPattern: {
         source: ['memorysmith.knowledge'],
         detailType: [
-          'VaultCreated',
-          'VaultRenamed',
+          'NotebookCreated',
+          'NotebookRenamed',
           'FolderAdded',
           'FolderRenamed',
           'FolderDescribed',

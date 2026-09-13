@@ -1,7 +1,7 @@
 /**
  * Role: an ORDERED enumeration, and the order is the point.
  *
- * It is what lets the vault ceiling be written as a minimum
+ * It is what lets the notebook ceiling be written as a minimum
  * (architecture-guide.md, section 14.2) instead of a chain of conditionals,
  * and it is what makes it impossible, by type, for a ceiling to promote
  * anyone (RN-ACC-011).
@@ -86,23 +86,23 @@ export class Role {
 
 /**
  * The only admitted ceiling value is VIEWER (RN-ACC-012): there is no ceiling
- * that removes visibility of the vault, because a member of the workspace sees
- * every vault in it. What the ceiling controls is writing, not seeing.
+ * that removes visibility of the notebook, because a member of the workspace sees
+ * every notebook in it. What the ceiling controls is writing, not seeing.
  */
-export class VaultRoleLimit {
-  private readonly __vaultRoleLimit!: void;
+export class NotebookRoleLimit {
+  private readonly __notebookRoleLimit!: void;
   private constructor(readonly role: Role) {}
 
-  static readonly VIEWER = new VaultRoleLimit(Role.VIEWER);
+  static readonly VIEWER = new NotebookRoleLimit(Role.VIEWER);
 
-  static create(raw: string): Result<VaultRoleLimit, DomainError> {
+  static create(raw: string): Result<NotebookRoleLimit, DomainError> {
     // RN-ACC-012. The code stays in this comment and out of the message: an
     // error message is served text, and it addresses whoever called the API,
     // who has no document to resolve the code against (RN-AGT-021).
     if (raw !== 'VIEWER') {
-      return err(DomainError.validation('The only admitted vault role limit is VIEWER'));
+      return err(DomainError.validation('The only admitted notebook role limit is VIEWER'));
     }
-    return ok(VaultRoleLimit.VIEWER);
+    return ok(NotebookRoleLimit.VIEWER);
   }
 
   toString(): string {

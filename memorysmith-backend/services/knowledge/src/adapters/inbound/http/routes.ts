@@ -3,7 +3,7 @@
  * Consumed by the UI; the public contract is the MCP surface.
  *
  * No route receives a subscriptionId. The RequestContext on the request was
- * injected by the authorizer, and each use case authorizes against the vault
+ * injected by the authorizer, and each use case authorizes against the notebook
  * it just loaded, which is stage 2 of section 14.2.
  */
 
@@ -15,24 +15,24 @@ import {
   httpStatusFor,
   NoteId,
   UserId,
-  VaultId,
+  NotebookId,
   type Result,
   type Role,
   type SubscriptionContext,
 } from '@memorysmith/kernel';
 import type { RequestContext } from '../../../domain/access/AuthorizationPolicy.js';
 import type {
-  ClearVaultRoleLimit,
-  CreateVault,
-  DeleteVault,
-  GetVault,
-  GetVaultContext,
-  ListVaults,
+  ClearNotebookRoleLimit,
+  CreateNotebook,
+  DeleteNotebook,
+  GetNotebook,
+  GetNotebookContext,
+  ListNotebooks,
   PutGuidance,
-  RenameVault,
-  RestoreVault,
-  SetVaultRoleLimit,
-} from '../../../application/vaults.js';
+  RenameNotebook,
+  RestoreNotebook,
+  SetNotebookRoleLimit,
+} from '../../../application/notebooks.js';
 import type {
   CreateFolder,
   GetTemplate,
@@ -51,7 +51,7 @@ import type {
   RestoreNote,
   UpdateNote,
 } from '../../../application/notes.js';
-import { noteToDto, noteToSummary, vaultToDetail, vaultToSummary } from './presenters.js';
+import { noteToDto, noteToSummary, notebookToDetail, notebookToSummary } from './presenters.js';
 
 /** What the composition root puts on every authenticated request. */
 export interface KnowledgeRequest {
@@ -63,16 +63,16 @@ export interface KnowledgeRequest {
 }
 
 export interface KnowledgeUseCases {
-  readonly createVault: (request: KnowledgeRequest) => CreateVault;
-  readonly listVaults: (request: KnowledgeRequest) => ListVaults;
-  readonly getVault: (request: KnowledgeRequest) => GetVault;
-  readonly renameVault: (request: KnowledgeRequest) => RenameVault;
-  readonly deleteVault: (request: KnowledgeRequest) => DeleteVault;
-  readonly restoreVault: (request: KnowledgeRequest) => RestoreVault;
+  readonly createNotebook: (request: KnowledgeRequest) => CreateNotebook;
+  readonly listNotebooks: (request: KnowledgeRequest) => ListNotebooks;
+  readonly getNotebook: (request: KnowledgeRequest) => GetNotebook;
+  readonly renameNotebook: (request: KnowledgeRequest) => RenameNotebook;
+  readonly deleteNotebook: (request: KnowledgeRequest) => DeleteNotebook;
+  readonly restoreNotebook: (request: KnowledgeRequest) => RestoreNotebook;
   readonly putGuidance: (request: KnowledgeRequest) => PutGuidance;
-  readonly getVaultContext: (request: KnowledgeRequest) => GetVaultContext;
-  readonly setVaultLimit: (request: KnowledgeRequest) => SetVaultRoleLimit;
-  readonly clearVaultLimit: (request: KnowledgeRequest) => ClearVaultRoleLimit;
+  readonly getNotebookContext: (request: KnowledgeRequest) => GetNotebookContext;
+  readonly setNotebookLimit: (request: KnowledgeRequest) => SetNotebookRoleLimit;
+  readonly clearNotebookLimit: (request: KnowledgeRequest) => ClearNotebookRoleLimit;
   readonly createFolder: (request: KnowledgeRequest) => CreateFolder;
   readonly patchFolder: (request: KnowledgeRequest) => PatchFolder;
   readonly reorderFolder: (request: KnowledgeRequest) => ReorderFolder;
@@ -115,60 +115,67 @@ function noContent(c: Context, result: Result<unknown, DomainError>): Response {
   return result.ok ? new Response(null, { status: 204 }) : fail(c, result.error);
 }
 
-function parseVaultId(raw: string | undefined): Result<VaultId, DomainError> {
-  return VaultId.create(raw ?? '');
+function parseNotebookId(raw: string | undefined): Result<NotebookId, DomainError> {
+  return NotebookId.create(raw ?? '');
 }
 
 export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Variables: Variables }> {
   const app = new Hono<{ Variables: Variables }>();
 
-  app.get('/vaults', async (c) => {
+  app.get('/notebooks', async (c) => {
     const request = c.get('knowledge');
-    const listed = await useCases.listVaults(request).execute({ ctx: request.ctx });
-    return present(c, listed, (vaults) =>
-      vaults.map((vault) => vaultToSummary(vault, request.subscriptionRole)),
+    const listed = await useCases.listNotebooks(request).execute({ ctx: request.ctx });
+    return present(c, listed, (notebooks) =>
+      notebooks.map((notebook) => notebookToSummary(notebook, request.subscriptionRole)),
     );
   });
 
-  app.post('/vaults', async (c) => {
+  app.post('/notebooks', async (c) => {
     const request = c.get('knowledge');
     const body = (await c.req.json().catch(() => ({}))) as {
       name?: string;
       description?: string;
     };
 
-    const created = await useCases.createVault(request).execute({
+    const created = await useCases.createNotebook(request).execute({
       ctx: request.ctx,
       name: String(body.name ?? ''),
       description: String(body.description ?? ''),
       subscriptionId: request.subscription.subscriptionId,
       by: request.authorship,
     });
-    return present(c, created, (vault) => vaultToSummary(vault, request.subscriptionRole), 201);
+    return present(
+      c,
+      created,
+      (notebook) => notebookToSummary(notebook, request.subscriptionRole),
+      201,
+    );
   });
 
-  app.get('/vaults/:v', async (c) => {
+  app.get('/notebooks/:v', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
 
     const found = await useCases
-      .getVault(request)
-      .execute({ ctx: request.ctx, vaultId: vaultId.value });
-    return present(c, found, ({ vault, guidance, role }) => vaultToDetail(vault, role, guidance));
+      .getNotebook(request)
+      .execute({ ctx: request.ctx, notebookId: notebookId.value });
+    return present(c, found, ({ notebook, guidance, role }) =>
+      notebookToDetail(notebook, role, guidance),
+    );
   });
 
-  app.patch('/vaults/:v', async (c) => {
+  app.patch('/notebooks/:v', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
     const body = (await c.req.json().catch(() => ({}))) as { name?: string };
 
     return noContent(
       c,
-      await useCases.renameVault(request).execute({
+      await useCases.renameNotebook(request).execute({
         ctx: request.ctx,
-        vaultId: vaultId.value,
+        notebookId: notebookId.value,
         name: String(body.name ?? ''),
         by: request.authorship,
       }),
@@ -176,56 +183,56 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
   });
 
   /**
-   * Soft delete: the vault leaves every listing, its name goes back to being
+   * Soft delete: the notebook leaves every listing, its name goes back to being
    * available and not one byte is destroyed (RN-KNW-033).
    */
-  app.delete('/vaults/:v', async (c) => {
+  app.delete('/notebooks/:v', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
 
     return noContent(
       c,
-      await useCases.deleteVault(request).execute({
+      await useCases.deleteNotebook(request).execute({
         ctx: request.ctx,
-        vaultId: vaultId.value,
+        notebookId: notebookId.value,
         by: request.authorship,
       }),
     );
   });
 
-  app.post('/vaults/:v/restore', async (c) => {
+  app.post('/notebooks/:v/restore', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
 
     return noContent(
       c,
-      await useCases.restoreVault(request).execute({
+      await useCases.restoreNotebook(request).execute({
         ctx: request.ctx,
-        vaultId: vaultId.value,
+        notebookId: notebookId.value,
         by: request.authorship,
       }),
     );
   });
 
   /** The composed document the agent reads (software-vision.md, 9.2). */
-  app.get('/vaults/:v/context', async (c) => {
+  app.get('/notebooks/:v/context', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
 
     const composed = await useCases
-      .getVaultContext(request)
-      .execute({ ctx: request.ctx, vaultId: vaultId.value });
+      .getNotebookContext(request)
+      .execute({ ctx: request.ctx, notebookId: notebookId.value });
     if (!composed.ok) return fail(c, composed.error);
     return c.text(composed.value, 200, { 'content-type': 'text/markdown; charset=utf-8' });
   });
 
-  app.put('/vaults/:v/guidance', async (c) => {
+  app.put('/notebooks/:v/guidance', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
     const body = (await c.req.json().catch(() => ({}))) as {
       content?: string;
       baseRevision?: string | null;
@@ -233,7 +240,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
 
     const written = await useCases.putGuidance(request).execute({
       ctx: request.ctx,
-      vaultId: vaultId.value,
+      notebookId: notebookId.value,
       content: String(body.content ?? ''),
       baseRevision: body.baseRevision ?? null,
       by: request.authorship,
@@ -243,10 +250,10 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
 
   // ---- Folders -------------------------------------------------------------
 
-  app.post('/vaults/:v/folders', async (c) => {
+  app.post('/notebooks/:v/folders', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
     const body = (await c.req.json().catch(() => ({}))) as {
       parentFolderId?: string | null;
       name?: string;
@@ -261,7 +268,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
 
     const created = await useCases.createFolder(request).execute({
       ctx: request.ctx,
-      vaultId: vaultId.value,
+      notebookId: notebookId.value,
       parentFolderId: parent?.ok ? parent.value : null,
       name: String(body.name ?? ''),
       description: String(body.description ?? ''),
@@ -285,10 +292,10 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     );
   });
 
-  app.patch('/vaults/:v/folders/:f', async (c) => {
+  app.patch('/notebooks/:v/folders/:f', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
     const folderId = FolderId.create(c.req.param('f') ?? '');
     if (!folderId.ok) return fail(c, folderId.error);
 
@@ -311,7 +318,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       c,
       await useCases.patchFolder(request).execute({
         ctx: request.ctx,
-        vaultId: vaultId.value,
+        notebookId: notebookId.value,
         folderId: folderId.value,
         name: body.name,
         description: body.description,
@@ -329,10 +336,10 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     );
   });
 
-  app.post('/vaults/:v/folders/:f/reorder', async (c) => {
+  app.post('/notebooks/:v/folders/:f/reorder', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
     const folderId = FolderId.create(c.req.param('f') ?? '');
     if (!folderId.ok) return fail(c, folderId.error);
 
@@ -344,7 +351,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       c,
       await useCases.reorderFolder(request).execute({
         ctx: request.ctx,
-        vaultId: vaultId.value,
+        notebookId: notebookId.value,
         folderId: folderId.value,
         afterFolderId: after?.ok ? after.value : null,
         by: request.authorship,
@@ -352,17 +359,17 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     );
   });
 
-  app.delete('/vaults/:v/folders/:f', async (c) => {
+  app.delete('/notebooks/:v/folders/:f', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
     const folderId = FolderId.create(c.req.param('f') ?? '');
     if (!folderId.ok) return fail(c, folderId.error);
 
     // No implicit default: the policy travels in the query (RN-KNW-007).
     const removed = await useCases.removeFolder(request).execute({
       ctx: request.ctx,
-      vaultId: vaultId.value,
+      notebookId: notebookId.value,
       folderId: folderId.value,
       policy: c.req.query('policy') ?? '',
       by: request.authorship,
@@ -370,10 +377,10 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     return present(c, removed, (ids) => ({ removedFolderIds: ids.map((id) => id.value) }));
   });
 
-  app.put('/vaults/:v/folders/:f/template', async (c) => {
+  app.put('/notebooks/:v/folders/:f/template', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
     const folderId = FolderId.create(c.req.param('f') ?? '');
     if (!folderId.ok) return fail(c, folderId.error);
     const body = (await c.req.json().catch(() => ({}))) as {
@@ -389,7 +396,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
      */
     const written = await useCases.putTemplate(request).execute({
       ctx: request.ctx,
-      vaultId: vaultId.value,
+      notebookId: notebookId.value,
       folderId: folderId.value,
       content: String(body.content ?? ''),
       baseRevision: body.baseRevision ?? null,
@@ -398,16 +405,16 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     return present(c, written, (ref) => ({ revision: ref.toJSON() }));
   });
 
-  app.get('/vaults/:v/folders/:f/template', async (c) => {
+  app.get('/notebooks/:v/folders/:f/template', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
     const folderId = FolderId.create(c.req.param('f') ?? '');
     if (!folderId.ok) return fail(c, folderId.error);
 
     const template = await useCases
       .getTemplate(request)
-      .execute({ ctx: request.ctx, vaultId: vaultId.value, folderId: folderId.value });
+      .execute({ ctx: request.ctx, notebookId: notebookId.value, folderId: folderId.value });
     if (!template.ok) return fail(c, template.error);
     if (!template.value) return c.json({ content: null }, 200);
     return c.json(template.value, 200);
@@ -415,10 +422,10 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
 
   // ---- Notes ---------------------------------------------------------------
 
-  app.get('/vaults/:v/notes', async (c) => {
+  app.get('/notebooks/:v/notes', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
 
     const folderParam = c.req.query('folderId');
     const folderId = folderParam ? FolderId.create(folderParam) : null;
@@ -426,16 +433,16 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
 
     const listed = await useCases.listNotes(request).execute({
       ctx: request.ctx,
-      vaultId: vaultId.value,
+      notebookId: notebookId.value,
       ...(folderId?.ok ? { folderId: folderId.value } : {}),
     });
     return present(c, listed, (notes) => notes.map(noteToSummary));
   });
 
-  app.post('/vaults/:v/notes', async (c) => {
+  app.post('/notebooks/:v/notes', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
     const body = (await c.req.json().catch(() => ({}))) as {
       folderId?: string;
       content?: string;
@@ -447,7 +454,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
 
     const created = await useCases.createNote(request).execute({
       ctx: request.ctx,
-      vaultId: vaultId.value,
+      notebookId: notebookId.value,
       folderId: folderId.value,
       content: String(body.content ?? ''),
       afterNoteId: after?.ok ? after.value : null,
@@ -456,23 +463,23 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     return present(c, created, (note) => noteToSummary(note), 201);
   });
 
-  app.get('/vaults/:v/notes/:n', async (c) => {
+  app.get('/notebooks/:v/notes/:n', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
     const noteId = NoteId.create(c.req.param('n') ?? '');
     if (!noteId.ok) return fail(c, noteId.error);
 
     const read = await useCases
       .readNote(request)
-      .execute({ ctx: request.ctx, vaultId: vaultId.value, noteId: noteId.value });
+      .execute({ ctx: request.ctx, notebookId: notebookId.value, noteId: noteId.value });
     return present(c, read, ({ note, content }) => noteToDto(note, content));
   });
 
-  app.put('/vaults/:v/notes/:n', async (c) => {
+  app.put('/notebooks/:v/notes/:n', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
     const noteId = NoteId.create(c.req.param('n') ?? '');
     if (!noteId.ok) return fail(c, noteId.error);
 
@@ -483,7 +490,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     const content = String(body.content ?? '');
     const updated = await useCases.updateNote(request).execute({
       ctx: request.ctx,
-      vaultId: vaultId.value,
+      notebookId: notebookId.value,
       noteId: noteId.value,
       content,
       baseRevision: String(body.baseRevision ?? ''),
@@ -504,10 +511,10 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     return present(c, updated, (note) => noteToDto(note, content));
   });
 
-  app.post('/vaults/:v/notes/:n/reorder', async (c) => {
+  app.post('/notebooks/:v/notes/:n/reorder', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
     const noteId = NoteId.create(c.req.param('n') ?? '');
     if (!noteId.ok) return fail(c, noteId.error);
 
@@ -518,7 +525,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       c,
       await useCases.reorderNote(request).execute({
         ctx: request.ctx,
-        vaultId: vaultId.value,
+        notebookId: notebookId.value,
         noteId: noteId.value,
         afterNoteId: after?.ok ? after.value : null,
         by: request.authorship,
@@ -526,29 +533,29 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     );
   });
 
-  app.post('/vaults/:v/notes/:n/move', async (c) => {
+  app.post('/notebooks/:v/notes/:n/move', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
     const noteId = NoteId.create(c.req.param('n') ?? '');
     if (!noteId.ok) return fail(c, noteId.error);
 
     const body = (await c.req.json().catch(() => ({}))) as {
-      toVaultId?: string;
+      toNotebookId?: string;
       toFolderId?: string;
       afterNoteId?: string | null;
     };
     const toFolderId = FolderId.create(String(body.toFolderId ?? ''));
     if (!toFolderId.ok) return fail(c, toFolderId.error);
-    const toVaultId = body.toVaultId ? VaultId.create(body.toVaultId) : null;
-    if (toVaultId && !toVaultId.ok) return fail(c, toVaultId.error);
+    const toNotebookId = body.toNotebookId ? NotebookId.create(body.toNotebookId) : null;
+    if (toNotebookId && !toNotebookId.ok) return fail(c, toNotebookId.error);
     const after = body.afterNoteId ? NoteId.create(body.afterNoteId) : null;
 
     const moved = await useCases.moveNote(request).execute({
       ctx: request.ctx,
-      vaultId: vaultId.value,
+      notebookId: notebookId.value,
       noteId: noteId.value,
-      toVaultId: toVaultId?.ok ? toVaultId.value : null,
+      toNotebookId: toNotebookId?.ok ? toNotebookId.value : null,
       toFolderId: toFolderId.value,
       afterNoteId: after?.ok ? after.value : null,
       by: request.authorship,
@@ -556,10 +563,10 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     return present(c, moved, (note) => noteToSummary(note));
   });
 
-  app.delete('/vaults/:v/notes/:n', async (c) => {
+  app.delete('/notebooks/:v/notes/:n', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
     const noteId = NoteId.create(c.req.param('n') ?? '');
     if (!noteId.ok) return fail(c, noteId.error);
 
@@ -567,17 +574,17 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       c,
       await useCases.deleteNote(request).execute({
         ctx: request.ctx,
-        vaultId: vaultId.value,
+        notebookId: notebookId.value,
         noteId: noteId.value,
         by: request.authorship,
       }),
     );
   });
 
-  app.post('/vaults/:v/notes/:n/restore', async (c) => {
+  app.post('/notebooks/:v/notes/:n/restore', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
     const noteId = NoteId.create(c.req.param('n') ?? '');
     if (!noteId.ok) return fail(c, noteId.error);
 
@@ -585,28 +592,28 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       c,
       await useCases.restoreNote(request).execute({
         ctx: request.ctx,
-        vaultId: vaultId.value,
+        notebookId: notebookId.value,
         noteId: noteId.value,
         by: request.authorship,
       }),
     );
   });
 
-  // ---- Vault role ceilings -------------------------------------------------
+  // ---- Notebook role ceilings -------------------------------------------------
 
-  app.put('/vaults/:v/limits/:user', async (c) => {
+  app.put('/notebooks/:v/limits/:user', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
     const userId = UserId.create(c.req.param('user') ?? '');
     if (!userId.ok) return fail(c, userId.error);
 
     const body = (await c.req.json().catch(() => ({}))) as { limit?: string };
     return noContent(
       c,
-      await useCases.setVaultLimit(request).execute({
+      await useCases.setNotebookLimit(request).execute({
         ctx: request.ctx,
-        vaultId: vaultId.value,
+        notebookId: notebookId.value,
         userId: userId.value,
         limit: String(body.limit ?? ''),
         subscriptionRole: request.subscriptionRole,
@@ -615,18 +622,18 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     );
   });
 
-  app.delete('/vaults/:v/limits/:user', async (c) => {
+  app.delete('/notebooks/:v/limits/:user', async (c) => {
     const request = c.get('knowledge');
-    const vaultId = parseVaultId(c.req.param('v'));
-    if (!vaultId.ok) return fail(c, vaultId.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
     const userId = UserId.create(c.req.param('user') ?? '');
     if (!userId.ok) return fail(c, userId.error);
 
     return noContent(
       c,
-      await useCases.clearVaultLimit(request).execute({
+      await useCases.clearNotebookLimit(request).execute({
         ctx: request.ctx,
-        vaultId: vaultId.value,
+        notebookId: notebookId.value,
         userId: userId.value,
         by: request.authorship,
       }),

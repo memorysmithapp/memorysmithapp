@@ -3,7 +3,7 @@
   "version": "0.5.7",
   "private": true,
   "type": "module",
-  "description": "Knowledge bounded context, the core domain: vaults, guidance, folders, order, templates and notes.",
+  "description": "Knowledge bounded context, the core domain: notebooks, guidance, folders, order, templates and notes.",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run --config vitest.config.ts",
@@ -19,7 +19,7 @@
     "hono": "^4.13.3"
   },
   "exports": {
-    "./adapters/vaults": "./src/adapters/outbound/dynamodb/DynamoVaultRepository.ts",
+    "./adapters/notebooks": "./src/adapters/outbound/dynamodb/DynamoNotebookRepository.ts",
     "./adapters/notes": "./src/adapters/outbound/dynamodb/DynamoNoteRepository.ts",
     "./adapters/content": "./src/adapters/outbound/s3/S3ContentStore.ts",
     "./adapters/storage": "./src/adapters/outbound/dynamodb/DynamoStorageMeter.ts",
@@ -28,7 +28,7 @@
     "./adapters/presenters": "./src/adapters/inbound/http/presenters.ts",
     "./adapters/relay": "./src/adapters/inbound/outbox-relay.ts",
     "./adapters/recount": "./src/adapters/inbound/storage-recount.ts",
-    "./application/vaults": "./src/application/vaults.ts",
+    "./application/notebooks": "./src/application/notebooks.ts",
     "./application/folders": "./src/application/folders.ts",
     "./application/notes": "./src/application/notes.ts",
     "./domain": "./src/domain/index.ts"

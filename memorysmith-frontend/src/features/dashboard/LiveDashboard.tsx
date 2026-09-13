@@ -1,8 +1,8 @@
-// The dashboard over real vaults.
+// The dashboard over real notebooks.
 //
-// It charts the attributes the vaults actually declare, not a fixed set: see
+// It charts the attributes the notebooks actually declare, not a fixed set: see
 // live-stats.ts for why a hardcoded `maturity` chart cannot be a product
-// feature. A vault whose notes carry no frontmatter simply has no charts, and
+// feature. A notebook whose notes carry no frontmatter simply has no charts, and
 // the tiles above still say what it holds.
 
 import { useQuery } from '@tanstack/react-query';
@@ -76,8 +76,8 @@ export function LiveDashboard() {
 
       <div className="stat-row">
         <div className="stat-tile">
-          <span className="stat-value">{nf.format(data.vaults)}</span>
-          <span className="stat-label">{t('dashboard.kpiVaults')}</span>
+          <span className="stat-value">{nf.format(data.notebooks)}</span>
+          <span className="stat-label">{t('dashboard.kpiNotebooks')}</span>
         </div>
         <div className="stat-tile">
           <span className="stat-value">{nf.format(data.notes)}</span>
@@ -109,7 +109,7 @@ export function LiveDashboard() {
       )}
       {data.unavailable > 0 && (
         <p className="dashboard-footnote">
-          {t('dashboard.unavailableVaults', { count: data.unavailable })}
+          {t('dashboard.unavailableNotebooks', { count: data.unavailable })}
         </p>
       )}
       {data.discarded.length > 0 && (

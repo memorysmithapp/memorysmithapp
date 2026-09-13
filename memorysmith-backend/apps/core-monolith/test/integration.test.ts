@@ -1,5 +1,5 @@
 /**
- * The full slice, over HTTP, across four contexts: a vault is authored, the
+ * The full slice, over HTTP, across four contexts: a notebook is authored, the
  * events it produced feed the audit trail and the discovery projections, and
  * the reads come back through the API the UI and the connector use.
  *
@@ -45,11 +45,14 @@ async function drainEvents(): Promise<void> {
 
   for (const event of harness.events.published) {
     const payload = event.payload as Record<string, string>;
-    if (event.type === 'VaultCreated') {
-      await harness.projectStructure.onVault(String(payload['vaultId']), String(payload['name']));
+    if (event.type === 'NotebookCreated') {
+      await harness.projectStructure.onNotebook(
+        String(payload['notebookId']),
+        String(payload['name']),
+      );
     }
     if (event.type === 'FolderAdded') {
-      await harness.projectStructure.onFolder(String(payload['vaultId']), {
+      await harness.projectStructure.onFolder(String(payload['notebookId']), {
         folderId: String(payload['folderId']),
         name: String(payload['name']),
         description: String(payload['description']),
@@ -58,7 +61,7 @@ async function drainEvents(): Promise<void> {
     }
     if (event.type === 'NoteCreated' || event.type === 'NoteUpdated') {
       await harness.projectNote.onWritten({
-        vaultId: String(payload['vaultId']),
+        notebookId: String(payload['notebookId']),
         noteId: String(payload['noteId']),
         folderId: String(payload['folderId']),
         contentRef: event.contentRef
@@ -71,8 +74,8 @@ async function drainEvents(): Promise<void> {
        * in for it here, or the search would answer over an empty index and
        * every assertion about it would be vacuous.
        */
-      const vaultId = String(payload['vaultId']);
-      const known = await harness.discovery.catalog.listNotes(vaultId);
+      const notebookId = String(payload['notebookId']);
+      const known = await harness.discovery.catalog.listNotes(notebookId);
       // The title travels on the event because the write read it from the
       // content, and the aliases come from the frontmatter of the same body.
       // Both are what a link resolves against (RN-DSC-041, RN-DSC-052).
@@ -84,7 +87,7 @@ async function drainEvents(): Promise<void> {
         folderId: String(payload['folderId']),
         folderName: '',
       };
-      harness.discovery.catalog.set(vaultId, [
+      harness.discovery.catalog.set(notebookId, [
         ...known.filter((note) => note.noteId !== entry.noteId),
         entry,
       ]);
@@ -94,29 +97,29 @@ async function drainEvents(): Promise<void> {
 }
 
 async function seed(): Promise<{
-  vaultId: string;
+  notebookId: string;
   folderId: string;
   notes: Record<string, string>;
 }> {
-  const vault = (await (
-    await call('/knowledge/vaults', {
+  const notebook = (await (
+    await call('/knowledge/notebooks', {
       method: 'POST',
       body: {
         name: 'Normas e Legislacao',
         description: 'Texto normativo por artigo',
       },
     })
-  ).json()) as { vaultId: string };
+  ).json()) as { notebookId: string };
 
   const folder = (await (
-    await call(`/knowledge/vaults/${vault.vaultId}/folders`, {
+    await call(`/knowledge/notebooks/${notebook.notebookId}/folders`, {
       method: 'POST',
       body: { name: 'Normas', description: 'Texto normativo por artigo. Uma norma por nota.' },
     })
   ).json()) as { folderId: string };
 
   const achado = (await (
-    await call(`/knowledge/vaults/${vault.vaultId}/notes`, {
+    await call(`/knowledge/notebooks/${notebook.notebookId}/notes`, {
       method: 'POST',
       body: {
         folderId: folder.folderId,
@@ -127,7 +130,7 @@ async function seed(): Promise<{
   ).json()) as { noteId: string };
 
   const lei = (await (
-    await call(`/knowledge/vaults/${vault.vaultId}/notes`, {
+    await call(`/knowledge/notebooks/${notebook.notebookId}/notes`, {
       method: 'POST',
       body: {
         folderId: folder.folderId,
@@ -138,7 +141,7 @@ async function seed(): Promise<{
 
   await drainEvents();
   return {
-    vaultId: vault.vaultId,
+    notebookId: notebook.notebookId,
     folderId: folder.folderId,
     notes: { achado: achado.noteId, lei: lei.noteId },
   };
@@ -171,10 +174,10 @@ beforeEach(async () => {
 
 describe('Discovery answers over the API', () => {
   it('resolves a link written before its target existed', async () => {
-    const { vaultId, notes } = await seed();
+    const { notebookId, notes } = await seed();
 
     const backlinks = (await (
-      await call(`/discovery/vaults/${vaultId}/notes/${notes['lei']}/backlinks`)
+      await call(`/discovery/notebooks/${notebookId}/notes/${notes['lei']}/backlinks`)
     ).json()) as { backlinks: Array<{ noteId: string }> };
 
     // The link was pending when the achado was written and resolved on its own
@@ -183,9 +186,9 @@ describe('Discovery answers over the API', () => {
   });
 
   it('walks the dependency tree from a note', async () => {
-    const { vaultId, notes } = await seed();
+    const { notebookId, notes } = await seed();
     const tree = (await (
-      await call(`/discovery/vaults/${vaultId}/notes/${notes['achado']}/graph?depth=2`)
+      await call(`/discovery/notebooks/${notebookId}/notes/${notes['achado']}/graph?depth=2`)
     ).json()) as { note: { noteId: string }; children: Array<{ note: { noteId: string } }> };
 
     expect(tree.note.noteId).toBe(notes['achado']);
@@ -198,9 +201,9 @@ describe('Discovery answers over the API', () => {
      * no folder name and in no facet. Finding it is the whole point of the
      * content index.
      */
-    const { vaultId, notes } = await seed();
+    const { notebookId, notes } = await seed();
     const byBody = (await (
-      await call(`/discovery/vaults/${vaultId}/search`, {
+      await call(`/discovery/notebooks/${notebookId}/search`, {
         method: 'POST',
         body: { query: 'Art. 75' },
       })
@@ -214,20 +217,20 @@ describe('Discovery answers over the API', () => {
     expect(byBody.hits[0]?.excerpt).toContain('Art. 75');
   });
 
-  it('narrows the search with a field and with a facet of the vault', async () => {
-    const { vaultId, notes } = await seed();
+  it('narrows the search with a field and with a facet of the notebook', async () => {
+    const { notebookId, notes } = await seed();
 
     const byTitle = (await (
-      await call(`/discovery/vaults/${vaultId}/search`, {
+      await call(`/discovery/notebooks/${notebookId}/search`, {
         method: 'POST',
         body: { query: 'title:achado' },
       })
     ).json()) as { hits: Array<{ noteId: string }> };
     expect(byTitle.hits.map((hit) => hit.noteId)).toEqual([notes['achado']]);
 
-    // `maturity` is frontmatter the vault wrote, never a field the code knows.
+    // `maturity` is frontmatter the notebook wrote, never a field the code knows.
     const byFacet = (await (
-      await call(`/discovery/vaults/${vaultId}/search`, {
+      await call(`/discovery/notebooks/${notebookId}/search`, {
         method: 'POST',
         body: { query: 'maturity:evergreen' },
       })
@@ -236,17 +239,17 @@ describe('Discovery answers over the API', () => {
   });
 
   it('refuses a query it cannot parse instead of answering with everything', async () => {
-    const { vaultId } = await seed();
-    const response = await call(`/discovery/vaults/${vaultId}/search`, {
+    const { notebookId } = await seed();
+    const response = await call(`/discovery/notebooks/${notebookId}/search`, {
       method: 'POST',
       body: { query: '"nunca fecha' },
     });
     expect(response.status).toBe(400);
   });
 
-  it('counts the curation facets of the vault', async () => {
-    const { vaultId } = await seed();
-    const stats = (await (await call(`/discovery/vaults/${vaultId}/facets`)).json()) as {
+  it('counts the curation facets of the notebook', async () => {
+    const { notebookId } = await seed();
+    const stats = (await (await call(`/discovery/notebooks/${notebookId}/facets`)).json()) as {
       noteCount: number;
       facets: Array<{ facet: string; values: Array<{ value: string; count: number }> }>;
     };
@@ -258,8 +261,8 @@ describe('Discovery answers over the API', () => {
     expect(reviewed?.values).toHaveLength(2);
   });
 
-  it('answers 404 for a vault of another subscription', async () => {
-    const { vaultId } = await seed();
+  it('answers 404 for a notebook of another subscription', async () => {
+    const { notebookId } = await seed();
     harness.verifier.issue('token-b', { sub: 'user-b', email: 'b@example.com' });
     const other = await call('/access/subscriptions', {
       method: 'POST',
@@ -279,7 +282,7 @@ describe('Discovery answers over the API', () => {
       subscription_status: 'active',
     });
 
-    const attempt = await call(`/discovery/vaults/${vaultId}/facets`, { token: 'token-b' });
+    const attempt = await call(`/discovery/notebooks/${notebookId}/facets`, { token: 'token-b' });
     expect(attempt.status).toBe(404);
   });
 });
@@ -298,23 +301,25 @@ describe('Audit answers over the API', () => {
   });
 
   it('records the whole authoring cycle, not only the notes', async () => {
-    const { vaultId } = await seed();
-    const activity = (await (await call(`/audit/vaults/${vaultId}/activity`)).json()) as {
+    const { notebookId } = await seed();
+    const activity = (await (await call(`/audit/notebooks/${notebookId}/activity`)).json()) as {
       entries: Array<{ type: string }>;
     };
     const types = activity.entries.map((entry) => entry.type);
-    expect(types).toContain('VaultCreated');
+    expect(types).toContain('NotebookCreated');
     expect(types).toContain('FolderAdded');
     expect(types).toContain('NoteCreated');
   });
 
   it('keeps the timeline after the note is deleted', async () => {
-    const { vaultId, notes } = await seed();
-    await call(`/knowledge/vaults/${vaultId}/notes/${notes['lei']}`, { method: 'DELETE' });
+    const { notebookId, notes } = await seed();
+    await call(`/knowledge/notebooks/${notebookId}/notes/${notes['lei']}`, { method: 'DELETE' });
     await drainEvents();
 
     // The note is gone from the listings and the history is still there.
-    expect((await call(`/knowledge/vaults/${vaultId}/notes/${notes['lei']}`)).status).toBe(404);
+    expect((await call(`/knowledge/notebooks/${notebookId}/notes/${notes['lei']}`)).status).toBe(
+      404,
+    );
     const history = (await (await call(`/audit/notes/${notes['lei']}/history`)).json()) as {
       entries: Array<{ type: string }>;
     };
@@ -323,11 +328,11 @@ describe('Audit answers over the API', () => {
 });
 
 describe('Portability answers over the API', () => {
-  it('exports the vault as one document, reachable by a link', async () => {
-    const { vaultId } = await seed();
+  it('exports the notebook as one document, reachable by a link', async () => {
+    const { notebookId } = await seed();
 
     const job = (await (
-      await call(`/portability/vaults/${vaultId}/export`, { method: 'POST' })
+      await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' })
     ).json()) as {
       exportId: string;
       status: string;
@@ -339,29 +344,29 @@ describe('Portability answers over the API', () => {
     expect(job.status).toBe('ready');
     expect(job.noteCount).toBe(2);
     expect(job.bytes).toBeGreaterThan(0);
-    // The archive is never the body of the response: a vault of two thousand
+    // The archive is never the body of the response: a notebook of two thousand
     // notes would not fit in one, and the link is what the browser follows.
     expect(job.downloadUrl).toContain(job.exportId);
 
     // Every key of this system begins with the subscription, this one too.
     const [key] = [...harness.archives.keys()];
-    expect(key).toMatch(/^s\/[0-9A-HJKMNP-TV-Z]{26}\/exports\/[0-9A-HJKMNP-TV-Z]{26}\.vault$/);
+    expect(key).toMatch(/^s\/[0-9A-HJKMNP-TV-Z]{26}\/exports\/[0-9A-HJKMNP-TV-Z]{26}\.notebook$/);
 
     // What came out is a real ZIP carrying ONE document (RN-PRT-009): the
-    // local file header is its first bytes, and the only entry is the vault.
+    // local file header is its first bytes, and the only entry is the notebook.
     const archive = harness.archives.get(key ?? '') as Buffer;
     expect(archive.subarray(0, 4)).toEqual(Buffer.from([0x50, 0x4b, 0x03, 0x04]));
     const inside = archive.toString('latin1');
-    expect(inside).toContain('vault.json');
+    expect(inside).toContain('notebook.json');
     expect(inside).not.toContain('GUIDANCE.md');
     expect(inside).not.toContain('STRUCTURE.md');
   });
 
-  it('takes a .vault back and writes the vault it describes', async () => {
-    // The round trip is the test (RN-PRT-012): a vault exported and imported
+  it('takes a .notebook back and writes the notebook it describes', async () => {
+    // The round trip is the test (RN-PRT-012): a notebook exported and imported
     // comes back the same in everything the document carries.
-    const { vaultId } = await seed();
-    await call(`/portability/vaults/${vaultId}/export`, { method: 'POST' });
+    const { notebookId } = await seed();
+    await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
     const [exportKey] = [...harness.archives.keys()];
     const archive = harness.archives.get(exportKey ?? '') as Buffer;
 
@@ -372,32 +377,32 @@ describe('Portability answers over the API', () => {
     expect(prepared.uploadUrl).toContain(prepared.uploadKey);
     // Under the subscription prefix, like everything else (rule 1).
     expect(prepared.uploadKey).toMatch(
-      /^s\/[0-9A-HJKMNP-TV-Z]{26}\/imports\/[0-9A-HJKMNP-TV-Z]{26}\.vault$/,
+      /^s\/[0-9A-HJKMNP-TV-Z]{26}\/imports\/[0-9A-HJKMNP-TV-Z]{26}\.notebook$/,
     );
     harness.uploads.set(prepared.uploadKey, archive);
 
     const job = (await (
       await call('/portability/imports/apply', {
         method: 'POST',
-        // The subscription holds each vault name once (RN-KNW-032), and this
+        // The subscription holds each notebook name once (RN-KNW-032), and this
         // document came from this very subscription: naming the copy is what
-        // makes "the same file twice gives two vaults" true without the server
+        // makes "the same file twice gives two notebooks" true without the server
         // inventing a suffix.
         body: { uploadKey: prepared.uploadKey, name: 'Normas e Legislacao (copia)' },
       })
-    ).json()) as { vaultId: string; status: string; folderCount: number; noteCount: number };
+    ).json()) as { notebookId: string; status: string; folderCount: number; noteCount: number };
 
     expect(job.status).toBe('imported');
     expect(job.noteCount).toBe(2);
-    // A new vault, never the one it came from (RN-PRT-012).
-    expect(job.vaultId).not.toBe(vaultId);
+    // A new notebook, never the one it came from (RN-PRT-012).
+    expect(job.notebookId).not.toBe(notebookId);
     // And the upload is discarded once the import ends.
     expect(harness.uploads.has(prepared.uploadKey)).toBe(false);
 
     const [original, imported] = await Promise.all(
-      [vaultId, job.vaultId].map(
+      [notebookId, job.notebookId].map(
         async (id) =>
-          (await (await call(`/knowledge/vaults/${id}`)).json()) as {
+          (await (await call(`/knowledge/notebooks/${id}`)).json()) as {
             name: string;
             folders: Array<{ name: string; description: string; hasTemplate: boolean }>;
             guidance: { content: string } | null;
@@ -413,26 +418,26 @@ describe('Portability answers over the API', () => {
 
     // Every body byte for byte, in the order the document carried.
     const bodies = async (id: string): Promise<string[]> => {
-      const notes = (await (await call(`/knowledge/vaults/${id}/notes`)).json()) as Array<{
+      const notes = (await (await call(`/knowledge/notebooks/${id}/notes`)).json()) as Array<{
         noteId: string;
       }>;
       return Promise.all(
         notes.map(
           async (note) =>
             (
-              (await (await call(`/knowledge/vaults/${id}/notes/${note.noteId}`)).json()) as {
+              (await (await call(`/knowledge/notebooks/${id}/notes/${note.noteId}`)).json()) as {
                 content: string;
               }
             ).content,
         ),
       );
     };
-    expect(await bodies(job.vaultId)).toEqual(await bodies(vaultId));
+    expect(await bodies(job.notebookId)).toEqual(await bodies(notebookId));
   });
 
   it('refuses a document it cannot read, and creates nothing', async () => {
     // RN-PRT-014: refused whole, with the reason, before the first write.
-    const before = (await (await call('/knowledge/vaults')).json()) as unknown[];
+    const before = (await (await call('/knowledge/notebooks')).json()) as unknown[];
 
     const prepared = (await (await call('/portability/imports', { method: 'POST' })).json()) as {
       uploadKey: string;
@@ -444,46 +449,54 @@ describe('Portability answers over the API', () => {
       body: { uploadKey: prepared.uploadKey },
     });
     expect(refused.status).toBe(400);
-    expect(((await refused.json()) as { message: string }).message).toContain('.vault');
+    expect(((await refused.json()) as { message: string }).message).toContain('.notebook');
 
-    const after = (await (await call('/knowledge/vaults')).json()) as unknown[];
+    const after = (await (await call('/knowledge/notebooks')).json()) as unknown[];
     expect(after.length).toBe(before.length);
   });
 
   it('answers 404 for an upload of another subscription', async () => {
     const refused = await call('/portability/imports/apply', {
       method: 'POST',
-      body: { uploadKey: 's/01JBXR8Z5T7QK9M2N4P6R8S0T2/imports/01JBXR8Z5T7QK9M2N4P6R8S0T2.vault' },
+      body: {
+        uploadKey: 's/01JBXR8Z5T7QK9M2N4P6R8S0T2/imports/01JBXR8Z5T7QK9M2N4P6R8S0T2.notebook',
+      },
     });
     expect(refused.status).toBe(404);
   });
 
-  it('answers 404 for a vault this session cannot read', async () => {
-    // A vault that is not ours is indistinguishable from one that does not
+  it('answers 404 for a notebook this session cannot read', async () => {
+    // A notebook that is not ours is indistinguishable from one that does not
     // exist: a 403 here would confirm it exists (rule 9).
-    const response = await call('/portability/vaults/01JBXR8Z5T7QK9M2N4P6R8S0T2/export', {
+    const response = await call('/portability/notebooks/01JBXR8Z5T7QK9M2N4P6R8S0T2/export', {
       method: 'POST',
     });
     expect(response.status).toBe(404);
   });
 });
 
-describe('Deleting a vault takes it out of reach without destroying it', () => {
+describe('Deleting a notebook takes it out of reach without destroying it', () => {
   it('removes it from every listing and from every context', async () => {
-    const { vaultId, notes } = await seed();
+    const { notebookId, notes } = await seed();
 
-    expect((await call(`/knowledge/vaults/${vaultId}`, { method: 'DELETE' })).status).toBe(204);
+    expect((await call(`/knowledge/notebooks/${notebookId}`, { method: 'DELETE' })).status).toBe(
+      204,
+    );
 
     // Out of the listing, and out of Knowledge, Discovery and Portability
-    // alike: a deleted vault answers like one that never existed (rule 9).
-    const listed = (await (await call('/knowledge/vaults')).json()) as Array<{ vaultId: string }>;
-    expect(listed.map((vault) => vault.vaultId)).not.toContain(vaultId);
-    expect((await call(`/knowledge/vaults/${vaultId}`)).status).toBe(404);
-    expect((await call(`/knowledge/vaults/${vaultId}/notes/${notes['lei']}`)).status).toBe(404);
-    expect((await call(`/discovery/vaults/${vaultId}/graph`)).status).toBe(404);
-    expect((await call(`/portability/vaults/${vaultId}/export`, { method: 'POST' })).status).toBe(
+    // alike: a deleted notebook answers like one that never existed (rule 9).
+    const listed = (await (await call('/knowledge/notebooks')).json()) as Array<{
+      notebookId: string;
+    }>;
+    expect(listed.map((notebook) => notebook.notebookId)).not.toContain(notebookId);
+    expect((await call(`/knowledge/notebooks/${notebookId}`)).status).toBe(404);
+    expect((await call(`/knowledge/notebooks/${notebookId}/notes/${notes['lei']}`)).status).toBe(
       404,
     );
+    expect((await call(`/discovery/notebooks/${notebookId}/graph`)).status).toBe(404);
+    expect(
+      (await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' })).status,
+    ).toBe(404);
 
     // Nothing was destroyed: the history of a note inside it still answers.
     const history = (await (await call(`/audit/notes/${notes['lei']}/history`)).json()) as {
@@ -493,37 +506,37 @@ describe('Deleting a vault takes it out of reach without destroying it', () => {
   });
 
   it('frees the name and gives it back on restore', async () => {
-    const { vaultId } = await seed();
-    await call(`/knowledge/vaults/${vaultId}`, { method: 'DELETE' });
+    const { notebookId } = await seed();
+    await call(`/knowledge/notebooks/${notebookId}`, { method: 'DELETE' });
 
     // The slug is available again, exactly as a deleted note frees its own.
-    const twin = await call('/knowledge/vaults', {
+    const twin = await call('/knowledge/notebooks', {
       method: 'POST',
       body: { name: 'Normas e Legislacao', description: 'Outro' },
     });
     expect(twin.status).toBe(201);
 
     // And restoring is refused while the name belongs to someone else.
-    const refused = await call(`/knowledge/vaults/${vaultId}/restore`, { method: 'POST' });
+    const refused = await call(`/knowledge/notebooks/${notebookId}/restore`, { method: 'POST' });
     expect(refused.status).toBe(409);
 
-    const { vaultId: twinId } = (await twin.json()) as { vaultId: string };
-    await call(`/knowledge/vaults/${twinId}`, { method: 'DELETE' });
-    expect((await call(`/knowledge/vaults/${vaultId}/restore`, { method: 'POST' })).status).toBe(
-      204,
-    );
-    expect((await call(`/knowledge/vaults/${vaultId}`)).status).toBe(200);
+    const { notebookId: twinId } = (await twin.json()) as { notebookId: string };
+    await call(`/knowledge/notebooks/${twinId}`, { method: 'DELETE' });
+    expect(
+      (await call(`/knowledge/notebooks/${notebookId}/restore`, { method: 'POST' })).status,
+    ).toBe(204);
+    expect((await call(`/knowledge/notebooks/${notebookId}`)).status).toBe(200);
   });
 
   it('records the deletion in the trail, with authorship', async () => {
-    const { vaultId } = await seed();
-    await call(`/knowledge/vaults/${vaultId}`, { method: 'DELETE' });
+    const { notebookId } = await seed();
+    await call(`/knowledge/notebooks/${notebookId}`, { method: 'DELETE' });
     await drainEvents();
 
-    const activity = (await (await call(`/audit/vaults/${vaultId}/activity`)).json()) as {
+    const activity = (await (await call(`/audit/notebooks/${notebookId}/activity`)).json()) as {
       entries: Array<{ type: string; authorship: { userId: string } }>;
     };
-    const deleted = activity.entries.find((entry) => entry.type === 'VaultDeleted');
+    const deleted = activity.entries.find((entry) => entry.type === 'NotebookDeleted');
     expect(deleted?.authorship.userId).toBe('user-owner');
   });
 });
@@ -537,14 +550,14 @@ describe('Deleting a vault takes it out of reach without destroying it', () => {
  */
 describe('The plan limits how much a subscription can store', () => {
   it('refuses a write that would cross the line, and says what the numbers are', async () => {
-    const { vaultId, folderId } = await seed();
+    const { notebookId, folderId } = await seed();
     harness.storage.record(harness.events.published);
 
     // A ceiling just above what is already stored: enough for a short note,
     // not for a long one.
     harness.storage.limitBytes = harness.storage.usedBytes + 200;
 
-    const refused = await call(`/knowledge/vaults/${vaultId}/notes`, {
+    const refused = await call(`/knowledge/notebooks/${notebookId}/notes`, {
       method: 'POST',
       body: { folderId, content: 'x'.repeat(500) },
     });
@@ -556,34 +569,37 @@ describe('The plan limits how much a subscription can store', () => {
     // And nothing was written: the check runs before the content reaches the
     // store, so a refused write leaves no orphan revision behind.
     const listed = (await (
-      await call(`/knowledge/vaults/${vaultId}/notes?folderId=${folderId}`)
+      await call(`/knowledge/notebooks/${notebookId}/notes?folderId=${folderId}`)
     ).json()) as Array<{ title: string }>;
     expect(listed.map((note) => note.title)).not.toContain('Nota longa');
   });
 
   it('still admits the writes that get you back under it', async () => {
-    const { vaultId, folderId, notes } = await seed();
+    const { notebookId, folderId, notes } = await seed();
     harness.storage.record(harness.events.published);
     harness.storage.limitBytes = 1; // hopelessly over
 
     const read = (await (
-      await call(`/knowledge/vaults/${vaultId}/notes/${notes['lei']}`)
+      await call(`/knowledge/notebooks/${notebookId}/notes/${notes['lei']}`)
     ).json()) as { revision: { versionId: string } };
 
     // Shortening a note is admitted, and so is deleting one: being over the
     // limit must not trap someone inside it.
-    const shortened = await call(`/knowledge/vaults/${vaultId}/notes/${notes['lei']}`, {
+    const shortened = await call(`/knowledge/notebooks/${notebookId}/notes/${notes['lei']}`, {
       method: 'PUT',
       body: { content: 'Curta.', baseRevision: read.revision.versionId },
     });
     expect(shortened.status).toBe(200);
     expect(
-      (await call(`/knowledge/vaults/${vaultId}/notes/${notes['achado']}`, { method: 'DELETE' }))
-        .status,
+      (
+        await call(`/knowledge/notebooks/${notebookId}/notes/${notes['achado']}`, {
+          method: 'DELETE',
+        })
+      ).status,
     ).toBe(204);
 
     // Growing one is not.
-    const grown = await call(`/knowledge/vaults/${vaultId}/notes`, {
+    const grown = await call(`/knowledge/notebooks/${notebookId}/notes`, {
       method: 'POST',
       body: { folderId, content: 'y'.repeat(100) },
     });

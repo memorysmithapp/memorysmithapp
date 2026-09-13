@@ -12,7 +12,7 @@ import { useWriteStatus } from '../store/write-status';
 
 /**
  * A reading surface whose task boxes can be ticked, when the effective role in
- * this vault allows writing.
+ * this notebook allows writing.
  *
  * Three surfaces render the same kind of thing, a Content Slot: the note, the
  * guidance and the template of a folder. A box alive in one and dead in the
@@ -20,18 +20,18 @@ import { useWriteStatus } from '../store/write-status';
  *
  * The text written back is the ORIGINAL one, and not what is on screen: the
  * screen shows wikilinks resolved and embeds expanded, and writing that back
- * would hand the vault a document nobody typed.
+ * would hand the notebook a document nobody typed.
  */
 export function WritableContent({
   raw,
-  vaultSlug,
+  notebookSlug,
   baseRevision,
   writable,
   write,
   invalidates,
 }: {
   raw: string;
-  vaultSlug: string;
+  notebookSlug: string;
   baseRevision: string | null;
   writable: boolean;
   write: TaskWriter;
@@ -81,7 +81,7 @@ export function WritableContent({
     segment.kind === 'text'
       ? {
           ...segment,
-          rendered: resolveWikilinks(segment.text, (slug) => resolveNoteUrl(vaultSlug, slug)),
+          rendered: resolveWikilinks(segment.text, (slug) => resolveNoteUrl(notebookSlug, slug)),
         }
       : segment,
   );
@@ -136,7 +136,7 @@ export function WritableContent({
           return (
             <Transclusion
               key={index}
-              vaultSlug={vaultSlug}
+              notebookSlug={notebookSlug}
               target={segment.target}
               anchor={segment.anchor}
             />

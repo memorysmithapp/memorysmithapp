@@ -5,7 +5,7 @@
  * silently. In a system whose audit trail lives on events, that silence would
  * be a hole in the record.
  *
- * The relay also maintains the folder and vault counters (section 10.3),
+ * The relay also maintains the folder and notebook counters (section 10.3),
  * OUTSIDE the user transaction. To avoid counting twice when the stream
  * reprocesses, the increment travels with a dedup item:
  *
@@ -118,7 +118,7 @@ export class OutboxRelay {
 
   /**
    * One transaction per event, carrying everything that event moves: the note
-   * counters of the folder and the vault, and the stored bytes of the whole
+   * counters of the folder and the notebook, and the stored bytes of the whole
    * subscription (RN-SUB-021). They travel together because they share one
    * dedup marker: two transactions would mean the second one is refused by the
    * SEEN item the first one wrote.
@@ -176,12 +176,12 @@ export class OutboxRelay {
 
     if (bytes !== 0) {
       // One item per subscription, in the subscription's own partition rather
-      // than a vault's: what a plan limits is the subscription, and a vault in
+      // than a notebook's: what a plan limits is the subscription, and a notebook in
       // the bin is still holding its bytes.
       writes.push({
         Update: {
           TableName: this.deps.tableName,
-          Key: { PK: `S#${envelope.subscriptionId}#VAULTS`, SK: 'USAGE' },
+          Key: { PK: `S#${envelope.subscriptionId}#NOTEBOOKS`, SK: 'USAGE' },
           UpdateExpression: 'ADD storedBytes :delta SET updatedAt = :at',
           ExpressionAttributeValues: { ':delta': bytes, ':at': envelope.occurredAt },
         },

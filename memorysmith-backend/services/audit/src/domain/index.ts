@@ -3,9 +3,9 @@
  * poverty is the point: the trail is APPEND-ONLY (RN-AUD-001), so there is
  * nothing else it could do.
  *
- * The key is BY SUBJECT, not by vault (architecture-guide.md, section 12.2).
+ * The key is BY SUBJECT, not by notebook (architecture-guide.md, section 12.2).
  * That is what makes the timeline of a note survive it changing folder and
- * vault, and it is the reason moving a note is a command instead of a delete
+ * notebook, and it is the reason moving a note is a command instead of a delete
  * plus a create.
  */
 
@@ -80,8 +80,8 @@ export interface AuditTrail {
   append(events: AuditEvent[]): Promise<void>;
   /** The complete timeline of one subject, in chronological order. */
   timelineOf(subject: EventSubject, subjectId: string): Promise<AuditEvent[]>;
-  /** Activity inside a vault over a period, for the activity screen. */
-  activityOf(vaultId: string, from: Instant | null, to: Instant | null): Promise<AuditEvent[]>;
+  /** Activity inside a notebook over a period, for the activity screen. */
+  activityOf(notebookId: string, from: Instant | null, to: Instant | null): Promise<AuditEvent[]>;
 }
 
 /**

@@ -7,7 +7,7 @@ import { isAttachmentName } from './attachment';
 export interface SplitDocument {
   frontmatter: Record<string, string>;
   /**
-   * Which of those keys the vault wrote as a list, whether in a dash block or
+   * Which of those keys the notebook wrote as a list, whether in a dash block or
    * inline. The values are flattened to one comma-separated string so the
    * table can print them, and that flattening is lossy: `tags: a, b` and a
    * two-item list read the same afterwards. The set keeps the difference,
@@ -19,7 +19,7 @@ export interface SplitDocument {
 }
 
 /**
- * A note is bytes the vault wrote, and a vault written on Windows, or in a
+ * A note is bytes the notebook wrote, and a notebook written on Windows, or in a
  * desktop editor, or pasted from anywhere, carries CRLF. Every reader in this
  * module starts here, because a carriage return left at the end of a line is
  * invisible in the source and fatal to a regex: `.` does not match one, so

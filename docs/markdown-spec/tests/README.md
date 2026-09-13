@@ -23,8 +23,8 @@ The executable half. A specification is a claim; this is the part that can be ch
 | `title` | The title the note carries, which is the key a link resolves against (`SPEC.md` §5.3). `null` says the note has no addressable title. Absent means the case makes no claim about it |
 | `links` | The edges a conforming Indexer produces, in any order. Absent means the case makes no claim about links |
 | `facets` | The attributes a conforming Indexer produces, as `name → { kind, values }`. Absent means the case makes no claim about attributes |
-| `vault` | The notes and attachments that exist while this case runs: `notes` is a list of whole Markdown documents, `attachments` a list of names. Absent means the case makes no claim that depends on a vault |
-| `resolution` | What each target resolves to once the vault is there: `target`, `kind` (`note`, `attachment` or `pending`) and `edges`. Requires `vault`, and `vault` requires it |
+| `notebook` | The notes and attachments that exist while this case runs: `notes` is a list of whole Markdown documents, `attachments` a list of names. Absent means the case makes no claim that depends on a notebook |
+| `resolution` | What each target resolves to once the notebook is there: `target`, `kind` (`note`, `attachment` or `pending`) and `edges`. Requires `notebook`, and `notebook` requires it |
 
 An expectation of `[]` or `{}` is a claim, and a strong one: it says the input produces **nothing**. Those cases carry as much of the specification as the positive ones, because the failure they prevent — a notation that quietly does nothing while somebody believes in it — is the failure a specification exists to prevent.
 
@@ -41,7 +41,7 @@ Rules a runner has to follow:
   announced its own title outside the document would let a runner skip it. A fixture whose
   document opens with a frontmatter stating `title:` or `aliases:` is not announcing anything:
   it is the input, and reading it is the rule under test.
-- **`resolution` is not `links`.** `links` is what one note *extracts*, and holds with no vault
+- **`resolution` is not `links`.** `links` is what one note *extracts*, and holds with no notebook
   at all; `resolution` is what those targets *become* once other notes and attachments exist.
   Only a note produces an edge, one per note that matches — by title, or, when no title
   matched the target, by alias (§5.2, step 8). An attachment produces none, and a target that

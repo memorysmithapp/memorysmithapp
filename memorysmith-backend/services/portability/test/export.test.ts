@@ -1,26 +1,26 @@
 /**
- * A vault leaves as ONE DOCUMENT (RN-PRT-009).
+ * A notebook leaves as ONE DOCUMENT (RN-PRT-009).
  *
  * It used to leave as a tree of `.md` files, and that was a one-way door:
  * everything a folder of files cannot hold was dropped at it — the identity of
  * a note, its fractional position, the description of a folder, the Guidance,
  * the Template, when each thing was written. What is asserted here is the
- * opposite property: the document holds exactly what the vault holds, and
- * **nothing the vault does not** (RN-PRT-010).
+ * opposite property: the document holds exactly what the notebook holds, and
+ * **nothing the notebook does not** (RN-PRT-010).
  */
 
 import { describe, expect, it } from 'vitest';
 import {
   archiveNameOf,
-  buildVaultDocument,
-  VAULT_DOCUMENT_VERSION,
+  buildNotebookDocument,
+  NOTEBOOK_DOCUMENT_VERSION,
   type ExportInput,
-} from '../src/domain/VaultDocumentBuilder.js';
+} from '../src/domain/NotebookDocumentBuilder.js';
 import { createZip } from '../src/adapters/zip.js';
 
-const vault: ExportInput = {
-  vaultName: 'Normas e Legislacao',
-  vaultDescription: 'Texto normativo por artigo.',
+const notebook: ExportInput = {
+  notebookName: 'Normas e Legislacao',
+  notebookDescription: 'Texto normativo por artigo.',
   guidance: '# Proposito\n\nUma norma por nota.',
   folders: [
     {
@@ -69,20 +69,20 @@ const vault: ExportInput = {
 };
 
 const NOW = '2026-09-09T12:00:00.000Z';
-const document = buildVaultDocument(vault, NOW);
+const document = buildNotebookDocument(notebook, NOW);
 
-describe('the document carries the vault whole', () => {
+describe('the document carries the notebook whole', () => {
   it('says what shape it is, and carries no version of the notation', () => {
     // The one field an importer reads before anything else. The notation the
     // bodies are written in has no version apart from the product that wrote
     // them, so the document states none (RN-PRT-011).
-    expect(document.documentVersion).toBe(VAULT_DOCUMENT_VERSION);
+    expect(document.documentVersion).toBe(NOTEBOOK_DOCUMENT_VERSION);
     expect(document).not.toHaveProperty('specVersion');
     expect(document.exportedAt).toBe(NOW);
   });
 
-  it('carries the vault, its guidance and every folder with its parent and position', () => {
-    expect(document.vault).toEqual({
+  it('carries the notebook, its guidance and every folder with its parent and position', () => {
+    expect(document.notebook).toEqual({
       name: 'Normas e Legislacao',
       description: 'Texto normativo por artigo.',
       guidance: '# Proposito\n\nUma norma por nota.',
@@ -101,7 +101,7 @@ describe('the document carries the vault whole', () => {
 
   it('carries every body byte for byte, frontmatter included', () => {
     expect(document.notes.map((note) => note.body)).toEqual(
-      vault.notes.map((note) => note.content),
+      notebook.notes.map((note) => note.content),
     );
   });
 
@@ -138,18 +138,18 @@ describe('the document carries the vault whole', () => {
 });
 
 describe('the archive is one document with the extension of the format', () => {
-  it('is named after the vault and ends in .vault', () => {
-    expect(archiveNameOf('Normas e Legislacao')).toBe('Normas e Legislacao.vault');
-    expect(archiveNameOf('a/b:c')).toBe('a-b-c.vault');
-    expect(archiveNameOf('   ')).toBe('vault.vault');
+  it('is named after the notebook and ends in .notebook', () => {
+    expect(archiveNameOf('Normas e Legislacao')).toBe('Normas e Legislacao.notebook');
+    expect(archiveNameOf('a/b:c')).toBe('a-b-c.notebook');
+    expect(archiveNameOf('   ')).toBe('notebook.notebook');
   });
 
   it('zips into a container that is a real zip', () => {
     const archive = createZip(
-      [{ path: 'vault.json', content: JSON.stringify(document) }],
+      [{ path: 'notebook.json', content: JSON.stringify(document) }],
       new Date(NOW),
     );
     expect(archive.subarray(0, 4).toString('hex')).toBe('504b0304');
-    expect(archive.includes(Buffer.from('vault.json'))).toBe(true);
+    expect(archive.includes(Buffer.from('notebook.json'))).toBe(true);
   });
 });

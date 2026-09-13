@@ -76,7 +76,7 @@ const INVITATION: cognito.UserInvitationConfig = {
     'Sign in at https://memorysmith.app and choose a password of your own on',
     'the first visit. The one above works once.',
     '',
-    'MemorySmith keeps knowledge vaults in Markdown and serves them to AI',
+    'MemorySmith keeps knowledge notebooks in Markdown and serves them to AI',
     'tools. If you were not expecting this message, ignore it: without that',
     'first sign-in, the account does nothing.',
   ].join('\n'),
@@ -263,7 +263,7 @@ export class IdentityStack extends Stack {
      * it. It would also make the deploy decide who operates the platform,
      * which is an operational act and not an infrastructure one. The pool
      * therefore comes up empty, and `deploy-aws/onboard.ps1` creates the
-     * account, its subscription and its first vault against the API.
+     * account, its subscription and its first notebook against the API.
      */
 
     /**

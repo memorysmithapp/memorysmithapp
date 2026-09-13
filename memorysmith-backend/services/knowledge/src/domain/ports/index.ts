@@ -16,47 +16,47 @@ import type {
   NoteId,
   Position,
   Slug,
-  VaultId,
+  NotebookId,
   ConcurrencyError,
   Result,
 } from '@memorysmith/kernel';
-import type { Vault } from '../vault/Vault.js';
+import type { Notebook } from '../notebook/Notebook.js';
 import type { Note } from '../note/Note.js';
 import type { NoteOrder } from '../services/NotePlacement.js';
 
-export interface VaultRepository {
-  findById(id: VaultId): Promise<Vault | null>;
-  /** Every vault of the subscription, which is one partition of GSI1. */
-  listAll(): Promise<Vault[]>;
+export interface NotebookRepository {
+  findById(id: NotebookId): Promise<Notebook | null>;
+  /** Every notebook of the subscription, which is one partition of GSI1. */
+  listAll(): Promise<Notebook[]>;
   /**
-   * Resolves a slug to the vault that holds it in this subscription, which is
+   * Resolves a slug to the notebook that holds it in this subscription, which is
    * how the guard of RN-KNW-032 is read before a write attempts it.
    */
-  findBySlug(slug: Slug): Promise<Vault | null>;
-  save(vault: Vault): Promise<Result<void, ConcurrencyError>>;
+  findBySlug(slug: Slug): Promise<Notebook | null>;
+  save(notebook: Notebook): Promise<Result<void, ConcurrencyError>>;
 }
 
 /**
  * A note is found by its identifier and by nothing else. There is no lookup by
- * name here, because a vault holds no key: two notes may carry one title
+ * name here, because a notebook holds no key: two notes may carry one title
  * (RN-KNW-037), and what resolves a title is Discovery, over its own
  * projection.
  */
 export interface NoteRepository {
-  findById(vault: VaultId, id: NoteId): Promise<Note | null>;
+  findById(notebook: NotebookId, id: NoteId): Promise<Note | null>;
   /** Notes of a folder, in the defined order, straight from GSI2. */
-  listByFolder(vault: VaultId, folder: FolderId): Promise<Note[]>;
-  listByVault(vault: VaultId): Promise<Note[]>;
+  listByFolder(notebook: NotebookId, folder: FolderId): Promise<Note[]>;
+  listByNotebook(notebook: NotebookId): Promise<Note[]>;
   /** Just identity and order key, which is all a placement decision needs. */
-  siblingOrder(vault: VaultId, folder: FolderId): Promise<NoteOrder[]>;
+  siblingOrder(notebook: NotebookId, folder: FolderId): Promise<NoteOrder[]>;
   save(note: Note): Promise<Result<void, ConcurrencyError>>;
   /**
-   * The cross-vault move, the only operation that writes into two vault
+   * The cross-notebook move, the only operation that writes into two notebook
    * partitions in one transaction (section 9.2). It is its own method because
    * the item key itself changes, so it is a Delete plus a Put and not an
    * Update.
    */
-  saveMoved(note: Note, from: { vaultId: VaultId }): Promise<Result<void, ConcurrencyError>>;
+  saveMoved(note: Note, from: { notebookId: NotebookId }): Promise<Result<void, ConcurrencyError>>;
 }
 
 /**

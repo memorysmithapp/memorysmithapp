@@ -2,7 +2,7 @@
 # environment through it rather than behind it.
 #
 # Everything here goes through the API on purpose: a script that wrote into
-# DynamoDB or S3 by hand would produce a vault with no revisions, no domain
+# DynamoDB or S3 by hand would produce a notebook with no revisions, no domain
 # events and no audit trail — the three things that make a write of this
 # product a write of this product. The cost is one HTTP call per note, and it
 # is the right cost.
@@ -79,7 +79,7 @@ function Invoke-Api {
     $arguments['ContentType'] = 'application/json; charset=utf-8'
   }
   <#
-    A vault of six hundred notes is six hundred calls, and a single throttle or
+    A notebook of six hundred notes is six hundred calls, and a single throttle or
     one bad gateway in the middle of it would throw the whole run away. Only
     429 and 5xx are retried: a 4xx is an answer, and repeating it would just
     ask the same wrong question again.

@@ -665,7 +665,7 @@
     {
       "id": "resolution/one-title-in-two-notes-is-two-edges",
       "notation": "wikilink",
-      "vault": {
+      "notebook": {
         "notes": ["# Índice\n", "# Índice\n\nOutra nota, mesmo título.\n"]
       },
       "markdown": "Ver [[Índice]].",
@@ -686,7 +686,7 @@
     {
       "id": "resolution/a-title-no-note-carries-is-pending",
       "notation": "wikilink",
-      "vault": {
+      "notebook": {
         "notes": ["# Lei 14.133\n"]
       },
       "markdown": "See [[Lei 14.134]].",
@@ -707,7 +707,7 @@
     {
       "id": "resolution/case-must-match-exactly",
       "notation": "wikilink",
-      "vault": {
+      "notebook": {
         "notes": ["# Lei 14.133\n"]
       },
       "markdown": "See [[lei 14.133]].",
@@ -728,7 +728,7 @@
     {
       "id": "resolution/nfd-and-nfc-name-one-note",
       "notation": "wikilink",
-      "vault": {
+      "notebook": {
         "notes": ["# Ação\n"]
       },
       "markdown": "Ver [[Ação]].",
@@ -749,7 +749,7 @@
     {
       "id": "resolution/a-note-with-no-level-1-heading-cannot-be-addressed",
       "notation": "note-title",
-      "vault": {
+      "notebook": {
         "notes": ["## Article 75\n\nThe exception.\n"]
       },
       "markdown": "See [[Article 75]].",
@@ -770,7 +770,7 @@
     {
       "id": "resolution/an-attachment-is-not-an-edge",
       "notation": "attachment",
-      "vault": {
+      "notebook": {
         "attachments": ["engelbart.jpg"]
       },
       "markdown": "![[engelbart.jpg]]",
@@ -791,7 +791,7 @@
     {
       "id": "resolution/the-pipe-is-a-dimension-when-the-target-is-an-attachment",
       "notation": "image-dimensions",
-      "vault": {
+      "notebook": {
         "attachments": ["engelbart.jpg"]
       },
       "markdown": "![[engelbart.jpg|100x145]]",
@@ -812,7 +812,7 @@
     {
       "id": "resolution/the-markdown-form-reaches-the-same-note",
       "notation": "markdown-relative-link",
-      "vault": {
+      "notebook": {
         "notes": ["# Lei 14.133\n"]
       },
       "markdown": "See [the procurement act](../decisions/Lei%2014.133.md).",
@@ -833,7 +833,7 @@
     {
       "id": "resolution/a-link-resolves-against-the-frontmatter-title",
       "notation": "note-title",
-      "vault": {
+      "notebook": {
         "notes": ["---\ntitle: Lei 14.133\n---\n\n# The general rule\n"]
       },
       "markdown": "See [[Lei 14.133]], not [[The general rule]].",
@@ -863,7 +863,7 @@
     {
       "id": "resolution/an-alias-catches-a-target-no-title-matches",
       "notation": "frontmatter-aliases",
-      "vault": {
+      "notebook": {
         "notes": ["---\naliases: [RTO]\n---\n\n# Recovery Time Objective\n"]
       },
       "markdown": "See [[RTO]].",
@@ -884,7 +884,7 @@
     {
       "id": "resolution/an-alias-does-not-take-a-link-a-title-already-matches",
       "notation": "frontmatter-aliases",
-      "vault": {
+      "notebook": {
         "notes": ["---\naliases: [Índice]\n---\n\n# Recovery Time Objective\n", "# Índice\n"]
       },
       "markdown": "Ver [[Índice]].",
@@ -905,7 +905,7 @@
     {
       "id": "resolution/one-target-matching-two-aliases-is-two-edges",
       "notation": "frontmatter-aliases",
-      "vault": {
+      "notebook": {
         "notes": [
           "---\naliases: [RTO]\n---\n\n# Recovery Time Objective\n",
           "---\naliases: [RTO]\n---\n\n# Objetivo de tempo de recuperação\n"

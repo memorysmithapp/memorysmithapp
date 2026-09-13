@@ -9,7 +9,7 @@
  * was traded for one scheme.
  *
  * This is that trade undone. The list says what passes, never what is
- * refused, because a vault is written by several people and by agents, and a
+ * refused, because a notebook is written by several people and by agents, and a
  * denylist is a promise to have thought of everything.
  *
  * **What passes, and why:**
@@ -23,11 +23,11 @@
  * **What does not, and why each one:**
  *
  * - **`obsidian://`, and any other scheme of an editor. Decided, not
- *   overlooked.** It opens the vault of whoever has that editor installed and
- *   that vault on that machine, so the link works for the person who wrote it
+ *   overlooked.** It opens the notebook of whoever has that editor installed and
+ *   that notebook on that machine, so the link works for the person who wrote it
  *   and does nothing at all for everybody else who opens the note — a promise
  *   the product cannot keep on behalf of a tool it does not run. The product
- *   serves a vault to whoever reads it, and an address only its author can
+ *   serves a notebook to whoever reads it, and an address only its author can
  *   follow is not an address.
  * - `data:` — a whole page carried inside the address. `data:text/html` is a
  *   script running in the reader's session, offered by whoever wrote the note.
@@ -44,7 +44,7 @@
 
 /**
  * `pending:` and `attachment:` are this surface's own: a wikilink that matched
- * no note and a reference to a file the vault keeps beside its notes. Neither
+ * no note and a reference to a file the notebook keeps beside its notes. Neither
  * leaves the page — `MarkdownAnchor` turns both into text that says what
  * happened — and they are listed here so the filter does not empty them into
  * the refusal case, which says something else entirely.
@@ -60,7 +60,7 @@ const HAS_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
  *
  * An address with no scheme is a path, an anchor or a relative target, and it
  * cannot reach outside the page on its own: those pass untouched, which is
- * what keeps `./note.md`, `/v/a-vault/note/x` and `#a-heading` working.
+ * what keeps `./note.md`, `/v/a-notebook/note/x` and `#a-heading` working.
  */
 export function followable(url: string): string {
   const trimmed = url.trim();

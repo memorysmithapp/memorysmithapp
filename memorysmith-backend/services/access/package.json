@@ -3,7 +3,7 @@
   "version": "0.5.7",
   "private": true,
   "type": "module",
-  "description": "Access bounded context: subscriptions and their lifecycle, members, roles, vault ceilings, invites, links and authorization.",
+  "description": "Access bounded context: subscriptions and their lifecycle, members, roles, notebook ceilings, invites, links and authorization.",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run --config vitest.config.ts"

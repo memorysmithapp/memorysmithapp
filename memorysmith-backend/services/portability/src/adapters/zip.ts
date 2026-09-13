@@ -2,7 +2,7 @@
  * A minimal ZIP writer, stored (uncompressed) entries only.
  *
  * Written here rather than pulled from a dependency because the export is the
- * promise of zero lock-in, and the fewer moving parts stand between the vault
+ * promise of zero lock-in, and the fewer moving parts stand between the notebook
  * and a folder of .md files, the more that promise is worth. Markdown also
  * compresses well enough at the transport layer that storing is no penalty.
  */
@@ -100,7 +100,7 @@ export function createZip(files: Array<{ path: string; content: string }>, now: 
  * It reads the central directory rather than walking the local headers,
  * because the directory is the authoritative index of a zip and a local header
  * may declare a size of zero and defer it to a descriptor. Stored and deflated
- * entries are both read; anything else is refused, since a `.vault` is written
+ * entries are both read; anything else is refused, since a `.notebook` is written
  * by the function above and a file that is not one has no claim on being read.
  */
 export function readZip(archive: Buffer): Record<string, string> {

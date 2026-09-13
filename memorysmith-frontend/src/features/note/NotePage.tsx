@@ -15,17 +15,17 @@ import {
 } from '../../shared/components/PropertyValue';
 import { CheckIcon, CopyIcon } from '../../shared/components/icons';
 import { folderTrailForNote } from '../structure/trail';
-import { VaultBreadcrumb, folderCrumbs } from '../structure/VaultBreadcrumb';
-import type { VaultOutletContext } from '../structure/VaultLayout';
+import { NotebookBreadcrumb, folderCrumbs } from '../structure/NotebookBreadcrumb';
+import type { NotebookOutletContext } from '../structure/NotebookLayout';
 
 export function NotePage({ noteId }: { noteId: string }) {
   const { t } = useTranslation();
-  const { vaultSlug = '' } = useParams();
-  const { structure } = useOutletContext<VaultOutletContext>();
+  const { notebookSlug = '' } = useParams();
+  const { structure } = useOutletContext<NotebookOutletContext>();
   const [copied, setCopied] = useState(false);
   const { data, isPending, isError } = useQuery({
-    queryKey: ['note', vaultSlug, noteId],
-    queryFn: () => getNote(vaultSlug, noteId),
+    queryKey: ['note', notebookSlug, noteId],
+    queryFn: () => getNote(notebookSlug, noteId),
   });
 
   async function copyNote() {
@@ -59,7 +59,7 @@ export function NotePage({ noteId }: { noteId: string }) {
   if (isError || !data) return <p className="status">{t('common.notFound')}</p>;
 
   // The reserved keys first, in the order of the specification, then what the
-  // vault invented, in the order the note wrote it (RN-DSC-051). `title` is
+  // notebook invented, in the order the note wrote it (RN-DSC-051). `title` is
   // drawn above as the title of the note and never as a property.
   const properties = orderedProperties(
     Object.entries(data.frontmatter).filter(([, value]) => value !== ''),
@@ -70,10 +70,10 @@ export function NotePage({ noteId }: { noteId: string }) {
     <article className="content-pane">
       <div className="note-header">
         <div>
-          <VaultBreadcrumb
+          <NotebookBreadcrumb
             items={[
-              { label: t('structure.root'), to: `/vaults/${vaultSlug}/root` },
-              ...folderCrumbs(vaultSlug, folderTrailForNote(structure.folders, noteId)),
+              { label: t('structure.root'), to: `/notebooks/${notebookSlug}/root` },
+              ...folderCrumbs(notebookSlug, folderTrailForNote(structure.folders, noteId)),
               { label: data.title ?? t('note.untitled') },
             ]}
           />
@@ -114,7 +114,7 @@ export function NotePage({ noteId }: { noteId: string }) {
               >
                 <span className="metadata-property-key">{propertyLabel(key, t)}</span>
                 <span className="metadata-property-value">
-                  <PropertyValue value={value} list={lists.has(key)} vaultSlug={vaultSlug} />
+                  <PropertyValue value={value} list={lists.has(key)} notebookSlug={notebookSlug} />
                 </span>
               </div>
             ))}
@@ -124,18 +124,18 @@ export function NotePage({ noteId }: { noteId: string }) {
 
       <WritableContent
         raw={data.raw}
-        vaultSlug={vaultSlug}
+        notebookSlug={notebookSlug}
         baseRevision={data.revision}
         writable={canWrite(structure.effectiveRole)}
         write={({ raw, baseRevision, keepalive }) =>
           updateNote(
-            vaultSlug,
+            notebookSlug,
             data.id,
             { content: raw, baseRevision: baseRevision ?? '' },
             { keepalive: keepalive ?? false },
           )
         }
-        invalidates={['note', vaultSlug, noteId]}
+        invalidates={['note', notebookSlug, noteId]}
       />
     </article>
   );

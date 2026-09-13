@@ -28,19 +28,19 @@ export interface ToolDefinition {
   };
 }
 
-const vaultArgument = {
+const notebookArgument = {
   type: 'string',
-  description: 'Identifier of the vault, as returned by list_vaults.',
+  description: 'Identifier of the notebook, as returned by list_notebooks.',
 };
 
 /**
  * Where the identifier comes from is part of the argument (RN-AGT-020). It is
- * printed next to the name of every folder in the vault context, so an agent
+ * printed next to the name of every folder in the notebook context, so an agent
  * that created nothing addresses the tree just as well as the one that built it.
  */
 const folderArgument = {
   type: 'string',
-  description: 'Folder identifier, as get_vault_context prints it next to the folder name.',
+  description: 'Folder identifier, as get_notebook_context prints it next to the folder name.',
 };
 
 const baseRevisionArgument = {
@@ -65,10 +65,10 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     description:
       'Answers two questions at once: who this connection acts as, and how this product ' +
       'expects to be used. It names the person who authorized the connector, the connector ' +
-      'itself, the subscription the token is fixed to and the vaults within reach, and then ' +
-      'it lays out the reading path: the guidance of a vault, the folder tree with the ' +
+      'itself, the subscription the token is fixed to and the notebooks within reach, and then ' +
+      'it lays out the reading path: the guidance of a notebook, the folder tree with the ' +
       'purpose of each folder, and the template of the folder you are about to write in. ' +
-      'Call it first when you do not know this vault yet.',
+      'Call it first when you do not know this notebook yet.',
     inputSchema: object({}),
     annotations: { readOnlyHint: true },
   },
@@ -83,7 +83,7 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       {
         name: {
           type: 'string',
-          description: 'Name of the skill, as whoami lists it. For example: design-vault.',
+          description: 'Name of the skill, as whoami lists it. For example: design-notebook.',
         },
       },
       ['name'],
@@ -91,29 +91,31 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     annotations: { readOnlyHint: true },
   },
   {
-    name: 'list_vaults',
-    title: 'List vaults',
+    name: 'list_notebooks',
+    title: 'List notebooks',
     description:
-      'Lists the vaults this connector can reach, with their description and note count. ' +
-      'Start here: every other tool takes a vault identifier from this list.',
+      'Lists the notebooks this connector can reach, with their description and note count. ' +
+      'Start here: every other tool takes a notebook identifier from this list.',
     inputSchema: object({}),
     annotations: { readOnlyHint: true },
   },
   {
-    name: 'create_vault',
-    title: 'Create a vault',
+    name: 'create_notebook',
+    title: 'Create a notebook',
     description:
-      'Creates a vault in this subscription. Write its guidance right after, with set_guidance: ' +
-      'a vault without guidance tells the next agent nothing about how it wants to be written. ' +
-      'If a vault with the same name already exists, this fails with ALREADY_EXISTS and returns ' +
-      'the identifier of the existing one: no second vault is created and no suffix is invented, ' +
+      'Creates a notebook in this subscription: a notebook of Markdown notes, organised in folders ' +
+      'and described by a guidance and by the templates of its folders — not a Jupyter notebook. ' +
+      'Write its guidance right after, with set_guidance: ' +
+      'a notebook without guidance tells the next agent nothing about how it wants to be written. ' +
+      'If a notebook with the same name already exists, this fails with ALREADY_EXISTS and returns ' +
+      'the identifier of the existing one: no second notebook is created and no suffix is invented, ' +
       'so a retry is safe.',
     inputSchema: object(
       {
-        name: { type: 'string', description: 'Name of the vault; the slug is derived from it.' },
+        name: { type: 'string', description: 'Name of the notebook; the slug is derived from it.' },
         description: {
           type: 'string',
-          description: 'What this vault is for, in one line. It is shown wherever it is listed.',
+          description: 'What this notebook is for, in one line. It is shown wherever it is listed.',
         },
       },
       ['name', 'description'],
@@ -121,53 +123,53 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
   },
   {
-    name: 'delete_vault',
-    title: 'Delete a vault',
+    name: 'delete_notebook',
+    title: 'Delete a notebook',
     description:
-      'Removes a vault from every listing. It is REVERSIBLE and destroys nothing: the folders, ' +
+      'Removes a notebook from every listing. It is REVERSIBLE and destroys nothing: the folders, ' +
       'the notes and every past revision stay exactly where they are, and the history remains ' +
-      'readable. Only the owner of the subscription may do this, and it takes the whole vault ' +
+      'readable. Only the owner of the subscription may do this, and it takes the whole notebook ' +
       'out of reach at once, so confirm with the person before calling it.',
-    inputSchema: object({ vault: vaultArgument }, ['vault']),
+    inputSchema: object({ notebook: notebookArgument }, ['notebook']),
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
   },
   {
-    name: 'get_vault_context',
-    title: 'Read the vault context',
+    name: 'get_notebook_context',
+    title: 'Read the notebook context',
     description:
-      'THE MAIN CALL. Returns the guidance of the vault in full, followed by its folder tree ' +
+      'THE MAIN CALL. Returns the guidance of the notebook in full, followed by its folder tree ' +
       'with the identifier of each folder, its description, the defined order, the note count ' +
       'and which folders carry a template. Read this before writing anything: the guidance ' +
-      'declares the conventions of this vault, the folder descriptions say what belongs where, ' +
+      'declares the conventions of this notebook, the folder descriptions say what belongs where, ' +
       'and the identifiers are what you pass to get_template, create_note and list_notes.',
-    inputSchema: object({ vault: vaultArgument }, ['vault']),
+    inputSchema: object({ notebook: notebookArgument }, ['notebook']),
     annotations: { readOnlyHint: true },
   },
   {
     name: 'get_guidance',
-    title: 'Read the guidance of a vault, with its revision',
+    title: 'Read the guidance of a notebook, with its revision',
     description:
       'The guidance as it is stored, plus the revision to pass back as baseRevision when you ' +
-      'replace it. get_vault_context shows the guidance inside a composed document, which is ' +
-      'what you read to understand the vault; this is what you read to WRITE it.',
-    inputSchema: object({ vault: vaultArgument }, ['vault']),
+      'replace it. get_notebook_context shows the guidance inside a composed document, which is ' +
+      'what you read to understand the notebook; this is what you read to WRITE it.',
+    inputSchema: object({ notebook: notebookArgument }, ['notebook']),
     annotations: { readOnlyHint: true },
   },
   {
     name: 'set_guidance',
-    title: 'Write the guidance of a vault',
+    title: 'Write the guidance of a notebook',
     description:
-      'Replaces the guidance of a vault, which is the document that declares how THIS vault ' +
+      'Replaces the guidance of a notebook, which is the document that declares how THIS notebook ' +
       'wants to be written: its conventions, its vocabulary, what belongs in it and what does ' +
       'not. It is read by every agent that writes here, so write it for one, in Markdown, and ' +
       'read the current one with get_guidance, which also gives you the baseRevision.',
     inputSchema: object(
       {
-        vault: vaultArgument,
+        notebook: notebookArgument,
         content: { type: 'string', description: 'The complete guidance, in Markdown.' },
         baseRevision: baseRevisionArgument,
       },
-      ['vault', 'content', 'baseRevision'],
+      ['notebook', 'content', 'baseRevision'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: true },
   },
@@ -175,12 +177,12 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     name: 'create_folder',
     title: 'Create a folder',
     description:
-      'Creates a folder in a vault. The description is REQUIRED and is not decoration: it is ' +
+      'Creates a folder in a notebook. The description is REQUIRED and is not decoration: it is ' +
       'what tells the next agent what belongs in this folder, and it travels in every reading ' +
-      'of the vault context. Pass parent to nest it under another folder.',
+      'of the notebook context. Pass parent to nest it under another folder.',
     inputSchema: object(
       {
-        vault: vaultArgument,
+        notebook: notebookArgument,
         name: { type: 'string', description: 'Name of the folder.' },
         description: {
           type: 'string',
@@ -189,11 +191,11 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
         parent: {
           type: 'string',
           description:
-            'Optional: identifier of the folder this one goes under, as get_vault_context ' +
+            'Optional: identifier of the folder this one goes under, as get_notebook_context ' +
             'prints it next to the folder name.',
         },
       },
-      ['vault', 'name', 'description'],
+      ['notebook', 'name', 'description'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: false },
   },
@@ -201,13 +203,13 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     name: 'delete_folder',
     title: 'Delete a folder',
     description:
-      'Removes a folder from the tree of a vault. There is NO implicit policy: with ' +
+      'Removes a folder from the tree of a notebook. There is NO implicit policy: with ' +
       'REJECT_IF_NOT_EMPTY a folder that holds subfolders or notes is refused, and with CASCADE ' +
-      'the whole subtree goes. Call get_vault_context first to see what the folder holds, and ' +
+      'the whole subtree goes. Call get_notebook_context first to see what the folder holds, and ' +
       'confirm with the person before cascading.',
     inputSchema: object(
       {
-        vault: vaultArgument,
+        notebook: notebookArgument,
         folder: folderArgument,
         policy: {
           type: 'string',
@@ -215,7 +217,7 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
           description: 'Required. What to do when the folder is not empty.',
         },
       },
-      ['vault', 'folder', 'policy'],
+      ['notebook', 'folder', 'policy'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: true },
   },
@@ -225,8 +227,11 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     description:
       'Returns the template of a folder, which is the suggested layout of the notes kept ' +
       'there. Call this before create_note whenever the folder has one; the server does not ' +
-      'validate content against it, so following it is what keeps the vault coherent.',
-    inputSchema: object({ vault: vaultArgument, folder: folderArgument }, ['vault', 'folder']),
+      'validate content against it, so following it is what keeps the notebook coherent.',
+    inputSchema: object({ notebook: notebookArgument, folder: folderArgument }, [
+      'notebook',
+      'folder',
+    ]),
     annotations: { readOnlyHint: true },
   },
   {
@@ -238,12 +243,12 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'enforcement: write the skeleton a good note in this folder would follow.',
     inputSchema: object(
       {
-        vault: vaultArgument,
+        notebook: notebookArgument,
         folder: folderArgument,
         content: { type: 'string', description: 'The template, in Markdown.' },
         baseRevision: baseRevisionArgument,
       },
-      ['vault', 'folder', 'content', 'baseRevision'],
+      ['notebook', 'folder', 'content', 'baseRevision'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: true },
   },
@@ -251,18 +256,18 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     name: 'list_notes',
     title: 'List notes',
     description:
-      'Index of the notes of a vault, or of a single folder, in the ORDER DEFINED by whoever ' +
-      'authored the vault. The order is content, not decoration: it says where to start.',
+      'Index of the notes of a notebook, or of a single folder, in the ORDER DEFINED by whoever ' +
+      'authored the notebook. The order is content, not decoration: it says where to start.',
     inputSchema: object(
       {
-        vault: vaultArgument,
+        notebook: notebookArgument,
         folder: {
           type: 'string',
           description:
-            'Optional: restrict to one folder, by the identifier get_vault_context prints.',
+            'Optional: restrict to one folder, by the identifier get_notebook_context prints.',
         },
       },
-      ['vault'],
+      ['notebook'],
     ),
     annotations: { readOnlyHint: true },
   },
@@ -275,14 +280,14 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'what lets a past piece of work be redone against the base as it stood then.',
     inputSchema: object(
       {
-        vault: vaultArgument,
+        notebook: notebookArgument,
         note: { type: 'string', description: 'Note identifier.' },
         asOf: {
           type: 'string',
           description: 'Optional ISO 8601 date. Returns the revision in force at that moment.',
         },
       },
-      ['vault', 'note'],
+      ['notebook', 'note'],
     ),
     annotations: { readOnlyHint: true },
   },
@@ -294,20 +299,20 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'argument: the title is what the content says, read from `title:` in the frontmatter and ' +
       'otherwise from the first level-1 heading. State it in the frontmatter rather than ' +
       'leaving it to a heading you may not write. THIS TOOL ALWAYS CREATES: calling it twice ' +
-      'writes two notes, because a vault may hold two notes with one title, so a retry after a ' +
+      'writes two notes, because a notebook may hold two notes with one title, so a retry after a ' +
       'transport failure is NOT safe. Read the note back before retrying.',
     inputSchema: object(
       {
-        vault: vaultArgument,
+        notebook: notebookArgument,
         folder: {
           type: 'string',
           description:
-            'Folder that will hold the note, by the identifier get_vault_context prints ' +
+            'Folder that will hold the note, by the identifier get_notebook_context prints ' +
             'next to its name.',
         },
         content: { type: 'string', description: 'The Markdown body of the note.' },
       },
-      ['vault', 'folder', 'content'],
+      ['notebook', 'folder', 'content'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
   },
@@ -322,7 +327,7 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'the frontmatter, or the first level-1 heading, is what renames it.',
     inputSchema: object(
       {
-        vault: vaultArgument,
+        notebook: notebookArgument,
         note: { type: 'string', description: 'Note identifier.' },
         content: { type: 'string', description: 'The new Markdown body.' },
         baseRevision: {
@@ -330,7 +335,7 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
           description: 'The revision this edit is based on, as returned by read_note.',
         },
       },
-      ['vault', 'note', 'content', 'baseRevision'],
+      ['notebook', 'note', 'content', 'baseRevision'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: true },
   },
@@ -342,8 +347,8 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'byte: the history of the note stays readable by its identifier, and the links that ' +
       'pointed at it become pending rather than lost.',
     inputSchema: object(
-      { vault: vaultArgument, note: { type: 'string', description: 'Note identifier.' } },
-      ['vault', 'note'],
+      { notebook: notebookArgument, note: { type: 'string', description: 'Note identifier.' } },
+      ['notebook', 'note'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
   },
@@ -351,24 +356,24 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     name: 'search_notes',
     title: 'Search notes by text',
     description:
-      'Searches the text of a vault: the body of every note, its title, its folder and its ' +
+      'Searches the text of a notebook: the body of every note, its title, its folder and its ' +
       'headings. Matching is literal and by substring, accents and case ignored, so a term ' +
       'written once inside one note is found by typing part of it. It does NOT search by ' +
       'meaning: a note that discusses a subject in other words will not come back. ' +
       'The query accepts: several terms (all must match), "an exact phrase", -exclusion, ' +
       'OR, parentheses, and the fields title:, folder:, content: and section:. ' +
-      'Any other prefix is read as a frontmatter attribute of the vault, so maturity:evergreen ' +
-      'or tags:audit work when the vault writes them; call get_vault_context to learn which ' +
-      'attributes this vault actually uses.',
+      'Any other prefix is read as a frontmatter attribute of the notebook, so maturity:evergreen ' +
+      'or tags:audit work when the notebook writes them; call get_notebook_context to learn which ' +
+      'attributes this notebook actually uses.',
     inputSchema: object(
       {
-        vault: vaultArgument,
+        notebook: notebookArgument,
         query: {
           type: 'string',
           description: 'What to look for. Supports fields, quotes, -exclusion, OR and groups.',
         },
       },
-      ['vault', 'query'],
+      ['notebook', 'query'],
     ),
     annotations: { readOnlyHint: true },
   },
@@ -377,15 +382,15 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     title: 'Read the dependency tree of a note',
     description:
       'Walks the link graph from a note and returns the tree of notes it depends on. In a ' +
-      'regulated vault this is the trail of grounding: which norms a finding rests on. Depth ' +
+      'regulated notebook this is the trail of grounding: which norms a finding rests on. Depth ' +
       'is capped at 3 and the traversal at 200 nodes.',
     inputSchema: object(
       {
-        vault: vaultArgument,
+        notebook: notebookArgument,
         note: { type: 'string', description: 'Note to start from.' },
         depth: { type: 'number', description: 'How many hops to follow, 1 to 3. Default 2.' },
       },
-      ['vault', 'note'],
+      ['notebook', 'note'],
     ),
     annotations: { readOnlyHint: true },
   },
@@ -393,10 +398,10 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     name: 'backlinks',
     title: 'List what points at a note',
     description:
-      'Returns the notes that link to this one, which is how a vault says what a note is used for.',
+      'Returns the notes that link to this one, which is how a notebook says what a note is used for.',
     inputSchema: object(
-      { vault: vaultArgument, note: { type: 'string', description: 'Note identifier.' } },
-      ['vault', 'note'],
+      { notebook: notebookArgument, note: { type: 'string', description: 'Note identifier.' } },
+      ['notebook', 'note'],
     ),
     annotations: { readOnlyHint: true },
   },
@@ -405,10 +410,10 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     title: 'Read the history of a note',
     description:
       'The timeline of a note: who changed it, when, and with which agent. It survives the ' +
-      'note changing folder and vault, because it is keyed by the note identifier.',
+      'note changing folder and notebook, because it is keyed by the note identifier.',
     inputSchema: object(
-      { vault: vaultArgument, note: { type: 'string', description: 'Note identifier.' } },
-      ['vault', 'note'],
+      { notebook: notebookArgument, note: { type: 'string', description: 'Note identifier.' } },
+      ['notebook', 'note'],
     ),
     annotations: { readOnlyHint: true },
   },
@@ -423,8 +428,8 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
  * build instead of shipping a lie.
  */
 export const READING_PATH = [
-  'list_vaults',
-  'get_vault_context',
+  'list_notebooks',
+  'get_notebook_context',
   'get_template',
   'create_note',
 ] as const;

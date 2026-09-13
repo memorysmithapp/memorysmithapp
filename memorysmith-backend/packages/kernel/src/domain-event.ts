@@ -45,15 +45,15 @@ export const ACCESS_EVENT_TYPES = [
   'MemberJoined',
   'MemberRoleChanged',
   'MemberRemoved',
-  'VaultRoleLimitSet',
-  'VaultRoleLimitCleared',
+  'NotebookRoleLimitSet',
+  'NotebookRoleLimitCleared',
 ] as const;
 
 export const KNOWLEDGE_EVENT_TYPES = [
-  'VaultCreated',
-  'VaultRenamed',
-  'VaultDeleted',
-  'VaultRestored',
+  'NotebookCreated',
+  'NotebookRenamed',
+  'NotebookDeleted',
+  'NotebookRestored',
   'GuidanceUpdated',
   'FolderAdded',
   'FolderRenamed',
@@ -81,10 +81,10 @@ export const DOMAIN_EVENT_TYPES = [
 export type DomainEventType = (typeof DOMAIN_EVENT_TYPES)[number];
 
 /**
- * The audit trail is keyed BY SUBJECT, not by vault, which is what makes the
- * timeline of a note survive it moving folder and vault (section 12.2).
+ * The audit trail is keyed BY SUBJECT, not by notebook, which is what makes the
+ * timeline of a note survive it moving folder and notebook (section 12.2).
  */
-export type EventSubject = 'SUBSCRIPTION' | 'WORKSPACE' | 'MEMBER' | 'VAULT' | 'FOLDER' | 'NOTE';
+export type EventSubject = 'SUBSCRIPTION' | 'WORKSPACE' | 'MEMBER' | 'NOTEBOOK' | 'FOLDER' | 'NOTE';
 
 export interface DomainEvent<TPayload = Record<string, unknown>> {
   /** ULID: orders the outbox and the audit sort key by generation time. */

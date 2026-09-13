@@ -1,7 +1,7 @@
 import type { FolderNode } from '../../shared/types/api';
 import { noteIdOf } from '../../shared/api/note-address';
 
-// Folder chain from the vault root down to the folder at slugPath, or [] when
+// Folder chain from the notebook root down to the folder at slugPath, or [] when
 // no folder matches.
 export function folderTrail(folders: FolderNode[], slugPath: string): FolderNode[] {
   for (const folder of folders) {
@@ -14,7 +14,7 @@ export function folderTrail(folders: FolderNode[], slugPath: string): FolderNode
 
 /**
  * The identifier of the note a `root/*` path names, or null when it names
- * anything else: the vault root, a folder, or something that is no longer
+ * anything else: the notebook root, a folder, or something that is no longer
  * there.
  *
  * **It answers from the shape of the last segment**, not from the structure.
@@ -33,7 +33,7 @@ export function noteAt(folders: FolderNode[], path: string): string | null {
   return noteIdOf(cut >= 0 ? path.slice(cut + 1) : path);
 }
 
-// Folder chain from the vault root down to the folder holding the note, or []
+// Folder chain from the notebook root down to the folder holding the note, or []
 // when the note is not in the tree.
 export function folderTrailForNote(folders: FolderNode[], noteId: string): FolderNode[] {
   for (const folder of folders) {

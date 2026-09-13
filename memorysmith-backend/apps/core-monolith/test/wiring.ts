@@ -8,7 +8,7 @@
  */
 
 import { RESERVED_FRONTMATTER_KEYS } from '@memorysmith/contracts';
-import { serializeVaultDocument } from '../src/composition-root.js';
+import { serializeNotebookDocument } from '../src/composition-root.js';
 import {
   Authorship,
   DomainError,
@@ -51,20 +51,20 @@ import {
   InMemoryStorageBudget,
   InMemoryDatabase,
   InMemoryNoteRepository,
-  InMemoryVaultRepository,
+  InMemoryNotebookRepository,
 } from '@memorysmith/svc-knowledge/adapters/memory';
 import {
-  ClearVaultRoleLimit,
-  CreateVault,
-  GetVault,
-  GetVaultContext,
-  ListVaults,
+  ClearNotebookRoleLimit,
+  CreateNotebook,
+  GetNotebook,
+  GetNotebookContext,
+  ListNotebooks,
   PutGuidance,
-  DeleteVault,
-  RenameVault,
-  RestoreVault,
-  SetVaultRoleLimit,
-} from '@memorysmith/svc-knowledge/application/vaults';
+  DeleteNotebook,
+  RenameNotebook,
+  RestoreNotebook,
+  SetNotebookRoleLimit,
+} from '@memorysmith/svc-knowledge/application/notebooks';
 import {
   CreateFolder,
   GetTemplate,
@@ -85,15 +85,15 @@ import {
 } from '@memorysmith/svc-knowledge/application/notes';
 import { InMemoryAuditTrail } from '@memorysmith/svc-audit/adapters/trail';
 import type { PortabilityUseCases } from '@memorysmith/svc-portability/adapters/http';
-import { ExportVault } from '@memorysmith/svc-portability/application';
+import { ExportNotebook } from '@memorysmith/svc-portability/application';
 import { createZip, readZip } from '@memorysmith/svc-portability/adapters/zip';
-import { ImportVault, PrepareImport } from '@memorysmith/svc-portability/application/import';
-import { KnowledgeVaultWriter } from '../src/import-writer.js';
-import { parseVaultDocument } from '../src/composition-root.js';
+import { ImportNotebook, PrepareImport } from '@memorysmith/svc-portability/application/import';
+import { KnowledgeNotebookWriter } from '../src/import-writer.js';
+import { parseNotebookDocument } from '../src/composition-root.js';
 import { KnowledgeExportSource } from '../src/export-source.js';
 import {
   GetNoteHistory,
-  GetVaultActivity,
+  GetNotebookActivity,
   ReadRevision,
   RecordEvents,
 } from '@memorysmith/svc-audit/application';
@@ -112,8 +112,8 @@ import {
   GetFacetStats,
   RelatedNotes,
   SearchNotes,
-  VaultGraphQuery,
-  VaultHealth,
+  NotebookGraphQuery,
+  NotebookHealth,
 } from '@memorysmith/svc-discovery/application/queries';
 import type { DiscoveryUseCases } from '@memorysmith/svc-discovery/adapters/http';
 import { ProjectNote, ProjectStructure } from '@memorysmith/svc-discovery/application/projections';
@@ -170,7 +170,7 @@ export function buildTestApp() {
   const storage = new InMemoryStorageBudget();
 
   const knowledgeRepos = (context: SubscriptionContext) => ({
-    vaults: new InMemoryVaultRepository(context, knowledgeDb, events),
+    notebooks: new InMemoryNotebookRepository(context, knowledgeDb, events),
     notes: new InMemoryNoteRepository(context, knowledgeDb, events),
     content: new InMemoryContentStore(context, knowledgeDb),
     storage,
@@ -224,16 +224,17 @@ export function buildTestApp() {
   };
 
   const knowledgeUseCases: KnowledgeUseCases = {
-    createVault: (request) => new CreateVault(knowledgeRepos(request.subscription)),
-    listVaults: (request) => new ListVaults(knowledgeRepos(request.subscription)),
-    getVault: (request) => new GetVault(knowledgeRepos(request.subscription)),
-    renameVault: (request) => new RenameVault(knowledgeRepos(request.subscription)),
-    deleteVault: (request) => new DeleteVault(knowledgeRepos(request.subscription)),
-    restoreVault: (request) => new RestoreVault(knowledgeRepos(request.subscription)),
+    createNotebook: (request) => new CreateNotebook(knowledgeRepos(request.subscription)),
+    listNotebooks: (request) => new ListNotebooks(knowledgeRepos(request.subscription)),
+    getNotebook: (request) => new GetNotebook(knowledgeRepos(request.subscription)),
+    renameNotebook: (request) => new RenameNotebook(knowledgeRepos(request.subscription)),
+    deleteNotebook: (request) => new DeleteNotebook(knowledgeRepos(request.subscription)),
+    restoreNotebook: (request) => new RestoreNotebook(knowledgeRepos(request.subscription)),
     putGuidance: (request) => new PutGuidance(knowledgeRepos(request.subscription)),
-    getVaultContext: (request) => new GetVaultContext(knowledgeRepos(request.subscription)),
-    setVaultLimit: (request) => new SetVaultRoleLimit(knowledgeRepos(request.subscription)),
-    clearVaultLimit: (request) => new ClearVaultRoleLimit(knowledgeRepos(request.subscription)),
+    getNotebookContext: (request) => new GetNotebookContext(knowledgeRepos(request.subscription)),
+    setNotebookLimit: (request) => new SetNotebookRoleLimit(knowledgeRepos(request.subscription)),
+    clearNotebookLimit: (request) =>
+      new ClearNotebookRoleLimit(knowledgeRepos(request.subscription)),
     createFolder: (request) => new CreateFolder(knowledgeRepos(request.subscription)),
     patchFolder: (request) => new PatchFolder(knowledgeRepos(request.subscription)),
     reorderFolder: (request) => new ReorderFolder(knowledgeRepos(request.subscription)),
@@ -256,7 +257,7 @@ export function buildTestApp() {
   const revisions = { read: async () => '' };
   const auditUseCases: AuditUseCases = {
     noteHistory: () => new GetNoteHistory(auditTrail),
-    vaultActivity: () => new GetVaultActivity(auditTrail),
+    notebookActivity: () => new GetNotebookActivity(auditTrail),
     readRevision: () => new ReadRevision(auditTrail, revisions),
   };
   const auditConsumer = new AuditEventConsumer(new RecordEvents(auditTrail));
@@ -301,8 +302,8 @@ export function buildTestApp() {
     related: () => new RelatedNotes(discoveryDeps),
     backlinks: () => new Backlinks(discoveryDeps),
     resolveLinkTarget: () => new ResolveLinkTarget(discoveryDeps),
-    health: () => new VaultHealth(discoveryDeps),
-    graph: () => new VaultGraphQuery(discoveryDeps),
+    health: () => new NotebookHealth(discoveryDeps),
+    graph: () => new NotebookGraphQuery(discoveryDeps),
     search: () => new SearchNotes(discoveryDeps),
     facets: () => new GetFacetStats(discoveryDeps),
   };
@@ -325,8 +326,8 @@ export function buildTestApp() {
     discard: async (key: string) => void uploads.delete(key),
   };
   const portabilityUseCases: PortabilityUseCases = {
-    exportVault: (request) =>
-      new ExportVault(
+    exportNotebook: (request) =>
+      new ExportNotebook(
         new KnowledgeExportSource(knowledgeRepos(request.subscription)),
         {
           put: async (key, archive) => {
@@ -336,16 +337,16 @@ export function buildTestApp() {
         },
         createZip,
         request.subscription.subscriptionId.value,
-        serializeVaultDocument,
+        serializeNotebookDocument,
       ),
     prepareImport: (request) =>
       new PrepareImport(uploadStore, request.subscription.subscriptionId.value),
-    importVault: (request) =>
-      new ImportVault(
+    importNotebook: (request) =>
+      new ImportNotebook(
         uploadStore,
         request.write,
         readZip,
-        parseVaultDocument,
+        parseNotebookDocument,
         request.subscription.subscriptionId.value,
       ),
   };
@@ -353,15 +354,15 @@ export function buildTestApp() {
   const app = createApp({
     verifier,
     /** The write side of an import, over the same use cases production uses. */
-    vaultWriterFor: (request) =>
-      new KnowledgeVaultWriter(
+    notebookWriterFor: (request) =>
+      new KnowledgeNotebookWriter(
         {
-          createVault: new CreateVault(knowledgeRepos(request.subscription)),
+          createNotebook: new CreateNotebook(knowledgeRepos(request.subscription)),
           putGuidance: new PutGuidance(knowledgeRepos(request.subscription)),
           createFolder: new CreateFolder(knowledgeRepos(request.subscription)),
           putTemplate: new PutTemplate(knowledgeRepos(request.subscription)),
           createNote: new CreateNote(knowledgeRepos(request.subscription)),
-          deleteVault: new DeleteVault(knowledgeRepos(request.subscription)),
+          deleteNotebook: new DeleteNotebook(knowledgeRepos(request.subscription)),
         },
         request.ctx,
         request.subscription.subscriptionId,
@@ -371,13 +372,13 @@ export function buildTestApp() {
     auditUseCases,
     discoveryUseCases,
     portabilityUseCases,
-    // Discovery holds no vault, so it asks the context that owns it.
-    canReadVault: async (request, vaultId) => {
-      const parsed = (await import('@memorysmith/kernel')).VaultId.create(vaultId);
+    // Discovery holds no notebook, so it asks the context that owns it.
+    canReadNotebook: async (request, notebookId) => {
+      const parsed = (await import('@memorysmith/kernel')).NotebookId.create(notebookId);
       if (!parsed.ok) return false;
-      const vault = await knowledgeRepos(request.subscription).vaults.findById(parsed.value);
-      // A deleted vault is unreadable to every context, not only to Knowledge.
-      return vault !== null && !vault.isDeleted;
+      const notebook = await knowledgeRepos(request.subscription).notebooks.findById(parsed.value);
+      // A deleted notebook is unreadable to every context, not only to Knowledge.
+      return notebook !== null && !notebook.isDeleted;
     },
     resolveContext: async (request: AccessRequest) => {
       const context = request.context;

@@ -10,7 +10,7 @@
  *   GSI2: PLATFORM#{st}   -> REQUESTED#{ts}#{s}                   platform queue
  *
  * The subscription and its members share ONE partition, so a single Query
- * brings the whole aggregate back, the way the vault already loads its tree.
+ * brings the whole aggregate back, the way the notebook already loads its tree.
  *
  * The OWNER is not a MEMBER item: ownership is the `ownerId` field of the META
  * item, which is how "exactly one OWNER" becomes the shape of the data.

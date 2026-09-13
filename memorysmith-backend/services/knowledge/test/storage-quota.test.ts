@@ -11,14 +11,14 @@
 import { describe, expect, it } from 'vitest';
 import { admitWrite } from '../src/domain/services/StorageQuota.js';
 import { FolderId } from '@memorysmith/kernel';
-import { authorship, contentRef, newNote, newVault, noteBody, unwrap } from './fixtures.js';
+import { authorship, contentRef, newNote, newNotebook, noteBody, unwrap } from './fixtures.js';
 
 const folderId = FolderId.generate();
 
 describe('storage: what each mutation declares', () => {
   it('a new note costs its whole body', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId, 'Contratação direta');
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId, 'Contratação direta');
     const [created] = note.pullEvents();
 
     expect(created?.type).toBe('NoteCreated');
@@ -26,8 +26,8 @@ describe('storage: what each mutation declares', () => {
   });
 
   it('a new body costs only the difference between the two revisions', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId, 'Contratação direta');
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId, 'Contratação direta');
     note.pullEvents();
 
     const bigger = contentRef('b'.repeat(64), note.bodyRef.bytes + 300);
@@ -39,8 +39,8 @@ describe('storage: what each mutation declares', () => {
   });
 
   it('an edit that shortens the note gives the difference back', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId, 'Contratação direta');
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId, 'Contratação direta');
     note.pullEvents();
 
     const smaller = contentRef('c'.repeat(64), note.bodyRef.bytes - 20);
@@ -56,8 +56,8 @@ describe('storage: what each mutation declares', () => {
    * note and moves no bytes at all.
    */
   it('a rewrite of the same length retitles the note and moves no bytes', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId, 'Contratação direta');
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId, 'Contratação direta');
     note.pullEvents();
 
     const sameSize = contentRef('d'.repeat(64), note.bodyRef.bytes);
@@ -70,8 +70,8 @@ describe('storage: what each mutation declares', () => {
   });
 
   it('deleting releases the body, and restoring puts it back', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId, 'Contratação direta');
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId, 'Contratação direta');
     const bytes = note.bodyRef.bytes;
     note.pullEvents();
 
@@ -85,14 +85,14 @@ describe('storage: what each mutation declares', () => {
   });
 
   it('reordering and moving are storage-neutral', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId, 'Contratação direta');
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId, 'Contratação direta');
     note.pullEvents();
 
     unwrap(note.reorder(note.position, authorship()));
     unwrap(
       note.moveTo(
-        { vaultId: vault.id, folderId: FolderId.generate(), position: note.position },
+        { notebookId: notebook.id, folderId: FolderId.generate(), position: note.position },
         authorship(),
       ),
     );
@@ -102,14 +102,14 @@ describe('storage: what each mutation declares', () => {
   });
 
   it('a guidance costs the difference against the one it replaces', () => {
-    const vault = newVault();
-    vault.pullEvents(); // VaultCreated, which moves nothing
-    unwrap(vault.setGuidance(contentRef('d'.repeat(64), 1000), authorship()));
-    const [first] = vault.pullEvents();
+    const notebook = newNotebook();
+    notebook.pullEvents(); // NotebookCreated, which moves nothing
+    unwrap(notebook.setGuidance(contentRef('d'.repeat(64), 1000), authorship()));
+    const [first] = notebook.pullEvents();
     expect(first?.storageDelta).toBe(1000);
 
-    unwrap(vault.setGuidance(contentRef('e'.repeat(64), 1500), authorship()));
-    const [second] = vault.pullEvents();
+    unwrap(notebook.setGuidance(contentRef('e'.repeat(64), 1500), authorship()));
+    const [second] = notebook.pullEvents();
     expect(second?.storageDelta).toBe(500);
   });
 });

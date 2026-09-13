@@ -10,8 +10,8 @@
   subscription and writes the counter.
 
   It is needed at least once for real, because the counter came into existence
-  after the vaults did: every subscription written before it started at zero
-  while holding a vault full of notes. After that it is a repair job, for the
+  after the notebooks did: every subscription written before it started at zero
+  while holding a notebook full of notes. After that it is a repair job, for the
   ordinary ways a delta can be lost.
 
   It reports first and writes only with -Apply. Run it when the accounts are

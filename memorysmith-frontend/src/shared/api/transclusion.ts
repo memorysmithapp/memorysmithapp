@@ -106,7 +106,7 @@ const HEADING = /^(#{1,6})\s+(.+?)\s*$/;
  * here would mean this function decides what the reader shows.
  *
  * An identifier that names nothing answers null, and the caller renders it the
- * way it renders a pending link. It is never an error: a vault is read most
+ * way it renders a pending link. It is never an error: a notebook is read most
  * while it is being written.
  */
 export function blockOf(markdown: string, identifier: string): string | null {
@@ -137,7 +137,7 @@ function escapeRegExp(value: string): string {
 
 /**
  * The section of a document, cut syntactically: from the heading whose slug
- * matches the anchor to the next heading of equal or higher level. No vault
+ * matches the anchor to the next heading of equal or higher level. No notebook
  * convention takes part in this, which is what keeps it on the right side of
  * PP4.
  */

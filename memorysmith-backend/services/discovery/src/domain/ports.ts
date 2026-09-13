@@ -54,25 +54,25 @@ export interface BrokenLink {
 }
 
 /** Depth is capped at 3 and the traversal at 200 nodes (RN-DSC-007). */
-export const GRAPH_LIMITS = { maxDepth: 3, maxNodes: 200, maxVaultNodes: 2000 } as const;
+export const GRAPH_LIMITS = { maxDepth: 3, maxNodes: 200, maxNotebookNodes: 2000 } as const;
 
 /**
- * The whole link graph of one vault, which is what the projection already is:
+ * The whole link graph of one notebook, which is what the projection already is:
  * the notes it knows and the edges between them. It is a different question
  * from the dependency tree, which walks OUT from one note under a depth
- * ceiling; here there is no root and no depth, only the shape of the vault.
+ * ceiling; here there is no root and no depth, only the shape of the notebook.
  *
  * Edges are index pairs into `nodes` because a graph of any size repeats the
  * same identifiers on both ends, and an index costs two bytes where a ULID
  * costs twenty-six.
  */
-export interface VaultGraph {
+export interface NotebookGraph {
   readonly nodes: NoteRef[];
   readonly edges: Array<[number, number]>;
   /** Links whose target does not exist yet, kept so the UI can show them. */
   readonly pending: Array<{ from: number; targetTitle: string }>;
   /**
-   * Whether `maxVaultNodes` cut the graph short. Never truncate in silence:
+   * Whether `maxNotebookNodes` cut the graph short. Never truncate in silence:
    * a partial graph that claims to be whole is worse than no graph.
    */
   readonly truncated: boolean;
@@ -81,24 +81,24 @@ export interface VaultGraph {
 /**
  * A node of the graph as the VIEW reads it: the note, plus the portrait the
  * facet projection already keeps of it. The portrait is what lets a reader
- * color the graph by an attribute the vault itself declares, and it costs one
+ * color the graph by an attribute the notebook itself declares, and it costs one
  * more prefix query in the SAME partition the graph already read.
  *
  * The backend still does not interpret the note (PP4): these values were
  * classified by SHAPE by the FacetExtractor, and which of them means anything
- * is a decision of whoever authored the vault.
+ * is a decision of whoever authored the notebook.
  */
 export interface GraphNoteRef extends NoteRef {
   readonly facets: Record<string, string[]>;
 }
 
-export interface AnnotatedVaultGraph {
+export interface AnnotatedNotebookGraph {
   readonly nodes: GraphNoteRef[];
   readonly edges: Array<[number, number]>;
   /** Links whose target does not exist yet, kept so the UI can show them. */
   readonly pending: Array<{ from: number; targetTitle: string }>;
   /**
-   * Whether `maxVaultNodes` cut the graph short. Never truncate in silence:
+   * Whether `maxNotebookNodes` cut the graph short. Never truncate in silence:
    * a partial graph that claims to be whole is worse than no graph.
    */
   readonly truncated: boolean;
@@ -106,28 +106,28 @@ export interface AnnotatedVaultGraph {
 
 export interface LinkGraph {
   /** Replaces every outgoing edge of a note, resolving what it can. */
-  replaceOutgoing(vaultId: string, note: NoteRef, links: LinkTarget[]): Promise<void>;
+  replaceOutgoing(notebookId: string, note: NoteRef, links: LinkTarget[]): Promise<void>;
   /** Removes the note from the graph and returns its backlinks to pending. */
-  removeNote(vaultId: string, noteId: string): Promise<void>;
+  removeNote(notebookId: string, noteId: string): Promise<void>;
   /**
-   * Takes the note into the vault and re-resolves what changed: the pending
+   * Takes the note into the notebook and re-resolves what changed: the pending
    * links that were waiting for this title, and the edges somebody's alias was
    * holding for it, which move to the note that owns the title (RN-DSC-053).
    * Answers how many pending links stopped being pending.
    */
-  resolvePending(vaultId: string, note: NoteRef): Promise<number>;
+  resolvePending(notebookId: string, note: NoteRef): Promise<number>;
   /**
-   * What one target resolves to in this vault: every note whose title matches
+   * What one target resolves to in this notebook: every note whose title matches
    * it, or — when none does — every note carrying it as an alias, with which
    * of the two answered (RN-DSC-046).
    */
-  resolveTarget(vaultId: string, target: string): Promise<ResolvedTarget>;
-  dependencyTree(vaultId: string, rootNoteId: string, depth: number): Promise<GraphNode | null>;
-  backlinks(vaultId: string, noteId: string): Promise<NoteRef[]>;
-  broken(vaultId: string): Promise<BrokenLink[]>;
-  /** Every note and every edge of the vault, for the graph view. */
-  wholeGraph(vaultId: string): Promise<VaultGraph>;
-  orphans(vaultId: string, allNotes: NoteRef[]): Promise<NoteRef[]>;
+  resolveTarget(notebookId: string, target: string): Promise<ResolvedTarget>;
+  dependencyTree(notebookId: string, rootNoteId: string, depth: number): Promise<GraphNode | null>;
+  backlinks(notebookId: string, noteId: string): Promise<NoteRef[]>;
+  broken(notebookId: string): Promise<BrokenLink[]>;
+  /** Every note and every edge of the notebook, for the graph view. */
+  wholeGraph(notebookId: string): Promise<NotebookGraph>;
+  orphans(notebookId: string, allNotes: NoteRef[]): Promise<NoteRef[]>;
 }
 
 /**
@@ -172,15 +172,15 @@ export interface IndexedNote {
 /**
  * The content index, one per subscription like every other projection.
  *
- * `scanVault` MUST walk every page. The search that this one replaced answered
+ * `scanNotebook` MUST walk every page. The search that this one replaced answered
  * from the first megabyte and silently ignored the rest, which is the failure
  * mode this port exists to make impossible to repeat: a partial scan that
  * claims to be whole is worse than no search.
  */
 export interface ContentIndex {
-  replaceNote(vaultId: string, note: IndexedNote): Promise<void>;
-  removeNote(vaultId: string, noteId: string): Promise<void>;
-  scanVault(vaultId: string): Promise<IndexedNote[]>;
+  replaceNote(notebookId: string, note: IndexedNote): Promise<void>;
+  removeNote(notebookId: string, noteId: string): Promise<void>;
+  scanNotebook(notebookId: string): Promise<IndexedNote[]>;
 }
 
 export interface FacetStats {
@@ -195,17 +195,17 @@ export interface FacetStats {
 
 export interface FacetIndex {
   /** null means the note was deleted and its portrait must be withdrawn. */
-  replaceFacets(vaultId: string, noteId: string, facets: FacetSnapshot | null): Promise<void>;
-  vaultFacetStats(vaultId: string): Promise<FacetStats>;
+  replaceFacets(notebookId: string, noteId: string, facets: FacetSnapshot | null): Promise<void>;
+  notebookFacetStats(notebookId: string): Promise<FacetStats>;
   /**
-   * The portrait of every note of the vault, keyed by note. The statistics
+   * The portrait of every note of the notebook, keyed by note. The statistics
    * above answer "how many notes say X"; this answers "what does THIS note
    * say", which is the question the graph view asks in order to color a node.
    */
-  vaultNoteFacets(vaultId: string): Promise<Map<string, Record<string, string[]>>>;
+  notebookNoteFacets(notebookId: string): Promise<Map<string, Record<string, string[]>>>;
 }
 
 /** Lexical search lives here too: title and folder, no index of its own. */
 export interface NoteCatalog {
-  listNotes(vaultId: string): Promise<Array<NoteRef & { folderName: string }>>;
+  listNotes(notebookId: string): Promise<Array<NoteRef & { folderName: string }>>;
 }

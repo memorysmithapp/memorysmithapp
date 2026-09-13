@@ -107,10 +107,10 @@ export class McpToolAdapter {
 
     switch (name) {
       case 'whoami': {
-        // The reach is read, not described: a list of vaults the caller cannot
+        // The reach is read, not described: a list of notebooks the caller cannot
         // actually open would be a help that lies on its first step.
-        const vaults = await knowledge.listVaults(caller);
-        return text(whoAmI(caller, vaults));
+        const notebooks = await knowledge.listNotebooks(caller);
+        return text(whoAmI(caller, notebooks));
       }
 
       case 'get_skill': {
@@ -126,30 +126,30 @@ export class McpToolAdapter {
         return text(skill.body);
       }
 
-      case 'list_vaults': {
-        const vaults = await knowledge.listVaults(caller);
-        if (vaults.length === 0) {
+      case 'list_notebooks': {
+        const notebooks = await knowledge.listNotebooks(caller);
+        if (notebooks.length === 0) {
           return text(
-            'This connector reaches no vault yet. Ask the owner of the subscription to create ' +
+            'This connector reaches no notebook yet. Ask the owner of the subscription to create ' +
               'one and write its guidance before you try to read or write anything.',
           );
         }
-        return json(vaults);
+        return json(notebooks);
       }
 
-      case 'create_vault': {
-        const created = await knowledge.createVault(caller, {
-          name: requireString(args, 'name', 'create_vault'),
-          description: requireString(args, 'description', 'create_vault'),
+      case 'create_notebook': {
+        const created = await knowledge.createNotebook(caller, {
+          name: requireString(args, 'name', 'create_notebook'),
+          description: requireString(args, 'description', 'create_notebook'),
         });
         return json(created);
       }
 
-      case 'delete_vault': {
-        const vault = requireString(args, 'vault', 'delete_vault');
-        await knowledge.deleteVault(caller, vault);
+      case 'delete_notebook': {
+        const notebook = requireString(args, 'notebook', 'delete_notebook');
+        await knowledge.deleteNotebook(caller, notebook);
         return text(
-          `The vault ${vault} is out of every listing. Nothing was destroyed: its notes and ` +
+          `The notebook ${notebook} is out of every listing. Nothing was destroyed: its notes and ` +
             'their history are intact, and it can be brought back.',
         );
       }
@@ -157,11 +157,11 @@ export class McpToolAdapter {
       case 'get_guidance': {
         const found = await knowledge.guidance(
           caller,
-          requireString(args, 'vault', 'get_guidance'),
+          requireString(args, 'notebook', 'get_guidance'),
         );
         if (!found) {
           return text(
-            'This vault has no guidance yet. Write one with set_guidance, passing ' +
+            'This notebook has no guidance yet. Write one with set_guidance, passing ' +
               'baseRevision: null, which is what an empty slot expects.',
           );
         }
@@ -169,10 +169,10 @@ export class McpToolAdapter {
       }
 
       case 'set_guidance': {
-        const vault = requireString(args, 'vault', 'set_guidance');
+        const notebook = requireString(args, 'notebook', 'set_guidance');
         await knowledge.setGuidance(
           caller,
-          vault,
+          notebook,
           requireString(args, 'content', 'set_guidance'),
           // Null is a legitimate value here, and it means the slot is empty,
           // so it cannot be defaulted away: a missing argument is a mistake,
@@ -180,7 +180,7 @@ export class McpToolAdapter {
           revisionArgument(args, 'set_guidance'),
         );
         return text(
-          'The guidance of this vault was replaced. Read it back with get_vault_context to see ' +
+          'The guidance of this notebook was replaced. Read it back with get_notebook_context to see ' +
             'it as the next agent will.',
         );
       }
@@ -188,7 +188,7 @@ export class McpToolAdapter {
       case 'create_folder': {
         const parent = typeof args['parent'] === 'string' ? args['parent'] : undefined;
         const folder = await knowledge.createFolder(caller, {
-          vaultId: requireString(args, 'vault', 'create_folder'),
+          notebookId: requireString(args, 'notebook', 'create_folder'),
           name: requireString(args, 'name', 'create_folder'),
           description: requireString(args, 'description', 'create_folder'),
           ...(parent === undefined ? {} : { parentFolderId: parent }),
@@ -198,7 +198,7 @@ export class McpToolAdapter {
 
       case 'delete_folder': {
         const removed = await knowledge.deleteFolder(caller, {
-          vaultId: requireString(args, 'vault', 'delete_folder'),
+          notebookId: requireString(args, 'notebook', 'delete_folder'),
           folderId: requireString(args, 'folder', 'delete_folder'),
           policy: requireString(args, 'policy', 'delete_folder'),
         });
@@ -207,7 +207,7 @@ export class McpToolAdapter {
 
       case 'set_template': {
         await knowledge.setTemplate(caller, {
-          vaultId: requireString(args, 'vault', 'set_template'),
+          notebookId: requireString(args, 'notebook', 'set_template'),
           folderId: requireString(args, 'folder', 'set_template'),
           content: requireString(args, 'content', 'set_template'),
           baseRevision: revisionArgument(args, 'set_template'),
@@ -217,7 +217,7 @@ export class McpToolAdapter {
 
       case 'delete_note': {
         const note = requireString(args, 'note', 'delete_note');
-        await knowledge.deleteNote(caller, requireString(args, 'vault', 'delete_note'), note);
+        await knowledge.deleteNote(caller, requireString(args, 'notebook', 'delete_note'), note);
         return text(
           `The note ${note} left the listings and the search. Nothing was destroyed: its ` +
             'history stays readable by note_history, and the links that pointed at it are now ' +
@@ -225,44 +225,47 @@ export class McpToolAdapter {
         );
       }
 
-      case 'get_vault_context':
+      case 'get_notebook_context':
         // Markdown, not JSON: this document IS the product, and it is meant to
         // be read (software-vision.md, section 9.2).
         return text(
-          await knowledge.vaultContext(caller, requireString(args, 'vault', 'get_vault_context')),
+          await knowledge.notebookContext(
+            caller,
+            requireString(args, 'notebook', 'get_notebook_context'),
+          ),
         );
 
       case 'get_template': {
         const template = await knowledge.template(
           caller,
-          requireString(args, 'vault', 'get_template'),
+          requireString(args, 'notebook', 'get_template'),
           requireString(args, 'folder', 'get_template'),
         );
         return template
           ? text(template.content)
-          : text('This folder carries no template. Follow the guidance of the vault instead.');
+          : text('This folder carries no template. Follow the guidance of the notebook instead.');
       }
 
       case 'list_notes': {
         const folder = typeof args['folder'] === 'string' ? args['folder'] : undefined;
         return json(
-          await knowledge.listNotes(caller, requireString(args, 'vault', 'list_notes'), folder),
+          await knowledge.listNotes(caller, requireString(args, 'notebook', 'list_notes'), folder),
         );
       }
 
       case 'read_note': {
-        const vault = requireString(args, 'vault', 'read_note');
+        const notebook = requireString(args, 'notebook', 'read_note');
         const note = requireString(args, 'note', 'read_note');
         const asOf = typeof args['asOf'] === 'string' ? args['asOf'] : null;
         const read = asOf
-          ? await audit.revisionAt(caller, { vaultId: vault, noteId: note, asOf })
-          : await knowledge.readNote(caller, vault, note);
+          ? await audit.revisionAt(caller, { notebookId: notebook, noteId: note, asOf })
+          : await knowledge.readNote(caller, notebook, note);
         return json(read);
       }
 
       case 'create_note': {
         const created = await knowledge.createNote(caller, {
-          vaultId: requireString(args, 'vault', 'create_note'),
+          notebookId: requireString(args, 'notebook', 'create_note'),
           folderId: requireString(args, 'folder', 'create_note'),
           content: requireString(args, 'content', 'create_note'),
         });
@@ -271,7 +274,7 @@ export class McpToolAdapter {
 
       case 'update_note': {
         const updated = await knowledge.updateNote(caller, {
-          vaultId: requireString(args, 'vault', 'update_note'),
+          notebookId: requireString(args, 'notebook', 'update_note'),
           noteId: requireString(args, 'note', 'update_note'),
           content: requireString(args, 'content', 'update_note'),
           baseRevision: requireString(args, 'baseRevision', 'update_note'),
@@ -283,14 +286,14 @@ export class McpToolAdapter {
         return json(
           await knowledge.searchNotes(
             caller,
-            requireString(args, 'vault', 'search_notes'),
+            requireString(args, 'notebook', 'search_notes'),
             requireString(args, 'query', 'search_notes'),
           ),
         );
 
       case 'related_notes': {
         const tree = await discovery.relatedNotes(caller, {
-          vaultId: requireString(args, 'vault', 'related_notes'),
+          notebookId: requireString(args, 'notebook', 'related_notes'),
           noteId: requireString(args, 'note', 'related_notes'),
           ...(typeof args['depth'] === 'number' ? { depth: args['depth'] } : {}),
         });
@@ -301,7 +304,7 @@ export class McpToolAdapter {
         return json(
           await discovery.backlinks(
             caller,
-            requireString(args, 'vault', 'backlinks'),
+            requireString(args, 'notebook', 'backlinks'),
             requireString(args, 'note', 'backlinks'),
           ),
         );
@@ -310,7 +313,7 @@ export class McpToolAdapter {
         return json(
           await audit.noteHistory(
             caller,
-            requireString(args, 'vault', 'note_history'),
+            requireString(args, 'notebook', 'note_history'),
             requireString(args, 'note', 'note_history'),
           ),
         );

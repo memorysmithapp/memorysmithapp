@@ -5,7 +5,7 @@
  *
  * The translation stops at the label. The bytes of the note, what the export
  * writes, and what the search answers all keep the en-US key, which is what
- * makes a vault kept in Portuguese answer `created:2026-09` and still read as
+ * makes a notebook kept in Portuguese answer `created:2026-09` and still read as
  * Portuguese on screen.
  *
  * The list is not written here either: it comes from the specification, so a
@@ -39,14 +39,14 @@ describe('a reserved key may be shown translated', () => {
 });
 
 describe('every other attribute keeps the name whoever wrote the note gave it', () => {
-  it('leaves an attribute the vault invented alone', () => {
+  it('leaves an attribute the notebook invented alone', () => {
     expect(propertyLabel('maturity', t)).toBe('maturity');
     expect(propertyLabel('norma', t)).toBe('norma');
   });
 
   it('does not translate an attribute that merely reads like a reserved one', () => {
     // `etiquetas` is somebody's own key, in their own language, and renaming
-    // it on screen would be the interface deciding what their vault means.
+    // it on screen would be the interface deciding what their notebook means.
     expect(propertyLabel('etiquetas', t)).toBe('etiquetas');
     expect(propertyLabel('Tags', t)).toBe('Tags');
   });
@@ -66,7 +66,7 @@ describe('the properties are drawn in a declared order (RN-DSC-051)', () => {
     expect(drawn(written)).toEqual(['tags', 'updated', 'maturity', 'norma']);
   });
 
-  it('keeps the vocabulary of the vault in the order the note wrote it', () => {
+  it('keeps the vocabulary of the notebook in the order the note wrote it', () => {
     const written: Array<[string, string]> = [
       ['zeta', '1'],
       ['alfa', '2'],

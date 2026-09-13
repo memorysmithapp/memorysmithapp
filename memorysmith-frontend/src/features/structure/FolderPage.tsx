@@ -4,20 +4,20 @@ import { useTranslation } from 'react-i18next';
 import { canWrite, getTemplate, putTemplate } from '../../shared/api/source';
 import { noteAddress } from '../../shared/api/note-address';
 import { WritableContent } from '../../shared/components/WritableContent';
-import type { VaultOutletContext } from './VaultLayout';
+import type { NotebookOutletContext } from './NotebookLayout';
 import { folderTrail } from './trail';
-import { VaultBreadcrumb, folderCrumbs } from './VaultBreadcrumb';
+import { NotebookBreadcrumb, folderCrumbs } from './NotebookBreadcrumb';
 
 export function FolderPage() {
   const { t } = useTranslation();
-  const { vaultSlug = '', '*': slugPath = '' } = useParams();
-  const { structure } = useOutletContext<VaultOutletContext>();
+  const { notebookSlug = '', '*': slugPath = '' } = useParams();
+  const { structure } = useOutletContext<NotebookOutletContext>();
   const chain = folderTrail(structure.folders, slugPath);
   const folder = chain[chain.length - 1] ?? null;
 
   const { data: template } = useQuery({
-    queryKey: ['template', vaultSlug, folder?.id],
-    queryFn: () => getTemplate(vaultSlug, folder?.id ?? ''),
+    queryKey: ['template', notebookSlug, folder?.id],
+    queryFn: () => getTemplate(notebookSlug, folder?.id ?? ''),
     enabled: Boolean(folder?.hasTemplate),
   });
 
@@ -25,10 +25,10 @@ export function FolderPage() {
 
   return (
     <article className="content-pane">
-      <VaultBreadcrumb
+      <NotebookBreadcrumb
         items={[
-          { label: t('structure.root'), to: `/vaults/${vaultSlug}/root` },
-          ...folderCrumbs(vaultSlug, chain),
+          { label: t('structure.root'), to: `/notebooks/${notebookSlug}/root` },
+          ...folderCrumbs(notebookSlug, chain),
         ]}
       />
       <h1>{folder.name}</h1>
@@ -40,15 +40,15 @@ export function FolderPage() {
           <p className="hint">{t('folder.templateHint')}</p>
           <WritableContent
             raw={template.body}
-            vaultSlug={vaultSlug}
+            notebookSlug={notebookSlug}
             baseRevision={template.revision}
             writable={canWrite(structure.effectiveRole)}
             write={({ raw, baseRevision, keepalive }) =>
-              putTemplate(vaultSlug, folder.id, raw, baseRevision, {
+              putTemplate(notebookSlug, folder.id, raw, baseRevision, {
                 keepalive: keepalive ?? false,
               })
             }
-            invalidates={['template', vaultSlug, folder.id]}
+            invalidates={['template', notebookSlug, folder.id]}
           />
         </details>
       )}
@@ -58,7 +58,10 @@ export function FolderPage() {
       <ul className="note-list">
         {folder.children.map((child) => (
           <li key={child.id}>
-            <Link to={`/vaults/${vaultSlug}/root/${child.slugPath}`} className="note-list-folder">
+            <Link
+              to={`/notebooks/${notebookSlug}/root/${child.slugPath}`}
+              className="note-list-folder"
+            >
               {child.name}/
             </Link>
             <span className="note-list-desc">{child.description}</span>
@@ -66,7 +69,7 @@ export function FolderPage() {
         ))}
         {folder.notes.map((note) => (
           <li key={note.id}>
-            <Link to={noteAddress(vaultSlug, folder.slugPath, note.title, note.id)}>
+            <Link to={noteAddress(notebookSlug, folder.slugPath, note.title, note.id)}>
               {note.title ?? t('note.untitled')}
             </Link>
           </li>

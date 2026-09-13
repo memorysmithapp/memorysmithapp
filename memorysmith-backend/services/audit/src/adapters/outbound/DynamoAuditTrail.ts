@@ -77,10 +77,10 @@ export class DynamoAuditTrail implements AuditTrail {
                   authorship: event.authorship.toJSON(),
                   contentRef: event.contentRef ? event.contentRef.toJSON() : null,
                   payload: event.payload,
-                  // Lets the activity screen ask "what happened in this vault".
-                  ...(vaultOf(event)
+                  // Lets the activity screen ask "what happened in this notebook".
+                  ...(notebookOf(event)
                     ? {
-                        GSI1PK: `S#${event.subscriptionId.value}#VAULTACT#${vaultOf(event)}`,
+                        GSI1PK: `S#${event.subscriptionId.value}#NOTEBOOKACT#${notebookOf(event)}`,
                         GSI1SK: sortKeyOf(event),
                       }
                     : {}),
@@ -109,7 +109,7 @@ export class DynamoAuditTrail implements AuditTrail {
   }
 
   async activityOf(
-    vaultId: string,
+    notebookId: string,
     from: Instant | null,
     to: Instant | null,
   ): Promise<AuditEvent[]> {
@@ -125,7 +125,7 @@ export class DynamoAuditTrail implements AuditTrail {
               ? 'GSI1PK = :pk AND GSI1SK >= :from'
               : 'GSI1PK = :pk',
         ExpressionAttributeValues: {
-          ':pk': `S#${this.subscriptionId.value}#VAULTACT#${vaultId}`,
+          ':pk': `S#${this.subscriptionId.value}#NOTEBOOKACT#${notebookId}`,
           ...(from ? { ':from': `AT#${from.toISOString()}` } : {}),
           ...(to ? { ':to': `AT#${to.toISOString()}#~` } : {}),
         },
@@ -136,10 +136,10 @@ export class DynamoAuditTrail implements AuditTrail {
   }
 }
 
-function vaultOf(event: AuditEvent): string | null {
-  const fromPayload = event.payload['vaultId'] ?? event.payload['toVaultId'];
+function notebookOf(event: AuditEvent): string | null {
+  const fromPayload = event.payload['notebookId'] ?? event.payload['toNotebookId'];
   if (typeof fromPayload === 'string') return fromPayload;
-  return event.subject === 'VAULT' ? event.subjectId : null;
+  return event.subject === 'NOTEBOOK' ? event.subjectId : null;
 }
 
 function parse(item: Item): AuditEvent {
@@ -205,12 +205,12 @@ export class InMemoryAuditTrail implements AuditTrail {
   }
 
   async activityOf(
-    vaultId: string,
+    notebookId: string,
     from: Instant | null,
     to: Instant | null,
   ): Promise<AuditEvent[]> {
     return this.events
-      .filter((event) => vaultOf(event) === vaultId)
+      .filter((event) => notebookOf(event) === notebookId)
       .filter((event) => !from || !event.occurredAt.isBefore(from))
       .filter((event) => !to || event.occurredAt.isAtOrBefore(to))
       .sort((left, right) => right.occurredAt.epochMillis - left.occurredAt.epochMillis);

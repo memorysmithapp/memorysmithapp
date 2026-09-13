@@ -50,7 +50,7 @@ export class DataStack extends Stack {
         },
       ],
       /**
-       * An export is a DERIVED artefact: it is rebuilt from the vault on
+       * An export is a DERIVED artefact: it is rebuilt from the notebook on
        * demand, and the link that reaches it lives fifteen minutes. Keeping it
        * afterwards would be paying storage for a second copy of what we
        * already store, so the archive expires by TAG rather than by prefix,
@@ -62,7 +62,7 @@ export class DataStack extends Stack {
        */
       lifecycleRules: [
         {
-          id: 'ExpireVaultExports',
+          id: 'ExpireNotebookExports',
           enabled: true,
           tagFilters: { lifecycle: 'export' },
           expiration: Duration.days(1),
@@ -95,8 +95,8 @@ export class DataStack extends Stack {
       stream: true,
       removalPolicy,
       indexes: [
-        // Vaults of a workspace, already carrying the note count.
-        // The vaults of the subscription, already carrying the note count.
+        // Notebooks of a workspace, already carrying the note count.
+        // The notebooks of the subscription, already carrying the note count.
         { name: 'GSI1', partitionKey: 'GSI1PK', sortKey: 'GSI1SK' },
         // Notes of a folder, in the defined order. SPARSE: a deleted note
         // loses these attributes and leaves every listing (section 12.4).

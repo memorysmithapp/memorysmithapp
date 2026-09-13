@@ -306,7 +306,7 @@ if ($verifyGaps -gt 0) {
   exit 1
 }
 Write-Ok ("deploy finished in {0:mm\:ss}" -f $elapsed)
-Write-Detail 'next: ./deploy-aws/onboard.ps1 creates the first account, its subscription and its vault'
+Write-Detail 'next: ./deploy-aws/onboard.ps1 creates the first account, its subscription and its notebook'
 # Explicit, so the exit code is the script's and not that of the last native
 # command that happened to run inside it.
 exit 0

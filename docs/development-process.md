@@ -109,7 +109,7 @@ around it measured the pain**, and the size of the workaround is the size of the
 
 The repository is public. Two things stay out:
 
-- **Real vault content**, customer names or business data. The form asks for explicit
+- **Real notebook content**, customer names or business data. The form asks for explicit
   confirmation of this, and an issue that slipped through is edited as soon as it is
   noticed.
 - **An isolation failure or any vulnerability**, which go through `SECURITY.md` and the
@@ -140,7 +140,7 @@ owns the product.
 > **Does this get solved by writing, or only by building?**
 
 A good part of what arrives as missing functionality is a missing `README`. "I could not
-connect the vault to my agent" may be a gap in the product or a missing paragraph. Mixing
+connect the notebook to my agent" may be a gap in the product or a missing paragraph. Mixing
 the two up is the most expensive mistake of the process, because it builds functionality to
 solve a problem of text.
 
@@ -173,11 +173,11 @@ crosses two places, the sign that it is two requests.
 |---|---|
 | `domain:subscription` | The customer account: status, plan, quota, isolation |
 | `domain:access` | Who may do what: members, roles, invitations, ceilings, ownership |
-| `domain:knowledge` | The content itself: vaults, folders, notes, Guidance, Templates |
+| `domain:knowledge` | The content itself: notebooks, folders, notes, Guidance, Templates |
 | `domain:discovery` | Finding things: search, the link graph, backlinks, facets |
 | `domain:audit` | The history: who wrote what, when, and what it said on a date |
-| `domain:mcp` | The connector for the agent: tools, the Vault Context, skills |
-| `domain:export` | Taking the vault out as `.md` files |
+| `domain:mcp` | The connector for the agent: tools, the Notebook Context, skills |
+| `domain:export` | Taking the notebook out as `.md` files |
 | `layer:web` | The web interface |
 | `layer:infra` | AWS, the stacks, the deployment scripts |
 
@@ -269,7 +269,7 @@ precisely what may not be done.
 | Touches `docs/` or `README.md` | Does not touch |
 |---|---|
 | Creates or changes an `RN-XXX` | Refactoring with no behaviour change |
-| Changes the permission matrix or the per-vault role ceiling | Test, lint or formatting adjustments |
+| Changes the permission matrix or the per-notebook role ceiling | Test, lint or formatting adjustments |
 | Changes the contract of an MCP tool: name, argument or return shape | Infrastructure change with no visible effect |
 | Changes a declared limit, an entity or the ubiquitous language | A fix that **restores** the behaviour the document already describes |
 | Changes a recorded architecture decision | Intermediate work that has not changed anything assertable yet |

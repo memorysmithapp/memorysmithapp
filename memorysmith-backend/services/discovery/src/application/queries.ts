@@ -6,7 +6,7 @@
 import { DomainError, err, ok, type Result } from '@memorysmith/kernel';
 import {
   GRAPH_LIMITS,
-  type AnnotatedVaultGraph,
+  type AnnotatedNotebookGraph,
   type ContentIndex,
   type FacetIndex,
   type FacetStats,
@@ -77,14 +77,14 @@ export class RelatedNotes {
   constructor(private readonly deps: QueryDependencies) {}
 
   async execute(input: {
-    vaultId: string;
+    notebookId: string;
     noteId: string;
     depth?: number | undefined;
   }): Promise<Result<GraphNode, DomainError>> {
-    // Without a ceiling a dense vault returns the whole vault and drowns the
+    // Without a ceiling a dense notebook returns the whole notebook and drowns the
     // agent (RN-DSC-007).
     const depth = Math.min(Math.max(input.depth ?? 2, 1), GRAPH_LIMITS.maxDepth);
-    const tree = await this.deps.graph.dependencyTree(input.vaultId, input.noteId, depth);
+    const tree = await this.deps.graph.dependencyTree(input.notebookId, input.noteId, depth);
     return tree ? ok(tree) : err(DomainError.notFound('Note not found'));
   }
 }
@@ -93,10 +93,10 @@ export class Backlinks {
   constructor(private readonly deps: QueryDependencies) {}
 
   async execute(input: {
-    vaultId: string;
+    notebookId: string;
     noteId: string;
   }): Promise<Result<NoteRef[], DomainError>> {
-    return ok(await this.deps.graph.backlinks(input.vaultId, input.noteId));
+    return ok(await this.deps.graph.backlinks(input.notebookId, input.noteId));
   }
 }
 
@@ -113,45 +113,47 @@ export class ResolveLinkTarget {
   constructor(private readonly deps: QueryDependencies) {}
 
   async execute(input: {
-    vaultId: string;
+    notebookId: string;
     target: string;
   }): Promise<Result<ResolvedTarget, DomainError>> {
     const target = input.target.trim();
     if (target.length === 0) return err(DomainError.validation('A link target cannot be empty'));
-    return ok(await this.deps.graph.resolveTarget(input.vaultId, target));
+    return ok(await this.deps.graph.resolveTarget(input.notebookId, target));
   }
 }
 
-export class VaultHealth {
+export class NotebookHealth {
   constructor(private readonly deps: QueryDependencies) {}
 
   async execute(input: {
-    vaultId: string;
+    notebookId: string;
   }): Promise<Result<{ broken: BrokenLink[]; orphans: NoteRef[] }, DomainError>> {
-    const notes = await this.deps.catalog.listNotes(input.vaultId);
+    const notes = await this.deps.catalog.listNotes(input.notebookId);
     return ok({
-      broken: await this.deps.graph.broken(input.vaultId),
-      orphans: await this.deps.graph.orphans(input.vaultId, notes),
+      broken: await this.deps.graph.broken(input.notebookId),
+      orphans: await this.deps.graph.orphans(input.notebookId, notes),
     });
   }
 }
 
 /**
- * The shape of the whole vault, which the graph view draws. It reads one
+ * The shape of the whole notebook, which the graph view draws. It reads one
  * projection and nothing else: Discovery never asks Knowledge for a note
  * (RN-DSC-017), and the notes it names are the ones its own projection knows.
  */
-export class VaultGraphQuery {
+export class NotebookGraphQuery {
   constructor(private readonly deps: QueryDependencies) {}
 
-  async execute(input: { vaultId: string }): Promise<Result<AnnotatedVaultGraph, DomainError>> {
+  async execute(input: {
+    notebookId: string;
+  }): Promise<Result<AnnotatedNotebookGraph, DomainError>> {
     // Two prefix queries in the same partition, in parallel: the shape of the
-    // vault, and what each note says about itself. The second is what lets the
+    // notebook, and what each note says about itself. The second is what lets the
     // view color by an attribute; a note with no frontmatter carries `{}` and
     // is drawn as any other.
     const [graph, portraits] = await Promise.all([
-      this.deps.graph.wholeGraph(input.vaultId),
-      this.deps.facets.vaultNoteFacets(input.vaultId),
+      this.deps.graph.wholeGraph(input.notebookId),
+      this.deps.facets.notebookNoteFacets(input.notebookId),
     ]);
 
     return ok({
@@ -168,18 +170,18 @@ export class SearchNotes {
   constructor(private readonly deps: QueryDependencies) {}
 
   /**
-   * The search reads the content index of the vault and evaluates the query
+   * The search reads the content index of the notebook and evaluates the query
    * against every note in it. A hit always cites the note it came from, and
    * the section when the match fell under a heading (RN-DSC-010).
    *
-   * Scanning the whole vault is a deliberate choice, not a shortcut. The vault
+   * Scanning the whole notebook is a deliberate choice, not a shortcut. The notebook
    * ceiling is 2.000 notes (RN-KNW-010), which is about 8 MB, and at that size
    * a scan is cheaper and far simpler than an inverted index that would have
    * to be kept in step with every write. What the scan may never do is stop
-   * early: `scanVault` walks every page, and the test below proves it.
+   * early: `scanNotebook` walks every page, and the test below proves it.
    */
   async execute(input: {
-    vaultId: string;
+    notebookId: string;
     query: string;
     k?: number | undefined;
   }): Promise<Result<ScoredNote[], DomainError>> {
@@ -191,17 +193,17 @@ export class SearchNotes {
       throw error;
     }
 
-    const notes = await this.deps.content.scanVault(input.vaultId);
+    const notes = await this.deps.content.scanNotebook(input.notebookId);
 
     /**
      * An interval only means something over a date, and whether an attribute
-     * IS a date is a fact about this vault rather than about the query string
-     * — so it is checked here, once, with the vault in hand (RN-DSC-034).
+     * IS a date is a fact about this notebook rather than about the query string
+     * — so it is checked here, once, with the notebook in hand (RN-DSC-034).
      *
      * It is refused rather than answered empty. An empty result reads as
      * "there is nothing filed under that", and `maturity:>=evergreen` does
      * not mean that: it means the question has no answer, and being told so
-     * is the difference between fixing the query and doubting the vault.
+     * is the difference between fixing the query and doubting the notebook.
      */
     const dated = new Set(
       notes.flatMap((note) =>
@@ -214,7 +216,7 @@ export class SearchNotes {
     if (undatable.length > 0) {
       return err(
         DomainError.validation(
-          `An interval only works over a date. In this vault, ${undatable.join(' and ')} ` +
+          `An interval only works over a date. In this notebook, ${undatable.join(' and ')} ` +
             `${undatable.length === 1 ? 'is' : 'are'} not one.`,
         ),
       );
@@ -242,7 +244,7 @@ export class SearchNotes {
 export class GetFacetStats {
   constructor(private readonly deps: QueryDependencies) {}
 
-  async execute(input: { vaultId: string }): Promise<Result<FacetStats, DomainError>> {
-    return ok(await this.deps.facets.vaultFacetStats(input.vaultId));
+  async execute(input: { notebookId: string }): Promise<Result<FacetStats, DomainError>> {
+    return ok(await this.deps.facets.notebookFacetStats(input.notebookId));
   }
 }
