@@ -23,11 +23,13 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { ServiceLambda } from '../constructs/service-lambda.js';
 import type { DataStack } from './data.stack.js';
+import { physicalName, type EnvironmentConfig } from '../config/environments.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const backend = join(here, '..', '..', 'memorysmith-backend');
 
 export interface ProjectionsStackProps extends StackProps {
+  readonly environment: EnvironmentConfig;
   readonly data: DataStack;
 }
 
@@ -58,12 +60,12 @@ export class ProjectionsStack extends Stack {
     // ---- svc-discovery ------------------------------------------------------
 
     const projectionDlq = new Queue(this, 'ProjectionDeadLetter', {
-      queueName: 'mv-discovery-dlq',
+      queueName: physicalName(props.environment, 'mv-discovery-dlq'),
       retentionPeriod: Duration.days(14),
     });
 
     const projectionQueue = new Queue(this, 'ProjectionQueue', {
-      queueName: 'mv-discovery',
+      queueName: physicalName(props.environment, 'mv-discovery'),
       visibilityTimeout: Duration.minutes(6),
       deadLetterQueue: { queue: projectionDlq, maxReceiveCount: 5 },
     });

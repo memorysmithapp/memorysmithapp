@@ -7,6 +7,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "synth": "cdk synth",
+    "test": "vitest run",
     "deploy": "cdk deploy"
   },
   "dependencies": {

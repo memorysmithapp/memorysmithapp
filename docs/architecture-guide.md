@@ -1243,6 +1243,18 @@ The domain returns `Result<T, DomainError>`; **exceptions exist only at the edge
 | `api.memorysmith.app` | The internal API, routed by path on CloudFront (§14.1) | `network.stack` |
 | `mcp.memorysmith.app` | The MCP server and the OAuth endpoints of the CIMD proxy (§13) | `agent.stack` |
 
+**One app, two environments.** `bin/app.ts` describes production or staging, chosen with `-c environment=`, and what differs between them lives under `environments` in `cdk.json` and is read by `config/environments.ts`: the account, the region, the hosted zone and the zones it delegates. **The account is explicit in the environment of every stack**, so the CDK refuses to deploy one environment under the credentials of the other, and the wrong target is impossible rather than forbidden. Every physical name ends with the environment — the stacks (`MemorysmithProductionData`, `MemorysmithStagingData`), the four tables (`mv-access-production`), the bus, the queues and the user pool — so nothing read from a console, a log line or a bill passes for the other environment, and every stack carries `app:environment`, `app:version` and `deploy:sha` (§23.3). Outside production the subjects of the messages the pool sends start with the environment, `[staging]`.
+
+**Staging lives one level below production**, in a hosted zone of its own in its own account, and the zone of production delegates it with an `NS` record that `network.stack` declares from the name servers the production entry of `cdk.json` lists. No construct delegates across accounts, because that needs a role in production that staging can assume. A hosted zone is never created or deleted by a stack: its name servers are drawn when it is created, and recreating it breaks the delegation.
+
+| Surface | Production | Staging |
+|---|---|---|
+| SPA | `memorysmith.app` | `stg.memorysmith.app` |
+| Redirect | `www.memorysmith.app` | `www.stg.memorysmith.app` |
+| API | `api.memorysmith.app` | `api.stg.memorysmith.app` |
+| MCP | `mcp.memorysmith.app/mcp` | `mcp.stg.memorysmith.app/mcp` |
+| Sign-in | `auth.memorysmith.app` | `auth.stg.memorysmith.app` |
+
 Two cautions that belong to the instruction, not to the execution:
 
 - **A CloudFront certificate lives in `us-east-1`.** It is a CloudFront requirement, not a choice. The CDK resolves it with a certificate stack in that region and a cross-region reference; the rest of the infrastructure stays in the main region.

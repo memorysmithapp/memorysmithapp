@@ -11,8 +11,12 @@ import { EventBus } from 'aws-cdk-lib/aws-events';
 import { BlockPublicAccess, Bucket, BucketEncryption, HttpMethods } from 'aws-cdk-lib/aws-s3';
 import type { Construct } from 'constructs';
 import { AppendOnlyTable, SubscriptionTable } from '../constructs/subscription-table.js';
+import { physicalName, type EnvironmentConfig } from '../config/environments.js';
 
 export interface DataStackProps extends StackProps {
+  readonly environment: EnvironmentConfig;
+  /** The only origin that reads the content bucket from a browser. */
+  readonly siteOrigin: string;
   /** Destroying data on `cdk destroy` is only ever acceptable in a sandbox. */
   readonly retainData?: boolean;
 }
@@ -25,10 +29,11 @@ export class DataStack extends Stack {
   readonly discoveryTable: SubscriptionTable;
   readonly auditTable: AppendOnlyTable;
 
-  constructor(scope: Construct, id: string, props: DataStackProps = {}) {
+  constructor(scope: Construct, id: string, props: DataStackProps) {
     super(scope, id, props);
 
     const removalPolicy = props.retainData === false ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN;
+    const named = (base: string): string => physicalName(props.environment, base);
 
     /**
      * The content bucket. VERSIONING IS NOT OPTIONAL: each write to a Content
@@ -45,7 +50,7 @@ export class DataStack extends Stack {
       cors: [
         {
           allowedMethods: [HttpMethods.GET],
-          allowedOrigins: ['https://memorysmith.app'],
+          allowedOrigins: [props.siteOrigin],
           allowedHeaders: ['*'],
         },
       ],
@@ -71,10 +76,10 @@ export class DataStack extends Stack {
       ],
     });
 
-    this.eventBus = new EventBus(this, 'EventBus', { eventBusName: 'mv-events' });
+    this.eventBus = new EventBus(this, 'EventBus', { eventBusName: named('mv-events') });
 
     this.accessTable = new SubscriptionTable(this, 'AccessTable', {
-      tableName: 'mv-access',
+      tableName: named('mv-access'),
       stream: true,
       removalPolicy,
       indexes: [
@@ -90,7 +95,7 @@ export class DataStack extends Stack {
     });
 
     this.knowledgeTable = new SubscriptionTable(this, 'KnowledgeTable', {
-      tableName: 'mv-knowledge',
+      tableName: named('mv-knowledge'),
       // The stream is the outbox: state change and publication are atomic.
       stream: true,
       removalPolicy,
@@ -105,12 +110,12 @@ export class DataStack extends Stack {
     });
 
     this.discoveryTable = new SubscriptionTable(this, 'DiscoveryTable', {
-      tableName: 'mv-discovery',
+      tableName: named('mv-discovery'),
       removalPolicy,
     });
 
     this.auditTable = new AppendOnlyTable(this, 'AuditTable', {
-      tableName: 'mv-audit',
+      tableName: named('mv-audit'),
       // The trail always retains, whatever the environment: it is the one
       // thing that cannot be rebuilt from anything else.
       removalPolicy: RemovalPolicy.RETAIN,

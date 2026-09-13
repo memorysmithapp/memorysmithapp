@@ -19,10 +19,14 @@ import { ServiceLambda } from '../constructs/service-lambda.js';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { readFileSync } from 'node:fs';
+import { physicalName, type EnvironmentConfig } from '../config/environments.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
 export interface IdentityStackProps extends StackProps {
+  readonly environment: EnvironmentConfig;
+  /** The host of the interface, where the sign-in page returns to. */
+  readonly siteDomainName: string;
   /** mv-access, where the links of the user live (exception 1 of §8.3). */
   accessTable: ITable;
   /** Public origin of the MCP service, e.g. https://mcp.memorysmith.app */
@@ -65,8 +69,17 @@ export interface IdentityStackProps extends StackProps {
  * HTML and a hosted asset, and therefore needs SES first, so it waits with the
  * address in #57.
  */
-const INVITATION: cognito.UserInvitationConfig = {
-  emailSubject: 'Your MemorySmith.app account',
+/**
+ * Outside production a subject says which environment sent it, before anything
+ * else: an invitation from staging looks exactly like one from production, and
+ * the account it creates is thrown away with the environment.
+ */
+function subject(environment: EnvironmentConfig, text: string): string {
+  return environment.name === 'production' ? text : `[${environment.name}] ${text}`;
+}
+
+const invitation = (environment: EnvironmentConfig): cognito.UserInvitationConfig => ({
+  emailSubject: subject(environment, 'Your MemorySmith.app account'),
   emailBody: [
     'Your MemorySmith account has been created.',
     '',
@@ -80,11 +93,11 @@ const INVITATION: cognito.UserInvitationConfig = {
     'tools. If you were not expecting this message, ignore it: without that',
     'first sign-in, the account does nothing.',
   ].join('\n'),
-};
+});
 
-const VERIFICATION: cognito.UserVerificationConfig = {
+const verification = (environment: EnvironmentConfig): cognito.UserVerificationConfig => ({
   emailStyle: cognito.VerificationEmailStyle.CODE,
-  emailSubject: 'Your MemorySmith code',
+  emailSubject: subject(environment, 'Your MemorySmith code'),
   emailBody: [
     // No full stop after the digits: somebody copying a code out of an email
     // copies what they see, and a period sitting against the last digit reads
@@ -95,7 +108,7 @@ const VERIFICATION: cognito.UserVerificationConfig = {
     'set a new password. If it was not you, ignore this message: without the',
     'code, nothing happens.',
   ].join('\n'),
-};
+});
 
 export class IdentityStack extends Stack {
   readonly userPool: cognito.UserPool;
@@ -143,7 +156,7 @@ export class IdentityStack extends Stack {
     props.accessTable.grantReadData(preTokenGeneration);
 
     this.userPool = new cognito.UserPool(this, 'UserPool', {
-      userPoolName: 'memorysmith-users',
+      userPoolName: physicalName(props.environment, 'memorysmith-users'),
       featurePlan: cognito.FeaturePlan.ESSENTIALS,
       selfSignUpEnabled: false,
       signInAliases: { email: true },
@@ -156,8 +169,8 @@ export class IdentityStack extends Stack {
         requireSymbols: false,
       },
       mfa: cognito.Mfa.OPTIONAL,
-      userInvitation: INVITATION,
-      userVerification: VERIFICATION,
+      userInvitation: invitation(props.environment),
+      userVerification: verification(props.environment),
     });
     // Access-token claim customization requires the V2_0 trigger event.
     this.userPool.addTrigger(
@@ -166,8 +179,6 @@ export class IdentityStack extends Stack {
       cognito.LambdaVersion.V2_0,
     );
 
-    const domainPrefix = this.node.tryGetContext('cognitoDomainPrefix') as string;
-    const zoneName = this.node.tryGetContext('hostedZoneName') as string;
     this.issuer = `https://cognito-idp.${this.region}.amazonaws.com/${this.userPool.userPoolId}`;
 
     this.hostedUiOrigin = `https://${props.authDomainName}`;
@@ -200,7 +211,6 @@ export class IdentityStack extends Stack {
       recordName: props.authDomainName,
       target: RecordTarget.fromAlias(new UserPoolDomainTarget(this.userPoolDomain)),
     });
-    void domainPrefix;
 
     this.proxyClient = this.userPool.addClient('CimdProxyClient', {
       userPoolClientName: 'cimd-proxy',
@@ -235,8 +245,11 @@ export class IdentityStack extends Stack {
       oAuth: {
         flows: { authorizationCodeGrant: true },
         scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
-        callbackUrls: [`https://${zoneName}/auth/callback`, 'http://localhost:5173/auth/callback'],
-        logoutUrls: [`https://${zoneName}/`, 'http://localhost:5173/'],
+        callbackUrls: [
+          `https://${props.siteDomainName}/auth/callback`,
+          'http://localhost:5173/auth/callback',
+        ],
+        logoutUrls: [`https://${props.siteDomainName}/`, 'http://localhost:5173/'],
       },
       preventUserExistenceErrors: true,
       accessTokenValidity: Duration.hours(1),

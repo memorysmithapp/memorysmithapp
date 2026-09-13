@@ -7,8 +7,21 @@
     "@aws-cdk/core:validateSnapshotRemovalPolicy": true,
     "@aws-cdk/aws-apigateway:disableCloudWatchRole": true,
     "@aws-cdk/core:enablePartitionLiterals": true,
-    "hostedZoneName": "memorysmith.app",
-    "hostedZoneId": "Z1003210YHFJUFXNHOVX",
-    "cognitoDomainPrefix": "memorysmith-auth"
+    "environments": {
+      "production": {
+        "account": "364362227104",
+        "region": "us-east-1",
+        "hostedZoneName": "memorysmith.app",
+        "hostedZoneId": "Z1003210YHFJUFXNHOVX",
+        "delegations": []
+      },
+      "staging": {
+        "account": "",
+        "region": "us-east-1",
+        "hostedZoneName": "stg.memorysmith.app",
+        "hostedZoneId": "",
+        "delegations": []
+      }
+    }
   }
 }

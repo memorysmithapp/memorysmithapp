@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { ServiceLambda } from '../constructs/service-lambda.js';
 import type { DataStack } from './data.stack.js';
+import { physicalName, type EnvironmentConfig } from '../config/environments.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const backend = join(here, '..', '..', 'memorysmith-backend');
@@ -36,6 +37,7 @@ const backend = join(here, '..', '..', 'memorysmith-backend');
 export const CONNECTOR_BINDING_ROUTE = '/access/connector-bindings';
 
 export interface ApiStackProps extends StackProps {
+  readonly environment: EnvironmentConfig;
   readonly data: DataStack;
   readonly hostedZone: IHostedZone;
   readonly certificate: ICertificate;
@@ -82,7 +84,7 @@ export class ApiStack extends Stack {
     // ---- The outbox relay ---------------------------------------------------
 
     const relayDlq = new Queue(this, 'RelayDeadLetter', {
-      queueName: 'mv-outbox-dlq',
+      queueName: physicalName(props.environment, 'mv-outbox-dlq'),
       retentionPeriod: Duration.days(14),
     });
 

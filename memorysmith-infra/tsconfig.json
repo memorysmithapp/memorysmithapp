@@ -13,5 +13,5 @@
     "resolveJsonModule": true,
     "noEmit": true
   },
-  "include": ["bin", "stacks", "constructs"]
+  "include": ["bin", "config", "stacks", "constructs", "test"]
 }
