@@ -7,6 +7,7 @@
  * DynamoDB and S3.
  */
 
+import type { Context } from 'hono';
 import { handle } from 'hono/aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
@@ -28,6 +29,12 @@ import {
   ListPlatformQueue,
   ReviewSubscription,
 } from '@memorysmith/svc-access/application/platform';
+import {
+  BindConnector,
+  ConnectorOfSession,
+  RebindConnector,
+  ResolveAuthorship,
+} from '@memorysmith/svc-access/application/connectors';
 import {
   AcceptInvite,
   ChangeMemberRole,
@@ -96,8 +103,8 @@ import { parseNotebookDocument } from './composition-root.js';
 import { S3ArchiveStore, S3UploadStore } from '@memorysmith/svc-portability/adapters/s3';
 import { createApp } from './app.js';
 import {
-  authorshipFor,
   buildAccess,
+  buildConnectorBindings,
   buildAudit,
   buildDiscovery,
   buildKnowledge,
@@ -128,6 +135,20 @@ const infra: Infrastructure = {
 };
 
 const verifier = new CognitoTokenVerifier(required('COGNITO_ISSUER'));
+
+/** The app client of the connector proxy, whose tokens write as a connector. */
+const connectorClientId = required('CONNECTOR_CLIENT_ID');
+
+/**
+ * Whether API Gateway authorized this request with IAM. Only a route behind the
+ * IAM authorizer carries `authorizer.iam`, and only a principal allowed to
+ * invoke that route gets through to carry one (section 14.1).
+ */
+function signedWithIam(c: Context): boolean {
+  const env = c.env as
+    { event?: { requestContext?: { authorizer?: { iam?: unknown } } } } | undefined;
+  return Boolean(env?.event?.requestContext?.authorizer?.iam);
+}
 
 /** The Access use cases, each built from the subscription of this request. */
 const accessUseCases: AccessUseCases = {
@@ -180,6 +201,11 @@ const accessUseCases: AccessUseCases = {
     const scoped = scopedOrThrow(request);
     return new TransferOwnership(scoped.subscriptions, buildAccess(infra, request.context).links);
   },
+  connectorOfSession: (request) =>
+    new ConnectorOfSession(
+      buildAccess(infra, request.context).scoped?.connectors ?? null,
+      connectorClientId,
+    ),
 };
 
 function scopedOrThrow(request: AccessRequest) {
@@ -301,6 +327,13 @@ function discoveryFor(context: SubscriptionContext) {
 
 const app = createApp({
   verifier,
+  connectorBindings: {
+    verifier,
+    connectorClientId,
+    signedWithIam,
+    bindConnector: (context) => new BindConnector(buildConnectorBindings(infra, context)),
+    rebindConnector: (context) => new RebindConnector(buildConnectorBindings(infra, context)),
+  },
   notebookWriterFor,
   accessUseCases,
   knowledgeUseCases,
@@ -331,8 +364,12 @@ const app = createApp({
     const knowledgeRequest: KnowledgeRequest = {
       ctx: resolved.value,
       subscription: context,
-      // The agent identity comes from the client_id of the token itself.
-      authorship: authorshipFor(context.userId, request.profile.userId.value),
+      // The person, and the connector the proxy bound this token to when the
+      // token is the proxy's (RN-AGT-001, section 12.1).
+      authorship: await new ResolveAuthorship(scoped.connectors, connectorClientId).execute({
+        user: context.userId,
+        credential: request.credential,
+      }),
       subscriptionRole: roleOf(resolved.value),
     };
     return { ok: true as const, value: knowledgeRequest };

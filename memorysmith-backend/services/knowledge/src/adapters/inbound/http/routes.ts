@@ -57,7 +57,13 @@ import { noteToDto, noteToSummary, notebookToDetail, notebookToSummary } from '.
 export interface KnowledgeRequest {
   readonly ctx: RequestContext;
   readonly subscription: SubscriptionContext;
-  readonly authorship: Authorship;
+  /**
+   * Who a write of this session is by, or why this session may not write
+   * (RN-AGT-001). A connector whose token was never bound reads, and every
+   * write it attempts is refused. It is a Result so that a write route cannot
+   * forget to look: it has no Authorship to pass until it does.
+   */
+  readonly authorship: Result<Authorship, DomainError>;
   /** The role this session holds in the subscription, already resolved. */
   readonly subscriptionRole: Role;
 }
@@ -132,6 +138,8 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
 
   app.post('/notebooks', async (c) => {
     const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
     const body = (await c.req.json().catch(() => ({}))) as {
       name?: string;
       description?: string;
@@ -142,7 +150,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       name: String(body.name ?? ''),
       description: String(body.description ?? ''),
       subscriptionId: request.subscription.subscriptionId,
-      by: request.authorship,
+      by: author.value,
     });
     return present(
       c,
@@ -167,6 +175,8 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
 
   app.patch('/notebooks/:v', async (c) => {
     const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
     const notebookId = parseNotebookId(c.req.param('v'));
     if (!notebookId.ok) return fail(c, notebookId.error);
     const body = (await c.req.json().catch(() => ({}))) as { name?: string };
@@ -177,7 +187,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
         ctx: request.ctx,
         notebookId: notebookId.value,
         name: String(body.name ?? ''),
-        by: request.authorship,
+        by: author.value,
       }),
     );
   });
@@ -188,6 +198,8 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
    */
   app.delete('/notebooks/:v', async (c) => {
     const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
     const notebookId = parseNotebookId(c.req.param('v'));
     if (!notebookId.ok) return fail(c, notebookId.error);
 
@@ -196,13 +208,15 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       await useCases.deleteNotebook(request).execute({
         ctx: request.ctx,
         notebookId: notebookId.value,
-        by: request.authorship,
+        by: author.value,
       }),
     );
   });
 
   app.post('/notebooks/:v/restore', async (c) => {
     const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
     const notebookId = parseNotebookId(c.req.param('v'));
     if (!notebookId.ok) return fail(c, notebookId.error);
 
@@ -211,7 +225,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       await useCases.restoreNotebook(request).execute({
         ctx: request.ctx,
         notebookId: notebookId.value,
-        by: request.authorship,
+        by: author.value,
       }),
     );
   });
@@ -231,6 +245,8 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
 
   app.put('/notebooks/:v/guidance', async (c) => {
     const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
     const notebookId = parseNotebookId(c.req.param('v'));
     if (!notebookId.ok) return fail(c, notebookId.error);
     const body = (await c.req.json().catch(() => ({}))) as {
@@ -243,7 +259,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       notebookId: notebookId.value,
       content: String(body.content ?? ''),
       baseRevision: body.baseRevision ?? null,
-      by: request.authorship,
+      by: author.value,
     });
     return present(c, written, (ref) => ({ revision: ref.toJSON() }));
   });
@@ -252,6 +268,8 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
 
   app.post('/notebooks/:v/folders', async (c) => {
     const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
     const notebookId = parseNotebookId(c.req.param('v'));
     if (!notebookId.ok) return fail(c, notebookId.error);
     const body = (await c.req.json().catch(() => ({}))) as {
@@ -273,7 +291,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       name: String(body.name ?? ''),
       description: String(body.description ?? ''),
       afterFolderId: after?.ok ? after.value : null,
-      by: request.authorship,
+      by: author.value,
     });
     return present(
       c,
@@ -294,6 +312,8 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
 
   app.patch('/notebooks/:v/folders/:f', async (c) => {
     const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
     const notebookId = parseNotebookId(c.req.param('v'));
     if (!notebookId.ok) return fail(c, notebookId.error);
     const folderId = FolderId.create(c.req.param('f') ?? '');
@@ -331,13 +351,15 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
                 ? parent.value
                 : null,
         afterFolderId: after?.ok ? after.value : null,
-        by: request.authorship,
+        by: author.value,
       }),
     );
   });
 
   app.post('/notebooks/:v/folders/:f/reorder', async (c) => {
     const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
     const notebookId = parseNotebookId(c.req.param('v'));
     if (!notebookId.ok) return fail(c, notebookId.error);
     const folderId = FolderId.create(c.req.param('f') ?? '');
@@ -354,13 +376,15 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
         notebookId: notebookId.value,
         folderId: folderId.value,
         afterFolderId: after?.ok ? after.value : null,
-        by: request.authorship,
+        by: author.value,
       }),
     );
   });
 
   app.delete('/notebooks/:v/folders/:f', async (c) => {
     const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
     const notebookId = parseNotebookId(c.req.param('v'));
     if (!notebookId.ok) return fail(c, notebookId.error);
     const folderId = FolderId.create(c.req.param('f') ?? '');
@@ -372,13 +396,15 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       notebookId: notebookId.value,
       folderId: folderId.value,
       policy: c.req.query('policy') ?? '',
-      by: request.authorship,
+      by: author.value,
     });
     return present(c, removed, (ids) => ({ removedFolderIds: ids.map((id) => id.value) }));
   });
 
   app.put('/notebooks/:v/folders/:f/template', async (c) => {
     const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
     const notebookId = parseNotebookId(c.req.param('v'));
     if (!notebookId.ok) return fail(c, notebookId.error);
     const folderId = FolderId.create(c.req.param('f') ?? '');
@@ -400,7 +426,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       folderId: folderId.value,
       content: String(body.content ?? ''),
       baseRevision: body.baseRevision ?? null,
-      by: request.authorship,
+      by: author.value,
     });
     return present(c, written, (ref) => ({ revision: ref.toJSON() }));
   });
@@ -441,6 +467,8 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
 
   app.post('/notebooks/:v/notes', async (c) => {
     const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
     const notebookId = parseNotebookId(c.req.param('v'));
     if (!notebookId.ok) return fail(c, notebookId.error);
     const body = (await c.req.json().catch(() => ({}))) as {
@@ -458,7 +486,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       folderId: folderId.value,
       content: String(body.content ?? ''),
       afterNoteId: after?.ok ? after.value : null,
-      by: request.authorship,
+      by: author.value,
     });
     return present(c, created, (note) => noteToSummary(note), 201);
   });
@@ -478,6 +506,8 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
 
   app.put('/notebooks/:v/notes/:n', async (c) => {
     const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
     const notebookId = parseNotebookId(c.req.param('v'));
     if (!notebookId.ok) return fail(c, notebookId.error);
     const noteId = NoteId.create(c.req.param('n') ?? '');
@@ -494,7 +524,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       noteId: noteId.value,
       content,
       baseRevision: String(body.baseRevision ?? ''),
-      by: request.authorship,
+      by: author.value,
     });
     /**
      * The full DTO, so the answer carries THE REVISION THIS WRITE PRODUCED.
@@ -513,6 +543,8 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
 
   app.post('/notebooks/:v/notes/:n/reorder', async (c) => {
     const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
     const notebookId = parseNotebookId(c.req.param('v'));
     if (!notebookId.ok) return fail(c, notebookId.error);
     const noteId = NoteId.create(c.req.param('n') ?? '');
@@ -528,13 +560,15 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
         notebookId: notebookId.value,
         noteId: noteId.value,
         afterNoteId: after?.ok ? after.value : null,
-        by: request.authorship,
+        by: author.value,
       }),
     );
   });
 
   app.post('/notebooks/:v/notes/:n/move', async (c) => {
     const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
     const notebookId = parseNotebookId(c.req.param('v'));
     if (!notebookId.ok) return fail(c, notebookId.error);
     const noteId = NoteId.create(c.req.param('n') ?? '');
@@ -558,13 +592,15 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       toNotebookId: toNotebookId?.ok ? toNotebookId.value : null,
       toFolderId: toFolderId.value,
       afterNoteId: after?.ok ? after.value : null,
-      by: request.authorship,
+      by: author.value,
     });
     return present(c, moved, (note) => noteToSummary(note));
   });
 
   app.delete('/notebooks/:v/notes/:n', async (c) => {
     const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
     const notebookId = parseNotebookId(c.req.param('v'));
     if (!notebookId.ok) return fail(c, notebookId.error);
     const noteId = NoteId.create(c.req.param('n') ?? '');
@@ -576,13 +612,15 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
         ctx: request.ctx,
         notebookId: notebookId.value,
         noteId: noteId.value,
-        by: request.authorship,
+        by: author.value,
       }),
     );
   });
 
   app.post('/notebooks/:v/notes/:n/restore', async (c) => {
     const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
     const notebookId = parseNotebookId(c.req.param('v'));
     if (!notebookId.ok) return fail(c, notebookId.error);
     const noteId = NoteId.create(c.req.param('n') ?? '');
@@ -594,7 +632,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
         ctx: request.ctx,
         notebookId: notebookId.value,
         noteId: noteId.value,
-        by: request.authorship,
+        by: author.value,
       }),
     );
   });
@@ -603,6 +641,8 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
 
   app.put('/notebooks/:v/limits/:user', async (c) => {
     const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
     const notebookId = parseNotebookId(c.req.param('v'));
     if (!notebookId.ok) return fail(c, notebookId.error);
     const userId = UserId.create(c.req.param('user') ?? '');
@@ -617,13 +657,15 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
         userId: userId.value,
         limit: String(body.limit ?? ''),
         subscriptionRole: request.subscriptionRole,
-        by: request.authorship,
+        by: author.value,
       }),
     );
   });
 
   app.delete('/notebooks/:v/limits/:user', async (c) => {
     const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
     const notebookId = parseNotebookId(c.req.param('v'));
     if (!notebookId.ok) return fail(c, notebookId.error);
     const userId = UserId.create(c.req.param('user') ?? '');
@@ -635,7 +677,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
         ctx: request.ctx,
         notebookId: notebookId.value,
         userId: userId.value,
-        by: request.authorship,
+        by: author.value,
       }),
     );
   });

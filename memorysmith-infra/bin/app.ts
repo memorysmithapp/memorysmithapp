@@ -50,6 +50,7 @@ const api = new ApiStack(app, 'MemorysmithApi', {
   certificate: network.apiCertificate,
   apiDomainName: network.apiDomainName,
   cognitoIssuer: identity.issuer,
+  connectorClientId: identity.proxyClient.userPoolClientId,
   frontendOrigin: `https://${network.siteDomainName}`,
 });
 
@@ -64,6 +65,7 @@ new AgentStack(app, 'MemorysmithAgent', {
   hostedUiOrigin: identity.hostedUiOrigin,
   proxyClient: identity.proxyClient,
   internalApiOrigin: api.apiOrigin,
+  coreApi: api.httpApi,
 });
 
 new FrontendHostingStack(app, 'MemorysmithFrontend', {

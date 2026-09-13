@@ -6,7 +6,8 @@
   "description": "Access bounded context: subscriptions and their lifecycle, members, roles, notebook ceilings, invites, links and authorization.",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --config vitest.config.ts"
+    "test": "vitest run --config vitest.config.ts",
+    "test:adapters": "vitest run --config vitest.adapters.config.ts"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1117.0",
@@ -22,6 +23,7 @@
     "./adapters/memory": "./src/adapters/outbound/memory/InMemoryAccess.ts",
     "./adapters/http": "./src/adapters/inbound/http/routes.ts",
     "./adapters/auth": "./src/adapters/inbound/http/authentication.ts",
+    "./application/connectors": "./src/application/connectors.ts",
     "./application/context": "./src/application/ResolveRequestContext.ts",
     "./application/onboarding": "./src/application/onboarding.ts",
     "./application/platform": "./src/application/platform.ts",

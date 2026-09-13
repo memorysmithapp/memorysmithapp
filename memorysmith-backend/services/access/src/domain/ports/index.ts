@@ -16,7 +16,9 @@
  */
 
 import type {
+  AgentIdentity,
   ConcurrencyError,
+  Instant,
   Result,
   SubscriptionId,
   SubscriptionStatus,
@@ -80,6 +82,28 @@ export interface SubscriptionOnboarding {
   }): Promise<Result<void, ConcurrencyError>>;
   /** Whether this user already asked for a subscription of their own. */
   ownedBy(user: UserId): Promise<SubscriptionId | null>;
+}
+
+/**
+ * Which connector each token of the connector proxy was issued to
+ * (architecture-guide.md, sections 9.4 and 13.3).
+ *
+ * Scoped by the subscription of the token itself, like every other repository:
+ * a binding is found only under the subscription the token names, so no token
+ * can borrow the connector of a session of another subscription (rule 1).
+ */
+export interface ConnectorBindingRepository {
+  /**
+   * Records the connector of an access token, once. It answers false when the
+   * token already had one, and that one stays: a token never changes connector.
+   */
+  bindAccessToken(tokenId: string, agent: AgentIdentity, expiresAt: Instant): Promise<boolean>;
+  /** Records, or replaces, the connector a refresh token renews. */
+  bindRefreshToken(tokenHash: string, agent: AgentIdentity, expiresAt: Instant): Promise<void>;
+  /** The connector of an access token, or null when it has none or it expired. */
+  agentOfAccessToken(tokenId: string, now: Instant): Promise<AgentIdentity | null>;
+  /** The connector a refresh token renews, or null when it has none or it expired. */
+  agentOfRefreshToken(tokenHash: string, now: Instant): Promise<AgentIdentity | null>;
 }
 
 /** What a user is, for the session payload. Identity lives in Cognito. */

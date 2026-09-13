@@ -34,8 +34,12 @@ import type {
 export interface PortabilityRequest {
   readonly subscription: SubscriptionContext;
   readonly canRead: (notebookId: string) => Promise<boolean>;
-  /** Who is importing. Every write of an import carries it (rule 7). */
-  readonly authorship: Authorship;
+  /**
+   * Who is importing, or why this session may not write. Every write of an
+   * import carries it (rule 7), and a connector whose token was never bound is
+   * refused before the first one (RN-AGT-001).
+   */
+  readonly authorship: Result<Authorship, DomainError>;
   /**
    * What an import writes with. Writing a notebook belongs to the Knowledge
    * context, which this service may not import, so it arrives already built
@@ -105,6 +109,8 @@ export function createPortabilityRoutes(
 
   app.post('/imports/apply', async (c) => {
     const request = c.get('portability');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
     const body = (await c.req.json().catch(() => ({}))) as {
       uploadKey?: string;
       name?: string;
@@ -112,7 +118,7 @@ export function createPortabilityRoutes(
     const job = await useCases.importNotebook(request).execute({
       uploadKey: String(body.uploadKey ?? ''),
       name: typeof body.name === 'string' && body.name.trim() ? body.name.trim() : null,
-      by: request.authorship,
+      by: author.value,
     });
     return present(c, job, (value) => ({
       importId: value.importId,

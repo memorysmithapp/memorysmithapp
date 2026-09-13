@@ -22,11 +22,18 @@ import {
 } from '@memorysmith/kernel';
 import { Email } from '../../../domain/values.js';
 import type { UserProfile } from '../../../domain/ports/index.js';
+import type { TokenCredential } from '../../../application/connectors.js';
 
 export interface VerifiedToken extends TokenClaims {
   readonly email?: string | undefined;
   readonly name?: string | undefined;
   readonly groups?: readonly string[] | undefined;
+  /** The identifier of this very token, which a connector binding is keyed by. */
+  readonly jti?: string | undefined;
+  /** When the token expires, in epoch seconds. */
+  readonly exp?: number | undefined;
+  /** `access` or `id`: only an access token is ever bound to a connector. */
+  readonly token_use?: string | undefined;
 }
 
 /** The port; the Cognito implementation lives below. */
@@ -38,6 +45,8 @@ export interface AuthenticatedSession {
   readonly profile: UserProfile;
   /** Null for a platform session, which carries no subscription (8.4). */
   readonly context: SubscriptionContext | null;
+  /** The app client and the identifier of the token, which name its connector (13.3). */
+  readonly credential: TokenCredential;
 }
 
 const PLATFORM_ADMIN_GROUP = 'platform-admin';
@@ -67,14 +76,19 @@ export async function authenticate(
     isPlatformAdmin: (verified.groups ?? []).includes(PLATFORM_ADMIN_GROUP),
   };
 
+  const credential: TokenCredential = {
+    clientId: verified.client_id ?? null,
+    tokenId: verified.jti ?? null,
+  };
+
   if (!verified.subscription_id) {
     // Platform session, or a user who has not been approved yet.
-    return { ok: true, value: { profile, context: null } };
+    return { ok: true, value: { profile, context: null, credential } };
   }
 
   const context = SubscriptionContext.fromClaims(verified);
   if (!context.ok) return context;
-  return { ok: true, value: { profile, context: context.value } };
+  return { ok: true, value: { profile, context: context.value, credential } };
 }
 
 /**
@@ -118,5 +132,8 @@ function fromPayload(payload: JWTPayload): VerifiedToken {
     email: typeof payload['email'] === 'string' ? payload['email'] : undefined,
     name: typeof payload['name'] === 'string' ? payload['name'] : undefined,
     groups: Array.isArray(groups) ? groups.map(String) : undefined,
+    jti: typeof payload.jti === 'string' ? payload.jti : undefined,
+    exp: typeof payload.exp === 'number' ? payload.exp : undefined,
+    token_use: typeof payload['token_use'] === 'string' ? payload['token_use'] : undefined,
   };
 }

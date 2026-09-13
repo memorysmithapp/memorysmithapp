@@ -14,11 +14,17 @@ export interface AgentCaller {
   readonly userId: string;
   /** How to call that human, when the token says. Identity is not ours. */
   readonly email?: string | undefined;
-  /** The CIMD client_id of the connector, which becomes the AgentIdentity. */
-  readonly clientId: string;
-  readonly clientName: string;
   /** Fixed at consent and unchanged for the life of the token (RN-SUB-014). */
   readonly subscriptionId: string;
+}
+
+/**
+ * The connector a session acts through, as the proxy recorded it when it handed
+ * the token out: the client_id URL of its metadata document and its client_name.
+ */
+export interface ConnectorIdentity {
+  readonly clientId: string;
+  readonly clientName: string;
 }
 
 export interface NotebookListing {
@@ -68,6 +74,8 @@ export interface HistoryEntry {
   readonly type: string;
   readonly userId: string;
   readonly agentName: string | null;
+  /** The client_id URL of the connector that wrote, beside its name. */
+  readonly agentClientId: string | null;
   readonly revision: string | null;
 }
 
@@ -77,6 +85,12 @@ export interface FolderListing {
   readonly name: string;
   readonly slug: string;
   readonly description: string;
+}
+
+/** What a tool asks of the Access context. */
+export interface AccessGateway {
+  /** The connector behind this session, or null when none was recorded. */
+  connector(caller: AgentCaller): Promise<ConnectorIdentity | null>;
 }
 
 /** Everything a tool can ask of the Knowledge context. */

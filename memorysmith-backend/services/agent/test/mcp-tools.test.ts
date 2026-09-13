@@ -14,12 +14,14 @@ import pkg from '../package.json' with { type: 'json' };
 
 const caller: AgentCaller = {
   userId: 'user-1',
-  clientId: 'https://claude.ai/mcp',
-  clientName: 'Claude',
   subscriptionId: '01JBQ2X0000000000000000000',
 };
 
 function gateways(overrides: Record<string, unknown> = {}) {
+  const access = {
+    connector: async () => ({ clientId: 'https://claude.ai/mcp', clientName: 'Claude' }),
+    ...((overrides['access'] as object) ?? {}),
+  };
   const knowledge = {
     listNotebooks: async () => [
       { notebookId: 'v1', name: 'Normas', description: 'Texto normativo', noteCount: 48 },
@@ -93,6 +95,7 @@ function gateways(overrides: Record<string, unknown> = {}) {
         type: 'NoteUpdated',
         userId: 'user-1',
         agentName: 'Claude',
+        agentClientId: 'https://claude.ai/mcp',
         revision: 'v3',
       },
     ],
@@ -105,7 +108,7 @@ function gateways(overrides: Record<string, unknown> = {}) {
     }),
     ...((overrides['audit'] as object) ?? {}),
   };
-  return new McpToolAdapter({ knowledge, discovery, audit } as never);
+  return new McpToolAdapter({ access, knowledge, discovery, audit } as never);
 }
 
 describe('The tool catalog is the public contract', () => {
@@ -224,8 +227,18 @@ describe('whoami answers who is acting and how to write here', () => {
 
     const answer = result.content[0]?.text ?? '';
     expect(answer).toContain('heitor@example.com');
-    expect(answer).toContain('Claude');
+    expect(answer).toContain('- **Connector**: Claude (`https://claude.ai/mcp`)');
     expect(answer).toContain(caller.subscriptionId);
+  });
+
+  it('says the connector is unidentified, and never names a user in its place', async () => {
+    // The token of the proxy carries the user, and naming the connector by it
+    // is exactly what whoami used to do.
+    const unbound = gateways({ access: { connector: async () => null } });
+    const answer = (await unbound.call('whoami', {}, caller)).content[0]?.text ?? '';
+    expect(answer).toContain('- **Connector**: not identified');
+    expect(answer).toContain('every write through');
+    expect(answer).not.toMatch(/Connector\*\*: user-1/);
   });
 
   it('falls back to the identifier when the token carries no e-mail', async () => {

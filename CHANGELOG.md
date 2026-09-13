@@ -66,6 +66,10 @@ issues each entry cites.
 - **The export is no longer a tree of `.md` files**, and reading a note out of the archive now takes a JSON parser. The promise that made RN-PRT-001 worth making is kept — the format is open and specified, every body is plain-text Markdown, nothing is encoded or obfuscated — and what is spent is unzipping the archive straight into a vault editor. Turning a `.notebook` document back into a tree of `.md` files is a conversion this product does not perform (RN-PRT-001, RN-PRT-002, RN-PRT-003 and RN-PRT-005 removed). (#101)
 - **The note carries no slug**, and nothing in the product computes one for it: not the domain, not the DynamoDB item, not the guard that made a name unique within the notebook, not the API DTOs, not the domain events and not the MCP tools. The route `GET /notebooks/:v/notes/by-slug/:slug` is gone with it. A note is addressed by its identifier and named by the `name:` it states. The slug of a **notebook** and of a **folder** is untouched (RN-KNW-032, RN-KNW-002). (#96)
 
+### Fixed
+
+- **A write through the connector records the connector, and no longer the person alone.** Since 0.2.0 every note an agent wrote was recorded as if the person had typed it: `note_history` answered `agentName: null`, and `whoami` printed a user identifier where it announces the connector. Cognito issues every token of the connector proxy to one app client, and nothing carried which connector had asked for it. The proxy now binds the two when it hands the token out — the code a client redeems is sealed with the connector validated at authorization, and a token request naming another `client_id` is refused — and every write records that connector: the `client_id` URL of its metadata document and its `client_name`, which `note_history` now reports beside the name. A refreshed token keeps its connector. **A connection authorized before this fix writes nothing until it is connected again**, and says so; it keeps reading, because a write recorded without its connector would stay incomplete in a trail nothing can correct (RN-AGT-001, RN-AGT-013). (#113)
+
 ## [0.5.7] - 2026-09-07
 
 ### Fixed

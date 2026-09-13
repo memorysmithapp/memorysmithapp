@@ -2,8 +2,9 @@
  * McpToolAdapter: the anticorruption layer of the Agent Access context
  * (architecture-guide.md, section 13.1).
  *
- * It translates a tool call into a use case command and back, and it resolves
- * the Authorship from the token. No MCP vocabulary crosses into the core
+ * It translates a tool call into a use case command and back, forwarding the
+ * caller's own token, from which the core resolves the Authorship (section
+ * 12.1). No MCP vocabulary crosses into the core
  * (RN-AGT-008), and no core vocabulary leaks out untranslated.
  *
  * Errors are answered as `isError` with ACTIONABLE text, and a missing
@@ -16,6 +17,7 @@ import { whoAmI } from './whoami.js';
 import { SKILLS, skillNamed } from './skills.js';
 import {
   GatewayError,
+  type AccessGateway,
   type AgentCaller,
   type AuditGateway,
   type DiscoveryGateway,
@@ -29,6 +31,7 @@ export interface ToolResult {
 }
 
 export interface Gateways {
+  readonly access: AccessGateway;
   readonly knowledge: KnowledgeGateway;
   readonly discovery: DiscoveryGateway;
   readonly audit: AuditGateway;
@@ -103,14 +106,19 @@ export class McpToolAdapter {
     args: Record<string, unknown>,
     caller: AgentCaller,
   ): Promise<ToolResult> {
-    const { knowledge, discovery, audit } = this.gateways;
+    const { access, knowledge, discovery, audit } = this.gateways;
 
     switch (name) {
       case 'whoami': {
         // The reach is read, not described: a list of notebooks the caller cannot
         // actually open would be a help that lies on its first step.
-        const notebooks = await knowledge.listNotebooks(caller);
-        return text(whoAmI(caller, notebooks));
+        // So is the connector: the one the proxy recorded for this token, and
+        // never a guess from what else the token carries.
+        const [connector, notebooks] = await Promise.all([
+          access.connector(caller),
+          knowledge.listNotebooks(caller),
+        ]);
+        return text(whoAmI(caller, connector, notebooks));
       }
 
       case 'get_skill': {

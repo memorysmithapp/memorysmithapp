@@ -16,8 +16,10 @@ import { type DomainError, httpStatusFor } from '@memorysmith/kernel';
 import { authenticate, type TokenVerifier } from '@memorysmith/svc-access/adapters/auth';
 import {
   createAccessRoutes,
+  createConnectorBindingRoutes,
   type AccessRequest,
   type AccessUseCases,
+  type ConnectorBindingDependencies,
 } from '@memorysmith/svc-access/adapters/http';
 import {
   createKnowledgeRoutes,
@@ -63,6 +65,8 @@ export interface AppDependencies {
    * it joins two contexts that may not import each other.
    */
   readonly notebookWriterFor: (request: KnowledgeRequest) => NotebookWriter;
+  /** Where the connector proxy records the connector of a token (section 13.3). */
+  readonly connectorBindings: ConnectorBindingDependencies;
 }
 
 type Variables = {
@@ -100,6 +104,13 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
    * Access-Control-Allow-Origin outright.
    */
   app.options('*', () => new Response(null, { status: 204 }));
+
+  /**
+   * Mounted BEFORE the session middleware of Access, which it must never reach:
+   * the connector proxy calls it signed with IAM and carries no session of its
+   * own, and the token it binds travels in the body (section 13.3).
+   */
+  app.route('/access/connector-bindings', createConnectorBindingRoutes(deps.connectorBindings));
 
   app.use('/access/*', async (c: Context<{ Variables: Variables }>, next: Next) => {
     const session = await authenticate(deps.verifier, c.req.header('authorization'));

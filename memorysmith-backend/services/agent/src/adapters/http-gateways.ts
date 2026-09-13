@@ -8,14 +8,16 @@
  *
  *  - the subscription reaching the core is the one fixed at consent, carried
  *    by the claim, exactly as it is for a browser session (RN-SUB-014);
- *  - the client_id inside that token is what the core turns into the
- *    AgentIdentity, so the authorship records the agent AND the human without
- *    any side channel to trust (RN-AGT-001).
+ *  - the core finds the connector that token was handed out to in the
+ *    binding the proxy recorded at /token, so the authorship records the agent
+ *    AND the human, and a token with no binding writes nothing (RN-AGT-001).
  */
 
 import {
   GatewayError,
+  type AccessGateway,
   type AgentCaller,
+  type ConnectorIdentity,
   type AuditGateway,
   type DiscoveryGateway,
   type FolderListing,
@@ -61,6 +63,21 @@ async function callApi<T>(
     );
   }
   return payload as T;
+}
+
+export class HttpAccessGateway implements AccessGateway {
+  constructor(private readonly origin: string) {}
+
+  async connector(caller: AgentCaller): Promise<ConnectorIdentity | null> {
+    try {
+      const found = await callApi<ConnectorIdentity>(this.origin, caller, '/access/connector');
+      return { clientId: found.clientId, clientName: found.clientName };
+    } catch (error) {
+      // An unidentified connector is an answer, and whoami says it.
+      if (error instanceof GatewayError && error.code === 'NOT_FOUND') return null;
+      throw error;
+    }
+  }
 }
 
 export class HttpKnowledgeGateway implements KnowledgeGateway {
@@ -320,7 +337,7 @@ export class HttpAuditGateway implements AuditGateway {
       entries: Array<{
         occurredAt: string;
         type: string;
-        authorship: { userId: string; agent: { clientName: string } | null };
+        authorship: { userId: string; agent: { clientId: string; clientName: string } | null };
         contentRef: { versionId: string } | null;
       }>;
     }>(this.origin, caller, `/audit/notes/${noteId}/history`);
@@ -330,6 +347,7 @@ export class HttpAuditGateway implements AuditGateway {
       type: entry.type,
       userId: entry.authorship.userId,
       agentName: entry.authorship.agent?.clientName ?? null,
+      agentClientId: entry.authorship.agent?.clientId ?? null,
       revision: entry.contentRef?.versionId ?? null,
     }));
   }

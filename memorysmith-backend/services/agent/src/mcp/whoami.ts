@@ -16,7 +16,7 @@
 
 import { READING_PATH, TOOL_CATALOG, type ToolDefinition } from './catalog.js';
 import { SKILLS } from './skills.js';
-import type { AgentCaller, NotebookListing } from './gateway.js';
+import type { AgentCaller, ConnectorIdentity, NotebookListing } from './gateway.js';
 
 function byName(name: string): ToolDefinition | undefined {
   return TOOL_CATALOG.find((tool) => tool.name === name);
@@ -27,18 +27,36 @@ function writes(tool: ToolDefinition): boolean {
   return tool.annotations.readOnlyHint === false || tool.annotations.destructiveHint === true;
 }
 
-function identity(caller: AgentCaller): string {
+/**
+ * The connector is the one the proxy recorded when it handed this token out, and
+ * when there is none it is said to be unidentified: naming it by anything else
+ * the token carries is how a user identifier used to appear here as a connector.
+ */
+function identity(caller: AgentCaller, connector: ConnectorIdentity | null): string {
   return [
     '## Who is acting',
     '',
     `- **Person**: ${caller.email ?? caller.userId}`,
-    `- **Connector**: ${caller.clientName} (\`${caller.clientId}\`)`,
+    connector
+      ? `- **Connector**: ${connector.clientName} (\`${connector.clientId}\`)`
+      : '- **Connector**: not identified',
     `- **Subscription**: \`${caller.subscriptionId}\``,
     '',
-    'Every note you write records both of them: the person who authorized this',
-    'connection and the connector that executed the write. Neither is a header you',
-    'can set, and the subscription was fixed when consent was given, so no argument',
-    'of any tool can move this connection to another one.',
+    ...(connector
+      ? [
+          'Every note you write records both of them: the person who authorized this',
+          'connection and the connector that executed the write. Neither is a header you',
+          'can set.',
+        ]
+      : [
+          'This connection does not record which connector it is, so every write through',
+          'it is refused: a note records the connector that wrote it, and there is none to',
+          'record. Reading works. Ask the person who connected you to disconnect this',
+          'connector and connect it again.',
+        ]),
+    '',
+    'The subscription was fixed when consent was given, so no argument of any tool',
+    'can move this connection to another one.',
   ].join('\n');
 }
 
@@ -132,8 +150,12 @@ function surface(): string {
   ].join('\n');
 }
 
-export function whoAmI(caller: AgentCaller, notebooks: readonly NotebookListing[]): string {
-  return [identity(caller), reach(notebooks), path(), skills(), surface()]
+export function whoAmI(
+  caller: AgentCaller,
+  connector: ConnectorIdentity | null,
+  notebooks: readonly NotebookListing[],
+): string {
+  return [identity(caller, connector), reach(notebooks), path(), skills(), surface()]
     .filter((block) => block.length > 0)
     .join('\n\n');
 }

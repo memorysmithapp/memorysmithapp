@@ -9,6 +9,7 @@
 
 import { z } from 'zod';
 import {
+  agentIdentitySchema,
   instantSchema,
   membershipRoleSchema,
   roleSchema,
@@ -160,6 +161,42 @@ export const changeSubscriptionPlanRequestSchema = z.object({
   quota: storageQuotaSchema.optional(),
 });
 
+/**
+ * What the connector proxy asks Access to record when it hands out a token
+ * (architecture-guide.md, section 13.3, item 4).
+ *
+ * No Cognito token can say which connector it was issued to: every token of the
+ * proxy carries the proxy's own app client, and no trigger may change that
+ * claim. The proxy is the one party that sees the connector and the token
+ * together, at `/token`, so it binds the two there, and the core reads the
+ * binding whenever the token writes (RN-AGT-001).
+ *
+ * The access token travels so that Access verifies it and takes the
+ * subscription and the identifier of the token from its own claims, never from
+ * this body. The refresh token never travels: only its SHA-256, which is what a
+ * later refresh is matched by.
+ */
+const tokenHashSchema = z.string().regex(/^[a-f0-9]{64}$/);
+
+export const connectorBindingRequestSchema = z.discriminatedUnion('grant', [
+  z.object({
+    grant: z.literal('authorization_code'),
+    accessToken: z.string().min(1),
+    connector: agentIdentitySchema,
+    refreshTokenHash: tokenHashSchema.nullable(),
+  }),
+  z.object({
+    grant: z.literal('refresh_token'),
+    accessToken: z.string().min(1),
+    refreshTokenHash: tokenHashSchema,
+    /** Present when Cognito rotated the refresh token on this exchange. */
+    rotatedRefreshTokenHash: tokenHashSchema.nullable(),
+  }),
+]);
+
+/** The connector a session acts through, which is how `whoami` names it. */
+export const connectorSchema = agentIdentitySchema;
+
 export type SubscriptionLinkDto = z.infer<typeof subscriptionLinkSchema>;
 export type SessionDto = z.infer<typeof sessionSchema>;
 export type MemberDto = z.infer<typeof memberSchema>;
@@ -175,3 +212,5 @@ export type ApproveSubscriptionRequest = z.infer<typeof approveSubscriptionReque
 export type RejectSubscriptionRequest = z.infer<typeof rejectSubscriptionRequestSchema>;
 export type SetSubscriptionStatusRequest = z.infer<typeof setSubscriptionStatusRequestSchema>;
 export type ChangeSubscriptionPlanRequest = z.infer<typeof changeSubscriptionPlanRequestSchema>;
+export type ConnectorBindingRequest = z.infer<typeof connectorBindingRequestSchema>;
+export type ConnectorDto = z.infer<typeof connectorSchema>;

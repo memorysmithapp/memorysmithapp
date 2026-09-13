@@ -26,10 +26,10 @@ const RULE_CODE = /RN-[A-Z]{3}-\d{3}/;
 const caller: AgentCaller = {
   userId: 'user-1',
   email: 'someone@example.test',
-  clientId: 'https://claude.ai/mcp',
-  clientName: 'Claude',
   subscriptionId: 'sub-1',
 };
+
+const connector = { clientId: 'https://claude.ai/mcp', clientName: 'Claude' };
 
 const notebooks: readonly NotebookListing[] = [
   { notebookId: 'v-1', name: 'Procurement', description: 'What we decided and why', noteCount: 12 },
@@ -38,8 +38,9 @@ const notebooks: readonly NotebookListing[] = [
 /** Everything the connector puts in front of an agent, in one list. */
 function servedText(): Array<{ where: string; text: string }> {
   return [
-    { where: 'whoami', text: whoAmI(caller, notebooks) },
-    { where: 'whoami, with no notebook to reach', text: whoAmI(caller, []) },
+    { where: 'whoami', text: whoAmI(caller, connector, notebooks) },
+    { where: 'whoami, with no notebook to reach', text: whoAmI(caller, connector, []) },
+    { where: 'whoami, with no connector recorded', text: whoAmI(caller, null, notebooks) },
     ...TOOL_CATALOG.flatMap((tool) => [
       { where: `${tool.name}.title`, text: tool.title },
       { where: `${tool.name}.description`, text: tool.description },
@@ -71,7 +72,7 @@ describe('the MCP surface does not cite the repository at the agent', () => {
   });
 
   it('still says the whole fact the folder-identifier paragraph carried', () => {
-    const text = whoAmI(caller, notebooks);
+    const text = whoAmI(caller, connector, notebooks);
 
     expect(text).toContain('the identifier of each folder');
     expect(text).toContain('never have to have');
@@ -98,7 +99,7 @@ describe('the product teaches the conversion instead of performing it', () => {
 
   it('exists, and whoami indexes it, because the index is derived', () => {
     expect(skill).toBeDefined();
-    expect(whoAmI(caller, notebooks)).toContain('convert-inline-tags');
+    expect(whoAmI(caller, connector, notebooks)).toContain('convert-inline-tags');
   });
 
   it('teaches what is NOT a tag, which is where the false positives live', () => {

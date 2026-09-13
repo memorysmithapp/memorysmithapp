@@ -10,7 +10,6 @@
 import { RESERVED_FRONTMATTER_KEYS } from '@memorysmith/contracts';
 import { serializeNotebookDocument } from '../src/composition-root.js';
 import {
-  Authorship,
   DomainError,
   Role,
   type SubscriptionContext,
@@ -22,6 +21,7 @@ import type { AccessRequest, AccessUseCases } from '@memorysmith/svc-access/adap
 import type { KnowledgeRequest, KnowledgeUseCases } from '@memorysmith/svc-knowledge/adapters/http';
 import {
   InMemoryAccessDatabase,
+  InMemoryConnectorBindingRepository,
   InMemoryInviteRepository,
   InMemoryOnboarding,
   InMemoryPlatformAdmin,
@@ -46,6 +46,12 @@ import {
   TransferOwnership,
 } from '@memorysmith/svc-access/application/members';
 import { ResolveRequestContext } from '@memorysmith/svc-access/application/context';
+import {
+  BindConnector,
+  ConnectorOfSession,
+  RebindConnector,
+  ResolveAuthorship,
+} from '@memorysmith/svc-access/application/connectors';
 import {
   InMemoryContentStore,
   InMemoryStorageBudget,
@@ -129,6 +135,16 @@ export class RecordingEventPublisher implements EventPublisher {
   }
 }
 
+/** The app client of the connector proxy, as the harness names it. */
+export const CONNECTOR_CLIENT_ID = 'cimd-proxy-client';
+
+/**
+ * Stands in for what API Gateway adds to a request it authorized with IAM. In
+ * production nobody but the proxy can make the gateway add it; here a test sets
+ * this header to play the proxy.
+ */
+export const SIGNED_WITH_IAM = 'x-test-signed-with-iam';
+
 /** Tokens are minted by the test, not verified against Cognito. */
 export class FakeTokenVerifier implements TokenVerifier {
   private readonly tokens = new Map<string, VerifiedToken>();
@@ -159,6 +175,7 @@ export function buildTestApp() {
     return {
       subscriptions: new InMemorySubscriptionRepository(context, accessDb, events),
       invites: new InMemoryInviteRepository(context, accessDb, events),
+      connectors: new InMemoryConnectorBindingRepository(context, accessDb),
     };
   };
 
@@ -221,6 +238,8 @@ export function buildTestApp() {
       const scoped = scopedAccess(request);
       return new TransferOwnership(scoped!.subscriptions, links);
     },
+    connectorOfSession: (request) =>
+      new ConnectorOfSession(scopedAccess(request)?.connectors ?? null, CONNECTOR_CLIENT_ID),
   };
 
   const knowledgeUseCases: KnowledgeUseCases = {
@@ -353,6 +372,15 @@ export function buildTestApp() {
 
   const app = createApp({
     verifier,
+    connectorBindings: {
+      verifier,
+      connectorClientId: CONNECTOR_CLIENT_ID,
+      signedWithIam: (c) => c.req.header(SIGNED_WITH_IAM) === 'true',
+      bindConnector: (context) =>
+        new BindConnector(new InMemoryConnectorBindingRepository(context, accessDb)),
+      rebindConnector: (context) =>
+        new RebindConnector(new InMemoryConnectorBindingRepository(context, accessDb)),
+    },
     /** The write side of an import, over the same use cases production uses. */
     notebookWriterFor: (request) =>
       new KnowledgeNotebookWriter(
@@ -395,7 +423,11 @@ export function buildTestApp() {
       const knowledgeRequest: KnowledgeRequest = {
         ctx: resolved.value,
         subscription: context,
-        authorship: Authorship.byHuman(context.userId),
+        // The same resolution production makes, over the in-memory bindings.
+        authorship: await new ResolveAuthorship(scoped!.connectors, CONNECTOR_CLIENT_ID).execute({
+          user: context.userId,
+          credential: request.credential,
+        }),
         subscriptionRole: resolved.value.isOwner ? Role.OWNER : resolved.value.role,
       };
       return { ok: true as const, value: knowledgeRequest };

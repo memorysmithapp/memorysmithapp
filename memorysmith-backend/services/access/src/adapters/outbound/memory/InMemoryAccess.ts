@@ -7,6 +7,8 @@
 import {
   ConcurrencyError,
   ok,
+  type AgentIdentity,
+  type Instant,
   type DomainEvent,
   type EventPublisher,
   type Result,
@@ -19,6 +21,7 @@ import type { Subscription } from '../../../domain/subscription/Subscription.js'
 import type { Invite } from '../../../domain/invite/Invite.js';
 import type { InviteToken } from '../../../domain/values.js';
 import type {
+  ConnectorBindingRepository,
   InviteRepository,
   PlatformSubscriptionAdmin,
   PlatformSubscriptionView,
@@ -32,11 +35,13 @@ export class InMemoryAccessDatabase {
   readonly subscriptions = new Map<string, { subscription: Subscription; version: number }>();
   readonly invites = new Map<string, Invite>();
   readonly links = new Map<string, SubscriptionLink>();
+  readonly connectors = new Map<string, { agent: AgentIdentity; expiresAt: Instant }>();
 
   clear(): void {
     this.subscriptions.clear();
     this.invites.clear();
     this.links.clear();
+    this.connectors.clear();
   }
 }
 
@@ -193,5 +198,49 @@ export class InMemoryOnboarding implements SubscriptionOnboarding {
     );
     await this.events.publish(pending);
     return ok();
+  }
+}
+
+export class InMemoryConnectorBindingRepository implements ConnectorBindingRepository {
+  constructor(
+    private readonly sub: SubscriptionContext,
+    private readonly db: InMemoryAccessDatabase,
+  ) {}
+
+  private key(kind: 'TOKEN' | 'REFRESH', id: string): string {
+    return `S#${this.sub.subscriptionId.value}#CONNECTOR#${kind}#${id}`;
+  }
+
+  async bindAccessToken(
+    tokenId: string,
+    agent: AgentIdentity,
+    expiresAt: Instant,
+  ): Promise<boolean> {
+    const key = this.key('TOKEN', tokenId);
+    if (this.db.connectors.has(key)) return false;
+    this.db.connectors.set(key, { agent, expiresAt });
+    return true;
+  }
+
+  async bindRefreshToken(
+    tokenHash: string,
+    agent: AgentIdentity,
+    expiresAt: Instant,
+  ): Promise<void> {
+    this.db.connectors.set(this.key('REFRESH', tokenHash), { agent, expiresAt });
+  }
+
+  async agentOfAccessToken(tokenId: string, now: Instant): Promise<AgentIdentity | null> {
+    return this.read(this.key('TOKEN', tokenId), now);
+  }
+
+  async agentOfRefreshToken(tokenHash: string, now: Instant): Promise<AgentIdentity | null> {
+    return this.read(this.key('REFRESH', tokenHash), now);
+  }
+
+  private read(key: string, now: Instant): AgentIdentity | null {
+    const found = this.db.connectors.get(key);
+    if (!found || found.expiresAt.isAtOrBefore(now)) return null;
+    return found.agent;
   }
 }

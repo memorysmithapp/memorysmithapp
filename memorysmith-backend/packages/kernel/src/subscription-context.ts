@@ -22,7 +22,7 @@ export interface TokenClaims {
   readonly sub: string;
   readonly subscription_id?: string | undefined;
   readonly subscription_status?: string | undefined;
-  /** The CIMD client_id when the caller is an MCP connector. */
+  /** The app client the token was issued to: the interface's, or the connector proxy's. */
   readonly client_id?: string | undefined;
 }
 

@@ -572,7 +572,7 @@ The trigger also injects the `subscription_status` claim, read from the `META` i
 
 For the MCP connector, the `subscription_id` enters the access token at the moment of consent and does not change for the life of that token (RN-SUB-014). One connector, one subscription.
 
-**The two lifetimes, and what ends a session.** The access token lives one hour and the refresh token thirty days, so a browser left open renews silently many times over the life of one sign-in. What the SPA does with those exchanges is in §5.3, and the rule that governs it is RN-SUB-022: the session ends when the credential can no longer be renewed, and it ends **once**, in one place, rather than being noticed by whichever screen happens to ask first. The connector does not share that path — the CIMD proxy passes the refresh through with rotation (§13.3), and its session is the token, not a browser.
+**The two lifetimes, and what ends a session.** The access token lives one hour and the refresh token thirty days, so a browser left open renews silently many times over the life of one sign-in. What the SPA does with those exchanges is in §5.3, and the rule that governs it is RN-SUB-022: the session ends when the credential can no longer be renewed, and it ends **once**, in one place, rather than being noticed by whichever screen happens to ask first. The connector does not share that path: it refreshes through the CIMD proxy, which binds the renewed token to the same connector (§13.3), and its session is the token, not a browser.
 
 ---
 
@@ -687,6 +687,9 @@ S#{s}              / USER#{userId}          → a user known to the subscription
 S#{s}              / INVITE#{token}         → a pending invitation (ttl = expiresAt)
 S#{s}              / MEMBER#{userId}        → membership: role (EDITOR | VIEWER)
 USER#{userId}      / SUB#{subscriptionId}   → the link (§8.3, exception 1)
+S#{s}              / CONNECTOR#TOKEN#{jti}        → the connector an access token was issued to
+                                                    (ttl = the expiry of the token)
+S#{s}              / CONNECTOR#REFRESH#{sha256}   → the connector a refresh token renews (ttl = 30 days)
 
 GSI2:  PLATFORM#{status}     → REQUESTED#{timestamp}#{subscriptionId}  → the platform queue (§8.3, exception 2)
                                INCLUDE projection: ownerEmail, status, type, quota,
@@ -696,6 +699,8 @@ GSI2:  PLATFORM#{status}     → REQUESTED#{timestamp}#{subscriptionId}  → the
 **The `OWNER` is not a `MEMBER` item.** Ownership lives in `ownerId`, on the `META` item of the subscription: a single field, which is how RN-ACC-001 ("exactly one `OWNER`") stops being a rule to check and becomes the shape of the data. The transfer of ownership is a conditional `Update` on that field plus the `Put` of the `EDITOR` membership of the previous holder, in one transaction (RN-ACC-002).
 
 The invitation has a TTL equal to its expiry: an expired invitation disappears on its own, with no cleanup job and no date check spread across every read.
+
+**A connector binding is keyed by the token, under the subscription the token names** (§13.3, item 4). An access token is bound once, by a conditional `Put`, so a second attempt to bind it is refused rather than obeyed; of a refresh token only the SHA-256 is stored. Both items carry a TTL, and every read checks the expiry as well, because the TTL removes an item eventually rather than on the second.
 
 ---
 ## 10. Transactions, concurrency and the outbox
@@ -989,7 +994,7 @@ export class AgentIdentity {
 }
 ```
 
-The one that fills it in is the inbound adapter: `McpToolAdapter` resolves the agent from the token, and the HTTP adapter of the UI leaves it null. The domain receives a finished, mandatory `Authorship` (PE6).
+The one that fills it in is the composition root of the core, on every request that may write, through `ResolveAuthorship` of Access. A token of the interface is a person writing, and the agent stays null. A token of the connector proxy carries no connector of its own, because Cognito issues it to the proxy's app client and lets no trigger say more, so the agent is the connector the proxy bound that token to at `/token` (§13.3, item 4), read from `mv-access` in process. **A token of the proxy with no binding is refused on every write**, and still reads: recording its write as the person's alone is the defect this replaced, and the trail is append-only (§12.2), so an incomplete record would stay incomplete for good. The routes receive the `Authorship` as a `Result`, so a write route has nothing to pass to the domain until it has looked. The domain receives a finished, mandatory `Authorship` (PE6).
 
 ### 12.2 `svc-audit`
 
@@ -1030,26 +1035,26 @@ Endpoint: `https://mcp.memorysmith.app/mcp` (Streamable HTTP, OAuth 2.1). The to
 
 ### 13.1 `svc-agent` as an anticorruption layer
 
-`McpToolAdapter` translates a tool call into a use case command and back, and resolves the `Authorship` from the token. No MCP vocabulary enters the core (RN-AGT-008), and swapping protocols tomorrow is swapping one adapter.
+`McpToolAdapter` translates a tool call into a use case command and back, forwarding the caller's own token, from which the core resolves the `Authorship` (§12.1). No MCP vocabulary enters the core (RN-AGT-008), and swapping protocols tomorrow is swapping one adapter.
 
 ### 13.2 Authentication
 
-Remote MCP requires OAuth 2.1 with *Protected Resource Metadata* (`knowledge-base.md` §3.4). **Cognito as the Authorization Server; `svc-agent` as the Resource Server and as the client registration proxy (§13.3).** The `subscriptionId` enters the token through the *pre-token-generation* trigger (§8.3), and the `client_id` of the connector becomes the `AgentIdentity` (§12.1).
+Remote MCP requires OAuth 2.1 with *Protected Resource Metadata* (`knowledge-base.md` §3.4). **Cognito as the Authorization Server; `svc-agent` as the Resource Server and as the client registration proxy (§13.3).** The `subscriptionId` enters the token through the *pre-token-generation* trigger (§8.3), and the connector a token was issued to, which the proxy binds to it, becomes the `AgentIdentity` (§12.1, §13.3 item 4).
 
 ### 13.3 Client registration: a CIMD proxy in front of Cognito
 
-Cognito implements no automatic client registration mechanism, neither DCR nor CIMD (`knowledge-base.md` §3.4). The current MCP specification deprecated DCR and recommends CIMD, and the relevant agent clients support CIMD on desktop, web and CLI surfaces. The decision: **`svc-agent` implements CIMD, acting as an authorisation proxy in front of Cognito.** Cognito keeps issuing every token; the proxy resolves only client registration. No new infrastructure component: the proxy is code inside the `svc-agent` Lambda, which is already the Resource Server.
+Cognito implements no automatic client registration mechanism, neither DCR nor CIMD (`knowledge-base.md` §3.4). The current MCP specification deprecated DCR and recommends CIMD, and the relevant agent clients support CIMD on desktop, web and CLI surfaces. The decision: **`svc-agent` implements CIMD, acting as an authorisation proxy in front of Cognito.** Cognito keeps issuing every token; the proxy resolves client registration, and records which connector each token it hands out was issued to. No new infrastructure component: the proxy is code inside the `svc-agent` Lambda, which is already the Resource Server.
 
 **The mechanism, end to end:**
 
 1. **Discovery.** An unauthenticated request to the MCP endpoint answers `401` with `WWW-Authenticate: Bearer resource_metadata="https://mcp.memorysmith.app/.well-known/oauth-protected-resource"`. In the PRM document, the `resource` field is exactly the URL of the MCP endpoint as the user types it, and `authorization_servers` points at the issuer of `svc-agent` itself, not at Cognito.
 2. **Authorization server metadata.** `svc-agent` serves the RFC 8414 document of its issuer announcing `client_id_metadata_document_supported: true` and `"none"` in `token_endpoint_auth_methods_supported`, both required for the client to pick CIMD, plus `code_challenge_methods_supported: ["S256"]`, with `authorization_endpoint` and `token_endpoint` pointing at the proxy itself.
-3. **Authorisation.** On receiving a `client_id` in URL form, the proxy fetches the metadata document of the client and validates it before any redirect: HTTPS required, private address blocking on resolution (anti-SSRF), a size ceiling and a timeout on the fetch, the `client_id` inside the document identical to the URL, and the `redirect_uri` of the request present in the list of the document. Once validated, it forwards the browser to the Cognito authorization endpoint using the single pre-registered app client of the proxy, preserving the PKCE of the client and correlating the two legs by `state`. The accepted `redirect_uri`s include the callback of hosted clients and loopback (`localhost` and `127.0.0.1`) with the port ignored in the comparison, per RFC 8252.
-4. **Token.** The token endpoint of the proxy exchanges the code with Cognito and returns the Cognito JWT **unchanged**: the proxy never issues or modifies a token. It accepts `application/x-www-form-urlencoded`, passes the refresh through with refresh token rotation, and the `subscription_id` and `subscription_status` claims keep entering through the trigger of §8.5. The CIMD `client_id`, the URL, is what becomes the `AgentIdentity` (§12.1).
+3. **Authorisation.** On receiving a `client_id` in URL form, the proxy fetches the metadata document of the client and validates it before any redirect: HTTPS required, private address blocking on resolution (anti-SSRF), a size ceiling and a timeout on the fetch, the `client_id` inside the document identical to the URL, and the `redirect_uri` of the request present in the list of the document. Once validated, it forwards the browser to the Cognito authorization endpoint using the single pre-registered app client of the proxy, preserving the PKCE of the client and correlating the two legs by `state`. The accepted `redirect_uri`s include the callback of hosted clients and loopback (`localhost` and `127.0.0.1`) with the port ignored in the comparison, per RFC 8252. The `client_name` of the document travels in the `state` beside the `client_id`. **The code the client receives on its redirect is not Cognito's**: `/callback` seals Cognito's code together with the `client_id` and the `client_name` validated at `/authorize`, under the HMAC key of the `state` and with the five-minute life of Cognito's code, so a client cannot validate one identity at `/authorize` and claim another at `/token`.
+4. **Token.** The token endpoint of the proxy unseals the code, refuses a request whose `client_id` differs from the sealed one, exchanges Cognito's code and returns the Cognito response **unchanged, byte for byte**: the proxy never issues or modifies a token. It accepts `application/x-www-form-urlencoded`, and the `subscription_id` and `subscription_status` claims keep entering through the trigger of §8.5. **What no token can carry is the connector.** Every token of the proxy is issued to its single app client, and the trigger may neither change `client_id` nor learn anything about the request of an authorization code, so the proxy, the one party that sees the connector and the token together, **binds them before the client holds the token**: it posts the access token, the connector and the SHA-256 of the refresh token to `POST /access/connector-bindings`, a route of Access authorized by IAM that only the role of `svc-agent` may invoke. Access verifies the token and keys the binding by its `jti`, under the subscription of its own claim (§9.4). A refresh is exchanged first, and the new access token is bound to the connector of the refresh token presented; when Cognito rotates the refresh token the binding follows it, and since the app client of the proxy does not rotate, the binding of a refresh token lasts its thirty days. A binding that fails is logged and the token is still returned: it reads, and every write through it is refused until the connector reconnects (§12.1). The CIMD `client_id` URL and the `client_name` of the document are the `AgentIdentity`.
 5. **DCR deliberately absent.** The metadata does not expose a `registration_endpoint`. Besides being deprecated, DCR would create an app client in the user pool on every new connection, accumulating registration garbage and consuming quota. For a client that does not speak CIMD, the fallback is pre-registration: entering a `client_id` by hand in the connector configuration, which clients support by specification.
 6. **Operational constraints that become tests.** Clients expect an answer from the discovery, authorisation and token endpoints within 10 seconds, so the OAuth path of the Lambda needs a comfortable p95 under that ceiling, cold start included. The discovery endpoints have to be reachable from the egress of the agent client providers, without a WAF blocking them.
 
-**The removal lever.** The proxy exists because Cognito does not speak CIMD. If one day it does, the PRM starts pointing at the Cognito issuer and the proxy is removed with no migration: the CIMD `client_id` is a URL hosted by the client itself, portable between authorization servers by construction, so there is no registration state on our side to carry. Until then, the proxy is treated as a permanent component, held to the same security bar as the rest of the edge.
+**The removal lever.** The proxy exists because Cognito does not speak CIMD. If one day it does, the PRM starts pointing at the Cognito issuer and the proxy is removed with no migration: the CIMD `client_id` is a URL hosted by the client itself, portable between authorization servers by construction, so there is no registration state on our side to carry. The bindings of §9.4 do not change that: they expire with the tokens they name, and a token issued to the connector itself would carry what they record. Until then, the proxy is treated as a permanent component, held to the same security bar as the rest of the edge.
 
 **The authentication spike that opened 0.1.0 validated this design, and it came before everything else:** a minimal proxy with a working CIMD connector end to end on a desktop client and on a web client, satisfying items 1 to 6. With the decision taken, the risk changes nature: it stops being a choice of direction and becomes integration conformance. The thesis, however, still depends on it (`software-vision.md` §1.4): if the friction persists even with the proxy, plan B is an identity provider with native CIMD (WorkOS AuthKit, Auth0), a swap contained in the identity stack and the proxy, without touching the domain.
 
@@ -1083,6 +1088,9 @@ svc-access       GET  /session   (the user, the links and the active subscriptio
                  GET  /members · POST /members             { email, role }
                  PATCH /members/:u  { role } · DELETE /members/:u
                  POST /invites/:token/accept
+                 GET  /connector   (the connector this session acts through, which whoami names)
+svc-access       POST /connector-bindings   ─ signed with IAM by svc-agent, never called by a
+ (connector proxy)                            session: binds a token it issued to its connector (§13.3)
 svc-access       GET  /platform/subscriptions?status=      ─┐  platform session:
  (platform)      POST /platform/subscriptions/:s/approve    ├─ no subscription_id claim,
                  POST /platform/subscriptions/:s/reject     │  reads only through GSI2 (§8.3, §8.4)

@@ -9,6 +9,7 @@
 
 import { CfnOutput, Duration, Stack, type StackProps } from 'aws-cdk-lib';
 import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import type * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import type * as cognito from 'aws-cdk-lib/aws-cognito';
@@ -17,6 +18,7 @@ import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import type { Construct } from 'constructs';
 import { ServiceLambda } from '../constructs/service-lambda.js';
+import { CONNECTOR_BINDING_ROUTE } from './api.stack.js';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -33,10 +35,12 @@ export interface AgentStackProps extends StackProps {
   /**
    * Where the tools reach the other contexts. svc-agent forwards the caller's
    * own token, so the subscription that arrives at the core is the one fixed
-   * at consent, and the client_id in that token is what becomes the agent
-   * identity in the authorship (architecture-guide.md, sections 13.1, 14.1).
+   * at consent, and the connector recorded as the agent is the one the proxy
+   * bound that token to (architecture-guide.md, sections 13.1, 13.3, 14.1).
    */
   internalApiOrigin: string;
+  /** The API of the core, whose connector binding route this function alone may invoke. */
+  coreApi: apigwv2.HttpApi;
 }
 
 export class AgentStack extends Stack {
@@ -81,6 +85,18 @@ export class AgentStack extends Stack {
     // in plaintext on the function configuration and in the CloudFormation
     // template, where anyone with describe rights could read it.
     stateSecret.grantRead(fn);
+
+    /**
+     * The one call this function signs with its own credentials: at /token it
+     * records which connector a token belongs to, through the route of Access
+     * that nothing else may invoke (sections 13.3 and 14.1).
+     */
+    fn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['execute-api:Invoke'],
+        resources: [props.coreApi.arnForExecuteApi('POST', CONNECTOR_BINDING_ROUTE)],
+      }),
+    );
 
     const domainName = new apigwv2.DomainName(this, 'McpDomain', {
       domainName: props.mcpDomainName,

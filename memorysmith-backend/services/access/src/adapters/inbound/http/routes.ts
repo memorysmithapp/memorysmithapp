@@ -12,9 +12,13 @@
 
 import { Hono } from 'hono';
 import {
+  AgentIdentity,
   Authorship,
   DomainError,
+  err,
   httpStatusFor,
+  Instant,
+  SubscriptionContext,
   SubscriptionId,
   UserId,
   type Result,
@@ -34,14 +38,22 @@ import type {
   RemoveMember,
   TransferOwnership,
 } from '../../../application/members.js';
+import type {
+  BindConnector,
+  ConnectorOfSession,
+  RebindConnector,
+  TokenCredential,
+} from '../../../application/connectors.js';
 import type { UserProfile } from '../../../domain/ports/index.js';
-import type { SubscriptionContext } from '@memorysmith/kernel';
-import { sessionSchema } from '@memorysmith/contracts';
+import { connectorBindingRequestSchema, sessionSchema } from '@memorysmith/contracts';
+import type { TokenVerifier } from './authentication.js';
 
 /** What the auth middleware puts on the request. */
 export interface AccessRequest {
   readonly profile: UserProfile;
   readonly context: SubscriptionContext | null;
+  /** The app client and the identifier of the token this request carries. */
+  readonly credential: TokenCredential;
 }
 
 /**
@@ -60,6 +72,7 @@ export interface AccessUseCases {
   readonly changeMemberRole: (request: AccessRequest) => ChangeMemberRole;
   readonly removeMember: (request: AccessRequest) => RemoveMember;
   readonly transferOwnership: (request: AccessRequest) => TransferOwnership;
+  readonly connectorOfSession: (request: AccessRequest) => ConnectorOfSession;
 }
 
 type Variables = { access: AccessRequest };
@@ -148,6 +161,18 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
       }),
       204,
     );
+  });
+
+  /**
+   * The connector this session acts through, which `whoami` names. A session
+   * that is not a connector's, or whose connector was never recorded, answers
+   * NOT_FOUND: the connector is then unidentified, and nothing else the token
+   * carries is named in its place.
+   */
+  app.get('/connector', async (c) => {
+    const request = c.get('access');
+    const found = await useCases.connectorOfSession(request).execute(request.credential);
+    return respond(c, found.ok ? { ok: true as const, value: found.value.toJSON() } : found);
   });
 
   // ---- Onboarding ----------------------------------------------------------
@@ -336,6 +361,98 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
    */
   app.put('/platform/subscriptions/:s/status', async (c) => platformAction(c, useCases, 'status'));
   app.patch('/platform/subscriptions/:s/plan', async (c) => platformAction(c, useCases, 'plan'));
+
+  return app;
+}
+
+/** What the route the connector proxy binds a token through needs. */
+export interface ConnectorBindingDependencies {
+  readonly verifier: TokenVerifier;
+  /** The app client of the connector proxy: the only one whose tokens are bound. */
+  readonly connectorClientId: string;
+  /**
+   * Whether the gateway authenticated this request with IAM (section 14.1).
+   * The route is authorized by IAM before it reaches the function, and this is
+   * the check that it was: without it, whoever holds a token of the proxy could
+   * bind it to any connector they liked.
+   */
+  readonly signedWithIam: (c: Context) => boolean;
+  readonly bindConnector: (context: SubscriptionContext) => BindConnector;
+  readonly rebindConnector: (context: SubscriptionContext) => RebindConnector;
+}
+
+/**
+ * `POST /access/connector-bindings`: the connector proxy records which connector
+ * a token it has just handed out belongs to (architecture-guide.md, 13.3).
+ *
+ * It is mounted apart from every other route of Access, because no person calls
+ * it: it carries no session, it is signed by the proxy, and the token it binds
+ * travels in the body. The subscription and the identifier are read from that
+ * token's own verified claims and never from the body, so a token can only be
+ * bound under the subscription it names.
+ */
+export function createConnectorBindingRoutes(deps: ConnectorBindingDependencies): Hono {
+  const app = new Hono();
+
+  app.post('/', async (c) => {
+    // To anyone but the proxy, this route does not exist.
+    if (!deps.signedWithIam(c)) return respond(c, err(DomainError.forbidden('Not found')));
+
+    const parsed = connectorBindingRequestSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) {
+      return respond(
+        c,
+        err(DomainError.validation('Not a connector binding', parsed.error.issues)),
+      );
+    }
+    const binding = parsed.data;
+
+    const token = await deps.verifier.verify(binding.accessToken);
+    if (
+      !token ||
+      token.client_id !== deps.connectorClientId ||
+      token.token_use !== 'access' ||
+      !token.jti ||
+      token.exp === undefined
+    ) {
+      return respond(
+        c,
+        err(
+          DomainError.validation('The token to bind is not an access token of the connector proxy'),
+        ),
+      );
+    }
+    const context = SubscriptionContext.fromClaims(token);
+    if (!context.ok) return respond(c, context);
+    const expiresAt = Instant.fromEpochMillis(token.exp * 1000);
+    if (!expiresAt.ok) return respond(c, expiresAt);
+
+    if (binding.grant === 'authorization_code') {
+      const agent = AgentIdentity.create(binding.connector.clientId, binding.connector.clientName);
+      if (!agent.ok) return respond(c, agent);
+      return respond(
+        c,
+        await deps.bindConnector(context.value).execute({
+          tokenId: token.jti,
+          tokenExpiresAt: expiresAt.value,
+          agent: agent.value,
+          refreshTokenHash: binding.refreshTokenHash,
+        }),
+        204,
+      );
+    }
+
+    return respond(
+      c,
+      await deps.rebindConnector(context.value).execute({
+        tokenId: token.jti,
+        tokenExpiresAt: expiresAt.value,
+        refreshTokenHash: binding.refreshTokenHash,
+        rotatedRefreshTokenHash: binding.rotatedRefreshTokenHash,
+      }),
+      204,
+    );
+  });
 
   return app;
 }

@@ -56,11 +56,10 @@ export function callerFrom(
   return {
     userId: token.sub,
     ...(typeof email === 'string' ? { email } : {}),
-    clientId: token.clientId,
-    clientName: token.username ?? token.clientId,
     subscriptionId: token.subscriptionId,
-    // Forwarded to the internal API, so the subscription and the agent
-    // identity that reach the core are the ones the token itself carries.
+    // Forwarded to the internal API, so the subscription that reaches the core
+    // is the one the token carries, and the connector is the one the proxy
+    // bound the token to.
     bearerToken,
   };
 }

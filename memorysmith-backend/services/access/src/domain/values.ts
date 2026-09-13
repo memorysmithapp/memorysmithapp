@@ -185,4 +185,10 @@ export const ACCESS_LIMITS = {
   inviteValidityDays: 7,
   /** RN-ACC-016: role changes take up to five minutes to propagate. */
   authorizerCacheSeconds: 300,
+  /**
+   * How long a connector stays bound to a refresh token: the refresh token
+   * validity of the connector proxy's app client (identity.stack.ts). A binding
+   * that outlived the token would answer for a credential nobody can present.
+   */
+  connectorRefreshTokenDays: 30,
 } as const;

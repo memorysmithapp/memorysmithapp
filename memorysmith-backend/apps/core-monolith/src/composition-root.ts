@@ -23,14 +23,9 @@ import {
 import type { NotebookDocument } from '@memorysmith/svc-portability/domain';
 import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import type { S3Client } from '@aws-sdk/client-s3';
+import { Role, type SubscriptionContext } from '@memorysmith/kernel';
 import {
-  Authorship,
-  AgentIdentity,
-  Role,
-  type SubscriptionContext,
-  type UserId,
-} from '@memorysmith/kernel';
-import {
+  DynamoConnectorBindingRepository,
   DynamoInviteRepository,
   DynamoOnboarding,
   DynamoPlatformAdmin,
@@ -84,6 +79,7 @@ export function buildAccess(infra: Infrastructure, context: SubscriptionContext 
           NULL_OUTBOX_SINK,
         ),
         invites: new DynamoInviteRepository(context, infra.db, infra.accessTable, NULL_OUTBOX_SINK),
+        connectors: buildConnectorBindings(infra, context),
       }
     : null;
 
@@ -190,17 +186,15 @@ export function buildAuthorizer(
 }
 
 /**
- * A write through the UI carries no agent. A write through the MCP connector
- * arrives with the CIMD client_id in the token, and that is what becomes the
- * AgentIdentity: the authorship records the agent AND the human, with no side
- * channel to trust (RN-AGT-001, section 12.1).
+ * The connector of each token of the connector proxy, under the subscription of
+ * the token. Access owns it; the core reads it in process, where Access already
+ * runs, and the proxy writes it through a route of Access (section 13.3).
  */
-export function authorshipFor(user: UserId, clientId?: string | undefined): Authorship {
-  const isConnector = Boolean(clientId && /^https?:\/\//i.test(clientId));
-  if (!isConnector || !clientId) return Authorship.byHuman(user);
-
-  const agent = AgentIdentity.create(clientId, clientId);
-  return agent.ok ? Authorship.byAgent(user, agent.value) : Authorship.byHuman(user);
+export function buildConnectorBindings(
+  infra: Infrastructure,
+  context: SubscriptionContext,
+): DynamoConnectorBindingRepository {
+  return new DynamoConnectorBindingRepository(context, infra.db, infra.accessTable);
 }
 
 /** The role the session holds in the subscription, owner above every member. */

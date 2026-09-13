@@ -8,7 +8,8 @@
  */
 
 import { Duration, Stack, type StackProps } from 'aws-cdk-lib';
-import { HttpApi, CorsHttpMethod, DomainName } from 'aws-cdk-lib/aws-apigatewayv2';
+import { HttpApi, CorsHttpMethod, DomainName, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
+import { HttpIamAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { StartingPosition } from 'aws-cdk-lib/aws-lambda';
 import { DynamoEventSource, SqsDlq } from 'aws-cdk-lib/aws-lambda-event-sources';
@@ -26,17 +27,28 @@ import type { DataStack } from './data.stack.js';
 const here = dirname(fileURLToPath(import.meta.url));
 const backend = join(here, '..', '..', 'memorysmith-backend');
 
+/**
+ * Where the connector proxy records which connector a token belongs to
+ * (architecture-guide.md, section 13.3). The one route of the API authorized
+ * by IAM instead of by a token: no session calls it, and only the role of
+ * svc-agent may invoke it.
+ */
+export const CONNECTOR_BINDING_ROUTE = '/access/connector-bindings';
+
 export interface ApiStackProps extends StackProps {
   readonly data: DataStack;
   readonly hostedZone: IHostedZone;
   readonly certificate: ICertificate;
   readonly apiDomainName: string;
   readonly cognitoIssuer: string;
+  /** The app client of the connector proxy, whose tokens write as a connector. */
+  readonly connectorClientId: string;
   readonly frontendOrigin: string;
 }
 
 export class ApiStack extends Stack {
   readonly apiOrigin: string;
+  readonly httpApi: HttpApi;
 
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id, props);
@@ -49,6 +61,7 @@ export class ApiStack extends Stack {
       CONTENT_BUCKET: props.data.contentBucket.bucketName,
       EVENT_BUS_NAME: props.data.eventBus.eventBusName,
       COGNITO_ISSUER: props.cognitoIssuer,
+      CONNECTOR_CLIENT_ID: props.connectorClientId,
     };
 
     const api = new ServiceLambda(this, 'CoreApi', {
@@ -113,7 +126,7 @@ export class ApiStack extends Stack {
       certificate: props.certificate,
     });
 
-    const httpApi = new HttpApi(this, 'HttpApi', {
+    this.httpApi = new HttpApi(this, 'HttpApi', {
       apiName: 'memorysmith-api',
       defaultIntegration: new HttpLambdaIntegration('CoreIntegration', api.function),
       corsPreflight: {
@@ -132,6 +145,15 @@ export class ApiStack extends Stack {
       defaultDomainMapping: { domainName: domain },
     });
 
+    // The gateway refuses an unsigned request before it reaches the function,
+    // and the function checks that the gateway did (section 14.1).
+    this.httpApi.addRoutes({
+      path: CONNECTOR_BINDING_ROUTE,
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration('ConnectorBindingIntegration', api.function),
+      authorizer: new HttpIamAuthorizer(),
+    });
+
     new ARecord(this, 'ApiRecord', {
       zone: props.hostedZone,
       recordName: props.apiDomainName,
@@ -141,6 +163,5 @@ export class ApiStack extends Stack {
     });
 
     this.apiOrigin = `https://${props.apiDomainName}`;
-    void httpApi;
   }
 }

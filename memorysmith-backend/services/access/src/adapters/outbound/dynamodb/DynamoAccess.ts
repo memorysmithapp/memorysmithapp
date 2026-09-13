@@ -6,6 +6,8 @@
  *   S#{s}          / MEMBER#{userId}       membership (EDITOR | VIEWER)
  *   S#{s}          / INVITE#{token}        pending invite, ttl = expiresAt
  *   USER#{u}       / SUB#{s}               the link, exception 1 of section 8.3
+ *   S#{s}          / CONNECTOR#TOKEN#{jti}      the connector of an access token
+ *   S#{s}          / CONNECTOR#REFRESH#{sha256} the connector a refresh token renews
  *
  *   GSI2: PLATFORM#{st}   -> REQUESTED#{ts}#{s}                   platform queue
  *
@@ -19,6 +21,7 @@
  */
 
 import {
+  AgentIdentity,
   ConcurrencyError,
   Instant,
   ok,
@@ -49,6 +52,7 @@ import {
   SubscriptionType,
 } from '../../../domain/values.js';
 import type {
+  ConnectorBindingRepository,
   InviteRepository,
   PlatformSubscriptionAdmin,
   PlatformSubscriptionView,
@@ -481,5 +485,88 @@ export class DynamoOnboarding implements SubscriptionOnboarding {
     input.subscription.markPersisted();
     await this.outbox.published(events);
     return ok();
+  }
+}
+
+/**
+ * The connector of each token of the connector proxy (section 13.3, item 4).
+ *
+ * The access token is bound ONCE, by a conditional put: a token never changes
+ * connector, and a second attempt to bind it is refused rather than obeyed.
+ * Both items carry a TTL equal to their expiry, and the TTL removes an expired
+ * binding eventually rather than on the second, so every read checks the expiry
+ * as well.
+ */
+export class DynamoConnectorBindingRepository implements ConnectorBindingRepository {
+  constructor(
+    private readonly sub: SubscriptionContext,
+    private readonly db: DynamoDBDocumentClient,
+    private readonly tableName: string,
+  ) {}
+
+  async bindAccessToken(
+    tokenId: string,
+    agent: AgentIdentity,
+    expiresAt: Instant,
+  ): Promise<boolean> {
+    try {
+      await this.db.send(
+        new PutCommand({
+          TableName: this.tableName,
+          Item: this.item(`CONNECTOR#TOKEN#${tokenId}`, agent, expiresAt),
+          ConditionExpression: 'attribute_not_exists(PK)',
+        }),
+      );
+      return true;
+    } catch (error) {
+      if ((error as { name?: string })?.name === 'ConditionalCheckFailedException') return false;
+      throw error;
+    }
+  }
+
+  async bindRefreshToken(
+    tokenHash: string,
+    agent: AgentIdentity,
+    expiresAt: Instant,
+  ): Promise<void> {
+    await this.db.send(
+      new PutCommand({
+        TableName: this.tableName,
+        Item: this.item(`CONNECTOR#REFRESH#${tokenHash}`, agent, expiresAt),
+      }),
+    );
+  }
+
+  agentOfAccessToken(tokenId: string, now: Instant): Promise<AgentIdentity | null> {
+    return this.read(`CONNECTOR#TOKEN#${tokenId}`, now);
+  }
+
+  agentOfRefreshToken(tokenHash: string, now: Instant): Promise<AgentIdentity | null> {
+    return this.read(`CONNECTOR#REFRESH#${tokenHash}`, now);
+  }
+
+  private item(sk: string, agent: AgentIdentity, expiresAt: Instant): Item {
+    return {
+      PK: `S#${this.sub.subscriptionId.value}`,
+      SK: sk,
+      entity: 'CONNECTOR_BINDING',
+      clientId: agent.clientId,
+      clientName: agent.clientName,
+      expiresAt: expiresAt.toISOString(),
+      ttl: expiresAt.toEpochSeconds(),
+    };
+  }
+
+  private async read(sk: string, now: Instant): Promise<AgentIdentity | null> {
+    const response = await this.db.send(
+      new GetCommand({
+        TableName: this.tableName,
+        Key: { PK: `S#${this.sub.subscriptionId.value}`, SK: sk },
+      }),
+    );
+    const item = response.Item as Item | undefined;
+    if (!item) return null;
+    if (need(Instant.fromISO(String(item['expiresAt']))).isAtOrBefore(now)) return null;
+    return need(AgentIdentity.create(String(item['clientId']), String(item['clientName'])));
   }
 }

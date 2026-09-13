@@ -8,7 +8,8 @@ import { handle } from 'hono/aws-lambda';
 import { createApp } from './app.js';
 import { loadConfig } from './config.js';
 import { secretsManagerResolver } from './secrets.aws.js';
-import { buildToolAdapter } from './main/composition-root.js';
+import { sigV4Signer } from './connector-binding.aws.js';
+import { buildConnectorBinder, buildToolAdapter } from './main/composition-root.js';
 
 const config = loadConfig();
 
@@ -19,5 +20,10 @@ const config = loadConfig();
  * (architecture-guide.md, section 24).
  */
 export const handler = handle(
-  createApp(config, secretsManagerResolver(config.stateSecretId), buildToolAdapter()),
+  createApp(
+    config,
+    secretsManagerResolver(config.stateSecretId),
+    buildToolAdapter(),
+    buildConnectorBinder(sigV4Signer()),
+  ),
 );

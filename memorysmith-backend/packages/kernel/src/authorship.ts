@@ -3,9 +3,10 @@
  *
  * It is a mandatory argument of every aggregate operation that changes state
  * (PE6, RN-KNW-026): there is no anonymous mutation, because the method
- * signature makes one impossible. The inbound adapter fills it in - the MCP
- * tool adapter resolves the agent from the token, the UI adapter leaves it
- * null (architecture-guide.md, section 12.1).
+ * signature makes one impossible. The composition root fills it in: a write
+ * through the interface leaves the agent null, and a write through the
+ * connector carries the connector the proxy bound its token to
+ * (architecture-guide.md, section 12.1).
  */
 
 import { DomainError } from './errors.js';
