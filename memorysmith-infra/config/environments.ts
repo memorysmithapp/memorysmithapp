@@ -7,16 +7,17 @@
  * environment is production.
  *
  * The account is never taken from the credentials. Named explicitly in the
- * environment of every stack, it makes the CDK itself refuse to deploy one
- * environment under the credentials of the other: the wrong target is
- * impossible, not forbidden.
+ * environment of every stack, it makes the CDK itself refuse to deploy into
+ * any account but the one cdk.json names. Production and staging name the same
+ * account, so what tells one environment from the other is the name chosen
+ * here and every name it produces, never the credentials.
  */
 
 export type EnvironmentName = 'production' | 'staging';
 
 export const ENVIRONMENT_NAMES: readonly EnvironmentName[] = ['production', 'staging'];
 
-/** A zone below this one that lives in another account, delegated by an NS record. */
+/** A zone below this one, delegated by an NS record this environment declares. */
 export interface Delegation {
   /** Relative to the zone of this environment, e.g. `stg`. */
   readonly recordName: string;
@@ -131,9 +132,9 @@ export function stackId(environment: Pick<EnvironmentConfig, 'name'>, name: stri
 
 /**
  * A physical name that says which environment it belongs to. The two
- * environments live in different accounts and could share names; they do not,
- * so that nothing read from a console, a log line or a bill can be mistaken for
- * the other environment's.
+ * environments share one account, so a name that did not say it would collide
+ * with the other environment's, and nothing read from a console, a log line or
+ * a bill could be told apart from the other environment's.
  */
 export function physicalName(environment: Pick<EnvironmentConfig, 'name'>, base: string): string {
   return `${base}-${environment.name}`;

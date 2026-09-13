@@ -50,11 +50,20 @@ export class NetworkStack extends Stack {
     });
 
     /**
-     * The zones below this one that live in another account, delegated here,
-     * in code, and never in the console (section 17). The name servers are the
-     * ones Route 53 drew when that zone was created, written in cdk.json. No
-     * construct delegates across accounts, because that needs a role in this
-     * account that the other one can assume.
+     * The zones below this one, delegated here, in code (section 17). The name
+     * servers are the ones Route 53 drew when that zone was created, written in
+     * cdk.json.
+     *
+     * The record replaces one that already exists, because the delegation is
+     * needed before this stack is ever deployed: staging has to run, and be
+     * validated, before the merge that delivers production for the first time,
+     * so the record is written by hand once, with these same values, when an
+     * installation is brought up. `deleteExisting` is safe only because it is
+     * set from the day the record joined the stack; turning it on for a record
+     * already deployed would delete that record. The CDK marks it deprecated for
+     * the other half of that danger: a first deploy that fails after deleting the
+     * record by hand leaves no delegation until one is written again, which costs
+     * staging and never production.
      */
     props.environment.delegations.forEach((delegation, index) => {
       new route53.NsRecord(this, `Delegation${index}`, {
@@ -62,6 +71,7 @@ export class NetworkStack extends Stack {
         recordName: delegation.recordName,
         values: [...delegation.nameServers],
         ttl: Duration.days(2),
+        deleteExisting: true,
       });
     });
 

@@ -33,7 +33,9 @@ const deployment = deploymentOf(app);
 
 /**
  * The account comes from cdk.json and never from the credentials, so the CDK
- * refuses a deploy of this environment under the credentials of the other.
+ * refuses a deploy into any account but the one the environment names.
+ * Production and staging name the same one, and what tells them apart is
+ * `-c environment` and the names it produces (section 17).
  */
 const env = { account: environment.account, region: environment.region };
 const id = (name: string): string => stackId(environment, name);

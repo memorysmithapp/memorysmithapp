@@ -318,8 +318,8 @@ rule exists by pointing at the sentence of a real person who felt the friction.
 
 ### 8.1 Staging validation
 
-Before a pull request is opened, `pnpm staging:status` runs with credentials of the staging
-account, and the author is warned when the head commit did not run on staging. **Nothing blocks
+Before a pull request is opened, `pnpm staging:status` runs with credentials of the account
+of staging, and the author is warned when the head commit did not run on staging. **Nothing blocks
 the merge**: merging without a staging run is a decision that belongs to the author, and this
 section is what makes it one taken knowingly.
 

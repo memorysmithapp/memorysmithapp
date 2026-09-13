@@ -2,7 +2,7 @@
  * The last stage of the production pipeline: the tag and the GitHub Release of
  * the version that was just deployed (architecture-guide.md, section 20).
  *
- * Its private key never leaves Secrets Manager of the production account, and
+ * Its private key never leaves Secrets Manager of the account, and
  * the pipeline hands this command only the identifiers:
  *
  *   GITHUB_REPOSITORY          owner/name

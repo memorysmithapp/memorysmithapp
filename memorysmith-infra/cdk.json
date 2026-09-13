@@ -13,25 +13,35 @@
         "region": "us-east-1",
         "hostedZoneName": "memorysmith.app",
         "hostedZoneId": "Z1003210YHFJUFXNHOVX",
-        "delegations": [],
+        "delegations": [
+          {
+            "recordName": "stg",
+            "nameServers": [
+              "ns-1699.awsdns-20.co.uk",
+              "ns-231.awsdns-28.com",
+              "ns-1028.awsdns-00.org",
+              "ns-995.awsdns-60.net"
+            ]
+          }
+        ],
         "pipeline": {
-          "connectionArn": "",
+          "connectionArn": "arn:aws:codeconnections:us-east-1:364362227104:connection/1dafbdde-17c1-40da-a764-ac35aa38f184",
           "repository": "memorysmithapp/memorysmithapp",
           "release": {
-            "appId": "",
-            "installationId": "",
+            "appId": "4933372",
+            "installationId": "161448482",
             "privateKeySecret": "memorysmith/release-app"
           }
         }
       },
       "staging": {
-        "account": "",
+        "account": "364362227104",
         "region": "us-east-1",
         "hostedZoneName": "stg.memorysmith.app",
-        "hostedZoneId": "",
+        "hostedZoneId": "Z07999273FVWE6U5B5811",
         "delegations": [],
         "pipeline": {
-          "connectionArn": "",
+          "connectionArn": "arn:aws:codeconnections:us-east-1:364362227104:connection/1dafbdde-17c1-40da-a764-ac35aa38f184",
           "repository": "memorysmithapp/memorysmithapp"
         }
       }

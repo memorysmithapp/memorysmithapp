@@ -4,10 +4,13 @@
  *
  *   pnpm -C memorysmith-infra destroy-staging [--preview]
  *
- * It runs in the DestroyStaging project of the staging account, started by
+ * It runs in the DestroyStaging project of staging, started by
  * `pnpm staging:destroy`, because a teardown outlasts any workstation that
  * should stay awake for it. It refuses production before it looks at a
  * credential, and any account but the one cdk.json names for staging after.
+ * Production lives in that same account, which is why it deletes only what the
+ * stacks of staging list, and why its role may delete a user pool only when the
+ * pool is tagged staging.
  *
  * In order:
  * 1. what the stacks retain is listed before they go, because afterwards

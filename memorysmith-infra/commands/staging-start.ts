@@ -2,7 +2,7 @@
  * Starts the staging pipeline on the head of this branch
  * (architecture-guide.md, section 20).
  *
- *   pnpm staging:start             with credentials of the staging account
+ *   pnpm staging:start             with credentials of the account
  *
  * Staging runs only when somebody asks, because a run costs money and the
  * decision to spend it belongs to whoever asks. The pipeline builds the commit,

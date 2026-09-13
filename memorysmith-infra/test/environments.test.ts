@@ -166,4 +166,14 @@ describe('the stacks of an environment', () => {
       ResourceRecords: ENVIRONMENTS.production.delegations[0]?.nameServers,
     });
   });
+
+  it('replace the delegation written by hand before production was first delivered', () => {
+    const app = appFor('production');
+    const { network } = stacksOf(app, environmentOf(app.node));
+    const replacing = Object.values(
+      Template.fromStack(network).toJSON().Resources as Record<string, { Type: string }>,
+    ).filter((resource) => resource.Type.includes('DeleteExistingRecordSet'));
+    expect(replacing).toHaveLength(1);
+    expect(JSON.stringify(replacing[0])).toContain('"NS"');
+  });
 });

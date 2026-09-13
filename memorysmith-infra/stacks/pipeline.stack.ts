@@ -1,12 +1,15 @@
 /**
- * The pipeline of an environment, in its own account (architecture-guide.md,
- * section 20).
+ * The pipeline of an environment (architecture-guide.md, section 20).
  *
- * The same code is instantiated per environment, and there is NO TRUST between
- * the accounts: branch code only ever runs in the staging account, and the
- * production pipeline exists only in the production account and listens only
- * to main. A tooling account deploying to both was rejected, because branch
- * code would run in the account holding the trust to production.
+ * The same code is instantiated per environment, and both pipelines live in
+ * the one account that holds production and staging. Branch code runs only in
+ * the staging pipeline, which only a person starts, and the production
+ * pipeline listens only to main. Inside the account, what keeps the two apart
+ * is the name of everything they create and, where a permission would reach
+ * both, a condition on the `app:environment` tag. The price is named in
+ * section 20.1: both pipelines deploy through the bootstrap roles of the
+ * account, which can change anything in it, so a defect on a branch can reach
+ * production.
  *
  * Every stage is a CodeBuild project running the same `pnpm` scripts a
  * workstation runs, over a whole clone of the repository, so the version can
@@ -314,7 +317,8 @@ export class PipelineStack extends Stack {
           ],
         }),
       );
-      // The accounts of a run, created, signed in and deleted by the run itself.
+      // The accounts of a run, created, signed in and deleted by the run itself,
+      // and only in the pool of this environment: production shares the account.
       functional.addToRolePolicy(
         new iam.PolicyStatement({
           actions: [
@@ -327,6 +331,9 @@ export class PipelineStack extends Stack {
           resources: [
             `arn:${this.partition}:cognito-idp:${this.region}:${this.account}:userpool/*`,
           ],
+          conditions: {
+            StringEquals: { 'aws:ResourceTag/app:environment': environment.name },
+          },
         }),
       );
     }
@@ -407,13 +414,20 @@ export class PipelineStack extends Stack {
       allow(['dynamodb:DeleteTable'], [arn('dynamodb', `table/mv-*-${environment.name}`)]);
       allow(['s3:ListBucketVersions', 's3:DeleteBucket'], [buckets]);
       allow(['s3:DeleteObject', 's3:DeleteObjectVersion'], [`${buckets}/*`]);
-      allow(
-        [
-          'cognito-idp:DescribeUserPool',
-          'cognito-idp:DeleteUserPoolDomain',
-          'cognito-idp:DeleteUserPool',
-        ],
-        [arn('cognito-idp', 'userpool/*')],
+      // A pool is deleted only when it says it is staging: production lives in the
+      // same account, and a pool id read from the wrong stack must not be enough.
+      teardown.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: [
+            'cognito-idp:DescribeUserPool',
+            'cognito-idp:DeleteUserPoolDomain',
+            'cognito-idp:DeleteUserPool',
+          ],
+          resources: [arn('cognito-idp', 'userpool/*')],
+          conditions: {
+            StringEquals: { 'aws:ResourceTag/app:environment': environment.name },
+          },
+        }),
       );
       allow(['logs:DescribeLogGroups', 'lambda:ListFunctions'], ['*']);
       allow(['logs:DeleteLogGroup'], [arn('logs', `log-group:/aws/lambda/${prefix}*`)]);

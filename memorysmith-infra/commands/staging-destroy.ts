@@ -1,7 +1,7 @@
 /**
  * Starts the teardown of staging (architecture-guide.md, section 20).
  *
- *   pnpm staging:destroy             with credentials of the staging account
+ *   pnpm staging:destroy             with credentials of the account
  *
  * It asks for the domain of staging, typed, before anything starts, and hands
  * the pushed head of this branch to the DestroyStaging project, which runs the

@@ -1,8 +1,9 @@
 /**
- * The pipeline of each account (architecture-guide.md, section 20). What these
- * cases protect is what would otherwise be found in the account itself: which
- * pipeline starts on its own, in which order the stages run, and that no role
- * trusts anything outside its own account.
+ * The pipeline of each environment (architecture-guide.md, section 20). What
+ * these cases protect is what would otherwise be found in the account itself:
+ * which pipeline starts on its own, in which order the stages run, that no role
+ * trusts anything outside the account, and that a permission able to reach both
+ * environments of a shared account reaches only its own.
  */
 
 import { App } from 'aws-cdk-lib';
@@ -198,6 +199,14 @@ describe('the teardown of an environment', () => {
     expect(resources).toContain(':222222222222:stack/MemorysmithStagingPipeline/*');
     expect(resources).toContain(':s3:::memorysmithstagingpipeline*');
   });
+
+  it('deletes a user pool only when the pool is tagged staging, because production may share the account', () => {
+    const statements = touching(statementsOf('staging', 'DestroyStaging'), 'cognito-idp');
+    expect(statements).toHaveLength(1);
+    expect((statements[0] as { Condition?: unknown }).Condition).toEqual({
+      StringEquals: { 'aws:ResourceTag/app:environment': 'staging' },
+    });
+  });
 });
 
 describe('the functional suite of a pipeline', () => {
@@ -208,9 +217,15 @@ describe('the functional suite of a pipeline', () => {
   it('creates accounts in the pool of staging, publishes only under functional/ of its site, touches no table, and keeps its report private for 30 days', () => {
     const statements = statementsOf('staging', 'Functional');
     expect(touching(statements, 'dynamodb')).toEqual([]);
-    expect(JSON.stringify(touching(statements, 'cognito-idp'))).toContain(
-      ':222222222222:userpool/*',
-    );
+    const cognito = touching(statements, 'cognito-idp');
+    expect(JSON.stringify(cognito)).toContain(':222222222222:userpool/*');
+    expect(cognito).not.toHaveLength(0);
+    // Production may share the account: a pool is reached only when it says staging.
+    for (const statement of cognito) {
+      expect((statement as { Condition?: unknown }).Condition).toEqual({
+        StringEquals: { 'aws:ResourceTag/app:environment': 'staging' },
+      });
+    }
     expect(JSON.stringify(touching(statements, 's3'))).toContain(
       ':s3:::memorysmithstagingfrontend-sitebucket*/functional/*',
     );

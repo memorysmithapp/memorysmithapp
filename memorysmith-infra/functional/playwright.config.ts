@@ -5,7 +5,7 @@
  *   FUNCTIONAL_ENVIRONMENT=staging FUNCTIONAL_VERSION=<served> pnpm -C memorysmith-infra functional
  *
  * It runs in the Functional stage of the staging pipeline, with credentials of
- * the staging account, and from a workstation only to debug a case. Workers are
+ * the account, and from a workstation only to debug a case. Workers are
  * bounded because every call lands on Lambda, whose concurrency in a young
  * account is a quota the suite must not depend on.
  */

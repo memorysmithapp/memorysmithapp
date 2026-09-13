@@ -2,7 +2,7 @@
  * Says whether the head of this branch ran on staging, and never blocks
  * anything (development-process.md, section 8).
  *
- *   pnpm staging:status            with credentials of the staging account
+ *   pnpm staging:status            with credentials of the account
  *
  * It exits 0 in every one of its three answers: a merge without a staging run
  * is a decision that belongs to the author, and this only makes sure it is made

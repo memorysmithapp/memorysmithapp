@@ -182,7 +182,7 @@ The exit lever is worth recording: the proxy exists because Cognito does not spe
 
 This is **one of the two paths** of using the product, and not the only one: whoever prefers not to operate infrastructure uses the hosted service, which runs exactly this code. What follows is for whoever wants the whole backend in their own account.
 
-All the infrastructure lives in [`memorysmith-infra/`](memorysmith-infra/), in AWS CDK with TypeScript, and **an environment is delivered by a pipeline inside its own account**, never by a sequence of commands typed from a workstation. One app describes two environments, production and staging, each in an account of its own and with no trust between the two ([`docs/architecture-guide.md`](docs/architecture-guide.md) §17 and §20). Staging is optional: an installation that wants only production leaves its entry out.
+All the infrastructure lives in [`memorysmith-infra/`](memorysmith-infra/), in AWS CDK with TypeScript, and **an environment is delivered by a pipeline inside the account**, never by a sequence of commands typed from a workstation. One app describes two environments, production and staging, which live in one account and are told apart by the name of everything they create ([`docs/architecture-guide.md`](docs/architecture-guide.md) §17 and §20). Staging is optional: an installation that wants only production leaves its entry out.
 
 ### What goes up
 
@@ -190,7 +190,7 @@ All the infrastructure lives in [`memorysmith-infra/`](memorysmith-infra/), in A
 
 | Stack | What it creates |
 | --- | --- |
-| `Network` | A reference to the hosted zone of the environment, the ACM certificates of the site (with `www` as a SAN), `api.`, `mcp.` and `auth.`, all validated by DNS in the zone itself, and the `NS` records delegating a zone below it to another account |
+| `Network` | A reference to the hosted zone of the environment, the ACM certificates of the site (with `www` as a SAN), `api.`, `mcp.` and `auth.`, all validated by DNS in the zone itself, and the `NS` record delegating the zone of staging, which replaces the one an installation writes by hand before production is first delivered |
 | `Frontend` | A private bucket, a CloudFront distribution with Origin Access Control and the apex and `www` records |
 | `Data` | The versioned content bucket, the event bus and the four tables, `mv-access`, `mv-knowledge`, `mv-discovery` and `mv-audit`, each named after its environment and all with PITR |
 | `Identity` | The Cognito user pool, the pre-token-generation trigger (which injects `subscription_id` and `subscription_status` into the access token), the branded sign-in screen at `auth.<domain>`, the `platform-admin` group and two app clients: the one for the interface and the one for the CIMD proxy |
@@ -202,9 +202,9 @@ All the infrastructure lives in [`memorysmith-infra/`](memorysmith-infra/), in A
 
 The interface is built once and configured at runtime, so one bundle serves either environment. The order carries one constraint the CDK cannot infer: Cognito accepts the sign-in domain only once the site resolves an A record, so a delivery deploys the network and the hosting, waits for DNS, and only then deploys the rest.
 
-### The domain and the accounts are yours
+### The domain and the account are yours
 
-The product answers on four names under a domain of your own — `yourdomain.app` for the site, `api.yourdomain.app` for the API, `mcp.yourdomain.app` for the connector and `auth.yourdomain.app` for the sign-in screen — and all of them are born from a public hosted zone in Route 53. Staging answers on the same four names one level down, under `stg.yourdomain.app`, from a zone of its own in the staging account.
+The product answers on four names under a domain of your own — `yourdomain.app` for the site, `api.yourdomain.app` for the API, `mcp.yourdomain.app` for the connector and `auth.yourdomain.app` for the sign-in screen — and all of them are born from a public hosted zone in Route 53. Staging answers on the same four names one level down, under `stg.yourdomain.app`, from a zone of its own in the same account.
 
 What differs between the two environments is written once, in [`memorysmith-infra/cdk.json`](memorysmith-infra/cdk.json):
 
@@ -228,20 +228,20 @@ What differs between the two environments is written once, in [`memorysmith-infr
     }
   },
   "staging": {
-    "account": "222222222222",
+    "account": "111111111111",
     "region": "us-east-1",
     "hostedZoneName": "stg.yourdomain.app",
     "hostedZoneId": "Z9876543ABCDEFGHIJKL",
     "delegations": [],
     "pipeline": {
-      "connectionArn": "arn:aws:codeconnections:us-east-1:222222222222:connection/<id>",
+      "connectionArn": "arn:aws:codeconnections:us-east-1:111111111111:connection/<id>",
       "repository": "your-organization/your-repository"
     }
   }
 }
 ```
 
-**The account is never taken from the credentials.** Named in the environment of every stack, it makes the CDK refuse to deploy one environment under the credentials of the other, so the wrong target is impossible rather than forbidden.
+**The account is never taken from the credentials.** Named in the environment of every stack, it makes the CDK refuse to deploy into any account but the one written here. Production and staging name the same account, and then the environment named on each command is what tells them apart; [`docs/architecture-guide.md`](docs/architecture-guide.md) §20.1 says what one account costs.
 
 ### Prerequisites
 
@@ -250,9 +250,9 @@ What differs between the two environments is written once, in [`memorysmith-infr
    ```
    npm install -g pnpm@11.22.0
    ```
-3. **An AWS account for production**, with your domain delegated to a public hosted zone in Route 53 (see [Delegating the domain to Route 53](#delegating-the-domain-to-route-53)), and **a second account for staging** if you want one. An organization with staging as a member account costs nothing.
-4. **AWS CLI v2 and the credentials of each account**, as one named profile per account (`aws configure sso`, or `aws configure --profile <name>`). A workstation uses them a handful of times — to bring an account up, to start and tear down staging, and for the commands below — and no credential goes into a file of the repository.
-5. **A GitHub repository holding this code**, which each account reads through a connection that can only read.
+3. **An AWS account**, with your domain delegated to a public hosted zone in Route 53 (see [Delegating the domain to Route 53](#delegating-the-domain-to-route-53)). Production and staging both live in it.
+4. **AWS CLI v2 and the credentials of the account**, as a named profile (`aws configure sso`, or `aws configure --profile <name>`). A workstation uses them a handful of times — to bring the account up, to start and tear down staging, and for the commands below — and no credential goes into a file of the repository.
+5. **A GitHub repository holding this code**, which the account reads through a connection that can only read.
 
 ### Delegating the domain to Route 53
 
@@ -290,26 +290,28 @@ The delegation is finished when the answer brings the `awsdns` names in place of
 
 #### 4. The zone of staging
 
-In the **staging account**, create a public hosted zone for `stg.yourdomain.app`. Its Hosted zone ID goes into the staging entry of `cdk.json`, and its four name servers into the `delegations` of production, which declares the `NS` record in code rather than in the console. **Never delete that zone**: its name servers are drawn when it is created, and a new zone would break the delegation until production is delivered again.
+In the same account, create a public hosted zone for `stg.yourdomain.app`. Its Hosted zone ID goes into the staging entry of `cdk.json`, and its four name servers into the `delegations` of production, which declares the `NS` record in code. **Never delete that zone**: its name servers are drawn when it is created, and a new zone would break the delegation until production is delivered again.
 
-### Bringing an account up, once
+Staging has to run before production is delivered for the first time, because it validates the release that delivers it, so **write that `NS` record by hand once**, in the zone of your domain, with the same four name servers: name `stg`, type `NS`, TTL `172800`. The first delivery of production replaces it with the record declared in code.
 
-What follows happens once per account, **production first**, because its first delivery creates the record that delegates the zone of staging. From then on a pipeline delivers the account, and updates itself.
+### Bringing the account up, once
+
+What follows happens once. From then on the pipelines deliver the account, and update themselves.
 
 1. **Bootstrap the account** for the CDK, with its credentials:
    ```
    pnpm install
    pnpm -C memorysmith-infra exec cdk bootstrap aws://<account>/us-east-1 --profile <profile>
    ```
-2. **Connect the account to GitHub.** In the console, **Developer Tools** → **Settings** → **Connections**, create a GitHub connection, authorise it on the repository, and write its ARN in `pipeline.connectionArn`. Until that ARN is written, the app does not instantiate the pipeline at all.
-3. **In production, create the release App**: a GitHub App of your organization with a single permission, `Contents: write`, installed on the repository. Its private key, in PEM, goes into Secrets Manager of the production account under the name `privateKeySecret` gives, and its app id and installation id into `pipeline.release`. It is the only credential that writes to GitHub, and all it writes is the tag and the release of a version.
+2. **Connect the account to GitHub.** In the console, **Developer Tools** → **Settings** → **Connections**, create a GitHub connection, authorise it on the repository, and write its ARN in `pipeline.connectionArn` of both environments. Until that ARN is written, the app does not instantiate the pipeline at all.
+3. **Create the release App**: a GitHub App of your organization with a single permission, `Contents: write`, installed on the repository. Its private key, in PEM, goes into Secrets Manager of the account under the name `privateKeySecret` gives, and its app id and installation id into `pipeline.release` of production. It is the only credential that writes to GitHub, and all it writes is the tag and the release of a version.
 4. **In GitHub, create two rulesets.** On `main`: a pull request is required, and a force push and a deletion are refused, because with production delivering on merge a direct push would reach production. On tags: only the release App creates a `v*` tag, so a version tag means that version is in production.
-5. **Deploy the pipeline stack**, the only stack ever deployed by hand:
+5. **Deploy the two pipeline stacks**, the only stacks ever deployed by hand:
    ```
    pnpm -C memorysmith-infra exec cdk deploy MemorysmithProductionPipeline -c environment=production --profile <profile>
+   pnpm -C memorysmith-infra exec cdk deploy MemorysmithStagingPipeline -c environment=staging --profile <profile>
    ```
-   and, in the staging account, `MemorysmithStagingPipeline` with `-c environment=staging`.
-6. **Ask for room.** A new account usually comes with 10 concurrent Lambda executions, which the product exhausts on its first calls, so request the increase. A budget alert costs nothing and says when something runs that should not.
+6. **Ask for room.** A new account usually comes with 10 concurrent Lambda executions, which the product exhausts on its first calls, and production and staging share them, so request the increase. A budget alert costs nothing and says when something runs that should not.
 
 ### Production delivers on merge
 
@@ -320,7 +322,7 @@ The first delivery into an empty account is the one that waits: the certificates
 ### Staging runs when you ask
 
 ```
-pnpm staging:start      # with credentials of the staging account
+pnpm staging:start      # with credentials of the account
 pnpm staging:status
 ```
 
@@ -441,10 +443,10 @@ pnpm -C memorysmith-infra reproject-links --environment production
 ## Tearing staging down
 
 ```
-pnpm staging:destroy      # with credentials of the staging account
+pnpm staging:destroy      # with credentials of the account
 ```
 
-It asks for the domain of staging, typed, and starts the project that tears staging down inside its own account, because deleting the sign-in domain alone takes over half an hour and a workstation should not have to stay awake for it. The project deletes every stack of staging, in the reverse of a delivery, and then what no removal policy deletes: the four tables, the audit trail included, the content bucket with every version, the user pool and the log groups of functions that are gone. It leaves the hosted zone and the pipeline, so the next run raises staging from zero. To see what it would delete, and delete nothing:
+It asks for the domain of staging, typed, and starts the project that tears staging down inside the account, because deleting the sign-in domain alone takes over half an hour and a workstation should not have to stay awake for it. The project deletes every stack of staging, in the reverse of a delivery, and then what no removal policy deletes: the four tables, the audit trail included, the content bucket with every version, the user pool and the log groups of functions that are gone. Production lives in the same account, so it deletes only what the stacks of staging list, and its role may delete a user pool only when the pool is tagged `staging`. It leaves the hosted zone and the pipeline, so the next run raises staging from zero. To see what it would delete, and delete nothing:
 
 ```
 pnpm -C memorysmith-infra destroy-staging --preview
@@ -467,14 +469,14 @@ pnpm depcruise      # the dependency rule: it breaks if domain/ imports an AWS S
 pnpm test           # the domain, use cases, contracts and the vertical slice
 ```
 
-The adapter tests, including the concurrency criteria (20 simultaneous reorderings, 50 notes created in parallel), run against the real DynamoDB and S3 of the staging account, in its pipeline after the deploy, and never against an emulator. Every case writes under a subscription of its own. With credentials of the staging account they run from a workstation too:
+The adapter tests, including the concurrency criteria (20 simultaneous reorderings, 50 notes created in parallel), run against the real DynamoDB and S3 of staging, in its pipeline after the deploy, and never against an emulator. Every case writes under a subscription of its own. With credentials of the account they run from a workstation too:
 
 ```
 KNOWLEDGE_TABLE=mv-knowledge-staging ACCESS_TABLE=mv-access-staging CONTENT_BUCKET=<the content bucket> \
   pnpm -r --if-present test:adapters
 ```
 
-The functional suite runs in the staging pipeline too, after the adapter tests, against the deployed staging. From a workstation it runs only to debug a case, with credentials of the staging account:
+The functional suite runs in the staging pipeline too, after the adapter tests, against the deployed staging. From a workstation it runs only to debug a case, with credentials of the account:
 
 ```
 pnpm -C memorysmith-infra exec playwright install chromium
