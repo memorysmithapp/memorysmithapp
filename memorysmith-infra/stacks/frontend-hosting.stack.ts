@@ -9,7 +9,7 @@
  * other record of the zone.
  */
 
-import { RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
+import { CfnOutput, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
 import {
   AllowedMethods,
   Distribution,
@@ -48,6 +48,8 @@ export class FrontendHostingStack extends Stack {
       removalPolicy: RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
     });
+    // Where a functional run publishes the document that names it to the connector (section 19).
+    new CfnOutput(this, 'SiteBucketName', { value: bucket.bucketName });
 
     /**
      * Two jobs at the edge, both cheap enough to run on every request.

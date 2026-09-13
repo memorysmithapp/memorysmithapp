@@ -39,6 +39,7 @@
     "constructs": "^10.4.2"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@playwright/test": "^1.63.0",
     "@types/node": "^24.3.0",
     "aws-cdk": "^2.1138.0",

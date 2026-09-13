@@ -290,6 +290,15 @@ export class PipelineStack extends Stack {
       : null;
     if (functional && reports) {
       reports.grantPut(functional);
+      // The document that names the suite to the connector, on the site of staging.
+      functional.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ['s3:PutObject'],
+          resources: [
+            `arn:${this.partition}:s3:::${stackId(environment, 'Frontend').toLowerCase()}-sitebucket*/functional/*`,
+          ],
+        }),
+      );
       functional.addToRolePolicy(
         new iam.PolicyStatement({
           actions: ['codeconnections:UseConnection', 'codestar-connections:UseConnection'],
@@ -301,6 +310,7 @@ export class PipelineStack extends Stack {
           actions: ['cloudformation:DescribeStacks'],
           resources: [
             `arn:${this.partition}:cloudformation:${this.region}:${this.account}:stack/${stackId(environment, 'Identity')}/*`,
+            `arn:${this.partition}:cloudformation:${this.region}:${this.account}:stack/${stackId(environment, 'Frontend')}/*`,
           ],
         }),
       );

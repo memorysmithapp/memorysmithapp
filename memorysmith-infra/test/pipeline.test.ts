@@ -205,11 +205,14 @@ describe('the functional suite of a pipeline', () => {
     expect(stagesOf(pipelineOf('production').pipeline)).not.toContain('Functional');
   });
 
-  it('creates accounts in the pool of staging, touches no table, and keeps its report private for 30 days', () => {
+  it('creates accounts in the pool of staging, publishes only under functional/ of its site, touches no table, and keeps its report private for 30 days', () => {
     const statements = statementsOf('staging', 'Functional');
     expect(touching(statements, 'dynamodb')).toEqual([]);
     expect(JSON.stringify(touching(statements, 'cognito-idp'))).toContain(
       ':222222222222:userpool/*',
+    );
+    expect(JSON.stringify(touching(statements, 's3'))).toContain(
+      ':s3:::memorysmithstagingfrontend-sitebucket*/functional/*',
     );
 
     const buckets = Object.values(

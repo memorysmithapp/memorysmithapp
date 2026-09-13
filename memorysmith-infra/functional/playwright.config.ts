@@ -32,5 +32,10 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-  projects: [{ name: 'api', testDir: './api' }],
+  projects: [
+    { name: 'api', testDir: './api' },
+    // The connector hands its tokens out through a browser flow only, once per run.
+    { name: 'connector', testDir: './mcp', testMatch: '**/*.setup.ts' },
+    { name: 'mcp', testDir: './mcp', dependencies: ['connector'] },
+  ],
 });
