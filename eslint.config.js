@@ -16,6 +16,7 @@ export default tseslint.config(
       '**/build/**',
       '**/cdk.out/**',
       '**/coverage/**',
+      '**/functional-report/**',
       'notebooks/**',
     ],
   },

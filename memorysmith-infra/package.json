@@ -21,7 +21,8 @@
     "destroy-staging": "tsx commands/destroy-staging.ts",
     "staging:destroy": "tsx commands/staging-destroy.ts",
     "recount-storage": "tsx commands/maintenance.ts recount-storage",
-    "reproject-links": "tsx commands/maintenance.ts reproject-links"
+    "reproject-links": "tsx commands/maintenance.ts reproject-links",
+    "functional": "playwright test -c functional/playwright.config.ts"
   },
   "dependencies": {
     "@aws-sdk/client-cloudformation": "^3.1131.0",
@@ -38,6 +39,7 @@
     "constructs": "^10.4.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^24.3.0",
     "aws-cdk": "^2.1138.0",
     "esbuild": "^0.25.9",

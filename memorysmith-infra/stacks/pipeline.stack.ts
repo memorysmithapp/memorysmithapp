@@ -20,6 +20,7 @@ import * as codepipeline from 'aws-cdk-lib/aws-codepipeline';
 import * as actions from 'aws-cdk-lib/aws-codepipeline-actions';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import type { Construct } from 'constructs';
 import { physicalName, stackId, type EnvironmentConfig } from '../config/environments.js';
@@ -225,6 +226,102 @@ export class PipelineStack extends Stack {
     }
 
     /**
+     * The functional suite, against staging, once its adapters passed
+     * (architecture-guide.md, section 19). Chromium wants the libraries
+     * Playwright installs, which it installs on Ubuntu, so this stage builds
+     * on the standard image and not on the image of the other stages.
+     *
+     * The report goes to a private bucket after the build, whether the suite
+     * passed or not: a failed suite is when somebody reads it, and a failed
+     * stage stops the pipeline before a stage of its own could publish it.
+     */
+    const reports = production
+      ? null
+      : new s3.Bucket(this, 'FunctionalReports', {
+          blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+          encryption: s3.BucketEncryption.S3_MANAGED,
+          enforceSSL: true,
+          lifecycleRules: [{ expiration: Duration.days(30) }],
+          removalPolicy: RemovalPolicy.DESTROY,
+          autoDeleteObjects: true,
+        });
+    const functional = reports
+      ? new codebuild.PipelineProject(this, 'Functional', {
+          projectName: physicalName(environment, 'memorysmith-functional'),
+          environment: {
+            buildImage: codebuild.LinuxBuildImage.STANDARD_7_0,
+            computeType: codebuild.ComputeType.MEDIUM,
+          },
+          timeout: Duration.minutes(60),
+          logging: { cloudWatch: { logGroup: logs, prefix: 'Functional' } },
+          buildSpec: codebuild.BuildSpec.fromObject({
+            version: '0.2',
+            env: {
+              'git-credential-helper': 'yes',
+              variables: {
+                ENVIRONMENT: environment.name,
+                FUNCTIONAL_ENVIRONMENT: environment.name,
+                CI: 'true',
+              },
+            },
+            phases: {
+              install: {
+                'runtime-versions': { nodejs: 22 },
+                commands: [
+                  'corepack enable',
+                  'pnpm install --frozen-lockfile',
+                  'pnpm -C memorysmith-infra exec playwright install --with-deps chromium',
+                ],
+              },
+              build: {
+                commands: [
+                  ...served,
+                  'FUNCTIONAL_VERSION="$VERSION" pnpm -C memorysmith-infra functional',
+                ],
+              },
+              post_build: {
+                commands: [
+                  `aws s3 cp memorysmith-infra/functional-report s3://${reports.bucketName}/$CODEBUILD_BUILD_NUMBER/ --recursive --only-show-errors || true`,
+                ],
+              },
+            },
+          }),
+        })
+      : null;
+    if (functional && reports) {
+      reports.grantPut(functional);
+      functional.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ['codeconnections:UseConnection', 'codestar-connections:UseConnection'],
+          resources: [environment.pipeline.connectionArn],
+        }),
+      );
+      functional.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ['cloudformation:DescribeStacks'],
+          resources: [
+            `arn:${this.partition}:cloudformation:${this.region}:${this.account}:stack/${stackId(environment, 'Identity')}/*`,
+          ],
+        }),
+      );
+      // The accounts of a run, created, signed in and deleted by the run itself.
+      functional.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: [
+            'cognito-idp:AdminCreateUser',
+            'cognito-idp:AdminSetUserPassword',
+            'cognito-idp:AdminAddUserToGroup',
+            'cognito-idp:AdminInitiateAuth',
+            'cognito-idp:AdminDeleteUser',
+          ],
+          resources: [
+            `arn:${this.partition}:cognito-idp:${this.region}:${this.account}:userpool/*`,
+          ],
+        }),
+      );
+    }
+
+    /**
      * Tearing staging down: a project started by hand, by `pnpm staging:destroy`,
      * and never a stage. It exists only in staging, because production has no
      * destroy path. Nothing of an execution precedes it, so it reads the
@@ -402,6 +499,12 @@ export class PipelineStack extends Stack {
     this.pipeline.addStage({ stageName: 'Smoke', actions: [build('Smoke', smoke)] });
     if (adapters) {
       this.pipeline.addStage({ stageName: 'Adapters', actions: [build('Adapters', adapters)] });
+    }
+    if (functional) {
+      this.pipeline.addStage({
+        stageName: 'Functional',
+        actions: [build('Functional', functional)],
+      });
     }
 
     if (production && environment.pipeline.release) {

@@ -474,6 +474,13 @@ KNOWLEDGE_TABLE=mv-knowledge-staging ACCESS_TABLE=mv-access-staging CONTENT_BUCK
   pnpm -r --if-present test:adapters
 ```
 
+The functional suite runs in the staging pipeline too, after the adapter tests, against the deployed staging. From a workstation it runs only to debug a case, with credentials of the staging account:
+
+```
+pnpm -C memorysmith-infra exec playwright install chromium
+FUNCTIONAL_ENVIRONMENT=staging pnpm -C memorysmith-infra functional
+```
+
 **The interface.** It reads and writes through the API of the product and has no offline mode, so it needs a live environment to run. It reads where that environment is at runtime, from `/config.json`, and the dev server answers that file from `memorysmith-frontend/config.local.json`, which is untracked. Copy `config.example.json` to it and point it at the environment:
 
 ```json

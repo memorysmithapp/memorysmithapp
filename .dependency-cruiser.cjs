@@ -105,21 +105,23 @@ module.exports = {
     {
       name: 'infrastructure-never-loads-what-operates-it',
       comment:
-        'The stacks, the constructs and the app describe infrastructure. The commands operate it ' +
+        'The stacks, the constructs and the app describe infrastructure. The commands and the ' +
+        'functional suite operate and test it ' +
         'from outside, through its surfaces, and a synth that loaded them would load their ' +
         'dependencies too (architecture-guide.md, section 5.4).',
       severity: 'error',
       from: { path: '^memorysmith-infra/(bin|config|stacks|constructs)/' },
-      to: { path: '^memorysmith-infra/commands/' },
+      to: { path: '^memorysmith-infra/(commands|functional)/' },
     },
     {
       name: 'operations-reach-the-product-through-its-contracts',
       comment:
-        'The commands reach the product the way anybody outside does, through its surfaces: of ' +
+        'The commands and the functional suite reach the product the way anybody outside does, ' +
+        'through its surfaces: of ' +
         'this repository they import @memorysmith/contracts and nothing else, not a service and ' +
         'not a stack (architecture-guide.md, section 5.4).',
       severity: 'error',
-      from: { path: '^memorysmith-infra/commands/' },
+      from: { path: '^memorysmith-infra/(commands|functional)/' },
       to: {
         path: '^memorysmith-(backend|frontend)/|^memorysmith-infra/(bin|config|stacks|constructs)/',
         pathNot: CONTRACTS,
@@ -168,7 +170,7 @@ module.exports = {
           '(^|/)[.][^/]+[.](js|cjs|mjs|ts|json)$',
           '[.]d[.]ts$',
           '(^|/)tsconfig[.]json$',
-          '(^|/)(babel|webpack|vite|vitest)[.](config|adapters[.]config)[.](js|cjs|mjs|ts|json)$',
+          '(^|/)(babel|webpack|vite|vitest|playwright)[.](config|adapters[.]config)[.](js|cjs|mjs|ts|json)$',
           '(^|/)[.]dependency-cruiser[.]cjs$',
           '(^|/)(handler|lambda|relay[.]handler|pre-token-generation)[.]ts$',
           '(^|/)eslint[.]config[.](js|cjs|mjs|ts)$',

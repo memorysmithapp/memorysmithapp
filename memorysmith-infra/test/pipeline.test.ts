@@ -80,6 +80,7 @@ describe('the staging pipeline', () => {
       'Deliver',
       'Smoke',
       'Adapters',
+      'Functional',
     ]);
   });
 });
@@ -196,6 +197,30 @@ describe('the teardown of an environment', () => {
     const resources = JSON.stringify(denied[0]?.Resource);
     expect(resources).toContain(':222222222222:stack/MemorysmithStagingPipeline/*');
     expect(resources).toContain(':s3:::memorysmithstagingpipeline*');
+  });
+});
+
+describe('the functional suite of a pipeline', () => {
+  it('never runs in production, which a test never writes to', () => {
+    expect(stagesOf(pipelineOf('production').pipeline)).not.toContain('Functional');
+  });
+
+  it('creates accounts in the pool of staging, touches no table, and keeps its report private for 30 days', () => {
+    const statements = statementsOf('staging', 'Functional');
+    expect(touching(statements, 'dynamodb')).toEqual([]);
+    expect(JSON.stringify(touching(statements, 'cognito-idp'))).toContain(
+      ':222222222222:userpool/*',
+    );
+
+    const buckets = Object.values(
+      pipelineOf('staging').template.findResources('AWS::S3::Bucket'),
+    ).map((bucket) => JSON.stringify(bucket.Properties));
+    expect(
+      buckets.some(
+        (bucket) =>
+          bucket.includes('"ExpirationInDays":30') && bucket.includes('"BlockPublicAcls":true'),
+      ),
+    ).toBe(true);
   });
 });
 

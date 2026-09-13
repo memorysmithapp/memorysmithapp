@@ -296,8 +296,9 @@ Beside `stacks/` and `constructs/`, two folders that are not infrastructure them
 
 - **`config/environments.ts`**, which reads the two environments from `cdk.json` (§17).
 - **`commands/`**, what operates the product from outside: the version a deploy serves, the checks a release passes and its notes (§20, §23.3). They are `pnpm` scripts of this package, so a workstation and a pipeline run the same thing.
+- **`functional/`**, the functional suite, in Playwright Test, which tests a deployed environment from outside (§19).
 
-Two rules of `dependency-cruiser` keep `commands/` apart: nothing in `bin/`, `config/`, `stacks/` or `constructs/` imports it, so a synth never loads what operates the product; and it imports nothing of this repository but `@memorysmith/contracts`, because it reaches the product the way anybody outside does.
+Two rules of `dependency-cruiser` keep `commands/` and `functional/` apart: nothing in `bin/`, `config/`, `stacks/` or `constructs/` imports either, so a synth never loads what operates or tests the product; and neither imports anything of the backend, the frontend or the infrastructure but `@memorysmith/contracts`, because both reach the product the way anybody outside does.
 
 Two constructs carry an architectural guarantee, not a convenience:
 
@@ -1322,7 +1323,8 @@ Initial numbers, so they become tests and not folklore. The thesis of the produc
 | Use cases | With `InMemory` adapters |
 | Adapters | Against the real DynamoDB and S3 of the staging account, in its pipeline after the deploy, every case under a subscription of its own |
 | Event contracts | Zod schemas validated on both sides (producer and consumer) |
-| End to end | Per vertical slice |
+| End to end | Per vertical slice, in process |
+| Functional | Against the deployed staging, in Playwright Test, after its adapter tests: a case for every route of the core, checked in the Quality stage against `routes.json`, the manifest a test of the core keeps equal to the routes its app mounts. A run creates accounts of its own through the Cognito admin API, asks for their subscriptions and approves them through the product, and deletes the accounts at the end. A projection is awaited by polling up to the target of §18, never by sleeping, and the latency of every route is recorded in the report and never gated |
 
 **Three tests that are not optional and exist from the first delivery that makes them possible:**
 
@@ -1350,6 +1352,7 @@ Deliver      the SPA and the bundles built once · synth · the network and the 
              the wait on DNS · every other stack, serving X.Y.Z-rc.N+sha7
 Smoke        every surface serves the version of this commit
 Adapters     the adapter tests, against the real DynamoDB and S3 of the environment
+Functional   the functional suite, whose report goes to a private bucket of the account
 ```
 
 **Production runs on every merge to `main` that touches what is deployed**: `memorysmith-backend/**`, `memorysmith-frontend/**`, `memorysmith-infra/**`, `pnpm-lock.yaml` or `pnpm-workspace.yaml`. A merge of documentation or governance starts nothing, which is what `development-process.md` §9 says about a change that alters nothing deployable. Executions queue, so two merges deploy in order.
