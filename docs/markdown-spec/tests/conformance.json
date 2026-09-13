@@ -1,0 +1,1002 @@
+{
+  "spec": "MemorySmith Markdown Specification",
+  "version": "0.6.0",
+  "cases": [
+    {
+      "id": "wikilink/plain",
+      "notation": "wikilink",
+      "markdown": "See [[Lei 14.133]] for the general rule.",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "wikilink/alias-does-not-change-the-target",
+      "notation": "wikilink-alias",
+      "markdown": "See [[Lei 14.133|the procurement act]] for the general rule.",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "table/a-link-in-a-cell-is-an-ordinary-link",
+      "notation": "wikilink",
+      "markdown": "| Rule | Where |\n|---|---|\n| The general one | [[Lei 14.133]] |\n",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "table/an-escaped-pipe-keeps-the-alias",
+      "notation": "wikilink-alias",
+      "markdown": "| Rule | Where |\n|---|---|\n| The exception | [[Lei 14.133\\|article 75]] |\n",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "table/the-outer-pipes-are-optional",
+      "notation": "wikilink",
+      "markdown": "Rule | Where\n--- | ---\nThe general one | [[Lei 14.133]]\n",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "wikilink/anchor-is-kept-and-not-resolved",
+      "notation": "wikilink-anchor",
+      "markdown": "See [[Lei 14.133#Article 75]] for the exception.",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": "Article 75"
+        }
+      ]
+    },
+    {
+      "id": "wikilink/accents-and-digits",
+      "notation": "wikilink",
+      "markdown": "Ver [[Contratação Direta 2.0]].",
+      "links": [
+        {
+          "title": "Contratação Direta 2.0",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "embed/same-edge-as-a-plain-link",
+      "notation": "embed",
+      "markdown": "![[Lei 14.133]]",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "embed/collapses-with-a-link-to-the-same-note",
+      "notation": "embed",
+      "markdown": "![[Lei 14.133]]\n\nSee also [[Lei 14.133]].",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "relative-link/path-segments-are-discarded",
+      "notation": "markdown-relative-link",
+      "markdown": "See [the procurement act](../decisions/Lei%2014.133.md).",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "external-link/never-an-edge",
+      "notation": "external-link",
+      "markdown": "See [the official text](https://example.org/lei-14133).",
+      "links": []
+    },
+    {
+      "id": "external-link/protocol-relative-is-external",
+      "notation": "external-link",
+      "markdown": "See [the mirror](//example.org/lei-14133).",
+      "links": []
+    },
+    {
+      "id": "code/a-link-in-a-fence-is-an-example",
+      "notation": "link-in-code",
+      "markdown": "```\n[[Lei 14.133]]\n```\n",
+      "links": []
+    },
+    {
+      "id": "diagram/a-link-in-a-diagram-is-not-an-edge",
+      "notation": "link-in-code",
+      "markdown": "```mermaid\ngraph TD\n  A[[Lei 14.133]] --> B\n```\n",
+      "links": []
+    },
+    {
+      "id": "code/a-link-in-a-span-is-an-example",
+      "notation": "link-in-code",
+      "markdown": "Write it as `[[Lei 14.133]]` in the body.",
+      "links": []
+    },
+    {
+      "id": "frontmatter/enum",
+      "notation": "frontmatter-enum",
+      "markdown": "---\nmaturity: evergreen\n---\n\nBody.",
+      "facets": {
+        "maturity": {
+          "kind": "enum",
+          "values": [
+            "evergreen"
+          ]
+        }
+      }
+    },
+    {
+      "id": "frontmatter/inline-list",
+      "notation": "frontmatter-list",
+      "markdown": "---\ntags: [contracts, procurement]\n---\n\nBody.",
+      "facets": {
+        "tags": {
+          "kind": "list",
+          "values": [
+            "contracts",
+            "procurement"
+          ]
+        }
+      }
+    },
+    {
+      "id": "frontmatter/dash-list-reads-as-the-inline-one",
+      "notation": "frontmatter-list",
+      "markdown": "---\ntags:\n  - contracts\n  - procurement\n---\n\nBody.",
+      "facets": {
+        "tags": {
+          "kind": "list",
+          "values": [
+            "contracts",
+            "procurement"
+          ]
+        }
+      }
+    },
+    {
+      "id": "frontmatter/boolean-is-canonicalised",
+      "notation": "frontmatter-boolean",
+      "markdown": "---\nreviewed: yes\n---\n\nBody.",
+      "facets": {
+        "reviewed": {
+          "kind": "boolean",
+          "values": [
+            "true"
+          ]
+        }
+      }
+    },
+    {
+      "id": "frontmatter/date-is-canonicalised-to-ten-characters",
+      "notation": "frontmatter-date",
+      "markdown": "---\nreviewed_at: 2026-09-03T14:20:00\n---\n\nBody.",
+      "facets": {
+        "reviewed_at": {
+          "kind": "date",
+          "values": [
+            "2026-09-03"
+          ]
+        }
+      }
+    },
+    {
+      "id": "frontmatter/prose-is-discarded",
+      "notation": "frontmatter-prose",
+      "markdown": "---\nsummary: This note explains the general rule of direct contracting and its exceptions.\n---\n\nBody.",
+      "facets": {}
+    },
+    {
+      "id": "frontmatter/a-list-of-one-is-still-a-list",
+      "notation": "frontmatter-list",
+      "markdown": "---\ntags: [contracts]\n---\n\nBody.",
+      "facets": {
+        "tags": {
+          "kind": "list",
+          "values": [
+            "contracts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "frontmatter/reserved-keys",
+      "notation": "frontmatter-tags",
+      "markdown": "---\ntitle: Recovery Time Objective\naliases: [RTO]\ntags: [continuity]\nauthor: Heitor Rapcinski\nco-author: [Claude]\ncreated: 2026-09-03\nupdated: 2026-09-05\n---\n\nBody.",
+      "title": "Recovery Time Objective",
+      "facets": {
+        "aliases": {
+          "kind": "list",
+          "values": [
+            "RTO"
+          ]
+        },
+        "tags": {
+          "kind": "list",
+          "values": [
+            "continuity"
+          ]
+        },
+        "author": {
+          "kind": "enum",
+          "values": [
+            "Heitor Rapcinski"
+          ]
+        },
+        "co-author": {
+          "kind": "list",
+          "values": [
+            "Claude"
+          ]
+        },
+        "created": {
+          "kind": "date",
+          "values": [
+            "2026-09-03"
+          ]
+        },
+        "updated": {
+          "kind": "date",
+          "values": [
+            "2026-09-05"
+          ]
+        }
+      }
+    },
+    {
+      "id": "frontmatter/author-is-reserved",
+      "notation": "frontmatter-author",
+      "markdown": "---\nauthor: Heitor Rapcinski\n---\n\nBody.",
+      "facets": {
+        "author": {
+          "kind": "enum",
+          "values": [
+            "Heitor Rapcinski"
+          ]
+        }
+      }
+    },
+    {
+      "id": "frontmatter/author-written-as-a-list-is-a-list",
+      "notation": "frontmatter-author",
+      "markdown": "---\nauthor: [Ana Prado, Bruno Lima]\n---\n\nBody.",
+      "facets": {
+        "author": {
+          "kind": "list",
+          "values": [
+            "Ana Prado",
+            "Bruno Lima"
+          ]
+        }
+      }
+    },
+    {
+      "id": "frontmatter/co-author-is-not-merged-into-author",
+      "notation": "frontmatter-co-author",
+      "markdown": "---\nauthor: Heitor Rapcinski\nco-author: [Ana Prado, Claude]\n---\n\nBody.",
+      "facets": {
+        "author": {
+          "kind": "enum",
+          "values": [
+            "Heitor Rapcinski"
+          ]
+        },
+        "co-author": {
+          "kind": "list",
+          "values": [
+            "Ana Prado",
+            "Claude"
+          ]
+        }
+      }
+    },
+    {
+      "id": "frontmatter/autor-is-not-the-reserved-author",
+      "notation": "frontmatter-enum",
+      "markdown": "---\nautor: Heitor Rapcinski\n---\n\nBody.",
+      "facets": {
+        "autor": {
+          "kind": "enum",
+          "values": [
+            "Heitor Rapcinski"
+          ]
+        }
+      }
+    },
+    {
+      "id": "frontmatter/aliases-are-read-as-a-list",
+      "notation": "frontmatter-aliases",
+      "markdown": "---\naliases: [RTO, Recovery Time]\n---\n\nBody.",
+      "facets": {
+        "aliases": {
+          "kind": "list",
+          "values": [
+            "RTO",
+            "Recovery Time"
+          ]
+        }
+      }
+    },
+    {
+      "id": "frontmatter/updated-is-a-date",
+      "notation": "frontmatter-updated",
+      "markdown": "---\nupdated: 2026-09-05\n---\n\nBody.",
+      "facets": {
+        "updated": {
+          "kind": "date",
+          "values": [
+            "2026-09-05"
+          ]
+        }
+      }
+    },
+    {
+      "id": "frontmatter/title-names-the-note-and-is-not-a-facet",
+      "notation": "frontmatter-title",
+      "markdown": "---\ntitle: Lei 14.133\n---\n\nBody.",
+      "title": "Lei 14.133",
+      "facets": {}
+    },
+    {
+      "id": "frontmatter/a-title-of-the-wrong-shape-is-not-a-facet-either",
+      "notation": "frontmatter-title",
+      "markdown": "---\ntitle: [one, two]\n---\n\n# Lei 14.133\n",
+      "title": "Lei 14.133",
+      "facets": {}
+    },
+    {
+      "id": "frontmatter/a-reserved-key-of-the-wrong-shape-degrades",
+      "notation": "frontmatter-created",
+      "markdown": "---\ncreated: manually\n---\n\nBody.",
+      "facets": {
+        "created": {
+          "kind": "enum",
+          "values": [
+            "manually"
+          ]
+        }
+      }
+    },
+    {
+      "id": "frontmatter/an-attribute-in-another-language-is-ordinary",
+      "notation": "frontmatter-enum",
+      "markdown": "---\nnorma: federal\n---\n\nBody.",
+      "facets": {
+        "norma": {
+          "kind": "enum",
+          "values": [
+            "federal"
+          ]
+        }
+      }
+    },
+    {
+      "id": "frontmatter/not-at-the-first-line-is-not-frontmatter",
+      "notation": "frontmatter-enum",
+      "markdown": "A paragraph.\n\n---\nmaturity: evergreen\n---\n",
+      "facets": {}
+    },
+    {
+      "id": "block-embed/same-edge-as-a-plain-link",
+      "notation": "block-embed",
+      "markdown": "![[Lei 14.133#^article-75]]",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": "^article-75"
+        }
+      ]
+    },
+    {
+      "id": "block-embed/collapses-with-a-link-to-the-same-note",
+      "notation": "block-embed",
+      "markdown": "![[Lei 14.133#^article-75]]\n\nSee also [[Lei 14.133]].",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": "^article-75"
+        }
+      ]
+    },
+    {
+      "id": "block-id/is-not-a-link",
+      "notation": "block-id",
+      "markdown": "The rule is stated once, here. ^article-75\n",
+      "links": [],
+      "facets": {}
+    },
+    {
+      "id": "highlight/carries-no-index-entry",
+      "notation": "highlight",
+      "markdown": "The exception is ==only for the cases listed in article 75==.",
+      "links": [],
+      "facets": {}
+    },
+    {
+      "id": "comment/stays-in-the-bytes-and-produces-nothing",
+      "notation": "comment",
+      "markdown": "The rule holds. %%check this against the 2027 revision%%",
+      "links": [],
+      "facets": {}
+    },
+    {
+      "id": "math/a-formula-is-not-a-link-or-an-attribute",
+      "notation": "math-inline",
+      "markdown": "The ceiling is $n \\log n$ in the worst case.",
+      "links": [],
+      "facets": {}
+    },
+    {
+      "id": "raw-html/never-becomes-an-edge",
+      "notation": "raw-html",
+      "markdown": "The notice: <a href=\"https://example.org\">read the act</a>.",
+      "links": [],
+      "facets": {}
+    },
+    {
+      "id": "wikilink/an-accent-is-not-folded",
+      "notation": "wikilink",
+      "markdown": "Ver [[Ação]] e [[Acao]].",
+      "links": [
+        {
+          "title": "Ação",
+          "anchor": null
+        },
+        {
+          "title": "Acao",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "wikilink/nfd-and-nfc-are-one-title",
+      "notation": "wikilink",
+      "markdown": "Ver [[Ação]] e de novo [[Ação]].",
+      "links": [
+        {
+          "title": "Ação",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "wikilink/case-is-exact",
+      "notation": "wikilink",
+      "markdown": "See [[lei 14.133]] and [[Lei 14.133]].",
+      "links": [
+        {
+          "title": "lei 14.133",
+          "anchor": null
+        },
+        {
+          "title": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "wikilink/a-non-latin-title-is-a-title",
+      "notation": "wikilink",
+      "markdown": "参照 [[日本語]]。",
+      "links": [
+        {
+          "title": "日本語",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "wikilink/a-slash-is-an-ordinary-character",
+      "notation": "wikilink",
+      "markdown": "Ver [[Reunião 03/09/2026]] e [[and/or]].",
+      "links": [
+        {
+          "title": "Reunião 03/09/2026",
+          "anchor": null
+        },
+        {
+          "title": "and/or",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "wikilink/an-extension-is-part-of-the-title",
+      "notation": "wikilink",
+      "markdown": "See [[Lei 14.133.md]].",
+      "links": [
+        {
+          "title": "Lei 14.133.md",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "wikilink/a-percent-escape-is-literal",
+      "notation": "wikilink",
+      "markdown": "See [[Lei%2014.133]].",
+      "links": [
+        {
+          "title": "Lei%2014.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "relative-link/percent-escapes-are-decoded",
+      "notation": "markdown-relative-link",
+      "markdown": "See [the procurement act](Reuni%C3%A3o%2003%2F09%2F2026) and [half](100%25%20done).",
+      "links": [
+        {
+          "title": "Reunião 03/09/2026",
+          "anchor": null
+        },
+        {
+          "title": "100% done",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "relative-link/the-anchor-splits-at-the-unencoded-hash",
+      "notation": "markdown-relative-link",
+      "markdown": "See [the exception](Lei%2014.133#Article%2075).",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": "Article 75"
+        }
+      ]
+    },
+    {
+      "id": "relative-link/a-malformed-escape-is-left-as-written",
+      "notation": "markdown-relative-link",
+      "markdown": "See [half](50%).",
+      "links": [
+        {
+          "title": "50%",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "title/is-the-plain-text-of-the-heading",
+      "notation": "note-title",
+      "markdown": "# **Lei** 14.133\n\nThe general rule.\n",
+      "title": "Lei 14.133",
+      "links": []
+    },
+    {
+      "id": "title/a-setext-heading-gives-the-same-title",
+      "notation": "note-title",
+      "markdown": "Lei 14.133\n==========\n\nThe general rule.\n",
+      "title": "Lei 14.133",
+      "links": []
+    },
+    {
+      "id": "title/frontmatter-does-not-displace-it",
+      "notation": "note-title",
+      "markdown": "---\ntags: [contracts]\n---\n\n# Lei 14.133\n\nThe general rule.\n",
+      "title": "Lei 14.133",
+      "links": []
+    },
+    {
+      "id": "title/a-heading-in-a-fence-is-not-a-title",
+      "notation": "note-title",
+      "markdown": "```markdown\n# Lei 14.133\n```\n",
+      "title": null,
+      "links": []
+    },
+    {
+      "id": "title/a-note-with-no-level-1-heading-has-none",
+      "notation": "note-title",
+      "markdown": "## Article 75\n\nThe exception.\n",
+      "title": null,
+      "links": []
+    },
+    {
+      "id": "title/a-reserved-character-leaves-no-addressable-title",
+      "notation": "note-title",
+      "markdown": "# C# basics\n\nNotes on the language.\n",
+      "title": null,
+      "links": []
+    },
+    {
+      "id": "title/the-second-level-1-heading-is-an-ordinary-heading",
+      "notation": "note-title",
+      "markdown": "# Lei 14.133\n\nThe general rule.\n\n# Article 75\n\nThe exception.\n",
+      "title": "Lei 14.133",
+      "links": []
+    },
+    {
+      "id": "title/frontmatter-title-wins-over-the-heading",
+      "notation": "note-title",
+      "markdown": "---\ntitle: Lei 14.133\n---\n\n# The general rule\n\nThe body.\n",
+      "title": "Lei 14.133",
+      "links": []
+    },
+    {
+      "id": "title/frontmatter-title-with-no-heading-at-all",
+      "notation": "note-title",
+      "markdown": "---\ntitle: Lei 14.133\n---\n\nThe general rule.\n",
+      "title": "Lei 14.133",
+      "links": []
+    },
+    {
+      "id": "title/an-empty-frontmatter-title-falls-back-to-the-heading",
+      "notation": "note-title",
+      "markdown": "---\ntitle:\n---\n\n# Lei 14.133\n\nThe general rule.\n",
+      "title": "Lei 14.133",
+      "links": []
+    },
+    {
+      "id": "title/a-list-shaped-frontmatter-title-falls-back-to-the-heading",
+      "notation": "note-title",
+      "markdown": "---\ntitle:\n  - Lei 14.133\n  - Lei 14133\n---\n\n# Lei 14.133\n\nThe general rule.\n",
+      "title": "Lei 14.133",
+      "links": []
+    },
+    {
+      "id": "title/a-frontmatter-title-carrying-a-delimiter-has-no-address",
+      "notation": "note-title",
+      "markdown": "---\ntitle: Lei 14.133 [revogada]\n---\n\n# Lei 14.133\n\nThe general rule.\n",
+      "title": null,
+      "links": []
+    },
+    {
+      "id": "title/no-frontmatter-title-and-no-heading-is-no-title",
+      "notation": "note-title",
+      "markdown": "---\ntags: [contracts]\n---\n\nThe general rule.\n",
+      "title": null,
+      "links": []
+    },
+    {
+      "id": "title/a-frontmatter-title-is-not-capped-at-forty-characters",
+      "notation": "note-title",
+      "markdown": "---\ntitle: Plano de continuidade de negócios e recuperação de desastres\n---\n\n# PCN\n\nO plano.\n",
+      "title": "Plano de continuidade de negócios e recuperação de desastres",
+      "links": []
+    },
+    {
+      "id": "title/a-title-written-in-pt-br-is-a-title",
+      "notation": "note-title",
+      "markdown": "---\ntitle: Recuperação de desastre\n---\n\n# RD\n\nO plano.\n",
+      "title": "Recuperação de desastre",
+      "links": []
+    },
+    {
+      "id": "wikilink/a-numeric-alias-is-still-an-alias",
+      "notation": "wikilink-alias",
+      "markdown": "See [[Lei 14.133|100]] for the general rule.",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "image/dimensions-in-the-alt-text-are-not-a-link",
+      "notation": "image-dimensions",
+      "markdown": "![Engelbart|100x145](https://example.org/engelbart.jpg)",
+      "links": []
+    },
+    {
+      "id": "resolution/one-title-in-two-notes-is-two-edges",
+      "notation": "wikilink",
+      "vault": {
+        "notes": [
+          "# Índice\n",
+          "# Índice\n\nOutra nota, mesmo título.\n"
+        ]
+      },
+      "markdown": "Ver [[Índice]].",
+      "links": [
+        {
+          "title": "Índice",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Índice",
+          "kind": "note",
+          "edges": 2
+        }
+      ]
+    },
+    {
+      "id": "resolution/a-title-no-note-carries-is-pending",
+      "notation": "wikilink",
+      "vault": {
+        "notes": [
+          "# Lei 14.133\n"
+        ]
+      },
+      "markdown": "See [[Lei 14.134]].",
+      "links": [
+        {
+          "title": "Lei 14.134",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Lei 14.134",
+          "kind": "pending",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/case-must-match-exactly",
+      "notation": "wikilink",
+      "vault": {
+        "notes": [
+          "# Lei 14.133\n"
+        ]
+      },
+      "markdown": "See [[lei 14.133]].",
+      "links": [
+        {
+          "title": "lei 14.133",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "lei 14.133",
+          "kind": "pending",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/nfd-and-nfc-name-one-note",
+      "notation": "wikilink",
+      "vault": {
+        "notes": [
+          "# Ação\n"
+        ]
+      },
+      "markdown": "Ver [[Ação]].",
+      "links": [
+        {
+          "title": "Ação",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Ação",
+          "kind": "note",
+          "edges": 1
+        }
+      ]
+    },
+    {
+      "id": "resolution/a-note-with-no-level-1-heading-cannot-be-addressed",
+      "notation": "note-title",
+      "vault": {
+        "notes": [
+          "## Article 75\n\nThe exception.\n"
+        ]
+      },
+      "markdown": "See [[Article 75]].",
+      "links": [
+        {
+          "title": "Article 75",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Article 75",
+          "kind": "pending",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/an-attachment-is-not-an-edge",
+      "notation": "attachment",
+      "vault": {
+        "attachments": [
+          "engelbart.jpg"
+        ]
+      },
+      "markdown": "![[engelbart.jpg]]",
+      "links": [
+        {
+          "title": "engelbart.jpg",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "engelbart.jpg",
+          "kind": "attachment",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/the-pipe-is-a-dimension-when-the-target-is-an-attachment",
+      "notation": "image-dimensions",
+      "vault": {
+        "attachments": [
+          "engelbart.jpg"
+        ]
+      },
+      "markdown": "![[engelbart.jpg|100x145]]",
+      "links": [
+        {
+          "title": "engelbart.jpg",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "engelbart.jpg",
+          "kind": "attachment",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/the-markdown-form-reaches-the-same-note",
+      "notation": "markdown-relative-link",
+      "vault": {
+        "notes": [
+          "# Lei 14.133\n"
+        ]
+      },
+      "markdown": "See [the procurement act](../decisions/Lei%2014.133.md).",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Lei 14.133",
+          "kind": "note",
+          "edges": 1
+        }
+      ]
+    },
+    {
+      "id": "resolution/a-link-resolves-against-the-frontmatter-title",
+      "notation": "note-title",
+      "vault": {
+        "notes": [
+          "---\ntitle: Lei 14.133\n---\n\n# The general rule\n"
+        ]
+      },
+      "markdown": "See [[Lei 14.133]], not [[The general rule]].",
+      "links": [
+        {
+          "title": "Lei 14.133",
+          "anchor": null
+        },
+        {
+          "title": "The general rule",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Lei 14.133",
+          "kind": "note",
+          "edges": 1
+        },
+        {
+          "target": "The general rule",
+          "kind": "pending",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/an-alias-catches-a-target-no-title-matches",
+      "notation": "frontmatter-aliases",
+      "vault": {
+        "notes": [
+          "---\naliases: [RTO]\n---\n\n# Recovery Time Objective\n"
+        ]
+      },
+      "markdown": "See [[RTO]].",
+      "links": [
+        {
+          "title": "RTO",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "RTO",
+          "kind": "note",
+          "edges": 1
+        }
+      ]
+    },
+    {
+      "id": "resolution/an-alias-does-not-take-a-link-a-title-already-matches",
+      "notation": "frontmatter-aliases",
+      "vault": {
+        "notes": [
+          "---\naliases: [Índice]\n---\n\n# Recovery Time Objective\n",
+          "# Índice\n"
+        ]
+      },
+      "markdown": "Ver [[Índice]].",
+      "links": [
+        {
+          "title": "Índice",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Índice",
+          "kind": "note",
+          "edges": 1
+        }
+      ]
+    },
+    {
+      "id": "resolution/one-target-matching-two-aliases-is-two-edges",
+      "notation": "frontmatter-aliases",
+      "vault": {
+        "notes": [
+          "---\naliases: [RTO]\n---\n\n# Recovery Time Objective\n",
+          "---\naliases: [RTO]\n---\n\n# Objetivo de tempo de recuperação\n"
+        ]
+      },
+      "markdown": "See [[RTO]].",
+      "links": [
+        {
+          "title": "RTO",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "RTO",
+          "kind": "note",
+          "edges": 2
+        }
+      ]
+    }
+  ]
+}
