@@ -21,6 +21,7 @@ import { ProjectionsStack } from '../stacks/projections.stack.js';
 import { AgentStack } from '../stacks/agent.stack.js';
 import { FrontendHostingStack } from '../stacks/frontend-hosting.stack.js';
 import { FrontendReleaseStack } from '../stacks/frontend-release.stack.js';
+import { PipelineStack } from '../stacks/pipeline.stack.js';
 import { deploymentOf } from '../constructs/deployment.js';
 import { environmentOf, stackId } from '../config/environments.js';
 
@@ -109,6 +110,15 @@ new FrontendReleaseStack(app, id('FrontendRelease'), {
     version: deployment.version,
   },
 });
+
+/**
+ * The pipeline of this environment, once its connection to GitHub exists. It
+ * is deployed by hand once, after `cdk bootstrap`, and deploys itself from
+ * then on (section 20).
+ */
+if (environment.pipeline.connectionArn) {
+  new PipelineStack(app, id('Pipeline'), { env, environment });
+}
 
 Tags.of(app).add('app:project', 'memorysmith');
 Tags.of(app).add('app:environment', environment.name);

@@ -24,6 +24,23 @@ export interface Delegation {
   readonly nameServers: readonly string[];
 }
 
+/** Who writes the tag and the GitHub Release of a version: production only. */
+export interface ReleaseAppConfig {
+  readonly appId: string;
+  readonly installationId: string;
+  /** The name of the secret holding the private key of the App, in PEM. */
+  readonly privateKeySecret: string;
+}
+
+/** The pipeline of an environment (architecture-guide.md, section 20). */
+export interface PipelineConfig {
+  /** The CodeConnection to GitHub of this account, empty until it is authorised. */
+  readonly connectionArn: string;
+  /** `owner/name`. */
+  readonly repository: string;
+  readonly release: ReleaseAppConfig | null;
+}
+
 export interface EnvironmentConfig {
   readonly name: EnvironmentName;
   readonly account: string;
@@ -31,6 +48,7 @@ export interface EnvironmentConfig {
   readonly hostedZoneName: string;
   readonly hostedZoneId: string;
   readonly delegations: readonly Delegation[];
+  readonly pipeline: PipelineConfig;
 }
 
 interface ContextReader {
@@ -81,6 +99,9 @@ export function environmentOf(node: ContextReader): EnvironmentConfig {
     );
   }
   const delegations = Array.isArray(raw['delegations']) ? raw['delegations'] : [];
+  const pipeline = (raw['pipeline'] ?? {}) as Record<string, unknown>;
+  const release = pipeline['release'] as Record<string, unknown> | undefined;
+  const optional = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
   return {
     name: requested as EnvironmentName,
@@ -89,6 +110,17 @@ export function environmentOf(node: ContextReader): EnvironmentConfig {
     hostedZoneName: text('hostedZoneName'),
     hostedZoneId: text('hostedZoneId'),
     delegations: delegations.map((entry) => delegationOf(entry, requested)),
+    pipeline: {
+      connectionArn: optional(pipeline['connectionArn']),
+      repository: optional(pipeline['repository']) || 'memorysmithapp/memorysmithapp',
+      release: release
+        ? {
+            appId: optional(release['appId']),
+            installationId: optional(release['installationId']),
+            privateKeySecret: optional(release['privateKeySecret']),
+          }
+        : null,
+    },
   };
 }
 

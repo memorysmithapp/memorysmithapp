@@ -1334,7 +1334,41 @@ Initial numbers, so they become tests and not folklore. The thesis of the produc
 
 ## 20. CI/CD
 
-### 20.1 Continuous integration
+### 20.1 A pipeline in each account
+
+Delivery runs on AWS, in a CodePipeline V2 of each account, declared by `stacks/pipeline.stack.ts` and instantiated per environment (§17). **There is no trust between the accounts.** Branch code only ever runs in the staging account, and the production pipeline exists only in the production account and listens only to `main`. A tooling account deploying to both was rejected: branch code would run in the account holding the trust to production, and `cdk bootstrap --trust` trusts an account, not a role.
+
+Each pipeline reads the repository through a CodeConnection that can only read, clones it whole so the version can be computed (§23.3), and runs every stage as a CodeBuild project calling the same `pnpm` scripts a workstation runs. The stage after the source deploys the pipeline stack itself, so a change to the pipeline takes effect on the execution that carries it, and the only thing done by hand in an account is done once: `cdk bootstrap`, the connection authorised to GitHub, its ARN in `cdk.json`, and a first `cdk deploy` of the pipeline stack. Until the ARN is written, the app does not instantiate the pipeline at all.
+
+**Staging runs when somebody asks**, on a commit of any branch, and never on a push: a run costs money, and the decision to spend it belongs to whoever asks. `pnpm staging:start` starts it on the pushed head of the current branch, handing the branch over as a variable, and the last run wins.
+
+```
+Source       the chosen commit, cloned whole
+SelfUpdate   the pipeline stack
+Quality      lint · format · typecheck · depcruise · the unit, contract and in-process tests
+Deliver      the SPA and the bundles built once · synth · the network and the hosting ·
+             the wait on DNS · every other stack, serving X.Y.Z-rc.N+sha7
+Smoke        every surface serves the version of this commit
+```
+
+**Production runs on every merge to `main` that touches what is deployed**: `memorysmith-backend/**`, `memorysmith-frontend/**`, `memorysmith-infra/**`, `pnpm-lock.yaml` or `pnpm-workspace.yaml`. A merge of documentation or governance starts nothing, which is what `development-process.md` §9 says about a change that alters nothing deployable. Executions queue, so two merges deploy in order.
+
+```
+Source         main
+SelfUpdate
+ReleaseChecks  the version agrees across CLAUDE.md, the manifests and CHANGELOG.md,
+               and its tag does not exist yet: a change without a bump stops here
+Quality
+Deliver        serving the version of the packages
+Smoke
+Release        the annotated tag vX.Y.Z and the GitHub Release, as the release App
+```
+
+**There is no manual approval before production: the merge is the approval**, and CloudFormation still rolls back a stack whose update fails. The tag and the release are written by a GitHub App of the organization with a single permission, `Contents: write`, whose private key lives in Secrets Manager of the production account, and a tag ruleset lets only that App create a `v*` tag, so a version tag means "this is in production" by construction.
+
+**The pull request is warned, never blocked.** `pnpm staging:status` compares the head of a branch with the successful executions of staging and answers one of three things: this commit was validated, an earlier commit of the branch was, or nothing of the branch ever ran. The "Staging validation" section of the pull request states it (`development-process.md` §8). No check in GitHub gates a merge, and merging without a staging run is a decision that belongs to the author. A ruleset on `main` requires a pull request and refuses a force push and a deletion, because with production deploying on merge a direct push would reach production.
+
+### 20.2 Continuous integration in GitHub Actions
 
 It runs on every pull request and on every push to `main`, defined in `.github/workflows/ci.yml`. There are five jobs, all mandatory and all in parallel:
 
@@ -1353,27 +1387,15 @@ No job is optional. `dependency-cruiser` in particular is what keeps "hexagonal"
 
 **The dependencies of the adapter tests have a single definition.** The job brings them up with `docker compose up -d --wait` over the `docker-compose.yml` at the root, the same file the machine of whoever develops uses, with the images pinned to an exact version and a healthcheck on both. Declaring the same containers a second time inside the workflow is what has already made the suite pass locally and fail in continuous integration over an image difference nobody had a reason to look for.
 
-### 20.2 Delivery
-
-**There is no automatic deployment, and that is a decision, not a gap.** The environment goes up and comes down through a script, from a workstation, with step-by-step supervision:
+### 20.3 The scripts of a workstation
 
 ```
-deploy-aws/deploy.ps1     checks the toolchain and the account, installs the workspace,
-                          bootstraps the region when needed, synthesises, deploys the
-                          backend stacks, writes the .env.local of the SPA from the real
-                          outputs, builds the SPA, deploys the hosting and verifies the
-                          result over HTTP
+deploy-aws/deploy.ps1     raises an environment from a workstation, with step-by-step supervision
 deploy-aws/onboard.ps1    creates the first account, the subscription and the first notebook,
                           always through the API of the product
 deploy-aws/destroy.ps1    tears the stacks down, preserves the data by default and reports
                           what survived
 ```
-
-Every step is idempotent: when one fails, fix what the report points at and run it again.
-
-Three reasons sustain the choice. There is no staging environment, and a pipeline deploying straight to production with no environment before it is worse than none. There is one person integrating, so there is no race between changes from different people, which is the problem automatic deployment solves. And `cdk deploy` over a domain, a certificate and a user pool has steps depending on external propagation, whose failure mode is cheaper to read in the terminal than in a runner log.
-
-**What would change that decision**, in the order it probably happens: a second AWS account acting as staging, a second person integrating on `main`, or an end-to-end test against a running environment nobody wants to run by hand. While none of the three is true, automating the deployment adds a mechanism to maintain and removes no risk.
 
 **End to end.** The vertical slice is verified in process, in the `backend-unit` job, with `InMemory` adapters and the routes mounted the way `core-monolith` mounts them. There is no end-to-end suite against a deployed environment, and `deploy.ps1` closes that gap in its own way: it finishes by verifying over HTTP that what went up answers.
 

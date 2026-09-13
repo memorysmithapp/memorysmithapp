@@ -308,15 +308,28 @@ done.
 
 ## 8. Pull request
 
-Every PR description has two mandatory sections: a **Summary of changes** and an **AI
-productivity analysis**.
+Every PR description has three mandatory sections: a **Summary of changes**, a **Staging
+validation** and an **AI productivity analysis**.
 
 In the summary, every change that implements or alters a business rule cites its `RN-XXX`
 code, and every change originating from feedback references the issue that originated it,
 with `Closes #N`. That reference is what makes it possible, months later, to answer why a
 rule exists by pointing at the sentence of a real person who felt the friction.
 
-### 8.1 AI productivity analysis
+### 8.1 Staging validation
+
+Before a pull request is opened, `pnpm staging:status` runs with credentials of the staging
+account, and the author is warned when the head commit did not run on staging. **Nothing blocks
+the merge**: merging without a staging run is a decision that belongs to the author, and this
+section is what makes it one taken knowingly.
+
+```
+## Staging validation
+
+{the sentence pnpm staging:status printed}{when the head did not run: , and the merge is the author's decision}
+```
+
+### 8.2 AI productivity analysis
 
 Add this section to the body of every PR. Collect the data from the git history and the
 diff, without guessing and without omitting fields.
@@ -362,7 +375,7 @@ diff, without guessing and without omitting fields.
   - If the estimate is `< 1h`, treat it as `0.5h` for the arithmetic and note the
     approximation on the line itself.
 
-### 8.2 A blocked merge
+### 8.3 A blocked merge
 
 **If a merge is blocked, stop and report.** Branch protection is not worked around, even
 with administrative rights to do so: the protection rule is the real layer of guarantee,
@@ -412,18 +425,19 @@ Run in this exact order:
                                                              the compare links at the bottom of the file
 6. Commit on a release branch  "chore(release): bump version to vX.Y.Z"
 7. Push the branch, open a PR, and merge it into main (never push the bump directly to main)
-8. Tag the merged commit on main  git tag vX.Y.Z && git push origin vX.Y.Z
-9. Publish a GitHub Release for the tag, with notes copied from that version's CHANGELOG section
-   gh release create vX.Y.Z --title "vX.Y.Z" --notes-file <changelog-section>
+8. The production pipeline, started by the merge, checks the release, deploys it and writes
+   the annotated tag vX.Y.Z on the merged commit
+9. The same pipeline publishes the GitHub Release of the tag, with the notes of that version's
+   CHANGELOG section
 ```
 
 The three projects share a single product version, because they are deployed together and a
 divergence between them never means anything to the user.
 
 Steps 1 to 5 have to land in the same commit on the release branch. The version bump
-reaches `main` only through the PR of step 7, and never through a direct push. Never tag
-before the PR is merged, and never push a tag whose commit is not on `main` yet. The tag has
-to point at the merged commit, and the GitHub Release of step 9 is created from that tag.
+reaches `main` only through the PR of step 7, and never through a direct push. Nobody tags
+by hand: a tag ruleset lets only the release App create a `v*` tag, and the pipeline writes it
+only after production serves the version (`architecture-guide.md` §20).
 
 ### 9.2 Two points that belong to the process
 

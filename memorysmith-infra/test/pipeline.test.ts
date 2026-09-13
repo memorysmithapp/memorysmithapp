@@ -1,0 +1,155 @@
+/**
+ * The pipeline of each account (architecture-guide.md, section 20). What these
+ * cases protect is what would otherwise be found in the account itself: which
+ * pipeline starts on its own, in which order the stages run, and that no role
+ * trusts anything outside its own account.
+ */
+
+import { App } from 'aws-cdk-lib';
+import { Template } from 'aws-cdk-lib/assertions';
+import { describe, expect, it } from 'vitest';
+import { environmentOf } from '../config/environments.js';
+import { DEPLOYED_PATHS, PipelineStack } from '../stacks/pipeline.stack.js';
+
+const PIPELINE = {
+  connectionArn: 'arn:aws:codeconnections:us-east-1:111111111111:connection/test',
+  repository: 'memorysmithapp/memorysmithapp',
+};
+
+const ENVIRONMENTS = {
+  production: {
+    account: '111111111111',
+    region: 'us-east-1',
+    hostedZoneName: 'memorysmith.app',
+    hostedZoneId: 'ZPRODUCTION',
+    delegations: [],
+    pipeline: {
+      ...PIPELINE,
+      release: { appId: '1', installationId: '2', privateKeySecret: 'memorysmith/release-app' },
+    },
+  },
+  staging: {
+    account: '222222222222',
+    region: 'us-east-1',
+    hostedZoneName: 'stg.memorysmith.app',
+    hostedZoneId: 'ZSTAGING',
+    delegations: [],
+    pipeline: {
+      ...PIPELINE,
+      connectionArn: PIPELINE.connectionArn.replace('111111111111', '222222222222'),
+    },
+  },
+};
+
+function pipelineOf(name: 'production' | 'staging') {
+  const app = new App({ context: { environment: name, environments: ENVIRONMENTS } });
+  const environment = environmentOf(app.node);
+  const stack = new PipelineStack(app, 'Pipeline', {
+    env: { account: environment.account, region: environment.region },
+    environment,
+  });
+  const template = Template.fromStack(stack);
+  const pipeline = Object.values(template.findResources('AWS::CodePipeline::Pipeline'))[0]
+    ?.Properties;
+  return { template, pipeline };
+}
+
+const stagesOf = (pipeline: { Stages: Array<{ Name: string }> }) =>
+  pipeline.Stages.map((stage) => stage.Name);
+
+describe('the staging pipeline', () => {
+  it('is a V2 pipeline where the last run wins, with the branch as a variable', () => {
+    const { pipeline } = pipelineOf('staging');
+    expect(pipeline.PipelineType).toBe('V2');
+    expect(pipeline.ExecutionMode).toBe('SUPERSEDED');
+    expect(pipeline.Variables).toEqual([
+      expect.objectContaining({ Name: 'SOURCE_BRANCH', DefaultValue: 'main' }),
+    ]);
+  });
+
+  it('starts only when somebody asks, never on a push', () => {
+    const { pipeline } = pipelineOf('staging');
+    expect(pipeline.Triggers ?? []).toEqual([]);
+  });
+
+  it('updates itself, checks the quality, delivers and proves what it delivered', () => {
+    expect(stagesOf(pipelineOf('staging').pipeline)).toEqual([
+      'Source',
+      'SelfUpdate',
+      'Quality',
+      'Deliver',
+      'Smoke',
+    ]);
+  });
+});
+
+describe('the production pipeline', () => {
+  it('queues its executions, so two merges deploy in order', () => {
+    expect(pipelineOf('production').pipeline.ExecutionMode).toBe('QUEUED');
+  });
+
+  it('starts on a push to main that touches what is deployed, and on nothing else', () => {
+    const { pipeline } = pipelineOf('production');
+    expect(pipeline.Triggers).toEqual([
+      {
+        ProviderType: 'CodeStarSourceConnection',
+        GitConfiguration: {
+          SourceActionName: 'Source',
+          Push: [
+            { Branches: { Includes: ['main'] }, FilePaths: { Includes: [...DEPLOYED_PATHS] } },
+          ],
+        },
+      },
+    ]);
+  });
+
+  it('checks the release before anything is built, and publishes it only after the smoke', () => {
+    expect(stagesOf(pipelineOf('production').pipeline)).toEqual([
+      'Source',
+      'SelfUpdate',
+      'ReleaseChecks',
+      'Quality',
+      'Deliver',
+      'Smoke',
+      'Release',
+    ]);
+  });
+});
+
+describe('the trust of a pipeline', () => {
+  it('ends at its own account: no role is assumed by anything of another account', () => {
+    for (const [name, own, other] of [
+      ['production', '111111111111', '222222222222'],
+      ['staging', '222222222222', '111111111111'],
+    ] as const) {
+      const roles = pipelineOf(name).template.findResources('AWS::IAM::Role');
+      for (const role of Object.values(roles)) {
+        for (const statement of role.Properties.AssumeRolePolicyDocument.Statement) {
+          const principal = JSON.stringify(statement.Principal);
+          expect(principal).not.toContain(other);
+          if (!('AWS' in statement.Principal)) continue;
+          // Otherwise the pipeline of this very account assuming the role of one
+          // of its own actions: its account, or a role declared in this stack.
+          const reference = statement.Principal.AWS as { 'Fn::GetAtt'?: [string, string] };
+          const ownRole = reference['Fn::GetAtt']?.[0];
+          expect(principal.includes(own) || (ownRole !== undefined && ownRole in roles)).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('deploys only through the bootstrap roles of its own account', () => {
+    const { template } = pipelineOf('staging');
+    const assumed = Object.values(template.findResources('AWS::IAM::Policy')).flatMap((policy) =>
+      policy.Properties.PolicyDocument.Statement.filter(
+        (statement: { Action: unknown }) => statement.Action === 'sts:AssumeRole',
+      ).map((statement: { Resource: unknown }) => JSON.stringify(statement.Resource)),
+    );
+    const bootstrap = assumed.filter((resource) => resource.includes('cdk-hnb659fds'));
+    expect(bootstrap.length).toBeGreaterThan(0);
+    for (const resource of bootstrap) {
+      expect(resource).toContain(':iam::222222222222:role/cdk-hnb659fds-*');
+    }
+    for (const resource of assumed) expect(resource).not.toContain('111111111111');
+  });
+});

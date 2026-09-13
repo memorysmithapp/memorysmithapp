@@ -205,7 +205,7 @@ The canonical version of the product lives **in this file**, under § Project id
 
 **While the base version is `0.x`, the rule above does not hold:** SemVer treats that range as unstable, and a contract break enters as a minor bump, recorded in `CHANGELOG.md` under `Removed` or `Changed`. From `1.0.0` on it holds without exception, because by then somebody is integrated on the other side.
 
-**Inviolable:** the version bump reaches `main` only through a PR, never through a direct push. The tag is created **after** the merge and points at the merged commit. A change that alters nothing deployable, such as documentation and repository governance, **does not cut a version**: it waits in `[Unreleased]` for the next cycle, which takes the whole accumulation. The nine-step flow is in `development-process.md` §9.1, and what cuts a version, in §9.
+**Inviolable:** the version bump reaches `main` only through a PR, never through a direct push. The tag is created by the production pipeline **after** the merge, once production serves the version, and points at the merged commit; nobody tags by hand. A change that alters nothing deployable, such as documentation and repository governance, **does not cut a version**: it waits in `[Unreleased]` for the next cycle, which takes the whole accumulation. The nine-step flow is in `development-process.md` §9.1, and what cuts a version, in §9.
 
 ### CHANGELOG
 
@@ -223,7 +223,7 @@ Use the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) categories: `Ad
 - Never commit or push directly to `main`.
 - Never work around the protection. Do not use "Bypass rules and merge", `gh ... --admin`, `git push --no-verify` or an equivalent, even holding administrator rights.
 - If a merge is blocked, **stop and report**. Ask how to proceed instead of overriding the rule.
-- The only direct writes to `main` are annotated tags on already merged commits.
+- The only direct writes to `main` are the annotated tags the release App of the production pipeline writes on already merged commits.
 
 ### Branch names
 
@@ -237,6 +237,6 @@ Messages in the imperative mood and the present tense, following Conventional Co
 
 ### Pull request
 
-Every PR description contains two sections: a **Summary of changes** and an **AI productivity analysis**. The format of both, and how to fill in each field of the second, are in `development-process.md` §8.
+Every PR description contains three sections: a **Summary of changes**, a **Staging validation** and an **AI productivity analysis**. Before a PR is opened, run `pnpm staging:status` and warn the author when the head commit did not run on staging; never block on it. The format of the three, and how to fill in each field of the last, are in `development-process.md` §8.
 
 A change that implements or alters a business rule cites its `RN-XXX` code. A change originating from feedback references the issue with `Closes #N`.
