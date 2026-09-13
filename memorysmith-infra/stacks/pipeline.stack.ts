@@ -37,8 +37,12 @@ export const DEPLOYED_PATHS = [
   'pnpm-workspace.yaml',
 ] as const;
 
-/** The stacks of the product, in the order a delivery deploys them. */
-const PRODUCT_STACKS = [
+/**
+ * The stacks of the product, in the order a delivery deploys them. The
+ * teardown of staging deletes them in the reverse order, and declares the same
+ * list, because a command never imports a stack.
+ */
+export const PRODUCT_STACKS = [
   'Network',
   'Frontend',
   'Data',
@@ -215,6 +219,110 @@ export class PipelineStack extends Stack {
           actions: ['cloudformation:DescribeStacks'],
           resources: [
             `arn:${this.partition}:cloudformation:${this.region}:${this.account}:stack/${stackId(environment, 'Data')}/*`,
+          ],
+        }),
+      );
+    }
+
+    /**
+     * Tearing staging down: a project started by hand, by `pnpm staging:destroy`,
+     * and never a stage. It exists only in staging, because production has no
+     * destroy path. Nothing of an execution precedes it, so it reads the
+     * repository on its own, through the same read-only connection.
+     *
+     * CloudFormation deletes each stack with the execution role `cdk bootstrap`
+     * created, which the stack remembers. This role holds the right to ask for
+     * that, and to purge what the stacks retain, and it is denied, explicitly,
+     * the pipeline stack and the bucket of its artifacts: what runs it.
+     */
+    if (!production) {
+      const teardown = new codebuild.Project(this, 'DestroyStaging', {
+        projectName: physicalName(environment, 'memorysmith-destroy'),
+        source: codebuild.Source.gitHub({ owner, repo, reportBuildStatus: false }),
+        environment: {
+          buildImage: codebuild.LinuxArmBuildImage.AMAZON_LINUX_2023_STANDARD_3_0,
+          computeType: codebuild.ComputeType.SMALL,
+        },
+        timeout: Duration.hours(3),
+        logging: { cloudWatch: { logGroup: logs, prefix: 'DestroyStaging' } },
+        buildSpec: codebuild.BuildSpec.fromObject({
+          version: '0.2',
+          env: { variables: { ENVIRONMENT: environment.name } },
+          phases: {
+            install: {
+              'runtime-versions': { nodejs: 22 },
+              commands: ['corepack enable', 'pnpm install --frozen-lockfile'],
+            },
+            build: { commands: ['pnpm -C memorysmith-infra destroy-staging'] },
+          },
+        }),
+      });
+      (teardown.node.defaultChild as codebuild.CfnProject).addPropertyOverride('Source.Auth', {
+        Type: 'CODECONNECTIONS',
+        Resource: environment.pipeline.connectionArn,
+      });
+
+      const arn = (service: string, resource: string): string =>
+        `arn:${this.partition}:${service}:${this.region}:${this.account}:${resource}`;
+      const allow = (actions: string[], resources: string[]): void => {
+        teardown.addToRolePolicy(new iam.PolicyStatement({ actions, resources }));
+      };
+      const prefix = stackId(environment, '');
+      const buckets = `arn:${this.partition}:s3:::${prefix.toLowerCase()}*`;
+      const artifacts = `arn:${this.partition}:s3:::${stackId(environment, 'Pipeline').toLowerCase()}*`;
+
+      allow(
+        [
+          'codeconnections:UseConnection',
+          'codestar-connections:UseConnection',
+          'codeconnections:GetConnectionToken',
+          'codestar-connections:GetConnectionToken',
+        ],
+        [environment.pipeline.connectionArn],
+      );
+      allow(
+        [
+          'cloudformation:DescribeStacks',
+          'cloudformation:ListStackResources',
+          'cloudformation:DeleteStack',
+        ],
+        [arn('cloudformation', `stack/${prefix}*/*`)],
+      );
+      teardown.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ['iam:PassRole'],
+          resources: [
+            `arn:${this.partition}:iam::${this.account}:role/cdk-hnb659fds-cfn-exec-role-*`,
+          ],
+          conditions: { StringEquals: { 'iam:PassedToService': 'cloudformation.amazonaws.com' } },
+        }),
+      );
+      allow(['dynamodb:DeleteTable'], [arn('dynamodb', `table/mv-*-${environment.name}`)]);
+      allow(['s3:ListBucketVersions', 's3:DeleteBucket'], [buckets]);
+      allow(['s3:DeleteObject', 's3:DeleteObjectVersion'], [`${buckets}/*`]);
+      allow(
+        [
+          'cognito-idp:DescribeUserPool',
+          'cognito-idp:DeleteUserPoolDomain',
+          'cognito-idp:DeleteUserPool',
+        ],
+        [arn('cognito-idp', 'userpool/*')],
+      );
+      allow(['logs:DescribeLogGroups', 'lambda:ListFunctions'], ['*']);
+      allow(['logs:DeleteLogGroup'], [arn('logs', `log-group:/aws/lambda/${prefix}*`)]);
+      teardown.addToRolePolicy(
+        new iam.PolicyStatement({
+          effect: iam.Effect.DENY,
+          actions: [
+            'cloudformation:DeleteStack',
+            's3:DeleteBucket',
+            's3:DeleteObject',
+            's3:DeleteObjectVersion',
+          ],
+          resources: [
+            arn('cloudformation', `stack/${stackId(environment, 'Pipeline')}/*`),
+            artifacts,
+            `${artifacts}/*`,
           ],
         }),
       );

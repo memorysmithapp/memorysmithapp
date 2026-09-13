@@ -117,23 +117,29 @@ describe('the production pipeline', () => {
   });
 });
 
-describe('the adapter tests of a pipeline', () => {
-  type Statement = { Action: string | string[]; Resource: unknown };
-  const statementsOf = (name: 'production' | 'staging') =>
-    Object.values(pipelineOf(name).template.findResources('AWS::IAM::Policy')).flatMap(
-      (policy) => policy.Properties.PolicyDocument.Statement as Statement[],
-    );
-  const touching = (statements: Statement[], service: string) =>
-    statements.filter((statement) =>
-      [statement.Action].flat().some((action) => action.startsWith(`${service}:`)),
-    );
+type Statement = { Effect: string; Action: string | string[]; Resource: unknown };
 
-  it('never run in production, which a test never writes to', () => {
+/** The statements of every policy of the stack, or of the role of one project. */
+function statementsOf(name: 'production' | 'staging', project?: string): Statement[] {
+  return Object.values(pipelineOf(name).template.findResources('AWS::IAM::Policy'))
+    .filter(
+      (policy) => !project || JSON.stringify(policy.Properties.Roles).includes(`${project}Role`),
+    )
+    .flatMap((policy) => policy.Properties.PolicyDocument.Statement as Statement[]);
+}
+
+const touching = (statements: Statement[], service: string) =>
+  statements.filter((statement) =>
+    [statement.Action].flat().some((action) => action.startsWith(`${service}:`)),
+  );
+
+describe('the adapter tests of a pipeline', () => {
+  it('never run in production, where nothing of the pipeline touches a table', () => {
     expect(touching(statementsOf('production'), 'dynamodb')).toEqual([]);
   });
 
   it('reach the items of the knowledge and access tables of staging, and nothing else', () => {
-    const statements = touching(statementsOf('staging'), 'dynamodb');
+    const statements = touching(statementsOf('staging', 'Adapters'), 'dynamodb');
     const actions = statements.flatMap((statement) => [statement.Action].flat());
     expect(actions).not.toHaveLength(0);
     for (const action of actions) expect(action).not.toMatch(/Table|Stream|Scan|\*/);
@@ -147,7 +153,7 @@ describe('the adapter tests of a pipeline', () => {
   });
 
   it('reach the objects of the content bucket of staging, and nothing else of it', () => {
-    const statements = touching(statementsOf('staging'), 's3').filter((statement) =>
+    const statements = touching(statementsOf('staging', 'Adapters'), 's3').filter((statement) =>
       JSON.stringify(statement.Resource).includes('contentbucket'),
     );
     expect(statements).toHaveLength(1);
@@ -155,6 +161,41 @@ describe('the adapter tests of a pipeline', () => {
     expect(JSON.stringify(statements[0]?.Resource)).toContain(
       ':s3:::memorysmithstagingdata-contentbucket*/*',
     );
+  });
+});
+
+describe('the teardown of an environment', () => {
+  const projectsOf = (name: 'production' | 'staging') =>
+    Object.values(pipelineOf(name).template.findResources('AWS::CodeBuild::Project')).map(
+      (project) => project.Properties as { Name: string; Source: unknown },
+    );
+
+  it('does not exist in production, which has no destroy path', () => {
+    for (const project of projectsOf('production')) expect(project.Name).not.toContain('destroy');
+  });
+
+  it('is a project of staging, started by hand and reading the repository through its connection', () => {
+    const teardown = projectsOf('staging').find(
+      (project) => project.Name === 'memorysmith-destroy-staging',
+    );
+    expect(teardown?.Source).toMatchObject({
+      Type: 'GITHUB',
+      ReportBuildStatus: false,
+      Auth: { Type: 'CODECONNECTIONS', Resource: ENVIRONMENTS.staging.pipeline.connectionArn },
+    });
+    expect(stagesOf(pipelineOf('staging').pipeline)).not.toContain('DestroyStaging');
+  });
+
+  it('is denied the pipeline stack and the bucket of its artifacts, which are what runs it', () => {
+    const denied = statementsOf('staging', 'DestroyStaging').filter(
+      (statement) => statement.Effect === 'Deny',
+    );
+    expect(denied).toHaveLength(1);
+    expect(denied[0]?.Action).toContain('cloudformation:DeleteStack');
+    expect(denied[0]?.Action).toContain('s3:DeleteBucket');
+    const resources = JSON.stringify(denied[0]?.Resource);
+    expect(resources).toContain(':222222222222:stack/MemorysmithStagingPipeline/*');
+    expect(resources).toContain(':s3:::memorysmithstagingpipeline*');
   });
 });
 
