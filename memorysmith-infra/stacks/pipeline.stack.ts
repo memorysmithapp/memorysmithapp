@@ -169,6 +169,57 @@ export class PipelineStack extends Stack {
       `pnpm -s -C memorysmith-infra smoke --environment "$ENVIRONMENT" --version "$VERSION" --site https://${zone} --api https://api.${zone} --mcp https://mcp.${zone}`,
     ]);
 
+    /**
+     * The adapter tests, against the real DynamoDB and S3 of staging, after the
+     * deploy: the tables and the bucket are the environment's, and every case
+     * writes under a subscription of its own. Staging only: production is
+     * never written to by a test.
+     */
+    const adapters = production
+      ? null
+      : project('Adapters', [
+          `export CONTENT_BUCKET=$(aws cloudformation describe-stacks --stack-name ${stackId(environment, 'Data')} --query "Stacks[0].Outputs[?OutputKey=='ContentBucketName'].OutputValue" --output text)`,
+          `export KNOWLEDGE_TABLE=${physicalName(environment, 'mv-knowledge')} ACCESS_TABLE=${physicalName(environment, 'mv-access')}`,
+          'pnpm -r --if-present test:adapters',
+        ]);
+    if (adapters) {
+      const tables = ['mv-knowledge', 'mv-access'].map(
+        (base) =>
+          `arn:${this.partition}:dynamodb:${this.region}:${this.account}:table/${physicalName(environment, base)}`,
+      );
+      adapters.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: [
+            'dynamodb:GetItem',
+            'dynamodb:PutItem',
+            'dynamodb:UpdateItem',
+            'dynamodb:DeleteItem',
+            'dynamodb:Query',
+            'dynamodb:BatchWriteItem',
+            'dynamodb:TransactWriteItems',
+            'dynamodb:ConditionCheckItem',
+          ],
+          resources: [...tables, ...tables.map((table) => `${table}/index/*`)],
+        }),
+      );
+      adapters.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ['s3:GetObject', 's3:GetObjectVersion', 's3:PutObject'],
+          resources: [
+            `arn:${this.partition}:s3:::${stackId(environment, 'Data').toLowerCase()}-contentbucket*/*`,
+          ],
+        }),
+      );
+      adapters.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ['cloudformation:DescribeStacks'],
+          resources: [
+            `arn:${this.partition}:cloudformation:${this.region}:${this.account}:stack/${stackId(environment, 'Data')}/*`,
+          ],
+        }),
+      );
+    }
+
     // ---- The pipeline -------------------------------------------------------
 
     const source = new codepipeline.Artifact('Source');
@@ -241,6 +292,9 @@ export class PipelineStack extends Stack {
     this.pipeline.addStage({ stageName: 'Quality', actions: [build('Quality', quality)] });
     this.pipeline.addStage({ stageName: 'Deliver', actions: [build('Deliver', deliver)] });
     this.pipeline.addStage({ stageName: 'Smoke', actions: [build('Smoke', smoke)] });
+    if (adapters) {
+      this.pipeline.addStage({ stageName: 'Adapters', actions: [build('Adapters', adapters)] });
+    }
 
     if (production && environment.pipeline.release) {
       const release = environment.pipeline.release;

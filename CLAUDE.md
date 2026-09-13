@@ -187,11 +187,11 @@ The complete process, with the cycle that takes a need from an issue to `main`, 
 
 ### Ignored files
 
-Whenever creating, moving, deleting or modifying files and directories, assess whether `.gitignore` and `.dockerignore` need updating. Both are reviewed together, because a change affecting one usually affects the other.
+Whenever creating, moving, deleting or modifying files and directories, assess whether `.gitignore` needs updating.
 
 **Update `.gitignore`** when build outputs (`dist/`, `cdk.out/`, `build/`), dependencies (`node_modules/`), environment or secrets (`.env`, `*.key`), cache or temporary files (`.cache/`, `tmp/`, `.turbo/`), IDE files (`.idea/`, `.vscode/`, `.obsidian/`) or coverage (`coverage/`) appear. **Never leave a sensitive untracked file without an entry.**
 
-**Update `.dockerignore`** when anything appears that should not enter the build context. It always includes: `.git/`, `.claude/`, `.obsidian/`, `node_modules/`, `dist/`, `cdk.out/`, `coverage/`, `tests/`, `*.log`, `.env`, `.env.*`, `README.md`, `CHANGELOG.md`, `CLAUDE.md`, `docs/`. If it does not exist and there are Docker files, create it.
+**The repository builds no container image, so it carries no `.dockerignore`.** If a Docker file ever appears, its `.dockerignore` appears in the same change, and it always includes: `.git/`, `.claude/`, `.obsidian/`, `node_modules/`, `dist/`, `cdk.out/`, `coverage/`, `tests/`, `*.log`, `.env`, `.env.*`, `README.md`, `CHANGELOG.md`, `CLAUDE.md`, `docs/`.
 
 ### Versioning
 

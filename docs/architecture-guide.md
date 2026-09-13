@@ -152,7 +152,7 @@ The target design is six deployables (D5). **0.1.0 ships as a modular monolith w
 
 ### 4.3 Tooling
 
-pnpm (workspaces) · Vitest · `dependency-cruiser` (§5.5) · ESLint + Prettier · DynamoDB Local and MinIO for adapter tests.
+pnpm (workspaces) · Vitest · `dependency-cruiser` (§5.5) · ESLint + Prettier · the real DynamoDB and S3 of staging for adapter tests.
 
 ---
 ## 5. Repository structure and the dependency rule
@@ -1320,7 +1320,7 @@ Initial numbers, so they become tests and not folklore. The thesis of the produc
 |---|---|
 | Domain | Pure unit tests, **with no I/O and no framework mocks**. If an SDK mock is needed, the hexagon has leaked |
 | Use cases | With `InMemory` adapters |
-| Adapters | Against DynamoDB Local and MinIO |
+| Adapters | Against the real DynamoDB and S3 of the staging account, in its pipeline after the deploy, every case under a subscription of its own |
 | Event contracts | Zod schemas validated on both sides (producer and consumer) |
 | End to end | Per vertical slice |
 
@@ -1349,6 +1349,7 @@ Quality      lint · format · typecheck · depcruise · the unit, contract and 
 Deliver      the SPA and the bundles built once · synth · the network and the hosting ·
              the wait on DNS · every other stack, serving X.Y.Z-rc.N+sha7
 Smoke        every surface serves the version of this commit
+Adapters     the adapter tests, against the real DynamoDB and S3 of the environment
 ```
 
 **Production runs on every merge to `main` that touches what is deployed**: `memorysmith-backend/**`, `memorysmith-frontend/**`, `memorysmith-infra/**`, `pnpm-lock.yaml` or `pnpm-workspace.yaml`. A merge of documentation or governance starts nothing, which is what `development-process.md` §9 says about a change that alters nothing deployable. Executions queue, so two merges deploy in order.
@@ -1368,26 +1369,7 @@ Release        the annotated tag vX.Y.Z and the GitHub Release, as the release A
 
 **The pull request is warned, never blocked.** `pnpm staging:status` compares the head of a branch with the successful executions of staging and answers one of three things: this commit was validated, an earlier commit of the branch was, or nothing of the branch ever ran. The "Staging validation" section of the pull request states it (`development-process.md` §8). No check in GitHub gates a merge, and merging without a staging run is a decision that belongs to the author. A ruleset on `main` requires a pull request and refuses a force push and a deletion, because with production deploying on merge a direct push would reach production.
 
-### 20.2 Continuous integration in GitHub Actions
-
-It runs on every pull request and on every push to `main`, defined in `.github/workflows/ci.yml`. There are five jobs, all mandatory and all in parallel:
-
-```
-quality           lint · format · typecheck on the three projects · dependency-cruiser
-backend-unit      the domain, use cases with InMemory adapters, event contracts,
-                  subscription isolation and the vertical slice
-backend-adapters  adapters against DynamoDB Local and MinIO
-frontend          production build of the SPA
-infra             cdk synth with a fake account and region
-```
-
-No job is optional. `dependency-cruiser` in particular is what keeps "hexagonal" from becoming folder naming, and it is also where the single direction between the three projects (§5.1) is checked.
-
-**Every job runs on every execution, with no filter by changed path.** The whole suite takes about a minute, and a filter that gets the slice wrong lets through exactly the change that needed checking. `infra` would have to run always anyway, because it references the artifacts of the other two and a change in them may invalidate the `synth`. When the execution time starts to hurt, slicing by changed project is the first optimisation to make, and not before that.
-
-**The dependencies of the adapter tests have a single definition.** The job brings them up with `docker compose up -d --wait` over the `docker-compose.yml` at the root, the same file the machine of whoever develops uses, with the images pinned to an exact version and a healthcheck on both. Declaring the same containers a second time inside the workflow is what has already made the suite pass locally and fail in continuous integration over an image difference nobody had a reason to look for.
-
-### 20.3 The scripts of a workstation
+### 20.2 The scripts of a workstation
 
 ```
 deploy-aws/deploy.ps1     raises an environment from a workstation, with step-by-step supervision
@@ -1397,7 +1379,7 @@ deploy-aws/destroy.ps1    tears the stacks down, preserves the data by default a
                           what survived
 ```
 
-**End to end.** The vertical slice is verified in process, in the `backend-unit` job, with `InMemory` adapters and the routes mounted the way `core-monolith` mounts them. There is no end-to-end suite against a deployed environment, and `deploy.ps1` closes that gap in its own way: it finishes by verifying over HTTP that what went up answers.
+**End to end.** The vertical slice is verified in process, in the Quality stage, with `InMemory` adapters and the routes mounted the way `core-monolith` mounts them. Against a deployed environment, the Smoke stage proves which version every surface serves.
 
 ---
 ## 21. Anti-patterns

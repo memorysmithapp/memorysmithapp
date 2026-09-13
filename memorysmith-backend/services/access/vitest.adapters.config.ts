@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 
-/** Adapter tests against DynamoDB Local (docker compose up -d). */
+/** Adapter tests against the real DynamoDB of a deployed environment, run by the staging pipeline. */
 export default defineConfig({
   test: {
     include: ['test/adapters/**/*.adapter.test.ts'],

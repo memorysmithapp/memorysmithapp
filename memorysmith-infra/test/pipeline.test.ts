@@ -79,6 +79,7 @@ describe('the staging pipeline', () => {
       'Quality',
       'Deliver',
       'Smoke',
+      'Adapters',
     ]);
   });
 });
@@ -113,6 +114,47 @@ describe('the production pipeline', () => {
       'Smoke',
       'Release',
     ]);
+  });
+});
+
+describe('the adapter tests of a pipeline', () => {
+  type Statement = { Action: string | string[]; Resource: unknown };
+  const statementsOf = (name: 'production' | 'staging') =>
+    Object.values(pipelineOf(name).template.findResources('AWS::IAM::Policy')).flatMap(
+      (policy) => policy.Properties.PolicyDocument.Statement as Statement[],
+    );
+  const touching = (statements: Statement[], service: string) =>
+    statements.filter((statement) =>
+      [statement.Action].flat().some((action) => action.startsWith(`${service}:`)),
+    );
+
+  it('never run in production, which a test never writes to', () => {
+    expect(touching(statementsOf('production'), 'dynamodb')).toEqual([]);
+  });
+
+  it('reach the items of the knowledge and access tables of staging, and nothing else', () => {
+    const statements = touching(statementsOf('staging'), 'dynamodb');
+    const actions = statements.flatMap((statement) => [statement.Action].flat());
+    expect(actions).not.toHaveLength(0);
+    for (const action of actions) expect(action).not.toMatch(/Table|Stream|Scan|\*/);
+
+    const resources = statements.flatMap((statement) => [statement.Resource].flat());
+    for (const resource of resources) {
+      expect(JSON.stringify(resource)).toMatch(
+        /:222222222222:table\/mv-(knowledge|access)-staging/,
+      );
+    }
+  });
+
+  it('reach the objects of the content bucket of staging, and nothing else of it', () => {
+    const statements = touching(statementsOf('staging'), 's3').filter((statement) =>
+      JSON.stringify(statement.Resource).includes('contentbucket'),
+    );
+    expect(statements).toHaveLength(1);
+    expect(statements[0]?.Action).toEqual(['s3:GetObject', 's3:GetObjectVersion', 's3:PutObject']);
+    expect(JSON.stringify(statements[0]?.Resource)).toContain(
+      ':s3:::memorysmithstagingdata-contentbucket*/*',
+    );
   });
 });
 

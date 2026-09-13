@@ -483,15 +483,12 @@ pnpm depcruise      # the dependency rule: it breaks if domain/ imports an AWS S
 pnpm test           # the domain, use cases, contracts and the vertical slice
 ```
 
-The adapter tests need DynamoDB Local and MinIO, and they are the ones verifying the concurrency criteria (20 simultaneous reorderings, 50 notes created in parallel):
+The adapter tests, including the concurrency criteria (20 simultaneous reorderings, 50 notes created in parallel), run against the real DynamoDB and S3 of the staging account, in its pipeline after the deploy, and never against an emulator. Every case writes under a subscription of its own. With credentials of the staging account they run from a workstation too:
 
 ```
-docker compose up -d --wait
-pnpm -r --if-present test:adapters
-docker compose down
+KNOWLEDGE_TABLE=mv-knowledge-staging ACCESS_TABLE=mv-access-staging CONTENT_BUCKET=<the content bucket> \
+  pnpm -r --if-present test:adapters
 ```
-
-Continuous integration brings those two containers up from this same `docker-compose.yml`, with the images pinned to an exact version. A green suite here means a green suite there.
 
 **The interface.** It reads and writes through the API of the product and has no offline mode, so it needs a live environment to run. It reads where that environment is at runtime, from `/config.json`, and the dev server answers that file from `memorysmith-frontend/config.local.json`, which is untracked. Copy `config.example.json` to it and point it at the environment:
 

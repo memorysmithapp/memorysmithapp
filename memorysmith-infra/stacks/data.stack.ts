@@ -6,7 +6,7 @@
  * before any function can start.
  */
 
-import { Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
+import { CfnOutput, Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
 import { EventBus } from 'aws-cdk-lib/aws-events';
 import { BlockPublicAccess, Bucket, BucketEncryption, HttpMethods } from 'aws-cdk-lib/aws-s3';
 import type { Construct } from 'constructs';
@@ -75,6 +75,9 @@ export class DataStack extends Stack {
         },
       ],
     });
+
+    // What the adapter tests of the staging pipeline write to.
+    new CfnOutput(this, 'ContentBucketName', { value: this.contentBucket.bucketName });
 
     this.eventBus = new EventBus(this, 'EventBus', { eventBusName: named('mv-events') });
 

@@ -1,5 +1,6 @@
 /**
- * Adapter tests against DynamoDB Local and MinIO.
+ * Adapter tests against the real DynamoDB and S3 of a deployed environment
+ * (see harness.ts).
  *
  * The last two cases are the DONE CRITERIA of delivery 4
  * (architecture-guide.md, section 25):
@@ -34,8 +35,6 @@ import {
   authorshipOf,
   BUCKET_NAME,
   contextFor,
-  createBucket,
-  createTable,
   dynamoClient,
   s3Client,
   TABLE_NAME,
@@ -45,12 +44,10 @@ import { folderDescription, folderName, unwrap, user } from '../fixtures.js';
 let db: DynamoDBDocumentClient;
 let s3: S3Client;
 
-beforeAll(async () => {
-  await createTable();
-  await createBucket();
+beforeAll(() => {
   db = dynamoClient();
   s3 = s3Client();
-}, 60_000);
+});
 
 function repositories(context: SubscriptionContext) {
   return {
