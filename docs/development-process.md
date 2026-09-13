@@ -273,13 +273,13 @@ precisely what may not be done.
 | Changes the contract of an MCP tool: name, argument or return shape | Infrastructure change with no visible effect |
 | Changes a declared limit, an entity or the ubiquitous language | A fix that **restores** the behaviour the document already describes |
 | Changes a recorded architecture decision | Intermediate work that has not changed anything assertable yet |
-| Changes the install procedure, the prerequisites or the `deploy-aws/` scripts | |
+| Changes the install procedure, the prerequisites or a command of `memorysmith-infra` | |
 | A capability the `README.md` mentions enters or leaves | |
 
 The last three rows of the left column are specifically the responsibility of `README.md`,
 and it is the only document that is **executable in practice**: someone follows its steps
-in a real AWS account. When a `deploy-aws/` script changes and the `README` does not, the
-defect only shows up at the next install, when it has already cost dearly.
+in a real AWS account. When a command of `memorysmith-infra` changes and the `README` does
+not, the defect only shows up at the next install, when it has already cost dearly.
 
 On `main`, document and code never diverge. Inside the branch they may be ahead of what is
 published, because the branch is a workspace and the two move in step: if it dies halfway,

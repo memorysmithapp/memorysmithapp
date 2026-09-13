@@ -10,10 +10,10 @@
 //
 // The three real vaults are sourced from the author's machine and are NOT part
 // of the repository; the five fictional ones live in ./fictional. Either way
-// the committed artifact is the generated tree under deploy-aws/notebooks/, which
-// is what onboard.ps1 writes into a fresh environment.
+// the committed artifact is the generated tree under notebooks/trees/, which
+// is what the onboard command writes into a fresh environment.
 //
-// Usage: node deploy-aws/notebook-sources/build-notebooks.mjs
+// Usage: node notebooks/sources/build-notebooks.mjs
 
 import {
   existsSync,
@@ -31,7 +31,7 @@ const HOME = process.env.USERPROFILE ?? process.env.HOME;
 const SOURCE_DIR = resolve(fileURLToPath(import.meta.url), '..');
 const AUTHORING = join(SOURCE_DIR, 'authoring');
 const FICTIONAL = join(SOURCE_DIR, 'fictional');
-const OUT_ROOT = resolve(SOURCE_DIR, '..', 'notebooks');
+const OUT_ROOT = resolve(SOURCE_DIR, '..', 'trees');
 
 const IGNORED_DIRS = new Set(['.obsidian', '.git', '.trash']);
 

@@ -182,65 +182,83 @@ The exit lever is worth recording: the proxy exists because Cognito does not spe
 
 This is **one of the two paths** of using the product, and not the only one: whoever prefers not to operate infrastructure uses the hosted service, which runs exactly this code. What follows is for whoever wants the whole backend in their own account.
 
-All the infrastructure lives in [`memorysmith-infra/`](memorysmith-infra/), in AWS CDK with TypeScript, and the environment **goes up and comes down through a script**, in [`deploy-aws/`](deploy-aws/), never through a sequence of commands typed from here.
+All the infrastructure lives in [`memorysmith-infra/`](memorysmith-infra/), in AWS CDK with TypeScript, and **an environment is delivered by a pipeline inside its own account**, never by a sequence of commands typed from a workstation. One app describes two environments, production and staging, each in an account of its own and with no trust between the two ([`docs/architecture-guide.md`](docs/architecture-guide.md) §17 and §20). Staging is optional: an installation that wants only production leaves its entry out.
 
 ### What goes up
 
-`bin/app.ts` instantiates seven stacks, in this dependency order:
+`bin/app.ts` instantiates these stacks for the environment it is asked for, each named after it — `MemorysmithProductionData`, `MemorysmithStagingData` — and a delivery deploys them in the order of the table:
 
 | Stack | What it creates |
 | --- | --- |
-| `MemorysmithNetwork` | A reference to the hosted zone of your domain and the ACM certificates of `mcp.`, `api.` and the site (with `www` as a SAN), all validated by DNS in the zone itself |
-| `MemorysmithIdentity` | The Cognito user pool, the pre-token-generation trigger (which injects `subscription_id` and `subscription_status` into the access token), the branded sign-in screen at `auth.<domain>`, the `platform-admin` group and two app clients: the one for the interface and the one for the CIMD proxy |
-| `MemorysmithData` | The versioned content bucket, the `mv-events` bus and the four tables: `mv-access`, `mv-knowledge`, `mv-discovery` and `mv-audit`, all with PITR |
-| `MemorysmithApi` | The main deployable at `api.<domain>` and the outbox relay, with a dead-letter queue and a depth alarm |
-| `MemorysmithProjections` | The audit consumer, whose role carries the explicit `Deny` that makes the log immutable, and the Discovery projector behind a queue with a DLQ |
-| `MemorysmithAgent` | The MCP server and the CIMD proxy at `mcp.<domain>` |
-| `MemorysmithFrontend` | A private bucket, a CloudFront distribution with Origin Access Control and the apex and `www` records |
+| `Network` | A reference to the hosted zone of the environment, the ACM certificates of the site (with `www` as a SAN), `api.`, `mcp.` and `auth.`, all validated by DNS in the zone itself, and the `NS` records delegating a zone below it to another account |
+| `Frontend` | A private bucket, a CloudFront distribution with Origin Access Control and the apex and `www` records |
+| `Data` | The versioned content bucket, the event bus and the four tables, `mv-access`, `mv-knowledge`, `mv-discovery` and `mv-audit`, each named after its environment and all with PITR |
+| `Identity` | The Cognito user pool, the pre-token-generation trigger (which injects `subscription_id` and `subscription_status` into the access token), the branded sign-in screen at `auth.<domain>`, the `platform-admin` group and two app clients: the one for the interface and the one for the CIMD proxy |
+| `Api` | The main deployable at `api.<domain>` and the outbox relay, with a dead-letter queue and a depth alarm |
+| `Projections` | The audit consumer, whose role carries the explicit `Deny` that makes the log immutable, and the Discovery projector behind a queue with a DLQ |
+| `Agent` | The MCP server and the CIMD proxy at `mcp.<domain>` |
+| `FrontendRelease` | The bundle of the interface and the `/config.json` it reads at runtime: the origin of the API, the sign-in domain, the app client, the environment and the version |
+| `Pipeline` | The pipeline of the account, and in staging the project that tears the environment down |
 
-The deployment order is the order of the table: network and identity first, data next, and the rest afterwards.
+The interface is built once and configured at runtime, so one bundle serves either environment. The order carries one constraint the CDK cannot infer: Cognito accepts the sign-in domain only once the site resolves an A record, so a delivery deploys the network and the hosting, waits for DNS, and only then deploys the rest.
 
-### The domain is yours
+### The domain and the accounts are yours
 
-The product answers on four names under a domain of your own, and all of them are born from a public hosted zone in Route 53. Before the first deployment, adjust the context in [`memorysmith-infra/cdk.json`](memorysmith-infra/cdk.json):
+The product answers on four names under a domain of your own — `yourdomain.app` for the site, `api.yourdomain.app` for the API, `mcp.yourdomain.app` for the connector and `auth.yourdomain.app` for the sign-in screen — and all of them are born from a public hosted zone in Route 53. Staging answers on the same four names one level down, under `stg.yourdomain.app`, from a zone of its own in the staging account.
+
+What differs between the two environments is written once, in [`memorysmith-infra/cdk.json`](memorysmith-infra/cdk.json):
 
 ```json
-"hostedZoneName": "yourdomain.app",
-"hostedZoneId": "Z0123456ABCDEFGHIJKL",
-"cognitoDomainPrefix": "some-unique-prefix"
+"environments": {
+  "production": {
+    "account": "111111111111",
+    "region": "us-east-1",
+    "hostedZoneName": "yourdomain.app",
+    "hostedZoneId": "Z0123456ABCDEFGHIJKL",
+    "delegations": [
+      {
+        "recordName": "stg",
+        "nameServers": ["ns-1.awsdns-01.org", "ns-2.awsdns-02.co.uk", "ns-3.awsdns-03.com", "ns-4.awsdns-04.net"]
+      }
+    ],
+    "pipeline": {
+      "connectionArn": "arn:aws:codeconnections:us-east-1:111111111111:connection/<id>",
+      "repository": "your-organization/your-repository",
+      "release": { "appId": "<id>", "installationId": "<id>", "privateKeySecret": "memorysmith/release-app" }
+    }
+  },
+  "staging": {
+    "account": "222222222222",
+    "region": "us-east-1",
+    "hostedZoneName": "stg.yourdomain.app",
+    "hostedZoneId": "Z9876543ABCDEFGHIJKL",
+    "delegations": [],
+    "pipeline": {
+      "connectionArn": "arn:aws:codeconnections:us-east-1:222222222222:connection/<id>",
+      "repository": "your-organization/your-repository"
+    }
+  }
+}
 ```
 
-From that come `yourdomain.app` for the site, `api.yourdomain.app` for the API, `mcp.yourdomain.app` for the connector and `auth.yourdomain.app` for the sign-in screen. The Cognito prefix is unique per region, so pick one nobody has used.
+**The account is never taken from the credentials.** Named in the environment of every stack, it makes the CDK refuse to deploy one environment under the credentials of the other, so the wrong target is impossible rather than forbidden.
 
 ### Prerequisites
 
-You do not have to memorise this list: `./deploy-aws/deploy.ps1 -PreflightOnly` checks everything below and says what is missing, with the command that resolves each case.
-
-1. **PowerShell 7 or newer** (`$PSVersionTable.PSVersion`). The scripts are written for it, and Windows PowerShell 5.1 will not do.
-2. **Node.js 22 or newer** (`node --version`).
-3. **pnpm 11**. If `corepack enable pnpm` fails on a permission error on Windows, install it with:
+1. **Node.js 22 or newer** (`node --version`).
+2. **pnpm 11**. If `corepack enable pnpm` fails on a permission error on Windows, install it with:
    ```
    npm install -g pnpm@11.22.0
    ```
-4. **An AWS account** with your domain delegated to a public hosted zone in Route 53 (see [Delegating the domain to Route 53](#delegating-the-domain-to-route-53)).
-5. **AWS CLI v2**, used by the scripts to read outputs, check resources and verify the environment:
-   ```
-   winget install -e --id Amazon.AWSCLI
-   ```
-6. **AWS credentials on the machine**, through one of these paths:
-   - `aws configure` (access key, secret and default region), or
-   - `aws configure sso` for accounts with IAM Identity Center, or
-   - a `~/.aws/credentials` file created manually.
-
-   The CDK uses the default credential chain and no credential goes into a file of the repository. If yours are under a named profile instead of `default`, pass `-Profile <name>` to the scripts.
-
-The default region of the app is **`us-east-1`** (set in `bin/app.ts`). To use another one, pass `-Region <region>` to the scripts.
+3. **An AWS account for production**, with your domain delegated to a public hosted zone in Route 53 (see [Delegating the domain to Route 53](#delegating-the-domain-to-route-53)), and **a second account for staging** if you want one. An organization with staging as a member account costs nothing.
+4. **AWS CLI v2 and the credentials of each account**, as one named profile per account (`aws configure sso`, or `aws configure --profile <name>`). A workstation uses them a handful of times — to bring an account up, to start and tear down staging, and for the commands below — and no credential goes into a file of the repository.
+5. **A GitHub repository holding this code**, which each account reads through a connection that can only read.
 
 ### Delegating the domain to Route 53
 
 The registrar may stay whoever it already is, but whoever answers for DNS has to be a public Route 53 hosted zone. It is the one the `hostedZoneId` of `cdk.json` points at, it is where ACM creates the certificate validation records, and it is where the aliases of the site, the API and the MCP are born. Delegation is done once and involves no domain transfer.
 
-While the name servers are those of the old registrar, the deployment of `MemorysmithNetwork` hangs waiting for a DNS validation that never arrives.
+While the name servers are those of the old registrar, the first delivery hangs on the network stack, waiting for a DNS validation that never arrives.
 
 #### 1. Create the hosted zone in AWS
 
@@ -270,83 +288,49 @@ nslookup -type=NS yourdomain.app 8.8.8.8
 
 The delegation is finished when the answer brings the `awsdns` names in place of the old ones. The TTL of the NS records in the `.app` TLD is up to 48 hours, but in practice the switch usually takes effect in minutes or a few hours. Only after that can the certificates be issued.
 
-### The deployment is a script
+#### 4. The zone of staging
 
-Nothing here is done by hand. The [`deploy-aws/`](deploy-aws/) folder has two PowerShell scripts that run the whole cycle, and they are the supported way to bring the environment up and down:
+In the **staging account**, create a public hosted zone for `stg.yourdomain.app`. Its Hosted zone ID goes into the staging entry of `cdk.json`, and its four name servers into the `delegations` of production, which declares the `NS` record in code rather than in the console. **Never delete that zone**: its name servers are drawn when it is created, and a new zone would break the delegation until production is delivered again.
 
-| Script | What it does |
-| --- | --- |
-| `deploy-aws/deploy.ps1` | Checks the environment, installs the workspace, bootstraps the region when it is missing, synthesises, brings up the six backend stacks, writes the `.env.local` of the frontend from the real outputs, builds the interface, brings up the hosting stack and verifies over HTTP what ended up live |
-| `deploy-aws/destroy.ps1` | Checks the environment, lists what actually exists in the account, says what survives removal, asks for a typed confirmation, tears the stacks down and finishes with a report of what was left behind |
+### Bringing an account up, once
 
-Both start from the same preflight, and it **points out the gaps before anything is touched in the account**: the Node and pnpm versions, installed dependencies, the AWS CLI, a resolved credential (with the profiles available on the machine when none resolves), the `cdk.json` context, the existence of the hosted zone, NS delegation already pointing at Route 53, the CDK bootstrap, orphan tables from a previous destroy, a collision on the Cognito domain prefix and a stack stuck in a state CloudFormation will not update. Each gap comes with the command line that resolves it.
+What follows happens once per account, **production first**, because its first delivery creates the record that delegates the zone of staging. From then on a pipeline delivers the account, and updates itself.
 
-A gap stops the run; a warning only informs and the script continues.
+1. **Bootstrap the account** for the CDK, with its credentials:
+   ```
+   pnpm install
+   pnpm -C memorysmith-infra exec cdk bootstrap aws://<account>/us-east-1 --profile <profile>
+   ```
+2. **Connect the account to GitHub.** In the console, **Developer Tools** → **Settings** → **Connections**, create a GitHub connection, authorise it on the repository, and write its ARN in `pipeline.connectionArn`. Until that ARN is written, the app does not instantiate the pipeline at all.
+3. **In production, create the release App**: a GitHub App of your organization with a single permission, `Contents: write`, installed on the repository. Its private key, in PEM, goes into Secrets Manager of the production account under the name `privateKeySecret` gives, and its app id and installation id into `pipeline.release`. It is the only credential that writes to GitHub, and all it writes is the tag and the release of a version.
+4. **In GitHub, create two rulesets.** On `main`: a pull request is required, and a force push and a deletion are refused, because with production delivering on merge a direct push would reach production. On tags: only the release App creates a `v*` tag, so a version tag means that version is in production.
+5. **Deploy the pipeline stack**, the only stack ever deployed by hand:
+   ```
+   pnpm -C memorysmith-infra exec cdk deploy MemorysmithProductionPipeline -c environment=production --profile <profile>
+   ```
+   and, in the staging account, `MemorysmithStagingPipeline` with `-c environment=staging`.
+6. **Ask for room.** A new account usually comes with 10 concurrent Lambda executions, which the product exhausts on its first calls, so request the increase. A budget alert costs nothing and says when something runs that should not.
 
-#### Looking at the environment without changing anything
+### Production delivers on merge
+
+Every merge to `main` that touches `memorysmith-backend/`, `memorysmith-frontend/`, `memorysmith-infra/`, `pnpm-lock.yaml` or `pnpm-workspace.yaml` starts the production pipeline, and a merge of documentation starts nothing. The pipeline updates itself, checks that the version agrees across `CLAUDE.md`, the manifests and `CHANGELOG.md` and that its tag does not exist yet, runs the quality checks and the tests, delivers, proves with the smoke that every surface serves the version of the packages, and writes the tag and the GitHub Release. **There is no manual approval: the merge is the approval**, and CloudFormation still rolls back a stack whose update fails. The stages are in [`docs/architecture-guide.md`](docs/architecture-guide.md) §20.1.
+
+The first delivery into an empty account is the one that waits: the certificates validate by DNS in the zone, and the sign-in domain is accepted only once the site resolves.
+
+### Staging runs when you ask
 
 ```
-./deploy-aws/deploy.ps1 -PreflightOnly
+pnpm staging:start      # with credentials of the staging account
+pnpm staging:status
 ```
 
-It is the first command to run on a new machine. It touches no resource and answers exactly what is missing for the deployment to work.
+`staging:start` starts the staging pipeline on the pushed head of the current branch, which serves `X.Y.Z-rc.N+sha7` on a `release/vX.Y.Z` branch, and the last run wins. After the smoke, staging runs the adapter tests against its own tables and bucket. `staging:status` says whether the head of the branch ran there, an earlier commit of it did, or nothing of the branch ever did, and a pull request states it. Nothing blocks a merge on it.
 
-#### Bringing everything up
+Every surface of staging says where it is: the connector tells the agent the environment and the version, the interface shows a banner that cannot be dismissed, and the messages the pool sends start with `[staging]`.
 
-```
-./deploy-aws/deploy.ps1
-```
+### What a delivery does not do for you
 
-With a named profile instead of the default credential:
-
-```
-./deploy-aws/deploy.ps1 -Profile memorysmith
-```
-
-The script is idempotent: when something fails midway, fix what the report pointed at and run it again. Notes for the first run:
-
-- The ACM certificates validate by DNS in the hosted zone itself. Issuance usually takes 2 to 10 minutes, and `MemorysmithNetwork` waits for it.
-- In an account where nothing exists, the hosting goes up **before** identity. Cognito refuses a custom domain while the apex does not answer an A record, and it is the frontend stack that creates that record. An environment already live does not change order.
-- The interface is built **after** the backend and **before** the hosting stack, because it has to embed the real API origin and app client. It is the order the CDK would have no way of inferring on its own, and it is the reason the frontend does not go into an `--all`.
-- The `.env.local` of the frontend is written from the CloudFormation outputs, not from your memory. To preserve a hand-edited file, use `-KeepFrontendEnv`.
-
-At the end, the script prints the account, the region, the addresses of the site, the API and the MCP, the user pool, the app client of the interface and the Cognito domain.
-
-#### Options of `deploy.ps1`
-
-| Option | What it is for |
-| --- | --- |
-| `-Profile <name>` | The AWS profile to use, instead of the default credential chain |
-| `-Region <region>` | The target region; the default comes from `CDK_DEFAULT_REGION`, then the profile, then `us-east-1` |
-| `-Stacks <list>` | Brings up only the given stacks, for example `-Stacks MemorysmithApi,MemorysmithAgent` |
-| `-PreflightOnly` | The environment report only |
-| `-SkipInstall` | Does not run `pnpm install`, useful in successive redeploys |
-| `-SkipFrontend` | Brings up the backend only |
-| `-SkipSynth`, `-SkipBootstrap`, `-SkipVerify` | Skip the synthesis, the bootstrap and the final verification |
-| `-KeepFrontendEnv` | Does not overwrite `memorysmith-frontend/.env.local` |
-| `-EphemeralData` | Creates the data resources with a destructive removal policy, for a disposable environment |
-| `-IgnoreGaps` | Continues even with open gaps, for when a check is wrong about your machine |
-| `-HostedZoneId`, `-CognitoDomainPrefix` | Override the `cdk.json` context for that run only |
-
-#### What the script verifies at the end
-
-With the environment live, it checks four things: the `/health` of the API answers, `/mcp` returns `401` with the `WWW-Authenticate` header pointing at the metadata document, the two `.well-known` documents of MCP answer with the expected content, and the site answers `200`. If any of them fails, the script exits with a non-zero code and says which one.
-
-#### Upgrading an environment already in use to 0.6.0
-
-**There is no upgrade path from 0.5.x: 0.6.0 is installed over an empty environment.** A note of 0.5.x
-carried its title as an attribute beside its content, and a note of 0.6.0 is named by the `name:` its
-content states and by nothing else, so every note written before would arrive with no name, every
-wikilink pending and a graph with no edges. Destroy the environment ([below](#tearing-the-environment-down))
-and deploy 0.6.0 from zero.
-
-`./deploy-aws/reproject-links.ps1 -Apply` rebuilds the link graph of every notebook from the notes
-themselves, whenever the rule a link is resolved by changes. It reports first, writes only with
-`-Apply`, and exits with `2` when an edge was lost.
-
-#### What the deployment does not do for you
-
-- **Create any account.** The user pool comes up empty, on purpose: no e-mail of a real person stays in the repository and no deployment decides who operates the platform. The one that creates the first account is `onboard.ps1`, just below.
+- **Create any account.** The user pool comes up empty, on purpose: no e-mail of a real person stays in the repository and no deployment decides who operates the platform. The one that creates the first account is the onboarding command, just below.
 - **The end-to-end OAuth flow**, which needs a browser:
   ```
   npx @modelcontextprotocol/inspector
@@ -356,46 +340,47 @@ themselves, whenever the rule a link is resolved by changes. It reports first, w
 
 ## Letting the first users in
 
-A freshly deployed environment has nobody inside: the pool is empty and there is no subscription, because a subscription is requested by a person and authorised by a platform administrator. `onboard.ps1` closes that whole loop, always through the API of the product and never writing into the database by hand:
+A freshly delivered environment has nobody inside: the pool is empty and there is no subscription, because a subscription is requested by a person and authorised by a platform administrator. The onboarding command closes that whole loop, with credentials of the account of the environment, always through the API of the product and never writing into the database by hand:
 
 ```
-./deploy-aws/onboard.ps1 -Profile memorysmith
+pnpm -C memorysmith-infra onboard --environment production --profile memorysmith
 ```
 
-It asks what it needs to know and then creates the account in Cognito, requests the subscription with the chosen type and quota (the subscription has no name: what identifies it is its owner), puts the subscription in the chosen status and writes a whole notebook, with a Guidance, folders, Templates and notes, from one of the [example notebooks](#the-example-notebooks).
+It asks what it needs to know and then creates the account in Cognito, requests the subscription with the chosen quota (the subscription has no name: what identifies it is its owner), puts the subscription in the chosen status and writes a whole notebook, with a Guidance, folders, Templates and notes, from one of the [example notebooks](#the-example-notebooks).
 
-**The first account of an empty pool becomes a platform administrator, and only the first.** Somebody has to authorise the first subscription, and in a new environment there is nobody. Once the group has a member, a later run asks for the credentials of an existing administrator instead of handing the platform to whoever runs the script.
+**The first account of an empty pool becomes a platform administrator, and only the first.** Somebody has to authorise the first subscription, and in a new environment there is nobody. Once the group has a member, a later run asks for the credentials of an existing administrator instead of handing the platform to whoever runs the command.
 
-**The account is handed over with a temporary password.** Requesting the subscription and writing the notebook happen as the account, so the script has to sign in as it, and it does so with a password of its own that nobody ever sees. At the end it leaves the account waiting for its first password: Cognito sends an invitation by e-mail with a temporary password, and the sign-in screen asks for a password of their own on first access. **That message, and the code sent for a forgotten password, carry the product's own words, in Portuguese and in English.** What they do not yet carry is the product's address: the sending account is still the Cognito default, so they leave from `no-reply@verificationemail.com` and are capped at 50 a day. Fixing the sender needs SES out of the sandbox, which is a request to AWS with a human on the other side, and it is [#57](https://github.com/memorysmithapp/memorysmithapp/issues/57). Whoever runs the script never learns the password of somebody else's account. `-SetPassword` inverts that, setting a definitive password here and sending no e-mail at all, which is what the first account of a new environment wants: it is the only one that cannot depend on an e-mail arriving.
+**The account is handed over with a temporary password.** Requesting the subscription and writing the notebook happen as the account, so the command has to sign in as it, and it does so with a password of its own that nobody ever sees. At the end it leaves the account waiting for its first password: Cognito sends an invitation by e-mail with a temporary password, and the sign-in screen asks for a password of their own on first access. **That message, and the code sent for a forgotten password, carry the product's own words.** What they do not yet carry is the product's address: the sending account is still the Cognito default, so they leave from `no-reply@verificationemail.com` and are capped at 50 a day. Fixing the sender needs SES out of the sandbox, which is a request to AWS with a human on the other side, and it is [#57](https://github.com/memorysmithapp/memorysmithapp/issues/57). Whoever runs the command never learns the password of somebody else's account. `--set-password` inverts that, setting a definitive password here and sending no e-mail at all, which is what the first account of a new environment wants: it is the only one that cannot depend on an e-mail arriving.
 
 To look at what one of those notebooks would become, without creating anything and without even talking to AWS:
 
 ```
-./deploy-aws/onboard.ps1 -NotebookTemplate engineering-knowledge -PreviewNotebook
+pnpm -C memorysmith-infra onboard --notebook engineering-knowledge --preview
 ```
 
 | Option | What it is for |
 | --- | --- |
-| `-Email <address>` | The account to create or reuse. Asked for when not passed |
-| `-Name <name>` | The display name of the account |
-| `-Type individual` | The subscription type; `individual` is the only one at this stage |
-| `-Quota 500MB\|1GB\|2GB` | The storage quota |
-| `-Status <status>` | The final status of the subscription, any of the six, including one the transition machine would refuse |
-| `-NotebookTemplate <slug>` | The notebook from `deploy-aws/notebooks` to write, or `none` for an account with no notebook |
-| `-NotebookName <name>` | The name of the created notebook; the default is the title of the source notebook |
-| `-StructureOnly` | Writes the Guidance, the folders and the Templates, and no notes |
-| `-MaxNotes <n>` | Stops after `n` notes |
-| `-PreviewNotebook` | Only prints what would be written, and creates nothing |
-| `-SetPassword` | Sets a definitive password here instead of handing the account over with a temporary one by e-mail |
+| `--environment <name>` | `production` or `staging`; the default is `staging` |
+| `--email <address>` | The account to create or reuse. Asked for when not passed |
+| `--name <name>` | The display name of the account |
+| `--quota 500MB\|1GB\|2GB` | The storage quota |
+| `--status <status>` | The final status of the subscription, any of the six, including one the transition machine would refuse |
+| `--notebook <slug>` | The notebook from `notebooks/trees` to write, or `none` for an account with no notebook |
+| `--notebook-name <name>` | The name of the created notebook; the default is the title of the source notebook |
+| `--structure-only` | Writes the Guidance, the folders and the Templates, and no notes |
+| `--max-notes <n>` | Stops after `n` notes |
+| `--preview` | Only prints what would be written, and creates nothing |
+| `--set-password` | Sets a definitive password here instead of handing the account over with a temporary one by e-mail |
 
-Two things the script does that are worth understanding:
+Three things the command does that are worth understanding:
 
 - **A status that grants no access is applied last.** Writing the notebook requires a subscription in `trial` or `active`, so the notebook is written with the subscription active and the requested status is applied in the final step, through the administrative route that sets the status without going through the transition machine.
+- **A second run finishes what the first started.** An account that never set a password is one nobody holds, so a run interrupted halfway is taken over by the next; an account a person already holds asks for that person's password.
 - **The claim is born with the token.** The interface only sees the subscription after a fresh sign-in, so sign out and back in on a browser that was already open.
 
 ## The example notebooks
 
-The trees committed in [`deploy-aws/notebooks/`](deploy-aws/notebooks/) are what `onboard.ps1` writes into the first notebook of a new account. They are a **tree of files, and no longer the export format**: a numeric prefix encodes the order of the folders, `GUIDANCE.md` carries the Guidance at the root, `STRUCTURE.md` next to it the annotated tree with the description of each folder, `TEMPLATE.md` the Template of a folder, and the notes their body byte for byte, wikilinks intact. It is the shape a notebook arrives in from an editor, which is what makes it the right shape for a script that writes one by replaying API calls.
+The trees committed in [`notebooks/trees/`](notebooks/trees/) are what the onboarding command writes into the first notebook of a new account. They are a **tree of files, and no longer the export format**: a numeric prefix encodes the order of the folders, `GUIDANCE.md` carries the Guidance at the root, `STRUCTURE.md` next to it the annotated tree with the description of each folder, `TEMPLATE.md` the Template of a folder, and the notes their body byte for byte, wikilinks intact. It is the shape a notebook arrives in from an editor, which is what makes it the right shape for a command that writes one by replaying API calls.
 
 Writing those trees **through the API**, and not straight into DynamoDB and S3, is what makes a freshly created environment have the same domain events and the same audit trail the product would have produced in normal use.
 
@@ -428,45 +413,44 @@ In the frontmatter, all of them apply the standard vocabulary of the product: `m
 
 ### How they are generated
 
-The material producing those trees lives in [`deploy-aws/notebook-sources/`](deploy-aws/notebook-sources/):
+The material producing those trees lives in [`notebooks/sources/`](notebooks/sources/):
 
 - `authoring/`: the authored texts per notebook, that is the `guidance.md` that becomes the `GUIDANCE.md` of the root and the `templates/*.md` that become the `TEMPLATE.md` of the folders.
 - `fictional/`: the sources of the seven small notebooks, which live in the repository itself.
-- `build-notebooks.mjs`: the translator. It reads the source notebooks, applies the folder mapping and generates the output in `deploy-aws/notebooks/`.
+- `build-notebooks.mjs`: the translator. It reads the source notebooks, applies the folder mapping and generates the output in `notebooks/trees/`.
 
 The three real vaults are **not** part of the repository: they live on the machine of the author, and what is committed is the output. The output is not edited by hand; changes are made in `authoring/` or at the source, followed by a regeneration:
 
 ```
-node deploy-aws/notebook-sources/build-notebooks.mjs
+node notebooks/sources/build-notebooks.mjs
 ```
 
 The script validates the product limits (2,000 notes and 200 folders per notebook, depth 6, a folder description between 1 and 500 characters) and reports the warnings at the end. It also **writes the file name of a note into its frontmatter as `name:`** where the source states none, except for the notes a demonstration notebook leaves unnamed on purpose: a note is named by `name:` and by nothing else, and a tree exported from an editor keyed by file name carries that name nowhere inside the file. Two notes under one name are no longer a warning, because nothing in a notebook is a key. Running it without the three real vaults on the machine empties the three corresponding trees, because each output is recreated from zero. If you only want to regenerate the small ones, check `git status` before committing.
 
-## Tearing the environment down
+## Maintaining an environment
+
+Every number and every graph the product derives owes an answer to how it remakes itself when it is wrong, and two of those answers are jobs an operator runs against the tables of an environment, with credentials of its account:
 
 ```
-./deploy-aws/destroy.ps1
+pnpm -C memorysmith-infra recount-storage --environment production
+pnpm -C memorysmith-infra reproject-links --environment production
 ```
 
-Before deleting anything, the script lists the stacks that actually exist, warns what survives and asks you to type the name of the domain to confirm. To inspect with no risk at all:
+`recount-storage` adds up the content each subscription holds and rewrites its storage counter; run it with the accounts idle, because a write that lands during the scan can be counted by it and by the relay. `reproject-links` forgets the link graph of every notebook and resolves every link again, from the notes themselves. Both are the product's own code, both report first and write only with `--apply`, and `reproject-links` exits with `2` when an edge was lost.
+
+## Tearing staging down
 
 ```
-./deploy-aws/destroy.ps1 -PreflightOnly
+pnpm staging:destroy      # with credentials of the staging account
 ```
 
-**The tear down does not destroy data, by design.** The four tables and the content bucket are born with a retention policy, so they survive the stack, and so does the user pool. That has a practical consequence the final report of the script repeats: the table names are fixed, so a retained table makes the next deployment fail with `AlreadyExists`. Either you delete the table, or the preflight of `deploy.ps1` will block the deployment.
+It asks for the domain of staging, typed, and starts the project that tears staging down inside its own account, because deleting the sign-in domain alone takes over half an hour and a workstation should not have to stay awake for it. The project deletes every stack of staging, in the reverse of a delivery, and then what no removal policy deletes: the four tables, the audit trail included, the content bucket with every version, the user pool and the log groups of functions that are gone. It leaves the hosted zone and the pipeline, so the next run raises staging from zero. To see what it would delete, and delete nothing:
 
-**`-PurgeData` leaves nothing.** It redeploys the data stack with the destructive policy before deleting, because the policy that counts is the one of the already deployed template, and then removes by hand what no removal policy would remove: the audit trail (`mv-audit`), the user pool with its domain prefix and any bucket a failed deletion left behind. That second part lives in the script, and not in the infrastructure, on purpose: deleting the trail is an explicit administrative act, asked for on the command line, and never the side effect of a deployment with the wrong flag.
+```
+pnpm -C memorysmith-infra destroy-staging --preview
+```
 
-**Tearing down takes time, and the script can be interrupted with no harm.** Deleting the Cognito domain deprovisions a CloudFront distribution under the hood, and that single deletion passes half an hour easily. Killing the script cancels nothing: CloudFormation carries on by itself. Running the script again joins the operation already in progress instead of starting another, and continues from where it stopped. That is why `cdk destroy` reuses the synthesis already in `cdk.out`: a deletion is by stack name, and recompiling the six functions in order to delete them would be pure waiting.
-
-| Option | What it is for |
-| --- | --- |
-| `-Profile <name>`, `-Region <region>` | The same as for the deployment |
-| `-Stacks <list>` | Tears down only the given stacks |
-| `-PreflightOnly` | The report only: what exists and what would survive |
-| `-PurgeData` | Leaves nothing: the tables (the audit one included), the content bucket and the user pool with its domain prefix. Irreversible |
-| `-Force` | Skips the typed confirmation, for an unattended run |
+**Production has no destroy path.** Its tables, its content bucket and its user pool retain by policy, and nothing in this repository deletes them.
 
 ---
 
@@ -513,15 +497,14 @@ Without that file the application refuses to start and says which field it is mi
 
 | Symptom | Likely cause |
 | --- | --- |
-| The preflight reports `AWS credentials` even with `~/.aws/credentials` filled in | The credentials are under a named profile and not under `default`. The gap itself lists the profiles on the machine; run with `-Profile <name>` |
-| The preflight reports `DNS delegation` | The registrar name servers are not the Route 53 ones yet, or the switch is still propagating (see [Delegating the domain to Route 53](#delegating-the-domain-to-route-53)). The ACM certificate is not issued meanwhile |
-| The preflight reports `Orphan tables` | A previous destroy left the tables retained. Delete the ones it names with `aws dynamodb delete-table --table-name <name>` before deploying again |
-| The preflight reports `Stack states` | Either a stack ended up in `ROLLBACK_COMPLETE`, a state CloudFormation will not update, and then `./deploy-aws/destroy.ps1 -Stacks <name>` resolves it; or there is an operation in progress, and then it is a matter of waiting. A destroy that deletes the Cognito domain passes half an hour |
-| The `MemorysmithNetwork` deployment stuck in `CREATE_IN_PROGRESS` | Certificate issuance awaiting DNS validation. Past 30 minutes, check whether the hosted zone of `hostedZoneId` is the one that actually answers for the domain |
-| A collision on the Cognito domain | The prefix is unique per region. Deploy with `-CognitoDomainPrefix <another>` |
-| The final verification fails with `401` on the `.well-known` documents too | The wrong route, or the domain still propagating; the `.well-known` documents are public by design |
+| No pipeline appears after deploying the pipeline stack | The environment has no `connectionArn` in `cdk.json`, and without one the app instantiates no pipeline |
+| `Need to perform AWS calls for account …, but the current credentials are for …` | The credentials are those of the other account. The CDK refuses it by design: use the profile of the account the environment names |
+| The network stack stuck in `CREATE_IN_PROGRESS` on a first delivery | Certificate issuance awaiting DNS validation. Past 30 minutes, check whether the hosted zone of `hostedZoneId` is the one that actually answers for the domain, and, for staging, whether production already delegates it |
+| The Deliver stage fails on the sign-in domain | Cognito refuses a custom domain while the site does not resolve an A record. The stage waits for DNS before deploying identity; when propagation outlasts the wait, start the pipeline again |
+| `ReleaseChecks` stops the production pipeline | The version disagrees between `CLAUDE.md`, a manifest and `CHANGELOG.md`, or its tag already exists. The stage names each reason |
+| `staging:start` answers that the commit is not pushed | The pipeline builds the commit, not the checkout: push it first |
 | An intermittent `503 Service Unavailable` on the first calls | A new account usually comes with 10 concurrent Lambda executions. Ask AWS for a quota increase |
-| `This CDK CLI is not compatible...` | Some old global `cdk` on the PATH. The scripts always use the CLI pinned in the project |
+| `This CDK CLI is not compatible...` | Some old global `cdk` on the PATH. Run the CLI pinned in the project, `pnpm -C memorysmith-infra exec cdk` |
 
 ## How to report a problem, or ask for something
 
@@ -543,8 +526,8 @@ What happens to your issue after it is opened, including how it is triaged and w
 core/
 ├── memorysmith-backend/     # the six bounded contexts, the shared kernel and the event contracts
 ├── memorysmith-frontend/    # the web interface in React
-├── memorysmith-infra/       # all the CDK: stacks, constructs, IAM policies
-├── deploy-aws/              # the deploy, destroy and onboard scripts, and the example notebooks
+├── memorysmith-infra/       # all the CDK: stacks, constructs, IAM policies, the pipelines and the commands
+├── notebooks/               # the example notebooks, and the sources they are generated from
 └── docs/                    # the canonical documentation, and the Markdown specification
 ```
 

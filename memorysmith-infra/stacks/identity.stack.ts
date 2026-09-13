@@ -275,8 +275,9 @@ export class IdentityStack extends Stack {
      * repository, where it stays forever and is read by everyone who clones
      * it. It would also make the deploy decide who operates the platform,
      * which is an operational act and not an infrastructure one. The pool
-     * therefore comes up empty, and `deploy-aws/onboard.ps1` creates the
-     * account, its subscription and its first notebook against the API.
+     * therefore comes up empty, and the onboard command of memorysmith-infra
+     * creates the account, its subscription and its first notebook against the
+     * API.
      */
 
     /**

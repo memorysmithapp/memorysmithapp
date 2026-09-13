@@ -1,14 +1,14 @@
 /**
- * Entrypoint of the link reprojection (#102), run AFTER 0.6.0 is deployed.
+ * Entrypoint of the link reprojection (#102).
  *
  * The fourth entrypoint on this bundle, next to `recount.ts`, and for the same
  * reason they are separate: it is triggered by an operator rather than by a
  * request or a stream, and it needs no session at all. Run it with
- * `deploy-aws/reproject-links.ps1`, after a deploy that changed the rule a link
- * is resolved by.
+ * `pnpm -C memorysmith-infra reproject-links`, after a deploy that changed the
+ * rule a link is resolved by, or whenever the graph is found wrong.
  *
- * The projection in the table was built by the rule that just retired, so it is
- * rebuilt rather than repaired: an edge exists because the current rule says
+ * A projection that disagrees with the rule links are resolved by is rebuilt
+ * rather than repaired: an edge exists because the current rule says
  * so, and not because an old projection said so. What the rebuild does, and why
  * the check after it is "no edge is lost" rather than "the same edges", is in
  * `services/discovery/src/adapters/reprojection.ts`.
@@ -59,10 +59,10 @@ function print(plan: NotebookPlan): void {
     for (const edge of plan.gained) console.log(`      ${describe(edge, name)}`);
   }
   if (plan.lost.length > 0) {
-    // Not a warning that can be waved through: the retitling migration exists
-    // precisely so this list is empty, and an entry in it is a link that stopped
-    // resolving.
-    console.log('    EDGES LOST, which the migration was supposed to prevent:');
+    // Not a warning that can be waved through: an entry here is a link that
+    // stopped resolving, because a note stopped stating the name the link was
+    // written against.
+    console.log('    EDGES LOST, links that stopped resolving:');
     for (const edge of plan.lost) console.log(`      ${name(edge.from)} -> ${name(edge.to)}`);
   }
 }

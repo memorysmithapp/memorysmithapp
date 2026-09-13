@@ -5,7 +5,7 @@
  * can be read by a person deciding whether to bring their knowledge here, and
  * neither shows the notation doing its work — a callout that is drawn, a
  * wikilink that resolves, an embed that expands, a facet that filters.
- * `deploy-aws/notebooks/continuity-engineering` and `.../enologia` do, and they
+ * `notebooks/trees/continuity-engineering` and `.../enologia` do, and they
  * are the only artefact of the specification that is documentation, demonstration
  * and fixture at once.
  *
@@ -90,8 +90,8 @@ const NOTEBOOKS = resolve(
   '..',
   '..',
   '..',
-  'deploy-aws',
   'notebooks',
+  'trees',
 );
 
 /** The two, named: en-US and pt-BR, and not translations of each other. */

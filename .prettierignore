@@ -5,5 +5,4 @@ cdk.out/
 coverage/
 pnpm-lock.yaml
 *.md
-deploy-aws/notebooks/
-deploy-aws/notebook-sources/
+notebooks/

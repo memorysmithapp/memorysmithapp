@@ -13,7 +13,7 @@ import { workingPassword } from '../commands/lib/passwords.js';
 import { ProductApi } from '../commands/lib/product-api.js';
 import { REPOSITORY_ROOT } from '../commands/lib/repository.js';
 
-const NOTEBOOKS = join(REPOSITORY_ROOT, 'deploy-aws', 'notebooks');
+const NOTEBOOKS = join(REPOSITORY_ROOT, 'notebooks', 'trees');
 
 describe('a notebook tree', () => {
   it('reads the folders, their Templates and their notes, in the order the structure gives', () => {

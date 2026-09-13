@@ -19,7 +19,9 @@
     "staging:start": "tsx commands/staging-start.ts",
     "onboard": "tsx commands/onboard.ts",
     "destroy-staging": "tsx commands/destroy-staging.ts",
-    "staging:destroy": "tsx commands/staging-destroy.ts"
+    "staging:destroy": "tsx commands/staging-destroy.ts",
+    "recount-storage": "tsx commands/maintenance.ts recount-storage",
+    "reproject-links": "tsx commands/maintenance.ts reproject-links"
   },
   "dependencies": {
     "@aws-sdk/client-cloudformation": "^3.1131.0",

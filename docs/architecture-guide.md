@@ -764,7 +764,7 @@ The two counters travel in the **same** transaction because they share the dedup
 
 **Why the counter does not live in the user transaction.** A single item per subscription touched by every note write is exactly the contention PE8 forbids for the `META` of the notebook, and worse, because it is one item for the whole account. That is why it sits in the relay, and that is why quota enforcement is slightly delayed: a burst of writes may cross the line before the counter catches up. The trade-off is deliberate and the drift is bounded by what is in flight, since the check runs on every write.
 
-**The counter is derived, and it is rebuildable.** Every projection of this system owes an answer to the same question, which is how it remakes itself when it is wrong (PE5), and the counter's answer is `deploy-aws/recount-storage.ps1`: it scans `mv-knowledge`, adds up the current content of each subscription and writes the `USAGE` item. It reports first and only writes with `-Apply`. It had to exist at least once for real, because the counter came into existence after the notebooks, and every subscription older than it started at zero while holding a notebook full of notes. A write happening during the scan may be counted by it **and** applied by the relay, and the write then discards the relay delta; the error is bounded by what was written while the job ran and disappears in the next recount, so it runs with the accounts idle.
+**The counter is derived, and it is rebuildable.** Every projection of this system owes an answer to the same question, which is how it remakes itself when it is wrong (PE5), and the counter's answer is `recount-storage`, a command that runs `recount.ts` of the core against the tables of an environment: it scans `mv-knowledge`, adds up the current content of each subscription and writes the `USAGE` item. It reports first and only writes with `--apply`. It had to exist at least once for real, because the counter came into existence after the notebooks, and every subscription older than it started at zero while holding a notebook full of notes. A write happening during the scan may be counted by it **and** applied by the relay, and the write then discards the relay delta; the error is bounded by what was written while the job ran and disappears in the next recount, so it runs with the accounts idle.
 
 **Whoever reads the counter does not know the limit.** The stored bytes are a fact of Knowledge and the ceiling is a fact of Access, and no context reads the table of the other: the one that joins the two halves at the `StorageBudget` port is the composition root (§24).
 
@@ -795,7 +795,7 @@ None of that happens in the aggregate: whoever talks to the `ContentStore` is th
 
 Three projections over the same events. All of them **derived** (PE5): deleting and rebuilding from zero is a supported operation, and it is the recovery plan for all three. The business rules are in `software-vision.md` §10.
 
-**And for the link graph it is a script, not a plan.** `deploy-aws/reproject-links.ps1` forgets every edge, backlink, pending link and alias edge of a notebook, restates what the notebook answers to from the notes themselves, and lets the ordinary write path resolve every target again — deliberately the product's own code, because a rebuild taking its own path to the table would be a second implementation of the projection, and the day the two disagreed the rebuild would be the one nobody tested. It reports first and writes only with `-Apply`. It exists because 0.6.0 retired the rule the graph in the table had been built by, and it stays because that is what PE5 costs.
+**And for the link graph it is a command, not a plan.** `reproject-links` runs `reproject.ts` of the core against an environment: it forgets every edge, backlink, pending link and alias edge of a notebook, restates what the notebook answers to from the notes themselves, and lets the ordinary write path resolve every target again — deliberately the product's own code, because a rebuild taking its own path to the table would be a second implementation of the projection, and the day the two disagreed the rebuild would be the one nobody tested. It reports first and writes only with `--apply`. It exists because 0.6.0 retired the rule the graph in the table had been built by, and it stays because that is what PE5 costs.
 
 **There are three sanctioned readers of content, and the third one is not here.** `noteName`, in `packages/kernel`, reads the name of a note: the `name:` of its frontmatter, and nothing else (RN-KNW-035). It lives in the kernel because **Knowledge needs it synchronously, on the write** — a listing cannot wait for a projection to know what a note is called — and Discovery needs the same answer when it resolves a link. One function, two contexts, and no way for them to disagree.
 
@@ -1371,14 +1371,23 @@ Release        the annotated tag vX.Y.Z and the GitHub Release, as the release A
 
 **Staging is torn down from inside its own account, and production cannot be.** `pnpm staging:destroy` asks for the domain of staging, typed, and starts the `DestroyStaging` project on the pushed head of the branch. The project exists only in staging, because production has no destroy path, and runs `destroy-staging` there: it refuses any account but the one `cdk.json` names for staging, lists what the stacks retain before they go, deletes them one at a time in the reverse of a delivery, joining an operation already running instead of racing it, and then purges what no removal policy deletes: the four tables, the audit trail included, the content bucket with every version, the user pool and the log groups of functions that are gone. It runs in the account and not on a workstation because the sign-in domain alone takes over half an hour to go. Its role is denied the pipeline stack and the bucket of its artifacts, and nothing deletes the hosted zone of staging, whose name servers the delegation in production names (§17).
 
-### 20.2 The scripts of a workstation
+### 20.2 The commands of the infrastructure
+
+A pipeline and a workstation run the same commands: scripts of `memorysmith-infra`, written in TypeScript under `commands/`, which reach the product only through its surfaces and its contracts (§5.4).
 
 ```
-deploy-aws/deploy.ps1     raises an environment from a workstation, with step-by-step supervision
-deploy-aws/onboard.ps1    creates the first account, the subscription and the first notebook,
-                          always through the API of the product
-deploy-aws/destroy.ps1    tears the stacks down, preserves the data by default and reports
-                          what survived
+served-version    the version an environment serves, from the branch and the commits ahead of main
+release-checks    the version agrees everywhere it is written, and its tag does not exist yet
+release-notes     the section of CHANGELOG.md of a version
+wait-for-dns      waits until a name resolves, before the sign-in domain is deployed
+smoke             every surface serves the version and the environment of the deploy
+publish-release   the annotated tag and the GitHub Release of a version, as the release App
+staging:start     starts staging on the pushed head of a branch
+staging:status    whether the head of a branch ran on staging
+staging:destroy   starts the teardown of staging, whose project runs destroy-staging
+onboard           an account, its subscription and its first notebook, through the API
+recount-storage   rebuilds the storage counter of every subscription (§10.3)
+reproject-links   rebuilds the link graph of every notebook (§11)
 ```
 
 **End to end.** The vertical slice is verified in process, in the Quality stage, with `InMemory` adapters and the routes mounted the way `core-monolith` mounts them. Against a deployed environment, the Smoke stage proves which version every surface serves.

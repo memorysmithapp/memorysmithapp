@@ -51,7 +51,7 @@ import { readText, REPOSITORY_ROOT } from './lib/repository.js';
 const QUOTAS = ['500MB', '1GB', '2GB'];
 const STATUSES = ['pending_approval', 'trial', 'active', 'rejected', 'suspended', 'canceled'];
 const OPERATIONAL = ['trial', 'active'];
-const NOTEBOOKS = join(REPOSITORY_ROOT, 'deploy-aws', 'notebooks');
+const NOTEBOOKS = join(REPOSITORY_ROOT, 'notebooks', 'trees');
 
 const { values } = parseArgs({
   options: {
