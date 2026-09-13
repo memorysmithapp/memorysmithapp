@@ -6,6 +6,10 @@
  * number in a document. `maxFolders` and `maxDepth` are covered in
  * notebook.test.ts, on the aggregate that owns them; the two here belong to
  * CreateNote and had no test at all.
+ *
+ * Beside them, the one precondition of CreateNote no repository enforces: that
+ * the folder belongs to the notebook, read before the write because a note
+ * transaction includes no item but the note's own.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -122,5 +126,25 @@ describe('notebook limits', () => {
 
     expect(content.length).toBeLessThan(NOTEBOOK_LIMITS.maxNoteBytes);
     expect(expectErr(refused).code).toBe('LIMIT_EXCEEDED');
+  });
+});
+
+describe('where a note may be written', () => {
+  it('refuses a folder the notebook does not hold, which no repository checks (architecture-guide.md, section 10.2)', async () => {
+    const { notebook } = rehydratedNotebookWithNotes(1);
+    const { folderId: elsewhere } = rehydratedNotebookWithNotes(1);
+
+    const refused = await new CreateNote(deps(notebook)).execute({
+      ctx,
+      notebookId: notebook.id,
+      folderId: elsewhere,
+      content: '---\nname: Órfã\n---\n\nCorpo.',
+      afterNoteId: null,
+      by: authorship(),
+    });
+
+    const error = expectErr(refused);
+    expect(error.code).toBe('NOT_FOUND');
+    expect(error.message).toContain('Folder');
   });
 });

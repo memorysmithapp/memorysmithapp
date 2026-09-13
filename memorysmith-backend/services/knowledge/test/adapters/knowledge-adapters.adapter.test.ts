@@ -459,12 +459,17 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
     expect(listed.filter((note) => note.name === 'Lei 14.133')).toHaveLength(2);
   });
 
-  it('refuses a note in a folder that does not exist', async () => {
+  it('writes a note without reading its folder, whose existence the use case settles first', async () => {
+    // Architecture-guide.md, section 10.2: a ConditionCheck on the FOLDER item
+    // would make it part of every note transaction in that folder, and fifty
+    // notes written into one folder at once would cancel each other. So the
+    // repository writes what it is given, and CreateNote refuses a folder the
+    // notebook does not hold before anything reaches here.
     const context = contextFor();
     const { notebook } = await seedNotebook(context);
     const ghost = FolderId.generate();
     const attempt = await createNote(context, notebook, ghost, 'Orfã');
-    expect(attempt.saved.ok).toBe(false);
+    expect(attempt.saved.ok).toBe(true);
   });
 
   it('takes a deleted note out of the listings and frees its slug', async () => {
