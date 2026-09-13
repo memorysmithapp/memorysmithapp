@@ -1,5 +1,5 @@
 ---
-title: INV-2-f3-001 · Documentação de Locks (bloqueio de objetos) ausente
+name: INV-2-f3-001 · Documentação de Locks (bloqueio de objetos) ausente
 aliases: [INV-2-f3-001]
 tags: [investigation, consumidor/cad, lock, documentacao-incompleta, stub]
 type: investigation

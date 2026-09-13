@@ -26,31 +26,31 @@ import {
 
 const NOTEBOOK = 'notebook-1';
 
-describe('LinkExtractor: a target is a title', () => {
+describe('LinkExtractor: a target is a name', () => {
   it('reads both link forms, and only the Markdown one is touched', () => {
     // RN-DSC-043: a wikilink target is literal. The three tolerances — the
     // path, the extension, the percent escapes — belong to the other form.
     const links = extractLinks('Ver [[Lei 14.133]] e [o achado](../achados/Achado%2012.md).');
-    expect(links.map((link) => link.title)).toEqual(['Lei 14.133', 'Achado 12']);
+    expect(links.map((link) => link.name)).toEqual(['Lei 14.133', 'Achado 12']);
   });
 
   it('ignores path segments in the Markdown form deliberately', () => {
     // RN-DSC-001: the edge is between notes, not folders. Honouring the path
     // would break the link the moment the note changed folder.
     const links = extractLinks('[x](../../normas/2026/Lei%2014.133.md)');
-    expect(links[0]?.title).toBe('Lei 14.133');
+    expect(links[0]?.name).toBe('Lei 14.133');
   });
 
   it('keeps a slash inside a wikilink, because a folder is not identity', () => {
     // The same characters, read literally: `Decisões/Índice` is a lookup for
-    // a title that carries a slash.
-    expect(extractLinks('[[Decisões/Índice]]')[0]?.title).toBe('Decisões/Índice');
-    expect(extractLinks('[[Lei 14.133.md]]')[0]?.title).toBe('Lei 14.133.md');
+    // a name that carries a slash.
+    expect(extractLinks('[[Decisões/Índice]]')[0]?.name).toBe('Decisões/Índice');
+    expect(extractLinks('[[Lei 14.133.md]]')[0]?.name).toBe('Lei 14.133.md');
   });
 
   it('drops the anchor from resolution and keeps it for display', () => {
     const links = extractLinks('[art](Lei%2014.133.md#Article%2075)');
-    expect(links[0]?.title).toBe('Lei 14.133');
+    expect(links[0]?.name).toBe('Lei 14.133');
     expect(links[0]?.anchor).toBe('Article 75');
     // Literal in the wikilink, decoded in the Markdown form.
     expect(extractLinks('[[Lei 14.133#Article 75]]')[0]?.anchor).toBe('Article 75');
@@ -60,14 +60,14 @@ describe('LinkExtractor: a target is a title', () => {
     // The order of the tolerances is normative: decoding first would split at
     // a `#` its author encoded precisely so it would not be one.
     expect(extractLinks('[x](C%23%20basics)')[0]).toEqual({
-      title: 'C# basics',
+      name: 'C# basics',
       anchor: null,
       raw: 'C%23%20basics',
     });
   });
 
   it('leaves a malformed escape exactly as written, and never throws', () => {
-    expect(extractLinks('[half](50%)')[0]?.title).toBe('50%');
+    expect(extractLinks('[half](50%)')[0]?.name).toBe('50%');
   });
 
   it('treats a link with a scheme or host as external', () => {
@@ -77,11 +77,11 @@ describe('LinkExtractor: a target is a title', () => {
 
   it('ignores links inside code blocks, which are examples', () => {
     const links = extractLinks('```\n[[nao-e-link]]\n```\nMas [[e-link]] conta.');
-    expect(links.map((link) => link.title)).toEqual(['e-link']);
+    expect(links.map((link) => link.name)).toEqual(['e-link']);
   });
 
   it('reads a wikilink with an alias, and the pipe never changes the target', () => {
-    expect(extractLinks('[[Lei 14.133|a nova lei]]')[0]?.title).toBe('Lei 14.133');
+    expect(extractLinks('[[Lei 14.133|a nova lei]]')[0]?.name).toBe('Lei 14.133');
   });
 });
 
@@ -192,7 +192,7 @@ describe('The projections, driven by events', () => {
   });
 
   /**
-   * The title is not passed in: the projector reads it from the markdown, the
+   * The name is not passed in: the projector reads it from the markdown, the
    * way the write did (RN-KNW-035). A note that is meant to be findable by
    * name says its name in its content, which is what a real one does.
    */
@@ -213,7 +213,7 @@ describe('The projections, driven by events', () => {
     expect(await graph.backlinks(NOTEBOOK, 'n2')).toHaveLength(0);
     expect(await graph.broken(NOTEBOOK)).toHaveLength(1);
 
-    await write({ noteId: 'n2', markdown: '# Lei 14.133' });
+    await write({ noteId: 'n2', markdown: '---\nname: Lei 14.133\n---\n' });
 
     const backlinks = await graph.backlinks(NOTEBOOK, 'n2');
     expect(backlinks.map((note) => note.noteId)).toEqual(['n1']);
@@ -221,7 +221,7 @@ describe('The projections, driven by events', () => {
   });
 
   it('returns backlinks to pending when the target note is deleted', async () => {
-    await write({ noteId: 'n2', markdown: '# Lei 14.133' });
+    await write({ noteId: 'n2', markdown: '---\nname: Lei 14.133\n---\n' });
     await write({ noteId: 'n1', markdown: '# Achado 12\n\nFundamento: [[Lei 14.133]].' });
     expect(await graph.backlinks(NOTEBOOK, 'n2')).toHaveLength(1);
 
@@ -234,20 +234,20 @@ describe('The projections, driven by events', () => {
 
     // RN-DSC-005: the edge is gone and the link is pending again.
     expect(await graph.backlinks(NOTEBOOK, 'n2')).toHaveLength(0);
-    expect((await graph.broken(NOTEBOOK)).map((link) => link.targetTitle)).toEqual(['Lei 14.133']);
+    expect((await graph.broken(NOTEBOOK)).map((link) => link.targetName)).toEqual(['Lei 14.133']);
   });
 
-  it('makes two edges out of one link when two notes carry the title', async () => {
+  it('makes two edges out of one link when two notes carry the name', async () => {
     // RN-DSC-042: never the first one, because there is no order to appeal to.
-    await write({ noteId: 'n1', markdown: '# Índice\n\nUm.' });
-    await write({ noteId: 'n2', markdown: '# Índice\n\nOutro.' });
+    await write({ noteId: 'n1', markdown: '---\nname: Índice\n---\n\nUm.' });
+    await write({ noteId: 'n2', markdown: '---\nname: Índice\n---\n\nOutro.' });
     await write({ noteId: 'n3', markdown: '# Achado\n\nVer [[Índice]].' });
 
     expect((await graph.backlinks(NOTEBOOK, 'n1')).map((note) => note.noteId)).toEqual(['n3']);
     expect((await graph.backlinks(NOTEBOOK, 'n2')).map((note) => note.noteId)).toEqual(['n3']);
   });
 
-  it('lets an alias catch a target no title matched', async () => {
+  it('lets an alias catch a target no name matched', async () => {
     // RN-DSC-052: the alias fills an empty, and only an empty.
     await write({ noteId: 'n1', markdown: '# Achado\n\nVer [[RPO]].' });
     expect(await graph.broken(NOTEBOOK)).toHaveLength(1);
@@ -261,15 +261,15 @@ describe('The projections, driven by events', () => {
     expect(await graph.broken(NOTEBOOK)).toHaveLength(0);
   });
 
-  it('takes the edge back the day a note carries that title, and gives it again', async () => {
+  it('takes the edge back the day a note carries that name, and gives it again', async () => {
     // RN-DSC-053, the price of step 8: resolution is not monotonic. Writing a
     // note DESTROYS an edge in a third note, whose own bytes did not change.
     await write({ noteId: 'n1', markdown: '# Achado\n\nVer [[RPO]].' });
     await write({ noteId: 'n2', markdown: '---\naliases: [RPO]\n---\n\n# Objetivo de ponto\n' });
     expect((await graph.backlinks(NOTEBOOK, 'n2')).map((note) => note.noteId)).toEqual(['n1']);
 
-    // A note titled exactly RPO arrives, and the title wins.
-    await write({ noteId: 'n3', markdown: '# RPO\n\nA nota que se chama assim.' });
+    // A note named exactly RPO arrives, and the name wins.
+    await write({ noteId: 'n3', markdown: '---\nname: RPO\n---\n\nA nota que se chama assim.' });
     expect(await graph.backlinks(NOTEBOOK, 'n2')).toHaveLength(0);
     expect((await graph.backlinks(NOTEBOOK, 'n3')).map((note) => note.noteId)).toEqual(['n1']);
 
@@ -284,8 +284,8 @@ describe('The projections, driven by events', () => {
     expect((await graph.backlinks(NOTEBOOK, 'n2')).map((note) => note.noteId)).toEqual(['n1']);
   });
 
-  it('never lets an alias take a link a title already matched', async () => {
-    await write({ noteId: 'n1', markdown: '# Lei 14.133\n\nA geral.' });
+  it('never lets an alias take a link a name already matched', async () => {
+    await write({ noteId: 'n1', markdown: '---\nname: Lei 14.133\n---\n\nA geral.' });
     await write({ noteId: 'n2', markdown: '---\naliases: [Lei 14.133]\n---\n\n# Outra nota\n' });
     await write({ noteId: 'n3', markdown: '# Achado\n\nVer [[Lei 14.133]].' });
 
@@ -378,28 +378,28 @@ describe('Discovery queries', () => {
     const notes = [
       {
         noteId: 'n1',
-        title: 'Achado 12',
+        name: 'Achado 12',
         aliases: [],
         folderId: 'f1',
         folderName: 'Achados',
       },
       {
         noteId: 'n2',
-        title: 'Lei 14.133',
+        name: 'Lei 14.133',
         aliases: [],
         folderId: 'f2',
         folderName: 'Normas',
       },
       {
         noteId: 'n3',
-        title: 'Portaria 9',
+        name: 'Portaria 9',
         aliases: [],
         folderId: 'f2',
         folderName: 'Normas',
       },
       {
         noteId: 'n4',
-        title: 'Nota solta',
+        name: 'Nota solta',
         aliases: [],
         folderId: 'f1',
         folderName: 'Achados',
@@ -408,8 +408,8 @@ describe('Discovery queries', () => {
     await graph.replaceOutgoing(NOTEBOOK, notes[1] as never, []);
     await graph.replaceOutgoing(NOTEBOOK, notes[2] as never, []);
     await graph.replaceOutgoing(NOTEBOOK, notes[0] as never, [
-      { title: 'Lei 14.133', anchor: null },
-      { title: 'Portaria 9', anchor: null },
+      { name: 'Lei 14.133', anchor: null },
+      { name: 'Portaria 9', anchor: null },
     ]);
     await graph.replaceOutgoing(NOTEBOOK, notes[3] as never, []);
 
@@ -418,7 +418,7 @@ describe('Discovery queries', () => {
     const content = new InMemoryContentIndex();
     /**
      * The body is what makes this a content search: `xpto010101` appears in
-     * one note and nowhere else, in no title and in no facet.
+     * one note and nowhere else, in no name and in no facet.
      */
     const bodies: Record<string, string> = {
       n1: '# Achado 12\n\nO contrato passou do prazo. Ver a lei.',
@@ -430,7 +430,7 @@ describe('Discovery queries', () => {
       const body = bodies[note.noteId] ?? '';
       await content.replaceNote(NOTEBOOK, {
         noteId: note.noteId,
-        title: normalize(note.title),
+        name: normalize(note.name),
         folderId: note.folderId,
         folderName: normalize(note.folderName),
         sections: [...body.matchAll(/^#{1,6}\s+(.*)$/gm)].map((m) => normalize(m[1] ?? '')),
@@ -451,7 +451,7 @@ describe('Discovery queries', () => {
     expect(tree.ok).toBe(true);
     if (!tree.ok) return;
     expect(tree.value.note.noteId).toBe('n1');
-    expect(tree.value.children.map((child) => child.note.title).sort()).toEqual([
+    expect(tree.value.children.map((child) => child.note.name).sort()).toEqual([
       'Lei 14.133',
       'Portaria 9',
     ]);
@@ -484,7 +484,7 @@ describe('Discovery queries', () => {
       expect(drawn.value.nodes[from]).toBeDefined();
       expect(drawn.value.nodes[to]).toBeDefined();
     }
-    expect(drawn.value.nodes.map((note) => note.title)).toContain('Nota solta');
+    expect(drawn.value.nodes.map((note) => note.name)).toContain('Nota solta');
     expect(drawn.value.truncated).toBe(false);
 
     // The edge n1 -> n2 of the fixture survives the round trip as indexes.
@@ -519,24 +519,24 @@ describe('Discovery queries', () => {
     expect(byId.get('n4')?.facets).toEqual({});
   });
 
-  it('draws one node per note and never one per title', async () => {
+  it('draws one node per note and never one per name', async () => {
     // RN-DSC-047: two notes called `Índice` are two nodes, both labelled with
-    // it, and a link into that title leaves one note as two edges. Collapsing
+    // it, and a link into that name leaves one note as two edges. Collapsing
     // them would draw one and silently lose the other.
     const graph = new InMemoryLinkGraph();
     const both = [
-      { noteId: 'i1', title: 'Índice', aliases: [], folderId: 'f1' },
-      { noteId: 'i2', title: 'Índice', aliases: [], folderId: 'f2' },
+      { noteId: 'i1', name: 'Índice', aliases: [], folderId: 'f1' },
+      { noteId: 'i2', name: 'Índice', aliases: [], folderId: 'f2' },
     ];
     for (const note of both) await graph.replaceOutgoing(NOTEBOOK, note, []);
     await graph.replaceOutgoing(
       NOTEBOOK,
-      { noteId: 'n9', title: 'Achado', aliases: [], folderId: 'f1' },
-      [{ title: 'Índice', anchor: null }],
+      { noteId: 'n9', name: 'Achado', aliases: [], folderId: 'f1' },
+      [{ name: 'Índice', anchor: null }],
     );
 
     const drawn = await graph.wholeGraph(NOTEBOOK);
-    expect(drawn.nodes.filter((node) => node.title === 'Índice')).toHaveLength(2);
+    expect(drawn.nodes.filter((node) => node.name === 'Índice')).toHaveLength(2);
     expect(drawn.edges).toHaveLength(2);
     expect(drawn.pending).toHaveLength(0);
     // And each of the two is reachable on its own, by its identifier.
@@ -548,18 +548,18 @@ describe('Discovery queries', () => {
   it('draws an edge found by alias like any other, and two aliases as two edges', async () => {
     const graph = new InMemoryLinkGraph();
     const holders = [
-      { noteId: 'a1', title: 'Primeira', aliases: ['RPO'], folderId: 'f1' },
-      { noteId: 'a2', title: 'Segunda', aliases: ['RPO'], folderId: 'f2' },
+      { noteId: 'a1', name: 'Primeira', aliases: ['RPO'], folderId: 'f1' },
+      { noteId: 'a2', name: 'Segunda', aliases: ['RPO'], folderId: 'f2' },
     ];
     for (const note of holders) await graph.replaceOutgoing(NOTEBOOK, note, []);
     await graph.replaceOutgoing(
       NOTEBOOK,
-      { noteId: 'n9', title: 'Achado', aliases: [], folderId: 'f1' },
-      [{ title: 'RPO', anchor: null }],
+      { noteId: 'n9', name: 'Achado', aliases: [], folderId: 'f1' },
+      [{ name: 'RPO', anchor: null }],
     );
 
     const drawn = await graph.wholeGraph(NOTEBOOK);
-    // §5.4 makes no distinction between an edge found by a title and one found
+    // §5.4 makes no distinction between an edge found by a name and one found
     // by an alias, not even by counting.
     expect(drawn.edges).toHaveLength(2);
     expect(drawn.pending).toHaveLength(0);
@@ -568,8 +568,8 @@ describe('Discovery queries', () => {
   it('keeps an unresolved link in the graph instead of dropping it', async () => {
     await deps.graph.replaceOutgoing(
       NOTEBOOK,
-      { noteId: 'n9', title: 'Aponta para o futuro', aliases: [], folderId: 'f1' },
-      [{ title: 'ainda-nao-existe', anchor: null }],
+      { noteId: 'n9', name: 'Aponta para o futuro', aliases: [], folderId: 'f1' },
+      [{ name: 'ainda-nao-existe', anchor: null }],
     );
 
     const drawn = await new NotebookGraphQuery(deps).execute({ notebookId: NOTEBOOK });
@@ -577,17 +577,17 @@ describe('Discovery queries', () => {
     if (!drawn.ok) return;
 
     const from = drawn.value.nodes.findIndex((note) => note.noteId === 'n9');
-    expect(drawn.value.pending).toContainEqual({ from, targetTitle: 'ainda-nao-existe' });
+    expect(drawn.value.pending).toContainEqual({ from, targetName: 'ainda-nao-existe' });
   });
 
   it('reports broken links and orphan notes', async () => {
     const health = await new NotebookHealth(deps).execute({ notebookId: NOTEBOOK });
     expect(health.ok).toBe(true);
     if (!health.ok) return;
-    expect(health.value.orphans.map((note) => note.title)).toEqual(['Nota solta']);
+    expect(health.value.orphans.map((note) => note.name)).toEqual(['Nota solta']);
   });
 
-  it('searches over the title', async () => {
+  it('searches over the name', async () => {
     const found = await new SearchNotes(deps).execute({
       notebookId: NOTEBOOK,
       query: 'lei 14.133',
@@ -713,7 +713,7 @@ describe('The scan walks every page, which is the whole correctness of it', () =
         sent++;
         const page = Array.from({ length: perPage }, (_, offset) => ({
           noteId: `n${start + offset}`,
-          title: 'nota',
+          name: 'nota',
           folderId: 'f1',
           folderName: 'pasta',
           sections: [],

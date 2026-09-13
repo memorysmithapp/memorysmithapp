@@ -1,5 +1,5 @@
 ---
-title: Buscas Salvas (Bookmarks)
+name: Buscas Salvas (Bookmarks)
 aliases: [Saved searches, Bookmarks, Buscas favoritas]
 tags: [component, search, saved-searches, bookmarks, private, public]
 type: component

@@ -1,5 +1,5 @@
 ---
-title: Lixeira e purga (trash bin)
+name: Lixeira e purga (trash bin)
 aliases: [Trash bin, Lixeira, Purga, Purge, Restauração, Restoration]
 tags: [trash-bin, deletion, lifecycle]
 type: concept

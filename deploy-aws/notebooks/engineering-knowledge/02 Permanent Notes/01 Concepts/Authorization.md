@@ -1,5 +1,5 @@
 ---
-title: Authorization
+name: Authorization
 aliases:
   - Autorização
   - AuthZ

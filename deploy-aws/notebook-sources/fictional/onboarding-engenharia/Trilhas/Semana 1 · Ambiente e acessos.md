@@ -1,5 +1,5 @@
 ---
-title: Semana 1 · Ambiente e acessos
+name: Semana 1 · Ambiente e acessos
 aliases: []
 tags: [trilha, setup]
 type: trilha

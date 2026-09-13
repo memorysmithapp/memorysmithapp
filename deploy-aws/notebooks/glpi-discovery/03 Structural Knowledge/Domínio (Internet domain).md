@@ -1,5 +1,5 @@
 ---
-title: Domínio (Internet domain)
+name: Domínio (Internet domain)
 aliases: [Domain, Domínio, Domains]
 tags: [management, domain, dns]
 type: component

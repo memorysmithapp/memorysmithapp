@@ -1,5 +1,5 @@
 ---
-title: Gestão de Domínios e Registros (capacidade)
+name: Gestão de Domínios e Registros (capacidade)
 aliases: [Domains management, Gestão de Domínios]
 tags: [management, domain, dns, capacidade]
 type: capability

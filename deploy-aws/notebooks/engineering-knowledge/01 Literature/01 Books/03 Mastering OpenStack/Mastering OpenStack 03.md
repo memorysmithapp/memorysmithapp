@@ -1,5 +1,5 @@
 ---
-title: Mastering OpenStack 03
+name: Mastering OpenStack 03
 aliases:
   - "Capítulo 3: OpenStack Control Plane – Shared Services"
 tags:

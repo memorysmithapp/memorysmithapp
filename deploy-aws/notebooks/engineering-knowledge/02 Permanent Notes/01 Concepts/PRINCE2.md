@@ -1,5 +1,5 @@
 ---
-title: PRINCE2
+name: PRINCE2
 aliases:
   - Projects in Controlled Environments
 tags:

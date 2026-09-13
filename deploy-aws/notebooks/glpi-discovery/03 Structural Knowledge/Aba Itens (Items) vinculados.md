@@ -1,5 +1,5 @@
 ---
-title: Aba Itens (Items) vinculados
+name: Aba Itens (Items) vinculados
 aliases: [aba Items, Items tab, itens vinculados]
 tags: [tabs, items, vinculos, ui]
 type: component

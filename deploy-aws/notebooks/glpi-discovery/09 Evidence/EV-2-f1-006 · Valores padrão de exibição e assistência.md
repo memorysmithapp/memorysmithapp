@@ -1,5 +1,5 @@
 ---
-title: EV-2-f1-006 · Valores padrão de exibição e assistência
+name: EV-2-f1-006 · Valores padrão de exibição e assistência
 aliases: [EV-2-f1-006]
 tags: [evidence, valores-padrao, preferencias, configuracao-geral]
 type: evidence

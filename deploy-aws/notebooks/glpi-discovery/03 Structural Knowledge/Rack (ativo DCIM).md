@@ -1,5 +1,5 @@
 ---
-title: Rack (ativo DCIM)
+name: Rack (ativo DCIM)
 aliases: [Rack, Cabinet, Gabinete]
 tags: [assets, rack, dcim, datacenter, structural, doc]
 type: component

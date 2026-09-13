@@ -253,7 +253,7 @@ export class ImportNotebook {
           err(DomainError.validation(`A note points at a folder the document does not carry`)),
         );
       }
-      // The body is written as it was, so the title, the links and the facets
+      // The body is written as it was, so the name, the links and the facets
       // of the imported notebook are read from it by the same rules (#96, #97).
       const written = await this.writer.createNote({
         notebookId,

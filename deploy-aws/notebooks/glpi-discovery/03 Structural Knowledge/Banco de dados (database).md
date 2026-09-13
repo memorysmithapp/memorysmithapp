@@ -1,5 +1,5 @@
 ---
-title: Banco de dados (database)
+name: Banco de dados (database)
 aliases: [Database, Banco de dados, Databases]
 tags: [management, database, inventario]
 type: component

@@ -1,5 +1,5 @@
 ---
-title: Ciclo Construir-Medir-Aprender
+name: Ciclo Construir-Medir-Aprender
 type: concept
 tags: [lean-startup, experiment]
 maturity: evergreen

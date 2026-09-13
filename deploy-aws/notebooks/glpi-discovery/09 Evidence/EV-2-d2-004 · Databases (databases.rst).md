@@ -1,5 +1,5 @@
 ---
-title: EV-2-d2-004 · Databases (databases.rst)
+name: EV-2-d2-004 · Databases (databases.rst)
 aliases: [databases.rst, Databases]
 tags: [evidence, management, database, doc]
 type: evidence

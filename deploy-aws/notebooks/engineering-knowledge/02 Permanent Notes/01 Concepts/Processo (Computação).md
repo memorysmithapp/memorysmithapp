@@ -1,5 +1,5 @@
 ---
-title: Processo (Computação)
+name: Processo (Computação)
 aliases:
   - Process
   - Processo do Sistema Operacional

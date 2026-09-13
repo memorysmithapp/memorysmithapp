@@ -1,5 +1,5 @@
 ---
-title: Threat Modeling
+name: Threat Modeling
 aliases:
   - Modelagem de Ameaças
   - STRIDE

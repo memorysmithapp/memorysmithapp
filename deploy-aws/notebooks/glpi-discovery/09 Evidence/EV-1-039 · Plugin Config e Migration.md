@@ -1,5 +1,5 @@
 ---
-title: EV-1-039 · Plugin, Config e Migration
+name: EV-1-039 · Plugin, Config e Migration
 aliases: [EV-1-039]
 tags: [evidence, dominio/operacao, plugin, config, instalacao]
 type: evidence

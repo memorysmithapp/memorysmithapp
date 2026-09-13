@@ -1,5 +1,5 @@
 ---
-title: Alocação e Uso de Créditos de Energia no SCEE
+name: Alocação e Uso de Créditos de Energia no SCEE
 aliases:
   - Alocação de créditos
   - Uso de créditos do SCEE

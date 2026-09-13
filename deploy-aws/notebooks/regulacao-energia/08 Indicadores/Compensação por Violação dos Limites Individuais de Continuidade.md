@@ -1,5 +1,5 @@
 ---
-title: Compensação por Violação dos Limites Individuais de Continuidade
+name: Compensação por Violação dos Limites Individuais de Continuidade
 aliases:
   - Compensação por continuidade
   - Crédito na fatura por DIC/FIC/DMIC

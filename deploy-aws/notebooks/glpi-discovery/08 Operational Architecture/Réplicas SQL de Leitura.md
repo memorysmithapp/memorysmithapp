@@ -1,5 +1,5 @@
 ---
-title: Réplicas SQL de Leitura
+name: Réplicas SQL de Leitura
 aliases: [SQL replicas, Réplicas SQL, config_db_slave]
 tags: [configuracao-geral, sql, replicas, banco-de-dados, performance, operacao]
 type: capability

@@ -1,5 +1,5 @@
 ---
-title: INV-2-c1-002 · Erro de redação no tipo de gestão do monitor
+name: INV-2-c1-002 · Erro de redação no tipo de gestão do monitor
 aliases: [INV-2-c1-002]
 tags: [investigation, consumidor/cad, assets, monitor, doc-quality]
 type: investigation

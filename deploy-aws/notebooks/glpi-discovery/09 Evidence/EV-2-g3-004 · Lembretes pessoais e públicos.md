@@ -1,5 +1,5 @@
 ---
-title: EV-2-g3-004 · Lembretes pessoais e públicos
+name: EV-2-g3-004 · Lembretes pessoais e públicos
 aliases: [EV-2-g3-004]
 tags: [evidence, tools, reminders, planning, targets]
 type: evidence

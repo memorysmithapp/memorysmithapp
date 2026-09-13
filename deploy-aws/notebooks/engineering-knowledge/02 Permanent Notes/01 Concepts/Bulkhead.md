@@ -1,5 +1,5 @@
 ---
-title: Bulkhead
+name: Bulkhead
 aliases:
   - Anteparo
   - Cell-Based Architecture

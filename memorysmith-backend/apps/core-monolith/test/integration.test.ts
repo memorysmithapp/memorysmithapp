@@ -76,13 +76,13 @@ async function drainEvents(): Promise<void> {
        */
       const notebookId = String(payload['notebookId']);
       const known = await harness.discovery.catalog.listNotes(notebookId);
-      // The title travels on the event because the write read it from the
+      // The name travels on the event because the write read it from the
       // content, and the aliases come from the frontmatter of the same body.
       // Both are what a link resolves against (RN-DSC-041, RN-DSC-052).
-      const title = payload['title'] === null ? '' : String(payload['title']);
+      const name = payload['name'] === null ? '' : String(payload['name']);
       const entry = {
         noteId: String(payload['noteId']),
-        title,
+        name,
         aliases: [] as string[],
         folderId: String(payload['folderId']),
         folderName: '',
@@ -124,7 +124,7 @@ async function seed(): Promise<{
       body: {
         folderId: folder.folderId,
         content:
-          '---\nmaturity: seed\nreviewed: false\n---\n\n# Achado 12\n\nFundamento: [[Lei 14.133]].',
+          '---\nname: Achado 12\nmaturity: seed\nreviewed: false\n---\n\n# Achado 12\n\nFundamento: [[Lei 14.133]].',
       },
     })
   ).json()) as { noteId: string };
@@ -134,7 +134,8 @@ async function seed(): Promise<{
       method: 'POST',
       body: {
         folderId: folder.folderId,
-        content: '---\nmaturity: evergreen\nreviewed: true\n---\n\n# Lei 14.133\n\nArt. 75.',
+        content:
+          '---\nname: Lei 14.133\nmaturity: evergreen\nreviewed: true\n---\n\n# Lei 14.133\n\nArt. 75.',
       },
     })
   ).json()) as { noteId: string };
@@ -197,7 +198,7 @@ describe('Discovery answers over the API', () => {
 
   it('searches the body of the note, not only how it is named', async () => {
     /**
-     * `Art. 75` is written in the body of one note and appears in no title, in
+     * `Art. 75` is written in the body of one note and appears in no name, in
      * no folder name and in no facet. Finding it is the whole point of the
      * content index.
      */
@@ -220,13 +221,13 @@ describe('Discovery answers over the API', () => {
   it('narrows the search with a field and with a facet of the notebook', async () => {
     const { notebookId, notes } = await seed();
 
-    const byTitle = (await (
+    const byName = (await (
       await call(`/discovery/notebooks/${notebookId}/search`, {
         method: 'POST',
-        body: { query: 'title:achado' },
+        body: { query: 'name:achado' },
       })
     ).json()) as { hits: Array<{ noteId: string }> };
-    expect(byTitle.hits.map((hit) => hit.noteId)).toEqual([notes['achado']]);
+    expect(byName.hits.map((hit) => hit.noteId)).toEqual([notes['achado']]);
 
     // `maturity` is frontmatter the notebook wrote, never a field the code knows.
     const byFacet = (await (
@@ -570,8 +571,8 @@ describe('The plan limits how much a subscription can store', () => {
     // store, so a refused write leaves no orphan revision behind.
     const listed = (await (
       await call(`/knowledge/notebooks/${notebookId}/notes?folderId=${folderId}`)
-    ).json()) as Array<{ title: string }>;
-    expect(listed.map((note) => note.title)).not.toContain('Nota longa');
+    ).json()) as Array<{ name: string }>;
+    expect(listed.map((note) => note.name)).not.toContain('Nota longa');
   });
 
   it('still admits the writes that get you back under it', async () => {

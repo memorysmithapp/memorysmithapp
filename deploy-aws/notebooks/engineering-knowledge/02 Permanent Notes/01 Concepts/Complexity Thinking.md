@@ -1,5 +1,5 @@
 ---
-title: Complexity Thinking
+name: Complexity Thinking
 aliases:
   - Pensamento Complexo
   - Complexity

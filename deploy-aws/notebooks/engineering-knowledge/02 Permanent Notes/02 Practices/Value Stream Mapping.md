@@ -1,5 +1,5 @@
 ---
-title: Value Stream Mapping
+name: Value Stream Mapping
 aliases:
   - Mapeamento de Fluxo de Valor
   - VSM

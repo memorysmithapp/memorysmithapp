@@ -1,5 +1,5 @@
 ---
-title: Error Budget
+name: Error Budget
 aliases:
   - Orçamento de Erro
 tags:

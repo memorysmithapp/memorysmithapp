@@ -1,5 +1,5 @@
 ---
-title: Server State e Client State
+name: Server State e Client State
 aliases:
   - Estado de Servidor e Estado de Cliente
   - Server State

@@ -1,5 +1,5 @@
 ---
-title: ITIL AI Capability Model
+name: ITIL AI Capability Model
 aliases:
   - Modelo 6C
   - AI Capability Model

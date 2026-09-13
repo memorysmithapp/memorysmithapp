@@ -1,5 +1,5 @@
 ---
-title: Claude Platform MOC
+name: Claude Platform MOC
 aliases:
   - Claude MOC
   - Plataforma Claude

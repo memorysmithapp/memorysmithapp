@@ -3,7 +3,7 @@
  * the specification the extractor runs.
  *
  * This file used to prove a slug, and the slug is gone. Specification 0.6.0
- * resolves a link against the **title** of a note: a wikilink target is
+ * resolves a link against the **name** of a note: a wikilink target is
  * literal, nothing in it is decoded, no extension is removed and no path
  * segment is discarded (RN-DSC-043). So what has to agree with the backend is
  * no longer a computation — it is a reading, and this is where the reading
@@ -28,8 +28,8 @@ const wikilinkCases = CONFORMANCE_CASES.filter(
 /** What the reading surface asks the resolver for, in order. */
 function targetsAskedFor(markdown: string): string[] {
   const asked: string[] = [];
-  resolveWikilinks(markdown, (title) => {
-    asked.push(title);
+  resolveWikilinks(markdown, (name) => {
+    asked.push(name);
     return null;
   });
   return asked;
@@ -37,13 +37,13 @@ function targetsAskedFor(markdown: string): string[] {
 
 describe('the reading surface reads the target the specification states', () => {
   it.each(wikilinkCases)('$id', (each: ConformanceCase) => {
-    const expected = (each.links ?? []).map((link) => link.title);
+    const expected = (each.links ?? []).map((link) => link.name);
     for (const asked of targetsAskedFor(each.markdown)) {
       expect(expected, `${asked} is not a target this case declares`).toContain(asked);
     }
   });
 
-  it('asks for the title literally, without folding anything', () => {
+  it('asks for the name literally, without folding anything', () => {
     expect(targetsAskedFor('Ver [[Lei 14.133]].')).toEqual(['Lei 14.133']);
     expect(targetsAskedFor('Ver [[Reunião 03/09/2026]].')).toEqual(['Reunião 03/09/2026']);
     expect(targetsAskedFor('Ver [[Lei 14.133.md]].')).toEqual(['Lei 14.133.md']);

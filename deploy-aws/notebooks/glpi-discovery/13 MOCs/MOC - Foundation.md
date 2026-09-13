@@ -1,5 +1,5 @@
 ---
-title: MOC - Foundation
+name: MOC - Foundation
 aliases: [MOC Foundation, Índice Módulo 1]
 tags: [moc, dominio/foundation]
 type: moc

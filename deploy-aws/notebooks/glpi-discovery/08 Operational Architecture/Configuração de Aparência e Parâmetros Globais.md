@@ -1,5 +1,5 @@
 ---
-title: Configuração de Aparência e Parâmetros Globais
+name: Configuração de Aparência e Parâmetros Globais
 aliases: [General setup, Aparência global, General configuration tab]
 tags: [configuracao-geral, aparencia, busca, operacao]
 type: capability

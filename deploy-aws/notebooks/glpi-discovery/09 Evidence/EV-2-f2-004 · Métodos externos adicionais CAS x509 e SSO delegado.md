@@ -1,5 +1,5 @@
 ---
-title: EV-2-f2-004 · Métodos externos adicionais CAS x509 e SSO delegado
+name: EV-2-f2-004 · Métodos externos adicionais CAS x509 e SSO delegado
 aliases: [EV-2-f2-004]
 tags: [evidence, authentication, cas, x509, sso]
 type: evidence

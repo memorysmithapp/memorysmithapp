@@ -1,5 +1,5 @@
 ---
-title: EV-2-g2-005 · Aba Debug (informações de depuração)
+name: EV-2-g2-005 · Aba Debug (informações de depuração)
 aliases: [EV-2-g2-005]
 tags: [evidence, tabs, debug, notificacoes]
 type: evidence

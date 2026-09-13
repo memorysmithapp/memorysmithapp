@@ -1,5 +1,5 @@
 ---
-title: Campos de configuração de um receiver
+name: Campos de configuração de um receiver
 aliases: [Receiver config fields, Collector fields]
 tags: [dados, receiver, collector, imap, pop, campos, config]
 type: entity

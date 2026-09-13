@@ -80,7 +80,7 @@
     "empty": "Nenhuma nota encontrada.",
     "invalid": "Consulta inválida. Verifique as aspas, os parênteses e os operadores.",
     "failed": "A busca falhou. Tente de novo.",
-    "syntaxHint": "Busca no texto inteiro. Aceita \"frase exata\", -excluir, OR, title:, folder:, section:, content: e atributos do frontmatter, como maturity:evergreen."
+    "syntaxHint": "Busca no texto inteiro. Aceita \"frase exata\", -excluir, OR, name:, folder:, section:, content: e atributos do frontmatter, como maturity:evergreen."
   },
   "notebooks": {
     "heading": "Cadernos",
@@ -126,13 +126,13 @@
     "copy": "Copiar",
     "copied": "Copiado",
     "copyHint": "Copiar o Markdown da nota para a área de transferência",
-    "untitled": "Nota sem título",
+    "unnamed": "Nota sem nome",
     "attachmentMissing": "Este caderno não tem arquivo com esse nome. Anexos não são guardados aqui.",
     "targetPending": "Nenhuma nota se chama “{{target}}” ainda. O link fica guardado e resolve sozinho quando alguma se chamar.",
     "targetAmbiguous_one": "Uma nota responde a este alvo.",
-    "targetAmbiguous_other": "{{count}} notas carregam este título, então o link chega a todas. Qual delas você queria?",
-    "targetByTitle": "Casam por título.",
-    "targetByAlias": "Nenhum título casou, então estas casam por apelido — e uma delas devolve o link no dia em que alguém escrever uma nota com este título."
+    "targetAmbiguous_other": "{{count}} notas carregam este nome, então o link chega a todas. Qual delas você queria?",
+    "targetByName": "Casam por nome.",
+    "targetByAlias": "Nenhum nome casou, então estas casam por apelido — e uma delas devolve o link no dia em que alguém escrever uma nota com este nome."
   },
   "common": {
     "loading": "Carregando…",

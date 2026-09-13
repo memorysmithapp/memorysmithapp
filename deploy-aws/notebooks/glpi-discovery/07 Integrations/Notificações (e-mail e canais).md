@@ -1,5 +1,5 @@
 ---
-title: Notificações (e-mail e canais)
+name: Notificações (e-mail e canais)
 aliases: [Notificações, Notification, e-mail, alertas]
 tags: [integration, notificacoes, dominio/integracoes]
 type: integration

@@ -1,5 +1,5 @@
 ---
-title: SIGEC - Sistema de Gestão de Créditos (ANEEL)
+name: SIGEC - Sistema de Gestão de Créditos (ANEEL)
 aliases:
   - sigec-sistema-de-gestao-de-creditos
 tags:

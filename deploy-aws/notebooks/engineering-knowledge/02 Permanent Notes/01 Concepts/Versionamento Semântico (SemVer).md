@@ -1,5 +1,5 @@
 ---
-title: Versionamento Semântico (SemVer)
+name: Versionamento Semântico (SemVer)
 aliases:
   - SemVer
   - Semantic Versioning

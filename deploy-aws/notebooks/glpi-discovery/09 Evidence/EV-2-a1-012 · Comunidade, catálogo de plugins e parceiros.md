@@ -1,5 +1,5 @@
 ---
-title: EV-2-a1-012 · Comunidade, catálogo de plugins e parceiros
+name: EV-2-a1-012 · Comunidade, catálogo de plugins e parceiros
 aliases: [EV-2-a1-012]
 tags: [evidence, doc, community, plugins, catalog, forum, partners]
 type: evidence

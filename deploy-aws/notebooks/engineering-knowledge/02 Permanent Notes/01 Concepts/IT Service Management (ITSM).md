@@ -1,5 +1,5 @@
 ---
-title: IT Service Management (ITSM)
+name: IT Service Management (ITSM)
 aliases:
   - ITSM
   - Gestão de Serviços de TI

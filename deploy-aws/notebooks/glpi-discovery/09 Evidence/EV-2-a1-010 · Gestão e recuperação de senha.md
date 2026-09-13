@@ -1,5 +1,5 @@
 ---
-title: EV-2-a1-010 · Gestão e recuperação de senha
+name: EV-2-a1-010 · Gestão e recuperação de senha
 aliases: [EV-2-a1-010]
 tags: [evidence, doc, password, reset, security-policy, ldap]
 type: evidence

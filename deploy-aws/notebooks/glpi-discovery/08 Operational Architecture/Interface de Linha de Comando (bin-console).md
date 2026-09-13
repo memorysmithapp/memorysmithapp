@@ -1,5 +1,5 @@
 ---
-title: Interface de Linha de Comando (bin-console)
+name: Interface de Linha de Comando (bin-console)
 aliases: [bin/console, CLI GLPI, console]
 tags: [cli, bin-console, comandos, operacional, symfony-console]
 type: component

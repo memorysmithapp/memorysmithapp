@@ -1,5 +1,5 @@
 ---
-title: Agentes Paralelos
+name: Agentes Paralelos
 aliases:
   - Parallel Agents
   - Paralelização de Agentes

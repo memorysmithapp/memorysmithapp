@@ -1,5 +1,5 @@
 ---
-title: Tipos de Regra
+name: Tipos de Regra
 aliases: [RuleRight, RuleTicket, RuleAsset, RuleImportAsset, dicionários]
 tags: [concept, motor-de-regras, dominio/admin]
 type: concept

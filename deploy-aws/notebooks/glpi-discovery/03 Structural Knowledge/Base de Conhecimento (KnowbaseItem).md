@@ -1,5 +1,5 @@
 ---
-title: Base de Conhecimento (KnowbaseItem)
+name: Base de Conhecimento (KnowbaseItem)
 aliases: [KnowbaseItem, KB, FAQ, Base de Conhecimento]
 tags: [component, kb, dominio/admin]
 type: component

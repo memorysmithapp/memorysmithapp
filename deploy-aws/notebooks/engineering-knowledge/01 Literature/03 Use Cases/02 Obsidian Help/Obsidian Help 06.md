@@ -1,5 +1,5 @@
 ---
-title: Obsidian Help 06
+name: Obsidian Help 06
 aliases:
   - Obsidian Help — Extensibilidade e Automação
 tags:

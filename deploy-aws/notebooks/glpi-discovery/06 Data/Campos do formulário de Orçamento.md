@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Orçamento
+name: Campos do formulário de Orçamento
 aliases: [Budget fields]
 tags: [data, management, budget, financial, fields, doc]
 type: table

@@ -1,5 +1,5 @@
 ---
-title: Sistema de Cache do GLPI (operacional)
+name: Sistema de Cache do GLPI (operacional)
 aliases: [cache GLPI, cache_db, cache_trans, Symfony Cache]
 tags: [cache, performance, operacional, symfony, redis, apcu]
 type: infra

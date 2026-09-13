@@ -1,5 +1,5 @@
 ---
-title: Measurement and Reporting
+name: Measurement and Reporting
 aliases:
   - Medição e Relatórios
 tags:

@@ -1,5 +1,5 @@
 ---
-title: Cloud Management Platform (CMP)
+name: Cloud Management Platform (CMP)
 aliases:
   - CMP
   - Plataforma de Gestão de Nuvem

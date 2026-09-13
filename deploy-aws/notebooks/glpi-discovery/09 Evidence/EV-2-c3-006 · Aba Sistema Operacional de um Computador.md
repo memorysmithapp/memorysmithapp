@@ -1,5 +1,5 @@
 ---
-title: EV-2-c3-006 · Aba Sistema Operacional de um Computador
+name: EV-2-c3-006 · Aba Sistema Operacional de um Computador
 aliases: [EV-2-c3-006]
 tags: [evidence, doc, assets, os, computer]
 type: evidence

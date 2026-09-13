@@ -1,5 +1,5 @@
 ---
-title: Obsidian URI
+name: Obsidian URI
 aliases:
   - obsidian://
   - Protocolo Obsidian

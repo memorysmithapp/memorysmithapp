@@ -1,5 +1,5 @@
 ---
-title: EV-1-038 · Agente de inventário — protocolo XML/JSON, OAuth
+name: EV-1-038 · Agente de inventário — protocolo XML/JSON, OAuth
 aliases: [EV-1-038]
 tags: [evidence, dominio/integracoes, inventario, agente]
 type: evidence

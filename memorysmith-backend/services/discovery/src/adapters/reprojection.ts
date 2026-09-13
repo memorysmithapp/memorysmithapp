@@ -7,7 +7,7 @@
  * is for the storage counter, and it exists for the same reason: the one in the
  * table was built by a rule that has just retired. A link resolved against a
  * slug that folded case, accents and punctuation; it now resolves against the
- * title a note states, exactly, and against the aliases it declares. Every
+ * name a note states, exactly, and against the aliases it declares. Every
  * edge in the table is an assertion the current rule never made.
  *
  * So it is not repaired, it is rebuilt: the edges are forgotten, what the notebook
@@ -16,11 +16,11 @@
  * not because an old projection said so.
  *
  * **The check after a run is not equality.** Any note carrying `aliases:`
- * starts answering targets that no title matched (RN-DSC-052), which under the
+ * starts answering targets that no name matched (RN-DSC-052), which under the
  * retired rule resolved to nothing at all. So the expectation is that NO EDGE
  * IS LOST, and that every edge gained is one an alias explains — which is why
  * the report below names each gained edge together with the target that
- * produced it and whether a title or an alias answered.
+ * produced it and whether a name or an alias answered.
  *
  * WHY THIS IS NOT A ROUTE, and why it reads the table rather than the API: a
  * platform session carries no subscription, so no repository can be built
@@ -32,7 +32,7 @@
  */
 
 import { ScanCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { noteTitle, SubscriptionId } from '@memorysmith/kernel';
+import { noteName, SubscriptionId } from '@memorysmith/kernel';
 
 import { extractLinks } from '../domain/LinkExtractor.js';
 import { extractFrontmatterAliases } from '../domain/Aliases.js';
@@ -62,7 +62,7 @@ export interface PlannedEdge {
   readonly from: string;
   readonly to: string;
   readonly target: string;
-  readonly by: 'title' | 'alias';
+  readonly by: 'name' | 'alias';
 }
 
 /** What one notebook held, what it will hold, and the difference between them. */
@@ -147,9 +147,9 @@ export class LinkReprojection {
     const graph = this.deps.graphFor(subscriptionOf(plan.subscriptionId));
     // The note item carries what the notebook ANSWERS to and nothing else: the
     // targets belong to this plan, not to the projection.
-    const refs = plan.notes.map(({ noteId, title, aliases, folderId }): NoteRef => ({
+    const refs = plan.notes.map(({ noteId, name, aliases, folderId }): NoteRef => ({
       noteId,
-      title,
+      name,
       aliases,
       folderId,
     }));
@@ -160,7 +160,7 @@ export class LinkReprojection {
       await graph.replaceOutgoing(
         plan.notebookId,
         ref,
-        targets.map((title) => ({ title, anchor: null })),
+        targets.map((name) => ({ name, anchor: null })),
       );
     }
   }
@@ -217,9 +217,9 @@ export class LinkReprojection {
       notes.push({
         noteId: String(item['noteId']),
         folderId: String(item['folderId']),
-        title: noteTitle(markdown) ?? '',
+        name: noteName(markdown) ?? '',
         aliases: extractFrontmatterAliases(markdown),
-        targets: extractLinks(markdown).map((link) => link.title),
+        targets: extractLinks(markdown).map((link) => link.name),
       });
     }
     return notes;
@@ -232,7 +232,7 @@ export class LinkReprojection {
  * two rules lands, and the difference is what the report is about.
  */
 export function resolveAll(notes: readonly ReadNote[]): { edges: PlannedEdge[]; pending: number } {
-  const names = notebookNames(notes.map((note) => ({ ...note, title: note.title || null })));
+  const names = notebookNames(notes.map((note) => ({ ...note, name: note.name || null })));
   const edges: PlannedEdge[] = [];
   let pending = 0;
 
@@ -244,7 +244,7 @@ export function resolveAll(notes: readonly ReadNote[]): { edges: PlannedEdge[]; 
         continue;
       }
       if (answer.kind !== 'note' || answer.by === null) continue;
-      // Every note whose title matches is an edge (RN-DSC-042), and a note
+      // Every note whose name matches is an edge (RN-DSC-042), and a note
       // never links to itself.
       for (const to of answer.noteIds) {
         if (to === note.noteId) continue;

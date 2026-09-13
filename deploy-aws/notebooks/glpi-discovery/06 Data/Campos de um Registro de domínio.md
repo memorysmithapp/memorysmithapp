@@ -1,5 +1,5 @@
 ---
-title: Campos de um Registro de domínio
+name: Campos de um Registro de domínio
 aliases: [Campos de Domain record, Domain record fields]
 tags: [management, domain-record, dns, campos, formulario, data]
 type: entity

@@ -1,5 +1,5 @@
 ---
-title: Garantia de Fiel Cumprimento
+name: Garantia de Fiel Cumprimento
 aliases:
   - Garantia de fiel cumprimento
   - GFC

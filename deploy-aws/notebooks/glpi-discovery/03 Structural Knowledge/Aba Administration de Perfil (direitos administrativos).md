@@ -1,5 +1,5 @@
 ---
-title: Aba Administration de Perfil (direitos administrativos)
+name: Aba Administration de Perfil (direitos administrativos)
 aliases: [Administration tab, Aba Administration]
 tags: [perfis, permissoes, administracao, usuarios, entidades, regras, ldap]
 type: component

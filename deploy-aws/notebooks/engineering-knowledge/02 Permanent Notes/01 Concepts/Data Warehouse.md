@@ -1,5 +1,5 @@
 ---
-title: Data Warehouse
+name: Data Warehouse
 aliases:
   - DW
   - Armazém de Dados

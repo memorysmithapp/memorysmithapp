@@ -1,5 +1,5 @@
 ---
-title: Quorum Queue
+name: Quorum Queue
 aliases:
   - Fila de Quórum
   - RabbitMQ Quorum Queue

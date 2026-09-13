@@ -1,5 +1,5 @@
 ---
-title: Estratégias de Cache em PWA
+name: Estratégias de Cache em PWA
 aliases:
   - Cache Strategy PWA
   - Workbox Strategies

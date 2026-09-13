@@ -1,5 +1,5 @@
 ---
-title: Conta de Desenvolvimento Energético (CDE)
+name: Conta de Desenvolvimento Energético (CDE)
 aliases:
   - CDE
 tags:

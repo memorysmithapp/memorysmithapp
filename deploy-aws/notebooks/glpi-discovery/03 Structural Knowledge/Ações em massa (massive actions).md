@@ -1,5 +1,5 @@
 ---
-title: Ações em massa (massive actions)
+name: Ações em massa (massive actions)
 aliases: [Massive actions, Mass actions, Ações em lote, Botão Actions]
 tags: [massive-actions, ui, crud, bulk]
 type: component

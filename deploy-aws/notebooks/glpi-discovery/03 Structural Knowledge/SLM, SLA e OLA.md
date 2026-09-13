@@ -1,5 +1,5 @@
 ---
-title: SLM, SLA e OLA
+name: SLM, SLA e OLA
 aliases: [SLM, SLA, OLA, Service Level]
 tags: [component, sla, dominio/service-desk]
 type: component

@@ -1,5 +1,5 @@
 ---
-title: Obsidian Help 04
+name: Obsidian Help 04
 aliases:
   - Obsidian Help — Plugins Core e Bases
 tags:

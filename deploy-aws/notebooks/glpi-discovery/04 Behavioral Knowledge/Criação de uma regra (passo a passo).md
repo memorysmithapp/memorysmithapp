@@ -1,5 +1,5 @@
 ---
-title: Criação de uma regra (passo a passo)
+name: Criação de uma regra (passo a passo)
 aliases: [Create a rule, Criar regra]
 tags: [regras, criacao, criterios, acoes, doc]
 type: use-case

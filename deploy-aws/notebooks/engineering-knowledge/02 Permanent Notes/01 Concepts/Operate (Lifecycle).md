@@ -1,5 +1,5 @@
 ---
-title: Operate (Lifecycle)
+name: Operate (Lifecycle)
 aliases:
   - Operate
   - Operação

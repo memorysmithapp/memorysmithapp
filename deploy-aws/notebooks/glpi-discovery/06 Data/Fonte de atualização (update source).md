@@ -1,5 +1,5 @@
 ---
-title: Fonte de atualização (update source)
+name: Fonte de atualização (update source)
 aliases: [Update source, Fonte de atualização]
 tags: [campos-comuns, inventario, dropdown, data]
 type: field

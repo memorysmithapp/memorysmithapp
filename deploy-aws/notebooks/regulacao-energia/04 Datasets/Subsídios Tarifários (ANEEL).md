@@ -1,5 +1,5 @@
 ---
-title: Subsídios Tarifários (ANEEL)
+name: Subsídios Tarifários (ANEEL)
 aliases:
   - subsidios-tarifarios
 tags:

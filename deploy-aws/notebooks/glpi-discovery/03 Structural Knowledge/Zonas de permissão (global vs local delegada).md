@@ -1,5 +1,5 @@
 ---
-title: Zonas de permissão (global vs local delegada)
+name: Zonas de permissão (global vs local delegada)
 aliases: [Permissions zones, Zonas de permissão, Global vs local]
 tags: [perfis, permissoes, entidades, delegacao, governanca]
 type: concept

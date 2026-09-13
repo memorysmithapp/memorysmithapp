@@ -1,5 +1,5 @@
 ---
-title: Search Syntax (Obsidian)
+name: Search Syntax (Obsidian)
 aliases:
   - Search Query
   - Sintaxe de Busca

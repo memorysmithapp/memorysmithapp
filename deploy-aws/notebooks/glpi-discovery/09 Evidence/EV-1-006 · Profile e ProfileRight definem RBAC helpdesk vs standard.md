@@ -1,5 +1,5 @@
 ---
-title: EV-1-006 · Profile e ProfileRight definem RBAC helpdesk vs standard
+name: EV-1-006 · Profile e ProfileRight definem RBAC helpdesk vs standard
 aliases: [EV-1-006]
 tags: [evidence, dominio/foundation, seguranca, perfis]
 type: evidence

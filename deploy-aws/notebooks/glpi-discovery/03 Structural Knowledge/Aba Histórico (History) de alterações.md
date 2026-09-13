@@ -1,5 +1,5 @@
 ---
-title: Aba Histórico (History) de alterações
+name: Aba Histórico (History) de alterações
 aliases: [aba History, History tab, histórico, historical]
 tags: [tabs, history, auditoria, ui]
 type: component

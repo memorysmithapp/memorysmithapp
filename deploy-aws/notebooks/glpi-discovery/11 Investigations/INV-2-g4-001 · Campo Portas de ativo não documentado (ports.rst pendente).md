@@ -1,5 +1,5 @@
 ---
-title: INV-2-g4-001 · Campo Portas de ativo não documentado (ports.rst pendente)
+name: INV-2-g4-001 · Campo Portas de ativo não documentado (ports.rst pendente)
 aliases: [INV-2-g4-001]
 tags: [investigation, consumidor/cad, campos-comuns, portas, lacuna-doc]
 type: investigation

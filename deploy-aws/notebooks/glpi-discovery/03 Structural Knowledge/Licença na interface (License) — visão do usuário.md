@@ -1,5 +1,5 @@
 ---
-title: Licença na interface (License) — visão do usuário
+name: Licença na interface (License) — visão do usuário
 aliases: [License, Licença, SoftwareLicense]
 tags: [concept, management, license, software, doc]
 type: concept

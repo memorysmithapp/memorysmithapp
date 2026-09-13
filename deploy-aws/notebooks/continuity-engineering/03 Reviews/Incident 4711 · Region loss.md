@@ -1,5 +1,5 @@
 ---
-title: Incident #4711
+name: Incident #4711
 aliases: []
 tags: [review, incident]
 type: review
@@ -16,19 +16,17 @@ exercised_at: 2026-03-07
 
 # What the incident measured
 
-This page has **no addressable title**, and it says so where somebody would
-otherwise waste an afternoon.
+This page has **no name**, and it says so where somebody would otherwise
+waste an afternoon.
 
-Its `title:` is `Incident #4711`, and a title carrying `#`, `[`, `]` or `|` —
-the four characters that delimit the form a link is written in — cannot be
-named by a link. The note exists, it renders, it is searchable, it links
-outward, and no `[[…]]` can reach it. A stated title also **ends the chain**:
-the heading above is not read as a fallback, because a heading is where a
-title comes from when the frontmatter states none, not a repair for one the
-author wrote.
+Its `name:` is `Incident #4711`, and a name carrying `#`, `[`, `]` or `|` —
+the four characters that delimit the form a link is written in — is no name.
+The note exists, it renders, it is searchable, it links outward, and no
+`[[…]]` can reach it. The heading above does not step in either: a heading is
+only content, and it never names the note it is in.
 
 > [!warning] Write the number without the hash
-> `Incident 4711` would be an ordinary title. So would `Reunião 03/09/2026`:
+> `Incident 4711` would be an ordinary name. So would `Reunião 03/09/2026`:
 > a slash is not one of the four, because folders play no part in identity.
 
 ## Timeline

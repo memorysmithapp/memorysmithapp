@@ -1,5 +1,5 @@
 ---
-title: EV-2-g2-007 · Aba External links (links externos do item)
+name: EV-2-g2-007 · Aba External links (links externos do item)
 aliases: [EV-2-g2-007]
 tags: [evidence, tabs, external-links]
 type: evidence

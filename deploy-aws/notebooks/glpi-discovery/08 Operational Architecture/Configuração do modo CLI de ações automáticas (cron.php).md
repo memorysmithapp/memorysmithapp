@@ -1,5 +1,5 @@
 ---
-title: Configuração do modo CLI de ações automáticas (cron.php)
+name: Configuração do modo CLI de ações automáticas (cron.php)
 aliases: [CLI cron mode, cron.php]
 tags: [operacao, crontask, cli, cron, agendador, cron.php]
 type: infra

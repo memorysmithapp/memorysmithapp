@@ -65,12 +65,12 @@ export function folderDescription(value: string): FolderDescription {
 }
 
 /**
- * A note whose content states its title, which is the only place a title comes
- * from now (RN-KNW-035). The fixtures take a title and write the note that
- * says it, so a test that cares about a title still reads as one.
+ * A note whose content states its name, which is the only place a name comes
+ * from now (RN-KNW-035). The fixtures take a name and write the note that
+ * says it, so a test that cares about a name still reads as one.
  */
-export function noteBody(title: string): string {
-  return `# ${title}\n\nThe general rule.\n`;
+export function noteBody(name: string): string {
+  return `---\nname: ${name}\n---\n\nThe general rule.\n`;
 }
 
 export function newNotebook(name = 'Normas e Legislacao'): Notebook {
@@ -112,7 +112,7 @@ export function notebookWithTree(): {
 export function newNote(
   notebook: Notebook,
   folderId: FolderId,
-  title = 'Lei 14.133',
+  name = 'Lei 14.133',
   siblings: NoteOrder[] = [],
 ): Note {
   return unwrap(
@@ -121,7 +121,7 @@ export function newNote(
       subscriptionId: notebook.subscriptionId,
       notebookId: notebook.id,
       folderId,
-      body: noteBody(title),
+      body: noteBody(name),
       position: NotePlacement.append(siblings),
       bodyRef: contentRef(),
       by: authorship(),

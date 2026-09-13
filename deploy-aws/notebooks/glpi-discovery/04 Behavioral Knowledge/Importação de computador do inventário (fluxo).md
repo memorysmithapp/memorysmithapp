@@ -1,5 +1,5 @@
 ---
-title: Importação de computador do inventário (fluxo)
+name: Importação de computador do inventário (fluxo)
 aliases: [Import computer flow, Fluxo de importação de computador]
 tags: [inventario, importacao, entidade, regras, fluxo, doc]
 type: flow

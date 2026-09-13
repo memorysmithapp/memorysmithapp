@@ -1,5 +1,5 @@
 ---
-title: Comunidade e Ecossistema do GLPI
+name: Comunidade e Ecossistema do GLPI
 aliases: [Comunidade GLPI, Ecossistema GLPI, Plugin catalog]
 tags: [overview, community, plugins, partners, forum]
 type: overview

@@ -1,5 +1,5 @@
 ---
-title: Repositório Público GitLab ANEEL
+name: Repositório Público GitLab ANEEL
 aliases:
   - git.aneel.gov.br
   - GitLab ANEEL

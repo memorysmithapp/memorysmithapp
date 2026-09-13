@@ -1,5 +1,5 @@
 ---
-title: EV-2-f1-011 · Sistema — logging, CLI, proxy, manutenção, info
+name: EV-2-f1-011 · Sistema — logging, CLI, proxy, manutenção, info
 aliases: [EV-2-f1-011]
 tags: [evidence, sistema, proxy, manutencao, logging, configuracao-geral]
 type: evidence

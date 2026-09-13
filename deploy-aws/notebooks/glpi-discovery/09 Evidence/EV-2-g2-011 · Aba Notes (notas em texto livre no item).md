@@ -1,5 +1,5 @@
 ---
-title: EV-2-g2-011 · Aba Notes (notas em texto livre no item)
+name: EV-2-g2-011 · Aba Notes (notas em texto livre no item)
 aliases: [EV-2-g2-011]
 tags: [evidence, tabs, notes, notas]
 type: evidence

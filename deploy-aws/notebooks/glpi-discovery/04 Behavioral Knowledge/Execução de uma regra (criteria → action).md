@@ -1,5 +1,5 @@
 ---
-title: Execução de uma regra (criteria → action)
+name: Execução de uma regra (criteria → action)
 aliases: [Rule execution, matching de regra]
 tags: [flow, motor-de-regras, dominio/admin]
 type: flow

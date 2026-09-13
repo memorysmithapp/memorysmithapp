@@ -1,5 +1,5 @@
 ---
-title: Data Pipeline
+name: Data Pipeline
 aliases:
   - Pipeline de Dados
   - Data Pipelines

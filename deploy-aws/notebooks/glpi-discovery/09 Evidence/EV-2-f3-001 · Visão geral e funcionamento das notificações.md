@@ -1,5 +1,5 @@
 ---
-title: EV-2-f3-001 · Visão geral e funcionamento das notificações
+name: EV-2-f3-001 · Visão geral e funcionamento das notificações
 aliases: [EV-2-f3-001]
 tags: [evidence, notificacao, notification, fila, queue]
 type: evidence

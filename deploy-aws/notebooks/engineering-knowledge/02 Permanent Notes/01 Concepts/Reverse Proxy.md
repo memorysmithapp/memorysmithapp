@@ -1,5 +1,5 @@
 ---
-title: Reverse Proxy
+name: Reverse Proxy
 aliases:
   - Proxy Reverso
 tags:

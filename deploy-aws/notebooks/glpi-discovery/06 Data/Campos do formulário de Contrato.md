@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Contrato
+name: Campos do formulário de Contrato
 aliases: [Contract fields]
 tags: [data, management, contract, fields, doc]
 type: table

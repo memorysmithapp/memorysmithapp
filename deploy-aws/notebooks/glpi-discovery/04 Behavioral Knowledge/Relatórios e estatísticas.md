@@ -1,5 +1,5 @@
 ---
-title: Relatórios e estatísticas
+name: Relatórios e estatísticas
 aliases: [Report, Statistics, Relatório, Estatísticas]
 tags: [report, statistics, reporting, glossary]
 type: capability

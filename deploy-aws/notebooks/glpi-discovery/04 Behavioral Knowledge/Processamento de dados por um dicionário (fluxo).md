@@ -1,5 +1,5 @@
 ---
-title: Processamento de dados por um dicionário (fluxo)
+name: Processamento de dados por um dicionário (fluxo)
 aliases: [Dictionary processing, Fluxo de dicionário]
 tags: [dicionarios, regras, fluxo, doc]
 type: flow

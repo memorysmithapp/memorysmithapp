@@ -1,5 +1,5 @@
 ---
-title: Tema 1279 · Modulação de efeitos
+name: Tema 1279 · Modulação de efeitos
 aliases: []
 tags: [acordao, modulacao]
 type: acordao

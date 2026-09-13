@@ -1,5 +1,5 @@
 ---
-title: Tema 69 · ICMS na base de PIS e Cofins
+name: Tema 69 · ICMS na base de PIS e Cofins
 aliases: [Tese do século]
 tags: [acordao, pis-cofins]
 type: acordao

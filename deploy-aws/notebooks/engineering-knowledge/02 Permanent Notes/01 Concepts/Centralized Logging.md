@@ -1,5 +1,5 @@
 ---
-title: Centralized Logging
+name: Centralized Logging
 aliases:
   - Logging Centralizado
   - Pipeline de Logs

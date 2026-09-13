@@ -1,5 +1,5 @@
 ---
-title: Availability
+name: Availability
 aliases:
   - Disponibilidade
 tags:

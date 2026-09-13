@@ -1,5 +1,5 @@
 ---
-title: <Nome canônico do conceito>
+name: <Nome canônico do conceito>
 aliases: []
 tags: []
 type: concept

@@ -55,7 +55,7 @@ const notebook: ExportInput = {
       position: 'a0',
       createdAt: '2026-01-12T10:00:00.000Z',
       updatedAt: '2026-02-19T08:30:00.000Z',
-      content: '---\ntitle: Lei 14.133\n---\n\n# A geral\n\nArt. 75.',
+      content: '---\nname: Lei 14.133\n---\n\n# A geral\n\nArt. 75.',
     },
     {
       noteId: 'n2',
@@ -107,13 +107,13 @@ describe('the document carries the notebook whole', () => {
 
   it('never rewrites a link, because the body is copied and not processed', () => {
     // Rewriting destinations was correct while a link addressed a file, and it
-    // is corruption now that it addresses a title (RN-PRT-004).
+    // is corruption now that it addresses a name (RN-PRT-004).
     expect(document.notes[1]?.body).toContain('[[Lei 14.133]]');
   });
 
-  it('stores nothing derived: no title, no slug, no file name', () => {
-    // RN-PRT-010. The title of `n1` is stated in its frontmatter and differs
-    // from its heading, which is exactly the case a stored title would get
+  it('stores nothing derived: no name, no slug, no file name', () => {
+    // RN-PRT-010. The name of `n1` is stated in its frontmatter and differs
+    // from its heading, which is exactly the case a stored name would get
     // wrong the moment somebody edited one of the two.
     const serialised = JSON.stringify(document);
     for (const note of document.notes) {
@@ -126,7 +126,8 @@ describe('the document carries the notebook whole', () => {
         'updatedAt',
       ]);
     }
-    expect(serialised).not.toContain('"title"');
+    // The notebook and its folders carry the names they were given; what a
+    // note is called stays inside its body, which the keys above already prove.
     expect(serialised).not.toContain('"slug"');
     expect(serialised).not.toContain('.md');
   });

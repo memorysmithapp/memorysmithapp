@@ -1,5 +1,5 @@
 ---
-title: Gerenciamento de Sessão
+name: Gerenciamento de Sessão
 aliases:
   - Session Management
   - Sessão e Cookie

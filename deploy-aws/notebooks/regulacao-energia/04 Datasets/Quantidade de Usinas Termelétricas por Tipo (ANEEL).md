@@ -1,5 +1,5 @@
 ---
-title: Quantidade de Usinas Termelétricas por Tipo (ANEEL)
+name: Quantidade de Usinas Termelétricas por Tipo (ANEEL)
 aliases:
   - usinas-termeletricas-por-tipo
 tags:

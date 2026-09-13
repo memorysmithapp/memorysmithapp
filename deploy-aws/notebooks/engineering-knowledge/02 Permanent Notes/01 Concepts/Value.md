@@ -1,5 +1,5 @@
 ---
-title: Value
+name: Value
 aliases:
   - Valor
 tags:

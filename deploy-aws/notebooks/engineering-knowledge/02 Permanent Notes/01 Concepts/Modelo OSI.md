@@ -1,5 +1,5 @@
 ---
-title: Modelo OSI
+name: Modelo OSI
 aliases:
   - OSI Model
   - OSI

@@ -1,5 +1,5 @@
 ---
-title: EV-2-g2-006 · Aba Documents (documentos anexados ao item)
+name: EV-2-g2-006 · Aba Documents (documentos anexados ao item)
 aliases: [EV-2-g2-006]
 tags: [evidence, tabs, documents]
 type: evidence

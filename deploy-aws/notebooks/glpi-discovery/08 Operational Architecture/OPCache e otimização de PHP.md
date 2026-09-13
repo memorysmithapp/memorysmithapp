@@ -1,5 +1,5 @@
 ---
-title: OPCache e otimização de PHP
+name: OPCache e otimização de PHP
 aliases: [OPCache, opcache blacklist]
 tags: [opcache, php, performance, operacional, pdf, fontes]
 type: infra

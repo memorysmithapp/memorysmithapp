@@ -1,5 +1,5 @@
 ---
-title: Tipo de gestão (unitária vs global)
+name: Tipo de gestão (unitária vs global)
 aliases: [Management type, Tipo de gestão, Gestão unitária, Gestão global]
 tags: [campos-comuns, gestao, perifericos, data]
 type: field

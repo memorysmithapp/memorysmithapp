@@ -1,5 +1,5 @@
 ---
-title: Configuration Folder
+name: Configuration Folder
 aliases:
   - .obsidian
   - Pasta de Configuração

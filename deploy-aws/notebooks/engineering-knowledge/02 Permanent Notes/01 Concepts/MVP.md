@@ -1,5 +1,5 @@
 ---
-title: MVP
+name: MVP
 type: concept
 tags:
   - lean-startup

@@ -1,5 +1,5 @@
 ---
-title: Daily Note
+name: Daily Note
 aliases:
   - Nota Diária
   - Daily Notes

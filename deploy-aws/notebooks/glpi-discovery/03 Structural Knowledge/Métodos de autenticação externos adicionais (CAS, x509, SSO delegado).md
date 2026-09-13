@@ -1,5 +1,5 @@
 ---
-title: Métodos de autenticação externos adicionais (CAS, x509, SSO delegado)
+name: Métodos de autenticação externos adicionais (CAS, x509, SSO delegado)
 aliases: [CAS, x509, SSO, LemonLDAP, Shibboleth, Single Sign-On]
 tags: [authentication, cas, x509, sso, single-sign-on]
 type: component

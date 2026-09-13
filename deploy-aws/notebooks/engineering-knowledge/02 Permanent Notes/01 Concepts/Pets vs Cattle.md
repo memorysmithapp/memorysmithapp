@@ -1,5 +1,5 @@
 ---
-title: Pets vs Cattle
+name: Pets vs Cattle
 aliases:
   - Pets e Cattle
   - Bichos de Estimação e Gado

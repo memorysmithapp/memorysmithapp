@@ -1,5 +1,5 @@
 ---
-title: Mastering OpenStack 05
+name: Mastering OpenStack 05
 aliases:
   - "Capítulo 5: OpenStack Storage – Block, Object, and File Shares"
 tags:

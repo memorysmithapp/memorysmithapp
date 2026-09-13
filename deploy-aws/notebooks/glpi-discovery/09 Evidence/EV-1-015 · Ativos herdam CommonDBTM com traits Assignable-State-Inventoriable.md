@@ -1,5 +1,5 @@
 ---
-title: EV-1-015 · Ativos herdam CommonDBTM com traits Assignable/State/Inventoriable
+name: EV-1-015 · Ativos herdam CommonDBTM com traits Assignable/State/Inventoriable
 aliases: [EV-1-015]
 tags: [evidence, dominio/ativos, cmdb]
 type: evidence

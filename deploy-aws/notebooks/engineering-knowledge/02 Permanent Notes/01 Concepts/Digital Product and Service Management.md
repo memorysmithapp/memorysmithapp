@@ -1,5 +1,5 @@
 ---
-title: Digital Product and Service Management
+name: Digital Product and Service Management
 aliases:
   - DPSM
   - Gestão de Produtos e Serviços Digitais

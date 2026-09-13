@@ -1,5 +1,5 @@
 ---
-title: Aba Antivírus (ativos)
+name: Aba Antivírus (ativos)
 aliases: [Antivirus tab, Aba Antivirus]
 tags: [assets, tab, antivirus, computer, inventory]
 type: component

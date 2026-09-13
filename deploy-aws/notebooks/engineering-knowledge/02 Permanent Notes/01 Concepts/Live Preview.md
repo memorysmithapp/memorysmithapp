@@ -1,5 +1,5 @@
 ---
-title: Live Preview
+name: Live Preview
 aliases:
   - Reading View
   - Source Mode

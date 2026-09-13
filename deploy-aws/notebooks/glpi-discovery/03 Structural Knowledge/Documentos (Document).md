@@ -1,5 +1,5 @@
 ---
-title: Documentos (Document)
+name: Documentos (Document)
 aliases: [Document, Documento, anexos]
 tags: [component, documento, dominio/gestao]
 type: component

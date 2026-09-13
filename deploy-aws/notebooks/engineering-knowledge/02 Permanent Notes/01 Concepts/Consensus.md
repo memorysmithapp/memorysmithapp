@@ -1,5 +1,5 @@
 ---
-title: Consensus
+name: Consensus
 aliases:
   - Consenso
   - Raft

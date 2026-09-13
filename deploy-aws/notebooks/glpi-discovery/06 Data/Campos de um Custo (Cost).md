@@ -1,5 +1,5 @@
 ---
-title: Campos de um Custo (Cost)
+name: Campos de um Custo (Cost)
 aliases: [Cost fields, Campos de custo]
 tags: [data, cost, budget, finance, fields]
 type: entity

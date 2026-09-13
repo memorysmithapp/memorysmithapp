@@ -1,5 +1,5 @@
 ---
-title: EV-2-g3-014 · Aba Custos (Cost)
+name: EV-2-g3-014 · Aba Custos (Cost)
 aliases: [EV-2-g3-014]
 tags: [evidence, tab, cost, budget, finance]
 type: evidence

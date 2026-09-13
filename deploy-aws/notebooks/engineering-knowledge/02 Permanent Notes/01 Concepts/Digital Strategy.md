@@ -1,5 +1,5 @@
 ---
-title: Digital Strategy
+name: Digital Strategy
 aliases:
   - Estratégia Digital
 tags:

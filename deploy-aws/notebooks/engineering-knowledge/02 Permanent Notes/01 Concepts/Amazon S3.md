@@ -1,5 +1,5 @@
 ---
-title: Amazon S3
+name: Amazon S3
 aliases:
   - S3
   - Simple Storage Service

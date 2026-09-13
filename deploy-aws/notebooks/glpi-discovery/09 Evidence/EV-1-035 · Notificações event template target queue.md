@@ -1,5 +1,5 @@
 ---
-title: EV-1-035 · Notificações — event/template/target/queue
+name: EV-1-035 · Notificações — event/template/target/queue
 aliases: [EV-1-035]
 tags: [evidence, dominio/integracoes, notificacoes]
 type: evidence

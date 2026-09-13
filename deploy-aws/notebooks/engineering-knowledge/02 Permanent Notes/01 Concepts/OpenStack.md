@@ -1,5 +1,5 @@
 ---
-title: OpenStack
+name: OpenStack
 aliases:
   - OpenStack Cloud
   - Cloud Operating System

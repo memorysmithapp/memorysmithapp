@@ -1,5 +1,5 @@
 ---
-title: Tarifa Social de Energia Elétrica - Beneficiários (descontinuado)
+name: Tarifa Social de Energia Elétrica - Beneficiários (descontinuado)
 aliases:
   - tarifa-social-de-energia-eletrica-beneficiarios
 tags:

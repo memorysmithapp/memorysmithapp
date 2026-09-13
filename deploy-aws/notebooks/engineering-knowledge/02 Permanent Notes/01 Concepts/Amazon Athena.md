@@ -1,5 +1,5 @@
 ---
-title: Amazon Athena
+name: Amazon Athena
 aliases:
   - Athena
 tags:

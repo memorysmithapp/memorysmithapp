@@ -1,5 +1,5 @@
 ---
-title: Kombucha de hibisco
+name: Kombucha de hibisco
 aliases: []
 tags: [receita, kombucha]
 type: receita

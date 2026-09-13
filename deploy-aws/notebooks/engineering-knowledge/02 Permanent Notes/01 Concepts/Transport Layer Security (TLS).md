@@ -1,5 +1,5 @@
 ---
-title: Transport Layer Security (TLS)
+name: Transport Layer Security (TLS)
 aliases:
   - TLS
   - SSL

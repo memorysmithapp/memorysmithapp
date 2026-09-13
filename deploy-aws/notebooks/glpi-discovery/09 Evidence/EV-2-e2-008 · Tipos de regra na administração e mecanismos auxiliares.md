@@ -1,5 +1,5 @@
 ---
-title: EV-2-e2-008 · Tipos de regra na administração e mecanismos auxiliares
+name: EV-2-e2-008 · Tipos de regra na administração e mecanismos auxiliares
 aliases: [EV-2-e2-008]
 tags: [evidence, regras, tipos, blacklist, transfer, doc]
 type: evidence

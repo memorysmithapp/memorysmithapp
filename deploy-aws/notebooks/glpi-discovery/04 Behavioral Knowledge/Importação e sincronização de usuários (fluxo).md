@@ -1,5 +1,5 @@
 ---
-title: Importação e sincronização de usuários (fluxo)
+name: Importação e sincronização de usuários (fluxo)
 aliases: [Import users, Importar usuários, LDAP user import]
 tags: [usuarios, importacao, ldap, sincronizacao, fluxo, entidades]
 type: flow

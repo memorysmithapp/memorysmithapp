@@ -1,5 +1,5 @@
 ---
-title:
+name:
 aliases: []
 tags: [objective, continuity]
 type: objective

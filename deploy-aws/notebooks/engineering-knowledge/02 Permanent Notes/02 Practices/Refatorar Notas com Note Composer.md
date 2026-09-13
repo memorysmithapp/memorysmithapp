@@ -1,5 +1,5 @@
 ---
-title: Refatorar Notas com Note Composer
+name: Refatorar Notas com Note Composer
 aliases:
   - Note Composer
   - Refatorar Notas

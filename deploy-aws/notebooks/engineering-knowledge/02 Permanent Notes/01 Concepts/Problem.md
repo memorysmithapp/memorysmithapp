@@ -1,5 +1,5 @@
 ---
-title: Problem
+name: Problem
 aliases:
   - Problema
 tags:

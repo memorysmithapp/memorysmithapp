@@ -1,5 +1,5 @@
 ---
-title: Campos da ficha de Usuário
+name: Campos da ficha de Usuário
 aliases: [User fields, Campos do usuário]
 tags: [usuarios, campos, dados, formulario, ldap]
 type: table

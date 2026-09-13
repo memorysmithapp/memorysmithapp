@@ -1,5 +1,5 @@
 ---
-title: Campos de um Projeto e de uma Tarefa de Projeto
+name: Campos de um Projeto e de uma Tarefa de Projeto
 aliases: [Project fields, Project task fields, Campos de projeto]
 tags: [data, projects, tasks, fields]
 type: entity

@@ -59,8 +59,8 @@ export function NotePage({ noteId }: { noteId: string }) {
   if (isError || !data) return <p className="status">{t('common.notFound')}</p>;
 
   // The reserved keys first, in the order of the specification, then what the
-  // notebook invented, in the order the note wrote it (RN-DSC-051). `title` is
-  // drawn above as the title of the note and never as a property.
+  // notebook invented, in the order the note wrote it (RN-DSC-051). `name` is
+  // drawn above as the name of the note and never as a property.
   const properties = orderedProperties(
     Object.entries(data.frontmatter).filter(([, value]) => value !== ''),
   );
@@ -74,22 +74,19 @@ export function NotePage({ noteId }: { noteId: string }) {
             items={[
               { label: t('structure.root'), to: `/notebooks/${notebookSlug}/root` },
               ...folderCrumbs(notebookSlug, folderTrailForNote(structure.folders, noteId)),
-              { label: data.title ?? t('note.untitled') },
+              { label: data.name ?? t('note.unnamed') },
             ]}
           />
           {/**
-           * The title is drawn EXACTLY ONCE, and it is whatever the chain read
-           * (RN-DSC-054). When the frontmatter stated it, the frame draws it
-           * and a heading in the body is an ordinary heading of the note; when
-           * the heading is what the chain read, the body is already drawing it
-           * and the frame draws nothing; and when there is none, the frame
-           * says so where the title would be (RN-KNW-036).
+           * The frame draws the name of the note, ALWAYS, and every heading of
+           * the body is an ordinary heading of the note, always (RN-DSC-054).
+           * A heading never names a note, so there is nothing to decide here:
+           * when the frontmatter states no name, the frame says so where the
+           * name would be (RN-KNW-036).
            */}
-          {data.titleFrom !== 'heading' && (
-            <h1 className={data.title === null ? 'note-untitled' : undefined}>
-              {data.title ?? t('note.untitled')}
-            </h1>
-          )}
+          <h1 className={data.name === null ? 'note-unnamed' : undefined}>
+            {data.name ?? t('note.unnamed')}
+          </h1>
         </div>
         <button
           type="button"

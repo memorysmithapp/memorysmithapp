@@ -1,5 +1,5 @@
 ---
-title: SAMP - Sistema de Acompanhamento de Informações de Mercado (ANEEL)
+name: SAMP - Sistema de Acompanhamento de Informações de Mercado (ANEEL)
 aliases:
   - samp
 tags:

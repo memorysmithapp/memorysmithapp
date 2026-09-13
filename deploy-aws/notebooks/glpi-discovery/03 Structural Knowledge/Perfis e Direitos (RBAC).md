@@ -1,5 +1,5 @@
 ---
-title: Perfis e Direitos (RBAC)
+name: Perfis e Direitos (RBAC)
 aliases: [Perfis, Direitos, RBAC, Profile, ProfileRight]
 tags: [concept, seguranca, dominio/foundation]
 type: concept

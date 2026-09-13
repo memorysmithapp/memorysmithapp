@@ -1,5 +1,5 @@
 ---
-title: Override de Locales e Traduções (gettext)
+name: Override de Locales e Traduções (gettext)
 aliases: [override locales, traduções customizadas, gettext, _locales]
 tags: [i18n, locales, traducoes, gettext, operacional, personalizacao]
 type: process

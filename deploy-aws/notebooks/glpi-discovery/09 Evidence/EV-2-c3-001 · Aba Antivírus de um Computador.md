@@ -1,5 +1,5 @@
 ---
-title: EV-2-c3-001 · Aba Antivírus de um Computador
+name: EV-2-c3-001 · Aba Antivírus de um Computador
 aliases: [EV-2-c3-001]
 tags: [evidence, doc, assets, antivirus, computer]
 type: evidence

@@ -1,5 +1,5 @@
 ---
-title: Cadastro de Agentes do Setor Elétrico (ANEEL)
+name: Cadastro de Agentes do Setor Elétrico (ANEEL)
 aliases:
   - agentes-do-setor-eletrico
 tags:

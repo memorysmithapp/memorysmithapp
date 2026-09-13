@@ -1,5 +1,5 @@
 ---
-title: Hybrid Cloud
+name: Hybrid Cloud
 aliases:
   - Nuvem Híbrida
 tags:

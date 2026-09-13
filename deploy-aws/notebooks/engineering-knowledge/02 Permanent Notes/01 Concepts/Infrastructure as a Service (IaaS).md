@@ -1,5 +1,5 @@
 ---
-title: Infrastructure as a Service (IaaS)
+name: Infrastructure as a Service (IaaS)
 aliases:
   - IaaS
   - Infraestrutura como Serviço

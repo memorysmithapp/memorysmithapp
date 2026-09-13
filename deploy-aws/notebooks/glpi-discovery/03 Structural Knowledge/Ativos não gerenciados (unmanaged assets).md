@@ -1,5 +1,5 @@
 ---
-title: Ativos não gerenciados (unmanaged assets)
+name: Ativos não gerenciados (unmanaged assets)
 aliases: [Unmanaged assets, Equipamentos não gerenciados]
 tags: [assets, unmanaged, network-discovery, structural]
 type: concept

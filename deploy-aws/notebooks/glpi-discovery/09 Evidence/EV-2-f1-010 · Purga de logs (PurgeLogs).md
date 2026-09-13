@@ -1,5 +1,5 @@
 ---
-title: EV-2-f1-010 · Purga de logs (PurgeLogs)
+name: EV-2-f1-010 · Purga de logs (PurgeLogs)
 aliases: [EV-2-f1-010]
 tags: [evidence, logs, purga, crontask, configuracao-geral]
 type: evidence

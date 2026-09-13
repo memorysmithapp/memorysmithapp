@@ -4,9 +4,9 @@
  * specification declares - no field name, no notebook convention - because what a
  * convention means belongs to the guidance, never to the backend (PP4).
  *
- * **A target is a title, and the two forms reach it differently.** A wikilink
+ * **A target is a name, and the two forms reach it differently.** A wikilink
  * target is LITERAL: nothing in it is decoded, no extension is removed and no
- * path segment is discarded, because a title is what the author typed
+ * path segment is discarded, because a name is what the author typed
  * (RN-DSC-043). The three tolerances - discarding the path, dropping a
  * trailing `.md`, percent-decoding - belong to the Markdown form alone, and
  * their order is fixed by the specification: split at the first unencoded `#`,
@@ -18,13 +18,13 @@
  * path rule. Delimiters first, decode after, compare last.
  *
  * What this reader does NOT do is resolve. It says what a note points at; what
- * a note answers to is the title chain and the aliases, and putting the two
+ * a note answers to is its name and its aliases, and putting the two
  * together is `resolveTargets` (LinkResolver.ts).
  */
 
 export interface ExtractedLink {
-  /** The title the author addressed, literal and normalised to NFC. */
-  readonly title: string;
+  /** The name the author addressed, literal and normalised to NFC. */
+  readonly name: string;
   /** The anchor, kept for display and dropped from resolution (RN-DSC-002). */
   readonly anchor: string | null;
   /** What the author actually typed, for the health report. */
@@ -73,14 +73,14 @@ function percentDecode(value: string): string {
 }
 
 /**
- * A title is compared after NFC and folded in no other way (RN-DSC-041), and
+ * A name is compared after NFC and folded in no other way (RN-DSC-041), and
  * `raw` is what the author typed — the health report shows a target as it was
  * written, not as it was read.
  */
-function asTitle(value: string, anchor: string | null, raw: string): ExtractedLink | null {
-  const title = value.trim().normalize('NFC');
-  if (title.length === 0) return null;
-  return { title, anchor: anchor === null ? null : anchor.trim().normalize('NFC'), raw };
+function asName(value: string, anchor: string | null, raw: string): ExtractedLink | null {
+  const name = value.trim().normalize('NFC');
+  if (name.length === 0) return null;
+  return { name, anchor: anchor === null ? null : anchor.trim().normalize('NFC'), raw };
 }
 
 /** The wikilink form: the target is what was typed, and nothing touches it. */
@@ -89,7 +89,7 @@ function fromWikilink(target: string): ExtractedLink | null {
   // from there ends at the backslash its author had to write.
   const written = target.replace(/\\$/, '');
   const { path, anchor } = splitAnchor(written);
-  return asTitle(path, anchor, target);
+  return asName(path, anchor, target);
 }
 
 /** The Markdown form: the three tolerances, in the order the specification fixes. */
@@ -103,7 +103,7 @@ function fromMarkdownLink(target: string): ExtractedLink | null {
   const { path, anchor } = splitAnchor(trimmed);
   const basename = path.split('/').pop() ?? path;
   const withoutExtension = basename.replace(/\.mdx?$/i, '');
-  return asTitle(
+  return asName(
     percentDecode(withoutExtension),
     anchor === null ? null : percentDecode(anchor),
     target,
@@ -121,7 +121,7 @@ export function extractLinks(markdown: string): ExtractedLink[] {
   const body = stripCodeBlocks(markdown);
   const found = new Map<string, ExtractedLink>();
   const add = (link: ExtractedLink | null): void => {
-    if (link && !found.has(link.title)) found.set(link.title, link);
+    if (link && !found.has(link.name)) found.set(link.name, link);
   };
 
   for (const match of body.matchAll(WIKILINK)) add(fromWikilink(match[1] ?? ''));

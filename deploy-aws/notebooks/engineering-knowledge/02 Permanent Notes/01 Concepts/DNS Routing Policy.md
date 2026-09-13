@@ -1,5 +1,5 @@
 ---
-title: DNS Routing Policy
+name: DNS Routing Policy
 aliases:
   - Política de Roteamento DNS
   - Internet Traffic Routing Policy

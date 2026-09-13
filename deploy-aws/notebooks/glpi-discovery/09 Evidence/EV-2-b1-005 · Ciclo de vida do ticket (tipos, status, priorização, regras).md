@@ -1,5 +1,5 @@
 ---
-title: EV-2-b1-005 · Ciclo de vida do ticket (tipos, status, priorização, regras)
+name: EV-2-b1-005 · Ciclo de vida do ticket (tipos, status, priorização, regras)
 aliases: [EV-2-b1-005]
 tags: [evidence, assistance, ticket, lifecycle, status, priority, itil]
 type: evidence

@@ -1,5 +1,5 @@
 ---
-title: ITIL Product and Service Lifecycle
+name: ITIL Product and Service Lifecycle
 aliases:
   - Product and Service Lifecycle
   - Ciclo de Vida de Produto e Serviço

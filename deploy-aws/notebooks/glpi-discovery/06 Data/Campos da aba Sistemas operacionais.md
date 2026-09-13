@@ -1,5 +1,5 @@
 ---
-title: Campos da aba Sistemas operacionais
+name: Campos da aba Sistemas operacionais
 aliases: [Operating systems tab, Aba OS]
 tags: [assets, data, operating-system, tab]
 type: entity

@@ -1,5 +1,5 @@
 ---
-title: EV-2-g3-012 · Tipo de consumível (consumable type)
+name: EV-2-g3-012 · Tipo de consumível (consumable type)
 aliases: [EV-2-g3-012]
 tags: [evidence, tab, consumable, dropdown, translation]
 type: evidence

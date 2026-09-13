@@ -1,5 +1,5 @@
 ---
-title: Análise de Impacto (ativação por tipo)
+name: Análise de Impacto (ativação por tipo)
 aliases: [Impact analysis config, Análise de impacto]
 tags: [configuracao-geral, analise-de-impacto, operacao]
 type: capability

@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Impressora
+name: Campos do formulário de Impressora
 aliases: [Campos de Impressora, Printer fields]
 tags: [assets, data, printer, snmp, form]
 type: entity

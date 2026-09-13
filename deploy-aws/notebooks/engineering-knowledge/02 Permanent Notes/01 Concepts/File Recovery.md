@@ -1,5 +1,5 @@
 ---
-title: File Recovery
+name: File Recovery
 aliases:
   - Snapshots do Obsidian
   - Recuperação de Arquivos

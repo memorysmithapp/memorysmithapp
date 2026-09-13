@@ -1,5 +1,5 @@
 ---
-title: EV-2-c2-007 · Software, versões e licenças (softwares.rst)
+name: EV-2-c2-007 · Software, versões e licenças (softwares.rst)
 aliases: [EV-2-c2-007]
 tags: [evidence, assets, software, version, license, doc]
 type: evidence

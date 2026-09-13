@@ -1,5 +1,5 @@
 ---
-title: Value Chain
+name: Value Chain
 aliases:
   - Cadeia de Valor
   - ITIL Value Chain

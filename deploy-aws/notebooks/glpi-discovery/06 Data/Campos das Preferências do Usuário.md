@@ -1,5 +1,5 @@
 ---
-title: Campos das Preferências do Usuário
+name: Campos das Preferências do Usuário
 aliases: [User preference fields, Campos de preferências, Personalization fields]
 tags: [data, preferences, fields, personalization, form]
 type: data

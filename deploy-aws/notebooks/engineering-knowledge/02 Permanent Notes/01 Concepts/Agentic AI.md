@@ -1,5 +1,5 @@
 ---
-title: Agentic AI
+name: Agentic AI
 aliases:
   - IA Agêntica
   - AI Agents

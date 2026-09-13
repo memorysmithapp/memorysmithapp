@@ -1,5 +1,5 @@
 ---
-title: Failing over the payments database
+name: Failing over the payments database
 aliases: [Payments failover]
 tags: [runbook, payments]
 type: runbook

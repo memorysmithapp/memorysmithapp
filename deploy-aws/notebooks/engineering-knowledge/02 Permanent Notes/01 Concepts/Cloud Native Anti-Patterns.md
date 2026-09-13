@@ -1,5 +1,5 @@
 ---
-title: Cloud Native Anti-Patterns
+name: Cloud Native Anti-Patterns
 aliases:
   - Anti-Padrões Cloud Native
 tags:

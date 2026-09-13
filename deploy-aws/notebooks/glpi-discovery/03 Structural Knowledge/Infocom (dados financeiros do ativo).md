@@ -1,5 +1,5 @@
 ---
-title: Infocom (dados financeiros do ativo)
+name: Infocom (dados financeiros do ativo)
 aliases: [Infocom, dados financeiros, garantia, depreciação]
 tags: [concept, financeiro, dominio/ativos]
 type: concept

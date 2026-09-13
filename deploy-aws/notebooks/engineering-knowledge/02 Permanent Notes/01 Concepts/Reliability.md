@@ -1,5 +1,5 @@
 ---
-title: Reliability
+name: Reliability
 aliases:
   - Confiabilidade
 tags:

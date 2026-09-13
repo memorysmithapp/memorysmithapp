@@ -1,5 +1,5 @@
 ---
-title: Single Sign-On (SSO)
+name: Single Sign-On (SSO)
 aliases:
   - SSO
   - Login Único

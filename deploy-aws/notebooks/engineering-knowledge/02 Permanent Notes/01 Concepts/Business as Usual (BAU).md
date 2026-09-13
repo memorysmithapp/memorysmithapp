@@ -1,5 +1,5 @@
 ---
-title: Business as Usual (BAU)
+name: Business as Usual (BAU)
 aliases:
   - BAU
   - Operação Corrente

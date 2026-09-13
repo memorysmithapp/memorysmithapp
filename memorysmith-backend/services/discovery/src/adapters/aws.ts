@@ -3,9 +3,9 @@
  * (architecture-guide.md, sections 11.1 and 11.3):
  *
  *   OUT#{from}#{to}         outgoing edge         IN#{to}#{from}   backlink
- *   PENDING#{title}#{from}  link waiting for its target to exist
- *   ALIAS#{title}#{from}#{to}  an edge that exists because an ALIAS matched,
- *                              and that a note carrying that title takes away
+ *   PENDING#{name}#{from}  link waiting for its target to exist
+ *   ALIAS#{name}#{from}#{to}  an edge that exists because an ALIAS matched,
+ *                              and that a note carrying that name takes away
  *   FACET#{noteId}         the portrait of one note
  *   STAT#{facet}#{value}   one counter PER VALUE, never one item per notebook
  *   FDEF#{facet}           inferred kind, distinct count, discarded flag
@@ -163,33 +163,33 @@ export class DynamoLinkGraph implements LinkGraph {
     const writes: Item[] = [];
 
     for (const link of links) {
-      const answer = resolveTarget(link.title, names);
+      const answer = resolveTarget(link.name, names);
       if (answer.kind === 'note') {
-        // Every note whose title matches becomes an edge (RN-DSC-042), so a
+        // Every note whose name matches becomes an edge (RN-DSC-042), so a
         // target carried by two notes writes two.
         for (const targetId of answer.noteIds) {
           if (targetId === note.noteId) continue;
           writes.push(...this.edgeItems(notebookId, note.noteId, targetId));
           // An edge that exists because an ALIAS matched is marked, because a
-          // note written later under that title takes it away (RN-DSC-053).
+          // note written later under that name takes it away (RN-DSC-053).
           if (answer.by === 'alias') {
             writes.push({
               PK: this.pk(notebookId),
-              SK: `ALIAS#${link.title}#${note.noteId}#${targetId}`,
+              SK: `ALIAS#${link.name}#${note.noteId}#${targetId}`,
               entity: 'ALIASEDGE',
               fromNoteId: note.noteId,
               toNoteId: targetId,
-              title: link.title,
+              name: link.name,
             });
           }
         }
       } else if (answer.kind === 'pending') {
         writes.push({
           PK: this.pk(notebookId),
-          SK: `PENDING#${link.title}#${note.noteId}`,
+          SK: `PENDING#${link.name}#${note.noteId}`,
           entity: 'PENDING',
           fromNoteId: note.noteId,
-          title: link.title,
+          name: link.name,
         });
       }
       // An attachment renders and is never an edge (RN-DSC-044).
@@ -222,7 +222,7 @@ export class DynamoLinkGraph implements LinkGraph {
     return notebookNames(
       items.map((item) => ({
         noteId: String(item['noteId']),
-        title: item['title'] === undefined ? null : String(item['title']),
+        name: item['name'] === undefined ? null : String(item['name']),
         aliases: Array.isArray(item['aliases']) ? (item['aliases'] as string[]) : [],
       })),
     );
@@ -235,7 +235,7 @@ export class DynamoLinkGraph implements LinkGraph {
         Key: { PK: this.pk(notebookId), SK: `NOTE#${noteId}` },
       }),
     );
-    const title = noteItem.Item?.['title'] === undefined ? null : String(noteItem.Item['title']);
+    const name = noteItem.Item?.['name'] === undefined ? null : String(noteItem.Item['name']);
 
     const outgoing = await this.query(notebookId, `OUT#${noteId}#`);
     const incoming = await this.query(notebookId, `IN#${noteId}#`);
@@ -248,13 +248,13 @@ export class DynamoLinkGraph implements LinkGraph {
       ...incoming.map((item) => `OUT#${String(item['fromNoteId'])}#${noteId}`),
     ]);
 
-    if (title) {
+    if (name) {
       // The backlinks that pointed here go back to pending (RN-DSC-005) —
-      // unless somebody's alias answers that title, in which case the link
+      // unless somebody's alias answers that name, in which case the link
       // lands there, which is the other half of resolution not being
       // monotonic (RN-DSC-053).
       const names = this.namesOf(await this.query(notebookId, 'NOTE#'));
-      const answer = resolveTarget(title, names);
+      const answer = resolveTarget(name, names);
       const writes: Item[] = [];
 
       for (const item of incoming) {
@@ -264,20 +264,20 @@ export class DynamoLinkGraph implements LinkGraph {
             if (toNoteId === from) continue;
             writes.push(...this.edgeItems(notebookId, from, toNoteId), {
               PK: this.pk(notebookId),
-              SK: `ALIAS#${title}#${from}#${toNoteId}`,
+              SK: `ALIAS#${name}#${from}#${toNoteId}`,
               entity: 'ALIASEDGE',
               fromNoteId: from,
               toNoteId,
-              title,
+              name,
             });
           }
         } else {
           writes.push({
             PK: this.pk(notebookId),
-            SK: `PENDING#${title}#${from}`,
+            SK: `PENDING#${name}#${from}`,
             entity: 'PENDING',
             fromNoteId: from,
-            title,
+            name,
           });
         }
       }
@@ -286,10 +286,10 @@ export class DynamoLinkGraph implements LinkGraph {
   }
 
   async resolvePending(notebookId: string, note: NoteRef): Promise<number> {
-    if (note.title.length > 0) await this.takeBackFromAliases(notebookId, note);
+    if (note.name.length > 0) await this.takeBackFromAliases(notebookId, note);
 
     const waiting =
-      note.title.length === 0 ? [] : await this.query(notebookId, `PENDING#${note.title}#`);
+      note.name.length === 0 ? [] : await this.query(notebookId, `PENDING#${note.name}#`);
     if (waiting.length === 0) return 0;
 
     await this.put(
@@ -322,7 +322,7 @@ export class DynamoLinkGraph implements LinkGraph {
   }
 
   /**
-   * The edges somebody's alias was holding for this title, moved to the note
+   * The edges somebody's alias was holding for this name, moved to the note
    * that owns it (RN-DSC-053).
    *
    * This is the invalidation path resolution stopped being monotonic for: the
@@ -330,7 +330,7 @@ export class DynamoLinkGraph implements LinkGraph {
    * change, so nothing but this rewrites it.
    */
   private async takeBackFromAliases(notebookId: string, note: NoteRef): Promise<void> {
-    const held = await this.query(notebookId, `ALIAS#${note.title}#`);
+    const held = await this.query(notebookId, `ALIAS#${note.name}#`);
     if (held.length === 0) return;
 
     await this.remove(notebookId, [
@@ -361,7 +361,7 @@ export class DynamoLinkGraph implements LinkGraph {
           ? [
               {
                 noteId,
-                title: item['title'] === undefined ? '' : String(item['title']),
+                name: item['name'] === undefined ? '' : String(item['name']),
                 aliases: Array.isArray(item['aliases']) ? (item['aliases'] as string[]) : [],
                 folderId: String(item['folderId']),
               },
@@ -381,7 +381,7 @@ export class DynamoLinkGraph implements LinkGraph {
         String(item['noteId']),
         {
           noteId: String(item['noteId']),
-          title: item['title'] === undefined ? '' : String(item['title']),
+          name: item['name'] === undefined ? '' : String(item['name']),
           aliases: Array.isArray(item['aliases']) ? (item['aliases'] as string[]) : [],
           folderId: String(item['folderId']),
         },
@@ -422,7 +422,7 @@ export class DynamoLinkGraph implements LinkGraph {
       .filter((item): item is Item => item !== undefined)
       .map((item) => ({
         noteId: String(item['noteId']),
-        title: item['title'] === undefined ? '' : String(item['title']),
+        name: item['name'] === undefined ? '' : String(item['name']),
         aliases: Array.isArray(item['aliases']) ? (item['aliases'] as string[]) : [],
         folderId: String(item['folderId']),
       }));
@@ -440,11 +440,11 @@ export class DynamoLinkGraph implements LinkGraph {
           ? {
               fromNote: {
                 noteId: String(from['noteId']),
-                title: from['title'] === undefined ? '' : String(from['title']),
+                name: from['name'] === undefined ? '' : String(from['name']),
                 aliases: Array.isArray(from['aliases']) ? (from['aliases'] as string[]) : [],
                 folderId: String(from['folderId']),
               },
-              targetTitle: String(item['title']),
+              targetName: String(item['name']),
             }
           : null;
       })
@@ -471,7 +471,7 @@ export class DynamoLinkGraph implements LinkGraph {
 
     const nodes: NoteRef[] = kept.map((item) => ({
       noteId: String(item['noteId']),
-      title: item['title'] === undefined ? '' : String(item['title']),
+      name: item['name'] === undefined ? '' : String(item['name']),
       aliases: Array.isArray(item['aliases']) ? (item['aliases'] as string[]) : [],
       folderId: String(item['folderId']),
     }));
@@ -486,10 +486,10 @@ export class DynamoLinkGraph implements LinkGraph {
       if (from !== undefined && to !== undefined) edges.push([from, to]);
     }
 
-    const pending: Array<{ from: number; targetTitle: string }> = [];
+    const pending: Array<{ from: number; targetName: string }> = [];
     for (const item of await this.query(notebookId, 'PENDING#')) {
       const from = indexOf.get(String(item['fromNoteId']));
-      if (from !== undefined) pending.push({ from, targetTitle: String(item['title']) });
+      if (from !== undefined) pending.push({ from, targetName: String(item['name']) });
     }
 
     return { nodes, edges, pending, truncated };
@@ -835,7 +835,7 @@ export class DynamoStructureProjection implements StructureProjection {
 /**
  * The content index over `mv-discovery`, one item per note:
  *
- *   TEXT#{noteId}   the searchable portrait: title, folder, headings, the body
+ *   TEXT#{noteId}   the searchable portrait: name, folder, headings, the body
  *                   normalized for matching and the body as written for the excerpt
  *
  * The whole notebook is read on every search. That is affordable because the
@@ -869,7 +869,7 @@ export class DynamoContentIndex implements ContentIndex {
           SK: `TEXT#${note.noteId}`,
           entity: 'text',
           noteId: note.noteId,
-          title: note.title,
+          name: note.name,
           folderId: note.folderId,
           folderName: note.folderName,
           sections: note.sections,
@@ -912,7 +912,7 @@ export class DynamoContentIndex implements ContentIndex {
       for (const item of (response.Items ?? []) as Item[]) {
         notes.push({
           noteId: String(item['noteId']),
-          title: String(item['title'] ?? ''),
+          name: String(item['name'] ?? ''),
           folderId: String(item['folderId'] ?? ''),
           folderName: String(item['folderName'] ?? ''),
           sections: (item['sections'] as string[]) ?? [],

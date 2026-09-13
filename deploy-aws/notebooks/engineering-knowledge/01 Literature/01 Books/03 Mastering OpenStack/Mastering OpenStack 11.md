@@ -1,5 +1,5 @@
 ---
-title: Mastering OpenStack 11
+name: Mastering OpenStack 11
 aliases:
   - "Capítulo 11: A Hybrid Cloud Hyperscale Use Case – Scaling a Kubernetes Workload"
 tags:

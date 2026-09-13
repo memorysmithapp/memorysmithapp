@@ -1,5 +1,5 @@
 ---
-title: Criação de Skill por Conversa
+name: Criação de Skill por Conversa
 aliases:
   - Custom Skill Authoring
 tags:

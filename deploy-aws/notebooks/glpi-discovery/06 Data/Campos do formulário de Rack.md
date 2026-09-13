@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Rack
+name: Campos do formulário de Rack
 aliases: [Campos Rack]
 tags: [data, fields, rack, dcim, datacenter, assets, doc]
 type: table

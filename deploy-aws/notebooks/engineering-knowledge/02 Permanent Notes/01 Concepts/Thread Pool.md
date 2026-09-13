@@ -1,5 +1,5 @@
 ---
-title: Thread Pool
+name: Thread Pool
 aliases:
   - Pool de Threads
   - Executor

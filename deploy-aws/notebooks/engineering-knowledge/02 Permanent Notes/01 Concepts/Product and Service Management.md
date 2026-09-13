@@ -1,5 +1,5 @@
 ---
-title: Product and Service Management
+name: Product and Service Management
 aliases:
   - Gestão de Produtos e Serviços
 tags:

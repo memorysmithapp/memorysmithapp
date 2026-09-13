@@ -1,5 +1,5 @@
 ---
-title: EV-2-c3-005 · Aba Nome de Rede (Network Name)
+name: EV-2-c3-005 · Aba Nome de Rede (Network Name)
 aliases: [EV-2-c3-005]
 tags: [evidence, doc, assets, network, dns, fqdn, ip]
 type: evidence

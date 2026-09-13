@@ -221,17 +221,17 @@ export function outsideCode(body: string, rewrite: (text: string) => string): st
 
 // Replaces [[wikilinks]] with markdown links. Resolved targets point at the
 // note route; unresolved ones become pending: links styled by the renderer.
-export function resolveWikilinks(body: string, resolve: (title: string) => string | null): string {
+export function resolveWikilinks(body: string, resolve: (name: string) => string | null): string {
   return outsideCode(body, (text) => resolveWikilinksIn(text, resolve));
 }
 
 /**
- * The target of a wikilink is a TITLE, and it is literal: nothing in it is
+ * The target of a wikilink is a NAME, and it is literal: nothing in it is
  * decoded, no extension is removed and no path segment is discarded
  * (RN-DSC-043). It used to be slugified here, which is what made a link differ
  * from its note over an accent or a capital.
  */
-function resolveWikilinksIn(body: string, resolve: (title: string) => string | null): string {
+function resolveWikilinksIn(body: string, resolve: (name: string) => string | null): string {
   return body.replace(WIKILINK, (_all, target: string, label?: string) => {
     const clean = target.split('#')[0]?.trim().replace(/\\$/, '').trim() ?? '';
     const text = displayText(clean, label, target);
@@ -255,23 +255,6 @@ function displayText(clean: string, label: string | undefined, target: string): 
   return (label ?? target).trim();
 }
 
-/**
- * Whether the frontmatter of a body STATES a title, which is the first step of
- * the chain that reads one (§5.3). It decides who draws the title on the note
- * page: the frame when the frontmatter stated it, the body when the heading
- * did (RN-DSC-054).
- *
- * It reads the same shape the backend reads — a `title:` with a value on one
- * line — and nothing else: a list, an empty value or a nested block means the
- * frontmatter stated none, and the heading answered.
- */
-export function statedInFrontmatter(body: string): boolean {
-  if (!body.startsWith('---')) return false;
-  const end = body.indexOf('\n---', 3);
-  if (end === -1) return false;
-  return /^title:[ \t]*\S/m.test(body.slice(4, end));
-}
-
 /** The longest a heading key may be, which is what an anchor is matched on. */
 const MAX_KEY_LENGTH = 80;
 
@@ -280,7 +263,7 @@ const MAX_KEY_LENGTH = 80;
  * section it names inside a note.
  *
  * **It is not the key of a note, and there is no longer one of those.** A link
- * resolves against the title, literally and case-exact (RN-DSC-041), so the
+ * resolves against the name, literally and case-exact (RN-DSC-041), so the
  * slug this file used to compute — the second implementation of a rule the
  * kernel also implemented, and the one that drifted in #73 — is gone. What is
  * left is this: an anchor and a heading are two spellings of the same phrase,

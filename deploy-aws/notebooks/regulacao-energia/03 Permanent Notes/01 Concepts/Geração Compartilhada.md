@@ -1,5 +1,5 @@
 ---
-title: Geração Compartilhada
+name: Geração Compartilhada
 aliases:
   - Geração compartilhada
 tags:

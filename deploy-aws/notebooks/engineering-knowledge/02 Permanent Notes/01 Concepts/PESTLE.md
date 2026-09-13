@@ -1,5 +1,5 @@
 ---
-title: PESTLE
+name: PESTLE
 aliases:
   - PESTLE Analysis
   - Fatores Externos

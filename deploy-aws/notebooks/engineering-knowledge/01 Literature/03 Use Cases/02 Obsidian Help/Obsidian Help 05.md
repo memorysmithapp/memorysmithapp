@@ -1,5 +1,5 @@
 ---
-title: Obsidian Help 05
+name: Obsidian Help 05
 aliases:
   - Obsidian Help — Interface, Workspace e Ergonomia
 tags:

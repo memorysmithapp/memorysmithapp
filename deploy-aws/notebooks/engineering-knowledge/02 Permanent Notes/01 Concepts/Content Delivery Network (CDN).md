@@ -1,5 +1,5 @@
 ---
-title: Content Delivery Network (CDN)
+name: Content Delivery Network (CDN)
 aliases:
   - CDN
   - Rede de Distribuição de Conteúdo

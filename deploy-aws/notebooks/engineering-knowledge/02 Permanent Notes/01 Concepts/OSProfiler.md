@@ -1,5 +1,5 @@
 ---
-title: OSProfiler
+name: OSProfiler
 aliases:
   - OpenStack Profiler
 tags:

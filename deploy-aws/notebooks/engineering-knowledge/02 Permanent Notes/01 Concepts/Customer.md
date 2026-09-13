@@ -1,5 +1,5 @@
 ---
-title: Customer
+name: Customer
 aliases:
   - Cliente
 tags:

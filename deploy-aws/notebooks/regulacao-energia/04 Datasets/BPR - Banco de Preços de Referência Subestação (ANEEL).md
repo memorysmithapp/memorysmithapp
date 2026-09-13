@@ -1,5 +1,5 @@
 ---
-title: BPR - Banco de Preços de Referência: Subestação (ANEEL)
+name: BPR - Banco de Preços de Referência: Subestação (ANEEL)
 aliases:
   - bpr-banco-de-precos-de-referencia-subestacao
 tags:

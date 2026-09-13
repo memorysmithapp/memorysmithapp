@@ -1,5 +1,5 @@
 ---
-title: Quadro Kanban
+name: Quadro Kanban
 aliases: [Kanban, ITIL Kanban, Project Kanban, Task board]
 tags: [kanban, board, view, projects, tickets]
 type: component

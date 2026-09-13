@@ -1,5 +1,5 @@
 ---
-title: Projetos, Retornos e Investimentos (descontinuado)
+name: Projetos, Retornos e Investimentos (descontinuado)
 aliases:
   - projetos-retornos-e-investimentos
 tags:

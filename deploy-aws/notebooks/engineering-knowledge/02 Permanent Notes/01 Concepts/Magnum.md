@@ -1,5 +1,5 @@
 ---
-title: Magnum
+name: Magnum
 aliases:
   - OpenStack Container Infrastructure Management
   - Container as a Service (CaaS)

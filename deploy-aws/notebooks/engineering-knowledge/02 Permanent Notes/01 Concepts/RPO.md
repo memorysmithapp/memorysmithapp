@@ -1,5 +1,5 @@
 ---
-title: RPO
+name: RPO
 aliases:
   - Recovery Point Objective
 tags:

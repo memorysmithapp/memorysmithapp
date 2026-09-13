@@ -1,5 +1,5 @@
 ---
-title: MOC - Geração Distribuída
+name: MOC - Geração Distribuída
 aliases:
   - MOC GD
 tags:

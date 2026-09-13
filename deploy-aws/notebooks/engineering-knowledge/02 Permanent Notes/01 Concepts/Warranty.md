@@ -1,5 +1,5 @@
 ---
-title: Warranty
+name: Warranty
 aliases:
   - Garantia
   - Warranty

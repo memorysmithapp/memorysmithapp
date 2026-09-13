@@ -1,5 +1,5 @@
 ---
-title: Tecnologias e requisitos de plataforma
+name: Tecnologias e requisitos de plataforma
 aliases: [Stack, Requisitos, Tecnologias]
 tags: [overview, tecnologia, dominio/foundation]
 type: overview

@@ -1,5 +1,5 @@
 ---
-title: Dropdowns gerais (localizações, status, fabricantes, blacklists)
+name: Dropdowns gerais (localizações, status, fabricantes, blacklists)
 aliases: [Locations, Status of items, Manufacturers, Blacklists]
 tags: [dropdown, location, status, manufacturer, blacklist]
 type: component

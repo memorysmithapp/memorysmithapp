@@ -31,14 +31,14 @@ export function FolderRoute() {
   // Opening a note is what "where the reading stopped" means, and only a note
   // is remembered: a folder listing is a step on the way to one, and resuming
   // into it would put somebody back in the middle of the navigation they were
-  // trying to skip. What is remembered is the canonical address, so a retitle
+  // trying to skip. What is remembered is the canonical address, so a rename
   // between two visits changes nothing about coming back.
   const trail = noteId ? folderTrailForNote(structure.folders, noteId) : [];
   const folder = trail[trail.length - 1];
   const note = folder?.notes.find((each) => each.id === noteId);
   const canonical =
     noteId && folder
-      ? noteAddress(notebookSlug, folder.slugPath, note?.title ?? null, noteId)
+      ? noteAddress(notebookSlug, folder.slugPath, note?.name ?? null, noteId)
       : null;
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export function FolderRoute() {
   if (!path) return <FoldersIndexPage />;
   if (folderTrail(structure.folders, path).length) return <FolderPage />;
   if (noteId) {
-    // A note that was retitled or moved keeps its identifier, so its old
+    // A note that was renamed or moved keeps its identifier, so its old
     // address still resolves and the page corrects the label and the trail in
     // place — no round trip and no redirect anybody has to notice
     // (RN-DSC-045, RN-DSC-057).

@@ -1,5 +1,5 @@
 ---
-title: Relationship Management
+name: Relationship Management
 aliases:
   - Gestão de Relacionamento
 tags:

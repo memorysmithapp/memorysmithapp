@@ -1,5 +1,5 @@
 ---
-title: Aba Virtualização (ativos)
+name: Aba Virtualização (ativos)
 aliases: [Virtualization tab, Aba Virtualização, VM tab]
 tags: [assets, tab, virtualization, vm, uuid, computer]
 type: component

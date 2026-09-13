@@ -1,5 +1,5 @@
 ---
-title: Aba Notas (Notes) em texto livre
+name: Aba Notas (Notes) em texto livre
 aliases: [aba Notes, Notes tab, notas do item]
 tags: [tabs, notes, notas, ui]
 type: component

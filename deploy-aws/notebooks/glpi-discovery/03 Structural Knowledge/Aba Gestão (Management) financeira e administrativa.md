@@ -1,5 +1,5 @@
 ---
-title: Aba Gestão (Management) financeira e administrativa
+name: Aba Gestão (Management) financeira e administrativa
 aliases: [aba Management, Management tab, gestão financeira]
 tags: [tabs, management, financeiro, infocom, ui]
 type: component

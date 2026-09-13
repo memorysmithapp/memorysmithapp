@@ -19,7 +19,7 @@ export {
   type FrontmatterEntry,
   type FrontmatterForm,
 } from './frontmatter.js';
-export { noteTitle, TITLE_KEY } from './note-title.js';
+export { noteName, NAME_KEY } from './note-name.js';
 export { Instant } from './instant.js';
 export { Position, rebalancedPositions, REBALANCE_THRESHOLD } from './position.js';
 export { Role, NotebookRoleLimit, type RoleName } from './role.js';

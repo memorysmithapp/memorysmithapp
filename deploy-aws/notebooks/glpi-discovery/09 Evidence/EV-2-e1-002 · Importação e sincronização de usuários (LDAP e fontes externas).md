@@ -1,5 +1,5 @@
 ---
-title: EV-2-e1-002 · Importação e sincronização de usuários (LDAP e fontes externas)
+name: EV-2-e1-002 · Importação e sincronização de usuários (LDAP e fontes externas)
 aliases: [EV-2-e1-002]
 tags: [evidence, usuarios, importacao, ldap, sincronizacao, cli]
 type: evidence

@@ -6,7 +6,7 @@
  * come from the ContentStore through the CURRENT ContentRef of each one, and
  * they are copied and never processed.
  *
- * Nothing derived is written (RN-PRT-010): no title, no slug, no numeric
+ * Nothing derived is written (RN-PRT-010): no name, no slug, no numeric
  * prefix. What used to derive them was the materialised tree, and it is gone
  * with the file names it existed to invent.
  *

@@ -1,5 +1,5 @@
 ---
-title: Digital Product
+name: Digital Product
 aliases:
   - Produto Digital
 tags:

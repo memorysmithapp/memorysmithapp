@@ -1,5 +1,5 @@
 ---
-title: EV-2-b1-004 · Abertura padrão, por e-mail e automática
+name: EV-2-b1-004 · Abertura padrão, por e-mail e automática
 aliases: [EV-2-b1-004]
 tags: [evidence, assistance, ticket, opening, standard-interface, mail, collector]
 type: evidence

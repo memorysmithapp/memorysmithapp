@@ -1,5 +1,5 @@
 ---
-title: EV-2-b1-008 · Recursos avançados de tickets (collectors, fechamento, satisfação)
+name: EV-2-b1-008 · Recursos avançados de tickets (collectors, fechamento, satisfação)
 aliases: [EV-2-b1-008]
 tags: [evidence, assistance, ticket, advanced, collector, satisfaction, closure]
 type: evidence

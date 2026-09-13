@@ -1,5 +1,5 @@
 ---
-title: Hierarquia de Agentes
+name: Hierarquia de Agentes
 aliases:
   - Orchestrator-Worker
   - Lead Agent

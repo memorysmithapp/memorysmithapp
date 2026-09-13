@@ -1,5 +1,5 @@
 ---
-title: DCIM (Datacenter → Rack)
+name: DCIM (Datacenter → Rack)
 aliases: [DCIM, Datacenter, Rack, Enclosure, PDU]
 tags: [concept, dcim, dominio/ativos]
 type: concept

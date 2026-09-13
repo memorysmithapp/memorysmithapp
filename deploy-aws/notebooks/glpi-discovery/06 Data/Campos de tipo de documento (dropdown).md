@@ -1,5 +1,5 @@
 ---
-title: Campos de tipo de documento (dropdown)
+name: Campos de tipo de documento (dropdown)
 aliases: [Document types fields, Tipos de documento]
 tags: [data, dropdown, document-types, fields]
 type: entity

@@ -1,5 +1,5 @@
 ---
-title: HPC
+name: HPC
 aliases:
   - High-Performance Computing
   - Computação de Alto Desempenho

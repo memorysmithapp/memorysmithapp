@@ -1,5 +1,5 @@
 ---
-title: Instância de banco de dados (database instance)
+name: Instância de banco de dados (database instance)
 aliases: [Database instance, Instância de banco de dados, Bdd instance]
 tags: [management, database-instance, inventario]
 type: component

@@ -1,5 +1,5 @@
 ---
-title: EV-2-e2-011 · Regras de atribuição de autorizações ao usuário
+name: EV-2-e2-011 · Regras de atribuição de autorizações ao usuário
 aliases: [EV-2-e2-011]
 tags: [evidence, regras, autorizacoes, ldap, entidade, perfil, doc]
 type: evidence

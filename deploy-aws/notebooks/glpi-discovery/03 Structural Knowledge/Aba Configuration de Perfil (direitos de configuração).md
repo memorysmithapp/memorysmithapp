@@ -1,5 +1,5 @@
 ---
-title: Aba Configuration de Perfil (direitos de configuração)
+name: Aba Configuration de Perfil (direitos de configuração)
 aliases: [Configuration tab, Setup permissions, Aba Configuration]
 tags: [perfis, permissoes, configuracao, busca, exibicao]
 type: component

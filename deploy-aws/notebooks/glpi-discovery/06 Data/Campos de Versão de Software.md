@@ -1,5 +1,5 @@
 ---
-title: Campos de Versão de Software
+name: Campos de Versão de Software
 aliases: [Campos SoftwareVersion, Versão de software]
 tags: [data, fields, software, version, dsl, doc]
 type: table

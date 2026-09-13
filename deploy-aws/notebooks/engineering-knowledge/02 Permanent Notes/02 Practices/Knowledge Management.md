@@ -1,5 +1,5 @@
 ---
-title: Knowledge Management
+name: Knowledge Management
 aliases:
   - Gestão do Conhecimento
 tags:

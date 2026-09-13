@@ -1,5 +1,5 @@
 ---
-title: Base de Conhecimento na interface (abas e navegação)
+name: Base de Conhecimento na interface (abas e navegação)
 aliases: [Knowledge base UI, FAQ, KB navegação]
 tags: [tools, knowledgebase, faq, search, targets, revision, comments]
 type: component

@@ -1,5 +1,5 @@
 ---
-title: EV-2-g2-002 · Aba Changes (mudanças vinculadas ao objeto)
+name: EV-2-g2-002 · Aba Changes (mudanças vinculadas ao objeto)
 aliases: [EV-2-g2-002]
 tags: [evidence, tabs, changes, itil]
 type: evidence

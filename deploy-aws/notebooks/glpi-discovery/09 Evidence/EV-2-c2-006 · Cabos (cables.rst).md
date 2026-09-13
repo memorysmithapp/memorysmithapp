@@ -1,5 +1,5 @@
 ---
-title: EV-2-c2-006 · Cabos (cables.rst)
+name: EV-2-c2-006 · Cabos (cables.rst)
 aliases: [EV-2-c2-006]
 tags: [evidence, assets, cable, connectivity, doc]
 type: evidence

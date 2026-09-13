@@ -1,5 +1,5 @@
 ---
-title: Claude 101 02
+name: Claude 101 02
 aliases:
   - "Módulo 2: Organizando trabalho e conhecimento"
 tags:

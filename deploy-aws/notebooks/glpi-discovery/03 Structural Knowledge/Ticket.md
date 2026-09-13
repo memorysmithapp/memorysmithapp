@@ -1,5 +1,5 @@
 ---
-title: Ticket
+name: Ticket
 aliases: [Chamado, Ticket]
 tags: [entity, itil, dominio/service-desk]
 type: entity

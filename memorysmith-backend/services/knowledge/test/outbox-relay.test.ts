@@ -28,7 +28,7 @@ const outboxItem = {
     notebookId: NOTEBOOK,
     noteId: NOTE,
     folderId: FOLDER,
-    title: 'Lei 14.133',
+    name: 'Lei 14.133',
     slug: 'lei-14133',
     position: 'a0',
   },

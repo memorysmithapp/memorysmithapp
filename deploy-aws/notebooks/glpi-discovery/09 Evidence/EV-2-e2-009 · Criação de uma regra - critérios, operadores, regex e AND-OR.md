@@ -1,5 +1,5 @@
 ---
-title: EV-2-e2-009 · Criação de uma regra - critérios, operadores, regex e AND-OR
+name: EV-2-e2-009 · Criação de uma regra - critérios, operadores, regex e AND-OR
 aliases: [EV-2-e2-009]
 tags: [evidence, regras, criterios, operadores, regex, doc]
 type: evidence

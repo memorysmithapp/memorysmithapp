@@ -1,5 +1,5 @@
 ---
-title: ITIL vs Platform Engineering
+name: ITIL vs Platform Engineering
 aliases:
   - ITIL e Platform Engineering
 tags:

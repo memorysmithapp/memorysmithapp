@@ -1,5 +1,5 @@
 ---
-title: Prompt em Três Camadas
+name: Prompt em Três Camadas
 aliases:
   - Setting the Stage - Defining the Task - Specifying Rules
   - Estrutura de Prompt

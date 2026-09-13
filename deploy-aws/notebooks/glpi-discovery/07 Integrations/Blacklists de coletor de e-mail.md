@@ -1,5 +1,5 @@
 ---
-title: Blacklists de coletor de e-mail
+name: Blacklists de coletor de e-mail
 aliases: [Collector blacklists]
 tags: [integracao, receiver, collector, blacklist, spam, email]
 type: integration

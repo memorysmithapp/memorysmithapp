@@ -1,5 +1,5 @@
 ---
-title: Aba Conexões Diretas (ativos)
+name: Aba Conexões Diretas (ativos)
 aliases: [Connections tab, Aba Conexões, Direct connections]
 tags: [assets, tab, connections, computer, peripheral]
 type: component

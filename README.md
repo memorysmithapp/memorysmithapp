@@ -109,7 +109,7 @@ The central call is **`get_notebook_context`**, which returns the full Guidance 
 
 The notebook content in that example is in Portuguese because it was written that way: the labels the product emits are always en-US, and the content is whatever language the notebook uses. Notice there is nothing in there the agent has to guess: each line says what the folder holds, in which order it comes, how many notes exist already, whether there is a Template to fetch before writing, and the identifier to pass back when writing there.
 
-`search_notes` does a **literal** search over the text of the notebook, matching by substring and ignoring accents and case. The query accepts several terms, `"exact phrase"`, `-exclusion`, `OR`, parentheses and the fields `title:`, `folder:`, `content:` and `section:`. Any other prefix is read as a frontmatter attribute of the notebook, and that is what makes `maturity:evergreen`, `reviewed:false` or a `norma:federal` your notebook invented a valid filter, without a line of code about it. The vocabulary belongs to the Guidance, and the language of the notebook becomes the query language.
+`search_notes` does a **literal** search over the text of the notebook, matching by substring and ignoring accents and case. The query accepts several terms, `"exact phrase"`, `-exclusion`, `OR`, parentheses and the fields `name:`, `folder:`, `content:` and `section:`. Any other prefix is read as a frontmatter attribute of the notebook, and that is what makes `maturity:evergreen`, `reviewed:false` or a `norma:federal` your notebook invented a valid filter, without a line of code about it. The vocabulary belongs to the Guidance, and the language of the notebook becomes the query language.
 
 From consent to the first note written, the path is this:
 
@@ -334,28 +334,15 @@ With the environment live, it checks four things: the `/health` of the API answe
 
 #### Upgrading an environment already in use to 0.6.0
 
-**A notebook written before 0.6.0 needs a migration, and the migration has to run BEFORE the deploy.**
+**There is no upgrade path from 0.5.x: 0.6.0 is installed over an empty environment.** A note of 0.5.x
+carried its title as an attribute beside its content, and a note of 0.6.0 is named by the `name:` its
+content states and by nothing else, so every note written before would arrive with no name, every
+wikilink pending and a graph with no edges. Destroy the environment ([below](#tearing-the-environment-down))
+and deploy 0.6.0 from zero.
 
-Until 0.6.0 a note carried its title as an attribute of the note and nothing in its content, and every
-link in it was written to be found by a slug that folded case, accents and punctuation. From 0.6.0 the
-title is read from the content and a link addresses a title exactly. Deployed over notebooks already
-written, that turns into notes with no addressable title, every wikilink pending and a graph with no
-edges — and the deploy destroys what the repair needs, because after it there is no stored title to
-write into the content.
-
-So the order is fixed, and the release does not go up before step 1 has run:
-
-| | Step | What it does |
-| --- | --- | --- |
-| 1 | `./deploy-aws/retitle-notebooks.ps1 -Apply` | Against the version **still in production**: writes `title:` into the frontmatter of every note from its stored title, and retargets every link from the old slug to the exact title |
-| 2 | `./deploy-aws/deploy.ps1` | The release itself |
-| 3 | `./deploy-aws/reproject-links.ps1 -Apply` | Rebuilds the link graph of every notebook under the new rule, since the one in the table was built by the rule that just retired |
-
-Both scripts report first and write only with `-Apply`, and running either of them twice changes nothing.
-Read the report of step 1 before applying it: it names the notes whose frontmatter already stated
-another title, the links that stay pending, the titles that now repeat, and the titles carrying `#`,
-`[`, `]` or `|`, which no link can name and which only a rename repairs. Step 3 exits with `2` when an
-edge was lost, which means step 1 did not reach some note.
+`./deploy-aws/reproject-links.ps1 -Apply` rebuilds the link graph of every notebook from the notes
+themselves, whenever the rule a link is resolved by changes. It reports first, writes only with
+`-Apply`, and exits with `2` when an edge was lost.
 
 #### What the deployment does not do for you
 
@@ -429,11 +416,11 @@ The first three are real notebooks in use, and they show the product at the size
 
 **The last two exist for a different reason.** `continuity-engineering` and `enologia` are the only place the [MemorySmith Markdown Specification](docs/markdown-spec/SPEC.md) can be *read* rather than proved: a conformance suite shows that the notation is implemented, and these show it doing its work — a callout that is drawn, an alias that finds a note by its acronym, an embed that expands to a single identified block, a formula, a checklist that writes back.
 
-They are **not translations of each other**. The same notations carried by different subject matter, so the pair reads as two notebooks and not as one typed twice — and so it can show the thing a single notebook cannot: the four reserved keys (`aliases`, `tags`, `created`, `updated`) are written in en-US in **both**, while everything around them, `regiao` and `tipo` and `colhida_em`, is in the language of whoever keeps the notebook. That is the language decision of the profile shown instead of stated, and the same evidence that the backend does not interpret content (PP4).
+They are **not translations of each other**. The same notations carried by different subject matter, so the pair reads as two notebooks and not as one typed twice — and so it can show the thing a single notebook cannot: the reserved keys (`name`, `aliases`, `tags`, `created`, `updated`) are written in en-US in **both**, while everything around them, `regiao` and `tipo` and `colhida_em`, is in the language of whoever keeps the notebook. That is the language decision of the profile shown instead of stated, and the same evidence that the backend does not interpret content (PP4).
 
 They also carry the half of the specification no other notebook will ever show: **the rejections**, each one written where somebody would have reached for it, beside the sentence saying what happens instead. An inline `#tag` that files nothing, a summary in the frontmatter that is discarded, HTML that is not rendered, a subscript that has no notation here.
 
-And, since 0.6.0, the cases that decide what a note is **called**: a `title:` that says one thing while the heading says another, a title carrying a `#` that no link can name, two notes under one title where a single link becomes two edges, an alias catching a target no title matched beside the sentence saying a title always wins, and an attachment addressed by its name that appears in no graph.
+And, since 0.6.0, the cases that decide what a note is **called**: a `name:` that says one thing while the heading says another, a note that states no `name:` and that no link can reach, a name carrying a `#` that no link can name, two notes under one name where a single link becomes two edges, an alias catching a target no name matched beside the sentence saying a name always wins, and an attachment addressed by its name that appears in no graph.
 
 A test guards them in both directions: every entry of the declared notation appears in each notebook, and neither notebook demonstrates a notation the profile does not declare. Without it they would be the first thing to age when the notation changes, and they would age while teaching the wrong version to precisely the person who is learning.
 
@@ -453,7 +440,7 @@ The three real vaults are **not** part of the repository: they live on the machi
 node deploy-aws/notebook-sources/build-notebooks.mjs
 ```
 
-The script validates the product limits (2,000 notes and 200 folders per notebook, depth 6, a folder description between 1 and 500 characters) and reports the warnings at the end. It also **writes the file name of a note into its frontmatter as `title:`** where the source states none: the title of a note is read from the note, and a tree exported from an editor keyed by file name carries that name nowhere inside the file. Two notes under one title are no longer a warning, because nothing in a notebook is a key. Running it without the three real vaults on the machine empties the three corresponding trees, because each output is recreated from zero. If you only want to regenerate the small ones, check `git status` before committing.
+The script validates the product limits (2,000 notes and 200 folders per notebook, depth 6, a folder description between 1 and 500 characters) and reports the warnings at the end. It also **writes the file name of a note into its frontmatter as `name:`** where the source states none, except for the notes a demonstration notebook leaves unnamed on purpose: a note is named by `name:` and by nothing else, and a tree exported from an editor keyed by file name carries that name nowhere inside the file. Two notes under one name are no longer a warning, because nothing in a notebook is a key. Running it without the three real vaults on the machine empties the three corresponding trees, because each output is recreated from zero. If you only want to regenerate the small ones, check `git status` before committing.
 
 ## Tearing the environment down
 

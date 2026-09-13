@@ -1,5 +1,5 @@
 ---
-title: Indicadores Coletivos de Continuidade DEC e FEC (ANEEL)
+name: Indicadores Coletivos de Continuidade DEC e FEC (ANEEL)
 aliases:
   - indicadores-coletivos-de-continuidade-dec-e-fec
 tags:

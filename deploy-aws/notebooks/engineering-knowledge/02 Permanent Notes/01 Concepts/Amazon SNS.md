@@ -1,5 +1,5 @@
 ---
-title: Amazon SNS
+name: Amazon SNS
 aliases:
   - SNS
   - Simple Notification Service

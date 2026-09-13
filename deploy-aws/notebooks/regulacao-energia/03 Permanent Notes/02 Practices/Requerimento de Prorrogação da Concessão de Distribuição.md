@@ -1,5 +1,5 @@
 ---
-title: Requerimento de Prorrogação da Concessão de Distribuição
+name: Requerimento de Prorrogação da Concessão de Distribuição
 aliases:
   - Requerimento de prorrogação
   - Rito da prorrogação

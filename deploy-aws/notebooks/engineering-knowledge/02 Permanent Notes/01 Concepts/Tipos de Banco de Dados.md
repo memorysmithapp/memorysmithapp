@@ -1,5 +1,5 @@
 ---
-title: Tipos de Banco de Dados
+name: Tipos de Banco de Dados
 aliases:
   - Database Types
   - NoSQL

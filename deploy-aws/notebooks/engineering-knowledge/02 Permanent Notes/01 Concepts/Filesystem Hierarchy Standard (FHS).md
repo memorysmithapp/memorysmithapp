@@ -1,5 +1,5 @@
 ---
-title: Filesystem Hierarchy Standard (FHS)
+name: Filesystem Hierarchy Standard (FHS)
 aliases:
   - FHS
   - Sistema de Arquivos Linux

@@ -1,5 +1,5 @@
 ---
-title: Campos descritivos comuns (comentários, cor)
+name: Campos descritivos comuns (comentários, cor)
 aliases: [Comments, Comentários, Color, Cor]
 tags: [campos-comuns, descritivo, data]
 type: field

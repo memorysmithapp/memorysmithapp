@@ -1,5 +1,5 @@
 ---
-title: Product and Service Management Practices
+name: Product and Service Management Practices
 aliases:
   - Práticas de Produto e Serviço
 tags:

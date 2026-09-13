@@ -1,5 +1,5 @@
 ---
-title: Estoque-alvo (stock target)
+name: Estoque-alvo (stock target)
 aliases: [Stock target, Estoque-alvo, Estoque alvo]
 tags: [campos-comuns, estoque, consumiveis, data]
 type: field

@@ -1,5 +1,5 @@
 ---
-title: Mastering OpenStack 04
+name: Mastering OpenStack 04
 aliases:
   - "Capítulo 4: OpenStack Compute – Compute Capacity and Flavors"
 tags:

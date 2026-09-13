@@ -1,5 +1,5 @@
 ---
-title: Tags de URL da pesquisa de satisfação
+name: Tags de URL da pesquisa de satisfação
 aliases: [Survey URL tags]
 tags: [entidades, satisfacao, tags, url, dados, doc]
 type: table

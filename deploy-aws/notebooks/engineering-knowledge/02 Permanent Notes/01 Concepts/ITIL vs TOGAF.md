@@ -1,5 +1,5 @@
 ---
-title: ITIL vs TOGAF
+name: ITIL vs TOGAF
 aliases:
   - ITIL e TOGAF
 tags:

@@ -1,5 +1,5 @@
 ---
-title: Projetos de Eficiência Energética por Tipologia (descontinuado)
+name: Projetos de Eficiência Energética por Tipologia (descontinuado)
 aliases:
   - projetos-por-tipologia
 tags:

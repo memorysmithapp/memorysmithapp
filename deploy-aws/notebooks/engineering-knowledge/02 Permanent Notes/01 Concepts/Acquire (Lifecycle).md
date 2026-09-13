@@ -1,5 +1,5 @@
 ---
-title: Acquire (Lifecycle)
+name: Acquire (Lifecycle)
 aliases:
   - Acquire
   - Aquisição

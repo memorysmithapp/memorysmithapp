@@ -1,5 +1,5 @@
 ---
-title: Fornecedor × Fabricante-Marca (regra)
+name: Fornecedor × Fabricante-Marca (regra)
 aliases: [Supplier vs Vendor, Fornecedor vs Fabricante]
 tags: [rule, management, supplier, manufacturer, doc]
 type: rule

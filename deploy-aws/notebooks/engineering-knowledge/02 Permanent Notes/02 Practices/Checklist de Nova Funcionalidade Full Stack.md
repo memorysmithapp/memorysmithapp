@@ -1,5 +1,5 @@
 ---
-title: Checklist de Nova Funcionalidade Full Stack
+name: Checklist de Nova Funcionalidade Full Stack
 aliases:
   - New Feature Checklist
   - Definition of Done Full Stack

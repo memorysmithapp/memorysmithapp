@@ -1,5 +1,5 @@
 ---
-title: Floating IP
+name: Floating IP
 aliases:
   - IP Flutuante
   - Elastic IP

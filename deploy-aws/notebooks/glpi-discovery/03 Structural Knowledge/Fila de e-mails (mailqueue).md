@@ -1,5 +1,5 @@
 ---
-title: Fila de e-mails (mailqueue)
+name: Fila de e-mails (mailqueue)
 aliases: [Mailing queue, Fila de notificações, queuedmail]
 tags: [notificacoes, fila, email, crontask, doc]
 type: component

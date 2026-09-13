@@ -1,5 +1,5 @@
 ---
-title: Ocorrências Emergenciais nas Redes de Distribuição (ANEEL)
+name: Ocorrências Emergenciais nas Redes de Distribuição (ANEEL)
 aliases:
   - ocorrencias-emergenciais-nas-redes-de-distribuicao
 tags:

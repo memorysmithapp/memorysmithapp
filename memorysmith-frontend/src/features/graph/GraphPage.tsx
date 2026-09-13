@@ -24,7 +24,7 @@ import { CloseIcon, GearIcon } from '../../shared/components/icons';
 interface GraphFile {
   nodes: {
     id: string;
-    title: string;
+    name: string;
     folderId: string;
     facets: Record<string, string[]>;
   }[];
@@ -33,7 +33,7 @@ interface GraphFile {
 
 /**
  * **A node is a NOTE, and it always was.** The identifier is the `NoteId`,
- * which is the one thing two notes with the same title do not share; the title
+ * which is the one thing two notes with the same name do not share; the name
  * is the label, and a label may repeat (RN-DSC-047). That is the honest
  * picture: a notebook does hold two notes called `Índice`, and collapsing them
  * into one node would draw one and silently lose the other.
@@ -43,8 +43,8 @@ interface GraphFile {
  */
 interface GraphNode extends SimulationNodeDatum {
   id: string;
-  title: string;
-  /** Where the note lives, which is what tells two of one title apart. */
+  name: string;
+  /** Where the note lives, which is what tells two of one name apart. */
   folder: string;
   kind: 'note' | 'value';
   /** What this note says about itself; empty on a value node. */
@@ -186,7 +186,7 @@ export function GraphPage() {
       const folder = trail[trail.length - 1];
       if (!folder) return null;
       const note = folder.notes.find((each) => each.id === noteId);
-      return noteAddress(notebookSlug, folder.slugPath, note?.title ?? null, noteId);
+      return noteAddress(notebookSlug, folder.slugPath, note?.name ?? null, noteId);
     },
     [structure, notebookSlug],
   );
@@ -261,10 +261,10 @@ export function GraphPage() {
         if (!live) return;
         setData({
           nodes: graph.nodes.map((note) => ({
-            // The identifier, because two notes may carry one title and the
-            // graph draws a note and never a title (RN-DSC-047).
+            // The identifier, because two notes may carry one name and the
+            // graph draws a note and never a name (RN-DSC-047).
             id: note.noteId,
-            title: note.title,
+            name: note.name,
             folderId: note.folderId,
             facets: note.facets ?? {},
           })),
@@ -336,7 +336,7 @@ export function GraphPage() {
     };
     const nodes: GraphNode[] = data.nodes.map((n) => ({
       id: n.id,
-      title: n.title,
+      name: n.name,
       folder: folderNameOf(n.id),
       kind: 'note' as const,
       facets: n.facets,
@@ -371,7 +371,7 @@ export function GraphPage() {
             indexOfValue.set(key, at);
             nodes.push({
               id: key,
-              title: value,
+              name: value,
               // A value node lives in no folder: it is what the notebook says
               // about its notes, not one of them.
               folder: '',
@@ -560,12 +560,12 @@ export function GraphPage() {
       const written: { x0: number; y0: number; x1: number; y1: number }[] = [];
       for (const node of labelTargets) {
         // The focused node names the folder it lives in, which is what makes
-        // two nodes carrying one title distinguishable without clicking
+        // two nodes carrying one name distinguishable without clicking
         // either of them (RN-DSC-047).
         const label =
           node === focus && node.kind === 'note' && node.folder
-            ? `${node.title} · ${node.folder}`
-            : node.title;
+            ? `${node.name} · ${node.folder}`
+            : node.name;
         const lx = (node.x ?? 0) + node.radius + 3 / k;
         const ly = node.y ?? 0;
         const box = {

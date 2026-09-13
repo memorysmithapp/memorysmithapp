@@ -1,5 +1,5 @@
 ---
-title: Receiver (coletor de e-mail) — visão de configuração
+name: Receiver (coletor de e-mail) — visão de configuração
 aliases: [Receivers, Mail collector (config), Coletor de e-mail (doc)]
 tags: [integracao, receiver, collector, mailgate, imap, pop, email]
 type: integration

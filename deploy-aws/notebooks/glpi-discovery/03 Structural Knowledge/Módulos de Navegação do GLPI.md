@@ -1,5 +1,5 @@
 ---
-title: Módulos de Navegação do GLPI
+name: Módulos de Navegação do GLPI
 aliases: [Módulos GLPI, GLPI modules, Assets, Assistance, Management, Tools, Administration, Setup]
 tags: [component, modules, navigation, menu]
 type: component

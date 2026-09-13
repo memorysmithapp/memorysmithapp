@@ -1,5 +1,5 @@
 ---
-title: Fluxo de inventário nativo
+name: Fluxo de inventário nativo
 aliases: [Fluxo de inventário, Inventory flow]
 tags: [flow, inventario, dominio/ativos]
 type: flow

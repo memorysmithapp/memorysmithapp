@@ -1,5 +1,5 @@
 ---
-title: Compartilhamento de Infraestrutura de Postes
+name: Compartilhamento de Infraestrutura de Postes
 aliases:
   - Compartilhamento de postes
   - Cessão de infraestrutura de distribuição

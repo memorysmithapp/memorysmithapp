@@ -1,5 +1,5 @@
 ---
-title: Equipamento de Rede (ativo)
+name: Equipamento de Rede (ativo)
 aliases: [Network equipment, NetworkEquipment, Equipamento de rede]
 tags: [assets, network, dcim, structural, doc]
 type: component

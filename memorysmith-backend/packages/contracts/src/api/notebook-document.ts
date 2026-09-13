@@ -10,9 +10,9 @@
  * none of them served, which is why the deploy script rebuilt a notebook by
  * replaying API calls over a tree of files.
  *
- * **Nothing derived is stored** (RN-PRT-010). No title, no slug, no numeric
- * prefix: the title of a note is read from its body by the chain of the
- * specification wherever it is needed, here as everywhere else. Two sources of
+ * **Nothing derived is stored** (RN-PRT-010). No name, no slug, no numeric
+ * prefix: the name of a note is read from its body — the `name:` of its
+ * frontmatter — wherever it is needed, here as everywhere else. Two sources of
  * truth for what a note is called is the defect this cycle exists to end.
  *
  * **The cost is stated rather than hidden.** RN-PRT-001 promised only `.md`
@@ -55,8 +55,8 @@ export const documentNoteSchema = z.object({
   createdAt: instantSchema,
   updatedAt: instantSchema,
   /**
-   * The body, byte for byte, frontmatter included. There is no title beside
-   * it: the title is read from these bytes (RN-PRT-010).
+   * The body, byte for byte, frontmatter included. There is no name beside
+   * it: the name is read from these bytes (RN-PRT-010).
    */
   body: z.string(),
 });

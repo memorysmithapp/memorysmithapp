@@ -1,5 +1,5 @@
 ---
-title: Internacionalização de Aplicação Frontend
+name: Internacionalização de Aplicação Frontend
 aliases:
   - Implementação de i18n
   - Setup i18n

@@ -1,5 +1,5 @@
 ---
-title: Flavor
+name: Flavor
 aliases:
   - Instance Type
   - Tipo de Instância

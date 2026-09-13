@@ -1,5 +1,5 @@
 ---
-title: PDD - Plano de Desenvolvimento da Distribuição (ANEEL)
+name: PDD - Plano de Desenvolvimento da Distribuição (ANEEL)
 aliases:
   - pdd
 tags:

@@ -1,5 +1,5 @@
 ---
-title: Lei de Conway
+name: Lei de Conway
 tags:
   - arquitetura
   - ddd

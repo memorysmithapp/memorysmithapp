@@ -1,5 +1,5 @@
 ---
-title: Hypervisor
+name: Hypervisor
 aliases:
   - Hipervisor
   - Virtual Machine Monitor (VMM)

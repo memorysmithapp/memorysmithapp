@@ -1,5 +1,5 @@
 ---
-title: Campos do histórico de alterações
+name: Campos do histórico de alterações
 aliases: [campos History, campos historical]
 tags: [data, campos, history, auditoria]
 type: data

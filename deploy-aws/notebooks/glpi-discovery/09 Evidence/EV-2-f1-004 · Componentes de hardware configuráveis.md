@@ -1,5 +1,5 @@
 ---
-title: EV-2-f1-004 · Componentes de hardware configuráveis
+name: EV-2-f1-004 · Componentes de hardware configuráveis
 aliases: [EV-2-f1-004]
 tags: [evidence, componentes, hardware, configuracao]
 type: evidence

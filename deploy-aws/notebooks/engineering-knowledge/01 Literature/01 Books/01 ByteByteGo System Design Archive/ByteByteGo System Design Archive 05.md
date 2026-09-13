@@ -1,5 +1,5 @@
 ---
-title: ByteByteGo System Design Archive 05
+name: ByteByteGo System Design Archive 05
 aliases:
   - "Parte 5: Redes e Sistema Operacional"
 tags:

@@ -1,5 +1,5 @@
 ---
-title: Graph View
+name: Graph View
 aliases:
   - Grafo
   - Graph

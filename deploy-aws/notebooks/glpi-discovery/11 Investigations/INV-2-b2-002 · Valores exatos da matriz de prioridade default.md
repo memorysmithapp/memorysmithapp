@@ -1,5 +1,5 @@
 ---
-title: INV-2-b2-002 · Valores exatos da matriz de prioridade default
+name: INV-2-b2-002 · Valores exatos da matriz de prioridade default
 aliases: [INV-2-b2-002]
 tags: [investigation, consumidor/cad, prioridade, matriz]
 type: investigation

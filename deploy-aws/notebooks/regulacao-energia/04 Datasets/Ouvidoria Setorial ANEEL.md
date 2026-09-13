@@ -1,5 +1,5 @@
 ---
-title: Ouvidoria Setorial ANEEL
+name: Ouvidoria Setorial ANEEL
 aliases:
   - ouvidoria-setorial-aneel
 tags:

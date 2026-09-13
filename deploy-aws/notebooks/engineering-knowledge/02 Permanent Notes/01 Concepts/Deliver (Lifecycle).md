@@ -1,5 +1,5 @@
 ---
-title: Deliver (Lifecycle)
+name: Deliver (Lifecycle)
 aliases:
   - Deliver
   - Entrega

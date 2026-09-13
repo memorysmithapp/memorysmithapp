@@ -1,5 +1,5 @@
 ---
-title: Contadores de página e cartuchos da impressora
+name: Contadores de página e cartuchos da impressora
 aliases: [Page counters, Cartridges tab]
 tags: [assets, data, printer, cartridge, page-counter]
 type: entity

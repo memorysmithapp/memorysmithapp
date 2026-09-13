@@ -24,7 +24,7 @@ function TreeNote({
 }) {
   const { t } = useTranslation();
   const { '*': path } = useParams();
-  const address = noteAddress(notebookSlug, folder.slugPath, note.title, note.id);
+  const address = noteAddress(notebookSlug, folder.slugPath, note.name, note.id);
   // The identifier is what decides, because the label is decoration and may be
   // stale in the address somebody is standing on (RN-DSC-045).
   const active = noteIdOf(path?.split('/').pop() ?? '') === note.id;
@@ -37,7 +37,7 @@ function TreeNote({
   return (
     <li>
       <Link ref={ref} className={`tree-note${active ? ' active' : ''}`} to={address}>
-        {note.title ?? t('note.untitled')}
+        {note.name ?? t('note.unnamed')}
       </Link>
     </li>
   );

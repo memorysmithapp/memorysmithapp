@@ -1,5 +1,5 @@
 ---
-title: <Convenção da fonte>
+name: <Convenção da fonte>
 aliases: []
 tags: [dados-abertos]
 type: convention

@@ -1,5 +1,5 @@
 ---
-title: Plugin (AI Agent)
+name: Plugin (AI Agent)
 aliases:
   - Plugin
   - Plugins

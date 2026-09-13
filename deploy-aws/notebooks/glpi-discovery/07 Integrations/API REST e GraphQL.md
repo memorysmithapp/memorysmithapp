@@ -1,5 +1,5 @@
 ---
-title: API REST e GraphQL
+name: API REST e GraphQL
 aliases: [API, REST, GraphQL, HL API]
 tags: [integration, api, dominio/integracoes]
 type: integration

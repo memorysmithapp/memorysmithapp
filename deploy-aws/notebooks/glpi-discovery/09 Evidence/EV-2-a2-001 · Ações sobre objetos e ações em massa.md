@@ -1,5 +1,5 @@
 ---
-title: EV-2-a2-001 · Ações sobre objetos e ações em massa
+name: EV-2-a2-001 · Ações sobre objetos e ações em massa
 aliases: [EV-2-a2-001]
 tags: [evidence, actions, massive-actions, crud, transfer, trash-bin]
 type: evidence

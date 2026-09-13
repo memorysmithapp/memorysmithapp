@@ -1,5 +1,5 @@
 ---
-title: INDGER - Indicadores Gerenciais da Distribuição (ANEEL)
+name: INDGER - Indicadores Gerenciais da Distribuição (ANEEL)
 aliases:
   - indger-indicadores-gerenciais-da-distribuicao
 tags:

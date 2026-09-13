@@ -1,5 +1,5 @@
 ---
-title: Configuração Global de Ativos e Inventário
+name: Configuração Global de Ativos e Inventário
 aliases: [Assets configuration, Config global de ativos]
 tags: [configuracao-geral, ativos, inventario, operacao]
 type: capability

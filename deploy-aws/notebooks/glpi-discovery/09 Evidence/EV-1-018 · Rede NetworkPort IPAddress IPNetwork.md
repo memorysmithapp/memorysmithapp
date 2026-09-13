@@ -1,5 +1,5 @@
 ---
-title: EV-1-018 · Rede — NetworkPort, IPAddress, IPNetwork
+name: EV-1-018 · Rede — NetworkPort, IPAddress, IPNetwork
 aliases: [EV-1-018]
 tags: [evidence, dominio/ativos, rede]
 type: evidence

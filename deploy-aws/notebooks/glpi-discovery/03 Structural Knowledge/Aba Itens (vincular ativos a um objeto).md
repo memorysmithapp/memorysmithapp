@@ -1,5 +1,5 @@
 ---
-title: Aba Itens (vincular ativos a um objeto)
+name: Aba Itens (vincular ativos a um objeto)
 aliases: [Items tab, Aba Items, Link a device]
 tags: [tab, items, link, assets, change, project]
 type: component

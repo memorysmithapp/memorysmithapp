@@ -1,5 +1,5 @@
 ---
-title: Event Streaming Platform
+name: Event Streaming Platform
 aliases:
   - Plataforma de Streaming de Eventos
   - Log de Eventos Distribuído

@@ -1,5 +1,5 @@
 ---
-title: INV-2-b2-003 · Solução de contorno em massa a tickets de um problema (semântica incerta)
+name: INV-2-b2-003 · Solução de contorno em massa a tickets de um problema (semântica incerta)
 aliases: [INV-2-b2-003]
 tags: [investigation, consumidor/cad, problema, solucao]
 type: investigation

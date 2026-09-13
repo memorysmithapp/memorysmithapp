@@ -1,5 +1,5 @@
 ---
-title: Risk Management
+name: Risk Management
 aliases:
   - Gestão de Riscos
 tags:

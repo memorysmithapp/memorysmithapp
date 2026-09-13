@@ -1,5 +1,5 @@
 ---
-title: BPR - Banco de Preços de Referência: Linha de Transmissão (ANEEL)
+name: BPR - Banco de Preços de Referência: Linha de Transmissão (ANEEL)
 aliases:
   - bpr-banco-de-precos-de-referencia-linha-de-transmissao
 tags:

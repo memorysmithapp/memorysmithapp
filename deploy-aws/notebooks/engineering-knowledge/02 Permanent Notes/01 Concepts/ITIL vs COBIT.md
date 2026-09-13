@@ -1,5 +1,5 @@
 ---
-title: ITIL vs COBIT
+name: ITIL vs COBIT
 aliases:
   - ITIL e COBIT
 tags:

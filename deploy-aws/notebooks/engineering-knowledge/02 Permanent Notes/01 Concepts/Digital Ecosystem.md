@@ -1,5 +1,5 @@
 ---
-title: Digital Ecosystem
+name: Digital Ecosystem
 aliases:
   - Ecossistema Digital
 tags:

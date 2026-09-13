@@ -1,5 +1,5 @@
 ---
-title: Arquitetura de execução (request lifecycle)
+name: Arquitetura de execução (request lifecycle)
 aliases: [Request lifecycle, roteamento, front controller]
 tags: [infra, arquitetura, dominio/operacao]
 type: infra

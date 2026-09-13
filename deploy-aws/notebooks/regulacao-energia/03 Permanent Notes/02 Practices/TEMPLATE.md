@@ -1,5 +1,5 @@
 ---
-title: <Nome do rito ou procedimento>
+name: <Nome do rito ou procedimento>
 aliases: []
 tags: []
 type: practice

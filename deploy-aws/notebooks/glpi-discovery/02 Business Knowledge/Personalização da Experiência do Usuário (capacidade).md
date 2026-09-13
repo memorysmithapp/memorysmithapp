@@ -1,5 +1,5 @@
 ---
-title: Personalização da Experiência do Usuário (capacidade)
+name: Personalização da Experiência do Usuário (capacidade)
 aliases: [Preferências do usuário, User preferences, Personalize]
 tags: [capability, preferences, personalization, ux]
 type: capability

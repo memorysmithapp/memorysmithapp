@@ -1,5 +1,5 @@
 ---
-title: Claude 101 01
+name: Claude 101 01
 aliases:
   - "Módulo 1: Meet Claude"
 tags:

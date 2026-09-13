@@ -1,5 +1,5 @@
 ---
-title: Knowledge Graph
+name: Knowledge Graph
 aliases:
   - Grafo de Conhecimento
 tags:

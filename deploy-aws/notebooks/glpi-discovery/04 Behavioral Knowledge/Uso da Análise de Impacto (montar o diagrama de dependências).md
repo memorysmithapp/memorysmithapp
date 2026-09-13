@@ -1,5 +1,5 @@
 ---
-title: Uso da Análise de Impacto (montar o diagrama de dependências)
+name: Uso da Análise de Impacto (montar o diagrama de dependências)
 aliases: [Impact analysis procedure, Montar análise de impacto]
 tags: [behavioral, impact-analysis, dependency, diagram, procedure]
 type: flow

@@ -1,5 +1,5 @@
 ---
-title: Itens vinculáveis a um documento
+name: Itens vinculáveis a um documento
 aliases: [Document linkable items, Associated Items]
 tags: [component, management, document, doc]
 type: component

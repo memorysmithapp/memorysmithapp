@@ -1,5 +1,5 @@
 ---
-title: Documento na interface (Document) — visão do usuário
+name: Documento na interface (Document) — visão do usuário
 aliases: [Document, Documento]
 tags: [concept, management, document, doc]
 type: concept

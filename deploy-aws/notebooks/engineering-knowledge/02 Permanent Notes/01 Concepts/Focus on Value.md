@@ -1,5 +1,5 @@
 ---
-title: Focus on Value
+name: Focus on Value
 aliases:
   - Foco no Valor
 tags:

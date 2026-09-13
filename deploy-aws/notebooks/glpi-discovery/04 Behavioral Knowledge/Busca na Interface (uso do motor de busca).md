@@ -1,5 +1,5 @@
 ---
-title: Busca na Interface (uso do motor de busca)
+name: Busca na Interface (uso do motor de busca)
 aliases: [Search, Busca básica, Busca multicritério, Busca avançada, Search views]
 tags: [use-case, search, criteria, pagination, map-view, trash]
 type: use-case

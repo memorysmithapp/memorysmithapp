@@ -1,5 +1,5 @@
 ---
-title: Autoconsumo Local
+name: Autoconsumo Local
 aliases:
   - Autoconsumo local
 tags:

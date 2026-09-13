@@ -1,5 +1,5 @@
 ---
-title: Busca global de ativos (Global search)
+name: Busca global de ativos (Global search)
 aliases: [Global search, Asset Global]
 tags: [assets, search, structural]
 type: component

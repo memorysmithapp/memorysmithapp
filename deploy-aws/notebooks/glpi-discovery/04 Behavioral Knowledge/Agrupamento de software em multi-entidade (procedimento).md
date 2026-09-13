@@ -1,5 +1,5 @@
 ---
-title: Agrupamento de software em multi-entidade (procedimento)
+name: Agrupamento de software em multi-entidade (procedimento)
 aliases: [Grouping, Agrupamento de software]
 tags: [software, grouping, multi-entity, procedure, doc]
 type: use-case

@@ -1,5 +1,5 @@
 ---
-title: ELT
+name: ELT
 aliases:
   - Extract Load Transform
 tags:

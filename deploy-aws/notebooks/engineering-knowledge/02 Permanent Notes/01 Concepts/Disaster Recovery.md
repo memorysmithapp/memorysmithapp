@@ -1,5 +1,5 @@
 ---
-title: Disaster Recovery
+name: Disaster Recovery
 aliases:
   - DR
   - Recuperação de Desastres

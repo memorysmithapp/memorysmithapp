@@ -1,5 +1,5 @@
 ---
-title: Service Design
+name: Service Design
 aliases:
   - Desenho de Serviço
 tags:

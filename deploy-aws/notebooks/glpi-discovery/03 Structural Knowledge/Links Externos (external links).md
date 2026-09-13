@@ -1,5 +1,5 @@
 ---
-title: Links Externos (external links)
+name: Links Externos (external links)
 aliases: [External links, Links externos]
 tags: [links-externos, configuracao, integracao-leve]
 type: concept

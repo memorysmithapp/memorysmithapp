@@ -1,5 +1,5 @@
 ---
-title: UUID (identificador da placa-mãe)
+name: UUID (identificador da placa-mãe)
 aliases: [UUID, Universally Unique IDentifier]
 tags: [campos-comuns, identificacao, inventario, data]
 type: field

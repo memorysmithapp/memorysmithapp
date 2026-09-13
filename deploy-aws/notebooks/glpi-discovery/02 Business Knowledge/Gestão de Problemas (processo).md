@@ -1,5 +1,5 @@
 ---
-title: Gestão de Problemas (processo)
+name: Gestão de Problemas (processo)
 aliases: [Problem Management]
 tags: [process, itil, dominio/service-desk]
 type: process

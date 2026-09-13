@@ -1,5 +1,5 @@
 ---
-title: Dispositivo Passivo (ativo)
+name: Dispositivo Passivo (ativo)
 aliases: [Passive device, Dispositivos passivos]
 tags: [assets, passive-device, dcim, structural, doc]
 type: component

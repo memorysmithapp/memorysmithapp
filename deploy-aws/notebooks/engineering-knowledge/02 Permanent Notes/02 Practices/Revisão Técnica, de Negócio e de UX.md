@@ -1,5 +1,5 @@
 ---
-title: Revisão Técnica, de Negócio e de UX
+name: Revisão Técnica, de Negócio e de UX
 type: practice
 tags: [estimation, risk-management, business-value]
 maturity: evergreen

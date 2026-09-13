@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Ativo não gerenciado
+name: Campos do formulário de Ativo não gerenciado
 aliases: [Campos de Unmanaged asset]
 tags: [assets, data, unmanaged, form]
 type: entity

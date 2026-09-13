@@ -1,5 +1,5 @@
 ---
-title: EV-2-f1-005 · Configuração Geral — abas e aparência
+name: EV-2-f1-005 · Configuração Geral — abas e aparência
 aliases: [EV-2-f1-005]
 tags: [evidence, configuracao-geral, aparencia, setup]
 type: evidence

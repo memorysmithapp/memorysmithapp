@@ -1,5 +1,5 @@
 ---
-title: Notificações no GLPI (visão de configuração)
+name: Notificações no GLPI (visão de configuração)
 aliases: [Notificações (config), Notifications]
 tags: [notificacao, capacidade, config, email, browser]
 type: capability

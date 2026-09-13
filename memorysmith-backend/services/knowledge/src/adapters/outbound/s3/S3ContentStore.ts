@@ -60,7 +60,7 @@ export class S3ContentStore implements ContentStore {
         Body: body,
         ContentType: 'text/markdown; charset=utf-8',
         // Only what never changes. Deliberately NOT notebookId, folderId or
-        // title: those turn into lies on the first move, and keeping them
+        // name: those turn into lies on the first move, and keeping them
         // current would hand S3 back exactly the write we are removing.
         Metadata: {
           'subscription-id': this.sub.subscriptionId.value,

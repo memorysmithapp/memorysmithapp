@@ -1,5 +1,5 @@
 ---
-title: TIPE - Termos de Intimação das Penas dos Editais (ANEEL)
+name: TIPE - Termos de Intimação das Penas dos Editais (ANEEL)
 aliases:
   - termos-de-intimacao-das-penas-dos-editais-tipe
 tags:

@@ -1,5 +1,5 @@
 ---
-title: Mastering OpenStack 02
+name: Mastering OpenStack 02
 aliases:
   - "Capítulo 2: Kicking Off the OpenStack Setup – The Right Way (DevSecOps)"
 tags:

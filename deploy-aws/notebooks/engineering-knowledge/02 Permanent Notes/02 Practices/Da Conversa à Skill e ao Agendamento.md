@@ -1,5 +1,5 @@
 ---
-title: Da Conversa à Skill e ao Agendamento
+name: Da Conversa à Skill e ao Agendamento
 aliases:
   - Escada de Automação
   - Prompt para Skill para Plugin

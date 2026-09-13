@@ -1,5 +1,5 @@
 ---
-title: Aba Itens do Enclosure (ativos)
+name: Aba Itens do Enclosure (ativos)
 aliases: [Enclosure items tab, Aba Itens do Chassi, Items (enclosure)]
 tags: [assets, tab, dcim, enclosure, chassis]
 type: component

@@ -5,7 +5,7 @@
  * decides what to render, and resuming a reading, which asks it BEFORE
  * navigating. It is answered from the **shape of the last segment** and not
  * from the structure (RN-DSC-055), which is what makes a remembered address
- * survive a retitle and a move — the two things that used to break it.
+ * survive a rename and a move — the two things that used to break it.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -16,8 +16,8 @@ import type { FolderNode, NoteSummary } from '../../shared/types/api';
 const LEI = '01J8X2K9QZ3M4N5P6R7S8T9V0W';
 const ART = '01J8X2K9QZ3M4N5P6R7S8T9V0X';
 
-function note(id: string, title: string, folderId: string): NoteSummary {
-  return { id, title, folderId };
+function note(id: string, name: string, folderId: string): NoteSummary {
+  return { id, name, folderId };
 }
 
 function folder(
@@ -62,7 +62,7 @@ describe('a path names a note by its identifier, or it does not', () => {
 
   it('finds it with a stale label, with no label, and in upper case', () => {
     // The label is decoration and is never compared: it goes out of date the
-    // moment somebody edits a title, and an address that went out of date has
+    // moment somebody edits a name, and an address that went out of date has
     // to keep working (RN-DSC-045).
     expect(noteAt(folders, 'decisions/whatever-it-used-to-be--01j8x2k9qz3m4n5p6r7s8t9v0w')).toBe(
       LEI,
@@ -97,13 +97,13 @@ describe('the segment of a note address', () => {
     expect(noteIdOf(noteSegment('Lei 14.133', LEI))).toBe(LEI);
   });
 
-  it('is the bare identifier when the note has no addressable title', () => {
+  it('is the bare identifier when the note has no addressable name', () => {
     // RN-KNW-036 as the degenerate case of the same rule, not a second scheme.
     expect(noteSegment(null, LEI)).toBe('01j8x2k9qz3m4n5p6r7s8t9v0w');
     expect(noteIdOf(noteSegment(null, LEI))).toBe(LEI);
   });
 
-  it('is ASCII end to end, whatever the title carries', () => {
+  it('is ASCII end to end, whatever the name carries', () => {
     const address = noteAddress('enologia', '01-castas', 'Reunião 03/09/2026', LEI);
     expect(address).not.toMatch(/[^\x20-\x7e]/);
     expect(address).not.toContain('%');

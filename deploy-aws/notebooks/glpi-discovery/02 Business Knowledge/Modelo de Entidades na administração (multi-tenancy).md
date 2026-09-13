@@ -1,5 +1,5 @@
 ---
-title: Modelo de Entidades na administração (multi-tenancy)
+name: Modelo de Entidades na administração (multi-tenancy)
 aliases: [Entidades (administração), Multi-tenancy GLPI]
 tags: [entidades, multi-tenancy, hierarquia, isolamento, delegacao, doc]
 type: capability

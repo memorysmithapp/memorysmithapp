@@ -1,5 +1,5 @@
 ---
-title: Unlinked Mention
+name: Unlinked Mention
 aliases:
   - Menção Não Linkada
   - Potential Link

@@ -1,5 +1,5 @@
 ---
-title: Escolha da Forma de Trabalho com IA
+name: Escolha da Forma de Trabalho com IA
 aliases:
   - Chat vs Cowork vs Code
   - Roteamento de Tarefa para IA

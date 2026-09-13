@@ -1,5 +1,5 @@
 ---
-title: Solicitação de Acesso para Micro e Minigeração Distribuída
+name: Solicitação de Acesso para Micro e Minigeração Distribuída
 aliases:
   - Solicitação de acesso GD
   - Pedido de conexão de GD

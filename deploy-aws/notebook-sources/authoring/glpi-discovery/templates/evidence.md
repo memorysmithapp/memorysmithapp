@@ -1,5 +1,5 @@
 ---
-title: EV-<sessão>-<seq> · <O fato que a evidência estabelece, como frase>
+name: EV-<sessão>-<seq> · <O fato que a evidência estabelece, como frase>
 aliases: [EV-<sessão>-<seq>]
 tags: [evidence, dominio/<dominio>]
 type: evidence

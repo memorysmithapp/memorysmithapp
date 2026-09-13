@@ -1,5 +1,5 @@
 ---
-title: Campos do Antivírus (ativo)
+name: Campos do Antivírus (ativo)
 aliases: [Antivirus fields]
 tags: [data, assets, antivirus, fields]
 type: entity

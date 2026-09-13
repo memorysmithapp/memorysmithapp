@@ -1,5 +1,5 @@
 ---
-title: Atendimento a Pedidos de Conexão MMGD pós-Lei 14.300 (ANEEL)
+name: Atendimento a Pedidos de Conexão MMGD pós-Lei 14.300 (ANEEL)
 aliases:
   - atendimento-mmgd-mini-e-micro-geracao-distribuida
 tags:

@@ -1,5 +1,5 @@
 ---
-title: Módulo de Assistência (Service Desk)
+name: Módulo de Assistência (Service Desk)
 aliases: [Assistance, Módulo Assistance, Central de Serviços]
 tags: [assistance, service-desk, itil, overview, ticket]
 type: overview

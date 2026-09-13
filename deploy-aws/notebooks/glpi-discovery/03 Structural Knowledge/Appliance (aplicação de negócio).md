@@ -1,5 +1,5 @@
 ---
-title: Appliance (aplicação de negócio)
+name: Appliance (aplicação de negócio)
 aliases: [Appliance, Appliances, Aplicação, Servidor lógico]
 tags: [management, appliance, aplicacao, ativo-logico]
 type: component

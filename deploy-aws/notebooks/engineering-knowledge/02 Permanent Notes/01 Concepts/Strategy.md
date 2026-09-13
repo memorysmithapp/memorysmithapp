@@ -1,5 +1,5 @@
 ---
-title: Strategy
+name: Strategy
 aliases:
   - Estratégia
 tags:

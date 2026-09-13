@@ -1,5 +1,5 @@
 ---
-title: Service Financial Management
+name: Service Financial Management
 aliases:
   - Gestão Financeira de Serviços
 tags:

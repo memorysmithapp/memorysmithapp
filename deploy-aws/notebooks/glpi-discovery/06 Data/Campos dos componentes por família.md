@@ -1,5 +1,5 @@
 ---
-title: Campos dos componentes por família
+name: Campos dos componentes por família
 aliases: [Component fields per family, Campos de componentes]
 tags: [data, components, hardware, fields]
 type: entity

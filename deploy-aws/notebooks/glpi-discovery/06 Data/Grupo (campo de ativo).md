@@ -1,5 +1,5 @@
 ---
-title: Grupo (campo de ativo)
+name: Grupo (campo de ativo)
 aliases: [Group, Grupo]
 tags: [campos-comuns, atores, grupo, dropdown, data]
 type: field

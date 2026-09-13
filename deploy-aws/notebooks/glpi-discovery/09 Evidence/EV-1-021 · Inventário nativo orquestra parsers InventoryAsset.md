@@ -1,5 +1,5 @@
 ---
-title: EV-1-021 · Inventário nativo orquestra parsers InventoryAsset
+name: EV-1-021 · Inventário nativo orquestra parsers InventoryAsset
 aliases: [EV-1-021]
 tags: [evidence, dominio/ativos, inventario]
 type: evidence

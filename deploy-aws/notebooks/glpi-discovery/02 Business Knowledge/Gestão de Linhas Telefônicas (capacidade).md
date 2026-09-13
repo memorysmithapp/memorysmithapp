@@ -1,5 +1,5 @@
 ---
-title: Gestão de Linhas Telefônicas (capacidade)
+name: Gestão de Linhas Telefônicas (capacidade)
 aliases: [Phone lines management, Gestão de Linhas]
 tags: [management, line, telefonia, capacidade]
 type: capability

@@ -1,5 +1,5 @@
 ---
-title: IndQual - Município (ANEEL)
+name: IndQual - Município (ANEEL)
 aliases:
   - indqual-municipio
 tags:

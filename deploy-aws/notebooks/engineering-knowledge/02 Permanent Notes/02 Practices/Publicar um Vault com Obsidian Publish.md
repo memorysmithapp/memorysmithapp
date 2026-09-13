@@ -1,5 +1,5 @@
 ---
-title: Publicar um Vault com Obsidian Publish
+name: Publicar um Vault com Obsidian Publish
 aliases:
   - Publicar com Obsidian Publish
   - Setup do Obsidian Publish

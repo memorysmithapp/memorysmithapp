@@ -1,5 +1,5 @@
 ---
-title: System Design MOC
+name: System Design MOC
 aliases:
   - System Design
   - Arquitetura de Sistemas Distribuídos

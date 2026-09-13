@@ -29,7 +29,7 @@ import type {
   NotebookStructure,
   NotebookSummary,
 } from '../types/api';
-import { splitFrontmatter, statedInFrontmatter } from './markdown';
+import { splitFrontmatter } from './markdown';
 import { request } from './http';
 import { ApiError } from './error-mapper';
 
@@ -93,7 +93,7 @@ function nest(folders: FolderDto[], notes: NoteSummaryDto[]): FolderNode[] {
           .filter((note) => note.folderId === folder.folderId)
           .map((note) => ({
             id: note.noteId,
-            title: note.title,
+            name: note.name,
             folderId: note.folderId,
           })),
         children: build(folder.folderId, slugPath),
@@ -121,7 +121,7 @@ export async function getNotebookStructure(notebookSlug: string): Promise<Notebo
 
 /**
  * What one wikilink target resolves to in this notebook: the notes it reaches and
- * whether a title or an alias answered (RN-DSC-046). Resolution belongs to
+ * whether a name or an alias answered (RN-DSC-046). Resolution belongs to
  * Discovery, which is the context that holds the index a notebook answers with.
  */
 export async function resolveLinkTarget(
@@ -169,12 +169,7 @@ export async function getNote(notebookSlug: string, noteId: string): Promise<Not
     id: note.noteId,
     notebookSlug,
     folderId: note.folderId,
-    title: note.title,
-    // Which step of the chain answered, which decides who draws the title
-    // (RN-DSC-054). The frontmatter is part of the body, so the interface can
-    // see it without asking: `title:` there is what the chain read first.
-    titleFrom:
-      note.title === null ? null : statedInFrontmatter(note.content) ? 'frontmatter' : 'heading',
+    name: note.name,
     folderNames,
     frontmatter,
     listProperties: [...lists],
@@ -311,7 +306,7 @@ export async function putTemplate(
 
 export async function createNote(
   notebookSlug: string,
-  input: { folderId: string; title: string; content: string },
+  input: { folderId: string; name: string; content: string },
 ): Promise<NoteSummaryDto> {
   const notebookId = await notebookIdOf(notebookSlug);
   return request<NoteSummaryDto>(`/knowledge/notebooks/${notebookId}/notes`, {
@@ -323,7 +318,7 @@ export async function createNote(
 export async function updateNote(
   notebookSlug: string,
   noteId: string,
-  input: { content: string; baseRevision: string; title?: string },
+  input: { content: string; baseRevision: string; name?: string },
   options: { keepalive?: boolean } = {},
 ): Promise<NoteDto> {
   const notebookId = await notebookIdOf(notebookSlug);
@@ -340,7 +335,7 @@ export async function updateNote(
 
 export interface BacklinkDto {
   noteId: string;
-  title: string;
+  name: string;
   slug: string;
   folderId: string;
 }

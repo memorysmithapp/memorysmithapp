@@ -1,5 +1,5 @@
 ---
-title: Estruturas de Dados
+name: Estruturas de Dados
 aliases:
   - Data Structures
 tags:

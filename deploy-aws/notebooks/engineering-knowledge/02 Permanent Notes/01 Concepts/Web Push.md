@@ -1,5 +1,5 @@
 ---
-title: Web Push
+name: Web Push
 aliases:
   - Push Notification
   - Notificação Push

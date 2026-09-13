@@ -1,5 +1,5 @@
 ---
-title: Aba Projetos (vincular projeto a um objeto)
+name: Aba Projetos (vincular projeto a um objeto)
 aliases: [Projects tab, Aba Projects, Link a project]
 tags: [tab, projects, link, change]
 type: component

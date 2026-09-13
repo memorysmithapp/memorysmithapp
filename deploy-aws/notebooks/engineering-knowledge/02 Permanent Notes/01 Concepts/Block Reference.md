@@ -1,5 +1,5 @@
 ---
-title: Block Reference
+name: Block Reference
 aliases:
   - Block Link
   - Block Identifier

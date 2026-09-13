@@ -1,5 +1,5 @@
 ---
-title: Nova
+name: Nova
 aliases:
   - OpenStack Compute Service
   - Compute Service

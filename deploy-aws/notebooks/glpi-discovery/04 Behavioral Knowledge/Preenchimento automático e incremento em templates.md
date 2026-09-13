@@ -1,5 +1,5 @@
 ---
-title: Preenchimento automático e incremento em templates
+name: Preenchimento automático e incremento em templates
 aliases: [Autofill, Increment, Incremento, Autofill mark]
 tags: [templates, autofill, increment, syntax]
 type: algorithm

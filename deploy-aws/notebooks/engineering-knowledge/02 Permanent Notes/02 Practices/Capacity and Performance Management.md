@@ -1,5 +1,5 @@
 ---
-title: Capacity and Performance Management
+name: Capacity and Performance Management
 aliases:
   - Gestão de Capacidade e Desempenho
 tags:

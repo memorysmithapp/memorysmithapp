@@ -1,5 +1,5 @@
 ---
-title: Claude 101 03
+name: Claude 101 03
 aliases:
   - "Módulo 3: Ampliando o alcance do Claude"
 tags:

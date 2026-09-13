@@ -1,5 +1,5 @@
 ---
-title: Campos da aba Portas de rede
+name: Campos da aba Portas de rede
 aliases: [Network Ports tab, Aba Portas de rede]
 tags: [assets, data, network-port, tab]
 type: entity

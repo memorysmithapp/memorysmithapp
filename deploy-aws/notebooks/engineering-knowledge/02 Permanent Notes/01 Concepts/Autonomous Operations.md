@@ -1,5 +1,5 @@
 ---
-title: Autonomous Operations
+name: Autonomous Operations
 aliases:
   - Operações Autônomas
   - Self-Healing

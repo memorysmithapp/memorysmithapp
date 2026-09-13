@@ -1,5 +1,5 @@
 ---
-title: Version History
+name: Version History
 aliases:
   - Histórico de Versões
   - Sync History

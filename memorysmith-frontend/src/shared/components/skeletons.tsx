@@ -79,7 +79,7 @@ export function FolderTreeSkeleton() {
   );
 }
 
-/** A note: its title, its properties and its body. */
+/** A note: its name, its properties and its body. */
 export function NoteSkeleton() {
   return (
     <SkeletonRegion>

@@ -1,5 +1,5 @@
 ---
-title: Chaos Engineering
+name: Chaos Engineering
 aliases:
   - Engenharia do Caos
   - Chaos Monkey

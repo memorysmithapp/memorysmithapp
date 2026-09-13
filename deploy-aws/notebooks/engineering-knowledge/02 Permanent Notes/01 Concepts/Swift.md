@@ -1,5 +1,5 @@
 ---
-title: Swift
+name: Swift
 aliases:
   - OpenStack Object Storage Service
   - Object Storage Service

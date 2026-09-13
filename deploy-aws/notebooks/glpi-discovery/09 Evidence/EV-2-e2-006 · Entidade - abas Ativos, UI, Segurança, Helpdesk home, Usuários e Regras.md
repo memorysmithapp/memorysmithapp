@@ -1,5 +1,5 @@
 ---
-title: EV-2-e2-006 · Entidade - abas Ativos, UI, Segurança, Helpdesk home, Usuários e Regras
+name: EV-2-e2-006 · Entidade - abas Ativos, UI, Segurança, Helpdesk home, Usuários e Regras
 aliases: [EV-2-e2-006]
 tags: [evidence, entidades, ativos, ui, seguranca, doc]
 type: evidence

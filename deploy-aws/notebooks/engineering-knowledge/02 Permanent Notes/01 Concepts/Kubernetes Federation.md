@@ -1,5 +1,5 @@
 ---
-title: Kubernetes Federation
+name: Kubernetes Federation
 aliases:
   - KubeFed
   - Federação Kubernetes

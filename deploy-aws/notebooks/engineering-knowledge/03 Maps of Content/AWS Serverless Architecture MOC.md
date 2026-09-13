@@ -1,5 +1,5 @@
 ---
-title: AWS Serverless Architecture MOC
+name: AWS Serverless Architecture MOC
 aliases:
   - AWS Serverless
   - Arquitetura Serverless AWS

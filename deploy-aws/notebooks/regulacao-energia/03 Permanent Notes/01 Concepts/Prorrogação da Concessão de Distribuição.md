@@ -1,5 +1,5 @@
 ---
-title: Prorrogação da Concessão de Distribuição
+name: Prorrogação da Concessão de Distribuição
 aliases:
   - Prorrogação da concessão
   - Renovação das concessões de distribuição

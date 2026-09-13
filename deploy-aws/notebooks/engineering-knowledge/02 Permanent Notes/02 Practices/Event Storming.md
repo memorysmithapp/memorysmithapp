@@ -1,5 +1,5 @@
 ---
-title: Event Storming
+name: Event Storming
 aliases:
 tags:
   - architecture

@@ -1,5 +1,5 @@
 ---
-title: Usuário alternativo do inventário (alternate username e número)
+name: Usuário alternativo do inventário (alternate username e número)
 aliases: [Alternate username, Alternate username number, Usuário alternativo]
 tags: [campos-comuns, inventario, usuario, data]
 type: field

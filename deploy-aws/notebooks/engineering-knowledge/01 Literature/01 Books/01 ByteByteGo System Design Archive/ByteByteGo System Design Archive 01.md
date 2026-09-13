@@ -1,5 +1,5 @@
 ---
-title: ByteByteGo System Design Archive 01
+name: ByteByteGo System Design Archive 01
 aliases:
   - "Parte 1: Sistemas Distribuídos e Escalabilidade"
 tags:

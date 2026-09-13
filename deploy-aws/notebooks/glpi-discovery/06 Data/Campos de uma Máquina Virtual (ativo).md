@@ -1,5 +1,5 @@
 ---
-title: Campos de uma Máquina Virtual (ativo)
+name: Campos de uma Máquina Virtual (ativo)
 aliases: [Virtual machine fields, Campos de VM]
 tags: [data, assets, virtualization, vm, fields, uuid]
 type: entity

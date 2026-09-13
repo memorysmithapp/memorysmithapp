@@ -1,5 +1,5 @@
 ---
-title: UDP
+name: UDP
 aliases:
   - User Datagram Protocol
   - Datagrama

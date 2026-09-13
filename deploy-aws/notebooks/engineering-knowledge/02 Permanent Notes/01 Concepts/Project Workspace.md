@@ -1,5 +1,5 @@
 ---
-title: Project Workspace
+name: Project Workspace
 aliases:
   - Projeto de IA
   - Projects

@@ -1,5 +1,5 @@
 ---
-title: EV-1-026 · Project, ProjectTask, ProjectTeam e ProjectCost
+name: EV-1-026 · Project, ProjectTask, ProjectTeam e ProjectCost
 aliases: [EV-1-026]
 tags: [evidence, dominio/gestao, projeto]
 type: evidence

@@ -1,5 +1,5 @@
 ---
-title: Empreendimento Hidrelétrico em Estudo (ANEEL)
+name: Empreendimento Hidrelétrico em Estudo (ANEEL)
 aliases:
   - empreendimento-hidreletrico-em-estudo
 tags:

@@ -1,5 +1,5 @@
 ---
-title: Obsidian Help 03
+name: Obsidian Help 03
 aliases:
   - Obsidian Help — Ligação, Grafo e Navegação
 tags:

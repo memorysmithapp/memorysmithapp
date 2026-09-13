@@ -1,5 +1,5 @@
 ---
-title: Ativos Customizáveis (AssetDefinition)
+name: Ativos Customizáveis (AssetDefinition)
 aliases: [AssetDefinition, ativos customizados, custom assets, capacities]
 tags: [component, custom-assets, dominio/ativos]
 type: component

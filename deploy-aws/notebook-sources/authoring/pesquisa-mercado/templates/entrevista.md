@@ -1,5 +1,5 @@
 ---
-title: Entrevista · <Persona>
+name: Entrevista · <Persona>
 aliases: []
 tags: [entrevista]
 type: entrevista

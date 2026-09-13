@@ -1,5 +1,5 @@
 ---
-title: Project Management
+name: Project Management
 aliases:
   - Gestão de Projetos
 tags:

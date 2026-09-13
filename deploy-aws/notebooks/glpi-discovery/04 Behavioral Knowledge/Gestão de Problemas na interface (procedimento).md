@@ -1,5 +1,5 @@
 ---
-title: Gestão de Problemas na interface (procedimento)
+name: Gestão de Problemas na interface (procedimento)
 aliases: [Manage problems, Gerir problemas]
 tags: [problems, problemas, itil, procedimento, ui, assistance]
 type: use-case

@@ -1,5 +1,5 @@
 ---
-title: Modelo de ativo (model)
+name: Modelo de ativo (model)
 aliases: [Model, Modelo]
 tags: [campos-comuns, classificacao, dropdown, data]
 type: field

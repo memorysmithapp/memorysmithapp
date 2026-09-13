@@ -1,5 +1,5 @@
 ---
-title: EV-2-e2-018 · Fila de e-mails (mailing queue)
+name: EV-2-e2-018 · Fila de e-mails (mailing queue)
 aliases: [EV-2-e2-018]
 tags: [evidence, notificacoes, fila, email, crontask, doc]
 type: evidence

@@ -1,5 +1,5 @@
 ---
-title: Monitoring and Event Management
+name: Monitoring and Event Management
 aliases:
   - Monitoramento e Gestão de Eventos
 tags:

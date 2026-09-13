@@ -1,5 +1,5 @@
 ---
-title: Campos da definição de notificação
+name: Campos da definição de notificação
 aliases: [Notification definition fields]
 tags: [dados, notificacao, campos, definicao]
 type: entity

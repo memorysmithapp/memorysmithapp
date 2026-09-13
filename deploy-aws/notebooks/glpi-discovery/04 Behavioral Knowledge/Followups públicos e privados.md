@@ -1,5 +1,5 @@
 ---
-title: Followups públicos e privados
+name: Followups públicos e privados
 aliases: [Acompanhamentos, Followups, Processing ticket]
 tags: [assistance, ticket, followup, public, private]
 type: flow

@@ -1,5 +1,5 @@
 ---
-title: Modelos de Impressora (compartilhar cartuchos)
+name: Modelos de Impressora (compartilhar cartuchos)
 aliases: [Printer models, Modelos de impressora]
 tags: [tab, printer-models, cartridges, dropdown]
 type: component

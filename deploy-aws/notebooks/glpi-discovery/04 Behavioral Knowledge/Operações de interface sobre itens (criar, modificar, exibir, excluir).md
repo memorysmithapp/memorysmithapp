@@ -1,5 +1,5 @@
 ---
-title: Operações de interface sobre itens (criar, modificar, exibir, excluir)
+name: Operações de interface sobre itens (criar, modificar, exibir, excluir)
 aliases: [CRUD de interface, Ações sobre objetos, Anexar documento, Anexar contrato]
 tags: [crud, ui, procedure, actions]
 type: use-case

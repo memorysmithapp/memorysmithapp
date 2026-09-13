@@ -1,5 +1,5 @@
 ---
-title: Projetos de P&D em Energia Elétrica (ANEEL)
+name: Projetos de P&D em Energia Elétrica (ANEEL)
 aliases:
   - projetos-de-p-d-em-energia-eletrica
 tags:

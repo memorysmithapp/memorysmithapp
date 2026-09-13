@@ -1,5 +1,5 @@
 ---
-title: Coletor de E-mail (MailCollector)
+name: Coletor de E-mail (MailCollector)
 aliases: [MailCollector, e-mail para chamado, IMAP]
 tags: [integration, email, dominio/integracoes]
 type: integration

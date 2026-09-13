@@ -17,7 +17,7 @@ interface KnowledgeSide {
     listByNotebook(notebook: NotebookId): Promise<
       Array<{
         id: { value: string };
-        title: string | null;
+        name: string | null;
         folderId: { value: string };
       }>
     >;
@@ -37,7 +37,7 @@ export class KnowledgeNoteCatalog implements NoteCatalog {
     const notes = await this.knowledge.notes.listByNotebook(parsed.value);
     return notes.map((note) => ({
       noteId: note.id.value,
-      title: note.title ?? '',
+      name: note.name ?? '',
       // The aliases live in the body, which this catalogue does not read: it
       // answers what Knowledge holds, and the frontmatter is Discovery's to
       // read through its own projection (RN-DSC-052).

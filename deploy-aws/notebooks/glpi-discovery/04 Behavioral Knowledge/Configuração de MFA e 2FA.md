@@ -1,5 +1,5 @@
 ---
-title: Configuração de MFA e 2FA
+name: Configuração de MFA e 2FA
 aliases: [MFA, 2FA, Two-factor authentication, Autenticação de dois fatores, "Configuração de MFA/2FA"]
 tags: [flow, mfa, 2fa, authentication, security, otp]
 type: flow

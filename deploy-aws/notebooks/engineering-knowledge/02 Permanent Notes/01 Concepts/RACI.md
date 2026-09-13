@@ -1,5 +1,5 @@
 ---
-title: RACI
+name: RACI
 aliases:
   - Matriz RACI
   - Responsibility Assignment Matrix

@@ -1,5 +1,5 @@
 ---
-title: INV-2-e2-001 · Correspondência entre tipos de regra do doc e o catálogo do código
+name: INV-2-e2-001 · Correspondência entre tipos de regra do doc e o catálogo do código
 aliases: [INV-2-e2-001]
 tags: [investigation, consumidor/cad, regras, criterios, acoes]
 type: investigation

@@ -1,5 +1,5 @@
 ---
-title: Personificação de usuário (Impersonate)
+name: Personificação de usuário (Impersonate)
 aliases: [Impersonate, Impersonation, Assumir conta]
 tags: [usuarios, impersonate, seguranca, depuracao, privilegio]
 type: use-case

@@ -1,5 +1,5 @@
 ---
-title: Arquitetura Evolutiva
+name: Arquitetura Evolutiva
 aliases:
   - Evolutionary Architecture
   - Fitness Function

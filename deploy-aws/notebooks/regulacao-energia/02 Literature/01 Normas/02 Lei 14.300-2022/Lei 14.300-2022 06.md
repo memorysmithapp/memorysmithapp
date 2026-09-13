@@ -1,5 +1,5 @@
 ---
-title: Lei 14.300-2022 06
+name: Lei 14.300-2022 06
 aliases:
   - Lei 14.300 Capítulo VI
   - Transição da Lei 14.300

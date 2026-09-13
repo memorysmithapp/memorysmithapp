@@ -1,5 +1,5 @@
 ---
-title: Claude Cowork Use Cases
+name: Claude Cowork Use Cases
 aliases:
   - Use Cases Cowork
   - Biblioteca de Use Cases do Cowork

@@ -1,5 +1,5 @@
 ---
-title: EV-2-e1-010 · Aba Groups da ficha de usuário
+name: EV-2-e1-010 · Aba Groups da ficha de usuário
 aliases: [EV-2-e1-010]
 tags: [evidence, usuarios, grupos, manager, acoes-massivas]
 type: evidence

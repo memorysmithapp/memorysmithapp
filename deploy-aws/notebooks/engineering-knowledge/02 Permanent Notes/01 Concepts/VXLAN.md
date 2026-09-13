@@ -1,5 +1,5 @@
 ---
-title: VXLAN
+name: VXLAN
 aliases:
   - Virtual Extensible LAN
   - Overlay Network

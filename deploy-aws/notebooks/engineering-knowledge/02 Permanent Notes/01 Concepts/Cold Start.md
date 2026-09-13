@@ -1,5 +1,5 @@
 ---
-title: Cold Start
+name: Cold Start
 aliases:
   - Partida a Frio
   - Cold Boot

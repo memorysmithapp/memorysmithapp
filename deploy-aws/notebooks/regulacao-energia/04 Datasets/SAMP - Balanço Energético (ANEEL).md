@@ -1,5 +1,5 @@
 ---
-title: SAMP - Balanço Energético (ANEEL)
+name: SAMP - Balanço Energético (ANEEL)
 aliases:
   - samp-balanco
 tags:

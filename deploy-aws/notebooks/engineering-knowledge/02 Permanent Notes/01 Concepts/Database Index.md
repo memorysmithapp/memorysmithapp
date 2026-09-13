@@ -1,5 +1,5 @@
 ---
-title: Database Index
+name: Database Index
 aliases:
   - Índice de Banco de Dados
   - Database Indexing

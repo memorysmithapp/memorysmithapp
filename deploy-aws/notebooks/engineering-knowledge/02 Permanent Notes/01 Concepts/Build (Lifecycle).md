@@ -1,5 +1,5 @@
 ---
-title: Build (Lifecycle)
+name: Build (Lifecycle)
 aliases:
   - Build
   - Construção

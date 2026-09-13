@@ -1,5 +1,5 @@
 ---
-title: EV-2-f2-006 · Dropdowns comuns localizações status fabricantes blacklists
+name: EV-2-f2-006 · Dropdowns comuns localizações status fabricantes blacklists
 aliases: [EV-2-f2-006]
 tags: [evidence, dropdown, location, status, manufacturer, blacklist]
 type: evidence

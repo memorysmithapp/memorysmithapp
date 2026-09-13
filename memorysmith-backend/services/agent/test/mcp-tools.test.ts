@@ -27,31 +27,31 @@ function gateways(overrides: Record<string, unknown> = {}) {
     notebookContext: async () => '# Notebook: Normas\n\n## Structure\n1. **Normas**: (48 notes)\n',
     template: async () => ({ content: '# Modelo\n\n## Vigencia', folderName: 'Normas' }),
     listNotes: async () => [
-      { noteId: 'n1', title: 'Lei 14.133', slug: 'lei-14133', folderId: 'f1', position: 'a0' },
+      { noteId: 'n1', name: 'Lei 14.133', slug: 'lei-14133', folderId: 'f1', position: 'a0' },
     ],
     readNote: async () => ({
       noteId: 'n1',
-      title: 'Lei 14.133',
+      name: 'Lei 14.133',
       content: '# Lei 14.133',
       revision: 'v3',
       updatedAt: '2026-03-20T10:00:00.000Z',
     }),
     createNote: async () => ({
       noteId: 'n2',
-      title: 'Nova',
+      name: 'Nova',
       content: '# Nova',
       revision: 'v1',
       updatedAt: '2026-03-21T10:00:00.000Z',
     }),
     updateNote: async () => ({
       noteId: 'n1',
-      title: 'Lei 14.133',
+      name: 'Lei 14.133',
       content: '# Atualizada',
       revision: 'v4',
       updatedAt: '2026-03-22T10:00:00.000Z',
     }),
     searchNotes: async () => [
-      { noteId: 'n1', title: 'Lei 14.133', section: null, excerpt: 'Lei 14.133', score: 1 },
+      { noteId: 'n1', name: 'Lei 14.133', section: null, excerpt: 'Lei 14.133', score: 1 },
     ],
     createNotebook: async () => ({
       notebookId: 'v2',
@@ -77,12 +77,12 @@ function gateways(overrides: Record<string, unknown> = {}) {
   const discovery = {
     relatedNotes: async () => ({
       noteId: 'n1',
-      title: 'Achado 12',
+      name: 'Achado 12',
       depth: 0,
-      children: [{ noteId: 'n2', title: 'Lei 14.133', depth: 1, children: [] }],
+      children: [{ noteId: 'n2', name: 'Lei 14.133', depth: 1, children: [] }],
     }),
     backlinks: async () => [
-      { noteId: 'n3', title: 'Achado 12', slug: 'achado-12', folderId: 'f2', position: 'a0' },
+      { noteId: 'n3', name: 'Achado 12', slug: 'achado-12', folderId: 'f2', position: 'a0' },
     ],
     ...((overrides['discovery'] as object) ?? {}),
   };
@@ -98,7 +98,7 @@ function gateways(overrides: Record<string, unknown> = {}) {
     ],
     revisionAt: async () => ({
       noteId: 'n1',
-      title: '',
+      name: null,
       content: '# Como estava em marco',
       revision: 'v2',
       updatedAt: '2026-03-10T10:00:00.000Z',
@@ -189,16 +189,17 @@ describe('The tool catalog is the public contract', () => {
     expect(update?.annotations.destructiveHint).toBe(true);
   });
 
-  it('tells the agent that the title is read from the content it writes', () => {
-    // RN-KNW-035: there is no title argument anywhere, and an agent that
-    // leaves the title to a heading it may not write gets a note no link can
-    // name (RN-KNW-036).
+  it('tells the agent that a note is named by name: in the content it writes', () => {
+    // RN-KNW-035: there is no name argument anywhere, and an agent that
+    // writes no `name:` gets a note no link can reach (RN-KNW-036).
     const create = TOOL_CATALOG.find((tool) => tool.name === 'create_note');
+    const update = TOOL_CATALOG.find((tool) => tool.name === 'update_note');
     expect(create?.inputSchema.required).toEqual(['notebook', 'folder', 'content']);
-    expect(create?.description).toContain('frontmatter');
-    expect(TOOL_CATALOG.find((tool) => tool.name === 'update_note')?.description).toContain(
-      'retitled',
-    );
+    expect(create?.description).toContain('`name:`');
+    expect(create?.description).toContain('A heading never names a note');
+    expect(update?.description).toContain('renamed');
+    // No description teaches `title:` for naming a note.
+    for (const tool of TOOL_CATALOG) expect(tool.description).not.toContain('`title:`');
   });
 
   it('tells the agent to read the template before writing', () => {
@@ -523,8 +524,10 @@ describe('skills: the method, indexed by whoami', () => {
     // The evidence this skill exists for: a guidance opening with a heading
     // the Notebook Context already emits, and a folder without a template while
     // the guidance declares mandatory frontmatter.
-    expect(body).toContain('Do not open with a title');
+    expect(body).toContain('Do not open with a heading');
     expect(body).toContain('template');
+    // And every template carries the key that names a note.
+    expect(body).toContain('`name:` at the top of every template');
   });
 
   it('builds the notation skill from the declaration, never beside it', async () => {
@@ -604,7 +607,7 @@ describe('the connector hands over the Markdown the author wrote (RN-AGT-015)', 
       knowledge: {
         readNote: async () => ({
           noteId: 'n1',
-          title: 'Direct contracting',
+          name: 'Direct contracting',
           content: body,
           revision: 'v3',
           updatedAt: '2026-03-20T10:00:00.000Z',

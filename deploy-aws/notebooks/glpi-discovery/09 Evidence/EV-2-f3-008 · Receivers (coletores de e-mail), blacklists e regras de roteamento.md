@@ -1,5 +1,5 @@
 ---
-title: EV-2-f3-008 · Receivers (coletores de e-mail), blacklists e regras de roteamento
+name: EV-2-f3-008 · Receivers (coletores de e-mail), blacklists e regras de roteamento
 aliases: [EV-2-f3-008]
 tags: [evidence, receiver, collector, mailgate, imap, pop, regras, roteamento, blacklist]
 type: evidence

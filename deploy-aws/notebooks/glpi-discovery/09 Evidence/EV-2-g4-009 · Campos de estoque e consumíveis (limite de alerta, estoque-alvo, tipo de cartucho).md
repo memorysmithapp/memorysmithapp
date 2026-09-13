@@ -1,5 +1,5 @@
 ---
-title: EV-2-g4-009 · Campos de estoque e consumíveis (limite de alerta, estoque-alvo, tipo de cartucho)
+name: EV-2-g4-009 · Campos de estoque e consumíveis (limite de alerta, estoque-alvo, tipo de cartucho)
 aliases: [EV-2-g4-009]
 tags: [evidence, campos-comuns, estoque, consumiveis, cartucho, alerta]
 type: evidence

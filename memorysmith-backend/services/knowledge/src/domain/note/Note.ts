@@ -15,10 +15,10 @@
  *  - replaceBody takes an ALREADY written ContentRef: whoever talks to S3 is
  *    the use case, never the aggregate.
  *
- * The title is NOT a field a caller sets. It is read out of the body by the
- * chain of the specification, here, on every write, so a note cannot exist
- * whose title disagrees with its content (RN-KNW-035). It is `null` when the
- * content states none a link could name (RN-KNW-036), and there is no slug:
+ * The name is NOT a field a caller sets. It is the `name:` of the frontmatter
+ * of the body, read here on every write, so a note cannot exist whose name
+ * disagrees with its content (RN-KNW-035). It is `null` when the content
+ * states none a link could use (RN-KNW-036), and there is no slug:
  * nothing in a notebook is a key, and two notes may be called the same thing
  * (RN-KNW-037).
  */
@@ -33,7 +33,7 @@ import {
   type Instant,
   type NoteId,
   ok,
-  noteTitle,
+  noteName,
   type Position,
   type SubscriptionId,
   type NotebookId,
@@ -48,7 +48,7 @@ export class Note {
     readonly subscriptionId: SubscriptionId,
     private _notebookId: NotebookId,
     private _folderId: FolderId,
-    private _title: string | null,
+    private _name: string | null,
     private _position: Position,
     private _bodyRef: ContentRef,
     readonly createdBy: Authorship,
@@ -58,9 +58,9 @@ export class Note {
   ) {}
 
   /**
-   * The body arrives alongside the reference to it, because the title is read
+   * The body arrives alongside the reference to it, because the name is read
    * from the bytes and this is where that reading belongs: a use case that
-   * passed a title in could pass one the content does not say.
+   * passed a name in could pass one the content does not say.
    */
   static create(input: {
     id: NoteId;
@@ -72,13 +72,13 @@ export class Note {
     bodyRef: ContentRef;
     by: Authorship;
   }): Result<Note, DomainError> {
-    const title = noteTitle(input.body);
+    const name = noteName(input.body);
     const note = new Note(
       input.id,
       input.subscriptionId,
       input.notebookId,
       input.folderId,
-      title,
+      name,
       input.position,
       input.bodyRef,
       input.by,
@@ -93,7 +93,7 @@ export class Note {
         notebookId: input.notebookId.value,
         noteId: input.id.value,
         folderId: input.folderId.value,
-        title,
+        name,
         position: input.position.value,
       },
       input.bodyRef,
@@ -107,7 +107,7 @@ export class Note {
     subscriptionId: SubscriptionId;
     notebookId: NotebookId;
     folderId: FolderId;
-    title: string | null;
+    name: string | null;
     position: Position;
     bodyRef: ContentRef;
     createdBy: Authorship;
@@ -120,7 +120,7 @@ export class Note {
       input.subscriptionId,
       input.notebookId,
       input.folderId,
-      input.title,
+      input.name,
       input.position,
       input.bodyRef,
       input.createdBy,
@@ -146,9 +146,9 @@ export class Note {
   get folderId(): FolderId {
     return this._folderId;
   }
-  /** What the chain read, or `null` when no link can name this note. */
-  get title(): string | null {
-    return this._title;
+  /** The `name:` the content states, or `null` when no link can name this note. */
+  get name(): string | null {
+    return this._name;
   }
   get position(): Position {
     return this._position;
@@ -175,9 +175,9 @@ export class Note {
    * new revision, no event and no re-indexing (RN-KNW-028). The caller can
    * tell it was a no-op because no event was recorded.
    *
-   * This is also how a note is retitled: there is no operation that renames
+   * This is also how a note is renamed: there is no operation that renames
    * one apart from its content (RN-KNW-038). Identical bytes cannot state a
-   * different title, so the early return costs nothing.
+   * different name, so the early return costs nothing.
    */
   replaceBody(ref: ContentRef, body: string, by: Authorship): Result<boolean, DomainError> {
     if (this.isDeleted) return err(DomainError.notFound('This note is deleted'));
@@ -188,7 +188,7 @@ export class Note {
     // stays in the store and stops being counted (RN-SUB-021).
     const delta = ref.bytes - this._bodyRef.bytes;
     this._bodyRef = ref;
-    this._title = noteTitle(body);
+    this._name = noteName(body);
     this._updatedBy = by;
     this.record(
       'NoteUpdated',
@@ -197,7 +197,7 @@ export class Note {
         notebookId: this._notebookId.value,
         noteId: this.id.value,
         folderId: this._folderId.value,
-        title: this._title,
+        name: this._name,
       },
       ref,
       delta,
@@ -228,7 +228,7 @@ export class Note {
    * (RN-KNW-023). Implementing it as delete plus create would lose the history
    * exactly where it matters.
    *
-   * A destination has nothing to refuse: a title collides with nothing, in
+   * A destination has nothing to refuse: a name collides with nothing, in
    * one notebook or in two (RN-KNW-037), so there is no conflict policy left to
    * apply (RN-KNW-022, removed).
    */
@@ -320,7 +320,7 @@ export class Note {
    * One unit of work publishes at most one `NoteUpdated`.
    *
    * That event is a snapshot and not a diff: every recorder of it writes the
-   * whole of what the note now is, title, folder and the ContentRef that is
+   * whole of what the note now is, name, folder and the ContentRef that is
    * live at that instant. So a second one within the same save supersedes
    * the first entirely, and keeping both would publish two events for one
    * operation, the earlier of which cites a revision that is already

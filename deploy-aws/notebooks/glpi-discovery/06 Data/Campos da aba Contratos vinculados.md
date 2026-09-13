@@ -1,5 +1,5 @@
 ---
-title: Campos da aba Contratos vinculados
+name: Campos da aba Contratos vinculados
 aliases: [campos Contracts tab]
 tags: [data, campos, contracts, contratos]
 type: data

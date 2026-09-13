@@ -1,5 +1,5 @@
 ---
-title: Value Co-Creation
+name: Value Co-Creation
 aliases:
   - Cocriação de Valor
   - Value Cocreation

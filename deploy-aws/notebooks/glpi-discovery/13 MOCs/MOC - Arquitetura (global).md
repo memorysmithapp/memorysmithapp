@@ -1,5 +1,5 @@
 ---
-title: MOC - Arquitetura (global)
+name: MOC - Arquitetura (global)
 aliases: [MOC Arquitetura, índice global, mapa do vault]
 tags: [moc, arquitetura, global]
 type: moc

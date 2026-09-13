@@ -1,5 +1,5 @@
 ---
-title: Firewall
+name: Firewall
 aliases:
   - Firewall de Rede
   - Security Group

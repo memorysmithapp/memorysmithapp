@@ -1,5 +1,5 @@
 ---
-title: Theme (Obsidian)
+name: Theme (Obsidian)
 aliases:
   - Tema
   - Community Theme

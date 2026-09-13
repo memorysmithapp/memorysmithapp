@@ -1,5 +1,5 @@
 ---
-title: Gestão de Ativos e Configuração (SACM)
+name: Gestão de Ativos e Configuração (SACM)
 aliases: [SACM, Asset Management, CMDB processo]
 tags: [process, cmdb, dominio/ativos]
 type: process

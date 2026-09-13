@@ -1,5 +1,5 @@
 ---
-title: EV-2-g4-007 · Campo Status de itens
+name: EV-2-g4-007 · Campo Status de itens
 aliases: [EV-2-g4-007]
 tags: [evidence, campos-comuns, status]
 type: evidence

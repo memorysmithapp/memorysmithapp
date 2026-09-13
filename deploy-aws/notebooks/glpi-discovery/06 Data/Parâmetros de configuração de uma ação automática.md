@@ -1,5 +1,5 @@
 ---
-title: Parâmetros de configuração de uma ação automática
+name: Parâmetros de configuração de uma ação automática
 aliases: [Automatic action fields, Crontask config fields]
 tags: [dados, crontask, acao-automatica, campos, config]
 type: entity

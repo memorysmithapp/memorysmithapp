@@ -1,5 +1,5 @@
 ---
-title: Lean Inception - Como Alinhar Pessoas e Construir o Produto Certo
+name: Lean Inception - Como Alinhar Pessoas e Construir o Produto Certo
 author: Paulo Caroli
 year: 2018
 tags:

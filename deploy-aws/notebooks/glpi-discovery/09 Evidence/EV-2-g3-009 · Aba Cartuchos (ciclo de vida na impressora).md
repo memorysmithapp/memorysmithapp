@@ -1,5 +1,5 @@
 ---
-title: EV-2-g3-009 · Aba Cartuchos (ciclo de vida na impressora)
+name: EV-2-g3-009 · Aba Cartuchos (ciclo de vida na impressora)
 aliases: [EV-2-g3-009]
 tags: [evidence, tab, cartridges, printer, lifecycle, stock]
 type: evidence

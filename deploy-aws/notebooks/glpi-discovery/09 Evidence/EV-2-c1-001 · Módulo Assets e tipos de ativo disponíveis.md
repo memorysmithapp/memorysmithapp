@@ -1,5 +1,5 @@
 ---
-title: EV-2-c1-001 · Módulo Assets e tipos de ativo disponíveis
+name: EV-2-c1-001 · Módulo Assets e tipos de ativo disponíveis
 aliases: [EV-2-c1-001]
 tags: [evidence, assets, inventory, doc]
 type: evidence

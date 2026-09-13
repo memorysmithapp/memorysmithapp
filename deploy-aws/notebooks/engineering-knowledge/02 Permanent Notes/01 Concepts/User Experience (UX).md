@@ -1,5 +1,5 @@
 ---
-title: User Experience (UX)
+name: User Experience (UX)
 aliases:
   - UX
   - Experiência do Usuário

@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Fornecedor
+name: Campos do formulário de Fornecedor
 aliases: [Supplier fields]
 tags: [data, management, supplier, fields, doc]
 type: table

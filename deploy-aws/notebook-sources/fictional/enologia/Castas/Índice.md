@@ -1,5 +1,5 @@
 ---
-title: Índice
+name: Índice
 aliases: [Índice das castas]
 tags: [casta, indice]
 tipo: indice
@@ -17,17 +17,17 @@ plantada_em: 2026-03-02
 # As castas desta adega, por ciclo
 
 Esta nota se chama **Índice** — e a de `03 Safras` também. Duas notas de um
-mesmo caderno podem carregar o mesmo título, na mesma pasta ou em duas, e nada
+mesmo caderno podem carregar o mesmo nome, na mesma pasta ou em duas, e nada
 recusa a segunda. É por isso que `[[Índice]]`, escrito em qualquer nota daqui,
 **vira duas arestas** e não uma: quem escreveu o link não disse qual das duas
 queria, e o produto não inventa uma ordem para escolher por ele. Quem lê é
 quem decide.
 
-> [!note] O título vem do conteúdo, e o `title:` vem antes do heading
+> [!note] O nome vem do `name:`, e só dele
 > O frontmatter desta nota diz `Índice` e o heading acima diz outra coisa. O
-> título é o do frontmatter, porque é o único lugar onde um título pode ser
-> **declarado** — o heading é com o que a nota começa, e as duas coisas
-> divergem o tempo todo em vault que veio de um editor.
+> nome é o do frontmatter, porque é o único lugar que nomeia uma nota — o
+> heading é conteúdo: aparece, é encontrado na busca e pode ser alvo de
+> âncora, e nunca dá nome a nada.
 
 ## Por ciclo de maturação
 

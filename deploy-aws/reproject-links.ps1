@@ -7,7 +7,7 @@
   The link projection is derived and rebuildable from zero (PE5), and the one
   in the table was built by the rule that 0.6.0 retired: a link used to resolve
   against a slug that folded case, accents and punctuation, and it now resolves
-  against the title a note states, exactly, and against the aliases it declares.
+  against the name a note states, exactly, and against the aliases it declares.
   Every edge sitting in the table is an assertion the current rule never made.
 
   So it is not repaired, it is rebuilt: the edges are forgotten, what each notebook
@@ -15,18 +15,14 @@
   resolves every target again. An edge then exists because the current rule says
   so, and not because an old projection said so.
 
-  This is the THIRD step of three, and the order is not negotiable:
-
-    1. ./deploy-aws/retitle-notebooks.ps1, against the version in production
-    2. the deploy of 0.6.0
-    3. this script
+  It runs after a deploy that changed the rule a link is resolved by.
 
   THE CHECK AFTER A RUN IS NOT EQUALITY. A note carrying `aliases:` starts
-  answering targets that no title matched (RN-DSC-052), which under the retired
+  answering targets that no name matched (RN-DSC-052), which under the retired
   rule resolved to nothing at all. So the expectation is that NO EDGE IS LOST,
-  and that every edge gained is one an alias or a title explains — both of which
-  the report names, edge by edge. A lost edge means step 1 did not do its job on
-  some note, and the script exits with 2 so a release runner notices.
+  and that every edge gained is one an alias or a name explains — both of which
+  the report names, edge by edge. A lost edge means some note stopped stating the name its links were
+  written against, and the script exits with 2 so a release runner notices.
 
   It reports first and writes only with -Apply.
 

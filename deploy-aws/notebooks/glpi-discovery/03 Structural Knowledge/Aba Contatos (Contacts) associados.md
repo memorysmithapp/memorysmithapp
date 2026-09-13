@@ -1,5 +1,5 @@
 ---
-title: Aba Contatos (Contacts) associados
+name: Aba Contatos (Contacts) associados
 aliases: [aba Contacts, Contacts tab, contatos associados]
 tags: [tabs, contacts, contatos, ui]
 type: component

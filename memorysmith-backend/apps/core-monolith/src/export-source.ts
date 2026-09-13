@@ -88,7 +88,7 @@ export class KnowledgeExportSource implements ExportSource {
         position: folder.position.value,
         templateContent: templates[index] ?? null,
       })),
-      // Nothing derived travels: no title and no slug, because the title is
+      // Nothing derived travels: no name and no slug, because the name is
       // read from the body wherever it is needed (RN-PRT-010).
       notes: notes.map((note, index) => ({
         noteId: note.id.value,

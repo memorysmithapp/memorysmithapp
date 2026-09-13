@@ -1,5 +1,5 @@
 ---
-title: EV-2-f1-013 · Performances e sistemas de cache
+name: EV-2-f1-013 · Performances e sistemas de cache
 aliases: [EV-2-f1-013]
 tags: [evidence, performance, cache, configuracao-geral]
 type: evidence

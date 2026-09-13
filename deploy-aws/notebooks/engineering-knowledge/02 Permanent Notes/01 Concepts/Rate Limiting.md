@@ -1,5 +1,5 @@
 ---
-title: Rate Limiting
+name: Rate Limiting
 aliases:
   - Limitação de Taxa
   - Throttling

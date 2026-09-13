@@ -1,5 +1,5 @@
 ---
-title: Licitação de Concessão de Distribuição
+name: Licitação de Concessão de Distribuição
 aliases:
   - Licitação da concessão
   - Leilão de distribuidora

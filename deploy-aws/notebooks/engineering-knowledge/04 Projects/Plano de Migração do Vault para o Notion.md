@@ -1,5 +1,5 @@
 ---
-title: Plano de Migração do Vault para o Notion
+name: Plano de Migração do Vault para o Notion
 aliases:
   - Migração Notion
   - Obsidian to Notion

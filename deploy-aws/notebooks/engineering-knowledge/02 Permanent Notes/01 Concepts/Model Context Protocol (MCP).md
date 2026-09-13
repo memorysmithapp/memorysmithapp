@@ -1,5 +1,5 @@
 ---
-title: Model Context Protocol (MCP)
+name: Model Context Protocol (MCP)
 aliases:
   - MCP
 tags:

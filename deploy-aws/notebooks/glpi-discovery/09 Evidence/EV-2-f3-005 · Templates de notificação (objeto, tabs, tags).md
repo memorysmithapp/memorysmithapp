@@ -1,5 +1,5 @@
 ---
-title: EV-2-f3-005 · Templates de notificação (objeto, tabs, tags)
+name: EV-2-f3-005 · Templates de notificação (objeto, tabs, tags)
 aliases: [EV-2-f3-005]
 tags: [evidence, template, notificacao, tags, traducao]
 type: evidence

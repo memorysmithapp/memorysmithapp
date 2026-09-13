@@ -1,5 +1,5 @@
 ---
-title: Information and Technology
+name: Information and Technology
 aliases:
   - Informação e Tecnologia
 tags:

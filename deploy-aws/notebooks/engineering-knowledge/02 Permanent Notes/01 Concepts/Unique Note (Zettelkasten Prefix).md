@@ -1,5 +1,5 @@
 ---
-title: Unique Note (Zettelkasten Prefix)
+name: Unique Note (Zettelkasten Prefix)
 aliases:
   - Unique Note Creator
   - Zettelkasten Prefixer

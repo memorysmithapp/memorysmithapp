@@ -1,5 +1,5 @@
 ---
-title: AWS Lambda
+name: AWS Lambda
 aliases:
   - Lambda
   - Lambda Function

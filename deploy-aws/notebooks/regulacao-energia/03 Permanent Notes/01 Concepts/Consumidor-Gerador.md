@@ -1,5 +1,5 @@
 ---
-title: Consumidor-Gerador
+name: Consumidor-Gerador
 aliases:
   - Consumidor gerador
   - Prosumidor

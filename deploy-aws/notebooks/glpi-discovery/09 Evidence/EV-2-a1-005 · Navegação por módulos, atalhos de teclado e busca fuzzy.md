@@ -1,5 +1,5 @@
 ---
-title: EV-2-a1-005 · Navegação por módulos, atalhos de teclado e busca fuzzy
+name: EV-2-a1-005 · Navegação por módulos, atalhos de teclado e busca fuzzy
 aliases: [EV-2-a1-005]
 tags: [evidence, doc, navigation, modules, shortcuts, fuzzy, menu]
 type: evidence

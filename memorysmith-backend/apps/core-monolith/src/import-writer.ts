@@ -135,7 +135,7 @@ export class KnowledgeNotebookWriter implements NotebookWriter {
       ctx: this.ctx,
       notebookId: notebookId.value,
       folderId: folderId.value,
-      // The body as the document carries it. The title, the links and the
+      // The body as the document carries it. The name, the links and the
       // facets of the imported notebook are read from these bytes by the same
       // rules that read any other note.
       content: input.content,

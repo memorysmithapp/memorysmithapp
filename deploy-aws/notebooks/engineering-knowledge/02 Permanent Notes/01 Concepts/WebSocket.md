@@ -1,5 +1,5 @@
 ---
-title: WebSocket
+name: WebSocket
 aliases:
   - WebSockets
   - WS

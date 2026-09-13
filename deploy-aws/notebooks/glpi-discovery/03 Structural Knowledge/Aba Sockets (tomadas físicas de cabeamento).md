@@ -1,5 +1,5 @@
 ---
-title: Aba Sockets (tomadas físicas de cabeamento)
+name: Aba Sockets (tomadas físicas de cabeamento)
 aliases: [Sockets tab, Aba Sockets, Tomadas físicas]
 tags: [tab, sockets, cables, cabling, network]
 type: component

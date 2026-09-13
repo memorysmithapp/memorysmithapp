@@ -1,5 +1,5 @@
 ---
-title: ITIL vs Scrum
+name: ITIL vs Scrum
 aliases:
   - ITIL e Scrum
 tags:

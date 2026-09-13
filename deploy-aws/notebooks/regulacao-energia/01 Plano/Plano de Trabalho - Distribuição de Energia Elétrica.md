@@ -1,5 +1,5 @@
 ---
-title: Plano de Trabalho - Distribuição de Energia Elétrica
+name: Plano de Trabalho - Distribuição de Energia Elétrica
 aliases:
   - Plano de Trabalho - Distribuicao de Energia Eletrica
   - Plano Distribuição

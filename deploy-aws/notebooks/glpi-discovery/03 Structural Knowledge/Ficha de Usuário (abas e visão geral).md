@@ -1,5 +1,5 @@
 ---
-title: Ficha de Usuário (abas e visão geral)
+name: Ficha de Usuário (abas e visão geral)
 aliases: [Aba Users, User form, Ficha do usuário]
 tags: [usuarios, ficha-usuario, abas, ldap, administracao]
 type: component

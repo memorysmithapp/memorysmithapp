@@ -1,5 +1,5 @@
 ---
-title: EV-1-027 · Reservation e consumíveis/cartuchos
+name: EV-1-027 · Reservation e consumíveis/cartuchos
 aliases: [EV-1-027]
 tags: [evidence, dominio/gestao, reserva, consumivel]
 type: evidence

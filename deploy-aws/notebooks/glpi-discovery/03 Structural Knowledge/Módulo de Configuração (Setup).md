@@ -1,5 +1,5 @@
 ---
-title: Módulo de Configuração (Setup)
+name: Módulo de Configuração (Setup)
 aliases: [Setup, Configuration, Menu Setup]
 tags: [configuracao, setup, menu, estrutura]
 type: component

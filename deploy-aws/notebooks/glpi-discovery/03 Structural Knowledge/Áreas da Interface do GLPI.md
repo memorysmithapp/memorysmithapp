@@ -1,5 +1,5 @@
 ---
-title: Áreas da Interface do GLPI
+name: Áreas da Interface do GLPI
 aliases: [Layout da interface, UI areas, User menu, Breadcrumb, Search box]
 tags: [component, interface, layout, navigation, ui]
 type: component

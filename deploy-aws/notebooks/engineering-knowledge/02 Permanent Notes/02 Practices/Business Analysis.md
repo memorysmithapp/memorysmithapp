@@ -1,5 +1,5 @@
 ---
-title: Business Analysis
+name: Business Analysis
 aliases:
   - Análise de Negócio
 tags:

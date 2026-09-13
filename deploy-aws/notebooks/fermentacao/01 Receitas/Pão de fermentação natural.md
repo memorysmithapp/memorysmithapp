@@ -1,5 +1,5 @@
 ---
-title: Pão de fermentação natural
+name: Pão de fermentação natural
 aliases: [Sourdough]
 tags: [receita, pao]
 type: receita

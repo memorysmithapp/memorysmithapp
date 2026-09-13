@@ -1,5 +1,5 @@
 ---
-title: Contrato de API Padronizado
+name: Contrato de API Padronizado
 aliases:
   - Envelope de Resposta
   - API Response Contract

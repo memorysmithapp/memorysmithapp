@@ -1,5 +1,5 @@
 ---
-title: Campos e opções de Grupo
+name: Campos e opções de Grupo
 aliases: [Group fields, Campos do grupo]
 tags: [grupos, campos, dados, opcoes]
 type: table

@@ -1,5 +1,5 @@
 ---
-title: Tags de Substituição em Links Externos
+name: Tags de Substituição em Links Externos
 aliases: [External link tags, Tags de links externos, Twig tags]
 tags: [links-externos, tags, twig, campos, data]
 type: entity

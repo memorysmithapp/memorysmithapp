@@ -1,5 +1,5 @@
 ---
-title: EV-1-017 · Software, versões e licenças
+name: EV-1-017 · Software, versões e licenças
 aliases: [EV-1-017]
 tags: [evidence, dominio/ativos, software, licenca]
 type: evidence

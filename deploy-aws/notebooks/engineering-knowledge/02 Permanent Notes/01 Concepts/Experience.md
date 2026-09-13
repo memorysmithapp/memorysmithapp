@@ -1,5 +1,5 @@
 ---
-title: Experience
+name: Experience
 aliases:
   - Experiência
 tags:

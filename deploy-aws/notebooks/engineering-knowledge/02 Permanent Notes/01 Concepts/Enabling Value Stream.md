@@ -1,5 +1,5 @@
 ---
-title: Enabling Value Stream
+name: Enabling Value Stream
 aliases:
   - Fluxo de Valor Habilitador
 tags:

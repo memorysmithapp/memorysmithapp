@@ -1,5 +1,5 @@
 ---
-title: FinOps
+name: FinOps
 aliases:
   - Cloud Financial Management
   - Cost-Aware Architecture

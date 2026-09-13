@@ -1,5 +1,5 @@
 ---
-title: Categorias e templates ITIL
+name: Categorias e templates ITIL
 aliases: [ITILCategory, ITILTemplate, TicketTemplate]
 tags: [component, template, categoria, dominio/service-desk]
 type: component

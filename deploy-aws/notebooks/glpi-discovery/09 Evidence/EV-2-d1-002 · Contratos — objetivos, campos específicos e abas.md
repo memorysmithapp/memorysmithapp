@@ -1,5 +1,5 @@
 ---
-title: EV-2-d1-002 · Contratos — objetivos, campos específicos e abas
+name: EV-2-d1-002 · Contratos — objetivos, campos específicos e abas
 aliases: [EV-2-d1-002]
 tags: [evidence, management, contract, doc, financial]
 type: evidence

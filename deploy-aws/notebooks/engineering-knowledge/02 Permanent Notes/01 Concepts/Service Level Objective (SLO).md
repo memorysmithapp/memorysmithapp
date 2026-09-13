@@ -1,5 +1,5 @@
 ---
-title: Service Level Objective (SLO)
+name: Service Level Objective (SLO)
 aliases:
   - SLO
   - Objetivo de Nível de Serviço

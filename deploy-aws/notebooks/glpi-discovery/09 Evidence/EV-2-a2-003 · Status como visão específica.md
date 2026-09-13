@@ -1,5 +1,5 @@
 ---
-title: EV-2-a2-003 · Status como visão específica
+name: EV-2-a2-003 · Status como visão específica
 aliases: [EV-2-a2-003]
 tags: [evidence, status, dropdown, inventory]
 type: evidence

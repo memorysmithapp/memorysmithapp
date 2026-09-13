@@ -1,5 +1,5 @@
 ---
-title: Administração de Controles de Acesso (processo)
+name: Administração de Controles de Acesso (processo)
 aliases: [Access control, Controle de acesso, Contexto de uso]
 tags: [process, access-control, rbac, entities, profiles, groups, authentication]
 type: process

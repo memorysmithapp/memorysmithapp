@@ -1,5 +1,5 @@
 ---
-title: Ciclo de vida de um cartucho (novo, usado, gasto, estoque)
+name: Ciclo de vida de um cartucho (novo, usado, gasto, estoque)
 aliases: [Cartridge lifecycle, Ciclo de vida do cartucho]
 tags: [behavioral, cartridges, printer, lifecycle, stock, state-machine]
 type: flow

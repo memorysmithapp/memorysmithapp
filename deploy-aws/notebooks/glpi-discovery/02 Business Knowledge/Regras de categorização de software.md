@@ -1,5 +1,5 @@
 ---
-title: Regras de categorização de software
+name: Regras de categorização de software
 aliases: [Rules for assigning a category to software]
 tags: [regras, software, categoria, doc]
 type: rule

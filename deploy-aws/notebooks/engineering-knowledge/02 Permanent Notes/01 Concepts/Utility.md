@@ -1,5 +1,5 @@
 ---
-title: Utility
+name: Utility
 aliases:
   - Utilidade
   - Utility

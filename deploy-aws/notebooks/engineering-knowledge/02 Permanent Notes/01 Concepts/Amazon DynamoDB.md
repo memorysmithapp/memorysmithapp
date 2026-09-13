@@ -1,5 +1,5 @@
 ---
-title: Amazon DynamoDB
+name: Amazon DynamoDB
 aliases:
   - DynamoDB
   - DynamoDB Streams

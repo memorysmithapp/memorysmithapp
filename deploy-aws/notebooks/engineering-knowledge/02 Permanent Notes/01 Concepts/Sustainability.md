@@ -1,5 +1,5 @@
 ---
-title: Sustainability
+name: Sustainability
 aliases:
   - Sustentabilidade
 tags:

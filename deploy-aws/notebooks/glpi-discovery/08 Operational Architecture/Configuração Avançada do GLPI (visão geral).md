@@ -1,5 +1,5 @@
 ---
-title: Configuração Avançada do GLPI (visão geral)
+name: Configuração Avançada do GLPI (visão geral)
 aliases: [Advanced Configuration, configuração avançada]
 tags: [operacional, avancado, cache, locales, temas, status, indice]
 type: overview

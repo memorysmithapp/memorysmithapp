@@ -1,5 +1,5 @@
 ---
-title: INV-2-b2-001 · Matriz de ciclo de vida — transições exatas por perfil (default)
+name: INV-2-b2-001 · Matriz de ciclo de vida — transições exatas por perfil (default)
 aliases: [INV-2-b2-001]
 tags: [investigation, consumidor/cad, ciclo-de-vida, status]
 type: investigation

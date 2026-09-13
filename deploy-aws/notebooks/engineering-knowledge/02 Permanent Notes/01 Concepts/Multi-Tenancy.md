@@ -1,5 +1,5 @@
 ---
-title: Multi-Tenancy
+name: Multi-Tenancy
 aliases:
   - Multitenancy
   - Multi-Inquilino

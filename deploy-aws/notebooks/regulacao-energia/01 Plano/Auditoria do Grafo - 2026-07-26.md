@@ -1,5 +1,5 @@
 ---
-title: Auditoria do Grafo - 2026-07-26
+name: Auditoria do Grafo - 2026-07-26
 aliases:
   - Auditoria do Grafo
   - Diagnóstico do Vault 2026-07

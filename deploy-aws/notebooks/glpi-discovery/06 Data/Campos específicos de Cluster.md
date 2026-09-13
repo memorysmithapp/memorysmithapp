@@ -1,5 +1,5 @@
 ---
-title: Campos específicos de Cluster
+name: Campos específicos de Cluster
 aliases: [Campos de Cluster, Cluster fields]
 tags: [management, cluster, campos, formulario, data]
 type: entity

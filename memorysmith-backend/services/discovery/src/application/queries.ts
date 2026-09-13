@@ -39,7 +39,7 @@ export interface QueryDependencies {
 
 function candidateOf(note: IndexedNote): Candidate {
   return {
-    title: note.title,
+    name: note.name,
     folder: note.folderName,
     content: note.normalized,
     sections: note.sections,
@@ -230,7 +230,7 @@ export class SearchNotes {
       .map(({ note, candidate }) => ({
         noteId: note.noteId,
         section: needle ? sectionOf(note, needle) : null,
-        excerpt: needle ? excerptAround(note.original, note.normalized, needle) : note.title,
+        excerpt: needle ? excerptAround(note.original, note.normalized, needle) : note.name,
         score: score(tree, candidate),
       }))
       .sort((left, right) => right.score - left.score)

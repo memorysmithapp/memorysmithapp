@@ -1,5 +1,5 @@
 ---
-title: Busca e filtros no Kanban
+name: Busca e filtros no Kanban
 aliases: [Kanban filters, Filtros do Kanban, Kanban search]
 tags: [kanban, search, filter, tags]
 type: use-case

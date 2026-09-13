@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de PDU
+name: Campos do formulário de PDU
 aliases: [Campos PDU]
 tags: [data, fields, pdu, power, assets, doc]
 type: table

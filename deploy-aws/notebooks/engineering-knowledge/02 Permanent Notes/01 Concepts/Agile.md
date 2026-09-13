@@ -1,5 +1,5 @@
 ---
-title: Agile
+name: Agile
 aliases:
   - Ágil
   - Agilidade

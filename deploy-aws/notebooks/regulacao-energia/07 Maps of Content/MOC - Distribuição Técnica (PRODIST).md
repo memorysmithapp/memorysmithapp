@@ -1,5 +1,5 @@
 ---
-title: MOC - Distribuição Técnica (PRODIST)
+name: MOC - Distribuição Técnica (PRODIST)
 aliases:
   - MOC PRODIST
   - MOC Distribuição Técnica

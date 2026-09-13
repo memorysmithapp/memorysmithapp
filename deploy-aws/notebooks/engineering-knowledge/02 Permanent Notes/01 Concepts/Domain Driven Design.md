@@ -1,5 +1,5 @@
 ---
-title: Domain Driven Design
+name: Domain Driven Design
 aliases:
   - DDD
   - Domain-Driven Design

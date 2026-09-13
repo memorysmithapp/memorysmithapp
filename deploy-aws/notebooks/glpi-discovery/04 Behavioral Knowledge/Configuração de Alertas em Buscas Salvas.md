@@ -1,5 +1,5 @@
 ---
-title: Configuração de Alertas em Buscas Salvas
+name: Configuração de Alertas em Buscas Salvas
 aliases: [Saved search alerts, Alertas de bookmarks, Contadores de buscas salvas]
 tags: [flow, saved-searches, alerts, counters, notification]
 type: flow

@@ -1,5 +1,5 @@
 ---
-title: Fechamento automático e administrativo de tickets
+name: Fechamento automático e administrativo de tickets
 aliases: [Automatic closing, Administrative closing, Fechamento automático]
 tags: [tickets, closing, lifecycle, glossary]
 type: flow

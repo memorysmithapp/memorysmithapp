@@ -1,5 +1,5 @@
 ---
-title: Campos de configuração de diretório LDAP
+name: Campos de configuração de diretório LDAP
 aliases: [Campos LDAP, BaseDN, RootDN, Login field, Synchronization field]
 tags: [data, ldap, authentication, fields]
 type: entity

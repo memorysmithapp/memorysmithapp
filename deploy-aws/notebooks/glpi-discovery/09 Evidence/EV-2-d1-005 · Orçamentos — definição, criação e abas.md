@@ -1,5 +1,5 @@
 ---
-title: EV-2-d1-005 · Orçamentos — definição, criação e abas
+name: EV-2-d1-005 · Orçamentos — definição, criação e abas
 aliases: [EV-2-d1-005]
 tags: [evidence, management, budget, doc, financial]
 type: evidence

@@ -1,5 +1,5 @@
 ---
-title: Service Continuity Management
+name: Service Continuity Management
 aliases:
   - Gestão de Continuidade de Serviço
 tags:

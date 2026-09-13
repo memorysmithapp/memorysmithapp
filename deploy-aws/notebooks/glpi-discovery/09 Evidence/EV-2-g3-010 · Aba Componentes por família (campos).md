@@ -1,5 +1,5 @@
 ---
-title: EV-2-g3-010 · Aba Componentes por família (campos)
+name: EV-2-g3-010 · Aba Componentes por família (campos)
 aliases: [EV-2-g3-010]
 tags: [evidence, tab, components, hardware, fields]
 type: evidence

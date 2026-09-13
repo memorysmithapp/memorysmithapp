@@ -1,5 +1,5 @@
 ---
-title: Busca Avançada no Obsidian
+name: Busca Avançada no Obsidian
 aliases:
   - Advanced Search
   - Busca Avançada

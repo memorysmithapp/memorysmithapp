@@ -1,5 +1,5 @@
 ---
-title: Status de itens (visão específica)
+name: Status de itens (visão específica)
 aliases: [Status, Estado de item, Status de ativo]
 tags: [status, lifecycle, dropdown, inventory]
 type: concept

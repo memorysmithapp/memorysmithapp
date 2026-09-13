@@ -1,5 +1,5 @@
 ---
-title: Indicadores de Conformidade do Nível de Tensão - DRP e DRC (ANEEL)
+name: Indicadores de Conformidade do Nível de Tensão - DRP e DRC (ANEEL)
 aliases:
   - indicadores-de-conformidade-do-nivel-de-tensao-em-regime-permanente
 tags:

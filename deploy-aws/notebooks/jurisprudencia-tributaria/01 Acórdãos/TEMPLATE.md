@@ -1,5 +1,5 @@
 ---
-title: Tema NNN · <Assunto>
+name: Tema NNN · <Assunto>
 aliases: []
 tags: [acordao]
 type: acordao

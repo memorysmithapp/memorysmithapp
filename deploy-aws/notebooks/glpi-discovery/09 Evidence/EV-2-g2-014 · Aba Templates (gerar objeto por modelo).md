@@ -1,5 +1,5 @@
 ---
-title: EV-2-g2-014 · Aba Templates (gerar objeto por modelo)
+name: EV-2-g2-014 · Aba Templates (gerar objeto por modelo)
 aliases: [EV-2-g2-014]
 tags: [evidence, tabs, templates, modelos]
 type: evidence

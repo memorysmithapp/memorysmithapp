@@ -1,5 +1,5 @@
 ---
-title: Service Discovery
+name: Service Discovery
 aliases:
   - Service Registry
   - Descoberta de Serviços

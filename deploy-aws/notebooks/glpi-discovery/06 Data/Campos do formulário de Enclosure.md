@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Enclosure
+name: Campos do formulário de Enclosure
 aliases: [Campos Enclosure]
 tags: [data, fields, enclosure, dcim, assets, doc]
 type: table

@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Computador
+name: Campos do formulário de Computador
 aliases: [Campos de Computador]
 tags: [assets, data, computer, form]
 type: entity

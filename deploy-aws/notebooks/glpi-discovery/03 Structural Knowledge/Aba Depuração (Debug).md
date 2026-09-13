@@ -1,5 +1,5 @@
 ---
-title: Aba Depuração (Debug)
+name: Aba Depuração (Debug)
 aliases: [aba Debug, Debug tab, depuração]
 tags: [tabs, debug, notificacoes, ui]
 type: component

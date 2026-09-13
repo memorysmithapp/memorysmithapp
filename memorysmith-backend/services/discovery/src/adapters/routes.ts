@@ -7,7 +7,7 @@
  *   GET  /notebooks/:v/links/:target      what one wikilink target resolves to
  *   GET  /notebooks/:v/health
  *   GET  /notebooks/:v/facets
- *   POST /notebooks/:v/search   { query }   lexical, over titles and folders
+ *   POST /notebooks/:v/search   { query }   lexical, over names and folders
  *
  * Every route reads a projection. None of them touches a note, and none of
  * them is consulted by the Knowledge context (RN-DSC-017).

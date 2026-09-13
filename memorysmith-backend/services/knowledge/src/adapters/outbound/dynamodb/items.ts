@@ -185,11 +185,11 @@ export function noteItem(
     updatedAt: note.updatedBy.at.toISOString(),
     version: note.version + 1,
   };
-  // The title is what the chain read out of the body, and a note may have
+  // The name is the `name:` the body states, and a note may have
   // none. The attribute is absent rather than empty in that case, because an
-  // empty string is a title somebody wrote and this is the absence of one
+  // empty string is a name somebody wrote and this is the absence of one
   // (RN-KNW-036).
-  if (note.title !== null) item['title'] = note.title;
+  if (note.name !== null) item['name'] = note.name;
   if (note.isDeleted) {
     item['deletedAt'] = note.deletedAt?.toISOString();
     item['deletedBy'] = serializeAuthorship(note.updatedBy);
@@ -209,7 +209,7 @@ export function parseNote(item: Item, subscriptionId: SubscriptionId): Note {
     subscriptionId,
     notebookId: unwrapOrThrow(NotebookId.create(String(item['notebookId']))),
     folderId: unwrapOrThrow(FolderId.create(String(item['folderId']))),
-    title: item['title'] === undefined ? null : String(item['title']),
+    name: item['name'] === undefined ? null : String(item['name']),
     position: unwrapOrThrow(Position.create(String(item['position']))),
     bodyRef: parseContentRef(item['bodyRef']) as ContentRef,
     createdBy: parseAuthorship(item['createdBy']),

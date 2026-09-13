@@ -1,5 +1,5 @@
 ---
-title: Distributed Tracing
+name: Distributed Tracing
 aliases:
   - Tracing
   - Rastreamento Distribuído

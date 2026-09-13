@@ -1,5 +1,5 @@
 ---
-title: MOC - Documentação do Usuário (global)
+name: MOC - Documentação do Usuário (global)
 aliases: [MOC Documentação, MOC SRC-002, índice da documentação do usuário]
 tags: [moc, documentacao, global, fonte/src-002]
 type: moc

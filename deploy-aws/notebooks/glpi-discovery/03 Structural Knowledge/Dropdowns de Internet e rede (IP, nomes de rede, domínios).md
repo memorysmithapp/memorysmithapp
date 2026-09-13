@@ -1,5 +1,5 @@
 ---
-title: Dropdowns de Internet e rede (IP, nomes de rede, domínios)
+name: Dropdowns de Internet e rede (IP, nomes de rede, domínios)
 aliases: [Internet dropdowns, IP networks, Network names, Internet domains, FQDN]
 tags: [dropdown, internet, ip-network, network-name, vlan, fqdn]
 type: component

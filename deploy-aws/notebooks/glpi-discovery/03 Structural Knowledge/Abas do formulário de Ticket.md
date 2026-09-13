@@ -1,5 +1,5 @@
 ---
-title: Abas do formulário de Ticket
+name: Abas do formulário de Ticket
 aliases: [Abas do ticket]
 tags: [assistance, ticket, tabs, ui]
 type: component

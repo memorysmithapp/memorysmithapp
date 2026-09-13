@@ -1,5 +1,5 @@
 ---
-title: Metrics
+name: Metrics
 aliases:
   - Métricas
   - Success Metrics

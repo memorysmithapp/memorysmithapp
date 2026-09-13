@@ -1,5 +1,5 @@
 ---
-title: Message Queue
+name: Message Queue
 aliases:
   - Fila de Mensagens
   - Message Broker

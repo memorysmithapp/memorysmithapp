@@ -1,5 +1,5 @@
 ---
-title: Campos do template de notificação
+name: Campos do template de notificação
 aliases: [Notification template fields]
 tags: [dados, template, campos, traducao, notificacao]
 type: entity

@@ -1,5 +1,5 @@
 ---
-title: Problem
+name: Problem
 aliases: [Problema, Problem]
 tags: [entity, itil, dominio/service-desk]
 type: entity

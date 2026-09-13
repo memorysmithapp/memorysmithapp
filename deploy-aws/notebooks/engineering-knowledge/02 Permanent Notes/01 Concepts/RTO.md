@@ -1,5 +1,5 @@
 ---
-title: RTO
+name: RTO
 aliases:
   - Recovery Time Objective
 tags:

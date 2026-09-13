@@ -1,5 +1,5 @@
 ---
-title: Design (Lifecycle)
+name: Design (Lifecycle)
 aliases:
   - Design
   - Desenho

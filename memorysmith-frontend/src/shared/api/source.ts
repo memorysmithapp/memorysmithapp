@@ -36,10 +36,10 @@ export const apiOrigin: string = configuredOrigin;
 /**
  * Walks the loaded structure, so a link needs no extra request.
  *
- * A target is a TITLE, compared after NFC and folded in no other way
+ * A target is a NAME, compared after NFC and folded in no other way
  * (RN-DSC-041): a near miss is a pending link and never a landing. What the
- * interface does with a title carried by two notes is #98; here the first one
- * answers, and the address itself is still derived from the title until that
+ * interface does with a name carried by two notes is #98; here the first one
+ * answers, and the address itself is still derived from the name until that
  * issue replaces it with the identifier.
  */
 function resolveFromStructure(
@@ -52,14 +52,14 @@ function resolveFromStructure(
   const found: Array<{
     folder: NotebookStructure['folders'][number];
     noteId: string;
-    title: string;
+    name: string;
   }> = [];
 
   const walk = (nodes: NotebookStructure['folders']): void => {
     for (const node of nodes) {
       for (const note of node.notes) {
-        if ((note.title ?? '').normalize('NFC') === wanted) {
-          found.push({ folder: node, noteId: note.id, title: note.title ?? '' });
+        if ((note.name ?? '').normalize('NFC') === wanted) {
+          found.push({ folder: node, noteId: note.id, name: note.name ?? '' });
         }
       }
       walk(node.children);
@@ -72,7 +72,7 @@ function resolveFromStructure(
   // more than one note and an address may not (RN-DSC-046).
   const only = found.length === 1 ? found[0] : undefined;
   if (!only) return null;
-  return noteAddress(notebookSlug, only.folder.slugPath, only.title, only.noteId);
+  return noteAddress(notebookSlug, only.folder.slugPath, only.name, only.noteId);
 }
 
 /**
@@ -113,27 +113,27 @@ export function resolveNoteUrl(notebookSlug: string, target: string): string | n
 }
 
 /**
- * Where a wikilink goes: the note when exactly one carries the title, the
+ * Where a wikilink goes: the note when exactly one carries the name, the
  * address of the TARGET when several do, and `null` — the pending state — when
  * none does (RN-DSC-046).
  *
  * The interface can tell the three apart without asking the server, because
- * the structure it drew the page from already carries every title. What it
+ * the structure it drew the page from already carries every name. What it
  * cannot tell from here is an alias, and it does not have to: an alias only
- * ever resolves what no title matched, so a target no title answers goes to
+ * ever resolves what no name matched, so a target no name answers goes to
  * the target page, which asks Discovery.
  */
 export function wikilinkUrl(notebookSlug: string, target: string): string | null {
-  const carried = notesTitled(notebookSlug, target);
+  const carried = notesNamed(notebookSlug, target);
   if (carried === 1) return resolveNoteUrl(notebookSlug, target);
   return linkTargetAddress(notebookSlug, target);
 }
 
 /**
- * How many notes of the loaded structure carry that title. One is a link, none
+ * How many notes of the loaded structure carry that name. One is a link, none
  * is pending, and several is the choice.
  */
-export function notesTitled(notebookSlug: string, target: string): number {
+export function notesNamed(notebookSlug: string, target: string): number {
   const structure = loaded.get(notebookSlug);
   if (!structure) return 0;
   const wanted = target.normalize('NFC');
@@ -141,7 +141,7 @@ export function notesTitled(notebookSlug: string, target: string): number {
     nodes.reduce(
       (total, node) =>
         total +
-        node.notes.filter((note) => (note.title ?? '').normalize('NFC') === wanted).length +
+        node.notes.filter((note) => (note.name ?? '').normalize('NFC') === wanted).length +
         count(node.children),
       0,
     );

@@ -1,5 +1,5 @@
 ---
-title: MOC - <Eixo> | Dados - <Eixo>
+name: MOC - <Eixo> | Dados - <Eixo>
 aliases: []
 tags: []
 type: moc

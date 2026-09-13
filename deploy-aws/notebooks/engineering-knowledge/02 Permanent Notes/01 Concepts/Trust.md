@@ -1,5 +1,5 @@
 ---
-title: Trust
+name: Trust
 aliases:
   - Confiança
 tags:

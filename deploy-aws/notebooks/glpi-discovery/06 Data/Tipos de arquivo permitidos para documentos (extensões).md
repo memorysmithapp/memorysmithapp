@@ -1,5 +1,5 @@
 ---
-title: Tipos de arquivo permitidos para documentos (extensões)
+name: Tipos de arquivo permitidos para documentos (extensões)
 aliases: [Document types, Downloadable file types]
 tags: [data, management, document, file-types, doc]
 type: table

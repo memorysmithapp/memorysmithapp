@@ -1,5 +1,5 @@
 ---
-title: Obsidian Plugin
+name: Obsidian Plugin
 aliases:
   - Core Plugin
   - Community Plugin

@@ -1,5 +1,5 @@
 ---
-title: Dropdowns de assistência (categorias, soluções, projetos)
+name: Dropdowns de assistência (categorias, soluções, projetos)
 aliases: [Ticket categories, Task categories, Solution types, Request sources, Project states]
 tags: [dropdown, assistance, ticket-category, solution, project, service-desk]
 type: component

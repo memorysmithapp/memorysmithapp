@@ -1,5 +1,5 @@
 ---
-title: Exposição Contratual Involuntária
+name: Exposição Contratual Involuntária
 aliases:
   - Exposição involuntária
   - Sobrecontratação involuntária

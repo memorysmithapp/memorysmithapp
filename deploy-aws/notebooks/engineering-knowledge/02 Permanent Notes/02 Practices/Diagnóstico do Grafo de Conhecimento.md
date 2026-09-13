@@ -1,5 +1,5 @@
 ---
-title: Diagnóstico do Grafo de Conhecimento
+name: Diagnóstico do Grafo de Conhecimento
 aliases:
   - Knowledge Graph Diagnosis
   - Diagnóstico do Grafo

@@ -1,5 +1,5 @@
 ---
-title: Affinity e Anti-Affinity
+name: Affinity e Anti-Affinity
 aliases:
   - Affinity
   - Anti-Affinity

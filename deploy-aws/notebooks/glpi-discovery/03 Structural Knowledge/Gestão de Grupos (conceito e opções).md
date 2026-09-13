@@ -1,5 +1,5 @@
 ---
-title: Gestão de Grupos (conceito e opções)
+name: Gestão de Grupos (conceito e opções)
 aliases: [Groups, Grupos, Gestão de grupos]
 tags: [grupos, hierarquia, notificacoes, ldap, entidades, 2fa]
 type: component

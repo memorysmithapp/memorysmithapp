@@ -1,5 +1,5 @@
 ---
-title: Fluxos ICAL e WEBCAL do Planejamento (chave de acesso remoto)
+name: Fluxos ICAL e WEBCAL do Planejamento (chave de acesso remoto)
 aliases: [ICAL, WEBCAL, Remote access key, Calendário externo]
 tags: [integration, calendar, ical, webcal, planning, remote-access-key]
 type: integration

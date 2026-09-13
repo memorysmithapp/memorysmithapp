@@ -1,5 +1,5 @@
 ---
-title: Agentic Research
+name: Agentic Research
 aliases:
   - Research
   - Deep Research

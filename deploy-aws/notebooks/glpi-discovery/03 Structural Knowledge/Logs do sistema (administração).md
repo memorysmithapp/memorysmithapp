@@ -1,5 +1,5 @@
 ---
-title: Logs do sistema (administração)
+name: Logs do sistema (administração)
 aliases: [Logs, Registro de eventos]
 tags: [logs, auditoria, historico, doc]
 type: component

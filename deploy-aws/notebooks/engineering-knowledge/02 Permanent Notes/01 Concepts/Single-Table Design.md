@@ -1,5 +1,5 @@
 ---
-title: Single-Table Design
+name: Single-Table Design
 aliases:
   - Modelagem de Tabela Única
   - Partition Key Pattern

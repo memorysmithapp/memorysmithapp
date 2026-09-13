@@ -55,7 +55,7 @@ describe('the pipe in an alt text separates the description from the dimensions'
 });
 
 describe('an attachment is a file of the notebook that is not a note', () => {
-  it('is told from a title by its extension, and a title may carry a dot', () => {
+  it('is told from a name by its extension, and a name may carry a dot', () => {
     expect(isAttachmentName('engelbart.jpg')).toBe(true);
     expect(isAttachmentName('colheita-2026.csv')).toBe(true);
     expect(isAttachmentName('Lei 14.133')).toBe(false);
@@ -87,7 +87,7 @@ describe('an attachment is a file of the notebook that is not a note', () => {
 });
 
 describe('the pipe is read by what the target is', () => {
-  const resolve = (title: string): string | null => (title === 'Lei 14.133' ? '/v/a/lei' : null);
+  const resolve = (name: string): string | null => (name === 'Lei 14.133' ? '/v/a/lei' : null);
 
   it('shows the alias when the target is a note', () => {
     expect(resolveWikilinks('[[Lei 14.133|a nova lei]]', resolve)).toContain(
@@ -103,8 +103,8 @@ describe('the pipe is read by what the target is', () => {
 
   it('never lets the pipe change the target', () => {
     const asked: string[] = [];
-    resolveWikilinks('[[Lei 14.133|qualquer coisa]]', (title) => {
-      asked.push(title);
+    resolveWikilinks('[[Lei 14.133|qualquer coisa]]', (name) => {
+      asked.push(name);
       return null;
     });
     expect(asked).toEqual(['Lei 14.133']);

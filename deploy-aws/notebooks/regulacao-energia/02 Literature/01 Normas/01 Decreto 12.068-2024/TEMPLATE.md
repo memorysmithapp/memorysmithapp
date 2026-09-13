@@ -1,5 +1,5 @@
 ---
-title: <Norma NN>
+name: <Norma NN>
 aliases: []
 tags: []
 type: literature

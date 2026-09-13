@@ -1,5 +1,5 @@
 ---
-title: Navegação por Atalhos e Busca Fuzzy
+name: Navegação por Atalhos e Busca Fuzzy
 aliases: [Keyboard shortcuts, Atalhos de teclado, Fuzzy navigation, Busca aproximada]
 tags: [use-case, navigation, keyboard, shortcuts, fuzzy]
 type: use-case

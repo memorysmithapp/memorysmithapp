@@ -4,11 +4,8 @@
  * The fourth entrypoint on this bundle, next to `recount.ts`, and for the same
  * reason they are separate: it is triggered by an operator rather than by a
  * request or a stream, and it needs no session at all. Run it with
- * `deploy-aws/reproject-links.ps1`, as the third step of:
- *
- *   1. `deploy-aws/retitle-notebooks.ps1`, against the version in production
- *   2. the deploy of 0.6.0
- *   3. this
+ * `deploy-aws/reproject-links.ps1`, after a deploy that changed the rule a link
+ * is resolved by.
  *
  * The projection in the table was built by the rule that just retired, so it is
  * rebuilt rather than repaired: an edge exists because the current rule says
@@ -40,12 +37,12 @@ function required(name: string): string {
 
 /** A note as a person reads it in the report, never as the table stores it. */
 function naming(plan: NotebookPlan): (noteId: string) => string {
-  const titles = new Map(plan.notes.map((note) => [note.noteId, note.title]));
-  return (noteId) => titles.get(noteId) || `(untitled ${noteId.slice(-6)})`;
+  const names = new Map(plan.notes.map((note) => [note.noteId, note.name]));
+  return (noteId) => names.get(noteId) || `(unnamed ${noteId.slice(-6)})`;
 }
 
 function describe(edge: PlannedEdge, name: (noteId: string) => string): string {
-  const because = edge.by === 'alias' ? `alias "${edge.target}"` : `title "${edge.target}"`;
+  const because = edge.by === 'alias' ? `alias "${edge.target}"` : `name "${edge.target}"`;
   return `${name(edge.from)} -> ${name(edge.to)}  (${because})`;
 }
 

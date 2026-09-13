@@ -1,5 +1,5 @@
 ---
-title: Fontes de autenticação externa (configuração)
+name: Fontes de autenticação externa (configuração)
 aliases: [Autenticação externa, Setup Authentication]
 tags: [authentication, configuration, sso, external-auth]
 type: component

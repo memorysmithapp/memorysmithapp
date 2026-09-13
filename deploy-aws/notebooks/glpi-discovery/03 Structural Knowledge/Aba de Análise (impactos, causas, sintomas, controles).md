@@ -1,5 +1,5 @@
 ---
-title: Aba de Análise (impactos, causas, sintomas, controles)
+name: Aba de Análise (impactos, causas, sintomas, controles)
 aliases: [Analysis tab, Aba Analysis]
 tags: [analysis, problem, change, itil, aba]
 type: component

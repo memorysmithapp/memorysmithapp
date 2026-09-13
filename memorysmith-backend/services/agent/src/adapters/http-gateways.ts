@@ -219,7 +219,7 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
   ): Promise<NoteListing[]> {
     const query = folderId ? `?folderId=${encodeURIComponent(folderId)}` : '';
     const notes = await callApi<
-      Array<{ noteId: string; title: string | null; folderId: string; position: string }>
+      Array<{ noteId: string; name: string | null; folderId: string; position: string }>
     >(this.origin, caller, `/knowledge/notebooks/${notebookId}/notes${query}`);
     return notes;
   }
@@ -227,14 +227,14 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
   async readNote(caller: AgentCaller, notebookId: string, noteId: string): Promise<NoteContent> {
     const note = await callApi<{
       noteId: string;
-      title: string | null;
+      name: string | null;
       content: string;
       revision: { versionId: string };
       updatedAt: string;
     }>(this.origin, caller, `/knowledge/notebooks/${notebookId}/notes/${noteId}`);
     return {
       noteId: note.noteId,
-      title: note.title,
+      name: note.name,
       content: note.content,
       revision: note.revision.versionId,
       updatedAt: note.updatedAt,
@@ -247,7 +247,7 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
   ): Promise<NoteContent> {
     const created = await callApi<{
       noteId: string;
-      title: string | null;
+      name: string | null;
       updatedAt: string;
     }>(this.origin, caller, `/knowledge/notebooks/${input.notebookId}/notes`, {
       method: 'POST',
@@ -352,7 +352,7 @@ export class HttpAuditGateway implements AuditGateway {
       noteId: revision.noteId,
       // A revision answers content, not identity: what the note is called now
       // is what its current content says, and this is an older one.
-      title: null,
+      name: null,
       content: revision.content,
       revision: revision.contentRef.versionId,
       updatedAt: revision.occurredAt,

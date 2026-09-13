@@ -1,5 +1,5 @@
 ---
-title: EV-1-030 · AuthLDAP — diretório e sincronização
+name: EV-1-030 · AuthLDAP — diretório e sincronização
 aliases: [EV-1-030]
 tags: [evidence, dominio/admin, ldap]
 type: evidence

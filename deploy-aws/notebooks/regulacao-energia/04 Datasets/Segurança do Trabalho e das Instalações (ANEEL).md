@@ -1,5 +1,5 @@
 ---
-title: Segurança do Trabalho e das Instalações (ANEEL)
+name: Segurança do Trabalho e das Instalações (ANEEL)
 aliases:
   - seguranca-do-trabalho-e-das-instalacoes
 tags:

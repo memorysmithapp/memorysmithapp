@@ -1,5 +1,5 @@
 ---
-title: Comandos Linux Essenciais
+name: Comandos Linux Essenciais
 aliases:
   - Linux Commands
   - Comandos Linux

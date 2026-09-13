@@ -1,5 +1,5 @@
 ---
-title: Lei 14.300-2022
+name: Lei 14.300-2022
 aliases:
   - Lei 14.300/2022
   - Marco Legal da GD

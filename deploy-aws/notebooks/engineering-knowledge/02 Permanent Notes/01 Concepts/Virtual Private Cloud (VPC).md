@@ -1,5 +1,5 @@
 ---
-title: Virtual Private Cloud (VPC)
+name: Virtual Private Cloud (VPC)
 aliases:
   - VPC
   - Nuvem Privada Virtual

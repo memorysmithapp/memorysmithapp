@@ -1,5 +1,5 @@
 ---
-title: Change
+name: Change
 aliases: [Mudança, Change]
 tags: [entity, itil, dominio/service-desk]
 type: entity

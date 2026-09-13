@@ -1,5 +1,5 @@
 ---
-title: Mastering OpenStack 06
+name: Mastering OpenStack 06
 aliases:
   - "Capítulo 6: OpenStack Networking – Connectivity and Managed Service Options"
 tags:

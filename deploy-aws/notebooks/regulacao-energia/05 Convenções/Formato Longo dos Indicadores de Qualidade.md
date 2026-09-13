@@ -1,5 +1,5 @@
 ---
-title: Formato Longo dos Indicadores de Qualidade
+name: Formato Longo dos Indicadores de Qualidade
 aliases:
   - IndQual
   - Formato longo ANEEL

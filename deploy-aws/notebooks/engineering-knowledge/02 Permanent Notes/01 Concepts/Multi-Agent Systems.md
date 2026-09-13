@@ -1,5 +1,5 @@
 ---
-title: Multi-Agent Systems
+name: Multi-Agent Systems
 aliases:
   - Sistemas Multiagentes
   - MAS

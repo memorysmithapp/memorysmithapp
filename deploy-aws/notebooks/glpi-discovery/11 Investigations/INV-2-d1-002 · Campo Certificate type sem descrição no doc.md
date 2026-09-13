@@ -1,5 +1,5 @@
 ---
-title: INV-2-d1-002 · Campo "Certificate type" sem descrição no doc
+name: INV-2-d1-002 · Campo "Certificate type" sem descrição no doc
 aliases: [INV-2-d1-002]
 tags: [investigation, consumidor/cad, management, certificate, doc, gap]
 type: investigation

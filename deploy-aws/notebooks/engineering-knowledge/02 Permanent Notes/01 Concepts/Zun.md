@@ -1,5 +1,5 @@
 ---
-title: Zun
+name: Zun
 aliases:
   - OpenStack Container Service
 tags:

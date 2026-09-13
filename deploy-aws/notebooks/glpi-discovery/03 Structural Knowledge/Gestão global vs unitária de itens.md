@@ -1,5 +1,5 @@
 ---
-title: Gestão global vs unitária de itens
+name: Gestão global vs unitária de itens
 aliases: [Global management, Unitary management, Gestão global, Gestão unitária]
 tags: [assets, management-mode, glossary]
 type: concept

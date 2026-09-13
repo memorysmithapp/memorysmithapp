@@ -1,5 +1,5 @@
 ---
-title: Instalação e desinstalação de software (procedimento)
+name: Instalação e desinstalação de software (procedimento)
 aliases: [Install software, Uninstall software, Instalações]
 tags: [software, installation, procedure, doc]
 type: use-case

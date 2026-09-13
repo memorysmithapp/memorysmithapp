@@ -1,5 +1,5 @@
 ---
-title: INV-2-e2-002 · Terminologia Approval em formulários (aprovação vs validação)
+name: INV-2-e2-002 · Terminologia Approval em formulários (aprovação vs validação)
 aliases: [INV-2-e2-002]
 tags: [investigation, consumidor/cad, formularios, terminologia]
 type: investigation

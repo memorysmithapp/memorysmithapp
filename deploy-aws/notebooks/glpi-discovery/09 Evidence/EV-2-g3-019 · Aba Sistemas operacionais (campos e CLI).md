@@ -1,5 +1,5 @@
 ---
-title: EV-2-g3-019 · Aba Sistemas operacionais (campos e CLI)
+name: EV-2-g3-019 · Aba Sistemas operacionais (campos e CLI)
 aliases: [EV-2-g3-019]
 tags: [evidence, tab, operating-system, cli, inventory]
 type: evidence

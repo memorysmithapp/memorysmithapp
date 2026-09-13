@@ -1,5 +1,5 @@
 ---
-title: Critérios e Operadores de Busca da UI
+name: Critérios e Operadores de Busca da UI
 aliases: [Search operators, Operadores de busca, Search criteria]
 tags: [data, search, operators, criteria, semantics]
 type: data

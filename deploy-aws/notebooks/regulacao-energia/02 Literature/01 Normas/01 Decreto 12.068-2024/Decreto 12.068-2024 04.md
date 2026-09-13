@@ -1,5 +1,5 @@
 ---
-title: Decreto 12.068-2024 04
+name: Decreto 12.068-2024 04
 aliases:
   - Decreto 12.068 Capítulo IV
   - Licitação da Concessão de Distribuição

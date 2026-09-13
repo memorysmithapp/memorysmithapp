@@ -1,5 +1,5 @@
 ---
-title: SCS - Sistema de Controle de Subvenções e Programas Sociais (ANEEL)
+name: SCS - Sistema de Controle de Subvenções e Programas Sociais (ANEEL)
 aliases:
   - scs-sistema-de-controle-de-subvencoes-e-programas-sociais
 tags:

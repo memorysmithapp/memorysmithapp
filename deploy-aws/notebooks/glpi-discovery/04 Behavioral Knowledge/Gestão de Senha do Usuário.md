@@ -1,5 +1,5 @@
 ---
-title: Gestão de Senha do Usuário
+name: Gestão de Senha do Usuário
 aliases: [Manage password, Troca de senha, Reset de senha, Password reset]
 tags: [flow, password, reset, security-policy, ldap]
 type: flow

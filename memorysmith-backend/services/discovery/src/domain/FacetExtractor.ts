@@ -4,7 +4,7 @@
  * and classifies each key-value pair BY THE SHAPE OF THE VALUE.
  *
  * The block itself and the YAML subset of it are read by the kernel, which is
- * also where the chain that reads the title of a note reads them from: there
+ * also where the name of a note is read from: there
  * is exactly one function in this repository that finds the frontmatter of a
  * body, because two readers of the same bytes is the defect this cycle is
  * paying off.
@@ -16,15 +16,15 @@
  *
  * Free text is discarded. An attribute that reveals itself as free text
  * through use is dropped by the cardinality ceiling (RN-DSC-024), which is why
- * `title` and `source` never become statistics without anyone maintaining an
- * exclusion list.
+ * `source` never becomes a statistic without anyone maintaining an exclusion
+ * list. The name of a note is kept out by decision, below, and not by use.
  *
  * The shape is the FORM THE AUTHOR WROTE, and never how many values that form
  * happens to hold: `tags: [contracts]` is a list of one item, and adding a
  * second value to an attribute must not change what the attribute is.
  */
 
-import { frontmatterOf, TITLE_KEY, type FrontmatterEntry } from '@memorysmith/kernel';
+import { frontmatterOf, NAME_KEY, type FrontmatterEntry } from '@memorysmith/kernel';
 
 export type FacetKind = 'date' | 'boolean' | 'enum' | 'list';
 
@@ -82,17 +82,17 @@ function canonical(kind: FacetKind, value: string): string {
 /**
  * The portrait of one note: what it says about itself, in aggregable form.
  *
- * `title` produces nothing here, whatever the shape of its value
+ * `name` produces nothing here, whatever the shape of its value
  * (RN-DSC-050). It names the note (RN-KNW-035) and a note is not a category of
  * itself; leaving it to the cardinality ceiling would mean a small notebook
- * showing a facet made of titles, and a `title:` of the wrong shape surfacing
+ * showing a facet made of names, and a `name:` of the wrong shape surfacing
  * as one — a facet that appears only when a value is malformed is exactly the
  * surprise the shape rule exists to prevent.
  */
 export function extractFacets(markdown: string): FacetSnapshot {
   const snapshot: FacetSnapshot = {};
   for (const [facet, entry] of Object.entries(frontmatterOf(markdown))) {
-    if (facet === TITLE_KEY) continue;
+    if (facet === NAME_KEY) continue;
     const kind = kindOf(entry);
     if (!kind) continue; // free text and empties are described, not counted
     snapshot[facet] = {

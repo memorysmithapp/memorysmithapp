@@ -1,5 +1,5 @@
 ---
-title: EV-2-g2-010 · Aba Management (informações financeiras e administrativas)
+name: EV-2-g2-010 · Aba Management (informações financeiras e administrativas)
 aliases: [EV-2-g2-010]
 tags: [evidence, tabs, management, financeiro, infocom]
 type: evidence

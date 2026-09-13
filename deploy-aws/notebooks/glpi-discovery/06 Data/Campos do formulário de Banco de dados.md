@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Banco de dados
+name: Campos do formulário de Banco de dados
 aliases: [Campos de Database, Database fields]
 tags: [management, database, campos, formulario, data]
 type: entity

@@ -1,5 +1,5 @@
 ---
-title: Dados - Índice Geral
+name: Dados - Índice Geral
 aliases:
   - MOC de Dados
   - Índice dos Dados Abertos

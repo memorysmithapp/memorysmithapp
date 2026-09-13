@@ -1,5 +1,5 @@
 ---
-title: Criptografia Simétrica e Assimétrica
+name: Criptografia Simétrica e Assimétrica
 aliases:
   - Symmetric Encryption
   - Asymmetric Encryption

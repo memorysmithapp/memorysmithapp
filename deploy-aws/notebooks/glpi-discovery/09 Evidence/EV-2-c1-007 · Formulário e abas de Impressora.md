@@ -1,5 +1,5 @@
 ---
-title: EV-2-c1-007 · Formulário e abas de Impressora
+name: EV-2-c1-007 · Formulário e abas de Impressora
 aliases: [EV-2-c1-007]
 tags: [evidence, assets, printer, snmp, doc]
 type: evidence

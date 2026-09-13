@@ -1,5 +1,5 @@
 ---
-title: Cycle Time
+name: Cycle Time
 aliases:
   - Tempo de Ciclo
 tags:

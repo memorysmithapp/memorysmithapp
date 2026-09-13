@@ -1,5 +1,5 @@
 ---
-title: Obsidian Help
+name: Obsidian Help
 aliases:
   - Documentação Oficial do Obsidian
   - Obsidian Help Docs

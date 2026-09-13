@@ -1,5 +1,5 @@
 ---
-title: Distributed Cache
+name: Distributed Cache
 tags:
   - distributed-systems
   - performance

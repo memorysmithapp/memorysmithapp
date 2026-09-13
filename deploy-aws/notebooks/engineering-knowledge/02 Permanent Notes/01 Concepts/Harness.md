@@ -1,5 +1,5 @@
 ---
-title: Harness
+name: Harness
 aliases:
   - Agent Harness
   - Model Harness

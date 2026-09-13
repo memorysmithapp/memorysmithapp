@@ -1,5 +1,5 @@
 ---
-title: EV-2-g3-003 · Gestão de projetos (Project e Project task)
+name: EV-2-g3-003 · Gestão de projetos (Project e Project task)
 aliases: [EV-2-g3-003]
 tags: [evidence, tools, projects, gantt, kanban, tasks, teams]
 type: evidence

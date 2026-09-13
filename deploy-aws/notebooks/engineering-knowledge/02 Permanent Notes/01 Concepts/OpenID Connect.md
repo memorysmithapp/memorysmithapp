@@ -1,5 +1,5 @@
 ---
-title: OpenID Connect
+name: OpenID Connect
 aliases:
   - OIDC
   - ID Token

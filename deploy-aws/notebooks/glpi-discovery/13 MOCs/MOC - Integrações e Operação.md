@@ -1,5 +1,5 @@
 ---
-title: MOC - Integrações e Operação
+name: MOC - Integrações e Operação
 aliases: [MOC Integrações, Índice Módulo 6, MOC Operação]
 tags: [moc, dominio/integracoes, dominio/operacao]
 type: moc

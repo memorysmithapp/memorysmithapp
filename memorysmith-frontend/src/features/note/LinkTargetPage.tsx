@@ -41,9 +41,9 @@ export function LinkTargetPage() {
     const folder = trail[trail.length - 1];
     return {
       noteId: note.noteId,
-      title: note.title,
+      name: note.name,
       folderPath: trail.map((each) => each.name).join(' / '),
-      address: noteAddress(notebookSlug, folder?.slugPath ?? '', note.title, note.noteId),
+      address: noteAddress(notebookSlug, folder?.slugPath ?? '', note.name, note.noteId),
     };
   });
 
@@ -61,15 +61,15 @@ export function LinkTargetPage() {
         <>
           <p className="status">
             {t('note.targetAmbiguous', { count: candidates.length })}{' '}
-            {/* A choice is about a title or about an alias and never about
+            {/* A choice is about a name or about an alias and never about
                 both, and the two are not equally durable: an edge held by an
-                alias goes the day somebody writes a note under that title. */}
-            {data.by === 'alias' ? t('note.targetByAlias') : t('note.targetByTitle')}
+                alias goes the day somebody writes a note under that name. */}
+            {data.by === 'alias' ? t('note.targetByAlias') : t('note.targetByName')}
           </p>
           <ul className="note-list">
             {candidates.map((each) => (
               <li key={each.noteId}>
-                <Link to={each.address}>{each.title || t('note.untitled')}</Link>
+                <Link to={each.address}>{each.name || t('note.unnamed')}</Link>
                 <span className="note-list-desc">{each.folderPath}</span>
               </li>
             ))}

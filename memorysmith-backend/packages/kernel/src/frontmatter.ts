@@ -3,7 +3,7 @@
  * (MemorySmith Markdown Specification §6.1 and §6.2).
  *
  * It lives in the kernel because two contexts read the same bytes: Knowledge
- * derives the title of a note on the write (§5.3), and Discovery classifies
+ * derives the name of a note on the write (§5.3), and Discovery classifies
  * every other key into facets (§6.3). Two readers of one block is the defect
  * this cycle is paying off in the shape of `slugify`, so there is exactly one
  * function in this repository that finds the frontmatter of a body.
@@ -38,9 +38,7 @@ export function frontmatterBlock(markdown: string): string | null {
 /**
  * The body without its frontmatter.
  *
- * The block takes no part in the searchable text (§6.1) and no part in the
- * chain that reads the title, where the first level-1 heading is the one of
- * the body and never a `# ` written inside the block.
+ * The block takes no part in the searchable text (§6.1).
  */
 export function bodyWithoutFrontmatter(markdown: string): string {
   const block = frontmatterBlock(markdown);

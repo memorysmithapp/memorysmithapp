@@ -1,5 +1,5 @@
 ---
-title: ITIL vs SRE
+name: ITIL vs SRE
 aliases:
   - ITIL e SRE
 tags:

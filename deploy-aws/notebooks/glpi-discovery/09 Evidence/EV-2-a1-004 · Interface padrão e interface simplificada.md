@@ -1,5 +1,5 @@
 ---
-title: EV-2-a1-004 · Interface padrão e interface simplificada
+name: EV-2-a1-004 · Interface padrão e interface simplificada
 aliases: [EV-2-a1-004]
 tags: [evidence, doc, interface, standard, simplified, helpdesk, dashboard]
 type: evidence

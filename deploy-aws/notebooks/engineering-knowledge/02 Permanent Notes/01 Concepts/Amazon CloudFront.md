@@ -1,5 +1,5 @@
 ---
-title: Amazon CloudFront
+name: Amazon CloudFront
 aliases:
   - CloudFront
   - Origin Access Control

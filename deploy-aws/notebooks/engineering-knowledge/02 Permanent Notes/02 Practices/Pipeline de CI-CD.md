@@ -1,5 +1,5 @@
 ---
-title: Pipeline de CI-CD
+name: Pipeline de CI-CD
 aliases:
   - Pipeline de CI/CD
   - CI/CD Pipeline

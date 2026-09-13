@@ -1,5 +1,5 @@
 ---
-title: Usuários e Grupos
+name: Usuários e Grupos
 aliases: [User, Group, Usuários, Grupos]
 tags: [entity, usuarios, dominio/admin]
 type: entity

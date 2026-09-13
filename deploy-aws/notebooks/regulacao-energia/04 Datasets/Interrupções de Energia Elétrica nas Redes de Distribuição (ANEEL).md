@@ -1,5 +1,5 @@
 ---
-title: Interrupções de Energia Elétrica nas Redes de Distribuição (ANEEL)
+name: Interrupções de Energia Elétrica nas Redes de Distribuição (ANEEL)
 aliases:
   - interrupcoes-de-energia-eletrica-nas-redes-de-distribuicao
 tags:

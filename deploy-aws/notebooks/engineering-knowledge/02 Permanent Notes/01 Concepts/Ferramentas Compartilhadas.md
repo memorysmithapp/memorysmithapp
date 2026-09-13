@@ -1,5 +1,5 @@
 ---
-title: Ferramentas Compartilhadas
+name: Ferramentas Compartilhadas
 aliases:
   - Shared Tools
   - Tool Design

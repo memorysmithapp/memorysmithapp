@@ -1,5 +1,5 @@
 ---
-title: EV-2-b2-006 · Matriz de ciclo de vida por perfil (transições de status)
+name: EV-2-b2-006 · Matriz de ciclo de vida por perfil (transições de status)
 aliases: [EV-2-b2-006]
 tags: [evidence, lifecycle, ciclo-de-vida, status, transicoes, perfil, itil]
 type: evidence

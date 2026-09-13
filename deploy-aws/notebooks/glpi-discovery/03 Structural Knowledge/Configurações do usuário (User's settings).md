@@ -1,5 +1,5 @@
 ---
-title: Configurações do usuário (User's settings)
+name: Configurações do usuário (User's settings)
 aliases: [user settings, preferências do usuário, configurações do usuário]
 tags: [user-settings, preferencias, ui]
 type: component

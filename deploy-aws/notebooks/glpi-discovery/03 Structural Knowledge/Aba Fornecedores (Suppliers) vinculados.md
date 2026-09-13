@@ -1,5 +1,5 @@
 ---
-title: Aba Fornecedores (Suppliers) vinculados
+name: Aba Fornecedores (Suppliers) vinculados
 aliases: [aba Suppliers, Suppliers tab, fornecedores vinculados]
 tags: [tabs, suppliers, fornecedores, ui]
 type: component

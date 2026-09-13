@@ -1,5 +1,5 @@
 ---
-title: Value Streams and Processes
+name: Value Streams and Processes
 aliases:
   - Fluxos de Valor e Processos
 tags:

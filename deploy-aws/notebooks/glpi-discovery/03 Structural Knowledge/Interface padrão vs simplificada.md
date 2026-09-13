@@ -1,5 +1,5 @@
 ---
-title: Interface padrão vs simplificada
+name: Interface padrão vs simplificada
 aliases: [Standard interface, Simplified interface, Interface simplificada, Interface padrão]
 tags: [interface, ui, end-user, glossary]
 type: concept

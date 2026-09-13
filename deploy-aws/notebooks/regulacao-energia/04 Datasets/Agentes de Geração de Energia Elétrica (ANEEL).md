@@ -1,5 +1,5 @@
 ---
-title: Agentes de Geração de Energia Elétrica (ANEEL)
+name: Agentes de Geração de Energia Elétrica (ANEEL)
 aliases:
   - agentes-de-geracao-de-energia-eletrica
 tags:

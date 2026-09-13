@@ -1,5 +1,5 @@
 ---
-title: Plugins e Marketplace
+name: Plugins e Marketplace
 aliases: [Plugin, Marketplace, extensibilidade]
 tags: [integration, plugins, dominio/integracoes]
 type: integration

@@ -1,5 +1,5 @@
 ---
-title: Storage
+name: Storage
 aliases:
   - Armazenamento
 tags:

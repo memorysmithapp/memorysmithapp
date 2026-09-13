@@ -1,5 +1,5 @@
 ---
-title: URI, URL e URN
+name: URI, URL e URN
 aliases:
   - URI
   - URL

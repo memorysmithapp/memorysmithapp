@@ -1,5 +1,5 @@
 ---
-title: EV-2-f3-003 · Opções de alarme por entidade
+name: EV-2-f3-003 · Opções de alarme por entidade
 aliases: [EV-2-f3-003]
 tags: [evidence, alarme, alarm, entidade, estoque, expiracao]
 type: evidence

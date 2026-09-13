@@ -1,5 +1,5 @@
 ---
-title: Obsidian Help 01
+name: Obsidian Help 01
 aliases:
   - Obsidian Help — Fundamentos, Vault e Arquivos
 tags:

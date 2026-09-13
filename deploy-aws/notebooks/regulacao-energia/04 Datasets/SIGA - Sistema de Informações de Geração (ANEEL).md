@@ -1,5 +1,5 @@
 ---
-title: SIGA - Sistema de Informações de Geração (ANEEL)
+name: SIGA - Sistema de Informações de Geração (ANEEL)
 aliases:
   - siga-sistema-de-informacoes-de-geracao-da-aneel
 tags:

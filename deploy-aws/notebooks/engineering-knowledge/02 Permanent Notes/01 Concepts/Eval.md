@@ -1,5 +1,5 @@
 ---
-title: Eval
+name: Eval
 aliases:
   - Evals
   - Avaliação de IA

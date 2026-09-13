@@ -1,5 +1,5 @@
 ---
-title: EV-2-g1-003 · Override de traduções via gettext (override-locales.rst)
+name: EV-2-g1-003 · Override de traduções via gettext (override-locales.rst)
 aliases: [EV-2-g1-003]
 tags: [evidence, locales, traducoes, gettext, i18n, operacional]
 type: evidence

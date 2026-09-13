@@ -1,5 +1,5 @@
 ---
-title: Two-Phase Commit
+name: Two-Phase Commit
 aliases:
   - 2PC
   - Commit em Duas Fases

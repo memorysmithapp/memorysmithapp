@@ -1,5 +1,5 @@
 ---
-title: EV-2-c3-004 · Aba Portas de Rede de um Computador
+name: EV-2-c3-004 · Aba Portas de Rede de um Computador
 aliases: [EV-2-c3-004]
 tags: [evidence, doc, assets, network, ports, vlan, computer]
 type: evidence

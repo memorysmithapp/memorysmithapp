@@ -1,5 +1,5 @@
 ---
-title: EV-2-c1-009 · Ativos não gerenciados e conversão de tipo
+name: EV-2-c1-009 · Ativos não gerenciados e conversão de tipo
 aliases: [EV-2-c1-009]
 tags: [evidence, assets, unmanaged, network-discovery, doc]
 type: evidence

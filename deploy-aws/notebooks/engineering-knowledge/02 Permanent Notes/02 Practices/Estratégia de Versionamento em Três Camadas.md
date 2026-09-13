@@ -1,5 +1,5 @@
 ---
-title: Estratégia de Versionamento em Três Camadas
+name: Estratégia de Versionamento em Três Camadas
 aliases:
   - Versionamento em Três Camadas
   - Three-Layer Versioning

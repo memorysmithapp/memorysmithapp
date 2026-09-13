@@ -1,5 +1,5 @@
 ---
-title: Suspensão Indevida do Fornecimento
+name: Suspensão Indevida do Fornecimento
 aliases:
   - Corte indevido
   - Suspensão indevida

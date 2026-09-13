@@ -1,5 +1,5 @@
 ---
-title: EV-2-d1-003 · Fornecedores — definição, distinção fornecedor×fabricante e abas
+name: EV-2-d1-003 · Fornecedores — definição, distinção fornecedor×fabricante e abas
 aliases: [EV-2-d1-003]
 tags: [evidence, management, supplier, doc]
 type: evidence

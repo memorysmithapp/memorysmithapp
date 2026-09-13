@@ -1,5 +1,5 @@
 ---
-title: Indicadores Quantitativos da Fiscalização (descontinuado)
+name: Indicadores Quantitativos da Fiscalização (descontinuado)
 aliases:
   - indicadores-quantitativos-modelo-vigente-ate-2015
 tags:

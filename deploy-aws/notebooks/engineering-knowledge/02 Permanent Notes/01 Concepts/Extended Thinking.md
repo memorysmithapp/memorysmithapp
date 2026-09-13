@@ -1,5 +1,5 @@
 ---
-title: Extended Thinking
+name: Extended Thinking
 aliases:
   - Thinking
   - Raciocínio Estendido

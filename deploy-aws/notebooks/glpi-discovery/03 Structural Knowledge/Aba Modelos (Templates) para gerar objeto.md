@@ -1,5 +1,5 @@
 ---
-title: Aba Modelos (Templates) para gerar objeto
+name: Aba Modelos (Templates) para gerar objeto
 aliases: [aba Templates, Templates tab, modelos]
 tags: [tabs, templates, modelos, ui]
 type: component

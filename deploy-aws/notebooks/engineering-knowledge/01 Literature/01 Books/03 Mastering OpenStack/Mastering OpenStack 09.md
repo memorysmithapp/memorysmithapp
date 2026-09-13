@@ -1,5 +1,5 @@
 ---
-title: Mastering OpenStack 09
+name: Mastering OpenStack 09
 aliases:
   - "Capítulo 9: Benchmarking the Infrastructure – Evaluating Resource Capacity and Optimization"
 tags:

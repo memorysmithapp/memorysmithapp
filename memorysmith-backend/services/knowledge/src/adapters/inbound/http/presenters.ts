@@ -63,7 +63,7 @@ export function noteToSummary(note: Note): NoteSummaryDto {
     noteId: note.id.value,
     notebookId: note.notebookId.value,
     folderId: note.folderId.value,
-    title: note.title,
+    name: note.name,
     position: note.position.value,
     bytes: note.bodyRef.bytes,
     updatedAt: note.updatedBy.at.toISOString(),

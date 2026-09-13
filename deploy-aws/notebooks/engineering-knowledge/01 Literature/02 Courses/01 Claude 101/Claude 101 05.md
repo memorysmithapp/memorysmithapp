@@ -1,5 +1,5 @@
 ---
-title: Claude 101 05
+name: Claude 101 05
 aliases:
   - "Módulo 5: Conclusão e próximos passos"
 tags:

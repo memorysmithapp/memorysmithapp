@@ -1,5 +1,5 @@
 ---
-title: Componentes de Hardware Configuráveis
+name: Componentes de Hardware Configuráveis
 aliases: [Components, Componentes de hardware, Device components]
 tags: [componentes, hardware, ativos, configuracao]
 type: concept

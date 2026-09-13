@@ -1,5 +1,5 @@
 ---
-title: GLPI Network (registro)
+name: GLPI Network (registro)
 aliases: [GLPI Network, Registration key, Chave de registro]
 tags: [configuracao-geral, glpi-network, registro, operacao]
 type: capability

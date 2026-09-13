@@ -1,5 +1,5 @@
 ---
-title: EV-2-c2-002 · Dispositivos passivos (passives_devices.rst)
+name: EV-2-c2-002 · Dispositivos passivos (passives_devices.rst)
 aliases: [EV-2-c2-002]
 tags: [evidence, assets, passive-device, dcim, doc]
 type: evidence

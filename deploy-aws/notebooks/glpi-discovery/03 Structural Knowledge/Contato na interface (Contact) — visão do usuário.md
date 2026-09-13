@@ -1,5 +1,5 @@
 ---
-title: Contato na interface (Contact) — visão do usuário
+name: Contato na interface (Contact) — visão do usuário
 aliases: [Contact, Contato]
 tags: [concept, management, contact, doc]
 type: concept

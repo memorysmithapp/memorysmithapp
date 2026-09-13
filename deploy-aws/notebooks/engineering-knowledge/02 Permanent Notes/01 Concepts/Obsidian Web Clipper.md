@@ -1,5 +1,5 @@
 ---
-title: Obsidian Web Clipper
+name: Obsidian Web Clipper
 aliases:
   - Web Clipper
   - Clipper

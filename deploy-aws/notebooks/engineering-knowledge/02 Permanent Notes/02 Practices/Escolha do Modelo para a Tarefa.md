@@ -1,5 +1,5 @@
 ---
-title: Escolha do Modelo para a Tarefa
+name: Escolha do Modelo para a Tarefa
 aliases:
   - Model Routing
   - Opus Sonnet Haiku

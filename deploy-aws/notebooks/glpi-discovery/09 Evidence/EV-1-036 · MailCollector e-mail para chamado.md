@@ -1,5 +1,5 @@
 ---
-title: EV-1-036 · MailCollector — e-mail para chamado
+name: EV-1-036 · MailCollector — e-mail para chamado
 aliases: [EV-1-036]
 tags: [evidence, dominio/integracoes, email]
 type: evidence

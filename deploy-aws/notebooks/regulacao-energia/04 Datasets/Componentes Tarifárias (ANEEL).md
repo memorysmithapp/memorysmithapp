@@ -1,5 +1,5 @@
 ---
-title: Componentes Tarifárias (ANEEL)
+name: Componentes Tarifárias (ANEEL)
 aliases:
   - componentes-tarifarias
 tags:

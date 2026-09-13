@@ -1,5 +1,5 @@
 ---
-title: Scheduled Task
+name: Scheduled Task
 aliases:
   - Tarefa Agendada
   - Recurring Task

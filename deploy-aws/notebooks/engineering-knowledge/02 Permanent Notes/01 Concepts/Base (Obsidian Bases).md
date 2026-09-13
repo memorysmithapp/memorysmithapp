@@ -1,5 +1,5 @@
 ---
-title: Base (Obsidian Bases)
+name: Base (Obsidian Bases)
 aliases:
   - Bases
   - Base File

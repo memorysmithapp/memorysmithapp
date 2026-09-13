@@ -1,5 +1,5 @@
 ---
-title: Grupo responsável (group in charge)
+name: Grupo responsável (group in charge)
 aliases: [Group in charge, Grupo responsável, Grupo encarregado]
 tags: [campos-comuns, atores, grupo, responsavel, data]
 type: field

@@ -1,5 +1,5 @@
 ---
-title: Plano Revisável
+name: Plano Revisável
 aliases:
   - Reviewable Plan
   - Plano de Execução

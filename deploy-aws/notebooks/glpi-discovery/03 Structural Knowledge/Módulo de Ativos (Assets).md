@@ -1,5 +1,5 @@
 ---
-title: Módulo de Ativos (Assets)
+name: Módulo de Ativos (Assets)
 aliases: [Módulo Assets, Ativos]
 tags: [assets, inventory, module, structural]
 type: component

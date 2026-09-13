@@ -1,5 +1,5 @@
 ---
-title: Canvas
+name: Canvas
 aliases:
   - Quadro Infinito
   - JSON Canvas

@@ -1,5 +1,5 @@
 ---
-title: Continual Improvement
+name: Continual Improvement
 aliases:
   - Melhoria Contínua
 tags:

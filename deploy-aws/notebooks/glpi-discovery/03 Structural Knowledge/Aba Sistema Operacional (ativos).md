@@ -1,5 +1,5 @@
 ---
-title: Aba Sistema Operacional (ativos)
+name: Aba Sistema Operacional (ativos)
 aliases: [Operating system tab, Aba SO, Aba OS]
 tags: [assets, tab, os, operating-system, computer]
 type: component

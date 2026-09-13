@@ -1,5 +1,5 @@
 ---
-title: CTR - Curvas de Carga de Consumidores e Redes Tipo (ANEEL)
+name: CTR - Curvas de Carga de Consumidores e Redes Tipo (ANEEL)
 aliases:
   - ctr-curva-de-carga
 tags:

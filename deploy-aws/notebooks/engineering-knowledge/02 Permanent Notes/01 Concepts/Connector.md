@@ -1,5 +1,5 @@
 ---
-title: Connector
+name: Connector
 aliases:
   - Conector
   - Connectors

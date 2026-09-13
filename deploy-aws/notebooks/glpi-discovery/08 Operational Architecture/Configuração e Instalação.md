@@ -1,5 +1,5 @@
 ---
-title: Configuração e Instalação
+name: Configuração e Instalação
 aliases: [Config, "Configuração (Config)", "Instalação, atualização e migrações", schema]
 tags: [infra, config, instalacao, dominio/operacao]
 type: infra

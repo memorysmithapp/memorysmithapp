@@ -1,5 +1,5 @@
 ---
-title: Acréscimo Anual da Potência Instalada (ANEEL)
+name: Acréscimo Anual da Potência Instalada (ANEEL)
 aliases:
   - acrescimo-da-potencia-instalada
 tags:

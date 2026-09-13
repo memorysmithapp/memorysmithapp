@@ -1,5 +1,5 @@
 ---
-title: Criação de um ativo customizado (procedimento)
+name: Criação de um ativo customizado (procedimento)
 aliases: [Criar asset definition, Create custom asset]
 tags: [asset-definition, custom-asset, procedure]
 type: use-case

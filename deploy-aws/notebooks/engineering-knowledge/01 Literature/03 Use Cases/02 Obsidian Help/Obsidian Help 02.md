@@ -1,5 +1,5 @@
 ---
-title: Obsidian Help 02
+name: Obsidian Help 02
 aliases:
   - Obsidian Help — Escrita, Markdown e Formatação
 tags:

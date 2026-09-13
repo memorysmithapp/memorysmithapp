@@ -1,5 +1,5 @@
 ---
-title: Termo de Intimação - TI (ANEEL)
+name: Termo de Intimação - TI (ANEEL)
 aliases:
   - termo-de-intimacao-ti
 tags:

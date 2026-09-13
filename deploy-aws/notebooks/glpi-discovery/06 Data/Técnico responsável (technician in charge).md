@@ -1,5 +1,5 @@
 ---
-title: Técnico responsável (technician in charge)
+name: Técnico responsável (technician in charge)
 aliases: [Technician in charge, Técnico responsável, Técnico encarregado]
 tags: [campos-comuns, atores, tecnico, responsavel, data]
 type: field

@@ -1,5 +1,5 @@
 ---
-title: Event Driven Architecture
+name: Event Driven Architecture
 aliases:
   - Arquitetura Orientada a Eventos
   - EDA

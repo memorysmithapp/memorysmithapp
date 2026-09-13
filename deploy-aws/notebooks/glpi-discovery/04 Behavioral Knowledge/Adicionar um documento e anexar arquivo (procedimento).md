@@ -1,5 +1,5 @@
 ---
-title: Adicionar um documento e anexar arquivo (procedimento)
+name: Adicionar um documento e anexar arquivo (procedimento)
 aliases: [Add a document]
 tags: [use-case, management, document, doc]
 type: use-case

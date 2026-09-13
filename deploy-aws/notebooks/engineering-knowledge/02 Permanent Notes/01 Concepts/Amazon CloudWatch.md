@@ -1,5 +1,5 @@
 ---
-title: Amazon CloudWatch
+name: Amazon CloudWatch
 aliases:
   - CloudWatch
   - CloudWatch Logs

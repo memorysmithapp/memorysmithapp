@@ -1,5 +1,5 @@
 ---
-title: Capacidade Instalada por Unidade da Federação (ANEEL)
+name: Capacidade Instalada por Unidade da Federação (ANEEL)
 aliases:
   - capacidade-instalada-por-unidade-da-federacao
 tags:

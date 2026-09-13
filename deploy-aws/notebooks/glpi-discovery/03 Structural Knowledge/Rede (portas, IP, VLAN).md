@@ -1,5 +1,5 @@
 ---
-title: Rede (portas, IP, VLAN)
+name: Rede (portas, IP, VLAN)
 aliases: [Rede, NetworkPort, IP, VLAN, IPNetwork]
 tags: [concept, rede, dominio/ativos]
 type: concept

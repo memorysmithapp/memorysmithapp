@@ -1,5 +1,5 @@
 ---
-title: Aba Gestão Remota (Remote Management)
+name: Aba Gestão Remota (Remote Management)
 aliases: [Remote Management, Gestão remota, Remote access]
 tags: [tab, remote-management, inventory, software]
 type: component

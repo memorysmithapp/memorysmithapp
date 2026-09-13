@@ -1,5 +1,5 @@
 ---
-title: INV-2-e2-003 · Exemplos incompletos nos dicionários (lacuna de documentação)
+name: INV-2-e2-003 · Exemplos incompletos nos dicionários (lacuna de documentação)
 aliases: [INV-2-e2-003]
 tags: [investigation, consumidor/cad, dicionarios, doc-quality]
 type: investigation

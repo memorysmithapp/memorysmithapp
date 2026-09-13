@@ -1,5 +1,5 @@
 ---
-title: Gestão de Projetos (processo)
+name: Gestão de Projetos (processo)
 aliases: [Project Management]
 tags: [process, projeto, dominio/gestao]
 type: process

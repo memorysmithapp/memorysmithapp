@@ -18,7 +18,7 @@
 
 ## Required frontmatter
 
-`title`, `aliases`, `tags`, `type` (`objective` | `runbook` | `review`),
+`name`, `aliases`, `tags`, `type` (`objective` | `runbook` | `review`),
 `maturity` (`seed` | `growing` | `evergreen`, reassessed on every write),
 `reviewed` (`true` only after a human has reviewed the current revision; any
 later content edit takes it back to `false`), `scope`, `source`, `author`,
@@ -26,6 +26,10 @@ later content edit takes it back to `false`), `scope`, `source`, `author`,
 
 `aliases` is not decoration here: this subject lives on acronyms, and a page
 that cannot be found by `RTO` is a page nobody finds.
+
+`name` is what a page is called and what every link resolves against, and
+nothing else names a page: a heading is content. A page written without it has
+no name, and no link reaches it.
 
 ## The notation this notebook is written in
 

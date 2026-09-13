@@ -1,5 +1,5 @@
 ---
-title: ITIL 5
+name: ITIL 5
 aliases:
   - ITIL
   - ITIL Version 5

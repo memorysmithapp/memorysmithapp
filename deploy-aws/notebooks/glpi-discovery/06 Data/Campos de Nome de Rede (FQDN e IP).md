@@ -1,5 +1,5 @@
 ---
-title: Campos de Nome de Rede (FQDN e IP)
+name: Campos de Nome de Rede (FQDN e IP)
 aliases: [Network name fields, Campos de network name]
 tags: [data, assets, network, dns, fqdn, ip, cname]
 type: entity

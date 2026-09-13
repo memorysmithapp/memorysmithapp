@@ -1,5 +1,5 @@
 ---
-title: EV-2-a1-003 · Navegador, conexão e fim de sessão
+name: EV-2-a1-003 · Navegador, conexão e fim de sessão
 aliases: [EV-2-a1-003]
 tags: [evidence, doc, login, browser, session, interface]
 type: evidence

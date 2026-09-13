@@ -1,5 +1,5 @@
 ---
-title: EV-2-g4-010 · Credenciais SNMP e sysDescr
+name: EV-2-g4-010 · Credenciais SNMP e sysDescr
 aliases: [EV-2-g4-010]
 tags: [evidence, campos-comuns, snmp, inventario, rede]
 type: evidence

@@ -1,5 +1,5 @@
 ---
-title: EV-2-g4-008 · Campo Tipo de gestão (unitária vs global)
+name: EV-2-g4-008 · Campo Tipo de gestão (unitária vs global)
 aliases: [EV-2-g4-008]
 tags: [evidence, campos-comuns, gestao, management-type]
 type: evidence

@@ -1,5 +1,5 @@
 ---
-title: Inventário automático (processo)
+name: Inventário automático (processo)
 aliases: [Inventário, Native Inventory, agente]
 tags: [process, inventario, dominio/ativos]
 type: process

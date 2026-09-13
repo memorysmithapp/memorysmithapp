@@ -1,5 +1,5 @@
 ---
-title: Idempotência
+name: Idempotência
 aliases:
   - Idempotency
   - Idempotence

@@ -1,5 +1,5 @@
 ---
-title: Guiding Principles
+name: Guiding Principles
 aliases:
   - Princípios Orientadores
 tags:

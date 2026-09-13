@@ -1,5 +1,5 @@
 ---
-title: Templates de itens (modelos)
+name: Templates de itens (modelos)
 aliases: [Template, Modelo de objeto, Templates de ativos]
 tags: [templates, assets, creation]
 type: concept

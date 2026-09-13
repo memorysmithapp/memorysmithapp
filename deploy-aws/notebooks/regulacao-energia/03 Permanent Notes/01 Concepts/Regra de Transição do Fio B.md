@@ -1,5 +1,5 @@
 ---
-title: Regra de Transição do Fio B
+name: Regra de Transição do Fio B
 aliases:
   - Fio B
   - Transição da Lei 14.300

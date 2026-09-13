@@ -1,5 +1,5 @@
 ---
-title: Gestão de campos customizados de ativos (procedimento)
+name: Gestão de campos customizados de ativos (procedimento)
 aliases: [Custom fields management, Campos customizados de ativos]
 tags: [asset-definition, custom-fields, procedure]
 type: use-case

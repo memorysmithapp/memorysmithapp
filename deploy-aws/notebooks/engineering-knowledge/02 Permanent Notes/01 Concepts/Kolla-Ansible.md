@@ -1,5 +1,5 @@
 ---
-title: Kolla-Ansible
+name: Kolla-Ansible
 aliases:
   - Kolla
   - OpenStack Kolla

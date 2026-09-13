@@ -1,5 +1,5 @@
 ---
-title: <Obra NN>
+name: <Obra NN>
 aliases: []
 tags: []
 type: literature

@@ -1,5 +1,5 @@
 ---
-title: Abas do formulário de Contrato
+name: Abas do formulário de Contrato
 aliases: [Contract tabs]
 tags: [component, management, contract, tabs, doc]
 type: component

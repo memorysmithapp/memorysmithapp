@@ -1,5 +1,5 @@
 ---
-title: INV-2-c1-001 · Semântica de Approved device e aprovação de ativos não gerenciados
+name: INV-2-c1-001 · Semântica de Approved device e aprovação de ativos não gerenciados
 aliases: [INV-2-c1-001]
 tags: [investigation, consumidor/cad, assets, unmanaged]
 type: investigation

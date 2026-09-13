@@ -1,5 +1,5 @@
 ---
-title: EV-2-f2-007 · Dropdowns de assistência categorias soluções projetos
+name: EV-2-f2-007 · Dropdowns de assistência categorias soluções projetos
 aliases: [EV-2-f2-007]
 tags: [evidence, dropdown, assistance, ticket-category, solution, project]
 type: evidence

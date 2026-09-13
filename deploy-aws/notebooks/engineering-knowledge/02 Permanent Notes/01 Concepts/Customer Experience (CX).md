@@ -1,5 +1,5 @@
 ---
-title: Customer Experience (CX)
+name: Customer Experience (CX)
 aliases:
   - CX
   - Experiência do Cliente

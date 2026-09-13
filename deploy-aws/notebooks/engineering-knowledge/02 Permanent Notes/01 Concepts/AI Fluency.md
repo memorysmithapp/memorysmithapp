@@ -1,5 +1,5 @@
 ---
-title: AI Fluency
+name: AI Fluency
 aliases:
   - Fluência em IA
   - 4D Framework

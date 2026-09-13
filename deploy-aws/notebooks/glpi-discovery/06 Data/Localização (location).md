@@ -1,5 +1,5 @@
 ---
-title: Localização (location)
+name: Localização (location)
 aliases: [Location, Localização]
 tags: [campos-comuns, localizacao, dropdown, data]
 type: field

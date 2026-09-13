@@ -1,5 +1,5 @@
 ---
-title: Service Management
+name: Service Management
 aliases:
   - Gestão de Serviços
 tags:

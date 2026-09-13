@@ -1,5 +1,5 @@
 ---
-title: EV-2-g3-024 · Aba Softwares (instalar e remover)
+name: EV-2-g3-024 · Aba Softwares (instalar e remover)
 aliases: [EV-2-g3-024]
 tags: [evidence, tab, software, install]
 type: evidence

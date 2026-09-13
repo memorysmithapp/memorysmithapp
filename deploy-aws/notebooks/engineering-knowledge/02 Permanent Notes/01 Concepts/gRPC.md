@@ -1,5 +1,5 @@
 ---
-title: gRPC
+name: gRPC
 aliases:
   - Remote Procedure Call
   - RPC

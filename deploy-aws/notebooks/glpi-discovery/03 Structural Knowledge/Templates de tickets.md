@@ -1,5 +1,5 @@
 ---
-title: Templates de tickets
+name: Templates de tickets
 aliases: [Ticket template, Modelo de ticket]
 tags: [templates, tickets, mandatory-fields, itil]
 type: concept

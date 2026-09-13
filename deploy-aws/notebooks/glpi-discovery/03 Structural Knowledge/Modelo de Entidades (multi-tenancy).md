@@ -1,5 +1,5 @@
 ---
-title: Modelo de Entidades (multi-tenancy)
+name: Modelo de Entidades (multi-tenancy)
 aliases: [Entidades, Entity, Multi-tenancy, Separação de entidades]
 tags: [concept, multi-tenancy, dominio/foundation]
 type: concept

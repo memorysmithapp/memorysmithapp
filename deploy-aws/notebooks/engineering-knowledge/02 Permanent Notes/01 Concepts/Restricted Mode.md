@@ -1,5 +1,5 @@
 ---
-title: Restricted Mode
+name: Restricted Mode
 aliases:
   - Modo Restrito
   - Safe Mode

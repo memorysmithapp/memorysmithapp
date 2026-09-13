@@ -1,5 +1,5 @@
 ---
-title: Reservar um equipamento (fluxo)
+name: Reservar um equipamento (fluxo)
 aliases: [Reservation flow, Reservar equipamento, Booking]
 tags: [behavioral, reservations, booking, recurrence, planning]
 type: flow

@@ -1,5 +1,5 @@
 ---
-title: Registro de domínio (domain record)
+name: Registro de domínio (domain record)
 aliases: [Domain record, Registro de domínio, DNS record, Records]
 tags: [management, domain-record, dns]
 type: component

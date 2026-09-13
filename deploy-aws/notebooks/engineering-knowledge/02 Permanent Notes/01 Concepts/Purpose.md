@@ -1,5 +1,5 @@
 ---
-title: Purpose
+name: Purpose
 aliases:
   - Propósito
 tags:

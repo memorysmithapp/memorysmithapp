@@ -1,5 +1,5 @@
 ---
-title: EV-2-g1-006 · Índices de Configuração Avançada e Módulos (index.rst)
+name: EV-2-g1-006 · Índices de Configuração Avançada e Módulos (index.rst)
 aliases: [EV-2-g1-006]
 tags: [evidence, indice, toctree, estrutura-doc]
 type: evidence

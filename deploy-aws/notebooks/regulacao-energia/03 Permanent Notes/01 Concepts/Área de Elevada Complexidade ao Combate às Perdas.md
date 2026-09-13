@@ -1,5 +1,5 @@
 ---
-title: Área de Elevada Complexidade ao Combate às Perdas
+name: Área de Elevada Complexidade ao Combate às Perdas
 aliases:
   - Área de elevada complexidade
   - Área de severas restrições

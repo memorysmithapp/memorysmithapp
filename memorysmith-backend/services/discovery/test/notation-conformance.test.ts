@@ -25,7 +25,7 @@ import {
   RECOGNISED_NOTATION,
   type ConformanceCase,
 } from '@memorysmith/contracts';
-import { noteTitle } from '@memorysmith/kernel';
+import { noteName } from '@memorysmith/kernel';
 import { extractLinks } from '../src/domain/LinkExtractor.js';
 import { extractFacets } from '../src/domain/FacetExtractor.js';
 import { resolveTarget, notebookNames } from '../src/domain/LinkResolver.js';
@@ -33,26 +33,26 @@ import { extractFrontmatterAliases } from '../src/domain/Aliases.js';
 
 const withLinks = CONFORMANCE_CASES.filter((each) => each.links !== undefined);
 const withFacets = CONFORMANCE_CASES.filter((each) => each.facets !== undefined);
-const withTitle = CONFORMANCE_CASES.filter((each) => each.title !== undefined);
+const withName = CONFORMANCE_CASES.filter((each) => each.name !== undefined);
 const withResolution = CONFORMANCE_CASES.filter((each) => each.resolution !== undefined);
 
 /**
  * The notebook a resolution case is resolved against, built the way the product
- * builds one: the title of each note read by the chain, the aliases read from
+ * builds one: the name each note states, the aliases read from
  * its frontmatter, and the attachments named by the case.
  */
 function notebookOf(each: ConformanceCase) {
   const notes = (each.notebook?.notes ?? []).map((body, index) => ({
     noteId: `n${index + 1}`,
-    title: noteTitle(body),
+    name: noteName(body),
     aliases: extractFrontmatterAliases(body),
   }));
   return notebookNames(notes, [...(each.notebook?.attachments ?? [])]);
 }
 
 /** The extractor output reduced to what a case states, and nothing else. */
-function linksOf(markdown: string): Array<{ title: string; anchor: string | null }> {
-  return extractLinks(markdown).map((link) => ({ title: link.title, anchor: link.anchor }));
+function linksOf(markdown: string): Array<{ name: string; anchor: string | null }> {
+  return extractLinks(markdown).map((link) => ({ name: link.name, anchor: link.anchor }));
 }
 
 function facetsOf(markdown: string): Record<string, { kind: string; values: string[] }> {
@@ -67,15 +67,15 @@ function facetsOf(markdown: string): Record<string, { kind: string; values: stri
 describe('the conformance suite of the specification', () => {
   it.each(withLinks)('$id reads the declared links', (each: ConformanceCase) => {
     // Order is not part of the contract: an edge set is a set.
-    expect(linksOf(each.markdown).sort(byTitle)).toEqual([...(each.links ?? [])].sort(byTitle));
+    expect(linksOf(each.markdown).sort(byName)).toEqual([...(each.links ?? [])].sort(byName));
   });
 
   it.each(withFacets)('$id reads the declared facets', (each: ConformanceCase) => {
     expect(facetsOf(each.markdown)).toEqual(each.facets ?? {});
   });
 
-  it.each(withTitle)('$id reads the title the chain states', (each: ConformanceCase) => {
-    expect(noteTitle(each.markdown)).toEqual(each.title ?? null);
+  it.each(withName)('$id reads the name the note states', (each: ConformanceCase) => {
+    expect(noteName(each.markdown)).toEqual(each.name ?? null);
   });
 
   it.each(withResolution)(
@@ -85,7 +85,7 @@ describe('the conformance suite of the specification', () => {
       // only once there is a notebook to answer it, so the case carries one.
       const names = notebookOf(each);
       const resolved = extractLinks(each.markdown).map((link) => {
-        const answer = resolveTarget(link.title, names);
+        const answer = resolveTarget(link.name, names);
         return { target: answer.target, kind: answer.kind, edges: answer.noteIds.length };
       });
 
@@ -100,7 +100,7 @@ describe('the conformance suite of the specification', () => {
     // The twelve cases that build a notebook, which are what prove the resolver
     // and not only the reader.
     expect(withResolution.length).toBeGreaterThan(10);
-    expect(withTitle.length).toBeGreaterThan(10);
+    expect(withName.length).toBeGreaterThan(10);
   });
 
   it('covers every notation of the two extractors with at least one case', () => {
@@ -118,11 +118,11 @@ describe('the conformance suite of the specification', () => {
   });
 });
 
-function byTitle(
-  a: { title: string; anchor: string | null },
-  b: { title: string; anchor: string | null },
+function byName(
+  a: { name: string; anchor: string | null },
+  b: { name: string; anchor: string | null },
 ): number {
-  return a.title.localeCompare(b.title);
+  return a.name.localeCompare(b.name);
 }
 
 describe('an embed is a link, and the graph does not tell them apart (RN-DSC-029)', () => {
@@ -131,14 +131,14 @@ describe('an embed is a link, and the graph does not tell them apart (RN-DSC-029
     const linked = extractLinks('[[Lei 14.133]]');
 
     expect(embedded).toHaveLength(1);
-    expect(embedded[0]?.title).toBe(linked[0]?.title);
+    expect(embedded[0]?.name).toBe(linked[0]?.name);
   });
 
   it('produces the same edge when the embed carries a section', () => {
     const embedded = extractLinks('![[Lei 14.133#Article 75]]');
     const linked = extractLinks('[[Lei 14.133]]');
 
-    expect(embedded[0]?.title).toBe(linked[0]?.title);
+    expect(embedded[0]?.name).toBe(linked[0]?.name);
     // The anchor is normalised like any target and kept for display; it never
     // takes part in resolution (RN-DSC-002).
     expect(embedded[0]?.anchor).toBe('Article 75');
@@ -170,15 +170,15 @@ describe('a base notation that means something different here', () => {
     const shortcut = extractLinks('See [lei 14133].\n\n[lei 14133]: ./lei-14133.md\n');
     const inline = extractLinks('See [the text](./lei-14133.md).');
 
-    expect(full.map((link) => link.title)).toEqual(['lei-14133']);
-    expect(collapsed.map((link) => link.title)).toEqual(['lei-14133']);
-    expect(shortcut.map((link) => link.title)).toEqual(['lei-14133']);
-    expect(inline.map((link) => link.title)).toEqual(['lei-14133']);
+    expect(full.map((link) => link.name)).toEqual(['lei-14133']);
+    expect(collapsed.map((link) => link.name)).toEqual(['lei-14133']);
+    expect(shortcut.map((link) => link.name)).toEqual(['lei-14133']);
+    expect(inline.map((link) => link.name)).toEqual(['lei-14133']);
   });
 
   it('matches a label whatever its case and internal spacing', () => {
     const links = extractLinks('See [Lei   14133][].\n\n[lei 14133]: ./lei-14133.md\n');
-    expect(links.map((link) => link.title)).toEqual(['lei-14133']);
+    expect(links.map((link) => link.name)).toEqual(['lei-14133']);
   });
 
   it('keeps an external destination external, in the reference form too', () => {
@@ -204,7 +204,7 @@ describe('a base notation that means something different here', () => {
     const links = extractLinks(
       '| Note | Where |\n| --- | --- |\n| [[Lei 14.133]] | Article 75 |\n',
     );
-    expect(links.map((link) => link.title)).toEqual(['Lei 14.133']);
+    expect(links.map((link) => link.name)).toEqual(['Lei 14.133']);
   });
 
   it('reads an image as an image, and never as a link to a note', () => {
@@ -218,8 +218,8 @@ describe('a base notation that means something different here', () => {
     expect(extractLinks('![The curve][c]\n\n[c]: ./curve.png\n')).toEqual([]);
     // The link form of the same destination still produces the edge, and so
     // does the embed, which may never stop (RN-DSC-029).
-    expect(extractLinks('[The curve](./lei-14133.md)').map((l) => l.title)).toEqual(['lei-14133']);
-    expect(extractLinks('![[Lei 14.133]]').map((l) => l.title)).toEqual(['Lei 14.133']);
+    expect(extractLinks('[The curve](./lei-14133.md)').map((l) => l.name)).toEqual(['lei-14133']);
+    expect(extractLinks('![[Lei 14.133]]').map((l) => l.name)).toEqual(['Lei 14.133']);
   });
 
   it('reads a link indented as code, and says so rather than guessing', () => {
@@ -229,7 +229,7 @@ describe('a base notation that means something different here', () => {
     // context a parser has and this one does not (PP4). Of the two ways to be
     // wrong, a spurious pending link is cheap and a dropped edge is the graph
     // lying about the notebook. The declared behaviour is this one.
-    expect(extractLinks('Prose.\n\n    [[Lei 14.133]]\n').map((l) => l.title)).toEqual([
+    expect(extractLinks('Prose.\n\n    [[Lei 14.133]]\n').map((l) => l.name)).toEqual([
       'Lei 14.133',
     ]);
     // The two forms that ARE implemented, next to it, so the line is visible.

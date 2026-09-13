@@ -1,5 +1,5 @@
 ---
-title: Aba Aprovações (validação de chamados e mudanças)
+name: Aba Aprovações (validação de chamados e mudanças)
 aliases: [Approvals tab, Aba Approvals, Aprovações]
 tags: [tab, approvals, validation, ticket, change, workflow]
 type: component

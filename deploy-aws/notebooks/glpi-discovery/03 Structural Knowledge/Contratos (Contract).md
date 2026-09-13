@@ -1,5 +1,5 @@
 ---
-title: Contratos (Contract)
+name: Contratos (Contract)
 aliases: [Contract, Contrato]
 tags: [entity, contrato, dominio/gestao]
 type: entity

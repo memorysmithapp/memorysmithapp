@@ -1,5 +1,5 @@
 ---
-title: Atos de Outorgas de Geração (ANEEL)
+name: Atos de Outorgas de Geração (ANEEL)
 aliases:
   - atos-de-outorgas-de-geracao
 tags:

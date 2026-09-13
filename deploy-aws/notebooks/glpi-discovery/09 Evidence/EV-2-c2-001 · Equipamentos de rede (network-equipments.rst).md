@@ -1,5 +1,5 @@
 ---
-title: EV-2-c2-001 · Equipamentos de rede (network-equipments.rst)
+name: EV-2-c2-001 · Equipamentos de rede (network-equipments.rst)
 aliases: [EV-2-c2-001]
 tags: [evidence, assets, network, dcim, doc]
 type: evidence

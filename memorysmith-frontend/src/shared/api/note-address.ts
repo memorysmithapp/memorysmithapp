@@ -11,7 +11,7 @@
  * back has to land on the note it was copied from. A wikilink is a name, and a
  * name may be carried by several notes — that ambiguity is the model
  * (RN-KNW-037) and it has an address of its own, under `/links/`. Putting the
- * title in the last segment made the address inherit the ambiguity of the
+ * name in the last segment made the address inherit the ambiguity of the
  * name, which is the merge this design undoes (RN-DSC-045, RN-DSC-055).
  *
  * **The label is a slug and it must not be called `slugify`.** The defect this
@@ -26,13 +26,13 @@ const MAX_LABEL_LENGTH = 60;
 const ULID = /^[0-9a-hjkmnp-tv-z]{26}$/i;
 
 /**
- * A readable label for a title. Its only job is to let a person tell what an
+ * A readable label for a name. Its only job is to let a person tell what an
  * address points at; a stale one, a wrong one or none at all still lands on
  * the note, which is what "decoration" means.
  */
-export function decorativeLabel(title: string | null): string {
-  if (!title) return '';
-  return title
+export function decorativeLabel(name: string | null): string {
+  if (!name) return '';
+  return name
     .normalize('NFD')
     .replace(/(\d)[.,](\d)/g, '$1$2')
     .replace(/[̀-ͯ]/g, '')
@@ -46,11 +46,11 @@ export function decorativeLabel(title: string | null): string {
 /**
  * The last segment of a note address: the label, then `--`, then the
  * identifier. With no label it is the bare identifier, which is the address of
- * a note with no addressable title (RN-KNW-036) — the degenerate case of the
+ * a note with no addressable name (RN-KNW-036) — the degenerate case of the
  * same rule rather than a second scheme.
  */
-export function noteSegment(title: string | null, noteId: string): string {
-  const label = decorativeLabel(title);
+export function noteSegment(name: string | null, noteId: string): string {
+  const label = decorativeLabel(name);
   const id = noteId.toLowerCase();
   return label ? `${label}--${id}` : id;
 }
@@ -74,11 +74,11 @@ export function noteIdOf(segment: string): string | null {
 export function noteAddress(
   notebookSlug: string,
   folderSlugPath: string,
-  title: string | null,
+  name: string | null,
   noteId: string,
 ): string {
   const trail = folderSlugPath ? `${folderSlugPath}/` : '';
-  return `/notebooks/${notebookSlug}/root/${trail}${noteSegment(title, noteId)}`;
+  return `/notebooks/${notebookSlug}/root/${trail}${noteSegment(name, noteId)}`;
 }
 
 /**

@@ -1,5 +1,5 @@
 ---
-title: Workspace Layout
+name: Workspace Layout
 aliases:
   - Workspace
   - Layout Salvo

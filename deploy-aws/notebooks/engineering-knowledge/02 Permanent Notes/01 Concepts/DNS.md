@@ -1,5 +1,5 @@
 ---
-title: DNS
+name: DNS
 aliases:
   - Domain Name System
   - Sistema de Nomes de Domínio

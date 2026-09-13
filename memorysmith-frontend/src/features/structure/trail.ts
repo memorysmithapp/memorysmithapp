@@ -21,7 +21,7 @@ export function folderTrail(folders: FolderNode[], slugPath: string): FolderNode
  * A note is addressed by `<label>--<noteId>`, and the identifier is the only
  * part that is read (RN-DSC-055), so a stale label, a wrong folder trail or no
  * label at all still names the note. Asking the structure was what made a
- * remembered address break the moment a note was retitled.
+ * remembered address break the moment a note was renamed.
  *
  * Two callers need exactly this question and they must not answer it apart.
  * `FolderRoute` asks it to decide what to render, and resuming a reading asks

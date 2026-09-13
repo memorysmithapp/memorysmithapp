@@ -1,5 +1,5 @@
 ---
-title: GCEM - Campos Elétricos e Magnéticos (ANEEL)
+name: GCEM - Campos Elétricos e Magnéticos (ANEEL)
 aliases:
   - gcem-gestao-de-informacoes-de-campos-eletromagneticos
 tags:

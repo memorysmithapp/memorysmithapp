@@ -1,5 +1,5 @@
 ---
-title: Active-Active vs Active-Passive
+name: Active-Active vs Active-Passive
 aliases:
   - Active/Active
   - Active/Passive

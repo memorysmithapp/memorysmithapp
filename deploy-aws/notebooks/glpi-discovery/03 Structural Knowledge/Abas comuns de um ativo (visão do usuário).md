@@ -1,5 +1,5 @@
 ---
-title: Abas comuns de um ativo (visão do usuário)
+name: Abas comuns de um ativo (visão do usuário)
 aliases: [Abas de ativo, Tabs de ativo]
 tags: [assets, tabs, ui, structural]
 type: component

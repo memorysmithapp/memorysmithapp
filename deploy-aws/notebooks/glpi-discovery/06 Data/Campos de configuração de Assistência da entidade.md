@@ -1,5 +1,5 @@
 ---
-title: Campos de configuração de Assistência da entidade
+name: Campos de configuração de Assistência da entidade
 aliases: [Entity assistance fields]
 tags: [entidades, campos, assistencia, tickets, satisfacao, dados, doc]
 type: table

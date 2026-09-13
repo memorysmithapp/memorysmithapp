@@ -1,5 +1,5 @@
 ---
-title: EV-2-g4-001 · Campos de identificação de inventário (série, UUID, nº inventário, fonte)
+name: EV-2-g4-001 · Campos de identificação de inventário (série, UUID, nº inventário, fonte)
 aliases: [EV-2-g4-001]
 tags: [evidence, campos-comuns, inventario, identificacao]
 type: evidence

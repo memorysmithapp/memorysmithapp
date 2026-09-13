@@ -1,5 +1,5 @@
 ---
-title: EV-2-c2-010 · Consumíveis (consumables.rst)
+name: EV-2-c2-010 · Consumíveis (consumables.rst)
 aliases: [EV-2-c2-010]
 tags: [evidence, assets, consumable, stock, doc]
 type: evidence

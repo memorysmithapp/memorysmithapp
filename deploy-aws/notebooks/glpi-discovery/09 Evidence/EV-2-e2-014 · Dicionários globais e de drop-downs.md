@@ -1,5 +1,5 @@
 ---
-title: EV-2-e2-014 · Dicionários globais e de drop-downs
+name: EV-2-e2-014 · Dicionários globais e de drop-downs
 aliases: [EV-2-e2-014]
 tags: [evidence, dicionarios, software, fabricante, impressoras, dropdowns, doc]
 type: evidence

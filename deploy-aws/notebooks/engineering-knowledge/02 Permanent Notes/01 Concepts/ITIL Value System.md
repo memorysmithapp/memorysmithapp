@@ -1,5 +1,5 @@
 ---
-title: ITIL Value System
+name: ITIL Value System
 aliases:
   - IVS
   - Value System

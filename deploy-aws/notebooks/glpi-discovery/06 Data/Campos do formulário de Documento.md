@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Documento
+name: Campos do formulário de Documento
 aliases: [Document fields]
 tags: [data, management, document, fields, doc]
 type: table

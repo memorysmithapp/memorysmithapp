@@ -1,5 +1,5 @@
 ---
-title: CQRS
+name: CQRS
 aliases:
   - Command Query Responsibility Segregation
   - Segregação de Comando e Consulta

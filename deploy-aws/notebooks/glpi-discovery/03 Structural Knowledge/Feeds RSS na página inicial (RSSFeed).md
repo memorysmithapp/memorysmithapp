@@ -1,5 +1,5 @@
 ---
-title: Feeds RSS na página inicial (RSSFeed)
+name: Feeds RSS na página inicial (RSSFeed)
 aliases: [RSS feed, RSSFeed, Feed RSS]
 tags: [tools, rss, feed, targets, home]
 type: component

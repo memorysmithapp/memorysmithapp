@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Periférico
+name: Campos do formulário de Periférico
 aliases: [Campos de Periférico, Peripheral fields]
 tags: [assets, data, peripheral, form]
 type: entity

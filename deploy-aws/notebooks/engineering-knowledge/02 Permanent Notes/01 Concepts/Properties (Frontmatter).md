@@ -1,5 +1,5 @@
 ---
-title: Properties (Frontmatter)
+name: Properties (Frontmatter)
 aliases:
   - Frontmatter
   - YAML Front Matter

@@ -1,5 +1,5 @@
 ---
-title: Error
+name: Error
 aliases:
   - Erro
 tags:

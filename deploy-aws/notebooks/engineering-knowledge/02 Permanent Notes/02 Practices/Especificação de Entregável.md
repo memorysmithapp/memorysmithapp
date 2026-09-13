@@ -1,5 +1,5 @@
 ---
-title: Especificação de Entregável
+name: Especificação de Entregável
 aliases:
   - Deliverable Spec
   - Especificação de Saída

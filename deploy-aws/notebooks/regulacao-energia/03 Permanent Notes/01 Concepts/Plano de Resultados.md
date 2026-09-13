@@ -1,5 +1,5 @@
 ---
-title: Plano de Resultados
+name: Plano de Resultados
 aliases:
   - Plano de resultados
 tags:

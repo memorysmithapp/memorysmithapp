@@ -1,5 +1,5 @@
 ---
-title: Glossário
+name: Glossário
 aliases: [Glossário GLPI, Vocabulário]
 tags: [overview, glossario, dominio/foundation]
 type: overview

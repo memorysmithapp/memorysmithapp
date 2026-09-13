@@ -1,5 +1,5 @@
 ---
-title: ITIL vs SAFe
+name: ITIL vs SAFe
 aliases:
   - ITIL e SAFe
 tags:

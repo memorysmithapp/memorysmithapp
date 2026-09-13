@@ -1,5 +1,5 @@
 ---
-title: Microrrede
+name: Microrrede
 aliases:
   - Microgrid
 tags:

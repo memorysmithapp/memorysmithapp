@@ -1,5 +1,5 @@
 ---
-title: Transferência de itens entre entidades (processo)
+name: Transferência de itens entre entidades (processo)
 aliases: [Transfer, Transferência, Transfer between entities]
 tags: [transfer, entities, multi-tenancy, process]
 type: process

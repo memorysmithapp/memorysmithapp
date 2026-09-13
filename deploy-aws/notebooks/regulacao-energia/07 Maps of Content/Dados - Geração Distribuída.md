@@ -1,5 +1,5 @@
 ---
-title: Dados - Geração Distribuída
+name: Dados - Geração Distribuída
 aliases:
   - Geração Distribuída
 tags:

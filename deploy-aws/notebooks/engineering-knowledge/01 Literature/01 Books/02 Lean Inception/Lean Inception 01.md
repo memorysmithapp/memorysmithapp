@@ -1,5 +1,5 @@
 ---
-title: Lean Inception 01
+name: Lean Inception 01
 chapter: 1
 tags:
   - mvp

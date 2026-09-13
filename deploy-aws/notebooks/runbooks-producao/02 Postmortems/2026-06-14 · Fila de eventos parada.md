@@ -1,5 +1,5 @@
 ---
-title: 2026-06-14 · Fila de eventos parada
+name: 2026-06-14 · Fila de eventos parada
 aliases: [INC-2026-031]
 tags: [postmortem, pipeline]
 type: postmortem

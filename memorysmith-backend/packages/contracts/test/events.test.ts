@@ -35,7 +35,7 @@ const noteCreated = {
     notebookId: NOTEBOOK,
     noteId: NOTE,
     folderId: FOLDER,
-    title: 'Lei 14.133, art. 75',
+    name: 'Lei 14.133, art. 75',
     slug: 'lei-14133-art-75',
     position: 'a0',
   },

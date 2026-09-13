@@ -1,5 +1,5 @@
 ---
-title: EV-2-f3-006 · Exemplo de criação de template de ticket
+name: EV-2-f3-006 · Exemplo de criação de template de ticket
 aliases: [EV-2-f3-006]
 tags: [evidence, template, exemplo, ticket, timeline, traducao]
 type: evidence

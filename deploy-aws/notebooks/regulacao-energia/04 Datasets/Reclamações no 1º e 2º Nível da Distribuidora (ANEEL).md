@@ -1,5 +1,5 @@
 ---
-title: Reclamações no 1º e 2º Nível da Distribuidora (ANEEL)
+name: Reclamações no 1º e 2º Nível da Distribuidora (ANEEL)
 aliases:
   - reclamacoes-no-1o-e-2o-niveis-da-distribuidora
 tags:

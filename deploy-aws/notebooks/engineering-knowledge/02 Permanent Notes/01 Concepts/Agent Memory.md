@@ -1,5 +1,5 @@
 ---
-title: Agent Memory
+name: Agent Memory
 aliases:
   - Memória de Agente
   - Memory

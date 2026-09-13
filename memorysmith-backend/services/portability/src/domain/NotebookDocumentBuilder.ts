@@ -11,10 +11,10 @@
  *
  * So the document stores what the notebook holds and nothing else: the note
  * bodies byte for byte, the positions as written, the identifiers as they are.
- * The title of a note is read from its body wherever it is needed (RN-PRT-010),
+ * The name of a note is read from its body wherever it is needed (RN-PRT-010),
  * and the link destinations are never touched — which used to be a rewrite,
  * correct while a link addressed a file and corruption now that it addresses a
- * title (RN-PRT-004).
+ * name (RN-PRT-004).
  *
  * Deleted notes do not enter the export (RN-PRT-006).
  */

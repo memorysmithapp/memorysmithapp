@@ -1,5 +1,5 @@
 ---
-title: EV-2-g2-016 · Configurações do usuário (índice de preferências)
+name: EV-2-g2-016 · Configurações do usuário (índice de preferências)
 aliases: [EV-2-g2-016]
 tags: [evidence, user-settings, preferencias]
 type: evidence

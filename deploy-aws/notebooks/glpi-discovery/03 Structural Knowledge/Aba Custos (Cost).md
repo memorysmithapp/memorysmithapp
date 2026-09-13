@@ -1,5 +1,5 @@
 ---
-title: Aba Custos (Cost)
+name: Aba Custos (Cost)
 aliases: [Cost tab, Aba Cost, Custos]
 tags: [tab, cost, budget, finance]
 type: component

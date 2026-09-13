@@ -1,5 +1,5 @@
 ---
-title: Load Shedding
+name: Load Shedding
 aliases:
   - Descarte de Carga
   - Brownout Protection

@@ -1,5 +1,5 @@
 ---
-title: Rede (campo de ativo)
+name: Rede (campo de ativo)
 aliases: [Network (campo comum), Rede (dropdown)]
 tags: [campos-comuns, rede, dropdown, data]
 type: field

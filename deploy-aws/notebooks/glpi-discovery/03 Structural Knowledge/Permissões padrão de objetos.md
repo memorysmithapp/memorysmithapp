@@ -1,5 +1,5 @@
 ---
-title: Permissões padrão de objetos
+name: Permissões padrão de objetos
 aliases: [7 permissões padrão, Standard permissions, Read Update Create Delete Purge]
 tags: [perfis, permissoes, rbac, lixeira, notas]
 type: concept

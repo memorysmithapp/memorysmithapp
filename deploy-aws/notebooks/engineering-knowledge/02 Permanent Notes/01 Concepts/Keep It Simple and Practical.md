@@ -1,5 +1,5 @@
 ---
-title: Keep It Simple and Practical
+name: Keep It Simple and Practical
 aliases:
   - Mantenha Simples e Prático
 tags:

@@ -1,5 +1,5 @@
 ---
-title: Thread
+name: Thread
 aliases:
   - Linha de Execução
   - Multithreading

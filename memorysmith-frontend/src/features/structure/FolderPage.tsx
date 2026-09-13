@@ -69,8 +69,8 @@ export function FolderPage() {
         ))}
         {folder.notes.map((note) => (
           <li key={note.id}>
-            <Link to={noteAddress(notebookSlug, folder.slugPath, note.title, note.id)}>
-              {note.title ?? t('note.untitled')}
+            <Link to={noteAddress(notebookSlug, folder.slugPath, note.name, note.id)}>
+              {note.name ?? t('note.unnamed')}
             </Link>
           </li>
         ))}

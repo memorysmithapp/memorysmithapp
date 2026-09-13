@@ -1,5 +1,5 @@
 ---
-title: Aba Contratos (Contracts) associados
+name: Aba Contratos (Contracts) associados
 aliases: [aba Contracts, Contracts tab, contratos associados]
 tags: [tabs, contracts, contratos, ui]
 type: component

@@ -1,5 +1,5 @@
 ---
-title: Fila de e-mails (fluxo)
+name: Fila de e-mails (fluxo)
 aliases: [Mailqueue flow, Fluxo da fila de e-mails]
 tags: [notificacoes, fila, email, fluxo, doc]
 type: flow

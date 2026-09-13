@@ -1,5 +1,5 @@
 ---
-title: Aba Links Externos (ativos)
+name: Aba Links Externos (ativos)
 aliases: [External links tab, Aba Links Externos]
 tags: [assets, tab, external-links]
 type: component

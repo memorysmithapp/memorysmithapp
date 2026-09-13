@@ -1,5 +1,5 @@
 ---
-title: EV-2-c2-008 · Instalações e agrupamento de software (softwares.rst)
+name: EV-2-c2-008 · Instalações e agrupamento de software (softwares.rst)
 aliases: [EV-2-c2-008]
 tags: [evidence, software, installation, grouping, multi-entity, doc]
 type: evidence

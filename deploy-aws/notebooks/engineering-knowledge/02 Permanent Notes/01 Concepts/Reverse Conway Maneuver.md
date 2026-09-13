@@ -1,5 +1,5 @@
 ---
-title: Reverse Conway Maneuver
+name: Reverse Conway Maneuver
 aliases:
   - Manobra Reversa de Conway
   - Inverse Conway Maneuver

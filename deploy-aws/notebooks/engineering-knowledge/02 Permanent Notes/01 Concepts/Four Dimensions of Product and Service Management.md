@@ -1,5 +1,5 @@
 ---
-title: Four Dimensions of Product and Service Management
+name: Four Dimensions of Product and Service Management
 aliases:
   - Quatro Dimensões
   - Four Dimensions

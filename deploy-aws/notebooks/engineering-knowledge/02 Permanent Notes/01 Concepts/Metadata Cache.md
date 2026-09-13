@@ -1,5 +1,5 @@
 ---
-title: Metadata Cache
+name: Metadata Cache
 aliases:
   - Cache de Metadados
   - IndexedDB

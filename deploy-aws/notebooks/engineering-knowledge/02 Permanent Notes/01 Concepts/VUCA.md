@@ -1,5 +1,5 @@
 ---
-title: VUCA
+name: VUCA
 aliases:
   - Volatility Uncertainty Complexity Ambiguity
 tags:

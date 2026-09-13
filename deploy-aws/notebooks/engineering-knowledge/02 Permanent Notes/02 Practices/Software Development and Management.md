@@ -1,5 +1,5 @@
 ---
-title: Software Development and Management
+name: Software Development and Management
 aliases:
   - Desenvolvimento e Gestão de Software
 tags:

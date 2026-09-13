@@ -1,5 +1,5 @@
 ---
-title: EV-1-033 · KnowbaseItem — base de conhecimento com visibilidade
+name: EV-1-033 · KnowbaseItem — base de conhecimento com visibilidade
 aliases: [EV-1-033]
 tags: [evidence, dominio/admin, kb, conhecimento]
 type: evidence

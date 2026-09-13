@@ -1,5 +1,5 @@
 ---
-title: EV-2-e2-010 · Regras de negócio de tickets
+name: EV-2-e2-010 · Regras de negócio de tickets
 aliases: [EV-2-e2-010]
 tags: [evidence, regras, negocio, tickets, doc]
 type: evidence

@@ -1,5 +1,5 @@
 ---
-title: Tipos e propriedades de campo customizado de ativos
+name: Tipos e propriedades de campo customizado de ativos
 aliases: [Custom field types, Propriedades de campo customizado, Field types]
 tags: [data, asset-definition, custom-fields, field-types]
 type: entity

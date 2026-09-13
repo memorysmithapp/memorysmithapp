@@ -108,10 +108,10 @@ export class FolderDescription {
 }
 
 /**
- * There is no NoteTitle value object, and the absence is the decision: a title
- * is not given, it is read out of the content by the chain of the
- * specification, so there is nothing here to validate or refuse. A note whose
- * content states no title has none, and it is written all the same
+ * There is no NoteName value object, and the absence is the decision: a name
+ * is not given, it is the `name:` the content states, so there is nothing
+ * here to validate or refuse. A note whose
+ * content states no name has none, and it is written all the same
  * (RN-KNW-035, RN-KNW-036).
  */
 

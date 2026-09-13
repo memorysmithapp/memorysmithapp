@@ -1,5 +1,5 @@
 ---
-title: Arquitetura Canônica AWS Serverless
+name: Arquitetura Canônica AWS Serverless
 aliases:
   - Integrated Architecture Guide
   - Guia de Arquitetura PWA + AWS Serverless

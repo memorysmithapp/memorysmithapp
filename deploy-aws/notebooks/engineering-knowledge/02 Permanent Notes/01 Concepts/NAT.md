@@ -1,5 +1,5 @@
 ---
-title: NAT
+name: NAT
 aliases:
   - Network Address Translation
   - Tradução de Endereços de Rede

@@ -1,5 +1,5 @@
 ---
-title: COBIT
+name: COBIT
 aliases:
   - Control Objectives for Information and Related Technologies
 tags:

@@ -1,5 +1,5 @@
 ---
-title: EV-2-g1-005 · Referência da linha de comando bin-console (cli.rst)
+name: EV-2-g1-005 · Referência da linha de comando bin-console (cli.rst)
 aliases: [EV-2-g1-005]
 tags: [evidence, cli, bin-console, comandos, operacional]
 type: evidence

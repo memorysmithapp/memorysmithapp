@@ -1,5 +1,5 @@
 ---
-title: Data center (agrupamento de salas de servidores)
+name: Data center (agrupamento de salas de servidores)
 aliases: [Data center, Data centers, Datacenter]
 tags: [management, datacenter, dcim, infraestrutura]
 type: component

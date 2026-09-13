@@ -1,5 +1,5 @@
 ---
-title: Tarifas de Aplicação das Distribuidoras (ANEEL)
+name: Tarifas de Aplicação das Distribuidoras (ANEEL)
 aliases:
   - tarifas-distribuidoras-energia-eletrica
 tags:

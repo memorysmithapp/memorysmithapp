@@ -1,5 +1,5 @@
 ---
-title: INV-2-g3-001 · Abas compartilhadas Contracts e Links sem documentação
+name: INV-2-g3-001 · Abas compartilhadas Contracts e Links sem documentação
 aliases: [INV-2-g3-001]
 tags: [investigation, consumidor/cad, tabs, contracts, links, doc-gap]
 type: investigation

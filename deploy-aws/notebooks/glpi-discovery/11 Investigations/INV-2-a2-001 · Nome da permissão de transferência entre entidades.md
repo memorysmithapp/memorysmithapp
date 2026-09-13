@@ -1,5 +1,5 @@
 ---
-title: INV-2-a2-001 · Nome da permissão de transferência entre entidades
+name: INV-2-a2-001 · Nome da permissão de transferência entre entidades
 aliases: [INV-2-a2-001]
 tags: [investigation, consumidor/cad, transfer, permissions, doc-gap]
 type: investigation

@@ -1,5 +1,5 @@
 ---
-title: Sidecar Pattern
+name: Sidecar Pattern
 aliases:
   - Sidecar
   - Padrão Sidecar

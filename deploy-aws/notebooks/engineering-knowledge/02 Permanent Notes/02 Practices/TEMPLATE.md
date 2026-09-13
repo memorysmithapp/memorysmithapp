@@ -1,5 +1,5 @@
 ---
-title: <Nome da técnica ou atividade>
+name: <Nome da técnica ou atividade>
 aliases: []
 tags: []
 type: practice

@@ -1,5 +1,5 @@
 ---
-title: Semana N · <Tema>
+name: Semana N · <Tema>
 aliases: []
 tags: [trilha]
 type: trilha

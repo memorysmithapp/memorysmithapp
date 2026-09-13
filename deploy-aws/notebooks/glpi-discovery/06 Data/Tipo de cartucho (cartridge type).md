@@ -1,5 +1,5 @@
 ---
-title: Tipo de cartucho (cartridge type)
+name: Tipo de cartucho (cartridge type)
 aliases: [Cartridge type, Tipo de cartucho]
 tags: [campos-comuns, consumiveis, cartucho, dropdown, data]
 type: field

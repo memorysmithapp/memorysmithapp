@@ -1,5 +1,5 @@
 ---
-title: Safra 2026 · Serra Gaúcha
+name: Safra 2026 · Serra Gaúcha
 aliases: [Safra 2026]
 tags: [safra, registro]
 tipo: registro
@@ -57,7 +57,7 @@ $$P = 1 - \frac{IPT_{colheita}}{IPT_{alvo}}$$
   texto, nunca renderizado. Use um callout, como esta página faz acima.
 - **Um resumo no frontmatter.** O `resumo` lá em cima passa de quarenta
   caracteres, então é lido e descartado em vez de virar uma categoria de um
-  item só. O mesmo vale para `title`, que aqui é atributo comum e não renomeia
-  nada.
+  item só. O mesmo vale para um `title:`, que aqui é atributo comum e não dá
+  nome a nada: o nome de uma nota é o `name:` dela, e só.
 
 Relacionado: [[Cabernet Sauvignon#Na Serra Gaúcha]].

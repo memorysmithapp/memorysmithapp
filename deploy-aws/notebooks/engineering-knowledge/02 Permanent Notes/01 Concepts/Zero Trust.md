@@ -1,5 +1,5 @@
 ---
-title: Zero Trust
+name: Zero Trust
 aliases:
   - Zero Trust Architecture
   - ZTA

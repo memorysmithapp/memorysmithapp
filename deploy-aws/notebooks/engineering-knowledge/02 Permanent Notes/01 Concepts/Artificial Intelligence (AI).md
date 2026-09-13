@@ -1,5 +1,5 @@
 ---
-title: Artificial Intelligence (AI)
+name: Artificial Intelligence (AI)
 aliases:
   - Artificial Intelligence
   - AI

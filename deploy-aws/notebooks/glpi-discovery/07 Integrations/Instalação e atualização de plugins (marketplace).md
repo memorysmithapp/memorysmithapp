@@ -1,5 +1,5 @@
 ---
-title: Instalação e atualização de plugins (marketplace)
+name: Instalação e atualização de plugins (marketplace)
 aliases: [Install and update plugins, Marketplace (config)]
 tags: [integracao, plugin, marketplace, glpi-network, instalacao]
 type: integration

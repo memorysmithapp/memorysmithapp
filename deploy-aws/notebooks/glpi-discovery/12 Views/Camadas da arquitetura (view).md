@@ -1,5 +1,5 @@
 ---
-title: Camadas da arquitetura (view)
+name: Camadas da arquitetura (view)
 aliases: [Arquitetura em camadas, Camadas GLPI]
 tags: [view, arquitetura, dominio/foundation]
 type: view

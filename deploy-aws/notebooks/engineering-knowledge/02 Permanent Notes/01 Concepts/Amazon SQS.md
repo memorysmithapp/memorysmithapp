@@ -1,5 +1,5 @@
 ---
-title: Amazon SQS
+name: Amazon SQS
 aliases:
   - SQS
   - Simple Queue Service

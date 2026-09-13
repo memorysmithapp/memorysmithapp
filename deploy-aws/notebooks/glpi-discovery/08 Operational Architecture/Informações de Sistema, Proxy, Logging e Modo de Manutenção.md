@@ -1,5 +1,5 @@
 ---
-title: Informações de Sistema, Proxy, Logging e Modo de Manutenção
+name: Informações de Sistema, Proxy, Logging e Modo de Manutenção
 aliases: [System tab, Modo de manutenção, Maintenance mode, Proxy]
 tags: [configuracao-geral, sistema, proxy, manutencao, logging, operacao]
 type: capability

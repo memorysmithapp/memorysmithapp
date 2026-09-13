@@ -1,5 +1,5 @@
 ---
-title: INV-1-004 · Ações de escalonamento de SLA
+name: INV-1-004 · Ações de escalonamento de SLA
 aliases: [INV-1-004]
 tags: [investigation, consumidor/cad, sla]
 type: investigation

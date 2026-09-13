@@ -1,5 +1,5 @@
 ---
-title: SLA e níveis de serviço (regra)
+name: SLA e níveis de serviço (regra)
 aliases: [SLA regra, TTR TTO]
 tags: [rule, sla, dominio/service-desk]
 type: rule

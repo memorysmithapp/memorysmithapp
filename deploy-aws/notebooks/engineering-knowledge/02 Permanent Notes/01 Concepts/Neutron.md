@@ -1,5 +1,5 @@
 ---
-title: Neutron
+name: Neutron
 aliases:
   - OpenStack Networking Service
   - Networking Service

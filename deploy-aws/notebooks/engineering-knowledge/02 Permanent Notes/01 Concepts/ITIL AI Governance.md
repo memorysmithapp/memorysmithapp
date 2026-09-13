@@ -1,5 +1,5 @@
 ---
-title: ITIL AI Governance
+name: ITIL AI Governance
 aliases:
   - AI Governance
   - Governança de IA

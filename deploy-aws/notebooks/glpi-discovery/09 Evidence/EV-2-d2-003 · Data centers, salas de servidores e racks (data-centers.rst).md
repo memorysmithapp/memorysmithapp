@@ -1,5 +1,5 @@
 ---
-title: EV-2-d2-003 · Data centers, salas de servidores e racks (data-centers.rst)
+name: EV-2-d2-003 · Data centers, salas de servidores e racks (data-centers.rst)
 aliases: [data-centers.rst, Data centers]
 tags: [evidence, management, datacenter, dcim, doc]
 type: evidence

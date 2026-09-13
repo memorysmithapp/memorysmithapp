@@ -1,5 +1,5 @@
 ---
-title: "Comandos de CLI - Migração de Dados"
+name: "Comandos de CLI - Migração de Dados"
 aliases: [migration, plugin_to_core, utf8mb4, myisam_to_innodb]
 tags: [cli, migracao, schema, plugins, comandos, operacional]
 type: process

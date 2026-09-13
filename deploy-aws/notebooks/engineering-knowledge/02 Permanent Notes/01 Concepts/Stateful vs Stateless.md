@@ -1,5 +1,5 @@
 ---
-title: Stateful vs Stateless
+name: Stateful vs Stateless
 aliases:
   - Serviço Stateful
   - Serviço Stateless

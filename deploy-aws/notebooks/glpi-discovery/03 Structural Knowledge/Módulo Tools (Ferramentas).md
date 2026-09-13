@@ -1,5 +1,5 @@
 ---
-title: Módulo Tools (Ferramentas)
+name: Módulo Tools (Ferramentas)
 aliases: [Tools, Menu Ferramentas, Módulo Tools]
 tags: [tools, module, overview, navigation]
 type: component

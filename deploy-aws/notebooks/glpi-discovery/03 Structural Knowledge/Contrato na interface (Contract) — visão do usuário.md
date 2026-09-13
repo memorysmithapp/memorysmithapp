@@ -1,5 +1,5 @@
 ---
-title: Contrato na interface (Contract) — visão do usuário
+name: Contrato na interface (Contract) — visão do usuário
 aliases: [Contract, Contrato]
 tags: [concept, management, contract, doc]
 type: concept

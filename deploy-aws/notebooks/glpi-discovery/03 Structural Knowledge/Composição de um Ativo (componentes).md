@@ -1,5 +1,5 @@
 ---
-title: Composição de um Ativo (componentes)
+name: Composição de um Ativo (componentes)
 aliases: [Componentes, Item_Devices, Devices]
 tags: [concept, cmdb, componentes, dominio/ativos]
 type: concept

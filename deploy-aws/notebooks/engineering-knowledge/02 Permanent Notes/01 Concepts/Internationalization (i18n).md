@@ -1,5 +1,5 @@
 ---
-title: Internationalization (i18n)
+name: Internationalization (i18n)
 aliases:
   - i18n
   - Internacionalização

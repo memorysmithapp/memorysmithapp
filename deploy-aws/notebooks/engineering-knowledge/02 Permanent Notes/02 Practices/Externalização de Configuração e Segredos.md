@@ -1,5 +1,5 @@
 ---
-title: Externalização de Configuração e Segredos
+name: Externalização de Configuração e Segredos
 aliases:
   - Configuração Externalizada
   - Secrets Management

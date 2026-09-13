@@ -1,5 +1,5 @@
 ---
-title: EV-2-g4-006 · Campos descritivos (comentários, cor, imagens, referência)
+name: EV-2-g4-006 · Campos descritivos (comentários, cor, imagens, referência)
 aliases: [EV-2-g4-006]
 tags: [evidence, campos-comuns, descritivo, comentarios, cor, imagens, referencia]
 type: evidence

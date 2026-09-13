@@ -1,5 +1,5 @@
 ---
-title: Criação de um registro de domínio (fluxo)
+name: Criação de um registro de domínio (fluxo)
 aliases: [Adicionar domain record, Criar registro de domínio]
 tags: [management, domain-record, dns, fluxo, procedimento]
 type: flow

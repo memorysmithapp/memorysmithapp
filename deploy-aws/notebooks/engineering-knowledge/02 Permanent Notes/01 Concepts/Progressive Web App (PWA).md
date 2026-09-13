@@ -1,5 +1,5 @@
 ---
-title: Progressive Web App (PWA)
+name: Progressive Web App (PWA)
 aliases:
   - PWA
   - Aplicativo Web Progressivo

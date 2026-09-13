@@ -1,5 +1,5 @@
 ---
-title: Sincronização LDAP de usuários (CLI e manutenção)
+name: Sincronização LDAP de usuários (CLI e manutenção)
 aliases: [glpi:ldap:synchronize_users, LDAP sync CLI]
 tags: [ldap, sincronizacao, cli, manutencao, operacao]
 type: infra

@@ -1,5 +1,5 @@
 ---
-title: Product
+name: Product
 aliases:
   - Produto
 tags:

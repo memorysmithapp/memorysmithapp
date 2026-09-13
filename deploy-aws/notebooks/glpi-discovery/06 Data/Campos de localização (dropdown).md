@@ -1,5 +1,5 @@
 ---
-title: Campos de localização (dropdown)
+name: Campos de localização (dropdown)
 aliases: [Campos de Location, GPS de localização]
 tags: [data, dropdown, location, fields]
 type: entity

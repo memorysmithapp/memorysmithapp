@@ -1,5 +1,5 @@
 ---
-title: Platform Engineering
+name: Platform Engineering
 aliases:
   - Engenharia de Plataforma
 tags:

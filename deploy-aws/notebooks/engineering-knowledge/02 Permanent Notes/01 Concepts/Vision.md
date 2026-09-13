@@ -1,5 +1,5 @@
 ---
-title: Vision
+name: Vision
 aliases:
   - Visão
 tags:

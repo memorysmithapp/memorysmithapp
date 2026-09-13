@@ -422,7 +422,7 @@ a:hover {
 
 /* Every heading of the reading surface takes the text face and the modular
    scale, whether it came out of the Markdown or from the page around it: the
-   title of a note, of a folder and of a notebook are all the notebook talking. No
+   name of a note, of a folder and of a notebook are all the notebook talking. No
    rule under any of them, which is how the default theme draws them. */
 .content-pane :is(h1, h2, h3, h4, h5, h6) {
   font-family: var(--sans);
@@ -1748,7 +1748,7 @@ a:hover {
   background: var(--accent-soft);
   text-decoration: none;
 }
-.search-title {
+.search-name {
   font-size: 0.84rem;
   font-weight: 600;
 }

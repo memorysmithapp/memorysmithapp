@@ -24,7 +24,7 @@ interface FlatNote {
   id: string;
   /** Where the note lives, built from its identifier (RN-DSC-045). */
   address: string;
-  title: string | null;
+  name: string | null;
   folderPath: string;
 }
 
@@ -34,8 +34,8 @@ function flatten(notebookSlug: string, folders: FolderNode[], trail: string[] = 
     return [
       ...folder.notes.map((note) => ({
         id: note.id,
-        address: noteAddress(notebookSlug, folder.slugPath, note.title, note.id),
-        title: note.title,
+        address: noteAddress(notebookSlug, folder.slugPath, note.name, note.id),
+        name: note.name,
         folderPath: path.join(' / '),
       })),
       ...flatten(notebookSlug, folder.children, path),
@@ -88,7 +88,7 @@ export function SearchBox({ notebookSlug, structure }: SearchBoxProps) {
   }, [query]);
 
   // A hit names a note by identifier; the tree the page is already showing is
-  // what turns it into a title, a path and a link.
+  // what turns it into a name, a path and a link.
   const byId = useMemo(
     () => new Map(flatten(notebookSlug, structure.folders).map((note) => [note.id, note])),
     [structure, notebookSlug],
@@ -144,7 +144,7 @@ export function SearchBox({ notebookSlug, structure }: SearchBoxProps) {
               {results.map(({ hit, note, url }) => (
                 <li key={hit.noteId}>
                   <Link to={url} onClick={() => setQuery('')}>
-                    <span className="search-title">{note.title}</span>
+                    <span className="search-name">{note.name}</span>
                     <span className="search-path">
                       {note.folderPath}
                       {hit.section ? ` · ${hit.section}` : ''}

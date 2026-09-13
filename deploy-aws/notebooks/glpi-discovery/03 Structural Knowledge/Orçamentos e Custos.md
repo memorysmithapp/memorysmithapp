@@ -1,5 +1,5 @@
 ---
-title: Orçamentos e Custos
+name: Orçamentos e Custos
 aliases: [Budget, Custos, Cost, Orçamento]
 tags: [concept, financeiro, dominio/gestao]
 type: concept

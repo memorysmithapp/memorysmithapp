@@ -1,5 +1,5 @@
 ---
-title: Event Sourcing
+name: Event Sourcing
 tags:
   - architecture
   - distributed-systems

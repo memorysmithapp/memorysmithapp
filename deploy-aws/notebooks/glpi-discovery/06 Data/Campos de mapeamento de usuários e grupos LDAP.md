@@ -1,5 +1,5 @@
 ---
-title: Campos de mapeamento de usuários e grupos LDAP
+name: Campos de mapeamento de usuários e grupos LDAP
 aliases: [Mapeamento LDAP, LDAP Users tab, LDAP Groups tab]
 tags: [data, ldap, mapping, users, groups]
 type: entity

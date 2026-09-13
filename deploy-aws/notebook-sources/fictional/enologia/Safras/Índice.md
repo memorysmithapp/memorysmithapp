@@ -1,5 +1,5 @@
 ---
-title: Índice
+name: Índice
 aliases: [Índice das safras, Caderno de safras]
 tags: [safra, indice]
 tipo: indice
@@ -21,8 +21,8 @@ escolha aparecer para quem lê em vez de ser tomada por quem não estava lá.
 
 > [!warning] Para chegar só a esta, escreva o apelido
 > `[[Índice das safras]]` chega aqui e em nenhuma outra, porque um apelido só
-> resolve um alvo que **nenhum título casou**. No dia em que alguém escrever
-> uma nota intitulada `Índice das safras`, o link muda para ela: o título
+> resolve um alvo que **nenhum nome casou**. No dia em que alguém escrever
+> uma nota chamada `Índice das safras`, o link muda para ela: o nome
 > sempre ganha, e o apelido só preenche vazio.
 
 ## Safras
@@ -42,6 +42,6 @@ O gráfico da curva de maturação sai da mesma planilha:
 ![Curva de maturação 2026|300x180](../assets/curva-2026.png)
 
 E o cálculo do índice está em [[Índice de Polifenóis Totais]], que é uma nota
-de título parecido e **outra nota**: a comparação é exata, caractere por
+de nome parecido e **outra nota**: a comparação é exata, caractere por
 caractere, depois de normalizar o texto. `[[indice]]` não chega a nenhuma das
 duas.

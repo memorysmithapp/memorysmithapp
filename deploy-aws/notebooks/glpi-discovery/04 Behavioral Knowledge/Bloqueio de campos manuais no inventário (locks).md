@@ -1,5 +1,5 @@
 ---
-title: Bloqueio de campos manuais no inventário (locks)
+name: Bloqueio de campos manuais no inventário (locks)
 aliases: [Locks, Bloqueio de campos, Field lock]
 tags: [assets, inventory, locks, behavior]
 type: flow

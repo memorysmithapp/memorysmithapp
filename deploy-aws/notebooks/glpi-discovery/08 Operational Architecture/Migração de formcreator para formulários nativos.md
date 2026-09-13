@@ -1,5 +1,5 @@
 ---
-title: Migração de formcreator para formulários nativos
+name: Migração de formcreator para formulários nativos
 aliases: [Formcreator migration, migration:formcreator_plugin_to_core]
 tags: [formularios, forms, migracao, cli, glpi11, doc]
 type: infra

@@ -1,5 +1,5 @@
 ---
-title: Remote Vault
+name: Remote Vault
 aliases:
   - Vault Remoto
   - Local Vault

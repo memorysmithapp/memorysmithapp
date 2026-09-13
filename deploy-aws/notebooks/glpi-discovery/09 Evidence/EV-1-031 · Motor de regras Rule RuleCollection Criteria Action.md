@@ -1,5 +1,5 @@
 ---
-title: EV-1-031 · Motor de regras (Rule/RuleCollection/Criteria/Action)
+name: EV-1-031 · Motor de regras (Rule/RuleCollection/Criteria/Action)
 aliases: [EV-1-031]
 tags: [evidence, dominio/admin, regras, motor-de-regras]
 type: evidence

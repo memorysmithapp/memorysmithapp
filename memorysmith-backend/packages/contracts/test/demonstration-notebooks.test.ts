@@ -52,7 +52,7 @@
  * that. Each of those is a pending link now, and a demonstration notebook
  * demonstrating a broken graph teaches the wrong thing to precisely the person
  * reading it to decide whether to bring their knowledge here. So every target
- * has to resolve, by title and then by alias, **except the ones declared
+ * has to resolve, by name and then by alias, **except the ones declared
  * below**: a pending link is not a defect, it is a form these notebooks are
  * required to show, and the only honest way to demand both is to name the ones
  * that are deliberate.
@@ -112,6 +112,17 @@ const DELIBERATELY_PENDING: Record<string, readonly string[]> = {
 };
 
 /**
+ * The notes these notebooks leave with no `name:` ON PURPOSE. A note without a
+ * name is stored, renders and is searchable, and no link can reach it — the
+ * rule of §5.3 shown rather than described. Every other note of every
+ * committed notebook states one, and the guard below asks for it.
+ */
+const DELIBERATELY_UNNAMED: Record<string, readonly string[]> = {
+  'continuity-engineering': ['Exercise 2026-06 · Account loss (draft).md'],
+  enologia: ['Rascunho da safra 2027.md'],
+};
+
+/**
  * The eight notebooks that are not demonstrations carry somebody's real notes,
  * and a link into a note that was never brought across is an ordinary pending
  * link rather than a defect. What must not happen is a NEW one arriving
@@ -166,19 +177,22 @@ function notesOf(slug: string): Note[] {
   return found;
 }
 
-/** Every note title of the notebook, to tell a resolved link from a pending one. */
-function titlesOf(notes: Note[]): Set<string> {
+/** The `name:` a note states, or an empty string when it states none. */
+const nameOf = (note: Note): string => /^name:\s*(.+)$/m.exec(note.head)?.[1]?.trim() ?? '';
+
+/** Every note name of the notebook, to tell a resolved link from a pending one. */
+function statedNamesOf(notes: Note[]): Set<string> {
   return new Set(
     notes
-      .map((note) => /^title:\s*(.+)$/m.exec(note.head)?.[1]?.trim() ?? '')
+      .map(nameOf)
       .filter(Boolean)
-      .map((title) => title.normalize('NFC')),
+      .map((name) => name.normalize('NFC')),
   );
 }
 
-/** The titles plus the aliases, which is what a target is resolved against. */
+/** The names plus the aliases, which is what a target is resolved against. */
 function namesOf(notes: Note[]): Set<string> {
-  const names = titlesOf(notes);
+  const names = statedNamesOf(notes);
   for (const note of notes) {
     const inline = /^aliases:\s*\[([^\]]*)\]/m.exec(note.head)?.[1];
     for (const each of (inline ?? '').split(',')) {
@@ -244,15 +258,14 @@ const DETECTS: Record<string, Detector> = {
   'frontmatter-tags': inHead(/^tags:\s*\[/m),
   'frontmatter-created': inHead(/^created:\s*\d{4}-\d{2}-\d{2}$/m),
   'frontmatter-updated': inHead(/^updated:\s*\d{4}-\d{2}-\d{2}$/m),
-  'frontmatter-title': inHead(/^title:\s*\S/m),
+  'frontmatter-name': inHead(/^name:\s*\S/m),
   'frontmatter-author': inHead(/^author:\s*\S/m),
   'frontmatter-co-author': inHead(/^co-author:\s*\S/m),
-  // The chain of §5.3 shown rather than described: a note whose stated title
-  // is not what its heading says, which is the case a notebook out of an editor
-  // is full of.
-  'note-title': (notes) =>
+  // §5.3 shown rather than described: a note whose `name:` is not what its
+  // heading says, because a heading is only content and never names a note.
+  'note-name': (notes) =>
     notes.some((note) => {
-      const stated = /^title:\s*(.+)$/m.exec(note.head)?.[1]?.trim();
+      const stated = nameOf(note);
       const heading = /^#\s+(.+)$/m.exec(note.body)?.[1]?.trim();
       return Boolean(stated && heading && stated !== heading);
     }),
@@ -265,10 +278,10 @@ const DETECTS: Record<string, Detector> = {
   mermaid: inBody(/^```mermaid$/m),
   transclusion: inBody(/!\[\[/),
   'pending-link-display': (notes) => {
-    const titles = titlesOf(notes);
+    const names = statedNamesOf(notes);
     return notes.some((note) =>
       [...note.body.matchAll(/(^|[^!])\[\[([^\]|#]+)/gm)].some(
-        (match) => !titles.has((match[2] ?? '').trim()),
+        (match) => !names.has((match[2] ?? '').trim()),
       ),
     );
   },
@@ -367,7 +380,7 @@ describe.each(DEMONSTRATION)('%s demonstrates the whole declared notation', (slu
 
     expect(
       pending.map((each) => `${each.target} <- ${each.note}`),
-      'a target that matches no title and no alias of this notebook',
+      'a target that matches no name and no alias of this notebook',
     ).toEqual([]);
   });
 
@@ -383,22 +396,36 @@ describe.each(DEMONSTRATION)('%s demonstrates the whole declared notation', (slu
   });
 
   it('carries a note that a link cannot name, and one that two notes answer', () => {
-    // RN-KNW-036 and RN-KNW-037, in the two notebooks that show them: a title
-    // with one of the four delimiters in it, and one title on two notes. The
-    // pt-BR notebook is where the repeated title lives, because `Índice` is the
+    // RN-KNW-036 and RN-KNW-037, in the two notebooks that show them: a name
+    // with one of the four delimiters in it, and one name on two notes. The
+    // pt-BR notebook is where the repeated name lives, because `Índice` is the
     // name anybody would write twice.
-    const titles = notes.map((note) => /^title:\s*(.+)$/m.exec(note.head)?.[1]?.trim() ?? '');
-    const unaddressable = titles.filter((title) => /[#[\]|]/.test(title));
-    const repeated = titles.filter((title, at) => titles.indexOf(title) !== at);
+    const names = notes.map(nameOf).filter(Boolean);
+    const unaddressable = names.filter((name) => /[#[\]|]/.test(name));
+    const repeated = names.filter((name, at) => names.indexOf(name) !== at);
 
     expect(
       unaddressable.length + repeated.length,
-      `${slug} shows neither an unaddressable title nor a repeated one`,
+      `${slug} shows neither an unaddressable name nor a repeated one`,
     ).toBeGreaterThan(0);
   });
 
+  it('carries a note that states no name, and says why in its own prose', () => {
+    // RN-KNW-036: a note written without `name:` has no name. It is here on
+    // purpose, beside a heading that would have named it under the old rule.
+    const unnamed = notes.filter((note) => nameOf(note) === '');
+    expect(
+      unnamed.map((note) => note.path.split(/[\\/]/).pop()),
+      `${slug} leaves exactly the declared notes unnamed`,
+    ).toEqual([...(DELIBERATELY_UNNAMED[slug] ?? [])]);
+    for (const note of unnamed) {
+      expect(note.body, note.path).toMatch(/^#\s+\S/m);
+      expect(note.body, note.path).toMatch(/`name:`/);
+    }
+  });
+
   it.each([
-    'note-title',
+    'note-name',
     'attachment',
     'image-dimensions',
     'frontmatter-author',
@@ -448,12 +475,16 @@ describe('every committed notebook ships a graph that resolves', () => {
     },
   );
 
-  it('states a title in every note of every notebook', () => {
-    // RN-KNW-035: the title is read from the note, so a note that states none
-    // is called whatever its first heading happens to say — and 850 of these
-    // open with a paragraph. `build-notebooks.mjs` writes the file name in.
+  it('states a name in every note of every notebook, but the ones left unnamed on purpose', () => {
+    // RN-KNW-035: a note is named by `name:` and by nothing else, so a note that
+    // states none has no name and no link reaches it. `build-notebooks.mjs`
+    // writes the file name in as `name:`, except for the declared demonstrations.
     for (const slug of [...DEMONSTRATION, ...Object.keys(PENDING_CEILING)]) {
-      const without = notesOf(slug).filter((note) => !/^title:\s*\S/m.test(note.head));
+      const deliberate = new Set(DELIBERATELY_UNNAMED[slug] ?? []);
+      const without = notesOf(slug).filter(
+        (note) =>
+          !/^name:\s*\S/m.test(note.head) && !deliberate.has(note.path.split(/[\\/]/).pop() ?? ''),
+      );
       expect(
         without.map((note) => note.path),
         `${slug}`,
@@ -464,14 +495,10 @@ describe('every committed notebook ships a graph that resolves', () => {
 
 describe('the pair reads as two notebooks and not as one typed twice', () => {
   it('does not repeat the subject matter of one in the other', () => {
-    const [en, pt] = DEMONSTRATION.map((slug) =>
-      notesOf(slug)
-        .map((note) => /^title:\s*(.+)$/m.exec(note.head)?.[1]?.trim() ?? '')
-        .sort(),
-    );
+    const [en, pt] = DEMONSTRATION.map((slug) => notesOf(slug).map(nameOf).filter(Boolean).sort());
 
     expect(en).not.toEqual(pt);
-    expect(en?.some((title) => pt?.includes(title))).toBe(false);
+    expect(en?.some((name) => pt?.includes(name))).toBe(false);
   });
 
   it('keeps the vocabulary of each notebook in its own language, beside the reserved keys', () => {

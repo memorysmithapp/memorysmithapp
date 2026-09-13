@@ -1,5 +1,5 @@
 ---
-title: Service Configuration Management
+name: Service Configuration Management
 aliases:
   - Gestão de Configuração de Serviço
   - CMDB

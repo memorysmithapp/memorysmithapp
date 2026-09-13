@@ -10,22 +10,22 @@ import type { FacetKind, FacetSnapshot } from './FacetExtractor.js';
 
 /**
  * A note as the projections address it: what it is called, and what else it
- * answers to. There is no slug: a link resolves against the title (RN-DSC-041)
- * and the aliases fill what no title matched (RN-DSC-052), so those two are
+ * answers to. There is no slug: a link resolves against the name (RN-DSC-041)
+ * and the aliases fill what no name matched (RN-DSC-052), so those two are
  * what a projection has to carry.
  */
 export interface NoteRef {
   readonly noteId: string;
-  /** What the chain read out of the content; empty when it read nothing. */
-  readonly title: string;
+  /** The `name:` the note states; empty when it states none. */
+  readonly name: string;
   /** The alternative spellings the frontmatter declares. */
   readonly aliases: readonly string[];
   readonly folderId: string;
 }
 
 export interface LinkTarget {
-  /** The title the author addressed, literal and NFC (RN-DSC-043). */
-  readonly title: string;
+  /** The name the author addressed, literal and NFC (RN-DSC-043). */
+  readonly name: string;
   readonly anchor: string | null;
 }
 
@@ -38,19 +38,19 @@ export interface GraphNode {
 /**
  * What a link target names. `by` says which of the two answered, because the
  * two are not equally durable: an edge held by an alias is one somebody takes
- * back the day they write a note under that title (RN-DSC-053), and a reader
+ * back the day they write a note under that name (RN-DSC-053), and a reader
  * deciding where a link goes is entitled to know the answer is provisional.
  */
 export interface ResolvedTarget {
   readonly target: string;
   readonly kind: 'note' | 'attachment' | 'pending';
-  readonly by: 'title' | 'alias' | null;
+  readonly by: 'name' | 'alias' | null;
   readonly notes: readonly NoteRef[];
 }
 
 export interface BrokenLink {
   readonly fromNote: NoteRef;
-  readonly targetTitle: string;
+  readonly targetName: string;
 }
 
 /** Depth is capped at 3 and the traversal at 200 nodes (RN-DSC-007). */
@@ -70,7 +70,7 @@ export interface NotebookGraph {
   readonly nodes: NoteRef[];
   readonly edges: Array<[number, number]>;
   /** Links whose target does not exist yet, kept so the UI can show them. */
-  readonly pending: Array<{ from: number; targetTitle: string }>;
+  readonly pending: Array<{ from: number; targetName: string }>;
   /**
    * Whether `maxNotebookNodes` cut the graph short. Never truncate in silence:
    * a partial graph that claims to be whole is worse than no graph.
@@ -96,7 +96,7 @@ export interface AnnotatedNotebookGraph {
   readonly nodes: GraphNoteRef[];
   readonly edges: Array<[number, number]>;
   /** Links whose target does not exist yet, kept so the UI can show them. */
-  readonly pending: Array<{ from: number; targetTitle: string }>;
+  readonly pending: Array<{ from: number; targetName: string }>;
   /**
    * Whether `maxNotebookNodes` cut the graph short. Never truncate in silence:
    * a partial graph that claims to be whole is worse than no graph.
@@ -111,13 +111,13 @@ export interface LinkGraph {
   removeNote(notebookId: string, noteId: string): Promise<void>;
   /**
    * Takes the note into the notebook and re-resolves what changed: the pending
-   * links that were waiting for this title, and the edges somebody's alias was
-   * holding for it, which move to the note that owns the title (RN-DSC-053).
+   * links that were waiting for this name, and the edges somebody's alias was
+   * holding for it, which move to the note that owns the name (RN-DSC-053).
    * Answers how many pending links stopped being pending.
    */
   resolvePending(notebookId: string, note: NoteRef): Promise<number>;
   /**
-   * What one target resolves to in this notebook: every note whose title matches
+   * What one target resolves to in this notebook: every note whose name matches
    * it, or — when none does — every note carrying it as an alias, with which
    * of the two answered (RN-DSC-046).
    */
@@ -151,7 +151,7 @@ export interface ScoredNote {
  */
 export interface IndexedNote {
   readonly noteId: string;
-  readonly title: string;
+  readonly name: string;
   readonly folderId: string;
   readonly folderName: string;
   readonly sections: string[];
@@ -159,7 +159,7 @@ export interface IndexedNote {
   readonly original: string;
   readonly facets: Record<string, string[]>;
   /**
-   * The other spellings of the title, from the reserved `aliases` key
+   * The other spellings of the name, from the reserved `aliases` key
    * (RN-DSC-032). Optional because an index written before this existed
    * answers without it, and a search must not stop working while the
    * projection is being rebuilt.
@@ -205,7 +205,7 @@ export interface FacetIndex {
   notebookNoteFacets(notebookId: string): Promise<Map<string, Record<string, string[]>>>;
 }
 
-/** Lexical search lives here too: title and folder, no index of its own. */
+/** Lexical search lives here too: name and folder, no index of its own. */
 export interface NoteCatalog {
   listNotes(notebookId: string): Promise<Array<NoteRef & { folderName: string }>>;
 }

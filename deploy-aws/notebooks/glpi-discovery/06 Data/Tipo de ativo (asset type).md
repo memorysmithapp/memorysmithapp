@@ -1,5 +1,5 @@
 ---
-title: Tipo de ativo (asset type)
+name: Tipo de ativo (asset type)
 aliases: [Asset type, Computer type, Tipo de ativo, Tipo de computador]
 tags: [campos-comuns, classificacao, dropdown, data]
 type: field

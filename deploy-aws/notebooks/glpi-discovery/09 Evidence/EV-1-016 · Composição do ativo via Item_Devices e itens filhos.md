@@ -1,5 +1,5 @@
 ---
-title: EV-1-016 · Composição do ativo via Item_Devices e itens-filhos
+name: EV-1-016 · Composição do ativo via Item_Devices e itens-filhos
 aliases: [EV-1-016]
 tags: [evidence, dominio/ativos, componentes]
 type: evidence

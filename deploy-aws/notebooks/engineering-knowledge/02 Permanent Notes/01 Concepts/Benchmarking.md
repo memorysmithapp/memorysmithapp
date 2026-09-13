@@ -1,5 +1,5 @@
 ---
-title: Benchmarking
+name: Benchmarking
 aliases:
   - Benchmark
   - Teste de Carga

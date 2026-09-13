@@ -1,5 +1,5 @@
 ---
-title: Indicadores Coletivos de Continuidade (DEC e FEC)
+name: Indicadores Coletivos de Continuidade (DEC e FEC)
 aliases:
   - DEC
   - FEC

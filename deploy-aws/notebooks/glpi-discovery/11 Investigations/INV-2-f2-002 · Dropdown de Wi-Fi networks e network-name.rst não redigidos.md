@@ -1,5 +1,5 @@
 ---
-title: INV-2-f2-002 · Dropdown de Wi-Fi networks e network-name.rst não redigidos
+name: INV-2-f2-002 · Dropdown de Wi-Fi networks e network-name.rst não redigidos
 aliases: [INV-2-f2-002]
 tags: [investigation, consumidor/cad, dropdown, internet, doc-gap]
 type: investigation

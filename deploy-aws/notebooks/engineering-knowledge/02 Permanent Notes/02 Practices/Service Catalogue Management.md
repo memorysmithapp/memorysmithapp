@@ -1,5 +1,5 @@
 ---
-title: Service Catalogue Management
+name: Service Catalogue Management
 aliases:
   - Gestão de Catálogo de Serviços
 tags:

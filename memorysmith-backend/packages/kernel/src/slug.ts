@@ -3,7 +3,7 @@
  *
  * Notebook slugs are unique within the subscription (RN-KNW-032); folder slugs are
  * unique among siblings (RN-KNW-002). A note carries none: it is addressed by
- * its identifier and named by its title (RN-KNW-035). This type only
+ * its identifier and named by its name (RN-KNW-035). This type only
  * guarantees the shape; uniqueness is the repository's to enforce.
  */
 
@@ -54,7 +54,7 @@ export class Slug {
     return ok(new Slug(raw));
   }
 
-  /** Derives a slug from free text: a title, a folder name. */
+  /** Derives a slug from free text: a name, a folder name. */
   static from(raw: string): Result<Slug, DomainError> {
     const normalized = slugify(raw ?? '');
     if (normalized.length === 0) {

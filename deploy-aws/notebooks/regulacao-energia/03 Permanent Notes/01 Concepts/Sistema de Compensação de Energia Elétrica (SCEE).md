@@ -1,5 +1,5 @@
 ---
-title: Sistema de Compensação de Energia Elétrica (SCEE)
+name: Sistema de Compensação de Energia Elétrica (SCEE)
 aliases:
   - SCEE
   - Sistema de Compensação

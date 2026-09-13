@@ -1,5 +1,5 @@
 ---
-title: Substitutos autorizados (delegação de validação)
+name: Substitutos autorizados (delegação de validação)
 aliases: [authorized substitutes, substitutos, delegação de validação, delegatee]
 tags: [user-settings, substitutes, validacao, aprovacao, delegacao, regra]
 type: rule

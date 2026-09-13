@@ -1,5 +1,5 @@
 ---
-title: Incident Management
+name: Incident Management
 aliases:
   - Gestão de Incidentes
 tags:

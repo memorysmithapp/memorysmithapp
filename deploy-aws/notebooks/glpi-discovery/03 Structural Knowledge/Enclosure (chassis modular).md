@@ -1,5 +1,5 @@
 ---
-title: Enclosure (chassis modular)
+name: Enclosure (chassis modular)
 aliases: [Enclosure, Chassis, Blade enclosure]
 tags: [assets, enclosure, dcim, structural, doc]
 type: component

@@ -1,5 +1,5 @@
 ---
-title: Custeio dos Benefícios Tarifários pela CDE (ANEEL)
+name: Custeio dos Benefícios Tarifários pela CDE (ANEEL)
 aliases:
   - conta-desenvolvimento-energetico-cde-custeio-dos-beneficios-tarifarios
 tags:

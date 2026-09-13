@@ -1,5 +1,5 @@
 ---
-title: Regras de atribuição de autorizações ao usuário
+name: Regras de atribuição de autorizações ao usuário
 aliases: [User authorizations, Regras de autorização, Entity and rights assignment rules]
 tags: [regras, autorizacoes, ldap, perfil, entidade, autenticacao, doc]
 type: rule

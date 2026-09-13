@@ -1,5 +1,5 @@
 ---
-title: Critical Success Factor (CSF)
+name: Critical Success Factor (CSF)
 aliases:
   - CSF
   - Fator Crítico de Sucesso

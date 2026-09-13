@@ -1,5 +1,5 @@
 ---
-title: ByteByteGo System Design Archive
+name: ByteByteGo System Design Archive
 aliases:
   - BIG ARCHIVE - System Design 2023
   - ByteByteGo Big Archive

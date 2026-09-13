@@ -1,5 +1,5 @@
 ---
-title: Strategy Management
+name: Strategy Management
 aliases:
   - Gestão de Estratégia
 tags:

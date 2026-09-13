@@ -1,5 +1,5 @@
 ---
-title: EV-1-003 · Entity é árvore com herança de configuração
+name: EV-1-003 · Entity é árvore com herança de configuração
 aliases: [EV-1-003]
 tags: [evidence, dominio/foundation, multi-tenancy, entidades]
 type: evidence

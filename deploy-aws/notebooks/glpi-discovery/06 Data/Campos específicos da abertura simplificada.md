@@ -1,5 +1,5 @@
 ---
-title: Campos específicos da abertura simplificada
+name: Campos específicos da abertura simplificada
 aliases: [Campos da interface simplificada de abertura]
 tags: [assistance, ticket, opening, simplified-interface, fields, data]
 type: table

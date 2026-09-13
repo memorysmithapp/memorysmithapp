@@ -1,5 +1,5 @@
 ---
-title: Entrevista · Curadora de base regulatória
+name: Entrevista · Curadora de base regulatória
 aliases: []
 tags: [entrevista, persona-curadora]
 type: entrevista

@@ -1,5 +1,5 @@
 ---
-title: Máquina de estados do Ticket (view)
+name: Máquina de estados do Ticket (view)
 aliases: [State diagram ticket]
 tags: [view, state-machine, dominio/service-desk]
 type: view

@@ -1,5 +1,5 @@
 ---
-title: EV-2-c3-002 · Aba Componentes de Hardware de um Computador
+name: EV-2-c3-002 · Aba Componentes de Hardware de um Computador
 aliases: [EV-2-c3-002]
 tags: [evidence, doc, assets, components, hardware, computer]
 type: evidence

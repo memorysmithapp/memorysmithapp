@@ -1,5 +1,5 @@
 ---
-title: Context Window
+name: Context Window
 aliases:
   - Janela de Contexto
   - Context Limit

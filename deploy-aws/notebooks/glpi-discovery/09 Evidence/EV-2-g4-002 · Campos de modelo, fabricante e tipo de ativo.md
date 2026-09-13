@@ -1,5 +1,5 @@
 ---
-title: EV-2-g4-002 · Campos de modelo, fabricante e tipo de ativo
+name: EV-2-g4-002 · Campos de modelo, fabricante e tipo de ativo
 aliases: [EV-2-g4-002]
 tags: [evidence, campos-comuns, modelo, fabricante, tipo]
 type: evidence

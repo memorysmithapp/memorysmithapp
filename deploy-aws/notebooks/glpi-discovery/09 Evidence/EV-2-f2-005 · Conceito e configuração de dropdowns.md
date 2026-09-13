@@ -1,5 +1,5 @@
 ---
-title: EV-2-f2-005 · Conceito e configuração de dropdowns
+name: EV-2-f2-005 · Conceito e configuração de dropdowns
 aliases: [EV-2-f2-005]
 tags: [evidence, dropdown, configuration, translation]
 type: evidence

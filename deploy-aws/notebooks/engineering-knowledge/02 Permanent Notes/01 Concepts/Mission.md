@@ -1,5 +1,5 @@
 ---
-title: Mission
+name: Mission
 aliases:
   - Missão
 tags:

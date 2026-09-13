@@ -1,5 +1,5 @@
 ---
-title: PRODIST Modulo 09
+name: PRODIST Modulo 09
 aliases:
   - PRODIST Módulo 9
   - PRODIST Modulo 9

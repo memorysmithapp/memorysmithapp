@@ -1,5 +1,5 @@
 ---
-title: Amazon Cognito
+name: Amazon Cognito
 aliases:
   - Cognito
   - Cognito User Pool

@@ -1,5 +1,5 @@
 ---
-title: Subnet
+name: Subnet
 aliases:
   - Sub-rede
   - Subrede

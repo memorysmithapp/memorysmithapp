@@ -1,5 +1,5 @@
 ---
-title: Índice ANEEL de Satisfação do Consumidor - IASC (ANEEL)
+name: Índice ANEEL de Satisfação do Consumidor - IASC (ANEEL)
 aliases:
   - indice-aneel-de-satisfacao-do-consumidor-iasc
 tags:

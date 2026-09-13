@@ -1,5 +1,5 @@
 ---
-title: Local-first
+name: Local-first
 aliases:
   - Local-first Software
   - Primazia Local

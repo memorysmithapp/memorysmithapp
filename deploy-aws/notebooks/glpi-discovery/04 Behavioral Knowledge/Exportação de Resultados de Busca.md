@@ -1,5 +1,5 @@
 ---
-title: Exportação de Resultados de Busca
+name: Exportação de Resultados de Busca
 aliases: [Export search results, Exportação CSV PDF SLK]
 tags: [use-case, export, csv, pdf, slk, search]
 type: use-case

@@ -1,5 +1,5 @@
 ---
-title: Manila
+name: Manila
 aliases:
   - OpenStack Shared File Systems Service
   - File Share Service

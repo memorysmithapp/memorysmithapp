@@ -1,5 +1,5 @@
 ---
-title: Definição de Ativo Customizado (Asset Definition) — doc
+name: Definição de Ativo Customizado (Asset Definition) — doc
 aliases: [Asset Definition, Ativo customizado, Custom Asset, Generic asset]
 tags: [asset-definition, custom-asset, generic-object, configuration]
 type: component

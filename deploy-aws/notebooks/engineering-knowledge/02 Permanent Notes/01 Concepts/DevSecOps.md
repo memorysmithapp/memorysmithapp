@@ -1,5 +1,5 @@
 ---
-title: DevSecOps
+name: DevSecOps
 aliases:
 tags:
   - devops

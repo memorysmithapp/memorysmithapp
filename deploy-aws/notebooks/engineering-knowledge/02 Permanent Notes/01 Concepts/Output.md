@@ -1,5 +1,5 @@
 ---
-title: Output
+name: Output
 aliases:
   - Saída
 tags:

@@ -1,5 +1,5 @@
 ---
-title: GraphRAG
+name: GraphRAG
 aliases:
   - Graph RAG
   - RAG sobre Grafo

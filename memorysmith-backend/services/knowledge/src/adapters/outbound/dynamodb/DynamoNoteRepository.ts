@@ -10,7 +10,7 @@
  *   3. the event, into the outbox.
  *
  * There is no third write any more. The NSLUG guard held one name per notebook,
- * and a notebook has no key to guard: two notes may carry one title (RN-KNW-037),
+ * and a notebook has no key to guard: two notes may carry one name (RN-KNW-037),
  * so nothing is reserved on a write and nothing is released on a delete.
  *
  * NO NOTE TRANSACTION EVER WRITES TO THE META ITEM (PE8). That single rule,

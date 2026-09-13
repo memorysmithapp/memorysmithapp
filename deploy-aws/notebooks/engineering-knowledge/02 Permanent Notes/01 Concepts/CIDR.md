@@ -1,5 +1,5 @@
 ---
-title: CIDR
+name: CIDR
 aliases:
   - Classless Inter-Domain Routing
 tags:

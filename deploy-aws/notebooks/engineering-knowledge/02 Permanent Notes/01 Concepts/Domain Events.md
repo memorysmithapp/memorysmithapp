@@ -1,5 +1,5 @@
 ---
-title: Domain Events
+name: Domain Events
 aliases:
   - Domain Event
   - Evento de Domínio

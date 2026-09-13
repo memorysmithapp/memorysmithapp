@@ -1,5 +1,5 @@
 ---
-title: INV-1-002 · Catálogo completo de hooks de plugin
+name: INV-1-002 · Catálogo completo de hooks de plugin
 aliases: [INV-1-002]
 tags: [investigation, consumidor/cad, plugins]
 type: investigation

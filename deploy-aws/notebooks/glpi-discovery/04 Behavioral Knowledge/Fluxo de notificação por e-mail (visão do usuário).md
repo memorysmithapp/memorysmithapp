@@ -1,5 +1,5 @@
 ---
-title: Fluxo de notificação por e-mail (visão do usuário)
+name: Fluxo de notificação por e-mail (visão do usuário)
 aliases: [Fluxo de notificação (doc)]
 tags: [notificacao, fluxo, fila, queue, email]
 type: flow

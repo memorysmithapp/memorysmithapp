@@ -1,5 +1,5 @@
 ---
-title: Agentic Workflow
+name: Agentic Workflow
 aliases:
   - Fluxo Agêntico
   - Trabalho Delegado

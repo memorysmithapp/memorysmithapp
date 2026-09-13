@@ -1,5 +1,5 @@
 ---
-title: Programa de Energia Renovável Social (PERS)
+name: Programa de Energia Renovável Social (PERS)
 aliases:
   - PERS
 tags:

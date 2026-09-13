@@ -1,5 +1,5 @@
 ---
-title: RALIE - Acompanhamento da Expansão da Oferta de Geração (ANEEL)
+name: RALIE - Acompanhamento da Expansão da Oferta de Geração (ANEEL)
 aliases:
   - ralie-relatorio-de-acompanhamento-da-expansao-da-oferta-de-geracao-de-energia-eletrica
 tags:

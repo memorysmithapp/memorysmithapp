@@ -1,5 +1,5 @@
 ---
-title: Gnocchi
+name: Gnocchi
 aliases:
   - Gnocchi Time Series Database
 tags:

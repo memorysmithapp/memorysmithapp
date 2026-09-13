@@ -1,5 +1,5 @@
 ---
-title: Auditoria de Pasta contra Regras
+name: Auditoria de Pasta contra Regras
 aliases:
   - Folder Audit
   - Conformidade de Ativos

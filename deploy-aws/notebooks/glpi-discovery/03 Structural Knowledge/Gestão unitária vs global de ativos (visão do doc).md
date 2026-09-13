@@ -1,5 +1,5 @@
 ---
-title: Gestão unitária vs global de ativos (visão do doc)
+name: Gestão unitária vs global de ativos (visão do doc)
 aliases: [Management type, Tipo de gestão do ativo]
 tags: [assets, management-type, structural]
 type: concept

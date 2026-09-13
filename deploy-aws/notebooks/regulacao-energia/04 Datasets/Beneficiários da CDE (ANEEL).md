@@ -1,5 +1,5 @@
 ---
-title: Beneficiários da CDE (ANEEL)
+name: Beneficiários da CDE (ANEEL)
 aliases:
   - beneficiarios-da-cde
 tags:

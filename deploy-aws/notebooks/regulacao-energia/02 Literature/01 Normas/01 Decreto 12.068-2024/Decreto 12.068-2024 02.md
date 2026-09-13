@@ -1,5 +1,5 @@
 ---
-title: Decreto 12.068-2024 02
+name: Decreto 12.068-2024 02
 aliases:
   - Decreto 12.068 Capítulo II
   - Diretrizes do Termo Aditivo

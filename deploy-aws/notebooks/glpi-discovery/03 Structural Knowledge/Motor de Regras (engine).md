@@ -1,5 +1,5 @@
 ---
-title: Motor de Regras (engine)
+name: Motor de Regras (engine)
 aliases: [Rule engine, Motor de regras, RuleCollection]
 tags: [component, motor-de-regras, dominio/admin]
 type: component

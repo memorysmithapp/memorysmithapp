@@ -1,5 +1,5 @@
 ---
-title: EV-2-f1-016 · Réplicas SQL
+name: EV-2-f1-016 · Réplicas SQL
 aliases: [EV-2-f1-016]
 tags: [evidence, sql, replicas, banco-de-dados, configuracao-geral]
 type: evidence

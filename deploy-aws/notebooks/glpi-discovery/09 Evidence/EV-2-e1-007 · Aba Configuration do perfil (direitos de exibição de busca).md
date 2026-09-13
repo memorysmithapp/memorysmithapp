@@ -1,5 +1,5 @@
 ---
-title: EV-2-e1-007 · Aba Configuration do perfil (direitos de exibição de busca)
+name: EV-2-e1-007 · Aba Configuration do perfil (direitos de exibição de busca)
 aliases: [EV-2-e1-007]
 tags: [evidence, perfis, permissoes, configuracao, busca, exibicao]
 type: evidence

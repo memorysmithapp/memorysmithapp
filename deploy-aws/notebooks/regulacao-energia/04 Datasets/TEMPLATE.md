@@ -1,5 +1,5 @@
 ---
-title: <Nome do conjunto (Fonte)>
+name: <Nome do conjunto (Fonte)>
 aliases: []
 tags: [dados-abertos]
 type: dataset

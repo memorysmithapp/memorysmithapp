@@ -1,5 +1,5 @@
 ---
-title: Value Stream Management
+name: Value Stream Management
 aliases:
   - Gestão de Fluxo de Valor
 tags:

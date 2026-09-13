@@ -1,5 +1,5 @@
 ---
-title: Migrar uma Base de Conhecimento para o Obsidian
+name: Migrar uma Base de Conhecimento para o Obsidian
 aliases:
   - Migração para o Obsidian
   - Importar Notas

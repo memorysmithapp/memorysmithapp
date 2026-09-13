@@ -1,5 +1,5 @@
 ---
-title: Feedback Loop
+name: Feedback Loop
 aliases:
   - Ciclo de Feedback
   - Loop de Feedback

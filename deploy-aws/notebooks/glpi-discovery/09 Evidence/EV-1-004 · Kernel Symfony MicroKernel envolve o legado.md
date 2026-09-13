@@ -1,5 +1,5 @@
 ---
-title: EV-1-004 · Kernel Symfony MicroKernel envolve o legado
+name: EV-1-004 · Kernel Symfony MicroKernel envolve o legado
 aliases: [EV-1-004]
 tags: [evidence, dominio/foundation, arquitetura, bootstrap]
 type: evidence

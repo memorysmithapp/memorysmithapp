@@ -1,5 +1,5 @@
 ---
-title: Portal de Dados Abertos ANEEL (CKAN)
+name: Portal de Dados Abertos ANEEL (CKAN)
 aliases:
   - dadosabertos.aneel.gov.br
   - CKAN ANEEL

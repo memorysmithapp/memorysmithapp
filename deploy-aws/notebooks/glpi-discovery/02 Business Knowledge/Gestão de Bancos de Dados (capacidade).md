@@ -1,5 +1,5 @@
 ---
-title: Gestão de Bancos de Dados (capacidade)
+name: Gestão de Bancos de Dados (capacidade)
 aliases: [Databases management, Gestão de Bancos de Dados]
 tags: [management, database, capacidade]
 type: capability

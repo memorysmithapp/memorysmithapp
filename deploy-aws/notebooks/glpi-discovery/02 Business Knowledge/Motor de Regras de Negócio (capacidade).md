@@ -1,5 +1,5 @@
 ---
-title: Motor de Regras de Negócio (capacidade)
+name: Motor de Regras de Negócio (capacidade)
 aliases: [Business Rules, automação, regras de negócio]
 tags: [capability, motor-de-regras, dominio/admin]
 type: capability

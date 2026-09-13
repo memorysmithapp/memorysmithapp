@@ -1,5 +1,5 @@
 ---
-title: RBAC User×Profile×Entity (view)
+name: RBAC User×Profile×Entity (view)
 aliases: [RBAC view, Profile_User diagram, "RBAC User×Profile×Entity (view)"]
 tags: [view, seguranca, rbac, dominio/admin]
 type: view

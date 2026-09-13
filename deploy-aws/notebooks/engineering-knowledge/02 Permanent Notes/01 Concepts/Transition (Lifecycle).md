@@ -1,5 +1,5 @@
 ---
-title: Transition (Lifecycle)
+name: Transition (Lifecycle)
 aliases:
   - Transition
   - Transição

@@ -1,5 +1,5 @@
 ---
-title: Posição em datacenter (data center position)
+name: Posição em datacenter (data center position)
 aliases: [Data center position, Posição em datacenter]
 tags: [campos-comuns, localizacao, datacenter, dcim, data]
 type: field

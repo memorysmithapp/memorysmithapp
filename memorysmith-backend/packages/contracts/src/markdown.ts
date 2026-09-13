@@ -58,7 +58,7 @@ export interface RecognisedNotation {
  * One case of the published suite. Absent expectations assert nothing.
  *
  * A case may state four different things, and 0.6.0 added the last two: what
- * a note is CALLED (`title`), and what a target BECOMES once a notebook exists to
+ * a note is CALLED (`name`), and what a target BECOMES once a notebook exists to
  * resolve it against (`notebook` plus `resolution`). The last pair cannot be run
  * against an extractor alone — it needs the resolver and a notebook to give it.
  */
@@ -66,10 +66,10 @@ export interface ConformanceCase {
   readonly id: string;
   readonly notation: string;
   readonly markdown: string;
-  readonly links?: ReadonlyArray<{ readonly title: string; readonly anchor: string | null }>;
+  readonly links?: ReadonlyArray<{ readonly name: string; readonly anchor: string | null }>;
   readonly facets?: Readonly<Record<string, { readonly kind: string; readonly values: string[] }>>;
-  /** What the chain reads out of `markdown`, or `null` for no addressable title. */
-  readonly title?: string | null;
+  /** The `name:` of `markdown` as §5.3 reads it, or `null` for no name. */
+  readonly name?: string | null;
   /** The notebook the targets are resolved against: note bodies and attachment names. */
   readonly notebook?: {
     readonly notes?: readonly string[];
@@ -249,13 +249,13 @@ export const DECLARED_SILENCE: readonly DeclaredSilence[] = [
 ];
 
 /**
- * The attribute names the specification reserves, **derived from the pin and
- * never typed here**.
+ * The attribute names the specification reserves, **derived from it and never
+ * typed here**.
  *
  * They are exactly the notations whose `spec` field cites §6.4, in the order
  * the specification declares them, with the key read off the identifier:
- * `frontmatter-co-author` is `co-author`. So a version that reserves an eighth
- * name reserves it here on the day the pin moves, and nothing in this
+ * `frontmatter-co-author` is `co-author`. So a change that reserves an eighth
+ * name reserves it here in the same commit, and nothing in this
  * repository has to be remembered — which is the property a hand-written copy
  * cannot have, and this list used to exist in three copies (RN-DSC-030).
  *
@@ -267,7 +267,7 @@ export const DECLARED_SILENCE: readonly DeclaredSilence[] = [
  * every other notebook behind, because unreserved, one notebook writes `autor:` and
  * another writes `author:` and no interface can offer one column over both.
  *
- * `title` is the exception in both directions: it is reserved and it is never
+ * `name` is the exception in both directions: it is reserved and it is never
  * an attribute at all (RN-DSC-050). It names the note (RN-KNW-035), and a note
  * is not a category of itself.
  */
@@ -282,7 +282,7 @@ export const RESERVED_FRONTMATTER_KEYS: readonly string[] = RECOGNISED_NOTATION.
 
 /**
  * The key that names the note, derived like everything else here: it is the
- * frontmatter notation whose section is §6.5, the section that says a title
+ * frontmatter notation whose section is §6.5, the section that says a name
  * produces no attribute at all.
  *
  * The kernel exports a constant of the same name, because it is the reader of
@@ -290,7 +290,7 @@ export const RESERVED_FRONTMATTER_KEYS: readonly string[] = RECOGNISED_NOTATION.
  * the day the specification renames it, one of them fails rather than both
  * quietly drifting.
  */
-export const TITLE_KEY: string =
+export const NAME_KEY: string =
   RECOGNISED_NOTATION.find(
     (notation) =>
       notation.reader === 'frontmatter' &&
@@ -298,13 +298,13 @@ export const TITLE_KEY: string =
         .split(',')
         .map((section) => section.trim())
         .includes('6.5'),
-  )?.id.replace(/^frontmatter-/, '') ?? 'title';
+  )?.id.replace(/^frontmatter-/, '') ?? 'name';
 
 /**
- * The reserved keys a surface draws as properties: every one but the title.
+ * The reserved keys a surface draws as properties: every one but the name.
  * A note is not a category of itself, so the key that names it is drawn as the
- * title and never in the property panel (RN-DSC-051).
+ * name and never in the property panel (RN-DSC-051).
  */
 export const DRAWN_RESERVED_KEYS: readonly string[] = RESERVED_FRONTMATTER_KEYS.filter(
-  (key) => key !== TITLE_KEY,
+  (key) => key !== NAME_KEY,
 );

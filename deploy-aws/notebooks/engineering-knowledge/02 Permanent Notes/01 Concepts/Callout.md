@@ -1,5 +1,5 @@
 ---
-title: Callout
+name: Callout
 aliases:
   - Admonition
   - Bloco de Destaque

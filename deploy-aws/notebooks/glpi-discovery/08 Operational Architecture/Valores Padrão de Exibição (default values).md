@@ -1,5 +1,5 @@
 ---
-title: Valores Padrão de Exibição (default values)
+name: Valores Padrão de Exibição (default values)
 aliases: [Default values, Valores padrão]
 tags: [configuracao-geral, preferencias, valores-padrao, operacao]
 type: capability

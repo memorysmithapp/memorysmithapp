@@ -16,17 +16,20 @@
 
 ## Frontmatter obrigatório
 
-`title`, `aliases`, `tags`, `tipo` (`casta` | `medida` | `protocolo` |
+`name`, `aliases`, `tags`, `tipo` (`casta` | `medida` | `protocolo` |
 `registro`), `maturity` (`seed` | `growing` | `evergreen`, reavaliada a cada
 escrita), `reviewed` (`true` somente após revisão humana da revisão vigente;
 qualquer edição posterior de conteúdo devolve a `false`), `regiao`, `autor`,
 `created`, `updated`.
 
-**As quatro chaves reservadas são escritas em en-US mesmo aqui**: `aliases`,
+**As chaves reservadas são escritas em en-US mesmo aqui**: `name`, `aliases`,
 `tags`, `created` e `updated`. O resto do vocabulário é o desta casa —
 `regiao`, `tipo`, `autor`, `colhida_em` — e o produto não traduz nenhuma
 delas. A interface pode mostrar o rótulo das reservadas em português; os bytes
 do arquivo nunca mudam.
+
+`name` é o nome da nota e o que todo link procura. Nenhum heading dá nome a
+uma nota, e nota escrita sem `name:` não tem nome: nenhum link chega até ela.
 
 ## A notação deste caderno
 

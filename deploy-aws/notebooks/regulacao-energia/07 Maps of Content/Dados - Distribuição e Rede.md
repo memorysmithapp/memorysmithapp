@@ -1,5 +1,5 @@
 ---
-title: Dados - Distribuição e Rede
+name: Dados - Distribuição e Rede
 aliases:
   - Distribuição e Rede
 tags:

@@ -1,5 +1,5 @@
 ---
-title: EV-2-d1-008 · Licenças de software — objetivos, campos e abas
+name: EV-2-d1-008 · Licenças de software — objetivos, campos e abas
 aliases: [EV-2-d1-008]
 tags: [evidence, management, license, software, doc]
 type: evidence

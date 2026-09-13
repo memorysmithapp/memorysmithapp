@@ -1,5 +1,5 @@
 ---
-title: Inadimplência alta e continuidade ruim andam juntas
+name: Inadimplência alta e continuidade ruim andam juntas
 aliases:
   - Associação entre inadimplência e qualidade
   - Os dois critérios do serviço adequado não são independentes

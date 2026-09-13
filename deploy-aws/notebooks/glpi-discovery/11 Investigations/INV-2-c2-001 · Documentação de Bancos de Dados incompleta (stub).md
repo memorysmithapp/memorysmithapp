@@ -1,5 +1,5 @@
 ---
-title: INV-2-c2-001 · Documentação de Bancos de Dados incompleta (stub)
+name: INV-2-c2-001 · Documentação de Bancos de Dados incompleta (stub)
 aliases: [INV-2-c2-001]
 tags: [investigation, consumidor/cad, assets, database, gap, doc]
 type: investigation

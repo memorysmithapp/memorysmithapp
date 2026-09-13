@@ -1,5 +1,5 @@
 ---
-title: Projetos (Project)
+name: Projetos (Project)
 aliases: [Project, Projeto, ProjectTask]
 tags: [entity, projeto, dominio/gestao]
 type: entity

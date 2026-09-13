@@ -1,5 +1,5 @@
 ---
-title: Aba Volumes (ativos)
+name: Aba Volumes (ativos)
 aliases: [Volumes tab, Aba Volumes]
 tags: [assets, tab, volumes, storage, partition, computer]
 type: component

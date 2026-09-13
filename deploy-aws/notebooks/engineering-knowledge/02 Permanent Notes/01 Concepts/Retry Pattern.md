@@ -1,5 +1,5 @@
 ---
-title: Retry Pattern
+name: Retry Pattern
 aliases:
   - Retentativa
   - Exponential Backoff

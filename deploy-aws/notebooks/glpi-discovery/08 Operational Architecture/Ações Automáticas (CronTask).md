@@ -1,5 +1,5 @@
 ---
-title: Ações Automáticas (CronTask)
+name: Ações Automáticas (CronTask)
 aliases: [CronTask, ações automáticas, jobs, cron]
 tags: [infra, cron, jobs, dominio/operacao]
 type: job

@@ -1,5 +1,5 @@
 ---
-title: Workforce and Talent Management
+name: Workforce and Talent Management
 aliases:
   - Gestão de Pessoas e Talentos
 tags:

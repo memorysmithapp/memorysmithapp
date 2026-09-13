@@ -1,5 +1,5 @@
 ---
-title: Objetos GLPI e dropdowns no tipo de pergunta Item
+name: Objetos GLPI e dropdowns no tipo de pergunta Item
 aliases: [Form Item question objects]
 tags: [formularios, forms, item, objetos, dropdowns, dados, doc]
 type: table

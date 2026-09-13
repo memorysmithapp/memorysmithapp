@@ -1,5 +1,5 @@
 ---
-title: EV-2-e2-012 · Regras de inventário - atribuição a entidade e importação-vínculo
+name: EV-2-e2-012 · Regras de inventário - atribuição a entidade e importação-vínculo
 aliases: [EV-2-e2-012]
 tags: [evidence, regras, inventario, entidade, importacao, doc]
 type: evidence

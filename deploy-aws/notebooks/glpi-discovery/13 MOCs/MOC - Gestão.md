@@ -1,5 +1,5 @@
 ---
-title: MOC - Gestão
+name: MOC - Gestão
 aliases: [MOC Gestão, Índice Módulo 4, MOC Management]
 tags: [moc, dominio/gestao]
 type: moc

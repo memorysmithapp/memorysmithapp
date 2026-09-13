@@ -1,5 +1,5 @@
 ---
-title: EV-2-f2-002 · Autenticação, sincronização e abas de configuração LDAP-AD
+name: EV-2-f2-002 · Autenticação, sincronização e abas de configuração LDAP-AD
 aliases: [EV-2-f2-002]
 tags: [evidence, authentication, ldap, active-directory]
 type: evidence

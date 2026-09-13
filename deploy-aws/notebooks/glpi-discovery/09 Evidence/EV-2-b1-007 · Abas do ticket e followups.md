@@ -1,5 +1,5 @@
 ---
-title: EV-2-b1-007 · Abas do ticket e followups
+name: EV-2-b1-007 · Abas do ticket e followups
 aliases: [EV-2-b1-007]
 tags: [evidence, assistance, ticket, tabs, followup, solution]
 type: evidence

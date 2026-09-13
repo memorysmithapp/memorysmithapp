@@ -1,5 +1,5 @@
 ---
-title: Gestão de Contratos (visão do usuário)
+name: Gestão de Contratos (visão do usuário)
 aliases: [Contracts management]
 tags: [capability, management, contract, financial, doc]
 type: capability

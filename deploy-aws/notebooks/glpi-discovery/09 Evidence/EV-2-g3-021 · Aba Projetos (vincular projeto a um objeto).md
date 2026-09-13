@@ -1,5 +1,5 @@
 ---
-title: EV-2-g3-021 · Aba Projetos (vincular projeto a um objeto)
+name: EV-2-g3-021 · Aba Projetos (vincular projeto a um objeto)
 aliases: [EV-2-g3-021]
 tags: [evidence, tab, projects, link, change]
 type: evidence

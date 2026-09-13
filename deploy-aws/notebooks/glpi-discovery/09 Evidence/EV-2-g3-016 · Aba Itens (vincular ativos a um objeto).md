@@ -1,5 +1,5 @@
 ---
-title: EV-2-g3-016 · Aba Itens (vincular ativos a um objeto)
+name: EV-2-g3-016 · Aba Itens (vincular ativos a um objeto)
 aliases: [EV-2-g3-016]
 tags: [evidence, tab, items, link, assets]
 type: evidence

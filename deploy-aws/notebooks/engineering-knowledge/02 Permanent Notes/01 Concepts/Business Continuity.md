@@ -1,5 +1,5 @@
 ---
-title: Business Continuity
+name: Business Continuity
 aliases:
   - Continuidade de Negócios
   - BC

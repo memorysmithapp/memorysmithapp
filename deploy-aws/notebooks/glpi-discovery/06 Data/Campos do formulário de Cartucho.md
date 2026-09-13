@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Cartucho
+name: Campos do formulário de Cartucho
 aliases: [Campos Cartridge]
 tags: [data, fields, cartridge, stock, doc]
 type: table

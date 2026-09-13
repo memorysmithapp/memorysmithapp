@@ -1,5 +1,5 @@
 ---
-title: Blacklists do motor de regras
+name: Blacklists do motor de regras
 aliases: [Blacklists, Lista negra de regras]
 tags: [regras, blacklist, inventario, doc]
 type: concept

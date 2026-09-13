@@ -52,10 +52,10 @@ describe('storage: what each mutation declares', () => {
 
   /**
    * The case that makes the delta a declaration rather than something derived
-   * from the event type: a write of the same length changes the title of the
+   * from the event type: a write of the same length changes the name of the
    * note and moves no bytes at all.
    */
-  it('a rewrite of the same length retitles the note and moves no bytes', () => {
+  it('a rewrite of the same length renames the note and moves no bytes', () => {
     const notebook = newNotebook();
     const note = newNote(notebook, folderId, 'Contratação direta');
     note.pullEvents();
@@ -64,7 +64,7 @@ describe('storage: what each mutation declares', () => {
     unwrap(note.replaceBody(sameSize, noteBody('Contratação direta por dispensa'), authorship()));
     const [updated] = note.pullEvents();
 
-    expect(note.title).toBe('Contratação direta por dispensa');
+    expect(note.name).toBe('Contratação direta por dispensa');
     expect(updated?.type).toBe('NoteUpdated');
     expect(updated?.storageDelta).toBe(0);
   });

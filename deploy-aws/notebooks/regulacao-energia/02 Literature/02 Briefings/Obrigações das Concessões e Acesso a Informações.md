@@ -1,5 +1,5 @@
 ---
-title: Obrigações das Concessões e Acesso a Informações
+name: Obrigações das Concessões e Acesso a Informações
 aliases:
   - Briefing Distribuição 2026
   - Obrigações das Concessões

@@ -1,5 +1,5 @@
 ---
-title: INV-1-007 · Protocolo e endpoint do agente de inventário
+name: INV-1-007 · Protocolo e endpoint do agente de inventário
 aliases: [INV-1-007]
 tags: [investigation, consumidor/cad, inventario, integracao]
 type: investigation

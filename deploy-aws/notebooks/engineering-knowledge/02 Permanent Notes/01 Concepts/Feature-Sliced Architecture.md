@@ -1,5 +1,5 @@
 ---
-title: Feature-Sliced Architecture
+name: Feature-Sliced Architecture
 aliases:
   - Feature Slice
   - Arquitetura por Fatias de Funcionalidade

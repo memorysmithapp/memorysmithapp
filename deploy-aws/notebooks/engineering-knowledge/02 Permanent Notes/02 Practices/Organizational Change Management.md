@@ -1,5 +1,5 @@
 ---
-title: Organizational Change Management
+name: Organizational Change Management
 aliases:
   - Gestão de Mudança Organizacional
   - OCM

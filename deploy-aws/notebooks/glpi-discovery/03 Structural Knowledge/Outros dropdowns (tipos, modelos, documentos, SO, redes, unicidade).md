@@ -1,5 +1,5 @@
 ---
-title: Outros dropdowns (tipos, modelos, documentos, SO, redes, unicidade)
+name: Outros dropdowns (tipos, modelos, documentos, SO, redes, unicidade)
 aliases: [Types, Models, Document types, Operating systems, Ignored values for unicity]
 tags: [dropdown, others, document-types, operating-systems, unicity, ldap-criteria]
 type: component

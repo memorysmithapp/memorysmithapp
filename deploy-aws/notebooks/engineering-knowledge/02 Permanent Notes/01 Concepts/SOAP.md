@@ -1,5 +1,5 @@
 ---
-title: SOAP
+name: SOAP
 aliases:
   - Simple Object Access Protocol
   - WSDL

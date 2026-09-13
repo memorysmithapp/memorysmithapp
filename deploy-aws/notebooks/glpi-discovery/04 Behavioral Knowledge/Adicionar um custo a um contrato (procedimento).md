@@ -1,5 +1,5 @@
 ---
-title: Adicionar um custo a um contrato (procedimento)
+name: Adicionar um custo a um contrato (procedimento)
 aliases: [Add a cost to a contract]
 tags: [use-case, management, contract, budget, financial, doc]
 type: use-case

@@ -1,5 +1,5 @@
 ---
-title: Ações Massivas (bulk actions)
+name: Ações Massivas (bulk actions)
 aliases: [Massive actions, Bulk actions, Ações em lote]
 tags: [use-case, massive-actions, bulk, search]
 type: use-case

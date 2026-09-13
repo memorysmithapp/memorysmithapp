@@ -1,5 +1,5 @@
 ---
-title: EV-2-c2-005 · Racks (racks.rst)
+name: EV-2-c2-005 · Racks (racks.rst)
 aliases: [EV-2-c2-005]
 tags: [evidence, assets, rack, dcim, datacenter, doc]
 type: evidence

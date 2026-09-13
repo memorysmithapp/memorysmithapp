@@ -1,5 +1,5 @@
 ---
-title: Estacionamento de Ideias
+name: Estacionamento de Ideias
 type: practice
 tags:
   - facilitation

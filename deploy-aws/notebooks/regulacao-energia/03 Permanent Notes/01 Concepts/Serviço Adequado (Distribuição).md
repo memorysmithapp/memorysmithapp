@@ -1,5 +1,5 @@
 ---
-title: Serviço Adequado (Distribuição)
+name: Serviço Adequado (Distribuição)
 aliases:
   - Serviço adequado
   - Critérios de eficiência da concessão

@@ -1,5 +1,5 @@
 ---
-title: Semana 2 · Arquitetura do produto
+name: Semana 2 · Arquitetura do produto
 aliases: []
 tags: [trilha, arquitetura]
 type: trilha

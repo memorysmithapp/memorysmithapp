@@ -1,5 +1,5 @@
 ---
-title: Service Quality
+name: Service Quality
 aliases:
   - Qualidade de Serviço
 tags:

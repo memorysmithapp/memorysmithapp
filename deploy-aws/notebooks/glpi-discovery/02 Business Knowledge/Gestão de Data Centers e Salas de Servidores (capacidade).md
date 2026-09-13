@@ -1,5 +1,5 @@
 ---
-title: Gestão de Data Centers e Salas de Servidores (capacidade)
+name: Gestão de Data Centers e Salas de Servidores (capacidade)
 aliases: [Data centers management, Gestão de Data Centers]
 tags: [management, datacenter, dcim, capacidade]
 type: capability

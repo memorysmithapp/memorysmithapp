@@ -9,7 +9,7 @@
  * to a note nobody will ever write, telling the reader the wrong thing about
  * their own notebook.
  *
- * The extension is what tells a file from a title, and a title may carry a
+ * The extension is what tells a file from a name, and a name may carry a
  * dot: this is the list of what a notebook actually keeps beside its notes, so
  * `Lei 14.133` is a note and `engelbart.jpg` is not.
  */

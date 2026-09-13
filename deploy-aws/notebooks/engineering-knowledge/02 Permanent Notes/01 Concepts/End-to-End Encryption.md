@@ -1,5 +1,5 @@
 ---
-title: End-to-End Encryption
+name: End-to-End Encryption
 aliases:
   - E2EE
   - Criptografia Fim a Fim

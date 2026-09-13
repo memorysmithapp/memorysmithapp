@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Cabo
+name: Campos do formulário de Cabo
 aliases: [Campos Cable]
 tags: [data, fields, cable, connectivity, assets, doc]
 type: table

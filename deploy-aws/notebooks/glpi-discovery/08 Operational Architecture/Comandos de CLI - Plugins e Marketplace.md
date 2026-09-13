@@ -1,5 +1,5 @@
 ---
-title: "Comandos de CLI - Plugins e Marketplace"
+name: "Comandos de CLI - Plugins e Marketplace"
 aliases: [plugin:install, plugin:activate, marketplace:download]
 tags: [cli, plugins, marketplace, comandos, operacional]
 type: process

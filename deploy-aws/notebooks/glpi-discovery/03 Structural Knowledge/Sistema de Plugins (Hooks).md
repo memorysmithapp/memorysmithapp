@@ -1,5 +1,5 @@
 ---
-title: Sistema de Plugins (Hooks)
+name: Sistema de Plugins (Hooks)
 aliases: [Plugins, Hooks, Extensibilidade]
 tags: [component, plugins, extensibilidade, dominio/foundation]
 type: component

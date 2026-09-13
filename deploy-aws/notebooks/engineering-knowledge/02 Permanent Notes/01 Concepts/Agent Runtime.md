@@ -1,5 +1,5 @@
 ---
-title: Agent Runtime
+name: Agent Runtime
 aliases:
   - Agent Orchestrator
   - Runtime

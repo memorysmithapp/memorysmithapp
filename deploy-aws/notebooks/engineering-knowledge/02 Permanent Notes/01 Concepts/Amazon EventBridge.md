@@ -1,5 +1,5 @@
 ---
-title: Amazon EventBridge
+name: Amazon EventBridge
 aliases:
   - EventBridge
   - Event Bus

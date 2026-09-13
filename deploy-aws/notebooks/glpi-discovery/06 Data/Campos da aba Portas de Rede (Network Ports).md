@@ -1,5 +1,5 @@
 ---
-title: Campos da aba Portas de Rede (Network Ports)
+name: Campos da aba Portas de Rede (Network Ports)
 aliases: [Network Ports fields, Portas de rede]
 tags: [data, fields, network, port, vlan, doc]
 type: table

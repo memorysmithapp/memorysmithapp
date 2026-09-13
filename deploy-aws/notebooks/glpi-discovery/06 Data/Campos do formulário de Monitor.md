@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Monitor
+name: Campos do formulário de Monitor
 aliases: [Campos de Monitor]
 tags: [assets, data, monitor, form]
 type: entity

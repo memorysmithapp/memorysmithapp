@@ -1,5 +1,5 @@
 ---
-title: Obsidian MOC
+name: Obsidian MOC
 aliases:
   - Obsidian
   - PKM MOC

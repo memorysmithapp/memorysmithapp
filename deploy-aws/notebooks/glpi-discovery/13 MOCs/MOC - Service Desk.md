@@ -1,5 +1,5 @@
 ---
-title: MOC - Service Desk
+name: MOC - Service Desk
 aliases: [MOC Service Desk, Índice Módulo 2, MOC ITIL]
 tags: [moc, dominio/service-desk]
 type: moc

@@ -1,5 +1,5 @@
 ---
-title: Sponsor
+name: Sponsor
 aliases:
   - Patrocinador
 tags:

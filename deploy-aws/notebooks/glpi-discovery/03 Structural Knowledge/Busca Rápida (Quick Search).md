@@ -1,5 +1,5 @@
 ---
-title: Busca Rápida (Quick Search)
+name: Busca Rápida (Quick Search)
 aliases: [Quick search, Busca global, Global search box]
 tags: [component, search, quick-search, global-search]
 type: component

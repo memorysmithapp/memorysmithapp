@@ -1,5 +1,5 @@
 ---
-title: Matriz de ciclo de vida (transições de status por perfil)
+name: Matriz de ciclo de vida (transições de status por perfil)
 aliases: [Life cycle matrix, Matriz de ciclo de vida]
 tags: [ciclo-de-vida, status, transicoes, perfil, itil, rule]
 type: rule

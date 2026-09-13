@@ -1,5 +1,5 @@
 ---
-title: Mastering OpenStack 01
+name: Mastering OpenStack 01
 aliases:
   - "Capítulo 1: Revisiting OpenStack – Design Considerations"
 tags:

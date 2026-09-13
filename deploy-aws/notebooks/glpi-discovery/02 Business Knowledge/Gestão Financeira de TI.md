@@ -1,5 +1,5 @@
 ---
-title: Gestão Financeira de TI
+name: Gestão Financeira de TI
 aliases: [Financial Management, ITFM, custos]
 tags: [process, financeiro, dominio/gestao]
 type: process

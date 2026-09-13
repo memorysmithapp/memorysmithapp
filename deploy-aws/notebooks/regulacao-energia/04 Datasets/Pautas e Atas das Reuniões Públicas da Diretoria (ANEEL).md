@@ -1,5 +1,5 @@
 ---
-title: Pautas e Atas das Reuniões Públicas da Diretoria (ANEEL)
+name: Pautas e Atas das Reuniões Públicas da Diretoria (ANEEL)
 aliases:
   - pautas-e-atas-das-reunioes-publicas-da-diretoria
 tags:

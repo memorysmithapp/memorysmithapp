@@ -1,5 +1,5 @@
 ---
-title: Proxy
+name: Proxy
 aliases:
   - Forward Proxy
   - Proxy Direto

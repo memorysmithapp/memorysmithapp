@@ -1,5 +1,5 @@
 ---
-title: Large Language Model (LLM)
+name: Large Language Model (LLM)
 aliases:
   - LLM
   - Foundation Model

@@ -1,5 +1,5 @@
 ---
-title: Diretório LDAP e Active Directory (configuração)
+name: Diretório LDAP e Active Directory (configuração)
 aliases: [LDAP, Active Directory, AD, Diretório LDAP]
 tags: [authentication, ldap, active-directory, configuration]
 type: component

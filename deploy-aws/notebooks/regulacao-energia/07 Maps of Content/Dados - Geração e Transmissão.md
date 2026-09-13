@@ -1,5 +1,5 @@
 ---
-title: Dados - Geração e Transmissão
+name: Dados - Geração e Transmissão
 aliases:
   - Geração e Transmissão
 tags:

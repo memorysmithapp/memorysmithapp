@@ -1,5 +1,5 @@
 ---
-title: Portfolio Management
+name: Portfolio Management
 aliases:
   - Gestão de Portfólio
 tags:

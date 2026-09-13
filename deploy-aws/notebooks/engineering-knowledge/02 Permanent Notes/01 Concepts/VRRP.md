@@ -1,5 +1,5 @@
 ---
-title: VRRP
+name: VRRP
 aliases:
   - Virtual Router Redundancy Protocol
   - Keepalived

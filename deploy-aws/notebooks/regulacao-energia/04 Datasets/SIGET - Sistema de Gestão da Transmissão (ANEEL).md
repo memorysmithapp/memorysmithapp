@@ -1,5 +1,5 @@
 ---
-title: SIGET - Sistema de Gestão da Transmissão (ANEEL)
+name: SIGET - Sistema de Gestão da Transmissão (ANEEL)
 aliases:
   - sistema-de-gestao-da-transmissao-siget
 tags:

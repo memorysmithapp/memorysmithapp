@@ -19,8 +19,8 @@ import { demoteEmbeds } from './transclusion';
 import { resolveWikilinks } from './markdown';
 
 /** A notebook where one note exists and the other does not. */
-const resolve = (title: string): string | null =>
-  title === 'Cabernet Sauvignon' ? '/notebooks/enologia/root/01-castas/cabernet-sauvignon' : null;
+const resolve = (name: string): string | null =>
+  name === 'Cabernet Sauvignon' ? '/notebooks/enologia/root/01-castas/cabernet-sauvignon' : null;
 
 const render = (body: string): string => resolveWikilinks(demoteEmbeds(body), resolve);
 

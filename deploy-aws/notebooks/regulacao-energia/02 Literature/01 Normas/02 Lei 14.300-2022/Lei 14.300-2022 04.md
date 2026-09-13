@@ -1,5 +1,5 @@
 ---
-title: Lei 14.300-2022 04
+name: Lei 14.300-2022 04
 aliases:
   - Lei 14.300 Capítulo IV
   - Compensação de Energia Lei 14.300

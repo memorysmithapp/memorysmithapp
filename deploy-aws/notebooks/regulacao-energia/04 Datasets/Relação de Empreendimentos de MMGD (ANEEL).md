@@ -1,5 +1,5 @@
 ---
-title: Relação de Empreendimentos de MMGD (ANEEL)
+name: Relação de Empreendimentos de MMGD (ANEEL)
 aliases:
   - relacao-de-empreendimentos-de-geracao-distribuida
 tags:

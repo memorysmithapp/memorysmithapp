@@ -1,5 +1,5 @@
 ---
-title: Definição de notificação (estrutura)
+name: Definição de notificação (estrutura)
 aliases: [Notification Definition]
 tags: [notificacao, definicao, estrutura, evento]
 type: concept

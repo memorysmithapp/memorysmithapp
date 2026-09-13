@@ -1,5 +1,5 @@
 ---
-title: Hexagonal Architecture
+name: Hexagonal Architecture
 aliases:
   - Ports and Adapters
   - Arquitetura Hexagonal

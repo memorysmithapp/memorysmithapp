@@ -1,5 +1,5 @@
 ---
-title: EV-2-c3-010 · Abas Links Externos e Bloqueios (locks)
+name: EV-2-c3-010 · Abas Links Externos e Bloqueios (locks)
 aliases: [EV-2-c3-010]
 tags: [evidence, doc, assets, links, locks, inventory]
 type: evidence

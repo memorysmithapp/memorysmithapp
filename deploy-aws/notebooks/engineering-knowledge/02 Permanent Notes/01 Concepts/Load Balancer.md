@@ -1,5 +1,5 @@
 ---
-title: Load Balancer
+name: Load Balancer
 aliases:
   - Balanceador de Carga
   - Load Balancing

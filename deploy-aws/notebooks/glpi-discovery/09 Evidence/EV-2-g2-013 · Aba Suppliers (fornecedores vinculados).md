@@ -1,5 +1,5 @@
 ---
-title: EV-2-g2-013 · Aba Suppliers (fornecedores vinculados)
+name: EV-2-g2-013 · Aba Suppliers (fornecedores vinculados)
 aliases: [EV-2-g2-013]
 tags: [evidence, tabs, suppliers, fornecedores]
 type: evidence

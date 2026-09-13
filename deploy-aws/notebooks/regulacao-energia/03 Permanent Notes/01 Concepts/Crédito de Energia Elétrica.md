@@ -1,5 +1,5 @@
 ---
-title: Crédito de Energia Elétrica
+name: Crédito de Energia Elétrica
 aliases:
   - Crédito de energia
   - Créditos do SCEE

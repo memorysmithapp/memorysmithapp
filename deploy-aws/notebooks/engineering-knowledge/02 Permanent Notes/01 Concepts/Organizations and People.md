@@ -1,5 +1,5 @@
 ---
-title: Organizations and People
+name: Organizations and People
 aliases:
   - Organizações e Pessoas
 tags:

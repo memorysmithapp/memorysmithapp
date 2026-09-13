@@ -1,5 +1,5 @@
 ---
-title: Nova Cells
+name: Nova Cells
 aliases:
   - Cells
   - CellV2

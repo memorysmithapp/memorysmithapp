@@ -1,5 +1,5 @@
 ---
-title: MOC - Concessões de Distribuição
+name: MOC - Concessões de Distribuição
 aliases:
   - MOC Concessões
 tags:

@@ -1,5 +1,5 @@
 ---
-title: Time Series Database
+name: Time Series Database
 aliases:
   - TSDB
   - Banco de Série Temporal

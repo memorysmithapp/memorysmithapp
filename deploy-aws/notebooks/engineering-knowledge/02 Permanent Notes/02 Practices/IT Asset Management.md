@@ -1,5 +1,5 @@
 ---
-title: IT Asset Management
+name: IT Asset Management
 aliases:
   - Gestão de Ativos de TI
   - ITAM

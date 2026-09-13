@@ -1,5 +1,5 @@
 ---
-title: JSON Web Token (JWT)
+name: JSON Web Token (JWT)
 aliases:
   - JWT
   - JSON Web Token

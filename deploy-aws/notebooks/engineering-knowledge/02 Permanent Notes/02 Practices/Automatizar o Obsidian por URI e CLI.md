@@ -1,5 +1,5 @@
 ---
-title: Automatizar o Obsidian por URI e CLI
+name: Automatizar o Obsidian por URI e CLI
 aliases:
   - Automação do Obsidian
   - URI, CLI e Headless

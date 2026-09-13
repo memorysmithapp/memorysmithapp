@@ -1,5 +1,5 @@
 ---
-title: Masakari
+name: Masakari
 aliases:
   - OpenStack Instances High Availability Service
 tags:

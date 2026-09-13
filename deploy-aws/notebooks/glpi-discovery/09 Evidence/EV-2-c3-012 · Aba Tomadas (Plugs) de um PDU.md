@@ -1,5 +1,5 @@
 ---
-title: EV-2-c3-012 · Aba Tomadas (Plugs) de um PDU
+name: EV-2-c3-012 · Aba Tomadas (Plugs) de um PDU
 aliases: [EV-2-c3-012]
 tags: [evidence, doc, assets, dcim, pdu, plugs]
 type: evidence

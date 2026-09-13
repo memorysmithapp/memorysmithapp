@@ -1,5 +1,5 @@
 ---
-title: Mastering OpenStack 08
+name: Mastering OpenStack 08
 aliases:
   - "Capítulo 8: Monitoring and Logging – Remediating Proactively"
 tags:

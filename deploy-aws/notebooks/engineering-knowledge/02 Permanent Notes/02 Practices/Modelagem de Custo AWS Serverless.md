@@ -1,5 +1,5 @@
 ---
-title: Modelagem de Custo AWS Serverless
+name: Modelagem de Custo AWS Serverless
 aliases:
   - Cost Model Serverless
   - Estimativa de Custo AWS

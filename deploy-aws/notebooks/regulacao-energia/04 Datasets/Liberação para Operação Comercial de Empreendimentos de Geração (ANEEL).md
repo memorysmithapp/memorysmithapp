@@ -1,5 +1,5 @@
 ---
-title: Liberação para Operação Comercial de Empreendimentos de Geração (ANEEL)
+name: Liberação para Operação Comercial de Empreendimentos de Geração (ANEEL)
 aliases:
   - liberacao-para-operacao-comercial-de-empreendimentos-de-geracao
 tags:

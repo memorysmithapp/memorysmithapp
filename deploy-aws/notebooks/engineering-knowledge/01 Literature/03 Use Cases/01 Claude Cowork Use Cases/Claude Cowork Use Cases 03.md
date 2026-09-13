@@ -1,5 +1,5 @@
 ---
-title: Claude Cowork Use Cases 03
+name: Claude Cowork Use Cases 03
 aliases:
   - Cowork Use Cases — Cadeia de Superfícies
 tags:

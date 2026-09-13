@@ -1,5 +1,5 @@
 ---
-title: Kubernetes (K8s)
+name: Kubernetes (K8s)
 aliases:
   - Kubernetes
   - K8s

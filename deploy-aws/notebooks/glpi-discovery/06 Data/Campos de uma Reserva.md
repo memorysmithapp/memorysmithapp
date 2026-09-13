@@ -1,5 +1,5 @@
 ---
-title: Campos de uma Reserva
+name: Campos de uma Reserva
 aliases: [Reservation fields, Campos de reserva, Booking fields]
 tags: [data, reservations, fields, recurrence]
 type: entity

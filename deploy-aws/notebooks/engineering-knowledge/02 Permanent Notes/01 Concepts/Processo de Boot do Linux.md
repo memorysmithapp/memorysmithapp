@@ -1,5 +1,5 @@
 ---
-title: Processo de Boot do Linux
+name: Processo de Boot do Linux
 aliases:
   - Linux Boot Process
   - Boot do Linux

@@ -1,5 +1,5 @@
 ---
-title: AI Generative Architecture MOC
+name: AI Generative Architecture MOC
 aliases:
   - AI Architecture
   - IA Generativa

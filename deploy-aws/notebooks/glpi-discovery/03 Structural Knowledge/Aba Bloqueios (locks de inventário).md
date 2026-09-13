@@ -1,5 +1,5 @@
 ---
-title: Aba Bloqueios (locks de inventário)
+name: Aba Bloqueios (locks de inventário)
 aliases: [Locks tab, Aba Locks, Bloqueio de campos]
 tags: [assets, tab, locks, inventory, fields]
 type: component

@@ -1,5 +1,5 @@
 ---
-title: Aba Softwares Instalados (ativos)
+name: Aba Softwares Instalados (ativos)
 aliases: [Software tab, Aba Softwares]
 tags: [assets, tab, software, license, computer]
 type: component

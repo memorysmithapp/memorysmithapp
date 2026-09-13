@@ -1,5 +1,5 @@
 ---
-title: Composição do ativo Computer (view)
+name: Composição do ativo Computer (view)
 aliases: [ER Computer, composição ativo]
 tags: [view, cmdb, dados, dominio/ativos]
 type: view

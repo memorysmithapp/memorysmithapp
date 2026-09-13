@@ -1,5 +1,5 @@
 ---
-title: Race Condition
+name: Race Condition
 aliases:
   - Condição de Corrida
   - Data Race

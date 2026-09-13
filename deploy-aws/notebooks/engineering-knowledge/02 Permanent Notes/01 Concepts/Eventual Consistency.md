@@ -1,5 +1,5 @@
 ---
-title: Eventual Consistency
+name: Eventual Consistency
 aliases:
   - Consistência Eventual
   - Consistência Fraca

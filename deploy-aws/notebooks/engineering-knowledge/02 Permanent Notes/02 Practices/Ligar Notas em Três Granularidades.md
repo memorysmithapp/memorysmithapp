@@ -1,5 +1,5 @@
 ---
-title: Ligar Notas em Três Granularidades
+name: Ligar Notas em Três Granularidades
 aliases:
   - Linking Granularity
   - Link de Nota, Heading e Bloco

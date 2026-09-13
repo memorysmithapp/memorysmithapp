@@ -1,5 +1,5 @@
 ---
-title: Validação e aprovação (regra)
+name: Validação e aprovação (regra)
 aliases: [Validação, Aprovação, ITILValidation]
 tags: [rule, itil, aprovacao, dominio/service-desk]
 type: rule

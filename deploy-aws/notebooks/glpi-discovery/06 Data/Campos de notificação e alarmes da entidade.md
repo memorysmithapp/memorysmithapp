@@ -1,5 +1,5 @@
 ---
-title: Campos de notificação e alarmes da entidade
+name: Campos de notificação e alarmes da entidade
 aliases: [Entity notification fields, Alarmes da entidade]
 tags: [entidades, campos, notificacoes, alarmes, heranca, dados, doc]
 type: table

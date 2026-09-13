@@ -1,5 +1,5 @@
 ---
-title: Human-in-the-Loop
+name: Human-in-the-Loop
 aliases:
   - HITL
   - Humano no Ciclo

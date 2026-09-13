@@ -1,5 +1,5 @@
 ---
-title: Aba Portas de Rede (ativos)
+name: Aba Portas de Rede (ativos)
 aliases: [Network ports tab, Aba Portas de Rede]
 tags: [assets, tab, network, ports, vlan, computer]
 type: component

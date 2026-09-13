@@ -1,5 +1,5 @@
 ---
-title: Context Graph
+name: Context Graph
 aliases:
   - Execution Context
   - Contextual Graph

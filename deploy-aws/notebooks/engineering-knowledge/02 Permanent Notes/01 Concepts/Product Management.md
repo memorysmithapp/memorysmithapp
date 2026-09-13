@@ -1,5 +1,5 @@
 ---
-title: Product Management
+name: Product Management
 aliases:
   - Gestão de Produto
 tags:

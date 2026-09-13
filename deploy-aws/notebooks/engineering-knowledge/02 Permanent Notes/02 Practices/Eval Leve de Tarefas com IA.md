@@ -1,5 +1,5 @@
 ---
-title: Eval Leve de Tarefas com IA
+name: Eval Leve de Tarefas com IA
 aliases:
   - Eval Simples
   - Avaliação Prática de IA

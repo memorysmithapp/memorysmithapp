@@ -49,7 +49,7 @@ export function ResumeReading() {
  * The remembered note, if it is still a note of this notebook.
  *
  * The structure is already in hand, so this costs no request and cannot
- * flash, and a remembered address now **survives a retitle and a move**: it
+ * flash, and a remembered address now **survives a rename and a move**: it
  * carries the identifier, so what changed is the decoration and the route
  * corrects it (RN-DSC-045). Only a deleted note lands on the tree, and its
  * stale entry is dropped on the way, because it will never be right again.

@@ -1,5 +1,5 @@
 ---
-title: EV-2-a1-006 · Visualização e gestão de registros (listas e abas)
+name: EV-2-a1-006 · Visualização e gestão de registros (listas e abas)
 aliases: [EV-2-a1-006]
 tags: [evidence, doc, list, tabs, records, display, columns]
 type: evidence

@@ -1,5 +1,5 @@
 ---
-title: Amazon API Gateway
+name: Amazon API Gateway
 aliases:
   - API Gateway (AWS)
   - HTTP API

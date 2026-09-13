@@ -1,5 +1,5 @@
 ---
-title: Information Security Management
+name: Information Security Management
 aliases:
   - Gestão de Segurança da Informação
   - InfoSec

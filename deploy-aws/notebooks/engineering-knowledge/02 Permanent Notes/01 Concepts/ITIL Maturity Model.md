@@ -1,5 +1,5 @@
 ---
-title: ITIL Maturity Model
+name: ITIL Maturity Model
 aliases:
   - Modelo de Maturidade ITIL
 tags:

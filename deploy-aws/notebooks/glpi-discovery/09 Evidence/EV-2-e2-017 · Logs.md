@@ -1,5 +1,5 @@
 ---
-title: EV-2-e2-017 · Logs
+name: EV-2-e2-017 · Logs
 aliases: [EV-2-e2-017]
 tags: [evidence, logs, historico, doc]
 type: evidence

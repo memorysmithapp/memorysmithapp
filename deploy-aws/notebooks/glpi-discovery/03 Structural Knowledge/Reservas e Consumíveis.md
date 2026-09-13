@@ -1,5 +1,5 @@
 ---
-title: Reservas e Consumíveis
+name: Reservas e Consumíveis
 aliases: [Reservation, Consumable, Cartridge, Reservas, Consumíveis, "Reservas (Reservation)", "Consumíveis e Cartuchos"]
 tags: [concept, reserva, consumivel, dominio/gestao]
 type: concept

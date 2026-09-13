@@ -1,5 +1,5 @@
 ---
-title: EV-2-f3-004 · Configuração de e-mail (follow-ups) global e por entidade
+name: EV-2-f3-004 · Configuração de e-mail (follow-ups) global e por entidade
 aliases: [EV-2-f3-004]
 tags: [evidence, email, smtp, notificacao, config]
 type: evidence

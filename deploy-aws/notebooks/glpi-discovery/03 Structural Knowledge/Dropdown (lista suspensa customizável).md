@@ -1,5 +1,5 @@
 ---
-title: Dropdown (lista suspensa customizável)
+name: Dropdown (lista suspensa customizável)
 aliases: [Dropdown, Lista suspensa, Intitulé]
 tags: [dropdown, configuration, glossary]
 type: concept

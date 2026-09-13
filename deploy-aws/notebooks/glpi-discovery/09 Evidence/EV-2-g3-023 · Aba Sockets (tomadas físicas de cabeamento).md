@@ -1,5 +1,5 @@
 ---
-title: EV-2-g3-023 · Aba Sockets (tomadas físicas de cabeamento)
+name: EV-2-g3-023 · Aba Sockets (tomadas físicas de cabeamento)
 aliases: [EV-2-g3-023]
 tags: [evidence, tab, sockets, cables, cabling]
 type: evidence

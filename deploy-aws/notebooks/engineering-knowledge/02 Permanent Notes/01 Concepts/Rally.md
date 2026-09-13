@@ -1,5 +1,5 @@
 ---
-title: Rally
+name: Rally
 aliases:
   - OpenStack Rally
   - Rally Benchmarking

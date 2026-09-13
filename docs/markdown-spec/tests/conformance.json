@@ -7,7 +7,7 @@
       "markdown": "See [[Lei 14.133]] for the general rule.",
       "links": [
         {
-          "title": "Lei 14.133",
+          "name": "Lei 14.133",
           "anchor": null
         }
       ]
@@ -18,7 +18,7 @@
       "markdown": "See [[Lei 14.133|the procurement act]] for the general rule.",
       "links": [
         {
-          "title": "Lei 14.133",
+          "name": "Lei 14.133",
           "anchor": null
         }
       ]
@@ -29,7 +29,7 @@
       "markdown": "| Rule | Where |\n|---|---|\n| The general one | [[Lei 14.133]] |\n",
       "links": [
         {
-          "title": "Lei 14.133",
+          "name": "Lei 14.133",
           "anchor": null
         }
       ]
@@ -40,7 +40,7 @@
       "markdown": "| Rule | Where |\n|---|---|\n| The exception | [[Lei 14.133\\|article 75]] |\n",
       "links": [
         {
-          "title": "Lei 14.133",
+          "name": "Lei 14.133",
           "anchor": null
         }
       ]
@@ -51,7 +51,7 @@
       "markdown": "Rule | Where\n--- | ---\nThe general one | [[Lei 14.133]]\n",
       "links": [
         {
-          "title": "Lei 14.133",
+          "name": "Lei 14.133",
           "anchor": null
         }
       ]
@@ -62,7 +62,7 @@
       "markdown": "See [[Lei 14.133#Article 75]] for the exception.",
       "links": [
         {
-          "title": "Lei 14.133",
+          "name": "Lei 14.133",
           "anchor": "Article 75"
         }
       ]
@@ -73,7 +73,7 @@
       "markdown": "Ver [[Contratação Direta 2.0]].",
       "links": [
         {
-          "title": "Contratação Direta 2.0",
+          "name": "Contratação Direta 2.0",
           "anchor": null
         }
       ]
@@ -84,7 +84,7 @@
       "markdown": "![[Lei 14.133]]",
       "links": [
         {
-          "title": "Lei 14.133",
+          "name": "Lei 14.133",
           "anchor": null
         }
       ]
@@ -95,7 +95,7 @@
       "markdown": "![[Lei 14.133]]\n\nSee also [[Lei 14.133]].",
       "links": [
         {
-          "title": "Lei 14.133",
+          "name": "Lei 14.133",
           "anchor": null
         }
       ]
@@ -106,7 +106,7 @@
       "markdown": "See [the procurement act](../decisions/Lei%2014.133.md).",
       "links": [
         {
-          "title": "Lei 14.133",
+          "name": "Lei 14.133",
           "anchor": null
         }
       ]
@@ -216,8 +216,8 @@
     {
       "id": "frontmatter/reserved-keys",
       "notation": "frontmatter-tags",
-      "markdown": "---\ntitle: Recovery Time Objective\naliases: [RTO]\ntags: [continuity]\nauthor: Heitor Rapcinski\nco-author: [Claude]\ncreated: 2026-09-03\nupdated: 2026-09-05\n---\n\nBody.",
-      "title": "Recovery Time Objective",
+      "markdown": "---\nname: Recovery Time Objective\naliases: [RTO]\ntags: [continuity]\nauthor: Heitor Rapcinski\nco-author: [Claude]\ncreated: 2026-09-03\nupdated: 2026-09-05\n---\n\nBody.",
+      "name": "Recovery Time Objective",
       "facets": {
         "aliases": {
           "kind": "list",
@@ -316,17 +316,29 @@
       }
     },
     {
-      "id": "frontmatter/title-names-the-note-and-is-not-a-facet",
-      "notation": "frontmatter-title",
-      "markdown": "---\ntitle: Lei 14.133\n---\n\nBody.",
-      "title": "Lei 14.133",
+      "id": "frontmatter/name-names-the-note-and-is-not-a-facet",
+      "notation": "frontmatter-name",
+      "markdown": "---\nname: Lei 14.133\n---\n\nBody.",
+      "name": "Lei 14.133",
       "facets": {}
     },
     {
-      "id": "frontmatter/a-title-of-the-wrong-shape-is-not-a-facet-either",
-      "notation": "frontmatter-title",
-      "markdown": "---\ntitle: [one, two]\n---\n\n# Lei 14.133\n",
-      "title": "Lei 14.133",
+      "id": "frontmatter/title-is-an-ordinary-attribute",
+      "notation": "frontmatter-name",
+      "markdown": "---\ntitle: Lei 14.133\n---\n\nBody.",
+      "name": null,
+      "facets": {
+        "title": {
+          "kind": "enum",
+          "values": ["Lei 14.133"]
+        }
+      }
+    },
+    {
+      "id": "frontmatter/a-name-of-the-wrong-shape-is-not-a-facet-either",
+      "notation": "frontmatter-name",
+      "markdown": "---\nname: [one, two]\n---\n\n# Lei 14.133\n",
+      "name": null,
       "facets": {}
     },
     {
@@ -363,7 +375,7 @@
       "markdown": "![[Lei 14.133#^article-75]]",
       "links": [
         {
-          "title": "Lei 14.133",
+          "name": "Lei 14.133",
           "anchor": "^article-75"
         }
       ]
@@ -374,7 +386,7 @@
       "markdown": "![[Lei 14.133#^article-75]]\n\nSee also [[Lei 14.133]].",
       "links": [
         {
-          "title": "Lei 14.133",
+          "name": "Lei 14.133",
           "anchor": "^article-75"
         }
       ]
@@ -420,11 +432,11 @@
       "markdown": "Ver [[Ação]] e [[Acao]].",
       "links": [
         {
-          "title": "Ação",
+          "name": "Ação",
           "anchor": null
         },
         {
-          "title": "Acao",
+          "name": "Acao",
           "anchor": null
         }
       ]
@@ -435,7 +447,7 @@
       "markdown": "Ver [[Ação]] e de novo [[Ação]].",
       "links": [
         {
-          "title": "Ação",
+          "name": "Ação",
           "anchor": null
         }
       ]
@@ -446,11 +458,11 @@
       "markdown": "See [[lei 14.133]] and [[Lei 14.133]].",
       "links": [
         {
-          "title": "lei 14.133",
+          "name": "lei 14.133",
           "anchor": null
         },
         {
-          "title": "Lei 14.133",
+          "name": "Lei 14.133",
           "anchor": null
         }
       ]
@@ -461,7 +473,7 @@
       "markdown": "参照 [[日本語]]。",
       "links": [
         {
-          "title": "日本語",
+          "name": "日本語",
           "anchor": null
         }
       ]
@@ -472,11 +484,11 @@
       "markdown": "Ver [[Reunião 03/09/2026]] e [[and/or]].",
       "links": [
         {
-          "title": "Reunião 03/09/2026",
+          "name": "Reunião 03/09/2026",
           "anchor": null
         },
         {
-          "title": "and/or",
+          "name": "and/or",
           "anchor": null
         }
       ]
@@ -487,7 +499,7 @@
       "markdown": "See [[Lei 14.133.md]].",
       "links": [
         {
-          "title": "Lei 14.133.md",
+          "name": "Lei 14.133.md",
           "anchor": null
         }
       ]
@@ -498,7 +510,7 @@
       "markdown": "See [[Lei%2014.133]].",
       "links": [
         {
-          "title": "Lei%2014.133",
+          "name": "Lei%2014.133",
           "anchor": null
         }
       ]
@@ -509,11 +521,11 @@
       "markdown": "See [the procurement act](Reuni%C3%A3o%2003%2F09%2F2026) and [half](100%25%20done).",
       "links": [
         {
-          "title": "Reunião 03/09/2026",
+          "name": "Reunião 03/09/2026",
           "anchor": null
         },
         {
-          "title": "100% done",
+          "name": "100% done",
           "anchor": null
         }
       ]
@@ -524,7 +536,7 @@
       "markdown": "See [the exception](Lei%2014.133#Article%2075).",
       "links": [
         {
-          "title": "Lei 14.133",
+          "name": "Lei 14.133",
           "anchor": "Article 75"
         }
       ]
@@ -535,115 +547,106 @@
       "markdown": "See [half](50%).",
       "links": [
         {
-          "title": "50%",
+          "name": "50%",
           "anchor": null
         }
       ]
     },
     {
-      "id": "title/is-the-plain-text-of-the-heading",
-      "notation": "note-title",
-      "markdown": "# **Lei** 14.133\n\nThe general rule.\n",
-      "title": "Lei 14.133",
-      "links": []
+      "id": "name/is-the-stated-value",
+      "notation": "note-name",
+      "markdown": "---\nname: Lei 14.133\n---\n\nThe general rule.\n",
+      "name": "Lei 14.133"
     },
     {
-      "id": "title/a-setext-heading-gives-the-same-title",
-      "notation": "note-title",
+      "id": "name/a-level-1-heading-names-nothing",
+      "notation": "note-name",
+      "markdown": "# Lei 14.133\n\nThe general rule.\n",
+      "name": null
+    },
+    {
+      "id": "name/a-setext-heading-names-nothing",
+      "notation": "note-name",
       "markdown": "Lei 14.133\n==========\n\nThe general rule.\n",
-      "title": "Lei 14.133",
-      "links": []
+      "name": null
     },
     {
-      "id": "title/frontmatter-does-not-displace-it",
-      "notation": "note-title",
-      "markdown": "---\ntags: [contracts]\n---\n\n# Lei 14.133\n\nThe general rule.\n",
-      "title": "Lei 14.133",
-      "links": []
+      "id": "name/a-heading-beside-a-name-is-content",
+      "notation": "note-name",
+      "markdown": "---\nname: Lei 14.133\n---\n\n# The general rule\n\nThe body.\n",
+      "name": "Lei 14.133"
     },
     {
-      "id": "title/a-heading-in-a-fence-is-not-a-title",
-      "notation": "note-title",
-      "markdown": "```markdown\n# Lei 14.133\n```\n",
-      "title": null,
-      "links": []
+      "id": "name/is-read-literally-and-not-as-inline-markup",
+      "notation": "note-name",
+      "markdown": "---\nname: \"**Lei** 14.133\"\n---\n\nThe general rule.\n",
+      "name": "**Lei** 14.133"
     },
     {
-      "id": "title/a-note-with-no-level-1-heading-has-none",
-      "notation": "note-title",
-      "markdown": "## Article 75\n\nThe exception.\n",
-      "title": null,
-      "links": []
+      "id": "name/other-frontmatter-names-nothing",
+      "notation": "note-name",
+      "markdown": "---\ntags: [contracts]\n---\n\n# Lei 14.133\n",
+      "name": null
     },
     {
-      "id": "title/a-reserved-character-leaves-no-addressable-title",
-      "notation": "note-title",
-      "markdown": "# C# basics\n\nNotes on the language.\n",
-      "title": null,
-      "links": []
-    },
-    {
-      "id": "title/the-second-level-1-heading-is-an-ordinary-heading",
-      "notation": "note-title",
-      "markdown": "# Lei 14.133\n\nThe general rule.\n\n# Article 75\n\nThe exception.\n",
-      "title": "Lei 14.133",
-      "links": []
-    },
-    {
-      "id": "title/frontmatter-title-wins-over-the-heading",
-      "notation": "note-title",
-      "markdown": "---\ntitle: Lei 14.133\n---\n\n# The general rule\n\nThe body.\n",
-      "title": "Lei 14.133",
-      "links": []
-    },
-    {
-      "id": "title/frontmatter-title-with-no-heading-at-all",
-      "notation": "note-title",
+      "id": "name/a-title-key-names-nothing",
+      "notation": "note-name",
       "markdown": "---\ntitle: Lei 14.133\n---\n\nThe general rule.\n",
-      "title": "Lei 14.133",
-      "links": []
+      "name": null
     },
     {
-      "id": "title/an-empty-frontmatter-title-falls-back-to-the-heading",
-      "notation": "note-title",
-      "markdown": "---\ntitle:\n---\n\n# Lei 14.133\n\nThe general rule.\n",
-      "title": "Lei 14.133",
-      "links": []
+      "id": "name/an-empty-name-is-no-name",
+      "notation": "note-name",
+      "markdown": "---\nname:\n---\n\n# Lei 14.133\n",
+      "name": null
     },
     {
-      "id": "title/a-list-shaped-frontmatter-title-falls-back-to-the-heading",
-      "notation": "note-title",
-      "markdown": "---\ntitle:\n  - Lei 14.133\n  - Lei 14133\n---\n\n# Lei 14.133\n\nThe general rule.\n",
-      "title": "Lei 14.133",
-      "links": []
+      "id": "name/a-list-shaped-name-is-no-name",
+      "notation": "note-name",
+      "markdown": "---\nname:\n  - Lei 14.133\n  - Lei 14133\n---\n\n# Lei 14.133\n",
+      "name": null
     },
     {
-      "id": "title/a-frontmatter-title-carrying-a-delimiter-has-no-address",
-      "notation": "note-title",
-      "markdown": "---\ntitle: Lei 14.133 [revogada]\n---\n\n# Lei 14.133\n\nThe general rule.\n",
-      "title": null,
-      "links": []
+      "id": "name/a-name-carrying-a-delimiter-is-no-name",
+      "notation": "note-name",
+      "markdown": "---\nname: Lei 14.133 [revogada]\n---\n\n# Lei 14.133\n",
+      "name": null
     },
     {
-      "id": "title/no-frontmatter-title-and-no-heading-is-no-title",
-      "notation": "note-title",
-      "markdown": "---\ntags: [contracts]\n---\n\nThe general rule.\n",
-      "title": null,
-      "links": []
+      "id": "name/a-hash-in-a-name-is-no-name",
+      "notation": "note-name",
+      "markdown": "---\nname: C# basics\n---\n\nNotes on the language.\n",
+      "name": null
     },
     {
-      "id": "title/a-frontmatter-title-is-not-capped-at-forty-characters",
-      "notation": "note-title",
-      "markdown": "---\ntitle: Plano de continuidade de negócios e recuperação de desastres\n---\n\n# PCN\n\nO plano.\n",
-      "title": "Plano de continuidade de negócios e recuperação de desastres",
-      "links": []
+      "id": "name/a-slash-is-an-ordinary-character",
+      "notation": "note-name",
+      "markdown": "---\nname: Reunião 03/09/2026\n---\n\nA ata.\n",
+      "name": "Reunião 03/09/2026"
     },
     {
-      "id": "title/a-title-written-in-pt-br-is-a-title",
-      "notation": "note-title",
-      "markdown": "---\ntitle: Recuperação de desastre\n---\n\n# RD\n\nO plano.\n",
-      "title": "Recuperação de desastre",
-      "links": []
+      "id": "name/is-not-capped-at-forty-characters",
+      "notation": "note-name",
+      "markdown": "---\nname: Plano de continuidade de negócios e recuperação de desastres\n---\n\n# PCN\n\nO plano.\n",
+      "name": "Plano de continuidade de negócios e recuperação de desastres"
+    },
+    {
+      "id": "name/a-name-written-in-pt-br-is-a-name",
+      "notation": "note-name",
+      "markdown": "---\nname: Recuperação de desastre\n---\n\n# RD\n\nO plano.\n",
+      "name": "Recuperação de desastre"
+    },
+    {
+      "id": "name/quotes-and-surrounding-whitespace-are-not-part-of-it",
+      "notation": "note-name",
+      "markdown": "---\nname: \"  Lei 14.133  \"\n---\n\nThe general rule.\n",
+      "name": "Lei 14.133"
+    },
+    {
+      "id": "name/a-block-that-does-not-open-the-document-names-nothing",
+      "notation": "note-name",
+      "markdown": "Intro.\n\n---\nname: Lei 14.133\n---\n",
+      "name": null
     },
     {
       "id": "wikilink/a-numeric-alias-is-still-an-alias",
@@ -651,7 +654,7 @@
       "markdown": "See [[Lei 14.133|100]] for the general rule.",
       "links": [
         {
-          "title": "Lei 14.133",
+          "name": "Lei 14.133",
           "anchor": null
         }
       ]
@@ -663,15 +666,15 @@
       "links": []
     },
     {
-      "id": "resolution/one-title-in-two-notes-is-two-edges",
+      "id": "resolution/one-name-in-two-notes-is-two-edges",
       "notation": "wikilink",
       "notebook": {
-        "notes": ["# Índice\n", "# Índice\n\nOutra nota, mesmo título.\n"]
+        "notes": ["---\nname: Índice\n---\n", "---\nname: Índice\n---\n\nOutra nota, mesmo nome.\n"]
       },
       "markdown": "Ver [[Índice]].",
       "links": [
         {
-          "title": "Índice",
+          "name": "Índice",
           "anchor": null
         }
       ],
@@ -684,15 +687,15 @@
       ]
     },
     {
-      "id": "resolution/a-title-no-note-carries-is-pending",
+      "id": "resolution/a-name-no-note-carries-is-pending",
       "notation": "wikilink",
       "notebook": {
-        "notes": ["# Lei 14.133\n"]
+        "notes": ["---\nname: Lei 14.133\n---\n"]
       },
       "markdown": "See [[Lei 14.134]].",
       "links": [
         {
-          "title": "Lei 14.134",
+          "name": "Lei 14.134",
           "anchor": null
         }
       ],
@@ -708,12 +711,12 @@
       "id": "resolution/case-must-match-exactly",
       "notation": "wikilink",
       "notebook": {
-        "notes": ["# Lei 14.133\n"]
+        "notes": ["---\nname: Lei 14.133\n---\n"]
       },
       "markdown": "See [[lei 14.133]].",
       "links": [
         {
-          "title": "lei 14.133",
+          "name": "lei 14.133",
           "anchor": null
         }
       ],
@@ -729,12 +732,12 @@
       "id": "resolution/nfd-and-nfc-name-one-note",
       "notation": "wikilink",
       "notebook": {
-        "notes": ["# Ação\n"]
+        "notes": ["---\nname: Ação\n---\n"]
       },
       "markdown": "Ver [[Ação]].",
       "links": [
         {
-          "title": "Ação",
+          "name": "Ação",
           "anchor": null
         }
       ],
@@ -747,15 +750,15 @@
       ]
     },
     {
-      "id": "resolution/a-note-with-no-level-1-heading-cannot-be-addressed",
-      "notation": "note-title",
+      "id": "resolution/a-note-with-no-name-cannot-be-addressed",
+      "notation": "note-name",
       "notebook": {
-        "notes": ["## Article 75\n\nThe exception.\n"]
+        "notes": ["# Article 75\n\nThe exception.\n"]
       },
       "markdown": "See [[Article 75]].",
       "links": [
         {
-          "title": "Article 75",
+          "name": "Article 75",
           "anchor": null
         }
       ],
@@ -776,7 +779,7 @@
       "markdown": "![[engelbart.jpg]]",
       "links": [
         {
-          "title": "engelbart.jpg",
+          "name": "engelbart.jpg",
           "anchor": null
         }
       ],
@@ -797,7 +800,7 @@
       "markdown": "![[engelbart.jpg|100x145]]",
       "links": [
         {
-          "title": "engelbart.jpg",
+          "name": "engelbart.jpg",
           "anchor": null
         }
       ],
@@ -813,12 +816,12 @@
       "id": "resolution/the-markdown-form-reaches-the-same-note",
       "notation": "markdown-relative-link",
       "notebook": {
-        "notes": ["# Lei 14.133\n"]
+        "notes": ["---\nname: Lei 14.133\n---\n"]
       },
       "markdown": "See [the procurement act](../decisions/Lei%2014.133.md).",
       "links": [
         {
-          "title": "Lei 14.133",
+          "name": "Lei 14.133",
           "anchor": null
         }
       ],
@@ -831,19 +834,19 @@
       ]
     },
     {
-      "id": "resolution/a-link-resolves-against-the-frontmatter-title",
-      "notation": "note-title",
+      "id": "resolution/a-heading-is-not-what-a-link-resolves-against",
+      "notation": "note-name",
       "notebook": {
-        "notes": ["---\ntitle: Lei 14.133\n---\n\n# The general rule\n"]
+        "notes": ["---\nname: Lei 14.133\n---\n\n# The general rule\n"]
       },
       "markdown": "See [[Lei 14.133]], not [[The general rule]].",
       "links": [
         {
-          "title": "Lei 14.133",
+          "name": "Lei 14.133",
           "anchor": null
         },
         {
-          "title": "The general rule",
+          "name": "The general rule",
           "anchor": null
         }
       ],
@@ -861,15 +864,36 @@
       ]
     },
     {
-      "id": "resolution/an-alias-catches-a-target-no-title-matches",
+      "id": "resolution/a-title-key-is-not-what-a-link-resolves-against",
+      "notation": "note-name",
+      "notebook": {
+        "notes": ["---\ntitle: Lei 14.133\n---\n\nThe general rule.\n"]
+      },
+      "markdown": "See [[Lei 14.133]].",
+      "links": [
+        {
+          "name": "Lei 14.133",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Lei 14.133",
+          "kind": "pending",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/an-alias-catches-a-target-no-name-matches",
       "notation": "frontmatter-aliases",
       "notebook": {
-        "notes": ["---\naliases: [RTO]\n---\n\n# Recovery Time Objective\n"]
+        "notes": ["---\nname: Recovery Time Objective\naliases: [RTO]\n---\n"]
       },
       "markdown": "See [[RTO]].",
       "links": [
         {
-          "title": "RTO",
+          "name": "RTO",
           "anchor": null
         }
       ],
@@ -882,15 +906,18 @@
       ]
     },
     {
-      "id": "resolution/an-alias-does-not-take-a-link-a-title-already-matches",
+      "id": "resolution/an-alias-does-not-take-a-link-a-name-already-matches",
       "notation": "frontmatter-aliases",
       "notebook": {
-        "notes": ["---\naliases: [Índice]\n---\n\n# Recovery Time Objective\n", "# Índice\n"]
+        "notes": [
+          "---\nname: Recovery Time Objective\naliases: [Índice]\n---\n",
+          "---\nname: Índice\n---\n"
+        ]
       },
       "markdown": "Ver [[Índice]].",
       "links": [
         {
-          "title": "Índice",
+          "name": "Índice",
           "anchor": null
         }
       ],
@@ -907,14 +934,14 @@
       "notation": "frontmatter-aliases",
       "notebook": {
         "notes": [
-          "---\naliases: [RTO]\n---\n\n# Recovery Time Objective\n",
-          "---\naliases: [RTO]\n---\n\n# Objetivo de tempo de recuperação\n"
+          "---\nname: Recovery Time Objective\naliases: [RTO]\n---\n",
+          "---\nname: Objetivo de tempo de recuperação\naliases: [RTO]\n---\n"
         ]
       },
       "markdown": "See [[RTO]].",
       "links": [
         {
-          "title": "RTO",
+          "name": "RTO",
           "anchor": null
         }
       ],

@@ -1,5 +1,5 @@
 ---
-title: Ciclo de vida de um Ticket (máquina de estados)
+name: Ciclo de vida de um Ticket (máquina de estados)
 aliases: [Máquina de estados do Ticket, status ticket]
 tags: [state-machine, itil, dominio/service-desk]
 type: state-machine

@@ -1,5 +1,5 @@
 ---
-title: Alias (Obsidian)
+name: Alias (Obsidian)
 aliases:
   - Alias
   - Aliases

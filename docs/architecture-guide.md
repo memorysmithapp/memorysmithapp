@@ -49,7 +49,7 @@ For **what** the product does and under which business rule, see [`software-visi
 | **D3** | **Isolation by subscription from the first line**, with the `SubscriptionId` in the leading key of every item, in every service | Introducing the boundary later, which amounts to rekeying everything |
 | **D4** | **Subscription → Notebook**, where the subscription is the boundary, the unit of collaboration **and** the business object | A technical tenant separate from the subscription; an intermediate workspace level (removed, `software-vision.md` §4.3) |
 | **D5** | **Tactical DDD plus Hexagonal, one deployable per bounded context** as the target design | A modular monolith (see §24) |
-| **D6** | **Discovery by link graph, by text and by facets, the three projections of events.** The search is literal and scans the notebook under the declared ceiling; the vector one was withdrawn in 0.2.0 (§11.2) | Search by title only |
+| **D6** | **Discovery by link graph, by text and by facets, the three projections of events.** The search is literal and scans the notebook under the declared ceiling; the vector one was withdrawn in 0.2.0 (§11.2) | Search by name only |
 | **D7** | **Provenance and immutable history in the core** | An application log; versioning in S3 only |
 
 ### 1.2 Topology
@@ -238,7 +238,7 @@ memorysmith-frontend/
 │   │   ├── template/                   # the editor of the folder Template
 │   │   ├── note/                       # reading, editing, backlinks, related notes
 │   │   ├── history/                    # the timeline and the diff between revisions
-│   │   ├── search/                     # lexical, over title and folder
+│   │   ├── search/                     # lexical, over name and folder
 │   │   ├── health/                     # broken links and orphans
 │   │   ├── members/                    # invitations and roles
 │   │   └── connect/                    # the MCP URL and the walkthrough per client
@@ -369,7 +369,7 @@ export class Note {
     private readonly id: NoteId,
     private notebookId: NotebookId,
     private folderId: FolderId,
-    private title: string | null,       // read from the body (RN-KNW-035)
+    private name: string | null,        // the name: of the body (RN-KNW-035)
     private position: Position,         // order within the folder (§6.4)
     private body: ContentRef,           // opaque pointer to a Content Slot (§9.2)
     private readonly createdBy: Authorship,
@@ -393,8 +393,8 @@ export class Note {
 Details that follow from it:
 
 - `notebookId` is **not `readonly`**: moving between notebooks is a first-class operation and the `NoteId` is preserved (RN-KNW-023). That is what keeps the timeline intact in `svc-audit`, whose key is by subject and not by notebook (§12.2). "Moving" implemented as delete plus create would lose the history exactly where it matters.
-- **There is no `retitle`, and no `NoteTitle` to pass to one.** A note is named by what it says, and `replaceBody` is where the title is read (RN-KNW-035, RN-KNW-038). It takes the body **and** the reference to it, because a use case that passed a title in could pass one the content does not state: the derivation belongs inside the aggregate, where it cannot be skipped.
-- **`moveTo` carries no conflict policy.** A title collides with nothing, in one notebook or in two (RN-KNW-037), so a destination has nothing to refuse and `SlugConflictPolicy` is gone with the rule that motivated it (RN-KNW-022, removed).
+- **There is no `rename`, and no `NoteName` to pass to one.** A note is named by the `name:` it states, and `replaceBody` is where the name is read (RN-KNW-035, RN-KNW-038). It takes the body **and** the reference to it, because a use case that passed a name in could pass one the content does not state: the reading belongs inside the aggregate, where it cannot be skipped.
+- **`moveTo` carries no conflict policy.** A name collides with nothing, in one notebook or in two (RN-KNW-037), so a destination has nothing to refuse and `SlugConflictPolicy` is gone with the rule that motivated it (RN-KNW-022, removed).
 - `replaceBody` takes a `ContentRef` that is already written: whoever talks to S3 is the use case, never the aggregate (§10.3).
 - `delete` marks, it does not destroy: the `bodyRef` remains and the timeline stays readable by `NoteId`.
 
@@ -582,7 +582,7 @@ For the MCP connector, the `subscription_id` enters the access token at the mome
 
 | Where | What | Why |
 |---|---|---|
-| **DynamoDB** | **All the meaning**: structure, order, descriptions, the identity of the note (title, slug, folder, authorship), which blob is a guidance and which is a template, members, graph edges, the audit trail | Queryable, transactional, conditional |
+| **DynamoDB** | **All the meaning**: structure, order, descriptions, the identity of the note (name, folder, authorship), which blob is a guidance and which is a template, members, graph edges, the audit trail | Queryable, transactional, conditional |
 | **S3** | **Markdown blobs with no meaning**, addressed by an opaque ID, in every revision | No 400 KB ceiling, native versioning, lower cost per GB |
 
 The split is not "metadata here, content there". It is stronger: **S3 does not know what it holds.** A notebook, a folder and a note are logical concepts existing entirely in DynamoDB; in S3 there is a flat pile of blobs, all alike.
@@ -637,7 +637,7 @@ Moving between notebooks is the **only operation in the system that writes to tw
 
 **The trade-off: the bucket becomes unreadable to humans.** Two answers, both cheap:
 
-1. **Immutable metadata on `PutObject`**, with `subscription-id`, `content-id` and `created-at`. Only what never changes. We deliberately do **not** write `notebookId`, `folderId` or the title: they become lies on the first move, and keeping them up to date would give S3 back exactly the write we are eliminating.
+1. **Immutable metadata on `PutObject`**, with `subscription-id`, `content-id` and `created-at`. Only what never changes. We deliberately do **not** write `notebookId`, `folderId` or the name: they become lies on the first move, and keeping them up to date would give S3 back exactly the write we are eliminating.
 2. **The audit trail is the recovery index.** Since every content event carries the complete `ContentRef` (§6.5), `svc-audit` holds every `(noteId, contentId, versionId)` tuple that has ever existed. With the Knowledge table lost beyond the PITR window, the mapping is rebuildable from it.
 
 ### 9.3 Single-table design: `mv-knowledge`
@@ -650,7 +650,7 @@ Moving between notebooks is the **only operation in the system that writes to tw
 | Subscription usage | `S#{s}#NOTEBOOKS` | `USAGE` | storedBytes, updatedAt (asynchronous projection, §10.3, RN-SUB-021) |
 | Notebook counter | `S#{s}#NOTEBOOK#{v}` | `FSTAT` | noteCount, updatedAt; indexed in `GSI1` as `NBSTAT#{v}` |
 | Role ceiling in the notebook | `S#{s}#NOTEBOOK#{v}` | `LIMIT#{userId}` | limit (`VIEWER`), setBy, setAt: the demotion of §5.3 of the product |
-| Note | `S#{s}#NOTEBOOK#{v}` | `NOTE#{noteId}` | folderId, title, slug, position, **bodyRef**, createdBy, updatedBy, version, `deletedAt?`, `deletedBy?` |
+| Note | `S#{s}#NOTEBOOK#{v}` | `NOTE#{noteId}` | folderId, name, position, **bodyRef**, createdBy, updatedBy, version, `deletedAt?`, `deletedBy?` |
 | Folder slug guard | `S#{s}#NOTEBOOK#{v}` | `SLUG#{parentId}#{slug}` | enforces I1 through `attribute_not_exists` |
 | Projection dedup | `S#{s}#NOTEBOOK#{v}` | `SEEN#{eventUlid}` | ttl; makes the counter exactly-once |
 | Outbox | `S#{s}#NOTEBOOK#{v}` | `EVENT#{ulid}` | payload, ttl |
@@ -785,9 +785,9 @@ Three projections over the same events. All of them **derived** (PE5): deleting 
 
 **And for the link graph it is a script, not a plan.** `deploy-aws/reproject-links.ps1` forgets every edge, backlink, pending link and alias edge of a notebook, restates what the notebook answers to from the notes themselves, and lets the ordinary write path resolve every target again — deliberately the product's own code, because a rebuild taking its own path to the table would be a second implementation of the projection, and the day the two disagreed the rebuild would be the one nobody tested. It reports first and writes only with `-Apply`. It exists because 0.6.0 retired the rule the graph in the table had been built by, and it stays because that is what PE5 costs.
 
-**There are three sanctioned readers of content, and the third one is not here.** `noteTitle`, in `packages/kernel`, reads the title of a note in the chain of the specification: `title:` of the frontmatter, then the first level-1 heading (RN-KNW-035). It lives in the kernel because **Knowledge needs it synchronously, on the write** — a listing cannot wait for a projection to know what a note is called — and Discovery needs the same answer when it resolves a link. One function, two contexts, and no way for them to disagree.
+**There are three sanctioned readers of content, and the third one is not here.** `noteName`, in `packages/kernel`, reads the name of a note: the `name:` of its frontmatter, and nothing else (RN-KNW-035). It lives in the kernel because **Knowledge needs it synchronously, on the write** — a listing cannot wait for a projection to know what a note is called — and Discovery needs the same answer when it resolves a link. One function, two contexts, and no way for them to disagree.
 
-That amends the rule "only the two extractors read content", deliberately and in the open, and it is a smaller amendment than it looks: what the third reader reads is **the same frontmatter block §11.3 already reads**, plus a heading. The reason of the rule is untouched — what is read is the notation the specification declares and nothing else, never a notebook convention and never a vocabulary this backend holds a list of (PP4).
+That amends the rule "only the two extractors read content", deliberately and in the open, and it is a smaller amendment than it looks: what the third reader reads is **one key of the same frontmatter block §11.3 already reads**, and no heading at all. The reason of the rule is untouched — what is read is the notation the specification declares and nothing else, never a notebook convention and never a vocabulary this backend holds a list of (PP4).
 
 The frontmatter block and the YAML subset of §6.2 live in the kernel with it, and `FacetExtractor` reads them from there. **There is exactly one function in this repository that finds the frontmatter of a body**, which is the property `slugify` lost by being written twice.
 
@@ -797,7 +797,7 @@ The frontmatter block and the YAML subset of §6.2 live in the kernel with it, a
 
 **How it enters the build.** It is a package of the workspace, `@memorysmith/markdown-spec`, and exactly one package depends on it: `packages/contracts`, which re-exports it. The frontend reads the notation and the cases from the contracts, like everything else it takes from the backend, and dependency-cruiser refuses an import of the specification from anywhere in the frontend. The `test` script of the package is `tools/check-spec.mjs`, which validates `spec.json` against its schema and refuses a notation with no case, so the agreement of the three files is checked wherever the suites run.
 
-`RECOGNISED_NOTATION` in `packages/contracts` is a **projection of `spec.json`**, not a list beside it, and it lives there for the reason it always did: two contexts need it and may never import each other. Discovery reads the notation, in its two sanctioned extractors; Agent Access teaches it, in the skill. The third reader, `noteTitle` in the kernel, reads one form of the same table (§11).
+`RECOGNISED_NOTATION` in `packages/contracts` is a **projection of `spec.json`**, not a list beside it, and it lives there for the reason it always did: two contexts need it and may never import each other. Discovery reads the notation, in its two sanctioned extractors; Agent Access teaches it, in the skill. The third reader, `noteName` in the kernel, reads one key of the same table (§11).
 
 **Three layers, and each one is proved by a test of its own kind (RN-AGT-023):**
 
@@ -830,9 +830,9 @@ The frontmatter block and the YAML subset of §6.2 live in the kernel with it, a
 
 A block embed resolves through `blockOf` in `transclusion.ts`, told apart from a section anchor by the `^` marker rather than by trying one and falling back — a section named `^x` and a block called `x` would otherwise answer for each other.
 
-**The slug was computed twice, and it is computed nowhere now.** Two copies of one rule — `packages/kernel/src/slug.ts` and one inside the frontend — drifted in silence and produced the defect that opened the last cycle: the interface was missing the digit-separator step, so `[[Lei 14.133]]` addressed `lei-14-133`, found no note, and drew a real edge as a pending link. A link resolves against the title now (RN-DSC-041), and the two surfaces are pinned to the same published cases for the **reading** of a target rather than for a computation over it.
+**The slug was computed twice, and it is computed nowhere now.** Two copies of one rule — `packages/kernel/src/slug.ts` and one inside the frontend — drifted in silence and produced the defect that opened the last cycle: the interface was missing the digit-separator step, so `[[Lei 14.133]]` addressed `lei-14-133`, found no note, and drew a real edge as a pending link. A link resolves against the name now (RN-DSC-041), and the two surfaces are pinned to the same published cases for the **reading** of a target rather than for a computation over it.
 
-**The two addresses of the interface are a decision, not a detail.** A **URL is an address**: the product writes it, a person copies it, and pasting it back has to land on the note it was copied from. A **wikilink is a name**: it names a title, and a title may be carried by several notes (RN-KNW-037). Merging the two made the address inherit the ambiguity of the name, so they are separate:
+**The two addresses of the interface are a decision, not a detail.** A **URL is an address**: the product writes it, a person copies it, and pasting it back has to land on the note it was copied from. A **wikilink is a name**: it names a note by its name, and a name may be carried by several notes (RN-KNW-037). Merging the two made the address inherit the ambiguity of the name, so they are separate:
 
 | Address | What it names | Ambiguous? |
 |---|---|---|
@@ -849,11 +849,11 @@ The split is not tidiness. A rendering assertion cannot live in a JSON file — 
 
 `LinkExtractor` (§6.6) runs on every `NoteCreated` and `NoteUpdated`, and it says what a note **points at**; what a note **answers to** comes from two places, so resolving is a step of its own (`LinkResolver.ts`).
 
-**A target is a title, and the two forms reach it differently.** A wikilink target is literal: nothing in it is decoded, no extension is removed and no path segment is discarded (RN-DSC-043). The three tolerances belong to the Markdown form, in the order the specification fixes — split at the first unencoded `#`, then the path, then the extension, then decode. Decoding earlier undoes the escaping it exists for: `C%23%20basics` would split at a `#` its author encoded precisely so it would not be a delimiter.
+**A target is a name, and the two forms reach it differently.** A wikilink target is literal: nothing in it is decoded, no extension is removed and no path segment is discarded (RN-DSC-043). The three tolerances belong to the Markdown form, in the order the specification fixes — split at the first unencoded `#`, then the path, then the extension, then decode. Decoding earlier undoes the escaping it exists for: `C%23%20basics` would split at a `#` its author encoded precisely so it would not be a delimiter.
 
-**Resolution answers three things, and for the first one it counts.** Every note whose title matches becomes an edge (RN-DSC-042); only when none did is the target compared against the `aliases` of the notebook (RN-DSC-052); an attachment renders and is never an edge (RN-DSC-044); anything else is pending. The order of title before alias is normative and it is the whole of what keeps the frontmatter out of the graph.
+**Resolution answers three things, and for the first one it counts.** Every note whose name matches becomes an edge (RN-DSC-042); only when none did is the target compared against the `aliases` of the notebook (RN-DSC-052); an attachment renders and is never an edge (RN-DSC-044); anything else is pending. The order of name before alias is normative and it is the whole of what keeps the frontmatter out of the graph.
 
-**And that order is what makes resolution stop being monotonic.** An edge that exists by alias disappears the day somebody writes a note carrying that title — in a third note nobody touched, whose own bytes did not change (RN-DSC-053). So the projection carries an `ALIAS#{title}#{from}#{to}` item for every edge it resolved that way, and a note arriving under that title takes them back. The in-memory adapter does not need it: it keeps what each note points at and derives the edges from the notebook as it stands, which is the same answer computed rather than maintained, and it is the implementation the DynamoDB one has to agree with.
+**And that order is what makes resolution stop being monotonic.** An edge that exists by alias disappears the day somebody writes a note carrying that name — in a third note nobody touched, whose own bytes did not change (RN-DSC-053). So the projection carries an `ALIAS#{name}#{from}#{to}` item for every edge it resolved that way, and a note arriving under that name takes them back. The in-memory adapter does not need it: it keeps what each note points at and derives the edges from the notebook as it stands, which is the same answer computed rather than maintained, and it is the implementation the DynamoDB one has to agree with.
 
 **An image is not a link (RN-DSC-038).** The extractor matched `[alt](destination)` without looking at the `!` in front of it, so a picture became a note: `![Curve](./curve.png)` produced a pending link called `curve-png`. A public image never showed it, because an address with a scheme is external and dropped by RN-DSC-003 — the relative form is where it bit. The embed keeps its edge: it is read by the wikilink pattern, which requires no parenthesis, and the two patterns never meet.
 
@@ -867,12 +867,12 @@ The split is not tidiness. A rendering assertion cannot live in a JSON file — 
 |---|---|---|
 | Outgoing edge | `S#{s}#NOTEBOOK#{v}` | `OUT#{fromNoteId}#{toNoteId}` |
 | Incoming edge (backlink) | `S#{s}#NOTEBOOK#{v}` | `IN#{toNoteId}#{fromNoteId}` |
-| Pending link | `S#{s}#NOTEBOOK#{v}` | `PENDING#{title}#{fromNoteId}` |
-| Edge held by an alias | `S#{s}#NOTEBOOK#{v}` | `ALIAS#{title}#{fromNoteId}#{toNoteId}` |
+| Pending link | `S#{s}#NOTEBOOK#{v}` | `PENDING#{name}#{fromNoteId}` |
+| Edge held by an alias | `S#{s}#NOTEBOOK#{v}` | `ALIAS#{name}#{fromNoteId}#{toNoteId}` |
 
 The edge is written in both directions: a backlink becomes a `Query`, not a scan. Traversal is BFS with a maximum depth of 3 and a ceiling of 200 nodes, deduplicating cycles (RN-DSC-007).
 
-`NoteMoved` between folders **does not touch the graph**, because an edge is `noteId → noteId` and the folder takes no part in it. `NoteMoved` between notebooks prunes the edges of the note in the source notebook and re-resolves the outgoing ones against the titles of the destination.
+`NoteMoved` between folders **does not touch the graph**, because an edge is `noteId → noteId` and the folder takes no part in it. `NoteMoved` between notebooks prunes the edges of the note in the source notebook and re-resolves the outgoing ones against the names of the destination.
 
 ### 11.2 Search
 
@@ -882,7 +882,7 @@ The search is **literal over the text of the notebook**, answered from one item 
 |---|---|---|
 | Searchable portrait | `S#{s}#NOTEBOOK#{v}` | `TEXT#{noteId}` |
 
-The item holds the title, the folder, the headings, the facets and the body **twice**: normalised for matching, and as it was written for the excerpt. Normalisation is done character by character, and each character contributes exactly the size it occupied, so a position in the normalised text is the same position in the original. That is what makes it possible to cut the excerpt out of the text the person wrote: an `NFD` over the whole string shifts every offset after the first accent, and the reader would get a passage cut a few characters off, or lowered prose nobody typed.
+The item holds the name, the folder, the headings, the facets and the body **twice**: normalised for matching, and as it was written for the excerpt. Normalisation is done character by character, and each character contributes exactly the size it occupied, so a position in the normalised text is the same position in the original. That is what makes it possible to cut the excerpt out of the text the person wrote: an `NFD` over the whole string shifts every offset after the first accent, and the reader would get a passage cut a few characters off, or lowered prose nobody typed.
 
 **The scan covers the whole notebook, and that is a choice, not a shortcut.** The ceiling is 2,000 notes per notebook (`software-vision.md` §14), around 8 MB, and at that size scanning costs 1,061 read units per query, something like US$ 0.00027. An inverted index would be cheaper per query and far more expensive to keep correct: every write would have to update the postings of every term, and the difference in money, at the declared ceiling, is cents per month. The comparison with the vector index that left is the whole argument:
 
@@ -893,7 +893,7 @@ The item holds the title, the folder, the headings, the facets and the body **tw
 
 **What the scan may not do is stop early.** `scanNotebook` walks every page of the `Query`, and there is a test with nine fake pages proving it. It is not an optimisation detail: it was exactly a `Query` stopping at the first 1 MB page that broke the previous search, and 8 MB is eight pages.
 
-**The query language** (`SearchQuery.ts`) is pure domain, with no AWS and no I/O, and therefore tested entirely without infrastructure. It knows four fields by name, `title`, `folder`, `content` and `section`, and resolves **any other prefix as a facet**. No list of facet names exists in the code, which is the same decision as in `FacetExtractor` (§11.3) carried through to the query: the vocabulary belongs to the Guidance, so a notebook that starts writing `norma: federal` gets `norma:federal` as a filter the same day.
+**The query language** (`SearchQuery.ts`) is pure domain, with no AWS and no I/O, and therefore tested entirely without infrastructure. It knows four fields by name, `name`, `folder`, `content` and `section`, and resolves **any other prefix as a facet**, `title:` included. No list of facet names exists in the code, which is the same decision as in `FacetExtractor` (§11.3) carried through to the query: the vocabulary belongs to the Guidance, so a notebook that starts writing `norma: federal` gets `norma:federal` as a filter the same day.
 
 **What was there before, and why it left.** Up to 0.1.0 Discovery kept a vector index: notes were cut into chunks by heading, each chunk got a context prefix (`notebook › folder › folder description › title`), went to Bedrock Titan Text Embeddings V2 at 1024 dimensions, and the vector was written as a list of `Number` in the `mv-discovery` table itself, in `CHUNK#{noteId}#{i}` items.
 
@@ -921,7 +921,7 @@ The third projection, the one that serves the curation panel. The business rules
 
 **The first operator of the query language is in `SearchQuery.ts`, and its shape is a precedent** (RN-DSC-034). The comparison is the node — `{ kind: 'compare', facet, op, value }` — and the range is desugared into two of them **at parse time**, so everything past the parser sees one shape and there is one semantics to test. Comparison is lexicographic over the canonicalised date, cut to the length of the operand, which is what makes `created:<=2026-02` include the fifteenth of February instead of excluding most of the month. Two refusals are part of the operator rather than of the caller: a range with inverted ends is a `QuerySyntaxError` at parse time, and an interval over an attribute this notebook does not hold as a date is refused in `SearchNotes`, once, against the kinds the scan already carries — because "is this attribute a date" is a fact about the notebook and not about the query string.
 
-**Four keys are reserved, and reserving is declaring** (RN-DSC-030). `aliases`, `tags`, `created` and `updated` are spelled in en-US in every notebook, and this extractor still treats them like any other attribute: a reserved key of the wrong shape degrades instead of failing. Two of them reach further than the counts. The kind of every facet travels into the content index, because a facet of kind `date` is matched by **prefix** in the query language and not by substring (RN-DSC-031), and the values of `aliases` travel there as other spellings of the title, answering wherever the title does (RN-DSC-032). Both fields are optional on `IndexedNote`: an item written before they existed answers without them, so a search keeps working while the projection is rebuilt rather than going silent.
+**Seven keys are reserved, and reserving is declaring** (RN-DSC-030). `name`, `aliases`, `tags`, `author`, `co-author`, `created` and `updated` are spelled in en-US in every notebook, and this extractor treats every one but `name` like any other attribute: a reserved key of the wrong shape degrades instead of failing. Two of them reach further than the counts. The kind of every facet travels into the content index, because a facet of kind `date` is matched by **prefix** in the query language and not by substring (RN-DSC-031), and the values of `aliases` travel there as other spellings of the name, answering wherever the name does (RN-DSC-032). Both fields are optional on `IndexedNote`: an item written before they existed answers without them, so a search keeps working while the projection is rebuilt rather than going silent.
 
 **Consumption:** an EventBridge rule → SQS → Lambda, with a DLQ. The queue absorbs a burst of batch ingestion, and a retry or a failure of the projector never touches the hot path of the write.
 
@@ -938,7 +938,7 @@ The third projection, the one that serves the curation panel. The business rules
 
 One counter item **per facet value**, and not a single statistics item per notebook: fifty notes written in parallel increment different counters, and the single item would become the same bottleneck the `META` rule (PE8) exists to avoid.
 
-**The cardinality ceiling is the free-text detector** (RN-DSC-024). `FDEF#{facet}` tracks how many distinct values the attribute has produced in the notebook; on passing the ceiling, the projector marks the attribute as `discarded`, deletes its `STAT#` items and starts ignoring it. That is how `title` and `source` never become statistics, with no exclusion list in the code: an attribute whose value is unique per note gives itself away through its cardinality.
+**The cardinality ceiling is the free-text detector** (RN-DSC-024). `FDEF#{facet}` tracks how many distinct values the attribute has produced in the notebook; on passing the ceiling, the projector marks the attribute as `discarded`, deletes its `STAT#` items and starts ignoring it. That is how `source` never becomes a statistic, with no exclusion list in the code: an attribute whose value is unique per note gives itself away through its cardinality.
 
 **Assembling the panel is one `Query`** with the `STAT#` prefix per notebook, without touching a single note. Rebuilding (PE5): delete the `FACET#` and `STAT#` items of the notebook and reprocess the notes.
 
@@ -1064,7 +1064,7 @@ Cognito implements no automatic client registration mechanism, neither DCR nor C
 
 Both solved with no new mechanism:
 
-- **There is no idempotency, and its absence is the decision.** A note transaction writes no guard item, because a notebook holds no key: two notes may carry one title (RN-KNW-037) and a repeated `create_note` writes a second note (RN-AGT-024). The tool says so, and declares itself as not idempotent, which is what lets a client tell a retry that costs nothing from one that costs a duplicate.
+- **There is no idempotency, and its absence is the decision.** A note transaction writes no guard item, because a notebook holds no key: two notes may carry one name (RN-KNW-037) and a repeated `create_note` writes a second note (RN-AGT-024). The tool says so, and declares itself as not idempotent, which is what lets a client tell a retry that costs nothing from one that costs a duplicate.
 - **Concurrency.** `update_note` requires `baseRevision`, and a divergence answers `CONFLICT` with the current content attached (RN-AGT-005).
 
 ---
@@ -1100,7 +1100,7 @@ svc-knowledge    GET  /notebooks · POST /notebooks
                  GET|PUT /notebooks/:v/folders/:f/template
                  GET|POST /notebooks/:v/notes · GET|PUT|DELETE /notebooks/:v/notes/:n
                  ── POST takes { folderId, content }: a note is created from its
-                    content, and the title is read from it (RN-AGT-024)
+                    content, and the name is read from it (RN-AGT-024)
                  ── the three writes of a Content Slot answer THE REVISION THEY
                     PRODUCED, so a caller can write twice without reloading
                     (RN-AGT-005): the guidance and the template as { revision },
@@ -1111,7 +1111,7 @@ svc-knowledge    GET  /notebooks · POST /notebooks
                  POST /notebooks/:v/notes/:n/move   { toNotebookId?, toFolderId }
                  PUT|DELETE /notebooks/:v/limits/:userId   { limit: VIEWER }   (§9.3)
 svc-discovery    GET  /notebooks/:v/links/:target   what one wikilink target resolves
-                    to: the notes it reaches and whether a title or an alias
+                    to: the notes it reaches and whether a name or an alias
                     answered. The interface asks it for the two cases an
                     address cannot answer — none and several (RN-DSC-046)
                  GET  /notebooks/:v/graph   (the whole notebook graph, edges from the index)

@@ -1,5 +1,5 @@
 ---
-title: Business Capability
+name: Business Capability
 aliases:
   - Capacidade de Negócio
 tags:

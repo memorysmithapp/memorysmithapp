@@ -1,5 +1,5 @@
 ---
-title: Digital Organization
+name: Digital Organization
 aliases:
   - Organização Digital
 tags:

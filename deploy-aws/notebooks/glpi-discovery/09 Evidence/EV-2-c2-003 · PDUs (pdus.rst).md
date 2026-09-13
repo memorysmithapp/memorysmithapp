@@ -1,5 +1,5 @@
 ---
-title: EV-2-c2-003 · PDUs (pdus.rst)
+name: EV-2-c2-003 · PDUs (pdus.rst)
 aliases: [EV-2-c2-003]
 tags: [evidence, assets, pdu, dcim, power, doc]
 type: evidence

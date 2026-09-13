@@ -1,5 +1,5 @@
 ---
-title: Ironic
+name: Ironic
 aliases:
   - OpenStack Bare Metal Service
   - Bare Metal as a Service (BMaaS)

@@ -1,5 +1,5 @@
 ---
-title: EV-1-010 · Ticket com tipos incidente/requisição e direitos específicos
+name: EV-1-010 · Ticket com tipos incidente/requisição e direitos específicos
 aliases: [EV-1-010]
 tags: [evidence, dominio/service-desk, ticket]
 type: evidence

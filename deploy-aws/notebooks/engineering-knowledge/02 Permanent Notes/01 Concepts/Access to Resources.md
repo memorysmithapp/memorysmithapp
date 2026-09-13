@@ -1,5 +1,5 @@
 ---
-title: Access to Resources
+name: Access to Resources
 aliases:
   - Acesso a Recursos
 tags:

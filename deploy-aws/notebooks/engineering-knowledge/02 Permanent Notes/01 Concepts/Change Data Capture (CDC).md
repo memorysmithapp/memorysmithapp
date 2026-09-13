@@ -1,5 +1,5 @@
 ---
-title: Change Data Capture (CDC)
+name: Change Data Capture (CDC)
 aliases:
   - CDC
   - Captura de Dados de Mudança

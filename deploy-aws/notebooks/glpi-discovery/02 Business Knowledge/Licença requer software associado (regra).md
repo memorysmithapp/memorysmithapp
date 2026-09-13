@@ -1,5 +1,5 @@
 ---
-title: Licença requer software associado (regra)
+name: Licença requer software associado (regra)
 aliases: [License requires software]
 tags: [rule, management, license, software, doc]
 type: rule

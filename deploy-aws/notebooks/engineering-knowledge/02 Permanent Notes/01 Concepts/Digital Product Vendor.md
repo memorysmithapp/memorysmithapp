@@ -1,5 +1,5 @@
 ---
-title: Digital Product Vendor
+name: Digital Product Vendor
 aliases:
   - Fornecedor de Produto Digital
 tags:

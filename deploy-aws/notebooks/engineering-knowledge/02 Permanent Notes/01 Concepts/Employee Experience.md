@@ -1,5 +1,5 @@
 ---
-title: Employee Experience
+name: Employee Experience
 aliases:
   - EX
   - Experiência do Colaborador

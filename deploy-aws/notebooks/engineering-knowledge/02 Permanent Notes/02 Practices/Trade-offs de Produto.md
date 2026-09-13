@@ -1,5 +1,5 @@
 ---
-title: Trade-offs de Produto
+name: Trade-offs de Produto
 type: practice
 tags: [prioritization, negotiation]
 maturity: evergreen

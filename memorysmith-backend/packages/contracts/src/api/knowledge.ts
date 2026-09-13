@@ -104,11 +104,11 @@ export const noteSummarySchema = z.object({
   notebookId: ulidSchema,
   folderId: ulidSchema,
   /**
-   * What the chain read out of the content (§5.3), and `null` when the note
-   * has no title a link could name (RN-KNW-036). A surface that shows a title
-   * has to say so rather than draw an empty string.
+   * The `name:` the frontmatter states (§5.3), and `null` when the note has
+   * none a link could use (RN-KNW-036). A surface that shows a name has to say
+   * so rather than draw an empty string.
    */
-  title: z.string().min(1).nullable(),
+  name: z.string().min(1).nullable(),
   position: positionSchema,
   bytes: z.number().int().nonnegative(),
   updatedAt: instantSchema,
@@ -123,9 +123,8 @@ export const noteSchema = noteSummarySchema.extend({
 });
 
 /**
- * A note is created from its content and nothing else: the title is read out
- * of what was written, in the frontmatter or in the first level-1 heading
- * (RN-AGT-024). A repeated call writes a second note, because nothing in a
+ * A note is created from its content and nothing else: the name is the
+ * `name:` its frontmatter states, and nothing else names it (RN-AGT-024). A repeated call writes a second note, because nothing in a
  * notebook is a key.
  */
 export const createNoteRequestSchema = z.object({
@@ -135,8 +134,8 @@ export const createNoteRequestSchema = z.object({
 });
 
 /**
- * There is no title here either, and no route that renames a note: a note is
- * retitled by editing its content (RN-KNW-038).
+ * There is no name here either, and no route that renames a note: a note is
+ * renamed by editing its content (RN-KNW-038).
  */
 export const updateNoteRequestSchema = z.object({
   content: z.string().max(1_048_576),
@@ -150,7 +149,7 @@ export const reorderNoteRequestSchema = z.object({
 
 /**
  * Nothing collides on a move any more, in either direction: two notes may
- * carry one title in one notebook (RN-KNW-037), so a destination has nothing to
+ * carry one name in one notebook (RN-KNW-037), so a destination has nothing to
  * refuse and no policy to be given (RN-KNW-022, removed).
  */
 export const moveNoteRequestSchema = z.object({

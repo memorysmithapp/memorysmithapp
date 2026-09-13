@@ -1,5 +1,5 @@
 ---
-title: Projetos de Eficiência Energética (ANEEL)
+name: Projetos de Eficiência Energética (ANEEL)
 aliases:
   - projetos-de-eficiencia-energetica
 tags:

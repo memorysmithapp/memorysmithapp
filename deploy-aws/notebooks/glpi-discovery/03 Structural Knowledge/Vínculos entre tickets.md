@@ -1,5 +1,5 @@
 ---
-title: Vínculos entre tickets
+name: Vínculos entre tickets
 aliases: [Linked Tickets, Tickets duplicados, Duplicates]
 tags: [assistance, ticket, links, duplicates]
 type: concept

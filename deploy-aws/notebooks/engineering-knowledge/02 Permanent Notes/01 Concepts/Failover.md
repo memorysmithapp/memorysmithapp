@@ -1,5 +1,5 @@
 ---
-title: Failover
+name: Failover
 aliases:
   - Tolerância a Falhas por Comutação
   - Failback

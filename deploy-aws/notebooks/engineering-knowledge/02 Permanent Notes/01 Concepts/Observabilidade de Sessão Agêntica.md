@@ -1,5 +1,5 @@
 ---
-title: Observabilidade de Sessão Agêntica
+name: Observabilidade de Sessão Agêntica
 aliases:
   - Progress Panel
   - Painel de Progresso

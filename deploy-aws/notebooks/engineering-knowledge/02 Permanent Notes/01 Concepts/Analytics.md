@@ -1,5 +1,5 @@
 ---
-title: Analytics
+name: Analytics
 aliases:
   - Análise de Dados
   - Analítica

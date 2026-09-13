@@ -1,5 +1,5 @@
 ---
-title: Infrastructure as Code
+name: Infrastructure as Code
 aliases:
   - IaC
   - Infraestrutura como Código

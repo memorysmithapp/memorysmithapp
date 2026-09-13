@@ -1,5 +1,5 @@
 ---
-title: Outcome
+name: Outcome
 aliases:
   - Resultado
   - Desfecho

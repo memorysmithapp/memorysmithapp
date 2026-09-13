@@ -1,5 +1,5 @@
 ---
-title: Convenção de Nomenclatura dos Dados Abertos ANEEL
+name: Convenção de Nomenclatura dos Dados Abertos ANEEL
 aliases:
   - Prefixos de campo da ANEEL
   - Nomenclatura ANEEL

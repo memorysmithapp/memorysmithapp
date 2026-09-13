@@ -1,5 +1,5 @@
 ---
-title: Purga Automática de Logs
+name: Purga Automática de Logs
 aliases: [Logs purge, PurgeLogs, Purga de logs]
 tags: [configuracao-geral, logs, purga, manutencao, operacao]
 type: capability

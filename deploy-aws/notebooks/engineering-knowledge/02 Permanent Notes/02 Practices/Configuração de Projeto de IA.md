@@ -1,5 +1,5 @@
 ---
-title: Configuração de Projeto de IA
+name: Configuração de Projeto de IA
 aliases:
   - Setup de Project Workspace
 tags:

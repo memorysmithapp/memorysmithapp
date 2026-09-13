@@ -1,5 +1,5 @@
 ---
-title: Estatísticas do Service Desk (relatórios)
+name: Estatísticas do Service Desk (relatórios)
 aliases: [Statistics, Relatórios de tickets, Estatísticas]
 tags: [statistics, relatorios, service-desk, kpi]
 type: capability

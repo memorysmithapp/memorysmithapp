@@ -1,5 +1,5 @@
 ---
-title: Continual Improvement Practice
+name: Continual Improvement Practice
 aliases:
   - Prática de Melhoria Contínua
 tags:

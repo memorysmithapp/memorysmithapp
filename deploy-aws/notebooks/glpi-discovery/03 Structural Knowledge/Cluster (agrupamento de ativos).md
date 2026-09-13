@@ -1,5 +1,5 @@
 ---
-title: Cluster (agrupamento de ativos)
+name: Cluster (agrupamento de ativos)
 aliases: [Cluster, Clusters]
 tags: [management, cluster, agrupamento]
 type: component

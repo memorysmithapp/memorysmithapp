@@ -1,5 +1,5 @@
 ---
-title: CAP Theorem
+name: CAP Theorem
 aliases:
   - Brewer's Theorem
 tags:

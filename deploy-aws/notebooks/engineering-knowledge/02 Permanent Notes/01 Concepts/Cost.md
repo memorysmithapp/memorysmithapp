@@ -1,5 +1,5 @@
 ---
-title: Cost
+name: Cost
 aliases:
   - Custo
 tags:

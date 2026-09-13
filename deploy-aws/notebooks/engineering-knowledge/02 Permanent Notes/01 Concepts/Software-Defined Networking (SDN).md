@@ -1,5 +1,5 @@
 ---
-title: Software-Defined Networking (SDN)
+name: Software-Defined Networking (SDN)
 aliases:
   - SDN
   - Rede Definida por Software

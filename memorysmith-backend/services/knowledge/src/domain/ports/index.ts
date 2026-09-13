@@ -38,8 +38,8 @@ export interface NotebookRepository {
 
 /**
  * A note is found by its identifier and by nothing else. There is no lookup by
- * name here, because a notebook holds no key: two notes may carry one title
- * (RN-KNW-037), and what resolves a title is Discovery, over its own
+ * name here, because a notebook holds no key: two notes may carry one name
+ * (RN-KNW-037), and what resolves a name is Discovery, over its own
  * projection.
  */
 export interface NoteRepository {

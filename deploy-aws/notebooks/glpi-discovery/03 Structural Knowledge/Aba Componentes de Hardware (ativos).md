@@ -1,5 +1,5 @@
 ---
-title: Aba Componentes de Hardware (ativos)
+name: Aba Componentes de Hardware (ativos)
 aliases: [Components tab, Aba Componentes]
 tags: [assets, tab, components, hardware, computer]
 type: component

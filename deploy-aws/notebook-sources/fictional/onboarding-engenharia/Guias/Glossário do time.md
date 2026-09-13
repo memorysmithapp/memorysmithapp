@@ -1,5 +1,5 @@
 ---
-title: Glossário do time
+name: Glossário do time
 aliases: []
 tags: [guia, vocabulario]
 type: guia

@@ -1,5 +1,5 @@
 ---
-title: Identity Federation
+name: Identity Federation
 aliases:
   - Federação de Identidade
 tags:

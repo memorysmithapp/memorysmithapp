@@ -1,5 +1,5 @@
 ---
-title: Gestão de Mudanças (processo)
+name: Gestão de Mudanças (processo)
 aliases: [Change Management]
 tags: [process, itil, dominio/service-desk]
 type: process

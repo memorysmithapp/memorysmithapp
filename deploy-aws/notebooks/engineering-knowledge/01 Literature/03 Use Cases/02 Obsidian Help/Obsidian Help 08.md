@@ -1,5 +1,5 @@
 ---
-title: Obsidian Help 08
+name: Obsidian Help 08
 aliases:
   - Obsidian Help — Migração, Importação e Portabilidade
 tags:

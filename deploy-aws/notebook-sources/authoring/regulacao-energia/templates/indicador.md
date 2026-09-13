@@ -1,5 +1,5 @@
 ---
-title: <Nome do indicador>
+name: <Nome do indicador>
 aliases: []
 tags: []
 type: indicator

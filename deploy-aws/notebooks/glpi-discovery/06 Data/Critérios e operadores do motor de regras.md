@@ -1,5 +1,5 @@
 ---
-title: Critérios e operadores do motor de regras
+name: Critérios e operadores do motor de regras
 aliases: [Rule criteria operators, Operadores de regra]
 tags: [regras, criterios, operadores, regex, dados, doc]
 type: table

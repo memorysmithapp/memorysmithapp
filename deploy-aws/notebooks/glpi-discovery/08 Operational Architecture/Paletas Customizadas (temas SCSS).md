@@ -1,5 +1,5 @@
 ---
-title: Paletas Customizadas (temas SCSS)
+name: Paletas Customizadas (temas SCSS)
 aliases: [custom palettes, temas, paletas, data-glpi-theme, Auror]
 tags: [temas, paletas, scss, ui, personalizacao, operacional]
 type: process

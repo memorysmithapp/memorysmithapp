@@ -1,5 +1,5 @@
 ---
-title: Licença pai-filho (procedimento)
+name: Licença pai-filho (procedimento)
 aliases: [Child license, Parent license]
 tags: [use-case, management, license, software, doc]
 type: use-case

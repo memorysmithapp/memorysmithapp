@@ -1,5 +1,5 @@
 ---
-title: Object Storage
+name: Object Storage
 aliases:
   - Armazenamento de Objetos
 tags:

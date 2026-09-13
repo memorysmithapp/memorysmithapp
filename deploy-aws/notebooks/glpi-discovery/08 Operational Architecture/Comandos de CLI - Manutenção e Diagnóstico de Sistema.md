@@ -1,5 +1,5 @@
 ---
-title: "Comandos de CLI - Manutenção e Diagnóstico de Sistema"
+name: "Comandos de CLI - Manutenção e Diagnóstico de Sistema"
 aliases: [maintenance:enable, system:status, task:unlock, system:check_requirements]
 tags: [cli, manutencao, sistema, diagnostico, seguranca, comandos, operacional]
 type: process

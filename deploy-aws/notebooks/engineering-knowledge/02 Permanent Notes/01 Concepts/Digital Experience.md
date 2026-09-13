@@ -1,5 +1,5 @@
 ---
-title: Digital Experience
+name: Digital Experience
 aliases:
   - DX
   - Experiência Digital

@@ -1,5 +1,5 @@
 ---
-title: Atribuição de autorizações e grupos a um usuário (procedimento)
+name: Atribuição de autorizações e grupos a um usuário (procedimento)
 aliases: [Authorizations tab, Aba Authorizations, Atribuir perfil ao usuário]
 tags: [usuarios, autorizacoes, perfis, grupos, entidades, recursivo, dinamico, acoes-massivas]
 type: use-case

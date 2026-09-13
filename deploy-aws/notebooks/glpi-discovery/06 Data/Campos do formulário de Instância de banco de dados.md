@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Instância de banco de dados
+name: Campos do formulário de Instância de banco de dados
 aliases: [Campos de Database instance, Database instance fields]
 tags: [management, database-instance, campos, formulario, data]
 type: entity

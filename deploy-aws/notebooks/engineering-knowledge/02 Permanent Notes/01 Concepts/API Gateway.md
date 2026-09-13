@@ -1,5 +1,5 @@
 ---
-title: API Gateway
+name: API Gateway
 aliases:
   - Gateway de API
 tags:

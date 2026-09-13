@@ -1,5 +1,5 @@
 ---
-title: Relatórios gerenciais (tipos e conteúdo)
+name: Relatórios gerenciais (tipos e conteúdo)
 aliases: [Reports, Relatórios, Generate reports]
 tags: [behavioral, reports, financial, network, loan, status]
 type: use-case

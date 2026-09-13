@@ -1,5 +1,5 @@
 ---
-title: Decreto 12.068-2024 05
+name: Decreto 12.068-2024 05
 aliases:
   - Decreto 12.068 Capítulo V
 tags:

@@ -1,5 +1,5 @@
 ---
-title: Dicionários de dados (administração)
+name: Dicionários de dados (administração)
 aliases: [Dictionaries, Dicionários, Dictionnaries]
 tags: [dicionarios, regras, normalizacao, doc]
 type: capability

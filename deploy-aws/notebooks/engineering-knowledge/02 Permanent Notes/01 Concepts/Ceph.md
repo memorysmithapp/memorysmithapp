@@ -1,5 +1,5 @@
 ---
-title: Ceph
+name: Ceph
 aliases:
   - Ceph Storage
   - RADOS

@@ -1,5 +1,5 @@
 ---
-title: Think and Work Holistically
+name: Think and Work Holistically
 aliases:
   - Pense e Trabalhe Holisticamente
 tags:

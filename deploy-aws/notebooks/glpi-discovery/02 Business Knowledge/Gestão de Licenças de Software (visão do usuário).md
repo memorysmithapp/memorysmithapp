@@ -1,5 +1,5 @@
 ---
-title: Gestão de Licenças de Software (visão do usuário)
+name: Gestão de Licenças de Software (visão do usuário)
 aliases: [Licenses management]
 tags: [capability, management, license, software, financial, doc]
 type: capability

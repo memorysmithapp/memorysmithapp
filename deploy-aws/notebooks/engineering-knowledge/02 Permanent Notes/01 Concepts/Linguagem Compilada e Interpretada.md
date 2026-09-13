@@ -1,5 +1,5 @@
 ---
-title: Linguagem Compilada e Interpretada
+name: Linguagem Compilada e Interpretada
 aliases:
   - Compiled Language
   - Interpreted Language

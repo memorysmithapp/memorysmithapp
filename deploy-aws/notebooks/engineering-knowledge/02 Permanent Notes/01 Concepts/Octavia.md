@@ -1,5 +1,5 @@
 ---
-title: Octavia
+name: Octavia
 aliases:
   - OpenStack Load Balancer as a Service
   - LBaaS v2

@@ -1,5 +1,5 @@
 ---
-title: PRODIST Modulo 10
+name: PRODIST Modulo 10
 aliases:
   - PRODIST Módulo 10
   - BDGD

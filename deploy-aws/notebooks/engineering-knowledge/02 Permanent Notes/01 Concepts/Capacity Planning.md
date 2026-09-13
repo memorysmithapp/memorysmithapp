@@ -1,5 +1,5 @@
 ---
-title: Capacity Planning
+name: Capacity Planning
 aliases:
   - Planejamento de Capacidade
 tags:

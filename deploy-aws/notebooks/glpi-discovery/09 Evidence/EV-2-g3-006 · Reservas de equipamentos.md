@@ -1,5 +1,5 @@
 ---
-title: EV-2-g3-006 · Reservas de equipamentos
+name: EV-2-g3-006 · Reservas de equipamentos
 aliases: [EV-2-g3-006]
 tags: [evidence, tools, reservations, booking, recurrence, planning]
 type: evidence

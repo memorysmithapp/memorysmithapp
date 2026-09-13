@@ -1,5 +1,5 @@
 ---
-title: A transgressão crônica se concentra e não muda de dono
+name: A transgressão crônica se concentra e não muda de dono
 aliases:
   - Concentração da má qualidade
   - Conjuntos cronicamente irregulares

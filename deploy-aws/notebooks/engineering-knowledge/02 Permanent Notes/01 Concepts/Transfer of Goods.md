@@ -1,5 +1,5 @@
 ---
-title: Transfer of Goods
+name: Transfer of Goods
 aliases:
   - Transferência de Bens
 tags:

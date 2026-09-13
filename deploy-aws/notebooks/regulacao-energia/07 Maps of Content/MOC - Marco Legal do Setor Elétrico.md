@@ -1,5 +1,5 @@
 ---
-title: MOC - Marco Legal do Setor Elétrico
+name: MOC - Marco Legal do Setor Elétrico
 aliases:
   - MOC Marco Legal
 tags:

@@ -1,5 +1,5 @@
 ---
-title: OAuth 2.0
+name: OAuth 2.0
 aliases:
   - OAuth
   - OAuth2

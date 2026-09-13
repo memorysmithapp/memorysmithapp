@@ -1,5 +1,5 @@
 ---
-title: INV-1-009 · Catálogo de critérios e ações por tipo de regra
+name: INV-1-009 · Catálogo de critérios e ações por tipo de regra
 aliases: [INV-1-009]
 tags: [investigation, consumidor/cad, motor-de-regras]
 type: investigation

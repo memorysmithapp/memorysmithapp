@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Cartão SIM
+name: Campos do formulário de Cartão SIM
 aliases: [Campos de SIM, SIM fields]
 tags: [assets, data, sim, form]
 type: entity

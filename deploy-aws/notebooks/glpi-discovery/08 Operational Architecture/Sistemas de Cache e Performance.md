@@ -1,5 +1,5 @@
 ---
-title: Sistemas de Cache e Performance
+name: Sistemas de Cache e Performance
 aliases: [Performances tab, Cache, Caches do GLPI]
 tags: [configuracao-geral, performance, cache, operacao]
 type: capability

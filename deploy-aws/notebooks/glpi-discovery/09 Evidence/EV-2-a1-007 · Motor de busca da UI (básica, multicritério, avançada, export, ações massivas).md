@@ -1,5 +1,5 @@
 ---
-title: EV-2-a1-007 · Motor de busca da UI (básica, multicritério, avançada, export, ações massivas)
+name: EV-2-a1-007 · Motor de busca da UI (básica, multicritério, avançada, export, ações massivas)
 aliases: [EV-2-a1-007]
 tags: [evidence, doc, search, criteria, operators, export, massive-actions, quick-search, trash]
 type: evidence

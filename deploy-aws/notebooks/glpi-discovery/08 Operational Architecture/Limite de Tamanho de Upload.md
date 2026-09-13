@@ -1,5 +1,5 @@
 ---
-title: Limite de Tamanho de Upload
+name: Limite de Tamanho de Upload
 aliases: [Management tab, Upload size limit, Limite de upload]
 tags: [configuracao-geral, upload, documentos, operacao]
 type: capability

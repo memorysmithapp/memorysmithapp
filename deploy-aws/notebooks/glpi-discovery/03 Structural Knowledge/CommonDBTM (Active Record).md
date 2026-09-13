@@ -1,5 +1,5 @@
 ---
-title: CommonDBTM (Active Record)
+name: CommonDBTM (Active Record)
 aliases: [CommonDBTM, Active Record base]
 tags: [component, orm, dominio/foundation]
 type: component

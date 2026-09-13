@@ -1,5 +1,5 @@
 ---
-title: Lead Time
+name: Lead Time
 aliases:
   - Tempo de Atravessamento
 tags:

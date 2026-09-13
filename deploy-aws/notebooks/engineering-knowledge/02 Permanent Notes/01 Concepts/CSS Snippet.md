@@ -1,5 +1,5 @@
 ---
-title: CSS Snippet
+name: CSS Snippet
 aliases:
   - Snippet
   - Snippets

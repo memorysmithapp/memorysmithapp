@@ -1,5 +1,5 @@
 ---
-title: Availability Zone
+name: Availability Zone
 aliases:
   - AZ
   - Zona de Disponibilidade

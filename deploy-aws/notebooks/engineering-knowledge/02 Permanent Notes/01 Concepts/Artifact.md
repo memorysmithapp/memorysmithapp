@@ -1,5 +1,5 @@
 ---
-title: Artifact
+name: Artifact
 aliases:
   - Artefato de IA
   - Artifacts

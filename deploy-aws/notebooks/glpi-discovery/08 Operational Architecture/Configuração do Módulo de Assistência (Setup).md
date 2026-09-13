@@ -1,5 +1,5 @@
 ---
-title: Configuração do Módulo de Assistência (Setup)
+name: Configuração do Módulo de Assistência (Setup)
 aliases: [Assistance configuration, Config de assistência]
 tags: [configuracao-geral, assistencia, service-desk, operacao]
 type: capability

@@ -1,5 +1,5 @@
 ---
-title: Service Level Indicator (SLI)
+name: Service Level Indicator (SLI)
 aliases:
   - SLI
   - Indicador de Nível de Serviço

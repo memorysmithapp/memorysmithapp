@@ -1,5 +1,5 @@
 ---
-title: ETL
+name: ETL
 aliases:
   - Extract Transform Load
 tags:

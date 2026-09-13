@@ -1,5 +1,5 @@
 ---
-title: <Nome do componente (papel)>
+name: <Nome do componente (papel)>
 aliases: []
 tags: [component, dominio/<dominio>]
 type: component

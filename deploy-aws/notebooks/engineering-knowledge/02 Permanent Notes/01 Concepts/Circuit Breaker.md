@@ -1,5 +1,5 @@
 ---
-title: Circuit Breaker
+name: Circuit Breaker
 tags:
   - resilience
   - distributed-systems

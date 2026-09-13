@@ -1,5 +1,5 @@
 ---
-title: INV-2-g2-001 · Texto da aba Problems menciona changes (possível erro no doc)
+name: INV-2-g2-001 · Texto da aba Problems menciona changes (possível erro no doc)
 aliases: [INV-2-g2-001]
 tags: [investigation, consumidor/cad, doc-inconsistencia, problems]
 type: investigation

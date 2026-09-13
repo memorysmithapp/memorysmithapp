@@ -1,5 +1,5 @@
 ---
-title: Supplier Management
+name: Supplier Management
 aliases:
   - Gestão de Fornecedores
 tags:

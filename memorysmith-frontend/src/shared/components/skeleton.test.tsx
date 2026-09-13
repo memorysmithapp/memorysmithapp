@@ -49,7 +49,7 @@ describe('a placeholder occupies the frame of what it stands in for', () => {
     expect((html.match(/chart-card/g) ?? []).length).toBe(3);
   });
 
-  it('draws a note with a title, properties and a body', () => {
+  it('draws a note with a name, properties and a body', () => {
     const html = render(<parts.NoteSkeleton />);
     expect(html).toContain('content-pane');
     expect((html.match(/class="skeleton"/g) ?? []).length).toBeGreaterThan(4);

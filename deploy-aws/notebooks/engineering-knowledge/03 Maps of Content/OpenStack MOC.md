@@ -1,5 +1,5 @@
 ---
-title: OpenStack MOC
+name: OpenStack MOC
 aliases:
   - Mapa OpenStack
   - OpenStack Map of Content

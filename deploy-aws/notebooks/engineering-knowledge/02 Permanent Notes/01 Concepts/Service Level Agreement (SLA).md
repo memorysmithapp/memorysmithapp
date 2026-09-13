@@ -1,5 +1,5 @@
 ---
-title: Service Level Agreement (SLA)
+name: Service Level Agreement (SLA)
 aliases:
   - SLA
   - Acordo de Nível de Serviço

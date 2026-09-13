@@ -1,5 +1,5 @@
 ---
-title: Microgeração Distribuída
+name: Microgeração Distribuída
 aliases:
   - Microgeração
   - MicroGD

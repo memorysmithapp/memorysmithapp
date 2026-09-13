@@ -1,5 +1,5 @@
 ---
-title: SLC - Sistema de Licitações e Contratos da ANEEL
+name: SLC - Sistema de Licitações e Contratos da ANEEL
 aliases:
   - slc-sistema-de-licitacoes-e-contratos
 tags:

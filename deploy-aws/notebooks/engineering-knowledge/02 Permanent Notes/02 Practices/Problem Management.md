@@ -1,5 +1,5 @@
 ---
-title: Problem Management
+name: Problem Management
 aliases:
   - Gestão de Problemas
 tags:

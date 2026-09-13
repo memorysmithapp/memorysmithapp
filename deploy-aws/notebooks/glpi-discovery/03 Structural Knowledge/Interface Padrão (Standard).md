@@ -1,5 +1,5 @@
 ---
-title: Interface Padrão (Standard)
+name: Interface Padrão (Standard)
 aliases: [Standard Interface, Interface standard, Central]
 tags: [component, interface, standard, dashboard, home-page]
 type: component

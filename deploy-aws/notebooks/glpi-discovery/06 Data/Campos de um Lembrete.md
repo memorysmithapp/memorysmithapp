@@ -1,5 +1,5 @@
 ---
-title: Campos de um Lembrete
+name: Campos de um Lembrete
 aliases: [Reminder fields, Campos de reminder]
 tags: [data, reminders, fields]
 type: entity

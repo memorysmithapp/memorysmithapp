@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Equipamento de Rede
+name: Campos do formulário de Equipamento de Rede
 aliases: [Campos NetworkEquipment]
 tags: [data, fields, network, assets, doc]
 type: table

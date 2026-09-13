@@ -1,5 +1,5 @@
 ---
-title: Claude Code
+name: Claude Code
 aliases:
   - Agentic Coding Tool
 tags:

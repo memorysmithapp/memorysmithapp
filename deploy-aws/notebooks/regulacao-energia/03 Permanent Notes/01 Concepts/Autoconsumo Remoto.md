@@ -1,5 +1,5 @@
 ---
-title: Autoconsumo Remoto
+name: Autoconsumo Remoto
 aliases:
   - Autoconsumo remoto
 tags:

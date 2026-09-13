@@ -1,5 +1,5 @@
 ---
-title: "Comandos de CLI - Cache e Configuração"
+name: "Comandos de CLI - Cache e Configuração"
 aliases: [cache:clear, cache:configure, config:set, cache:debug]
 tags: [cli, cache, configuracao, comandos, operacional]
 type: process

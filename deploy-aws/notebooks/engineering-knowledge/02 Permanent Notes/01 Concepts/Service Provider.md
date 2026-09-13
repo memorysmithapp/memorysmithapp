@@ -1,5 +1,5 @@
 ---
-title: Service Provider
+name: Service Provider
 aliases:
   - Provedor de Serviço
 tags:

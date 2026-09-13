@@ -1,5 +1,5 @@
 ---
-title: Certificado na interface (Certificate) — visão do usuário
+name: Certificado na interface (Certificate) — visão do usuário
 aliases: [Certificate, Certificado]
 tags: [concept, management, certificate, doc]
 type: concept

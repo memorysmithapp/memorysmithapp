@@ -1,5 +1,5 @@
 ---
-title: Autos de Infração por Área de Fiscalização (descontinuado)
+name: Autos de Infração por Área de Fiscalização (descontinuado)
 aliases:
   - autos-de-infracao-cadastrados-pelas-areas-de-fiscalizacao-modelo-vigente-ate-2015
 tags:

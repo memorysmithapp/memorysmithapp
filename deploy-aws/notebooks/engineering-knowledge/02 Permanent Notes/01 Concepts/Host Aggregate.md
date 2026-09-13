@@ -1,5 +1,5 @@
 ---
-title: Host Aggregate
+name: Host Aggregate
 aliases:
   - Agregado de Hosts
 tags:

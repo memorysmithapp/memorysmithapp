@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Linha telefônica
+name: Campos do formulário de Linha telefônica
 aliases: [Campos de Phone line, Phone line fields]
 tags: [management, line, telefonia, campos, formulario, data]
 type: entity

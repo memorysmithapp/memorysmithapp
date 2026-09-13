@@ -1,5 +1,5 @@
 ---
-title: Known Error
+name: Known Error
 aliases:
   - Erro Conhecido
 tags:

@@ -1,5 +1,5 @@
 ---
-title: INV-2-b1-001 · Vínculos Son of e Parent of entre tickets não documentados
+name: INV-2-b1-001 · Vínculos Son of e Parent of entre tickets não documentados
 aliases: [INV-2-b1-001]
 tags: [investigation, consumidor/cad, assistance, ticket, links]
 type: investigation

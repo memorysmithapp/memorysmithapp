@@ -1,5 +1,5 @@
 ---
-title: Status de itens (campo comum)
+name: Status de itens (campo comum)
 aliases: [Status, Statuses of items, Status de itens]
 tags: [campos-comuns, status, dropdown, data]
 type: field

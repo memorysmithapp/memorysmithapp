@@ -1,5 +1,5 @@
 ---
-title: Minigeração Distribuída
+name: Minigeração Distribuída
 aliases:
   - Minigeração
   - MiniGD

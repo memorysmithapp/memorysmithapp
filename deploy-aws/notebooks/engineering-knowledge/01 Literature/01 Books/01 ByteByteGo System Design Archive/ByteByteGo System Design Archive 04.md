@@ -1,5 +1,5 @@
 ---
-title: ByteByteGo System Design Archive 04
+name: ByteByteGo System Design Archive 04
 aliases:
   - "Parte 4: Dados, Transações e Pipelines"
 tags:

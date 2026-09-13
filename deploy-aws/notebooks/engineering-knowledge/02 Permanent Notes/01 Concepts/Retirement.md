@@ -1,5 +1,5 @@
 ---
-title: Retirement
+name: Retirement
 aliases:
   - Aposentadoria
   - Retirada de Serviço

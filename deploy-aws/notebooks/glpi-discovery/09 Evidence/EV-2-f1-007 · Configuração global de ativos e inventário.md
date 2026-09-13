@@ -1,5 +1,5 @@
 ---
-title: EV-2-f1-007 · Configuração global de ativos e inventário
+name: EV-2-f1-007 · Configuração global de ativos e inventário
 aliases: [EV-2-f1-007]
 tags: [evidence, ativos, inventario, configuracao-geral]
 type: evidence

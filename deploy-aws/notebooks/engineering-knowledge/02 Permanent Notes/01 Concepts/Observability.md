@@ -1,5 +1,5 @@
 ---
-title: Observability
+name: Observability
 aliases:
   - Observabilidade
 tags:

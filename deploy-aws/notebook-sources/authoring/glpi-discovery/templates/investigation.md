@@ -1,5 +1,5 @@
 ---
-title: INV-<sessão>-<seq> · <A pergunta sem resposta, como frase>
+name: INV-<sessão>-<seq> · <A pergunta sem resposta, como frase>
 aliases: [INV-<sessão>-<seq>]
 tags: [investigation, dominio/<dominio>]
 type: investigation

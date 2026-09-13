@@ -1,5 +1,5 @@
 ---
-title: Keystone
+name: Keystone
 aliases:
   - OpenStack Identity Service
   - Identity Service

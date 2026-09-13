@@ -1,5 +1,5 @@
 ---
-title: General Management Practices
+name: General Management Practices
 aliases:
   - Práticas Gerais de Gestão
 tags:

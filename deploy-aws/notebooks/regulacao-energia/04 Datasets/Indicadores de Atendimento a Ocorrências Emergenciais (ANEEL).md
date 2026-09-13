@@ -1,5 +1,5 @@
 ---
-title: Indicadores de Atendimento a Ocorrências Emergenciais (ANEEL)
+name: Indicadores de Atendimento a Ocorrências Emergenciais (ANEEL)
 aliases:
   - atendimento-ocorrencias-emergenciais
 tags:

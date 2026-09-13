@@ -1,5 +1,5 @@
 ---
-title: Mastering OpenStack 10
+name: Mastering OpenStack 10
 aliases:
   - "Capítulo 10: OpenStack Hybrid Cloud – Design Patterns"
 tags:

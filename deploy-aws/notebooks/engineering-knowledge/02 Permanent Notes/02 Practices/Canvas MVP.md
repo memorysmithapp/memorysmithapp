@@ -1,5 +1,5 @@
 ---
-title: Canvas MVP
+name: Canvas MVP
 type: practice
 tags: [strategy, artifact]
 maturity: evergreen

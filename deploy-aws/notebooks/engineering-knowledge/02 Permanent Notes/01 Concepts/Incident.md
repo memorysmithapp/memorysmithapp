@@ -1,5 +1,5 @@
 ---
-title: Incident
+name: Incident
 aliases:
   - Incidente
 tags:

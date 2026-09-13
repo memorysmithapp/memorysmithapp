@@ -1,5 +1,5 @@
 ---
-title: Motor de Busca (Search Engine)
+name: Motor de Busca (Search Engine)
 aliases: [Search Engine, Motor de Busca, Search, SEARCH_OPTION]
 tags: [component, busca, dominio/foundation]
 type: component

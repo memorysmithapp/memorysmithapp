@@ -1,5 +1,5 @@
 ---
-title: Vinificação em tinto
+name: Vinificação em tinto
 aliases: [Protocolo tinto]
 tags: [protocolo, tinto]
 tipo: protocolo

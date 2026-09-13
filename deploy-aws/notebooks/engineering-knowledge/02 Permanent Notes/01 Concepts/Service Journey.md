@@ -1,5 +1,5 @@
 ---
-title: Service Journey
+name: Service Journey
 aliases:
   - Jornada de Serviço
 tags:

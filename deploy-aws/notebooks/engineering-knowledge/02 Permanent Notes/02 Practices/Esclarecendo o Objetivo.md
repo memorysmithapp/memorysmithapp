@@ -1,5 +1,5 @@
 ---
-title: Esclarecendo o Objetivo
+name: Esclarecendo o Objetivo
 type: practice
 tags: [alignment, business-goals, prioritization]
 maturity: evergreen

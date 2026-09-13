@@ -1,5 +1,5 @@
 ---
-title: CFURH - Compensação Financeira pela Utilização de Recursos Hídricos (ANEEL)
+name: CFURH - Compensação Financeira pela Utilização de Recursos Hídricos (ANEEL)
 aliases:
   - cfurh
 tags:

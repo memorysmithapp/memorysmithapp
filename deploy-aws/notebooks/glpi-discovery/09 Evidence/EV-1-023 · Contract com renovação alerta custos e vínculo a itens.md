@@ -1,5 +1,5 @@
 ---
-title: EV-1-023 · Contract com renovação, alerta, custos e vínculo a itens
+name: EV-1-023 · Contract com renovação, alerta, custos e vínculo a itens
 aliases: [EV-1-023]
 tags: [evidence, dominio/gestao, contrato]
 type: evidence

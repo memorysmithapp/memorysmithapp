@@ -1,5 +1,5 @@
 ---
-title: DevOps
+name: DevOps
 aliases:
 tags:
   - devops

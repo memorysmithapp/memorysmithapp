@@ -1,5 +1,5 @@
 ---
-title: Support (Lifecycle)
+name: Support (Lifecycle)
 aliases:
   - Support
   - Suporte

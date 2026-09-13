@@ -1,5 +1,5 @@
 ---
-title: EV-1-022 · Ativos customizáveis (AssetDefinition) com capacities e custom fields
+name: EV-1-022 · Ativos customizáveis (AssetDefinition) com capacities e custom fields
 aliases: [EV-1-022]
 tags: [evidence, dominio/ativos, custom-assets]
 type: evidence

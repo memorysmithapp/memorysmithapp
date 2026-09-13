@@ -1,5 +1,5 @@
 ---
-title: Galera Cluster
+name: Galera Cluster
 aliases:
   - Galera
   - MySQL Multi-Master Replication

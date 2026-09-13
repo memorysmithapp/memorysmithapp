@@ -1,5 +1,5 @@
 ---
-title: Kernel e Bootstrap
+name: Kernel e Bootstrap
 aliases: [Kernel, Bootstrap, Symfony Kernel]
 tags: [component, arquitetura, dominio/foundation]
 type: component

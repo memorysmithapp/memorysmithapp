@@ -1,5 +1,5 @@
 ---
-title: Catálogo de tipos de dropdown (configuração)
+name: Catálogo de tipos de dropdown (configuração)
 aliases: [Dropdowns, Listas suspensas configuráveis, Setup dropdowns]
 tags: [dropdown, configuration, translation, tree, entity]
 type: component

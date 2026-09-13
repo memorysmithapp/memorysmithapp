@@ -1,5 +1,5 @@
 ---
-title: Autos de Infração e Multas Aplicados a Distribuidoras
+name: Autos de Infração e Multas Aplicados a Distribuidoras
 aliases:
   - Autos de infração contra distribuidoras
   - Multas da fiscalização da distribuição

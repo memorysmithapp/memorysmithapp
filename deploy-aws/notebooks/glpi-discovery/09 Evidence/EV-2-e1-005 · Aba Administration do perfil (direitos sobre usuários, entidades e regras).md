@@ -1,5 +1,5 @@
 ---
-title: EV-2-e1-005 · Aba Administration do perfil (direitos sobre usuários, entidades e regras)
+name: EV-2-e1-005 · Aba Administration do perfil (direitos sobre usuários, entidades e regras)
 aliases: [EV-2-e1-005]
 tags: [evidence, perfis, permissoes, administracao, usuarios, entidades, regras]
 type: evidence

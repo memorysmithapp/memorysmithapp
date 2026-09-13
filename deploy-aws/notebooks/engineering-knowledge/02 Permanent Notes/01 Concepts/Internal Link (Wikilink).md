@@ -1,5 +1,5 @@
 ---
-title: Internal Link (Wikilink)
+name: Internal Link (Wikilink)
 aliases:
   - Wikilink
   - Link Interno

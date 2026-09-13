@@ -1,5 +1,5 @@
 ---
-title: Compliance
+name: Compliance
 aliases:
   - Conformidade
 tags:

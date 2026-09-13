@@ -1,5 +1,5 @@
 ---
-title: Generative AI
+name: Generative AI
 aliases:
   - GenAI
   - IA Generativa

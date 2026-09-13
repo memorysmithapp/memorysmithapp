@@ -1,5 +1,5 @@
 ---
-title: Rede Nacional dos Consumidores de Energia Elétrica (Renacon)
+name: Rede Nacional dos Consumidores de Energia Elétrica (Renacon)
 aliases:
   - Renacon
 tags:

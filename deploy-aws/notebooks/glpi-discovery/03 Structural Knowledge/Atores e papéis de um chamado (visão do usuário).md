@@ -1,5 +1,5 @@
 ---
-title: Atores e papéis de um chamado (visão do usuário)
+name: Atores e papéis de um chamado (visão do usuário)
 aliases: [Requerente, Técnico, Observador, Watcher, Requester, Actors do ticket]
 tags: [assistance, actors, roles, requester, technician, watcher, supplier]
 type: actor

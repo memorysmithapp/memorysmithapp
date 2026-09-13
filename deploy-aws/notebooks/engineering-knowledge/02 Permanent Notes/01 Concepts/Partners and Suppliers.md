@@ -1,5 +1,5 @@
 ---
-title: Partners and Suppliers
+name: Partners and Suppliers
 aliases:
   - Parceiros e Fornecedores
 tags:

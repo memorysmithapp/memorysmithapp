@@ -1,5 +1,5 @@
 ---
-title: O Produto É - Não é - Faz - Não faz
+name: O Produto É - Não é - Faz - Não faz
 type: practice
 tags:
   - definition

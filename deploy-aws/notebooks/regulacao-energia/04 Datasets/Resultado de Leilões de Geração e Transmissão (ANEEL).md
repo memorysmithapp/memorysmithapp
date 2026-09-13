@@ -1,5 +1,5 @@
 ---
-title: Resultado de Leilões de Geração e Transmissão (ANEEL)
+name: Resultado de Leilões de Geração e Transmissão (ANEEL)
 aliases:
   - resultado-de-leiloes
 tags:

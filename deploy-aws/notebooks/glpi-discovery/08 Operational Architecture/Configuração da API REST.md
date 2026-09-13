@@ -1,5 +1,5 @@
 ---
-title: Configuração da API REST
+name: Configuração da API REST
 aliases: [API tab, API config, apirest]
 tags: [configuracao-geral, api, rest, integracao, operacao]
 type: capability

@@ -1,5 +1,5 @@
 ---
-title: Regras de importação e vínculo de computadores
+name: Regras de importação e vínculo de computadores
 aliases: [Rules for importing and linking computers, Import and link rules]
 tags: [regras, inventario, importacao, vinculo, doc]
 type: rule

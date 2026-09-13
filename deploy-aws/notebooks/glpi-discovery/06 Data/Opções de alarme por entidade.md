@@ -1,5 +1,5 @@
 ---
-title: Opções de alarme por entidade
+name: Opções de alarme por entidade
 aliases: [Alarm options]
 tags: [dados, alarme, entidade, estoque, expiracao, campos]
 type: entity

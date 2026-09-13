@@ -1,5 +1,5 @@
 ---
-title: EV-2-c1-002 · Busca global de ativos (Global search)
+name: EV-2-c1-002 · Busca global de ativos (Global search)
 aliases: [EV-2-c1-002]
 tags: [evidence, assets, search, doc]
 type: evidence

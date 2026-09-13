@@ -1,5 +1,5 @@
 ---
-title: Consumível (ativo)
+name: Consumível (ativo)
 aliases: [Consumable, Consumível, Consumíveis]
 tags: [assets, consumable, stock, structural, doc]
 type: component

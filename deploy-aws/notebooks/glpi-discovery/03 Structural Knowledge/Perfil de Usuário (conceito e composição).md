@@ -1,5 +1,5 @@
 ---
-title: Perfil de Usuário (conceito e composição)
+name: Perfil de Usuário (conceito e composição)
 aliases: [User profiles, Perfis, Profile]
 tags: [perfis, rbac, permissoes, entidades, recursividade, dinamico]
 type: concept

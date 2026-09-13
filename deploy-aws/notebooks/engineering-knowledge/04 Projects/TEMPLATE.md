@@ -1,5 +1,5 @@
 ---
-title: <Nome do estudo de caso>
+name: <Nome do estudo de caso>
 aliases: []
 tags: []
 type: project

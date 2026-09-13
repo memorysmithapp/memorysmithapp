@@ -1,5 +1,5 @@
 ---
-title: Dados - Mercado e Consumo
+name: Dados - Mercado e Consumo
 aliases:
   - Mercado e Consumo
 tags:

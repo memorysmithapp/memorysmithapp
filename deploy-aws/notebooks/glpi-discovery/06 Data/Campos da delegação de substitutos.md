@@ -1,5 +1,5 @@
 ---
-title: Campos da delegação de substitutos
+name: Campos da delegação de substitutos
 aliases: [campos authorized substitutes]
 tags: [data, campos, substitutes, delegacao, validacao]
 type: data

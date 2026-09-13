@@ -1,5 +1,5 @@
 ---
-title: EV-2-e2-007 · Motor de regras - usos e comportamentos
+name: EV-2-e2-007 · Motor de regras - usos e comportamentos
 aliases: [EV-2-e2-007]
 tags: [evidence, regras, motor, doc]
 type: evidence

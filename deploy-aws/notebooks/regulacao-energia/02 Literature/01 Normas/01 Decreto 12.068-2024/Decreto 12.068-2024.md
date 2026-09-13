@@ -1,5 +1,5 @@
 ---
-title: Decreto 12.068-2024
+name: Decreto 12.068-2024
 aliases:
   - Decreto 12.068/2024
   - Decreto de Renovação das Concessões de Distribuição

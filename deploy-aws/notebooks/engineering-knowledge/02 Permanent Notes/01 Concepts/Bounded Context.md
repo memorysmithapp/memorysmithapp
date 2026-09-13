@@ -1,5 +1,5 @@
 ---
-title: Bounded Context
+name: Bounded Context
 aliases:
   - Contexto Delimitado
   - Context Map

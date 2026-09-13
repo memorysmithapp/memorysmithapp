@@ -1,5 +1,5 @@
 ---
-title: MOC - Ativos e Inventário
+name: MOC - Ativos e Inventário
 aliases: [MOC Ativos, Índice Módulo 3, MOC CMDB]
 tags: [moc, dominio/ativos]
 type: moc

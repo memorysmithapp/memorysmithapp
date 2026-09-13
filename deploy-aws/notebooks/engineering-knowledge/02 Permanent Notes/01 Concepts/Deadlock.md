@@ -1,5 +1,5 @@
 ---
-title: Deadlock
+name: Deadlock
 aliases:
   - Impasse
   - Abraço Mortal

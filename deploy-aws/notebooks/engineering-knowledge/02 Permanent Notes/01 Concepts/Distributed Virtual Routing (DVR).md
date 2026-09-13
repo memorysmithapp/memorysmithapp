@@ -1,5 +1,5 @@
 ---
-title: Distributed Virtual Routing (DVR)
+name: Distributed Virtual Routing (DVR)
 aliases:
   - DVR
   - Roteamento Virtual Distribuído

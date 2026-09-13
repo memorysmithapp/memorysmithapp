@@ -1,5 +1,5 @@
 ---
-title: Failure domain
+name: Failure domain
 aliases: [Blast radius, Fault domain]
 tags: [objective, continuity]
 type: objective
@@ -18,12 +18,12 @@ unit an objective is agreed over, because promising five minutes for a
 service says nothing until somebody says five minutes of *what failing*.
 
 > [!note] This note is what `[[Blast radius]]` points at, and it is not called that
-> [[Recovery Time Objective]] links to `Blast radius`, which is not the title
+> [[Recovery Time Objective]] links to `Blast radius`, which is not the name
 > of any note here. It lands on this one because `Blast radius` is in the
-> `aliases:` of this page — an alias resolves a target **no title matched**,
-> and it does nothing else. The day somebody writes a note actually titled
+> `aliases:` of this page — an alias resolves a target **no name matched**,
+> and it does nothing else. The day somebody writes a note actually named
 > `Blast radius`, that link moves to it and this page stops receiving it: a
-> title always wins, and an alias only ever fills an empty.
+> name always wins, and an alias only ever fills an empty.
 
 ## What `author` and `co-author` say here
 

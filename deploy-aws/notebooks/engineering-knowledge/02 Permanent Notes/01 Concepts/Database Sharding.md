@@ -1,5 +1,5 @@
 ---
-title: Database Sharding
+name: Database Sharding
 aliases:
   - Sharding
   - Particionamento Horizontal

@@ -1,5 +1,5 @@
 ---
-title: Aba Assistance de Perfil (direitos de service desk)
+name: Aba Assistance de Perfil (direitos de service desk)
 aliases: [Assistance tab, Aba Assistance, Direitos de assistência]
 tags: [perfis, permissoes, assistance, tickets, followups, tasks, validacao, planning]
 type: component

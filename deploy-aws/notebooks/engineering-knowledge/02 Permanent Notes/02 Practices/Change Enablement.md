@@ -1,5 +1,5 @@
 ---
-title: Change Enablement
+name: Change Enablement
 aliases:
   - Habilitação de Mudança
   - Change Management

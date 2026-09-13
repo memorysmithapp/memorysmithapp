@@ -1,5 +1,5 @@
 ---
-title: EV-2-g2-017 · Substitutos autorizados (delegação de validação)
+name: EV-2-g2-017 · Substitutos autorizados (delegação de validação)
 aliases: [EV-2-g2-017]
 tags: [evidence, user-settings, substitutes, validacao, delegacao]
 type: evidence

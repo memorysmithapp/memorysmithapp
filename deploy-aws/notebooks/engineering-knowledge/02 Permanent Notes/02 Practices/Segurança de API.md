@@ -1,5 +1,5 @@
 ---
-title: Segurança de API
+name: Segurança de API
 aliases:
   - API Security
   - Boas Práticas de Segurança de API

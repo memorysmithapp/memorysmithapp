@@ -1,5 +1,5 @@
 ---
-title: A qualidade média melhora enquanto a compensação individual cresce
+name: A qualidade média melhora enquanto a compensação individual cresce
 aliases:
   - Divergência entre média e cauda da continuidade
   - Melhora coletiva com piora individual

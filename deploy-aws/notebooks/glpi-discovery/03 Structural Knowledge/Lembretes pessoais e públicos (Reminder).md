@@ -1,5 +1,5 @@
 ---
-title: Lembretes pessoais e públicos (Reminder)
+name: Lembretes pessoais e públicos (Reminder)
 aliases: [Reminder, Lembrete, Reminders]
 tags: [tools, reminders, planning, targets]
 type: component

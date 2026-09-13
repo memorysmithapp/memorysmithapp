@@ -1,5 +1,5 @@
 ---
-title: Vendor Lock-in
+name: Vendor Lock-in
 aliases:
   - Lock-in
   - Aprisionamento Tecnológico

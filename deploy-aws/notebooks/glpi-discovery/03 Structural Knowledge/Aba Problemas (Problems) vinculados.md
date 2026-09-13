@@ -1,5 +1,5 @@
 ---
-title: Aba Problemas (Problems) vinculados
+name: Aba Problemas (Problems) vinculados
 aliases: [aba Problems, Problems tab, problemas vinculados]
 tags: [tabs, problems, itil, ui]
 type: component

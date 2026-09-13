@@ -1,5 +1,5 @@
 ---
-title: Snapshot
+name: Snapshot
 aliases:
   - Instantâneo
   - Point-in-Time Copy

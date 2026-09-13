@@ -1,5 +1,5 @@
 ---
-title: MOC - Administração e Segurança
+name: MOC - Administração e Segurança
 aliases: [MOC Admin, Índice Módulo 5, MOC Segurança]
 tags: [moc, dominio/admin]
 type: moc

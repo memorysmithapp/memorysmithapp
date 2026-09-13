@@ -1,5 +1,5 @@
 ---
-title: Aba Documentos (Documents) anexados
+name: Aba Documentos (Documents) anexados
 aliases: [aba Documents, Documents tab, documentos anexados]
 tags: [tabs, documents, anexos, ui]
 type: component

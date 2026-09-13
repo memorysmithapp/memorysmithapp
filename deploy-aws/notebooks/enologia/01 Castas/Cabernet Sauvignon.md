@@ -1,5 +1,5 @@
 ---
-title: Cabernet Sauvignon
+name: Cabernet Sauvignon
 aliases: [CS, Cabernet]
 tags: [casta, tinta]
 tipo: casta

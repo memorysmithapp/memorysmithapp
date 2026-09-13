@@ -1,5 +1,5 @@
 ---
-title: High Availability
+name: High Availability
 aliases:
   - HA
   - Alta Disponibilidade

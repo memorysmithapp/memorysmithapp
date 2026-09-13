@@ -1,5 +1,5 @@
 ---
-title: Operating Model
+name: Operating Model
 aliases:
   - Modelo Operacional
 tags:

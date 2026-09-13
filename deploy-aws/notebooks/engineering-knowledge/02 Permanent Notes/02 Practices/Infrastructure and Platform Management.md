@@ -1,5 +1,5 @@
 ---
-title: Infrastructure and Platform Management
+name: Infrastructure and Platform Management
 aliases:
   - Gestão de Infraestrutura e Plataforma
 tags:

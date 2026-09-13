@@ -312,7 +312,7 @@ describe('Notebook lifecycle', () => {
 });
 
 describe('Note lifecycle', () => {
-  it('writes a second note with the same title, and both stand', async () => {
+  it('writes a second note with the same name, and both stand', async () => {
     // RN-AGT-024: create_note always creates. Nothing in a notebook is a key, so
     // two notes may be called the same thing (RN-KNW-037) and a repeated call
     // writes rather than refusing (RN-AGT-004, removed).
@@ -320,29 +320,29 @@ describe('Note lifecycle', () => {
     const first = (await (
       await call(`/knowledge/notebooks/${notebookId}/notes`, {
         method: 'POST',
-        body: { folderId, content: '# Lei 14.133\n\nA geral.' },
+        body: { folderId, content: '---\nname: Lei 14.133\n---\n\nA geral.' },
       })
-    ).json()) as { noteId: string; title: string };
+    ).json()) as { noteId: string; name: string };
 
     const second = await call(`/knowledge/notebooks/${notebookId}/notes`, {
       method: 'POST',
-      body: { folderId, content: '# Lei 14.133\n\nOutra vez.' },
+      body: { folderId, content: '---\nname: Lei 14.133\n---\n\nOutra vez.' },
     });
     expect(second.status).toBe(201);
-    const twin = (await second.json()) as { noteId: string; title: string };
+    const twin = (await second.json()) as { noteId: string; name: string };
 
-    expect(twin.title).toBe('Lei 14.133');
-    expect(first.title).toBe('Lei 14.133');
+    expect(twin.name).toBe('Lei 14.133');
+    expect(first.name).toBe('Lei 14.133');
     expect(twin.noteId).not.toBe(first.noteId);
 
     // And the listing holds both.
     const listed = (await (
       await call(`/knowledge/notebooks/${notebookId}/notes?folderId=${folderId}`)
-    ).json()) as Array<{ title: string | null }>;
-    expect(listed.filter((note) => note.title === 'Lei 14.133')).toHaveLength(2);
+    ).json()) as Array<{ name: string | null }>;
+    expect(listed.filter((note) => note.name === 'Lei 14.133')).toHaveLength(2);
   });
 
-  it('writes a note whose content states no title, and says so', async () => {
+  it('writes a note whose content states no name, and says so', async () => {
     // RN-KNW-036: the note exists, it renders and it is searchable; what no
     // link can do is name it. Refusing the write is how an import loses a
     // notebook, so the absence is reported instead.
@@ -352,7 +352,7 @@ describe('Note lifecycle', () => {
       body: { folderId, content: 'Apenas prosa, sem titulo nenhum.' },
     });
     expect(created.status).toBe(201);
-    expect(((await created.json()) as { title: string | null }).title).toBeNull();
+    expect(((await created.json()) as { name: string | null }).name).toBeNull();
   });
 
   it('refuses an update based on a stale revision and returns the current content', async () => {

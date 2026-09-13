@@ -1,5 +1,5 @@
 ---
-title: Aodh
+name: Aodh
 aliases:
   - OpenStack Alarming Service
   - Alarming Service

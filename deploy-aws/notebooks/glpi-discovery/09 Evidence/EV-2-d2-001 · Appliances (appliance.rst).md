@@ -1,5 +1,5 @@
 ---
-title: EV-2-d2-001 · Appliances (appliance.rst)
+name: EV-2-d2-001 · Appliances (appliance.rst)
 aliases: [appliance.rst, Appliances]
 tags: [evidence, management, appliance, aplicacao, doc]
 type: evidence

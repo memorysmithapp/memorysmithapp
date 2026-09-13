@@ -1,5 +1,5 @@
 ---
-title: EV-2-g2-009 · Aba Items (itens vinculados ao objeto)
+name: EV-2-g2-009 · Aba Items (itens vinculados ao objeto)
 aliases: [EV-2-g2-009]
 tags: [evidence, tabs, items]
 type: evidence

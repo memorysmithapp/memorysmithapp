@@ -1,5 +1,5 @@
 ---
-title: Separação Tarifária e Contábil
+name: Separação Tarifária e Contábil
 aliases:
   - Separação tarifária e contábil
   - Unbundling da distribuidora

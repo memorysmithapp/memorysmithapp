@@ -1,5 +1,5 @@
 ---
-title: Aba Tickets vinculados
+name: Aba Tickets vinculados
 aliases: [aba Tickets, Tickets tab, tickets vinculados]
 tags: [tabs, tickets, itil, ui]
 type: component

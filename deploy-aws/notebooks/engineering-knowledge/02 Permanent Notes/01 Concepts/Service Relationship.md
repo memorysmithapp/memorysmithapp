@@ -1,5 +1,5 @@
 ---
-title: Service Relationship
+name: Service Relationship
 aliases:
   - Relacionamento de Serviço
 tags:

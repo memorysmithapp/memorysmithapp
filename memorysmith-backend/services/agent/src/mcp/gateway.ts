@@ -29,20 +29,20 @@ export interface NotebookListing {
 }
 
 /**
- * The title is what the chain read out of the content, and it is `null` when
- * the note has none a link could name (RN-KNW-036). It is reported rather than
+ * The name is the `name:` the frontmatter of the note states, and it is
+ * `null` when the note has none a link could use (RN-KNW-036). It is reported rather than
  * shown as an empty string, which is what an agent needs in order to say so.
  */
 export interface NoteListing {
   readonly noteId: string;
-  readonly title: string | null;
+  readonly name: string | null;
   readonly folderId: string;
   readonly position: string;
 }
 
 export interface NoteContent {
   readonly noteId: string;
-  readonly title: string | null;
+  readonly name: string | null;
   readonly content: string;
   readonly revision: string;
   readonly updatedAt: string;
@@ -50,7 +50,7 @@ export interface NoteContent {
 
 export interface SearchHit {
   readonly noteId: string;
-  readonly title: string;
+  readonly name: string;
   readonly section: string | null;
   readonly excerpt: string;
   readonly score: number;
@@ -58,7 +58,7 @@ export interface SearchHit {
 
 export interface RelatedNode {
   readonly noteId: string;
-  readonly title: string;
+  readonly name: string;
   readonly depth: number;
   readonly children: RelatedNode[];
 }

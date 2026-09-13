@@ -1,5 +1,5 @@
 ---
-title: Distributed Systems
+name: Distributed Systems
 aliases:
   - Sistemas Distribuídos
   - Sistema Distribuído

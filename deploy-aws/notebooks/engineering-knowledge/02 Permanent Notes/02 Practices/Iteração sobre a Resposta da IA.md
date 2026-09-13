@@ -1,5 +1,5 @@
 ---
-title: Iteração sobre a Resposta da IA
+name: Iteração sobre a Resposta da IA
 aliases:
   - Troubleshooting de Resposta
   - Refinamento Iterativo

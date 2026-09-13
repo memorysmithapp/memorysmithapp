@@ -13,8 +13,8 @@ export interface NotebookSummary {
 
 export interface NoteSummary {
   id: string;
-  /** `null` when the content of the note states no title a link could name. */
-  title: string | null;
+  /** `null` when the content of the note states no name a link could name. */
+  name: string | null;
   folderId: string;
 }
 
@@ -47,14 +47,8 @@ export interface NoteDetail {
   notebookSlug: string;
   /** Where the note lives, which the address carries as decoration. */
   folderId: string;
-  /** `null` when the content of the note states no title a link could name. */
-  title: string | null;
-  /**
-   * Whether the title the chain read came from the frontmatter or from the
-   * first level-1 heading. The frame draws the title only in the first case,
-   * because in the second the body is already drawing it (RN-DSC-054).
-   */
-  titleFrom: 'frontmatter' | 'heading' | null;
+  /** `null` when the frontmatter of the note states no name a link could use. */
+  name: string | null;
   folderNames: string[];
   frontmatter: Record<string, string>;
   /** Which of those the notebook wrote as a list; they are drawn as chips. */

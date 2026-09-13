@@ -1,5 +1,5 @@
 ---
-title: Claude Cowork
+name: Claude Cowork
 aliases:
   - Cowork
 tags:

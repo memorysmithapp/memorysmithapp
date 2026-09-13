@@ -1,5 +1,5 @@
 ---
-title: Planejamento e Agenda (visões de planning)
+name: Planejamento e Agenda (visões de planning)
 aliases: [Planning, Agenda, Planejamento]
 tags: [planning, agenda, ical, webcal, planejamento]
 type: component

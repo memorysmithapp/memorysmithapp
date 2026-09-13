@@ -1,5 +1,5 @@
 ---
-title: Quantidade de Empreendimentos de Geração em Operação (ANEEL)
+name: Quantidade de Empreendimentos de Geração em Operação (ANEEL)
 aliases:
   - empreendimentos-em-operacao
 tags:

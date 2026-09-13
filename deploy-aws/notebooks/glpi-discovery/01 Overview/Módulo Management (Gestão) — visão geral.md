@@ -1,5 +1,5 @@
 ---
-title: Módulo Management (Gestão) — visão geral
+name: Módulo Management (Gestão) — visão geral
 aliases: [Management, Gestão, Módulo de Gestão]
 tags: [overview, management, doc]
 type: overview

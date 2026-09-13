@@ -1,5 +1,5 @@
 ---
-title: Aba Itens do Rack (ativos)
+name: Aba Itens do Rack (ativos)
 aliases: [Rack items tab, Aba Itens do Rack, Items (rack)]
 tags: [assets, tab, dcim, rack, datacenter, pdu]
 type: component

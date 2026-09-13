@@ -9,7 +9,7 @@
  *
  * The other one used to be idempotency, and it is gone with the key it stood
  * on: **create_note always creates** (RN-AGT-024). Nothing in a notebook is
- * unique, two notes may carry one title (RN-KNW-037), and a repeated call
+ * unique, two notes may carry one name (RN-KNW-037), and a repeated call
  * writes a second note. Answering ALREADY_EXISTS would mean the API refusing
  * what the model allows.
  */
@@ -230,7 +230,7 @@ export class ReorderNote {
  * only operation that writes into two notebook partitions in one transaction, and
  * it preserves the NoteId, and with it the whole timeline (RN-KNW-023).
  *
- * Nothing is resolved against the destination on the way in: a title collides
+ * Nothing is resolved against the destination on the way in: a name collides
  * with nothing there, so the move carries no policy (RN-KNW-022, removed).
  */
 export class MoveNote {
@@ -325,7 +325,7 @@ export class RestoreNote {
     if (!note) return err(DomainError.notFound('Note not found'));
 
     // Nothing has to be free for a note to come back: another note may have
-    // been written under the same title in the meantime, and both stand
+    // been written under the same name in the meantime, and both stand
     // (RN-KNW-037, and RN-KNW-030, removed).
     //
     // Bringing a note back puts its bytes back on the count, so it is a write

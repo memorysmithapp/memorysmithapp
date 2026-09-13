@@ -1,5 +1,5 @@
 ---
-title: Observabilidade em Funções Serverless
+name: Observabilidade em Funções Serverless
 aliases:
   - Instrumentação de Lambda
   - Lambda Powertools

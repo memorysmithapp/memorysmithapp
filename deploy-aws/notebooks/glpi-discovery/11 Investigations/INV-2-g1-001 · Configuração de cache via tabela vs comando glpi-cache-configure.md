@@ -1,5 +1,5 @@
 ---
-title: INV-2-g1-001 · Configuração de cache via tabela vs comando glpi-cache-configure
+name: INV-2-g1-001 · Configuração de cache via tabela vs comando glpi-cache-configure
 aliases: [INV-2-g1-001]
 tags: [investigation, consumidor/cad, cache, operacional, divergencia-doc]
 type: investigation

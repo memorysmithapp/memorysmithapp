@@ -1,5 +1,5 @@
 ---
-title: Constitutional AI
+name: Constitutional AI
 aliases:
   - CAI
   - IA Constitucional

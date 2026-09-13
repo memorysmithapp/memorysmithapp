@@ -1,5 +1,5 @@
 ---
-title: TOGAF
+name: TOGAF
 aliases:
   - The Open Group Architecture Framework
 tags:

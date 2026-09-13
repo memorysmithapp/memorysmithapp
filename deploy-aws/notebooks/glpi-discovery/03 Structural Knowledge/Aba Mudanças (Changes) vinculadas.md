@@ -1,5 +1,5 @@
 ---
-title: Aba Mudanças (Changes) vinculadas
+name: Aba Mudanças (Changes) vinculadas
 aliases: [aba Changes, Changes tab, mudanças vinculadas]
 tags: [tabs, changes, itil, ui]
 type: component

@@ -1,5 +1,5 @@
 ---
-title: EV-1-032 · Tipos de regra especializados
+name: EV-1-032 · Tipos de regra especializados
 aliases: [EV-1-032]
 tags: [evidence, dominio/admin, regras]
 type: evidence

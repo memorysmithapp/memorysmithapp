@@ -1,5 +1,5 @@
 ---
-title: Evolução da Inadimplência Definitiva das Distribuidoras (2020–2025)
+name: Evolução da Inadimplência Definitiva das Distribuidoras (2020–2025)
 aliases:
   - Série ITot24
   - Inadimplência de 24 meses

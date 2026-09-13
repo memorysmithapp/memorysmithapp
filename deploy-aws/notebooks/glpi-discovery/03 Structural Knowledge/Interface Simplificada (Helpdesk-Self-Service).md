@@ -1,5 +1,5 @@
 ---
-title: Interface Simplificada (Helpdesk-Self-Service)
+name: Interface Simplificada (Helpdesk-Self-Service)
 aliases: [Simplified Interface, Interface simplificada, Self-service, Helpdesk interface, "Interface Simplificada (Helpdesk/Self-Service)"]
 tags: [component, interface, simplified, helpdesk, self-service, end-user]
 type: component

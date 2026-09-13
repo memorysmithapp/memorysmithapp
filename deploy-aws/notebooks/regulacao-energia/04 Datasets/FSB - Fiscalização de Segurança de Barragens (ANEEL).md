@@ -1,5 +1,5 @@
 ---
-title: FSB - Fiscalização de Segurança de Barragens (ANEEL)
+name: FSB - Fiscalização de Segurança de Barragens (ANEEL)
 aliases:
   - fsb-fiscalizacao-de-seguranca-de-barragens
 tags:

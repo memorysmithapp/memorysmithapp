@@ -3,8 +3,8 @@
  *
  * A **URL is an address**: the product writes it, a person copies it, and
  * pasting it back has to land on the note it was copied from. A **wikilink is
- * a name**: an author writes it inside the content, it names a title, and a
- * title may be carried by several notes. Putting the name in the address made
+ * a name**: an author writes it inside the content, it names a name, and a
+ * name may be carried by several notes. Putting the name in the address made
  * the address inherit the ambiguity of the name, and this is the seam that
  * undoes the merge.
  */
@@ -21,7 +21,7 @@ describe('the address of a note names one note and never two', () => {
     );
   });
 
-  it('gives two notes with one title two different addresses', () => {
+  it('gives two notes with one name two different addresses', () => {
     // RN-KNW-037: the ambiguity is in the name and not in the address.
     const other = '01J8X2K9QZ3M4N5P6R7S8T9V0X';
     const first = noteAddress('enologia', '01-castas', 'Índice', ID);
@@ -31,10 +31,10 @@ describe('the address of a note names one note and never two', () => {
     expect(noteIdOf(second.split('/').pop() ?? '')).toBe(other);
   });
 
-  it('carries no percent escape, whatever the title has in it', () => {
+  it('carries no percent escape, whatever the name has in it', () => {
     // The case the first draft of this design needed a raw pathname split
     // for: `useParams()['*']` hands an inner `%2F` back as `/`, and cuts a
-    // title in half. None of that exists when the segment is ASCII.
+    // name in half. None of that exists when the segment is ASCII.
     const address = noteAddress('a', 'f', 'Reunião 03/09/2026', ID);
     expect(address).toBe('/notebooks/a/root/f/reuniao-03-09-2026--01j8x2k9qz3m4n5p6r7s8t9v0w');
     expect(address.split('/')).toHaveLength(6);

@@ -1,5 +1,5 @@
 ---
-title: Agente de Inventário (protocolo)
+name: Agente de Inventário (protocolo)
 aliases: [Agente, GLPI Agent, protocolo de inventário]
 tags: [integration, inventario, agente, dominio/integracoes]
 type: integration

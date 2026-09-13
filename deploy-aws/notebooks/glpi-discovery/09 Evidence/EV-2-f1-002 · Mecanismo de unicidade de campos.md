@@ -1,5 +1,5 @@
 ---
-title: EV-2-f1-002 · Mecanismo de unicidade de campos
+name: EV-2-f1-002 · Mecanismo de unicidade de campos
 aliases: [EV-2-f1-002]
 tags: [evidence, unicidade, duplicatas, configuracao]
 type: evidence

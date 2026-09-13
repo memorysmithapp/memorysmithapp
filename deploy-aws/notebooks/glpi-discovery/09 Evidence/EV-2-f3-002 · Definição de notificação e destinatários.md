@@ -1,5 +1,5 @@
 ---
-title: EV-2-f3-002 · Definição de notificação e destinatários
+name: EV-2-f3-002 · Definição de notificação e destinatários
 aliases: [EV-2-f3-002]
 tags: [evidence, notificacao, definicao, destinatarios, recipients]
 type: evidence

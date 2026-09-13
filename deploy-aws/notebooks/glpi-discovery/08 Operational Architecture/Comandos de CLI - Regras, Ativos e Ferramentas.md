@@ -1,5 +1,5 @@
 ---
-title: "Comandos de CLI - Regras, Ativos e Ferramentas"
+name: "Comandos de CLI - Regras, Ativos e Ferramentas"
 aliases: [rules:replay_dictionnary_rules, ldap:sync, tools:delete_orphan_logs, build:compile_scss]
 tags: [cli, regras, dicionarios, ativos, ldap, ferramentas, comandos, operacional]
 type: process

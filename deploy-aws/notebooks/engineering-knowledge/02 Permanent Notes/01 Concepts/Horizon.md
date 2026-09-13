@@ -1,5 +1,5 @@
 ---
-title: Horizon
+name: Horizon
 aliases:
   - OpenStack Dashboard
 tags:

@@ -1,5 +1,5 @@
 ---
-title: EV-2-e1-009 · Aba Authorizations da ficha de usuário
+name: EV-2-e1-009 · Aba Authorizations da ficha de usuário
 aliases: [EV-2-e1-009]
 tags: [evidence, usuarios, autorizacoes, perfis, entidades, recursivo, dinamico]
 type: evidence

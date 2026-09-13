@@ -1,5 +1,5 @@
 ---
-title: Scrum
+name: Scrum
 aliases:
 tags:
   - agile

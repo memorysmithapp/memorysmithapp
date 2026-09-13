@@ -1,5 +1,5 @@
 ---
-title: Exercise 2026-03 · Region loss
+name: Exercise 2026-03 · Region loss
 aliases: [March exercise]
 tags: [review, exercise]
 type: review
@@ -60,7 +60,7 @@ which is $0.99968$ for the month, and inside the budget.
   text, never rendered. Use a callout, as this page does above.
 - **A summary in the frontmatter.** The `summary` above is longer than forty
   characters, so it is read and discarded rather than becoming a category of
-  one. The same is true of `title`, which is an ordinary attribute here and
-  does not rename anything: this note is called what the notebook calls it.
+  one. A `title:` would not rename anything either: `title` is an ordinary
+  attribute here, and this note is called by its `name:` and by nothing else.
 
 Related: [[Recovery Point Objective#Open]].

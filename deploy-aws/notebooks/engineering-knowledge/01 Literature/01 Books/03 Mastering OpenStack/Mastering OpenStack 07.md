@@ -1,5 +1,5 @@
 ---
-title: Mastering OpenStack 07
+name: Mastering OpenStack 07
 aliases:
   - "Capítulo 7: Running a Highly Available Cloud – Meeting the SLA"
 tags:

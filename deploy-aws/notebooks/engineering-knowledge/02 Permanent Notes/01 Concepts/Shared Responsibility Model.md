@@ -1,5 +1,5 @@
 ---
-title: Shared Responsibility Model
+name: Shared Responsibility Model
 aliases:
   - Modelo de Responsabilidade Compartilhada
   - Segurança da Nuvem e na Nuvem

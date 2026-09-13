@@ -13,18 +13,18 @@ import { instantSchema, ulidSchema } from '../common.js';
 
 /**
  * A note as the projections name it. There is no slug: a link resolves against
- * the title (RN-DSC-041) and the interface addresses a note by its identifier
+ * the name (RN-DSC-041) and the interface addresses a note by its identifier
  * (RN-DSC-045), so what travels is what each of the two reads.
  */
 export const noteRefSchema = z.object({
   noteId: ulidSchema,
-  title: z.string(),
+  name: z.string(),
   aliases: z.array(z.string()),
   folderId: ulidSchema,
 });
 
 /**
- * What one wikilink target resolves to: every note whose title matches it or —
+ * What one wikilink target resolves to: every note whose name matches it or —
  * when none does — every note carrying it as an alias, with which of the two
  * answered. The two are not equally durable, and the interface says so
  * (RN-DSC-046, RN-DSC-053).
@@ -32,7 +32,7 @@ export const noteRefSchema = z.object({
 export const resolvedTargetSchema = z.object({
   target: z.string().min(1),
   kind: z.enum(['note', 'attachment', 'pending']),
-  by: z.enum(['title', 'alias']).nullable(),
+  by: z.enum(['name', 'alias']).nullable(),
   notes: z.array(noteRefSchema),
 });
 
@@ -69,7 +69,7 @@ export const notebookGraphSchema = z.object({
   nodes: z.array(graphNoteRefSchema),
   edges: z.array(z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()])),
   pending: z.array(
-    z.object({ from: z.number().int().nonnegative(), targetTitle: z.string().min(1) }),
+    z.object({ from: z.number().int().nonnegative(), targetName: z.string().min(1) }),
   ),
   /** True when the node ceiling cut the graph short. Never truncate silently. */
   truncated: z.boolean(),
@@ -82,7 +82,7 @@ export const backlinksSchema = z.object({
 
 export const brokenLinkSchema = z.object({
   fromNote: noteRefSchema,
-  targetTitle: z.string().min(1),
+  targetName: z.string().min(1),
 });
 
 export const notebookHealthSchema = z.object({

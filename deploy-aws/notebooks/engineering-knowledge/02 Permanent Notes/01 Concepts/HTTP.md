@@ -1,5 +1,5 @@
 ---
-title: HTTP
+name: HTTP
 aliases:
   - HyperText Transfer Protocol
   - HTTP/2

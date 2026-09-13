@@ -1,5 +1,5 @@
 ---
-title: Management Practices
+name: Management Practices
 aliases:
   - Práticas de Gestão
   - ITIL Practices

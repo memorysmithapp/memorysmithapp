@@ -1,5 +1,5 @@
 ---
-title: Categorias ITIL de chamados
+name: Categorias ITIL de chamados
 aliases: [ITIL Categories, Categorias de ticket]
 tags: [assistance, categories, itil, hierarchy, template, dropdown]
 type: concept

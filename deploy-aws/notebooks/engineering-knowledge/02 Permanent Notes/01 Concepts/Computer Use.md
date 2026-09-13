@@ -1,5 +1,5 @@
 ---
-title: Computer Use
+name: Computer Use
 aliases:
   - Uso de Computador
   - Browser Use

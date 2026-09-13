@@ -1,5 +1,5 @@
 ---
-title: EV-2-g3-008 · Aba Aprovações (validação de chamados e mudanças)
+name: EV-2-g3-008 · Aba Aprovações (validação de chamados e mudanças)
 aliases: [EV-2-g3-008]
 tags: [evidence, tab, approvals, validation, ticket, change]
 type: evidence

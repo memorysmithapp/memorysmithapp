@@ -1,5 +1,5 @@
 ---
-title: EV-1-028 · User, Group e Profile_User (binding RBAC × entidade)
+name: EV-1-028 · User, Group e Profile_User (binding RBAC × entidade)
 aliases: [EV-1-028]
 tags: [evidence, dominio/admin, usuarios, rbac]
 type: evidence

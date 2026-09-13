@@ -1,5 +1,5 @@
 ---
-title: Perfis de transferência inter-entidades
+name: Perfis de transferência inter-entidades
 aliases: [Transfer profiles, Transfer]
 tags: [entidades, transferencia, regras, doc]
 type: concept

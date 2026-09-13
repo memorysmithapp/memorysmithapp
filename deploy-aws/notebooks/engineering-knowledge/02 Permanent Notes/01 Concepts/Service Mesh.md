@@ -1,5 +1,5 @@
 ---
-title: Service Mesh
+name: Service Mesh
 tags:
   - microservices
   - kubernetes

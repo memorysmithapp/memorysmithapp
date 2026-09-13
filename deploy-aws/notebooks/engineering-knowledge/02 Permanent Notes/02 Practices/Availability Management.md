@@ -1,5 +1,5 @@
 ---
-title: Availability Management
+name: Availability Management
 aliases:
   - Gestão de Disponibilidade
 tags:

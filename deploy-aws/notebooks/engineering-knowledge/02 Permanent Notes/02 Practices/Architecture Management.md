@@ -1,5 +1,5 @@
 ---
-title: Architecture Management
+name: Architecture Management
 aliases:
   - Gestão de Arquitetura
 tags:

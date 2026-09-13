@@ -1,5 +1,5 @@
 ---
-title: Projetos P&D - Res. 316-2008, 219-2006 e anteriores (descontinuado)
+name: Projetos P&D - Res. 316-2008, 219-2006 e anteriores (descontinuado)
 aliases:
   - projetos-res-n-316-2008-219-2006-e-anteriores
 tags:

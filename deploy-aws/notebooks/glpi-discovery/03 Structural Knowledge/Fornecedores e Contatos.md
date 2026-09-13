@@ -1,5 +1,5 @@
 ---
-title: Fornecedores e Contatos
+name: Fornecedores e Contatos
 aliases: [Supplier, Contact, Fornecedor, Contato]
 tags: [entity, fornecedor, dominio/gestao]
 type: entity

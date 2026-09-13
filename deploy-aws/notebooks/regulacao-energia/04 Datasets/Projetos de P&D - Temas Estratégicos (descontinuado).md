@@ -1,5 +1,5 @@
 ---
-title: Projetos de P&D - Temas Estratégicos (descontinuado)
+name: Projetos de P&D - Temas Estratégicos (descontinuado)
 aliases:
   - projetos-de-p-d-temas-estrategicos
 tags:

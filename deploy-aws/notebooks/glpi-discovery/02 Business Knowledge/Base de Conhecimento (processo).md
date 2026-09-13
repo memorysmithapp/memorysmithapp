@@ -1,5 +1,5 @@
 ---
-title: Base de Conhecimento (processo)
+name: Base de Conhecimento (processo)
 aliases: [Knowledge Management, FAQ processo]
 tags: [process, kb, dominio/admin]
 type: process

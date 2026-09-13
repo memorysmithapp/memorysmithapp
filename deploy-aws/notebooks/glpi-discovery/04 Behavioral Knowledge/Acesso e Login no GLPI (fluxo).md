@@ -1,5 +1,5 @@
 ---
-title: Acesso e Login no GLPI (fluxo)
+name: Acesso e Login no GLPI (fluxo)
 aliases: [Login GLPI, How to connect, Acesso, Logout]
 tags: [flow, login, access, session, browser, use-case]
 type: flow

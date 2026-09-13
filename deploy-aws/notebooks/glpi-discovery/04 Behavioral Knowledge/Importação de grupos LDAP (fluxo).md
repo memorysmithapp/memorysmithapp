@@ -1,5 +1,5 @@
 ---
-title: Importação de grupos LDAP (fluxo)
+name: Importação de grupos LDAP (fluxo)
 aliases: [Import groups, Importar grupos LDAP]
 tags: [grupos, importacao, ldap, entidades, fluxo]
 type: flow

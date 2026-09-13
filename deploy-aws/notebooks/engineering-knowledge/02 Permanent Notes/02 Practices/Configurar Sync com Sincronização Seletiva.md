@@ -1,5 +1,5 @@
 ---
-title: Configurar Sync com Sincronização Seletiva
+name: Configurar Sync com Sincronização Seletiva
 aliases:
   - Selective Sync
   - Configurar Obsidian Sync

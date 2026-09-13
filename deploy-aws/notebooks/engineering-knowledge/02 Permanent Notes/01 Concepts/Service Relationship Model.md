@@ -1,5 +1,5 @@
 ---
-title: Service Relationship Model
+name: Service Relationship Model
 aliases:
   - Modelo de Relacionamento de Serviço
 tags:

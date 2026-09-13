@@ -9,7 +9,7 @@
  * the folder tree would invert the arrow.
  */
 
-import { bodyWithoutFrontmatter, noteTitle } from '@memorysmith/kernel';
+import { bodyWithoutFrontmatter, noteName } from '@memorysmith/kernel';
 
 import { extractLinks } from '../domain/LinkExtractor.js';
 import { extractFacets } from '../domain/FacetExtractor.js';
@@ -22,7 +22,7 @@ import type { ContentIndex, FacetIndex, LinkGraph, NoteRef } from '../domain/por
  * place in the searchable body: leaving it in would make every note match its
  * own metadata, and `maturity` would be findable as prose. Where the block
  * ends is the kernel's answer, which is the one reader of it in this
- * repository and the one the title of a note is read through.
+ * repository and the one the name of a note is read through.
  */
 const stripFrontmatter = bodyWithoutFrontmatter;
 
@@ -70,7 +70,7 @@ export interface ProjectionDependencies {
 }
 
 /**
- * What a note event carries. It does NOT carry a title: the title is read from
+ * What a note event carries. It does NOT carry a name: the name is read from
  * the content, by the same function Knowledge derives it with, so the two
  * cannot disagree about what a note is called (RN-KNW-035). An event that
  * arrives without a content reference — a deletion — is answering about a note
@@ -86,13 +86,13 @@ export interface NoteEvent {
 /**
  * The note as the projections address it: what it is called and what else it
  * answers to. A link resolves against the first (RN-DSC-041) and the second
- * fills what no title matched (RN-DSC-052), which is why a note points with
+ * fills what no name matched (RN-DSC-052), which is why a note points with
  * its body and answers with both.
  */
-function refOf(event: NoteEvent, title: string, aliases: readonly string[]): NoteRef {
+function refOf(event: NoteEvent, name: string, aliases: readonly string[]): NoteRef {
   return {
     noteId: event.noteId,
-    title,
+    name,
     aliases: [...aliases],
     folderId: event.folderId,
   };
@@ -107,15 +107,15 @@ export class ProjectNote {
    */
   async onWritten(event: NoteEvent): Promise<void> {
     const markdown = event.contentRef ? await this.deps.content.read(event.contentRef) : '';
-    const title = noteTitle(markdown) ?? '';
-    const note = refOf(event, title, extractFrontmatterAliases(markdown));
+    const name = noteName(markdown) ?? '';
+    const note = refOf(event, name, extractFrontmatterAliases(markdown));
 
     // 1. Links. A target that does not exist yet becomes PENDING and resolves
     // on its own when the note is created (RN-DSC-004).
     await this.deps.graph.replaceOutgoing(
       event.notebookId,
       note,
-      extractLinks(markdown).map((link) => ({ title: link.title, anchor: link.anchor })),
+      extractLinks(markdown).map((link) => ({ name: link.name, anchor: link.anchor })),
     );
     await this.deps.graph.resolvePending(event.notebookId, note);
 
@@ -129,7 +129,7 @@ export class ProjectNote {
     const body = stripFrontmatter(markdown);
     await this.deps.index.replaceNote(event.notebookId, {
       noteId: event.noteId,
-      title: normalize(title),
+      name: normalize(name),
       folderId: event.folderId,
       folderName: normalize(structure?.folders.get(event.folderId)?.name ?? ''),
       sections: headingsOf(body).map(normalize),
@@ -141,7 +141,7 @@ export class ProjectNote {
           facet.values.map(normalize),
         ]),
       ),
-      // The reserved `aliases`, indexed as other spellings of the title
+      // The reserved `aliases`, indexed as other spellings of the name
       // (RN-DSC-032). It is the one reserved key with an effect of its own:
       // the other three are named so every notebook spells them alike, and this
       // one changes what the search finds.

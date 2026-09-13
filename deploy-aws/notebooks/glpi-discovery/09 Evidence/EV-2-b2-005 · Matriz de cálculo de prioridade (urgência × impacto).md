@@ -1,5 +1,5 @@
 ---
-title: EV-2-b2-005 · Matriz de cálculo de prioridade (urgência × impacto)
+name: EV-2-b2-005 · Matriz de cálculo de prioridade (urgência × impacto)
 aliases: [EV-2-b2-005]
 tags: [evidence, priority, prioridade, urgencia, impacto, matriz, itil]
 type: evidence

@@ -1,5 +1,5 @@
 ---
-title: Ceilometer
+name: Ceilometer
 aliases:
   - OpenStack Telemetry Service
   - Telemetry Service

@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Appliance
+name: Campos do formulário de Appliance
 aliases: [Campos de Appliance, Appliance form fields]
 tags: [management, appliance, campos, formulario, data]
 type: entity

@@ -1,5 +1,5 @@
 ---
-title: Licitação de Concessão de Distribuição Não Prorrogada
+name: Licitação de Concessão de Distribuição Não Prorrogada
 aliases:
   - Rito da licitação da concessão
 tags:

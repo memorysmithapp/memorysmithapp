@@ -1,5 +1,5 @@
 ---
-title: Glance
+name: Glance
 aliases:
   - OpenStack Image Service
   - Image Service

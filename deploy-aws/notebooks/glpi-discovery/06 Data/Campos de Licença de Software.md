@@ -1,5 +1,5 @@
 ---
-title: Campos de Licença de Software
+name: Campos de Licença de Software
 aliases: [Campos SoftwareLicense, Licença de software]
 tags: [data, fields, software, license, doc]
 type: table

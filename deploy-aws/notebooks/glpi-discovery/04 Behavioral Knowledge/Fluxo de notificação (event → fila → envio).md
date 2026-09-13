@@ -1,5 +1,5 @@
 ---
-title: Fluxo de notificação (event → fila → envio)
+name: Fluxo de notificação (event → fila → envio)
 aliases: [Fluxo de notificação, notification flow]
 tags: [flow, notificacoes, dominio/integracoes]
 type: flow

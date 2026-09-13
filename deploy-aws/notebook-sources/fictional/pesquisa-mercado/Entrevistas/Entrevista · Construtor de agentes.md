@@ -1,5 +1,5 @@
 ---
-title: Entrevista · Construtor de agentes
+name: Entrevista · Construtor de agentes
 aliases: []
 tags: [entrevista, persona-builder]
 type: entrevista

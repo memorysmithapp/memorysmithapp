@@ -1,5 +1,5 @@
 ---
-title: Data Portability
+name: Data Portability
 aliases:
   - Portabilidade de Dados
   - Lossy Import

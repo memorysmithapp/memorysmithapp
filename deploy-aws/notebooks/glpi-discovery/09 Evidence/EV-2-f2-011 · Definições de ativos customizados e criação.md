@@ -1,5 +1,5 @@
 ---
-title: EV-2-f2-011 · Definições de ativos customizados e criação
+name: EV-2-f2-011 · Definições de ativos customizados e criação
 aliases: [EV-2-f2-011]
 tags: [evidence, asset-definition, custom-asset, generic-object]
 type: evidence

@@ -1,5 +1,5 @@
 ---
-title: Compensação Financeira e Royalties (histórico)
+name: Compensação Financeira e Royalties (histórico)
 aliases:
   - compensacao-financeira-royalties
 tags:

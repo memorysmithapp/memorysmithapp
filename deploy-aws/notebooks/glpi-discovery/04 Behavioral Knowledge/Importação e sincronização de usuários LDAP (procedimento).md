@@ -1,5 +1,5 @@
 ---
-title: Importação e sincronização de usuários LDAP (procedimento)
+name: Importação e sincronização de usuários LDAP (procedimento)
 aliases: [Sincronização LDAP, Importação LDAP, glpi:ldap:synchronize_users]
 tags: [authentication, ldap, synchronization, provisioning, procedure]
 type: flow

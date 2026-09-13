@@ -1,5 +1,5 @@
 ---
-title: Block Storage
+name: Block Storage
 aliases:
   - Armazenamento em Blocos
 tags:

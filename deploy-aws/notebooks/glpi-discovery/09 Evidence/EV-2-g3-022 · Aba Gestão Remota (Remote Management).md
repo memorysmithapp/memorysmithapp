@@ -1,5 +1,5 @@
 ---
-title: EV-2-g3-022 · Aba Gestão Remota (Remote Management)
+name: EV-2-g3-022 · Aba Gestão Remota (Remote Management)
 aliases: [EV-2-g3-022]
 tags: [evidence, tab, remote-management, inventory]
 type: evidence

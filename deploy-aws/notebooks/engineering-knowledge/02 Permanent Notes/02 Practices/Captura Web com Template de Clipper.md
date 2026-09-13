@@ -1,5 +1,5 @@
 ---
-title: Captura Web com Template de Clipper
+name: Captura Web com Template de Clipper
 aliases:
   - Web Clipper Template
   - Captura Web

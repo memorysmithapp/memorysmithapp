@@ -1,5 +1,5 @@
 ---
-title: Visão Geral do GLPI
+name: Visão Geral do GLPI
 aliases: [GLPI, Gestionnaire Libre de Parc Informatique]
 tags: [overview, dominio/foundation]
 type: overview

@@ -1,5 +1,5 @@
 ---
-title: EV-1-029 · Auth com múltiplos métodos e 2FA
+name: EV-1-029 · Auth com múltiplos métodos e 2FA
 aliases: [EV-1-029]
 tags: [evidence, dominio/admin, autenticacao, seguranca]
 type: evidence

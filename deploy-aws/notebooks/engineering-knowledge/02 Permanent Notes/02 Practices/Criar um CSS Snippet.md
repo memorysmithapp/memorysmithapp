@@ -1,5 +1,5 @@
 ---
-title: Criar um CSS Snippet
+name: Criar um CSS Snippet
 aliases:
   - CSS Snippet na Prática
   - Criar Snippet CSS

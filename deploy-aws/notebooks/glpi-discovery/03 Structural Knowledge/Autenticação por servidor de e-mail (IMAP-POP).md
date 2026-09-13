@@ -1,5 +1,5 @@
 ---
-title: Autenticação por servidor de e-mail (IMAP-POP)
+name: Autenticação por servidor de e-mail (IMAP-POP)
 aliases: [IMAP auth, POP auth, Mail servers auth]
 tags: [authentication, imap, pop, email]
 type: component

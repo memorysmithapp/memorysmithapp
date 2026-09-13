@@ -1,5 +1,5 @@
 ---
-title: Discover (Lifecycle)
+name: Discover (Lifecycle)
 aliases:
   - Discover
   - Descoberta

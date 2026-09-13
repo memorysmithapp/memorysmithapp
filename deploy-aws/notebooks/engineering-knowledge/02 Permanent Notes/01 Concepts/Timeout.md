@@ -1,5 +1,5 @@
 ---
-title: Timeout
+name: Timeout
 aliases:
   - Tempo Limite
 tags:

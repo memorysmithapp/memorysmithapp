@@ -1,5 +1,5 @@
 ---
-title: Tipo de Consumível (Consumable type)
+name: Tipo de Consumível (Consumable type)
 aliases: [Consumable type, Tipo de consumível]
 tags: [tab, consumable, dropdown, translation]
 type: component

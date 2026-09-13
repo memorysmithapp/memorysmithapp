@@ -1,5 +1,5 @@
 ---
-title: Vincular um item a um orçamento (procedimento)
+name: Vincular um item a um orçamento (procedimento)
 aliases: [Attach item to budget]
 tags: [use-case, management, budget, financial, doc]
 type: use-case

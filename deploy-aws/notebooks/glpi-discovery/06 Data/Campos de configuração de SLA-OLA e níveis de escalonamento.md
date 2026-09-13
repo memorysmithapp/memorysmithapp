@@ -1,5 +1,5 @@
 ---
-title: Campos de configuração de SLA/OLA e níveis de escalonamento
+name: Campos de configuração de SLA/OLA e níveis de escalonamento
 aliases: [SLA OLA fields, Escalation level fields]
 tags: [dados, sla, ola, escalonamento, campos, calendario]
 type: entity

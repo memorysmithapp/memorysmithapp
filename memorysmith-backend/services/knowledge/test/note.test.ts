@@ -18,8 +18,8 @@ describe('Note: creation', () => {
     const notebook = newNotebook();
     const note = newNote(notebook, folderId, 'Lei 14.133, art. 75');
 
-    // The title is what the content says, and nothing was passed in.
-    expect(note.title).toBe('Lei 14.133, art. 75');
+    // The name is what the content says, and nothing was passed in.
+    expect(note.name).toBe('Lei 14.133, art. 75');
     const [event] = note.pullEvents();
     expect(event?.type).toBe('NoteCreated');
     expect(event?.subject).toBe('NOTE');
@@ -59,7 +59,7 @@ describe('Note: editing', () => {
     expect(note.pullEvents()).toHaveLength(0);
   });
 
-  it('retitles a note by editing the content that states the title', () => {
+  it('renames a note by editing the content that states the name', () => {
     // RN-KNW-038: there is no operation that renames a note apart from its
     // content, and this is what one looks like.
     const notebook = newNotebook();
@@ -69,15 +69,15 @@ describe('Note: editing', () => {
     const rewritten = contentRef('f'.repeat(64), 1500);
     unwrap(note.replaceBody(rewritten, noteBody('Lei 14.133, art. 76'), authorship()));
 
-    expect(note.title).toBe('Lei 14.133, art. 76');
+    expect(note.name).toBe('Lei 14.133, art. 76');
     const [event] = note.pullEvents();
     expect(event?.type).toBe('NoteUpdated');
-    // The event is the whole truth: the title the chain read AND the live ref.
-    expect(event?.payload['title']).toBe('Lei 14.133, art. 76');
+    // The event is the whole truth: the name the content states AND the live ref.
+    expect(event?.payload['name']).toBe('Lei 14.133, art. 76');
     expect(event?.contentRef?.equals(rewritten)).toBe(true);
   });
 
-  it('leaves a note with no addressable title, and writes it anyway', () => {
+  it('leaves a note with no addressable name, and writes it anyway', () => {
     // RN-KNW-036: the content states nothing a link could name. The note is
     // written, and what is reported is the absence, not an error.
     const notebook = newNotebook();
@@ -86,8 +86,8 @@ describe('Note: editing', () => {
 
     unwrap(note.replaceBody(contentRef('b'.repeat(64), 40), 'Just prose.\n', authorship()));
 
-    expect(note.title).toBeNull();
-    expect(note.pullEvents()[0]?.payload['title']).toBeNull();
+    expect(note.name).toBeNull();
+    expect(note.pullEvents()[0]?.payload['name']).toBeNull();
   });
 
   it('keeps the two events of a move and a reorder apart', () => {

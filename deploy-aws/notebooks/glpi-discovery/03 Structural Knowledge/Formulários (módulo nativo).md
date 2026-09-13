@@ -1,5 +1,5 @@
 ---
-title: Formulários (módulo nativo)
+name: Formulários (módulo nativo)
 aliases: [Forms, Formulários, Native forms]
 tags: [formularios, forms, self-service, catalogo, doc]
 type: component

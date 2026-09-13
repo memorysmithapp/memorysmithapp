@@ -1,5 +1,5 @@
 ---
-title: Control Plane
+name: Control Plane
 aliases:
   - Plano de Controle
   - Control Plane vs Data Plane

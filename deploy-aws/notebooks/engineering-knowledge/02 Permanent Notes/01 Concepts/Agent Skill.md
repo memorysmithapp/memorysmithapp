@@ -1,5 +1,5 @@
 ---
-title: Agent Skill
+name: Agent Skill
 aliases:
   - Skill
   - Skills

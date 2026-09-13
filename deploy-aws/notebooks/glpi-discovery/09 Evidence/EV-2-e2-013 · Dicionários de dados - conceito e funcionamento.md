@@ -1,5 +1,5 @@
 ---
-title: EV-2-e2-013 · Dicionários de dados - conceito e funcionamento
+name: EV-2-e2-013 · Dicionários de dados - conceito e funcionamento
 aliases: [EV-2-e2-013]
 tags: [evidence, dicionarios, regras, doc]
 type: evidence

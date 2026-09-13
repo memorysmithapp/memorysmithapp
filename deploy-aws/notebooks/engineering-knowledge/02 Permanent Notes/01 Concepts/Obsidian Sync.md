@@ -1,5 +1,5 @@
 ---
-title: Obsidian Sync
+name: Obsidian Sync
 aliases:
   - Sync
   - Sincronização Oficial

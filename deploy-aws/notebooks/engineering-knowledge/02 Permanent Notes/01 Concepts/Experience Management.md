@@ -1,5 +1,5 @@
 ---
-title: Experience Management
+name: Experience Management
 aliases:
   - Gestão de Experiência
   - XM

@@ -1,5 +1,5 @@
 ---
-title: Tag (Obsidian)
+name: Tag (Obsidian)
 aliases:
   - Tag
   - Hashtag

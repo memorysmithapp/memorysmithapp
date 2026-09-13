@@ -1,5 +1,5 @@
 ---
-title: Estratégias de Cache
+name: Estratégias de Cache
 aliases:
   - Caching
   - Caching Strategies

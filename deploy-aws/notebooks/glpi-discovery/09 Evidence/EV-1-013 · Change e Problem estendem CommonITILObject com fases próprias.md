@@ -1,5 +1,5 @@
 ---
-title: EV-1-013 · Change e Problem estendem CommonITILObject com fases próprias
+name: EV-1-013 · Change e Problem estendem CommonITILObject com fases próprias
 aliases: [EV-1-013]
 tags: [evidence, dominio/service-desk, change, problem]
 type: evidence

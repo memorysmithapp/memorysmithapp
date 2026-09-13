@@ -1,5 +1,5 @@
 ---
-title: Mean Time to Restore (MTTR)
+name: Mean Time to Restore (MTTR)
 aliases:
   - MTTR
   - Tempo Médio de Restauração

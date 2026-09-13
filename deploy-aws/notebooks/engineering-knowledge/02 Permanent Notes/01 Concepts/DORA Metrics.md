@@ -1,5 +1,5 @@
 ---
-title: DORA Metrics
+name: DORA Metrics
 aliases:
   - DORA
   - Four Key Metrics

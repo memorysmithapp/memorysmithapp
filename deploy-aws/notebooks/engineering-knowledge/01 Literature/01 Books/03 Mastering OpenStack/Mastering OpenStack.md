@@ -1,5 +1,5 @@
 ---
-title: Mastering OpenStack
+name: Mastering OpenStack
 aliases:
   - "Mastering OpenStack (3rd Edition)"
   - Khedher, Mastering OpenStack

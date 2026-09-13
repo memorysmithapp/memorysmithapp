@@ -1,5 +1,5 @@
 ---
-title: IndQual - Inadimplência (ANEEL)
+name: IndQual - Inadimplência (ANEEL)
 aliases:
   - indqual-inadimplencia
 tags:

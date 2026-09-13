@@ -1,5 +1,5 @@
 ---
-title: Strangler Fig
+name: Strangler Fig
 aliases:
   - Strangler Fig Application
   - Figueira Estranguladora

@@ -1,5 +1,5 @@
 ---
-title: Border Gateway Protocol (BGP)
+name: Border Gateway Protocol (BGP)
 aliases:
   - BGP
   - Roteamento Dinâmico

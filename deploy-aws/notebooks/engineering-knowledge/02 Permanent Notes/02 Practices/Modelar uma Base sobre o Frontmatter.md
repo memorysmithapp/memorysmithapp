@@ -1,5 +1,5 @@
 ---
-title: Modelar uma Base sobre o Frontmatter
+name: Modelar uma Base sobre o Frontmatter
 aliases:
   - Modelar uma Base
   - Bases sobre Properties

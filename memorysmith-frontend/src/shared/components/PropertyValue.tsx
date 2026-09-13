@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { DRAWN_RESERVED_KEYS, TITLE_KEY } from '@memorysmith/contracts';
+import { DRAWN_RESERVED_KEYS, NAME_KEY } from '@memorysmith/contracts';
 import { wikilinkUrl } from '../api/source';
 
 // Frontmatter values are notebook content, so they may carry [[wikilinks]],
@@ -25,7 +25,7 @@ interface PropertyValueProps {
  */
 /**
  * The keys the specification reserves, minus the one that names the note:
- * `title` is drawn as the title and never as a property, because a note is not
+ * `name` is drawn as the name and never as a property, because a note is not
  * a category of itself (RN-DSC-050, RN-DSC-051).
  *
  * The list is not written here. It is derived from the specification, in the
@@ -68,7 +68,7 @@ export function orderedProperties(
     return at === -1 ? RESERVED.length : at;
   };
   return entries
-    .filter(([key]) => key !== TITLE_KEY)
+    .filter(([key]) => key !== NAME_KEY)
     .map((entry, index) => ({ entry, index }))
     .sort((left, right) => {
       const byGroup = rank(left.entry[0]) - rank(right.entry[0]);

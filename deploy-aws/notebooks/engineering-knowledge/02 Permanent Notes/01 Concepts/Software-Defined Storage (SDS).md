@@ -1,5 +1,5 @@
 ---
-title: Software-Defined Storage (SDS)
+name: Software-Defined Storage (SDS)
 aliases:
   - SDS
   - Armazenamento Definido por Software

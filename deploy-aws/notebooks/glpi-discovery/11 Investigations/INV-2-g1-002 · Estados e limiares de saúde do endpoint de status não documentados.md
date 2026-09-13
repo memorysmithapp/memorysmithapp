@@ -1,5 +1,5 @@
 ---
-title: INV-2-g1-002 · Estados e limiares de saúde do endpoint de status não documentados
+name: INV-2-g1-002 · Estados e limiares de saúde do endpoint de status não documentados
 aliases: [INV-2-g1-002]
 tags: [investigation, consumidor/cad, status, health-check, monitoramento, operacional]
 type: investigation

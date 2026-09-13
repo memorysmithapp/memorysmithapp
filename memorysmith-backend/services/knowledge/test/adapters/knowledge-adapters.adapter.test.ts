@@ -370,10 +370,10 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
     context: SubscriptionContext,
     notebook: Notebook,
     folderId: Parameters<Notebook['renameFolder']>[0],
-    title: string,
+    name: string,
   ) {
     const { notes, content } = repositories(context);
-    const markdown = `# ${title}\n\nCorpo.`;
+    const markdown = `---\nname: ${name}\n---\n\nCorpo.`;
     const body = await content.create(markdown);
     const siblings = await notes.siblingOrder(notebook.id, folderId);
     const note = unwrap(
@@ -443,10 +443,10 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
     await createNote(context, notebook, folder.id, 'Lei 8.666');
 
     const listed = await notes.listByFolder(notebook.id, folder.id);
-    expect(listed.map((note) => note.title)).toEqual(['Lei 14.133', 'Lei 8.666']);
+    expect(listed.map((note) => note.name)).toEqual(['Lei 14.133', 'Lei 8.666']);
   });
 
-  it('writes a second note with the same title, and both stand', async () => {
+  it('writes a second note with the same name, and both stand', async () => {
     // RN-KNW-037: nothing in a notebook is a key, so a repeated call creates
     // rather than refusing (RN-AGT-024, and RN-AGT-004, removed).
     const context = contextFor();
@@ -459,7 +459,7 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
     expect(second.note.id.value).not.toBe(first.note.id.value);
 
     const listed = await repositories(context).notes.listByFolder(notebook.id, folder.id);
-    expect(listed.filter((note) => note.title === 'Lei 14.133')).toHaveLength(2);
+    expect(listed.filter((note) => note.name === 'Lei 14.133')).toHaveLength(2);
   });
 
   it('refuses a note in a folder that does not exist', async () => {
@@ -528,7 +528,7 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
     expect(await fresh.findById(origin.notebook.id, created.note.id)).toBeNull();
     const arrived = await fresh.findById(destination.notebook.id, created.note.id);
     expect(arrived?.id.value).toBe(created.note.id.value);
-    expect(arrived?.title).toBe('Lei 14.133');
+    expect(arrived?.name).toBe('Lei 14.133');
   });
 
   it('writes zero bytes to S3 when a note only moves or is reordered', async () => {

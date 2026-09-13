@@ -1,5 +1,5 @@
 ---
-title: SAFe
+name: SAFe
 aliases:
   - Scaled Agile Framework
 tags:

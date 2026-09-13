@@ -1,5 +1,5 @@
 ---
-title: EV-1-001 · CommonDBTM é o active-record base com ciclo add/update/delete
+name: EV-1-001 · CommonDBTM é o active-record base com ciclo add/update/delete
 aliases: [EV-1-001]
 tags: [evidence, dominio/foundation, orm, ciclo-de-vida]
 type: evidence

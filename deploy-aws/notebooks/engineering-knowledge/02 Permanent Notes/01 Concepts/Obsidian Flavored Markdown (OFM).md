@@ -1,5 +1,5 @@
 ---
-title: Obsidian Flavored Markdown (OFM)
+name: Obsidian Flavored Markdown (OFM)
 aliases:
   - OFM
   - Obsidian Markdown

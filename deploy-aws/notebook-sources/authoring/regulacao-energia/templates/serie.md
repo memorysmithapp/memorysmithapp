@@ -1,5 +1,5 @@
 ---
-title: <Evolução de <medida> (AAAA–AAAA)>
+name: <Evolução de <medida> (AAAA–AAAA)>
 aliases: []
 tags: []
 type: series

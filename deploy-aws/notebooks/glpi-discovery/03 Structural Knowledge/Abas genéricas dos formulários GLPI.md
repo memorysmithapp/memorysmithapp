@@ -1,5 +1,5 @@
 ---
-title: Abas genéricas dos formulários GLPI
+name: Abas genéricas dos formulários GLPI
 aliases: [abas genéricas, generic tabs, tabs do formulário]
 tags: [tabs, formulario, ui, estrutura]
 type: concept

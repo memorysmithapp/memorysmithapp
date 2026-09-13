@@ -1,5 +1,5 @@
 ---
-title: Perfis pré-definidos do GLPI
+name: Perfis pré-definidos do GLPI
 aliases: [7 perfis, Default profiles, Super-Admin, Self-Service]
 tags: [perfis, rbac, super-admin, self-service, technician]
 type: concept

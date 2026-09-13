@@ -1,5 +1,5 @@
 ---
-title: Gestão de Documentos (capacidade)
+name: Gestão de Documentos (capacidade)
 aliases: [Documents management]
 tags: [capability, management, document, doc]
 type: capability

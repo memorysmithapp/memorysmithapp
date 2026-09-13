@@ -1,5 +1,5 @@
 ---
-title: Transgressão dos Limites Coletivos de Continuidade
+name: Transgressão dos Limites Coletivos de Continuidade
 aliases:
   - Transgressão de DEC e FEC
   - Conjuntos acima do limite de continuidade

@@ -1,5 +1,5 @@
 ---
-title: Outbox Pattern
+name: Outbox Pattern
 aliases:
   - Transactional Outbox
   - Caixa de Saída Transacional

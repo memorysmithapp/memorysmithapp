@@ -1,5 +1,5 @@
 ---
-title: EV-2-b2-003 · Planejamento (agenda) — visões e autorizações
+name: EV-2-b2-003 · Planejamento (agenda) — visões e autorizações
 aliases: [EV-2-b2-003]
 tags: [evidence, planning, agenda, planejamento, ical, webcal]
 type: evidence

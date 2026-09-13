@@ -1,5 +1,5 @@
 ---
-title: Post-its Coloridos
+name: Post-its Coloridos
 type: practice
 tags: [facilitation, tools, collaboration, creativity]
 maturity: evergreen

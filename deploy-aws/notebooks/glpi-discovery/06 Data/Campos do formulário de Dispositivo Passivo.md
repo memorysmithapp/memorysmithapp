@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Dispositivo Passivo
+name: Campos do formulário de Dispositivo Passivo
 aliases: [Campos Passive device]
 tags: [data, fields, passive-device, assets, doc]
 type: table

@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Certificado
+name: Campos do formulário de Certificado
 aliases: [Certificate fields]
 tags: [data, management, certificate, fields, doc]
 type: table

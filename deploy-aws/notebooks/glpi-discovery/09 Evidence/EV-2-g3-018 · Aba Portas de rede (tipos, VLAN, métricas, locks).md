@@ -1,5 +1,5 @@
 ---
-title: EV-2-g3-018 · Aba Portas de rede (tipos, VLAN, métricas, locks)
+name: EV-2-g3-018 · Aba Portas de rede (tipos, VLAN, métricas, locks)
 aliases: [EV-2-g3-018]
 tags: [evidence, tab, network-ports, vlan, ethernet, wifi, locks]
 type: evidence

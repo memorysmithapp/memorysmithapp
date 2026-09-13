@@ -1,5 +1,5 @@
 ---
-title: Obsidian Publish
+name: Obsidian Publish
 aliases:
   - Publish
   - Digital Garden

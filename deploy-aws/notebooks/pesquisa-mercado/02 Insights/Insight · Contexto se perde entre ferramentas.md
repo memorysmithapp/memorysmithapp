@@ -1,5 +1,5 @@
 ---
-title: Insight · Contexto se perde entre ferramentas
+name: Insight · Contexto se perde entre ferramentas
 aliases: []
 tags: [insight, contexto]
 type: insight

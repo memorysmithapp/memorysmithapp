@@ -1,5 +1,5 @@
 ---
-title: Campos do Sistema Operacional (ativo)
+name: Campos do Sistema Operacional (ativo)
 aliases: [Operating system fields, Campos do SO]
 tags: [data, assets, os, fields]
 type: entity

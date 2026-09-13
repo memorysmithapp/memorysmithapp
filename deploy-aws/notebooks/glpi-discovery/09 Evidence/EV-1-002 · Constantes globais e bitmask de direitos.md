@@ -1,5 +1,5 @@
 ---
-title: EV-1-002 · Constantes globais e bitmask de direitos
+name: EV-1-002 · Constantes globais e bitmask de direitos
 aliases: [EV-1-002]
 tags: [evidence, dominio/foundation, seguranca, direitos]
 type: evidence

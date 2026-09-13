@@ -1,5 +1,5 @@
 ---
-title: Lean Inception MOC
+name: Lean Inception MOC
 aliases:
   - "Map of Content: Lean Inception"
   - Lean Inception MOC

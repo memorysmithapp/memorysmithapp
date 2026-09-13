@@ -1,5 +1,5 @@
 ---
-title: EV-2-e2-003 · Abas da entidade - Endereço e Avançado (regras genéricas e LDAP)
+name: EV-2-e2-003 · Abas da entidade - Endereço e Avançado (regras genéricas e LDAP)
 aliases: [EV-2-e2-003]
 tags: [evidence, entidades, abas, ldap, campos, doc]
 type: evidence

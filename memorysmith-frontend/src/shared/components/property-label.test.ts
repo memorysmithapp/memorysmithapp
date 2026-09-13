@@ -75,12 +75,21 @@ describe('the properties are drawn in a declared order (RN-DSC-051)', () => {
     expect(drawn(written)).toEqual(['created', 'zeta', 'alfa']);
   });
 
-  it('never draws the title as a property, because a note is not a category of itself', () => {
+  it('never draws the name as a property, because a note is not a category of itself', () => {
     expect(
       drawn([
-        ['title', 'Lei 14.133'],
+        ['name', 'Lei 14.133'],
         ['maturity', 'seed'],
       ]),
     ).toEqual(['maturity']);
+  });
+
+  it('draws a title as the ordinary property it is, because it names nothing', () => {
+    expect(
+      drawn([
+        ['name', 'Lei 14.133'],
+        ['title', 'Lei geral de licitações'],
+      ]),
+    ).toEqual(['title']);
   });
 });

@@ -1,5 +1,5 @@
 ---
-title: Criar e Organizar um Vault
+name: Criar e Organizar um Vault
 aliases:
   - Create a Vault
   - Organizar Vault

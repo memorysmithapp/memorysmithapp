@@ -1,5 +1,5 @@
 ---
-title: Recovery Time Objective
+name: Recovery Time Objective
 aliases: [RTO, Recovery Time]
 tags: [objective, continuity]
 type: objective

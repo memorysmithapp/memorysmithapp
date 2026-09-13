@@ -1,5 +1,5 @@
 ---
-title: Core Value Stream
+name: Core Value Stream
 aliases:
   - Fluxo de Valor Principal
 tags:

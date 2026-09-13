@@ -1,5 +1,5 @@
 ---
-title: Evolução da Transgressão dos Limites de DEC e FEC (2020–2025)
+name: Evolução da Transgressão dos Limites de DEC e FEC (2020–2025)
 aliases:
   - Série da transgressão de continuidade
   - Curva de conformidade DEC FEC

@@ -1,5 +1,5 @@
 ---
-title: Identity and Access Management (IAM)
+name: Identity and Access Management (IAM)
 aliases:
   - IAM
   - Gestão de Identidade e Acesso

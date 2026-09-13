@@ -1,5 +1,5 @@
 ---
-title: Latency Numbers
+name: Latency Numbers
 aliases:
   - Números de Latência
   - Latency Numbers Every Programmer Should Know

@@ -1,5 +1,5 @@
 ---
-title: Vault
+name: Vault
 aliases:
   - Cofre
   - Local vault

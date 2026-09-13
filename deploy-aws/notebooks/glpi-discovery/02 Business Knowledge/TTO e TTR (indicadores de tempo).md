@@ -1,5 +1,5 @@
 ---
-title: TTO e TTR (indicadores de tempo)
+name: TTO e TTR (indicadores de tempo)
 aliases: [TTO, TTR, Time To Own, Time To Resolve]
 tags: [sla, metrics, time, glossary]
 type: rule

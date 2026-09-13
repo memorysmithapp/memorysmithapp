@@ -1,5 +1,5 @@
 ---
-title: Serverless
+name: Serverless
 aliases:
   - Serverless Computing
   - Computação sem Servidor

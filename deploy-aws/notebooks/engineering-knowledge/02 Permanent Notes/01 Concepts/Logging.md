@@ -1,5 +1,5 @@
 ---
-title: Logging
+name: Logging
 aliases:
   - Log
   - Registro de Eventos

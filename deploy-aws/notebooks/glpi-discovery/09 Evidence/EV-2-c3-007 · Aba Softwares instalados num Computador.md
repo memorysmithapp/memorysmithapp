@@ -1,5 +1,5 @@
 ---
-title: EV-2-c3-007 · Aba Softwares instalados num Computador
+name: EV-2-c3-007 · Aba Softwares instalados num Computador
 aliases: [EV-2-c3-007]
 tags: [evidence, doc, assets, software, license, computer]
 type: evidence

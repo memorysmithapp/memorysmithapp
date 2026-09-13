@@ -1,5 +1,5 @@
 ---
-title: Template de notificação (objeto global)
+name: Template de notificação (objeto global)
 aliases: [Notification template]
 tags: [template, notificacao, global, traducao, css]
 type: concept

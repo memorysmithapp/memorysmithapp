@@ -1,5 +1,5 @@
 ---
-title: Service Worker
+name: Service Worker
 aliases:
   - Worker de Serviço
   - Background Sync

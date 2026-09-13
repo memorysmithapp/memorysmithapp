@@ -1,5 +1,5 @@
 ---
-title: Audiências e Consultas Públicas (ANEEL)
+name: Audiências e Consultas Públicas (ANEEL)
 aliases:
   - audiencias-e-consultas-publicas
 tags:

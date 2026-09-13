@@ -1,5 +1,5 @@
 ---
-title: Sala de servidores (server room)
+name: Sala de servidores (server room)
 aliases: [Server room, Sala de servidores, Servers room]
 tags: [management, datacenter, dcim, server-room]
 type: component

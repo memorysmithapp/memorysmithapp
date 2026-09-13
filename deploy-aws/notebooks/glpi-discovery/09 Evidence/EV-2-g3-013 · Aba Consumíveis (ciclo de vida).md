@@ -1,5 +1,5 @@
 ---
-title: EV-2-g3-013 · Aba Consumíveis (ciclo de vida)
+name: EV-2-g3-013 · Aba Consumíveis (ciclo de vida)
 aliases: [EV-2-g3-013]
 tags: [evidence, tab, consumables, stock, lifecycle]
 type: evidence

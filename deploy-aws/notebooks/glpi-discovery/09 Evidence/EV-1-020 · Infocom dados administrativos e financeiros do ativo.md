@@ -1,5 +1,5 @@
 ---
-title: EV-1-020 · Infocom — dados administrativos e financeiros do ativo
+name: EV-1-020 · Infocom — dados administrativos e financeiros do ativo
 aliases: [EV-1-020]
 tags: [evidence, dominio/ativos, financeiro, infocom]
 type: evidence

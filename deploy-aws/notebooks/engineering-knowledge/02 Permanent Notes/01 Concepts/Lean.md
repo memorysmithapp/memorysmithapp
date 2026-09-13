@@ -1,5 +1,5 @@
 ---
-title: Lean
+name: Lean
 aliases:
   - Pensamento Enxuto
   - Lean Thinking

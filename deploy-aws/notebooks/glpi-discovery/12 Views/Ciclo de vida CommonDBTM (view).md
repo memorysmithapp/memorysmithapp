@@ -1,5 +1,5 @@
 ---
-title: Ciclo de vida CommonDBTM (view)
+name: Ciclo de vida CommonDBTM (view)
 aliases: [Ciclo de vida view, add flow diagram]
 tags: [view, ciclo-de-vida, dominio/foundation]
 type: view

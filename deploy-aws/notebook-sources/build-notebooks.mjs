@@ -377,6 +377,9 @@ const NOTEBOOKS = [
     slug: 'continuity-engineering',
     name: 'Continuity Engineering',
     sourceRoot: join(FICTIONAL, 'continuity-engineering'),
+    // Left with no `name:` on purpose: the demonstration of a note no link can
+    // reach. The build names every other note after its file.
+    unnamed: ['Exercise 2026-06 · Account loss (draft).md'],
     folders: [
       {
         src: 'Objectives',
@@ -402,6 +405,7 @@ const NOTEBOOKS = [
     slug: 'enologia',
     name: 'Enologia',
     sourceRoot: join(FICTIONAL, 'enologia'),
+    unnamed: ['Rascunho da safra 2027.md'],
     folders: [
       {
         src: 'Castas',
@@ -576,39 +580,37 @@ function normalizeFrontmatter(raw, notebookSlug) {
 }
 
 /**
- * The title of a note is read from the note: `title:` in the frontmatter
- * first, and the first level-1 heading when the frontmatter states none. A
- * tree exported from an editor keyed by file name carries that name nowhere
- * inside the file, so the name goes in as `title:` where the source states
- * none — the block is created when there is none, the key is inserted when
- * there is one, and the body is left byte for byte as it was.
+ * A note is named by `name:` in its frontmatter and by nothing else. A tree
+ * exported from an editor keyed by file name carries that name nowhere inside
+ * the file, so this translator writes the file name in as `name:` where the
+ * source states none — the block is created when there is none, the key is
+ * inserted when there is one, and the body is left byte for byte as it was.
  *
- * The frontmatter and not a heading, for the same reason the specification
- * reads it first: the file name is what the links of that notebook were written
- * against, and injecting a heading would rewrite the top of every note whose
- * author opened with a paragraph.
+ * This is where a committed tree is translated, and it is the only place a name
+ * is ever derived from a file name: the product itself derives nothing, and the
+ * onboarding sends each note exactly as the tree carries it.
  *
- * The four characters that address a note come out of the name: a title
- * carrying one of them is a title no link can name, which is no repair at all.
+ * The four characters that address a note come out of the name: a name
+ * carrying one of them is no name, which is no translation at all.
  */
-export function stateTitle(raw, fileName) {
-  const title = fileName.replace(/[#[\]|"\\]/g, '').trim() || 'Nota';
+export function stateName(raw, fileName) {
+  const name = fileName.replace(/[#[\]|"\\]/g, '').trim() || 'Nota';
 
-  if (!raw.startsWith('---')) return `---\ntitle: ${title}\n---\n\n${raw}`;
+  if (!raw.startsWith('---')) return `---\nname: ${name}\n---\n\n${raw}`;
 
   const end = raw.indexOf('\n---', 3);
-  if (end === -1) return `---\ntitle: ${title}\n---\n\n${raw}`;
+  if (end === -1) return `---\nname: ${name}\n---\n\n${raw}`;
 
   const head = raw.slice(4, end);
-  // A `title:` with a value on the same line is a stated title. Anything else
-  // — absent, empty, a list — is not, and falls to the repair.
-  if (/^title:[ \t]*\S/m.test(head)) return raw;
+  // A `name:` with a value on the same line is a stated name. Anything else
+  // — absent, empty, a list — is not, and is translated.
+  if (/^name:[ \t]*\S/m.test(head)) return raw;
 
   const withoutEmpty = head
     .split('\n')
-    .filter((line) => !/^title:[ \t]*$/.test(line))
+    .filter((line) => !/^name:[ \t]*$/.test(line))
     .join('\n');
-  return `---\ntitle: ${title}\n${withoutEmpty}${raw.slice(end)}`;
+  return `---\nname: ${name}\n${withoutEmpty}${raw.slice(end)}`;
 }
 
 function collectNoteStats(raw, notebook) {
@@ -624,12 +626,12 @@ function collectNoteStats(raw, notebook) {
   if (created) notebook.stats.byCreatedDay[created] = (notebook.stats.byCreatedDay[created] ?? 0) + 1;
   for (const tag of tags) notebook.stats.byTag[tag] = (notebook.stats.byTag[tag] ?? 0) + 1;
 
-  // A target resolves against the titles of the notebook and then its aliases,
+  // A target resolves against the names of the notebook and then its aliases,
   // compared case-exact after NFC and folded in no other way — the reading the
   // guard over these trees makes in demonstration-notebooks.test.ts, so the two
   // report one number.
-  const title = /^title:\s*(.+)$/m.exec(head)?.[1]?.trim();
-  if (title) notebook.names.add(title.normalize('NFC'));
+  const name = /^name:\s*(.+)$/m.exec(head)?.[1]?.trim();
+  if (name) notebook.names.add(name.normalize('NFC'));
   for (const alias of parseList(head, 'aliases')) notebook.names.add(alias.normalize('NFC'));
 
   for (const m of outsideCode(raw.slice(head.length)).matchAll(WIKILINK_TARGET)) {
@@ -644,14 +646,12 @@ function collectNoteStats(raw, notebook) {
 function copyNotes(srcDir, outDir, notebook, counters, depth) {
   if (depth > 6) warnings.push(`depth > 6 at ${outDir}`);
   for (const f of listMd(srcDir)) {
-    const title = f.replace(/\.md$/, '');
-    // Two notes may carry one title, in one folder or in two, and nothing
+    const name = f.replace(/\.md$/, '');
+    // Two notes may carry one name, in one folder or in two, and nothing
     // refuses the second one. What used to be a warning here was reading the
     // notebook against a rule the specification retired.
-    const raw = stateTitle(
-      normalizeFrontmatter(readFileSync(join(srcDir, f), 'utf8'), notebook.slug),
-      title,
-    );
+    const normalized = normalizeFrontmatter(readFileSync(join(srcDir, f), 'utf8'), notebook.slug);
+    const raw = notebook.def.unnamed?.includes(f) ? normalized : stateName(normalized, name);
     collectNoteStats(raw, notebook);
     writeFileSync(join(outDir, f), raw, 'utf8');
     counters.notes += 1;

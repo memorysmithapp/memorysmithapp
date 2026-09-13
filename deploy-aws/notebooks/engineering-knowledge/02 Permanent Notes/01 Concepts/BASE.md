@@ -1,5 +1,5 @@
 ---
-title: BASE
+name: BASE
 aliases:
   - Basically Available Soft state Eventually consistent
 tags:

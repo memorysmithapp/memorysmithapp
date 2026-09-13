@@ -1,5 +1,5 @@
 ---
-title: Placement
+name: Placement
 aliases:
   - OpenStack Placement Service
   - Placement API

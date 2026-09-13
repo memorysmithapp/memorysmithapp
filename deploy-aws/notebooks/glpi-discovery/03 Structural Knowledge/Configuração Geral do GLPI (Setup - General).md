@@ -1,5 +1,5 @@
 ---
-title: Configuração Geral do GLPI (Setup - General)
+name: Configuração Geral do GLPI (Setup - General)
 aliases: [General configuration, Setup General, Configuração geral]
 tags: [configuracao-geral, setup, abas, estrutura]
 type: component

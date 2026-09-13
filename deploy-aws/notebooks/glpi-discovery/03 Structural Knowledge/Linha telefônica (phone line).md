@@ -1,5 +1,5 @@
 ---
-title: Linha telefônica (phone line)
+name: Linha telefônica (phone line)
 aliases: [Phone line, Linha telefônica, Lines]
 tags: [management, line, telefonia]
 type: component

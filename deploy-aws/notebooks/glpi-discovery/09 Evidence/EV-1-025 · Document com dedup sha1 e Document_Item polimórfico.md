@@ -1,5 +1,5 @@
 ---
-title: EV-1-025 · Document com dedup sha1 e Document_Item polimórfico
+name: EV-1-025 · Document com dedup sha1 e Document_Item polimórfico
 aliases: [EV-1-025]
 tags: [evidence, dominio/gestao, documento]
 type: evidence

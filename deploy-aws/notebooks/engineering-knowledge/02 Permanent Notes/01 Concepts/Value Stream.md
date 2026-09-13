@@ -1,5 +1,5 @@
 ---
-title: Value Stream
+name: Value Stream
 aliases:
   - Fluxo de Valor
 tags:

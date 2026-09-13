@@ -1,5 +1,5 @@
 ---
-title: "Comandos de CLI - Banco de Dados"
+name: "Comandos de CLI - Banco de Dados"
 aliases: [db:install, db:update, db:configure, db:check_schema_integrity]
 tags: [cli, banco-de-dados, schema, instalacao, comandos, operacional]
 type: process

@@ -1,5 +1,5 @@
 ---
-title: Claude Cowork Use Cases 02
+name: Claude Cowork Use Cases 02
 aliases:
   - Cowork Use Cases — Síntese Multi-Fonte
 tags:

@@ -1,5 +1,5 @@
 ---
-title: Gestão de quantidades de consumíveis (alocação)
+name: Gestão de quantidades de consumíveis (alocação)
 aliases: [Alocação de consumíveis, Consumables allocation]
 tags: [consumable, stock, allocation, procedure, doc]
 type: use-case

@@ -1,5 +1,5 @@
 ---
-title: ACID
+name: ACID
 aliases:
   - Atomicidade Consistência Isolamento Durabilidade
   - Transação ACID

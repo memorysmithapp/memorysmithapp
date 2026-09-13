@@ -1,5 +1,5 @@
 ---
-title: ByteByteGo System Design Archive 03
+name: ByteByteGo System Design Archive 03
 aliases:
   - "Parte 3: APIs, Protocolos e Segurança"
 tags:

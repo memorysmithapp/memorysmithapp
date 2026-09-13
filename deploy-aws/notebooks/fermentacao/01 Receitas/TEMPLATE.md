@@ -1,5 +1,5 @@
 ---
-title: <Nome da receita>
+name: <Nome da receita>
 aliases: []
 tags: [receita]
 type: receita

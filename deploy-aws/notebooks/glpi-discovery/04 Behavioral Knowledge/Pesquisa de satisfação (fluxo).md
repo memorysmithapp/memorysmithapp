@@ -1,5 +1,5 @@
 ---
-title: Pesquisa de satisfação (fluxo)
+name: Pesquisa de satisfação (fluxo)
 aliases: [Satisfaction survey, Satisfação do chamado]
 tags: [assistance, ticket, satisfaction, survey, closure]
 type: flow

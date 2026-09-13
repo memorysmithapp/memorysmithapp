@@ -1,5 +1,5 @@
 ---
-title: Gestão de Software e Licenças (processo)
+name: Gestão de Software e Licenças (processo)
 aliases: [Software Asset Management, SAM, licenças]
 tags: [process, software, licenca, dominio/ativos]
 type: process

@@ -1,5 +1,5 @@
 ---
-title: Continuous Delivery (CD)
+name: Continuous Delivery (CD)
 aliases:
   - CD
   - Entrega Contínua

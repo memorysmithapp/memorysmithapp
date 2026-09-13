@@ -1,5 +1,5 @@
 ---
-title: Fornecedor na interface (Supplier) — visão do usuário
+name: Fornecedor na interface (Supplier) — visão do usuário
 aliases: [Supplier, Fornecedor]
 tags: [concept, management, supplier, doc]
 type: concept

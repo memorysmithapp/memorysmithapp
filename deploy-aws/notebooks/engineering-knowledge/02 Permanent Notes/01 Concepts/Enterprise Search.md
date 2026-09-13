@@ -1,5 +1,5 @@
 ---
-title: Enterprise Search
+name: Enterprise Search
 aliases:
   - Busca Corporativa
   - Ask Your Org

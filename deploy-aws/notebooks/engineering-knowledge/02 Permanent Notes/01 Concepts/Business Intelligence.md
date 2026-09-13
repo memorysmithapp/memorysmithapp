@@ -1,5 +1,5 @@
 ---
-title: Business Intelligence
+name: Business Intelligence
 aliases:
   - BI
 tags:

@@ -1,5 +1,5 @@
 ---
-title: Lambda Authorizer
+name: Lambda Authorizer
 aliases:
   - Custom Authorizer
   - Autorizador Customizado

@@ -1,5 +1,5 @@
 ---
-title: <A conclusão, escrita como frase afirmativa>
+name: <A conclusão, escrita como frase afirmativa>
 aliases: []
 tags: []
 type: insight

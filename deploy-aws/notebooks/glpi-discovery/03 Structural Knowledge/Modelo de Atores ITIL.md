@@ -1,5 +1,5 @@
 ---
-title: Modelo de Atores ITIL
+name: Modelo de Atores ITIL
 aliases: [Atores ITIL, requester assign observer]
 tags: [concept, itil, atores, dominio/service-desk]
 type: concept

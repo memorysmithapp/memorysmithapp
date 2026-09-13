@@ -1,5 +1,5 @@
 ---
-title: Software (ativo, versões e licenças)
+name: Software (ativo, versões e licenças)
 aliases: [Software, Versões, Licenças, Software asset]
 tags: [assets, software, version, license, structural, doc]
 type: component

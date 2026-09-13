@@ -1,5 +1,5 @@
 ---
-title: Agentes Especialistas
+name: Agentes Especialistas
 aliases:
   - Subagentes
   - Specialized Subagents

@@ -1,5 +1,5 @@
 ---
-title: EV-2-f1-017 · GLPI Network (chave de registro)
+name: EV-2-f1-017 · GLPI Network (chave de registro)
 aliases: [EV-2-f1-017]
 tags: [evidence, glpi-network, registro, configuracao-geral]
 type: evidence

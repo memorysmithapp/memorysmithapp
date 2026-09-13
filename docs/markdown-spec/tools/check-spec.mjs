@@ -158,12 +158,12 @@ for (const testCase of cases) {
   if (
     !('links' in testCase) &&
     !('facets' in testCase) &&
-    !('title' in testCase) &&
+    !('name' in testCase) &&
     !('resolution' in testCase)
   ) {
     fail(
       'tests/conformance.json',
-      `the case "${testCase.id}" claims neither a title, nor links, nor facets, nor a resolution, so it asserts nothing`,
+      `the case "${testCase.id}" claims neither a name, nor links, nor facets, nor a resolution, so it asserts nothing`,
     );
   }
 

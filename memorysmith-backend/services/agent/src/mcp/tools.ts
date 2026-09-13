@@ -74,7 +74,7 @@ function revisionArgument(args: Record<string, unknown>, tool: string): string |
 }
 
 function renderRelated(node: RelatedNode, indent = 0): string {
-  const line = `${'  '.repeat(indent)}- ${node.title} (${node.noteId})`;
+  const line = `${'  '.repeat(indent)}- ${node.name} (${node.noteId})`;
   return [line, ...node.children.map((child) => renderRelated(child, indent + 1))].join('\n');
 }
 

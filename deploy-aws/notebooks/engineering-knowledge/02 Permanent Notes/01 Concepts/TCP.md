@@ -1,5 +1,5 @@
 ---
-title: TCP
+name: TCP
 aliases:
   - Transmission Control Protocol
   - Three-way Handshake

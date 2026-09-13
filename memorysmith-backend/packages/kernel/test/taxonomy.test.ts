@@ -148,7 +148,7 @@ describe('domain events', () => {
       subject: 'NOTE',
       subjectId: 'note-1',
       authorship: Authorship.byHuman(user.value),
-      payload: { title: 'Lei 14.133' },
+      payload: { name: 'Lei 14.133' },
     });
     expect(event.subscriptionId).toBe(subscriptionId);
     expect(event.authorship.user.value).toBe('user-1');

@@ -1,5 +1,5 @@
 ---
-title: Continuous Integration (CI)
+name: Continuous Integration (CI)
 aliases:
   - CI
   - Integração Contínua

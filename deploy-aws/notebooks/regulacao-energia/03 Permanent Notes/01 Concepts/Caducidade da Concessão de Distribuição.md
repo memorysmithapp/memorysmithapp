@@ -1,5 +1,5 @@
 ---
-title: Caducidade da Concessão de Distribuição
+name: Caducidade da Concessão de Distribuição
 aliases:
   - Caducidade
 tags:

@@ -1,5 +1,5 @@
 ---
-title: Aba Todas as informações (All)
+name: Aba Todas as informações (All)
 aliases: [aba All, All tab, todas as informações]
 tags: [tabs, all, ui]
 type: component

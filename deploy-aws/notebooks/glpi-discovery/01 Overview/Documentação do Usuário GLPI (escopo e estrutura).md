@@ -1,5 +1,5 @@
 ---
-title: Documentação do Usuário GLPI (escopo e estrutura)
+name: Documentação do Usuário GLPI (escopo e estrutura)
 aliases: [GLPI User Documentation, Escopo da documentação]
 tags: [overview, doc, glpi, scope]
 type: overview

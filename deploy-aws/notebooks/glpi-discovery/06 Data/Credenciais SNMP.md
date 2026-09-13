@@ -1,5 +1,5 @@
 ---
-title: Credenciais SNMP
+name: Credenciais SNMP
 aliases: [SNMP Credentials, Credenciais SNMP, SNMP Community]
 tags: [campos-comuns, snmp, inventario, rede, data]
 type: field

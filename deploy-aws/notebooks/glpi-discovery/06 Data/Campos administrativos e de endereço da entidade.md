@@ -1,5 +1,5 @@
 ---
-title: Campos administrativos e de endereço da entidade
+name: Campos administrativos e de endereço da entidade
 aliases: [Entity address fields]
 tags: [entidades, campos, endereco, dados, doc]
 type: table

@@ -1,5 +1,5 @@
 ---
-title: Fiscalização da Geração (descontinuado)
+name: Fiscalização da Geração (descontinuado)
 aliases:
   - geracao
 tags:

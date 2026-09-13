@@ -1,5 +1,5 @@
 ---
-title: EV-1-019 · DCIM — Datacenter, Rack, Item_Rack
+name: EV-1-019 · DCIM — Datacenter, Rack, Item_Rack
 aliases: [EV-1-019]
 tags: [evidence, dominio/ativos, dcim]
 type: evidence

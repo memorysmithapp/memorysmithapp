@@ -1,5 +1,5 @@
 ---
-title: Catálogo de Dados Abertos ANEEL
+name: Catálogo de Dados Abertos ANEEL
 aliases:
   - Catálogo ANEEL
   - Inventário de datasets ANEEL

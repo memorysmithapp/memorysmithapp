@@ -1,5 +1,5 @@
 ---
-title: Categorias de tarefa
+name: Categorias de tarefa
 aliases: [Task categories]
 tags: [assistance, categories, task, statistics]
 type: concept

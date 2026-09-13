@@ -1,5 +1,5 @@
 ---
-title: Dicionário de dados (dictionary)
+name: Dicionário de dados (dictionary)
 aliases: [Dictionary, Dicionário]
 tags: [dictionary, rules, data-quality, glossary]
 type: capability

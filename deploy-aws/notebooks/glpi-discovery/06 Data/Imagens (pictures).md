@@ -1,5 +1,5 @@
 ---
-title: Imagens (pictures)
+name: Imagens (pictures)
 aliases: [Pictures, Imagens, Fotos]
 tags: [campos-comuns, descritivo, imagens, data]
 type: field

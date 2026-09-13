@@ -1,5 +1,5 @@
 ---
-title: Aba Tools de Perfil (direitos de ferramentas)
+name: Aba Tools de Perfil (direitos de ferramentas)
 aliases: [Tools tab, Aba Tools, Direitos de ferramentas]
 tags: [perfis, permissoes, ferramentas, faq, reservas, base-conhecimento, projetos]
 type: component

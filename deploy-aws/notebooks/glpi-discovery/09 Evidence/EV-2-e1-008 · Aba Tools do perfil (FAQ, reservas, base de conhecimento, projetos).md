@@ -1,5 +1,5 @@
 ---
-title: EV-2-e1-008 · Aba Tools do perfil (FAQ, reservas, base de conhecimento, projetos)
+name: EV-2-e1-008 · Aba Tools do perfil (FAQ, reservas, base de conhecimento, projetos)
 aliases: [EV-2-e1-008]
 tags: [evidence, perfis, permissoes, ferramentas, faq, reservas, projetos]
 type: evidence

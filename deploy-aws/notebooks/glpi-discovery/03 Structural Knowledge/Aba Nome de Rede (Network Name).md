@@ -1,5 +1,5 @@
 ---
-title: Aba Nome de Rede (Network Name)
+name: Aba Nome de Rede (Network Name)
 aliases: [Network Name tab, Aba Nome de Rede, DNS name]
 tags: [assets, tab, network, dns, fqdn, ip]
 type: component

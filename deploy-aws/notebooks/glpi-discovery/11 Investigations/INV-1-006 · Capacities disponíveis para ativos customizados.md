@@ -1,5 +1,5 @@
 ---
-title: INV-1-006 · Capacities disponíveis para ativos customizados
+name: INV-1-006 · Capacities disponíveis para ativos customizados
 aliases: [INV-1-006]
 tags: [investigation, consumidor/cad, custom-assets]
 type: investigation

@@ -1,5 +1,5 @@
 ---
-title: Key Performance Indicator (KPI)
+name: Key Performance Indicator (KPI)
 aliases:
   - KPI
   - Indicador-Chave de Desempenho

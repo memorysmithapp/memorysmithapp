@@ -1,5 +1,5 @@
 ---
-title: EV-2-a1-001 · Prefácio e estrutura da documentação do usuário GLPI
+name: EV-2-a1-001 · Prefácio e estrutura da documentação do usuário GLPI
 aliases: [EV-2-a1-001]
 tags: [evidence, doc, overview, glpi, first-steps]
 type: evidence

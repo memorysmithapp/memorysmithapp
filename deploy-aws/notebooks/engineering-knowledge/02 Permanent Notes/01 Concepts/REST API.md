@@ -1,5 +1,5 @@
 ---
-title: REST API
+name: REST API
 aliases:
   - REST
   - Representational State Transfer

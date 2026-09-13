@@ -1,5 +1,5 @@
 ---
-title: Fabricante (manufacturer)
+name: Fabricante (manufacturer)
 aliases: [Manufacturer, Fabricante]
 tags: [campos-comuns, classificacao, dropdown, data]
 type: field

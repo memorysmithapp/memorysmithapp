@@ -1,5 +1,5 @@
 ---
-title: Alertas de renovação e vencimento (contratos, licenças, certificados)
+name: Alertas de renovação e vencimento (contratos, licenças, certificados)
 aliases: [Renewal alerts, Notificações de vencimento]
 tags: [capability, management, notification, contract, license, certificate, doc]
 type: capability

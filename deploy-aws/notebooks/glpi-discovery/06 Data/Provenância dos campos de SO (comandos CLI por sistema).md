@@ -1,5 +1,5 @@
 ---
-title: Provenância dos campos de SO (comandos CLI por sistema)
+name: Provenância dos campos de SO (comandos CLI por sistema)
 aliases: [OS fields CLI, Comandos CLI de SO, OS provenance]
 tags: [data, operating-system, cli, inventory, provenance]
 type: entity

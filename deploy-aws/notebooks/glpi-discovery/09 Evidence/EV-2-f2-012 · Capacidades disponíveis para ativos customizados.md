@@ -1,5 +1,5 @@
 ---
-title: EV-2-f2-012 · Capacidades disponíveis para ativos customizados
+name: EV-2-f2-012 · Capacidades disponíveis para ativos customizados
 aliases: [EV-2-f2-012]
 tags: [evidence, asset-definition, capacities, INV-1-006]
 type: evidence

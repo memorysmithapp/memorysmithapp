@@ -1,5 +1,5 @@
 ---
-title: Service Offering
+name: Service Offering
 aliases:
   - Oferta de Serviço
 tags:

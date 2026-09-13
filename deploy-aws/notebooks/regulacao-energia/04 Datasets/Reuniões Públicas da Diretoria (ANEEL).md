@@ -1,5 +1,5 @@
 ---
-title: Reuniões Públicas da Diretoria (ANEEL)
+name: Reuniões Públicas da Diretoria (ANEEL)
 aliases:
   - reunioes-publicas-da-diretoria
 tags:

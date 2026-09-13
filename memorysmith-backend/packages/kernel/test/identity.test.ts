@@ -70,7 +70,7 @@ describe('Slug', () => {
     expect(slugify('Achado #12')).toBe('achado-12');
   });
 
-  it('folds accents so the same title always yields the same slug', () => {
+  it('folds accents so the same name always yields the same slug', () => {
     expect(slugify('Legislacao')).toBe(slugify('Legislação'));
     expect(slugify('Orçamento Anúal')).toBe('orcamento-anual');
   });

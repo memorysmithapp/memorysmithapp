@@ -1,5 +1,5 @@
 ---
-title: EV-1-007 · Hooks de plugin no ciclo de vida dos itens
+name: EV-1-007 · Hooks de plugin no ciclo de vida dos itens
 aliases: [EV-1-007]
 tags: [evidence, dominio/foundation, plugins, extensibilidade]
 type: evidence

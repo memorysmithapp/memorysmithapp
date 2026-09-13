@@ -20,7 +20,7 @@ const payload = {
   noteId: '01JQ8Z6VZ0000000000000000A',
   notebookId: '01JQ8Z6VZ0000000000000000B',
   folderId: '01JQ8Z6VZ0000000000000000C',
-  title: 'Recovery Time Objective',
+  name: 'Recovery Time Objective',
   slug: 'recovery-time-objective',
   position: 'a0',
   bytes: 47,

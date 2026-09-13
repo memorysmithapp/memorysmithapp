@@ -1,5 +1,5 @@
 ---
-title: INV-1-003 · Comportamento de produção via plugins fora do repo
+name: INV-1-003 · Comportamento de produção via plugins fora do repo
 aliases: [INV-1-003]
 tags: [investigation, consumidor/cad, plugins, escopo]
 type: investigation

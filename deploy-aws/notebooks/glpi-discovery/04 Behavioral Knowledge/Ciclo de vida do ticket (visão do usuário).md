@@ -1,5 +1,5 @@
 ---
-title: Ciclo de vida do ticket (visão do usuário)
+name: Ciclo de vida do ticket (visão do usuário)
 aliases: [Status do ticket, Ticket life cycle, Estados do ticket]
 tags: [assistance, ticket, lifecycle, status, state-machine, itil]
 type: flow

@@ -1,5 +1,5 @@
 ---
-title: Capability Mapping
+name: Capability Mapping
 aliases:
   - Mapeamento de Capacidades
 tags:

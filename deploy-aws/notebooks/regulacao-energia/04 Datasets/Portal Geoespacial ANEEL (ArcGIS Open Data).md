@@ -1,5 +1,5 @@
 ---
-title: Portal Geoespacial ANEEL (ArcGIS Open Data)
+name: Portal Geoespacial ANEEL (ArcGIS Open Data)
 aliases:
   - dadosabertos-aneel.opendata.arcgis.com
   - SIG-R

@@ -1,5 +1,5 @@
 ---
-title: Módulo de Administração (visão geral)
+name: Módulo de Administração (visão geral)
 aliases: [Administration, Administração]
 tags: [administracao, modulo, overview, doc]
 type: overview

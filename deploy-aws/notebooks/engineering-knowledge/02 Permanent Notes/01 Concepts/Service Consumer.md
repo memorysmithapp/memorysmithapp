@@ -1,5 +1,5 @@
 ---
-title: Service Consumer
+name: Service Consumer
 aliases:
   - Consumidor de Serviço
 tags:

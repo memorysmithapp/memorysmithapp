@@ -1,5 +1,5 @@
 ---
-title: Release Management
+name: Release Management
 aliases:
   - Gestão de Liberação
 tags:

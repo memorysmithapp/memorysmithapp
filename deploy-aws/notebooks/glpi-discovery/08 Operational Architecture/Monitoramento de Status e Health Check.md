@@ -1,5 +1,5 @@
 ---
-title: Monitoramento de Status e Health Check
+name: Monitoramento de Status e Health Check
 aliases: [status.php, health check, glpi:system:status, monitoramento]
 tags: [status, health-check, monitoramento, servicos, observabilidade, operacional]
 type: infra

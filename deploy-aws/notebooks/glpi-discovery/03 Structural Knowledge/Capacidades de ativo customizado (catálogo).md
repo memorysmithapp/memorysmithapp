@@ -1,5 +1,5 @@
 ---
-title: Capacidades de ativo customizado (catálogo)
+name: Capacidades de ativo customizado (catálogo)
 aliases: [Capacities, Capacidades de ativo, Custom asset capacities]
 tags: [asset-definition, capacities, custom-asset]
 type: concept

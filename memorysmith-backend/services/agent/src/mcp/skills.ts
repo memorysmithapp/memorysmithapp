@@ -82,14 +82,17 @@ which fields repeat. From a paragraph about purpose you can see none of that.
 The guidance is the document the next agent reads before writing. Write it for
 that reader, not for a human browsing a wiki.
 
-- **Do not open with a title.** The Notebook Context already emits a heading with
+- **Do not open with a heading.** The Notebook Context already emits a heading with
   the notebook name above whatever you write, so a \`# My notebook\` at the top shows
   up twice. Start with the paragraph that says what this notebook is.
 - **Name the vocabulary.** If the owner calls something a "finding" and not an
   "issue", write that down. The vocabulary of the notebook becomes the query
   language of the search: any frontmatter attribute is a filter.
-- **State the naming convention** for note titles, and give one example of a
-  good title and one of a bad one.
+- **State the naming convention** for note names, and give one example of a
+  good name and one of a bad one.
+- **Put \`name:\` at the top of every template's frontmatter.** A note is named
+  by \`name:\` and by nothing else, and a note written without it has no name
+  and cannot be linked to. A heading in the template is content, never a name.
 - **Declare the frontmatter you expect**, field by field, with the accepted
   values. If you declare it, every folder that receives notes needs a template
   carrying it.
@@ -323,37 +326,44 @@ The body of a note is Markdown, and it is stored exactly as you send it. Almost
 all of it is text the product never looks at, which is deliberate: what a
 convention means belongs to the notebook, not to the server.
 
-There are exactly three places where the product DOES read your content, and
-this is the whole list: **the title of the note, the frontmatter and the
-links**. Everything else you write is text, and nothing more.
+There are exactly two places where the product DOES read your content, and
+this is the whole list: **the frontmatter and the links**. The name of a note is
+one key of the frontmatter. Everything else you write is text, and nothing more.
 
 ## How a note is named
 
-**The title of a note is read from the note.** There is no title argument on
-\`create_note\` and no operation that renames a note apart from its content. The
-chain is:
+**A note is named by \`name:\` in its frontmatter, and by nothing else.** There
+is no name argument on \`create_note\` and no operation that renames a note apart
+from its content:
 
-1. \`title:\` in the frontmatter, when it is a single line of text. Any length.
-2. The plain text of the first level-1 heading, when the frontmatter states none.
-3. Neither, and the note has **no addressable title**: it is written, it renders
-   and it is searchable, and no link can name it.
+\`\`\`markdown
+---
+name: Lei 14.133
+tags: [contracts]
+---
 
-**State the title in the frontmatter.** A heading is what a note happens to open
-with, and a note whose links were written against one name often opens with a
-shorter one. Writing \`title:\` is the difference between a note links land on
-and a note they do not.
+# The general rule of direct contracting
+\`\`\`
 
-Four characters have no place in a title — \`#\`, \`[\`, \`]\` and \`|\`, the
-delimiters of the form that addresses it. A title carrying one of them leaves the
-note unaddressable, and a \`title:\` that is there does NOT fall through to the
-heading. A \`/\` is fine: \`Reunião 03/09/2026\` is an ordinary title, because
-folders play no part in identity.
+That note is named \`Lei 14.133\`. The heading is content: it renders, it is
+searchable and a link anchor can point at it, and it never names the note — not
+the first heading, not a level-1 one. **Do not write \`title:\` to name a note**:
+\`title\` is an ordinary attribute here, and it names nothing.
 
-A link names a title **exactly**: case for case, after Unicode normalisation, and
-folded in no other way. \`[[Lei 14.133]]\` finds \`Lei 14.133\` and does not find
-\`lei 14133\`.
+**A note written without \`name:\` has no name.** It is stored, it renders and it
+is searchable, and no link can reach it. Nothing falls back to a heading or to
+the first line. The same holds for a \`name:\` that is empty or written as a list.
 
-**Nothing is unique.** Two notes may carry the same title, in one folder or in
+Four characters have no place in a name — \`#\`, \`[\`, \`]\` and \`|\`, the
+delimiters of the form that addresses it. A name carrying one of them is no name.
+A \`/\` is fine: \`Reunião 03/09/2026\` is an ordinary name, because folders play
+no part in identity.
+
+A link names a note **exactly**: case for case, after Unicode normalisation, and
+folded in no other way. \`[[Lei 14.133]]\` finds the note named \`Lei 14.133\`
+and does not find \`lei 14133\`.
+
+**Nothing is unique.** Two notes may carry the same name, in one folder or in
 two, and nothing refuses the second one. So \`create_note\` ALWAYS creates: if a
 call fails on the way back, read the folder before calling it again, or you get
 two notes where you meant one.
@@ -402,7 +412,7 @@ the frontmatter and the links are read.
 
 \`search_notes\` reads the body, not the frontmatter, and its query language is
 the other half of this: \`"exact phrase"\`, \`-exclusion\`, \`OR\`, parentheses,
-and the fields \`title:\`, \`folder:\`, \`section:\` and \`content:\`. Any other
+and the fields \`name:\`, \`folder:\`, \`section:\` and \`content:\`. Any other
 prefix is read as a frontmatter attribute, which is what makes
 \`maturity:evergreen\` a valid filter without a line of code about it. The
 vocabulary of the notebook becomes the query language of the notebook.

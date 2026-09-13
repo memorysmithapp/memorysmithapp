@@ -1,5 +1,5 @@
 ---
-title: Recovery Point Objective
+name: Recovery Point Objective
 aliases: [RPO]
 tags: [objective, continuity]
 type: objective

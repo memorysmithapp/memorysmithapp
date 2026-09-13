@@ -1,5 +1,5 @@
 ---
-title: Decreto 12.068-2024 01
+name: Decreto 12.068-2024 01
 aliases:
   - Decreto 12.068 Capítulo I
 tags:

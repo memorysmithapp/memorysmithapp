@@ -1,5 +1,5 @@
 ---
-title: EV-2-g3-011 · Aba Conexões diretas
+name: EV-2-g3-011 · Aba Conexões diretas
 aliases: [EV-2-g3-011]
 tags: [evidence, tab, connections, computer, peripheral]
 type: evidence

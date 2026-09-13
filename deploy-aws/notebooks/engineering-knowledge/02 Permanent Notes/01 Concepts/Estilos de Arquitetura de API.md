@@ -1,5 +1,5 @@
 ---
-title: Estilos de Arquitetura de API
+name: Estilos de Arquitetura de API
 aliases:
   - API Architecture Styles
   - Estilos de API

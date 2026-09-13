@@ -1,5 +1,5 @@
 ---
-title: Modelo de dados de Gestão (view)
+name: Modelo de dados de Gestão (view)
 aliases: [ER gestão, contratos financeiro view]
 tags: [view, gestao, dados, dominio/gestao]
 type: view

@@ -1,5 +1,5 @@
 ---
-title: Evolução da Compensação por Continuidade e das Multas (2020–2025)
+name: Evolução da Compensação por Continuidade e das Multas (2020–2025)
 aliases:
   - Série da compensação e da multa
   - Consequência financeira do descumprimento de continuidade

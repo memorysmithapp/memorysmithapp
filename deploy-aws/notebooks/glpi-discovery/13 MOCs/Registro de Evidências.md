@@ -1,5 +1,5 @@
 ---
-title: Registro de Evidências
+name: Registro de Evidências
 aliases: [Evidence log, Registro de Evidências]
 tags: [moc, evidencias]
 type: moc

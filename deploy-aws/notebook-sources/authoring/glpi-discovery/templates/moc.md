@@ -1,5 +1,5 @@
 ---
-title: MOC - <Domínio>
+name: MOC - <Domínio>
 aliases: []
 tags: [moc]
 type: moc

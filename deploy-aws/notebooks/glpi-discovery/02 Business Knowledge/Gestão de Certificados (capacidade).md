@@ -1,5 +1,5 @@
 ---
-title: Gestão de Certificados (capacidade)
+name: Gestão de Certificados (capacidade)
 aliases: [Certificates management]
 tags: [capability, management, certificate, financial, doc]
 type: capability

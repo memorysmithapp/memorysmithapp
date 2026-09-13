@@ -1,5 +1,5 @@
 ---
-title: INV-1-005 · Regras exatas de transição de status por perfil
+name: INV-1-005 · Regras exatas de transição de status por perfil
 aliases: [INV-1-005]
 tags: [investigation, consumidor/cad, itil]
 type: investigation

@@ -1,5 +1,5 @@
 ---
-title: Dados - Qualidade do Serviço
+name: Dados - Qualidade do Serviço
 aliases:
   - Qualidade do Serviço
 tags:

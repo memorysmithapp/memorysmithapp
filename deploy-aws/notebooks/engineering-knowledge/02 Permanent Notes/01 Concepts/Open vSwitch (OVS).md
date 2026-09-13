@@ -1,5 +1,5 @@
 ---
-title: Open vSwitch (OVS)
+name: Open vSwitch (OVS)
 aliases:
   - OVS
   - Open vSwitch

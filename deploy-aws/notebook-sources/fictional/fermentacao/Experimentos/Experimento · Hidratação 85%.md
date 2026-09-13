@@ -1,5 +1,5 @@
 ---
-title: Experimento · Hidratação 85%
+name: Experimento · Hidratação 85%
 aliases: []
 tags: [experimento, pao]
 type: experimento

@@ -1,5 +1,5 @@
 ---
-title: Limite de alerta (alert threshold)
+name: Limite de alerta (alert threshold)
 aliases: [Alert threshold, Limite de alerta, Restock threshold]
 tags: [campos-comuns, estoque, consumiveis, alerta, data]
 type: field

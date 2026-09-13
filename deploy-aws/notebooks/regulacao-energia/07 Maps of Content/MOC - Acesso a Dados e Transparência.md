@@ -1,5 +1,5 @@
 ---
-title: MOC - Acesso a Dados e Transparência
+name: MOC - Acesso a Dados e Transparência
 aliases:
   - MOC Dados Abertos
   - MOC Transparência

@@ -1,5 +1,5 @@
 ---
-title: Base de Dados Geográfica da Distribuidora - BDGD (ANEEL)
+name: Base de Dados Geográfica da Distribuidora - BDGD (ANEEL)
 aliases:
   - base-de-dados-geografica-da-distribuidora-bdgd
 tags:

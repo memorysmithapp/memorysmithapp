@@ -1,5 +1,5 @@
 ---
-title: Gestão de Projetos na interface (Project e Project task)
+name: Gestão de Projetos na interface (Project e Project task)
 aliases: [Projects UI, Project, Project task, Abas de projeto]
 tags: [tools, projects, gantt, kanban, tasks, teams, subproject]
 type: component

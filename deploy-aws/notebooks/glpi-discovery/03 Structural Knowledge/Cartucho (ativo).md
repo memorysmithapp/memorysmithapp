@@ -1,5 +1,5 @@
 ---
-title: Cartucho (ativo)
+name: Cartucho (ativo)
 aliases: [Cartridge, Cartucho, Cartuchos]
 tags: [assets, cartridge, stock, structural, doc]
 type: component

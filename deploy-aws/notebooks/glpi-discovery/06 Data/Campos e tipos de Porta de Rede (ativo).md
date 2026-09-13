@@ -1,5 +1,5 @@
 ---
-title: Campos e tipos de Porta de Rede (ativo)
+name: Campos e tipos de Porta de Rede (ativo)
 aliases: [Network port types, Tipos de porta de rede, Campos de porta de rede]
 tags: [data, assets, network, ports, vlan, mac, ethernet, wifi]
 type: entity

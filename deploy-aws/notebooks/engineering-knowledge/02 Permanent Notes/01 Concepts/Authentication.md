@@ -1,5 +1,5 @@
 ---
-title: Authentication
+name: Authentication
 aliases:
   - Autenticação
   - AuthN

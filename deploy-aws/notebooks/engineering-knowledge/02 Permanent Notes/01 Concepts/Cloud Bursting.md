@@ -1,5 +1,5 @@
 ---
-title: Cloud Bursting
+name: Cloud Bursting
 aliases:
   - Estouro para a Nuvem
 tags:

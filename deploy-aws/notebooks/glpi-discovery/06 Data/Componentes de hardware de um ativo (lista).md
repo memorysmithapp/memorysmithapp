@@ -1,5 +1,5 @@
 ---
-title: Componentes de hardware de um ativo (lista)
+name: Componentes de hardware de um ativo (lista)
 aliases: [Components tab, Aba Components]
 tags: [assets, data, components, tab]
 type: entity

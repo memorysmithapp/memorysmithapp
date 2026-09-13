@@ -1,5 +1,5 @@
 ---
-title: Distributed ID Generator
+name: Distributed ID Generator
 aliases:
   - Gerador de IDs Distribuído
   - Snowflake ID

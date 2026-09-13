@@ -1,5 +1,5 @@
 ---
-title: Organização do código-fonte
+name: Organização do código-fonte
 aliases: [Estrutura de pastas, Layout do repositório]
 tags: [source-code, arquitetura, dominio/foundation]
 type: module

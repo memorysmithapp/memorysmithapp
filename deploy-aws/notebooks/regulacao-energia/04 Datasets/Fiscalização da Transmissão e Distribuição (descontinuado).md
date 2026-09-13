@@ -1,5 +1,5 @@
 ---
-title: Fiscalização da Transmissão e Distribuição (descontinuado)
+name: Fiscalização da Transmissão e Distribuição (descontinuado)
 aliases:
   - transmissao-e-distribuicao
 tags:

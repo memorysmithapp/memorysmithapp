@@ -1,5 +1,5 @@
 ---
-title: Escrever Frontmatter Consultável
+name: Escrever Frontmatter Consultável
 aliases:
   - Frontmatter Consultável
   - Queryable Frontmatter

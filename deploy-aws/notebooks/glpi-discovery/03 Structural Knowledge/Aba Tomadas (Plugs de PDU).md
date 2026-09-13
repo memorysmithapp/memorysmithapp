@@ -1,5 +1,5 @@
 ---
-title: Aba Tomadas (Plugs de PDU)
+name: Aba Tomadas (Plugs de PDU)
 aliases: [Plugs tab, Aba Plugs, Tomadas PDU]
 tags: [assets, tab, dcim, pdu, plugs, power]
 type: component

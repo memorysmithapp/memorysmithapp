@@ -1,5 +1,5 @@
 ---
-title: Site Reliability Engineering (SRE)
+name: Site Reliability Engineering (SRE)
 aliases:
   - SRE
   - Engenharia de Confiabilidade

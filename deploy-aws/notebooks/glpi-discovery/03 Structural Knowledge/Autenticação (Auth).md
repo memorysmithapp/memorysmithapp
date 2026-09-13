@@ -1,5 +1,5 @@
 ---
-title: Autenticação (Auth)
+name: Autenticação (Auth)
 aliases: [Auth, Autenticação, LDAP, SSO, 2FA]
 tags: [component, autenticacao, seguranca, dominio/admin]
 type: component

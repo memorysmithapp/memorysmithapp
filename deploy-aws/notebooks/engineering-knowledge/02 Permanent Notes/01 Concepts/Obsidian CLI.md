@@ -1,5 +1,5 @@
 ---
-title: Obsidian CLI
+name: Obsidian CLI
 aliases:
   - CLI do Obsidian
   - TUI

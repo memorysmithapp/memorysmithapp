@@ -1,5 +1,5 @@
 ---
-title: Obsidian Help 07
+name: Obsidian Help 07
 aliases:
   - Obsidian Help — Serviços Gerenciados
 tags:

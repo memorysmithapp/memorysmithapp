@@ -1,5 +1,5 @@
 ---
-title: Software, Versões e Licenças
+name: Software, Versões e Licenças
 aliases: [Software, SoftwareVersion, SoftwareLicense]
 tags: [concept, software, licenca, dominio/ativos]
 type: concept

@@ -1,5 +1,5 @@
 ---
-title: Índice de Polifenóis Totais
+name: Índice de Polifenóis Totais
 aliases: [IPT, Índice de Polifenóis]
 tags: [medida, analise]
 tipo: medida

@@ -1,5 +1,5 @@
 ---
-title: EV-1-012 · Validação ITIL e artefatos-filhos (followup/task/solution)
+name: EV-1-012 · Validação ITIL e artefatos-filhos (followup/task/solution)
 aliases: [EV-1-012]
 tags: [evidence, dominio/service-desk, validacao, followup]
 type: evidence

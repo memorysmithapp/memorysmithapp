@@ -1,5 +1,5 @@
 ---
-title: EV-2-g3-026 · Abas-stub (contratos e links, por redigir)
+name: EV-2-g3-026 · Abas-stub (contratos e links, por redigir)
 aliases: [EV-2-g3-026]
 tags: [evidence, tab, contracts, links, stub, todo]
 type: evidence

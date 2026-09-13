@@ -1,5 +1,5 @@
 ---
-title: Recursividade em entidades
+name: Recursividade em entidades
 aliases: [Recursivity, Recursividade, Sub-entity, Global note, Global right, Local right]
 tags: [entities, recursivity, multi-tenancy, glossary]
 type: concept

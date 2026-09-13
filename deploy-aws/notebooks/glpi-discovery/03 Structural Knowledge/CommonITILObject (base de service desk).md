@@ -1,5 +1,5 @@
 ---
-title: CommonITILObject (base de service desk)
+name: CommonITILObject (base de service desk)
 aliases: [CommonITILObject, base ITIL]
 tags: [component, itil, dominio/service-desk]
 type: component

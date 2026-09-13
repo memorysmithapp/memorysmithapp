@@ -1,5 +1,5 @@
 ---
-title: EV-2-c3-003 · Aba Conexões Diretas entre hardwares
+name: EV-2-c3-003 · Aba Conexões Diretas entre hardwares
 aliases: [EV-2-c3-003]
 tags: [evidence, doc, assets, connections, computer]
 type: evidence

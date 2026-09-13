@@ -1,5 +1,5 @@
 ---
-title: Tipos de pergunta de formulário
+name: Tipos de pergunta de formulário
 aliases: [Form question types]
 tags: [formularios, forms, perguntas, campos, dados, doc]
 type: table

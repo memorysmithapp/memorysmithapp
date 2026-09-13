@@ -25,11 +25,11 @@ export function Transclusion({
   anchor: string | null;
 }) {
   const { t } = useTranslation();
-  const title = target.normalize('NFC');
+  const name = target.normalize('NFC');
   // A transclusion expands ONE note, so it expands what a wikilink would
   // navigate to: an ambiguous target is a choice a reader makes and not a
   // passage the page can inline on their behalf.
-  const url = resolveNoteUrl(notebookSlug, title);
+  const url = resolveNoteUrl(notebookSlug, name);
   const noteId = url ? (noteIdOf(url.split('/').pop() ?? '') ?? '') : '';
 
   const { data, isPending, isError } = useQuery({
@@ -55,8 +55,8 @@ export function Transclusion({
 
   const whole = data.body;
   // The caption names the note the content came from, and a note may have no
-  // addressable title (RN-KNW-036).
-  const sourceLabel = data.title ?? t('note.untitled');
+  // addressable name (RN-KNW-036).
+  const sourceLabel = data.name ?? t('note.unnamed');
   // `#^id` addresses a BLOCK and `#Section` a heading. The two are told apart
   // by the marker and not by trying one and falling back to the other, or a
   // section named `^x` and a block called `x` would answer for each other.

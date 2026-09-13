@@ -1,5 +1,5 @@
 ---
-title: Tese · Conceito de insumo para créditos
+name: Tese · Conceito de insumo para créditos
 aliases: []
 tags: [tese, creditos]
 type: tese

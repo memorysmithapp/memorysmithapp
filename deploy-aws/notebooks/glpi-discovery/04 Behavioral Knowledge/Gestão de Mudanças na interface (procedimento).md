@@ -1,5 +1,5 @@
 ---
-title: Gestão de Mudanças na interface (procedimento)
+name: Gestão de Mudanças na interface (procedimento)
 aliases: [Manage changes, Gerir mudanças]
 tags: [changes, mudancas, itil, procedimento, ui, assistance]
 type: use-case

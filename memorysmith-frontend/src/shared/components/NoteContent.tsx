@@ -17,7 +17,7 @@ export function NoteContent({ body, notebookSlug }: { body: string; notebookSlug
       {segments.map((segment, index) =>
         segment.kind === 'text' ? (
           <Markdown key={index}>
-            {resolveWikilinks(segment.text, (title) => wikilinkUrl(notebookSlug, title))}
+            {resolveWikilinks(segment.text, (name) => wikilinkUrl(notebookSlug, name))}
           </Markdown>
         ) : (
           <Transclusion

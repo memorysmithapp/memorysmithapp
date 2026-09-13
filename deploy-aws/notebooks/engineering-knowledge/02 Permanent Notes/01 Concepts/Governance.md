@@ -1,5 +1,5 @@
 ---
-title: Governance
+name: Governance
 aliases:
   - Governança
 tags:

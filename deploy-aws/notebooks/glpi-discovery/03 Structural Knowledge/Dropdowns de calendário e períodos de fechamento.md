@@ -1,5 +1,5 @@
 ---
-title: Dropdowns de calendário e períodos de fechamento
+name: Dropdowns de calendário e períodos de fechamento
 aliases: [Calendar, Close times, Time ranges, Períodos de fechamento]
 tags: [dropdown, calendar, sla, closing-periods, entity]
 type: component

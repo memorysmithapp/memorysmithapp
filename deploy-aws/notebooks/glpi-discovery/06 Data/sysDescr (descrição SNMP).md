@@ -1,5 +1,5 @@
 ---
-title: sysDescr (descrição SNMP)
+name: sysDescr (descrição SNMP)
 aliases: [sysDescr, Sysdescr]
 tags: [campos-comuns, snmp, inventario, rede, data]
 type: field

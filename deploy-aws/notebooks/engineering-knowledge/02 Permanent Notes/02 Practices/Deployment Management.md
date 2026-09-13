@@ -1,5 +1,5 @@
 ---
-title: Deployment Management
+name: Deployment Management
 aliases:
   - Gestão de Implantação
 tags:

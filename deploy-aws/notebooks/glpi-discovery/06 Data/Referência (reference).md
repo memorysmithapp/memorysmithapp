@@ -1,5 +1,5 @@
 ---
-title: Referência (reference)
+name: Referência (reference)
 aliases: [Reference, Referência]
 tags: [campos-comuns, estoque, consumiveis, data]
 type: field

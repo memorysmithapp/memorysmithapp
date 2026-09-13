@@ -1,5 +1,5 @@
 ---
-title: EV-1-024 · Supplier, Contact e Budget
+name: EV-1-024 · Supplier, Contact e Budget
 aliases: [EV-1-024]
 tags: [evidence, dominio/gestao, fornecedor, orcamento]
 type: evidence

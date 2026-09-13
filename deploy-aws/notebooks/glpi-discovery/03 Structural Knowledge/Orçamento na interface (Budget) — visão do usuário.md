@@ -1,5 +1,5 @@
 ---
-title: Orçamento na interface (Budget) — visão do usuário
+name: Orçamento na interface (Budget) — visão do usuário
 aliases: [Budget, Orçamento]
 tags: [concept, management, budget, financial, doc]
 type: concept

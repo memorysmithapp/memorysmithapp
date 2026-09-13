@@ -1,5 +1,5 @@
 ---
-title: Excedente de Energia Elétrica
+name: Excedente de Energia Elétrica
 aliases:
   - Excedente de energia
 tags:

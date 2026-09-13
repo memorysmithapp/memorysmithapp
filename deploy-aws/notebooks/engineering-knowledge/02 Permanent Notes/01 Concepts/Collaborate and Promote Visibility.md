@@ -1,5 +1,5 @@
 ---
-title: Collaborate and Promote Visibility
+name: Collaborate and Promote Visibility
 aliases:
   - Colabore e Promova Visibilidade
 tags:

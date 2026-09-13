@@ -1,5 +1,5 @@
 ---
-title: GraphQL
+name: GraphQL
 aliases:
   - Graph Query Language
 tags:

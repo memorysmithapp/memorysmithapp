@@ -1,5 +1,5 @@
 ---
-title: Import e Export de regras, dicionários e formulários (XML)
+name: Import e Export de regras, dicionários e formulários (XML)
 aliases: [Rules import/export, Portabilidade de configuração]
 tags: [regras, dicionarios, formularios, import, export, xml, migracao, doc]
 type: integration

@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Ticket
+name: Campos do formulário de Ticket
 aliases: [Campos do ticket, Ticket fields]
 tags: [assistance, ticket, fields, form, data]
 type: table

@@ -1,5 +1,5 @@
 ---
-title: EV-2-b2-002 · Gestão de problemas — formulário e abas
+name: EV-2-b2-002 · Gestão de problemas — formulário e abas
 aliases: [EV-2-b2-002]
 tags: [evidence, problems, problemas, itil, assistance]
 type: evidence

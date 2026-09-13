@@ -1,5 +1,5 @@
 ---
-title: A transgressão do limite coletivo não tem consequência financeira direta
+name: A transgressão do limite coletivo não tem consequência financeira direta
 aliases:
   - Limite coletivo sem sanção
   - DEC e FEC transgredidos sem consequência

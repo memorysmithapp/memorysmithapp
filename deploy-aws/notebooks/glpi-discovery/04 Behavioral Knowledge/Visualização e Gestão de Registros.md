@@ -1,5 +1,5 @@
 ---
-title: Visualização e Gestão de Registros
+name: Visualização e Gestão de Registros
 aliases: [View and manage records, Listas e abas, Customize display]
 tags: [use-case, list, tabs, display, columns, view]
 type: use-case

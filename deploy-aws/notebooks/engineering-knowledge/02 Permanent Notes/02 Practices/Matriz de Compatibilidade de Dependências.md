@@ -1,5 +1,5 @@
 ---
-title: Matriz de Compatibilidade de Dependências
+name: Matriz de Compatibilidade de Dependências
 aliases:
   - Compatibility Matrix
   - Baseline de Versões

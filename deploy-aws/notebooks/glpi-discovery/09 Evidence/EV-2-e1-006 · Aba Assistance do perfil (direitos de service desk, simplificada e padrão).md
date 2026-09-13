@@ -1,5 +1,5 @@
 ---
-title: EV-2-e1-006 · Aba Assistance do perfil (direitos de service desk, simplificada e padrão)
+name: EV-2-e1-006 · Aba Assistance do perfil (direitos de service desk, simplificada e padrão)
 aliases: [EV-2-e1-006]
 tags: [evidence, perfis, permissoes, assistance, tickets, followups, validacao]
 type: evidence

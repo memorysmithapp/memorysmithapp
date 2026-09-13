@@ -1,5 +1,5 @@
 ---
-title: Unicidade de Campos (fields unicity)
+name: Unicidade de Campos (fields unicity)
 aliases: [Fields unicity, Unicity criteria, Critérios de unicidade]
 tags: [unicidade, duplicatas, configuracao, regra]
 type: concept

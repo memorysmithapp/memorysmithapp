@@ -1,5 +1,5 @@
 ---
-title: Suspensão de plugins na atualização do GLPI
+name: Suspensão de plugins na atualização do GLPI
 aliases: [Suspend plugins, Plugins and Update GLPI]
 tags: [operacao, plugin, atualizacao, suspensao, manutencao]
 type: infra

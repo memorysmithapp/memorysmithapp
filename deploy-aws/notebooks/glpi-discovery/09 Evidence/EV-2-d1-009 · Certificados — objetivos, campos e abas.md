@@ -1,5 +1,5 @@
 ---
-title: EV-2-d1-009 · Certificados — objetivos, campos e abas
+name: EV-2-d1-009 · Certificados — objetivos, campos e abas
 aliases: [EV-2-d1-009]
 tags: [evidence, management, certificate, doc]
 type: evidence

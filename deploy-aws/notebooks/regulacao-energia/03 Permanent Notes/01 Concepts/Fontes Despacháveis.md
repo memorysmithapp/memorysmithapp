@@ -1,5 +1,5 @@
 ---
-title: Fontes Despacháveis
+name: Fontes Despacháveis
 aliases:
   - Fonte despachável
   - Despachabilidade

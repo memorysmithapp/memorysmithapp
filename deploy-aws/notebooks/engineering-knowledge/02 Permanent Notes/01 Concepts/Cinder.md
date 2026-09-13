@@ -1,5 +1,5 @@
 ---
-title: Cinder
+name: Cinder
 aliases:
   - OpenStack Block Storage Service
   - Block Storage Service

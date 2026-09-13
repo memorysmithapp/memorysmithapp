@@ -1,5 +1,5 @@
 ---
-title: Tickets recorrentes (fluxo)
+name: Tickets recorrentes (fluxo)
 aliases: [Recurrent tickets, Chamados recorrentes]
 tags: [assistance, ticket, recurrent, automation, crontask, template]
 type: flow

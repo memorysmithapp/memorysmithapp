@@ -1,5 +1,5 @@
 ---
-title: Fiscalização Econômica e Financeira (descontinuado)
+name: Fiscalização Econômica e Financeira (descontinuado)
 aliases:
   - fiscalizacao-economica-e-financeira
 tags:

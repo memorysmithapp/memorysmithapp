@@ -1,5 +1,5 @@
 ---
-title: Decreto 12.068-2024 03
+name: Decreto 12.068-2024 03
 aliases:
   - Decreto 12.068 Capítulo III
   - Instrução Processual da Prorrogação

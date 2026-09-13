@@ -1,5 +1,5 @@
 ---
-title: Risk
+name: Risk
 aliases:
   - Risco
 tags:

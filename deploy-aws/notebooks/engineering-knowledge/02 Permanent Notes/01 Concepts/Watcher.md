@@ -1,5 +1,5 @@
 ---
-title: Watcher
+name: Watcher
 aliases:
   - OpenStack Resource Optimization Service
 tags:

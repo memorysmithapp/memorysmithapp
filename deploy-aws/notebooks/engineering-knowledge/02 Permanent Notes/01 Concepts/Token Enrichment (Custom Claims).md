@@ -1,5 +1,5 @@
 ---
-title: Token Enrichment (Custom Claims)
+name: Token Enrichment (Custom Claims)
 aliases:
   - Custom Claims
   - Claims Customizados

@@ -1,5 +1,5 @@
 ---
-title: AWS Cloud Development Kit (CDK)
+name: AWS Cloud Development Kit (CDK)
 aliases:
   - AWS CDK
   - CDK

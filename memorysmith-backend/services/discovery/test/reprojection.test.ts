@@ -4,12 +4,12 @@
  * edge gained is one an alias explains.
  *
  * The notebook below is the shape of the real thing: three notes that pointed at
- * each other by slug, migrated so each states its title, plus a note carrying
+ * each other by slug, migrated so each states its name, plus a note carrying
  * an alias that used to answer nothing.
  */
 
 import { describe, expect, it } from 'vitest';
-import { noteTitle } from '@memorysmith/kernel';
+import { noteName } from '@memorysmith/kernel';
 import { extractLinks } from '../src/domain/LinkExtractor.js';
 import { extractFrontmatterAliases } from '../src/domain/Aliases.js';
 import { resolveAll, type ReadNote } from '../src/adapters/reprojection.js';
@@ -19,9 +19,9 @@ function read(noteId: string, markdown: string): ReadNote {
   return {
     noteId,
     folderId: 'folder',
-    title: noteTitle(markdown) ?? '',
+    name: noteName(markdown) ?? '',
     aliases: extractFrontmatterAliases(markdown),
-    targets: extractLinks(markdown).map((link) => link.title),
+    targets: extractLinks(markdown).map((link) => link.name),
   };
 }
 
@@ -32,12 +32,12 @@ const edgesOf = (notes: ReadNote[]): string[] =>
 
 describe('rebuilding the graph of a migrated notebook', () => {
   const notebook = [
-    read('lei', '---\ntitle: Lei 14.133\n---\n\nVer [[Recovery Time Objective]].\n'),
+    read('lei', '---\nname: Lei 14.133\n---\n\nVer [[Recovery Time Objective]].\n'),
     read(
       'rto',
-      '---\ntitle: Recovery Time Objective\naliases: [RTO, Objetivo de Recuperação]\n---\n\nVer [[Lei 14.133]].\n',
+      '---\nname: Recovery Time Objective\naliases: [RTO, Objetivo de Recuperação]\n---\n\nVer [[Lei 14.133]].\n',
     ),
-    read('ata', '---\ntitle: Reunião de Time\n---\n\nFalamos de [[RTO]] e da [[Lei 14.133]].\n'),
+    read('ata', '---\nname: Reunião de Time\n---\n\nFalamos de [[RTO]] e da [[Lei 14.133]].\n'),
   ];
 
   it('finds every edge the notebook used to have', () => {
@@ -54,10 +54,10 @@ describe('rebuilding the graph of a migrated notebook', () => {
     expect(gained).toEqual({ from: 'ata', to: 'rto', target: 'RTO', by: 'alias' });
   });
 
-  it('lets a title take back what an alias was answering', () => {
+  it('lets a name take back what an alias was answering', () => {
     // Non-monotonic resolution, seen from the rebuild: a note written under the
-    // title somebody else was aliasing takes the edge away (RN-DSC-053).
-    const withOwner = [...notebook, read('rto2', '---\ntitle: RTO\n---\n\nA sigla.\n')];
+    // name somebody else was aliasing takes the edge away (RN-DSC-053).
+    const withOwner = [...notebook, read('rto2', '---\nname: RTO\n---\n\nA sigla.\n')];
     const alias = resolveAll(withOwner).edges.filter((edge) => edge.by === 'alias');
 
     expect(alias).toEqual([]);
@@ -65,19 +65,19 @@ describe('rebuilding the graph of a migrated notebook', () => {
     expect(edgesOf(withOwner)).not.toContain('ata->rto');
   });
 
-  it('writes one edge per note carrying the title, and never to itself', () => {
-    // Two notes may carry one title (RN-KNW-037), and a link into both is two
+  it('writes one edge per note carrying the name, and never to itself', () => {
+    // Two notes may carry one name (RN-KNW-037), and a link into both is two
     // edges, because there is no order to appeal to (RN-DSC-042).
     const twins = [
-      read('a', '---\ntitle: Ata\n---\n\nVer [[Nota]].\n'),
-      read('b', '---\ntitle: Nota\n---\n\nVer [[Nota]].\n'),
-      read('c', '---\ntitle: Nota\n---\n\nOutra.\n'),
+      read('a', '---\nname: Ata\n---\n\nVer [[Nota]].\n'),
+      read('b', '---\nname: Nota\n---\n\nVer [[Nota]].\n'),
+      read('c', '---\nname: Nota\n---\n\nOutra.\n'),
     ];
     expect(edgesOf(twins)).toEqual(['a->b', 'a->c', 'b->c']);
   });
 
   it('counts a target nothing answers to as pending, and makes no edge of it', () => {
-    const orphan = [read('a', '---\ntitle: Ata\n---\n\nVer [[Uma nota que não existe]].\n')];
+    const orphan = [read('a', '---\nname: Ata\n---\n\nVer [[Uma nota que não existe]].\n')];
     const rebuilt = resolveAll(orphan);
 
     expect(rebuilt.edges).toEqual([]);

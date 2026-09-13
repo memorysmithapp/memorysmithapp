@@ -1,5 +1,5 @@
 ---
-title: Equipes no Kanban (papéis de membros)
+name: Equipes no Kanban (papéis de membros)
 aliases: [Kanban team, Team management, Equipe do Kanban]
 tags: [kanban, team, actors, roles]
 type: concept

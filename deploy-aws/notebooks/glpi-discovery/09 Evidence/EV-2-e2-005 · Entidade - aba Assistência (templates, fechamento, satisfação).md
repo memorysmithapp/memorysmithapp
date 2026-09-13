@@ -1,5 +1,5 @@
 ---
-title: EV-2-e2-005 · Entidade - aba Assistência (templates, fechamento, satisfação)
+name: EV-2-e2-005 · Entidade - aba Assistência (templates, fechamento, satisfação)
 aliases: [EV-2-e2-005]
 tags: [evidence, entidades, assistencia, satisfacao, fechamento, doc]
 type: evidence

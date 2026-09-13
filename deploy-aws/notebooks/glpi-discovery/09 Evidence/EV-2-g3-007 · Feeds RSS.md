@@ -1,5 +1,5 @@
 ---
-title: EV-2-g3-007 · Feeds RSS
+name: EV-2-g3-007 · Feeds RSS
 aliases: [EV-2-g3-007]
 tags: [evidence, tools, rss, feed, targets]
 type: evidence

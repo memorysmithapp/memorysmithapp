@@ -1,5 +1,5 @@
 ---
-title: Política de Senhas (segurança e expiração)
+name: Política de Senhas (segurança e expiração)
 aliases: [Security tab, Password policy, Política de senhas]
 tags: [configuracao-geral, seguranca, senha, politica, operacao]
 type: rule

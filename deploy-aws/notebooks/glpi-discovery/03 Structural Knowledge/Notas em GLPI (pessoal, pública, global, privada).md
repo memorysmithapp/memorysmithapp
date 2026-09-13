@@ -1,5 +1,5 @@
 ---
-title: Notas em GLPI (pessoal, pública, global, privada)
+name: Notas em GLPI (pessoal, pública, global, privada)
 aliases: [Personal note, Public note, Global note, Private, Notas]
 tags: [notes, visibility, glossary]
 type: concept

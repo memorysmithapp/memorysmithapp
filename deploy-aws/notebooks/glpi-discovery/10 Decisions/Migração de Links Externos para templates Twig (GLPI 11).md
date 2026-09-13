@@ -1,5 +1,5 @@
 ---
-title: Migração de Links Externos para templates Twig (GLPI 11)
+name: Migração de Links Externos para templates Twig (GLPI 11)
 aliases: [External links Twig migration]
 tags: [links-externos, twig, decisao, glpi11, migracao]
 type: decision

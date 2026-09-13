@@ -1,5 +1,5 @@
 ---
-title: Perfis × Entidades (Profile_User)
+name: Perfis × Entidades (Profile_User)
 aliases: [Profile_User, RBAC binding, perfil entidade]
 tags: [concept, seguranca, rbac, dominio/admin]
 type: concept

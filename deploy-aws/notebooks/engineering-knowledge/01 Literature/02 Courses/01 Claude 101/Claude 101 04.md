@@ -1,5 +1,5 @@
 ---
-title: Claude 101 04
+name: Claude 101 04
 aliases:
   - "Módulo 4: Colocando tudo junto"
 tags:

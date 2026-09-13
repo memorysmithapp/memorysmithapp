@@ -1,5 +1,5 @@
 ---
-title: Optimize and Automate
+name: Optimize and Automate
 aliases:
   - Otimize e Automatize
 tags:

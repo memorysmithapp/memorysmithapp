@@ -1,5 +1,5 @@
 ---
-title: Síntese Multi-Fonte
+name: Síntese Multi-Fonte
 aliases:
   - Cross-Source Synthesis
   - Briefing Multi-Fonte

@@ -1,5 +1,5 @@
 ---
-title: Continual Improvement Model
+name: Continual Improvement Model
 aliases:
   - Modelo de Melhoria Contínua
 tags:

@@ -1,5 +1,5 @@
 ---
-title: Claude Cowork Use Cases 01
+name: Claude Cowork Use Cases 01
 aliases:
   - Cowork Use Cases — Arquivos Locais
 tags:

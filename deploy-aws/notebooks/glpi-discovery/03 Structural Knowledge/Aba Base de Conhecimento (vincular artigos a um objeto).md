@@ -1,5 +1,5 @@
 ---
-title: Aba Base de Conhecimento (vincular artigos a um objeto)
+name: Aba Base de Conhecimento (vincular artigos a um objeto)
 aliases: [Knowledge base tab, Aba KB, Link article]
 tags: [tab, knowledgebase, link, article]
 type: component

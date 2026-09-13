@@ -1,5 +1,5 @@
 ---
-title: Claude 101
+name: Claude 101
 aliases:
   - Claude 101 (Anthropic Academy)
 tags:

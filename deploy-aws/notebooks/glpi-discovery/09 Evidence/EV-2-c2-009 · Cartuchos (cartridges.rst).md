@@ -1,5 +1,5 @@
 ---
-title: EV-2-c2-009 · Cartuchos (cartridges.rst)
+name: EV-2-c2-009 · Cartuchos (cartridges.rst)
 aliases: [EV-2-c2-009]
 tags: [evidence, assets, cartridge, consumable, stock, doc]
 type: evidence

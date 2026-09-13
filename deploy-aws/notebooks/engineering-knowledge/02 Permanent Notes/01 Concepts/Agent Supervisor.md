@@ -1,5 +1,5 @@
 ---
-title: Agent Supervisor
+name: Agent Supervisor
 aliases:
   - Supervisor Agent
   - Coordinator Agent

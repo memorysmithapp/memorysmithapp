@@ -104,7 +104,7 @@ export interface DomainEvent<TPayload = Record<string, unknown>> {
    *
    * The aggregate declares it instead of the counter deriving it from the
    * event type, because the type does not carry the answer: `NoteUpdated` is
-   * emitted both by a retitle, which changes no content and moves nothing, and
+   * emitted both by a rename, which changes no content and moves nothing, and
    * by a new body, which moves the difference between two revisions. Only the
    * aggregate knows which of the two just happened.
    *

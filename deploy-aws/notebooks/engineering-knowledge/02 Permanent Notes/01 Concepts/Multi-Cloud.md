@@ -1,5 +1,5 @@
 ---
-title: Multi-Cloud
+name: Multi-Cloud
 aliases:
   - Multinuvem
   - Estratégia Multi-Cloud

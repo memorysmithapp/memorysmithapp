@@ -1,5 +1,5 @@
 ---
-title: Autorização Multi-Tenant Fim a Fim
+name: Autorização Multi-Tenant Fim a Fim
 aliases:
   - Fluxo de Autorização Multi-Tenant
   - Tenant Isolation na Prática

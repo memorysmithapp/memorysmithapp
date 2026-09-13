@@ -1,5 +1,5 @@
 ---
-title: Empreendimento com Múltiplas Unidades Consumidoras
+name: Empreendimento com Múltiplas Unidades Consumidoras
 aliases:
   - Múltiplas Unidades Consumidoras
   - Múltiplas UCs

@@ -1,5 +1,5 @@
 ---
-title: Matriz de prioridade (configuração urgência × impacto)
+name: Matriz de prioridade (configuração urgência × impacto)
 aliases: [Priority matrix, Matriz de prioridade]
 tags: [prioridade, urgencia, impacto, matriz, itil, rule, configuracao]
 type: rule

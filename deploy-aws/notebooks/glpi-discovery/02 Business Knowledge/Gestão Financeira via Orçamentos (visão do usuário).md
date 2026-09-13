@@ -1,5 +1,5 @@
 ---
-title: Gestão Financeira via Orçamentos (visão do usuário)
+name: Gestão Financeira via Orçamentos (visão do usuário)
 aliases: [Budgets, Gestão financeira, Financial management]
 tags: [capability, management, budget, financial, doc]
 type: capability

@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Licença
+name: Campos do formulário de Licença
 aliases: [License fields]
 tags: [data, management, license, software, fields, doc]
 type: table

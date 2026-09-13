@@ -1,5 +1,5 @@
 ---
-title: Enterprise Architecture
+name: Enterprise Architecture
 aliases:
   - Arquitetura Corporativa
   - EA

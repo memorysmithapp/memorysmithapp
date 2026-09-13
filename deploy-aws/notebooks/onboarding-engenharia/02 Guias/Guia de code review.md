@@ -1,5 +1,5 @@
 ---
-title: Guia de code review
+name: Guia de code review
 aliases: [Code review]
 tags: [guia, qualidade]
 type: guia

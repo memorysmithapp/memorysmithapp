@@ -1,5 +1,5 @@
 ---
-title: Regras de atribuição de item a entidade (inventário)
+name: Regras de atribuição de item a entidade (inventário)
 aliases: [Entity assignment rules, Rules for assigning an item to an entity]
 tags: [regras, inventario, entidade, localizacao, doc]
 type: rule

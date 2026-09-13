@@ -1,5 +1,5 @@
 ---
-title: ITIL vs DevOps
+name: ITIL vs DevOps
 aliases:
   - ITIL e DevOps
 tags:

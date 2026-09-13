@@ -1,5 +1,5 @@
 ---
-title: Open Virtual Network (OVN)
+name: Open Virtual Network (OVN)
 aliases:
   - OVN
 tags:

@@ -1,5 +1,5 @@
 ---
-title: Reiniciar o pipeline de ingestão
+name: Reiniciar o pipeline de ingestão
 aliases: [Restart ingest]
 tags: [runbook, pipeline, incident-response]
 type: runbook

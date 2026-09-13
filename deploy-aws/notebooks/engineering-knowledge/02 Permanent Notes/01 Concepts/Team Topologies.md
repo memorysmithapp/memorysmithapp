@@ -1,5 +1,5 @@
 ---
-title: Team Topologies
+name: Team Topologies
 aliases:
   - Topologias de Times
 tags:

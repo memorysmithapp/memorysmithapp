@@ -1,5 +1,5 @@
 ---
-title: Cabo (ativo)
+name: Cabo (ativo)
 aliases: [Cable, Cabo, Cabos]
 tags: [assets, cable, connectivity, dcim, structural, doc]
 type: component

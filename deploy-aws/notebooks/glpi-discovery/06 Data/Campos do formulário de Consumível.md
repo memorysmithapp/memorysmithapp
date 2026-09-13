@@ -1,5 +1,5 @@
 ---
-title: Campos do formulário de Consumível
+name: Campos do formulário de Consumível
 aliases: [Campos Consumable]
 tags: [data, fields, consumable, stock, doc]
 type: table

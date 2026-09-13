@@ -1,5 +1,5 @@
 ---
-title: Composição Societária - Polímero (ANEEL)
+name: Composição Societária - Polímero (ANEEL)
 aliases:
   - composicao-societaria-polimero
 tags:

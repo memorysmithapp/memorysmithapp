@@ -1,5 +1,5 @@
 ---
-title: ITIL
+name: ITIL
 aliases:
   - Information Technology Infrastructure Library
   - ITIL 5

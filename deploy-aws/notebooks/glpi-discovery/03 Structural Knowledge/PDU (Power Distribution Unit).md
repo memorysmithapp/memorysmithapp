@@ -1,5 +1,5 @@
 ---
-title: PDU (Power Distribution Unit)
+name: PDU (Power Distribution Unit)
 aliases: [PDU, Power distribution unit, Unidade de distribuição de energia]
 tags: [assets, pdu, dcim, power, structural, doc]
 type: component

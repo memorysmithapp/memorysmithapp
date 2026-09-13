@@ -31,7 +31,7 @@ interface Edge {
 
 interface Pending {
   readonly fromNoteId: string;
-  readonly title: string;
+  readonly name: string;
 }
 
 /**
@@ -40,7 +40,7 @@ interface Pending {
  *
  * That is the shape resolution has since 0.6.0. It stopped being monotonic:
  * an edge that exists by alias disappears the day somebody writes a note
- * carrying that title (RN-DSC-053), in a note nobody touched. Materialising
+ * carrying that name (RN-DSC-053), in a note nobody touched. Materialising
  * the edges and patching them on every write means an invalidation path per
  * kind of change and a way to get each one wrong; deriving them means the
  * graph is always exactly what the notebook says, and the cost is a walk over
@@ -65,7 +65,7 @@ export class InMemoryLinkGraph implements LinkGraph {
     };
   }
 
-  /** What the notebook answers to right now: its titles and then its aliases. */
+  /** What the notebook answers to right now: its names and then its aliases. */
   private names(notebookId: string): NotebookNames {
     return notebookNames([...this.notebook(notebookId).notes.values()]);
   }
@@ -80,17 +80,17 @@ export class InMemoryLinkGraph implements LinkGraph {
     for (const [fromNoteId, links] of state.outgoing) {
       if (!state.notes.has(fromNoteId)) continue;
       for (const link of links) {
-        const answer = resolveTarget(link.title, names);
+        const answer = resolveTarget(link.name, names);
         if (answer.kind === 'note') {
-          // Every note whose title matches becomes an edge (RN-DSC-042): two
-          // notes with one title are two edges, never the first one.
+          // Every note whose name matches becomes an edge (RN-DSC-042): two
+          // notes with one name are two edges, never the first one.
           for (const toNoteId of answer.noteIds) {
             if (toNoteId !== fromNoteId) edges.push({ fromNoteId, toNoteId });
           }
         } else if (answer.kind === 'pending') {
           // Not discarded: a link whose target does not exist YET is pending,
           // and it resolves on its own later (RN-DSC-004).
-          pending.push({ fromNoteId, title: link.title });
+          pending.push({ fromNoteId, name: link.name });
         }
         // An attachment renders and is never an edge (RN-DSC-044).
       }
@@ -109,7 +109,7 @@ export class InMemoryLinkGraph implements LinkGraph {
     state.notes.delete(noteId);
     state.outgoing.delete(noteId);
     // Nothing else to undo: the backlinks that pointed here are re-resolved
-    // against a notebook that no longer carries this title, so they become
+    // against a notebook that no longer carries this name, so they become
     // pending — or land on the alias that was waiting behind it (RN-DSC-005,
     // RN-DSC-053).
   }
@@ -178,7 +178,7 @@ export class InMemoryLinkGraph implements LinkGraph {
     return this.resolved(notebookId)
       .pending.map((each) => {
         const from = state.notes.get(each.fromNoteId);
-        return from ? { fromNote: from, targetTitle: each.title } : null;
+        return from ? { fromNote: from, targetName: each.name } : null;
       })
       .filter((link): link is BrokenLink => link !== null);
   }
@@ -205,10 +205,10 @@ export class InMemoryLinkGraph implements LinkGraph {
       if (from !== undefined && to !== undefined) edges.push([from, to]);
     }
 
-    const pending: Array<{ from: number; targetTitle: string }> = [];
+    const pending: Array<{ from: number; targetName: string }> = [];
     for (const link of resolved.pending) {
       const from = indexOf.get(link.fromNoteId);
-      if (from !== undefined) pending.push({ from, targetTitle: link.title });
+      if (from !== undefined) pending.push({ from, targetName: link.name });
     }
 
     return { nodes, edges, pending, truncated };

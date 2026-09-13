@@ -1,5 +1,5 @@
 ---
-title: EV-2-d2-006 · Domains (domains.rst)
+name: EV-2-d2-006 · Domains (domains.rst)
 aliases: [domains.rst, Domains]
 tags: [evidence, management, domain, doc]
 type: evidence

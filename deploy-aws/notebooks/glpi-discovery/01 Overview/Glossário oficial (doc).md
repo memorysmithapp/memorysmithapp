@@ -1,5 +1,5 @@
 ---
-title: Glossário oficial (doc)
+name: Glossário oficial (doc)
 aliases: [Glossário da documentação, Official glossary, Glossary]
 tags: [glossary, terminology, overview, doc]
 type: overview

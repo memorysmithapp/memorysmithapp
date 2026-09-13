@@ -252,17 +252,17 @@ export const templateUpdatedPayload = z.object({
 });
 
 /**
- * The title is what the chain read out of the content (§5.3), and it is
- * `null` when the note has none a link could name (RN-KNW-036). It travels
+ * The name is the `name:` the frontmatter of the content states (§5.3), and
+ * it is `null` when the note has none a link could use (RN-KNW-036). It travels
  * here because a projector has to show a note before it has read its body, and
  * it carries no slug: a note is addressed by its identifier, and what a link
- * resolves against is the title itself.
+ * resolves against is the name itself.
  */
 export const noteCreatedPayload = z.object({
   notebookId: ulidSchema,
   noteId: ulidSchema,
   folderId: ulidSchema,
-  title: z.string().min(1).nullable(),
+  name: z.string().min(1).nullable(),
   position: positionSchema,
 });
 
@@ -270,7 +270,7 @@ export const noteUpdatedPayload = z.object({
   notebookId: ulidSchema,
   noteId: ulidSchema,
   folderId: ulidSchema,
-  title: z.string().min(1).nullable(),
+  name: z.string().min(1).nullable(),
 });
 
 export const noteReorderedPayload = z.object({

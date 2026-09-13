@@ -1,5 +1,5 @@
 ---
-title: AIOps
+name: AIOps
 aliases:
   - AI for IT Operations
 tags:
