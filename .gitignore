@@ -18,6 +18,8 @@ coverage/
 .env
 .env.*
 !.env.example
+# The configuration vite dev serves as /config.json, pointing at a live environment
+memorysmith-frontend/config.local.json
 *.pem
 *.key
 

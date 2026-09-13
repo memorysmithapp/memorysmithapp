@@ -11,16 +11,10 @@ import type { VerifiedAgentToken } from './auth.js';
 import { TOOL_CATALOG } from './mcp/catalog.js';
 import type { McpToolAdapter } from './mcp/tools.js';
 import type { AgentCaller } from './mcp/gateway.js';
-import pkg from '../package.json' with { type: 'json' };
+import type { Deployment } from '@memorysmith/contracts';
+import { environmentNotice, PRODUCTION_DEFAULT } from './mcp/environment.js';
 
 const PROTOCOL_VERSION = '2025-06-18';
-
-/**
- * The version the handshake announces, derived from the service manifest and
- * never written beside it: a literal here would still say 0.2.0 three releases
- * later. It is the same discipline RN-AGT-013 imposes on the whoami help.
- */
-const SERVER_VERSION = pkg.version;
 
 interface JsonRpcRequest {
   jsonrpc: '2.0';
@@ -69,6 +63,7 @@ export async function handleMcpRequest(
   token: VerifiedAgentToken,
   tools: McpToolAdapter,
   bearerToken = '',
+  deployment: Deployment = PRODUCTION_DEFAULT,
 ): Promise<JsonRpcResponse | null> {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     return rpcError(null, -32600, 'Invalid request');
@@ -77,12 +72,17 @@ export async function handleMcpRequest(
   const id = request.id ?? null;
 
   switch (request.method) {
-    case 'initialize':
+    case 'initialize': {
+      // The version this deployment runs, and outside production the warning
+      // that what is written here is disposable (RN-AGT-026).
+      const notice = environmentNotice(deployment);
       return result(id, {
         protocolVersion: PROTOCOL_VERSION,
         capabilities: { tools: {} },
-        serverInfo: { name: 'memorysmith-mcp', version: SERVER_VERSION },
+        serverInfo: { name: 'memorysmith-mcp', version: deployment.version },
+        ...(notice ? { instructions: notice } : {}),
       });
+    }
 
     case 'notifications/initialized':
       return null;

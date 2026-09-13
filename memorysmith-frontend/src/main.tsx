@@ -6,28 +6,41 @@ import { queryClient } from './app/query-client';
 import { router } from './app/router';
 import { configureHttp } from './shared/api/http';
 import { endExpiredSession } from './app/session-expiry';
-import { apiOrigin } from './shared/api/source';
 import { authConfig } from './shared/auth/session';
+import { loadRuntimeConfig } from './shared/config/runtime-config';
+import { documentTitleOf, withEnvironment } from './shared/components/document-title';
 import './i18n';
 import './styles.css';
-
-// With VITE_API_ORIGIN set the SPA talks to the real backend; without it, it
-// reads the bundled seed and is a navigable prototype.
-if (apiOrigin) {
-  configureHttp({
-    origin: apiOrigin,
-    auth: authConfig(),
-    onUnauthenticated: endExpiredSession,
-  });
-}
 
 const container = document.getElementById('root');
 if (!container) throw new Error('missing #root element');
 
-createRoot(container).render(
-  <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
-  </StrictMode>,
-);
+/**
+ * The configuration of the environment comes first, because nothing else can
+ * run without it: where the API is, where the sign-in page is, and which
+ * environment this is. A page that cannot read it says so and renders nothing,
+ * rather than rendering a product pointed at no API.
+ */
+loadRuntimeConfig()
+  .then((config) => {
+    configureHttp({
+      origin: config.apiOrigin,
+      auth: authConfig(),
+      onUnauthenticated: endExpiredSession,
+    });
+    document.title = withEnvironment(documentTitleOf(), config.environment);
+
+    createRoot(container).render(
+      <StrictMode>
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      </StrictMode>,
+    );
+  })
+  .catch((error: unknown) => {
+    container.textContent =
+      error instanceof Error
+        ? error.message
+        : 'The configuration of this environment is unreadable.';
+  });

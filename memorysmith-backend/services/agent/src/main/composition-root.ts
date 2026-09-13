@@ -10,7 +10,9 @@ import {
   HttpDiscoveryGateway,
   HttpKnowledgeGateway,
 } from '../adapters/http-gateways.js';
+import { deploymentFromVariables, type Deployment } from '@memorysmith/contracts';
 import { McpToolAdapter } from '../mcp/tools.js';
+import { SERVICE_VERSION } from '../mcp/environment.js';
 import { HttpConnectorBinder, type RequestSigner } from '../connector-binding.js';
 
 function internalApiOrigin(env: NodeJS.ProcessEnv): string {
@@ -21,14 +23,22 @@ function internalApiOrigin(env: NodeJS.ProcessEnv): string {
   return origin;
 }
 
+/** The deployment this function runs in, as the infrastructure declared it (23.3). */
+export function deploymentOf(env: NodeJS.ProcessEnv = process.env): Deployment {
+  return deploymentFromVariables(env, SERVICE_VERSION);
+}
+
 export function buildToolAdapter(env: NodeJS.ProcessEnv = process.env): McpToolAdapter {
   const origin = internalApiOrigin(env);
-  return new McpToolAdapter({
-    access: new HttpAccessGateway(origin),
-    knowledge: new HttpKnowledgeGateway(origin),
-    discovery: new HttpDiscoveryGateway(origin),
-    audit: new HttpAuditGateway(origin),
-  });
+  return new McpToolAdapter(
+    {
+      access: new HttpAccessGateway(origin),
+      knowledge: new HttpKnowledgeGateway(origin),
+      discovery: new HttpDiscoveryGateway(origin),
+      audit: new HttpAuditGateway(origin),
+    },
+    deploymentOf(env),
+  );
 }
 
 /** What the token endpoint binds a connector through, with requests signed by `sign`. */

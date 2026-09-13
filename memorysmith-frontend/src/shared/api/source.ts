@@ -6,7 +6,9 @@
 // different data, silently, is worse than no answer: the screen looks right
 // and is showing something else, and every bug found that way is found twice.
 //
-// So a missing origin is now a configuration error, and it says so.
+// So where the API is comes from the configuration the environment publishes
+// (shared/config/runtime-config.ts), and a page that cannot read it says so
+// before it renders anything.
 
 import type { ExportJobDto } from '@memorysmith/contracts';
 import * as backend from './backend';
@@ -18,20 +20,6 @@ import type {
   NotebookStructure,
   NotebookSummary,
 } from '../types/api';
-
-const configuredOrigin = (import.meta.env['VITE_API_ORIGIN'] as string | undefined)?.replace(
-  /\/$/,
-  '',
-);
-
-if (!configuredOrigin) {
-  throw new Error(
-    'VITE_API_ORIGIN is not set. The interface reads and writes through the product API and ' +
-      'has no offline mode; copy .env.example to .env.local and point it at the API.',
-  );
-}
-
-export const apiOrigin: string = configuredOrigin;
 
 /**
  * The one note of a loaded structure that carries a name, by identifier, or

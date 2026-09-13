@@ -9,7 +9,7 @@ import { createApp } from './app.js';
 import { loadConfig } from './config.js';
 import { secretsManagerResolver } from './secrets.aws.js';
 import { sigV4Signer } from './connector-binding.aws.js';
-import { buildConnectorBinder, buildToolAdapter } from './main/composition-root.js';
+import { buildConnectorBinder, buildToolAdapter, deploymentOf } from './main/composition-root.js';
 
 const config = loadConfig();
 
@@ -25,5 +25,6 @@ export const handler = handle(
     secretsManagerResolver(config.stateSecretId),
     buildToolAdapter(),
     buildConnectorBinder(sigV4Signer()),
+    deploymentOf(),
   ),
 );

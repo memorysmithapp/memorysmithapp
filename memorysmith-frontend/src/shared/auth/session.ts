@@ -14,6 +14,7 @@ import { claimsOf, readTokens, type AuthConfig } from './oauth';
 import { ApiError } from '../api/error-mapper';
 import { getSession } from '../api/backend';
 import i18n from '../../i18n';
+import { runtimeConfig } from '../config/runtime-config';
 
 export type SubscriptionState =
   | 'none' // signed in, has not asked for a subscription yet
@@ -168,10 +169,10 @@ function providerLang(): string {
 }
 
 export function authConfig(): AuthConfig {
-  const env = import.meta.env as Record<string, string | undefined>;
+  const config = runtimeConfig();
   return {
-    domain: (env['VITE_COGNITO_DOMAIN'] ?? '').replace(/\/$/, ''),
-    clientId: env['VITE_COGNITO_CLIENT_ID'] ?? '',
+    domain: config.cognitoDomain,
+    clientId: config.cognitoClientId,
     redirectUri: `${window.location.origin}/auth/callback`,
     scopes: 'openid email profile',
     lang: providerLang(),

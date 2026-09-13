@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { loadedRuntimeConfig } from '../config/runtime-config';
 
 const PRODUCT = 'MemorySmith';
 
@@ -18,13 +19,23 @@ export function documentTitleOf(...parts: Array<string | null | undefined>): str
   return [...named, PRODUCT].join(' · ');
 }
 
+/**
+ * Outside production the tab says which environment it is before anything
+ * else, so a tab of staging is never mistaken for one of production in a row
+ * of tabs, in the history or in a bookmark (architecture-guide.md, 23.3).
+ */
+export function withEnvironment(title: string, environment: string | undefined): string {
+  return environment && environment !== 'production' ? `[${environment}] ${title}` : title;
+}
+
 /** Sets the title of the tab for as long as the page that calls it is open. */
 export function useDocumentTitle(...parts: Array<string | null | undefined>): void {
-  const title = documentTitleOf(...parts);
+  const environment = loadedRuntimeConfig()?.environment;
+  const title = withEnvironment(documentTitleOf(...parts), environment);
   useEffect(() => {
     document.title = title;
     return () => {
-      document.title = PRODUCT;
+      document.title = withEnvironment(PRODUCT, environment);
     };
-  }, [title]);
+  }, [title, environment]);
 }

@@ -11,6 +11,7 @@ import {
   type SubscriptionType,
 } from '../auth/session';
 import { signOut as endHostedSession } from '../auth/oauth';
+import { loadedRuntimeConfig } from '../config/runtime-config';
 import { gravatarDisplayName } from '../auth/gravatar';
 import { clearHandover } from '../../features/auth/LoginPage';
 import { Avatar } from './Avatar';
@@ -240,7 +241,9 @@ export function UserMenu() {
             wrong, and the last thing anyone needs while reading a notebook, so it
             is present and never in the way.
           */}
-          <p className="user-menu-version">{t('app.version', { version: __APP_VERSION__ })}</p>
+          <p className="user-menu-version">
+            {t('app.version', { version: loadedRuntimeConfig()?.version ?? '' })}
+          </p>
         </div>
       )}
     </div>

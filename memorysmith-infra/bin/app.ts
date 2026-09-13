@@ -9,7 +9,6 @@
  */
 
 import { App, Tags } from 'aws-cdk-lib';
-import pkg from '../package.json' with { type: 'json' };
 import { NetworkStack } from '../stacks/network.stack.js';
 import { IdentityStack } from '../stacks/identity.stack.js';
 import { DataStack } from '../stacks/data.stack.js';
@@ -17,12 +16,17 @@ import { ApiStack } from '../stacks/api.stack.js';
 import { ProjectionsStack } from '../stacks/projections.stack.js';
 import { AgentStack } from '../stacks/agent.stack.js';
 import { FrontendHostingStack } from '../stacks/frontend-hosting.stack.js';
+import { FrontendReleaseStack } from '../stacks/frontend-release.stack.js';
+import { deploymentOf } from '../constructs/deployment.js';
 
 const app = new App();
 const env = {
   account: process.env['CDK_DEFAULT_ACCOUNT'],
   region: process.env['CDK_DEFAULT_REGION'] ?? 'us-east-1',
 };
+
+/** The environment, the version and the commit this deploy declares (section 23.3). */
+const deployment = deploymentOf(app);
 
 /** A sandbox may drop its data on destroy; a real environment never does. */
 const retainData = app.node.tryGetContext('retainData') !== 'false';
@@ -68,14 +72,30 @@ new AgentStack(app, 'MemorysmithAgent', {
   coreApi: api.httpApi,
 });
 
-new FrontendHostingStack(app, 'MemorysmithFrontend', {
+const hosting = new FrontendHostingStack(app, 'MemorysmithFrontend', {
   env,
   hostedZone: network.hostedZone,
   certificate: network.siteCertificate,
   domainName: network.siteDomainName,
 });
 
+// Last: what the interface reads at runtime names the API and the app client.
+new FrontendReleaseStack(app, 'MemorysmithFrontendRelease', {
+  env,
+  bucket: hosting.bucket,
+  distribution: hosting.distribution,
+  config: {
+    apiOrigin: api.apiOrigin,
+    cognitoDomain: identity.hostedUiOrigin,
+    cognitoClientId: identity.webClient.userPoolClientId,
+    environment: deployment.environment,
+    version: deployment.version,
+  },
+});
+
 Tags.of(app).add('app:project', 'memorysmith');
+Tags.of(app).add('app:environment', deployment.environment);
 // Derived, never written literally: a version repeated by hand is a version that
 // drifts, and this tag had been asserting 0.2.0 through two releases.
-Tags.of(app).add('app:version', pkg.version);
+Tags.of(app).add('app:version', deployment.version);
+Tags.of(app).add('deploy:sha', deployment.commit);

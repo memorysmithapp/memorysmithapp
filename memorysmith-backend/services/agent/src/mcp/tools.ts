@@ -12,7 +12,9 @@
  * caller needs to try again (RN-AGT-003).
  */
 
+import type { Deployment } from '@memorysmith/contracts';
 import { TOOL_CATALOG } from './catalog.js';
+import { PRODUCTION_DEFAULT } from './environment.js';
 import { whoAmI } from './whoami.js';
 import { SKILLS, skillNamed } from './skills.js';
 import {
@@ -82,7 +84,10 @@ function renderRelated(node: RelatedNode, indent = 0): string {
 }
 
 export class McpToolAdapter {
-  constructor(private readonly gateways: Gateways) {}
+  constructor(
+    private readonly gateways: Gateways,
+    private readonly deployment: Deployment = PRODUCTION_DEFAULT,
+  ) {}
 
   async call(
     name: string,
@@ -118,7 +123,7 @@ export class McpToolAdapter {
           access.connector(caller),
           knowledge.listNotebooks(caller),
         ]);
-        return text(whoAmI(caller, connector, notebooks));
+        return text(whoAmI(caller, connector, notebooks, this.deployment));
       }
 
       case 'get_skill': {

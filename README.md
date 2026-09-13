@@ -493,12 +493,16 @@ docker compose down
 
 Continuous integration brings those two containers up from this same `docker-compose.yml`, with the images pinned to an exact version. A green suite here means a green suite there.
 
-**The interface.** It reads and writes through the API of the product and has no offline mode, so it needs a live environment to run. `deploy.ps1` writes the `.env.local` on its own from the stack outputs, so in practice it already exists after a deployment. To fill it in by hand, copy `memorysmith-frontend/.env.example` to `.env.local` and fill in the three variables:
+**The interface.** It reads and writes through the API of the product and has no offline mode, so it needs a live environment to run. It reads where that environment is at runtime, from `/config.json`, and the dev server answers that file from `memorysmith-frontend/config.local.json`, which is untracked. Copy `config.example.json` to it and point it at the environment:
 
-```
-VITE_API_ORIGIN=https://api.<domain>
-VITE_COGNITO_DOMAIN=https://auth.<domain>
-VITE_COGNITO_CLIENT_ID=<the app client of the interface>
+```json
+{
+  "apiOrigin": "https://api.<domain>",
+  "cognitoDomain": "https://auth.<domain>",
+  "cognitoClientId": "<the app client of the interface>",
+  "environment": "development",
+  "version": "0.0.0-local"
+}
 ```
 
 ```
@@ -506,7 +510,7 @@ pnpm install
 pnpm -C memorysmith-frontend dev
 ```
 
-Without `VITE_API_ORIGIN` the application refuses to start and says why. It once had a bundled seed answering in place of the API, and it was removed: a second source answering silently with other data makes the screen look right while showing something else.
+Without that file the application refuses to start and says which field it is missing. It once had a bundled seed answering in place of the API, and it was removed: a second source answering silently with other data makes the screen look right while showing something else.
 
 ## Troubleshooting
 

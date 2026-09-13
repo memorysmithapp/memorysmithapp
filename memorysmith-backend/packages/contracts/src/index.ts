@@ -15,3 +15,4 @@ export * from './api/discovery.js';
 export * from './api/audit.js';
 export * from './api/notebook-document.js';
 export * from './api/portability.js';
+export * from './api/deployment.js';

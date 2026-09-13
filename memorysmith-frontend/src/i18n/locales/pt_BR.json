@@ -183,5 +183,11 @@
     "unauthenticated": "Entre para continuar.",
     "offline": "O aplicativo não conseguiu falar com o servidor.",
     "unexpected": "Algo deu errado."
+  },
+  "environment": {
+    "production": "Produção",
+    "staging": "Staging",
+    "development": "Desenvolvimento",
+    "disposable": "O que é escrito neste ambiente é descartável."
   }
 }

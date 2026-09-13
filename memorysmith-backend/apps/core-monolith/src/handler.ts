@@ -9,6 +9,7 @@
 
 import type { Context } from 'hono';
 import { handle } from 'hono/aws-lambda';
+import { deploymentFromVariables } from '@memorysmith/contracts';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { S3Client } from '@aws-sdk/client-s3';
@@ -326,6 +327,7 @@ function discoveryFor(context: SubscriptionContext) {
 }
 
 const app = createApp({
+  deployment: deploymentFromVariables(process.env),
   verifier,
   connectorBindings: {
     verifier,

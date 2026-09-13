@@ -95,6 +95,34 @@ a:hover {
   border-bottom: 1px solid var(--border);
 }
 
+/*
+ * The environment a page is served from, outside production
+ * (architecture-guide.md, 23.3). Fixed and never dismissable, and out of the
+ * way of every click: it reads, it does not ask for anything.
+ */
+.environment-banner {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 1000;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--signal);
+  color: #0e1526;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.75rem;
+  pointer-events: none;
+}
+.environment-banner-name {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+body:has(.environment-banner) {
+  padding-bottom: 1.5rem;
+}
+
 .brand {
   display: flex;
   align-items: center;

@@ -13,6 +13,7 @@
 
 import { Hono, type Context, type Next } from 'hono';
 import { type DomainError, httpStatusFor } from '@memorysmith/kernel';
+import { DEPLOYMENT_HEADERS, type Deployment, type HealthDto } from '@memorysmith/contracts';
 import { authenticate, type TokenVerifier } from '@memorysmith/svc-access/adapters/auth';
 import {
   createAccessRoutes,
@@ -44,6 +45,8 @@ import {
 import type { NotebookWriter } from '@memorysmith/svc-portability/application/import';
 
 export interface AppDependencies {
+  /** The environment, the version and the commit this function was deployed as (23.3). */
+  readonly deployment: Deployment;
   readonly verifier: TokenVerifier;
   /** Factories: the repositories behind them are built per request. */
   readonly accessUseCases: AccessUseCases;
@@ -91,7 +94,25 @@ function fail(c: Context, error: DomainError): Response {
 export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }> {
   const app = new Hono<{ Variables: Variables }>();
 
-  app.get('/health', (c) => c.json({ status: 'ok' }));
+  /**
+   * Every response says what answered it, a refusal and a preflight included:
+   * after a deploy, the version on the wire is the proof that the new artefact
+   * is the one serving (architecture-guide.md, 23.3).
+   */
+  app.use('*', async (c, next) => {
+    await next();
+    c.res.headers.set(DEPLOYMENT_HEADERS.environment, deps.deployment.environment);
+    c.res.headers.set(DEPLOYMENT_HEADERS.version, deps.deployment.version);
+  });
+
+  app.get('/health', (c) =>
+    c.json({
+      status: 'ok',
+      environment: deps.deployment.environment,
+      version: deps.deployment.version,
+      commit: deps.deployment.commit,
+    } satisfies HealthDto),
+  );
 
   /**
    * The preflight. The HTTP API is what adds the CORS headers, but the default

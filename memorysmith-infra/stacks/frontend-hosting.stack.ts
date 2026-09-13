@@ -1,13 +1,15 @@
 /**
  * The SPA on S3 behind CloudFront with Origin Access Control
- * (architecture-guide.md, section 17).
+ * (architecture-guide.md, section 17). The bucket, the distribution and the two
+ * records, and nothing that is published into them: that is the release stack,
+ * which goes last.
  *
  * The bucket is private: only the distribution reads it. `www` is a permanent
  * redirect to the apex, and both records are created here, in code, like every
  * other record of the zone.
  */
 
-import { Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
+import { RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
 import {
   AllowedMethods,
   Distribution,
@@ -20,17 +22,10 @@ import {
 } from 'aws-cdk-lib/aws-cloudfront';
 import { S3BucketOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
 import { BlockPublicAccess, Bucket, BucketEncryption } from 'aws-cdk-lib/aws-s3';
-import { BucketDeployment, CacheControl, Source } from 'aws-cdk-lib/aws-s3-deployment';
 import { ARecord, RecordTarget, type IHostedZone } from 'aws-cdk-lib/aws-route53';
 import { CloudFrontTarget } from 'aws-cdk-lib/aws-route53-targets';
 import type { ICertificate } from 'aws-cdk-lib/aws-certificatemanager';
 import type { Construct } from 'constructs';
-import { existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
-
-const here = dirname(fileURLToPath(import.meta.url));
-const frontendDist = join(here, '..', '..', 'memorysmith-frontend', 'dist');
 
 export interface FrontendHostingStackProps extends StackProps {
   readonly hostedZone: IHostedZone;
@@ -40,6 +35,9 @@ export interface FrontendHostingStackProps extends StackProps {
 }
 
 export class FrontendHostingStack extends Stack {
+  readonly bucket: Bucket;
+  readonly distribution: Distribution;
+
   constructor(scope: Construct, id: string, props: FrontendHostingStackProps) {
     super(scope, id, props);
 
@@ -115,36 +113,7 @@ function handler(event) {
       });
     }
 
-    // The deployment only happens when the SPA has been built, so `cdk synth`
-    // works on a clean checkout.
-    if (existsSync(frontendDist)) {
-      /**
-       * Two deployments, because the two kinds of file want opposite things.
-       *
-       * An asset carries a content hash in its name, so a new build is a new
-       * name and the old one can be cached forever. The entry document does
-       * NOT: its name stays put across builds, so caching it would pin every
-       * visitor to the version they happened to load first.
-       */
-      new BucketDeployment(this, 'SiteAssets', {
-        sources: [Source.asset(frontendDist, { exclude: ['index.html'] })],
-        destinationBucket: bucket,
-        cacheControl: [CacheControl.fromString('public, max-age=31536000, immutable')],
-        prune: false,
-        memoryLimit: 512,
-      });
-
-      new BucketDeployment(this, 'SiteEntry', {
-        sources: [Source.asset(frontendDist, { exclude: ['assets/*'] })],
-        destinationBucket: bucket,
-        cacheControl: [CacheControl.fromString('no-cache, must-revalidate')],
-        distribution,
-        distributionPaths: ['/*'],
-        prune: false,
-        memoryLimit: 512,
-      });
-    }
-
-    void Duration;
+    this.bucket = bucket;
+    this.distribution = distribution;
   }
 }

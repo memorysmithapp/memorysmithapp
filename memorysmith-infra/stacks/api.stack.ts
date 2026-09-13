@@ -140,6 +140,8 @@ export class ApiStack extends Stack {
           CorsHttpMethod.OPTIONS,
         ],
         allowHeaders: ['authorization', 'content-type'],
+        // What answered, readable by the interface and by a test (section 23.3).
+        exposeHeaders: ['x-memorysmith-environment', 'x-memorysmith-version'],
         maxAge: Duration.hours(1),
       },
       defaultDomainMapping: { domainName: domain },

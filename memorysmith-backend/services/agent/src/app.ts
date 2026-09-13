@@ -19,6 +19,8 @@ import { verifyAccessToken } from './auth.js';
 import { handleMcpRequest } from './mcp.js';
 import type { McpToolAdapter } from './mcp/tools.js';
 import type { ConnectorBinder } from './connector-binding.js';
+import type { Deployment } from '@memorysmith/contracts';
+import { PRODUCTION_DEFAULT } from './mcp/environment.js';
 
 /** The longest connector name an authorship keeps. */
 const CLIENT_NAME_LIMIT = 200;
@@ -55,6 +57,7 @@ export function createApp(
   resolveStateSecret: SecretResolver,
   tools: McpToolAdapter,
   binder: ConnectorBinder,
+  deployment: Deployment = PRODUCTION_DEFAULT,
 ): Hono {
   const app = new Hono();
   const challenge = `Bearer resource_metadata="${config.publicOrigin}/.well-known/oauth-protected-resource"`;
@@ -301,7 +304,7 @@ export function createApp(
         400,
       );
     }
-    const response = await handleMcpRequest(body, token, tools, bearerToken);
+    const response = await handleMcpRequest(body, token, tools, bearerToken, deployment);
     if (response === null) return c.newResponse(null, 202);
     return c.json(response);
   });

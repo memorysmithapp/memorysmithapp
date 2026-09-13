@@ -183,5 +183,11 @@
     "unauthenticated": "Sign in to continue.",
     "offline": "The application could not reach the server.",
     "unexpected": "Something went wrong."
+  },
+  "environment": {
+    "production": "Production",
+    "staging": "Staging",
+    "development": "Development",
+    "disposable": "What is written in this environment is disposable."
   }
 }

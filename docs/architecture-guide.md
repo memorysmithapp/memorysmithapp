@@ -1456,7 +1456,19 @@ Adding a tool, adding an optional argument or widening a return is **minor** in 
 
 ### 23.3 Layer 3: the deployment version
 
-Every CDK stack carries the tag `app:version` with the product version and `deploy:sha` with the commit. That is what makes it possible to answer "what was in production when this happened" from the environment itself.
+Every CDK stack carries the tags `app:environment`, `app:version` with the version it serves and `deploy:sha` with the commit it was built from. That is what makes it possible to answer "what was in production when this happened" from the environment itself.
+
+**The environment and the version are configuration, never a constant of the build.** A deploy declares them as CDK context (`environment`, `version`, `commit`), and a deploy that declares nothing is production serving the version of the packages. Every function receives the three as `APP_ENVIRONMENT`, `APP_VERSION` and `APP_COMMIT`, through `ServiceLambda`, and the interface reads them from `/config.json`, which `frontend-release.stack` publishes beside the bundle together with the origin of the API, the sign-in domain and the app client. The artefact built from a commit therefore does not depend on the environment it goes to. `memorysmith-frontend/.env.local` does not exist: for `vite dev`, the dev server answers `/config.json` from an untracked `config.local.json`.
+
+The interface is two stacks for the same reason. `frontend-hosting.stack` holds the bucket, the distribution and the records, and goes before identity, because Cognito refuses a sign-in domain whose parent resolves no A record (§17). `frontend-release.stack` publishes the bundle and the configuration, and goes last, because the configuration names the API and the app client.
+
+What each surface says about itself:
+
+| Surface | What it declares |
+|---|---|
+| API | `GET /health` answers `{status, environment, version, commit}`, and every response, a refusal included, carries `x-memorysmith-environment` and `x-memorysmith-version`, exposed through CORS |
+| MCP | `serverInfo.version` is the version the function runs; outside production, the `instructions` of the handshake and the opening of `whoami` name the environment and warn that what is written there is disposable (RN-AGT-026) |
+| Web | Outside production, a fixed banner that cannot be dismissed with the environment and the version, and `[staging]` before the title of every tab; the version in the user menu, always |
 
 ---
 

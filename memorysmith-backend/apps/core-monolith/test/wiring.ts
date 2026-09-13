@@ -7,7 +7,7 @@
  * differ, which is the point of the hexagon.
  */
 
-import { RESERVED_FRONTMATTER_KEYS } from '@memorysmith/contracts';
+import { RESERVED_FRONTMATTER_KEYS, type Deployment } from '@memorysmith/contracts';
 import { serializeNotebookDocument } from '../src/composition-root.js';
 import {
   DomainError,
@@ -159,7 +159,14 @@ export class FakeTokenVerifier implements TokenVerifier {
   }
 }
 
-export function buildTestApp() {
+/** What the harness says it is, unless a test asks for another environment. */
+const TEST_DEPLOYMENT: Deployment = {
+  environment: 'development',
+  version: '0.0.0-test',
+  commit: null,
+};
+
+export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
   const accessDb = new InMemoryAccessDatabase();
   const knowledgeDb = new InMemoryDatabase();
   const events = new RecordingEventPublisher();
@@ -371,6 +378,7 @@ export function buildTestApp() {
   };
 
   const app = createApp({
+    deployment,
     verifier,
     connectorBindings: {
       verifier,

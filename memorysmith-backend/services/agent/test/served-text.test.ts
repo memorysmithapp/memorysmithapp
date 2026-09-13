@@ -41,6 +41,14 @@ function servedText(): Array<{ where: string; text: string }> {
     { where: 'whoami', text: whoAmI(caller, connector, notebooks) },
     { where: 'whoami, with no notebook to reach', text: whoAmI(caller, connector, []) },
     { where: 'whoami, with no connector recorded', text: whoAmI(caller, null, notebooks) },
+    {
+      where: 'whoami, in staging',
+      text: whoAmI(caller, connector, notebooks, {
+        environment: 'staging',
+        version: '0.6.0-rc.12+a1b2c3d',
+        commit: 'a1b2c3d',
+      }),
+    },
     ...TOOL_CATALOG.flatMap((tool) => [
       { where: `${tool.name}.title`, text: tool.title },
       { where: `${tool.name}.description`, text: tool.description },

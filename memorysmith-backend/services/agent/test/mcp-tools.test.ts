@@ -693,3 +693,67 @@ describe('writing guidance and template carries the revision (RN-AGT-016)', () =
     expect(result.content[0]?.text).toContain('baseRevision: null');
   });
 });
+
+/**
+ * An agent connected to staging writes exactly as it would in production, and
+ * nothing in a notebook tells the two apart, so the connector says it
+ * (RN-AGT-026). In production it says nothing.
+ */
+describe('the connector declares where it runs, outside production', () => {
+  const token: VerifiedAgentToken = {
+    sub: 'user-1',
+    clientId: 'proxy-client',
+    subscriptionId: '01JBQ2X0000000000000000000',
+    payload: {},
+  };
+  const staging = {
+    environment: 'staging',
+    version: '0.6.0-rc.12+a1b2c3d',
+    commit: 'a1b2c3d',
+  } as const;
+
+  async function handshake(deployment?: typeof staging) {
+    const response = await handleMcpRequest(
+      { jsonrpc: '2.0', id: 1, method: 'initialize' },
+      token,
+      gateways(),
+      '',
+      deployment,
+    );
+    return (
+      response as {
+        result: { serverInfo: { version: string }; instructions?: string };
+      }
+    ).result;
+  }
+
+  it('announces the version it runs, and says that what is written there is disposable', async () => {
+    const result = await handshake(staging);
+    expect(result.serverInfo.version).toBe('0.6.0-rc.12+a1b2c3d');
+    expect(result.instructions).toContain('staging');
+    expect(result.instructions).toContain('0.6.0-rc.12+a1b2c3d');
+    expect(result.instructions).toContain('disposable');
+  });
+
+  it('opens whoami with the environment and the version', async () => {
+    const adapter = new McpToolAdapter(
+      {
+        access: { connector: async () => null },
+        knowledge: { listNotebooks: async () => [] },
+        discovery: {},
+        audit: {},
+      } as never,
+      staging,
+    );
+    const answer = (await adapter.call('whoami', {}, caller)).content[0]?.text ?? '';
+    expect(answer.startsWith('## Where this is')).toBe(true);
+    expect(answer).toContain('0.6.0-rc.12+a1b2c3d');
+  });
+
+  it('says none of it in production', async () => {
+    const result = await handshake();
+    expect(result.instructions).toBeUndefined();
+    const answer = (await gateways().call('whoami', {}, caller)).content[0]?.text ?? '';
+    expect(answer).not.toContain('## Where this is');
+  });
+});

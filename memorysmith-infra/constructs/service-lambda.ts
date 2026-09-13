@@ -16,6 +16,7 @@ import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, type NodejsFunctionProps } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
+import { deploymentOf, deploymentVariables } from './deployment.js';
 
 export interface ServiceLambdaProps {
   readonly entry: string;
@@ -61,6 +62,9 @@ export class ServiceLambda extends Construct {
         POWERTOOLS_SERVICE_NAME: id,
         POWERTOOLS_LOG_LEVEL: 'INFO',
         POWERTOOLS_METRICS_NAMESPACE: 'MemorySmith',
+        // Where it runs and what it is, as configuration and never as a
+        // constant of the bundle (section 23.3).
+        ...deploymentVariables(deploymentOf(this)),
         ...props.environment,
       },
       bundling: {

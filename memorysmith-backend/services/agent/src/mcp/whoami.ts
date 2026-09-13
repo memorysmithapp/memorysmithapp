@@ -16,7 +16,9 @@
 
 import { READING_PATH, TOOL_CATALOG, type ToolDefinition } from './catalog.js';
 import { SKILLS } from './skills.js';
+import type { Deployment } from '@memorysmith/contracts';
 import type { AgentCaller, ConnectorIdentity, NotebookListing } from './gateway.js';
+import { environmentNotice, PRODUCTION_DEFAULT } from './environment.js';
 
 function byName(name: string): ToolDefinition | undefined {
   return TOOL_CATALOG.find((tool) => tool.name === name);
@@ -58,6 +60,12 @@ function identity(caller: AgentCaller, connector: ConnectorIdentity | null): str
     'The subscription was fixed when consent was given, so no argument of any tool',
     'can move this connection to another one.',
   ].join('\n');
+}
+
+/** Outside production, where this is comes before anything else (RN-AGT-026). */
+function where(deployment: Deployment): string {
+  const notice = environmentNotice(deployment);
+  return notice ? ['## Where this is', '', notice].join('\n') : '';
 }
 
 function reach(notebooks: readonly NotebookListing[]): string {
@@ -154,8 +162,16 @@ export function whoAmI(
   caller: AgentCaller,
   connector: ConnectorIdentity | null,
   notebooks: readonly NotebookListing[],
+  deployment: Deployment = PRODUCTION_DEFAULT,
 ): string {
-  return [identity(caller, connector), reach(notebooks), path(), skills(), surface()]
+  return [
+    where(deployment),
+    identity(caller, connector),
+    reach(notebooks),
+    path(),
+    skills(),
+    surface(),
+  ]
     .filter((block) => block.length > 0)
     .join('\n\n');
 }
