@@ -11,8 +11,9 @@
  */
 
 import { defineConfig } from '@playwright/test';
+import type { WebOptions } from './web/fixtures.js';
 
-export default defineConfig({
+export default defineConfig<WebOptions>({
   testDir: '.',
   testMatch: '**/*.spec.ts',
   outputDir: '../functional-report/artifacts',
@@ -37,5 +38,9 @@ export default defineConfig({
     // The connector hands its tokens out through a browser flow only, once per run.
     { name: 'connector', testDir: './mcp', testMatch: '**/*.setup.ts' },
     { name: 'mcp', testDir: './mcp', dependencies: ['connector'] },
+    // Every page, in each locale the interface speaks.
+    { name: 'web-en_US', testDir: './web', use: { appLocale: 'en_US' } },
+    { name: 'web-pt_BR', testDir: './web', use: { appLocale: 'pt_BR' } },
+    { name: 'journeys', testDir: './journeys', dependencies: ['connector'] },
   ],
 });
