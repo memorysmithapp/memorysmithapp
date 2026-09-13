@@ -12,6 +12,7 @@ import {
   AdminAddUserToGroupCommand,
   AdminCreateUserCommand,
   AdminDeleteUserCommand,
+  AdminGetUserCommand,
   AdminInitiateAuthCommand,
   AdminSetUserPasswordCommand,
   CognitoIdentityProviderClient,
@@ -75,6 +76,17 @@ export async function deleteAccount(state: RunState, account: TestAccount): Prom
     .catch((error: { name?: string }) => {
       if (error.name !== 'UserNotFoundException') throw error;
     });
+}
+
+/** The language recorded on an account, which the messages of the pool read (RN-ACC-018). */
+export async function localeOf(
+  state: Pick<RunState, 'region' | 'userPoolId'>,
+  account: Pick<TestAccount, 'email'>,
+): Promise<string | null> {
+  const found = await cognitoOf(state.region).send(
+    new AdminGetUserCommand({ UserPoolId: state.userPoolId, Username: account.email }),
+  );
+  return found.UserAttributes?.find((attribute) => attribute.Name === 'locale')?.Value ?? null;
 }
 
 const tokens = new Map<string, { token: string; expiresAt: number }>();

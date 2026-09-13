@@ -35,39 +35,26 @@ export interface IdentityStackProps extends StackProps {
   authDomainName: string;
   authCertificate: ICertificate;
   hostedZone: IHostedZone;
+  /** The address the messages of the pool leave from, on a verified identity (network.stack). */
+  readonly senderAddress: string;
 }
 
 /**
- * The three messages the pool can send, in the product's own words.
+ * The templates of the pool, which the custom message trigger replaces.
  *
- * They used to be the provider's factory text, and what arrived was
- * `Your username is x and temporary password is y.` — no sentence of ours, no
- * explanation of what this is, from a company nobody has heard of. It is the screen BEFORE the sign-in page,
- * which is fully dressed in the brand, and it was the seam showing at the
- * worst possible moment.
+ * Every invitation, confirmation code and forgot-password code is written by
+ * the trigger, in HTML, with the signature of the brand and in the language of
+ * the account (RN-ACC-017, RN-ACC-018; `pool-messages.ts` in the Access
+ * service). They used to be the provider's factory text, and then these
+ * templates, in plain text and in en-US whatever the account spoke. What stays
+ * here is what the pool would send for a message the trigger left unanswered,
+ * which none of the three is, kept in the product's words so that the pool
+ * never holds the provider's text again.
  *
  * **Three messages, two templates.** Cognito uses the verification template
  * for the confirmation code AND for the forgot-password code, so that text has
  * to serve both errands. It is written to say what the code is for without
  * claiming which of the two it is.
- *
- * **One language, and it is en-US.** The pool holds one template and knows
- * nothing about the locale of an account. Saying everything twice — a rule in
- * pt-BR and then the same rule in en-US — doubled the length of a message
- * whose whole content is a username, a code and what to do with it, and made
- * the reader scroll past a language they may not speak to reach their own
- * paragraph. So it is written once, in the canonical locale of everything the
- * product exposes (`CLAUDE.md` § Language policy), which is also the language
- * of the sign-in page it leads to. The `pt_BR` interface is untouched: this is
- * the one message the provider sends. Answering in the language of the account
- * needs a `CustomMessage` trigger that reads it, which is more moving parts
- * and belongs with the sender (#57).
- *
- * **Plain text, deliberately.** The sending account is the Cognito default —
- * no custom sender and a ceiling of 50 messages a day — and a message showing
- * `<p>` tags is worse than one that never tried. The visual identity needs
- * HTML and a hosted asset, and therefore needs SES first, so it waits with the
- * address in #57.
  */
 /**
  * Outside production a subject says which environment sent it, before anything
@@ -155,6 +142,29 @@ export class IdentityStack extends Stack {
     // It reads the links and the subscription metadata, and nothing else.
     props.accessTable.grantReadData(preTokenGeneration);
 
+    /**
+     * Where the messages of the pool are written, in the language of the account
+     * (RN-ACC-017, RN-ACC-018). It reads only the event: the language is an
+     * attribute of the account, and the site is where a message sends the person.
+     */
+    const customMessage = new ServiceLambda(this, 'CustomMessage', {
+      entry: join(
+        here,
+        '..',
+        '..',
+        'memorysmith-backend',
+        'services',
+        'access',
+        'src',
+        'adapters',
+        'inbound',
+        'custom-message.ts',
+      ),
+      description: 'Writes the messages of the user pool, in the language of the account.',
+      timeout: Duration.seconds(5),
+      environment: { SITE_ORIGIN: `https://${props.siteDomainName}` },
+    }).function;
+
     this.userPool = new cognito.UserPool(this, 'UserPool', {
       userPoolName: physicalName(props.environment, 'memorysmith-users'),
       featurePlan: cognito.FeaturePlan.ESSENTIALS,
@@ -167,8 +177,20 @@ export class IdentityStack extends Stack {
         requireLowercase: true,
         requireUppercase: true,
         requireSymbols: false,
+        // Declared, not inherited: the invitation states it, and a message that
+        // states a number the pool does not hold is a promise nobody keeps.
+        tempPasswordValidity: Duration.days(7),
       },
       mfa: cognito.Mfa.OPTIONAL,
+      /**
+       * Through SES, from the domain of the environment (RN-ACC-017). The
+       * identity is verified before this stack is deployed (network.stack).
+       */
+      email: cognito.UserPoolEmail.withSES({
+        fromEmail: props.senderAddress,
+        fromName: 'MemorySmith',
+        sesVerifiedDomain: props.siteDomainName,
+      }),
       userInvitation: invitation(props.environment),
       userVerification: verification(props.environment),
     });
@@ -178,6 +200,7 @@ export class IdentityStack extends Stack {
       preTokenGeneration,
       cognito.LambdaVersion.V2_0,
     );
+    this.userPool.addTrigger(cognito.UserPoolOperation.CUSTOM_MESSAGE, customMessage);
 
     this.issuer = `https://cognito-idp.${this.region}.amazonaws.com/${this.userPool.userPoolId}`;
 

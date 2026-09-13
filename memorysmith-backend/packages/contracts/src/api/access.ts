@@ -73,6 +73,17 @@ export const switchSubscriptionRequestSchema = z.object({
 });
 
 /**
+ * The languages the product writes to an account in (RN-ACC-018): every message
+ * it sends that account is written in the one recorded on it.
+ */
+export const accountLocaleSchema = z.enum(['pt_BR', 'en_US']);
+
+/** The language the person chose in the interface, recorded on their account. */
+export const chooseLanguageRequestSchema = z.object({
+  locale: accountLocaleSchema,
+});
+
+/**
  * Type and quota are the commercial shape of the subscription, chosen when it
  * is asked for. Both default on the server, so a request with no body at all
  * still asks for a valid subscription.
@@ -203,6 +214,8 @@ export type MemberDto = z.infer<typeof memberSchema>;
 export type InviteDto = z.infer<typeof inviteSchema>;
 export type PlatformSubscriptionDto = z.infer<typeof platformSubscriptionSchema>;
 export type SwitchSubscriptionRequest = z.infer<typeof switchSubscriptionRequestSchema>;
+export type AccountLocaleDto = z.infer<typeof accountLocaleSchema>;
+export type ChooseLanguageRequest = z.infer<typeof chooseLanguageRequestSchema>;
 export type RequestSubscriptionRequest = z.infer<typeof requestSubscriptionRequestSchema>;
 export type InviteMemberRequest = z.infer<typeof inviteMemberRequestSchema>;
 export type ChangeMemberRoleRequest = z.infer<typeof changeMemberRoleRequestSchema>;

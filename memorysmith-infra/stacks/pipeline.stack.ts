@@ -153,8 +153,9 @@ export class PipelineStack extends Stack {
     /**
      * Build once, deploy in the order Cognito imposes: the site of the
      * environment has to resolve an A record before a sign-in domain below it
-     * is accepted, so the network and the hosting go first, then the wait on
-     * DNS, then everything else (section 17).
+     * is accepted, and the pool sends only from a verified identity, so the
+     * network and the hosting go first, then the wait on DNS and on the sending
+     * identity, then everything else (section 17).
      */
     const deliver = deploys(
       project(
@@ -166,10 +167,18 @@ export class PipelineStack extends Stack {
           `pnpm exec cdk synth --quiet -c environment=${environment.name} -c version="$VERSION" -c commit="$CODEBUILD_RESOLVED_SOURCE_VERSION"`,
           `pnpm exec cdk deploy --app cdk.out --require-approval never ${ids(['Network', 'Frontend'])}`,
           `pnpm -s wait-for-dns --name ${zone}`,
+          `pnpm -s wait-for-email-identity --identity ${zone}`,
           `pnpm exec cdk deploy --app cdk.out --require-approval never ${ids(PRODUCT_STACKS)}`,
         ],
         { compute: codebuild.ComputeType.MEDIUM, timeout: Duration.minutes(90) },
       ),
+    );
+    // The wait reads whether the sending identity is verified, and nothing else of SES.
+    deliver.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['ses:GetEmailIdentity'],
+        resources: [`arn:${this.partition}:ses:${this.region}:${this.account}:identity/${zone}`],
+      }),
     );
 
     const smoke = project('Smoke', [
@@ -326,6 +335,7 @@ export class PipelineStack extends Stack {
             'cognito-idp:AdminSetUserPassword',
             'cognito-idp:AdminAddUserToGroup',
             'cognito-idp:AdminInitiateAuth',
+            'cognito-idp:AdminGetUser',
             'cognito-idp:AdminDeleteUser',
           ],
           resources: [

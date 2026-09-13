@@ -95,6 +95,9 @@ importers:
 
   memorysmith-backend/services/access:
     dependencies:
+      '@aws-sdk/client-cognito-identity-provider':
+        specifier: ^3.1131.0
+        version: 3.1131.0
       '@aws-sdk/client-dynamodb':
         specifier: ^3.1117.0
         version: 3.1117.0
@@ -334,6 +337,9 @@ importers:
       '@aws-sdk/client-secrets-manager':
         specifier: ^3.1117.0
         version: 3.1117.0
+      '@aws-sdk/client-sesv2':
+        specifier: ^3.1131.0
+        version: 3.1131.0
       '@aws-sdk/client-sts':
         specifier: ^3.1131.0
         version: 3.1131.0
@@ -426,6 +432,10 @@ packages:
 
   '@aws-sdk/client-secrets-manager@3.1117.0':
     resolution: {integrity: sha512-nRBpwu2XHdLMoeZTA8BiemOrX4LbDiz72N7dwmI64DIZASShyboB2Qmdz8MqVjR0NcljqnQr+yGrInfcy1CZQw==}
+    engines: {node: '>=20.0.0'}
+
+  '@aws-sdk/client-sesv2@3.1131.0':
+    resolution: {integrity: sha512-QSAsbzEoF5fEwXWM5AfcuFQsN8C0lDZkiIHHmKVmTWR+tCZDpOh9qtmW9heKVj2KQ6f4WwyM1ZLvUZTR0P3ujQ==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/client-sts@3.1131.0':
@@ -3375,6 +3385,18 @@ snapshots:
     dependencies:
       '@aws-sdk/core': 3.977.9
       '@aws-sdk/credential-provider-node': 3.972.81
+      '@aws-sdk/types': 3.974.5
+      '@smithy/core': 3.33.3
+      '@smithy/fetch-http-handler': 5.7.2
+      '@smithy/node-http-handler': 4.11.3
+      '@smithy/types': 4.17.2
+      tslib: 2.8.1
+
+  '@aws-sdk/client-sesv2@3.1131.0':
+    dependencies:
+      '@aws-sdk/core': 3.978.0
+      '@aws-sdk/credential-provider-node': 3.972.83
+      '@aws-sdk/signature-v4-multi-region': 3.996.46
       '@aws-sdk/types': 3.974.5
       '@smithy/core': 3.33.3
       '@smithy/fetch-http-handler': 5.7.2

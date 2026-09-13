@@ -64,6 +64,7 @@ const identity = new IdentityStack(app, id('Identity'), {
   authDomainName: network.authDomainName,
   authCertificate: network.authCertificate,
   hostedZone: network.hostedZone,
+  senderAddress: network.senderAddress,
 });
 
 const api = new ApiStack(app, id('Api'), {
@@ -73,6 +74,7 @@ const api = new ApiStack(app, id('Api'), {
   hostedZone: network.hostedZone,
   certificate: network.apiCertificate,
   apiDomainName: network.apiDomainName,
+  userPool: identity.userPool,
   cognitoIssuer: identity.issuer,
   connectorClientId: identity.proxyClient.userPoolClientId,
   frontendOrigin: `https://${network.siteDomainName}`,

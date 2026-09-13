@@ -44,6 +44,7 @@ import type {
   RebindConnector,
   TokenCredential,
 } from '../../../application/connectors.js';
+import type { ChooseLanguage } from '../../../application/account.js';
 import type { UserProfile } from '../../../domain/ports/index.js';
 import { connectorBindingRequestSchema, sessionSchema } from '@memorysmith/contracts';
 import type { TokenVerifier } from './authentication.js';
@@ -64,6 +65,7 @@ export interface AccessUseCases {
   readonly requestSubscription: (request: AccessRequest) => RequestSubscription;
   readonly getSession: (request: AccessRequest) => GetSession;
   readonly switchSubscription: (request: AccessRequest) => SwitchActiveSubscription;
+  readonly chooseLanguage: (request: AccessRequest) => ChooseLanguage;
   readonly listPlatformQueue: (request: AccessRequest) => ListPlatformQueue;
   readonly reviewSubscription: (request: AccessRequest) => ReviewSubscription;
   readonly listMembers: (request: AccessRequest) => ListMembers;
@@ -158,6 +160,24 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
       await useCases.switchSubscription(request).execute({
         user: request.profile.userId,
         subscriptionId: subscriptionId.value,
+      }),
+      204,
+    );
+  });
+
+  /**
+   * The language of the account, which every message the product sends it is
+   * written in (RN-ACC-018). The interface records it when the person chooses a
+   * language, and a session with no subscription records it like any other.
+   */
+  app.put('/session/locale', async (c) => {
+    const request = c.get('access');
+    const body = (await c.req.json().catch(() => ({}))) as { locale?: string };
+    return respond(
+      c,
+      await useCases.chooseLanguage(request).execute({
+        profile: request.profile,
+        locale: String(body.locale ?? ''),
       }),
       204,
     );

@@ -26,7 +26,7 @@ import type {
 } from '@memorysmith/kernel';
 import type { Subscription } from '../subscription/Subscription.js';
 import type { Invite } from '../invite/Invite.js';
-import type { Email, InviteToken } from '../values.js';
+import type { AccountLocale, Email, InviteToken } from '../values.js';
 
 /** The subscription the session acts for; there is no findById by design. */
 export interface SubscriptionRepository {
@@ -112,4 +112,14 @@ export interface UserProfile {
   readonly email: Email;
   readonly name: string;
   readonly isPlatformAdmin: boolean;
+}
+
+/**
+ * The account itself, where the identity provider keeps it (RN-ACC-018). Access
+ * writes one attribute of it, the language, and reads none: who the person is
+ * travels in the token.
+ */
+export interface AccountDirectory {
+  /** Records the language every message to this account is written in. */
+  setLocale(account: Email, locale: AccountLocale): Promise<void>;
 }

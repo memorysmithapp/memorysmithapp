@@ -11,6 +11,7 @@
 import { Duration, Stack, type StackProps } from 'aws-cdk-lib';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as ses from 'aws-cdk-lib/aws-ses';
 import type { Construct } from 'constructs';
 import type { EnvironmentConfig } from '../config/environments.js';
 
@@ -19,7 +20,10 @@ export interface NetworkStackProps extends StackProps {
 }
 
 export class NetworkStack extends Stack {
-  readonly hostedZone: route53.IHostedZone;
+  readonly hostedZone: route53.IPublicHostedZone;
+  /** The address every message of the user pool leaves from (RN-ACC-017). */
+  readonly senderAddress: string;
+  readonly sendingIdentity: ses.EmailIdentity;
   readonly mcpCertificate: acm.ICertificate;
   readonly apiCertificate: acm.ICertificate;
   /**
@@ -44,9 +48,23 @@ export class NetworkStack extends Stack {
     this.siteDomainName = zoneName;
     this.authDomainName = `auth.${zoneName}`;
 
-    this.hostedZone = route53.HostedZone.fromHostedZoneAttributes(this, 'HostedZone', {
+    this.hostedZone = route53.PublicHostedZone.fromPublicHostedZoneAttributes(this, 'HostedZone', {
       hostedZoneId: props.environment.hostedZoneId,
       zoneName,
+    });
+
+    /**
+     * The domain the messages of the pool leave from (RN-ACC-017), verified by
+     * the DKIM records the CDK publishes in the zone, with a MAIL FROM of its own
+     * so the envelope is the domain's too. It lives in this stack, the first a
+     * delivery deploys, because Cognito sends only from a verified identity and a
+     * new one verifies minutes after its records exist: the delivery waits for it
+     * before the identity stack, the way it waits for DNS (section 17).
+     */
+    this.senderAddress = `no-reply@${zoneName}`;
+    this.sendingIdentity = new ses.EmailIdentity(this, 'SendingIdentity', {
+      identity: ses.Identity.publicHostedZone(this.hostedZone),
+      mailFromDomain: `mail.${zoneName}`,
     });
 
     /**

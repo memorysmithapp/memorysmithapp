@@ -19,8 +19,9 @@ import {
 } from '@memorysmith/kernel';
 import type { Subscription } from '../../../domain/subscription/Subscription.js';
 import type { Invite } from '../../../domain/invite/Invite.js';
-import type { InviteToken } from '../../../domain/values.js';
+import type { AccountLocale, Email, InviteToken } from '../../../domain/values.js';
 import type {
+  AccountDirectory,
   ConnectorBindingRepository,
   InviteRepository,
   PlatformSubscriptionAdmin,
@@ -242,5 +243,14 @@ export class InMemoryConnectorBindingRepository implements ConnectorBindingRepos
     const found = this.db.connectors.get(key);
     if (!found || found.expiresAt.isAtOrBefore(now)) return null;
     return found.agent;
+  }
+}
+
+/** The language of each account, kept by e-mail, as the identity provider keeps it. */
+export class InMemoryAccountDirectory implements AccountDirectory {
+  readonly locales = new Map<string, string>();
+
+  async setLocale(account: Email, locale: AccountLocale): Promise<void> {
+    this.locales.set(account.value, locale.name);
   }
 }

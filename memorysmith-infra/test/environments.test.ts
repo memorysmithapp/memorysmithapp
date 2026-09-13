@@ -69,6 +69,7 @@ function stacksOf(app: App, environment: EnvironmentConfig) {
     authDomainName: network.authDomainName,
     authCertificate: network.authCertificate,
     hostedZone: network.hostedZone,
+    senderAddress: network.senderAddress,
   });
   return { network, data, identity };
 }
@@ -175,5 +176,25 @@ describe('the stacks of an environment', () => {
     ).filter((resource) => resource.Type.includes('DeleteExistingRecordSet'));
     expect(replacing).toHaveLength(1);
     expect(JSON.stringify(replacing[0])).toContain('"NS"');
+  });
+
+  it('send the messages of the pool through SES, from the domain of the environment, written by a trigger', () => {
+    const app = appFor('staging');
+    const { network, identity } = stacksOf(app, environmentOf(app.node));
+
+    Template.fromStack(network).hasResourceProperties('AWS::SES::EmailIdentity', {
+      EmailIdentity: 'stg.memorysmith.app',
+      MailFromAttributes: { MailFromDomain: 'mail.stg.memorysmith.app' },
+    });
+
+    const pool = Object.values(
+      Template.fromStack(identity).findResources('AWS::Cognito::UserPool'),
+    )[0];
+    const email = pool?.Properties.EmailConfiguration as Record<string, unknown>;
+    expect(email['EmailSendingAccount']).toBe('DEVELOPER');
+    expect(String(email['From'])).toContain('no-reply@stg.memorysmith.app');
+    expect(JSON.stringify(email['SourceArn'])).toContain('identity/stg.memorysmith.app');
+    expect(pool?.Properties.LambdaConfig.CustomMessage).toBeDefined();
+    expect(pool?.Properties.Policies.PasswordPolicy.TemporaryPasswordValidityDays).toBe(7);
   });
 });

@@ -1091,6 +1091,7 @@ Consumed by the UI; **the public contract is MCP**.
 ```
 svc-access       GET  /session   (the user, the links and the active subscription)
                  POST /session/subscription  { subscriptionId }
+                 PUT  /session/locale   { locale }  (the language of the account, RN-ACC-018)
                  POST /subscriptions      { type?, quota? }  (pending_approval)
                  POST /subscriptions/:s/ownership          { toUserId }
                  GET  /members · POST /members             { email, role }
@@ -1351,7 +1352,8 @@ Source       the chosen commit, cloned whole
 SelfUpdate   the pipeline stack
 Quality      lint · format · typecheck · depcruise · the unit, contract and in-process tests
 Deliver      the SPA and the bundles built once · synth · the network and the hosting ·
-             the wait on DNS · every other stack, serving X.Y.Z-rc.N+sha7
+             the wait on DNS and on the sending identity · every other stack,
+             serving X.Y.Z-rc.N+sha7
 Smoke        every surface serves the version of this commit
 Adapters     the adapter tests, against the real DynamoDB and S3 of the environment
 Functional   the functional suite, whose report goes to a private bucket of the account
@@ -1385,6 +1387,7 @@ served-version    the version an environment serves, from the branch and the com
 release-checks    the version agrees everywhere it is written, and its tag does not exist yet
 release-notes     the section of CHANGELOG.md of a version
 wait-for-dns      waits until a name resolves, before the sign-in domain is deployed
+wait-for-email-identity  waits until the sending identity is verified, before the pool is deployed
 smoke             every surface serves the version and the environment of the deploy
 publish-release   the annotated tag and the GitHub Release of a version, as the release App
 staging:start     starts staging on the pushed head of a branch

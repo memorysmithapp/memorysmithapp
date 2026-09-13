@@ -8,6 +8,7 @@
 // never goes through the listing to find it.
 
 import type {
+  AccountLocaleDto,
   ExportJobDto,
   FolderDto,
   ContentDto,
@@ -34,6 +35,14 @@ import { request } from './http';
 
 export async function getSession(): Promise<SessionDto> {
   return request<SessionDto>('/access/session');
+}
+
+/**
+ * Records the language the person chose on their account, which every message
+ * the product sends them is written in (RN-ACC-018).
+ */
+export async function recordAccountLocale(locale: AccountLocaleDto): Promise<void> {
+  await request<void>('/access/session/locale', { method: 'PUT', body: { locale } });
 }
 
 function toSummary(notebook: NotebookSummaryDto): NotebookSummary {

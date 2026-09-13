@@ -180,6 +180,53 @@ export class InviteToken {
   }
 }
 
+/**
+ * AccountLocale: the language the product writes to one account in (RN-ACC-018).
+ *
+ * Every message the product sends an account is written in it: the one given
+ * when the account was created, and after that the one the person last chose in
+ * the interface. A closed set, because a message exists only in the languages
+ * somebody wrote it in.
+ */
+export const ACCOUNT_LOCALES = ['pt_BR', 'en_US'] as const;
+
+export type AccountLocaleName = (typeof ACCOUNT_LOCALES)[number];
+
+export class AccountLocale {
+  private readonly __accountLocale!: void;
+  private constructor(readonly name: AccountLocaleName) {}
+
+  static readonly PT_BR = new AccountLocale('pt_BR');
+  static readonly EN_US = new AccountLocale('en_US');
+
+  /** The language of an account nobody chose one for, which is the default of the interface. */
+  static readonly DEFAULT = AccountLocale.PT_BR;
+
+  static create(raw: string): Result<AccountLocale, DomainError> {
+    const match = ACCOUNT_LOCALES.find((locale) => locale === raw);
+    if (!match) {
+      return err(
+        DomainError.validation(`Not a language the product writes in: ${String(raw)}`, {
+          accepted: ACCOUNT_LOCALES,
+        }),
+      );
+    }
+    return ok(match === 'pt_BR' ? AccountLocale.PT_BR : AccountLocale.EN_US);
+  }
+
+  equals(other: unknown): boolean {
+    return other instanceof AccountLocale && other.name === this.name;
+  }
+
+  toString(): string {
+    return this.name;
+  }
+
+  toJSON(): string {
+    return this.name;
+  }
+}
+
 export const ACCESS_LIMITS = {
   /** RN-ACC-005: the invite expires in seven days. */
   inviteValidityDays: 7,

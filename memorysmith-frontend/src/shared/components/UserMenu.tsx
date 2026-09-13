@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LOCALES, setLocale, type Locale } from '../../i18n';
+import { recordAccountLocale } from '../api/backend';
 import { usePreferences, type ThemeChoice } from '../store/preferences';
 import {
   useLiveSession,
@@ -221,7 +222,13 @@ export function UserMenu() {
                   key={locale}
                   type="button"
                   className={i18n.language === locale ? 'active' : ''}
-                  onClick={() => setLocale(locale)}
+                  onClick={() => {
+                    setLocale(locale);
+                    // Recorded on the account too, because every message the product
+                    // sends this person is written in it (RN-ACC-018). The screen has
+                    // already changed language, so a failure here changes nothing on it.
+                    void recordAccountLocale(locale).catch(() => undefined);
+                  }}
                 >
                   {t(`language.${locale}`)}
                 </button>

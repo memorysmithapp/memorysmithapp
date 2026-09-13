@@ -395,6 +395,8 @@ The ceiling does not apply to the `OWNER`: they hold the subscription and reach 
 - **RN-ACC-014:** Removing a member from the subscription also removes all of their notebook ceilings.
 - **RN-ACC-015:** Every authorisation decision is taken by the service that owns the resource, combining the user's role in the subscription with the ceiling of the notebook.
 - **RN-ACC-016:** Role changes, ceiling changes and removals may take up to 5 minutes to take effect on already authenticated sessions, because the authorizer decision is cached for that long.
+- **RN-ACC-017:** Every message the product sends an account leaves from `no-reply@` the domain of the environment, carries the visual identity of the brand, is written in the language of that account, and states how long the credential it carries lasts. A credential stands alone on its own line, and nothing follows it.
+- **RN-ACC-018:** The language of an account is `pt_BR` or `en_US`. It is the one given when the account is created, `pt_BR` when none is, and from then on the one the person last chose in the interface.
 
 ---
 
@@ -427,6 +429,7 @@ The prefix is that of the context the rule belongs to. **Access carries two**, b
 ```
 id,                          -- global identity; belongs to no subscription
 email, name,
+locale,                      -- pt_BR or en_US: the language every message to the account is written in (RN-ACC-018)
 is_platform_admin (bool),    -- platform plane; never adds to a subscription role (section 4.6)
 created_at, last_login?
 ```

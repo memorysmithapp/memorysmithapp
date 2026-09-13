@@ -53,6 +53,7 @@
   "POST /portability/imports/apply",
   "POST /portability/notebooks/:v/export",
   "PUT /access/platform/subscriptions/:s/status",
+  "PUT /access/session/locale",
   "PUT /knowledge/notebooks/:v/folders/:f/template",
   "PUT /knowledge/notebooks/:v/guidance",
   "PUT /knowledge/notebooks/:v/limits/:user",

@@ -5,7 +5,7 @@
  *   pnpm -C memorysmith-infra onboard --environment staging [--email ana@example.com]
  *     [--name Ana] [--quota 1GB] [--status active] [--notebook enologia]
  *     [--notebook-name "Enologia"] [--structure-only] [--max-notes 50]
- *     [--set-password] [--preview]
+ *     [--set-password] [--locale en_US] [--preview]
  *
  * A deploy seeds nothing: the user pool comes up empty, and no subscription is
  * written behind the rule that a person asks for one and a platform admin
@@ -65,9 +65,18 @@ const { values } = parseArgs({
     'structure-only': { type: 'boolean', default: false },
     'max-notes': { type: 'string', default: '0' },
     'set-password': { type: 'boolean', default: false },
+    locale: { type: 'string' },
     preview: { type: 'boolean', default: false },
   },
 });
+
+/**
+ * The language every message to the account is written in (RN-ACC-018): the
+ * invitation this sends, and every code after it until the person chooses
+ * another in the interface. `pt_BR` when none is given, the default of the
+ * interface too.
+ */
+const LOCALES = ['pt_BR', 'en_US'];
 
 function fail(message: string): never {
   console.error(message);
@@ -166,6 +175,8 @@ if (!email) fail('No account to onboard: pass --email.');
 const quota = values.quota ?? (await choose('storage quota', QUOTAS, '1GB'));
 const status = values.status ?? (await choose('subscription status', STATUSES, 'active'));
 if (!QUOTAS.includes(quota) || !STATUSES.includes(status)) fail('Unknown quota or status.');
+const locale = values.locale ?? 'pt_BR';
+if (!LOCALES.includes(locale)) fail(`"${locale}" is not one of ${LOCALES.join(', ')}.`);
 
 // ---- The environment ---------------------------------------------------------
 
@@ -229,6 +240,7 @@ if (claimed) {
     const attributes = [
       { Name: 'email', Value: email },
       { Name: 'email_verified', Value: 'true' },
+      { Name: 'locale', Value: locale },
       ...(values.name ? [{ Name: 'name', Value: values.name }] : []),
     ];
     await cognito.send(

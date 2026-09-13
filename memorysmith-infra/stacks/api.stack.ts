@@ -18,6 +18,7 @@ import { Alarm, ComparisonOperator, TreatMissingData } from 'aws-cdk-lib/aws-clo
 import { ARecord, RecordTarget, type IHostedZone } from 'aws-cdk-lib/aws-route53';
 import { ApiGatewayv2DomainProperties } from 'aws-cdk-lib/aws-route53-targets';
 import type { ICertificate } from 'aws-cdk-lib/aws-certificatemanager';
+import type { IUserPool } from 'aws-cdk-lib/aws-cognito';
 import type { Construct } from 'constructs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -46,6 +47,8 @@ export interface ApiStackProps extends StackProps {
   /** The app client of the connector proxy, whose tokens write as a connector. */
   readonly connectorClientId: string;
   readonly frontendOrigin: string;
+  /** The pool whose accounts record the language they are written to in (RN-ACC-018). */
+  readonly userPool: IUserPool;
 }
 
 export class ApiStack extends Stack {
@@ -64,6 +67,7 @@ export class ApiStack extends Stack {
       EVENT_BUS_NAME: props.data.eventBus.eventBusName,
       COGNITO_ISSUER: props.cognitoIssuer,
       CONNECTOR_CLIENT_ID: props.connectorClientId,
+      USER_POOL_ID: props.userPool.userPoolId,
     };
 
     const api = new ServiceLambda(this, 'CoreApi', {
@@ -74,6 +78,8 @@ export class ApiStack extends Stack {
       memorySize: 1024,
     });
 
+    // The one thing the API writes on an account of the pool: its language.
+    props.userPool.grant(api.function, 'cognito-idp:AdminUpdateUserAttributes');
     props.data.accessTable.table.grantReadWriteData(api.function);
     props.data.knowledgeTable.table.grantReadWriteData(api.function);
     props.data.discoveryTable.table.grantReadWriteData(api.function);

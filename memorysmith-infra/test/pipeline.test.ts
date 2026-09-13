@@ -84,6 +84,25 @@ describe('the staging pipeline', () => {
       'Functional',
     ]);
   });
+
+  it('waits for DNS and for the sending identity before the stacks that need them', () => {
+    const { template } = pipelineOf('staging');
+    const deliver = Object.values(template.findResources('AWS::CodeBuild::Project'))
+      .map((project) => project.Properties as { Name: string; Source: { BuildSpec: string } })
+      .find((project) => project.Name === 'memorysmith-deliver-staging');
+    const commands = (
+      JSON.parse(deliver?.Source.BuildSpec ?? '{}') as {
+        phases: { build: { commands: string[] } };
+      }
+    ).phases.build.commands;
+    const at = (text: string) => commands.findIndex((command) => command.includes(text));
+
+    expect(at('wait-for-dns')).toBeGreaterThan(at('MemorysmithStagingNetwork'));
+    expect(at('wait-for-email-identity --identity stg.memorysmith.app')).toBeGreaterThan(
+      at('wait-for-dns'),
+    );
+    expect(at('MemorysmithStagingIdentity')).toBeGreaterThan(at('wait-for-email-identity'));
+  });
 });
 
 describe('the production pipeline', () => {

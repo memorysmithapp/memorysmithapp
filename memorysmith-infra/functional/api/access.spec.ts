@@ -7,7 +7,7 @@
  * needs a member, or a subscription to approve, creates an account of its own.
  */
 
-import { apiToken } from '../support/accounts.js';
+import { apiToken, localeOf } from '../support/accounts.js';
 import type { Api } from '../support/api.js';
 import { expect, test, unknownId } from './fixtures.js';
 
@@ -50,6 +50,21 @@ test.describe('the session', () => {
     owner,
   }) => {
     expect((await owner.call('GET', '/access/connector')).status).toBe(404);
+  });
+
+  test('[route:PUT /access/session/locale] records the language every message to the account is written in, and refuses one the product does not write in', async ({
+    owner,
+    state,
+  }) => {
+    const chosen = await owner.call('PUT', '/access/session/locale', { locale: 'en_US' });
+    const unknown = await owner.call<{ code: string }>('PUT', '/access/session/locale', {
+      locale: 'fr_FR',
+    });
+
+    expect(chosen.status).toBe(204);
+    expect(unknown.status).toBe(400);
+    expect(unknown.body.code).toBe('VALIDATION');
+    expect(await localeOf(state, state.accounts.owner)).toBe('en_US');
   });
 });
 

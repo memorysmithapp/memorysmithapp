@@ -26,6 +26,8 @@ import {
   RequestSubscription,
   SwitchActiveSubscription,
 } from '@memorysmith/svc-access/application/onboarding';
+import { ChooseLanguage } from '@memorysmith/svc-access/application/account';
+import { CognitoAccountDirectory } from '@memorysmith/svc-access/adapters/cognito';
 import {
   ListPlatformQueue,
   ReviewSubscription,
@@ -151,12 +153,16 @@ function signedWithIam(c: Context): boolean {
   return Boolean(env?.event?.requestContext?.authorizer?.iam);
 }
 
+/** Where the language of an account is recorded: on the account, in the pool (RN-ACC-018). */
+const accountDirectory = new CognitoAccountDirectory(required('USER_POOL_ID'));
+
 /** The Access use cases, each built from the subscription of this request. */
 const accessUseCases: AccessUseCases = {
   requestSubscription: (request) => {
     const { onboarding, links } = buildAccess(infra, request.context);
     return new RequestSubscription(onboarding, links);
   },
+  chooseLanguage: () => new ChooseLanguage(accountDirectory),
   getSession: (request) => {
     const { links, platform, scoped } = buildAccess(infra, request.context);
     const context = request.context;

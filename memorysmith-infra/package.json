@@ -14,6 +14,7 @@
     "deploy": "cdk deploy",
     "smoke": "tsx commands/smoke.ts",
     "wait-for-dns": "tsx commands/wait-for-dns.ts",
+    "wait-for-email-identity": "tsx commands/wait-for-email-identity.ts",
     "publish-release": "tsx commands/publish-release.ts",
     "staging:status": "tsx commands/staging-status.ts",
     "staging:start": "tsx commands/staging-start.ts",
@@ -34,6 +35,7 @@
     "@aws-sdk/client-lambda": "^3.1131.0",
     "@aws-sdk/client-s3": "^3.1117.0",
     "@aws-sdk/client-secrets-manager": "^3.1117.0",
+    "@aws-sdk/client-sesv2": "^3.1131.0",
     "@aws-sdk/client-sts": "^3.1131.0",
     "aws-cdk-lib": "^2.220.0",
     "constructs": "^10.4.2"

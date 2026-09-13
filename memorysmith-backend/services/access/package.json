@@ -10,6 +10,7 @@
     "test:adapters": "vitest run --config vitest.adapters.config.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.1131.0",
     "@aws-sdk/client-dynamodb": "^3.1117.0",
     "@aws-sdk/lib-dynamodb": "^3.1117.0",
     "@memorysmith/contracts": "workspace:*",
@@ -18,11 +19,13 @@
     "jose": "^6.0.13"
   },
   "exports": {
+    "./adapters/cognito": "./src/adapters/outbound/cognito/CognitoAccountDirectory.ts",
     "./adapters/dynamodb": "./src/adapters/outbound/dynamodb/DynamoAccess.ts",
     "./adapters/items": "./src/adapters/outbound/dynamodb/items.ts",
     "./adapters/memory": "./src/adapters/outbound/memory/InMemoryAccess.ts",
     "./adapters/http": "./src/adapters/inbound/http/routes.ts",
     "./adapters/auth": "./src/adapters/inbound/http/authentication.ts",
+    "./application/account": "./src/application/account.ts",
     "./application/connectors": "./src/application/connectors.ts",
     "./application/context": "./src/application/ResolveRequestContext.ts",
     "./application/onboarding": "./src/application/onboarding.ts",
