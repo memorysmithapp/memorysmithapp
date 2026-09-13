@@ -22,6 +22,19 @@ describe('the client the suite is to the connector', () => {
     });
   });
 
+  it('can be another client, published at its own path under its own name', () => {
+    expect(
+      clientMetadata('https://stg.memorysmith.app', {
+        key: 'clients/claude-code.json',
+        name: 'Claude Code',
+      }),
+    ).toEqual({
+      client_id: 'https://stg.memorysmith.app/clients/claude-code.json',
+      client_name: 'Claude Code',
+      redirect_uris: ['http://127.0.0.1/callback'],
+    });
+  });
+
   it('proves its code with S256, as RFC 7636 computes it', () => {
     expect(challengeOf('dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk')).toBe(
       'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM',

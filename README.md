@@ -311,6 +311,7 @@ What follows happens once. From then on the pipelines deliver the account, and u
    pnpm -C memorysmith-infra exec cdk deploy MemorysmithProductionPipeline -c environment=production --profile <profile>
    pnpm -C memorysmith-infra exec cdk deploy MemorysmithStagingPipeline -c environment=staging --profile <profile>
    ```
+   A pipeline runs once on `main` as soon as it is created. While `main` does not carry the pipeline stack yet, that run stops at `SelfUpdate` with `No stacks match`, and deploys nothing.
 6. **Ask for room.** A new account usually comes with 10 concurrent Lambda executions, which the product exhausts on its first calls, and production and staging share them, so request the increase. A budget alert costs nothing and says when something runs that should not.
 
 ### Production delivers on merge

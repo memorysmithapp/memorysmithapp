@@ -24,10 +24,28 @@ export interface ClientMetadata {
   readonly redirect_uris: readonly string[];
 }
 
-export function clientMetadata(site: string): ClientMetadata {
+/**
+ * Who connects: where its document is published on the site, and the name the
+ * connector records beside every write it makes. Each caller of the flow is a
+ * client of its own, because the name is what `whoami` shows the agent.
+ */
+export interface ConnectorClient {
+  readonly key: string;
+  readonly name: string;
+}
+
+export const FUNCTIONAL_CLIENT: ConnectorClient = {
+  key: CLIENT_METADATA_KEY,
+  name: 'MemorySmith functional suite',
+};
+
+export function clientMetadata(
+  site: string,
+  client: ConnectorClient = FUNCTIONAL_CLIENT,
+): ClientMetadata {
   return {
-    client_id: `${site}/${CLIENT_METADATA_KEY}`,
-    client_name: 'MemorySmith functional suite',
+    client_id: `${site}/${client.key}`,
+    client_name: client.name,
     redirect_uris: [LOOPBACK_REDIRECT],
   };
 }
