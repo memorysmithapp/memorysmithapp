@@ -16,10 +16,13 @@
     "wait-for-dns": "tsx commands/wait-for-dns.ts",
     "publish-release": "tsx commands/publish-release.ts",
     "staging:status": "tsx commands/staging-status.ts",
-    "staging:start": "tsx commands/staging-start.ts"
+    "staging:start": "tsx commands/staging-start.ts",
+    "onboard": "tsx commands/onboard.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-cloudformation": "^3.1131.0",
     "@aws-sdk/client-codepipeline": "^3.1131.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1131.0",
     "@aws-sdk/client-secrets-manager": "^3.1117.0",
     "aws-cdk-lib": "^2.220.0",
     "constructs": "^10.4.2"
