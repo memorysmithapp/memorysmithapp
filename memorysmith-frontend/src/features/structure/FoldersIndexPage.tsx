@@ -1,15 +1,20 @@
-import { Link, useOutletContext, useParams } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { folderAddress } from '../../shared/api/note-address';
+import { useDocumentTitle } from '../../shared/components/document-title';
 import type { NotebookOutletContext } from './NotebookLayout';
 import { NotebookBreadcrumb } from './NotebookBreadcrumb';
+import { useNotebookId } from './route-ids';
 
-// The notebook root of the folders namespace: lists the top-level folders the
-// same way a folder page lists its subfolders, so the Folders crumb always
-// has a real page behind it.
+// The root of the folders of a notebook: lists the top-level folders the same
+// way a folder page lists its subfolders, so the Root crumb always has a real
+// page behind it.
 export function FoldersIndexPage() {
   const { t } = useTranslation();
-  const { notebookSlug = '' } = useParams();
+  const notebookId = useNotebookId();
   const { structure } = useOutletContext<NotebookOutletContext>();
+
+  useDocumentTitle(t('structure.root'), structure.notebook.name);
 
   return (
     <article className="content-pane">
@@ -19,10 +24,7 @@ export function FoldersIndexPage() {
       <ul className="note-list">
         {structure.folders.map((folder) => (
           <li key={folder.id}>
-            <Link
-              to={`/notebooks/${notebookSlug}/root/${folder.slugPath}`}
-              className="note-list-folder"
-            >
+            <Link to={folderAddress(notebookId, folder.id)} className="note-list-folder">
               {folder.name}/
             </Link>
             <span className="note-list-desc">{folder.description}</span>

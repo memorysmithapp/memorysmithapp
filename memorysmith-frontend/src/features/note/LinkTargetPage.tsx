@@ -4,8 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { resolveLinkTarget } from '../../shared/api/source';
 import { noteAddress } from '../../shared/api/note-address';
 import { NoteSkeleton } from '../../shared/components/skeletons';
+import { useDocumentTitle } from '../../shared/components/document-title';
 import { folderTrailForNote } from '../structure/trail';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
+import { useNotebookId } from '../structure/route-ids';
 
 /**
  * The address of a **link target**, which is a wikilink concept and not a note
@@ -23,13 +25,16 @@ import type { NotebookOutletContext } from '../structure/NotebookLayout';
  */
 export function LinkTargetPage() {
   const { t } = useTranslation();
-  const { notebookSlug = '', target = '' } = useParams();
+  const notebookId = useNotebookId();
+  const { target = '' } = useParams();
   const { structure } = useOutletContext<NotebookOutletContext>();
   const decoded = decodeURIComponent(target).normalize('NFC');
 
+  useDocumentTitle(decoded, structure.notebook.name);
+
   const { data, isPending, isError } = useQuery({
-    queryKey: ['link-target', notebookSlug, decoded],
-    queryFn: () => resolveLinkTarget(notebookSlug, decoded),
+    queryKey: ['link-target', notebookId, decoded],
+    queryFn: () => resolveLinkTarget(notebookId, decoded),
     enabled: decoded !== '',
   });
 
@@ -38,12 +43,11 @@ export function LinkTargetPage() {
 
   const candidates = data.notes.map((note) => {
     const trail = folderTrailForNote(structure.folders, note.noteId);
-    const folder = trail[trail.length - 1];
     return {
       noteId: note.noteId,
       name: note.name,
       folderPath: trail.map((each) => each.name).join(' / '),
-      address: noteAddress(notebookSlug, folder?.slugPath ?? '', note.name, note.noteId),
+      address: noteAddress(notebookId, note.noteId),
     };
   });
 

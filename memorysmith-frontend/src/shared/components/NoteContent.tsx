@@ -9,7 +9,7 @@ import { Transclusion } from './Transclusion';
  * alternate, and each run resolves its own wikilinks, which keeps this the
  * only place that knows an embed is not an image.
  */
-export function NoteContent({ body, notebookSlug }: { body: string; notebookSlug: string }) {
+export function NoteContent({ body, notebookId }: { body: string; notebookId: string }) {
   const segments = splitEmbeds(body);
 
   return (
@@ -17,12 +17,12 @@ export function NoteContent({ body, notebookSlug }: { body: string; notebookSlug
       {segments.map((segment, index) =>
         segment.kind === 'text' ? (
           <Markdown key={index}>
-            {resolveWikilinks(segment.text, (name) => wikilinkUrl(notebookSlug, name))}
+            {resolveWikilinks(segment.text, (name) => wikilinkUrl(notebookId, name))}
           </Markdown>
         ) : (
           <Transclusion
             key={index}
-            notebookSlug={notebookSlug}
+            notebookId={notebookId}
             target={segment.target}
             anchor={segment.anchor}
           />

@@ -1,62 +1,95 @@
 /**
- * The two addresses, side by side (RN-DSC-045, RN-DSC-046, RN-DSC-056).
+ * The addresses of the interface, side by side (RN-DSC-045, RN-DSC-046,
+ * RN-DSC-057).
  *
  * A **URL is an address**: the product writes it, a person copies it, and
- * pasting it back has to land on the note it was copied from. A **wikilink is
- * a name**: an author writes it inside the content, it names a name, and a
- * name may be carried by several notes. Putting the name in the address made
- * the address inherit the ambiguity of the name, and this is the seam that
- * undoes the merge.
+ * pasting it back has to land on what it was copied from. It carries
+ * identifiers and nothing else, because anything else in it goes stale the day
+ * it is renamed or moved. A **wikilink is a name**: an author writes it inside
+ * the content, and a name may be carried by several notes. That is the one
+ * place a name legitimately lives in an address.
  */
 
 import { describe, expect, it } from 'vitest';
-import { linkTargetAddress, noteAddress, noteIdOf } from './note-address';
+import {
+  folderAddress,
+  foldersAddress,
+  identifierOf,
+  linkTargetAddress,
+  noteAddress,
+  notebookAddress,
+} from './note-address';
 
-const ID = '01J8X2K9QZ3M4N5P6R7S8T9V0W';
+const NOTEBOOK = '01J8X2K9QZ3M4N5P6R7S8T9V0A';
+const FOLDER = '01J8X2K9QZ3M4N5P6R7S8T9V0F';
+const NOTE = '01J8X2K9QZ3M4N5P6R7S8T9V0W';
 
-describe('the address of a note names one note and never two', () => {
-  it('is the trail, a readable label and the identifier', () => {
-    expect(noteAddress('enologia', '01-castas', 'Índice', ID)).toBe(
-      '/notebooks/enologia/root/01-castas/indice--01j8x2k9qz3m4n5p6r7s8t9v0w',
+describe('an address carries identifiers and nothing else', () => {
+  it('addresses a note by the notebook and the note alone, in lower case', () => {
+    expect(noteAddress(NOTEBOOK, NOTE)).toBe(
+      '/notebooks/01j8x2k9qz3m4n5p6r7s8t9v0a/notes/01j8x2k9qz3m4n5p6r7s8t9v0w',
+    );
+  });
+
+  it('does not nest a note under its folder, so moving it changes nothing', () => {
+    expect(noteAddress(NOTEBOOK, NOTE)).not.toContain(FOLDER.toLowerCase());
+    expect(noteAddress(NOTEBOOK, NOTE).split('/')).toHaveLength(5);
+  });
+
+  it('addresses a folder and the folder root by identifier', () => {
+    expect(notebookAddress(NOTEBOOK)).toBe('/notebooks/01j8x2k9qz3m4n5p6r7s8t9v0a');
+    expect(foldersAddress(NOTEBOOK)).toBe('/notebooks/01j8x2k9qz3m4n5p6r7s8t9v0a/folders');
+    expect(folderAddress(NOTEBOOK, FOLDER)).toBe(
+      '/notebooks/01j8x2k9qz3m4n5p6r7s8t9v0a/folders/01j8x2k9qz3m4n5p6r7s8t9v0f',
     );
   });
 
   it('gives two notes with one name two different addresses', () => {
-    // RN-KNW-037: the ambiguity is in the name and not in the address.
+    // RN-KNW-037: the ambiguity is in the name, and no name is in the address.
     const other = '01J8X2K9QZ3M4N5P6R7S8T9V0X';
-    const first = noteAddress('enologia', '01-castas', 'Índice', ID);
-    const second = noteAddress('enologia', '03-safras', 'Índice', other);
-    expect(first).not.toBe(second);
-    expect(noteIdOf(first.split('/').pop() ?? '')).toBe(ID);
-    expect(noteIdOf(second.split('/').pop() ?? '')).toBe(other);
+    expect(noteAddress(NOTEBOOK, NOTE)).not.toBe(noteAddress(NOTEBOOK, other));
+  });
+});
+
+describe('a segment is an identifier in either case, or it addresses nothing', () => {
+  it('reads the lower and the upper case as the same identifier', () => {
+    expect(identifierOf('01j8x2k9qz3m4n5p6r7s8t9v0w')).toBe(NOTE);
+    expect(identifierOf(NOTE)).toBe(NOTE);
   });
 
-  it('carries no percent escape, whatever the name has in it', () => {
-    // The case the first draft of this design needed a raw pathname split
-    // for: `useParams()['*']` hands an inner `%2F` back as `/`, and cuts a
-    // name in half. None of that exists when the segment is ASCII.
-    const address = noteAddress('a', 'f', 'Reunião 03/09/2026', ID);
-    expect(address).toBe('/notebooks/a/root/f/reuniao-03-09-2026--01j8x2k9qz3m4n5p6r7s8t9v0w');
-    expect(address.split('/')).toHaveLength(6);
+  it('round-trips every address it writes', () => {
+    const segment = noteAddress(NOTEBOOK, NOTE).split('/').pop();
+    expect(identifierOf(segment)).toBe(NOTE);
+  });
+
+  it('refuses a slug, a label and an address of the earlier form', () => {
+    // Nothing reads a name out of an address any more, so nothing tolerates
+    // one: an address saved before 0.6.0 answers not-found (RN-DSC-045).
+    expect(identifierOf('enologia')).toBeNull();
+    expect(identifierOf('indice--01j8x2k9qz3m4n5p6r7s8t9v0w')).toBeNull();
+    expect(identifierOf('01j8x2k9qz3m4n5p6r7s8t9v0')).toBeNull();
+    expect(identifierOf('01J8X2K9QZ3M4N5P6R7S8T9V0U')).toBeNull();
+    expect(identifierOf('')).toBeNull();
+    expect(identifierOf(undefined)).toBeNull();
   });
 });
 
 describe('the address of a link target names a name', () => {
   it('is where the encoding of a name legitimately lives', () => {
-    expect(linkTargetAddress('a', 'Reunião 03/09/2026')).toBe(
-      '/notebooks/a/links/Reuni%C3%A3o%2003%2F09%2F2026',
+    expect(linkTargetAddress(NOTEBOOK, 'Reunião 03/09/2026')).toBe(
+      '/notebooks/01j8x2k9qz3m4n5p6r7s8t9v0a/links/Reuni%C3%A3o%2003%2F09%2F2026',
     );
   });
 
   it('normalises to NFC before encoding, so both spellings are one address', () => {
     const decomposed = 'Ação'.normalize('NFD');
-    expect(linkTargetAddress('a', decomposed)).toBe(linkTargetAddress('a', 'Ação'));
+    expect(linkTargetAddress(NOTEBOOK, decomposed)).toBe(linkTargetAddress(NOTEBOOK, 'Ação'));
   });
 
   it('does not fold case, because the specification does not', () => {
     // `…/links/indice` is a pending target and never a redirect that repairs
     // it: an address that forgave what a wikilink refuses would make the two
     // surfaces disagree about which note is which (RN-DSC-056).
-    expect(linkTargetAddress('a', 'indice')).not.toBe(linkTargetAddress('a', 'Índice'));
+    expect(linkTargetAddress(NOTEBOOK, 'indice')).not.toBe(linkTargetAddress(NOTEBOOK, 'Índice'));
   });
 });

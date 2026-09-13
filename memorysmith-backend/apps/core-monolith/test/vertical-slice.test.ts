@@ -284,10 +284,10 @@ describe('Structure operations write nothing they do not have to', () => {
 describe('Notebook lifecycle', () => {
   it('refuses a second notebook of the same name and points at the one that exists', async () => {
     /**
-     * RN-KNW-032. The slug is how the interface addresses a notebook, so a twin
-     * would share the address and be unreachable: every link would open the
-     * first one. The answer is the shape RN-AGT-004 already set for notes,
-     * the identifier of what exists, never an invented suffix.
+     * RN-KNW-032. A notebook is chosen by name before anything else, so a twin
+     * would make every choice between the two a guess, and a retried creation
+     * would make one. The answer is the identifier of what exists, never an
+     * invented suffix.
      */
     const first = (await (
       await call('/knowledge/notebooks', {

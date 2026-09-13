@@ -79,7 +79,7 @@ export function useGroupedWrite({
    *
    * Both arrive as inline arrows, so they are new functions on every render,
    * and the chain below is built once. Capturing the first ones directly
-   * happens to work today — they close over a notebook slug and a note id that
+   * happens to work today — they close over a notebook id and a note id that
    * do not change while the note is mounted — and "happens to work" is the
    * reasoning that produced the last three defects of this feature. The
    * indirection costs a line and removes the question.

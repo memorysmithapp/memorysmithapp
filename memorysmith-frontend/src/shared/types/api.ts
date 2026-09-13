@@ -23,7 +23,6 @@ export interface FolderNode {
   parentId: string | null;
   name: string;
   slug: string;
-  slugPath: string;
   description: string;
   position: number;
   hasTemplate: boolean;
@@ -44,8 +43,8 @@ export interface NotebookStructure {
 
 export interface NoteDetail {
   id: string;
-  notebookSlug: string;
-  /** Where the note lives, which the address carries as decoration. */
+  notebookId: string;
+  /** The folder the note lives in, which the breadcrumb reads and no address carries. */
   folderId: string;
   /** `null` when the frontmatter of the note states no name a link could use. */
   name: string | null;

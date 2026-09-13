@@ -14,7 +14,7 @@ interface PropertyValueProps {
   value: string;
   /** The notebook wrote this one as a list, so it is drawn as chips. */
   list: boolean;
-  notebookSlug: string;
+  notebookId: string;
 }
 
 /**
@@ -84,7 +84,7 @@ export function propertyType(value: string, list: boolean): 'list' | 'date' | 'c
   return 'text';
 }
 
-function renderRich(value: string, notebookSlug: string, pendingHint: string): ReactNode[] {
+function renderRich(value: string, notebookId: string, pendingHint: string): ReactNode[] {
   const parts: ReactNode[] = [];
   let cursor = 0;
   let key = 0;
@@ -96,7 +96,7 @@ function renderRich(value: string, notebookSlug: string, pendingHint: string): R
     if (wikiTarget) {
       const label = (wikiLabel ?? wikiTarget).trim();
       const target = wikiTarget.split('#')[0]?.trim() ?? '';
-      const url = target ? wikilinkUrl(notebookSlug, target.normalize('NFC')) : null;
+      const url = target ? wikilinkUrl(notebookId, target.normalize('NFC')) : null;
       parts.push(
         url ? (
           <Link key={key++} className="wikilink" to={url}>
@@ -127,7 +127,7 @@ function renderRich(value: string, notebookSlug: string, pendingHint: string): R
   return parts;
 }
 
-export function PropertyValue({ value, list, notebookSlug }: PropertyValueProps) {
+export function PropertyValue({ value, list, notebookId }: PropertyValueProps) {
   const { t } = useTranslation();
 
   if (list) {
@@ -145,5 +145,5 @@ export function PropertyValue({ value, list, notebookSlug }: PropertyValueProps)
     );
   }
 
-  return <>{renderRich(value, notebookSlug, t('note.pendingLink'))}</>;
+  return <>{renderRich(value, notebookId, t('note.pendingLink'))}</>;
 }

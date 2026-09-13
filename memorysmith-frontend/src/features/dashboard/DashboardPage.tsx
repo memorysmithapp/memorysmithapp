@@ -3,6 +3,7 @@ import { ImportNotebookButton } from '../portability/ImportNotebookButton';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { listNotebooks } from '../../shared/api/source';
+import { notebookAddress } from '../../shared/api/note-address';
 import { LiveDashboard } from './LiveDashboard';
 import { CardCarousel } from '../../shared/components/CardCarousel';
 import { NotebookCatalogueSkeleton } from '../../shared/components/skeletons';
@@ -45,7 +46,7 @@ export function DashboardPage() {
         nextLabel={t('dashboard.nextNotebooks')}
       >
         {notebooks?.map((notebook) => (
-          <Link key={notebook.id} to={`/notebooks/${notebook.slug}`} className="notebook-card">
+          <Link key={notebook.id} to={notebookAddress(notebook.id)} className="notebook-card">
             <h2>{notebook.name}</h2>
             <p>{notebook.description}</p>
             <footer>

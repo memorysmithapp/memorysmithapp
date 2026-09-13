@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useOutletContext, useParams } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getNote } from '../../shared/api/source';
+import { foldersAddress } from '../../shared/api/note-address';
 import { WritableContent } from '../../shared/components/WritableContent';
 import { NoteSkeleton } from '../../shared/components/skeletons';
+import { useDocumentTitle } from '../../shared/components/document-title';
 import { canWrite, updateNote } from '../../shared/api/source';
 
 import {
@@ -17,16 +19,21 @@ import { CheckIcon, CopyIcon } from '../../shared/components/icons';
 import { folderTrailForNote } from '../structure/trail';
 import { NotebookBreadcrumb, folderCrumbs } from '../structure/NotebookBreadcrumb';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
+import { useNotebookId } from '../structure/route-ids';
 
 export function NotePage({ noteId }: { noteId: string }) {
   const { t } = useTranslation();
-  const { notebookSlug = '' } = useParams();
+  const notebookId = useNotebookId();
   const { structure } = useOutletContext<NotebookOutletContext>();
   const [copied, setCopied] = useState(false);
   const { data, isPending, isError } = useQuery({
-    queryKey: ['note', notebookSlug, noteId],
-    queryFn: () => getNote(notebookSlug, noteId),
+    queryKey: ['note', notebookId, noteId],
+    queryFn: () => getNote(notebookId, noteId),
   });
+
+  // The tab names the note, with the same unnamed label the listing shows when
+  // the note states no name (RN-DSC-058, RN-KNW-036).
+  useDocumentTitle(data ? (data.name ?? t('note.unnamed')) : null, structure.notebook.name);
 
   async function copyNote() {
     if (!data) return;
@@ -72,8 +79,8 @@ export function NotePage({ noteId }: { noteId: string }) {
         <div>
           <NotebookBreadcrumb
             items={[
-              { label: t('structure.root'), to: `/notebooks/${notebookSlug}/root` },
-              ...folderCrumbs(notebookSlug, folderTrailForNote(structure.folders, noteId)),
+              { label: t('structure.root'), to: foldersAddress(notebookId) },
+              ...folderCrumbs(notebookId, folderTrailForNote(structure.folders, noteId)),
               { label: data.name ?? t('note.unnamed') },
             ]}
           />
@@ -111,7 +118,7 @@ export function NotePage({ noteId }: { noteId: string }) {
               >
                 <span className="metadata-property-key">{propertyLabel(key, t)}</span>
                 <span className="metadata-property-value">
-                  <PropertyValue value={value} list={lists.has(key)} notebookSlug={notebookSlug} />
+                  <PropertyValue value={value} list={lists.has(key)} notebookId={notebookId} />
                 </span>
               </div>
             ))}
@@ -121,18 +128,18 @@ export function NotePage({ noteId }: { noteId: string }) {
 
       <WritableContent
         raw={data.raw}
-        notebookSlug={notebookSlug}
+        notebookId={notebookId}
         baseRevision={data.revision}
         writable={canWrite(structure.effectiveRole)}
         write={({ raw, baseRevision, keepalive }) =>
           updateNote(
-            notebookSlug,
+            notebookId,
             data.id,
             { content: raw, baseRevision: baseRevision ?? '' },
             { keepalive: keepalive ?? false },
           )
         }
-        invalidates={['note', notebookSlug, noteId]}
+        invalidates={['note', notebookId, noteId]}
       />
     </article>
   );

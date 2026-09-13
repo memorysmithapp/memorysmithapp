@@ -1,10 +1,13 @@
-import { Link, useOutletContext, useParams } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { GuidanceIcon, TemplateIcon } from '../../shared/components/icons';
+import { guidanceAddress, templatesAddress } from '../../shared/api/note-address';
+import { useDocumentTitle } from '../../shared/components/document-title';
 import type { FolderNode } from '../../shared/types/api';
 import { StructureOutline } from './StructureOutline';
 import { NotebookBreadcrumb } from './NotebookBreadcrumb';
 import type { NotebookOutletContext } from './NotebookLayout';
+import { useNotebookId } from './route-ids';
 
 function countTemplates(folders: FolderNode[]): number {
   return folders.reduce(
@@ -18,9 +21,11 @@ function countTemplates(folders: FolderNode[]): number {
 // instead of inline, and the folder tree with the description of every folder.
 export function NotebookContextPage() {
   const { t } = useTranslation();
-  const { notebookSlug = '' } = useParams();
+  const notebookId = useNotebookId();
   const { structure } = useOutletContext<NotebookOutletContext>();
   const templateCount = countTemplates(structure.folders);
+
+  useDocumentTitle(structure.notebook.name);
 
   return (
     <article className="content-pane">
@@ -30,14 +35,14 @@ export function NotebookContextPage() {
       <p className="hint">{t('structure.intro')}</p>
 
       <div className="structure-actions">
-        <Link to={`/notebooks/${notebookSlug}/guidance`} className="structure-action">
+        <Link to={guidanceAddress(notebookId)} className="structure-action">
           <GuidanceIcon />
           <span>
             <strong>{t('structure.guidance')}</strong>
             <small>{t('structure.guidanceHint')}</small>
           </span>
         </Link>
-        <Link to={`/notebooks/${notebookSlug}/templates`} className="structure-action">
+        <Link to={templatesAddress(notebookId)} className="structure-action">
           <TemplateIcon />
           <span>
             <strong>{t('structure.templates')}</strong>
@@ -48,7 +53,7 @@ export function NotebookContextPage() {
 
       <h2>{t('structure.folders')}</h2>
       <p className="hint">{t('structure.outlineHint')}</p>
-      <StructureOutline notebookSlug={notebookSlug} folders={structure.folders} />
+      <StructureOutline notebookId={notebookId} folders={structure.folders} />
     </article>
   );
 }

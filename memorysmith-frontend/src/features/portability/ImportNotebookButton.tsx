@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { applyImport, prepareImport } from '../../shared/api/source';
+import { notebookAddress } from '../../shared/api/note-address';
 
 type Phase = 'idle' | 'uploading' | 'importing' | 'failed';
 
@@ -42,7 +43,7 @@ export function ImportNotebookButton() {
       // to the subscription it left (RN-KNW-032).
       const job = await applyImport(prepared.uploadKey, file.name.replace(/\.notebook$/i, ''));
       setPhase('idle');
-      void navigate(`/notebooks/${job.notebookId}`);
+      void navigate(notebookAddress(job.notebookId));
     } catch (error) {
       setFailure(error instanceof Error ? error.message : null);
       setPhase('failed');

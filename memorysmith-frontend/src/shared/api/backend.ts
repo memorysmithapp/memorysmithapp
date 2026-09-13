@@ -3,9 +3,9 @@
 // backend in is choosing a different implementation of this contract, not
 // rewriting the screens.
 //
-// The frontend navigates by SLUG, because that is what a link and a URL carry,
-// while the API addresses by identifier. Resolving one to the other happens
-// here, once, and is cached by the query client above it.
+// The interface addresses by identifier, as the API does (RN-DSC-045), so a
+// call names the notebook it reads with the identifier the address carried and
+// never goes through the listing to find it.
 
 import type {
   ExportJobDto,
@@ -31,7 +31,6 @@ import type {
 } from '../types/api';
 import { splitFrontmatter } from './markdown';
 import { request } from './http';
-import { ApiError } from './error-mapper';
 
 export async function getSession(): Promise<SessionDto> {
   return request<SessionDto>('/access/session');
@@ -53,16 +52,6 @@ export async function listNotebooks(): Promise<NotebookSummary[]> {
   return notebooks.map(toSummary);
 }
 
-/** Slug to identifier, from the listing the shell already loads. */
-async function notebookIdOf(notebookSlug: string): Promise<string> {
-  const notebooks = await request<NotebookSummaryDto[]>('/knowledge/notebooks');
-  const found = notebooks.find(
-    (notebook) => notebook.slug === notebookSlug || notebook.notebookId === notebookSlug,
-  );
-  if (!found) throw new ApiError('NOT_FOUND', 'Notebook not found', 404);
-  return found.notebookId;
-}
-
 /**
  * The API returns the tree flat and in the defined order, with a fractional
  * position key. The UI wants it nested, and it wants a number to sort by, so
@@ -76,35 +65,30 @@ function nest(folders: FolderDto[], notes: NoteSummaryDto[]): FolderNode[] {
     byParent.set(folder.parentFolderId, siblings);
   }
 
-  const build = (parentId: string | null, parentSlugPath: string): FolderNode[] =>
-    (byParent.get(parentId) ?? []).map((folder, index) => {
-      const slugPath = parentSlugPath ? `${parentSlugPath}/${folder.slug}` : folder.slug;
-      return {
-        id: folder.folderId,
-        parentId: folder.parentFolderId,
-        name: folder.name,
-        slug: folder.slug,
-        slugPath,
-        description: folder.description,
-        position: index,
-        hasTemplate: folder.hasTemplate,
-        noteCount: folder.noteCount,
-        notes: notes
-          .filter((note) => note.folderId === folder.folderId)
-          .map((note) => ({
-            id: note.noteId,
-            name: note.name,
-            folderId: note.folderId,
-          })),
-        children: build(folder.folderId, slugPath),
-      };
-    });
+  const build = (parentId: string | null): FolderNode[] =>
+    (byParent.get(parentId) ?? []).map((folder, index) => ({
+      id: folder.folderId,
+      parentId: folder.parentFolderId,
+      name: folder.name,
+      slug: folder.slug,
+      description: folder.description,
+      position: index,
+      hasTemplate: folder.hasTemplate,
+      noteCount: folder.noteCount,
+      notes: notes
+        .filter((note) => note.folderId === folder.folderId)
+        .map((note) => ({
+          id: note.noteId,
+          name: note.name,
+          folderId: note.folderId,
+        })),
+      children: build(folder.folderId),
+    }));
 
-  return build(null, '');
+  return build(null);
 }
 
-export async function getNotebookStructure(notebookSlug: string): Promise<NotebookStructure> {
-  const notebookId = await notebookIdOf(notebookSlug);
+export async function getNotebookStructure(notebookId: string): Promise<NotebookStructure> {
   const [detail, notes] = await Promise.all([
     request<NotebookDetailDto>(`/knowledge/notebooks/${notebookId}`),
     request<NoteSummaryDto[]>(`/knowledge/notebooks/${notebookId}/notes`),
@@ -125,17 +109,15 @@ export async function getNotebookStructure(notebookSlug: string): Promise<Notebo
  * Discovery, which is the context that holds the index a notebook answers with.
  */
 export async function resolveLinkTarget(
-  notebookSlug: string,
+  notebookId: string,
   target: string,
 ): Promise<ResolvedTargetDto> {
-  const notebookId = await notebookIdOf(notebookSlug);
   return request<ResolvedTargetDto>(
     `/discovery/notebooks/${notebookId}/links/${encodeURIComponent(target)}`,
   );
 }
 
-export async function getNote(notebookSlug: string, noteId: string): Promise<NoteDetail> {
-  const notebookId = await notebookIdOf(notebookSlug);
+export async function getNote(notebookId: string, noteId: string): Promise<NoteDetail> {
   const [note, detail] = await Promise.all([
     /**
      * Typed by the DTO the API publishes, and NOT by a shape retyped here.
@@ -167,7 +149,7 @@ export async function getNote(notebookSlug: string, noteId: string): Promise<Not
   const { frontmatter, lists, body } = splitFrontmatter(note.content);
   return {
     id: note.noteId,
-    notebookSlug,
+    notebookId,
     folderId: note.folderId,
     name: note.name,
     folderNames,
@@ -181,10 +163,9 @@ export async function getNote(notebookSlug: string, noteId: string): Promise<Not
 }
 
 export async function getTemplate(
-  notebookSlug: string,
+  notebookId: string,
   folderId: string,
 ): Promise<TemplateDetail | null> {
-  const notebookId = await notebookIdOf(notebookSlug);
   /**
    * The route answers `{ content: null }` when the folder carries no template
    * yet, and the published `ContentDto` when it does. That union is the
@@ -200,11 +181,7 @@ export async function getTemplate(
 }
 
 /** The composed document the agent reads, shown in the connect screen. */
-/**
- * The two Discovery reads the dashboard aggregates. Both take an identifier,
- * not a slug, because the caller already listed the notebooks and holds it: going
- * back through the slug would be a second round trip for something it knows.
- */
+/** The two Discovery reads the dashboard aggregates. */
 export async function getFacetsById(notebookId: string): Promise<FacetStatsDto> {
   return request<FacetStatsDto>(`/discovery/notebooks/${notebookId}/facets`);
 }
@@ -219,8 +196,7 @@ export async function getHealthById(notebookId: string): Promise<NotebookHealthD
  * against the structure the screen already loaded, so a click can open a note
  * without another round trip.
  */
-export async function getNotebookGraph(notebookSlug: string): Promise<NotebookGraphDto> {
-  const notebookId = await notebookIdOf(notebookSlug);
+export async function getNotebookGraph(notebookId: string): Promise<NotebookGraphDto> {
   return request<NotebookGraphDto>(`/discovery/notebooks/${notebookId}/graph`);
 }
 
@@ -248,8 +224,7 @@ export async function applyImport(
   );
 }
 
-export async function exportNotebook(notebookSlug: string): Promise<ExportJobDto> {
-  const notebookId = await notebookIdOf(notebookSlug);
+export async function exportNotebook(notebookId: string): Promise<ExportJobDto> {
   return request<ExportJobDto>(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
 }
 
@@ -265,10 +240,9 @@ export async function createNotebook(input: {
 }
 
 export async function createFolder(
-  notebookSlug: string,
+  notebookId: string,
   input: { parentFolderId: string | null; name: string; description: string },
 ): Promise<FolderDto> {
-  const notebookId = await notebookIdOf(notebookSlug);
   return request<FolderDto>(`/knowledge/notebooks/${notebookId}/folders`, {
     method: 'POST',
     body: input,
@@ -276,12 +250,11 @@ export async function createFolder(
 }
 
 export async function putGuidance(
-  notebookSlug: string,
+  notebookId: string,
   content: string,
   baseRevision: string | null,
   options: { keepalive?: boolean } = {},
 ): Promise<string> {
-  const notebookId = await notebookIdOf(notebookSlug);
   // The revision this write produced, which the next write has to name.
   const written = await request<{ revision: { versionId: string } }>(
     `/knowledge/notebooks/${notebookId}/guidance`,
@@ -290,13 +263,12 @@ export async function putGuidance(
   return written.revision.versionId;
 }
 export async function putTemplate(
-  notebookSlug: string,
+  notebookId: string,
   folderId: string,
   content: string,
   baseRevision: string | null,
   options: { keepalive?: boolean } = {},
 ): Promise<string> {
-  const notebookId = await notebookIdOf(notebookSlug);
   const written = await request<{ revision: { versionId: string } }>(
     `/knowledge/notebooks/${notebookId}/folders/${folderId}/template`,
     { method: 'PUT', body: { content, baseRevision }, ...options },
@@ -305,10 +277,9 @@ export async function putTemplate(
 }
 
 export async function createNote(
-  notebookSlug: string,
+  notebookId: string,
   input: { folderId: string; name: string; content: string },
 ): Promise<NoteSummaryDto> {
-  const notebookId = await notebookIdOf(notebookSlug);
   return request<NoteSummaryDto>(`/knowledge/notebooks/${notebookId}/notes`, {
     method: 'POST',
     body: input,
@@ -316,12 +287,11 @@ export async function createNote(
 }
 
 export async function updateNote(
-  notebookSlug: string,
+  notebookId: string,
   noteId: string,
   input: { content: string; baseRevision: string; name?: string },
   options: { keepalive?: boolean } = {},
 ): Promise<NoteDto> {
-  const notebookId = await notebookIdOf(notebookSlug);
   // The answer carries the revision this write produced, which is what the
   // NEXT write has to be based on.
   return request<NoteDto>(`/knowledge/notebooks/${notebookId}/notes/${noteId}`, {
@@ -340,8 +310,7 @@ export interface BacklinkDto {
   folderId: string;
 }
 
-export async function backlinksOf(notebookSlug: string, noteId: string): Promise<BacklinkDto[]> {
-  const notebookId = await notebookIdOf(notebookSlug);
+export async function backlinksOf(notebookId: string, noteId: string): Promise<BacklinkDto[]> {
   const found = await request<{ backlinks: BacklinkDto[] }>(
     `/discovery/notebooks/${notebookId}/notes/${noteId}/backlinks`,
   );
@@ -355,11 +324,10 @@ export async function backlinksOf(notebookSlug: string, noteId: string): Promise
  * the exclusions and the facets are parsed by the backend, not here.
  */
 export async function searchNotebook(
-  notebookSlug: string,
+  notebookId: string,
   query: string,
   k: number,
 ): Promise<SearchHit[]> {
-  const notebookId = await notebookIdOf(notebookSlug);
   const found = await request<{ mode: string; hits: SearchHit[] }>(
     `/discovery/notebooks/${notebookId}/search`,
     { method: 'POST', body: { query, k } },

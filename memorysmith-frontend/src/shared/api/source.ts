@@ -34,45 +34,31 @@ if (!configuredOrigin) {
 export const apiOrigin: string = configuredOrigin;
 
 /**
- * Walks the loaded structure, so a link needs no extra request.
+ * The one note of a loaded structure that carries a name, by identifier, or
+ * `null` when none or several carry it. It walks the structure the page is
+ * already showing, so a link costs no request.
  *
  * A target is a NAME, compared after NFC and folded in no other way
- * (RN-DSC-041): a near miss is a pending link and never a landing. What the
- * interface does with a name carried by two notes is #98; here the first one
- * answers, and the address itself is still derived from the name until that
- * issue replaces it with the identifier.
+ * (RN-DSC-041): a near miss is a pending link and never a landing. A name
+ * carried by several notes is a choice and not a note, and what gets an
+ * address then is the target (RN-DSC-046).
  */
-function resolveFromStructure(
-  notebookSlug: string,
-  target: string,
-  structure: NotebookStructure | undefined,
-): string | null {
+function soleNoteNamed(target: string, structure: NotebookStructure | undefined): string | null {
   if (!structure) return null;
   const wanted = target.normalize('NFC');
-  const found: Array<{
-    folder: NotebookStructure['folders'][number];
-    noteId: string;
-    name: string;
-  }> = [];
+  const found: string[] = [];
 
   const walk = (nodes: NotebookStructure['folders']): void => {
     for (const node of nodes) {
       for (const note of node.notes) {
-        if ((note.name ?? '').normalize('NFC') === wanted) {
-          found.push({ folder: node, noteId: note.id, name: note.name ?? '' });
-        }
+        if ((note.name ?? '').normalize('NFC') === wanted) found.push(note.id);
       }
       walk(node.children);
     }
   };
   walk(structure.folders);
 
-  // Exactly one note answers: the link goes straight to it. None or several,
-  // and what gets the address is the TARGET, because a name may be carried by
-  // more than one note and an address may not (RN-DSC-046).
-  const only = found.length === 1 ? found[0] : undefined;
-  if (!only) return null;
-  return noteAddress(notebookSlug, only.folder.slugPath, only.name, only.noteId);
+  return found.length === 1 ? (found[0] ?? null) : null;
 }
 
 /**
@@ -86,21 +72,18 @@ export function listNotebooks(): Promise<NotebookSummary[]> {
   return backend.listNotebooks();
 }
 
-export async function getNotebookStructure(notebookSlug: string): Promise<NotebookStructure> {
-  const structure = await backend.getNotebookStructure(notebookSlug);
-  loaded.set(notebookSlug, structure);
+export async function getNotebookStructure(notebookId: string): Promise<NotebookStructure> {
+  const structure = await backend.getNotebookStructure(notebookId);
+  loaded.set(notebookId, structure);
   return structure;
 }
 
-export function getNote(notebookSlug: string, noteSlug: string): Promise<NoteDetail> {
-  return backend.getNote(notebookSlug, noteSlug);
+export function getNote(notebookId: string, noteId: string): Promise<NoteDetail> {
+  return backend.getNote(notebookId, noteId);
 }
 
-export function getTemplate(
-  notebookSlug: string,
-  folderId: string,
-): Promise<TemplateDetail | null> {
-  return backend.getTemplate(notebookSlug, folderId);
+export function getTemplate(notebookId: string, folderId: string): Promise<TemplateDetail | null> {
+  return backend.getTemplate(notebookId, folderId);
 }
 
 /**
@@ -108,8 +91,14 @@ export function getTemplate(
  * resolve to exactly one note — which is where the reading surface writes a
  * `pending:` link and the link target page takes over (RN-DSC-046).
  */
-export function resolveNoteUrl(notebookSlug: string, target: string): string | null {
-  return resolveFromStructure(notebookSlug, target, loaded.get(notebookSlug));
+export function resolveNoteUrl(notebookId: string, target: string): string | null {
+  const noteId = resolveNoteId(notebookId, target);
+  return noteId ? noteAddress(notebookId, noteId) : null;
+}
+
+/** The identifier of the one note a target names, which a transclusion expands. */
+export function resolveNoteId(notebookId: string, target: string): string | null {
+  return soleNoteNamed(target, loaded.get(notebookId));
 }
 
 /**
@@ -123,18 +112,18 @@ export function resolveNoteUrl(notebookSlug: string, target: string): string | n
  * ever resolves what no name matched, so a target no name answers goes to
  * the target page, which asks Discovery.
  */
-export function wikilinkUrl(notebookSlug: string, target: string): string | null {
-  const carried = notesNamed(notebookSlug, target);
-  if (carried === 1) return resolveNoteUrl(notebookSlug, target);
-  return linkTargetAddress(notebookSlug, target);
+export function wikilinkUrl(notebookId: string, target: string): string | null {
+  const carried = notesNamed(notebookId, target);
+  if (carried === 1) return resolveNoteUrl(notebookId, target);
+  return linkTargetAddress(notebookId, target);
 }
 
 /**
  * How many notes of the loaded structure carry that name. One is a link, none
  * is pending, and several is the choice.
  */
-export function notesNamed(notebookSlug: string, target: string): number {
-  const structure = loaded.get(notebookSlug);
+export function notesNamed(notebookId: string, target: string): number {
+  const structure = loaded.get(notebookId);
   if (!structure) return 0;
   const wanted = target.normalize('NFC');
   const count = (nodes: NotebookStructure['folders']): number =>
@@ -157,16 +146,16 @@ export function applyImport(uploadKey: string, name: string) {
   return backend.applyImport(uploadKey, name);
 }
 
-export function exportNotebook(notebookSlug: string): Promise<ExportJobDto> {
-  return backend.exportNotebook(notebookSlug);
+export function exportNotebook(notebookId: string): Promise<ExportJobDto> {
+  return backend.exportNotebook(notebookId);
 }
 
-export function resolveLinkTarget(notebookSlug: string, target: string) {
-  return backend.resolveLinkTarget(notebookSlug, target);
+export function resolveLinkTarget(notebookId: string, target: string) {
+  return backend.resolveLinkTarget(notebookId, target);
 }
 
-export function searchNotes(notebookSlug: string, query: string, k: number): Promise<SearchHit[]> {
-  return backend.searchNotebook(notebookSlug, query, k);
+export function searchNotes(notebookId: string, query: string, k: number): Promise<SearchHit[]> {
+  return backend.searchNotebook(notebookId, query, k);
 }
 
 /**
@@ -175,7 +164,7 @@ export function searchNotes(notebookSlug: string, query: string, k: number): Pro
  * sustains auditing does not accept blind overwrite (RN-KNW-034).
  */
 export function updateNote(
-  notebookSlug: string,
+  notebookId: string,
   noteId: string,
   input: { content: string; baseRevision: string },
   options: { keepalive?: boolean } = {},
@@ -183,27 +172,27 @@ export function updateNote(
   // The version the write produced. Every writer of a Content Slot answers
   // it, so the caller can chain a second write without reloading the note.
   return backend
-    .updateNote(notebookSlug, noteId, input, options)
+    .updateNote(notebookId, noteId, input, options)
     .then((note) => note.revision.versionId);
 }
 
 export function putGuidance(
-  notebookSlug: string,
+  notebookId: string,
   content: string,
   baseRevision: string | null,
   options: { keepalive?: boolean } = {},
 ): Promise<string> {
-  return backend.putGuidance(notebookSlug, content, baseRevision, options);
+  return backend.putGuidance(notebookId, content, baseRevision, options);
 }
 
 export function putTemplate(
-  notebookSlug: string,
+  notebookId: string,
   folderId: string,
   content: string,
   baseRevision: string | null,
   options: { keepalive?: boolean } = {},
 ): Promise<string> {
-  return backend.putTemplate(notebookSlug, folderId, content, baseRevision, options);
+  return backend.putTemplate(notebookId, folderId, content, baseRevision, options);
 }
 
 /**

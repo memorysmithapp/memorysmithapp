@@ -28,17 +28,17 @@ interface FlatNote {
   folderPath: string;
 }
 
-function flatten(notebookSlug: string, folders: FolderNode[], trail: string[] = []): FlatNote[] {
+function flatten(notebookId: string, folders: FolderNode[], trail: string[] = []): FlatNote[] {
   return folders.flatMap((folder) => {
     const path = [...trail, folder.name];
     return [
       ...folder.notes.map((note) => ({
         id: note.id,
-        address: noteAddress(notebookSlug, folder.slugPath, note.name, note.id),
+        address: noteAddress(notebookId, note.id),
         name: note.name,
         folderPath: path.join(' / '),
       })),
-      ...flatten(notebookSlug, folder.children, path),
+      ...flatten(notebookId, folder.children, path),
     ];
   });
 }
@@ -73,11 +73,11 @@ function readable(excerpt: string): string {
 }
 
 interface SearchBoxProps {
-  notebookSlug: string;
+  notebookId: string;
   structure: NotebookStructure;
 }
 
-export function SearchBox({ notebookSlug, structure }: SearchBoxProps) {
+export function SearchBox({ notebookId, structure }: SearchBoxProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -90,13 +90,13 @@ export function SearchBox({ notebookSlug, structure }: SearchBoxProps) {
   // A hit names a note by identifier; the tree the page is already showing is
   // what turns it into a name, a path and a link.
   const byId = useMemo(
-    () => new Map(flatten(notebookSlug, structure.folders).map((note) => [note.id, note])),
-    [structure, notebookSlug],
+    () => new Map(flatten(notebookId, structure.folders).map((note) => [note.id, note])),
+    [structure, notebookId],
   );
 
   const { data, isFetching, error } = useQuery({
-    queryKey: ['notebook-search', notebookSlug, debounced],
-    queryFn: () => searchNotes(notebookSlug, debounced, MAX_HITS),
+    queryKey: ['notebook-search', notebookId, debounced],
+    queryFn: () => searchNotes(notebookId, debounced, MAX_HITS),
     enabled: debounced !== '',
     // The previous answer stays on screen while the next one is in flight, so
     // the list does not blink empty between two keystrokes.
@@ -144,7 +144,7 @@ export function SearchBox({ notebookSlug, structure }: SearchBoxProps) {
               {results.map(({ hit, note, url }) => (
                 <li key={hit.noteId}>
                   <Link to={url} onClick={() => setQuery('')}>
-                    <span className="search-name">{note.name}</span>
+                    <span className="search-name">{note.name ?? t('note.unnamed')}</span>
                     <span className="search-path">
                       {note.folderPath}
                       {hit.section ? ` · ${hit.section}` : ''}

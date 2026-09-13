@@ -24,14 +24,14 @@ import { useWriteStatus } from '../store/write-status';
  */
 export function WritableContent({
   raw,
-  notebookSlug,
+  notebookId,
   baseRevision,
   writable,
   write,
   invalidates,
 }: {
   raw: string;
-  notebookSlug: string;
+  notebookId: string;
   baseRevision: string | null;
   writable: boolean;
   write: TaskWriter;
@@ -81,7 +81,7 @@ export function WritableContent({
     segment.kind === 'text'
       ? {
           ...segment,
-          rendered: resolveWikilinks(segment.text, (slug) => resolveNoteUrl(notebookSlug, slug)),
+          rendered: resolveWikilinks(segment.text, (slug) => resolveNoteUrl(notebookId, slug)),
         }
       : segment,
   );
@@ -136,7 +136,7 @@ export function WritableContent({
           return (
             <Transclusion
               key={index}
-              notebookSlug={notebookSlug}
+              notebookId={notebookId}
               target={segment.target}
               anchor={segment.anchor}
             />

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getNotebookStructure } from '../../shared/api/source';
+import { graphAddress, notebookAddress } from '../../shared/api/note-address';
 import type { NotebookStructure } from '../../shared/types/api';
 import { BrandMark } from '../../shared/components/BrandMark';
 import { GraphIcon, MenuIcon, PanelLeftCloseIcon } from '../../shared/components/icons';
@@ -13,6 +14,7 @@ import { FolderTreeSkeleton, NoteSkeleton } from '../../shared/components/skelet
 import { SkeletonBar } from '../../shared/components/Skeleton';
 import { queryState } from '../../shared/api/query-state';
 import { messageKeyOf } from '../../shared/api/error-mapper';
+import { useNotebookId } from './route-ids';
 
 export interface NotebookOutletContext {
   structure: NotebookStructure;
@@ -20,7 +22,10 @@ export interface NotebookOutletContext {
 
 export function NotebookLayout() {
   const { t } = useTranslation();
-  const { notebookSlug = '' } = useParams();
+  // The identifier read straight from the path: there is no listing to search
+  // for it any more, and a segment that is not one answers not-found without a
+  // request (RN-DSC-045).
+  const notebookId = useNotebookId();
   const { pathname } = useLocation();
   /**
    * The sidebar is a permanent column on a wide screen and a drawer on a narrow
@@ -54,11 +59,13 @@ export function NotebookLayout() {
   }, [navOpen]);
 
   const query = useQuery({
-    queryKey: ['notebook-structure', notebookSlug],
-    queryFn: () => getNotebookStructure(notebookSlug),
+    queryKey: ['notebook-structure', notebookId],
+    queryFn: () => getNotebookStructure(notebookId),
+    enabled: notebookId !== '',
   });
   const { data } = query;
 
+  if (!notebookId) return <p className="status">{t('common.notFound')}</p>;
   if (queryState(query) === 'error') {
     return <p className="status">{t(messageKeyOf(query.error))}</p>;
   }
@@ -113,26 +120,26 @@ export function NotebookLayout() {
           ← {t('structure.backToNotebooks')}
         </Link>
         <Link
-          to={`/notebooks/${notebookSlug}`}
+          to={notebookAddress(notebookId)}
           className="notebook-title-link"
           title={t('structure.heading')}
         >
           <h2>{data ? data.notebook.name : <SkeletonBar width="10rem" height="1.4rem" />}</h2>
         </Link>
         {data ? (
-          <SearchBox notebookSlug={notebookSlug} structure={data} />
+          <SearchBox notebookId={notebookId} structure={data} />
         ) : (
           <SkeletonBar height="2.2rem" />
         )}
         <nav className="notebook-nav">
-          <NavLink to={`/notebooks/${notebookSlug}/graph`} className="notebook-nav-link">
+          <NavLink to={graphAddress(notebookId)} className="notebook-nav-link">
             <GraphIcon /> {t('graph.navLabel')}
           </NavLink>
-          <ExportNotebookButton notebookSlug={notebookSlug} />
+          <ExportNotebookButton notebookId={notebookId} />
         </nav>
         <p className="sidebar-caption">{t('structure.content')}</p>
         {data ? (
-          <FolderTree notebookSlug={notebookSlug} folders={data.folders} />
+          <FolderTree notebookId={notebookId} folders={data.folders} />
         ) : (
           <FolderTreeSkeleton />
         )}

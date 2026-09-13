@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { Navigate, useOutletContext, useParams } from 'react-router-dom';
+import { Navigate, useOutletContext } from 'react-router-dom';
 import { lastNoteOf, forgetNote } from '../../shared/store/last-note';
-import { folderTrailForNote, noteAt } from './trail';
+import { noteAddress } from '../../shared/api/note-address';
+import { folderTrailForNote } from './trail';
+import { useNotebookId } from './route-ids';
 import { NotebookContextPage } from './NotebookContextPage';
 import type { NotebookOutletContext } from './NotebookLayout';
 
@@ -22,7 +24,7 @@ import type { NotebookOutletContext } from './NotebookLayout';
 const arrived = new Set<string>();
 
 export function ResumeReading() {
-  const { notebookSlug = '' } = useParams();
+  const notebookId = useNotebookId();
   const { structure } = useOutletContext<NotebookOutletContext>();
 
   // Decided once per mount, in a ref rather than in state: it must survive a
@@ -30,17 +32,17 @@ export function ResumeReading() {
   // the effect below has marked this notebook as arrived at.
   const target = useRef<string | null | undefined>(undefined);
   if (target.current === undefined) {
-    target.current = arrived.has(notebookSlug) ? null : resumable(structure, notebookSlug);
+    target.current = arrived.has(notebookId) ? null : resumable(structure, notebookId);
   }
 
   useEffect(() => {
-    arrived.add(notebookSlug);
-  }, [notebookSlug]);
+    arrived.add(notebookId);
+  }, [notebookId]);
 
   if (target.current) {
     // `replace`, so the notebook index is not left in the history: the back
     // button leaves the notebook instead of bouncing into the note again.
-    return <Navigate to={`/notebooks/${notebookSlug}/root/${target.current}`} replace />;
+    return <Navigate to={noteAddress(notebookId, target.current)} replace />;
   }
   return <NotebookContextPage />;
 }
@@ -49,19 +51,18 @@ export function ResumeReading() {
  * The remembered note, if it is still a note of this notebook.
  *
  * The structure is already in hand, so this costs no request and cannot
- * flash, and a remembered address now **survives a rename and a move**: it
- * carries the identifier, so what changed is the decoration and the route
- * corrects it (RN-DSC-045). Only a deleted note lands on the tree, and its
- * stale entry is dropped on the way, because it will never be right again.
+ * flash. What is remembered is an identifier, so a rename and a move change
+ * nothing about coming back (RN-DSC-057). Only a deleted note lands on the
+ * context, and its entry is dropped on the way, because it will never be right
+ * again.
  */
 function resumable(
   structure: NotebookOutletContext['structure'],
-  notebookSlug: string,
+  notebookId: string,
 ): string | null {
-  const path = lastNoteOf(notebookSlug);
-  if (!path) return null;
-  const noteId = noteAt(structure.folders, path);
-  if (noteId && folderTrailForNote(structure.folders, noteId).length) return path;
-  forgetNote(notebookSlug);
+  const noteId = lastNoteOf(notebookId);
+  if (!noteId) return null;
+  if (folderTrailForNote(structure.folders, noteId).length) return noteId;
+  forgetNote(notebookId);
   return null;
 }

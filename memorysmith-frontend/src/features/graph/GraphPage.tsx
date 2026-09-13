@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   forceCenter,
@@ -18,6 +18,8 @@ import { GraphSkeleton } from '../../shared/components/skeletons';
 import { noteAddress } from '../../shared/api/note-address';
 import { folderTrailForNote } from '../structure/trail';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
+import { useNotebookId } from '../structure/route-ids';
+import { useDocumentTitle } from '../../shared/components/document-title';
 import { getNotebookGraph } from '../../shared/api/backend';
 import { CloseIcon, GearIcon } from '../../shared/components/icons';
 
@@ -173,22 +175,21 @@ export function GraphPage() {
   const { t } = useTranslation();
   const touchOnly = useTouchOnly();
   const navigate = useNavigate();
-  const { notebookSlug = '' } = useParams();
+  const notebookId = useNotebookId();
   const { structure } = useOutletContext<NotebookOutletContext>();
+  useDocumentTitle(t('graph.navLabel'), structure.notebook.name);
   /**
-   * The address of a node, built from the identifier the graph draws: the
-   * folder trail and the label are decoration, and the tree the page already
-   * loaded is where they come from (RN-DSC-045).
+   * The address of a node, which is the identifier the graph draws
+   * (RN-DSC-045). A note the tree the page loaded does not hold is not
+   * somewhere to go: the link projection can still name a note deleted a
+   * moment ago.
    */
   const addressOfNote = useCallback(
-    (noteId: string): string | null => {
-      const trail = folderTrailForNote(structure.folders, noteId);
-      const folder = trail[trail.length - 1];
-      if (!folder) return null;
-      const note = folder.notes.find((each) => each.id === noteId);
-      return noteAddress(notebookSlug, folder.slugPath, note?.name ?? null, noteId);
-    },
-    [structure, notebookSlug],
+    (noteId: string): string | null =>
+      folderTrailForNote(structure.folders, noteId).length > 0
+        ? noteAddress(notebookId, noteId)
+        : null,
+    [structure, notebookId],
   );
   const theme = usePreferences((s) => s.theme);
   const [truncated, setTruncated] = useState(false);
@@ -256,7 +257,7 @@ export function GraphPage() {
    */
   useEffect(() => {
     let live = true;
-    void getNotebookGraph(notebookSlug)
+    void getNotebookGraph(notebookId)
       .then((graph) => {
         if (!live) return;
         setData({
@@ -280,7 +281,7 @@ export function GraphPage() {
     return () => {
       live = false;
     };
-  }, [notebookSlug]);
+  }, [notebookId]);
 
   const attributes = useMemo(() => (data ? attributesOf(data.nodes) : []), [data]);
   /**
@@ -883,7 +884,7 @@ export function GraphPage() {
     };
     // The theme dependency re-runs the effect so the canvas repaints with the
     // active token values.
-  }, [filtered, navigate, notebookSlug, theme]);
+  }, [filtered, navigate, notebookId, theme]);
 
   const hasControls = drawable.length > 0;
 

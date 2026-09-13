@@ -270,9 +270,9 @@ const MAX_KEY_LENGTH = 80;
  * written by the same person minutes apart, and folding case and punctuation
  * between them is what makes `#Artigo 75` find `## Artigo 75`.
  *
- * Nothing outside this comparison reads it. The address of a note carries a
- * decorative label, computed in `note-address.ts` and never compared with
- * anything, which is why that one is not called `slugify` either.
+ * Nothing outside this comparison reads it, and nothing else in the interface
+ * computes a key from a name: the address of a note is its identifier alone
+ * (RN-DSC-045).
  */
 export function headingKey(name: string): string {
   return name

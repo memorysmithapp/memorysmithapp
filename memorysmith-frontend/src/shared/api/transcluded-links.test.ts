@@ -18,9 +18,10 @@ import { describe, expect, it } from 'vitest';
 import { demoteEmbeds } from './transclusion';
 import { resolveWikilinks } from './markdown';
 
+const CABERNET = '/notebooks/01j8x2k9qz3m4n5p6r7s8t9v0a/notes/01j8x2k9qz3m4n5p6r7s8t9v0w';
+
 /** A notebook where one note exists and the other does not. */
-const resolve = (name: string): string | null =>
-  name === 'Cabernet Sauvignon' ? '/notebooks/enologia/root/01-castas/cabernet-sauvignon' : null;
+const resolve = (name: string): string | null => (name === 'Cabernet Sauvignon' ? CABERNET : null);
 
 const render = (body: string): string => resolveWikilinks(demoteEmbeds(body), resolve);
 
@@ -29,11 +30,11 @@ describe('an embed inside embedded content becomes a link, not text', () => {
     const out = render('![[Cabernet Sauvignon#^brix-engana]]');
 
     expect(out).not.toContain('[[');
-    expect(out).toContain('/notebooks/enologia/root/01-castas/cabernet-sauvignon');
+    expect(out).toContain(CABERNET);
   });
 
   it('resolves a demoted whole-note embed', () => {
-    expect(render('![[Cabernet Sauvignon]]')).toContain('cabernet-sauvignon');
+    expect(render('![[Cabernet Sauvignon]]')).toContain(CABERNET);
   });
 
   it('keeps the visible text of the target', () => {
@@ -46,7 +47,7 @@ describe('a plain wikilink inside transcluded content behaves as it does outside
     const out = render('Ver [[Cabernet Sauvignon]] para a estrutura.');
 
     expect(out).not.toContain('[[');
-    expect(out).toContain('/notebooks/enologia/root/01-castas/cabernet-sauvignon');
+    expect(out).toContain(CABERNET);
   });
 
   it('marks one whose target does not exist as pending, and never as raw text', () => {

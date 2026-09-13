@@ -1,8 +1,10 @@
 import { Fragment } from 'react';
-import { Link, useOutletContext, useParams } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { FolderNode } from '../../shared/types/api';
+import { folderAddress, notebookAddress } from '../../shared/api/note-address';
 import type { NotebookOutletContext } from './NotebookLayout';
+import { useNotebookId } from './route-ids';
 
 export interface Crumb {
   label: string;
@@ -15,19 +17,17 @@ interface NotebookBreadcrumbProps {
   className?: string;
 }
 
-// Every page inside a notebook starts its trail at the notebook name (which links to
-// the Structure page). The second level is a reserved namespace, never a notebook
-// folder: Guidance, Templates or Root (plus the notebook graph), mirroring the
-// URL, where all content lives under /root. The Root crumb links to the
-// notebook root listing, so every level of the trail is navigable, and a folder
-// named "Guidance", "Templates" or "Root" stays unambiguous. On the
-// Structure page itself the trail is just the notebook name.
+// Every page inside a notebook starts its trail at the notebook name, which
+// links to the Notebook Context. The second level is a page of the notebook,
+// never a folder of it: Guidance, Templates, Root or the graph. The trail of
+// folders is read here, from the structure already loaded, and never from the
+// address, which carries identifiers alone (RN-DSC-045).
 export function NotebookBreadcrumb({ items, className = '' }: NotebookBreadcrumbProps) {
   const { t } = useTranslation();
-  const { notebookSlug = '' } = useParams();
+  const notebookId = useNotebookId();
   const { structure } = useOutletContext<NotebookOutletContext>();
   const trail: Crumb[] = [
-    { label: structure.notebook.name, to: `/notebooks/${notebookSlug}` },
+    { label: structure.notebook.name, to: notebookAddress(notebookId) },
     ...items,
   ];
   const last = trail.length - 1;
@@ -51,9 +51,9 @@ export function NotebookBreadcrumb({ items, className = '' }: NotebookBreadcrumb
   );
 }
 
-export function folderCrumbs(notebookSlug: string, chain: FolderNode[]): Crumb[] {
+export function folderCrumbs(notebookId: string, chain: FolderNode[]): Crumb[] {
   return chain.map((folder) => ({
     label: folder.name,
-    to: `/notebooks/${notebookSlug}/root/${folder.slugPath}`,
+    to: folderAddress(notebookId, folder.id),
   }));
 }

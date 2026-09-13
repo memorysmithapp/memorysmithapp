@@ -1,9 +1,12 @@
 import { createBrowserRouter } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AppShell } from '../shared/components/AppShell';
 import { LoginPage } from '../features/auth/LoginPage';
 import { AuthCallbackPage } from '../features/auth/AuthCallbackPage';
 import { GuidancePanel } from '../features/guidance/GuidancePanel';
-import { FolderRoute } from '../features/structure/FolderRoute';
+import { FolderPage } from '../features/structure/FolderPage';
+import { FoldersIndexPage } from '../features/structure/FoldersIndexPage';
+import { NoteRoute } from '../features/structure/NoteRoute';
 import { ResumeReading } from '../features/structure/ResumeReading';
 import { TemplatesPage } from '../features/structure/TemplatesPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
@@ -12,6 +15,21 @@ import { LinkTargetPage } from '../features/note/LinkTargetPage';
 import { NotebookLayout } from '../features/structure/NotebookLayout';
 import { RequireSession, RootLayout } from './RootLayout';
 
+/**
+ * Anything under a notebook that no route names, an address saved before 0.6.0
+ * included. It is not redirected: resolving it would mean reading a name out
+ * of an address, which is the tolerance the address gave up (RN-DSC-045).
+ */
+function NotFound() {
+  const { t } = useTranslation();
+  return <p className="status">{t('common.notFound')}</p>;
+}
+
+/**
+ * Every address inside a notebook is an identifier, and the note is not nested
+ * under its folder (RN-DSC-045). The breadcrumb, built from the structure
+ * already loaded, is where the folder trail is read.
+ */
 export const router = createBrowserRouter([
   {
     element: <RootLayout />,
@@ -26,15 +44,18 @@ export const router = createBrowserRouter([
             children: [
               { path: '/', element: <DashboardPage /> },
               {
-                path: '/notebooks/:notebookSlug',
+                path: '/notebooks/:notebookId',
                 element: <NotebookLayout />,
                 children: [
                   { index: true, element: <ResumeReading /> },
                   { path: 'guidance', element: <GuidancePanel /> },
                   { path: 'templates', element: <TemplatesPage /> },
                   { path: 'graph', element: <GraphPage /> },
-                  { path: 'root/*', element: <FolderRoute /> },
+                  { path: 'folders', element: <FoldersIndexPage /> },
+                  { path: 'folders/:folderId', element: <FolderPage /> },
+                  { path: 'notes/:noteId', element: <NoteRoute /> },
                   { path: 'links/:target', element: <LinkTargetPage /> },
+                  { path: '*', element: <NotFound /> },
                 ],
               },
             ],

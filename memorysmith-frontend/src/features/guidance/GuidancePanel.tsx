@@ -1,14 +1,18 @@
-import { useOutletContext, useParams } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { canWrite, putGuidance } from '../../shared/api/source';
 import { WritableContent } from '../../shared/components/WritableContent';
+import { useDocumentTitle } from '../../shared/components/document-title';
 import { NotebookBreadcrumb } from '../structure/NotebookBreadcrumb';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
+import { useNotebookId } from '../structure/route-ids';
 
 export function GuidancePanel() {
   const { t } = useTranslation();
-  const { notebookSlug = '' } = useParams();
+  const notebookId = useNotebookId();
   const { structure } = useOutletContext<NotebookOutletContext>();
+
+  useDocumentTitle(t('structure.guidance'), structure.notebook.name);
 
   return (
     <article className="content-pane">
@@ -17,13 +21,13 @@ export function GuidancePanel() {
       {structure.guidance ? (
         <WritableContent
           raw={structure.guidance}
-          notebookSlug={notebookSlug}
+          notebookId={notebookId}
           baseRevision={structure.guidanceRevision}
           writable={canWrite(structure.effectiveRole)}
           write={({ raw, baseRevision, keepalive }) =>
-            putGuidance(notebookSlug, raw, baseRevision, { keepalive: keepalive ?? false })
+            putGuidance(notebookId, raw, baseRevision, { keepalive: keepalive ?? false })
           }
-          invalidates={['notebook-structure', notebookSlug]}
+          invalidates={['notebook-structure', notebookId]}
         />
       ) : (
         <p className="status">{t('common.notFound')}</p>

@@ -170,9 +170,9 @@ describe('DynamoNotebookRepository: the aggregate in one Query', () => {
 
   it('refuses a second notebook whose name yields a slug already taken', async () => {
     /**
-     * RN-KNW-032. The slug of the notebook is its address in the interface, so
-     * two notebooks sharing one makes every URL ambiguous and leaves the second
-     * unreachable. The guard item is what makes this a database rule: without
+     * RN-KNW-032. A notebook is chosen by name, so two sharing one make every
+     * choice between them a guess. The guard item is what makes this a database
+     * rule: without
      * it two concurrent creations both pass a read check and both write.
      */
     const context = contextFor();

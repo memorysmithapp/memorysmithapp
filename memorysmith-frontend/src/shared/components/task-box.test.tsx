@@ -52,7 +52,7 @@ beforeAll(async () => {
         <MemoryRouter>
           <WritableContent
             raw={markdown}
-            notebookSlug="a-notebook"
+            notebookId="01J8X2K9QZ3M4N5P6R7S8T9V0A"
             baseRevision="rev-1"
             writable={writable}
             write={() => Promise.resolve('rev-2')}

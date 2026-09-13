@@ -1,16 +1,19 @@
 import { useEffect } from 'react';
 import { useQueries } from '@tanstack/react-query';
-import { Link, useLocation, useOutletContext, useParams } from 'react-router-dom';
+import { Link, useLocation, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { canWrite, getTemplate, putTemplate } from '../../shared/api/source';
 import { messageKeyOf } from '../../shared/api/error-mapper';
+import { folderAddress } from '../../shared/api/note-address';
 import { queryState } from '../../shared/api/query-state';
 import { TemplateSkeleton } from '../../shared/components/skeletons';
 import { WritableContent } from '../../shared/components/WritableContent';
+import { useDocumentTitle } from '../../shared/components/document-title';
 import type { FolderNode } from '../../shared/types/api';
 import { templateAnchor } from './StructureOutline';
 import { NotebookBreadcrumb } from './NotebookBreadcrumb';
 import type { NotebookOutletContext } from './NotebookLayout';
+import { useNotebookId } from './route-ids';
 
 interface TemplatedFolder {
   folder: FolderNode;
@@ -30,15 +33,17 @@ function collectTemplated(folders: FolderNode[], trail: string[] = []): Template
 // validates against it.
 export function TemplatesPage() {
   const { t } = useTranslation();
-  const { notebookSlug = '' } = useParams();
+  const notebookId = useNotebookId();
   const { hash } = useLocation();
   const { structure } = useOutletContext<NotebookOutletContext>();
   const templated = collectTemplated(structure.folders);
 
+  useDocumentTitle(t('structure.templates'), structure.notebook.name);
+
   const queries = useQueries({
     queries: templated.map(({ folder }) => ({
-      queryKey: ['template', notebookSlug, folder.id],
-      queryFn: () => getTemplate(notebookSlug, folder.id),
+      queryKey: ['template', notebookId, folder.id],
+      queryFn: () => getTemplate(notebookId, folder.id),
     })),
   });
   const allLoaded = queries.every((q) => !q.isPending);
@@ -76,25 +81,22 @@ export function TemplatesPage() {
           >
             <summary>
               {path.join(' / ')}
-              <Link
-                to={`/notebooks/${notebookSlug}/root/${folder.slugPath}`}
-                className="template-folder-link"
-              >
+              <Link to={folderAddress(notebookId, folder.id)} className="template-folder-link">
                 {t('structure.openFolder')}
               </Link>
             </summary>
             {template ? (
               <WritableContent
                 raw={template.body}
-                notebookSlug={notebookSlug}
+                notebookId={notebookId}
                 baseRevision={template.revision}
                 writable={canWrite(structure.effectiveRole)}
                 write={({ raw, baseRevision, keepalive }) =>
-                  putTemplate(notebookSlug, folder.id, raw, baseRevision, {
+                  putTemplate(notebookId, folder.id, raw, baseRevision, {
                     keepalive: keepalive ?? false,
                   })
                 }
-                invalidates={['template', notebookSlug, folder.id]}
+                invalidates={['template', notebookId, folder.id]}
               />
             ) : failed ? (
               <p className="status">{t(messageKeyOf(query?.error))}</p>

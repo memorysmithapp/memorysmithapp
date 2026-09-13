@@ -1,90 +1,82 @@
 /**
- * The address this interface gives a note, and the label inside it.
+ * The addresses this interface gives what it shows: identifiers, and nothing
+ * else (RN-DSC-045).
  *
  * ```
- * /notebooks/:notebookSlug/root/<folder slugs>/<label>--<noteId>
- * /notebooks/enologia/root/01-castas/indice--01j8x2k9qz3m4n5p6r7s8t9v0w
+ * /notebooks/:notebookId
+ * /notebooks/:notebookId/folders
+ * /notebooks/:notebookId/folders/:folderId
+ * /notebooks/:notebookId/notes/:noteId
+ * /notebooks/:notebookId/links/:target
  * ```
  *
- * **The identifier is the address; everything before it is decoration.** A URL
- * is an address: the product writes it, a person copies it, and pasting it
- * back has to land on the note it was copied from. A wikilink is a name, and a
- * name may be carried by several notes — that ambiguity is the model
- * (RN-KNW-037) and it has an address of its own, under `/links/`. Putting the
- * name in the last segment made the address inherit the ambiguity of the
- * name, which is the merge this design undoes (RN-DSC-045, RN-DSC-055).
+ * **No name, slug, label or folder trail is part of an address.** A segment
+ * that is read goes stale the day what it reads is renamed or moved, and a
+ * segment nothing reads is a segment somebody eventually starts reading. An
+ * identifier never changes, so pasting an address back lands on what it was
+ * copied from whatever happened to its name in between (RN-DSC-057). What a
+ * person reads is the title of the tab (RN-DSC-058).
  *
- * **The label is a slug and it must not be called `slugify`.** The defect this
- * cycle paid off was two copies of `slugify` that disagreed about what a note
- * was called. A decorative label cannot disagree with anything, because
- * **nothing reads it**: it is never compared, never stored and never sent to
- * the API. That distinction survives only if the name says it — called
- * `slugify`, it would be compared with the kernel's again within the year.
+ * **A note is not nested under its folder.** A folder in the address of a note
+ * would either be read, and moving the note would break it, or be decoration,
+ * which is exactly what this design removes.
+ *
+ * An identifier is written in lower case, because an address somebody looks at
+ * should not shout, and read in either case, because Crockford base32 is
+ * case-insensitive. What reaches the API is the canonical upper-case form.
+ *
+ * A link target is the one place a name legitimately lives in an address: a
+ * wikilink is a name, a name may be carried by several notes, and the choice
+ * between them has an address of its own (RN-DSC-046).
  */
 
-const MAX_LABEL_LENGTH = 60;
 const ULID = /^[0-9a-hjkmnp-tv-z]{26}$/i;
 
 /**
- * A readable label for a name. Its only job is to let a person tell what an
- * address points at; a stale one, a wrong one or none at all still lands on
- * the note, which is what "decoration" means.
+ * The canonical identifier a segment carries, or `null` when it carries none.
+ * A segment that is not an identifier addresses nothing, and the page answers
+ * not-found without asking the API.
  */
-export function decorativeLabel(name: string | null): string {
-  if (!name) return '';
-  return name
-    .normalize('NFD')
-    .replace(/(\d)[.,](\d)/g, '$1$2')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, MAX_LABEL_LENGTH)
-    .replace(/-+$/g, '');
+export function identifierOf(segment: string | undefined): string | null {
+  return segment !== undefined && ULID.test(segment) ? segment.toUpperCase() : null;
 }
 
-/**
- * The last segment of a note address: the label, then `--`, then the
- * identifier. With no label it is the bare identifier, which is the address of
- * a note with no addressable name (RN-KNW-036) — the degenerate case of the
- * same rule rather than a second scheme.
- */
-export function noteSegment(name: string | null, noteId: string): string {
-  const label = decorativeLabel(name);
-  const id = noteId.toLowerCase();
-  return label ? `${label}--${id}` : id;
+const written = (identifier: string): string => identifier.toLowerCase();
+
+export function notebookAddress(notebookId: string): string {
+  return `/notebooks/${written(notebookId)}`;
 }
 
-/**
- * The identifier a segment addresses, or `null` when it addresses no note.
- *
- * **Split at the LAST `--`.** A label never contains one — runs of
- * non-alphanumerics collapse into a single hyphen — but splitting at the last
- * costs nothing and holds even if that ever changes. The identifier is written
- * in lower case and upper-cased before it is parsed, because Crockford base32
- * is case-insensitive and an address somebody looks at should not shout.
- */
-export function noteIdOf(segment: string): string | null {
-  const cut = segment.lastIndexOf('--');
-  const id = cut === -1 ? segment : segment.slice(cut + 2);
-  return ULID.test(id) ? id.toUpperCase() : null;
+/** The listing of the top-level folders of a notebook. */
+export function foldersAddress(notebookId: string): string {
+  return `${notebookAddress(notebookId)}/folders`;
 }
 
-/** The whole address of a note, which is what every surface links to. */
-export function noteAddress(
-  notebookSlug: string,
-  folderSlugPath: string,
-  name: string | null,
-  noteId: string,
-): string {
-  const trail = folderSlugPath ? `${folderSlugPath}/` : '';
-  return `/notebooks/${notebookSlug}/root/${trail}${noteSegment(name, noteId)}`;
+export function folderAddress(notebookId: string, folderId: string): string {
+  return `${foldersAddress(notebookId)}/${written(folderId)}`;
+}
+
+/** The address of a note, which every surface that links to one builds. */
+export function noteAddress(notebookId: string, noteId: string): string {
+  return `${notebookAddress(notebookId)}/notes/${written(noteId)}`;
+}
+
+export function guidanceAddress(notebookId: string): string {
+  return `${notebookAddress(notebookId)}/guidance`;
+}
+
+export function templatesAddress(notebookId: string): string {
+  return `${notebookAddress(notebookId)}/templates`;
+}
+
+export function graphAddress(notebookId: string): string {
+  return `${notebookAddress(notebookId)}/graph`;
 }
 
 /**
  * The address of a link target, which is where a name legitimately gets
  * encoded: a route reached by clicking and never by typing (RN-DSC-046).
  */
-export function linkTargetAddress(notebookSlug: string, target: string): string {
-  return `/notebooks/${notebookSlug}/links/${encodeURIComponent(target.normalize('NFC'))}`;
+export function linkTargetAddress(notebookId: string, target: string): string {
+  return `${notebookAddress(notebookId)}/links/${encodeURIComponent(target.normalize('NFC'))}`;
 }

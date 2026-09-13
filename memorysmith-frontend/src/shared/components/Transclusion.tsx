@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getNote, resolveNoteUrl, wikilinkUrl } from '../api/source';
-import { noteIdOf } from '../api/note-address';
+import { getNote, resolveNoteId, wikilinkUrl } from '../api/source';
+import { noteAddress } from '../api/note-address';
 import { demoteEmbeds, blockOf, isBlockAnchor, sectionOf } from '../api/transclusion';
 import { resolveWikilinks } from '../api/markdown';
 import { Markdown } from './Markdown';
@@ -16,11 +16,11 @@ import { TransclusionSkeleton } from './skeletons';
  * knowing who asserted what.
  */
 export function Transclusion({
-  notebookSlug,
+  notebookId,
   target,
   anchor,
 }: {
-  notebookSlug: string;
+  notebookId: string;
   target: string;
   anchor: string | null;
 }) {
@@ -29,19 +29,18 @@ export function Transclusion({
   // A transclusion expands ONE note, so it expands what a wikilink would
   // navigate to: an ambiguous target is a choice a reader makes and not a
   // passage the page can inline on their behalf.
-  const url = resolveNoteUrl(notebookSlug, name);
-  const noteId = url ? (noteIdOf(url.split('/').pop() ?? '') ?? '') : '';
+  const noteId = resolveNoteId(notebookId, name);
 
   const { data, isPending, isError } = useQuery({
-    queryKey: ['note', notebookSlug, noteId],
-    queryFn: () => getNote(notebookSlug, noteId),
-    enabled: url !== null,
+    queryKey: ['note', notebookId, noteId],
+    queryFn: () => getNote(notebookId, noteId ?? ''),
+    enabled: noteId !== null,
   });
 
   // The same pending marker a wikilink uses. A notebook is read most while it is
   // still being written, so a target that does not exist yet is an expected
   // state and never an error that stops the page.
-  if (url === null || isError) {
+  if (noteId === null || isError) {
     return (
       <p className="embed-pending">
         <span className="wikilink-pending" title={t('note.pendingLink')}>
@@ -55,7 +54,7 @@ export function Transclusion({
 
   const whole = data.body;
   // The caption names the note the content came from, and a note may have no
-  // addressable name (RN-KNW-036).
+  // name (RN-KNW-036).
   const sourceLabel = data.name ?? t('note.unnamed');
   // `#^id` addresses a BLOCK and `#Section` a heading. The two are told apart
   // by the marker and not by trying one and falling back to the other, or a
@@ -82,12 +81,14 @@ export function Transclusion({
            * implemented halfway.
            */
           <Markdown>
-            {resolveWikilinks(demoteEmbeds(cut), (each) => wikilinkUrl(notebookSlug, each))}
+            {resolveWikilinks(demoteEmbeds(cut), (each) => wikilinkUrl(notebookId, each))}
           </Markdown>
         )}
       </div>
       <figcaption className="embed-source">
-        <Link to={url}>{anchor ? `${sourceLabel} › ${anchor}` : sourceLabel}</Link>
+        <Link to={noteAddress(notebookId, noteId)}>
+          {anchor ? `${sourceLabel} › ${anchor}` : sourceLabel}
+        </Link>
       </figcaption>
     </figure>
   );

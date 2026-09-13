@@ -14,14 +14,14 @@ type Phase = 'idle' | 'preparing' | 'failed';
  * link carries a content disposition of attachment, so navigating to it saves
  * the file and leaves the application where it was.
  */
-export function ExportNotebookButton({ notebookSlug }: { notebookSlug: string }) {
+export function ExportNotebookButton({ notebookId }: { notebookId: string }) {
   const { t } = useTranslation();
   const [phase, setPhase] = useState<Phase>('idle');
 
   async function download(): Promise<void> {
     setPhase('preparing');
     try {
-      const job = await exportNotebook(notebookSlug);
+      const job = await exportNotebook(notebookId);
       if (!job.downloadUrl) {
         setPhase('failed');
         return;
