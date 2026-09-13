@@ -25,7 +25,7 @@
           }
         ],
         "pipeline": {
-          "connectionArn": "arn:aws:codeconnections:us-east-1:364362227104:connection/1dafbdde-17c1-40da-a764-ac35aa38f184",
+          "connectionArn": "arn:aws:codeconnections:us-east-1:364362227104:connection/b41e4d9d-91c0-449d-b826-774570fc94e4",
           "repository": "memorysmithapp/memorysmithapp",
           "release": {
             "appId": "4933372",
@@ -41,7 +41,7 @@
         "hostedZoneId": "Z07999273FVWE6U5B5811",
         "delegations": [],
         "pipeline": {
-          "connectionArn": "arn:aws:codeconnections:us-east-1:364362227104:connection/1dafbdde-17c1-40da-a764-ac35aa38f184",
+          "connectionArn": "arn:aws:codeconnections:us-east-1:364362227104:connection/b41e4d9d-91c0-449d-b826-774570fc94e4",
           "repository": "memorysmithapp/memorysmithapp"
         }
       }

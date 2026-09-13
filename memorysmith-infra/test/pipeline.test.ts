@@ -216,7 +216,8 @@ describe('the teardown of an environment', () => {
           resource.Type === 'AWS::IAM::Policy' && id.startsWith('DestroyStagingConnection'),
       ) ?? [];
     expect(policy).toBeDefined();
-    expect(JSON.stringify(granting)).toContain('codeconnections:GetConnectionToken');
+    expect(JSON.stringify(granting)).toContain('"codeconnections:GetConnectionToken"');
+    expect(JSON.stringify(granting)).toContain('"codeconnections:GetConnection"');
     expect(teardown?.DependsOn).toContain(policy);
   });
 

@@ -397,9 +397,13 @@ export class PipelineStack extends Stack {
         roles: teardown.role ? [teardown.role] : [],
         statements: [
           new iam.PolicyStatement({
+            // GetConnection too: CodeBuild reads the connection on the role's
+            // behalf, and the documentation names it beside GetConnectionToken.
             actions: [
               'codeconnections:UseConnection',
               'codestar-connections:UseConnection',
+              'codeconnections:GetConnection',
+              'codestar-connections:GetConnection',
               'codeconnections:GetConnectionToken',
               'codestar-connections:GetConnectionToken',
             ],
