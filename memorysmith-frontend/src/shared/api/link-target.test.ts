@@ -1,6 +1,6 @@
 /**
- * The target the reading surface reads out of a wikilink, pinned to the
- * PUBLISHED cases.
+ * The target the reading surface reads out of a wikilink, held to the cases of
+ * the specification the extractor runs.
  *
  * This file used to prove a slug, and the slug is gone. Specification 0.6.0
  * resolves a link against the **title** of a note: a wikilink target is
@@ -17,19 +17,11 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import cases from '@memorysmith/markdown-spec/conformance.json' with { type: 'json' };
+import { CONFORMANCE_CASES, type ConformanceCase } from '@memorysmith/contracts';
 import { resolveWikilinks } from './markdown';
 
-interface ConformanceCase {
-  readonly id: string;
-  readonly markdown: string;
-  readonly links?: ReadonlyArray<{ readonly title: string; readonly anchor: string | null }>;
-}
-
-const suite = (cases as { cases: ConformanceCase[] }).cases;
-
 /** The wikilink cases: the Markdown form is the backend's to tolerate. */
-const wikilinkCases = suite.filter(
+const wikilinkCases = CONFORMANCE_CASES.filter(
   (each) => (each.links?.length ?? 0) > 0 && /\[\[/.test(each.markdown),
 );
 

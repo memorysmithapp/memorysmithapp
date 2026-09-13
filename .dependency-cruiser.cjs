@@ -79,14 +79,28 @@ module.exports = {
       name: 'frontend-imports-contracts-only',
       comment:
         'The frontend imports @memorysmith/contracts — its types, and the constants it derives ' +
-        'from the pinned specification — and nothing else from the backend: not the kernel, not ' +
-        'a service (architecture-guide.md, section 5.1).',
+        'from the Markdown specification — and nothing else from the backend: not the kernel, ' +
+        'not a service (architecture-guide.md, section 5.1).',
       severity: 'error',
       from: { path: '^memorysmith-frontend/' },
       to: {
         path: '^memorysmith-backend/',
         pathNot: CONTRACTS,
       },
+    },
+    {
+      name: 'frontend-reads-the-specification-through-contracts',
+      comment:
+        'The Markdown specification in docs/markdown-spec is data the contracts derive from. The ' +
+        'frontend reads the notation and its cases from @memorysmith/contracts, so the ' +
+        'specification has one door into the interface and not two (architecture-guide.md, ' +
+        'section 11.0).',
+      severity: 'error',
+      from: { path: '^memorysmith-frontend/' },
+      // Both shapes: the package name, which is what an import the frontend does
+      // not declare resolves to, and the real path, which is what a relative import
+      // or a declared dependency resolves to.
+      to: { path: '(^|/)docs/markdown-spec/|(^|/)@memorysmith/markdown-spec(/|$)' },
     },
     {
       name: 'contracts-stay-standalone',

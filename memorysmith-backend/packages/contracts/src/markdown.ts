@@ -1,28 +1,26 @@
 /**
- * The notation the product reads inside the body of a note, IMPORTED rather
- * than declared.
+ * The notation the product reads inside the body of a note, DERIVED from the
+ * specification rather than transcribed from it.
  *
- * It used to be written here, and it is not any more. The notation is now a
- * published specification with a version of its own — the MemorySmith Markdown
- * Profile — carrying the same list as prose (`SPEC.md`), as data
- * (`spec.json`) and as an executable suite (`tests/conformance.json`). The
- * product does not declare the notation; it **implements a version of it**,
- * and says which.
+ * The notation is declared once, as data, in `docs/markdown-spec/`: the
+ * MemorySmith Markdown Specification, carrying the same list as prose
+ * (`SPEC.md`), as data (`spec.json`) and as an executable suite
+ * (`tests/conformance.json`). It has no version of its own — it follows the
+ * version of the product — and a notation changes in the same commit as the
+ * readers that implement it.
  *
- * That is the whole reason this file shrank. A specification and an
+ * That is the whole reason this file holds no list. A specification and an
  * implementation that keep separate copies of the same list drift apart on the
  * first cycle, and the drift is silent — which is exactly the failure the
- * profile exists to prevent one layer up, for the vaults. Keeping a private
- * transcription here would have been that same mistake, made by us.
- *
- * The version is pinned in `pnpm-workspace.yaml`, in one place, and a bump is
- * a deliberate commit whose proof is the conformance suite going green.
+ * specification exists to prevent one layer up, for the vaults. Keeping a
+ * private transcription here would be that same mistake, made by us.
  *
  * It is re-exported from this package, and not read directly by whoever needs
  * it, because two contexts need the same list and may never import each other:
  * Discovery READS this notation, in its two sanctioned extractors, and Agent
  * Access TEACHES it, in the skill that tells an agent how to write a note this
- * product understands (RN-AGT-017, RN-AGT-022).
+ * product understands (RN-AGT-017, RN-AGT-022). The frontend reads it from here
+ * too, since this is the one backend package it may import.
  *
  * **Two lists below are ours and not the profile's**, and they are here because
  * specification v0.4.0 stopped carrying the fields they used to be read from. Each
@@ -85,10 +83,11 @@ export interface ConformanceCase {
   }>;
 }
 
-/** The version of the profile this build implements. Cited, never guessed. */
-export const MARKDOWN_SPEC_VERSION: string = spec.version;
-
-/** The name and the address of the specification, for what the product serves. */
+/**
+ * The name and the address of the specification, for what the product serves.
+ * There is no version beside them: the specification follows the version of
+ * the product.
+ */
 export const MARKDOWN_SPEC_URL: string = spec.url;
 export const MARKDOWN_SPEC_NAME: string = spec.spec;
 
@@ -309,21 +308,3 @@ export const TITLE_KEY: string =
 export const DRAWN_RESERVED_KEYS: readonly string[] = RESERVED_FRONTMATTER_KEYS.filter(
   (key) => key !== TITLE_KEY,
 );
-
-/**
- * The cases of the PINNED suite this build deliberately fails, because it
- * implements a decision the specification took in a later version.
- *
- * **It is empty, and that is the point.** It held exactly one entry for the
- * length of one cycle: v0.4.0 stated that `title:` is an ordinary attribute
- * and v0.6.0 states that it produces no attribute at all (§6.5), the product
- * took the later decision ahead of the pin (RN-DSC-050), and said so here
- * instead of quietly disagreeing with the suite it runs. The pin moved, the
- * case that stated the opposite went with it, and the guard below — every id
- * here exists in the pinned suite — is what made the entry expire on the day
- * rather than outliving its reason.
- */
-export const SUPERSEDED_BY_A_LATER_SPECIFICATION: ReadonlyArray<{
-  readonly id: string;
-  readonly reason: string;
-}> = [];

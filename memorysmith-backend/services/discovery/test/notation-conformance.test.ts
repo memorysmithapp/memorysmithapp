@@ -1,16 +1,18 @@
 /**
- * The two sanctioned extractors, run against the PUBLISHED conformance suite
- * of the MemorySmith Markdown Specification (RN-AGT-022, RN-AGT-023).
+ * The two sanctioned extractors, run against the conformance suite of the
+ * MemorySmith Markdown Specification (RN-AGT-022, RN-AGT-023).
  *
  * The cases are not written here and they are not a copy of anything written
- * here. They come from the profile this build pins, so a case the extractors
- * fail breaks the build — which is the point of implementing a specification
- * instead of declaring one: the product cannot quietly stop reading what it
- * says it reads.
+ * here. They come from `docs/markdown-spec/tests/conformance.json`, so a case
+ * the extractors fail breaks the build: the product cannot quietly stop
+ * reading what it says it reads. **Every case runs.** The specification
+ * changes in the same commit as the readers that implement it, so there is no
+ * later version to be ahead of and no case this build is allowed to fail.
  *
- * `RECOGNISED_NOTATION` is the same profile as data, and Agent Access teaches
- * from it. Discovery reads it and never writes it, and the two contexts may
- * not import each other, which is why both go through the contracts package.
+ * `RECOGNISED_NOTATION` is the same specification as data, and Agent Access
+ * teaches from it. Discovery reads it and never writes it, and the two
+ * contexts may not import each other, which is why both go through the
+ * contracts package.
  *
  * The entries whose reader is `reading-surface` are proved in the frontend,
  * against the real renderer: what a callout looks like is not something a JSON
@@ -20,9 +22,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   CONFORMANCE_CASES,
-  MARKDOWN_SPEC_VERSION,
   RECOGNISED_NOTATION,
-  SUPERSEDED_BY_A_LATER_SPECIFICATION,
   type ConformanceCase,
 } from '@memorysmith/contracts';
 import { noteTitle } from '@memorysmith/kernel';
@@ -31,19 +31,10 @@ import { extractFacets } from '../src/domain/FacetExtractor.js';
 import { resolveTarget, vaultNames } from '../src/domain/LinkResolver.js';
 import { extractFrontmatterAliases } from '../src/domain/Aliases.js';
 
-/**
- * A case this build deliberately fails, because the specification took the
- * opposite decision in a later version and the product implements that one.
- * There is exactly one, it is declared with its reason, and the guard below
- * makes it expire with the pin.
- */
-const superseded = new Set(SUPERSEDED_BY_A_LATER_SPECIFICATION.map((each) => each.id));
-const run = CONFORMANCE_CASES.filter((each) => !superseded.has(each.id));
-
-const withLinks = run.filter((each) => each.links !== undefined);
-const withFacets = run.filter((each) => each.facets !== undefined);
-const withTitle = run.filter((each) => each.title !== undefined);
-const withResolution = run.filter((each) => each.resolution !== undefined);
+const withLinks = CONFORMANCE_CASES.filter((each) => each.links !== undefined);
+const withFacets = CONFORMANCE_CASES.filter((each) => each.facets !== undefined);
+const withTitle = CONFORMANCE_CASES.filter((each) => each.title !== undefined);
+const withResolution = CONFORMANCE_CASES.filter((each) => each.resolution !== undefined);
 
 /**
  * The vault a resolution case is resolved against, built the way the product
@@ -73,7 +64,7 @@ function facetsOf(markdown: string): Record<string, { kind: string; values: stri
   );
 }
 
-describe(`the published conformance suite, profile ${MARKDOWN_SPEC_VERSION}`, () => {
+describe('the conformance suite of the specification', () => {
   it.each(withLinks)('$id reads the declared links', (each: ConformanceCase) => {
     // Order is not part of the contract: an edge set is a set.
     expect(linksOf(each.markdown).sort(byTitle)).toEqual([...(each.links ?? [])].sort(byTitle));
@@ -97,17 +88,6 @@ describe(`the published conformance suite, profile ${MARKDOWN_SPEC_VERSION}`, ()
     });
 
     expect(resolved).toEqual([...(each.resolution ?? [])]);
-  });
-
-  it('carries no stale exception: every superseded case is still in the suite', () => {
-    // The day the pin moves past the version that stated the opposite, the
-    // case is gone and this fails until the entry is deleted with it. An
-    // exception that outlives its reason is worse than no exception.
-    const ids = new Set(CONFORMANCE_CASES.map((each) => each.id));
-    for (const each of SUPERSEDED_BY_A_LATER_SPECIFICATION) {
-      expect(ids.has(each.id), `${each.id} is no longer in the pinned suite`).toBe(true);
-      expect(each.reason.length).toBeGreaterThan(40);
-    }
   });
 
   it('runs a suite that exists, so a silent empty import cannot pass', () => {

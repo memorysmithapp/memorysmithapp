@@ -30,7 +30,6 @@ export const VAULT_DOCUMENT_VERSION = '1.0';
 
 export interface VaultDocument {
   readonly documentVersion: string;
-  readonly specVersion: string;
   readonly exportedAt: string;
   readonly vault: {
     readonly name: string;
@@ -82,14 +81,9 @@ export interface ExportInput {
   readonly notes: ExportNote[];
 }
 
-export function buildVaultDocument(
-  input: ExportInput,
-  now: string,
-  specVersion: string,
-): VaultDocument {
+export function buildVaultDocument(input: ExportInput, now: string): VaultDocument {
   return {
     documentVersion: VAULT_DOCUMENT_VERSION,
-    specVersion,
     exportedAt: now,
     vault: {
       name: input.vaultName,

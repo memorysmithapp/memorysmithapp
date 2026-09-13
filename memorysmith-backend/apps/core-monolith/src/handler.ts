@@ -103,7 +103,6 @@ import {
 } from './composition-root.js';
 import { KnowledgeNoteCatalog } from './note-catalog.js';
 import { KnowledgeExportSource } from './export-source.js';
-import { MARKDOWN_SPEC_VERSION } from '@memorysmith/contracts';
 import { serializeVaultDocument } from './composition-root.js';
 
 function required(name: string): string {
@@ -267,7 +266,6 @@ const portabilityUseCases: PortabilityUseCases = {
       createZip,
       request.subscription.subscriptionId.value,
       serializeVaultDocument,
-      MARKDOWN_SPEC_VERSION,
     ),
   prepareImport: (request) =>
     new PrepareImport(

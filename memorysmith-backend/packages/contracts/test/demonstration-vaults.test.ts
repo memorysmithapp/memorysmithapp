@@ -403,10 +403,10 @@ describe.each(DEMONSTRATION)('%s demonstrates the whole declared notation', (slu
     'image-dimensions',
     'frontmatter-author',
     'frontmatter-co-author',
-  ])('already shows %s, which the pinned version does not declare yet', (id) => {
-    // The five notations 0.6.0 adds. They are demonstrated before the pin
-    // moves (#97), so the direction above — every declared notation appears
-    // in each vault — passes on the day it does instead of failing on it.
+  ])('shows %s, one of the five notations 0.6.0 added', (id) => {
+    // They were demonstrated before the specification declared them (#97), so
+    // the direction above — every declared notation appears in each vault —
+    // passed on the day it did instead of failing on it.
     const detect = DETECTS[id];
     expect(detect, `no detector written for "${id}"`).toBeDefined();
     expect(detect?.(notes), `"${id}" appears nowhere in ${slug}`).toBe(true);

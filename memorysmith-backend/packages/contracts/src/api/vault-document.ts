@@ -29,9 +29,11 @@ import { z } from 'zod';
 import { instantSchema, positionSchema, ulidSchema } from '../common.js';
 
 /**
- * The version of the DOCUMENT, which is not the version of the product and not
- * the version of the specification. It says what shape the reader will find,
- * and it is the one field an importer must read before anything else.
+ * The version of the DOCUMENT, which is not the version of the product. It says
+ * what shape the reader will find, and it is the one field an importer must
+ * read before anything else. The document declares no version of the Markdown
+ * its bodies are written in: that notation follows the version of the product
+ * that wrote it (RN-PRT-011).
  */
 export const VAULT_DOCUMENT_VERSION = '1.0';
 
@@ -62,8 +64,6 @@ export const documentNoteSchema = z.object({
 export const vaultDocumentSchema = z.object({
   /** The shape of this document. Read before anything else. */
   documentVersion: z.literal(VAULT_DOCUMENT_VERSION),
-  /** The version of the Markdown specification the build that wrote it implements. */
-  specVersion: z.string().min(1),
   exportedAt: instantSchema,
   vault: z.object({
     name: z.string().min(1).max(120),

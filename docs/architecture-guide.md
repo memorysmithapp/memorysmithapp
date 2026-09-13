@@ -179,7 +179,7 @@ The repository is a pnpm monorepo with **three first-level projects**, named aft
 memorysmith-infra      →  references backend and frontend artifacts (bundling, deploy)
 memorysmith-backend    →  knows nothing about infra, knows nothing about frontend
 memorysmith-frontend   →  consumes @memorysmith/contracts (its types, and the constants
-                          derived from the pinned specification) and the API at runtime
+                          derived from the Markdown specification) and the API at runtime
 ```
 
 An `import` of `memorysmith-infra` inside `memorysmith-backend` is an architecture error, not a matter of taste: it would mean the service code knows the AWS account, the same leak PE1 prevents one layer below.
@@ -789,13 +789,13 @@ That amends the rule "only the two extractors read content", deliberately and in
 
 The frontmatter block and the YAML subset of §6.2 live in the kernel with it, and `FacetExtractor` reads them from there. **There is exactly one function in this repository that finds the frontmatter of a body**, which is the property `slugify` lost by being written twice.
 
-### 11.0 The notation, imported rather than declared
+### 11.0 The notation, declared once as data
 
-**The list of what the product reads is not written in this repository.** It is the [MemorySmith Markdown Specification](https://github.com/memorysmithapp/markdown-spec), a specification with a version of its own, carrying the same notation as prose (`SPEC.md`), as data (`spec.json`) and as an executable suite (`tests/conformance.json`). This build implements a version of it and says which (RN-AGT-022).
+**The list of what the product reads is written once, in [`docs/markdown-spec/`](markdown-spec/SPEC.md).** It is the MemorySmith Markdown Specification, carrying the same notation as prose (`SPEC.md`), as data (`spec.json`) and as an executable suite (`tests/conformance.json`), and it follows the version of the product (RN-AGT-022). It used to be a repository of its own, pinned here by a git tag, and changing a notation took a release there and a pin bump here before the first line of implementation. A notation now changes in the same commit as the readers that implement it, and the three files move together.
 
-**How it enters the build.** It is an ordinary dependency, pinned to a git tag, and the version is declared **once**, in the `catalog:` of `pnpm-workspace.yaml`. Two packages consume it from there — `packages/contracts`, which re-exports it, and `memorysmith-frontend`, whose reading surface is proved against the same cases — and a catalog is what keeps them from pinning two versions of one specification. A bump is a deliberate commit whose proof is the suite going green.
+**How it enters the build.** It is a package of the workspace, `@memorysmith/markdown-spec`, and exactly one package depends on it: `packages/contracts`, which re-exports it. The frontend reads the notation and the cases from the contracts, like everything else it takes from the backend, and dependency-cruiser refuses an import of the specification from anywhere in the frontend. The `test` script of the package is `tools/check-spec.mjs`, which validates `spec.json` against its schema and refuses a notation with no case, so the agreement of the three files is checked wherever the suites run.
 
-`RECOGNISED_NOTATION` in `packages/contracts` is now a **projection of `spec.json`**, not a list beside it, and it lives there for the reason it always did: two contexts need it and may never import each other. Discovery reads the notation, in its two sanctioned extractors; Agent Access teaches it, in the skill, citing the version. The third reader, `noteTitle` in the kernel, reads one form of the same table (§11).
+`RECOGNISED_NOTATION` in `packages/contracts` is a **projection of `spec.json`**, not a list beside it, and it lives there for the reason it always did: two contexts need it and may never import each other. Discovery reads the notation, in its two sanctioned extractors; Agent Access teaches it, in the skill. The third reader, `noteTitle` in the kernel, reads one form of the same table (§11).
 
 **Three layers, and each one is proved by a test of its own kind (RN-AGT-023):**
 

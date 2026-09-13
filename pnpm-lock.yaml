@@ -4,12 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-catalogs:
-  default:
-    '@memorysmith/markdown-spec':
-      specifier: github:memorysmithapp/markdown-spec#v0.6.0
-      version: 0.6.0
-
 importers:
 
   .:
@@ -41,6 +35,8 @@ importers:
       vitest:
         specifier: ^3.2.7
         version: 3.2.7(@types/debug@4.1.13)(@types/node@24.13.3)(supports-color@7.2.0)(tsx@4.23.12)
+
+  docs/markdown-spec: {}
 
   memorysmith-backend: {}
 
@@ -89,8 +85,8 @@ importers:
   memorysmith-backend/packages/contracts:
     dependencies:
       '@memorysmith/markdown-spec':
-        specifier: 'catalog:'
-        version: https://codeload.github.com/memorysmithapp/markdown-spec/tar.gz/e86b6a1eb41691597ac292a8a36fdec7c9b2872b
+        specifier: workspace:*
+        version: link:../../../docs/markdown-spec
       zod:
         specifier: ^4.0.0
         version: 4.4.3
@@ -281,9 +277,6 @@ importers:
         specifier: ^5.0.0
         version: 5.0.15(@types/react@19.2.18)(react@19.2.8)
     devDependencies:
-      '@memorysmith/markdown-spec':
-        specifier: 'catalog:'
-        version: https://codeload.github.com/memorysmithapp/markdown-spec/tar.gz/e86b6a1eb41691597ac292a8a36fdec7c9b2872b
       '@types/d3-force':
         specifier: ^3.0.10
         version: 3.0.10
@@ -949,11 +942,6 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
-
-  '@memorysmith/markdown-spec@https://codeload.github.com/memorysmithapp/markdown-spec/tar.gz/e86b6a1eb41691597ac292a8a36fdec7c9b2872b':
-    resolution: {gitHosted: true, integrity: sha512-b0xF4D2xGFjFUlTvsbI4e2Woyxrcf4EUyiZWPc3+03P950vmS9Y+dEHgStovEK+87RMIGcSe9gfKemvelk+E8g==, tarball: https://codeload.github.com/memorysmithapp/markdown-spec/tar.gz/e86b6a1eb41691597ac292a8a36fdec7c9b2872b}
-    version: 0.6.0
-    engines: {node: '>=20'}
 
   '@mermaid-js/parser@1.2.1':
     resolution: {integrity: sha512-n12NohV3mrUyUL2o93IgG/ifeW9FTyeJn3zDxkhwa8MJ9Fxg3HQMlA3RiGmD/3UnJvheztkjjQAjA2T4LmUcpw==}
@@ -3431,8 +3419,6 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
-
-  '@memorysmith/markdown-spec@https://codeload.github.com/memorysmithapp/markdown-spec/tar.gz/e86b6a1eb41691597ac292a8a36fdec7c9b2872b': {}
 
   '@mermaid-js/parser@1.2.1':
     dependencies:

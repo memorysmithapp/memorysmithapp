@@ -34,9 +34,8 @@ export interface VaultDependencies {
   readonly storage: StorageBudget;
   /**
    * The attribute names the specification reserves, injected from the
-   * composition root because it is the layer that knows which version the
-   * product pins (RN-AGT-025). Neither the domain nor the application reads a
-   * specification.
+   * composition root because it is the layer allowed to read the specification
+   * (RN-AGT-025). Neither the domain nor the application reads one.
    */
   readonly reservedVocabulary: readonly string[];
 }

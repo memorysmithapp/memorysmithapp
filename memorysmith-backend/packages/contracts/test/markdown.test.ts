@@ -17,16 +17,21 @@ import { describe, expect, it } from 'vitest';
 import {
   DECLARED_SILENCE,
   DELEGATED_TO_THE_BASE_PARSER,
+  MARKDOWN_SPEC_NAME,
   MARKDOWN_SPEC_SOURCES,
-  MARKDOWN_SPEC_VERSION,
+  MARKDOWN_SPEC_URL,
   RECOGNISED_NOTATION,
 } from '../src/markdown.js';
 
 const DECLARED = new Set(RECOGNISED_NOTATION.map((entry) => entry.id));
 
-describe('the profile, as this build reads it', () => {
-  it('carries a version, an address and a notation', () => {
-    expect(MARKDOWN_SPEC_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
+describe('the specification, as this build reads it', () => {
+  it('carries a name, an address and a notation, and no version of its own', () => {
+    // The specification follows the version of the product. An address that
+    // still pointed at the site it was published on would send an agent to a
+    // page that no longer exists.
+    expect(MARKDOWN_SPEC_NAME).toBe('MemorySmith Markdown Specification');
+    expect(MARKDOWN_SPEC_URL).toMatch(/\/docs\/markdown-spec\/SPEC\.md$/);
     expect(RECOGNISED_NOTATION.length).toBeGreaterThan(0);
   });
 

@@ -28,10 +28,10 @@ interface PropertyValueProps {
  * `title` is drawn as the title and never as a property, because a note is not
  * a category of itself (RN-DSC-050, RN-DSC-051).
  *
- * The list is not written here. It is derived from the pinned specification,
- * in the contracts package, so this file cannot drift from the extractor or
- * from the version the product implements — which is what it did while three
- * copies of it existed (RN-DSC-030).
+ * The list is not written here. It is derived from the specification, in the
+ * contracts package, so this file cannot drift from the extractor or from the
+ * notation the product reads — which is what it did while three copies of it
+ * existed (RN-DSC-030).
  */
 const RESERVED = DRAWN_RESERVED_KEYS;
 

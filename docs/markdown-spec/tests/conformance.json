@@ -1,6 +1,5 @@
 {
   "spec": "MemorySmith Markdown Specification",
-  "version": "0.6.0",
   "cases": [
     {
       "id": "wikilink/plain",
@@ -149,9 +148,7 @@
       "facets": {
         "maturity": {
           "kind": "enum",
-          "values": [
-            "evergreen"
-          ]
+          "values": ["evergreen"]
         }
       }
     },
@@ -162,10 +159,7 @@
       "facets": {
         "tags": {
           "kind": "list",
-          "values": [
-            "contracts",
-            "procurement"
-          ]
+          "values": ["contracts", "procurement"]
         }
       }
     },
@@ -176,10 +170,7 @@
       "facets": {
         "tags": {
           "kind": "list",
-          "values": [
-            "contracts",
-            "procurement"
-          ]
+          "values": ["contracts", "procurement"]
         }
       }
     },
@@ -190,9 +181,7 @@
       "facets": {
         "reviewed": {
           "kind": "boolean",
-          "values": [
-            "true"
-          ]
+          "values": ["true"]
         }
       }
     },
@@ -203,9 +192,7 @@
       "facets": {
         "reviewed_at": {
           "kind": "date",
-          "values": [
-            "2026-09-03"
-          ]
+          "values": ["2026-09-03"]
         }
       }
     },
@@ -222,9 +209,7 @@
       "facets": {
         "tags": {
           "kind": "list",
-          "values": [
-            "contracts"
-          ]
+          "values": ["contracts"]
         }
       }
     },
@@ -236,39 +221,27 @@
       "facets": {
         "aliases": {
           "kind": "list",
-          "values": [
-            "RTO"
-          ]
+          "values": ["RTO"]
         },
         "tags": {
           "kind": "list",
-          "values": [
-            "continuity"
-          ]
+          "values": ["continuity"]
         },
         "author": {
           "kind": "enum",
-          "values": [
-            "Heitor Rapcinski"
-          ]
+          "values": ["Heitor Rapcinski"]
         },
         "co-author": {
           "kind": "list",
-          "values": [
-            "Claude"
-          ]
+          "values": ["Claude"]
         },
         "created": {
           "kind": "date",
-          "values": [
-            "2026-09-03"
-          ]
+          "values": ["2026-09-03"]
         },
         "updated": {
           "kind": "date",
-          "values": [
-            "2026-09-05"
-          ]
+          "values": ["2026-09-05"]
         }
       }
     },
@@ -279,9 +252,7 @@
       "facets": {
         "author": {
           "kind": "enum",
-          "values": [
-            "Heitor Rapcinski"
-          ]
+          "values": ["Heitor Rapcinski"]
         }
       }
     },
@@ -292,10 +263,7 @@
       "facets": {
         "author": {
           "kind": "list",
-          "values": [
-            "Ana Prado",
-            "Bruno Lima"
-          ]
+          "values": ["Ana Prado", "Bruno Lima"]
         }
       }
     },
@@ -306,16 +274,11 @@
       "facets": {
         "author": {
           "kind": "enum",
-          "values": [
-            "Heitor Rapcinski"
-          ]
+          "values": ["Heitor Rapcinski"]
         },
         "co-author": {
           "kind": "list",
-          "values": [
-            "Ana Prado",
-            "Claude"
-          ]
+          "values": ["Ana Prado", "Claude"]
         }
       }
     },
@@ -326,9 +289,7 @@
       "facets": {
         "autor": {
           "kind": "enum",
-          "values": [
-            "Heitor Rapcinski"
-          ]
+          "values": ["Heitor Rapcinski"]
         }
       }
     },
@@ -339,10 +300,7 @@
       "facets": {
         "aliases": {
           "kind": "list",
-          "values": [
-            "RTO",
-            "Recovery Time"
-          ]
+          "values": ["RTO", "Recovery Time"]
         }
       }
     },
@@ -353,9 +311,7 @@
       "facets": {
         "updated": {
           "kind": "date",
-          "values": [
-            "2026-09-05"
-          ]
+          "values": ["2026-09-05"]
         }
       }
     },
@@ -380,9 +336,7 @@
       "facets": {
         "created": {
           "kind": "enum",
-          "values": [
-            "manually"
-          ]
+          "values": ["manually"]
         }
       }
     },
@@ -393,9 +347,7 @@
       "facets": {
         "norma": {
           "kind": "enum",
-          "values": [
-            "federal"
-          ]
+          "values": ["federal"]
         }
       }
     },
@@ -714,10 +666,7 @@
       "id": "resolution/one-title-in-two-notes-is-two-edges",
       "notation": "wikilink",
       "vault": {
-        "notes": [
-          "# Índice\n",
-          "# Índice\n\nOutra nota, mesmo título.\n"
-        ]
+        "notes": ["# Índice\n", "# Índice\n\nOutra nota, mesmo título.\n"]
       },
       "markdown": "Ver [[Índice]].",
       "links": [
@@ -738,9 +687,7 @@
       "id": "resolution/a-title-no-note-carries-is-pending",
       "notation": "wikilink",
       "vault": {
-        "notes": [
-          "# Lei 14.133\n"
-        ]
+        "notes": ["# Lei 14.133\n"]
       },
       "markdown": "See [[Lei 14.134]].",
       "links": [
@@ -761,9 +708,7 @@
       "id": "resolution/case-must-match-exactly",
       "notation": "wikilink",
       "vault": {
-        "notes": [
-          "# Lei 14.133\n"
-        ]
+        "notes": ["# Lei 14.133\n"]
       },
       "markdown": "See [[lei 14.133]].",
       "links": [
@@ -784,9 +729,7 @@
       "id": "resolution/nfd-and-nfc-name-one-note",
       "notation": "wikilink",
       "vault": {
-        "notes": [
-          "# Ação\n"
-        ]
+        "notes": ["# Ação\n"]
       },
       "markdown": "Ver [[Ação]].",
       "links": [
@@ -807,9 +750,7 @@
       "id": "resolution/a-note-with-no-level-1-heading-cannot-be-addressed",
       "notation": "note-title",
       "vault": {
-        "notes": [
-          "## Article 75\n\nThe exception.\n"
-        ]
+        "notes": ["## Article 75\n\nThe exception.\n"]
       },
       "markdown": "See [[Article 75]].",
       "links": [
@@ -830,9 +771,7 @@
       "id": "resolution/an-attachment-is-not-an-edge",
       "notation": "attachment",
       "vault": {
-        "attachments": [
-          "engelbart.jpg"
-        ]
+        "attachments": ["engelbart.jpg"]
       },
       "markdown": "![[engelbart.jpg]]",
       "links": [
@@ -853,9 +792,7 @@
       "id": "resolution/the-pipe-is-a-dimension-when-the-target-is-an-attachment",
       "notation": "image-dimensions",
       "vault": {
-        "attachments": [
-          "engelbart.jpg"
-        ]
+        "attachments": ["engelbart.jpg"]
       },
       "markdown": "![[engelbart.jpg|100x145]]",
       "links": [
@@ -876,9 +813,7 @@
       "id": "resolution/the-markdown-form-reaches-the-same-note",
       "notation": "markdown-relative-link",
       "vault": {
-        "notes": [
-          "# Lei 14.133\n"
-        ]
+        "notes": ["# Lei 14.133\n"]
       },
       "markdown": "See [the procurement act](../decisions/Lei%2014.133.md).",
       "links": [
@@ -899,9 +834,7 @@
       "id": "resolution/a-link-resolves-against-the-frontmatter-title",
       "notation": "note-title",
       "vault": {
-        "notes": [
-          "---\ntitle: Lei 14.133\n---\n\n# The general rule\n"
-        ]
+        "notes": ["---\ntitle: Lei 14.133\n---\n\n# The general rule\n"]
       },
       "markdown": "See [[Lei 14.133]], not [[The general rule]].",
       "links": [
@@ -931,9 +864,7 @@
       "id": "resolution/an-alias-catches-a-target-no-title-matches",
       "notation": "frontmatter-aliases",
       "vault": {
-        "notes": [
-          "---\naliases: [RTO]\n---\n\n# Recovery Time Objective\n"
-        ]
+        "notes": ["---\naliases: [RTO]\n---\n\n# Recovery Time Objective\n"]
       },
       "markdown": "See [[RTO]].",
       "links": [
@@ -954,10 +885,7 @@
       "id": "resolution/an-alias-does-not-take-a-link-a-title-already-matches",
       "notation": "frontmatter-aliases",
       "vault": {
-        "notes": [
-          "---\naliases: [Índice]\n---\n\n# Recovery Time Objective\n",
-          "# Índice\n"
-        ]
+        "notes": ["---\naliases: [Índice]\n---\n\n# Recovery Time Objective\n", "# Índice\n"]
       },
       "markdown": "Ver [[Índice]].",
       "links": [

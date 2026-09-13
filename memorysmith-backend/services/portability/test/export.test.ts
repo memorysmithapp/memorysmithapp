@@ -69,13 +69,15 @@ const vault: ExportInput = {
 };
 
 const NOW = '2026-09-09T12:00:00.000Z';
-const document = buildVaultDocument(vault, NOW, '0.6.0');
+const document = buildVaultDocument(vault, NOW);
 
 describe('the document carries the vault whole', () => {
-  it('says what shape it is, and which specification wrote it', () => {
-    // The one field an importer reads before anything else.
+  it('says what shape it is, and carries no version of the notation', () => {
+    // The one field an importer reads before anything else. The notation the
+    // bodies are written in has no version apart from the product that wrote
+    // them, so the document states none (RN-PRT-011).
     expect(document.documentVersion).toBe(VAULT_DOCUMENT_VERSION);
-    expect(document.specVersion).toBe('0.6.0');
+    expect(document).not.toHaveProperty('specVersion');
     expect(document.exportedAt).toBe(NOW);
   });
 

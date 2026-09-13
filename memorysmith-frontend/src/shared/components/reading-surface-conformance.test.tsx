@@ -1,7 +1,7 @@
 /**
- * The reading surface, run against the PUBLISHED profile (RN-AGT-023).
+ * The reading surface, run against the specification (RN-AGT-023).
  *
- * The profile declares a set of notations under the `reading-surface` reader,
+ * The specification declares a set of notations under the `reading-surface` reader,
  * and the two sanctioned extractors decide none of them: they are behaviour of
  * this interface and of nothing else. A rendering assertion cannot live in a
  * JSON file — what a callout looks like is not something the suite can state —
@@ -43,7 +43,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   DECLARED_SILENCE,
   DELEGATED_TO_THE_BASE_PARSER,
-  MARKDOWN_SPEC_VERSION,
   RECOGNISED_NOTATION,
 } from '@memorysmith/contracts';
 
@@ -238,7 +237,7 @@ const surface = RECOGNISED_NOTATION.filter(
   (entry) => entry.reader === 'reading-surface' && !DELEGATED_TO_THE_BASE_PARSER.has(entry.id),
 );
 
-describe(`the reading surface implements profile ${MARKDOWN_SPEC_VERSION}`, () => {
+describe('the reading surface implements the specification', () => {
   it.each(surface)('renders $id as the profile declares', ({ id, example }) => {
     const expected = EXPECTED[id];
     // A declared notation with no expectation here is a failure of this test,

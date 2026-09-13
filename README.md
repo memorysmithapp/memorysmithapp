@@ -422,12 +422,12 @@ Writing those trees **through the API**, and not straight into DynamoDB and S3, 
 | `pesquisa-mercado` | Interview notes and research syntheses | 3 |
 | `fermentacao` | Fermentation recipes and logs | 3 |
 | `jurisprudencia-tributaria` | Rulings recorded with their thesis and grounding | 3 |
-| `continuity-engineering` | **A demonstration of the Markdown Profile, in en-US**: recovery objectives, the runbooks that restore them and the exercises that measured them | 4 |
-| `enologia` | **A demonstration of the Markdown Profile, in pt-BR**: grape varieties, vinification protocols and the record of each harvest | 4 |
+| `continuity-engineering` | **A demonstration of the Markdown Specification, in en-US**: recovery objectives, the runbooks that restore them and the exercises that measured them | 4 |
+| `enologia` | **A demonstration of the Markdown Specification, in pt-BR**: grape varieties, vinification protocols and the record of each harvest | 4 |
 
 The first three are real vaults in use, and they show the product at the size where it becomes interesting. The five small ones exist to give the onboarding a few-seconds option, when what is wanted is a live environment and not six hundred notes.
 
-**The last two exist for a different reason.** `continuity-engineering` and `enologia` are the only place the [MemorySmith Markdown Specification](https://github.com/memorysmithapp/markdown-spec) can be *read* rather than proved: a conformance suite shows that the notation is implemented, and these show it doing its work — a callout that is drawn, an alias that finds a note by its acronym, an embed that expands to a single identified block, a formula, a checklist that writes back.
+**The last two exist for a different reason.** `continuity-engineering` and `enologia` are the only place the [MemorySmith Markdown Specification](docs/markdown-spec/SPEC.md) can be *read* rather than proved: a conformance suite shows that the notation is implemented, and these show it doing its work — a callout that is drawn, an alias that finds a note by its acronym, an embed that expands to a single identified block, a formula, a checklist that writes back.
 
 They are **not translations of each other**. The same notations carried by different subject matter, so the pair reads as two vaults and not as one typed twice — and so it can show the thing a single vault cannot: the four reserved keys (`aliases`, `tags`, `created`, `updated`) are written in en-US in **both**, while everything around them, `regiao` and `tipo` and `colhida_em`, is in the language of whoever keeps the vault. That is the language decision of the profile shown instead of stated, and the same evidence that the backend does not interpret content (PP4).
 
@@ -557,7 +557,7 @@ core/
 ├── memorysmith-frontend/    # the web interface in React
 ├── memorysmith-infra/       # all the CDK: stacks, constructs, IAM policies
 ├── deploy-aws/              # the deploy, destroy and onboard scripts, and the example vaults
-└── docs/                    # the canonical documentation
+└── docs/                    # the canonical documentation, and the Markdown specification
 ```
 
 | Document | What it answers |
@@ -565,6 +565,7 @@ core/
 | [`docs/software-vision.md`](docs/software-vision.md) | What the product does and under which rule: the vision, the ubiquitous language, roles, entities, business rules, the MCP catalogue and the screens |
 | [`docs/architecture-guide.md`](docs/architecture-guide.md) | How it is built: tactical DDD, hexagonal, single-table DynamoDB, the outbox, MCP and OAuth, infrastructure and tests |
 | [`docs/knowledge-base.md`](docs/knowledge-base.md) | The domain it operates in: Markdown, knowledge management, MCP, retrieval, auditing and data protection law |
+| [`docs/markdown-spec/SPEC.md`](docs/markdown-spec/SPEC.md) | The notation a note is written in: what each form means and produces, as prose, as data and as the conformance suite that proves it |
 | [`docs/development-process.md`](docs/development-process.md) | How work flows: from the issue of whoever uses it to the merge, with triage, roadmap and what each commit has to touch |
 | [`CLAUDE.md`](CLAUDE.md) | The working rules of the repository, including the thirteen non-negotiable design decisions |
 | [`SECURITY.md`](SECURITY.md) | How to report an isolation failure or a vulnerability, in private |

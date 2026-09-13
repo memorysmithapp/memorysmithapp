@@ -8,8 +8,8 @@
  * makes a vault kept in Portuguese answer `created:2026-09` and still read as
  * Portuguese on screen.
  *
- * The list is not written here either: it comes from the pinned specification,
- * so a version that reserves one more name reserves it in this test too — and
+ * The list is not written here either: it comes from the specification, so a
+ * change that reserves one more name reserves it in this test too — and
  * the label guard below is what turns that into a failing build rather than a
  * key nobody translated.
  */

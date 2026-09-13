@@ -1,7 +1,5 @@
 # The MemorySmith Markdown Specification
 
-**Version 0.6.0** · Draft · <https://md.memorysmith.app>
-
 A specification of the Markdown a knowledge vault is written in: plain `.md` files, linked to each other, written by people and by agents, and read by software that has to build a graph and an index out of them without deciding what the content means.
 
 ---
@@ -822,9 +820,9 @@ The forms of §3 and §4 carry no cases here, and need none: CommonMark and GFM 
 
 ## 11. Versioning
 
-This specification carries a version of its own, independent of any implementation. It follows [Semantic Versioning](https://semver.org): a notation added is a minor version, a notation removed or an effect changed is a major version, and while the version is `0.x` a breaking change may arrive in a minor one.
+This specification carries no version of its own. It is the notation MemorySmith.app reads, it lives beside the code that reads it, and it follows the version of that product: a notation is added, removed or changed in the same change as the readers that implement it, and the changelog of the product records it.
 
-Each released version is published at a stable URL under <https://md.memorysmith.app>, and the unversioned root always serves the latest.
+A reference that has to stay stable cites a released version of the product, whose tag carries this document exactly as that version read it.
 
 ## 12. Media type
 

@@ -34,7 +34,7 @@ export type FacetKind = 'date' | 'boolean' | 'enum' | 'list';
  * classified by the shape of its value, so `created: manually` degrades to an
  * ordinary enum instead of being an error and `autor:` written by a vault in
  * pt-BR stays legal and stays indexed. What the reservation buys is the name,
- * and the name is read from the pinned specification where it is needed — the
+ * and the name is read from the specification where it is needed — the
  * Vault Context that declares it to an agent (RN-AGT-025) and the interface
  * that may translate its label (RN-DSC-030), never the bytes.
  *

@@ -62,7 +62,7 @@ memorysmithapp/
 memorysmith-infra      →  references backend and frontend artifacts (bundling, deploy)
 memorysmith-backend    →  knows nothing about infra or frontend
 memorysmith-frontend   →  imports @memorysmith/contracts (its types, and the constants it
-                          derives from the pinned specification) and calls the API at runtime
+                          derives from the Markdown specification) and calls the API at runtime
 ```
 
 An `import` of `memorysmith-infra` inside `memorysmith-backend` is an architecture error, not a matter of style. Services never import each other either: communication between contexts is HTTP with IAM authentication or an event, never an `import`.
@@ -73,11 +73,12 @@ When creating a file, decide where it goes by asking what it is, not what it is 
 
 ## Canonical documentation
 
-Four documents in `docs/`, each the single source of truth for one question. **Each document bounds itself in its own preamble**, which says what it holds and what it does not, and this file does not repeat that inventory. What stays here is only the rule of where to write.
+Four documents in `docs/`, and beside them the specification of the notation, each the single source of truth for one question. **Each document bounds itself in its own preamble**, which says what it holds and what it does not, and this file does not repeat that inventory. What stays here is only the rule of where to write.
 
 | The paragraph answers | It belongs to |
 |---|---|
 | "This is true about Markdown / MCP / auditing in general" | [`docs/knowledge-base.md`](docs/knowledge-base.md) |
+| "This notation **means this, and produces this**" | [`docs/markdown-spec/SPEC.md`](docs/markdown-spec/SPEC.md) |
 | "This is what our product does, and under which rule" | [`docs/software-vision.md`](docs/software-vision.md) |
 | "This is **how the software is built**" | [`docs/architecture-guide.md`](docs/architecture-guide.md) |
 | "This is **how work flows**, from the need to the merge" | [`docs/development-process.md`](docs/development-process.md) |
@@ -88,6 +89,10 @@ When a fact seems to fit in two documents, it goes into exactly one and the othe
 The last two rows of the table separate what confuses most. The test: "the outbox guarantees at-least-once delivery" changes the code, so it is architecture; "every change reaches `main` through a pull request" does not change a line, it changes the path to it, so it is process. And the final row is absolute: **a hypothesis of a need, the roadmap, an open risk and an undecided question never enter `docs/`**, because they describe the future.
 
 > **A document never describes the future. If it is in the document, it is in production.**
+
+### A notation lives in three files
+
+**A notation lives in `SPEC.md`, `spec.json` and `tests/conformance.json` of `docs/markdown-spec/` at once, and the three move in the same commit**, together with the reader that implements it. A notation without a conformance case is not part of the specification. The one exception is already known to `tools/check-spec.mjs`, which is the `test` script of the package: an entry whose reader is `reading-surface` is rendering, and is proved by the renderer rather than by a case. The specification carries no version of its own and follows the version of the product.
 
 ### Business rule codes
 
@@ -129,6 +134,10 @@ The reason is not preference. Everything the product exposes is already en-US: t
 - The `pt_BR` locale of the interface, which is mandatory and speaks to whoever uses the product, not to whoever reads the specification.
 - The content of the example vaults in `deploy-aws/`, which is vault content and not repository documentation. It is good that it is in Portuguese: it demonstrates that the product serves a vault in any language and that the backend does not interpret content (PP4).
 - Answers in issues, from whoever reports something. The language of the repository is not a demand on whoever uses the product.
+
+### Examples of the specification, in any language
+
+The examples inside `docs/markdown-spec/SPEC.md` and its conformance suite may be in any language, and some are not in English on purpose: `[[Contratação Direta 2.0]]` is what proves an accent is carried into the key rather than folded out of it, and `[[日本語]]` that a title in a non-Latin script is a title. An English-only suite would never test either. The prose around them is en-US like everything else.
 
 Neither the git history nor issues and pull requests already written are rewritten: they are dated records.
 

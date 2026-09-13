@@ -2,9 +2,10 @@
 // The consistency check of the specification.
 //
 // A notation lives in three files at once — SPEC.md, spec.json and
-// tests/conformance.json — and the failure this repository exists to prevent is the three
-// of them drifting apart in silence. This is what refuses that in CI, and it is the whole
-// of CI: no dependencies, no build, no network.
+// tests/conformance.json — and the failure it exists to prevent is the three of them
+// drifting apart in silence. This is what refuses that. It is the `test` script of its
+// package, so it runs wherever the suites of the repository run, with no dependencies, no
+// build and no network.
 //
 // It validates spec.json against schema/spec.schema.json with a validator that
 // implements only the keywords the schema actually uses, and that FAILS on any keyword it
@@ -66,7 +67,10 @@ const typeOf = (value) => {
 function validate(value, node, path) {
   for (const keyword of Object.keys(node)) {
     if (!ANNOTATIONS.has(keyword) && !IMPLEMENTED.has(keyword)) {
-      fail('schema/spec.schema.json', `uses the keyword "${keyword}", which this checker does not implement. Implement it in tools/check-spec.mjs or drop it from the schema`);
+      fail(
+        'schema/spec.schema.json',
+        `uses the keyword "${keyword}", which this checker does not implement. Implement it in tools/check-spec.mjs or drop it from the schema`,
+      );
     }
   }
 
@@ -136,13 +140,17 @@ const KINDS = new Set(['note', 'attachment', 'pending']);
 
 const seenCases = new Set();
 for (const testCase of cases) {
-  if (seenCases.has(testCase.id)) fail('tests/conformance.json', `declares the case "${testCase.id}" twice`);
+  if (seenCases.has(testCase.id))
+    fail('tests/conformance.json', `declares the case "${testCase.id}" twice`);
   seenCases.add(testCase.id);
 
   if (!testCase.notation) {
     fail('tests/conformance.json', `the case "${testCase.id}" names no notation`);
   } else if (!seenNotations.has(testCase.notation)) {
-    fail('tests/conformance.json', `the case "${testCase.id}" exercises "${testCase.notation}", which spec.json does not declare`);
+    fail(
+      'tests/conformance.json',
+      `the case "${testCase.id}" exercises "${testCase.notation}", which spec.json does not declare`,
+    );
   }
   if (typeof testCase.markdown !== 'string') {
     fail('tests/conformance.json', `the case "${testCase.id}" carries no markdown input`);
@@ -153,7 +161,10 @@ for (const testCase of cases) {
     !('title' in testCase) &&
     !('resolution' in testCase)
   ) {
-    fail('tests/conformance.json', `the case "${testCase.id}" claims neither a title, nor links, nor facets, nor a resolution, so it asserts nothing`);
+    fail(
+      'tests/conformance.json',
+      `the case "${testCase.id}" claims neither a title, nor links, nor facets, nor a resolution, so it asserts nothing`,
+    );
   }
 
   // A resolution is a claim about a vault, and a vault is only there to be resolved
@@ -175,13 +186,22 @@ for (const testCase of cases) {
     const notes = vault.notes ?? [];
     const attachments = vault.attachments ?? [];
     if (!Array.isArray(notes) || notes.some((note) => typeof note !== 'string')) {
-      fail('tests/conformance.json', `the case "${testCase.id}" has a vault whose "notes" is not a list of Markdown documents`);
+      fail(
+        'tests/conformance.json',
+        `the case "${testCase.id}" has a vault whose "notes" is not a list of Markdown documents`,
+      );
     }
     if (!Array.isArray(attachments) || attachments.some((name) => typeof name !== 'string')) {
-      fail('tests/conformance.json', `the case "${testCase.id}" has a vault whose "attachments" is not a list of names`);
+      fail(
+        'tests/conformance.json',
+        `the case "${testCase.id}" has a vault whose "attachments" is not a list of names`,
+      );
     }
     if (notes.length === 0 && attachments.length === 0) {
-      fail('tests/conformance.json', `the case "${testCase.id}" has an empty vault, which resolves nothing`);
+      fail(
+        'tests/conformance.json',
+        `the case "${testCase.id}" has an empty vault, which resolves nothing`,
+      );
     }
   }
 
@@ -192,19 +212,31 @@ for (const testCase of cases) {
       continue;
     }
     if (!KINDS.has(outcome.kind)) {
-      fail('tests/conformance.json', `${where} resolves "${outcome.target}" to the kind "${outcome.kind}", which is not one of ${[...KINDS].join(', ')}`);
+      fail(
+        'tests/conformance.json',
+        `${where} resolves "${outcome.target}" to the kind "${outcome.kind}", which is not one of ${[...KINDS].join(', ')}`,
+      );
     }
     if (!Number.isInteger(outcome.edges) || outcome.edges < 0) {
-      fail('tests/conformance.json', `${where} resolves "${outcome.target}" to an edge count that is not a whole number`);
+      fail(
+        'tests/conformance.json',
+        `${where} resolves "${outcome.target}" to an edge count that is not a whole number`,
+      );
       continue;
     }
     // SPEC.md 5.4, 5.5 and 5.8: only a note produces an edge, and a note that matches
     // produces one per match.
     if (outcome.kind !== 'note' && outcome.edges !== 0) {
-      fail('tests/conformance.json', `${where} resolves "${outcome.target}" to the kind ${outcome.kind} and to ${outcome.edges} edges. Only a note produces an edge`);
+      fail(
+        'tests/conformance.json',
+        `${where} resolves "${outcome.target}" to the kind ${outcome.kind} and to ${outcome.edges} edges. Only a note produces an edge`,
+      );
     }
     if (outcome.kind === 'note' && outcome.edges < 1) {
-      fail('tests/conformance.json', `${where} resolves "${outcome.target}" to a note and to no edge`);
+      fail(
+        'tests/conformance.json',
+        `${where} resolves "${outcome.target}" to a note and to no edge`,
+      );
     }
   }
 }
@@ -215,7 +247,10 @@ for (const testCase of cases) {
 const exercised = new Set(cases.map((testCase) => testCase.notation));
 for (const entry of notations) {
   if (entry.reader !== 'reading-surface' && !exercised.has(entry.id)) {
-    fail('tests/conformance.json', `has no case for "${entry.id}". A notation without a case is not part of the specification`);
+    fail(
+      'tests/conformance.json',
+      `has no case for "${entry.id}". A notation without a case is not part of the specification`,
+    );
   }
 }
 
@@ -231,7 +266,10 @@ for (const entry of notations) {
   if (!entry.spec) continue;
   for (const section of entry.spec.split(',').map((value) => value.trim())) {
     if (!headings.has(section)) {
-      fail('spec.json', `the notation "${entry.id}" points at SPEC.md § ${section}, which has no heading`);
+      fail(
+        'spec.json',
+        `the notation "${entry.id}" points at SPEC.md § ${section}, which has no heading`,
+      );
     }
   }
 }
@@ -248,32 +286,18 @@ for (const section of [...danglingRefs].sort()) {
 }
 
 // ---------------------------------------------------------------------------
-// One canonical version, mirrored in three places.
+// One name, in both data files.
 //
-// The mirrors are SPEC.md, tests/conformance.json and package.json, and every one of them
-// is a place somebody forgets. This check exists because it already happened: 0.2.0 was
-// released with the header of SPEC.md still saying 0.1.0.
+// There is no version to mirror. The specification follows the version of the product that
+// carries it, and a number written in these files would be one more place to forget: 0.2.0
+// was once released with the header of SPEC.md still saying 0.1.0.
 // ---------------------------------------------------------------------------
 
-const packageJson = readJson('package.json');
-const specVersion = specText.match(/^\*\*Version\s+([0-9]+\.[0-9]+\.[0-9]+)\*\*/m)?.[1];
-
-if (!specVersion) {
-  fail('SPEC.md', 'carries no "**Version X.Y.Z**" line, so nothing can be checked against it');
-} else if (specVersion !== spec.version) {
-  fail('SPEC.md', `says version ${specVersion} and spec.json says ${spec.version}. The canonical version is the one in spec.json`);
-}
-
-if (conformance.version !== spec.version) {
-  fail('tests/conformance.json', `says version ${conformance.version} and spec.json says ${spec.version}`);
-}
-
-if (packageJson && packageJson.version !== spec.version) {
-  fail('package.json', `says version ${packageJson.version} and spec.json says ${spec.version}. The package is a distribution of the specification and carries its version`);
-}
-
 if (conformance.spec !== spec.spec) {
-  fail('tests/conformance.json', `names the specification "${conformance.spec}" and spec.json names it "${spec.spec}"`);
+  fail(
+    'tests/conformance.json',
+    `names the specification "${conformance.spec}" and spec.json names it "${spec.spec}"`,
+  );
 }
 
 report();
@@ -282,11 +306,13 @@ function report() {
   if (errors.length === 0) {
     const surface = notations.filter((entry) => entry.reader === 'reading-surface').length;
     console.log(
-      `The specification is consistent: ${notations.length} notations (${notations.length - surface} an indexer decides, ${surface} rendering), ${cases.length} conformance cases, version ${spec.version}.`,
+      `The specification is consistent: ${notations.length} notations (${notations.length - surface} an indexer decides, ${surface} rendering), ${cases.length} conformance cases.`,
     );
     process.exit(0);
   }
-  console.error(`The specification is inconsistent. ${errors.length} problem${errors.length === 1 ? '' : 's'}:\n`);
+  console.error(
+    `The specification is inconsistent. ${errors.length} problem${errors.length === 1 ? '' : 's'}:\n`,
+  );
   for (const error of errors) console.error(`  - ${error}`);
   console.error('');
   process.exit(1);

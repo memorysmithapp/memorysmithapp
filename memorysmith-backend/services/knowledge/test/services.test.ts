@@ -24,7 +24,7 @@ import {
 
 /**
  * What the composition root injects in production: the vocabulary of the
- * pinned specification, never a list typed in a test (RN-AGT-025).
+ * specification, never a list typed in a test (RN-AGT-025).
  */
 const VOCABULARY = RESERVED_FRONTMATTER_KEYS;
 
@@ -160,7 +160,7 @@ describe('VaultContextComposer', () => {
     expect(context).toContain(`\`${folderId.value}\`:`);
   });
 
-  it('declares the reserved vocabulary, and exactly the one the pin carries', () => {
+  it('declares the reserved vocabulary, and exactly the one the specification carries', () => {
     // RN-AGT-025. An agent landing here has no other way to tell an attribute
     // name that means something everywhere from one that belongs to this vault
     // alone, and a list typed beside the specification would be the fourth

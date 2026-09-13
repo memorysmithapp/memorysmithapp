@@ -24,9 +24,8 @@
  *    something everywhere from one that belongs to this vault alone.
  *
  * The vocabulary arrives as an argument and is never read here: the domain
- * knows no specification, and the pinned list reaches this function from the
- * composition root, which is the one layer allowed to know which version the
- * product implements.
+ * knows no specification, and the list reaches this function from the
+ * composition root, which is the one layer allowed to read the specification.
  *
  * The labels are en-US because the MCP surface is the public contract and the
  * canonical locale is en_US (CLAUDE.md, language policy). The vault content
@@ -44,7 +43,7 @@ export interface VaultContextInput {
   readonly guidance: string | null;
   /**
    * The attribute names the specification reserves, in the order it declares
-   * them, read from the pin by whoever wired this up.
+   * them, read from the specification by whoever wired this up.
    */
   readonly reservedVocabulary: readonly string[];
 }

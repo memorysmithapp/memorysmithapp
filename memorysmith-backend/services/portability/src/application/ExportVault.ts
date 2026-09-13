@@ -62,7 +62,6 @@ export class ExportVault {
      * domain nor this layer may import (RN-PRT-011).
      */
     private readonly serialize: (document: VaultDocument) => { entry: string; content: string },
-    private readonly specVersion: string,
   ) {}
 
   async execute(input: { vaultId: string; now: Instant }): Promise<Result<ExportJob, DomainError>> {
@@ -73,7 +72,7 @@ export class ExportVault {
     // writes nothing the schema does not describe, which is what makes the
     // format a specification rather than whatever this function happened to
     // produce (RN-PRT-011).
-    const document = buildVaultDocument(source, input.now.toISOString(), this.specVersion);
+    const document = buildVaultDocument(source, input.now.toISOString());
     const written = this.serialize(document);
     const archive = this.zip(
       [{ path: written.entry, content: written.content }],

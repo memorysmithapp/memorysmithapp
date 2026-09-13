@@ -225,7 +225,7 @@ describe('The query has a declared ceiling', () => {
 });
 
 describe('The reserved vocabulary of the specification (RN-DSC-030)', () => {
-  it('is read from the pin, and this extractor holds no list of it at all', () => {
+  it('is read from the specification, and this extractor holds no list of it at all', () => {
     // The names come from the notations whose section is 6.4. Nothing here
     // knows them: reserving is declaring, and what classifies a value in this
     // file is the shape of the value.

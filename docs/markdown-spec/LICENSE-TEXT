@@ -2,9 +2,9 @@ Creative Commons Attribution 4.0 International (CC BY 4.0)
 
 Copyright (c) 2026 MemorySmith.app
 
-The text of the MemorySmith Markdown Specification — SPEC.md, README.md, CHANGELOG.md and the
-prose of tests/README.md — is licensed under the Creative Commons Attribution 4.0
-International License.
+The text of the MemorySmith Markdown Specification — SPEC.md and the prose of
+tests/README.md — is licensed under the Creative Commons Attribution 4.0 International
+License.
 
 You are free to:
 
@@ -20,9 +20,10 @@ Under the following terms:
 
 The full legal code is at <https://creativecommons.org/licenses/by/4.0/legalcode>.
 
-spec.json, schema/spec.schema.json and tests/conformance.json are NOT covered by
-this license: they are licensed under the MIT License, in the LICENSE file, so that an
-implementation may embed them without an attribution obligation on its output.
+spec.json, schema/spec.schema.json, tests/conformance.json and tools/check-spec.mjs are
+NOT covered by this license: they are licensed under the MIT License, in the LICENSE file
+at the root of this repository, so that an implementation may embed them without an
+attribution obligation on its output.
 
 "MemorySmith" is a trademark. This license grants rights over the text, and no rights over
 the name: anyone may implement this specification, and only an implementation that passes the

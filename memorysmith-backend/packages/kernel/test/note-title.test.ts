@@ -2,11 +2,10 @@
  * The chain that reads the title of a note (§5.3), and the frontmatter reader
  * it stands on (§6.1, §6.2).
  *
- * The fifteen `title/` cases of the published conformance suite are here by
- * hand, because the suite arrives with the pin of the specification later in
- * this cycle (#97) and this function is written before it. Each of them is a
- * decision two implementations would otherwise take differently; the suite
- * asserts them again against the same function once it is pinned.
+ * The fifteen `title/` cases of the conformance suite are also written here by
+ * hand, because this function was written before the suite could run against
+ * it (#97). Each of them is a decision two implementations would otherwise
+ * take differently; the suite asserts them again against the same function.
  */
 
 import { describe, expect, it } from 'vitest';

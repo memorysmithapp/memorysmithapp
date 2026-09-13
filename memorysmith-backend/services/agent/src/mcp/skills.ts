@@ -24,7 +24,6 @@ import {
   MARKDOWN_SPEC_NAME,
   MARKDOWN_SPEC_SOURCES,
   MARKDOWN_SPEC_URL,
-  MARKDOWN_SPEC_VERSION,
   RECOGNISED_NOTATION,
   type RecognisedNotation,
 } from '@memorysmith/contracts';
@@ -184,15 +183,16 @@ function silence(): string {
 }
 
 /**
- * Where the notation comes from, named with the versions this build implements.
+ * Where the notation comes from: the specification this product reads, and the
+ * sources it credits each form to.
  *
  * It comes first in the skill, because "which Markdown is this" is the question
  * underneath every other one an agent has about writing here, and answering it
- * with a specification and a version is a different answer from a list of forms
- * (RN-AGT-022). It is generated from the profile, so it cannot cite a version
- * this build does not carry — and a source without one prints without one,
- * because Obsidian publishes documentation rather than a versioned
- * specification.
+ * with a specification is a different answer from a list of forms (RN-AGT-022).
+ * The specification is named without a version, because it has none apart from
+ * the product's. It is generated from the specification, and a source without
+ * a version prints without one, because Obsidian publishes documentation rather
+ * than a versioned specification.
  *
  * **The precedence is stated because it is not uniform.** The profile defers to
  * CommonMark and GFM and governs over Obsidian, which is the opposite
@@ -207,8 +207,8 @@ function sources(): string {
   );
 
   return [
-    `This product implements the **${MARKDOWN_SPEC_NAME} ${MARKDOWN_SPEC_VERSION}**, a`,
-    `published specification: ${MARKDOWN_SPEC_URL}`,
+    `The notation this product reads is the **${MARKDOWN_SPEC_NAME}**:`,
+    MARKDOWN_SPEC_URL,
     '',
     'It does not invent the notation. Each form is credited to where it was',
     'established:',
