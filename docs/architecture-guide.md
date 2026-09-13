@@ -728,13 +728,12 @@ Creating, renaming, describing, moving, reordering or removing a folder; replaci
 
 Creating, editing, retitling, reordering, moving, deleting.
 
-1. A `Put`/`Update`/`Delete` of the `NOTE` item with `ConditionExpression: version = :expected`, where the lock belongs to the item itself
-2. A `ConditionCheck` with `attribute_exists` on the destination `FOLDER#{f}` item and, on a move between notebooks, also on the `META` of the destination notebook
-3. A `Put` of the event into the outbox
+1. A `Put`/`Update`/`Delete` of the `NOTE` item with `ConditionExpression: version = :expected`, where the lock belongs to the item itself; a move between notebooks deletes the item it leaves under the same lock
+2. A `Put` of the event into the outbox
 
-There is no fourth write. The `NSLUG` guard held one name per notebook, and a notebook has no name to hold: nothing is reserved on a write and nothing is released on a delete (RN-KNW-037).
+There is no third write. The `NSLUG` guard held one name per notebook, and a notebook has no name to hold: nothing is reserved on a write and nothing is released on a delete (RN-KNW-037).
 
-> **No note transaction writes to the `META` item** (PE8). It is this rule, and not the separation of the aggregates on its own, that keeps the hot path free of contention. `META` is a single item: an agent writing fifty notes in a row would turn it into the bottleneck of the whole notebook, and the retry would only turn the contention into latency. The `ConditionCheck` gives the same guarantee that matters, *"the folder existed at the instant of the write"*, without writing to it, and the `FOLDER` item is only written when the folder is renamed or moved, which is a rare event.
+> **No note transaction includes an item another note transaction includes** (PE8). It is this rule, and not the separation of the aggregates on its own, that keeps the hot path free of contention. DynamoDB cancels a transaction when any of its items is part of another transaction in flight, and **a `ConditionCheck` makes an item part of the transaction just as a write does**. So neither the `META` item of the notebook nor the `FOLDER#{f}` item a note goes into belongs in it: fifty notes written into one folder at once would all include that item, and all but one would be cancelled. The design once carried a `ConditionCheck` on the folder, on the belief that checking an item without writing it avoided the contention; DynamoDB Local runs transactions one at a time and agreed, and the first run of the adapter tests against the real DynamoDB of staging cancelled 33 of 50 parallel creates. Whether the folder, and on a move the destination notebook, exist is read by the use case before the write, and a read never conflicts with a transaction. The price is a window of milliseconds: a note written at the instant its folder is removed can land in a folder that no longer exists.
 
 A conflict produces a `TransactionCanceledException`, the repository translates it into a `ConcurrencyError` and the use case retries, up to 3 times. **The domain never sees an AWS exception** (PE7).
 

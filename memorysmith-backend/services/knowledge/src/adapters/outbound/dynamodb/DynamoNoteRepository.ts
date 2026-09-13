@@ -4,19 +4,22 @@
  *
  * One TransactWriteItems carries:
  *   1. the NOTE item with ConditionExpression version = :expected, so the lock
- *      is on the item itself;
- *   2. a ConditionCheck with attribute_exists on the destination FOLDER item
- *      and, on a cross-notebook move, on the destination META item too;
- *   3. the event, into the outbox.
+ *      is on the item itself (a move between notebooks deletes the item it
+ *      moves from, under the same lock);
+ *   2. the event, into the outbox.
+ *
+ * NO NOTE TRANSACTION INCLUDES AN ITEM ANOTHER NOTE TRANSACTION INCLUDES (PE8).
+ * DynamoDB cancels a transaction when any item of it is part of another
+ * transaction in flight, and a ConditionCheck makes an item part of it just as
+ * a write does. So neither the META item of the notebook nor the FOLDER item a
+ * note is written into belongs in the transaction: fifty notes written into one
+ * folder at once would all include it, and all but one would be cancelled.
+ * Whether the folder and the notebook exist is read by the use case before the
+ * write, and a read never conflicts with a transaction.
  *
  * There is no third write any more. The NSLUG guard held one name per notebook,
  * and a notebook has no key to guard: two notes may carry one name (RN-KNW-037),
  * so nothing is reserved on a write and nothing is released on a delete.
- *
- * NO NOTE TRANSACTION EVER WRITES TO THE META ITEM (PE8). That single rule,
- * and not the aggregate split by itself, is what keeps the hot path free of
- * contention: META is one item, and an agent writing fifty notes in a row
- * would turn it into the bottleneck of the entire notebook.
  */
 
 import {
@@ -119,15 +122,14 @@ export class DynamoNoteRepository implements NoteRepository {
 
   async save(note: Note): Promise<Result<void, ConcurrencyError>> {
     const snapshot = this.snapshots.get(note.id.value);
-    const items = this.writesFor(note, snapshot);
-    return this.commit(note, items);
+    return this.commit(note, [this.noteWrite(note, snapshot)]);
   }
 
   /**
    * The cross-notebook move: the only operation that writes into two notebook
-   * partitions in one transaction (section 9.2). It does not lock either
-   * notebook, since the tree does not change; existence ConditionChecks are
-   * enough.
+   * partitions in one transaction (section 9.2). Both items are the note's own,
+   * the one it leaves and the one it becomes, so it locks no notebook and
+   * includes nothing another note transaction could include.
    */
   async saveMoved(
     note: Note,
@@ -147,29 +149,18 @@ export class DynamoNoteRepository implements NoteRepository {
             : {}),
         },
       },
-      // The destination notebook must exist at the instant of the write.
-      {
-        ConditionCheck: {
-          TableName: this.tableName,
-          Key: { PK: this.keys.notebook(note.notebookId), SK: 'META' },
-          ConditionExpression: 'attribute_exists(PK)',
-        },
-      },
-      ...this.writesFor(note, undefined),
+      this.noteWrite(note, undefined),
     ];
     return this.commit(note, items);
   }
 
-  private writesFor(note: Note, snapshot: NoteSnapshot | undefined): TransactItem[] {
-    const pk = this.keys.notebook(note.notebookId);
-    const items: TransactItem[] = [];
-
-    // 1. The note item, locked on its own version.
-    items.push({
+  /** The note item, locked on its own version. */
+  private noteWrite(note: Note, snapshot: NoteSnapshot | undefined): TransactItem {
+    return {
       Put: {
         TableName: this.tableName,
         Item: noteItem(note, {
-          pk,
+          pk: this.keys.notebook(note.notebookId),
           sk: this.keys.note(note.id),
           gsi2pk: this.keys.folderPartition(note.folderId),
           gsi2sk: this.keys.gsi2Note(note.position, note.id),
@@ -181,23 +172,12 @@ export class DynamoNoteRepository implements NoteRepository {
             }
           : { ConditionExpression: 'attribute_not_exists(SK)' }),
       },
-    });
-
-    // 2. The destination folder must exist, checked WITHOUT writing to it.
-    items.push({
-      ConditionCheck: {
-        TableName: this.tableName,
-        Key: { PK: pk, SK: this.keys.folder(note.folderId) },
-        ConditionExpression: 'attribute_exists(SK)',
-      },
-    });
-
-    return items;
+    };
   }
 
   private async commit(note: Note, items: TransactItem[]): Promise<Result<void, ConcurrencyError>> {
     const pk = this.keys.notebook(note.notebookId);
-    // 3. The event, into the outbox, in the same transaction.
+    // The event, into the outbox, in the same transaction.
     const events = note.pullEvents();
     const all = [
       ...items,

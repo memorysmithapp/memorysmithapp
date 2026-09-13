@@ -613,8 +613,10 @@ describe('Delivery 4 done criteria', () => {
   }, 120_000);
 
   it('creates 50 notes in parallel in the same notebook with no contention retry', async () => {
-    // This is the case that proves PE8: no note transaction touches META, so
-    // fifty parallel creates never collide on that single item.
+    // This is the case that proves PE8: no note transaction includes an item
+    // another one includes, neither META nor the folder, so fifty parallel
+    // creates into one folder never cancel each other. DynamoDB Local runs
+    // transactions one at a time and cannot fail this; the real table can.
     const context = contextFor();
     const { notebook, folder } = await seedNotebook(context);
 
