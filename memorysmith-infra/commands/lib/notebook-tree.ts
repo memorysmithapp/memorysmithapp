@@ -125,17 +125,3 @@ export function readNotebookTree(root: string, slug: string): NotebookTree {
     orphanNotes: notesOf(root).length,
   };
 }
-
-/** How many folders and notes a tree holds, which is what a preview prints. */
-export function countTree(folders: readonly TreeFolder[]): { folders: number; notes: number } {
-  return folders.reduce(
-    (total, folder) => {
-      const inner = countTree(folder.children);
-      return {
-        folders: total.folders + 1 + inner.folders,
-        notes: total.notes + folder.notes.length + inner.notes,
-      };
-    },
-    { folders: 0, notes: 0 },
-  );
-}

@@ -141,9 +141,9 @@ avoiding the decision the owner already gave you.
  * embed and not an image, that a wikilink in a table cell is an edge like any
  * other, that `_` does not emphasise inside a word. Those crossings are
  * invisible from CommonMark alone and are exactly what an agent gets wrong, so
- * the reader who most needs them is the one reading this table. The two guards
- * scoped the other way — the reading-surface expectations and the
- * demonstration notebooks — were scoped for reasons that do not apply here.
+ * the reader who most needs them is the one reading this table. The guard
+ * scoped the other way — the reading-surface expectations — was scoped for a
+ * reason that does not apply here.
  *
  * The `Read?` column left with specification v0.4.0, and it left because the answer
  * stopped being a field: the profile no longer lists what it declines, so what

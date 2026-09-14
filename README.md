@@ -349,17 +349,11 @@ A freshly delivered environment has nobody inside: the pool is empty and there i
 pnpm -C memorysmith-infra onboard --environment production --profile memorysmith
 ```
 
-It asks what it needs to know and then creates the account in Cognito, requests the subscription with the chosen quota (the subscription has no name: what identifies it is its owner), puts the subscription in the chosen status and writes a whole notebook, with a Guidance, folders, Templates and notes, from one of the [example notebooks](#the-example-notebooks).
+It asks what it needs to know and then creates the account in Cognito, requests the subscription with the chosen quota (the subscription has no name: what identifies it is its owner) and puts the subscription in the chosen status. **The account starts with no notebook**: designing one is the work of whoever uses it, or of an agent following the skills the MCP connector serves.
 
 **The first account of an empty pool becomes a platform administrator, and only the first.** Somebody has to authorise the first subscription, and in a new environment there is nobody. Once the group has a member, a later run asks for the credentials of an existing administrator instead of handing the platform to whoever runs the command.
 
-**The account is handed over with a temporary password.** Requesting the subscription and writing the notebook happen as the account, so the command has to sign in as it, and it does so with a password of its own that nobody ever sees. At the end it leaves the account waiting for its first password: Cognito sends an invitation by e-mail with a temporary password, and the sign-in screen asks for a password of their own on first access. **That message, and the code sent for a forgotten password, leave from `no-reply@` the domain of the environment, dressed in the brand and written in the language of the account**, which `--locale` sets when the account is created and the person changes by choosing a language in the interface. They go through SES, and **a new AWS account keeps SES in its sandbox**, where a message reaches only an address verified in SES: until the account is granted production access (step 6 of *Bringing the account up*), an invitation to anybody else is not delivered. Whoever runs the command never learns the password of somebody else's account. `--set-password` inverts that, setting a definitive password here and sending no e-mail at all, which is what the first account of a new environment wants: it is the only one that cannot depend on an e-mail arriving.
-
-To look at what one of those notebooks would become, without creating anything and without even talking to AWS:
-
-```
-pnpm -C memorysmith-infra onboard --notebook engineering-knowledge --preview
-```
+**The account is handed over with a temporary password.** Requesting the subscription happens as the account, so the command has to sign in as it, and it does so with a password of its own that nobody ever sees. At the end it leaves the account waiting for its first password: Cognito sends an invitation by e-mail with a temporary password, and the sign-in screen asks for a password of their own on first access. **That message, and the code sent for a forgotten password, leave from `no-reply@` the domain of the environment, dressed in the brand and written in the language of the account**, which `--locale` sets when the account is created and the person changes by choosing a language in the interface. They go through SES, and **a new AWS account keeps SES in its sandbox**, where a message reaches only an address verified in SES: until the account is granted production access (step 6 of *Bringing the account up*), an invitation to anybody else is not delivered. Whoever runs the command never learns the password of somebody else's account. `--set-password` inverts that, setting a definitive password here and sending no e-mail at all, which is what the first account of a new environment wants: it is the only one that cannot depend on an e-mail arriving.
 
 | Option | What it is for |
 | --- | --- |
@@ -368,68 +362,13 @@ pnpm -C memorysmith-infra onboard --notebook engineering-knowledge --preview
 | `--name <name>` | The display name of the account |
 | `--quota 500MB\|1GB\|2GB` | The storage quota |
 | `--status <status>` | The final status of the subscription, any of the six, including one the transition machine would refuse |
-| `--notebook <slug>` | The notebook from `notebooks/trees` to write, or `none` for an account with no notebook |
-| `--notebook-name <name>` | The name of the created notebook; the default is the title of the source notebook |
-| `--structure-only` | Writes the Guidance, the folders and the Templates, and no notes |
-| `--max-notes <n>` | Stops after `n` notes |
-| `--preview` | Only prints what would be written, and creates nothing |
 | `--set-password` | Sets a definitive password here instead of handing the account over with a temporary one by e-mail |
 | `--locale pt_BR\|en_US` | The language of the account it creates, which every message the product sends it is written in; `pt_BR` when not passed |
 
-Three things the command does that are worth understanding:
+Two things the command does that are worth understanding:
 
-- **A status that grants no access is applied last.** Writing the notebook requires a subscription in `trial` or `active`, so the notebook is written with the subscription active and the requested status is applied in the final step, through the administrative route that sets the status without going through the transition machine.
 - **A second run finishes what the first started.** An account that never set a password is one nobody holds, so a run interrupted halfway is taken over by the next; an account a person already holds asks for that person's password.
 - **The claim is born with the token.** The interface only sees the subscription after a fresh sign-in, so sign out and back in on a browser that was already open.
-
-## The example notebooks
-
-The trees committed in [`notebooks/trees/`](notebooks/trees/) are what the onboarding command writes into the first notebook of a new account. They are a **tree of files, and no longer the export format**: a numeric prefix encodes the order of the folders, `GUIDANCE.md` carries the Guidance at the root, `STRUCTURE.md` next to it the annotated tree with the description of each folder, `TEMPLATE.md` the Template of a folder, and the notes their body byte for byte, wikilinks intact. It is the shape a notebook arrives in from an editor, which is what makes it the right shape for a command that writes one by replaying API calls.
-
-Writing those trees **through the API**, and not straight into DynamoDB and S3, is what makes a freshly created environment have the same domain events and the same audit trail the product would have produced in normal use.
-
-| Notebook | Content | Notes |
-| --- | --- | --- |
-| `engineering-knowledge` | A software engineering study base: literature, atomic concepts and practices, MOCs and projects | 573 |
-| `glpi-discovery` | Discovery of GLPI 11 through reverse engineering and official documentation, with an evidence contract and investigations | 758 |
-| `regulacao-energia` | Regulation of the Brazilian electricity sector: norms, concepts, open data sheets and the context graph (indicators, series, insights) | 166 |
-| `runbooks-producao` | On-call runbooks: symptom, diagnosis and procedure | 4 |
-| `onboarding-engenharia` | What somebody has to read in the first week on a team | 4 |
-| `pesquisa-mercado` | Interview notes and research syntheses | 3 |
-| `fermentacao` | Fermentation recipes and logs | 3 |
-| `jurisprudencia-tributaria` | Rulings recorded with their thesis and grounding | 3 |
-| `continuity-engineering` | **A demonstration of the Markdown Specification, in en-US**: recovery objectives, the runbooks that restore them and the exercises that measured them | 4 |
-| `enologia` | **A demonstration of the Markdown Specification, in pt-BR**: grape varieties, vinification protocols and the record of each harvest | 4 |
-
-The first three are real notebooks in use, and they show the product at the size where it becomes interesting. The five small ones exist to give the onboarding a few-seconds option, when what is wanted is a live environment and not six hundred notes.
-
-**The last two exist for a different reason.** `continuity-engineering` and `enologia` are the only place the [MemorySmith Markdown Specification](docs/markdown-spec/SPEC.md) can be *read* rather than proved: a conformance suite shows that the notation is implemented, and these show it doing its work — a callout that is drawn, an alias that finds a note by its acronym, an embed that expands to a single identified block, a formula, a checklist that writes back.
-
-They are **not translations of each other**. The same notations carried by different subject matter, so the pair reads as two notebooks and not as one typed twice — and so it can show the thing a single notebook cannot: the reserved keys (`name`, `aliases`, `tags`, `created`, `updated`) are written in en-US in **both**, while everything around them, `regiao` and `tipo` and `colhida_em`, is in the language of whoever keeps the notebook. That is the language decision of the profile shown instead of stated, and the same evidence that the backend does not interpret content (PP4).
-
-They also carry the half of the specification no other notebook will ever show: **the rejections**, each one written where somebody would have reached for it, beside the sentence saying what happens instead. An inline `#tag` that files nothing, a summary in the frontmatter that is discarded, HTML that is not rendered, a subscript that has no notation here.
-
-And, since 0.6.0, the cases that decide what a note is **called**: a `name:` that says one thing while the heading says another, a note that states no `name:` and that no link can reach, a name carrying a `#` that no link can name, two notes under one name where a single link becomes two edges, an alias catching a target no name matched beside the sentence saying a name always wins, and an attachment addressed by its name that appears in no graph.
-
-A test guards them in both directions: every entry of the declared notation appears in each notebook, and neither notebook demonstrates a notation the profile does not declare. Without it they would be the first thing to age when the notation changes, and they would age while teaching the wrong version to precisely the person who is learning.
-
-In the frontmatter, all of them apply the standard vocabulary of the product: `maturity` (`seed`, `growing`, `evergreen`), reassessed on every write, and `reviewed`, which marks whether the current revision has been through human review. It is that vocabulary the Overview and the search by attribute use on the screens.
-
-### How they are generated
-
-The material producing those trees lives in [`notebooks/sources/`](notebooks/sources/):
-
-- `authoring/`: the authored texts per notebook, that is the `guidance.md` that becomes the `GUIDANCE.md` of the root and the `templates/*.md` that become the `TEMPLATE.md` of the folders.
-- `fictional/`: the sources of the seven small notebooks, which live in the repository itself.
-- `build-notebooks.mjs`: the translator. It reads the source notebooks, applies the folder mapping and generates the output in `notebooks/trees/`.
-
-The three real vaults are **not** part of the repository: they live on the machine of the author, and what is committed is the output. The output is not edited by hand; changes are made in `authoring/` or at the source, followed by a regeneration:
-
-```
-node notebooks/sources/build-notebooks.mjs
-```
-
-The script validates the product limits (2,000 notes and 200 folders per notebook, depth 6, a folder description between 1 and 500 characters) and reports the warnings at the end. It also **writes the file name of a note into its frontmatter as `name:`** where the source states none, except for the notes a demonstration notebook leaves unnamed on purpose: a note is named by `name:` and by nothing else, and a tree exported from an editor keyed by file name carries that name nowhere inside the file. Two notes under one name are no longer a warning, because nothing in a notebook is a key. Running it without the three real vaults on the machine empties the three corresponding trees, because each output is recreated from zero. If you only want to regenerate the small ones, check `git status` before committing.
 
 ## Maintaining an environment
 
@@ -544,7 +483,6 @@ core/
 ├── memorysmith-backend/     # the six bounded contexts, the shared kernel and the event contracts
 ├── memorysmith-frontend/    # the web interface in React
 ├── memorysmith-infra/       # all the CDK: stacks, constructs, IAM policies, the pipelines and the commands
-├── notebooks/               # the example notebooks, and the sources they are generated from
 └── docs/                    # the canonical documentation, and the Markdown specification
 ```
 

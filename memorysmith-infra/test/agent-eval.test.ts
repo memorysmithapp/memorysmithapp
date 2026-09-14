@@ -297,16 +297,8 @@ describe('the clean room', () => {
 describe('the catalogue', () => {
   const cases = loadCases();
 
-  it('holds AE-00 to AE-06, each with a variant, a check and a rubric', () => {
-    expect(cases.map((each) => each.id)).toEqual([
-      'AE-00',
-      'AE-01',
-      'AE-02',
-      'AE-03',
-      'AE-04',
-      'AE-05',
-      'AE-06',
-    ]);
+  it('holds AE-00 to AE-03 and AE-06, each with a variant, a check and a rubric', () => {
+    expect(cases.map((each) => each.id)).toEqual(['AE-00', 'AE-01', 'AE-02', 'AE-03', 'AE-06']);
     for (const each of cases) {
       expect(each.variants.length).toBeGreaterThan(0);
       expect(each.checks.length).toBeGreaterThan(0);

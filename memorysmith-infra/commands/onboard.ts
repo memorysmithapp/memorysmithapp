@@ -1,30 +1,29 @@
 /**
- * Creates an account, gives it a subscription and fills its first notebook
- * (architecture-guide.md, section 20).
+ * Creates an account and gives it a subscription (architecture-guide.md,
+ * section 20).
  *
  *   pnpm -C memorysmith-infra onboard --environment staging [--email ana@example.com]
- *     [--name Ana] [--quota 1GB] [--status active] [--notebook enologia]
- *     [--notebook-name "Enologia"] [--structure-only] [--max-notes 50]
- *     [--set-password] [--locale en_US] [--preview]
+ *     [--name Ana] [--quota 1GB] [--status active] [--set-password] [--locale en_US]
  *
  * A deploy seeds nothing: the user pool comes up empty, and no subscription is
  * written behind the rule that a person asks for one and a platform admin
  * approves it (RN-SUB-001, RN-SUB-006). On a new environment that leaves nobody
  * to sign in as, and nobody who could approve anything. This closes that loop,
  * with credentials of the account of the environment and never by hand: it
- * creates the account in Cognito, signs in as it, asks for the subscription,
- * puts it in the status chosen, and writes a whole notebook through the product
- * API from a tree of the example notebooks.
+ * creates the account in Cognito, signs in as it, asks for the subscription and
+ * puts it in the status chosen. The account starts with no notebook: designing
+ * one is the work of whoever uses it, or of an agent following the skills the
+ * connector serves.
  *
  * THE FIRST ACCOUNT OF AN EMPTY POOL BECOMES A PLATFORM ADMIN, and only the
  * first: somebody has to be able to authorize the very first subscription.
  *
- * THE ACCOUNT IS HANDED OVER WITH A PROVISIONAL PASSWORD. The subscription and
- * the notebook are written as the account, so this signs in with a password of
- * its own that nobody sees, and at the end it leaves the account waiting for its
- * first password: Cognito e-mails an invitation, and whoever runs this never
- * learns the password of somebody else's account. `--set-password` types a
- * permanent one here instead, and sends no e-mail.
+ * THE ACCOUNT IS HANDED OVER WITH A PROVISIONAL PASSWORD. The subscription is
+ * requested as the account, so this signs in with a password of its own that
+ * nobody sees, and at the end it leaves the account waiting for its first
+ * password: Cognito e-mails an invitation, and whoever runs this never learns
+ * the password of somebody else's account. `--set-password` types a permanent
+ * one here instead, and sends no e-mail.
  */
 
 import {
@@ -39,20 +38,15 @@ import {
   type AdminGetUserCommandOutput,
 } from '@aws-sdk/client-cognito-identity-provider';
 import { CloudFormationClient, DescribeStacksCommand } from '@aws-sdk/client-cloudformation';
-import { existsSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
-import { countTree, readNotebookTree, type TreeFolder } from './lib/notebook-tree.js';
 import { workingPassword } from './lib/passwords.js';
 import { ProductApi } from './lib/product-api.js';
-import { readText, REPOSITORY_ROOT } from './lib/repository.js';
-import { writeNotebookTree } from './lib/write-notebook.js';
+import { readText } from './lib/repository.js';
 
 const QUOTAS = ['500MB', '1GB', '2GB'];
 const STATUSES = ['pending_approval', 'trial', 'active', 'rejected', 'suspended', 'canceled'];
 const OPERATIONAL = ['trial', 'active'];
-const NOTEBOOKS = join(REPOSITORY_ROOT, 'notebooks', 'trees');
 
 const { values } = parseArgs({
   options: {
@@ -61,13 +55,8 @@ const { values } = parseArgs({
     name: { type: 'string' },
     quota: { type: 'string' },
     status: { type: 'string' },
-    notebook: { type: 'string' },
-    'notebook-name': { type: 'string' },
-    'structure-only': { type: 'boolean', default: false },
-    'max-notes': { type: 'string', default: '0' },
     'set-password': { type: 'boolean', default: false },
     locale: { type: 'string' },
-    preview: { type: 'boolean', default: false },
   },
 });
 
@@ -128,48 +117,6 @@ const environments = (
 ).context.environments;
 const zone =
   environments[environment]?.hostedZoneName ?? fail(`There is no environment "${environment}".`);
-
-const available = existsSync(NOTEBOOKS)
-  ? readdirSync(NOTEBOOKS, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => entry.name)
-      .sort()
-  : [];
-
-const notebookSlug =
-  values.notebook ??
-  (await choose('notebook to write', [...available, 'none'], available[0] ?? 'none'));
-if (notebookSlug !== 'none' && !available.includes(notebookSlug)) {
-  fail(`There is no notebook called "${notebookSlug}". Available: ${available.join(', ')}.`);
-}
-const tree =
-  notebookSlug === 'none' ? null : readNotebookTree(join(NOTEBOOKS, notebookSlug), notebookSlug);
-const maxNotes = Number(values['max-notes']);
-
-if (values.preview) {
-  if (!tree) fail('Nothing to preview: no notebook was chosen.');
-  const print = (folders: readonly TreeFolder[], depth: number): void => {
-    for (const folder of folders) {
-      const marks = [
-        folder.template ? 'Template' : '',
-        folder.notes.length ? `${folder.notes.length} note(s)` : '',
-      ]
-        .filter(Boolean)
-        .join(', ');
-      say(`${'  '.repeat(depth + 1)}${folder.title}${marks ? `  [${marks}]` : ''}`);
-      print(folder.children, depth + 1);
-    }
-  };
-  say(`The notebook "${values['notebook-name'] ?? tree.name}" would be written as:`);
-  if (tree.guidance) say(`  Guidance, ${tree.guidance.length} characters`);
-  print(tree.folders, 0);
-  const counted = countTree(tree.folders);
-  say(`${counted.folders} folder(s), ${counted.notes} note(s). Nothing was created.`);
-  if (tree.orphanNotes > 0)
-    say(`${tree.orphanNotes} note(s) at the root of the tree would be skipped.`);
-  prompts.close();
-  process.exit(0);
-}
 
 const email = (values.email ?? (await ask('e-mail of the account'))).toLowerCase();
 if (!email) fail('No account to onboard: pass --email.');
@@ -297,7 +244,7 @@ interface Session {
   subscriptions: Array<{ subscriptionId: string; isOwner: boolean }>;
 }
 
-let token = await signIn(email, password);
+const token = await signIn(email, password);
 const session = await api.call<Session>('GET', '/access/session', token);
 
 let adminToken = token;
@@ -320,49 +267,17 @@ const subscriptionId =
     })
   ).subscriptionId;
 
-/**
- * Writing the notebook needs a subscription that grants operational access
- * (RN-SUB-007), and the status asked for may not be one. So the notebook is
- * written under `active` and the chosen status is applied last, both through
- * the administrative override (RN-SUB-018).
- */
-const workingStatus = tree && !OPERATIONAL.includes(status) ? 'active' : status;
+// The status is set through the administrative override (RN-SUB-018), which is
+// what lets it be any of the six, a status the transition machine would refuse
+// included.
 await api.call('PUT', `/access/platform/subscriptions/${subscriptionId}/status`, adminToken, {
-  status: workingStatus,
+  status,
 });
 await api.call('PATCH', `/access/platform/subscriptions/${subscriptionId}/plan`, adminToken, {
   type: 'individual',
   quota,
 });
-say(`Subscription ${subscriptionId}: ${workingStatus}, ${quota}.`);
-
-// ---- The notebook ------------------------------------------------------------
-
-if (tree) {
-  // The claim is minted with the token, so the session that writes is a new one.
-  token = await signIn(email, password);
-  const notebook = await writeNotebookTree({
-    api,
-    token,
-    tree,
-    name: values['notebook-name'],
-    structureOnly: values['structure-only'],
-    maxNotes,
-    progress: (written) => {
-      if (written.notes % 25 === 0) say(`  ${written.notes} notes written`);
-    },
-  });
-  say(`Notebook ${notebook.notebookId}: ${notebook.folders} folder(s), ${notebook.notes} note(s).`);
-  if (tree.orphanNotes > 0)
-    say(`${tree.orphanNotes} note(s) at the root of the tree were skipped.`);
-}
-
-if (workingStatus !== status) {
-  await api.call('PUT', `/access/platform/subscriptions/${subscriptionId}/status`, adminToken, {
-    status,
-  });
-  say(`Subscription ${subscriptionId}: ${status}.`);
-}
+say(`Subscription ${subscriptionId}: ${status}, ${quota}.`);
 
 // ---- Handing the account over ------------------------------------------------
 

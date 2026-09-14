@@ -135,19 +135,17 @@ export const CONFORMANCE_CASES: readonly ConformanceCase[] =
  * base parser is what produces them.
  *
  * **This list is a decision of ours, and it used to be a field.** Until profile
- * v0.4.0 every entry carried a `ring`, and two guards — the reading-surface
- * expectations and the two demonstration notebooks — were scoped to everything
- * outside the `base` one. The profile dropped the tier for a good reason: an
- * implementation is asked for the notation the document lists and not for a
- * specification in full. But the reason those two guards were scoped did not
- * go away with the field, so the scope is written here instead of being
- * inferred from data that no longer says it.
+ * v0.4.0 every entry carried a `ring`, and the reading-surface expectations
+ * were scoped to everything outside the `base` one. The profile dropped the
+ * tier for a good reason: an implementation is asked for the notation the
+ * document lists and not for a specification in full. But the reason that
+ * guard was scoped did not go away with the field, so the scope is written here
+ * instead of being inferred from data that no longer says it.
  *
  * The reason, unchanged: asserting that emphasis renders as `<em>` is a claim
- * about react-markdown and not about this surface, and forcing a setext
- * heading into two hand-written notebooks turns them into the list of specimens
- * they exist to not be. CommonMark is the floor every renderer already stands
- * on; what those two guards prove is what this profile adds on top of it.
+ * about react-markdown and not about this surface. CommonMark is the floor
+ * every renderer already stands on; what that guard proves is what this profile
+ * adds on top of it.
  *
  * **Three things this list is not.**
  *

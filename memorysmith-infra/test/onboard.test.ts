@@ -8,44 +8,11 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { boundedDescription, countTree, readNotebookTree } from '../commands/lib/notebook-tree.js';
+import { boundedDescription, readNotebookTree } from '../commands/lib/notebook-tree.js';
 import { workingPassword } from '../commands/lib/passwords.js';
 import { ProductApi } from '../commands/lib/product-api.js';
-import { REPOSITORY_ROOT } from '../commands/lib/repository.js';
-
-const NOTEBOOKS = join(REPOSITORY_ROOT, 'notebooks', 'trees');
 
 describe('a notebook tree', () => {
-  it('reads the folders, their Templates and their notes, in the order the structure gives', () => {
-    const tree = readNotebookTree(join(NOTEBOOKS, 'enologia'), 'enologia');
-
-    expect(tree.name).toBe('Enologia');
-    expect(tree.guidance).toContain('## Regras de escrita');
-    expect(tree.folders.map((folder) => folder.title)).toEqual(['Castas', 'Protocolos', 'Safras']);
-    expect(tree.folders.every((folder) => folder.template !== null)).toBe(true);
-    expect(tree.folders[0]?.notes.map((note) => note.file)).toContain('Cabernet Sauvignon.md');
-    expect(tree.orphanNotes).toBe(0);
-  });
-
-  it('nests folders by the numbering of the structure, three levels deep', () => {
-    const tree = readNotebookTree(
-      join(NOTEBOOKS, 'engineering-knowledge'),
-      'engineering-knowledge',
-    );
-
-    const literature = tree.folders[0];
-    expect(literature?.title).toBe('Literature');
-    expect(literature?.children.map((child) => child.title)).toEqual([
-      'Books',
-      'Courses',
-      'Use Cases',
-    ]);
-    expect(literature?.children[0]?.children.map((child) => child.title)).toContain(
-      'Lean Inception',
-    );
-    expect(countTree(tree.folders).notes).toBeGreaterThan(500);
-  });
-
   it('keeps a folder the structure declares even when it left no directory', () => {
     const root = mkdtempSync(join(tmpdir(), 'notebook-'));
     writeFileSync(join(root, 'GUIDANCE.md'), '# Fixture\n');

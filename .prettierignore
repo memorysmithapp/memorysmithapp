@@ -5,5 +5,4 @@ cdk.out/
 coverage/
 pnpm-lock.yaml
 *.md
-notebooks/
 memorysmith-infra/agent-eval/runs/

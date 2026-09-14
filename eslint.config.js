@@ -18,7 +18,6 @@ export default tseslint.config(
       '**/coverage/**',
       '**/functional-report/**',
       '**/agent-eval/runs/**',
-      'notebooks/**',
     ],
   },
   js.configs.recommended,
