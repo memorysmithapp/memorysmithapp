@@ -29,7 +29,6 @@ export interface NotebookSnapshot {
   readonly guidance: string | null;
   readonly folders: readonly FolderSnapshot[];
   readonly notes: readonly NoteSnapshot[];
-  readonly brokenLinks: number;
   readonly pendingLinks: number;
 }
 
@@ -262,11 +261,8 @@ const CHECKS: Record<CheckName, (input: CheckInput) => CheckOutcome> = {
   'links-land': (input) => {
     const problems = touched(input).flatMap((notebook) => {
       const before = input.before.find((each) => each.notebookId === notebook.notebookId);
-      const broken = notebook.brokenLinks - (before?.brokenLinks ?? 0);
       const pending = notebook.pendingLinks - (before?.pendingLinks ?? 0);
-      return broken > 0 || pending > 0
-        ? [`${notebook.name}: ${broken} broken and ${pending} pending link(s) more`]
-        : [];
+      return pending > 0 ? [`${notebook.name}: ${pending} pending link(s) more`] : [];
     });
     return outcome('links-land', problems.length === 0, problems.join('; '));
   },
@@ -283,7 +279,7 @@ const CHECKS: Record<CheckName, (input: CheckInput) => CheckOutcome> = {
   'no-duplicate-writes': (input) => {
     const seen = new Map<string, number>();
     for (const { note } of written(input)) {
-      const key = `${note.name ?? ''} ${bodyOf(note.content).trim()}`;
+      const key = `${note.name ?? ''}\u0000${bodyOf(note.content).trim()}`;
       seen.set(key, (seen.get(key) ?? 0) + 1);
     }
     const repeated = [...seen.values()].filter((count) => count > 1).length;

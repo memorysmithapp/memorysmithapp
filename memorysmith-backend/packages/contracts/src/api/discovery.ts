@@ -80,16 +80,21 @@ export const backlinksSchema = z.object({
   backlinks: z.array(noteRefSchema),
 });
 
-export const brokenLinkSchema = z.object({
+/** A link from a note to a name no note carries yet (RN-DSC-004). */
+export const pendingLinkSchema = z.object({
   fromNote: noteRefSchema,
   targetName: z.string().min(1),
 });
 
+/**
+ * What a notebook reports about its own links. There is no list of broken
+ * links, because nothing in a notebook is ever broken: a link whose target does
+ * not exist yet is pending (RN-DSC-004), and deleting a note returns the links
+ * that pointed at it to pending (RN-DSC-005).
+ */
 export const notebookHealthSchema = z.object({
-  brokenLinks: z.array(brokenLinkSchema),
   orphans: z.array(noteRefSchema),
-  /** A link whose target does not exist YET is pending, not broken (RN-DSC-004). */
-  pendingLinks: z.array(brokenLinkSchema),
+  pendingLinks: z.array(pendingLinkSchema),
 });
 
 export const searchRequestSchema = z.object({
@@ -132,7 +137,7 @@ export type GraphNodeDto = z.infer<typeof graphNodeSchema>;
 export type GraphNoteRefDto = z.infer<typeof graphNoteRefSchema>;
 export type NotebookGraphDto = z.infer<typeof notebookGraphSchema>;
 export type BacklinksDto = z.infer<typeof backlinksSchema>;
-export type BrokenLinkDto = z.infer<typeof brokenLinkSchema>;
+export type PendingLinkDto = z.infer<typeof pendingLinkSchema>;
 export type NotebookHealthDto = z.infer<typeof notebookHealthSchema>;
 export type SearchRequest = z.infer<typeof searchRequestSchema>;
 export type SearchHitDto = z.infer<typeof searchHitSchema>;

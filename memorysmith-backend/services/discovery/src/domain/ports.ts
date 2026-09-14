@@ -48,7 +48,12 @@ export interface ResolvedTarget {
   readonly notes: readonly NoteRef[];
 }
 
-export interface BrokenLink {
+/**
+ * A link from a note to a name no note carries yet (RN-DSC-004). There is no
+ * broken link beside it: deleting a note returns the links that pointed at it
+ * to pending (RN-DSC-005).
+ */
+export interface PendingLink {
   readonly fromNote: NoteRef;
   readonly targetName: string;
 }
@@ -124,7 +129,7 @@ export interface LinkGraph {
   resolveTarget(notebookId: string, target: string): Promise<ResolvedTarget>;
   dependencyTree(notebookId: string, rootNoteId: string, depth: number): Promise<GraphNode | null>;
   backlinks(notebookId: string, noteId: string): Promise<NoteRef[]>;
-  broken(notebookId: string): Promise<BrokenLink[]>;
+  pending(notebookId: string): Promise<PendingLink[]>;
   /** Every note and every edge of the notebook, for the graph view. */
   wholeGraph(notebookId: string): Promise<NotebookGraph>;
   orphans(notebookId: string, allNotes: NoteRef[]): Promise<NoteRef[]>;

@@ -36,7 +36,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import type { SubscriptionId } from '@memorysmith/kernel';
 import type {
-  BrokenLink,
+  PendingLink,
   ContentIndex,
   IndexedNote,
   FacetIndex,
@@ -428,7 +428,7 @@ export class DynamoLinkGraph implements LinkGraph {
       }));
   }
 
-  async broken(notebookId: string): Promise<BrokenLink[]> {
+  async pending(notebookId: string): Promise<PendingLink[]> {
     const pending = await this.query(notebookId, 'PENDING#');
     const notes = new Map(
       (await this.query(notebookId, 'NOTE#')).map((item) => [String(item['noteId']), item]),
@@ -448,7 +448,7 @@ export class DynamoLinkGraph implements LinkGraph {
             }
           : null;
       })
-      .filter((link) => link !== null) as BrokenLink[];
+      .filter((link) => link !== null) as PendingLink[];
   }
 
   async orphans(notebookId: string, allNotes: NoteRef[]): Promise<NoteRef[]> {

@@ -211,13 +211,13 @@ describe('The projections, driven by events', () => {
     await write({ noteId: 'n1', markdown: '# Achado 12\n\nFundamento: [[Lei 14.133]].' });
     // The target does not exist yet, so the link waits instead of vanishing.
     expect(await graph.backlinks(NOTEBOOK, 'n2')).toHaveLength(0);
-    expect(await graph.broken(NOTEBOOK)).toHaveLength(1);
+    expect(await graph.pending(NOTEBOOK)).toHaveLength(1);
 
     await write({ noteId: 'n2', markdown: '---\nname: Lei 14.133\n---\n' });
 
     const backlinks = await graph.backlinks(NOTEBOOK, 'n2');
     expect(backlinks.map((note) => note.noteId)).toEqual(['n1']);
-    expect(await graph.broken(NOTEBOOK)).toHaveLength(0);
+    expect(await graph.pending(NOTEBOOK)).toHaveLength(0);
   });
 
   it('returns backlinks to pending when the target note is deleted', async () => {
@@ -234,7 +234,7 @@ describe('The projections, driven by events', () => {
 
     // RN-DSC-005: the edge is gone and the link is pending again.
     expect(await graph.backlinks(NOTEBOOK, 'n2')).toHaveLength(0);
-    expect((await graph.broken(NOTEBOOK)).map((link) => link.targetName)).toEqual(['Lei 14.133']);
+    expect((await graph.pending(NOTEBOOK)).map((link) => link.targetName)).toEqual(['Lei 14.133']);
   });
 
   it('makes two edges out of one link when two notes carry the name', async () => {
@@ -250,7 +250,7 @@ describe('The projections, driven by events', () => {
   it('lets an alias catch a target no name matched', async () => {
     // RN-DSC-052: the alias fills an empty, and only an empty.
     await write({ noteId: 'n1', markdown: '# Achado\n\nVer [[RPO]].' });
-    expect(await graph.broken(NOTEBOOK)).toHaveLength(1);
+    expect(await graph.pending(NOTEBOOK)).toHaveLength(1);
 
     await write({
       noteId: 'n2',
@@ -258,7 +258,7 @@ describe('The projections, driven by events', () => {
     });
 
     expect((await graph.backlinks(NOTEBOOK, 'n2')).map((note) => note.noteId)).toEqual(['n1']);
-    expect(await graph.broken(NOTEBOOK)).toHaveLength(0);
+    expect(await graph.pending(NOTEBOOK)).toHaveLength(0);
   });
 
   it('takes the edge back the day a note carries that name, and gives it again', async () => {

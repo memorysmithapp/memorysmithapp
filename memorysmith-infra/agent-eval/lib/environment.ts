@@ -245,7 +245,7 @@ export async function snapshot(
       });
     }
 
-    const health = await api.call<{ brokenLinks: unknown[]; pendingLinks: unknown[] }>(
+    const health = await api.call<{ pendingLinks: unknown[] }>(
       'GET',
       `/discovery/notebooks/${notebookId}/health`,
       token,
@@ -256,7 +256,6 @@ export async function snapshot(
       guidance: detail.guidance?.content ?? null,
       folders,
       notes,
-      brokenLinks: health.brokenLinks.length,
       pendingLinks: health.pendingLinks.length,
     });
   }

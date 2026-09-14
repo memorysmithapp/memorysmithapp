@@ -100,7 +100,6 @@ const notebook = (overrides: Partial<NotebookSnapshot> = {}): NotebookSnapshot =
     },
   ],
   notes: [],
-  brokenLinks: 0,
   pendingLinks: 0,
   ...overrides,
 });

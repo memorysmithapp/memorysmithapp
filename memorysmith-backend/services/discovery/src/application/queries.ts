@@ -17,7 +17,7 @@ import {
   type NoteRef,
   type ResolvedTarget,
   type ScoredNote,
-  type BrokenLink,
+  type PendingLink,
 } from '../domain/ports.js';
 import {
   QuerySyntaxError,
@@ -127,10 +127,10 @@ export class NotebookHealth {
 
   async execute(input: {
     notebookId: string;
-  }): Promise<Result<{ broken: BrokenLink[]; orphans: NoteRef[] }, DomainError>> {
+  }): Promise<Result<{ pending: PendingLink[]; orphans: NoteRef[] }, DomainError>> {
     const notes = await this.deps.catalog.listNotes(input.notebookId);
     return ok({
-      broken: await this.deps.graph.broken(input.notebookId),
+      pending: await this.deps.graph.pending(input.notebookId),
       orphans: await this.deps.graph.orphans(input.notebookId, notes),
     });
   }

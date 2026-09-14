@@ -239,7 +239,7 @@ memorysmith-frontend/
 │   │   ├── note/                       # reading, editing, backlinks, related notes
 │   │   ├── history/                    # the timeline and the diff between revisions
 │   │   ├── search/                     # lexical, over name and folder
-│   │   ├── health/                     # broken links and orphans
+│   │   ├── health/                     # pending links and orphans
 │   │   ├── members/                    # members and roles
 │   │   └── connect/                    # the MCP URL and the walkthrough per client
 │   ├── i18n/
@@ -1131,7 +1131,7 @@ svc-discovery    GET  /notebooks/:v/links/:target   what one wikilink target res
                     address cannot answer — none and several (RN-DSC-046)
                  GET  /notebooks/:v/graph   (the whole notebook graph, edges from the index)
                  GET  /notebooks/:v/notes/:n/graph?depth= · GET /notebooks/:v/notes/:n/backlinks
-                 GET  /notebooks/:v/health   (broken links, orphans)
+                 GET  /notebooks/:v/health   (pending links, orphans)
                  GET  /notebooks/:v/facets  (content distribution, feeds the Overview)
                  POST /notebooks/:v/search   { query, mode: lexical }
 svc-audit        GET  /notes/:n/history

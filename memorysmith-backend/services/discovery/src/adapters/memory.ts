@@ -6,7 +6,7 @@
 
 import {
   GRAPH_LIMITS,
-  type BrokenLink,
+  type PendingLink,
   type FacetIndex,
   type FacetStats,
   type GraphNode,
@@ -173,14 +173,14 @@ export class InMemoryLinkGraph implements LinkGraph {
       .filter((note) => (seen.has(note.noteId) ? false : seen.add(note.noteId) !== undefined));
   }
 
-  async broken(notebookId: string): Promise<BrokenLink[]> {
+  async pending(notebookId: string): Promise<PendingLink[]> {
     const state = this.notebook(notebookId);
     return this.resolved(notebookId)
       .pending.map((each) => {
         const from = state.notes.get(each.fromNoteId);
         return from ? { fromNote: from, targetName: each.name } : null;
       })
-      .filter((link): link is BrokenLink => link !== null);
+      .filter((link): link is PendingLink => link !== null);
   }
 
   async orphans(notebookId: string, allNotes: NoteRef[]): Promise<NoteRef[]> {

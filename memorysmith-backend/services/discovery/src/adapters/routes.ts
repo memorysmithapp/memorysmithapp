@@ -135,10 +135,11 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
     if (denied) return fail(c, denied);
 
     const health = await useCases.health(request).execute({ notebookId });
+    // Once, under the name RN-DSC-004 gives them: this route used to answer the
+    // same list twice, the second time as broken links, which nothing here is.
     return present(c, health, (value) => ({
-      brokenLinks: value.broken,
       orphans: value.orphans,
-      pendingLinks: value.broken,
+      pendingLinks: value.pending,
     }));
   });
 

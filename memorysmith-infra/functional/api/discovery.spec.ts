@@ -115,18 +115,22 @@ test.describe('the graph of a notebook', () => {
   }) => {
     const { alpha } = await writeLinkedNotes(owner, notebook);
 
-    await eventually(
-      'the broken link to Gamma',
+    // A link to a name nobody carries yet is pending, and reported once under
+    // that name (RN-DSC-004); nothing in a notebook is broken.
+    const health = await eventually(
+      'the pending link to Gamma',
       () =>
-        owner.ok<{ brokenLinks: Array<{ fromNote: NoteRef; targetName: string }> }>(
-          'GET',
-          `${discovery(notebook)}/health`,
-        ),
+        owner.ok<
+          Record<string, unknown> & {
+            pendingLinks: Array<{ fromNote: NoteRef; targetName: string }>;
+          }
+        >('GET', `${discovery(notebook)}/health`),
       (answer) =>
-        answer.brokenLinks.some(
+        answer.pendingLinks.some(
           (link) => link.targetName === 'Gamma' && link.fromNote.noteId === alpha,
         ),
     );
+    expect(health).not.toHaveProperty('brokenLinks');
   });
 });
 
