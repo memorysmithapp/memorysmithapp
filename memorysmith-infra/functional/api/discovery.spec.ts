@@ -157,15 +157,18 @@ test.describe('facets and search', () => {
   }) => {
     const { beta, word } = await writeLinkedNotes(owner, notebook);
     const search = (query: string) =>
-      owner.ok<{ hits: Array<{ noteId: string }> }>('POST', `${discovery(notebook)}/search`, {
-        query,
-      });
+      owner.ok<{ hits: Array<{ note: { noteId: string; name: string } }> }>(
+        'POST',
+        `${discovery(notebook)}/search`,
+        { query },
+      );
 
-    await eventually(
+    const found = await eventually(
       `the note carrying ${word}`,
       () => search(word),
-      (answer) => answer.hits.some((hit) => hit.noteId === beta),
+      (answer) => answer.hits.some((hit) => hit.note.noteId === beta),
     );
+    expect(found.hits.find((hit) => hit.note.noteId === beta)?.note.name).toBe('Beta');
     const filtered = await search(`${word} kind:claim`);
     expect(filtered.hits).toEqual([]);
   });

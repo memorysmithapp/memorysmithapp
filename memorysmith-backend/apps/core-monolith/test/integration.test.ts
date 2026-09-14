@@ -7,6 +7,7 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
+import { searchResultSchema } from '@memorysmith/contracts';
 import { buildTestApp } from './wiring.js';
 
 type App = ReturnType<typeof buildTestApp>;
@@ -203,18 +204,20 @@ describe('Discovery answers over the API', () => {
      * content index.
      */
     const { notebookId, notes } = await seed();
-    const byBody = (await (
-      await call(`/discovery/notebooks/${notebookId}/search`, {
-        method: 'POST',
-        body: { query: 'Art. 75' },
-      })
-    ).json()) as {
-      mode: string;
-      hits: Array<{ noteId: string; section: string | null; excerpt: string }>;
-    };
+    // Read through the published schema: the route answered flat hits with no
+    // name where the contract declares the note, and the connector printed
+    // nothing for them.
+    const byBody = searchResultSchema.parse(
+      await (
+        await call(`/discovery/notebooks/${notebookId}/search`, {
+          method: 'POST',
+          body: { query: 'Art. 75' },
+        })
+      ).json(),
+    );
 
     expect(byBody.mode).toBe('lexical');
-    expect(byBody.hits.map((hit) => hit.noteId)).toEqual([notes['lei']]);
+    expect(byBody.hits.map((hit) => hit.note.noteId)).toEqual([notes['lei']]);
     expect(byBody.hits[0]?.excerpt).toContain('Art. 75');
   });
 
@@ -226,8 +229,8 @@ describe('Discovery answers over the API', () => {
         method: 'POST',
         body: { query: 'name:achado' },
       })
-    ).json()) as { hits: Array<{ noteId: string }> };
-    expect(byName.hits.map((hit) => hit.noteId)).toEqual([notes['achado']]);
+    ).json()) as { hits: Array<{ note: { noteId: string } }> };
+    expect(byName.hits.map((hit) => hit.note.noteId)).toEqual([notes['achado']]);
 
     // `maturity` is frontmatter the notebook wrote, never a field the code knows.
     const byFacet = (await (
@@ -235,8 +238,8 @@ describe('Discovery answers over the API', () => {
         method: 'POST',
         body: { query: 'maturity:evergreen' },
       })
-    ).json()) as { hits: Array<{ noteId: string }> };
-    expect(byFacet.hits.map((hit) => hit.noteId)).toEqual([notes['lei']]);
+    ).json()) as { hits: Array<{ note: { noteId: string } }> };
+    expect(byFacet.hits.map((hit) => hit.note.noteId)).toEqual([notes['lei']]);
   });
 
   it('refuses a query it cannot parse instead of answering with everything', async () => {

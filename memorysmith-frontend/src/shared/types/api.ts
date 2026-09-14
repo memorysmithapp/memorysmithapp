@@ -1,6 +1,8 @@
 // DTO shapes mirror the future internal API (architecture-guide.md §14.1).
 // The seed adapter fills them today; the HTTP client will fill them tomorrow.
 
+import type { SearchHitDto } from '@memorysmith/contracts';
+
 export interface NotebookSummary {
   id: string;
   slug: string;
@@ -59,17 +61,13 @@ export interface NoteDetail {
 }
 
 /**
- * One hit of a notebook search. The identifier is the note's, which the caller
- * resolves against the structure it has already loaded; the excerpt is the
- * passage around the match, cut from the text as the author wrote it, and the
- * section is the heading it fell under when it fell under one.
+ * One hit of a notebook search, exactly as the API publishes it. The note is
+ * resolved by its identifier against the structure the caller has already
+ * loaded; the excerpt is the passage around the match, cut from the text as the
+ * author wrote it, and the section is the heading it fell under when it fell
+ * under one.
  */
-export interface SearchHit {
-  noteId: string;
-  section: string | null;
-  excerpt: string;
-  score: number;
-}
+export type SearchHit = SearchHitDto;
 
 export interface TemplateDetail {
   folderId: string;

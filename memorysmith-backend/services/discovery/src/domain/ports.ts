@@ -132,10 +132,13 @@ export interface LinkGraph {
 
 /**
  * One search hit. `section` names the heading the match fell under, when the
- * match came from the body and a heading precedes it.
+ * match came from the body and a heading precedes it. The note travels as the
+ * projections name it everywhere else, name included, which is the shape the
+ * published search hit declares: a hit that carried the identifier alone left
+ * an agent with a note it could not name.
  */
 export interface ScoredNote {
-  readonly noteId: string;
+  readonly note: NoteRef;
   readonly section: string | null;
   readonly excerpt: string;
   readonly score: number;

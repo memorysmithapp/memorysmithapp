@@ -108,7 +108,7 @@ export function SearchBox({ notebookId, structure }: SearchBoxProps) {
   const results = useMemo(
     () =>
       (data ?? []).flatMap((hit) => {
-        const note = byId.get(hit.noteId);
+        const note = byId.get(hit.note.noteId);
         return note ? [{ hit, note, url: note.address }] : [];
       }),
     [data, byId],
@@ -142,7 +142,7 @@ export function SearchBox({ notebookId, structure }: SearchBoxProps) {
           ) : results.length > 0 ? (
             <ul>
               {results.map(({ hit, note, url }) => (
-                <li key={hit.noteId}>
+                <li key={hit.note.noteId}>
                   <Link to={url} onClick={() => setQuery('')}>
                     <span className="search-name">{note.name ?? t('note.unnamed')}</span>
                     <span className="search-path">

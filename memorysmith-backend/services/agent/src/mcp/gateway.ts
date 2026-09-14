@@ -46,6 +46,17 @@ export interface NoteListing {
   readonly position: string;
 }
 
+/**
+ * A note the link graph names: what points at another note carries no place in
+ * a folder, only where it lives. A note that states no name answers null here
+ * too, as in a listing.
+ */
+export interface NoteReference {
+  readonly noteId: string;
+  readonly name: string | null;
+  readonly folderId: string;
+}
+
 export interface NoteContent {
   readonly noteId: string;
   readonly name: string | null;
@@ -152,7 +163,7 @@ export interface DiscoveryGateway {
     caller: AgentCaller,
     input: { notebookId: string; noteId: string; depth?: number },
   ): Promise<RelatedNode>;
-  backlinks(caller: AgentCaller, notebookId: string, noteId: string): Promise<NoteListing[]>;
+  backlinks(caller: AgentCaller, notebookId: string, noteId: string): Promise<NoteReference[]>;
 }
 
 export interface AuditGateway {

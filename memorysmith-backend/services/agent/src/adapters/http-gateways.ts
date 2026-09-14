@@ -13,6 +13,12 @@
  *    AND the human, and a token with no binding writes nothing (RN-AGT-001).
  */
 
+import type {
+  BacklinksDto,
+  GraphNodeDto,
+  NoteRefDto,
+  SearchResultDto,
+} from '@memorysmith/contracts';
 import {
   GatewayError,
   type AccessGateway,
@@ -25,10 +31,34 @@ import {
   type KnowledgeGateway,
   type NoteContent,
   type NoteListing,
+  type NoteReference,
   type RelatedNode,
   type SearchHit,
   type NotebookListing,
 } from '../mcp/gateway.js';
+
+/**
+ * The answers of Discovery are read as the DTOs the contracts publish, and
+ * turned into what the tools print here, in one place. They used to be retyped
+ * by hand as the shape the tools wanted, so related_notes printed
+ * "- undefined (undefined)" for every note and no test could see it.
+ */
+function referenceOf(note: NoteRefDto): NoteReference {
+  return {
+    noteId: note.noteId,
+    name: note.name === '' ? null : note.name,
+    folderId: note.folderId,
+  };
+}
+
+function relatedNodeOf(node: GraphNodeDto): RelatedNode {
+  return {
+    noteId: node.note.noteId,
+    name: node.note.name,
+    depth: node.depth,
+    children: (node.children as GraphNodeDto[]).map(relatedNodeOf),
+  };
+}
 
 /** The bearer token travels with the caller, and only inside this process. */
 export interface TokenCarrier extends AgentCaller {
@@ -292,13 +322,19 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
   }
 
   async searchNotes(caller: AgentCaller, notebookId: string, query: string): Promise<SearchHit[]> {
-    const found = await callApi<{ hits: SearchHit[] }>(
+    const found = await callApi<SearchResultDto>(
       this.origin,
       caller,
       `/discovery/notebooks/${notebookId}/search`,
       { method: 'POST', body: { query } },
     );
-    return found.hits;
+    return found.hits.map((hit) => ({
+      noteId: hit.note.noteId,
+      name: hit.note.name,
+      section: hit.section,
+      excerpt: hit.excerpt,
+      score: hit.score,
+    }));
   }
 }
 
@@ -310,20 +346,25 @@ export class HttpDiscoveryGateway implements DiscoveryGateway {
     input: { notebookId: string; noteId: string; depth?: number },
   ): Promise<RelatedNode> {
     const depth = input.depth ? `?depth=${input.depth}` : '';
-    return callApi<RelatedNode>(
+    const tree = await callApi<GraphNodeDto>(
       this.origin,
       caller,
       `/discovery/notebooks/${input.notebookId}/notes/${input.noteId}/graph${depth}`,
     );
+    return relatedNodeOf(tree);
   }
 
-  async backlinks(caller: AgentCaller, notebookId: string, noteId: string): Promise<NoteListing[]> {
-    const found = await callApi<{ backlinks: NoteListing[] }>(
+  async backlinks(
+    caller: AgentCaller,
+    notebookId: string,
+    noteId: string,
+  ): Promise<NoteReference[]> {
+    const found = await callApi<BacklinksDto>(
       this.origin,
       caller,
       `/discovery/notebooks/${notebookId}/notes/${noteId}/backlinks`,
     );
-    return found.backlinks;
+    return found.backlinks.map(referenceOf);
   }
 }
 

@@ -224,19 +224,41 @@ export class SearchNotes {
 
     const needle = firstTerm(tree);
 
-    const hits = notes
+    const scored = notes
       .map((note) => ({ note, candidate: candidateOf(note) }))
       .filter(({ candidate }) => matches(tree, candidate))
-      .map(({ note, candidate }) => ({
-        noteId: note.noteId,
-        section: needle ? sectionOf(note, needle) : null,
-        excerpt: needle ? excerptAround(note.original, note.normalized, needle) : note.name,
-        score: score(tree, candidate),
-      }))
-      .sort((left, right) => right.score - left.score)
+      .map(({ note, candidate }) => ({ note, points: score(tree, candidate) }))
+      .sort((left, right) => right.points - left.points)
       .slice(0, input.k ?? 10);
+    if (scored.length === 0) return ok([]);
 
-    return ok(hits);
+    /**
+     * The index keeps the name folded, lowercased and without accents, which is
+     * what a query compares against and never what a reader is shown. The note
+     * of a hit travels as the catalog names it, as written, the way every other
+     * answer of this context names a note.
+     */
+    const catalog = new Map(
+      (await this.deps.catalog.listNotes(input.notebookId)).map((ref) => [ref.noteId, ref]),
+    );
+    return ok(
+      scored.map(({ note, points }) => {
+        const named = catalog.get(note.noteId);
+        return {
+          note: {
+            noteId: note.noteId,
+            name: named?.name ?? '',
+            aliases: named?.aliases ?? note.aliases ?? [],
+            folderId: named?.folderId ?? note.folderId,
+          },
+          section: needle ? sectionOf(note, needle) : null,
+          excerpt: needle
+            ? excerptAround(note.original, note.normalized, needle)
+            : (named?.name ?? ''),
+          score: points,
+        };
+      }),
+    );
   }
 }
 

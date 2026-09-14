@@ -594,7 +594,9 @@ describe('Discovery queries', () => {
     });
     expect(found.ok).toBe(true);
     if (!found.ok) return;
-    expect(found.value[0]?.noteId).toBe('n2');
+    expect(found.value[0]?.note.noteId).toBe('n2');
+    // The hit names the note, which is what an agent searching reads.
+    expect(found.value[0]?.note.name).toBe('Lei 14.133');
   });
 
   it('refuses an interval over an attribute this notebook does not hold as a date', async () => {
@@ -625,7 +627,7 @@ describe('Discovery queries', () => {
      * would make the result impossible to explain.
      */
     const exact = await new SearchNotes(deps).execute({ notebookId: NOTEBOOK, query: '14.133' });
-    expect(exact.ok && exact.value.map((hit) => hit.noteId)).toEqual(['n2']);
+    expect(exact.ok && exact.value.map((hit) => hit.note.noteId)).toEqual(['n2']);
 
     const without = await new SearchNotes(deps).execute({ notebookId: NOTEBOOK, query: '14133' });
     expect(without.ok && without.value).toEqual([]);
@@ -639,7 +641,7 @@ describe('Discovery queries', () => {
     });
     expect(found.ok).toBe(true);
     if (!found.ok) return;
-    expect(found.value.map((hit) => hit.noteId)).toEqual(['n2']);
+    expect(found.value.map((hit) => hit.note.noteId)).toEqual(['n2']);
   });
 
   it('cites the section the match fell under, and shows the passage', async () => {
@@ -662,7 +664,7 @@ describe('Discovery queries', () => {
     });
     expect(withFacet.ok).toBe(true);
     if (!withFacet.ok) return;
-    expect(withFacet.value.map((hit) => hit.noteId).sort()).toEqual(['n1', 'n3']);
+    expect(withFacet.value.map((hit) => hit.note.noteId).sort()).toEqual(['n1', 'n3']);
   });
 
   it('excludes with a negation', async () => {
@@ -672,7 +674,7 @@ describe('Discovery queries', () => {
     });
     expect(found.ok).toBe(true);
     if (!found.ok) return;
-    expect(found.value.map((hit) => hit.noteId)).toEqual(['n1']);
+    expect(found.value.map((hit) => hit.note.noteId)).toEqual(['n1']);
   });
 
   it('does not search the frontmatter as if it were prose', async () => {

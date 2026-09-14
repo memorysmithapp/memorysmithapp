@@ -275,7 +275,8 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     name: 'read_note',
     title: 'Read a note',
     description:
-      'Returns the complete Markdown of a note and its current revision. With asOf, returns ' +
+      'Returns the complete Markdown of a note and its current revision, as `revision`: a ' +
+      'string to pass back unchanged as baseRevision when you edit it. With asOf, returns ' +
       'the revision that was in force on that date, rebuilt from the audit trail, which is ' +
       'what lets a past piece of work be redone against the base as it stood then.',
     inputSchema: object(
@@ -410,7 +411,10 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     title: 'Read the history of a note',
     description:
       'The timeline of a note: who changed it, when, and with which agent. It survives the ' +
-      'note changing folder and notebook, because it is keyed by the note identifier.',
+      'note changing folder and notebook, because it is keyed by the note identifier. It ' +
+      'answers a list of entries, each with occurredAt, type, userId, agentName, ' +
+      'agentClientId (null for a write the person made without a connector) and revision ' +
+      '(null for an event that wrote no content), which read_note takes as asOf.',
     inputSchema: object(
       { notebook: notebookArgument, note: { type: 'string', description: 'Note identifier.' } },
       ['notebook', 'note'],
