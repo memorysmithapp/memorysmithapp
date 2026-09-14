@@ -443,7 +443,8 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       .execute({ ctx: request.ctx, notebookId: notebookId.value, folderId: folderId.value });
     if (!template.ok) return fail(c, template.error);
     if (!template.value) return c.json({ content: null }, 200);
-    return c.json(template.value, 200);
+    const { content, folderName, revision } = template.value;
+    return c.json({ content, folderName, revision: revision.toJSON() }, 200);
   });
 
   // ---- Notes ---------------------------------------------------------------

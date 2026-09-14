@@ -12,7 +12,7 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import { buildTestApp } from './wiring.js';
-import { sessionSchema } from '@memorysmith/contracts';
+import { contentSchema, sessionSchema } from '@memorysmith/contracts';
 
 type App = ReturnType<typeof buildTestApp>;
 let harness: App;
@@ -140,6 +140,14 @@ describe('The authoring cycle', () => {
     expect(template.status).toBe(200);
     const written = (await template.json()) as { revision: { versionId: string } };
     expect(written.revision.versionId).toBeTruthy();
+
+    // And reading it answers that same revision, as contentSchema publishes: the
+    // page of Templates reads it, and failed on every Template while it was
+    // missing from this answer.
+    const readBack = contentSchema.parse(
+      await (await call(`/knowledge/notebooks/${notebookId}/folders/${folderId}/template`)).json(),
+    );
+    expect(readBack.revision.versionId).toBe(written.revision.versionId);
 
     const note = await call(`/knowledge/notebooks/${notebookId}/notes`, {
       method: 'POST',

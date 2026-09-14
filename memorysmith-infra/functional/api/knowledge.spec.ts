@@ -181,12 +181,20 @@ test.describe('folders', () => {
     const path = `${foldersPath(notebook)}/${notebook.folderId}/template`;
     const template = '---\nname:\n---\n\n## Finding\n\n## Evidence\n';
 
-    expect((await owner.call('PUT', path, { content: template, baseRevision: null })).status).toBe(
-      200,
-    );
-    const read = await owner.ok<{ content: string | null; folderName: string }>('GET', path);
+    const written = await owner.ok<{ revision: ContentRef }>('PUT', path, {
+      content: template,
+      baseRevision: null,
+    });
+    const read = await owner.ok<{
+      content: string | null;
+      folderName: string;
+      revision: ContentRef;
+    }>('GET', path);
     expect(read.content).toBe(template);
     expect(read.folderName).toBe('Findings');
+    // The revision the next write echoes back, which the interface reads: its
+    // absence is what broke the page of Templates.
+    expect(read.revision.versionId).toBe(written.revision.versionId);
   });
 });
 

@@ -203,7 +203,9 @@ export class GetTemplate {
     ctx: RequestContext;
     notebookId: NotebookId;
     folderId: FolderId;
-  }): Promise<Result<{ content: string; folderName: string } | null, DomainError>> {
+  }): Promise<
+    Result<{ content: string; folderName: string; revision: ContentRef } | null, DomainError>
+  > {
     const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'read');
     if (!notebook.ok) return notebook;
 
@@ -211,9 +213,13 @@ export class GetTemplate {
     if (!folder) return err(DomainError.notFound('Folder not found in this notebook'));
     if (!folder.templateRef) return ok(null);
 
+    // The revision is what the next write of this Template has to echo back
+    // (RN-KNW-034). Without it a reader can only write blind, which the route
+    // refuses, and the interface failed on reading it.
     return ok({
       content: await this.deps.content.read(folder.templateRef),
       folderName: folder.name.value,
+      revision: folder.templateRef,
     });
   }
 }

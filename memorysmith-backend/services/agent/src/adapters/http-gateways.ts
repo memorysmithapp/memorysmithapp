@@ -215,17 +215,19 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     notebookId: string,
     folderId: string,
   ): Promise<{ content: string; folderName: string; revision: string } | null> {
-    const found = await callApi<{
-      content: string | null;
-      folderName?: string;
-      revision?: { versionId: string };
-    }>(this.origin, caller, `/knowledge/notebooks/${notebookId}/folders/${folderId}/template`);
+    // The route answers `{ content: null }` for a folder with no Template, and
+    // the whole Template with its revision otherwise. Written as that union, so
+    // a revision missing from the answer is a type error here rather than an
+    // empty string an agent echoes back into a write that conflicts.
+    const found = await callApi<
+      { content: null } | { content: string; folderName: string; revision: { versionId: string } }
+    >(this.origin, caller, `/knowledge/notebooks/${notebookId}/folders/${folderId}/template`);
     return found.content === null
       ? null
       : {
           content: found.content,
-          folderName: found.folderName ?? '',
-          revision: found.revision?.versionId ?? '',
+          folderName: found.folderName,
+          revision: found.revision.versionId,
         };
   }
 
