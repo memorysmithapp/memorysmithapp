@@ -265,20 +265,22 @@ test.describe('the tools', () => {
     ).toContain(created.noteId);
 
     const note = { ...where, note: created.noteId };
-    const read = parsed<{ content: string; revision: { versionId: string } }>(
+    // The tool hands the revision over as the string to pass back, not as the
+    // content reference the API answers.
+    const read = parsed<{ content: string; revision: string }>(
       await callTool(agent, 'read_note', note),
     );
     const updated = parsed<{ content: string }>(
       await callTool(agent, 'update_note', {
         ...note,
         content: `${read.content}\nEdited on the revision it read.\n`,
-        baseRevision: read.revision.versionId,
+        baseRevision: read.revision,
       }),
     );
     const stale = await callTool(agent, 'update_note', {
       ...note,
       content: 'An edit that saw nothing.\n',
-      baseRevision: read.revision.versionId,
+      baseRevision: read.revision,
     });
     expect(updated.content).toContain('Edited on the revision it read.');
     expect(stale.isError).toBe(true);
@@ -337,34 +339,32 @@ test.describe('the tools', () => {
       }),
     );
     const note = { notebook: notebook.notebookId, note: created.noteId };
-    const first = parsed<{ content: string; revision: { versionId: string } }>(
+    const first = parsed<{ content: string; revision: string }>(
       await callTool(agent, 'read_note', note),
     );
     parsed(
       await callTool(agent, 'update_note', {
         ...note,
         content: '---\nname: Dated finding\n---\n\nAs written later.\n',
-        baseRevision: first.revision.versionId,
+        baseRevision: first.revision,
       }),
     );
 
+    // The tool answers the timeline as a list, each write naming its revision
+    // and the connector that made it.
     const history = await eventually(
       'both writes in the history',
       async () =>
-        parsed<{
-          entries: Array<{
-            occurredAt: string;
-            contentRef: unknown;
-            authorship: { agent: { clientId: string } | null };
-          }>;
-        }>(await callTool(agent, 'note_history', note)),
-      (answer) => answer.entries.filter((entry) => entry.contentRef !== null).length >= 2,
+        parsed<
+          Array<{ occurredAt: string; revision: string | null; agentClientId: string | null }>
+        >(await callTool(agent, 'note_history', note)),
+      (answer) => answer.filter((entry) => entry.revision !== null).length >= 2,
     );
-    for (const entry of history.entries) {
-      expect(entry.authorship.agent?.clientId).toBe(connector.clientId);
+    for (const entry of history) {
+      expect(entry.agentClientId).toBe(connector.clientId);
     }
 
-    const earliest = history.entries.find((entry) => entry.contentRef !== null);
+    const earliest = history.find((entry) => entry.revision !== null);
     const asItWas = parsed<{ content: string }>(
       await callTool(agent, 'read_note', { ...note, asOf: earliest?.occurredAt }),
     );

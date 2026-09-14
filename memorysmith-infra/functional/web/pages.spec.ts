@@ -181,9 +181,11 @@ test.describe('the pages of an account', () => {
     expect(stored.content).toContain('- [x] second');
 
     // And this one: coming back to a note inside the application showed the
-    // state from before its own write, from a cache nobody told to forget.
-    await app.locator('a.notebook-title-link').click();
-    await app.locator('a.outline-name', { hasText: 'Findings' }).click();
+    // state from before its own write, from a cache nobody told to forget. It
+    // leaves through the folder: the title of the notebook resumes the note
+    // last read, which is this one, so it would never leave at all.
+    await app.locator('aside#notebook-sidebar .tree-folder a', { hasText: 'Findings' }).click();
+    await expect(app.getByRole('heading', { level: 1, name: 'Findings' })).toBeVisible();
     await app.locator('ul.note-list a', { hasText: 'Checklist' }).click();
     await expect(box('first')).toBeChecked();
     await expect(box('second')).toBeChecked();

@@ -60,23 +60,18 @@ test('an agent writes by the Guidance and the Template, a person ticks a box on 
     const history = await eventually(
       'both writes in the history of the note',
       async () =>
-        parsed<{
-          entries: Array<{
-            contentRef: unknown;
-            authorship: { userId: string; agent: { clientId: string } | null };
-          }>;
-        }>(
+        parsed<Array<{ revision: string | null; userId: string; agentClientId: string | null }>>(
           await callTool(agent, 'note_history', {
             notebook: notebook.notebookId,
             note: written.noteId,
           }),
         ),
-      (answer) => answer.entries.filter((entry) => entry.contentRef !== null).length >= 2,
+      (answer) => answer.filter((entry) => entry.revision !== null).length >= 2,
     );
-    const writes = history.entries.filter((entry) => entry.contentRef !== null);
-    expect(writes[0]?.authorship.agent?.clientId).toBe(connector.clientId);
-    expect(writes[writes.length - 1]?.authorship.agent).toBeNull();
-    expect(writes[0]?.authorship.userId).toBe(writes[writes.length - 1]?.authorship.userId);
+    const writes = history.filter((entry) => entry.revision !== null);
+    expect(writes[0]?.agentClientId).toBe(connector.clientId);
+    expect(writes[writes.length - 1]?.agentClientId).toBeNull();
+    expect(writes[0]?.userId).toBe(writes[writes.length - 1]?.userId);
   } finally {
     await agent.close();
   }

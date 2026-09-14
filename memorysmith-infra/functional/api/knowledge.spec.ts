@@ -5,6 +5,7 @@
  */
 
 import type { Api } from '../support/api.js';
+import { eventually } from '../support/eventually.js';
 import { expect, test, unique, type NotebookFixture } from './fixtures.js';
 
 interface ContentRef {
@@ -164,6 +165,18 @@ test.describe('folders', () => {
   }) => {
     const path = `${foldersPath(notebook)}/${notebook.folderId}`;
 
+    // Whether a folder holds notes is read from its counter, which the outbox
+    // relay keeps after the write and not inside it (architecture-guide.md,
+    // section 10.3). The note of the fixture was written a moment ago, so the
+    // refusal is asked for once the folder counts it, as the design promises.
+    await eventually(
+      'the note of the fixture counted in its folder',
+      () =>
+        owner.ok<{ folders: Array<Folder & { noteCount: number }> }>('GET', notebookPath(notebook)),
+      (detail) =>
+        (detail.folders.find((folder) => folder.folderId === notebook.folderId)?.noteCount ?? 0) >
+        0,
+    );
     expect((await owner.call('DELETE', path)).status).toBe(412);
     expect((await owner.call('DELETE', `${path}?policy=REJECT_IF_NOT_EMPTY`)).status).toBe(409);
     const removed = await owner.call<{ removedFolderIds: string[] }>(
