@@ -555,11 +555,26 @@ export class DynamoLinkGraph implements LinkGraph {
   }
 }
 
+/** How many times a cancelled transaction of the facet projection is tried. */
+const TRANSACTION_ATTEMPTS = 5;
+
+const wait = (milliseconds: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+/**
+ * DynamoDB cancels a transaction when one of its conditions fails and when
+ * another transaction holds one of its items in flight, under this one name.
+ */
+function cancelled(error: unknown): boolean {
+  return (error as { name?: unknown } | null)?.name === 'TransactionCanceledException';
+}
+
 export class DynamoFacetIndex implements FacetIndex {
   constructor(
     private readonly subscriptionId: SubscriptionId,
     private readonly db: DynamoDBDocumentClient,
     private readonly tableName: string,
+    private readonly sleep: (milliseconds: number) => Promise<void> = wait,
   ) {}
 
   private pk(notebookId: string): string {
@@ -571,33 +586,88 @@ export class DynamoFacetIndex implements FacetIndex {
     noteId: string,
     facets: FacetSnapshot | null,
   ): Promise<void> {
+    const { changes, rest } = await this.committed(() =>
+      this.writePortrait(notebookId, noteId, facets),
+    );
+    for (const batch of rest) {
+      await this.committed(() =>
+        this.db.send(new TransactWriteCommand({ TransactItems: batch as never })),
+      );
+    }
+
+    for (const facet of new Set(changes.map((change) => change.facet))) {
+      await this.enforceCardinality(notebookId, facet);
+    }
+  }
+
+  /**
+   * Two notes of one notebook that share a value move the same counter, and
+   * under a burst their transactions meet. DynamoDB cancels one of them, which
+   * is an ordinary answer and not a failure, yet it failed the whole batch back
+   * to the queue, and the six minutes the queue hides a message for became the
+   * reindexing delay of every note in that batch. A cancelled transaction is
+   * tried again after a jittered pause, and only one still cancelled at the
+   * last attempt fails.
+   */
+  private async committed<T>(transaction: () => Promise<T>): Promise<T> {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await transaction();
+      } catch (error) {
+        if (!cancelled(error) || attempt === TRANSACTION_ATTEMPTS) throw error;
+        await this.sleep(Math.random() * 50 * 2 ** attempt);
+      }
+    }
+  }
+
+  /**
+   * One attempt at the portrait of a note and the first counters it moves. A
+   * delta is only exact against the portrait it replaces, so every attempt
+   * reads the portrait again, consistently, and writes the new one only over
+   * the revision it read: a projection of the same note that wrote in between
+   * cancels this attempt, instead of both counting one change.
+   */
+  private async writePortrait(
+    notebookId: string,
+    noteId: string,
+    facets: FacetSnapshot | null,
+  ): Promise<{ changes: ReturnType<typeof facetDelta>; rest: Item[][] }> {
+    const key = { PK: this.pk(notebookId), SK: `FACET#${noteId}` };
     const previous = await this.db.send(
-      new GetCommand({
-        TableName: this.tableName,
-        Key: { PK: this.pk(notebookId), SK: `FACET#${noteId}` },
-      }),
+      new GetCommand({ TableName: this.tableName, Key: key, ConsistentRead: true }),
     );
     const before = (previous.Item?.['facets'] as FacetSnapshot | undefined) ?? null;
     const changes = facetDelta(before, facets);
 
+    const read = previous.Item?.['revision'];
+    const unchanged = !previous.Item
+      ? { ConditionExpression: 'attribute_not_exists(SK)' }
+      : typeof read === 'number'
+        ? {
+            ConditionExpression: '#revision = :revision',
+            ExpressionAttributeNames: { '#revision': 'revision' },
+            ExpressionAttributeValues: { ':revision': read },
+          }
+        : {
+            // A portrait written before a portrait carried its revision.
+            ConditionExpression: 'attribute_exists(SK) AND attribute_not_exists(#revision)',
+            ExpressionAttributeNames: { '#revision': 'revision' },
+          };
+
     const portrait =
       facets === null
-        ? {
-            Delete: {
-              TableName: this.tableName,
-              Key: { PK: this.pk(notebookId), SK: `FACET#${noteId}` },
-            },
-          }
+        ? { Delete: { TableName: this.tableName, Key: key, ...unchanged } }
         : {
             Put: {
               TableName: this.tableName,
               Item: {
-                PK: this.pk(notebookId),
-                SK: `FACET#${noteId}`,
+                ...key,
                 entity: 'FACET',
                 noteId,
                 facets,
+                revision: (typeof read === 'number' ? read : 0) + 1,
               },
+              ...unchanged,
             },
           };
 
@@ -627,13 +697,7 @@ export class DynamoFacetIndex implements FacetIndex {
     await this.db.send(
       new TransactWriteCommand({ TransactItems: [portrait, ...(first ?? [])] as never }),
     );
-    for (const batch of rest) {
-      await this.db.send(new TransactWriteCommand({ TransactItems: batch as never }));
-    }
-
-    for (const facet of new Set(changes.map((change) => change.facet))) {
-      await this.enforceCardinality(notebookId, facet);
-    }
+    return { changes, rest };
   }
 
   /** The cardinality ceiling is the free-text detector (RN-DSC-024). */

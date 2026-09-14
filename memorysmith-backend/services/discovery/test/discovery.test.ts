@@ -825,3 +825,95 @@ describe('The facet projection writes every counter and reads every page', () =>
     expect(portraits.get('n3')?.['type']).toEqual(['guia']);
   });
 });
+
+describe('The facet projection tries again a transaction DynamoDB cancelled', () => {
+  const SUBSCRIPTION = { value: '01JBQ2X0000000000000000000' } as never;
+  const TABLE = 'mv-discovery';
+
+  interface Portrait {
+    ConditionExpression: string;
+    ExpressionAttributeValues?: Record<string, unknown>;
+    Item: Record<string, unknown>;
+  }
+
+  /**
+   * A table holding at most one portrait, whose first `refusals` transactions
+   * are cancelled the way DynamoDB cancels one whose item another transaction
+   * holds in flight.
+   */
+  function contendedDb(refusals: number, stored?: Record<string, unknown>) {
+    const reads: Record<string, unknown>[] = [];
+    const transactions: Record<string, unknown>[][] = [];
+    const pauses: number[] = [];
+    const db = {
+      send: async (command: { input: Record<string, unknown> }) => {
+        const input = command.input;
+        if (input['TransactItems']) {
+          transactions.push(input['TransactItems'] as Record<string, unknown>[]);
+          if (transactions.length <= refusals) {
+            throw Object.assign(new Error('Transaction cancelled [TransactionConflict]'), {
+              name: 'TransactionCanceledException',
+            });
+          }
+          return {};
+        }
+        if (input['KeyConditionExpression']) return { Items: [] };
+        reads.push(input);
+        return { Item: stored };
+      },
+    };
+    const index = new DynamoFacetIndex(SUBSCRIPTION, db as never, TABLE, async (milliseconds) => {
+      pauses.push(milliseconds);
+    });
+    const portraitOf = (at: number) =>
+      (transactions[at]?.[0] as { Put: Portrait } | undefined)?.Put;
+    return { index, reads, transactions, pauses, portraitOf };
+  }
+
+  it('reads the portrait again and writes once the transaction goes through', async () => {
+    // Two notes sharing a value move one counter, and staging cancelled one of
+    // their transactions: the projector failed its whole batch, and every note
+    // in it waited the six minutes of the queue to be projected again.
+    const { index, reads, transactions, pauses, portraitOf } = contendedDb(2);
+
+    await index.replaceFacets(NOTEBOOK, 'note-1', {
+      maturity: { facet: 'maturity', kind: 'enum', values: ['growing'] },
+    });
+
+    expect(transactions).toHaveLength(3);
+    expect(pauses).toHaveLength(2);
+    expect(reads).toHaveLength(3);
+    for (const read of reads) expect(read['ConsistentRead']).toBe(true);
+    expect(portraitOf(2)?.ConditionExpression).toBe('attribute_not_exists(SK)');
+    expect(portraitOf(2)?.Item['revision']).toBe(1);
+  });
+
+  it('writes a portrait only over the revision it read', async () => {
+    const { index, transactions, portraitOf } = contendedDb(0, {
+      facets: { maturity: { facet: 'maturity', kind: 'enum', values: ['growing'] } },
+      revision: 3,
+    });
+
+    await index.replaceFacets(NOTEBOOK, 'note-1', {
+      maturity: { facet: 'maturity', kind: 'enum', values: ['evergreen'] },
+    });
+
+    expect(portraitOf(0)?.ConditionExpression).toBe('#revision = :revision');
+    expect(portraitOf(0)?.ExpressionAttributeValues?.[':revision']).toBe(3);
+    expect(portraitOf(0)?.Item['revision']).toBe(4);
+    // The portrait, growing counted down and evergreen counted up.
+    expect(transactions[0]).toHaveLength(3);
+  });
+
+  it('fails once the transaction is still cancelled at the last attempt', async () => {
+    const { index, transactions, pauses } = contendedDb(Number.POSITIVE_INFINITY);
+
+    await expect(
+      index.replaceFacets(NOTEBOOK, 'note-1', {
+        maturity: { facet: 'maturity', kind: 'enum', values: ['growing'] },
+      }),
+    ).rejects.toMatchObject({ name: 'TransactionCanceledException' });
+    expect(transactions).toHaveLength(5);
+    expect(pauses).toHaveLength(4);
+  });
+});

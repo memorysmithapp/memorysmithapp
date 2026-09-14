@@ -941,12 +941,13 @@ The third projection, the one that serves the curation panel. The business rules
 
 | Item | PK | SK | Attributes |
 |---|---|---|---|
-| Facet portrait of the note | `S#{s}#NOTEBOOK#{v}` | `FACET#{noteId}` | a map `{attribute: value(s)}` of the aggregatable ones, version |
+| Facet portrait of the note | `S#{s}#NOTEBOOK#{v}` | `FACET#{noteId}` | a map `{attribute: value(s)}` of the aggregatable ones, revision |
 | Aggregate counter | `S#{s}#NOTEBOOK#{v}` | `STAT#{facet}#{value}` | count |
 | State of the attribute | `S#{s}#NOTEBOOK#{v}` | `FDEF#{facet}` | inferred type, distinctCount, `discarded?` |
-| Event dedup | `S#{s}#NOTEBOOK#{v}` | `SEEN#{eventUlid}` | TTL 7d |
 
-**The per-note portrait is what makes the delta exact.** An update and a deletion have to decrement the old value ("the note was `growing`, it became `evergreen`"), and the old value is not in the event: it is in the portrait. The projector reads `FACET#{noteId}`, computes the delta and applies everything in a single transaction, in the same pattern as the folder counters (§10.3): a `Put` of `SEEN#{eventUlid}` with `attribute_not_exists`, a `Put` of the new portrait and `ADD count :delta` on the affected counters. Reprocessing the queue is a no-op through the dedup; an out-of-order event loses to the higher `version` already portrayed.
+**The per-note portrait is what makes the delta exact.** An update and a deletion have to decrement the old value ("the note was `growing`, it became `evergreen`"), and the old value is not in the event: it is in the portrait. The projector reads `FACET#{noteId}` with a consistent read, computes the delta and applies it in one transaction, in the same pattern as the folder counters (§10.3): the new portrait, written only over the `revision` it read, and `ADD count :delta` on the counters it moved. Reprocessing the queue is a no-op, because the delta against a portrait already written is empty.
+
+**A cancelled transaction is tried again inside the invocation.** Two notes of one notebook that share a value move the same counter at once, and DynamoDB cancels a transaction whose item another one holds in flight; a projection of the same note that wrote first cancels it through the condition on the revision. Either way the attempt reads the portrait again and recomputes the delta, after a jittered pause, and only a transaction still cancelled after five attempts fails the batch back to the queue, whose visibility timeout of six minutes would otherwise be the reindexing delay of every note that batch carried (§18).
 
 One counter item **per facet value**, and not a single statistics item per notebook: fifty notes written in parallel increment different counters, and the single item would become the same bottleneck the `META` rule (PE8) exists to avoid.
 
