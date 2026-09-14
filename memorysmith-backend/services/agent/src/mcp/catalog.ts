@@ -205,8 +205,11 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     description:
       'Removes a folder from the tree of a notebook. There is NO implicit policy: with ' +
       'REJECT_IF_NOT_EMPTY a folder that holds subfolders or notes is refused, and with CASCADE ' +
-      'the whole subtree goes. Call get_notebook_context first to see what the folder holds, and ' +
-      'confirm with the person before cascading.',
+      'the whole subtree goes and every note in it is deleted, as delete_note deletes one. A ' +
+      'subtree holding more than 200 notes is refused: remove its subfolders one at a time. A ' +
+      'note deleted this way cannot be restored, because its folder is gone. Call ' +
+      'get_notebook_context first to see what the folder holds, and confirm with the person ' +
+      'before cascading.',
     inputSchema: object(
       {
         notebook: notebookArgument,

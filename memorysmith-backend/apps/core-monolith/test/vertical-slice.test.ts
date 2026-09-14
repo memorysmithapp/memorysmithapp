@@ -114,6 +114,62 @@ describe('The API answers what its contract declares', () => {
   });
 });
 
+describe('Removing a folder with CASCADE', () => {
+  const noteIn = async (notebookId: string, folderId: string, name: string) =>
+    (
+      (await (
+        await call(`/knowledge/notebooks/${notebookId}/notes`, {
+          method: 'POST',
+          body: { folderId, content: `---\nname: ${name}\n---\n\nCorpo.` },
+        })
+      ).json()) as { noteId: string }
+    ).noteId;
+
+  it('deletes every note of the subtree, leaves the rest, and restores none into a removed folder', async () => {
+    const { notebookId, folderId } = await seedNotebook();
+    const folder = async (name: string, parentFolderId: string | null) =>
+      (
+        (await (
+          await call(`/knowledge/notebooks/${notebookId}/folders`, {
+            method: 'POST',
+            body: { name, description: `Onde ficam as ${name}.`, parentFolderId },
+          })
+        ).json()) as { folderId: string }
+      ).folderId;
+    const revoked = await folder('Revogadas', folderId);
+    const elsewhere = await folder('Pareceres', null);
+
+    const inFolder = await noteIn(notebookId, folderId, 'Lei 14.133');
+    const inChild = await noteIn(notebookId, revoked, 'Lei 8.666');
+    const kept = await noteIn(notebookId, elsewhere, 'Parecer 12');
+
+    const removed = await call(
+      `/knowledge/notebooks/${notebookId}/folders/${folderId}?policy=CASCADE`,
+      { method: 'DELETE' },
+    );
+    expect(removed.status).toBe(200);
+    expect(((await removed.json()) as { removedFolderIds: string[] }).removedFolderIds).toEqual(
+      expect.arrayContaining([folderId, revoked]),
+    );
+
+    // RN-KNW-040: the notes of the subtree went with it, and only those.
+    const listed = (await (
+      await call(`/knowledge/notebooks/${notebookId}/notes`)
+    ).json()) as Array<{
+      noteId: string;
+    }>;
+    expect(listed.map((note) => note.noteId)).toEqual([kept]);
+
+    // RN-KNW-041: a note has nowhere to come back to once its folder is gone.
+    for (const noteId of [inFolder, inChild]) {
+      const restored = await call(`/knowledge/notebooks/${notebookId}/notes/${noteId}/restore`, {
+        method: 'POST',
+      });
+      expect(restored.status).toBe(409);
+    }
+  });
+});
+
 describe('The authoring cycle', () => {
   it('writes guidance, a tree, a template and a note', async () => {
     const { notebookId, folderId } = await seedNotebook();

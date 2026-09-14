@@ -15,9 +15,11 @@ import {
   type Result,
 } from '@memorysmith/kernel';
 import type { RequestContext } from '../domain/access/AuthorizationPolicy.js';
+import type { Note } from '../domain/note/Note.js';
 import type { Folder } from '../domain/notebook/Folder.js';
-import { FolderDescription, FolderName, RemovalPolicy } from '../domain/values.js';
+import { FolderDescription, FolderName, NOTEBOOK_LIMITS, RemovalPolicy } from '../domain/values.js';
 import { guardRevision, loadAuthorized, type NotebookDependencies } from './notebooks.js';
+import type { NoteDependencies } from './notes.js';
 import { admitWrite } from '../domain/services/StorageQuota.js';
 
 export class CreateFolder {
@@ -121,8 +123,22 @@ export class ReorderFolder {
   }
 }
 
+/**
+ * Removing a folder. With CASCADE, every live note of the removed subtree is
+ * deleted the way a note is deleted (RN-KNW-029), under the authorship of
+ * whoever removed the folder, and BEFORE the folders go (RN-KNW-040). The
+ * folders used to go alone, leaving their notes live and out of sight: out of
+ * the tree, and still counted, searchable and restorable into nothing.
+ *
+ * Notes first, because a retry has to be able to finish the job. A note deleted
+ * under a folder still standing is a folder a second CASCADE removes; a folder
+ * gone with its notes still live left notes nothing could reach again.
+ *
+ * It all happens inside the request, so it is bounded: a subtree holding more
+ * notes than one request can delete is refused before anything is written.
+ */
 export class RemoveFolder {
-  constructor(private readonly deps: NotebookDependencies) {}
+  constructor(private readonly deps: NoteDependencies) {}
 
   async execute(input: {
     ctx: RequestContext;
@@ -138,11 +154,51 @@ export class RemoveFolder {
     const policy = RemovalPolicy.create(input.policy);
     if (!policy.ok) return policy;
 
+    // The aggregate decides first, on the tree it holds; nothing is saved yet.
     const removed = notebook.value.removeFolder(input.folderId, policy.value, input.by);
     if (!removed.ok) return removed;
 
+    if (policy.value.cascades) {
+      const live = await this.deps.notes.listLiveInFolders(input.notebookId, removed.value);
+      const ceiling = NOTEBOOK_LIMITS.maxNotesDeletedByCascade;
+      if (live.length > ceiling) {
+        return err(
+          DomainError.limitExceeded(
+            `Removing this folder would delete ${live.length} notes, and one CASCADE deletes at most ${ceiling}. ` +
+              'Remove its subfolders one at a time, or delete some of its notes first.',
+          ),
+        );
+      }
+      for (const note of live) {
+        const deleted = await this.deleteNote(input.notebookId, note, input.by);
+        if (!deleted.ok) return deleted;
+      }
+    }
+
     const saved = await this.deps.notebooks.save(notebook.value);
     return saved.ok ? ok(removed.value) : err(saved.error);
+  }
+
+  /** One note, as DeleteNote deletes it, reading it again when another write got there first. */
+  private async deleteNote(
+    notebookId: NotebookId,
+    listed: Note,
+    by: Authorship,
+  ): Promise<Result<void, DomainError>> {
+    let note: Note | null = listed;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (!note || note.isDeleted) return ok();
+      const deleted = note.delete(by);
+      if (!deleted.ok) return deleted;
+      const saved = await this.deps.notes.save(note);
+      if (saved.ok) return ok();
+      note = await this.deps.notes.findById(notebookId, listed.id);
+    }
+    return err(
+      DomainError.conflict(
+        'A note of this folder kept changing while it was being deleted. Remove the folder again.',
+      ),
+    );
   }
 }
 

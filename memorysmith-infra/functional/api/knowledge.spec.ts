@@ -185,6 +185,11 @@ test.describe('folders', () => {
     );
     expect(removed.status).toBe(200);
     expect(removed.body.removedFolderIds).toContain(notebook.folderId);
+    // The note of the folder went with it, and has nowhere to come back to
+    // (RN-KNW-040, RN-KNW-041).
+    expect(
+      (await owner.call('POST', `${notesPath(notebook)}/${notebook.noteId}/restore`)).status,
+    ).toBe(409);
   });
 
   test('[route:PUT /knowledge/notebooks/:v/folders/:f/template] [route:GET /knowledge/notebooks/:v/folders/:f/template] writes the Template of a folder and reads it back', async ({

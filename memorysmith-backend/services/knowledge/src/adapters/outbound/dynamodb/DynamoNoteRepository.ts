@@ -90,16 +90,43 @@ export class DynamoNoteRepository implements NoteRepository {
   }
 
   async listByNotebook(notebook: NotebookId): Promise<Note[]> {
-    const response = await this.db.send(
-      new QueryCommand({
-        TableName: this.tableName,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-        ExpressionAttributeValues: { ':pk': this.keys.notebook(notebook), ':prefix': 'NOTE#' },
-      }),
+    return (await this.everyNoteOf(notebook, false)).filter((note) => !note.isDeleted);
+  }
+
+  async listLiveInFolders(notebook: NotebookId, folders: readonly FolderId[]): Promise<Note[]> {
+    const wanted = new Set(folders.map((folder) => folder.value));
+    const live = (await this.everyNoteOf(notebook, true)).filter(
+      (note) => !note.isDeleted && wanted.has(note.folderId.value),
     );
-    return ((response.Items ?? []) as Item[])
-      .map((item) => parseNote(item, this.sub.subscriptionId))
-      .filter((note) => !note.isDeleted);
+    // Each of them is about to be written, under the version it was read at.
+    for (const note of live) this.remember(note);
+    return live;
+  }
+
+  /**
+   * Every note item of the notebook, page after page. A notebook of 2,000 notes
+   * does not fit in the one megabyte a Query answers, and a listing that stopped
+   * at the first page used to say nothing about the rest.
+   */
+  private async everyNoteOf(notebook: NotebookId, consistent: boolean): Promise<Note[]> {
+    const notes: Note[] = [];
+    let startKey: Record<string, unknown> | undefined;
+    do {
+      const response = await this.db.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+          ExpressionAttributeValues: { ':pk': this.keys.notebook(notebook), ':prefix': 'NOTE#' },
+          ConsistentRead: consistent,
+          ...(startKey ? { ExclusiveStartKey: startKey } : {}),
+        }),
+      );
+      for (const item of (response.Items ?? []) as Item[]) {
+        notes.push(parseNote(item, this.sub.subscriptionId));
+      }
+      startKey = response.LastEvaluatedKey;
+    } while (startKey);
+    return notes;
   }
 
   /** Identity and order key only: all a placement decision needs. */

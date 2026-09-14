@@ -47,6 +47,12 @@ export interface NoteRepository {
   /** Notes of a folder, in the defined order, straight from GSI2. */
   listByFolder(notebook: NotebookId, folder: FolderId): Promise<Note[]>;
   listByNotebook(notebook: NotebookId): Promise<Note[]>;
+  /**
+   * Every live note of these folders, read consistently and to the last page.
+   * It is what a CASCADE deletes (RN-KNW-040), so it cannot miss a note
+   * written a moment ago the way an index would.
+   */
+  listLiveInFolders(notebook: NotebookId, folders: readonly FolderId[]): Promise<Note[]>;
   /** Just identity and order key, which is all a placement decision needs. */
   siblingOrder(notebook: NotebookId, folder: FolderId): Promise<NoteOrder[]>;
   save(note: Note): Promise<Result<void, ConcurrencyError>>;

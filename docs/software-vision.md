@@ -600,6 +600,8 @@ Alphabetical ordering stays available as a display option in the client, without
 - **RN-KNW-037:** **Two notes of a notebook may carry the same name**, in one folder or in two, and nothing refuses the second one. Nothing in a notebook is a key.
 - **RN-KNW-038:** A note is renamed by editing the `name:` of its frontmatter, and in no other way. There is no operation that renames a note apart from its content, and editing a heading renames nothing.
 - **RN-KNW-039:** A `name:` of any other shape — a list, a nested block, an empty value — means the note has no name. It is never an error, the note is never reported as malformed, no name is invented out of the value that was not used, and nothing falls through to a heading, because there is no chain.
+- **RN-KNW-040:** Removing a folder with `CASCADE` deletes every live note of the removed subtree, each the way RN-KNW-029 deletes one and under the authorship of whoever removed the folder, before the folders go. It is refused with `LIMIT_EXCEEDED`, and nothing is deleted, when the subtree holds more than 200 live notes.
+- **RN-KNW-041:** A deleted note whose folder no longer exists is not restored: restoring it is refused with `CONFLICT`, because a note always lives in a folder.
 - **RN-KNW-034:** Writing the Guidance and the Template requires the **base revision**, as writing a note already does, and a diverging revision answers `CONFLICT` with the current content instead of overwriting. `null` is a legitimate value and asserts that the slot is empty: it is not the absence of the argument, it is a statement about the current state. The reason behind RN-AGT-005 holds here with more force, not less, because the Guidance is the most shared document of a notebook and the one most likely to be written by two hands at once, one on the web and an agent over MCP.
 
 ---
@@ -620,7 +622,7 @@ Alphabetical ordering stays available as a display option in the client, without
 | `get_guidance` | `(notebook)` | The Guidance as it is stored, with the revision to state when writing |
 | `set_guidance` | `(notebook, content, baseRevision)` | Writes the Guidance of the notebook, with conflict detection (RN-KNW-034) |
 | `create_folder` | `(notebook, name, description, parent?)` | Creates a folder; the description is required, because it is what says what belongs there |
-| `delete_folder` | `(notebook, folder, policy)` | Removes a folder under an explicit policy, `REJECT_IF_NOT_EMPTY` or `CASCADE` (RN-KNW-007) |
+| `delete_folder` | `(notebook, folder, policy)` | Removes a folder under an explicit policy, `REJECT_IF_NOT_EMPTY` or `CASCADE` (RN-KNW-007); `CASCADE` deletes every note of the subtree, up to 200 (RN-KNW-040) |
 | `get_template` | `(notebook, folder)` | The Template of the folder, to read before writing |
 | `set_template` | `(notebook, folder, content, baseRevision)` | Writes the Template of the folder, with conflict detection (RN-KNW-034) |
 | `list_notes` | `(notebook, folder?)` | The index of notes, in the defined order |
@@ -924,6 +926,7 @@ Declared so they become tests, and not folklore. The thesis is "without friction
 | Note size | 1 MB |
 | Folders per notebook | 200 |
 | Notes per notebook | 2,000 |
+| Notes deleted by one `CASCADE` | 200 |
 | Tree depth | 6 levels |
 | Graph traversal depth | 3, with a ceiling of 200 nodes |
 | Propagation of a role change | up to 5 minutes |

@@ -14,6 +14,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { Role, type ContentRef } from '@memorysmith/kernel';
+import { RemoveFolder } from '../src/application/folders.js';
 import { CreateNote } from '../src/application/notes.js';
 import { NOTEBOOK_LIMITS } from '../src/domain/values.js';
 import type { Note } from '../src/domain/note/Note.js';
@@ -126,6 +127,45 @@ describe('notebook limits', () => {
 
     expect(content.length).toBeLessThan(NOTEBOOK_LIMITS.maxNoteBytes);
     expect(expectErr(refused).code).toBe('LIMIT_EXCEEDED');
+  });
+});
+
+describe('the notes one CASCADE deletes', () => {
+  it('refuses a subtree holding more than one request can delete, before writing anything', async () => {
+    const { notebook, folderId } = rehydratedNotebookWithNotes(0);
+    const writes: string[] = [];
+    const held = NOTEBOOK_LIMITS.maxNotesDeletedByCascade + 1;
+    const cascade = new RemoveFolder({
+      ...deps(notebook),
+      notebooks: {
+        findById: async () => notebook,
+        listAll: async () => [notebook],
+        save: async () => {
+          writes.push('notebook');
+          return { ok: true as const, value: undefined };
+        },
+      },
+      notes: {
+        listLiveInFolders: async () => Array.from({ length: held }, () => ({}) as Note),
+        save: async () => {
+          writes.push('note');
+          return { ok: true as const, value: undefined };
+        },
+      },
+    } as unknown as ConstructorParameters<typeof RemoveFolder>[0]);
+
+    const refused = await cascade.execute({
+      ctx,
+      notebookId: notebook.id,
+      folderId,
+      policy: 'CASCADE',
+      by: authorship(),
+    });
+
+    const error = expectErr(refused);
+    expect(error.code).toBe('LIMIT_EXCEEDED');
+    expect(error.message).toContain(String(held));
+    expect(writes).toEqual([]);
   });
 });
 

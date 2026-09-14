@@ -324,6 +324,17 @@ export class RestoreNote {
     const note = await this.deps.notes.findById(input.notebookId, input.noteId);
     if (!note) return err(DomainError.notFound('Note not found'));
 
+    // A note lives in a folder, and the folder of this one may have been removed
+    // with it (RN-KNW-040). Restoring it there would bring back a live note no
+    // tree shows, so it is refused (RN-KNW-041).
+    if (!notebook.value.folders.has(note.folderId)) {
+      return err(
+        DomainError.conflict(
+          'The folder this note was in has been removed, so the note has nowhere to come back to.',
+        ),
+      );
+    }
+
     // Nothing has to be free for a note to come back: another note may have
     // been written under the same name in the meantime, and both stand
     // (RN-KNW-037, and RN-KNW-030, removed).
