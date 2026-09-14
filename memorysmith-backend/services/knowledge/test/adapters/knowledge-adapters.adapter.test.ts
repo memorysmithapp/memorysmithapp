@@ -29,7 +29,7 @@ import { DynamoNoteRepository } from '../../src/adapters/outbound/dynamodb/Dynam
 import { S3ContentStore } from '../../src/adapters/outbound/s3/S3ContentStore.js';
 import { Notebook } from '../../src/domain/notebook/Notebook.js';
 import { Note } from '../../src/domain/note/Note.js';
-import { NotePlacement } from '../../src/domain/services/NotePlacement.js';
+import { NotePlacement, type NoteOrder } from '../../src/domain/services/NotePlacement.js';
 import { RemovalPolicy, ShortText, NotebookName } from '../../src/domain/values.js';
 import {
   authorshipOf,
@@ -575,17 +575,39 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
 });
 
 describe('Delivery 4 done criteria', () => {
+  /**
+   * GSI2 is eventually consistent, and inside the region of the table a read
+   * can arrive before the index does: the pipeline once saw 19 of 20 notes a
+   * moment after writing them, where a workstation across the ocean never had.
+   * A case reads the order the index converges to, within a deadline, and
+   * asserts that; how fast it converges is not what it is about.
+   */
+  async function settledOrder(
+    context: SubscriptionContext,
+    notebookId: NotebookId,
+    folderId: FolderId,
+    settled: (order: NoteOrder[]) => boolean,
+  ): Promise<NoteOrder[]> {
+    const deadline = Date.now() + 15_000;
+    for (;;) {
+      const order = await repositories(context).notes.siblingOrder(notebookId, folderId);
+      if (settled(order) || Date.now() > deadline) return order;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+
   it('survives 20 concurrent reorders with nothing lost and no undefined order', async () => {
     const context = contextFor();
     const { notebook, folder } = await seedNotebook(context);
     const { notes, content } = repositories(context);
 
-    // Twenty notes in one folder.
+    // Twenty notes in one folder, each appended after the ones this case wrote,
+    // so no position is computed from an index that has not caught up.
     const created: Note[] = [];
+    const placed: NoteOrder[] = [];
     for (let index = 0; index < 20; index++) {
       const markdown = `# Nota ${index}`;
       const body = await content.create(markdown);
-      const siblings = await notes.siblingOrder(notebook.id, folder.id);
       const note = unwrap(
         Note.create({
           id: NoteId.generate(),
@@ -593,16 +615,22 @@ describe('Delivery 4 done criteria', () => {
           notebookId: notebook.id,
           folderId: folder.id,
           body: markdown,
-          position: NotePlacement.append(siblings),
+          position: NotePlacement.append(placed),
           bodyRef: body,
           by: authorshipOf(context),
         }),
       );
       expect((await notes.save(note)).ok).toBe(true);
       created.push(note);
+      placed.push({ noteId: note.id, position: note.position });
     }
 
-    const order = await notes.siblingOrder(notebook.id, folder.id);
+    const order = await settledOrder(
+      context,
+      notebook.id,
+      folder.id,
+      (listed) => listed.length === 20,
+    );
     expect(order).toHaveLength(20);
 
     // Twenty reorders fired at once, each moving one note behind another.
@@ -626,7 +654,21 @@ describe('Delivery 4 done criteria', () => {
 
     expect(results.every(Boolean)).toBe(true);
 
-    const finalOrder = await repositories(context).notes.siblingOrder(notebook.id, folder.id);
+    // What each note says its position is, read from its own item, which is
+    // consistent; the index is awaited until it says the same.
+    const stored = new Map<string, string>();
+    for (const note of created) {
+      const read = (await repositories(context).notes.findById(notebook.id, note.id)) as Note;
+      stored.set(note.id.value, read.position.value);
+    }
+    const finalOrder = await settledOrder(
+      context,
+      notebook.id,
+      folder.id,
+      (listed) =>
+        listed.length === 20 &&
+        listed.every((each) => stored.get(each.noteId.value) === each.position.value),
+    );
     // Nothing lost.
     expect(finalOrder).toHaveLength(20);
     // No undefined ordering: every key is distinct, and GSI2 already hands
