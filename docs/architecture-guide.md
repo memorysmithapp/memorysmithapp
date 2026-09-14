@@ -240,7 +240,7 @@ memorysmith-frontend/
 │   │   ├── history/                    # the timeline and the diff between revisions
 │   │   ├── search/                     # lexical, over name and folder
 │   │   ├── health/                     # broken links and orphans
-│   │   ├── members/                    # invitations and roles
+│   │   ├── members/                    # members and roles
 │   │   └── connect/                    # the MCP URL and the walkthrough per client
 │   ├── i18n/
 │   │   └── locales/{en_US.json, pt_BR.json}
@@ -414,7 +414,7 @@ Details that follow from it:
 | Aggregate | Context | Invariants |
 |---|---|---|
 | `Subscription` | Access | Exactly one `owner` (RN-ACC-001), guaranteed by being a field and not a collection; status transitions valid only per the machine of `software-vision.md` §4.4; a mandatory reason on rejection; the `SubscriptionId` is `readonly` and no method touches it (§8.1) |
-| `Subscription` | Access | Exactly one `OWNER`, always present; a unique e-mail among members; a pending invitation is not a member; a member role is `EDITOR` or `VIEWER`, since `OWNER` is not a membership (§9.4) |
+| `Subscription` | Access | Exactly one `OWNER`, always present; a unique e-mail among members; a member role is `EDITOR` or `VIEWER`, since `OWNER` is not a membership (§9.4) |
 | `NoteGraph` · `NotebookIndex` | Discovery | Projections, rebuildable at any moment (PE5) |
 | `AuditTrail` | Audit | Append-only: the only operation is `append` |
 
@@ -445,7 +445,7 @@ Ties, possible under concurrency, are broken by the ULID of the item, so the ord
 ```
 Access:     SubscriptionRequested · SubscriptionApproved · SubscriptionRejected
             SubscriptionSuspended · SubscriptionReactivated · SubscriptionCanceled
-            OwnershipTransferred · MemberInvited · MemberJoined
+            OwnershipTransferred · MemberJoined
             MemberRoleChanged · MemberRemoved · NotebookRoleLimitSet · NotebookRoleLimitCleared
 Knowledge:  NotebookCreated · NotebookRenamed · GuidanceUpdated · FolderAdded · FolderRenamed
             FolderDescribed · FolderMoved · FolderReordered · FolderRemoved · TemplateUpdated
@@ -693,7 +693,6 @@ Query  PK = S#{s}#NOTEBOOK#{v}   AND   SK BETWEEN 'FOLDER#' AND 'META'
 S#{s}              / META                  → subscription: ownerId, status, type, quota,
                                              requestedAt, reviewedBy, rejectionReason
 S#{s}              / USER#{userId}          → a user known to the subscription
-S#{s}              / INVITE#{token}         → a pending invitation (ttl = expiresAt)
 S#{s}              / MEMBER#{userId}        → membership: role (EDITOR | VIEWER)
 USER#{userId}      / SUB#{subscriptionId}   → the link (§8.3, exception 1)
 S#{s}              / CONNECTOR#TOKEN#{jti}        → the connector an access token was issued to
@@ -706,8 +705,6 @@ GSI2:  PLATFORM#{status}     → REQUESTED#{timestamp}#{subscriptionId}  → the
 ```
 
 **The `OWNER` is not a `MEMBER` item.** Ownership lives in `ownerId`, on the `META` item of the subscription: a single field, which is how RN-ACC-001 ("exactly one `OWNER`") stops being a rule to check and becomes the shape of the data. The transfer of ownership is a conditional `Update` on that field plus the `Put` of the `EDITOR` membership of the previous holder, in one transaction (RN-ACC-002).
-
-The invitation has a TTL equal to its expiry: an expired invitation disappears on its own, with no cleanup job and no date check spread across every read.
 
 **A connector binding is keyed by the token, under the subscription the token names** (§13.3, item 4). An access token is bound once, by a conditional `Put`, so a second attempt to bind it is refused rather than obeyed; of a refresh token only the SHA-256 is stored. Both items carry a TTL, and every read checks the expiry as well, because the TTL removes an item eventually rather than on the second.
 
@@ -1094,9 +1091,8 @@ svc-access       GET  /session   (the user, the links and the active subscriptio
                  PUT  /session/locale   { locale }  (the language of the account, RN-ACC-018)
                  POST /subscriptions      { type?, quota? }  (pending_approval)
                  POST /subscriptions/:s/ownership          { toUserId }
-                 GET  /members · POST /members             { email, role }
+                 GET  /members
                  PATCH /members/:u  { role } · DELETE /members/:u
-                 POST /invites/:token/accept
                  GET  /connector   (the connector this session acts through, which whoami names)
 svc-access       POST /connector-bindings   ─ signed with IAM by svc-agent, never called by a
  (connector proxy)                            session: binds a token it issued to its connector (§13.3)

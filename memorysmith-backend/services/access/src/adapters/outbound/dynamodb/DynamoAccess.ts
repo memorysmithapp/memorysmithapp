@@ -4,7 +4,6 @@
  *
  *   S#{s}          / META                  subscription
  *   S#{s}          / MEMBER#{userId}       membership (EDITOR | VIEWER)
- *   S#{s}          / INVITE#{token}        pending invite, ttl = expiresAt
  *   USER#{u}       / SUB#{s}               the link, exception 1 of section 8.3
  *   S#{s}          / CONNECTOR#TOKEN#{jti}      the connector of an access token
  *   S#{s}          / CONNECTOR#REFRESH#{sha256} the connector a refresh token renews
@@ -16,8 +15,6 @@
  *
  * The OWNER is not a MEMBER item: ownership is the `ownerId` field of the META
  * item, which is how "exactly one OWNER" becomes the shape of the data.
- * The invite carries a TTL equal to its expiry, so an expired invite vanishes
- * on its own, with no cleanup job and no date check spread across every read.
  */
 
 import {
@@ -43,17 +40,9 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { Subscription } from '../../../domain/subscription/Subscription.js';
 import type { Membership } from '../../../domain/subscription/Subscription.js';
-import { Invite, type InviteStatus } from '../../../domain/invite/Invite.js';
-import {
-  Email,
-  InviteToken,
-  RejectionReason,
-  StorageQuota,
-  SubscriptionType,
-} from '../../../domain/values.js';
+import { Email, RejectionReason, StorageQuota, SubscriptionType } from '../../../domain/values.js';
 import type {
   ConnectorBindingRepository,
-  InviteRepository,
   PlatformSubscriptionAdmin,
   PlatformSubscriptionView,
   SubscriptionLink,
@@ -232,80 +221,6 @@ async function saveSubscription(
   subscription.markPersisted();
   await outbox.published(events);
   return ok();
-}
-
-export class DynamoInviteRepository implements InviteRepository {
-  constructor(
-    private readonly sub: SubscriptionContext,
-    private readonly db: DynamoDBDocumentClient,
-    private readonly tableName: string,
-    private readonly outbox: OutboxSink,
-  ) {}
-
-  async findByToken(token: InviteToken): Promise<Invite | null> {
-    const response = await this.db.send(
-      new GetCommand({
-        TableName: this.tableName,
-        Key: { PK: `S#${this.sub.subscriptionId.value}`, SK: `INVITE#${token.value}` },
-      }),
-    );
-    return response.Item ? this.parse(response.Item as Item) : null;
-  }
-
-  async listPending(): Promise<Invite[]> {
-    const response = await this.db.send(
-      new QueryCommand({
-        TableName: this.tableName,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-        ExpressionAttributeValues: {
-          ':pk': `S#${this.sub.subscriptionId.value}`,
-          ':prefix': 'INVITE#',
-        },
-      }),
-    );
-    return ((response.Items ?? []) as Item[]).map((item) => this.parse(item));
-  }
-
-  async save(invite: Invite): Promise<Result<void, ConcurrencyError>> {
-    const events = invite.pullEvents();
-    await this.db.send(
-      new PutCommand({
-        TableName: this.tableName,
-        Item: {
-          PK: `S#${this.sub.subscriptionId.value}`,
-          SK: `INVITE#${invite.token.value}`,
-          entity: 'INVITE',
-          inviteId: invite.id,
-          email: invite.email.value,
-          role: invite.role.name,
-          invitedBy: invite.invitedBy.value,
-          status: invite.status,
-          sentAt: invite.sentAt.toISOString(),
-          expiresAt: invite.expiresAt.toISOString(),
-          acceptedAt: invite.acceptedAt?.toISOString() ?? null,
-          // TTL equal to the expiry: an expired invite disappears on its own.
-          ttl: invite.expiresAt.toEpochSeconds(),
-        },
-      }),
-    );
-    await this.outbox.published(events);
-    return ok();
-  }
-
-  private parse(item: Item): Invite {
-    return Invite.rehydrate({
-      id: String(item['inviteId']),
-      subscriptionId: this.sub.subscriptionId,
-      email: need(Email.create(String(item['email']))),
-      role: need(Role.membership(String(item['role']))),
-      invitedBy: need(UserId.create(String(item['invitedBy']))),
-      token: need(InviteToken.create(String(item['SK']).slice('INVITE#'.length))),
-      status: String(item['status']) as InviteStatus,
-      sentAt: need(Instant.fromISO(String(item['sentAt']))),
-      expiresAt: need(Instant.fromISO(String(item['expiresAt']))),
-      acceptedAt: item['acceptedAt'] ? need(Instant.fromISO(String(item['acceptedAt']))) : null,
-    });
-  }
 }
 
 /** Exception 1: identity is global, so this repository holds no context. */

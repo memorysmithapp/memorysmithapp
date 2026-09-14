@@ -26,7 +26,6 @@ import type { S3Client } from '@aws-sdk/client-s3';
 import { Role, type SubscriptionContext } from '@memorysmith/kernel';
 import {
   DynamoConnectorBindingRepository,
-  DynamoInviteRepository,
   DynamoOnboarding,
   DynamoPlatformAdmin,
   DynamoSubscriptionRepository,
@@ -78,7 +77,6 @@ export function buildAccess(infra: Infrastructure, context: SubscriptionContext 
           infra.accessTable,
           NULL_OUTBOX_SINK,
         ),
-        invites: new DynamoInviteRepository(context, infra.db, infra.accessTable, NULL_OUTBOX_SINK),
         connectors: buildConnectorBindings(infra, context),
       }
     : null;

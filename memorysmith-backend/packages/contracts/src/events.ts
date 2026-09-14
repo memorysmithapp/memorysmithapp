@@ -45,6 +45,8 @@ export const domainEventTypeSchema = z.enum([
   'SubscriptionPlanChanged',
   'OwnershipTransferred',
   'WorkspaceCreated',
+  // Retired in 0.6.0 with the invitation of a member; kept so an event already
+  // written stays parseable, like WorkspaceCreated.
   'MemberInvited',
   'MemberJoined',
   'MemberRoleChanged',

@@ -31,10 +31,8 @@ import type {
 } from '../../../application/onboarding.js';
 import type { ListPlatformQueue, ReviewSubscription } from '../../../application/platform.js';
 import type {
-  AcceptInvite,
   ChangeMemberRole,
   ListMembers,
-  InviteMember,
   RemoveMember,
   TransferOwnership,
 } from '../../../application/members.js';
@@ -69,8 +67,6 @@ export interface AccessUseCases {
   readonly listPlatformQueue: (request: AccessRequest) => ListPlatformQueue;
   readonly reviewSubscription: (request: AccessRequest) => ReviewSubscription;
   readonly listMembers: (request: AccessRequest) => ListMembers;
-  readonly inviteMember: (request: AccessRequest) => InviteMember;
-  readonly acceptInvite: (request: AccessRequest) => AcceptInvite;
   readonly changeMemberRole: (request: AccessRequest) => ChangeMemberRole;
   readonly removeMember: (request: AccessRequest) => RemoveMember;
   readonly transferOwnership: (request: AccessRequest) => TransferOwnership;
@@ -246,25 +242,6 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
     );
   });
 
-  app.post('/members', async (c) => {
-    const request = c.get('access');
-    const context = requireContext(request);
-    if (!context.ok) return respond(c, context);
-
-    const body = (await c.req.json().catch(() => ({}))) as { email?: string; role?: string };
-    const invited = await useCases.inviteMember(request).execute({
-      context: context.value,
-      email: String(body.email ?? ''),
-      role: String(body.role ?? ''),
-      by: Authorship.byHuman(request.profile.userId),
-    });
-    return respond(
-      c,
-      invited.ok ? { ok: true as const, value: { token: invited.value.token.value } } : invited,
-      201,
-    );
-  });
-
   app.patch('/members/:user', async (c) => {
     const request = c.get('access');
     const context = requireContext(request);
@@ -327,24 +304,6 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
         by: Authorship.byHuman(request.profile.userId),
       }),
       204,
-    );
-  });
-
-  app.post('/invites/:token/accept', async (c) => {
-    const request = c.get('access');
-    const accepted = await useCases.acceptInvite(request).execute({
-      profile: request.profile,
-      token: c.req.param('token'),
-      by: Authorship.byHuman(request.profile.userId),
-    });
-    return respond(
-      c,
-      accepted.ok
-        ? {
-            ok: true as const,
-            value: { subscriptionId: accepted.value.subscriptionId, role: accepted.value.role },
-          }
-        : accepted,
     );
   });
 

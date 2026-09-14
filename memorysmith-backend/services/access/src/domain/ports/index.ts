@@ -1,7 +1,7 @@
 /**
  * Ports of the Access context.
  *
- * Three of them take a SubscriptionContext in their constructor, like every
+ * Two of them take a SubscriptionContext in their constructor, like every
  * other repository in the system. The other three are THE TWO NAMED EXCEPTIONS
  * of architecture-guide.md section 8.3, plus onboarding, and they are declared
  * apart precisely so they stay countable:
@@ -25,19 +25,12 @@ import type {
   UserId,
 } from '@memorysmith/kernel';
 import type { Subscription } from '../subscription/Subscription.js';
-import type { Invite } from '../invite/Invite.js';
-import type { AccountLocale, Email, InviteToken } from '../values.js';
+import type { AccountLocale, Email } from '../values.js';
 
 /** The subscription the session acts for; there is no findById by design. */
 export interface SubscriptionRepository {
   find(): Promise<Subscription | null>;
   save(subscription: Subscription): Promise<Result<void, ConcurrencyError>>;
-}
-
-export interface InviteRepository {
-  findByToken(token: InviteToken): Promise<Invite | null>;
-  listPending(): Promise<Invite[]>;
-  save(invite: Invite): Promise<Result<void, ConcurrencyError>>;
 }
 
 /** One link between a user and a subscription (exception 1). */

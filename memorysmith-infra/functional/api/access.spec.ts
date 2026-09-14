@@ -105,36 +105,6 @@ test.describe('members', () => {
     expect(Array.isArray(answer.body)).toBe(true);
   });
 
-  test('[route:POST /access/members] [route:POST /access/invites/:token/accept] [route:PATCH /access/members/:user] [route:DELETE /access/members/:user] invites a person, who accepts, is given another role and is removed', async ({
-    owner,
-    newcomer,
-  }) => {
-    const invite = await owner.call<{ token: string }>('POST', '/access/members', {
-      email: newcomer.account.email,
-      role: 'VIEWER',
-    });
-    expect(invite.status).toBe(201);
-    expect(invite.body.token).toMatch(/^[0-9a-f]{64}$/);
-
-    const accepted = await newcomer.api.call<{ subscriptionId: string; role: string }>(
-      'POST',
-      `/access/invites/${invite.body.token}/accept`,
-    );
-    expect(accepted.status).toBe(200);
-    expect(accepted.body.role).toBe('VIEWER');
-
-    const members = await owner.ok<Array<{ userId: string; role: string }>>(
-      'GET',
-      '/access/members',
-    );
-    expect(members.find((member) => member.userId === newcomer.userId)?.role).toBe('VIEWER');
-
-    expect(
-      (await owner.call('PATCH', `/access/members/${newcomer.userId}`, { role: 'EDITOR' })).status,
-    ).toBe(204);
-    expect((await owner.call('DELETE', `/access/members/${newcomer.userId}`)).status).toBe(204);
-  });
-
   test('[route:PATCH /access/members/:user] [route:DELETE /access/members/:user] refuses to change or remove who is not a member, and never the owner', async ({
     owner,
   }) => {
@@ -160,14 +130,6 @@ test.describe('members', () => {
 
     expect(answer.status).toBe(400);
     expect(answer.body.code).toBe('VALIDATION');
-  });
-
-  test('[route:POST /access/invites/:token/accept] refuses a token that invites nobody', async ({
-    newcomer,
-  }) => {
-    expect(
-      (await newcomer.api.call('POST', `/access/invites/${'0'.repeat(64)}/accept`)).status,
-    ).toBe(404);
   });
 });
 

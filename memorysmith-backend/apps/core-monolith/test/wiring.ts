@@ -23,7 +23,6 @@ import {
   InMemoryAccessDatabase,
   InMemoryAccountDirectory,
   InMemoryConnectorBindingRepository,
-  InMemoryInviteRepository,
   InMemoryOnboarding,
   InMemoryPlatformAdmin,
   InMemorySubscriptionRepository,
@@ -40,10 +39,8 @@ import {
   ReviewSubscription,
 } from '@memorysmith/svc-access/application/platform';
 import {
-  AcceptInvite,
   ChangeMemberRole,
   ListMembers,
-  InviteMember,
   RemoveMember,
   TransferOwnership,
 } from '@memorysmith/svc-access/application/members';
@@ -183,7 +180,6 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     if (!context) return null;
     return {
       subscriptions: new InMemorySubscriptionRepository(context, accessDb, events),
-      invites: new InMemoryInviteRepository(context, accessDb, events),
       connectors: new InMemoryConnectorBindingRepository(context, accessDb),
     };
   };
@@ -227,14 +223,6 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     listMembers: (request) => {
       const scoped = scopedAccess(request);
       return new ListMembers(scoped!.subscriptions);
-    },
-    inviteMember: (request) => {
-      const scoped = scopedAccess(request);
-      return new InviteMember(scoped!.subscriptions, scoped!.invites);
-    },
-    acceptInvite: (request) => {
-      const scoped = scopedAccess(request);
-      return new AcceptInvite(scoped!.invites, scoped!.subscriptions, links);
     },
     changeMemberRole: (request) => {
       const scoped = scopedAccess(request);

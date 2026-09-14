@@ -172,7 +172,7 @@ crosses two places, the sign that it is two requests.
 | Label | What it covers |
 |---|---|
 | `domain:subscription` | The customer account: status, plan, quota, isolation |
-| `domain:access` | Who may do what: members, roles, invitations, ceilings, ownership |
+| `domain:access` | Who may do what: members, roles, ceilings, ownership |
 | `domain:knowledge` | The content itself: notebooks, folders, notes, Guidance, Templates |
 | `domain:discovery` | Finding things: search, the link graph, backlinks, facets |
 | `domain:audit` | The history: who wrote what, when, and what it said on a date |

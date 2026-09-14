@@ -41,6 +41,10 @@ export const ACCESS_EVENT_TYPES = [
    * parseable forever.
    */
   'WorkspaceCreated',
+  /**
+   * RETIRED in 0.6.0 with the invitation of a member, which left the API until
+   * it comes back with a screen. It stays for the reason above.
+   */
   'MemberInvited',
   'MemberJoined',
   'MemberRoleChanged',

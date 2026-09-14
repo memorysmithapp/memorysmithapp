@@ -382,7 +382,11 @@ export class Subscription {
     return this._members.has(user.value);
   }
 
-  /** Only accepting an invite creates a member (RN-ACC-004). */
+  /**
+   * Today only the transfer of ownership adds a member, demoting the previous
+   * holder to one (RN-ACC-002): the invitation that made a person a member of
+   * somebody else's subscription left the API in 0.6.0.
+   */
   addMember(
     user: UserId,
     email: Email,

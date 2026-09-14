@@ -18,12 +18,10 @@ import {
   type UserId,
 } from '@memorysmith/kernel';
 import type { Subscription } from '../../../domain/subscription/Subscription.js';
-import type { Invite } from '../../../domain/invite/Invite.js';
-import type { AccountLocale, Email, InviteToken } from '../../../domain/values.js';
+import type { AccountLocale, Email } from '../../../domain/values.js';
 import type {
   AccountDirectory,
   ConnectorBindingRepository,
-  InviteRepository,
   PlatformSubscriptionAdmin,
   PlatformSubscriptionView,
   SubscriptionLink,
@@ -34,13 +32,11 @@ import type {
 
 export class InMemoryAccessDatabase {
   readonly subscriptions = new Map<string, { subscription: Subscription; version: number }>();
-  readonly invites = new Map<string, Invite>();
   readonly links = new Map<string, SubscriptionLink>();
   readonly connectors = new Map<string, { agent: AgentIdentity; expiresAt: Instant }>();
 
   clear(): void {
     this.subscriptions.clear();
-    this.invites.clear();
     this.links.clear();
     this.connectors.clear();
   }
@@ -67,33 +63,6 @@ export class InMemorySubscriptionRepository implements SubscriptionRepository {
     subscription.markPersisted();
     this.db.subscriptions.set(key, { subscription, version: subscription.version });
     await this.events.publish(pending);
-    return ok();
-  }
-}
-
-export class InMemoryInviteRepository implements InviteRepository {
-  constructor(
-    private readonly sub: SubscriptionContext,
-    private readonly db: InMemoryAccessDatabase,
-    private readonly events: EventPublisher,
-  ) {}
-
-  async findByToken(token: InviteToken): Promise<Invite | null> {
-    // The token is the key, and it is scoped to the subscription like
-    // everything else: a token of another subscription simply is not found.
-    return this.db.invites.get(`S#${this.sub.subscriptionId.value}#INVITE#${token.value}`) ?? null;
-  }
-
-  async listPending(): Promise<Invite[]> {
-    const prefix = `S#${this.sub.subscriptionId.value}#INVITE#`;
-    return [...this.db.invites.entries()]
-      .filter(([key]) => key.startsWith(prefix))
-      .map(([, invite]) => invite);
-  }
-
-  async save(invite: Invite): Promise<Result<void, ConcurrencyError>> {
-    this.db.invites.set(`S#${this.sub.subscriptionId.value}#INVITE#${invite.token.value}`, invite);
-    await this.events.publish(invite.pullEvents());
     return ok();
   }
 }

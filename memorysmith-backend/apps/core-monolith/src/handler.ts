@@ -39,10 +39,8 @@ import {
   ResolveAuthorship,
 } from '@memorysmith/svc-access/application/connectors';
 import {
-  AcceptInvite,
   ChangeMemberRole,
   ListMembers,
-  InviteMember,
   RemoveMember,
   TransferOwnership,
 } from '@memorysmith/svc-access/application/members';
@@ -187,18 +185,6 @@ const accessUseCases: AccessUseCases = {
   reviewSubscription: (request) =>
     new ReviewSubscription(buildAccess(infra, request.context).platform),
   listMembers: (request) => new ListMembers(scopedOrThrow(request).subscriptions),
-  inviteMember: (request) => {
-    const scoped = scopedOrThrow(request);
-    return new InviteMember(scoped.subscriptions, scoped.invites);
-  },
-  acceptInvite: (request) => {
-    const scoped = scopedOrThrow(request);
-    return new AcceptInvite(
-      scoped.invites,
-      scoped.subscriptions,
-      buildAccess(infra, request.context).links,
-    );
-  },
   changeMemberRole: (request) => new ChangeMemberRole(scopedOrThrow(request).subscriptions),
   removeMember: (request) => {
     const scoped = scopedOrThrow(request);

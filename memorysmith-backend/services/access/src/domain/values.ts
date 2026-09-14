@@ -155,31 +155,6 @@ export class Email {
   }
 }
 
-/** Single use, bound to the e-mail it was sent to, valid for 7 days. */
-export class InviteToken {
-  private readonly __inviteToken!: void;
-  private constructor(readonly value: string) {}
-
-  static generate(): InviteToken {
-    const bytes = new Uint8Array(32);
-    globalThis.crypto.getRandomValues(bytes);
-    return new InviteToken(
-      Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join(''),
-    );
-  }
-
-  static create(raw: string): Result<InviteToken, DomainError> {
-    if (typeof raw !== 'string' || !/^[a-f0-9]{64}$/.test(raw)) {
-      return err(DomainError.validation('Not a valid invite token'));
-    }
-    return ok(new InviteToken(raw));
-  }
-
-  toString(): string {
-    return this.value;
-  }
-}
-
 /**
  * AccountLocale: the language the product writes to one account in (RN-ACC-018).
  *
@@ -228,8 +203,6 @@ export class AccountLocale {
 }
 
 export const ACCESS_LIMITS = {
-  /** RN-ACC-005: the invite expires in seven days. */
-  inviteValidityDays: 7,
   /** RN-ACC-016: role changes take up to five minutes to propagate. */
   authorizerCacheSeconds: 300,
   /**

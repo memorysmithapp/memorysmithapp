@@ -1,13 +1,16 @@
 /**
- * Invites and memberships (software-vision.md, section 5.4).
+ * Memberships (software-vision.md, section 5.4).
  *
  * Members belong to the SUBSCRIPTION. There is no level between it and the
  * notebook (section 4.3), so a member reaches every notebook of the subscription
  * with the role they hold, down to whatever ceiling each notebook sets on them
  * (RN-ACC-011).
  *
- * Only the OWNER invites, changes roles and removes members (RN-ACC-006). An
- * EDITOR does not invite.
+ * Only the OWNER changes roles and removes members (RN-ACC-006). How a person
+ * becomes a member of somebody else's subscription is not part of the product
+ * yet: the invitation left the API in 0.6.0, and comes back with a screen of its
+ * own and a way to find an invitation that does not start from the subscription
+ * of whoever accepts it.
  */
 
 import {
@@ -21,16 +24,9 @@ import {
   type SubscriptionContext,
   type UserId,
 } from '@memorysmith/kernel';
-import { Invite } from '../domain/invite/Invite.js';
 import type { Subscription } from '../domain/subscription/Subscription.js';
-import { Email, InviteToken } from '../domain/values.js';
-import type {
-  InviteRepository,
-  SubscriptionLink,
-  SubscriptionRepository,
-  UserLinkRepository,
-  UserProfile,
-} from '../domain/ports/index.js';
+import { Email } from '../domain/values.js';
+import type { SubscriptionRepository, UserLinkRepository } from '../domain/ports/index.js';
 
 /**
  * Loads the subscription and confirms the caller holds it, in one step, so no
@@ -63,102 +59,6 @@ export class ListMembers {
     if (!subscription) return err(DomainError.notFound('Subscription not found'));
     void input;
     return ok(subscription.members);
-  }
-}
-
-export class InviteMember {
-  constructor(
-    private readonly subscriptions: SubscriptionRepository,
-    private readonly invites: InviteRepository,
-  ) {}
-
-  async execute(input: {
-    context: SubscriptionContext;
-    email: string;
-    role: string;
-    by: Authorship;
-  }): Promise<Result<{ token: InviteToken }, DomainError>> {
-    // RN-ACC-008: an invite can only be issued by a trial or active
-    // subscription, which requireOwner already checks.
-    const owned = await requireOwner(this.subscriptions, input.context.userId);
-    if (!owned.ok) return owned;
-
-    const email = Email.create(input.email);
-    if (!email.ok) return email;
-    const role = Role.membership(input.role);
-    if (!role.ok) return role;
-
-    // RN-ACC-003: the e-mail is unique among the members of a subscription.
-    if (owned.value.members.some((member) => member.email.equals(email.value))) {
-      return err(DomainError.conflict('That e-mail already belongs to a member'));
-    }
-
-    const invite = Invite.issue({
-      subscriptionId: input.context.subscriptionId,
-      email: email.value,
-      role: role.value,
-      by: input.by,
-    });
-    if (!invite.ok) return invite;
-
-    const saved = await this.invites.save(invite.value);
-    return saved.ok ? ok({ token: invite.value.token }) : err(saved.error);
-  }
-}
-
-/**
- * Accepting an invite does NOT create a subscription for the invitee and they
- * pay nothing: they start acting inside the subscription of whoever invited
- * them (RN-SUB-017).
- */
-export class AcceptInvite {
-  constructor(
-    private readonly invites: InviteRepository,
-    private readonly subscriptions: SubscriptionRepository,
-    private readonly links: UserLinkRepository,
-  ) {}
-
-  async execute(input: {
-    profile: UserProfile;
-    token: string;
-    by: Authorship;
-  }): Promise<Result<{ subscriptionId: string; role: string }, DomainError>> {
-    const token = InviteToken.create(input.token);
-    if (!token.ok) return err(DomainError.notFound('Invite not found'));
-
-    const invite = await this.invites.findByToken(token.value);
-    if (!invite) return err(DomainError.notFound('Invite not found'));
-
-    const accepted = invite.accept(input.profile.userId, input.profile.email, input.by.at);
-    if (!accepted.ok) return accepted;
-
-    const subscription = await this.subscriptions.find();
-    if (!subscription) return err(DomainError.notFound('Subscription not found'));
-
-    const added = subscription.addMember(
-      input.profile.userId,
-      input.profile.email,
-      invite.role,
-      invite.invitedBy,
-      input.by,
-    );
-    if (!added.ok) return added;
-
-    const savedSubscription = await this.subscriptions.save(subscription);
-    if (!savedSubscription.ok) return err(savedSubscription.error);
-    const savedInvite = await this.invites.save(invite);
-    if (!savedInvite.ok) return err(savedInvite.error);
-
-    const link: SubscriptionLink = {
-      userId: input.profile.userId,
-      subscriptionId: invite.subscriptionId,
-      isOwner: false,
-      isDefault: (await this.links.linksOf(input.profile.userId)).length === 0,
-      joinedAt: input.by.at.toISOString(),
-    };
-    await this.links.link(link);
-
-    return ok({ subscriptionId: subscription.id.value, role: invite.role.name });
   }
 }
 

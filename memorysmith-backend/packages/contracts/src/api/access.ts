@@ -106,20 +106,6 @@ export const memberSchema = z.object({
   joinedAt: instantSchema,
 });
 
-export const inviteMemberRequestSchema = z.object({
-  email: z.string().email(),
-  role: membershipRoleSchema,
-});
-
-export const inviteSchema = z.object({
-  inviteId: ulidSchema,
-  email: z.string().email(),
-  role: membershipRoleSchema,
-  status: z.enum(['pending', 'accepted', 'expired', 'revoked']),
-  sentAt: instantSchema,
-  expiresAt: instantSchema,
-});
-
 export const changeMemberRoleRequestSchema = z.object({
   role: membershipRoleSchema,
 });
@@ -211,13 +197,11 @@ export const connectorSchema = agentIdentitySchema;
 export type SubscriptionLinkDto = z.infer<typeof subscriptionLinkSchema>;
 export type SessionDto = z.infer<typeof sessionSchema>;
 export type MemberDto = z.infer<typeof memberSchema>;
-export type InviteDto = z.infer<typeof inviteSchema>;
 export type PlatformSubscriptionDto = z.infer<typeof platformSubscriptionSchema>;
 export type SwitchSubscriptionRequest = z.infer<typeof switchSubscriptionRequestSchema>;
 export type AccountLocaleDto = z.infer<typeof accountLocaleSchema>;
 export type ChooseLanguageRequest = z.infer<typeof chooseLanguageRequestSchema>;
 export type RequestSubscriptionRequest = z.infer<typeof requestSubscriptionRequestSchema>;
-export type InviteMemberRequest = z.infer<typeof inviteMemberRequestSchema>;
 export type ChangeMemberRoleRequest = z.infer<typeof changeMemberRoleRequestSchema>;
 export type TransferOwnershipRequest = z.infer<typeof transferOwnershipRequestSchema>;
 export type SetNotebookRoleLimitRequest = z.infer<typeof setNotebookRoleLimitRequestSchema>;

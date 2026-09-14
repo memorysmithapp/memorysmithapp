@@ -31,8 +31,6 @@
   "PATCH /knowledge/notebooks/:v",
   "PATCH /knowledge/notebooks/:v/folders/:f",
   "POST /access/connector-bindings",
-  "POST /access/invites/:token/accept",
-  "POST /access/members",
   "POST /access/platform/subscriptions/:s/approve",
   "POST /access/platform/subscriptions/:s/reactivate",
   "POST /access/platform/subscriptions/:s/reject",

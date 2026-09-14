@@ -157,7 +157,7 @@ One term per concept, from the code to the product. Divergence here is the begin
 |---|---|---|
 | **Subscription** | The subscription: the isolation boundary, the unit of collaboration, the unit of billing and the root of everything. It has an owner, members and a state | A user account |
 | **Platform Admin** | Whoever operates the platform and authorises subscriptions. **It is not a role inside any subscription** and it does not reach content | Owner, customer administrator |
-| **Owner** | The holder of the subscription: responsible for payment, invites and removes members, edits everything. One per subscription | An editor with many rights |
+| **Owner** | The holder of the subscription: responsible for payment, changes the role of members and removes them, edits everything. One per subscription | An editor with many rights |
 | **Notebook** | A self-describing knowledge notebook | A repository, a root folder |
 | **Guidance** | The **role** of "what this notebook is for and how to structure its notes", played by a document the notebook points at | A file named `GUIDANCE.md` |
 | **Folder** | An ordered node of the notebook tree, with a `description` saying *what is kept there*. The description is an attribute of the folder, never a Content Slot | A physical directory (there is none), a folder document |
@@ -232,8 +232,6 @@ There is no automatic payment processing at this stage. Activation is an **admin
 | **Onboarding** | The user requests a subscription, choosing type and quota, and becomes its `OWNER`. Status: `pending_approval` |
 | **Authorisation** | A `PLATFORM_ADMIN` approves (the status becomes `trial` or `active`) or rejects, with a mandatory reason |
 | **Setup** | The `OWNER` creates notebooks and writes the Guidance and the Templates |
-| **Invitation** | The `OWNER` issues an invitation addressed to an e-mail, setting `EDITOR` or `VIEWER`. The product does not deliver the invitation: whoever invites passes the link on however they like |
-| **Acceptance** | The invitee gains a link to that subscription. **It creates no subscription of their own and they pay nothing** |
 | **Leaving** | Removing a member revokes access; the account, the other links and the authorship of what they wrote remain |
 | **Suspension / cancellation** | Operational access ceases; the data stays under the same key (§4.2) |
 
@@ -255,7 +253,7 @@ There is no automatic payment processing at this stage. Activation is an **admin
 
 ### 4.5 One user, more than one subscription
 
-Whoever onboards is the holder of their subscription; whoever accepts an invitation from another organisation starts taking part in a second one. Since the subscription is the isolation boundary, this is not an interface detail.
+Whoever onboards is the holder of their subscription, and whoever is also a member of another one takes part in a second one. Since the subscription is the isolation boundary, this is not an interface detail.
 
 - **Identity is global; a subscription is a link.** The user account belongs to no subscription. Taking part is a relation with a role of its own in each one.
 - **The active subscription is chosen, not inferred.** The session acts on behalf of one subscription at a time, and switching is an explicit action.
@@ -295,7 +293,7 @@ If a `PLATFORM_ADMIN` is also a user of some subscription, they act there like a
 - **RN-SUB-014:** An authorised MCP connector always operates on the subscription fixed at the moment of consent, for the whole life of that authorisation.
 - **RN-SUB-015:** Derived indexes (search, graph, facets, cache) respect the same subscription boundary as the source data.
 - **RN-SUB-016:** A `PLATFORM_ADMIN` session carries no active subscription and therefore reaches no notebook or note data.
-- **RN-SUB-017:** Accepting an invitation creates no subscription for the invitee: they start acting inside the subscription of whoever invited them.
+- **RN-SUB-017:** *(removed in 0.6.0)* It covered what accepting an invitation created. Inviting a member left the product until it comes back with a screen of its own (#114). The number is preserved and will never be reused.
 - **RN-SUB-018:** Every subscription declares a `type`, chosen at request time, whose only value at this stage is `individual`. Only a `PLATFORM_ADMIN` changes the type afterwards, and it is also the `PLATFORM_ADMIN` who may set the status directly, without following the transition machine of §4.4. A status set that way is recorded as an event of its own, and setting `rejected` through that path does not satisfy RN-SUB-009: rejecting a request somebody is waiting on still requires a reason.
 - **RN-SUB-019:** Every subscription declares a storage `quota`, chosen at request time among `500MB`, `1GB` and `2GB`, and changeable later by a `PLATFORM_ADMIN`. It is enforced under the terms of RN-SUB-021. *(Up to 0.2.0 this rule said the quota was declared and not enforced.)*
 - **RN-SUB-021:** The `quota` of RN-SUB-019 is enforced over the **current content** of the subscription: the current revision of every note not deleted, plus every `Guidance` and every `Template`. Replaced revisions stay stored and are not counted. A write that increases that total is refused with `LIMIT_EXCEEDED` when the resulting total would exceed the quota; a write that reduces it or keeps it the same is always accepted, even above the ceiling. The count is kept outside the write transaction and is therefore slightly delayed: a subscription may end up a little above the ceiling, never indefinitely above it.
@@ -326,8 +324,8 @@ Four roles, on two planes that never mix in the same session:
 |---|---|---|---|
 | `PLATFORM_ADMIN` | Platform | Whoever operates the service | Several |
 | `OWNER` | Subscription | The holder, set at onboarding | **Exactly one per subscription** |
-| `EDITOR` | Subscription | An invitee who writes | Several per subscription |
-| `VIEWER` | Subscription | An invitee who only reads, an external reviewer included | Several per subscription |
+| `EDITOR` | Subscription | A member who writes | Several per subscription |
+| `VIEWER` | Subscription | A member who only reads, an external reviewer included | Several per subscription |
 
 The three customer roles belong to the **subscription**. The `OWNER` reaches all of its notebooks without having to be invited to each one, and `EDITOR` and `VIEWER` reach all the notebooks with the role they hold, as far as the ceiling of each notebook allows (§5.3). A user has **one** role per subscription, not one role per slice.
 
@@ -339,7 +337,7 @@ The three customer roles belong to the **subscription**. The `OWNER` reaches all
 |---|:---:|:---:|:---:|:---:|
 | Approve / reject / suspend a subscription | ● | — | — | — |
 | See subscription metadata (owner, status, dates) | ● | ●¹ | — | — |
-| Invite a member, change a role, remove a member | — | ● | — | — |
+| Change the role of a member, remove a member | — | ● | — | — |
 | Set the role ceiling of a member in a notebook (§5.3) | — | ● | — | — |
 | Transfer ownership of the subscription | — | ● | — | — |
 | Create a notebook | — | ● | ● | — |
@@ -382,11 +380,11 @@ The ceiling does not apply to the `OWNER`: they hold the subscription and reach 
 - **RN-ACC-001:** Every subscription has, at any instant, exactly one `OWNER`. Removing the `OWNER` is refused; the only way out is a transfer of ownership.
 - **RN-ACC-002:** The transfer of ownership is atomic: the new holder becomes `OWNER` and the previous one becomes `EDITOR` in the same operation.
 - **RN-ACC-003:** The e-mail is unique among the members of a subscription.
-- **RN-ACC-004:** A pending invitation grants no access; only acceptance creates the member.
-- **RN-ACC-005:** The invitation is single-use, bound to the e-mail it addresses, and expires in 7 days.
-- **RN-ACC-006:** Only the `OWNER` invites, changes roles, removes members and sets notebook ceilings. An `EDITOR` does not invite.
+- **RN-ACC-004:** *(removed in 0.6.0)* It said a pending invitation granted no access. Inviting a member left the product until it comes back with a screen of its own (#114). The number is preserved and will never be reused.
+- **RN-ACC-005:** *(removed in 0.6.0)* It said an invitation was single-use, bound to its e-mail and valid for 7 days. Inviting a member left the product until it comes back with a screen of its own (#114). The number is preserved and will never be reused.
+- **RN-ACC-006:** Only the `OWNER` changes roles, removes members and sets notebook ceilings.
 - **RN-ACC-007:** *(removed)* It covered the creation, renaming and removal of workspaces. The workspace level no longer exists (§4.3). The number is preserved and will never be reused.
-- **RN-ACC-008:** An invitation may only be issued by a subscription with status `trial` or `active`.
+- **RN-ACC-008:** *(removed in 0.6.0)* It said only a `trial` or `active` subscription issued invitations. Inviting a member left the product until it comes back with a screen of its own (#114). The number is preserved and will never be reused.
 - **RN-ACC-009:** Removing a member revokes access to the subscription and fully preserves what they wrote, the recorded authorship included.
 - **RN-ACC-010:** A `VIEWER`, whether by subscription role or by notebook ceiling, is refused on any write operation, through the UI and through MCP alike.
 - **RN-ACC-011:** The per-notebook role ceiling only lowers. Setting a ceiling higher than the member's role in the subscription is refused with `VALIDATION`.
@@ -406,14 +404,14 @@ Six bounded contexts. The separation is one of responsibility and vocabulary; th
 
 | Context | Responsibility | Type | `RN` prefix |
 |---|---|---|---|
-| **Access** | Subscriptions and their life cycle, members, roles, notebook ceilings, invitations, links, authorisation | Supporting | `SUB`, `ACC` |
+| **Access** | Subscriptions and their life cycle, members, roles, notebook ceilings, links, authorisation | Supporting | `SUB`, `ACC` |
 | **Knowledge** | Notebooks, guidance, folders, order, templates, notes | **Core** | `KNW` |
 | **Discovery** | The link graph, the text index and the curation facets, three projections | Supporting | `DSC` |
 | **Audit** | The append-only trail: authorship, revisions, reconstruction by date | Supporting | `AUD` |
 | **Agent Access** | The MCP server; composes the Notebook Context; translates domain ↔ tools | Supporting (anticorruption layer) | `AGT` |
 | **Portability** | Export to a readable file tree | Generic | `PRT` |
 
-The prefix is that of the context the rule belongs to. **Access carries two**, because it separates what belongs to the boundary from what belongs to whoever enters it: `SUB` for the subscription, its life cycle and isolation, `ACC` for members, roles, ceilings and invitations. No prefix is retired when a context changes shape, because the codes already issued stay referenced.
+The prefix is that of the context the rule belongs to. **Access carries two**, because it separates what belongs to the boundary from what belongs to whoever enters it: `SUB` for the subscription, its life cycle and isolation, `ACC` for members, roles and ceilings. No prefix is retired when a context changes shape, because the codes already issued stay referenced.
 
 **Knowledge is the core domain**, because that is where the rule no competitor solves for free lives: declared structure, meaningful order, content roles and cheap concurrent writing. Everything else exists to serve it or to carry it.
 
@@ -477,18 +475,6 @@ set_by_id, set_at
 ```
 
 It lives next to the notebook, not next to the member: whoever knows which notebooks exist is Knowledge, and the authorisation decision has to be local (`architecture-guide.md` §14.2).
-
-#### Entity: `Invite`
-
-```
-id, subscription_id,
-invitee_email,
-invitee_role (EDITOR | VIEWER),
-invited_by_id,               -- always the OWNER (RN-ACC-006)
-token,                       -- single use
-status (pending | accepted | expired | revoked),
-sent_at, expires_at, accepted_at?
-```
 
 ### 7.2 Business rules
 
@@ -910,7 +896,7 @@ Zero lock-in is a requirement, not a courtesy: it is what makes the product safe
 | Notebook → Search | A single field over the text of the notebook, accepting fields and operators |
 | Notebook → Export | Downloads the whole notebook as a tree of `.md` files, in the format of §12 |
 
-**What the interface does not reach.** The governance of the subscription, that is members, roles, invitations, ownership, notebook ceilings and switching the active subscription, and the platform area of §4.6, exist in the API and have no screen. So do the audit and health reads, that is note history, notebook activity, and broken links and orphan notes as lists. Whoever needs them today calls the API or uses the operations scripts, and what is missing is recorded in the issues of the repository, which is where the future lives.
+**What the interface does not reach.** The governance of the subscription, that is members, roles, ownership, notebook ceilings and switching the active subscription, and the platform area of §4.6, exist in the API and have no screen. So do the audit and health reads, that is note history, notebook activity, and broken links and orphan notes as lists. Whoever needs them today calls the API or uses the operations scripts, and what is missing is recorded in the issues of the repository, which is where the future lives.
 
 ### 13.2 Interface rules
 
@@ -941,7 +927,6 @@ Declared so they become tests, and not folklore. The thesis is "without friction
 | Tree depth | 6 levels |
 | Graph traversal depth | 3, with a ceiling of 200 nodes |
 | Propagation of a role change | up to 5 minutes |
-| Invitation validity | 7 days |
 
 Performance targets are in `architecture-guide.md` §15.
 
