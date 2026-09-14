@@ -1500,7 +1500,7 @@ Adding a tool, adding an optional argument or widening a return is **minor** in 
 
 ### 23.3 Layer 3: the deployment version
 
-Every CDK stack carries the tags `app:environment`, `app:version` with the version it serves and `deploy:sha` with the commit it was built from. That is what makes it possible to answer "what was in production when this happened" from the environment itself.
+Every CDK stack carries the tag `app:environment`, and every stack of the product carries `app:version` with the version it serves and `deploy:sha` with the commit it was built from. The pipeline stack carries neither of the two, because it delivers every version and a version written on it would be false. That is what makes it possible to answer "what was in production when this happened" from the environment itself.
 
 **The environment and the version are configuration, never a constant of the build.** A deploy declares them as CDK context (`environment`, `version`, `commit`), and a deploy that declares nothing is production serving the version of the packages. Every function receives the three as `APP_ENVIRONMENT`, `APP_VERSION` and `APP_COMMIT`, through `ServiceLambda`, and the interface reads them from `/config.json`, which `frontend-release.stack` publishes beside the bundle together with the origin of the API, the sign-in domain and the app client. The artefact built from a commit therefore does not depend on the environment it goes to. `memorysmith-frontend/.env.local` does not exist: for `vite dev`, the dev server answers `/config.json` from an untracked `config.local.json`.
 

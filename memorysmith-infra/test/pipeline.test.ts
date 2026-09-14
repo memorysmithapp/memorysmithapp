@@ -6,10 +6,12 @@
  * environments of a shared account reaches only its own.
  */
 
-import { App } from 'aws-cdk-lib';
+import { App, Stack } from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
+import { Topic } from 'aws-cdk-lib/aws-sns';
 import { describe, expect, it } from 'vitest';
 import { environmentOf } from '../config/environments.js';
+import { tagDelivery } from '../constructs/deployment.js';
 import { DEPLOYED_PATHS, PipelineStack } from '../stacks/pipeline.stack.js';
 
 const PIPELINE = {
@@ -57,6 +59,37 @@ function pipelineOf(name: 'production' | 'staging') {
 
 const stagesOf = (pipeline: { Stages: Array<{ Name: string }> }) =>
   pipeline.Stages.map((stage) => stage.Name);
+
+describe('the tags of a deploy', () => {
+  it('name the version on what a deploy delivers, and never on the pipeline, which delivers every version', () => {
+    const app = new App({ context: { environment: 'staging', environments: ENVIRONMENTS } });
+    const environment = environmentOf(app.node);
+    const env = { account: environment.account, region: environment.region };
+    const pipeline = new PipelineStack(app, 'Pipeline', { env, environment });
+    const delivered = new Stack(app, 'Delivered', { env });
+    new Topic(delivered, 'Topic');
+    tagDelivery([delivered], {
+      environment: 'staging',
+      version: '0.6.0-rc.1+abc1234',
+      commit: 'abc1234',
+    });
+
+    const tagsOf = (stack: Stack, type: string): Record<string, string> =>
+      Object.fromEntries(
+        (
+          (Object.values(Template.fromStack(stack).findResources(type))[0]?.Properties?.Tags ??
+            []) as Array<{ Key: string; Value: string }>
+        ).map((tag) => [tag.Key, tag.Value]),
+      );
+    expect(tagsOf(delivered, 'AWS::SNS::Topic')).toMatchObject({
+      'app:version': '0.6.0-rc.1+abc1234',
+      'deploy:sha': 'abc1234',
+    });
+    const pipelineTags = tagsOf(pipeline, 'AWS::CodePipeline::Pipeline');
+    expect(pipelineTags).not.toHaveProperty('app:version');
+    expect(pipelineTags).not.toHaveProperty('deploy:sha');
+  });
+});
 
 describe('the staging pipeline', () => {
   it('is a V2 pipeline where the last run wins, with the branch as a variable', () => {

@@ -22,7 +22,7 @@ import { AgentStack } from '../stacks/agent.stack.js';
 import { FrontendHostingStack } from '../stacks/frontend-hosting.stack.js';
 import { FrontendReleaseStack } from '../stacks/frontend-release.stack.js';
 import { PipelineStack } from '../stacks/pipeline.stack.js';
-import { deploymentOf } from '../constructs/deployment.js';
+import { deploymentOf, tagDelivery } from '../constructs/deployment.js';
 import { environmentOf, stackId } from '../config/environments.js';
 
 const app = new App();
@@ -80,9 +80,9 @@ const api = new ApiStack(app, id('Api'), {
   frontendOrigin: `https://${network.siteDomainName}`,
 });
 
-new ProjectionsStack(app, id('Projections'), { env, environment, data });
+const projections = new ProjectionsStack(app, id('Projections'), { env, environment, data });
 
-new AgentStack(app, id('Agent'), {
+const agent = new AgentStack(app, id('Agent'), {
   env,
   hostedZone: network.hostedZone,
   certificate: network.mcpCertificate,
@@ -102,7 +102,7 @@ const hosting = new FrontendHostingStack(app, id('Frontend'), {
 });
 
 // Last: what the interface reads at runtime names the API and the app client.
-new FrontendReleaseStack(app, id('FrontendRelease'), {
+const release = new FrontendReleaseStack(app, id('FrontendRelease'), {
   env,
   bucket: hosting.bucket,
   distribution: hosting.distribution,
@@ -127,6 +127,6 @@ if (environment.pipeline.connectionArn) {
 Tags.of(app).add('app:project', 'memorysmith');
 Tags.of(app).add('app:environment', environment.name);
 // Derived, never written literally: a version repeated by hand is a version that
-// drifts, and this tag had been asserting 0.2.0 through two releases.
-Tags.of(app).add('app:version', deployment.version);
-Tags.of(app).add('deploy:sha', deployment.commit);
+// drifts, and this tag had been asserting 0.2.0 through two releases. It goes on
+// what a deploy delivers, and never on the pipeline, which delivers every version.
+tagDelivery([network, data, identity, api, projections, agent, hosting, release], deployment);

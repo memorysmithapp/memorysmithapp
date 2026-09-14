@@ -5,10 +5,11 @@
  * (`-c environment=… -c version=… -c commit=…`), from whatever runs the deploy.
  * None of them is ever a constant of the build: every function receives all
  * three as variables, the interface reads them from `/config.json`, and every
- * stack carries them as tags. A deploy that says nothing is production, serving
- * the version of this package.
+ * stack of the product carries the version and the commit as tags. A deploy
+ * that says nothing is production, serving the version of this package.
  */
 
+import { Tags, type Stack } from 'aws-cdk-lib';
 import type { Construct } from 'constructs';
 import pkg from '../package.json' with { type: 'json' };
 
@@ -28,6 +29,19 @@ export function deploymentOf(scope: Construct): Deployment {
     version: context('version') ?? pkg.version,
     commit: context('commit') ?? 'unknown',
   };
+}
+
+/**
+ * Tags the stacks a deploy delivers with the version and the commit they serve.
+ * Only those: the pipeline delivers every version, so a version written on it
+ * would be false by construction, and it was, saying `0.5.7` and `unknown` on a
+ * pipeline that had just delivered `0.6.0-rc.87`.
+ */
+export function tagDelivery(stacks: readonly Stack[], deployment: Deployment): void {
+  for (const stack of stacks) {
+    Tags.of(stack).add('app:version', deployment.version);
+    Tags.of(stack).add('deploy:sha', deployment.commit);
+  }
 }
 
 /** The variables every function of a deploy receives. */
