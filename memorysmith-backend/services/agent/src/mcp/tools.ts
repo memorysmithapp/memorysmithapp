@@ -16,7 +16,7 @@ import type { Deployment } from '@memorysmith/contracts';
 import { TOOL_CATALOG } from './catalog.js';
 import { PRODUCTION_DEFAULT } from './environment.js';
 import { whoAmI } from './whoami.js';
-import { SKILLS, skillNamed } from './skills.js';
+import { DESIGN_NOTEBOOK_SKILL, SKILLS, skillNamed } from './skills.js';
 import {
   GatewayError,
   type AccessGateway,
@@ -24,6 +24,7 @@ import {
   type AuditGateway,
   type DiscoveryGateway,
   type KnowledgeGateway,
+  type NoteContent,
   type RelatedNode,
 } from './gateway.js';
 
@@ -81,6 +82,27 @@ function revisionArgument(args: Record<string, unknown>, tool: string): string |
 function renderRelated(node: RelatedNode, indent = 0): string {
   const line = `${'  '.repeat(indent)}- ${node.name} (${node.noteId})`;
   return [line, ...node.children.map((child) => renderRelated(child, indent + 1))].join('\n');
+}
+
+/**
+ * What an agent is told when a write leaves a note with no name, the absence
+ * RN-KNW-036 has reported. Agents wrote a whole folder of notes answered with
+ * `"name": null` and never noticed, because a null does not say why. The
+ * notice is a sentence and not a refusal: the note was written.
+ */
+export const UNNAMED_NOTE_NOTICE =
+  'This note has no name: its content states no `name:` inside a frontmatter block, the ' +
+  'lines between the two `---` that open the note. It is stored, rendered and searchable, ' +
+  'and no link can reach it. If it should be linked, write `name:` in that block with ' +
+  'update_note, and check the template of its folder, which the next note will follow.';
+
+/**
+ * The note a write answers, with the notice first when it has no name, so it is
+ * read before a long body. It is a field of the one JSON document and never a
+ * second content block, so a client reading the answer as JSON keeps reading it.
+ */
+function noteAnswer(note: NoteContent): ToolResult {
+  return json(note.name === null ? { notice: UNNAMED_NOTE_NOTICE, ...note } : note);
 }
 
 export class McpToolAdapter {
@@ -142,9 +164,13 @@ export class McpToolAdapter {
       case 'list_notebooks': {
         const notebooks = await knowledge.listNotebooks(caller);
         if (notebooks.length === 0) {
+          // Said to a connector that can create one: sending it to somebody
+          // else is how an agent stopped to ask who manages its connection.
           return text(
-            'This connector reaches no notebook yet. Ask the owner of the subscription to create ' +
-              'one and write its guidance before you try to read or write anything.',
+            'This connector reaches no notebook yet. When the person asks for one, create it ' +
+              `with create_notebook, after reading the skill \`${DESIGN_NOTEBOOK_SKILL}\` with ` +
+              'get_skill and asking them for samples of what it will hold. Creating a notebook ' +
+              'takes the EDITOR role, and a connection without it is refused and told so.',
           );
         }
         return json(notebooks);
@@ -282,7 +308,7 @@ export class McpToolAdapter {
           folderId: requireString(args, 'folder', 'create_note'),
           content: requireString(args, 'content', 'create_note'),
         });
-        return json(created);
+        return noteAnswer(created);
       }
 
       case 'update_note': {
@@ -292,7 +318,7 @@ export class McpToolAdapter {
           content: requireString(args, 'content', 'update_note'),
           baseRevision: requireString(args, 'baseRevision', 'update_note'),
         });
-        return json(updated);
+        return noteAnswer(updated);
       }
 
       case 'search_notes':

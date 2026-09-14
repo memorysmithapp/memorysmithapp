@@ -418,14 +418,23 @@ prefix is read as a frontmatter attribute, which is what makes
 vocabulary of the notebook becomes the query language of the notebook.
 `;
 /**
- * One skill per task, and only tasks that fall OUTSIDE the common path. The
- * reading path that `whoami` already teaches covers almost every session and
- * stays inline: spending a round trip to learn it would be friction against
- * the very thesis of the connector.
+ * The skill a text names outside the registry, as a constant of it: a
+ * description that cites a skill by a literal would still cite it the day it is
+ * renamed, and send the agent to a `NOT_FOUND`.
+ */
+export const DESIGN_NOTEBOOK_SKILL = 'design-notebook';
+
+/**
+ * One skill per task, and only tasks the reading path does not teach. The path
+ * itself stays inline in `whoami`, because spending a round trip to learn it
+ * would be friction against the very thesis of the connector. A skill is worth
+ * something only when it is read before its task, which is why the index
+ * travels in the handshake as well as in `whoami` (RN-AGT-028): an agent that
+ * goes from the list of notebooks straight to a write never calls `whoami`.
  */
 export const SKILLS: readonly Skill[] = [
   {
-    name: 'design-notebook',
+    name: DESIGN_NOTEBOOK_SKILL,
     task: 'Design a notebook from scratch: its guidance, its folders and their templates',
     body: DESIGN_NOTEBOOK,
   },
@@ -443,4 +452,13 @@ export const SKILLS: readonly Skill[] = [
 
 export function skillNamed(name: string): Skill | undefined {
   return SKILLS.find((skill) => skill.name === name);
+}
+
+/**
+ * The index, one line per skill, derived from the registry (RN-AGT-018). The
+ * handshake and `whoami` print the same lines, so the two can never disagree
+ * about which skills exist.
+ */
+export function skillIndex(): string[] {
+  return SKILLS.map((skill) => `- \`${skill.name}\` — ${skill.task}`);
 }

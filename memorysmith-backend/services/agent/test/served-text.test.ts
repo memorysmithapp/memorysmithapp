@@ -17,7 +17,10 @@
 import { describe, expect, it } from 'vitest';
 import { DECLARED_SILENCE, RECOGNISED_NOTATION } from '@memorysmith/contracts';
 import { TOOL_CATALOG } from '../src/mcp/catalog.js';
+import { PRODUCTION_DEFAULT } from '../src/mcp/environment.js';
+import { serverInstructions } from '../src/mcp/instructions.js';
 import { SKILLS, skillNamed } from '../src/mcp/skills.js';
+import { UNNAMED_NOTE_NOTICE } from '../src/mcp/tools.js';
 import { whoAmI } from '../src/mcp/whoami.js';
 import type { AgentCaller, NotebookListing } from '../src/mcp/gateway.js';
 
@@ -49,6 +52,16 @@ function servedText(): Array<{ where: string; text: string }> {
         commit: 'a1b2c3d',
       }),
     },
+    { where: 'the instructions of the handshake', text: serverInstructions(PRODUCTION_DEFAULT) },
+    {
+      where: 'the instructions of the handshake, in staging',
+      text: serverInstructions({
+        environment: 'staging',
+        version: '0.6.0-rc.12+a1b2c3d',
+        commit: 'a1b2c3d',
+      }),
+    },
+    { where: 'the notice of a note written with no name', text: UNNAMED_NOTE_NOTICE },
     ...TOOL_CATALOG.flatMap((tool) => [
       { where: `${tool.name}.title`, text: tool.title },
       { where: `${tool.name}.description`, text: tool.description },

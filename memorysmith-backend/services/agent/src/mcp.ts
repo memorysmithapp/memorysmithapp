@@ -12,7 +12,8 @@ import { TOOL_CATALOG } from './mcp/catalog.js';
 import type { McpToolAdapter } from './mcp/tools.js';
 import type { AgentCaller } from './mcp/gateway.js';
 import type { Deployment } from '@memorysmith/contracts';
-import { environmentNotice, PRODUCTION_DEFAULT } from './mcp/environment.js';
+import { PRODUCTION_DEFAULT } from './mcp/environment.js';
+import { serverInstructions } from './mcp/instructions.js';
 
 const PROTOCOL_VERSION = '2025-06-18';
 
@@ -74,13 +75,15 @@ export async function handleMcpRequest(
   switch (request.method) {
     case 'initialize': {
       // The version this deployment runs, and outside production the warning
-      // that what is written here is disposable (RN-AGT-026).
-      const notice = environmentNotice(deployment);
+      // that what is written here is disposable (RN-AGT-026). In every
+      // environment the instructions send the agent to whoami and index the
+      // skills, because they are read before the first tool is chosen
+      // (RN-AGT-028).
       return result(id, {
         protocolVersion: PROTOCOL_VERSION,
         capabilities: { tools: {} },
         serverInfo: { name: 'memorysmith-mcp', version: deployment.version },
-        ...(notice ? { instructions: notice } : {}),
+        instructions: serverInstructions(deployment),
       });
     }
 

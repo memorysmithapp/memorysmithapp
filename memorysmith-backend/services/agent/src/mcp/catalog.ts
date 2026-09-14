@@ -15,6 +15,8 @@
  *    stays that way as the surface grows.
  */
 
+import { DESIGN_NOTEBOOK_SKILL } from './skills.js';
+
 export interface ToolDefinition {
   readonly name: string;
   readonly title: string;
@@ -67,8 +69,9 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'expects to be used. It names the person who authorized the connector, the connector ' +
       'itself, the subscription the token is fixed to and the notebooks within reach, and then ' +
       'it lays out the reading path: the guidance of a notebook, the folder tree with the ' +
-      'purpose of each folder, and the template of the folder you are about to write in. ' +
-      'Call it first when you do not know this notebook yet.',
+      'purpose of each folder, and the template of the folder you are about to write in, and ' +
+      'it indexes the skills, the written method of each task the path does not teach. ' +
+      'Call it before any other tool.',
     inputSchema: object({}),
     annotations: { readOnlyHint: true },
   },
@@ -76,9 +79,10 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     name: 'get_skill',
     title: 'Read a skill: the method for a task',
     description:
-      'Returns the written method for one task, by name. The names come from whoami, which ' +
-      'indexes them, and a skill is meant to be read BEFORE the task, not after it went ' +
-      'wrong. It teaches: it never validates and never writes anything.',
+      'Returns the written method for one task, by name. The names come from whoami and from ' +
+      'the instructions of this server, which both index them, and a skill is meant to be read ' +
+      'BEFORE the task, not after it went wrong. It teaches: it never validates and never ' +
+      'writes anything.',
     inputSchema: object(
       {
         name: {
@@ -94,8 +98,10 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     name: 'list_notebooks',
     title: 'List notebooks',
     description:
-      'Lists the notebooks this connector can reach, with their description and note count. ' +
-      'Start here: every other tool takes a notebook identifier from this list.',
+      'Lists the notebooks this connector can reach, with their description and note count, ' +
+      'and every notebook tool takes its identifier from this list. Call whoami before it: ' +
+      'whoami lists the same notebooks, together with how to write in them and the skills to ' +
+      'read before a task.',
     inputSchema: object({}),
     annotations: { readOnlyHint: true },
   },
@@ -105,8 +111,11 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     description:
       'Creates a notebook in this subscription: a notebook of Markdown notes, organised in folders ' +
       'and described by a guidance and by the templates of its folders — not a Jupyter notebook. ' +
-      'Write its guidance right after, with set_guidance: ' +
-      'a notebook without guidance tells the next agent nothing about how it wants to be written. ' +
+      `BEFORE calling it, read the skill \`${DESIGN_NOTEBOOK_SKILL}\` with get_skill and ask the ` +
+      'person for samples of what the notebook will hold: its guidance, folders and templates ' +
+      'are derived from that material, and a notebook created before asking gets a structure ' +
+      'nobody chose. Then write its guidance with set_guidance: a notebook without guidance ' +
+      'tells the next agent nothing about how it wants to be written. ' +
       'If a notebook with the same name already exists, this fails with ALREADY_EXISTS and returns ' +
       'the identifier of the existing one: no second notebook is created and no suffix is invented, ' +
       'so a retry is safe.',
@@ -162,7 +171,10 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'Replaces the guidance of a notebook, which is the document that declares how THIS notebook ' +
       'wants to be written: its conventions, its vocabulary, what belongs in it and what does ' +
       'not. It is read by every agent that writes here, so write it for one, in Markdown, and ' +
-      'read the current one with get_guidance, which also gives you the baseRevision.',
+      'read the current one with get_guidance, which also gives you the baseRevision. When the ' +
+      'notebook already has a guidance, confirm with the person before replacing it: every ' +
+      'agent that writes here follows what it says. Writing the first guidance of a notebook ' +
+      'the person asked you to design is part of that design.',
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -243,7 +255,11 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     description:
       'Replaces the template of a folder, which is the suggested layout of the notes kept there. ' +
       'The server does not validate any note against it, so what it buys is coherence, not ' +
-      'enforcement: write the skeleton a good note in this folder would follow.',
+      'enforcement: write the skeleton a good note in this folder would follow. A note is named ' +
+      'by `name:` inside its frontmatter block, the lines between the two `---` that open it, ' +
+      'and by nothing else: a `name:` written anywhere else names nothing. So a template opens ' +
+      'with that block and carries `name:` in it, or every note written from it has no name ' +
+      'and no link can reach it.',
     inputSchema: object(
       {
         notebook: notebookArgument,

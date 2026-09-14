@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { READING_PATH, TOOL_CATALOG, catalogIsWellFormed } from '../src/mcp/catalog.js';
-import { McpToolAdapter } from '../src/mcp/tools.js';
+import { McpToolAdapter, UNNAMED_NOTE_NOTICE } from '../src/mcp/tools.js';
 import { GatewayError, type AgentCaller } from '../src/mcp/gateway.js';
 import { handleMcpRequest } from '../src/mcp.js';
-import { SKILLS, skillNamed } from '../src/mcp/skills.js';
+import { DESIGN_NOTEBOOK_SKILL, SKILLS, skillIndex, skillNamed } from '../src/mcp/skills.js';
 import {
   DECLARED_SILENCE,
   MARKDOWN_SPEC_SOURCES,
   RECOGNISED_NOTATION,
+  type Deployment,
 } from '@memorysmith/contracts';
 import type { VerifiedAgentToken } from '../src/auth.js';
 import pkg from '../package.json' with { type: 'json' };
@@ -733,6 +734,8 @@ describe('the connector declares where it runs, outside production', () => {
     expect(result.instructions).toContain('staging');
     expect(result.instructions).toContain('0.6.0-rc.12+a1b2c3d');
     expect(result.instructions).toContain('disposable');
+    // Before anything else the instructions say, the skills included.
+    expect(result.instructions?.startsWith('This is the staging environment')).toBe(true);
   });
 
   it('opens whoami with the environment and the version', async () => {
@@ -752,8 +755,165 @@ describe('the connector declares where it runs, outside production', () => {
 
   it('says none of it in production', async () => {
     const result = await handshake();
-    expect(result.instructions).toBeUndefined();
+    // The instructions are sent in production too, for the skills, and never
+    // with a word about the environment.
+    expect(result.instructions).not.toContain('environment of MemorySmith');
+    expect(result.instructions).not.toContain('disposable');
     const answer = (await gateways().call('whoami', {}, caller)).content[0]?.text ?? '';
     expect(answer).not.toContain('## Where this is');
+  });
+});
+
+/**
+ * The path an agent actually takes passes through the method of its task
+ * (RN-AGT-028). A round of agents against staging measured why: the ones that
+ * read the skill of their task wrote the notebook the method describes, and the
+ * ones that went from list_notebooks to a write never saw a skill.
+ */
+describe('the path an agent takes passes through the method of its task', () => {
+  const token: VerifiedAgentToken = {
+    sub: 'user-1',
+    clientId: 'proxy-client',
+    subscriptionId: '01JBQ2X0000000000000000000',
+    payload: {},
+  };
+  const staging: Deployment = {
+    environment: 'staging',
+    version: '0.6.0-rc.12+a1b2c3d',
+    commit: 'a1b2c3d',
+  };
+
+  async function instructions(deployment?: Deployment): Promise<string> {
+    const response = await handleMcpRequest(
+      { jsonrpc: '2.0', id: 1, method: 'initialize' },
+      token,
+      gateways(),
+      '',
+      deployment,
+    );
+    return (response as { result: { instructions?: string } }).result.instructions ?? '';
+  }
+
+  const description = (name: string): string =>
+    TOOL_CATALOG.find((tool) => tool.name === name)?.description ?? '';
+
+  it('sends the agent to whoami and indexes every skill in the handshake, in any environment', async () => {
+    for (const text of [await instructions(), await instructions(staging)]) {
+      expect(text).toContain('`whoami` before any other tool');
+      expect(text).toContain('get_skill');
+      expect(text).toMatch(/BEFORE you start/);
+      for (const skill of SKILLS) {
+        expect(text).toContain(skill.name);
+        expect(text).toContain(skill.task);
+      }
+    }
+  });
+
+  it('prints one index in the handshake and in whoami, so the two cannot disagree', async () => {
+    const help = (await gateways().call('whoami', {}, caller)).content[0]?.text ?? '';
+    const handshake = await instructions();
+    for (const line of skillIndex()) {
+      expect(help).toContain(line);
+      expect(handshake).toContain(line);
+    }
+    // The heading agent-eval reads the index under.
+    expect(help).toContain('## Skills');
+  });
+
+  it('no longer calls list_notebooks the place to start, and sends the agent to whoami', () => {
+    expect(description('list_notebooks')).not.toContain('Start here');
+    expect(description('list_notebooks')).toContain('Call whoami before it');
+    expect(description('whoami')).toContain('before any other tool');
+  });
+
+  it('asks for the method and for samples from the person before a notebook is created', () => {
+    const create = description('create_notebook');
+    expect(create).toContain(`\`${DESIGN_NOTEBOOK_SKILL}\``);
+    expect(create).toContain('ask the person for samples');
+    expect(create.indexOf('BEFORE calling it')).toBeLessThan(create.indexOf('set_guidance'));
+  });
+
+  it('cites no skill the registry does not have', async () => {
+    const empty = gateways({ knowledge: { listNotebooks: async () => [] } });
+    const served = [
+      ...TOOL_CATALOG.map((tool) => tool.description),
+      (await empty.call('whoami', {}, caller)).content[0]?.text ?? '',
+      (await empty.call('list_notebooks', {}, caller)).content[0]?.text ?? '',
+      await instructions(),
+    ].join('\n');
+    // A skill is the one thing served in backticks with a hyphen in its name.
+    const cited = [...served.matchAll(/`([a-z0-9]+(?:-[a-z0-9]+)+)`/g)].map((match) => match[1]);
+
+    expect(cited.length).toBeGreaterThan(0);
+    for (const name of cited) expect(skillNamed(name ?? '')).toBeDefined();
+  });
+
+  it('tells an account with no notebook that the connector can create one', async () => {
+    const empty = gateways({ knowledge: { listNotebooks: async () => [] } });
+    for (const tool of ['whoami', 'list_notebooks']) {
+      const answer = (await empty.call(tool, {}, caller)).content[0]?.text ?? '';
+      expect(answer).toContain('create_notebook');
+      expect(answer).toContain(DESIGN_NOTEBOOK_SKILL);
+      expect(answer).toContain('EDITOR');
+      expect(answer).not.toMatch(/ask the owner/i);
+      expect(answer).not.toContain('Nothing below will return content');
+    }
+  });
+
+  it('asks for the person before a guidance that exists is replaced', () => {
+    expect(description('set_guidance')).toContain('confirm with the person before replacing it');
+  });
+
+  it('says that name: names a note only inside the block that opens it', () => {
+    const template = description('set_template');
+    expect(template).toContain('`name:`');
+    expect(template).toContain('`---`');
+    expect(template).toContain('names nothing');
+  });
+
+  it('answers a write that leaves a note with no name with a notice beside the null', async () => {
+    const unnamed = {
+      noteId: 'n2',
+      name: null,
+      content: 'name: Nova\n\nNo block opens this note.',
+      revision: 'v1',
+      updatedAt: '2026-03-21T10:00:00.000Z',
+    };
+    const adapter = gateways({
+      knowledge: { createNote: async () => unnamed, updateNote: async () => unnamed },
+    });
+
+    const answers = [
+      await adapter.call(
+        'create_note',
+        { notebook: 'v1', folder: 'f1', content: unnamed.content },
+        caller,
+      ),
+      await adapter.call(
+        'update_note',
+        { notebook: 'v1', note: 'n2', content: unnamed.content, baseRevision: 'v0' },
+        caller,
+      ),
+    ];
+
+    for (const answer of answers) {
+      expect(answer.isError).toBe(false);
+      // One JSON document, which a client reading the answer as JSON still parses.
+      expect(answer.content).toHaveLength(1);
+      const parsed = JSON.parse(answer.content[0]?.text ?? '') as Record<string, unknown>;
+      expect(Object.keys(parsed)[0]).toBe('notice');
+      expect(parsed['notice']).toBe(UNNAMED_NOTE_NOTICE);
+      expect(parsed['name']).toBeNull();
+      expect(parsed['revision']).toBe('v1');
+    }
+  });
+
+  it('says nothing more about a note that has a name', async () => {
+    const answer = await gateways().call(
+      'create_note',
+      { notebook: 'v1', folder: 'f1', content: '---\nname: Nova\n---' },
+      caller,
+    );
+    expect(JSON.parse(answer.content[0]?.text ?? '')).not.toHaveProperty('notice');
   });
 });

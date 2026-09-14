@@ -15,7 +15,7 @@
  */
 
 import { READING_PATH, TOOL_CATALOG, type ToolDefinition } from './catalog.js';
-import { SKILLS } from './skills.js';
+import { DESIGN_NOTEBOOK_SKILL, SKILLS, skillIndex } from './skills.js';
 import type { Deployment } from '@memorysmith/contracts';
 import type { AgentCaller, ConnectorIdentity, NotebookListing } from './gateway.js';
 import { environmentNotice, PRODUCTION_DEFAULT } from './environment.js';
@@ -73,8 +73,10 @@ function reach(notebooks: readonly NotebookListing[]): string {
     return [
       '## What you can reach',
       '',
-      'No notebook yet. Whoever authorized this connector has not created one, or has',
-      'not been given access to any. Nothing below will return content until then.',
+      'No notebook yet. When the person asks for one, you can create it with',
+      `\`create_notebook\`: read the skill \`${DESIGN_NOTEBOOK_SKILL}\` first, and ask them for`,
+      'samples of what it will hold. Creating a notebook takes the EDITOR role, and a',
+      'connection without it is refused and told so.',
     ].join('\n');
   }
 
@@ -124,19 +126,21 @@ function path(): string {
 /**
  * The index, derived from the registry (RN-AGT-018). A skill that exists is
  * announced; one that does not exist cannot be, because there is no prose copy
- * of this list anywhere.
+ * of this list anywhere. It is the same index the handshake carries
+ * (RN-AGT-028), and it asks for a skill before its task, because a method read
+ * after the task only explains what went wrong.
  */
 function skills(): string {
   if (SKILLS.length === 0) return '';
 
   return [
-    '## Skills, for the tasks that leave the common path',
+    '## Skills: read one before its task',
     '',
-    'The path above is what almost every session needs. These are written methods',
-    'for the tasks it does not cover. Read one with `get_skill` before you start,',
-    'not after.',
+    'Some tasks have a written method the path above does not teach. Read its skill',
+    'with `get_skill` before you start the task, not after it went wrong. Creating a',
+    `notebook is one of them: \`${DESIGN_NOTEBOOK_SKILL}\`.`,
     '',
-    ...SKILLS.map((skill) => `- \`${skill.name}\` — ${skill.task}`),
+    ...skillIndex(),
   ].join('\n');
 }
 function surface(): string {
