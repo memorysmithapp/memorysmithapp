@@ -770,6 +770,8 @@ The two counters travel in the **same** transaction because they share the dedup
 
 DynamoDB Streams → a relay Lambda → EventBridge. It guarantees that the state change and the publication are atomic, because without it "I wrote but did not publish" happens and is silent. In a system whose audit trail lives on events, that silence would be a hole in the record.
 
+The stream hands the relay up to 25 records a batch, and one `PutEvents` call takes ten events, so the relay publishes a batch in calls of at most ten. `PutEvents` reports a refused entry in its answer rather than as an error, so the relay reads the count and fails the batch when any event was refused: the stream then delivers the whole batch again, which makes delivery at least once. An event delivered twice changes nothing: the audit trail keys each entry by the instant and the identifier of its event, so the same entry is written again, the counters are guarded by their `SEEN` item (§10.3), and the projections replace what they derive. A batch still failing after its retries lands in the dead-letter queue of the relay, whose alarm is how a hole in the record is seen.
+
 ### 10.5 Write order with S3
 
 Content first, pointer afterwards:

@@ -17,7 +17,11 @@
  * the agent and the UI and takes part in no invariant.
  */
 
-import { type EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
+import {
+  type EventBridgeClient,
+  PutEventsCommand,
+  type PutEventsRequestEntry,
+} from '@aws-sdk/client-eventbridge';
 import { TransactWriteCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { parseEvent } from '@memorysmith/contracts';
 import { Instant } from '@memorysmith/kernel';
@@ -41,6 +45,45 @@ export interface RelayDependencies {
 }
 
 const SEEN_TTL_DAYS = 7;
+
+/**
+ * What one PutEvents call accepts: ten entries, and a request under its size
+ * limit, kept well below it here. A batch of the stream holds up to 25 events,
+ * and sending it in one call had the bus refuse the whole batch whenever a burst
+ * of writes put more than ten in it: an import, an agent writing a notebook, a
+ * folder removed with its notes.
+ */
+const MAX_ENTRIES_PER_CALL = 10;
+const MAX_BYTES_PER_CALL = 200_000;
+
+function sizeOf(entry: PutEventsRequestEntry): number {
+  return (
+    Buffer.byteLength(entry.Detail ?? '', 'utf8') +
+    Buffer.byteLength(entry.DetailType ?? '', 'utf8') +
+    Buffer.byteLength(entry.Source ?? '', 'utf8')
+  );
+}
+
+export function callsOf(entries: readonly PutEventsRequestEntry[]): PutEventsRequestEntry[][] {
+  const calls: PutEventsRequestEntry[][] = [];
+  let current: PutEventsRequestEntry[] = [];
+  let bytes = 0;
+  for (const entry of entries) {
+    const size = sizeOf(entry);
+    if (
+      current.length === MAX_ENTRIES_PER_CALL ||
+      (current.length > 0 && bytes + size > MAX_BYTES_PER_CALL)
+    ) {
+      calls.push(current);
+      current = [];
+      bytes = 0;
+    }
+    current.push(entry);
+    bytes += size;
+  }
+  if (current.length > 0) calls.push(current);
+  return calls;
+}
 
 /** Which events move a counter, and in which direction. */
 function counterDelta(type: string): number {
@@ -91,17 +134,32 @@ export class OutboxRelay {
     // is how a projection starts lying quietly (section 19).
     const envelopes = events.map((item) => parseEvent(envelopeOf(item)));
 
-    await this.deps.bus.send(
-      new PutEventsCommand({
-        Entries: envelopes.map((envelope) => ({
-          EventBusName: this.deps.busName,
-          Source: this.deps.source,
-          DetailType: envelope.type,
-          Detail: JSON.stringify(envelope),
-          Time: new Date(envelope.occurredAt),
-        })),
-      }),
-    );
+    const entries: PutEventsRequestEntry[] = envelopes.map((envelope) => ({
+      EventBusName: this.deps.busName,
+      Source: this.deps.source,
+      DetailType: envelope.type,
+      Detail: JSON.stringify(envelope),
+      Time: new Date(envelope.occurredAt),
+    }));
+
+    for (const call of callsOf(entries)) {
+      const answer = await this.deps.bus.send(new PutEventsCommand({ Entries: call }));
+      // PutEvents answers 200 with the entries it refused counted, not thrown.
+      // An event the bus did not take fails the batch, so the stream delivers
+      // it again. Delivery is at least once, and an event delivered twice
+      // changes nothing (architecture-guide.md, section 10.4).
+      const refused = answer?.FailedEntryCount ?? 0;
+      if (refused > 0) {
+        const reasons = new Set(
+          (answer.Entries ?? [])
+            .filter((entry) => entry.ErrorCode)
+            .map((entry) => `${entry.ErrorCode}: ${entry.ErrorMessage ?? ''}`),
+        );
+        throw new Error(
+          `The event bus refused ${refused} of ${call.length} events: ${[...reasons].join('; ')}`,
+        );
+      }
+    }
 
     for (const [index, envelope] of envelopes.entries()) {
       const notes = counterDelta(envelope.type);

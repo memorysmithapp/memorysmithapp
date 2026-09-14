@@ -129,6 +129,42 @@ describe('OutboxRelay', () => {
     expect(reorder.dbCalls).toHaveLength(0);
   });
 
+  it('publishes a batch of the stream in calls of at most ten events, and counts them all', async () => {
+    // The stream hands the relay up to 25 records, and PutEvents takes ten.
+    // Staging refused every batch of more than ten until this held.
+    const { relay, busCalls, dbCalls } = fakes();
+    const batch = Array.from({ length: 25 }, (_unused, index) => {
+      const eventId = `01JBQ2X00000000000000000${String(index).padStart(2, '0')}`;
+      return { ...outboxItem, SK: `EVENT#${eventId}`, eventId };
+    });
+
+    const result = await relay.process(batch);
+
+    expect(result.published).toBe(25);
+    const sizes = busCalls.map(
+      (call) => (call as { input: { Entries: unknown[] } }).input.Entries.length,
+    );
+    expect(sizes).toEqual([10, 10, 5]);
+    expect(dbCalls).toHaveLength(25);
+  });
+
+  it('fails the batch when the bus refuses an event, so the stream delivers it again', async () => {
+    const relay = new OutboxRelay({
+      bus: {
+        send: async () => ({
+          FailedEntryCount: 1,
+          Entries: [{ ErrorCode: 'InternalFailure', ErrorMessage: 'try again' }],
+        }),
+      } as never,
+      db: { send: async () => undefined } as never,
+      tableName: 'mv-knowledge',
+      busName: 'mv-events',
+      source: 'memorysmith.knowledge',
+    });
+
+    await expect(relay.process([outboxItem])).rejects.toThrow('refused 1 of 1');
+  });
+
   it('builds the envelope with no attribute of the storage layer', () => {
     const envelope = envelopeOf(outboxItem) as Record<string, unknown>;
     expect(envelope['PK']).toBeUndefined();
