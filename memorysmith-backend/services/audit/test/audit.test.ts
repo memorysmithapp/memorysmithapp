@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Instant } from '@memorysmith/kernel';
-import { InMemoryAuditTrail } from '../src/adapters/outbound/DynamoAuditTrail.js';
+import { DynamoAuditTrail, InMemoryAuditTrail } from '../src/adapters/outbound/DynamoAuditTrail.js';
 import {
   GetNoteHistory,
   GetNotebookActivity,
@@ -105,6 +105,59 @@ async function seedTrail() {
   });
   return { trail, content };
 }
+
+describe('The trail writes every entry the table hands back', () => {
+  /** A table that leaves the first entries of each answer unwritten, as DynamoDB does under load. */
+  function tableHandingBack(unwrittenPerAnswer: number[]) {
+    const offered: number[] = [];
+    const db = {
+      send: async (command: { input: { RequestItems: Record<string, unknown[]> } }) => {
+        const requests = command.input.RequestItems['mv-audit'] ?? [];
+        offered.push(requests.length);
+        const unwritten = unwrittenPerAnswer.shift() ?? 0;
+        return unwritten > 0
+          ? { UnprocessedItems: { 'mv-audit': requests.slice(0, unwritten) } }
+          : { UnprocessedItems: {} };
+      },
+    };
+    const trail = new DynamoAuditTrail(db as never, 'mv-audit', null, async () => undefined);
+    return { trail, offered };
+  }
+
+  const three = [
+    envelope({
+      eventId: '01JBQ2X000000000000000000A',
+      type: 'NoteCreated',
+      at: '2026-03-01T10:00:00.000Z',
+      versionId: 'v1',
+    }),
+    envelope({
+      eventId: '01JBQ2X000000000000000000B',
+      type: 'NoteCreated',
+      at: '2026-03-01T10:01:00.000Z',
+      versionId: 'v2',
+    }),
+    envelope({
+      eventId: '01JBQ2X000000000000000000C',
+      type: 'NoteCreated',
+      at: '2026-03-01T10:02:00.000Z',
+      versionId: 'v3',
+    }),
+  ];
+
+  it('offers again only what the table did not write, until it is all written', async () => {
+    const { trail, offered } = tableHandingBack([2, 1, 0]);
+    await new AuditEventConsumer(new RecordEvents(trail)).consume(three);
+    expect(offered).toEqual([3, 2, 1]);
+  });
+
+  it('fails when entries stay unwritten, so the events are delivered again', async () => {
+    const { trail } = tableHandingBack([3, 3, 3, 3, 3, 3]);
+    await expect(new AuditEventConsumer(new RecordEvents(trail)).consume(three)).rejects.toThrow(
+      'not written',
+    );
+  });
+});
 
 describe('The trail is append-only and keyed by subject', () => {
   it('appends every event of the bus with its authorship', async () => {

@@ -48,49 +48,74 @@ function sortKeyOf(event: AuditEvent): string {
   return `AT#${event.occurredAt.toISOString()}#${event.eventId}`;
 }
 
+/** How many times a batch is offered again what the table handed back unwritten. */
+const UNPROCESSED_ATTEMPTS = 5;
+
+const wait = (milliseconds: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, milliseconds));
+
 export class DynamoAuditTrail implements AuditTrail {
   constructor(
     private readonly db: DynamoDBDocumentClient,
     private readonly tableName: string,
     /** The subscription of the reading session; writes take it per event. */
     private readonly subscriptionId: SubscriptionId | null = null,
+    private readonly sleep: (milliseconds: number) => Promise<void> = wait,
   ) {}
 
+  /**
+   * BatchWriteItem answers success with the items the table did not write under
+   * load handed back as UnprocessedItems, and ignoring them was a hole in a trail
+   * that exists to have none. They are offered again with a growing pause, and a
+   * batch still unwritten after that throws, so the event is delivered again: an
+   * entry is keyed by the instant and the identifier of its event, so writing it
+   * twice writes the same entry.
+   */
   async append(events: AuditEvent[]): Promise<void> {
     for (let index = 0; index < events.length; index += 25) {
       const chunk = events.slice(index, index + 25);
-      await this.db.send(
-        new BatchWriteCommand({
-          RequestItems: {
-            [this.tableName]: chunk.map((event) => ({
-              PutRequest: {
-                Item: {
-                  PK: partitionOf(event),
-                  SK: sortKeyOf(event),
-                  entity: 'AUDIT',
-                  eventId: event.eventId,
-                  subscriptionId: event.subscriptionId.value,
-                  subject: event.subject,
-                  subjectId: event.subjectId,
-                  occurredAt: event.occurredAt.toISOString(),
-                  type: event.type,
-                  authorship: event.authorship.toJSON(),
-                  contentRef: event.contentRef ? event.contentRef.toJSON() : null,
-                  payload: event.payload,
-                  // Lets the activity screen ask "what happened in this notebook".
-                  ...(notebookOf(event)
-                    ? {
-                        GSI1PK: `S#${event.subscriptionId.value}#NOTEBOOKACT#${notebookOf(event)}`,
-                        GSI1SK: sortKeyOf(event),
-                      }
-                    : {}),
-                },
-              },
-            })),
-          },
-        }),
-      );
+      let pending = this.putRequestsOf(chunk);
+      for (let attempt = 0; pending.length > 0; attempt++) {
+        if (attempt === UNPROCESSED_ATTEMPTS) {
+          throw new Error(
+            `${pending.length} audit entries were not written after ${UNPROCESSED_ATTEMPTS} attempts`,
+          );
+        }
+        if (attempt > 0) await this.sleep(50 * 2 ** attempt);
+        const answer = await this.db.send(
+          new BatchWriteCommand({ RequestItems: { [this.tableName]: pending } }),
+        );
+        pending = (answer?.UnprocessedItems?.[this.tableName] ?? []) as typeof pending;
+      }
     }
+  }
+
+  private putRequestsOf(chunk: AuditEvent[]) {
+    return chunk.map((event) => ({
+      PutRequest: {
+        Item: {
+          PK: partitionOf(event),
+          SK: sortKeyOf(event),
+          entity: 'AUDIT',
+          eventId: event.eventId,
+          subscriptionId: event.subscriptionId.value,
+          subject: event.subject,
+          subjectId: event.subjectId,
+          occurredAt: event.occurredAt.toISOString(),
+          type: event.type,
+          authorship: event.authorship.toJSON(),
+          contentRef: event.contentRef ? event.contentRef.toJSON() : null,
+          payload: event.payload,
+          // Lets the activity screen ask "what happened in this notebook".
+          ...(notebookOf(event)
+            ? {
+                GSI1PK: `S#${event.subscriptionId.value}#NOTEBOOKACT#${notebookOf(event)}`,
+                GSI1SK: sortKeyOf(event),
+              }
+            : {}),
+        },
+      },
+    }));
   }
 
   async timelineOf(subject: EventSubject, subjectId: string): Promise<AuditEvent[]> {
