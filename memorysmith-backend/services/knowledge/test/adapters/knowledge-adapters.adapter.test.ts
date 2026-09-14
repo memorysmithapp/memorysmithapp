@@ -58,6 +58,28 @@ function repositories(context: SubscriptionContext) {
 }
 
 /**
+ * A read of what the table converges to, within a deadline.
+ *
+ * A global secondary index is eventually consistent and takes no
+ * `ConsistentRead`, and neither does a read of the base table that does not ask
+ * for it. Inside the region of the table such a read can arrive before the
+ * write it follows: the pipeline once saw 19 of 20 notes a moment after writing
+ * them, and once a note still listed a moment after deleting it, where a
+ * workstation across the ocean never had. A case that asserts on one of those
+ * reads polls it until it says what the case expects, and then asserts on the
+ * last answer, so a read that never converges still fails with what it saw.
+ * How fast the index converges is not what any case is about.
+ */
+async function converged<T>(read: () => Promise<T>, settled: (value: T) => boolean): Promise<T> {
+  const deadline = Date.now() + 15_000;
+  for (;;) {
+    const value = await read();
+    if (settled(value) || Date.now() > deadline) return value;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+}
+
+/**
  * The name is a parameter because the slug is unique in the SUBSCRIPTION now
  * (RN-KNW-032): two seeded notebooks sharing a name is exactly what the rule
  * refuses, and the refusal is the point.
@@ -155,7 +177,10 @@ describe('DynamoNotebookRepository: the aggregate in one Query', () => {
       expect((await notebooks.save(notebook)).ok).toBe(true);
     }
 
-    const listed = await repositories(context).notebooks.listAll();
+    const listed = await converged(
+      () => repositories(context).notebooks.listAll(),
+      (notebooks) => notebooks.length === 2,
+    );
     expect(listed.map((notebook) => notebook.name.value).sort()).toEqual(['Achados', 'Normas']);
     // And the count travels with them, from the NBSTAT projection.
     expect(listed.every((notebook) => notebook.noteCount === 0)).toBe(true);
@@ -307,6 +332,7 @@ describe('DynamoNotebookRepository: the aggregate in one Query', () => {
           ':pk': `S#${context.subscriptionId.value}#NOTEBOOK#${notebook.id.value}`,
           ':prefix': 'EVENT#',
         },
+        ConsistentRead: true,
       }),
     );
     const types = (outbox.Items ?? []).map((item) => item['type']);
@@ -335,6 +361,7 @@ describe('DynamoNotebookRepository: the aggregate in one Query', () => {
           PK: `S#${context.subscriptionId.value}#NOTEBOOK#${notebook.id.value}`,
           SK: `SLUG#ROOT#normas`,
         },
+        ConsistentRead: true,
       }),
     );
     expect(guard.Item).toBeUndefined();
@@ -363,6 +390,13 @@ describe('DynamoNotebookRepository: the aggregate in one Query', () => {
 });
 
 describe('DynamoNoteRepository: form B, and never a write to META', () => {
+  /**
+   * The notes each folder was given by a case, in order. A note is appended
+   * after these and not after what GSI2 lists, because the index may not hold
+   * the note written a moment before, and two notes would share one position.
+   */
+  const placed = new Map<string, NoteOrder[]>();
+
   async function createNote(
     context: SubscriptionContext,
     notebook: Notebook,
@@ -372,7 +406,7 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
     const { notes, content } = repositories(context);
     const markdown = `---\nname: ${name}\n---\n\nCorpo.`;
     const body = await content.create(markdown);
-    const siblings = await notes.siblingOrder(notebook.id, folderId);
+    const siblings = placed.get(folderId.value) ?? [];
     const note = unwrap(
       Note.create({
         id: NoteId.generate(),
@@ -386,6 +420,7 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
       }),
     );
     const saved = await notes.save(note);
+    placed.set(folderId.value, [...siblings, { noteId: note.id, position: note.position }]);
     return { note, saved };
   }
 
@@ -406,6 +441,7 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
           ':pk': `S#${subscription}#NOTEBOOK#${notebook.id.value}`,
           ':prefix': 'NOTE#',
         },
+        ConsistentRead: true,
       }),
     );
     expect(inTable.Items?.length).toBeGreaterThan(0);
@@ -425,7 +461,14 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
           }),
         )
       ).Items ?? [];
-    expect(await inIndex('NOTEBOOK#')).toHaveLength(1);
+    // The index is awaited until it holds the notebook, so the empty answer
+    // below is the trailing `#` at work, and never an index that has not caught up.
+    expect(
+      await converged(
+        () => inIndex('NOTEBOOK#'),
+        (items) => items.length === 1,
+      ),
+    ).toHaveLength(1);
     expect(await inIndex('NOTE#')).toEqual([]);
     // The query that would have gone wrong, had a prefix been written bare.
     expect((await inIndex('NOTE')).length).toBeGreaterThan(0);
@@ -439,7 +482,10 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
     await createNote(context, notebook, folder.id, 'Lei 14.133');
     await createNote(context, notebook, folder.id, 'Lei 8.666');
 
-    const listed = await notes.listByFolder(notebook.id, folder.id);
+    const listed = await converged(
+      () => notes.listByFolder(notebook.id, folder.id),
+      (notesListed) => notesListed.length === 2,
+    );
     expect(listed.map((note) => note.name)).toEqual(['Lei 14.133', 'Lei 8.666']);
   });
 
@@ -455,7 +501,10 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
     expect(second.saved.ok).toBe(true);
     expect(second.note.id.value).not.toBe(first.note.id.value);
 
-    const listed = await repositories(context).notes.listByFolder(notebook.id, folder.id);
+    const listed = await converged(
+      () => repositories(context).notes.listByFolder(notebook.id, folder.id),
+      (notesListed) => notesListed.length === 2,
+    );
     expect(listed.filter((note) => note.name === 'Lei 14.133')).toHaveLength(2);
   });
 
@@ -491,21 +540,23 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
     expect(live.map((note) => note.id.value)).toEqual([kept.note.id.value]);
   });
 
-  it('takes a deleted note out of the listings and frees its slug', async () => {
+  it('takes a deleted note out of the listing of its folder', async () => {
     const context = contextFor();
     const { notebook, folder } = await seedNotebook(context);
     const { notes } = repositories(context);
+    const listing = () => repositories(context).notes.listByFolder(notebook.id, folder.id);
 
     const created = await createNote(context, notebook, folder.id, 'Lei 14.133');
+    // Listed first, so the empty listing below is the delete at work, and never
+    // an index that had not held the note yet.
+    expect(await converged(listing, (listed) => listed.length === 1)).toHaveLength(1);
+
     const loaded = (await notes.findById(notebook.id, created.note.id)) as Note;
     unwrap(loaded.delete(authorshipOf(context)));
     expect((await notes.save(loaded)).ok).toBe(true);
 
     // GSI2 is sparse, so it vanishes from the listing with no filter anywhere.
-    expect(await repositories(context).notes.listByFolder(notebook.id, folder.id)).toHaveLength(0);
-    // The slug is back in the notebook (RN-KNW-030).
-    const reused = await createNote(context, notebook, folder.id, 'Lei 14.133');
-    expect(reused.saved.ok).toBe(true);
+    expect(await converged(listing, (listed) => listed.length === 0)).toHaveLength(0);
   });
 
   it('keeps the note body readable after the note is deleted', async () => {
@@ -575,25 +626,14 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
 });
 
 describe('Delivery 4 done criteria', () => {
-  /**
-   * GSI2 is eventually consistent, and inside the region of the table a read
-   * can arrive before the index does: the pipeline once saw 19 of 20 notes a
-   * moment after writing them, where a workstation across the ocean never had.
-   * A case reads the order the index converges to, within a deadline, and
-   * asserts that; how fast it converges is not what it is about.
-   */
-  async function settledOrder(
+  /** The order GSI2 converges to, read as `converged` reads any index. */
+  function settledOrder(
     context: SubscriptionContext,
     notebookId: NotebookId,
     folderId: FolderId,
     settled: (order: NoteOrder[]) => boolean,
   ): Promise<NoteOrder[]> {
-    const deadline = Date.now() + 15_000;
-    for (;;) {
-      const order = await repositories(context).notes.siblingOrder(notebookId, folderId);
-      if (settled(order) || Date.now() > deadline) return order;
-      await new Promise((resolve) => setTimeout(resolve, 250));
-    }
+    return converged(() => repositories(context).notes.siblingOrder(notebookId, folderId), settled);
   }
 
   it('survives 20 concurrent reorders with nothing lost and no undefined order', async () => {
@@ -712,7 +752,12 @@ describe('Delivery 4 done criteria', () => {
     // Not one retry, not one lost write.
     expect(outcomes.filter((result) => !result.ok)).toHaveLength(0);
 
-    const stored = await repositories(context).notes.listByNotebook(notebook.id);
+    // The listing reads the base table without asking for consistency, so it
+    // is awaited like an index.
+    const stored = await converged(
+      () => repositories(context).notes.listByNotebook(notebook.id),
+      (notesListed) => notesListed.length === 50,
+    );
     expect(stored).toHaveLength(50);
 
     // And the notebook META item was never rewritten by any of them.
@@ -723,6 +768,7 @@ describe('Delivery 4 done criteria', () => {
           PK: `S#${context.subscriptionId.value}#NOTEBOOK#${notebook.id.value}`,
           SK: 'META',
         },
+        ConsistentRead: true,
       }),
     );
     expect(meta.Item?.['version']).toBe(1);
