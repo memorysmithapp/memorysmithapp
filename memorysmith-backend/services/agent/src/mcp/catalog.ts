@@ -131,9 +131,9 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     description:
       'Creates a notebook in this subscription: a notebook of Markdown notes, organised in folders ' +
       'and described by a guidance and by the templates of its folders — not a Jupyter notebook. ' +
-      `BEFORE calling it, read the skill \`${DESIGN_NOTEBOOK_SKILL}\` with get_skill and ask the ` +
-      'person for samples of what the notebook will hold: its guidance, folders and templates ' +
-      'are derived from that material, and a notebook created before asking gets a structure ' +
+      `BEFORE calling it, read the skill \`${DESIGN_NOTEBOOK_SKILL}\` with get_skill and confirm ` +
+      'with the person the structure you propose: its guidance, folders and templates follow ' +
+      'from what the notebook will hold, and a notebook created before that gets a structure ' +
       'nobody chose. Then write its guidance with set_guidance: a notebook without guidance ' +
       'tells the next agent nothing about how it wants to be written. ' +
       'If a notebook with the same name already exists, this fails with ALREADY_EXISTS and returns ' +

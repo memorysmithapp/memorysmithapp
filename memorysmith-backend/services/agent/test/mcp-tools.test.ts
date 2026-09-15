@@ -3,7 +3,14 @@ import { READING_PATH, TOOL_CATALOG, catalogIsWellFormed } from '../src/mcp/cata
 import { McpToolAdapter, UNNAMED_NOTE_NOTICE } from '../src/mcp/tools.js';
 import { GatewayError, type AgentCaller } from '../src/mcp/gateway.js';
 import { handleMcpRequest } from '../src/mcp.js';
-import { DESIGN_NOTEBOOK_SKILL, SKILLS, skillIndex, skillNamed } from '../src/mcp/skills.js';
+import {
+  DESIGN_NOTEBOOK_SKILL,
+  FORMATTING_LEFT_TO_WRITE_NOTES,
+  FORMATTING_USES,
+  SKILLS,
+  skillIndex,
+  skillNamed,
+} from '../src/mcp/skills.js';
 import {
   DECLARED_SILENCE,
   MARKDOWN_SPEC_SOURCES,
@@ -563,18 +570,52 @@ describe('skills: the method, indexed by whoami', () => {
     expect(result.content[0]?.text).toBe(skillNamed('design-notebook')?.body);
   });
 
-  it('teaches the two mistakes that a notebook designed without method makes', () => {
+  it('teaches the practices a notebook is built with, each as the product implements it', () => {
     const body = skillNamed('design-notebook')?.body ?? '';
 
-    // The evidence this skill exists for: a guidance opening with a heading
-    // the Notebook Context already emits, and a folder without a template while
-    // the guidance declares mandatory frontmatter.
-    expect(body).toContain('Do not open with a heading');
-    expect(body).toContain('template');
-    // And every template opens with the key that names a note, and shows the
-    // body as sections.
-    expect(body).toContain('Open every template with a frontmatter block carrying `name:`');
+    for (const section of [
+      '## The guidance',
+      '## Short notes, one concept each',
+      '## Folders and subfolders',
+      '## Properties and tags',
+      '## Maps of content',
+      '## Templates',
+      '## Formatting that earns its place',
+    ]) {
+      expect(body).toContain(section);
+    }
+    // The two mistakes the skill was first written for, stated positively: a
+    // guidance opening with the heading the Notebook Context already prints,
+    // and a folder that receives notes with no template.
+    expect(body).toContain('Open with the paragraph that says what the notebook is');
+    expect(body).toContain('Every folder that receives notes has its own template');
+    expect(body).toContain('Open the template with the frontmatter block');
     expect(body).toContain('headings from `#`');
+    // What the product does, where a practice could promise more than that.
+    expect(body).toContain('a subfolder too');
+    expect(body).toContain('reorder_folder');
+    expect(body).toContain('`tags: [contracts, procurement]`');
+    expect(body).toContain('`convert-inline-tags`');
+    // And no interview: the agent proposes, and the person confirms.
+    expect(body).not.toContain('samples');
+    expect(body).toContain('confirm it before creating anything');
+  });
+
+  it('says when a notebook uses each form the page draws, keyed by the specification', () => {
+    const body = skillNamed('design-notebook')?.body ?? '';
+    const drawn = RECOGNISED_NOTATION.filter((entry) => entry.reader === 'reading-surface').map(
+      (entry) => entry.id,
+    );
+    const taught = Object.keys(FORMATTING_USES);
+
+    // Every form the page draws is taught here or left to write-notes, never
+    // both, and nothing is keyed by a form the specification no longer has.
+    expect([...taught, ...FORMATTING_LEFT_TO_WRITE_NOTES].sort()).toEqual([...drawn].sort());
+    for (const id of taught) expect(FORMATTING_LEFT_TO_WRITE_NOTES.has(id)).toBe(false);
+    for (const use of Object.values(FORMATTING_USES)) expect(body).toContain(use);
+    // The syntax comes from the specification, and not from this file.
+    const mermaid = RECOGNISED_NOTATION.find((entry) => entry.id === 'mermaid');
+    expect(body).toContain(mermaid?.syntax ?? 'mermaid');
   });
 
   it('builds the notation skill from the declaration, never beside it', async () => {
@@ -887,10 +928,11 @@ describe('the path an agent takes passes through the method of its task', () => 
     expect(description('whoami')).toContain('before any other tool');
   });
 
-  it('asks for the method and for samples from the person before a notebook is created', () => {
+  it('asks for the method, and for the person to confirm the structure, before a notebook is created', () => {
     const create = description('create_notebook');
     expect(create).toContain(`\`${DESIGN_NOTEBOOK_SKILL}\``);
-    expect(create).toContain('ask the person for samples');
+    expect(create).toContain('confirm with the person the structure you propose');
+    expect(create).not.toContain('samples');
     expect(create.indexOf('BEFORE calling it')).toBeLessThan(create.indexOf('set_guidance'));
   });
 
@@ -918,6 +960,8 @@ describe('the path an agent takes passes through the method of its task', () => 
       expect(answer).toContain('EDITOR');
       expect(answer).not.toMatch(/ask the owner/i);
       expect(answer).not.toContain('Nothing below will return content');
+      expect(answer).not.toContain('samples');
+      expect(answer).toContain('the structure you propose');
     }
   });
 

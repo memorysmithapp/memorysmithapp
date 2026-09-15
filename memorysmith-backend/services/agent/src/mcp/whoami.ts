@@ -74,8 +74,8 @@ function reach(notebooks: readonly NotebookListing[]): string {
       '## What you can reach',
       '',
       'No notebook yet. When the person asks for one, you can create it with',
-      `\`create_notebook\`: read the skill \`${DESIGN_NOTEBOOK_SKILL}\` first, and ask them for`,
-      'samples of what it will hold. Creating a notebook takes the EDITOR role, and a',
+      `\`create_notebook\`: read the skill \`${DESIGN_NOTEBOOK_SKILL}\` first, and confirm with`,
+      'them the structure you propose. Creating a notebook takes the EDITOR role, and a',
       'connection without it is refused and told so.',
     ].join('\n');
   }

@@ -9,8 +9,10 @@
  *
  * What is missing there is not an operation. `create_notebook`, `set_guidance`,
  * `create_folder` and `set_template` already exist and are enough. What is
- * missing is METHOD: which questions to ask, in what order, what makes a
- * guidance good, and when to stop asking and start writing.
+ * missing is METHOD: the practices a good notebook is built with — short notes,
+ * folders that say what they hold, properties and tags, maps of content,
+ * templates, the formatting that fits the material — in what order, and when
+ * to stop proposing and start writing.
  *
  * The index of these skills is served by `whoami` and DERIVED FROM THIS
  * REGISTRY, never written beside it (RN-AGT-018): a hand-kept list drifts on
@@ -37,93 +39,243 @@ export interface Skill {
   readonly body: string;
 }
 
-const DESIGN_NOTEBOOK = `# Designing a notebook from scratch
+/**
+ * When a notebook reaches for each form the reading surface draws, written by
+ * hand and keyed by the identifier of the entry in the specification.
+ *
+ * The forms themselves are never listed here: the table the skill serves takes
+ * their syntax from the specification (RN-AGT-022). What a person writes by hand
+ * is only when a notebook uses a form, and a test holds this map and the set
+ * below against the specification, so a form the specification adds or removes
+ * fails the build instead of going stale in the skill (RN-AGT-017).
+ */
+export const FORMATTING_USES: Readonly<Record<string, string>> = {
+  'heading-atx':
+    'The sections of a note, in the order they are read. A template shows them, and a link points at one',
+  'list-ordered': 'Steps that happen in order',
+  'list-bullet': 'Items with no order among them',
+  'task-list': 'What is still to be done, which a person can tick on the page',
+  table: 'A comparison, or the same few fields across several items',
+  callout: 'A rule, a warning or a decision a reader must not miss',
+  'block-quote': 'A passage quoted from a source, word for word',
+  mermaid: 'A flow, a sequence or how the parts of something relate, drawn instead of described',
+  'math-inline': 'A formula inside a sentence',
+  'math-block': 'A formula on a line of its own',
+  transclusion: 'A passage kept in one note and shown where it is needed, instead of copied',
+  'block-id': 'A paragraph other notes embed on its own',
+  highlight: 'The few words of a passage that matter most',
+  strikethrough: 'What stopped holding, kept in sight because the change matters',
+  comment:
+    'A remark for whoever writes next that the page does not show; an agent reading the note still sees it',
+  'code-fenced':
+    'A command, a query or a configuration, with its language named so it is highlighted',
+  'code-span': 'An identifier, a file name, a value to type, or notation written as an example',
+  'link-inline': 'A source outside the notebook, cited where it is used',
+  image: 'A figure the text refers to, with a description of what it shows',
+  'image-dimensions': 'A figure that has to fit: its width, or its width and height',
+};
 
-You are about to create a notebook. This is the one moment where the notebook cannot
-tell you what it is, because you are the one deciding it. Everything written
-here is what the product would have told you if it could.
+/**
+ * The forms the reading surface draws that this skill leaves to `write-notes`:
+ * the ordinary grammar of Markdown, and the forms a notebook is not designed
+ * around — raw HTML is shown as text, this product stores no attachment, and a
+ * pending link is how a link looks while its note is not written yet.
+ */
+export const FORMATTING_LEFT_TO_WRITE_NOTES: ReadonlySet<string> = new Set([
+  'paragraph',
+  'backslash-escape',
+  'character-reference',
+  'heading-setext',
+  'thematic-break',
+  'code-indented',
+  'link-reference-definition',
+  'emphasis',
+  'strong',
+  'strong-emphasis',
+  'link-reference',
+  'autolink',
+  'hard-line-break',
+  'autolink-extended',
+  'raw-html',
+  'attachment',
+  'pending-link-display',
+]);
 
-## Start from samples, never from a questionnaire
+/** A code span that holds any text, backticks included, inside a table cell. */
+function cellCode(text: string): string {
+  const longest = Math.max(0, ...(text.match(/`+/g) ?? []).map((run) => run.length));
+  const fence = '`'.repeat(longest + 1);
+  const padded = text.startsWith('`') || text.endsWith('`') ? ` ${text} ` : text;
+  return `${fence}${padded}${fence}`.replace(/\|/g, '\\|');
+}
 
-Do not ask "what is this notebook for?". An abstract question about purpose
-produces a generic notebook, and a generic notebook produces vague folder
-descriptions, which is what makes an agent guess where a note goes.
+/** The formatting a notebook is designed with, its syntax read from the specification. */
+function formattingTable(): string {
+  const syntaxOf = new Map(RECOGNISED_NOTATION.map((entry) => [entry.id, entry.syntax]));
+  return [
+    '| Use it for | Write |',
+    '| --- | --- |',
+    ...Object.entries(FORMATTING_USES).map(
+      ([id, use]) => `| ${use} | ${cellCode(syntaxOf.get(id) ?? id)} |`,
+    ),
+  ].join('\n');
+}
 
-Ask instead:
+const DESIGN_NOTEBOOK = `# Designing a notebook
 
-> Show me three things you want to keep in here.
+A notebook is a guidance, a tree of folders that each say what they hold, a
+template for each folder that receives notes, and the notes themselves. This
+skill is how to build one that the next agent writes in correctly and a person
+can read and curate.
 
-Real material, as it exists today: a norm, a meeting note, a paper, an incident
-report, a contract clause. You usually already have them in the conversation or
-in the work at hand. The shape of a notebook is derived from the material that
-will live in it.
+**Start from what the notebook is for.** Material the person already has — a
+note they keep, a document, the record of a piece of work — shapes a notebook
+best, so use it when it is in the conversation. When there is none, propose a
+small structure from what they said they need, built with the practices below,
+and confirm it before creating anything. One proposal the person can accept or
+adjust is worth more than a questionnaire.
 
-From three samples you can already see what a folder is, what a note is, and
-which fields repeat. From a paragraph about purpose you can see none of that.
+## The order of the work
 
-## Then decide, in this order
+1. **What the notebook is, and what it leaves out.** A paragraph each. The
+   second saves work later: a notebook that never says what it excludes
+   accumulates everything.
+2. **The kinds of note, and the folders that hold them.**
+3. **The properties and tags** that classify the notes.
+4. **The maps of content** that gather a context.
+5. **A template for every folder that receives notes.**
+6. **Create it, in this order:** the notebook, its guidance, the folders in
+   reading order, their templates, and then one real note in each folder that
+   has a template.
+7. **Read it back** with \`get_notebook_context\`, as the next agent will.
 
-1. **What this notebook is, in one paragraph.** What belongs, and what
-   deliberately does not. The second half is the one that saves work later: a
-   notebook that never says what it excludes accumulates everything.
-2. **The kinds of note it recognises.** Two or three, no more, each with a name
-   the owner would use out loud. If a kind cannot be told apart from another by
-   its content, it is one kind.
-3. **The folders.** One folder per kind of material, ordered so the reading
-   order means something (order is signal, not decoration). Every folder needs
-   a description that answers a single question: what goes in here, and what
-   goes somewhere else instead.
-4. **The template of each folder that receives notes.** It is the shape of the
-   note, and it is the only thing that keeps the tenth note looking like the
-   first.
+## The guidance
 
-## Writing the guidance
+The guidance is what the next agent reads before writing. Write it for that
+reader, and state each convention once.
 
-The guidance is the document the next agent reads before writing. Write it for
-that reader, not for a human browsing a wiki.
+- **Open with the paragraph that says what the notebook is.** The Notebook
+  Context prints the name of the notebook as a heading right above it.
+- **Say what belongs, and where the rest goes.**
+- **Name the vocabulary.** If the owner says "finding" and not "issue", write it
+  down: the words of the notebook become the words of its search.
+- **State the naming convention** of its notes — what a name looks like here —
+  with one good example and one bad one.
+- **Declare every property** with the values it accepts, and say where the maps
+  of content live.
+- **Keep to the conventions of this notebook.** How the product reads a note is
+  explained in \`write-notes\`; the guidance says what this notebook chose.
 
-- **Do not open with a heading.** The Notebook Context already emits a heading with
-  the notebook name above whatever you write, so a \`# My notebook\` at the top shows
-  up twice. Start with the paragraph that says what this notebook is.
-- **Name the vocabulary.** If the owner calls something a "finding" and not an
-  "issue", write that down. The vocabulary of the notebook becomes the query
-  language of the search: any frontmatter attribute is a filter.
-- **State the naming convention** of the notes of this notebook — what a name
-  looks like here — with one example of a good name and one of a bad one.
-- **Open every template with a frontmatter block carrying \`name:\`**, and show
-  the structure of the body with headings from \`#\`: the name is the title of
-  each note written from it, and the headings are its sections.
-- **Declare the frontmatter you expect**, field by field, with the accepted
-  values. If you declare it, every folder that receives notes needs a template
-  carrying it.
-- **Say what NOT to do.** A guidance that only describes the happy shape gets
-  followed halfway.
+## Short notes, one concept each
 
-The server never validates a note against the guidance. Nothing you write here
-is enforced: it is read, and followed, and that is exactly why it has to be
-unambiguous.
+- **One idea per note.** A note that answers two questions is two notes, linked
+  to each other. A short note is what a link can point at precisely, and what an
+  agent can read without filling its context with everything around it.
+- **Name each note** in \`name:\`, by the convention of the guidance, and put its
+  other spellings and translations in \`aliases\`.
+- **Link whenever a note mentions another concept**, with \`[[Name]]\`. A link to
+  a note not written yet is a pending link, and a notebook being built carries
+  them on purpose: they are the list of what is still to write.
+- **Embed instead of copying.** \`![[Name]]\` shows a note, or one of its
+  sections, where it is needed, and the text stays in one place.
+
+## Folders and subfolders
+
+- **One folder per kind of material or per context**, and a subfolder when a
+  folder holds more than one kind, or a context that splits on its own — by
+  year, by client, by stage.
+- **Every folder has a description that says where a note goes**, and where it
+  goes instead: "Norms" is a name; "the reading record of each norm, tied to the
+  text of that version" is a description. Up to 500 characters.
+- **The order of folders is content**, and it is kept as data: the Notebook
+  Context numbers the folders by it, so a folder name needs no number. Create the
+  folders in reading order, or place one with \`after\`, and change the order
+  later with \`reorder_folder\`. Notes are ordered the same way, with
+  \`reorder_note\`.
+- **A folder is where a note lives, and not part of what identifies it**:
+  moving a note keeps every link to it.
+- **The limits:** six levels deep, 200 folders and 2,000 notes in a notebook.
+
+## Properties and tags
+
+The frontmatter is where a note is classified, and every key in it becomes a
+filter of the search, \`key:value\`, and a count on the curation panel.
+
+- **Declare what someone will filter or count.** An explanation, a source or a
+  path is prose, and prose belongs in the body, where the search reads it: the
+  search reads the body, and a frontmatter value longer than forty characters is
+  not indexed.
+- **Put the subjects of a note in \`tags\`**, as a list: \`tags: [contracts, procurement]\`.
+- **Write a list in brackets even when it holds one value.** The written form
+  decides what an attribute is, and one key written both ways becomes two
+  attributes that never add up.
+- **Give the notebook a state property**, such as \`status\` with the values the
+  guidance declares, so that "what is still a draft" has an answer.
+- **Write dates as \`2026-09-14\`**: a date is searched by year, month or day, and
+  by interval.
+- **\`name\`, \`aliases\` and \`tags\` mean the same thing in every notebook**, and
+  every other key belongs to this one. Who wrote a note and when is kept by its
+  history, so a key for it earns its place when the note states something the
+  history cannot know, like the author of a work it cites.
+- **Classify in the frontmatter rather than with \`#subject\` in the text**, which
+  the product keeps as plain text. A notebook that arrives with inline tags has a
+  skill of its own, \`convert-inline-tags\`.
+
+## Maps of content
+
+A map of content (MoC) is a note whose body is the map of a context: its links,
+one line each, in the order they are best read, with a sentence on what each one
+holds.
+
+- **Decide where the maps live, and write it in the guidance:** the first note of
+  each folder, or a folder of maps for the contexts that cross folders.
+- **It is an ordinary note.** Its links are what make it a map, and the
+  backlinks and \`related_notes\` walk the rest of the graph from it.
+- **Embed a short section** when the map reads better with it in place. The page
+  shows an embed one level deep, and \`read_note\` returns what was written, so an
+  agent reads the embedded note itself.
+- **Say in the guidance who adds the line** when a new note joins the context.
+
+## Templates
+
+- **Every folder that receives notes has its own template**, a subfolder too: a
+  template belongs to one folder.
+- **Open the template with the frontmatter block**, the lines between the two
+  \`---\` at the top, carrying \`name:\` and the properties the guidance declares.
+- **Show the body with headings from \`#\`**, in the order a note of this folder is
+  read.
+- **Show the formatting the material calls for** — the table of a comparison, the
+  callout of a rule — so that the tenth note looks like the first.
+- **Make every placeholder look like one**, and say what to remove when a part
+  does not apply.
+- **The server validates nothing** against a template: its whole value is that
+  the next agent follows it.
+
+## Formatting that earns its place
+
+The page draws these forms, and only the frontmatter and the links carry meaning
+a query reads, so choose each form for how the note reads. The syntax and the
+behaviour of each one are in \`write-notes\`.
+
+${formattingTable()}
 
 ## Before you say it is done
 
-Check these four, in order. The first two are the mistakes that actually
-happened when this was done without a method:
-
-1. Does the guidance open with a heading that repeats the notebook name? Remove it.
-2. Does every folder that receives notes have a template? A guidance that
-   declares mandatory frontmatter and a folder without a template is a
-   contradiction the next agent will resolve by guessing.
-3. Does every folder description answer where a note goes, or does it merely
-   name the folder again? "Norms" is a name; "the reading record of each norm,
-   tied to the text of that version" is a description.
-4. Write ONE real note, from one of the three samples, following the template.
-   If you cannot fill the template from real material, the template is wrong,
-   and it is cheaper to find that out now than on the fortieth note.
+1. The guidance opens with the paragraph that says what the notebook is.
+2. Every folder that receives notes, subfolders included, has its own template.
+3. Every folder description says where a note goes.
+4. The folders are in reading order, and their names carry no numbers.
+5. Each folder with a template holds one real note that follows it, links to the
+   notes it mentions and states its properties. When the template cannot be
+   filled from real material, the template is what changes.
+6. The maps of content the guidance declares exist.
+7. \`get_notebook_context\` reads the way the next agent needs it to.
 
 ## When to stop asking
 
-When you can write the first note without asking anything else. That is the
-test. Two or three questions usually get you there; a fourth is often you
-avoiding the decision the owner already gave you.
+When you can propose the whole structure in one message — the guidance in a
+paragraph, the folders with their descriptions, the properties, the maps and the
+templates — and the person can accept it or adjust it. Then build it.
 `;
 
 /**

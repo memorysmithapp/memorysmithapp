@@ -194,7 +194,7 @@ export class McpToolAdapter {
           return text(
             'This connector reaches no notebook yet. When the person asks for one, create it ' +
               `with create_notebook, after reading the skill \`${DESIGN_NOTEBOOK_SKILL}\` with ` +
-              'get_skill and asking them for samples of what it will hold. Creating a notebook ' +
+              'get_skill and confirming with them the structure you propose. Creating a notebook ' +
               'takes the EDITOR role, and a connection without it is refused and told so.',
           );
         }

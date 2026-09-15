@@ -1,7 +1,7 @@
 {
   "id": "AE-01",
   "title": "A notebook designed with material at hand",
-  "exercises": "The skill that designs a notebook, for a person who has samples of what they write.",
+  "exercises": "The skill that designs a notebook, for a person who has material of what they write at hand.",
   "skills": ["design-notebook"],
   "turns": 8,
   "checks": [
@@ -22,6 +22,7 @@
     "The Guidance names the vocabulary, the properties with their accepted values, the naming convention with a good and a bad example, and what not to do.",
     "A folder description answers where a note goes, instead of naming the folder again.",
     "The notes written follow their Template, from the material the person gave.",
+    "The notebook uses the practices of the skill where the material calls for them: short linked notes, properties with accepted values, the maps of content the Guidance declares, and formatting that fits the material.",
     "The executor stopped asking once it could write.",
     "No field asserts a state only the person can know."
   ],
