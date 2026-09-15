@@ -5,8 +5,8 @@
  * core publishes. That one-way direction is what makes every projection
  * rebuildable from zero (PE5), and it is why this service keeps its own small
  * projection of the notebook structure instead of asking the Knowledge context
- * for it: the notebook context is answered from here, and querying the core for
- * the folder tree would invert the arrow.
+ * for it: the searchable portrait of a note carries the name of its folder, and
+ * querying the core for the folder tree would invert the arrow.
  */
 
 import { bodyWithoutFrontmatter, noteName } from '@memorysmith/kernel';

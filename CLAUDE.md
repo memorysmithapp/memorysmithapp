@@ -173,7 +173,7 @@ These are the structural decisions of the system, and violating any of them is n
 | 6 | **The audit trail is append-only by IAM, not by discipline** | §12.2 |
 | 7 | **Every domain operation that changes state takes an `Authorship`.** There is no anonymous mutation | §12.1 |
 | 8 | **Deleting a note never destroys bytes**, and there is no path that destroys them: no domain port, no route, no administrative act | §12.4 |
-| 9 | **A forbidden resource returns `404`, never `403`**, because a `403` would confirm the existence of something the requester may not see | §15 |
+| 9 | **A resource the requester may not see returns `404`, never `403`**, because a `403` would confirm its existence. The one exception is a refusal over a notebook the requester already sees, which answers `403` | §14.2, §15 |
 | 10 | **A note transaction never writes to the `META` item of the notebook**, which would become the contention point of the whole notebook under batch ingestion | §10.2 |
 | 11 | **The subscription identifier is perpetual.** No status transition moves, rekeys or deletes data: the status governs access, never address | §8.1 |
 | 12 | **A platform administrator session carries no subscription**, and therefore no Knowledge repository can even be constructed under it. Never replace that with a role check: the impossibility is the guarantee | §8.4 |

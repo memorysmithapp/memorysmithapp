@@ -61,6 +61,7 @@ issues each entry cites.
 
 - **An issue closes when its work lands on the branch of the cycle, and the pull request of the cycle closes none.** `development-process.md` §9.2 said the issues of a cycle were closed at the cut with a reference to the pull request, and §8 and `CLAUDE.md` asked the pull request to carry `Closes #N`, against §7.4, which closes each issue when its commit is on the branch. The three now say what §7.4 says, and a pull request names the issues it carries by number.
 - **The process no longer mentions a GitHub Project, because none is in use.** The scope of a version is its milestone (`development-process.md` §5), so an issue left behind at the cut moves to the milestone of the next version (§9.2), and `CLAUDE.md` no longer lists Project field values among what is written in en-US.
+- **Four texts now say what the code does.** The principle that bounds who reads a note (PP4) no longer says the reader that names one reads a heading: it reads `name:` alone, as RN-KNW-035 and the code do. The rule that a resource the requester may not see answers `404` states its exception the same way in `CLAUDE.md`, in `architecture-guide.md` §14.2 and in §15: a refusal over a notebook the requester already sees answers `403`, in the three cases the code answers it — a write under the ceiling of the notebook, a write by a `VIEWER` of the subscription and administering a notebook one does not own. A comment of Discovery no longer says the Notebook Context is answered there, and §6.3 lists the `Subscription` aggregate once. (#126)
 
 ### Added
 

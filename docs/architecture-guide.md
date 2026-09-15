@@ -413,8 +413,7 @@ Details that follow from it:
 
 | Aggregate | Context | Invariants |
 |---|---|---|
-| `Subscription` | Access | Exactly one `owner` (RN-ACC-001), guaranteed by being a field and not a collection; status transitions valid only per the machine of `software-vision.md` §4.4; a mandatory reason on rejection; the `SubscriptionId` is `readonly` and no method touches it (§8.1) |
-| `Subscription` | Access | Exactly one `OWNER`, always present; a unique e-mail among members; a member role is `EDITOR` or `VIEWER`, since `OWNER` is not a membership (§9.4) |
+| `Subscription` | Access | Exactly one `OWNER`, always present (RN-ACC-001), guaranteed by being a field and not a collection; a unique e-mail among members (RN-ACC-003); a member role is `EDITOR` or `VIEWER`, since `OWNER` is not a membership (§9.4); status transitions valid only per the machine of `software-vision.md` §4.4; a mandatory reason on rejection; the `SubscriptionId` is `readonly` and no method touches it (§8.1) |
 | `NoteGraph` · `NotebookIndex` | Discovery | Projections, rebuildable at any moment (PE5) |
 | `AuditTrail` | Audit | Append-only: the only operation is `append` |
 
@@ -1169,9 +1168,9 @@ effectiveRole(ctx: RequestContext, notebook: Notebook): Role {
 
 The three inputs arrive at no extra cost: `isOwner` and the role come from the context injected by the authorizer, and the ceilings come from the **same `Query`** that already loaded the notebook (§9.3). No additional query enters the hot path because of authorisation.
 
-**A fixed rule, with no exception:** every Knowledge use case loads the notebook and calls `policy.require(action, notebook)` **before anything else**. And **a forbidden resource returns the same `404` as a non-existent one** (RN-SUB-004), because a `403` would confirm the existence of a notebook the requester may not see.
+**A fixed rule:** every Knowledge use case loads the notebook and calls `policy.require(action, notebook)` **before anything else**. And **a resource the requester may not see returns the same `404` as a non-existent one** (RN-SUB-004), because a `403` would confirm the existence of a notebook the requester may not see.
 
-> **One deliberate exception to the `404`:** a write refused by a notebook ceiling returns a real `FORBIDDEN`, not a `404`. The member **already knows** the notebook exists, because they see it in the list (RN-ACC-012: the ceiling never hides). Returning a `404` there would protect no information and would produce the worst possible experience: a notebook that shows up on screen and disappears when written to. The `404` rule protects existence; where there is no existence to protect, it does not apply.
+> **One deliberate exception to the `404`: a refusal over a notebook the requester already sees answers a real `403`.** `DomainError.forbiddenVisible` carries it, and `AuthorizationPolicy` raises it in three cases: a write refused because the notebook ceiling lowers the member to `VIEWER`, a write refused because the role in the subscription is `VIEWER`, and administering a notebook without owning the subscription. In all three the member **already knows** the notebook exists, because they see it in the list (RN-ACC-012: the ceiling never hides, and a member sees every notebook of the subscription). Returning a `404` there would protect no information and would produce the worst possible experience: a notebook that shows up on screen and disappears when written to. The `404` rule protects existence; where there is no existence to protect, it does not apply.
 
 **Three clocks, all declared:**
 
@@ -1202,7 +1201,7 @@ export class DomainError {
 |---|---|---|
 | `VALIDATION` | 400 | a VO refused the value in its constructor |
 | `NOT_FOUND` | 404 | it does not exist |
-| `FORBIDDEN` | **404** | it exists and the requester may not see it, since a `403` would leak the existence |
+| `FORBIDDEN` | **404**, or 403 | it exists and the requester may not see it, since a `403` would leak the existence; a real `403` only over a notebook the requester already sees (§14.2) |
 | `CONFLICT` | 409 | optimistic lock, slug already taken, diverging `baseRevision` |
 | `PRECONDITION_FAILED` | 412 | a required policy is missing (`RemovalPolicy`) |
 | `LIMIT_EXCEEDED` | 413 / 429 | a note above the ceiling, the rate limit of the subscription |
