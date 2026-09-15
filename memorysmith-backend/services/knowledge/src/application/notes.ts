@@ -178,6 +178,10 @@ export class UpdateNote {
         );
       }
 
+      // Identical bytes are not a write: nothing reaches the store, and the
+      // note answers as it is (RN-KNW-028).
+      if (note.bodyRef.matchesContent(input.content)) return ok(note);
+
       // Only the difference between the revision that is live and the one
       // being written: an edit that shortens a note never costs anything.
       const admitted = admitWrite(

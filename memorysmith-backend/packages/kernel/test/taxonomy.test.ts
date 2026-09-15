@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { ConcurrencyError, DomainError, httpStatusFor } from '../src/errors.js';
 import { Role, NotebookRoleLimit } from '../src/role.js';
@@ -98,6 +99,16 @@ describe('ContentRef', () => {
     expect(first.value.hasSameContentAs(second.value)).toBe(true);
     expect(first.value.equals(second.value)).toBe(false);
     expect(first.value.pointsAtSameSlotAs(second.value)).toBe(true);
+  });
+
+  it('recognises the content it points at from the bytes alone, before anything is stored', () => {
+    const body = '---\nname: Ação\n---\n\nThe general rule.\n';
+    const hash = createHash('sha256').update(Buffer.from(body, 'utf8')).digest('hex');
+    const ref = ContentRef.create({ contentId, versionId: 'v1', sha256: hash, bytes: 40 });
+    expect(ref.ok).toBe(true);
+    if (!ref.ok) return;
+    expect(ref.value.matchesContent(body)).toBe(true);
+    expect(ref.value.matchesContent(`${body} `)).toBe(false);
   });
 
   it('round-trips through its stored form', () => {

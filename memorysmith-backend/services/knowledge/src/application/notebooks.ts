@@ -313,6 +313,11 @@ export class PutGuidance {
     );
     if (!fresh.ok) return fresh;
 
+    // Identical bytes are not a write: nothing reaches the store, and the
+    // answer is the revision in force, which is the one the next write has to
+    // state (RN-KNW-028).
+    if (current?.matchesContent(input.content)) return ok(current);
+
     // Checked BEFORE the content is written, so a refused write leaves nothing
     // behind in the store: a guidance replaces the previous one, so what it
     // costs is the difference between them.

@@ -229,6 +229,11 @@ export class PutTemplate {
     );
     if (!fresh.ok) return fresh;
 
+    // Identical bytes are not a write: nothing reaches the store, and the
+    // answer is the revision in force, which is the one the next write has to
+    // state (RN-KNW-028).
+    if (folder.templateRef?.matchesContent(input.content)) return ok(folder.templateRef);
+
     // Before the write reaches the store, and against the difference: a
     // template replaces the previous one (RN-SUB-021).
     const admitted = admitWrite(

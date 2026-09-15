@@ -9,9 +9,11 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { Role, type ContentRef } from '@memorysmith/kernel';
+import { ContentId, ContentRef, NoteId, Position, Role, sha256Hex } from '@memorysmith/kernel';
 import { PutGuidance } from '../src/application/notebooks.js';
 import { PutTemplate } from '../src/application/folders.js';
+import { UpdateNote } from '../src/application/notes.js';
+import { Note } from '../src/domain/note/Note.js';
 import type { Notebook } from '../src/domain/notebook/Notebook.js';
 import { authorship, contentRef, expectErr, unwrap, user, notebookWithTree } from './fixtures.js';
 
@@ -134,5 +136,150 @@ describe('template: the same guard, for the same reason', () => {
     });
 
     expect(written.ok).toBe(true);
+  });
+});
+
+/**
+ * RN-KNW-028, down to the store. Identical bytes used to produce no event and
+ * move no pointer, and still stored a new version of the whole body that
+ * nothing referenced; for a Guidance and a Template the write then answered
+ * that version, which the pointer never took, so the next write based on it
+ * was refused as a conflict.
+ */
+describe('identical bytes: nothing reaches the store', () => {
+  const body = '---\nname: Modelo de norma\n---\n\n# Artigo\n';
+
+  function refOf(markdown: string): ContentRef {
+    return unwrap(
+      ContentRef.create({
+        contentId: ContentId.generate(),
+        versionId: 'v-in-force',
+        sha256: sha256Hex(markdown),
+        bytes: Buffer.byteLength(markdown, 'utf8'),
+      }),
+    );
+  }
+
+  /** The dependencies of a write, with a store that counts what reaches it. */
+  function counting(notebook: Notebook, extra: Record<string, unknown> = {}) {
+    const writes: string[] = [];
+    const dependencies = {
+      ...(deps(notebook, body) as unknown as Record<string, unknown>),
+      ...extra,
+      content: {
+        create: async (): Promise<ContentRef> => {
+          writes.push('create');
+          return contentRef('b'.repeat(64), 10);
+        },
+        overwrite: async (): Promise<ContentRef> => {
+          writes.push('overwrite');
+          return contentRef('c'.repeat(64), 10);
+        },
+        read: async () => body,
+      },
+    };
+    return { writes, dependencies };
+  }
+
+  it('a Guidance sent again writes nothing, and answers the revision in force', async () => {
+    const { notebook } = notebookWithTree();
+    const inForce = refOf(body);
+    unwrap(notebook.setGuidance(inForce, authorship()));
+    const { writes, dependencies } = counting(notebook);
+
+    const written = await new PutGuidance(
+      dependencies as unknown as ConstructorParameters<typeof PutGuidance>[0],
+    ).execute({
+      ctx,
+      notebookId: notebook.id,
+      content: body,
+      baseRevision: inForce.versionId,
+      by: authorship(),
+    });
+
+    expect(unwrap(written).equals(inForce)).toBe(true);
+    expect(writes).toEqual([]);
+  });
+
+  it('a Template sent again writes nothing, and answers the revision in force', async () => {
+    const { notebook, normas } = notebookWithTree();
+    const folderId = unwrap(normas).id;
+    const inForce = refOf(body);
+    unwrap(notebook.attachTemplate(folderId, inForce, authorship()));
+    const { writes, dependencies } = counting(notebook);
+
+    const written = await new PutTemplate(
+      dependencies as unknown as ConstructorParameters<typeof PutTemplate>[0],
+    ).execute({
+      ctx,
+      notebookId: notebook.id,
+      folderId,
+      content: body,
+      baseRevision: inForce.versionId,
+      by: authorship(),
+    });
+
+    expect(unwrap(written).equals(inForce)).toBe(true);
+    expect(writes).toEqual([]);
+  });
+
+  it('identical bytes on a stale revision are still a conflict', async () => {
+    const { notebook } = notebookWithTree();
+    unwrap(notebook.setGuidance(refOf(body), authorship()));
+    const { writes, dependencies } = counting(notebook);
+
+    const refused = await new PutGuidance(
+      dependencies as unknown as ConstructorParameters<typeof PutGuidance>[0],
+    ).execute({
+      ctx,
+      notebookId: notebook.id,
+      content: body,
+      baseRevision: 'a-revision-somebody-else-replaced',
+      by: authorship(),
+    });
+
+    expect(expectErr(refused).code).toBe('CONFLICT');
+    expect(writes).toEqual([]);
+  });
+
+  it('a note sent again writes nothing and saves nothing, and answers as it is', async () => {
+    const { notebook, normas } = notebookWithTree();
+    const note = unwrap(
+      Note.create({
+        id: NoteId.generate(),
+        subscriptionId: notebook.subscriptionId,
+        notebookId: notebook.id,
+        folderId: unwrap(normas).id,
+        body,
+        position: Position.first(),
+        bodyRef: refOf(body),
+        by: authorship(),
+      }),
+    );
+    const saved: Note[] = [];
+    const { writes, dependencies } = counting(notebook, {
+      notes: {
+        findById: async () => note,
+        save: async (each: Note) => {
+          saved.push(each);
+          return { ok: true as const, value: undefined };
+        },
+      },
+    });
+
+    const updated = await new UpdateNote(
+      dependencies as unknown as ConstructorParameters<typeof UpdateNote>[0],
+    ).execute({
+      ctx,
+      notebookId: notebook.id,
+      noteId: note.id,
+      content: body,
+      baseRevision: note.revision,
+      by: authorship(),
+    });
+
+    expect(unwrap(updated).revision).toBe(note.revision);
+    expect(writes).toEqual([]);
+    expect(saved).toEqual([]);
   });
 });
