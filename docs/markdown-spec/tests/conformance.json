@@ -216,7 +216,7 @@
     {
       "id": "frontmatter/reserved-keys",
       "notation": "frontmatter-tags",
-      "markdown": "---\nname: Recovery Time Objective\naliases: [RTO]\ntags: [continuity]\nauthor: Heitor Rapcinski\nco-author: [Claude]\ncreated: 2026-09-03\nupdated: 2026-09-05\n---\n\nBody.",
+      "markdown": "---\nname: Recovery Time Objective\naliases: [RTO]\ntags: [continuity]\n---\n\nBody.",
       "name": "Recovery Time Objective",
       "facets": {
         "aliases": {
@@ -226,70 +226,17 @@
         "tags": {
           "kind": "list",
           "values": ["continuity"]
-        },
-        "author": {
-          "kind": "enum",
-          "values": ["Heitor Rapcinski"]
-        },
-        "co-author": {
-          "kind": "list",
-          "values": ["Claude"]
-        },
-        "created": {
-          "kind": "date",
-          "values": ["2026-09-03"]
-        },
-        "updated": {
-          "kind": "date",
-          "values": ["2026-09-05"]
-        }
-      }
-    },
-    {
-      "id": "frontmatter/author-is-reserved",
-      "notation": "frontmatter-author",
-      "markdown": "---\nauthor: Heitor Rapcinski\n---\n\nBody.",
-      "facets": {
-        "author": {
-          "kind": "enum",
-          "values": ["Heitor Rapcinski"]
         }
       }
     },
     {
       "id": "frontmatter/author-written-as-a-list-is-a-list",
-      "notation": "frontmatter-author",
+      "notation": "frontmatter-list",
       "markdown": "---\nauthor: [Ana Prado, Bruno Lima]\n---\n\nBody.",
       "facets": {
         "author": {
           "kind": "list",
           "values": ["Ana Prado", "Bruno Lima"]
-        }
-      }
-    },
-    {
-      "id": "frontmatter/co-author-is-not-merged-into-author",
-      "notation": "frontmatter-co-author",
-      "markdown": "---\nauthor: Heitor Rapcinski\nco-author: [Ana Prado, Claude]\n---\n\nBody.",
-      "facets": {
-        "author": {
-          "kind": "enum",
-          "values": ["Heitor Rapcinski"]
-        },
-        "co-author": {
-          "kind": "list",
-          "values": ["Ana Prado", "Claude"]
-        }
-      }
-    },
-    {
-      "id": "frontmatter/autor-is-not-the-reserved-author",
-      "notation": "frontmatter-enum",
-      "markdown": "---\nautor: Heitor Rapcinski\n---\n\nBody.",
-      "facets": {
-        "autor": {
-          "kind": "enum",
-          "values": ["Heitor Rapcinski"]
         }
       }
     },
@@ -306,7 +253,7 @@
     },
     {
       "id": "frontmatter/updated-is-a-date",
-      "notation": "frontmatter-updated",
+      "notation": "frontmatter-date",
       "markdown": "---\nupdated: 2026-09-05\n---\n\nBody.",
       "facets": {
         "updated": {
@@ -343,12 +290,12 @@
     },
     {
       "id": "frontmatter/a-reserved-key-of-the-wrong-shape-degrades",
-      "notation": "frontmatter-created",
-      "markdown": "---\ncreated: manually\n---\n\nBody.",
+      "notation": "frontmatter-tags",
+      "markdown": "---\ntags: continuity\n---\n\nBody.",
       "facets": {
-        "created": {
+        "tags": {
           "kind": "enum",
-          "values": ["manually"]
+          "values": ["continuity"]
         }
       }
     },

@@ -239,9 +239,7 @@ describe('The reserved vocabulary of the specification (RN-DSC-030)', () => {
     // The names come from the notations whose section is 6.4. Nothing here
     // knows them: reserving is declaring, and what classifies a value in this
     // file is the shape of the value.
-    expect(RESERVED_FRONTMATTER_KEYS.length).toBeGreaterThanOrEqual(4);
-    expect(RESERVED_FRONTMATTER_KEYS).toContain('tags');
-    expect(RESERVED_FRONTMATTER_KEYS).toContain('created');
+    expect(RESERVED_FRONTMATTER_KEYS).toEqual(['aliases', 'tags', 'name']);
   });
 
   it('agrees with the kernel about which key names a note', () => {
@@ -261,11 +259,14 @@ describe('The reserved vocabulary of the specification (RN-DSC-030)', () => {
     expect(extractFacets('---\netiquetas: [a, b]\n---')['etiquetas']?.kind).toBe('list');
   });
 
-  it('indexes author and co-author as ordinary attributes, and never merges them', () => {
-    // What a reserved key buys is the name, not behaviour: the shape of the
-    // value decides the kind here as it does anywhere else, and `co-author` is
-    // its own attribute because the distinction is the whole of what it says.
-    const facets = extractFacets('---\nauthor: Ana\nco-author: [Claude, ChatGPT]\n---\n\nCorpo.');
+  it('indexes author, co-author and their dates as the ordinary attributes they are', () => {
+    // None of them is reserved: who wrote a note and when is answered by its
+    // history. The shape of the value decides the kind, as it does for any key,
+    // and two keys are two attributes.
+    const facets = extractFacets(
+      '---\nauthor: Ana\nco-author: [Claude, ChatGPT]\ncreated: 2026-09-03\n---\n\nCorpo.',
+    );
+    expect(facets['created']?.kind).toBe('date');
     expect(facets['author']).toEqual({ facet: 'author', kind: 'enum', values: ['Ana'] });
     expect(facets['co-author']).toEqual({
       facet: 'co-author',

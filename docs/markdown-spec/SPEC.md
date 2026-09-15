@@ -541,21 +541,17 @@ An implementation SHOULD additionally stop indexing an attribute whose distinct 
 
 ### 6.4 The reserved vocabulary
 
-The specification reserves **seven** attribute names. They are always written in en-US; an implementation MAY translate the *label* it shows and MUST NOT translate the bytes in the file. Every other attribute keeps the name whoever wrote the note gave it, in whatever language they wrote it. That is the whole of the internationalisation contract of this document: a notebook in pt-BR writes `name: Recuperação de desastre` under an interface that shows "Nome", and the structural attributes of a notebook are the same seven keys in every language.
+The specification reserves **three** attribute names. They are always written in en-US; an implementation MAY translate the *label* it shows and MUST NOT translate the bytes in the file. Every other attribute keeps the name whoever wrote the note gave it, in whatever language they wrote it. That is the whole of the internationalisation contract of this document: a notebook in pt-BR writes `name: Recuperação de desastre` under an interface that shows "Nome", and the structural attributes of a notebook are the same three keys in every language.
 
 | Key | Shape | Effect |
 |---|---|---|
 | `name` | a single text value, of any length | The name of the note, which is what §5 resolves against and the only thing that names it. A value of any other shape means the note has no name, never an error (§5.3, §6.5) |
 | `aliases` | list of short values | Alternative spellings of this note. They MUST join the search index as spellings of the note, and they resolve **only** a target that no name matched (§5.2, step 8) |
 | `tags` | list of short values | Subjects of this note, filterable and countable like any other list attribute |
-| `author` | a short value, or a list of them | Who the author states wrote this note. Filterable and countable like any other attribute of its kind |
-| `co-author` | a short value, or a list of them | Who the author states contributed without being the author — a person, an institution or an agent. Indexed the same way, and never merged into `author` |
-| `created` | ISO 8601 date | The date the author states the note was created. See §6.6 |
-| `updated` | ISO 8601 date | The date the author states the content was last revised. See §6.6 |
 
-**Most of these keys gain no behaviour from being reserved, and that is not a defect of the list.** `tags`, `author` and `co-author` are indexed exactly as they would be under any other name: the shape of the value decides the kind (§6.3), each value is filterable on its own, and the 40-character ceiling applies unchanged — an institutional author written longer than that is prose and is not indexed. What the reservation gives is the **name**, and the name is the one thing a notebook cannot invent for itself without leaving every other notebook behind: unreserved, one notebook writes `autor:`, another writes `author:`, and no interface can offer one column over both. `autor:` stays legal and stays indexed — it is an ordinary attribute, which is what every attribute this section does not name is. **A reserved key is a guarantee, not a prohibition.**
+**A name is reserved when an implementation decides something with it, or when every notebook needs the same one.** `name` decides identity and `aliases` decides what a link finds when no name did. `tags` gains no behaviour from being reserved: it is indexed exactly as it would be under any other name — the shape of the value decides the kind (§6.3), each value is filterable on its own, and the 40-character ceiling applies unchanged. What its reservation gives is the **name**, and the name is the one thing a notebook cannot invent for itself without leaving every other notebook behind: unreserved, one notebook writes `etiquetas:`, another writes `tags:`, and no interface can offer one column over both. `etiquetas:` stays legal and stays indexed — it is an ordinary attribute, which is what every attribute this section does not name is. **A reserved key is a guarantee, not a prohibition.**
 
-`author` and `co-author` are what the author **states**, in the same family as `created` and `updated` (§6.6). Nothing derives them from a file, a commit, a session or an account: an implementation that knows who actually edited what holds a history, and a history is authoritative for the file and MUST NOT be presented in place of what the note says about itself. `co-author` is the note's own record of having been written with somebody — a colleague, an institution or an agent — and it is never merged into `author`, because the distinction is the whole of what it was written to say.
+**Who wrote a note, and when, is not reserved.** `author`, `co-author`, `created`, `updated`, or whatever a notebook calls them, are ordinary attributes, classified by §6.3 like any other: a short value is an `enum`, a written list is a `list`, an ISO 8601 date is a `date`. Whether a notebook writes them, and with what value, is for its own conventions to say. An implementation that records who actually edited what, and when, holds a history, and that history answers both questions for the file better than any key a note carries (§6.6).
 
 **An alias fills the empty, and never moves what is there.** The boundary is worth stating in one line, because everything the frontmatter is allowed to do to the graph is on one side of it: **the frontmatter may say what a note is called; what it may not do is redirect a link that has already found a note.** Identity is not behaviour.
 
@@ -575,7 +571,7 @@ A reserved key whose value does not have the expected shape **MUST NOT be an err
 
 ### 6.6 Dates are the author's statement, not the file's history
 
-`created` and `updated` are what the **author** says about the content. An implementation that also knows the real history of the file — a revision log, an audit trail, a version control system — MUST treat that history as authoritative for the file, and MUST NOT present a frontmatter date in its place. The two answer different questions, and showing one as the other produces a product that disagrees with itself in front of the reader.
+A date the author writes in the frontmatter — `created:`, `updated:`, `revisado_em:` — is what the **author** says about the content. An implementation that also knows the real history of the file — a revision log, an audit trail, a version control system — MUST treat that history as authoritative for the file, and MUST NOT present a frontmatter date in its place. The two answer different questions, and showing one as the other produces a product that disagrees with itself in front of the reader.
 
 ### 6.7 Date granularity in a query
 
@@ -871,7 +867,7 @@ Every form this document declares, in one table. The last column is the section 
 | List value | `key: [a, b]` | A `list` attribute, each value on its own | 6.3 |
 | Boolean value | `key: true` | A `boolean` attribute | 6.3 |
 | Date value | `key: 2026-09-03` | A `date` attribute, queried by prefix and interval | 6.3, 6.7, 6.8 |
-| Reserved keys | `name`, `aliases`, `tags`, `author`, `co-author`, `created`, `updated` | The name of the note, spellings that catch a target no name matched, subjects, who wrote it, the author's dates | 6.4 |
+| Reserved keys | `name`, `aliases`, `tags` | The name of the note, spellings that catch a target no name matched, subjects | 6.4 |
 | Callout | `> [!warning] Title` | Drawn as a callout, not as a quotation | 7.1 |
 | Mermaid diagram | ` ```mermaid ` | Drawn as a diagram, or shown as source; opaque to the link reader | 7.2 |
 | Marked text | `==highlight==` | Nothing beyond emphasis | 7.5 |

@@ -108,15 +108,14 @@ export function composeNotebookContext(input: NotebookContextInput): string {
 }
 
 /**
- * What the frontmatter reserves, and what two of those names mean HERE.
+ * What the frontmatter reserves, and where the question it does not reserve is
+ * answered.
  *
- * The specification says `author` and `co-author` are what the author
- * **states**, and that nothing derives them from a session or an account
- * (§6.4); the audit trail of this product answers a different question and
- * stays authoritative for the file (non-negotiable rule 7). So this is a
- * convention the product teaches and never a value the product writes: an
- * agent that puts them in a note is stating something, and nothing in the
- * backend reconciles that statement with the history.
+ * Who wrote a note and when is recorded by the audit trail of every write, with
+ * the person and the connector, and nobody types it (non-negotiable rule 7).
+ * Teaching a frontmatter value for it put the e-mail of the connected account
+ * into notes other people produced, so the section teaches none: it says where
+ * the answer already is (RN-AGT-025).
  */
 function reservedSection(vocabulary: readonly string[]): string[] {
   if (vocabulary.length === 0) return [];
@@ -131,7 +130,7 @@ function reservedSection(vocabulary: readonly string[]): string[] {
       'the Guidance says it is.',
     '',
     'Reserving a name is a guarantee, not a prohibition: a notebook may keep ' +
-      'writing `autor:` and it stays indexed like any other attribute. What ' +
+      'writing `etiquetas:` and it stays indexed like any other attribute. What ' +
       'the reserved name buys is that a tool reading two notebooks can offer one ' +
       'column over both.',
     '',
@@ -139,13 +138,11 @@ function reservedSection(vocabulary: readonly string[]): string[] {
       'nothing else names a note — not a heading, not its first line. A note written ' +
       'without `name:` has no name, and no link can reach it.',
     '',
-    'Here, `author` is **the person who authorized the connection** and ' +
-      '`co-author` is **the connector that executed the write** — the two ' +
-      '`whoami` names. They are what the note states about itself, not what ' +
-      'the server observed: this product records who wrote what in its audit ' +
-      'trail, answers it through `note_history`, and never writes an ' +
-      'attribute into the body of a note. Whether this notebook asks for them at ' +
-      'all is its Guidance to say.',
+    'Who wrote a note and when is answered by its history: `note_history` records ' +
+      'every write with the person and the connector, and this product never writes ' +
+      'an attribute into the body of a note. Any other attribute, a date or an ' +
+      'author included, is this notebook’s own, and its Guidance says whether it ' +
+      'is written.',
   ];
 }
 

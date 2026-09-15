@@ -29,7 +29,7 @@ describe('a reserved key may be shown translated', () => {
   });
 
   it('has a label in both locales for every reserved key it draws', () => {
-    // The guard that makes an eighth reserved name a failing build instead of
+    // The guard that makes a fourth reserved name a failing build instead of
     // a key drawn in en-US inside a screen in Portuguese.
     for (const key of DRAWN_RESERVED_KEYS) {
       expect((en.reserved as Record<string, string>)[key], `en_US label for ${key}`).toBeTruthy();
@@ -59,20 +59,35 @@ describe('the properties are drawn in a declared order (RN-DSC-051)', () => {
   it('puts the reserved keys first, in the order of the specification', () => {
     const written: Array<[string, string]> = [
       ['maturity', 'seed'],
-      ['updated', '2026-09-09'],
-      ['norma', 'federal'],
       ['tags', 'contracts'],
+      ['norma', 'federal'],
+      ['aliases', 'RTO'],
     ];
-    expect(drawn(written)).toEqual(['tags', 'updated', 'maturity', 'norma']);
+    expect(drawn(written)).toEqual(['aliases', 'tags', 'maturity', 'norma']);
   });
 
   it('keeps the vocabulary of the notebook in the order the note wrote it', () => {
     const written: Array<[string, string]> = [
       ['zeta', '1'],
       ['alfa', '2'],
-      ['created', '2026-09-01'],
+      ['tags', 'contracts'],
     ];
-    expect(drawn(written)).toEqual(['created', 'zeta', 'alfa']);
+    expect(drawn(written)).toEqual(['tags', 'zeta', 'alfa']);
+  });
+
+  it('draws who wrote a note and when as ordinary properties, under the keys as written', () => {
+    // They are not reserved: the history answers them, and a notebook that writes
+    // them chose the key, so the screen keeps it untranslated and in its place.
+    expect(
+      drawn([
+        ['updated', '2026-09-09'],
+        ['author', 'Ana'],
+        ['tags', 'contracts'],
+        ['created', '2026-09-01'],
+      ]),
+    ).toEqual(['tags', 'updated', 'author', 'created']);
+    expect(propertyLabel('author', t)).toBe('author');
+    expect(propertyLabel('created', t)).toBe('created');
   });
 
   it('never draws the name as a property, because a note is not a category of itself', () => {

@@ -188,15 +188,18 @@ describe('NotebookContextComposer', () => {
     expect(context).not.toContain('`autor`');
   });
 
-  it('says what author and co-author mean here, and that the product never writes them', () => {
+  it('teaches no value for who wrote a note, and says its history answers it', () => {
+    // Teaching `author` as the person who authorized the connection put the
+    // e-mail of the connected account into notes other people produced.
     const context = composeNotebookContext({
       notebook: newNotebook(),
       guidance: null,
       reservedVocabulary: VOCABULARY,
     });
 
-    expect(context).toContain('the person who authorized the connection');
-    expect(context).toContain('the connector that executed the write');
+    expect(context).not.toContain('the person who authorized the connection');
+    expect(context).not.toContain('`co-author`');
+    expect(context).toContain('`note_history`');
     expect(context).toContain('never writes an attribute into the body of a note');
   });
 

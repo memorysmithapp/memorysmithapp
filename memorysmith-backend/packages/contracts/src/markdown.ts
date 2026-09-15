@@ -252,18 +252,19 @@ export const DECLARED_SILENCE: readonly DeclaredSilence[] = [
  *
  * They are exactly the notations whose `spec` field cites §6.4, in the order
  * the specification declares them, with the key read off the identifier:
- * `frontmatter-co-author` is `co-author`. So a change that reserves an eighth
- * name reserves it here in the same commit, and nothing in this
+ * `frontmatter-aliases` is `aliases`. So a change that reserves a fourth name
+ * reserves it here in the same commit, and nothing in this
  * repository has to be remembered — which is the property a hand-written copy
  * cannot have, and this list used to exist in three copies (RN-DSC-030).
  *
  * **Reserved is declared, not enforced.** Nothing treats these keys
- * differently when it classifies a value: `created: manually` degrades to an
- * ordinary enum rather than being an error, and `autor:` stays legal and stays
- * indexed as the ordinary attribute it is. What the reservation buys is the
- * **name** — the one thing a notebook cannot invent for itself without leaving
- * every other notebook behind, because unreserved, one notebook writes `autor:` and
- * another writes `author:` and no interface can offer one column over both.
+ * differently when it classifies a value: `tags: continuity` written as a
+ * scalar is an ordinary enum rather than an error, and `etiquetas:` stays legal
+ * and stays indexed as the ordinary attribute it is. What the reservation buys
+ * is the **name** — the one thing a notebook cannot invent for itself without
+ * leaving every other notebook behind, because unreserved, one notebook writes
+ * `etiquetas:` and another writes `tags:` and no interface can offer one column
+ * over both. Who wrote a note and when is not reserved: its history answers it.
  *
  * `name` is the exception in both directions: it is reserved and it is never
  * an attribute at all (RN-DSC-050). It names the note (RN-KNW-035), and a note
