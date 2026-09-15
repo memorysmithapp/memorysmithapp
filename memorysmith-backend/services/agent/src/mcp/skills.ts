@@ -88,11 +88,11 @@ that reader, not for a human browsing a wiki.
 - **Name the vocabulary.** If the owner calls something a "finding" and not an
   "issue", write that down. The vocabulary of the notebook becomes the query
   language of the search: any frontmatter attribute is a filter.
-- **State the naming convention** for note names, and give one example of a
-  good name and one of a bad one.
-- **Put \`name:\` at the top of every template's frontmatter.** A note is named
-  by \`name:\` and by nothing else, and a note written without it has no name
-  and cannot be linked to. A heading in the template is content, never a name.
+- **State the naming convention** of the notes of this notebook — what a name
+  looks like here — with one example of a good name and one of a bad one.
+- **Open every template with a frontmatter block carrying \`name:\`**, and show
+  the structure of the body with headings from \`#\`: the name is the title of
+  each note written from it, and the headings are its sections.
 - **Declare the frontmatter you expect**, field by field, with the accepted
   values. If you declare it, every folder that receives notes needs a template
   carrying it.
@@ -330,11 +330,12 @@ There are exactly two places where the product DOES read your content, and
 this is the whole list: **the frontmatter and the links**. The name of a note is
 one key of the frontmatter. Everything else you write is text, and nothing more.
 
-## How a note is named
+## A note, from top to bottom
 
-**A note is named by \`name:\` in its frontmatter, and by nothing else.** There
-is no name argument on \`create_note\` and no operation that renames a note apart
-from its content:
+**Write the name of the note in \`name:\`, in the frontmatter that opens it.** It
+is the title the page shows and what every link looks for. \`create_note\` takes
+the content and no name, and changing \`name:\` with \`update_note\` is how a note
+is renamed.
 
 \`\`\`markdown
 ---
@@ -343,30 +344,22 @@ tags: [contracts]
 ---
 
 # The general rule of direct contracting
+
+## Article 75
 \`\`\`
 
-That note is named \`Lei 14.133\`. The heading is content: it renders, it is
-searchable and a link anchor can point at it, and it never names the note — not
-the first heading, not a level-1 one. **Do not write \`title:\` to name a note**:
-\`title\` is an ordinary attribute here, and it names nothing.
+Below the frontmatter comes the body, and **its headings are the structure of
+the note, starting at \`#\`**: \`# The general rule of direct contracting\` is its
+first level and \`## Article 75\` its second. A heading is searchable text and it
+is what a link anchor points at: \`[[Lei 14.133#Article 75]]\`.
 
-**A note written without \`name:\` has no name.** It is stored, it renders and it
-is searchable, and no link can reach it. Nothing falls back to a heading or to
-the first line. The same holds for a \`name:\` that is empty or written as a list.
+A link finds a note by its name **exactly**, case for case after Unicode
+normalisation: \`[[Lei 14.133]]\` finds the note named \`Lei 14.133\`, and
+\`[[lei 14133]]\` is a link waiting for a note of that name.
 
-Four characters have no place in a name — \`#\`, \`[\`, \`]\` and \`|\`, the
-delimiters of the form that addresses it. A name carrying one of them is no name.
-A \`/\` is fine: \`Reunião 03/09/2026\` is an ordinary name, because folders play
-no part in identity.
-
-A link names a note **exactly**: case for case, after Unicode normalisation, and
-folded in no other way. \`[[Lei 14.133]]\` finds the note named \`Lei 14.133\`
-and does not find \`lei 14133\`.
-
-**Nothing is unique.** Two notes may carry the same name, in one folder or in
-two, and nothing refuses the second one. So \`create_note\` ALWAYS creates: if a
-call fails on the way back, read the folder before calling it again, or you get
-two notes where you meant one.
+**Two notes may carry the same name**, in one folder or in two. That is why
+\`create_note\` always creates: if a call fails on the way back, read the folder
+before calling it again, so that one note stays one note.
 
 ## Which Markdown this is
 

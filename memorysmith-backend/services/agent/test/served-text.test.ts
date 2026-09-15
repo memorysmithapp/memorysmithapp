@@ -106,6 +106,31 @@ describe('the MCP surface does not cite the repository at the agent', () => {
 });
 
 /**
+ * How a note is named is said once, positively, and a heading is said to be the
+ * structure of the body. The same prohibition stated in eight places taught
+ * agents to distrust headings, and they copied it into the Guidances they
+ * wrote, where a notebook states its own conventions.
+ */
+describe('the MCP surface teaches the name of a note without prohibiting', () => {
+  const PROHIBITION = /never names|names nothing|renames nothing|nothing else names/;
+
+  it.each(servedText())('$where states no prohibition about naming', ({ text }) => {
+    expect(text).not.toMatch(PROHIBITION);
+  });
+
+  it('says what a heading is for, and where the headings of a body start', () => {
+    const body = skillNamed('write-notes')?.body ?? '';
+    expect(body).toContain('its headings are the structure of');
+    expect(body).toContain('starting at `#`');
+    expect(body).toContain('[[Lei 14.133#Article 75]]');
+  });
+
+  it('keeps the notice of a note written with no name as it was', () => {
+    expect(UNNAMED_NOTE_NOTICE).toContain('no link can reach it');
+  });
+});
+
+/**
  * The conversion a notebook arriving with inline tags is offered (RN-PRT-007).
  *
  * It is a SKILL and not a tool, for a structural reason: reading `#subject`

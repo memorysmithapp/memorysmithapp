@@ -203,6 +203,17 @@ describe('NotebookContextComposer', () => {
     expect(context).toContain('never writes an attribute into the body of a note');
   });
 
+  it('says what a name is without prohibiting anything about headings', () => {
+    const context = composeNotebookContext({
+      notebook: newNotebook(),
+      guidance: null,
+      reservedVocabulary: VOCABULARY,
+    });
+
+    expect(context).toContain('the title its page shows');
+    expect(context).not.toMatch(/never names|names nothing|nothing else names|not a heading/);
+  });
+
   it('declares nothing when the vocabulary is empty, rather than an empty heading', () => {
     const context = composeNotebookContext({
       notebook: newNotebook(),

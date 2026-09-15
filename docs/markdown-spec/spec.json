@@ -52,7 +52,7 @@
       "reader": "reading-surface",
       "syntax": "# Title  ·  ###### Title",
       "example": "## Direct contracting\n\nThe rule.\n",
-      "effect": "A heading of levels one to six. A heading is what a wikilink anchor points at: `[[Target#Direct contracting]]` names one, and the anchor is kept for display without changing which note is resolved. A heading never names the note it is in, at any level: a note is named by `name:` in its frontmatter.",
+      "effect": "A heading of levels one to six, and the structure of the body of a note: `#` is its first level. A heading is what a wikilink anchor points at: `[[Target#Direct contracting]]` names one, and the anchor is kept for display without changing which note is resolved. The name of the note is the `name:` of its frontmatter, which the page draws above the body.",
       "spec": "3.3"
     },
     {
@@ -236,7 +236,7 @@
       "reader": "links",
       "syntax": "name: Lei 14.133",
       "example": "---\nname: Lei 14.133\n---\n\n# The general rule\n",
-      "effect": "A note is named by `name:` in its frontmatter, when its value is a single text value of any length, and by nothing else: not a heading of any level, not its first line, not a file name. The name is the key every link resolves against, trimmed and compared case-exact after Unicode NFC. A note whose frontmatter states no `name:`, states one of any other shape, or states one carrying `#`, `[`, `]` or `|` has no name: it exists, it renders, it links outward and it is searchable, no link can name it, and that is reported rather than passed over in silence. Nothing falls through to a heading, because a heading is only content.",
+      "effect": "The name of a note is the `name:` of its frontmatter, a single text value of any length: the title the page shows and the key every link resolves against, trimmed and compared case-exact after Unicode NFC. A note whose frontmatter states none, states one of another shape, or states one carrying `#`, `[`, `]` or `|` — the delimiters of a link — has no name: it exists, it renders, it links outward and it is searchable, no link can reach it, and that is reported rather than passed over in silence.",
       "spec": "5.3"
     },
     {
@@ -364,7 +364,7 @@
       "reader": "frontmatter",
       "syntax": "name: Lei 14.133",
       "example": "---\nname: Lei 14.133\n---\n\nBody.",
-      "effect": "Reserved: the name of the note, and the only thing that names it. It is what every link resolves against, and it is the only frontmatter key that decides anything outside §6 — identity, never behaviour. A value of any other shape — a list, a nested block, an empty value — leaves the note with no name and is never an error, while length is not one of those shapes and a long name is a name. `name` never becomes an attribute: it is not indexed, not filterable and produces no facet, whatever its shape. A `title:` is an ordinary attribute and names nothing.",
+      "effect": "Reserved: the name of the note, and the only thing that names it. It is what every link resolves against, and it is the only frontmatter key that decides anything outside §6 — identity, never behaviour. A value of any other shape — a list, a nested block, an empty value — leaves the note with no name and is never an error, while length is not one of those shapes and a long name is a name. `name` never becomes an attribute: it is not indexed, not filterable and produces no facet, whatever its shape. A `title:` is an ordinary attribute of the notebook that writes it.",
       "spec": "6.4, 6.5"
     },
     {
@@ -428,7 +428,7 @@
       "reader": "reading-surface",
       "syntax": "A paragraph. ^identifier",
       "example": "The rule is stated once, here. ^article-75\n",
-      "effect": "Names the block it ends, so an embed can resolve to that block instead of to the whole note. The identifier is never rendered as text. It names nothing outside its own note.",
+      "effect": "Names the block it ends, so an embed can resolve to that block instead of to the whole note. The identifier is never rendered as text, and it means something only inside its own note.",
       "spec": "7.7"
     },
     {

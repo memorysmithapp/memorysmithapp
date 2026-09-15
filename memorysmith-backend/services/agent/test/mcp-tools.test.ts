@@ -230,7 +230,8 @@ describe('The tool catalog is the public contract', () => {
     const update = TOOL_CATALOG.find((tool) => tool.name === 'update_note');
     expect(create?.inputSchema.required).toEqual(['notebook', 'folder', 'content']);
     expect(create?.description).toContain('`name:`');
-    expect(create?.description).toContain('A heading never names a note');
+    expect(create?.description).toContain('the title the page shows');
+    expect(create?.description).toContain('`write-notes`');
     expect(update?.description).toContain('renamed');
     // No description teaches `title:` for naming a note.
     for (const tool of TOOL_CATALOG) expect(tool.description).not.toContain('`title:`');
@@ -570,8 +571,10 @@ describe('skills: the method, indexed by whoami', () => {
     // the guidance declares mandatory frontmatter.
     expect(body).toContain('Do not open with a heading');
     expect(body).toContain('template');
-    // And every template carries the key that names a note.
-    expect(body).toContain('`name:` at the top of every template');
+    // And every template opens with the key that names a note, and shows the
+    // body as sections.
+    expect(body).toContain('Open every template with a frontmatter block carrying `name:`');
+    expect(body).toContain('headings from `#`');
   });
 
   it('builds the notation skill from the declaration, never beside it', async () => {
@@ -922,11 +925,11 @@ describe('the path an agent takes passes through the method of its task', () => 
     expect(description('set_guidance')).toContain('confirm with the person before replacing it');
   });
 
-  it('says that name: names a note only inside the block that opens it', () => {
+  it('says a template opens with the block that carries name:', () => {
     const template = description('set_template');
     expect(template).toContain('`name:`');
     expect(template).toContain('`---`');
-    expect(template).toContain('names nothing');
+    expect(template).toContain('headings from `#`');
   });
 
   it('answers a write that leaves a note with no name with a notice beside the null', async () => {

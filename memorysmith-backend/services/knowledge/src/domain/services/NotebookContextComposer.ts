@@ -134,9 +134,9 @@ function reservedSection(vocabulary: readonly string[]): string[] {
       'the reserved name buys is that a tool reading two notebooks can offer one ' +
       'column over both.',
     '',
-    '`name` is what a note is called: it is what every link resolves against, and ' +
-      'nothing else names a note — not a heading, not its first line. A note written ' +
-      'without `name:` has no name, and no link can reach it.',
+    '`name` is what a note is called: the title its page shows and what every link ' +
+      'resolves against. A note written without `name:` has no name, and no link can ' +
+      'reach it.',
     '',
     'Who wrote a note and when is answered by its history: `note_history` records ' +
       'every write with the person and the connector, and this product never writes ' +

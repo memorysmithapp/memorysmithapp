@@ -304,11 +304,10 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'Read the current one with get_template, which gives you the baseRevision, or pass null ' +
       'when the folder has none; the answer is the revision this write produced, for the next ' +
       'write. The server does not validate any note against it, so what it buys is coherence, not ' +
-      'enforcement: write the skeleton a good note in this folder would follow. A note is named ' +
-      'by `name:` inside its frontmatter block, the lines between the two `---` that open it, ' +
-      'and by nothing else: a `name:` written anywhere else names nothing. So a template opens ' +
-      'with that block and carries `name:` in it, or every note written from it has no name ' +
-      'and no link can reach it.',
+      'enforcement: write the skeleton a good note in this folder would follow. Open it with ' +
+      'the frontmatter block — the lines between the two `---` at the top — carrying `name:`, ' +
+      'which is where every note written from it states its name, and show the structure of ' +
+      'the body with headings from `#`.',
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -364,10 +363,10 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     name: 'create_note',
     title: 'Create a note',
     description:
-      'Creates a note in a folder. Read get_template for that folder first. There is no name ' +
-      'argument: a note is named by `name:` in its frontmatter and by nothing else, so write it ' +
-      'there. A heading never names a note, and a note written without `name:` has no name and ' +
-      'no link can reach it. THIS TOOL ALWAYS CREATES: calling it twice writes two notes, because ' +
+      'Creates a note in a folder. Read get_template for that folder first. Write the name of ' +
+      'the note in `name:`, in the frontmatter that opens the content: it is the title the page ' +
+      'shows and what every link looks for, and the skill `write-notes` says what the body ' +
+      'holds. THIS TOOL ALWAYS CREATES: calling it twice writes two notes, because ' +
       'a notebook may hold two notes with one name, so a retry after a transport failure is NOT ' +
       'safe. Read the note back before retrying. The note goes last in its folder unless you ' +
       'pass after.',
@@ -399,8 +398,7 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'Replaces the body of a note. baseRevision is REQUIRED and must be the revision you read: ' +
       'if the note changed meanwhile, this fails with CONFLICT and returns the current content, ' +
       'so you can choose between redoing and merging. Blind overwrite is not accepted. This is ' +
-      'also how a note is renamed: its name is the `name:` of its frontmatter, so changing that ' +
-      'value is what renames it. Editing a heading renames nothing.',
+      'also how a note is renamed: change the `name:` of its frontmatter.',
     inputSchema: object(
       {
         notebook: notebookArgument,
