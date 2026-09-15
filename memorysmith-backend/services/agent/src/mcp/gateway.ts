@@ -113,13 +113,16 @@ export interface KnowledgeGateway {
   ): Promise<NotebookListing>;
   /** Soft delete: the notebook leaves the listings and no byte is destroyed. */
   deleteNotebook(caller: AgentCaller, notebookId: string): Promise<void>;
-  /** The revision the write is based on, null when the slot is still empty. */
+  /**
+   * The revision the write is based on, null when the slot is still empty. It
+   * answers the revision the write produced, which the next write names.
+   */
   setGuidance(
     caller: AgentCaller,
     notebookId: string,
     content: string,
     baseRevision: string | null,
-  ): Promise<void>;
+  ): Promise<string>;
   /** The guidance with its revision, which is what a write has to echo back. */
   guidance(
     caller: AgentCaller,
@@ -134,10 +137,11 @@ export interface KnowledgeGateway {
     caller: AgentCaller,
     input: { notebookId: string; folderId: string; policy: string },
   ): Promise<{ removedFolderIds: string[] }>;
+  /** Answers the revision the write produced, which the next write names. */
   setTemplate(
     caller: AgentCaller,
     input: { notebookId: string; folderId: string; content: string; baseRevision: string | null },
-  ): Promise<void>;
+  ): Promise<string>;
   deleteNote(caller: AgentCaller, notebookId: string, noteId: string): Promise<void>;
   notebookContext(caller: AgentCaller, notebookId: string): Promise<string>;
   template(

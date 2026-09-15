@@ -152,11 +152,16 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     notebookId: string,
     content: string,
     baseRevision: string | null,
-  ): Promise<void> {
-    await callApi(this.origin, caller, `/knowledge/notebooks/${notebookId}/guidance`, {
-      method: 'PUT',
-      body: { content, baseRevision },
-    });
+  ): Promise<string> {
+    // The route answers the revision this write produced; dropping it here
+    // left an agent nothing to base its next write on.
+    const written = await callApi<{ revision: { versionId: string } }>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${notebookId}/guidance`,
+      { method: 'PUT', body: { content, baseRevision } },
+    );
+    return written.revision.versionId;
   }
 
   /**
@@ -210,13 +215,14 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
   async setTemplate(
     caller: AgentCaller,
     input: { notebookId: string; folderId: string; content: string; baseRevision: string | null },
-  ): Promise<void> {
-    await callApi(
+  ): Promise<string> {
+    const written = await callApi<{ revision: { versionId: string } }>(
       this.origin,
       caller,
       `/knowledge/notebooks/${input.notebookId}/folders/${input.folderId}/template`,
       { method: 'PUT', body: { content: input.content, baseRevision: input.baseRevision } },
     );
+    return written.revision.versionId;
   }
 
   async deleteNote(caller: AgentCaller, notebookId: string, noteId: string): Promise<void> {

@@ -209,7 +209,7 @@ export class McpToolAdapter {
 
       case 'set_guidance': {
         const notebook = requireString(args, 'notebook', 'set_guidance');
-        await knowledge.setGuidance(
+        const revision = await knowledge.setGuidance(
           caller,
           notebook,
           requireString(args, 'content', 'set_guidance'),
@@ -218,10 +218,9 @@ export class McpToolAdapter {
           // and a null one is an assertion about the current state.
           revisionArgument(args, 'set_guidance'),
         );
-        return text(
-          'The guidance of this notebook was replaced. Read it back with get_notebook_context to see ' +
-            'it as the next agent will.',
-        );
+        // The revision this write produced, so the next write names it with no
+        // read in between (RN-AGT-016).
+        return json({ revision });
       }
 
       case 'create_folder': {
@@ -245,13 +244,13 @@ export class McpToolAdapter {
       }
 
       case 'set_template': {
-        await knowledge.setTemplate(caller, {
+        const revision = await knowledge.setTemplate(caller, {
           notebookId: requireString(args, 'notebook', 'set_template'),
           folderId: requireString(args, 'folder', 'set_template'),
           content: requireString(args, 'content', 'set_template'),
           baseRevision: revisionArgument(args, 'set_template'),
         });
-        return text('The template of this folder was replaced. Read it back with get_template.');
+        return json({ revision });
       }
 
       case 'delete_note': {
@@ -280,8 +279,10 @@ export class McpToolAdapter {
           requireString(args, 'notebook', 'get_template'),
           requireString(args, 'folder', 'get_template'),
         );
+        // The revision travels with the content, as it does for the guidance:
+        // it is what the next set_template has to state (RN-AGT-016).
         return template
-          ? text(template.content)
+          ? json({ content: template.content, revision: template.revision })
           : text('This folder carries no template. Follow the guidance of the notebook instead.');
       }
 

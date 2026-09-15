@@ -171,7 +171,9 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'Replaces the guidance of a notebook, which is the document that declares how THIS notebook ' +
       'wants to be written: its conventions, its vocabulary, what belongs in it and what does ' +
       'not. It is read by every agent that writes here, so write it for one, in Markdown, and ' +
-      'read the current one with get_guidance, which also gives you the baseRevision. When the ' +
+      'read the current one with get_guidance, which also gives you the baseRevision. The ' +
+      'answer is the revision this write produced: pass it as baseRevision to write again, and ' +
+      'read the result with get_notebook_context to see it as the next agent will. When the ' +
       'notebook already has a guidance, confirm with the person before replacing it: every ' +
       'agent that writes here follows what it says. Writing the first guidance of a notebook ' +
       'the person asked you to design is part of that design.',
@@ -241,7 +243,8 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     title: 'Read the folder template',
     description:
       'Returns the template of a folder, which is the suggested layout of the notes kept ' +
-      'there. Call this before create_note whenever the folder has one; the server does not ' +
+      'there, with the revision to pass back as baseRevision when you replace it. Call this ' +
+      'before create_note whenever the folder has one; the server does not ' +
       'validate content against it, so following it is what keeps the notebook coherent.',
     inputSchema: object({ notebook: notebookArgument, folder: folderArgument }, [
       'notebook',
@@ -254,7 +257,9 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     title: 'Write the template of a folder',
     description:
       'Replaces the template of a folder, which is the suggested layout of the notes kept there. ' +
-      'The server does not validate any note against it, so what it buys is coherence, not ' +
+      'Read the current one with get_template, which gives you the baseRevision, or pass null ' +
+      'when the folder has none; the answer is the revision this write produced, for the next ' +
+      'write. The server does not validate any note against it, so what it buys is coherence, not ' +
       'enforcement: write the skeleton a good note in this folder would follow. A note is named ' +
       'by `name:` inside its frontmatter block, the lines between the two `---` that open it, ' +
       'and by nothing else: a `name:` written anywhere else names nothing. So a template opens ' +

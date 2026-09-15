@@ -28,7 +28,11 @@ function gateways(overrides: Record<string, unknown> = {}) {
       { notebookId: 'v1', name: 'Normas', description: 'Texto normativo', noteCount: 48 },
     ],
     notebookContext: async () => '# Notebook: Normas\n\n## Structure\n1. **Normas**: (48 notes)\n',
-    template: async () => ({ content: '# Modelo\n\n## Vigencia', folderName: 'Normas' }),
+    template: async () => ({
+      content: '# Modelo\n\n## Vigencia',
+      folderName: 'Normas',
+      revision: 'v5',
+    }),
     listNotes: async () => [
       { noteId: 'n1', name: 'Lei 14.133', slug: 'lei-14133', folderId: 'f1', position: 'a0' },
     ],
@@ -63,7 +67,7 @@ function gateways(overrides: Record<string, unknown> = {}) {
       noteCount: 0,
     }),
     deleteNotebook: async () => undefined,
-    setGuidance: async () => undefined,
+    setGuidance: async () => 'v2',
     guidance: async () => ({ content: '# Proposito', revision: 'v1' }),
     createFolder: async () => ({
       folderId: 'f2',
@@ -73,7 +77,7 @@ function gateways(overrides: Record<string, unknown> = {}) {
       description: 'Achados de auditoria.',
     }),
     deleteFolder: async () => ({ removedFolderIds: ['f2'] }),
-    setTemplate: async () => undefined,
+    setTemplate: async () => 'v6',
     deleteNote: async () => undefined,
     ...((overrides['knowledge'] as object) ?? {}),
   };
@@ -682,6 +686,34 @@ describe('writing guidance and template carries the revision (RN-AGT-016)', () =
 
     expect(result.isError).toBe(false);
     expect(result.content[0]?.text).toContain('v7');
+  });
+
+  it('reads the template with the revision a write has to echo back', async () => {
+    const result = await gateways().call('get_template', { notebook: 'v1', folder: 'f1' }, caller);
+
+    // The same shape get_guidance answers: without the revision, replacing a
+    // Template that exists had no path that succeeded.
+    expect(result.isError).toBe(false);
+    expect(JSON.parse(result.content[0]?.text ?? '')).toEqual({
+      content: '# Modelo\n\n## Vigencia',
+      revision: 'v5',
+    });
+  });
+
+  it('answers the revision each write produced, so the next one needs no read', async () => {
+    const guidance = await gateways().call(
+      'set_guidance',
+      { notebook: 'v1', content: '# New', baseRevision: null },
+      caller,
+    );
+    const template = await gateways().call(
+      'set_template',
+      { notebook: 'v1', folder: 'f1', content: '# T', baseRevision: null },
+      caller,
+    );
+
+    expect(JSON.parse(guidance.content[0]?.text ?? '')).toEqual({ revision: 'v2' });
+    expect(JSON.parse(template.content[0]?.text ?? '')).toEqual({ revision: 'v6' });
   });
 
   it('says what to do when the notebook has no guidance yet', async () => {

@@ -178,13 +178,24 @@ test.describe('the tools', () => {
     expect(empty.text).toContain('baseRevision: null');
 
     const guidance = '# Guidance\n\nOne finding per note, linked to its evidence.\n';
-    const written = await callTool(agent, 'set_guidance', {
-      notebook: notebook.notebookId,
-      content: guidance,
-      baseRevision: null,
-    });
-    const read = parsed<{ content: string }>(
+    const written = parsed<{ revision: string }>(
+      await callTool(agent, 'set_guidance', {
+        notebook: notebook.notebookId,
+        content: guidance,
+        baseRevision: null,
+      }),
+    );
+    const read = parsed<{ content: string; revision: string }>(
       await callTool(agent, 'get_guidance', { notebook: notebook.notebookId }),
+    );
+    // The revision a write answers is the one the next write names, with no
+    // read in between.
+    const next = parsed<{ revision: string }>(
+      await callTool(agent, 'set_guidance', {
+        notebook: notebook.notebookId,
+        content: `${guidance}\nEvery finding says how it was verified.\n`,
+        baseRevision: written.revision,
+      }),
     );
     const stale = await callTool(agent, 'set_guidance', {
       notebook: notebook.notebookId,
@@ -195,8 +206,9 @@ test.describe('the tools', () => {
       notebook: notebook.notebookId,
     });
 
-    expect(written.isError).toBe(false);
     expect(read.content).toBe(guidance);
+    expect(read.revision).toBe(written.revision);
+    expect(next.revision).not.toBe(written.revision);
     expect(stale.isError).toBe(true);
     expect(stale.text).toContain('CONFLICT');
     expect(context.text).toContain('One finding per note');
@@ -216,15 +228,26 @@ test.describe('the tools', () => {
       }),
     );
     const template = '---\nname:\n---\n\n## Evidence\n';
-    const set = await callTool(agent, 'set_template', {
-      notebook: notebook.notebookId,
-      folder: child.folderId,
-      content: template,
-      baseRevision: null,
-    });
-    const read = await callTool(agent, 'get_template', {
-      notebook: notebook.notebookId,
-      folder: child.folderId,
+    const folder = { notebook: notebook.notebookId, folder: child.folderId };
+    const set = parsed<{ revision: string }>(
+      await callTool(agent, 'set_template', { ...folder, content: template, baseRevision: null }),
+    );
+    const read = parsed<{ content: string; revision: string }>(
+      await callTool(agent, 'get_template', folder),
+    );
+    // The revision the read hands over replaces the Template on the first try,
+    // and so does the one a write answers, with no read in between.
+    const replaced = parsed<{ revision: string }>(
+      await callTool(agent, 'set_template', {
+        ...folder,
+        content: `${template}\n## Source\n`,
+        baseRevision: read.revision,
+      }),
+    );
+    const again = await callTool(agent, 'set_template', {
+      ...folder,
+      content: `${template}\n## Source\n\n## Date\n`,
+      baseRevision: replaced.revision,
     });
     const refused = await callTool(agent, 'delete_folder', {
       notebook: notebook.notebookId,
@@ -239,8 +262,9 @@ test.describe('the tools', () => {
       }),
     );
 
-    expect(set.isError).toBe(false);
-    expect(read.text).toBe(template);
+    expect(read.content).toBe(template);
+    expect(read.revision).toBe(set.revision);
+    expect(again.isError).toBe(false);
     expect(refused.isError).toBe(true);
     expect(removed.removedFolderIds).toEqual(
       expect.arrayContaining([notebook.folderId, child.folderId]),

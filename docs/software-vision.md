@@ -620,11 +620,11 @@ Alphabetical ordering stays available as a display option in the client, without
 | `delete_notebook` | `(notebook)` | Deletes a notebook, reversibly and without destroying a single byte (RN-KNW-033) |
 | **`get_notebook_context`** | `(notebook)` | **The main call.** The full Guidance plus the tree with descriptions, order, note counts and which folders carry a template |
 | `get_guidance` | `(notebook)` | The Guidance as it is stored, with the revision to state when writing |
-| `set_guidance` | `(notebook, content, baseRevision)` | Writes the Guidance of the notebook, with conflict detection (RN-KNW-034) |
+| `set_guidance` | `(notebook, content, baseRevision)` | Writes the Guidance of the notebook, with conflict detection (RN-KNW-034), and answers the revision it produced |
 | `create_folder` | `(notebook, name, description, parent?)` | Creates a folder; the description is required, because it is what says what belongs there |
 | `delete_folder` | `(notebook, folder, policy)` | Removes a folder under an explicit policy, `REJECT_IF_NOT_EMPTY` or `CASCADE` (RN-KNW-007); `CASCADE` deletes every note of the subtree, up to 200 (RN-KNW-040) |
-| `get_template` | `(notebook, folder)` | The Template of the folder, to read before writing |
-| `set_template` | `(notebook, folder, content, baseRevision)` | Writes the Template of the folder, with conflict detection (RN-KNW-034) |
+| `get_template` | `(notebook, folder)` | The Template of the folder, to read before writing, with the revision to state when replacing it |
+| `set_template` | `(notebook, folder, content, baseRevision)` | Writes the Template of the folder, with conflict detection (RN-KNW-034), and answers the revision it produced |
 | `list_notes` | `(notebook, folder?)` | The index of notes, in the defined order |
 | `read_note` | `(notebook, note, asOf?)` | The full Markdown and the current revision; with `asOf`, the revision in force on that date |
 | `create_note` | `(notebook, folder, content)` | The ingestion path (§1.3). The name is the `name:` the content states, and a repeated call writes a second note (RN-AGT-024) |
