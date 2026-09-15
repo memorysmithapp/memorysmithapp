@@ -18,6 +18,18 @@ export interface Placement {
   readonly position: Position;
 }
 
+/**
+ * The refusal of an anchor that is not a folder of the level, naming the ones
+ * that are, so the next attempt is informed rather than guessed (RN-AGT-029).
+ */
+function notASibling(tree: FolderTree, parentFolderId: FolderId | null): DomainError {
+  return DomainError.validation('The folder to place it after is not a folder of the same level', {
+    siblings: tree
+      .childrenOf(parentFolderId)
+      .map((folder) => ({ folderId: folder.id.value, name: folder.name.value })),
+  });
+}
+
 export const FolderTreePlacement = {
   /** Where a NEW folder goes. */
   forNewFolder(
@@ -37,6 +49,7 @@ export const FolderTreePlacement = {
     }
     // A new folder with no anchor goes to the END of its level.
     const anchors = tree.positionAfter(parentFolderId, afterFolderId, 'last');
+    if (!anchors) return err(notASibling(tree, parentFolderId));
     return ok({ parentFolderId, position: Position.between(anchors.previous, anchors.next) });
   },
 
@@ -65,6 +78,7 @@ export const FolderTreePlacement = {
     }
     // A move with no anchor lands at the end of the destination level.
     const anchors = tree.positionAfter(newParentFolderId, afterFolderId, 'last');
+    if (!anchors) return err(notASibling(tree, newParentFolderId));
     return ok({
       parentFolderId: newParentFolderId,
       position: Position.between(anchors.previous, anchors.next),
@@ -89,6 +103,7 @@ export const FolderTreePlacement = {
     // Reordering with no anchor means "first": that is what dragging an item
     // to the top of the list expresses.
     const anchors = tree.positionAfter(folder.parentFolderId, afterFolderId, 'first');
+    if (!anchors) return err(notASibling(tree, folder.parentFolderId));
     const previous = anchors.previous?.equals(folder.position) ? null : anchors.previous;
     const next = anchors.next?.equals(folder.position) ? null : anchors.next;
     return ok(Position.between(previous, next));

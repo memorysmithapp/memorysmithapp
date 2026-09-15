@@ -66,6 +66,9 @@ export class DynamoNoteRepository implements NoteRepository {
       new GetCommand({
         TableName: this.tableName,
         Key: { PK: this.keys.notebook(notebook), SK: this.keys.note(id) },
+        // A note written a moment ago anchors the next placement, and its
+        // version is what the next write is locked on: neither may be stale.
+        ConsistentRead: true,
       }),
     );
     if (!response.Item) return null;

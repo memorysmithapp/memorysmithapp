@@ -17,6 +17,7 @@ import {
 import type { RequestContext } from '../domain/access/AuthorizationPolicy.js';
 import type { Note } from '../domain/note/Note.js';
 import type { Folder } from '../domain/notebook/Folder.js';
+import type { Notebook } from '../domain/notebook/Notebook.js';
 import { FolderDescription, FolderName, NOTEBOOK_LIMITS, RemovalPolicy } from '../domain/values.js';
 import { guardRevision, loadAuthorized, type NotebookDependencies } from './notebooks.js';
 import type { NoteDependencies } from './notes.js';
@@ -111,7 +112,7 @@ export class ReorderFolder {
     folderId: FolderId;
     afterFolderId: FolderId | null;
     by: Authorship;
-  }): Promise<Result<void, DomainError>> {
+  }): Promise<Result<{ notebook: Notebook; folder: Folder }, DomainError>> {
     const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
     if (!notebook.ok) return notebook;
 
@@ -119,7 +120,13 @@ export class ReorderFolder {
     if (!reordered.ok) return reordered;
 
     const saved = await this.deps.notebooks.save(notebook.value);
-    return saved.ok ? ok() : err(saved.error);
+    if (!saved.ok) return err(saved.error);
+    // The folder as this write left it: its position is how a caller learns
+    // where it now sits without reading the tree again (RN-AGT-029).
+    const folder = notebook.value.folders.get(input.folderId);
+    return folder
+      ? ok({ notebook: notebook.value, folder })
+      : err(DomainError.notFound('Folder not found in this notebook'));
   }
 }
 

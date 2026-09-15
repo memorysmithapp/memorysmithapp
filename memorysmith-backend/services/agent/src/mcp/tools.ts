@@ -79,6 +79,31 @@ function revisionArgument(args: Record<string, unknown>, tool: string): string |
   return value;
 }
 
+/**
+ * Where a reordered item goes. Required, and null is a statement — first —
+ * exactly as null is on baseRevision: a missing argument is a mistake worth an
+ * error, never a default (RN-AGT-029).
+ */
+function anchorArgument(args: Record<string, unknown>, tool: string): string | null {
+  const value = args['after'];
+  if (value === null) return null;
+  if (typeof value !== 'string' || value.length === 0) {
+    const definition = TOOL_CATALOG.find((each) => each.name === tool);
+    throw new GatewayError(
+      'VALIDATION',
+      `${tool} requires "after": the identifier of the sibling it goes right after, or null to put it first.`,
+      { expected: definition?.inputSchema },
+    );
+  }
+  return value;
+}
+
+/** On a creation the anchor is optional, and without one the item goes last. */
+function optionalAnchor(args: Record<string, unknown>): string | undefined {
+  const value = args['after'];
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
 function renderRelated(node: RelatedNode, indent = 0): string {
   const line = `${'  '.repeat(indent)}- ${node.name} (${node.noteId})`;
   return [line, ...node.children.map((child) => renderRelated(child, indent + 1))].join('\n');
@@ -225,14 +250,27 @@ export class McpToolAdapter {
 
       case 'create_folder': {
         const parent = typeof args['parent'] === 'string' ? args['parent'] : undefined;
+        const after = optionalAnchor(args);
         const folder = await knowledge.createFolder(caller, {
           notebookId: requireString(args, 'notebook', 'create_folder'),
           name: requireString(args, 'name', 'create_folder'),
           description: requireString(args, 'description', 'create_folder'),
           ...(parent === undefined ? {} : { parentFolderId: parent }),
+          ...(after === undefined ? {} : { afterFolderId: after }),
         });
         return json(folder);
       }
+
+      case 'reorder_folder':
+        // The siblings in their new order, so the agent sees the result
+        // without reading the tree again.
+        return json(
+          await knowledge.reorderFolder(caller, {
+            notebookId: requireString(args, 'notebook', 'reorder_folder'),
+            folderId: requireString(args, 'folder', 'reorder_folder'),
+            afterFolderId: anchorArgument(args, 'reorder_folder'),
+          }),
+        );
 
       case 'delete_folder': {
         const removed = await knowledge.deleteFolder(caller, {
@@ -304,10 +342,12 @@ export class McpToolAdapter {
       }
 
       case 'create_note': {
+        const after = optionalAnchor(args);
         const created = await knowledge.createNote(caller, {
           notebookId: requireString(args, 'notebook', 'create_note'),
           folderId: requireString(args, 'folder', 'create_note'),
           content: requireString(args, 'content', 'create_note'),
+          ...(after === undefined ? {} : { afterNoteId: after }),
         });
         return noteAnswer(created);
       }
@@ -321,6 +361,15 @@ export class McpToolAdapter {
         });
         return noteAnswer(updated);
       }
+
+      case 'reorder_note':
+        return json(
+          await knowledge.reorderNote(caller, {
+            notebookId: requireString(args, 'notebook', 'reorder_note'),
+            noteId: requireString(args, 'note', 'reorder_note'),
+            afterNoteId: anchorArgument(args, 'reorder_note'),
+          }),
+        );
 
       case 'search_notes':
         return json(

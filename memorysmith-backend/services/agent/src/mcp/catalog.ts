@@ -53,6 +53,26 @@ const baseRevisionArgument = {
     'current content, so an edit is never lost in silence.',
 };
 
+/**
+ * The sibling an item goes right after (RN-AGT-029). Required on a reorder, and
+ * null is a statement, first, as it is on baseRevision.
+ */
+const afterFolderArgument = {
+  type: ['string', 'null'],
+  description:
+    'null puts the folder first among its siblings; an identifier puts it right after that ' +
+    'sibling, as get_notebook_context prints it. A folder of another level is refused, and ' +
+    'the refusal lists the ones of this level.',
+};
+
+const afterNoteArgument = {
+  type: ['string', 'null'],
+  description:
+    'null puts the note first in its folder; an identifier puts it right after that note, as ' +
+    'list_notes prints it. A note of another folder is refused, and the refusal lists the ' +
+    'notes of this one.',
+};
+
 function object(
   properties: Record<string, unknown>,
   required: string[] = [],
@@ -193,7 +213,9 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     description:
       'Creates a folder in a notebook. The description is REQUIRED and is not decoration: it is ' +
       'what tells the next agent what belongs in this folder, and it travels in every reading ' +
-      'of the notebook context. Pass parent to nest it under another folder.',
+      'of the notebook context. Pass parent to nest it under another folder. The order of ' +
+      'folders is content, and a new folder goes last among its siblings unless you pass ' +
+      'after; reorder_folder changes the order later.',
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -208,10 +230,32 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
             'Optional: identifier of the folder this one goes under, as get_notebook_context ' +
             'prints it next to the folder name.',
         },
+        after: {
+          type: 'string',
+          description:
+            'Optional: identifier of the sibling folder this one goes right after, as ' +
+            'get_notebook_context prints it. Without it the folder goes last among its siblings.',
+        },
       },
       ['notebook', 'name', 'description'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: false },
+  },
+  {
+    name: 'reorder_folder',
+    title: 'Reorder a folder',
+    description:
+      'Moves a folder among its siblings, the folders under the same parent. The order is ' +
+      'content: get_notebook_context numbers the folders by it and it tells the next agent ' +
+      'where to start, so a folder name needs no number. Pass after: null to put the folder ' +
+      'first, or the identifier of the sibling it goes right after. Only the order changes: ' +
+      'the folder keeps its parent, its notes and its identifier. Answers the siblings in ' +
+      'their new order.',
+    inputSchema: object(
+      { notebook: notebookArgument, folder: folderArgument, after: afterFolderArgument },
+      ['notebook', 'folder', 'after'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
   },
   {
     name: 'delete_folder',
@@ -325,7 +369,8 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'there. A heading never names a note, and a note written without `name:` has no name and ' +
       'no link can reach it. THIS TOOL ALWAYS CREATES: calling it twice writes two notes, because ' +
       'a notebook may hold two notes with one name, so a retry after a transport failure is NOT ' +
-      'safe. Read the note back before retrying.',
+      'safe. Read the note back before retrying. The note goes last in its folder unless you ' +
+      'pass after.',
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -336,6 +381,12 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
             'next to its name.',
         },
         content: { type: 'string', description: 'The Markdown body of the note.' },
+        after: {
+          type: 'string',
+          description:
+            'Optional: identifier of the note this one goes right after, as list_notes prints ' +
+            'it. Without it the note goes last in its folder.',
+        },
       },
       ['notebook', 'folder', 'content'],
     ),
@@ -363,6 +414,24 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       ['notebook', 'note', 'content', 'baseRevision'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: true },
+  },
+  {
+    name: 'reorder_note',
+    title: 'Reorder a note',
+    description:
+      'Moves a note within its folder. The order is content: list_notes answers the notes in ' +
+      'it, and it says where to start reading. Pass after: null to put the note first, or the ' +
+      'identifier of the note it goes right after. Only the order changes: the note keeps its ' +
+      'folder, its content and its history. Answers the notes of the folder in their new order.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        note: { type: 'string', description: 'Note identifier.' },
+        after: afterNoteArgument,
+      },
+      ['notebook', 'note', 'after'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
   },
   {
     name: 'delete_note',

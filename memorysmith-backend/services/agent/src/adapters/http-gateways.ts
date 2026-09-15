@@ -15,8 +15,11 @@
 
 import type {
   BacklinksDto,
+  FolderDto,
   GraphNodeDto,
   NoteRefDto,
+  NoteSummaryDto,
+  NotebookDetailDto,
   SearchResultDto,
 } from '@memorysmith/contracts';
 import {
@@ -58,6 +61,34 @@ function relatedNodeOf(node: GraphNodeDto): RelatedNode {
     depth: node.depth,
     children: (node.children as GraphNodeDto[]).map(relatedNodeOf),
   };
+}
+
+function folderListingOf(folder: FolderDto): FolderListing {
+  return {
+    folderId: folder.folderId,
+    parentFolderId: folder.parentFolderId,
+    name: folder.name,
+    slug: folder.slug,
+    description: folder.description,
+    position: folder.position,
+  };
+}
+
+/**
+ * Siblings in the defined order, the moved one at the position its own write
+ * answered. Only that item changed, so the order is right even when the rest
+ * was read from an index that has not converged yet.
+ */
+function inDefinedOrder<T extends { position: string }>(
+  siblings: readonly T[],
+  idOf: (item: T) => string,
+  moved: T,
+): T[] {
+  const others = siblings.filter((item) => idOf(item) !== idOf(moved));
+  return [...others, moved].sort((left, right) => {
+    if (left.position !== right.position) return left.position < right.position ? -1 : 1;
+    return idOf(left).localeCompare(idOf(right));
+  });
 }
 
 /** The bearer token travels with the caller, and only inside this process. */
@@ -182,9 +213,15 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
 
   async createFolder(
     caller: AgentCaller,
-    input: { notebookId: string; name: string; description: string; parentFolderId?: string },
+    input: {
+      notebookId: string;
+      name: string;
+      description: string;
+      parentFolderId?: string;
+      afterFolderId?: string;
+    },
   ): Promise<FolderListing> {
-    return callApi<FolderListing>(
+    const created = await callApi<FolderDto>(
       this.origin,
       caller,
       `/knowledge/notebooks/${input.notebookId}/folders`,
@@ -194,9 +231,32 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
           name: input.name,
           description: input.description,
           parentFolderId: input.parentFolderId ?? null,
+          afterFolderId: input.afterFolderId ?? null,
         },
       },
     );
+    return folderListingOf(created);
+  }
+
+  async reorderFolder(
+    caller: AgentCaller,
+    input: { notebookId: string; folderId: string; afterFolderId: string | null },
+  ): Promise<FolderListing[]> {
+    const moved = await callApi<FolderDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${input.notebookId}/folders/${input.folderId}/reorder`,
+      { method: 'POST', body: { afterFolderId: input.afterFolderId } },
+    );
+    const detail = await callApi<NotebookDetailDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${input.notebookId}`,
+    );
+    const level = detail.folders
+      .filter((folder) => folder.parentFolderId === moved.parentFolderId)
+      .map(folderListingOf);
+    return inDefinedOrder(level, (folder) => folder.folderId, folderListingOf(moved));
   }
 
   async deleteFolder(
@@ -283,6 +343,8 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     const note = await callApi<{
       noteId: string;
       name: string | null;
+      folderId: string;
+      position: string;
       content: string;
       revision: { versionId: string };
       updatedAt: string;
@@ -290,6 +352,8 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     return {
       noteId: note.noteId,
       name: note.name,
+      folderId: note.folderId,
+      position: note.position,
       content: note.content,
       revision: note.revision.versionId,
       updatedAt: note.updatedAt,
@@ -298,17 +362,44 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
 
   async createNote(
     caller: AgentCaller,
-    input: { notebookId: string; folderId: string; content: string },
+    input: { notebookId: string; folderId: string; content: string; afterNoteId?: string },
   ): Promise<NoteContent> {
-    const created = await callApi<{
-      noteId: string;
-      name: string | null;
-      updatedAt: string;
-    }>(this.origin, caller, `/knowledge/notebooks/${input.notebookId}/notes`, {
-      method: 'POST',
-      body: { folderId: input.folderId, content: input.content },
-    });
+    const created = await callApi<NoteSummaryDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${input.notebookId}/notes`,
+      {
+        method: 'POST',
+        body: {
+          folderId: input.folderId,
+          content: input.content,
+          afterNoteId: input.afterNoteId ?? null,
+        },
+      },
+    );
     return this.readNote(caller, input.notebookId, created.noteId);
+  }
+
+  async reorderNote(
+    caller: AgentCaller,
+    input: { notebookId: string; noteId: string; afterNoteId: string | null },
+  ): Promise<NoteListing[]> {
+    const moved = await callApi<NoteSummaryDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${input.notebookId}/notes/${input.noteId}/reorder`,
+      { method: 'POST', body: { afterNoteId: input.afterNoteId } },
+    );
+    const listingOf = (note: NoteListing): NoteListing => ({
+      noteId: note.noteId,
+      name: note.name,
+      folderId: note.folderId,
+      position: note.position,
+    });
+    const siblings = (await this.listNotes(caller, input.notebookId, moved.folderId)).map(
+      listingOf,
+    );
+    return inDefinedOrder(siblings, (note) => note.noteId, listingOf(moved));
   }
 
   async updateNote(

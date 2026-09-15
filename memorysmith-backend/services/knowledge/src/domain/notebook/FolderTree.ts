@@ -111,7 +111,8 @@ export class FolderTree {
   }
 
   /**
-   * The neighbours a folder placed right after `afterFolderId` would have.
+   * The neighbours a folder placed right after `afterFolderId` would have, or
+   * null when the anchor is not a folder of that level.
    *
    * With no anchor the two callers want opposite things, so they say which:
    * creating a folder appends it at the end of its level, while reordering
@@ -125,7 +126,7 @@ export class FolderTree {
   ): {
     previous: Position | null;
     next: Position | null;
-  } {
+  } | null {
     const siblings = this.childrenOf(parentFolderId);
     if (afterFolderId === null) {
       return whenNoAnchor === 'first'
@@ -134,8 +135,9 @@ export class FolderTree {
     }
     const index = siblings.findIndex((folder) => folder.id.equals(afterFolderId));
     if (index === -1) {
-      // Unknown anchor: append at the end rather than guess a slot.
-      return { previous: siblings[siblings.length - 1]?.position ?? null, next: null };
+      // An anchor outside the level is a mistake to report, never a slot to
+      // guess: appending in silence put the folder somewhere nobody asked for.
+      return null;
     }
     return {
       previous: siblings[index]?.position ?? null,

@@ -49,9 +49,10 @@ describe('NotePlacement', () => {
     expect(placed.value < second.position.value).toBe(true);
   });
 
-  it('appends when the anchor is unknown instead of guessing a slot', () => {
-    const placed = unwrap(NotePlacement.place(siblings, NoteId.generate()));
-    expect(placed.value > second.position.value).toBe(true);
+  it('refuses an anchor that is not a note of the folder, naming the ones that are', () => {
+    const refused = expectErr(NotePlacement.place(siblings, NoteId.generate()));
+    expect(refused.code).toBe('VALIDATION');
+    expect(JSON.stringify(refused.details)).toContain(first.noteId.value);
   });
 
   it('ignores the moving note when computing its own new position', () => {

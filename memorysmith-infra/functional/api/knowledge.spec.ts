@@ -151,7 +151,7 @@ test.describe('folders', () => {
     );
 
     expect(renamed.status).toBe(204);
-    expect(reordered.status).toBe(204);
+    expect(reordered.status).toBe(200);
     expect(afterItself.status).toBe(400);
     const roots = (await owner.ok<{ folders: Folder[] }>('GET', notebookPath(notebook))).folders
       .filter((folder) => folder.parentFolderId === null)
@@ -287,7 +287,7 @@ test.describe('notes', () => {
       toFolderId: archive.folderId,
     });
 
-    expect(reordered.status).toBe(204);
+    expect(reordered.status).toBe(200);
     expect(moved.status).toBe(200);
     expect(moved.body.folderId).toBe(archive.folderId);
   });

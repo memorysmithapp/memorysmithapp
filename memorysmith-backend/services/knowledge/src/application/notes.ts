@@ -26,7 +26,7 @@ import {
 } from '@memorysmith/kernel';
 import type { RequestContext } from '../domain/access/AuthorizationPolicy.js';
 import { Note } from '../domain/note/Note.js';
-import { NotePlacement } from '../domain/services/NotePlacement.js';
+import { NotePlacement, type NoteOrder } from '../domain/services/NotePlacement.js';
 import { NOTEBOOK_LIMITS } from '../domain/values.js';
 import type { NoteRepository } from '../domain/ports/index.js';
 import { loadAuthorized, type NotebookDependencies } from './notebooks.js';
@@ -48,6 +48,34 @@ async function withRetry<T>(
     if (last.ok || last.error.code !== 'CONFLICT') return last;
   }
   return last as Result<T, DomainError>;
+}
+
+/**
+ * The notes of a folder in the defined order, with the anchor of a placement
+ * among them when it lives there.
+ *
+ * The listing of a folder is an index that converges after a write, so a note
+ * written a moment ago can be missing from it, and an agent that writes a note
+ * and then the one that goes after it would be refused an anchor that exists.
+ * The anchor is read from the table itself, and joins the siblings when it is a
+ * live note of this folder; anything else stays out and is refused as not a
+ * sibling (RN-AGT-029).
+ */
+async function siblingsWithAnchor(
+  deps: NoteDependencies,
+  notebookId: NotebookId,
+  folderId: FolderId,
+  anchorId: NoteId | null,
+): Promise<NoteOrder[]> {
+  const siblings = await deps.notes.siblingOrder(notebookId, folderId);
+  if (!anchorId || siblings.some((each) => each.noteId.equals(anchorId))) return siblings;
+
+  const anchor = await deps.notes.findById(notebookId, anchorId);
+  if (!anchor || anchor.isDeleted || !anchor.folderId.equals(folderId)) return siblings;
+  return [...siblings, { noteId: anchor.id, position: anchor.position }].sort((left, right) => {
+    const byPosition = left.position.compare(right.position);
+    return byPosition !== 0 ? byPosition : left.noteId.value.localeCompare(right.noteId.value);
+  });
 }
 
 export class ListNotes {
@@ -120,13 +148,21 @@ export class CreateNote {
     );
     if (!admitted.ok) return admitted;
 
-    // Content first, pointer second (section 10.5).
-    const body = await this.deps.content.create(input.content);
-    const siblings = await this.deps.notes.siblingOrder(input.notebookId, input.folderId);
+    // Where it goes is decided before anything is stored, so a refused anchor
+    // leaves no content behind.
+    const siblings = await siblingsWithAnchor(
+      this.deps,
+      input.notebookId,
+      input.folderId,
+      input.afterNoteId,
+    );
     const position = input.afterNoteId
       ? NotePlacement.place(siblings, input.afterNoteId)
       : ok(NotePlacement.append(siblings));
     if (!position.ok) return position;
+
+    // Content first, pointer second (section 10.5).
+    const body = await this.deps.content.create(input.content);
 
     const note = Note.create({
       id: NoteId.generate(),
@@ -210,22 +246,30 @@ export class ReorderNote {
     noteId: NoteId;
     afterNoteId: NoteId | null;
     by: Authorship;
-  }): Promise<Result<void, DomainError>> {
+  }): Promise<Result<Note, DomainError>> {
     const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
     if (!notebook.ok) return notebook;
 
     const note = await this.deps.notes.findById(input.notebookId, input.noteId);
     if (!note || note.isDeleted) return err(DomainError.notFound('Note not found'));
 
-    const siblings = await this.deps.notes.siblingOrder(input.notebookId, note.folderId);
+    const siblings = await siblingsWithAnchor(
+      this.deps,
+      input.notebookId,
+      note.folderId,
+      input.afterNoteId,
+    );
     const position = NotePlacement.place(siblings, input.afterNoteId, note.id);
     if (!position.ok) return position;
 
     const reordered = note.reorder(position.value, input.by);
     if (!reordered.ok) return reordered;
 
+    // The note as this write left it: its position is how a caller learns where
+    // it now sits, since the listing of a folder is an index that converges
+    // after the write (RN-AGT-029).
     const saved = await this.deps.notes.save(note);
-    return saved.ok ? ok() : err(saved.error);
+    return saved.ok ? ok(note) : err(saved.error);
   }
 }
 
@@ -266,7 +310,12 @@ export class MoveNote {
     const note = await this.deps.notes.findById(input.notebookId, input.noteId);
     if (!note || note.isDeleted) return err(DomainError.notFound('Note not found'));
 
-    const siblings = await this.deps.notes.siblingOrder(destinationNotebookId, input.toFolderId);
+    const siblings = await siblingsWithAnchor(
+      this.deps,
+      destinationNotebookId,
+      input.toFolderId,
+      input.afterNoteId,
+    );
     const position = input.afterNoteId
       ? NotePlacement.place(siblings, input.afterNoteId, note.id)
       : ok(NotePlacement.append(siblings));

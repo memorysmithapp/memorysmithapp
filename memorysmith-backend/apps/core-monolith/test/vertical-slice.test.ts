@@ -280,7 +280,10 @@ describe('Structure operations write nothing they do not have to', () => {
       `/knowledge/notebooks/${notebookId}/folders/${second.folderId}/reorder`,
       { method: 'POST', body: { afterFolderId: null } },
     );
-    expect(reordered.status).toBe(204);
+    // It answers the folder as the write left it, first among its siblings.
+    expect(reordered.status).toBe(200);
+    const moved = (await reordered.json()) as { folderId: string; position: string };
+    expect(moved.folderId).toBe(second.folderId);
 
     const after = (await (await call(`/knowledge/notebooks/${notebookId}`)).json()) as {
       folders: Array<{ folderId: string; position: string; name: string }>;
@@ -292,6 +295,7 @@ describe('Structure operations write nothing they do not have to', () => {
       expect(now?.position).toBe(folder.position);
     }
     expect(after.folders[0]?.folderId).toBe(second.folderId);
+    expect(after.folders[0]?.position).toBe(moved.position);
   });
 
   it('moves a note between folders with zero bytes written to storage', async () => {

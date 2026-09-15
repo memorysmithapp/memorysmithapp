@@ -16,7 +16,10 @@ export interface NoteOrder {
 }
 
 export const NotePlacement = {
-  /** Appends at the end, or slots right after `afterNoteId` when given. */
+  /**
+   * First when there is no anchor, or right after `afterNoteId`, which has to
+   * be a note of the folder.
+   */
   place(
     siblings: readonly NoteOrder[],
     afterNoteId: NoteId | null,
@@ -34,8 +37,14 @@ export const NotePlacement = {
     }
     const index = others.findIndex((each) => each.noteId.equals(afterNoteId));
     if (index === -1) {
-      // Unknown anchor: append rather than guess a slot.
-      return ok(Position.between(others[others.length - 1]?.position ?? null, null));
+      // An anchor outside the folder is a mistake to report, never a slot to
+      // guess: an agent that named the wrong note found its note silently at
+      // the end. The siblings travel with the refusal (RN-AGT-029).
+      return err(
+        DomainError.validation('The note to place it after is not a note of this folder', {
+          siblings: others.map((each) => each.noteId.value),
+        }),
+      );
     }
     return ok(
       Position.between(others[index]?.position ?? null, others[index + 1]?.position ?? null),

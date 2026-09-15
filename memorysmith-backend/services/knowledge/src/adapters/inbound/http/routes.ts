@@ -51,7 +51,13 @@ import type {
   RestoreNote,
   UpdateNote,
 } from '../../../application/notes.js';
-import { noteToDto, noteToSummary, notebookToDetail, notebookToSummary } from './presenters.js';
+import {
+  folderToDto,
+  noteToDto,
+  noteToSummary,
+  notebookToDetail,
+  notebookToSummary,
+} from './presenters.js';
 
 /** What the composition root puts on every authenticated request. */
 export interface KnowledgeRequest {
@@ -369,16 +375,15 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     const after = body.afterFolderId ? FolderId.create(body.afterFolderId) : null;
     if (after && !after.ok) return fail(c, after.error);
 
-    return noContent(
-      c,
-      await useCases.reorderFolder(request).execute({
-        ctx: request.ctx,
-        notebookId: notebookId.value,
-        folderId: folderId.value,
-        afterFolderId: after?.ok ? after.value : null,
-        by: author.value,
-      }),
-    );
+    const reordered = await useCases.reorderFolder(request).execute({
+      ctx: request.ctx,
+      notebookId: notebookId.value,
+      folderId: folderId.value,
+      afterFolderId: after?.ok ? after.value : null,
+      by: author.value,
+    });
+    // The folder as the write left it, so a caller learns where it now sits.
+    return present(c, reordered, ({ notebook, folder }) => folderToDto(folder, notebook));
   });
 
   app.delete('/notebooks/:v/folders/:f', async (c) => {
@@ -480,6 +485,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     const folderId = FolderId.create(String(body.folderId ?? ''));
     if (!folderId.ok) return fail(c, folderId.error);
     const after = body.afterNoteId ? NoteId.create(body.afterNoteId) : null;
+    if (after && !after.ok) return fail(c, after.error);
 
     const created = await useCases.createNote(request).execute({
       ctx: request.ctx,
@@ -553,17 +559,18 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
 
     const body = (await c.req.json().catch(() => ({}))) as { afterNoteId?: string | null };
     const after = body.afterNoteId ? NoteId.create(body.afterNoteId) : null;
+    if (after && !after.ok) return fail(c, after.error);
 
-    return noContent(
-      c,
-      await useCases.reorderNote(request).execute({
-        ctx: request.ctx,
-        notebookId: notebookId.value,
-        noteId: noteId.value,
-        afterNoteId: after?.ok ? after.value : null,
-        by: author.value,
-      }),
-    );
+    const reordered = await useCases.reorderNote(request).execute({
+      ctx: request.ctx,
+      notebookId: notebookId.value,
+      noteId: noteId.value,
+      afterNoteId: after?.ok ? after.value : null,
+      by: author.value,
+    });
+    // The note as the write left it: the listing of a folder is an index that
+    // converges after the write, so this is where the new position is read.
+    return present(c, reordered, (note) => noteToSummary(note));
   });
 
   app.post('/notebooks/:v/notes/:n/move', async (c) => {
@@ -585,6 +592,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     const toNotebookId = body.toNotebookId ? NotebookId.create(body.toNotebookId) : null;
     if (toNotebookId && !toNotebookId.ok) return fail(c, toNotebookId.error);
     const after = body.afterNoteId ? NoteId.create(body.afterNoteId) : null;
+    if (after && !after.ok) return fail(c, after.error);
 
     const moved = await useCases.moveNote(request).execute({
       ctx: request.ctx,

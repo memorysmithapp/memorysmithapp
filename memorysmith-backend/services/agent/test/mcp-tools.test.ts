@@ -79,6 +79,28 @@ function gateways(overrides: Record<string, unknown> = {}) {
     deleteFolder: async () => ({ removedFolderIds: ['f2'] }),
     setTemplate: async () => 'v6',
     deleteNote: async () => undefined,
+    reorderFolder: async () => [
+      {
+        folderId: 'f2',
+        parentFolderId: null,
+        name: 'Achados',
+        slug: 'achados',
+        description: 'Achados de auditoria.',
+        position: 'Zz',
+      },
+      {
+        folderId: 'f1',
+        parentFolderId: null,
+        name: 'Normas',
+        slug: 'normas',
+        description: 'Texto normativo.',
+        position: 'a0',
+      },
+    ],
+    reorderNote: async () => [
+      { noteId: 'n2', name: 'Nova', folderId: 'f1', position: 'Zz' },
+      { noteId: 'n1', name: 'Lei 14.133', folderId: 'f1', position: 'a0' },
+    ],
     ...((overrides['knowledge'] as object) ?? {}),
   };
   const discovery = {
@@ -130,6 +152,7 @@ describe('The tool catalog is the public contract', () => {
       'get_guidance',
       'set_guidance',
       'create_folder',
+      'reorder_folder',
       'delete_folder',
       'get_template',
       'set_template',
@@ -137,6 +160,7 @@ describe('The tool catalog is the public contract', () => {
       'read_note',
       'create_note',
       'update_note',
+      'reorder_note',
       'delete_note',
       'search_notes',
       'related_notes',
@@ -172,10 +196,12 @@ describe('The tool catalog is the public contract', () => {
       'delete_notebook',
       'set_guidance',
       'create_folder',
+      'reorder_folder',
       'delete_folder',
       'set_template',
       'create_note',
       'update_note',
+      'reorder_note',
       'delete_note',
     ]);
     for (const tool of TOOL_CATALOG) {
@@ -947,5 +973,104 @@ describe('the path an agent takes passes through the method of its task', () => 
       caller,
     );
     expect(JSON.parse(answer.content[0]?.text ?? '')).not.toHaveProperty('notice');
+  });
+});
+
+describe('the connector orders what it writes (RN-AGT-029)', () => {
+  it('passes the anchor of a creation, and none when there is none', async () => {
+    const seen: Array<Record<string, unknown>> = [];
+    const record =
+      (answer: unknown) =>
+      async (_caller: unknown, input: Record<string, unknown>): Promise<unknown> => {
+        seen.push(input);
+        return answer;
+      };
+    const adapter = gateways({
+      knowledge: {
+        createFolder: record({
+          folderId: 'f3',
+          parentFolderId: null,
+          name: 'Glossário',
+          slug: 'glossario',
+          description: 'Termos.',
+          position: 'a0V',
+        }),
+        createNote: record({
+          noteId: 'n2',
+          name: 'Nova',
+          content: '---\nname: Nova\n---',
+          revision: 'v1',
+          updatedAt: '2026-03-21T10:00:00.000Z',
+        }),
+      },
+    });
+
+    await adapter.call(
+      'create_folder',
+      { notebook: 'v1', name: 'Glossário', description: 'Termos.', after: 'f1' },
+      caller,
+    );
+    await adapter.call(
+      'create_folder',
+      { notebook: 'v1', name: 'Fontes', description: 'De onde vem.' },
+      caller,
+    );
+    await adapter.call(
+      'create_note',
+      { notebook: 'v1', folder: 'f1', content: '---\nname: Nova\n---', after: 'n1' },
+      caller,
+    );
+
+    expect(seen[0]).toMatchObject({ afterFolderId: 'f1' });
+    expect(seen[1]).not.toHaveProperty('afterFolderId');
+    expect(seen[2]).toMatchObject({ afterNoteId: 'n1' });
+  });
+
+  it('asks a reorder where the item goes, and reads null as first', async () => {
+    const seen: Array<Record<string, unknown>> = [];
+    const record = async (_caller: unknown, input: Record<string, unknown>) => {
+      seen.push(input);
+      return [];
+    };
+    const adapter = gateways({ knowledge: { reorderFolder: record, reorderNote: record } });
+
+    const missing = await adapter.call('reorder_folder', { notebook: 'v1', folder: 'f2' }, caller);
+    await adapter.call('reorder_folder', { notebook: 'v1', folder: 'f2', after: null }, caller);
+    await adapter.call('reorder_note', { notebook: 'v1', note: 'n2', after: 'n1' }, caller);
+
+    // A missing anchor is a mistake worth an error, never a default.
+    expect(missing.isError).toBe(true);
+    expect(missing.content[0]?.text).toContain('"after"');
+    expect(seen).toEqual([
+      { notebookId: 'v1', folderId: 'f2', afterFolderId: null },
+      { notebookId: 'v1', noteId: 'n2', afterNoteId: 'n1' },
+    ]);
+  });
+
+  it('answers the siblings in their new order', async () => {
+    const folders = await gateways().call(
+      'reorder_folder',
+      { notebook: 'v1', folder: 'f2', after: null },
+      caller,
+    );
+    const notes = await gateways().call(
+      'reorder_note',
+      { notebook: 'v1', note: 'n2', after: null },
+      caller,
+    );
+
+    const ids = (answer: { content: Array<{ text: string }> }, key: string) =>
+      (JSON.parse(answer.content[0]?.text ?? '') as Array<Record<string, string>>).map(
+        (each) => each[key],
+      );
+    expect(ids(folders, 'folderId')).toEqual(['f2', 'f1']);
+    expect(ids(notes, 'noteId')).toEqual(['n2', 'n1']);
+  });
+
+  it('declares both reorders as writes that destroy nothing', () => {
+    for (const name of ['reorder_folder', 'reorder_note']) {
+      const tool = TOOL_CATALOG.find((each) => each.name === name);
+      expect(tool?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
+    }
   });
 });

@@ -60,6 +60,9 @@ export interface NoteReference {
 export interface NoteContent {
   readonly noteId: string;
   readonly name: string | null;
+  /** Where the note lives and where it sits; a note rebuilt from history has neither. */
+  readonly folderId?: string;
+  readonly position?: string;
   readonly content: string;
   readonly revision: string;
   readonly updatedAt: string;
@@ -96,6 +99,8 @@ export interface FolderListing {
   readonly name: string;
   readonly slug: string;
   readonly description: string;
+  /** The order key among its siblings: content, and never decoration. */
+  readonly position: string;
 }
 
 /** What a tool asks of the Access context. */
@@ -128,10 +133,25 @@ export interface KnowledgeGateway {
     caller: AgentCaller,
     notebookId: string,
   ): Promise<{ content: string; revision: string } | null>;
+  /** Without an anchor the folder goes last among its siblings. */
   createFolder(
     caller: AgentCaller,
-    input: { notebookId: string; name: string; description: string; parentFolderId?: string },
+    input: {
+      notebookId: string;
+      name: string;
+      description: string;
+      parentFolderId?: string;
+      afterFolderId?: string;
+    },
   ): Promise<FolderListing>;
+  /**
+   * First among its siblings with no anchor, or right after one. Answers the
+   * siblings in their new order.
+   */
+  reorderFolder(
+    caller: AgentCaller,
+    input: { notebookId: string; folderId: string; afterFolderId: string | null },
+  ): Promise<FolderListing[]>;
   /** The policy is explicit or it is not: there is no implicit default. */
   deleteFolder(
     caller: AgentCaller,
@@ -151,14 +171,23 @@ export interface KnowledgeGateway {
   ): Promise<{ content: string; folderName: string; revision: string } | null>;
   listNotes(caller: AgentCaller, notebookId: string, folderId?: string): Promise<NoteListing[]>;
   readNote(caller: AgentCaller, notebookId: string, noteId: string): Promise<NoteContent>;
+  /** Without an anchor the note goes last in its folder. */
   createNote(
     caller: AgentCaller,
-    input: { notebookId: string; folderId: string; content: string },
+    input: { notebookId: string; folderId: string; content: string; afterNoteId?: string },
   ): Promise<NoteContent>;
   updateNote(
     caller: AgentCaller,
     input: { notebookId: string; noteId: string; content: string; baseRevision: string },
   ): Promise<NoteContent>;
+  /**
+   * First in its folder with no anchor, or right after a note of it. Answers the
+   * notes of the folder in their new order.
+   */
+  reorderNote(
+    caller: AgentCaller,
+    input: { notebookId: string; noteId: string; afterNoteId: string | null },
+  ): Promise<NoteListing[]>;
   searchNotes(caller: AgentCaller, notebookId: string, query: string): Promise<SearchHit[]>;
 }
 

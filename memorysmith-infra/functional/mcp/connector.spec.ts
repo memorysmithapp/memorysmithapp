@@ -271,6 +271,78 @@ test.describe('the tools', () => {
     );
   });
 
+  test('[tool:reorder_folder] [tool:reorder_note] orders the folders of a level and the notes of a folder, when they are written and afterwards', async ({
+    agent,
+    notebook,
+  }) => {
+    const where = { notebook: notebook.notebookId };
+    const sources = parsed<{ folderId: string }>(
+      await callTool(agent, 'create_folder', {
+        ...where,
+        name: 'Sources',
+        description: 'Where a finding comes from.',
+      }),
+    );
+    const glossary = parsed<{ folderId: string }>(
+      await callTool(agent, 'create_folder', {
+        ...where,
+        name: 'Glossary',
+        description: 'The words of this notebook.',
+        after: notebook.folderId,
+      }),
+    );
+    // A notebook is not a folder of this level, so it anchors nothing.
+    const refused = await callTool(agent, 'reorder_folder', {
+      ...where,
+      folder: sources.folderId,
+      after: notebook.notebookId,
+    });
+    const level = parsed<Array<{ folderId: string }>>(
+      await callTool(agent, 'reorder_folder', { ...where, folder: sources.folderId, after: null }),
+    );
+    const context = await callTool(agent, 'get_notebook_context', where);
+
+    expect(refused.isError).toBe(true);
+    expect(level.map((folder) => folder.folderId)).toEqual([
+      sources.folderId,
+      notebook.folderId,
+      glossary.folderId,
+    ]);
+    const at = (id: string) => context.text.indexOf(id);
+    expect(at(sources.folderId)).toBeLessThan(at(notebook.folderId));
+    expect(at(notebook.folderId)).toBeLessThan(at(glossary.folderId));
+
+    const write = async (name: string, after?: string) =>
+      parsed<{ noteId: string }>(
+        await callTool(agent, 'create_note', {
+          ...where,
+          folder: notebook.folderId,
+          content: `---\nname: ${name}\n---\n`,
+          ...(after === undefined ? {} : { after }),
+        }),
+      );
+    const first = await write('First');
+    const third = await write('Third');
+    // Written right after the first, a moment later: the listing of the folder
+    // may not show the first yet, and it anchors all the same.
+    const second = await write('Second', first.noteId);
+    const notes = parsed<Array<{ noteId: string }>>(
+      await callTool(agent, 'reorder_note', { ...where, note: third.noteId, after: null }),
+    );
+    expect(notes[0]?.noteId).toBe(third.noteId);
+
+    const ours = new Set([first.noteId, second.noteId, third.noteId]);
+    await eventually(
+      'the notes of the folder in the order the agent gave them',
+      () => callTool(agent, 'list_notes', { ...where, folder: notebook.folderId }),
+      (answer) =>
+        (JSON.parse(answer.text) as Array<{ noteId: string }>)
+          .map((note) => note.noteId)
+          .filter((id) => ours.has(id))
+          .join() === [third.noteId, first.noteId, second.noteId].join(),
+    );
+  });
+
   test('[tool:create_note] [tool:list_notes] [tool:read_note] [tool:update_note] [tool:delete_note] writes a note, edits it on the revision it read, and deletes it', async ({
     agent,
     notebook,

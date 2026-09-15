@@ -279,6 +279,23 @@ describe('Notebook: I4, ordering', () => {
     expect(event?.type).toBe('FolderReordered');
   });
 
+  it('refuses an anchor that is not a folder of the same level, naming the ones that are', () => {
+    const notebook = newNotebook();
+    const a = unwrap(
+      notebook.addFolder(null, folderName('A'), folderDescription('.'), null, authorship()),
+    );
+    const child = unwrap(
+      notebook.addFolder(a.id, folderName('Inside A'), folderDescription('.'), null, authorship()),
+    );
+
+    const created = expectErr(
+      notebook.addFolder(null, folderName('B'), folderDescription('.'), child.id, authorship()),
+    );
+    expect(created.code).toBe('VALIDATION');
+    expect(JSON.stringify(created.details)).toContain(a.id.value);
+    expect(expectErr(notebook.reorderFolder(a.id, child.id, authorship())).code).toBe('VALIDATION');
+  });
+
   it('refuses to place a folder after itself', () => {
     const notebook = newNotebook();
     const a = unwrap(
