@@ -310,7 +310,7 @@ describe('History and activity', () => {
   it('stops answering about a note the purge destroyed, and keeps its entries', async () => {
     // RN-AUD-010: the trail never forgets, and the product stops serving the
     // history of something somebody deleted, because what it points at is
-    // gone. The refusal is the 404 a note that never existed gets.
+    // gone.
     const { trail, content } = await seedTrail();
     await new AuditEventConsumer(new RecordEvents(trail)).consume([
       {
@@ -333,6 +333,15 @@ describe('History and activity', () => {
     expect(revision.ok).toBe(false);
     // The entries themselves are still there: append-only means appended.
     expect(await trail.timelineOf('NOTE', NOTE)).toHaveLength(4);
+  });
+
+  it('answers an empty history for a note the trail has not heard of yet', async () => {
+    // The trail follows a write within seconds, so a note written a moment ago
+    // has no entry yet: "nothing yet" and never "no such note", or a reader
+    // waiting for the history is refused before it arrives.
+    const { trail } = await seedTrail();
+    const history = await new GetNoteHistory(trail).execute('01JBQ2X000000000000000NEW1');
+    expect(history).toEqual({ ok: true, value: [] });
   });
 
   it('filters the activity of a notebook by period', async () => {

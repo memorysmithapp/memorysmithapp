@@ -36,8 +36,12 @@ export class RecordEvents {
  * index of content nobody can fetch.
  *
  * The entries stay where they are, appended and immutable (rule 6). What this
- * refuses is serving them, and the refusal is the same 404 a note that never
- * existed gets.
+ * refuses is serving them, with the 404 of a note nobody can see.
+ *
+ * An EMPTY timeline is not a refusal. The trail is fed by events and follows a
+ * write within seconds, so a note written a moment ago has no entry yet, and a
+ * reader waiting for its history has to be told "nothing yet" rather than
+ * "this note does not exist".
  */
 function wasPurged(timeline: readonly AuditEvent[]): boolean {
   return timeline.some((event) => event.type.endsWith('Purged'));
@@ -49,7 +53,7 @@ export class GetNoteHistory {
   /** Indexed by NoteId, so it survives the note changing notebook (RN-AUD-004). */
   async execute(noteId: string): Promise<Result<AuditEvent[], DomainError>> {
     const timeline = await this.trail.timelineOf('NOTE', noteId);
-    if (timeline.length === 0 || wasPurged(timeline)) {
+    if (wasPurged(timeline)) {
       return err(DomainError.notFound('Note not found'));
     }
     return ok(timeline);
@@ -96,7 +100,7 @@ export class ReadRevision {
     versionId?: string | undefined;
   }): Promise<Result<{ event: AuditEvent; content: string }, DomainError>> {
     const timeline = await this.trail.timelineOf('NOTE', input.noteId);
-    if (timeline.length === 0 || wasPurged(timeline)) {
+    if (wasPurged(timeline)) {
       return err(DomainError.notFound('Note not found'));
     }
 
