@@ -102,6 +102,19 @@ export class ApiStack extends Stack {
      */
     props.data.contentBucket.grantRead(api.function);
     props.data.contentBucket.grantPut(api.function);
+    /**
+     * An import discards its upload once it ends, whichever way it ended
+     * (RN-PRT-014). That is a delete of the current object under `imports/`
+     * and nowhere else, and never of a version: on a versioned bucket it
+     * leaves a marker, the lifecycle rule of the tag expires what is left, and
+     * no revision of a note is within its reach.
+     */
+    api.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['s3:DeleteObject'],
+        resources: [props.data.contentBucket.arnForObjects('s/*/imports/*')],
+      }),
+    );
     // The API READS the trail and can never write it: the Deny travels with
     // the grant (PE4).
     props.data.auditTable.grantRead(api.function);
