@@ -28,12 +28,31 @@ export class RecordEvents {
   }
 }
 
+/**
+ * The trail never forgets, and the product still stops answering about what
+ * somebody deleted (RN-AUD-010). A purged note has a `NotePurged` in its
+ * timeline, and from that event on there is nothing to read: the revisions it
+ * points at were destroyed, so a history that still listed them would be an
+ * index of content nobody can fetch.
+ *
+ * The entries stay where they are, appended and immutable (rule 6). What this
+ * refuses is serving them, and the refusal is the same 404 a note that never
+ * existed gets.
+ */
+function wasPurged(timeline: readonly AuditEvent[]): boolean {
+  return timeline.some((event) => event.type.endsWith('Purged'));
+}
+
 export class GetNoteHistory {
   constructor(private readonly trail: AuditTrail) {}
 
   /** Indexed by NoteId, so it survives the note changing notebook (RN-AUD-004). */
   async execute(noteId: string): Promise<Result<AuditEvent[], DomainError>> {
-    return ok(await this.trail.timelineOf('NOTE', noteId));
+    const timeline = await this.trail.timelineOf('NOTE', noteId);
+    if (timeline.length === 0 || wasPurged(timeline)) {
+      return err(DomainError.notFound('Note not found'));
+    }
+    return ok(timeline);
   }
 }
 
@@ -77,7 +96,9 @@ export class ReadRevision {
     versionId?: string | undefined;
   }): Promise<Result<{ event: AuditEvent; content: string }, DomainError>> {
     const timeline = await this.trail.timelineOf('NOTE', input.noteId);
-    if (timeline.length === 0) return err(DomainError.notFound('Note not found'));
+    if (timeline.length === 0 || wasPurged(timeline)) {
+      return err(DomainError.notFound('Note not found'));
+    }
 
     const chosen = input.versionId
       ? (timeline.find((event) => event.contentRef?.versionId === input.versionId) ?? null)

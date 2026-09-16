@@ -307,6 +307,34 @@ describe('History and activity', () => {
     expect(history.value).toHaveLength(4);
   });
 
+  it('stops answering about a note the purge destroyed, and keeps its entries', async () => {
+    // RN-AUD-010: the trail never forgets, and the product stops serving the
+    // history of something somebody deleted, because what it points at is
+    // gone. The refusal is the 404 a note that never existed gets.
+    const { trail, content } = await seedTrail();
+    await new AuditEventConsumer(new RecordEvents(trail)).consume([
+      {
+        eventId: '01JBQ2X000000000000000000P',
+        type: 'NotePurged',
+        occurredAt: '2026-04-02T10:00:00.000Z',
+        subscriptionId: SUBSCRIPTION,
+        subject: 'NOTE',
+        subjectId: NOTE,
+        authorship: { userId: 'user-1', agent: null, at: '2026-04-02T10:00:00.000Z' },
+        contentRef: null,
+        payload: { notebookId: NOTEBOOK, noteId: NOTE, folderId: FOLDER },
+      },
+    ]);
+
+    const history = await new GetNoteHistory(trail).execute(NOTE);
+    const revision = await new ReadRevision(trail, content).execute({ noteId: NOTE });
+
+    expect(history.ok).toBe(false);
+    expect(revision.ok).toBe(false);
+    // The entries themselves are still there: append-only means appended.
+    expect(await trail.timelineOf('NOTE', NOTE)).toHaveLength(4);
+  });
+
   it('filters the activity of a notebook by period', async () => {
     const { trail } = await seedTrail();
     const activity = await new GetNotebookActivity(trail).execute({

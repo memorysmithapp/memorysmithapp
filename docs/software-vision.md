@@ -634,14 +634,14 @@ Alphabetical ordering stays available as a display option in the client, without
 | `get_skill` | `(name)` | The written method for a task, by the name `whoami` and the instructions of the handshake index (RN-AGT-028). It teaches, and never validates nor writes (RN-AGT-019) |
 | `list_notebooks` | `()` | Visible notebooks, with their descriptions |
 | `create_notebook` | `(name, description)` | Creates a notebook in the subscription; a repeated name answers `ALREADY_EXISTS` with the identifier of the existing one (RN-KNW-032) |
-| `delete_notebook` | `(notebook)` | Deletes a notebook, reversibly and without destroying a single byte (RN-KNW-033) |
+| `delete_notebook` | `(notebook)` | Deletes a notebook and everything in it, definitively: no undo, no trash, and the content destroyed shortly after (RN-KNW-033, RN-KNW-047) |
 | **`get_notebook_context`** | `(notebook)` | **The main call.** The full Guidance plus the tree with descriptions, order, note counts and which folders carry a template |
 | `get_guidance` | `(notebook)` | The Guidance as it is stored, with the revision to state when writing |
 | `set_guidance` | `(notebook, content, baseRevision)` | Writes the Guidance of the notebook, with conflict detection (RN-KNW-034), and answers the revision it produced |
 | `delete_guidance` | `(notebook)` | Deletes the Guidance; the notebook keeps its folders, its templates and every note (RN-KNW-045) |
 | `create_folder` | `(notebook, name, description, parent?, after?)` | Creates a folder; the description is required, because it is what says what belongs there. It goes last among its siblings, or right after `after` |
 | `reorder_folder` | `(notebook, folder, after)` | Moves a folder among its siblings: first with `after: null`, or right after a sibling (RN-AGT-029) |
-| `delete_folder` | `(notebook, folder, policy)` | Removes a folder under an explicit policy, `REJECT_IF_NOT_EMPTY` or `CASCADE` (RN-KNW-007); `CASCADE` deletes every note of the subtree, up to 200 (RN-KNW-040) |
+| `delete_folder` | `(notebook, folder, policy)` | Removes a folder under an explicit policy, `REJECT_IF_NOT_EMPTY` or `CASCADE` (RN-KNW-007); `CASCADE` takes the whole subtree, definitively and with no ceiling on its size (RN-KNW-046) |
 | `get_template` | `(notebook, folder)` | The Template of the folder, to read before writing, with the revision to state when replacing it |
 | `set_template` | `(notebook, folder, content, baseRevision)` | Writes the Template of the folder, with conflict detection (RN-KNW-034), and answers the revision it produced |
 | `delete_template` | `(notebook, folder)` | Deletes the Template; the folder, its description and its notes stay (RN-KNW-045) |
@@ -650,11 +650,11 @@ Alphabetical ordering stays available as a display option in the client, without
 | `create_note` | `(notebook, folder, content, after?)` | The ingestion path (§1.3). The name is the `name:` the content states, and a repeated call writes a second note (RN-AGT-024). It goes last in its folder, or right after `after` |
 | `update_note` | `(notebook, note, content, baseRevision)` | An update with conflict detection, and the only way to rename a note (RN-KNW-038) |
 | `reorder_note` | `(notebook, note, after)` | Moves a note within its folder: first with `after: null`, or right after a note of the folder (RN-AGT-029) |
-| `delete_note` | `(notebook, note)` | Deletes a note, reversibly (RN-KNW-029) |
+| `delete_note` | `(notebook, note)` | Deletes a note, definitively: no undo, no trash, and the content destroyed shortly after (RN-KNW-029, RN-KNW-047) |
 | `search_notes` | `(notebook, query)` | Literal search over the text of the notebook, with fields and operators (§10.2) |
 | `related_notes` | `(notebook, note, depth?)` | A dependency tree through the link graph |
 | `backlinks` | `(notebook, note)` | Who points at this note |
-| `note_history` | `(notebook, note)` | The timeline: who changed it, when, with which agent |
+| `note_history` | `(notebook, note)` | The timeline: who changed it, when, with which agent. A note that was deleted answers as not found, because what it pointed at was destroyed (RN-AUD-010) |
 
 ### 9.2 The Notebook Context
 
