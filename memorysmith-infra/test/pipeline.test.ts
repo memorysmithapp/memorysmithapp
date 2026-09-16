@@ -192,7 +192,7 @@ describe('the adapter tests of a pipeline', () => {
     expect(touching(statementsOf('production'), 'dynamodb')).toEqual([]);
   });
 
-  it('reach the items of the knowledge and access tables of staging, and nothing else', () => {
+  it('reach the items of the knowledge, access and discovery tables of staging, and nothing else', () => {
     const statements = touching(statementsOf('staging', 'Adapters'), 'dynamodb');
     const actions = statements.flatMap((statement) => [statement.Action].flat());
     expect(actions).not.toHaveLength(0);
@@ -201,7 +201,7 @@ describe('the adapter tests of a pipeline', () => {
     const resources = statements.flatMap((statement) => [statement.Resource].flat());
     for (const resource of resources) {
       expect(JSON.stringify(resource)).toMatch(
-        /:222222222222:table\/mv-(knowledge|access)-staging/,
+        /:222222222222:table\/mv-(knowledge|access|discovery)-staging/,
       );
     }
   });
@@ -210,10 +210,24 @@ describe('the adapter tests of a pipeline', () => {
     const statements = touching(statementsOf('staging', 'Adapters'), 's3').filter((statement) =>
       JSON.stringify(statement.Resource).includes('contentbucket'),
     );
-    expect(statements).toHaveLength(1);
-    expect(statements[0]?.Action).toEqual(['s3:GetObject', 's3:GetObjectVersion', 's3:PutObject']);
-    expect(JSON.stringify(statements[0]?.Resource)).toContain(
-      ':s3:::memorysmithstagingdata-contentbucket*/*',
+    expect(statements).toHaveLength(2);
+    // The objects, deletion included: the case of the purge destroys what it
+    // wrote under a subscription of its own (RN-KNW-047).
+    const objects = statements.find((statement) =>
+      JSON.stringify(statement.Resource).includes('contentbucket*/*'),
+    );
+    expect(objects?.Action).toEqual([
+      's3:GetObject',
+      's3:GetObjectVersion',
+      's3:PutObject',
+      's3:DeleteObject',
+      's3:DeleteObjectVersion',
+    ]);
+    // And listing the versions of one, which is how every version is found.
+    const bucket = statements.find((statement) => statement !== objects);
+    expect(bucket?.Action).toBe('s3:ListBucketVersions');
+    expect(JSON.stringify(bucket?.Resource)).toContain(
+      ':s3:::memorysmithstagingdata-contentbucket*',
     );
   });
 });

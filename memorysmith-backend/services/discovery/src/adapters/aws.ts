@@ -39,7 +39,7 @@ import {
   UpdateCommand,
   type DynamoDBDocumentClient,
 } from '@aws-sdk/lib-dynamodb';
-import type { SubscriptionId } from '@memorysmith/kernel';
+import { ulid, type SubscriptionId } from '@memorysmith/kernel';
 import type {
   PendingLink,
   ProjectedNote,
@@ -972,21 +972,48 @@ export class DynamoStructureProjection implements StructureProjection {
 }
 
 /**
- * The content index over `mv-discovery`, one item per note:
+ * How much text one part of a portrait carries, in UTF-16 code units. A
+ * DynamoDB item holds 400 KB, and a code unit is at most three bytes in UTF-8
+ * (a pair of them, four), so 60,000 units stay under 180 KB with room for the
+ * key and the attribute names. A note holds 1 MB (RN-KNW-025) and its portrait
+ * holds the body twice, so the largest note becomes about thirty-five parts.
+ */
+const PART_UNITS = 60_000;
+
+/**
+ * Cuts a string into pieces of at most `size` code units, never between the
+ * two halves of a surrogate pair: the pieces joined are the string, byte for
+ * byte, which is what keeps the positions the excerpt is cut by (§11.2).
+ */
+export function partsOf(text: string, size = PART_UNITS): string[] {
+  const parts: string[] = [];
+  let at = 0;
+  while (at < text.length) {
+    let cut = Math.min(at + size, text.length);
+    const last = text.charCodeAt(cut - 1);
+    if (cut < text.length && last >= 0xd800 && last <= 0xdbff) cut -= 1;
+    parts.push(text.slice(at, cut));
+    at = cut;
+  }
+  return parts.length === 0 ? [''] : parts;
+}
+
+/**
+ * The content index over `mv-discovery`. A note is a HEAD item and its PARTS:
  *
- *   TEXT#{noteId}   the searchable portrait: name, folder, headings, the body
- *                   normalized for matching and the body as written for the excerpt
+ *   TEXT#{noteId}                            name, folder, headings, facets, and
+ *                                            which generation of parts is whole
+ *   TEXT#{noteId}#{generation}#N{nnnn}       the normalized body, in order
+ *   TEXT#{noteId}#{generation}#O{nnnn}       the body as written, in order
  *
- * The whole notebook is read on every search. That is affordable because the
- * product caps a notebook at 2.000 notes (RN-KNW-010), roughly 8 MB, and it is
- * far simpler than an inverted index that would need to stay in step with
- * every write.
+ * It used to be one item carrying the body twice, and a DynamoDB item holds
+ * 400 KB: a note past about 200 KB never reached the search, and one that grew
+ * past it kept answering from the revision before (#135).
  *
- * `scanNotebook` walks EVERY page. The search this one replaced answered from the
- * first megabyte and dropped the rest without a word, which in a notebook of 8 MB
- * meant deciding over an eighth of it. A partial scan that claims to be whole
- * is worse than no search, so the loop below is not an optimization detail: it
- * is the correctness of the feature.
+ * A rewrite puts the parts of a NEW generation first and the head last, so the
+ * head only ever names parts that are all there; the parts of the generation it
+ * replaced go afterwards. A reader follows the head: a note whose parts are not
+ * all there is never answered as if it were whole.
  */
 export class DynamoContentIndex implements ContentIndex {
   constructor(
@@ -1000,6 +1027,34 @@ export class DynamoContentIndex implements ContentIndex {
   }
 
   async replaceNote(notebookId: string, note: IndexedNote): Promise<void> {
+    const generation = ulid();
+    const normalized = partsOf(note.normalized);
+    const original = partsOf(note.original);
+    const part = (kind: 'N' | 'O', index: number) =>
+      `TEXT#${note.noteId}#${generation}#${kind}${String(index).padStart(4, '0')}`;
+
+    // 1. The parts, each an item of its own and none of them the head.
+    const writes = [
+      ...normalized.map((text, index) => ({ SK: part('N', index), text })),
+      ...original.map((text, index) => ({ SK: part('O', index), text })),
+    ];
+    for (const batch of chunk(writes, 25)) {
+      await this.writeAll(
+        batch.map((each) => ({
+          PutRequest: {
+            Item: {
+              PK: this.pk(notebookId),
+              SK: each.SK,
+              entity: 'text-part',
+              noteId: note.noteId,
+              text: each.text,
+            },
+          },
+        })),
+      );
+    }
+
+    // 2. The head, which is what makes this generation the one a search reads.
     await this.db.send(
       new PutCommand({
         TableName: this.tableName,
@@ -1012,14 +1067,18 @@ export class DynamoContentIndex implements ContentIndex {
           folderId: note.folderId,
           folderName: note.folderName,
           sections: note.sections,
-          normalized: note.normalized,
-          original: note.original,
           facets: note.facets,
           aliases: note.aliases ?? [],
           facetKinds: note.facetKinds ?? {},
+          generation,
+          normalizedParts: normalized.length,
+          originalParts: original.length,
         },
       }),
     );
+
+    // 3. What the head no longer names.
+    await this.removeParts(notebookId, note.noteId, generation);
   }
 
   async removeNote(notebookId: string, noteId: string): Promise<void> {
@@ -1029,10 +1088,12 @@ export class DynamoContentIndex implements ContentIndex {
         Key: { PK: this.pk(notebookId), SK: `TEXT#${noteId}` },
       }),
     );
+    await this.removeParts(notebookId, noteId, null);
   }
 
   async scanNotebook(notebookId: string): Promise<IndexedNote[]> {
-    const notes: IndexedNote[] = [];
+    const heads: Item[] = [];
+    const parts = new Map<string, string>();
     let startKey: Record<string, unknown> | undefined;
 
     do {
@@ -1049,24 +1110,110 @@ export class DynamoContentIndex implements ContentIndex {
       );
 
       for (const item of (response.Items ?? []) as Item[]) {
-        notes.push({
-          noteId: String(item['noteId']),
-          name: String(item['name'] ?? ''),
-          folderId: String(item['folderId'] ?? ''),
-          folderName: String(item['folderName'] ?? ''),
-          sections: (item['sections'] as string[]) ?? [],
-          normalized: String(item['normalized'] ?? ''),
-          original: String(item['original'] ?? ''),
-          facets: (item['facets'] as Record<string, string[]>) ?? {},
-          // Absent on an item written before these were carried: the
-          // search answers without them until the projection is rebuilt.
-          aliases: (item['aliases'] as string[]) ?? [],
-          facetKinds: (item['facetKinds'] as Record<string, string>) ?? {},
-        });
+        if (item['entity'] === 'text-part') parts.set(String(item['SK']), String(item['text']));
+        else heads.push(item);
       }
       startKey = response.LastEvaluatedKey;
     } while (startKey);
 
+    const notes: IndexedNote[] = [];
+    for (const item of heads) {
+      const body = this.bodyOf(item, parts);
+      // A head whose parts are not all there is a rewrite in flight or a
+      // failed one, and answering from half a body would be a search that
+      // claims to be whole and is not.
+      if (!body) continue;
+      notes.push({
+        noteId: String(item['noteId']),
+        name: String(item['name'] ?? ''),
+        folderId: String(item['folderId'] ?? ''),
+        folderName: String(item['folderName'] ?? ''),
+        sections: (item['sections'] as string[]) ?? [],
+        normalized: body.normalized,
+        original: body.original,
+        facets: (item['facets'] as Record<string, string[]>) ?? {},
+        aliases: (item['aliases'] as string[]) ?? [],
+        facetKinds: (item['facetKinds'] as Record<string, string>) ?? {},
+      });
+    }
     return notes;
+  }
+
+  /** The body a head names, joined from its parts, or `null` when one is missing. */
+  private bodyOf(
+    head: Item,
+    parts: Map<string, string>,
+  ): { normalized: string; original: string } | null {
+    // A head written before the portrait was split carries the body itself.
+    if (head['generation'] === undefined) {
+      return {
+        normalized: String(head['normalized'] ?? ''),
+        original: String(head['original'] ?? ''),
+      };
+    }
+    const join = (kind: 'N' | 'O', count: number): string | null => {
+      const pieces: string[] = [];
+      for (let index = 0; index < count; index++) {
+        const key = `TEXT#${String(head['noteId'])}#${String(head['generation'])}#${kind}${String(index).padStart(4, '0')}`;
+        const piece = parts.get(key);
+        if (piece === undefined) return null;
+        pieces.push(piece);
+      }
+      return pieces.join('');
+    };
+    const normalized = join('N', Number(head['normalizedParts'] ?? 0));
+    const original = join('O', Number(head['originalParts'] ?? 0));
+    return normalized === null || original === null ? null : { normalized, original };
+  }
+
+  /** Every part of a note, or every part of a generation other than `keep`. */
+  private async removeParts(
+    notebookId: string,
+    noteId: string,
+    keep: string | null,
+  ): Promise<void> {
+    const stale: string[] = [];
+    let startKey: Record<string, unknown> | undefined;
+    do {
+      const response: {
+        Items?: Record<string, unknown>[] | undefined;
+        LastEvaluatedKey?: Record<string, unknown> | undefined;
+      } = await this.db.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+          ExpressionAttributeValues: { ':pk': this.pk(notebookId), ':prefix': `TEXT#${noteId}#` },
+          ProjectionExpression: 'SK',
+          ...(startKey ? { ExclusiveStartKey: startKey } : {}),
+        }),
+      );
+      for (const item of (response.Items ?? []) as Item[]) {
+        const sk = String(item['SK']);
+        if (keep === null || !sk.startsWith(`TEXT#${noteId}#${keep}#`)) stale.push(sk);
+      }
+      startKey = response.LastEvaluatedKey;
+    } while (startKey);
+
+    for (const batch of chunk(stale, 25)) {
+      await this.writeAll(
+        batch.map((sk) => ({ DeleteRequest: { Key: { PK: this.pk(notebookId), SK: sk } } })),
+      );
+    }
+  }
+
+  /** A batch write, sent again until DynamoDB has taken every request of it. */
+  private async writeAll(requests: Array<Record<string, unknown>>): Promise<void> {
+    let pending = requests;
+    for (let attempt = 0; pending.length > 0 && attempt < 8; attempt++) {
+      const answer = await this.db.send(
+        new BatchWriteCommand({ RequestItems: { [this.tableName]: pending as never } }),
+      );
+      pending = (answer.UnprocessedItems?.[this.tableName] as Array<Record<string, unknown>>) ?? [];
+      if (pending.length > 0)
+        await new Promise((resolve) => setTimeout(resolve, 50 * 2 ** attempt));
+    }
+    if (pending.length > 0) {
+      throw new Error(`The content index left ${pending.length} writes unprocessed`);
+    }
   }
 }

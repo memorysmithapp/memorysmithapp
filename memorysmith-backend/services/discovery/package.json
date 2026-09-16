@@ -19,7 +19,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:adapters": "vitest run --config vitest.adapters.config.ts"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1117.0",

@@ -946,13 +946,17 @@ The edge is written in both directions: a backlink becomes a `Query`, not a scan
 
 ### 11.2 Search
 
-The search is **literal over the text of the notebook**, answered from one item per note in `mv-discovery`:
+The search is **literal over the text of the notebook**, answered from one portrait per note in `mv-discovery`, a head and its parts:
 
 | Item | PK | SK |
 |---|---|---|
-| Searchable portrait | `S#{s}#NOTEBOOK#{v}` | `TEXT#{noteId}` |
+| Head of the portrait | `S#{s}#NOTEBOOK#{v}` | `TEXT#{noteId}` |
+| Part of the body, normalised | `S#{s}#NOTEBOOK#{v}` | `TEXT#{noteId}#{generation}#N{nnnn}` |
+| Part of the body, as written | `S#{s}#NOTEBOOK#{v}` | `TEXT#{noteId}#{generation}#O{nnnn}` |
 
-The item holds the name, the folder, the headings, the facets and the body **twice**: normalised for matching, and as it was written for the excerpt. Normalisation is done character by character, and each character contributes exactly the size it occupied, so a position in the normalised text is the same position in the original. That is what makes it possible to cut the excerpt out of the text the person wrote: an `NFD` over the whole string shifts every offset after the first accent, and the reader would get a passage cut a few characters off, or lowered prose nobody typed.
+**The body is split because an item is not large enough to hold it.** A DynamoDB item holds 400 KB and a note holds 1 MB (RN-KNW-025), and the portrait carries the body twice: as one item, a note past about 200 KB never reached the search, and one that grew past it went on answering from its last revision that fit. Each part carries at most 60,000 UTF-16 code units, never cut between the two halves of a surrogate pair, so the parts joined are the body byte for byte. **A rewrite writes the parts of a new generation first and the head last**, and the head names its generation and how many parts it has; the parts of the generation it replaced are deleted afterwards. A reader follows the head, and a note whose parts are not all there is left out of the answer rather than answered from half a body.
+
+The head holds the name, the folder, the headings and the facets, and the parts hold the body **twice**: normalised for matching, and as it was written for the excerpt. Normalisation is done character by character, and each character contributes exactly the size it occupied, so a position in the normalised text is the same position in the original. That is what makes it possible to cut the excerpt out of the text the person wrote: an `NFD` over the whole string shifts every offset after the first accent, and the reader would get a passage cut a few characters off, or lowered prose nobody typed.
 
 **The scan covers the whole notebook, and that is a choice, not a shortcut.** The ceiling is 2,000 notes per notebook (`software-vision.md` §14), around 8 MB, and at that size scanning costs 1,061 read units per query, something like US$ 0.00027. An inverted index would be cheaper per query and far more expensive to keep correct: every write would have to update the postings of every term, and the difference in money, at the declared ceiling, is cents per month. The comparison with the vector index that left is the whole argument:
 

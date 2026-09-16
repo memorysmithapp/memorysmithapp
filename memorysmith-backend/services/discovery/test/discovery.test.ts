@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { extractLinks } from '../src/domain/LinkExtractor.js';
 import { extractFacets, facetDelta } from '../src/domain/FacetExtractor.js';
 import { normalize } from '../src/domain/SearchQuery.js';
-import { DynamoContentIndex, DynamoFacetIndex } from '../src/adapters/aws.js';
+import { DynamoContentIndex, DynamoFacetIndex, partsOf } from '../src/adapters/aws.js';
 import {
   InMemoryContentIndex,
   InMemoryFacetIndex,
@@ -877,6 +877,101 @@ describe('Discovery queries', () => {
       query: '   ',
     });
     expect(refused.ok).toBe(false);
+  });
+});
+
+describe('A portrait is split into parts, and never read half', () => {
+  /** A table that applies what the index writes and answers its queries. */
+  function tableOf() {
+    const rows = new Map<string, Record<string, unknown>>();
+    const db = {
+      send: async (command: { constructor: { name: string }; input: Record<string, unknown> }) => {
+        const input = command.input;
+        switch (command.constructor.name) {
+          case 'PutCommand': {
+            const item = input['Item'] as Record<string, unknown>;
+            rows.set(String(item['SK']), item);
+            return {};
+          }
+          case 'DeleteCommand':
+            rows.delete(String((input['Key'] as { SK: string }).SK));
+            return {};
+          case 'BatchWriteCommand': {
+            const requests = Object.values(input['RequestItems'] as object)[0] as Array<
+              Record<string, { Item?: Record<string, unknown>; Key?: { SK: string } }>
+            >;
+            for (const request of requests) {
+              if (request['PutRequest']?.Item) {
+                rows.set(String(request['PutRequest'].Item['SK']), request['PutRequest'].Item);
+              }
+              if (request['DeleteRequest']?.Key) rows.delete(request['DeleteRequest'].Key.SK);
+            }
+            return {};
+          }
+          case 'QueryCommand': {
+            const prefix = (input['ExpressionAttributeValues'] as Record<string, string>)[
+              ':prefix'
+            ];
+            return {
+              Items: [...rows.values()]
+                .filter((item) => String(item['SK']).startsWith(prefix ?? ''))
+                .sort((a, b) => String(a['SK']).localeCompare(String(b['SK']))),
+            };
+          }
+          default:
+            throw new Error(`Unexpected command ${command.constructor.name}`);
+        }
+      },
+    };
+    return { rows, index: new DynamoContentIndex({ value: 'SUB' } as never, db as never, 't') };
+  }
+
+  const portrait = (noteId: string, body: string) => ({
+    noteId,
+    name: 'nota',
+    folderId: 'f1',
+    folderName: 'pasta',
+    sections: [],
+    normalized: normalize(body),
+    original: body,
+    facets: {},
+  });
+
+  it('cuts a body into parts that join back into the body, surrogate pairs whole', () => {
+    const body = `${'a'.repeat(9)}😀${'b'.repeat(10)}`;
+    const parts = partsOf(body, 10);
+    expect(parts.join('')).toBe(body);
+    for (const part of parts) expect(part.length).toBeLessThanOrEqual(10);
+  });
+
+  it('reads back a body of many parts whole, and drops the parts it replaced', async () => {
+    const { rows, index } = tableOf();
+    const large = 'palavra '.repeat(40_000);
+    await index.replaceNote(NOTEBOOK, portrait('n1', large));
+    await index.replaceNote(NOTEBOOK, portrait('n1', `${large}fim`));
+
+    const [read] = await index.scanNotebook(NOTEBOOK);
+    expect(read?.original).toBe(`${large}fim`);
+    const generations = new Set(
+      [...rows.keys()].filter((sk) => sk.startsWith('TEXT#n1#')).map((sk) => sk.split('#')[2]),
+    );
+    expect(generations.size).toBe(1);
+  });
+
+  it('never answers a note whose parts are not all there', async () => {
+    const { rows, index } = tableOf();
+    await index.replaceNote(NOTEBOOK, portrait('n1', 'palavra '.repeat(40_000)));
+    const one = [...rows.keys()].find((sk) => sk.startsWith('TEXT#n1#'));
+    rows.delete(one ?? '');
+
+    expect(await index.scanNotebook(NOTEBOOK)).toEqual([]);
+  });
+
+  it('removes every part of a note', async () => {
+    const { rows, index } = tableOf();
+    await index.replaceNote(NOTEBOOK, portrait('n1', 'palavra '.repeat(40_000)));
+    await index.removeNote(NOTEBOOK, 'n1');
+    expect(rows.size).toBe(0);
   });
 });
 

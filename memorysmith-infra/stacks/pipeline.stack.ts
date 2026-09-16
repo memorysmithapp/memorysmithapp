@@ -196,11 +196,11 @@ export class PipelineStack extends Stack {
       ? null
       : project('Adapters', [
           `export CONTENT_BUCKET=$(aws cloudformation describe-stacks --stack-name ${stackId(environment, 'Data')} --query "Stacks[0].Outputs[?OutputKey=='ContentBucketName'].OutputValue" --output text)`,
-          `export KNOWLEDGE_TABLE=${physicalName(environment, 'mv-knowledge')} ACCESS_TABLE=${physicalName(environment, 'mv-access')}`,
+          `export KNOWLEDGE_TABLE=${physicalName(environment, 'mv-knowledge')} ACCESS_TABLE=${physicalName(environment, 'mv-access')} DISCOVERY_TABLE=${physicalName(environment, 'mv-discovery')}`,
           'pnpm -r --if-present test:adapters',
         ]);
     if (adapters) {
-      const tables = ['mv-knowledge', 'mv-access'].map(
+      const tables = ['mv-knowledge', 'mv-access', 'mv-discovery'].map(
         (base) =>
           `arn:${this.partition}:dynamodb:${this.region}:${this.account}:table/${physicalName(environment, base)}`,
       );
@@ -221,9 +221,25 @@ export class PipelineStack extends Stack {
       );
       adapters.addToRolePolicy(
         new iam.PolicyStatement({
-          actions: ['s3:GetObject', 's3:GetObjectVersion', 's3:PutObject'],
+          // Delete too: the case of the purge destroys what it wrote, under a
+          // subscription of its own, in staging only (RN-KNW-047).
+          actions: [
+            's3:GetObject',
+            's3:GetObjectVersion',
+            's3:PutObject',
+            's3:DeleteObject',
+            's3:DeleteObjectVersion',
+          ],
           resources: [
             `arn:${this.partition}:s3:::${stackId(environment, 'Data').toLowerCase()}-contentbucket*/*`,
+          ],
+        }),
+      );
+      adapters.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ['s3:ListBucketVersions'],
+          resources: [
+            `arn:${this.partition}:s3:::${stackId(environment, 'Data').toLowerCase()}-contentbucket*`,
           ],
         }),
       );
