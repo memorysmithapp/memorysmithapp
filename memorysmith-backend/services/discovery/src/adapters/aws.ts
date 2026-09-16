@@ -894,6 +894,25 @@ export class DynamoStructureProjection implements StructureProjection {
       );
     }
   }
+
+  /** The whole portrait of the notebook: its name and every folder of it. */
+  async removeNotebook(notebookId: string): Promise<void> {
+    const response = await this.db.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+        ExpressionAttributeValues: { ':pk': this.pk(notebookId), ':prefix': 'S' },
+      }),
+    );
+    for (const item of (response.Items ?? []) as Item[]) {
+      await this.db.send(
+        new DeleteCommand({
+          TableName: this.tableName,
+          Key: { PK: this.pk(notebookId), SK: String(item['SK']) },
+        }),
+      );
+    }
+  }
 }
 
 /**

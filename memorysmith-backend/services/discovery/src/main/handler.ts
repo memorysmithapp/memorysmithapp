@@ -106,11 +106,34 @@ export async function handler(event: QueueEvent): Promise<void> {
         });
         break;
 
-      case 'FolderRemoved':
+      case 'FolderRemoved': {
+        const removedFolderIds = (envelope.payload['removedFolderIds'] as string[]) ?? [];
+        // The notes first: what says a note is invalid is the folder above it,
+        // and the folders are what the next line forgets (RN-KNW-046).
+        await projectors.note.onFoldersRemoved(String(payload['notebookId']), removedFolderIds);
         await projectors.structure.onFoldersRemoved(
           String(payload['notebookId']),
-          (envelope.payload['removedFolderIds'] as string[]) ?? [],
+          removedFolderIds,
         );
+        break;
+      }
+
+      case 'NotebookDeleted':
+        await projectors.note.onNotebookDeleted(String(payload['notebookId']));
+        await projectors.structure.onNotebookDeleted(String(payload['notebookId']));
+        break;
+
+      case 'NotePurged':
+        // The purge is delivered at least once and arrives after the deletion
+        // that caused it, so this is almost always a no-op. It is here because
+        // "almost always" is not a guarantee: a projection written between the
+        // deletion and the purge would otherwise stay.
+        await projectors.note.onDeleted({
+          notebookId: String(payload['notebookId']),
+          noteId: String(payload['noteId']),
+          folderId: String(payload['folderId']),
+          contentRef: null,
+        });
         break;
 
       case 'NoteCreated':

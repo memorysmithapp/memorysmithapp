@@ -86,7 +86,7 @@ The technical counterpart of the product principles (`software-vision.md` §2). 
 | **PE1** | **The domain does not know AWS** | `domain/` and `application/` with not a single SDK `import`, with the dependency rule checked in CI (§5.5) |
 | **PE2** | **The subscription is a type, not a convention** | Key builders accept only the `SubscriptionId` value object, which can only be created from the JWT claim (§8) |
 | **PE3** | **The S3 key is entirely opaque** | The key encodes only a `ContentId`; renaming, moving and reordering have nothing in it to touch (§9.2) |
-| **PE4** | **The past is immutable** | An IAM `Deny` on `UpdateItem` and `DeleteItem` on the audit table; no `purge` on the content port (§12) |
+| **PE4** | **The past is immutable, and what is deleted is destroyed** | An IAM `Deny` on `UpdateItem` and `DeleteItem` on the audit table. Destroying content is a port of its own that only the purge worker holds, and an IAM policy only its role carries (§12.4) |
 | **PE5** | **Discovery is derived** | Projections rebuildable from the events and the `.md` files; none of them is read by the core (§11) |
 | **PE6** | **No anonymous mutation** | `Authorship` is a required argument of every aggregate operation that changes state (§6.1) |
 | **PE7** | **An AWS error never reaches the domain** | The adapter translates an infrastructure exception into a typed `DomainError` (§15) |
@@ -534,7 +534,7 @@ export interface ContentStore {
 export interface EventPublisher { publish(events: DomainEvent[]): Promise<void>; }
 ```
 
-**There is no `purge` on the `ContentStore` port, and the absence is deliberate.** No domain use case may destroy a revision: if one could, deleting a note would silently break the historical reconstruction §12.3 promises. Nothing else destroys one either: there is no administrative path to it anywhere in the product (§12.4, RN-AUD-006).
+**There is still no `purge` on the `ContentStore` port, and the absence is still deliberate.** Every use case of Knowledge holds a `ContentStore`, so a `purge` on it would be callable from all of them, and "no use case destroys a revision" would go back to being a rule somebody has to remember. What destroys one is `ContentPurger`, a port of two lines that nothing but the purge worker is given (§12.4, RN-KNW-047). IAM says the same thing from the other side: the role of that worker is the only principal allowed to delete a version of an object of the content bucket, and the role of the API is granted read and put and not delete.
 
 ### 7.2 Adapters
 
@@ -580,6 +580,8 @@ export class DynamoNotebookRepository implements NotebookRepository {
 The composition root instantiates the repositories **per request**, with the subscription coming from the token. There is no code path that builds a repository without a subscription: the compiler rejects it. That trades a rule depending on code review for one depending on `tsc`.
 
 **3. The origin of the `SubscriptionId`: always the claim, never the request.** The `subscriptionId` comes out of the JWT (a custom claim, injected by the Cognito *pre-token-generation* trigger) and **never** out of the path, the query or the body (RN-SUB-002). That is what closes the IDOR door: asking for `/notebooks/{id}` of another subscription answers `404`, because the assembled key does not even get there.
+
+> **A consumer of the outbox takes it from the envelope, and that is not an exception.** The rule is "never from the request", and the discovery projector and the purge worker (§12.4) serve no request: there is no path, no query and no body, and no token either. What they have is an event the core wrote inside the transaction that changed the state, and the subscription on it was put there by an aggregate that could only have been built from a claim. It is the same subscription, one hop later. What would break the rule is a consumer that took an identifier from the payload of an event and trusted it as a subscription; neither does.
 
 > **An extension point.** For customers requiring strong cryptographic isolation, the next step is an STS credential per request with `dynamodb:LeadingKeys` and an S3 prefix in the *session policy*, that is isolation in IAM and not in the application. The `SubscriptionContext` is already where the credential would be resolved; wiring it is configuration, not a redesign.
 
@@ -834,7 +836,7 @@ Content first, pointer afterwards:
                                                   + Put the event into the outbox, with the ContentRef inside
 ```
 
-**The order decides which failure is accepted.** If step 3 fails, what is left in S3 is a blob nobody references: invisible, harmless, collected by the weekly orphan job. The reverse order would produce a pointer to content that does not exist, an error the user sees, in the middle of the hot path.
+**The order decides which failure is accepted.** If step 3 fails, what is left in S3 is a blob nobody references: invisible, harmless, and **not collected** — there is no job that collects it, and the documents used to promise one that was never written. The reverse order would produce a pointer to content that does not exist, an error the user sees, in the middle of the hot path. The purge of §12.4 runs the opposite order for the opposite reason: it destroys the content first and the item second, because there the failure worth accepting is an item pointing at nothing, and the one worth avoiding is a byte nothing can name again.
 
 The `ContentRef` travels **inside the event, in the same transaction**. Without that, `svc-audit` would record "the note changed" without being able to show into what, and `svc-discovery` would reindex "the current version" instead of the version that triggered the event, which under concurrency is not the same thing.
 
@@ -1080,13 +1082,30 @@ Reconstructing the note on a date:
 
 No query to Knowledge is needed: **the present lives in `mv-knowledge`, the past lives in `mv-audit`**, and the event brings the `(contentId, versionId)` pair that is enough to fetch the byte. Since the key is opaque, moving or renaming the note afterwards does not affect the reconstruction: the slot is the same, and the revision history stays in a single S3 object instead of spread across objects created on every move.
 
-### 12.4 Deleting is not destroying
+**Reconstruction ends where the purge begins.** A note that was deleted is destroyed, revision by revision, and step 2 then finds nothing: the trail keeps every event of that note, the purge included, and their content references point at content that no longer exists (RN-AUD-010). That is the price of RN-KNW-047, and it is paid on purpose — bytes a subscription threw away are bytes it would go on paying for. What is NOT purged is the superseded revision of a note still in use: editing a note destroys nothing, and only the history of a note somebody deleted stops being readable.
+
+### 12.4 Deleting destroys, in the background
 
 **`NoteDeleted` writes the mark and nothing else.** The `NOTE` item gains `deletedAt` and `deletedBy`, and **loses the key attributes of `GSI2`**: since the index is sparse (§9.3), the note disappears from the listings without a line of filtering anywhere. Nothing else is written: there is no guard to release, because a notebook reserves no name (RN-KNW-030, removed). **The mark is not a second state the note can come back from**, it is the state between the deletion and the purge, and nothing clears it: deleting is definitive (RN-KNW-029) and restoring is gone with the rule it stood on.
 
 **Invalidity is inherited, and it costs nothing to declare** (RN-KNW-046). Deleting a notebook writes `deletedAt` on its `META` item; removing a folder writes the tree. Not one item under either is touched, and every one of them is out of reach from that instant, because what makes a note reachable is the tree and the tree no longer shows it. Every use case that reaches a note checks the chain against the tree it has already loaded, which costs no read: the tree came back in the same `Query` that authorised the request (§9.3).
 
-**There is no path that destroys content.** That is why `purge` does not exist on the `ContentStore` port (§7.1), and the absence is declared in the code itself as deliberate. Deleting hides the note and preserves the byte: no port, no route and no administrative act destroys what has already been written (RN-AUD-006, and RN-AUD-007, removed).
+**What a deletion invalidated stops existing** (RN-KNW-047). A queue fed by the deletion events themselves feeds a worker in Knowledge, and for each unit it destroys **every revision of its content first and its item second**, with the purge event in the same transaction as the item.
+
+**That order is chosen, and it is the opposite of §10.5 for the opposite reason.** A retry after a failure between the two finds the item and does the work again; the reverse order would leave bytes nothing in any table can name, which is the one outcome nothing later could repair. An item whose content is already gone is an item that was already invalid, so the window between the two writes shows nobody anything.
+
+Four properties make it safe to run:
+
+| Property | How |
+|---|---|
+| **It never races the write path** | The queue delivers with a delay far longer than the window of §10.2, so a note that landed in a folder at the instant of its removal is in the table before the walk |
+| **It is idempotent** | Delivery is at least once. Destroying a revision that is gone destroys nothing, deleting an item that is gone deletes nothing, and a second pass answers that it purged nothing |
+| **It is bounded** | A subtree larger than one invocation continues in a message of its own, which the worker sends to its own queue. It re-reads the partition instead of carrying a cursor: what it already purged is gone, so the next pass simply finds less |
+| **It is isolated** | The subscription comes from the ENVELOPE, which is the case §8.2 makes for a consumer of the outbox, and the authorship from the deletion event, so the trail records the purge under whoever asked for it (rule 7, RN-AUD-010) |
+
+**What is not purged, and on purpose:** the outbox items and the dedup markers of the partition, which carry a TTL of their own — taking an outbox item away before the relay published it would lose the very events the purge is writing; the superseded revisions of a note still in use (§9.2); and the blob of a write that failed between steps 1 and 3 of §10.5, which no job collects.
+
+**The audit trail keeps everything** (rule 6). It is append-only by IAM, the purge writes to it like any other event, and the content references of a purged unit point from then on at content that does not exist (§12.3).
 
 ---
 
@@ -1347,7 +1366,7 @@ The fixed cost of the whole DNS and TLS layer is therefore the hosted zone: arou
 
 | Job | Frequency | What it does |
 |---|---|---|
-| S3 orphan collection | Weekly | Collects unreferenced blobs, born from a failure between steps 1 and 3 of §10.5 |
+| Content purge | On every deletion | Destroys what a deletion invalidated: every revision in S3, the items in `mv-knowledge` and the projections (§12.4, RN-KNW-047) |
 | `Position` rebalancing | On demand | Redistributes fractional keys that passed 12 characters (§6.5) |
 
 **Mandatory alarms per Lambda:** error rate, p99 duration, throttles and the depth of the dead-letter queue of the outbox relay.

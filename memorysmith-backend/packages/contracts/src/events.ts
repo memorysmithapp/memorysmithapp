@@ -60,6 +60,11 @@ export const domainEventTypeSchema = z.enum([
   // Retired in 0.6.0 with restoring, which lost its object when deleting
   // became definitive; kept so an event already written stays parseable.
   'NotebookRestored',
+  // What the purge destroyed, one event per unit (RN-KNW-047, RN-AUD-010).
+  'NotebookPurged',
+  'GuidancePurged',
+  'TemplatePurged',
+  'NotePurged',
   'GuidanceUpdated',
   'GuidanceDeleted',
   'FolderAdded',
@@ -257,10 +262,17 @@ export const folderReorderedPayload = z.object({
   position: positionSchema,
 });
 
+/**
+ * `noteCount` is what the counters of the removed subtree said at the moment
+ * of the removal (§10.3). It is there because the notebook counter has to drop
+ * by it: nothing under the folder is written, so no note event will say so.
+ * Eventually consistent in, eventually consistent out.
+ */
 export const folderRemovedPayload = z.object({
   notebookId: ulidSchema,
   folderId: ulidSchema,
   removedFolderIds: z.array(ulidSchema),
+  noteCount: z.number().int().nonnegative().optional(),
 });
 
 export const templateUpdatedPayload = z.object({
@@ -272,6 +284,34 @@ export const templateUpdatedPayload = z.object({
 export const templateDeletedPayload = z.object({
   notebookId: ulidSchema,
   folderId: ulidSchema,
+});
+
+/**
+ * The purge destroyed a unit: every revision of its content in the store, and
+ * its item in the table (RN-KNW-047). The envelope carries the `ContentRef`
+ * that was live, so the trail keeps naming what stopped existing, and a
+ * `storageDelta` that is negative only when those bytes were still counted —
+ * a unit deleted on its own freed them at the deletion, and freeing them
+ * twice would make the counter of the subscription lie.
+ */
+export const notePurgedPayload = z.object({
+  notebookId: ulidSchema,
+  noteId: ulidSchema,
+  folderId: ulidSchema,
+});
+
+export const templatePurgedPayload = z.object({
+  notebookId: ulidSchema,
+  folderId: ulidSchema,
+});
+
+export const guidancePurgedPayload = z.object({
+  notebookId: ulidSchema,
+});
+
+/** The last event of a notebook: nothing of it is left in any table. */
+export const notebookPurgedPayload = z.object({
+  notebookId: ulidSchema,
 });
 
 /**
@@ -377,6 +417,10 @@ export const eventPayloadSchemas = {
   FolderRemoved: folderRemovedPayload,
   TemplateUpdated: templateUpdatedPayload,
   TemplateDeleted: templateDeletedPayload,
+  NotePurged: notePurgedPayload,
+  TemplatePurged: templatePurgedPayload,
+  GuidancePurged: guidancePurgedPayload,
+  NotebookPurged: notebookPurgedPayload,
   NoteCreated: noteCreatedPayload,
   NoteUpdated: noteUpdatedPayload,
   NoteReordered: noteReorderedPayload,

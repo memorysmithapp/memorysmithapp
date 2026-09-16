@@ -85,16 +85,32 @@ export function callsOf(entries: readonly PutEventsRequestEntry[]): PutEventsReq
   return calls;
 }
 
-/** Which events move a counter, and in which direction. */
-function counterDelta(type: string): number {
+/**
+ * Which events move the note counters, by how much, and whether the counter of
+ * ONE FOLDER moves with the counter of the notebook.
+ *
+ * `FolderRemoved` is the one that moves the notebook counter alone: the folder
+ * counters of the removed subtree were deleted by the same write, and
+ * recreating one to decrement it would leave an orphan item holding a negative
+ * number. It carries how many notes the subtree held, because nothing under it
+ * was written and no note event will ever say those notes are gone.
+ */
+function counterDelta(
+  type: string,
+  payload: Record<string, unknown>,
+): {
+  notes: number;
+  folder: boolean;
+} {
   switch (type) {
     case 'NoteCreated':
-    case 'NoteRestored':
-      return 1;
+      return { notes: 1, folder: true };
     case 'NoteDeleted':
-      return -1;
+      return { notes: -1, folder: true };
+    case 'FolderRemoved':
+      return { notes: -Number(payload['noteCount'] ?? 0), folder: false };
     default:
-      return 0;
+      return { notes: 0, folder: false };
   }
 }
 
@@ -162,13 +178,13 @@ export class OutboxRelay {
     }
 
     for (const [index, envelope] of envelopes.entries()) {
-      const notes = counterDelta(envelope.type);
+      const { notes, folder } = counterDelta(envelope.type, envelope.payload);
       const bytes = envelope.storageDelta;
       // An event that moves neither counter needs no transaction, and needs no
       // SEEN item either: there is nothing to apply twice.
       if (notes === 0 && bytes === 0) continue;
       const item = events[index] as Record<string, unknown>;
-      await this.applyCounters(String(item['PK']), envelope, notes, bytes);
+      await this.applyCounters(String(item['PK']), envelope, notes, bytes, folder);
     }
 
     return { published: envelopes.length };
@@ -191,8 +207,9 @@ export class OutboxRelay {
     },
     notes: number,
     bytes: number,
+    countsFolder: boolean,
   ): Promise<void> {
-    const folderId = String(envelope.payload['folderId'] ?? '');
+    const folderId = countsFolder ? String(envelope.payload['folderId'] ?? '') : '';
 
     const occurredAt = Instant.fromISO(envelope.occurredAt);
     const ttl = occurredAt.ok
@@ -212,24 +229,24 @@ export class OutboxRelay {
     ];
 
     if (notes !== 0 && folderId) {
-      writes.push(
-        {
-          Update: {
-            TableName: this.deps.tableName,
-            Key: { PK: partition, SK: `FSTAT#${folderId}` },
-            UpdateExpression: 'ADD noteCount :delta SET updatedAt = :at',
-            ExpressionAttributeValues: { ':delta': notes, ':at': envelope.occurredAt },
-          },
+      writes.push({
+        Update: {
+          TableName: this.deps.tableName,
+          Key: { PK: partition, SK: `FSTAT#${folderId}` },
+          UpdateExpression: 'ADD noteCount :delta SET updatedAt = :at',
+          ExpressionAttributeValues: { ':delta': notes, ':at': envelope.occurredAt },
         },
-        {
-          Update: {
-            TableName: this.deps.tableName,
-            Key: { PK: partition, SK: 'FSTAT' },
-            UpdateExpression: 'ADD noteCount :delta SET updatedAt = :at',
-            ExpressionAttributeValues: { ':delta': notes, ':at': envelope.occurredAt },
-          },
+      });
+    }
+    if (notes !== 0) {
+      writes.push({
+        Update: {
+          TableName: this.deps.tableName,
+          Key: { PK: partition, SK: 'FSTAT' },
+          UpdateExpression: 'ADD noteCount :delta SET updatedAt = :at',
+          ExpressionAttributeValues: { ':delta': notes, ':at': envelope.occurredAt },
         },
-      );
+      });
     }
 
     if (bytes !== 0) {

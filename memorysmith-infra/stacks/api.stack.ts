@@ -11,8 +11,11 @@ import { Duration, Stack, type StackProps } from 'aws-cdk-lib';
 import { HttpApi, CorsHttpMethod, DomainName, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpIamAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import { Rule } from 'aws-cdk-lib/aws-events';
+import { SqsQueue } from 'aws-cdk-lib/aws-events-targets';
+import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { StartingPosition } from 'aws-cdk-lib/aws-lambda';
-import { DynamoEventSource, SqsDlq } from 'aws-cdk-lib/aws-lambda-event-sources';
+import { DynamoEventSource, SqsDlq, SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Alarm, ComparisonOperator, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
 import { ARecord, RecordTarget, type IHostedZone } from 'aws-cdk-lib/aws-route53';
@@ -36,6 +39,14 @@ const backend = join(here, '..', '..', 'memorysmith-backend');
  * svc-agent may invoke it.
  */
 export const CONNECTOR_BINDING_ROUTE = '/access/connector-bindings';
+
+/**
+ * How long a deletion waits before the purge walks what it invalidated. It is
+ * far longer than the window of section 10.2, which is the point: a note
+ * written into a folder at the instant of its removal has to be in the table
+ * before the walk, or its bytes would be the one thing a deletion left behind.
+ */
+export const PURGE_DELAY = Duration.minutes(1);
 
 export interface ApiStackProps extends StackProps {
   readonly environment: EnvironmentConfig;
@@ -83,7 +94,14 @@ export class ApiStack extends Stack {
     props.data.accessTable.table.grantReadWriteData(api.function);
     props.data.knowledgeTable.table.grantReadWriteData(api.function);
     props.data.discoveryTable.table.grantReadWriteData(api.function);
-    props.data.contentBucket.grantReadWrite(api.function);
+    /**
+     * Read and put, and deliberately NOT delete. `grantReadWrite` carries
+     * `s3:DeleteObject*`, which includes deleting a version, and only ONE
+     * principal in this system may do that: the purge worker below
+     * (RN-KNW-047). The API writes revisions and never destroys one.
+     */
+    props.data.contentBucket.grantRead(api.function);
+    props.data.contentBucket.grantPut(api.function);
     // The API READS the trail and can never write it: the Deny travels with
     // the grant (PE4).
     props.data.auditTable.grantRead(api.function);
@@ -121,6 +139,99 @@ export class ApiStack extends Stack {
     new Alarm(this, 'RelayDeadLetterDepth', {
       alarmDescription: 'Outbox relay: messages in the dead-letter queue',
       metric: relayDlq.metricApproximateNumberOfMessagesVisible({ period: Duration.minutes(5) }),
+      threshold: 1,
+      evaluationPeriods: 1,
+      comparisonOperator: ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+      treatMissingData: TreatMissingData.NOT_BREACHING,
+    });
+
+    // ---- The purge ----------------------------------------------------------
+
+    /**
+     * What a deletion invalidated stops existing (RN-KNW-047). The queue is
+     * fed by the deletion events themselves and delivers with a DELAY, which
+     * is what closes the window of section 10.2: a note that landed in a
+     * folder at the instant of its removal is already in the table when the
+     * worker walks it.
+     */
+    const purgeDlq = new Queue(this, 'PurgeDeadLetter', {
+      queueName: physicalName(props.environment, 'mv-purge-dlq'),
+      retentionPeriod: Duration.days(14),
+    });
+
+    const purgeQueue = new Queue(this, 'PurgeQueue', {
+      queueName: physicalName(props.environment, 'mv-purge'),
+      deliveryDelay: PURGE_DELAY,
+      // Longer than the timeout of the worker, or the same message is
+      // delivered again while the first invocation is still purging.
+      visibilityTimeout: Duration.minutes(16),
+      deadLetterQueue: { queue: purgeDlq, maxReceiveCount: 5 },
+    });
+
+    new Rule(this, 'DeletionsToPurge', {
+      eventBus: props.data.eventBus,
+      description: 'Every deletion feeds the purge of what it invalidated.',
+      eventPattern: {
+        source: ['memorysmith.knowledge'],
+        detailType: [
+          'NoteDeleted',
+          'TemplateDeleted',
+          'GuidanceDeleted',
+          'FolderRemoved',
+          'NotebookDeleted',
+        ],
+      },
+      targets: [new SqsQueue(purgeQueue)],
+    });
+
+    const purge = new ServiceLambda(this, 'ContentPurge', {
+      entry: join(backend, 'apps', 'core-monolith', 'src', 'purge.handler.ts'),
+      description: 'Destroys the content and the items a deletion invalidated.',
+      environment: {
+        KNOWLEDGE_TABLE: props.data.knowledgeTable.table.tableName,
+        CONTENT_BUCKET: props.data.contentBucket.bucketName,
+        PURGE_QUEUE_URL: purgeQueue.queueUrl,
+      },
+      // A subtree larger than one invocation continues in a new message, so
+      // the ceiling is what one message should hold open and not what a
+      // notebook holds.
+      timeout: Duration.minutes(15),
+      latencyAlarm: false,
+    });
+
+    // One message at a time: each carries a whole deletion, and a batch would
+    // make one slow purge hold up four others.
+    purge.function.addEventSource(new SqsEventSource(purgeQueue, { batchSize: 1 }));
+    props.data.knowledgeTable.table.grantReadWriteData(purge.function);
+    // What did not fit in one invocation carries on in a message of its own.
+    purgeQueue.grantSendMessages(purge.function);
+    props.data.contentBucket.grantRead(purge.function);
+
+    /**
+     * The one policy in the system that destroys a byte. It is written by hand
+     * rather than taken from a grant helper, because `grantDelete` and
+     * `grantReadWrite` hand out more than this and to more principals than
+     * this one: listing the versions of an object and deleting them belongs to
+     * this role and to no other.
+     */
+    purge.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['s3:DeleteObject', 's3:DeleteObjectVersion'],
+        resources: [props.data.contentBucket.arnForObjects('*')],
+      }),
+    );
+    purge.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['s3:ListBucketVersions'],
+        resources: [props.data.contentBucket.bucketArn],
+      }),
+    );
+
+    // A message in this queue is content that was deleted and still exists,
+    // which is a promise of the product left unkept.
+    new Alarm(this, 'PurgeDeadLetterDepth', {
+      alarmDescription: 'Content purge: messages in the dead-letter queue',
+      metric: purgeDlq.metricApproximateNumberOfMessagesVisible({ period: Duration.minutes(5) }),
       threshold: 1,
       evaluationPeriods: 1,
       comparisonOperator: ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,

@@ -484,6 +484,10 @@ export class Notebook {
       notebookId: this.id.value,
       folderId: id.value,
       removedFolderIds: removed.map((each) => each.value),
+      // What the counters said the subtree held. Nothing under the folder is
+      // written, so no note event will ever say these notes are gone, and the
+      // notebook counter has to drop by this number (section 10.3).
+      noteCount: subtree.reduce((total, each) => total + this.noteCountOf(each.id), 0),
     });
     return ok(removed);
   }

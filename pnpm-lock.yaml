@@ -51,6 +51,9 @@ importers:
       '@aws-sdk/client-s3':
         specifier: ^3.1117.0
         version: 3.1117.0
+      '@aws-sdk/client-sqs':
+        specifier: ^3.1117.0
+        version: 3.1132.0
       '@aws-sdk/lib-dynamodb':
         specifier: ^3.1117.0
         version: 3.1117.0(@aws-sdk/client-dynamodb@3.1117.0)
@@ -441,6 +444,10 @@ packages:
     resolution: {integrity: sha512-QSAsbzEoF5fEwXWM5AfcuFQsN8C0lDZkiIHHmKVmTWR+tCZDpOh9qtmW9heKVj2KQ6f4WwyM1ZLvUZTR0P3ujQ==}
     engines: {node: '>=20.0.0'}
 
+  '@aws-sdk/client-sqs@3.1132.0':
+    resolution: {integrity: sha512-C9XBAhAlEJlksBYrS4Wsok5Cknr11AvY37TSR3fIYSD+xpSEvyRPIG4EC6vgRFQzvMD7T1CWWOGIZOGKruKjiQ==}
+    engines: {node: '>=20.0.0'}
+
   '@aws-sdk/client-sts@3.1131.0':
     resolution: {integrity: sha512-k9RyorL46RUbvnOjFF3ogGvrK79i229zP6C5+wGPYqNvohw/eomC0DRSOntIc28nVYcfirlJuubPPGZHh9TGUA==}
     engines: {node: '>=20.0.0'}
@@ -537,6 +544,10 @@ packages:
 
   '@aws-sdk/middleware-sdk-s3@3.972.75':
     resolution: {integrity: sha512-wMIsNumRVKaNMKhvU/s9VrdEwE8S6gSzXp4RygFG5BEMnGkkXf8cjh8zf7cKJBpUDpqTWqwbz5isEgp9rH6Lng==}
+    engines: {node: '>=20.0.0'}
+
+  '@aws-sdk/middleware-sdk-sqs@3.972.42':
+    resolution: {integrity: sha512-D/O6iHAqlm0b430vIGewanSsr5RzaWbSDFlHYdKLWlZb4kaMKBmb44ReNHAFEKj5tNRY8pysw0qfciosB/VcJg==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/nested-clients@3.997.44':
@@ -3407,6 +3418,18 @@ snapshots:
       '@smithy/types': 4.17.2
       tslib: 2.8.1
 
+  '@aws-sdk/client-sqs@3.1132.0':
+    dependencies:
+      '@aws-sdk/core': 3.978.0
+      '@aws-sdk/credential-provider-node': 3.972.83
+      '@aws-sdk/middleware-sdk-sqs': 3.972.42
+      '@aws-sdk/types': 3.974.5
+      '@smithy/core': 3.33.3
+      '@smithy/fetch-http-handler': 5.7.2
+      '@smithy/node-http-handler': 4.11.3
+      '@smithy/types': 4.17.2
+      tslib: 2.8.1
+
   '@aws-sdk/client-sts@3.1131.0':
     dependencies:
       '@aws-sdk/core': 3.978.0
@@ -3642,6 +3665,13 @@ snapshots:
     dependencies:
       '@aws-sdk/core': 3.978.0
       '@aws-sdk/signature-v4-multi-region': 3.996.46
+      '@aws-sdk/types': 3.974.5
+      '@smithy/core': 3.33.3
+      '@smithy/types': 4.17.2
+      tslib: 2.8.1
+
+  '@aws-sdk/middleware-sdk-sqs@3.972.42':
+    dependencies:
       '@aws-sdk/types': 3.974.5
       '@smithy/core': 3.33.3
       '@smithy/types': 4.17.2

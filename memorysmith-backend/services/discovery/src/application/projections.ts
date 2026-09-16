@@ -54,6 +54,8 @@ export interface StructureProjection {
     folder: { folderId: string; name: string; description: string; parentFolderId: string | null },
   ): Promise<void>;
   removeFolders(notebookId: string, folderIds: string[]): Promise<void>;
+  /** The notebook is gone: its whole portrait goes with it (RN-DSC-013). */
+  removeNotebook(notebookId: string): Promise<void>;
 }
 
 /** Reads one revision of content, by the ref the event carried. */
@@ -164,6 +166,42 @@ export class ProjectNote {
   }
 
   /**
+   * Every note of these folders leaves the projections, because a note whose
+   * folder was removed is invalid (RN-KNW-046) and what leaves the listing
+   * leaves the search (RN-DSC-013).
+   *
+   * Which notes those are is read from the index itself: Discovery is never
+   * consulted by the core and never consults it, so the portrait it keeps is
+   * the only place it can ask. The folders of the event are removed from the
+   * structure by `ProjectStructure`; this is about the notes under them.
+   */
+  async onFoldersRemoved(notebookId: string, folderIds: readonly string[]): Promise<void> {
+    const removed = new Set(folderIds);
+    const indexed = await this.deps.index.scanNotebook(notebookId);
+    for (const note of indexed) {
+      if (!removed.has(note.folderId)) continue;
+      await this.onDeleted({
+        notebookId,
+        noteId: note.noteId,
+        folderId: note.folderId,
+        contentRef: null,
+      });
+    }
+  }
+
+  /** The notebook is gone, and so is every note it held. */
+  async onNotebookDeleted(notebookId: string): Promise<void> {
+    for (const note of await this.deps.index.scanNotebook(notebookId)) {
+      await this.onDeleted({
+        notebookId,
+        noteId: note.noteId,
+        folderId: note.folderId,
+        contentRef: null,
+      });
+    }
+  }
+
+  /**
    * A cross-notebook move prunes the edges in the origin notebook (RN-DSC-006) and
    * re-resolves the outgoing ones against the slugs of the destination.
    */
@@ -194,5 +232,9 @@ export class ProjectStructure {
 
   async onFoldersRemoved(notebookId: string, folderIds: string[]): Promise<void> {
     await this.structure.removeFolders(notebookId, folderIds);
+  }
+
+  async onNotebookDeleted(notebookId: string): Promise<void> {
+    await this.structure.removeNotebook(notebookId);
   }
 }

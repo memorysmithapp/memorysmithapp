@@ -59,6 +59,16 @@ export const KNOWLEDGE_EVENT_TYPES = [
   'NotebookDeleted',
   /** RETIRED in 0.6.0 with restoring; kept so the trail stays parseable. */
   'NotebookRestored',
+  /**
+   * What the purge destroyed, one event per unit (RN-KNW-047, RN-AUD-010).
+   * Each carries the `ContentRef` that was live and the bytes it freed, and
+   * each is recorded under the authorship of whoever deleted the unit above
+   * it. They are the last thing the trail ever hears about that unit.
+   */
+  'NotebookPurged',
+  'GuidancePurged',
+  'TemplatePurged',
+  'NotePurged',
   'GuidanceUpdated',
   'GuidanceDeleted',
   'FolderAdded',

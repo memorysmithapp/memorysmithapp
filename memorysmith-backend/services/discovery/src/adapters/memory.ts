@@ -342,6 +342,10 @@ export class InMemoryStructureProjection implements StructureProjection {
   async removeFolders(notebookId: string, folderIds: string[]): Promise<void> {
     for (const folderId of folderIds) this.notebooks.get(notebookId)?.folders.delete(folderId);
   }
+
+  async removeNotebook(notebookId: string): Promise<void> {
+    this.notebooks.delete(notebookId);
+  }
 }
 
 /** The note catalogue the health and lexical search read from. */

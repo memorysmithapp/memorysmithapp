@@ -72,7 +72,9 @@ export class ProjectionsStack extends Stack {
 
     new Rule(this, 'KnowledgeEventsToDiscovery', {
       eventBus: props.data.eventBus,
-      description: 'Note and folder events feed the three discovery projections.',
+      description:
+        'Note, folder and notebook events feed the three discovery projections, ' +
+        'deletions included.',
       eventPattern: {
         source: ['memorysmith.knowledge'],
         detailType: [
@@ -83,11 +85,14 @@ export class ProjectionsStack extends Stack {
           'FolderDescribed',
           'FolderMoved',
           'FolderRemoved',
+          'NotebookDeleted',
           'NoteCreated',
           'NoteUpdated',
           'NoteMoved',
           'NoteDeleted',
-          'NoteRestored',
+          // The purge, which says the same thing the deletion said and is the
+          // one that arrives after everything else (RN-DSC-013).
+          'NotePurged',
         ],
       },
       targets: [new SqsQueue(projectionQueue)],

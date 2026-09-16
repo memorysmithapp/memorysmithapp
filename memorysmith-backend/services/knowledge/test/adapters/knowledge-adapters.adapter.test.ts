@@ -24,7 +24,9 @@ import {
 } from '@memorysmith/kernel';
 import { GetCommand, QueryCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import type { S3Client } from '@aws-sdk/client-s3';
+import { ContentPurge } from '../../src/adapters/inbound/content-purge.js';
 import { DynamoContentSlotRepository } from '../../src/adapters/outbound/dynamodb/DynamoContentSlotRepository.js';
+import { S3ContentPurger } from '../../src/adapters/outbound/s3/S3ContentPurger.js';
 import { DynamoNotebookRepository } from '../../src/adapters/outbound/dynamodb/DynamoNotebookRepository.js';
 import { DynamoNoteRepository } from '../../src/adapters/outbound/dynamodb/DynamoNoteRepository.js';
 import { S3ContentStore } from '../../src/adapters/outbound/s3/S3ContentStore.js';
@@ -693,6 +695,99 @@ describe('DynamoContentSlotRepository: a Guidance and a Template of their own', 
     expect(after.folders.get(folder.id)?.name.value).toBe('Normas');
     expect(after.version).toBe(1);
   });
+});
+
+/**
+ * The purge, against the real DynamoDB and S3 (RN-KNW-047). These are the done
+ * criteria of #140: a deleted notebook leaves nothing of itself in either
+ * store, and running the purge twice over the same deletion changes nothing
+ * the second time.
+ */
+describe('ContentPurge: what a deletion invalidated stops existing', () => {
+  /** The worker as its handler builds it, per subscription from the envelope. */
+  function purgeFor(): ContentPurge {
+    return new ContentPurge({
+      db,
+      tableName: TABLE_NAME,
+      purgerFor: (subscriptionId) => new S3ContentPurger(subscriptionId, s3, BUCKET_NAME),
+    });
+  }
+
+  /** Every item of the notebook still in the table, the outbox aside. */
+  async function itemsLeft(
+    context: SubscriptionContext,
+    notebookId: NotebookId,
+  ): Promise<string[]> {
+    const response = await db.send(
+      new QueryCommand({
+        TableName: TABLE_NAME,
+        KeyConditionExpression: 'PK = :pk',
+        ExpressionAttributeValues: {
+          ':pk': `S#${context.subscriptionId.value}#NOTEBOOK#${notebookId.value}`,
+        },
+        ConsistentRead: true,
+      }),
+    );
+    return ((response.Items ?? []) as Array<Record<string, unknown>>)
+      .map((item) => String(item['SK']))
+      .filter((sk) => !sk.startsWith('EVENT#') && !sk.startsWith('SEEN#'));
+  }
+
+  it('leaves nothing of a deleted notebook, in either store, and is safe to run twice', async () => {
+    const context = contextFor();
+    const { notebook, folder } = await seedNotebook(context);
+    const { notes, slots, content } = repositories(context);
+
+    const body = await content.create('---\nname: Lei 14.133\n---\n\nArt. 75.\n');
+    const note = unwrap(
+      Note.create({
+        id: NoteId.generate(),
+        subscriptionId: context.subscriptionId,
+        notebookId: notebook.id,
+        folderId: folder.id,
+        body: '---\nname: Lei 14.133\n---\n\nArt. 75.\n',
+        position: NotePlacement.append([]),
+        bodyRef: body,
+        by: authorshipOf(context),
+      }),
+    );
+    expect((await notes.save(note)).ok).toBe(true);
+    const guidance = Guidance.create({
+      subscriptionId: context.subscriptionId,
+      notebookId: notebook.id,
+      ref: await content.create('# Guidance\n'),
+      by: authorshipOf(context),
+    });
+    expect((await slots.save(guidance)).ok).toBe(true);
+
+    // The deletion itself, as the route makes it: one repository, because one
+    // repository stands for one request.
+    const tree = new DynamoNotebookRepository(context, db, TABLE_NAME);
+    const loaded = (await tree.findById(notebook.id)) as Notebook;
+    unwrap(loaded.delete(authorshipOf(context)));
+    expect((await tree.save(loaded)).ok).toBe(true);
+
+    const envelope = {
+      type: 'NotebookDeleted',
+      subscriptionId: context.subscriptionId.value,
+      authorship: authorshipOf(context).toJSON(),
+      contentRef: null,
+      payload: { notebookId: notebook.id.value },
+    };
+    const first = await purgeFor().run(envelope);
+
+    expect(first.done).toBe(true);
+    expect(first.purged).toBeGreaterThanOrEqual(2);
+    expect(await itemsLeft(context, notebook.id)).toEqual([]);
+    // Not one version of the content is left in the bucket.
+    for (const ref of [body, guidance.ref]) {
+      await expect(content.read(ref)).rejects.toThrow();
+    }
+
+    // Delivery is at least once: the second pass finds nothing and says so.
+    const again = await purgeFor().run(envelope);
+    expect(again).toEqual({ purged: 0, done: true });
+  }, 120_000);
 });
 
 describe('Delivery 4 done criteria', () => {
