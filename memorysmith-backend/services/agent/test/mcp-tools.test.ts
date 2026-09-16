@@ -708,6 +708,17 @@ describe('skills: the method, indexed by whoami', () => {
     expect(body).toContain('never carries meaning');
   });
 
+  it('teaches when a source is a link, when it earns a note, and when it is embedded', () => {
+    // #133: a notebook that cited every excerpt with a note of its own spent
+    // 693 of its 811 notes on evidence a link would have carried.
+    const body = skillNamed('write-notes')?.body ?? '';
+    expect(body).toContain('## Citing a source');
+    expect(body).toContain('A source with an address of its own is cited where it is used');
+    expect(body).toContain('A source earns a note of its own');
+    expect(body).toContain('A passage many notes cite is embedded, not copied');
+    expect(body).toContain('![[Load test of 2026-09-15#^p95]]');
+  });
+
   it('names each source of the notation, and survives one without a version', () => {
     const body = skillNamed('write-notes')?.body ?? '';
 

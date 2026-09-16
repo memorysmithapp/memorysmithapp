@@ -588,6 +588,52 @@ the frontmatter and the links are read.
   about. Conventions are for the humans and agents reading the notebook, and they
   work because everyone follows them, not because anything enforces them.
 
+## Citing a source
+
+A note that states something says where it comes from. Where the evidence lives
+depends on whether the source has an address of its own.
+
+**A source with an address of its own is cited where it is used**, with an
+inline link — a file at a commit, a URL with an anchor, an article of a norm —
+and the passage that matters goes in the note, as a quote or a code block. An
+inline link points outside the notebook and is never an edge of the graph, so it
+costs the notebook nothing.
+
+\`\`\`markdown
+The name is read from one key of the frontmatter, and from nothing else
+([noteName.ts, lines 12–30](https://github.com/org/repo/blob/4f2a9c1/kernel/noteName.ts#L12-L30)):
+
+> A note is named by the \`name:\` of its frontmatter, and by nothing else.
+\`\`\`
+
+**A source earns a note of its own** when it has no address — the output of a
+command, an interview, a measurement — or when many notes cite the same passage.
+The note keeps the source whole, and the notes that rely on it link to it.
+
+\`\`\`markdown
+---
+name: Load test of 2026-09-15
+---
+
+# 50 parallel writes to one notebook
+
+p95 of 180 ms, no write retried.
+\`\`\`
+
+**A passage many notes cite is embedded, not copied.** Give the paragraph a block
+identifier in the note that keeps it, and embed it where it is needed; the text
+stays in one place, and a correction reaches every note that shows it.
+
+\`\`\`markdown
+In the note Load test of 2026-09-15:
+
+p95 of 180 ms, no write retried. ^p95
+
+In every note that relies on it:
+
+![[Load test of 2026-09-15#^p95]]
+\`\`\`
+
 ## Searching what you wrote
 
 \`search_notes\` reads the body, not the frontmatter, and its query language is
