@@ -144,9 +144,10 @@ adjust is worth more than a questionnaire.
 3. **The properties and tags** that classify the notes.
 4. **The maps of content** that gather a context.
 5. **A template for every folder that receives notes.**
-6. **Create it, in this order:** the notebook, its guidance, the folders in
-   reading order, their templates, and then one real note in each folder that
-   has a template.
+6. **Create it, in this order:** the notebook, its guidance, and the folders
+   that receive notes now, in reading order, each with its template and one real
+   note that follows it. A subfolder the structure names is created when its
+   first note arrives.
 7. **Read it back** with \`get_notebook_context\`, as the next agent will.
 
 ## The guidance
@@ -173,6 +174,23 @@ reader, and state each convention once.
   agent can read without filling its context with everything around it.
 - **Name each note** in \`name:\`, by the convention of the guidance, and put its
   other spellings and translations in \`aliases\`.
+- **A name says what the note holds; the folder says what kind of note it is.**
+  \`note-name.ts reads only the name key\` in a folder of code evidence reads
+  well in every link. \`Code: note-name.ts · reads only the name key\` repeats the
+  folder in every link that cites it, and reading a note already answers which
+  folder it lives in.
+- **Number the records that multiply** — evidence, findings, minutes,
+  decisions — instead of describing them in the name. \`next_number\` issues the
+  next number of a folder, once and never again, so agents writing at the same
+  time never collide; the guidance states the form, such as \`EV-00042\`, and a
+  link carries the description in its text: \`[[EV-00042|reads only the name key]]\`.
+  A number never has a reason to change, and a descriptive name does: renaming a
+  note leaves every link to its old name pending.
+- **Weigh a kind of note that multiplies before choosing it**, such as one note
+  per excerpt of a source. Every such note is one more to read, list and keep
+  in the maps; when the source has an address of its own, a link to it where it
+  is used carries the same evidence, and \`write-notes\` says when a source is a
+  link and when it earns a note.
 - **Link whenever a note mentions another concept**, with \`[[Name]]\`. A link to
   a note not written yet is a pending link, and a notebook being built carries
   them on purpose: they are the list of what is still to write.
@@ -184,9 +202,17 @@ reader, and state each convention once.
 - **One folder per kind of material or per context**, and a subfolder when a
   folder holds more than one kind, or a context that splits on its own — by
   year, by client, by stage.
-- **Every folder has a description that says where a note goes**, and where it
-  goes instead: "Norms" is a name; "the reading record of each norm, tied to the
-  text of that version" is a description. Up to 500 characters.
+- **Every folder has a description in three parts:** the question its notes
+  answer, the content they typically carry, and where what looks like it
+  belongs goes instead. "Norms" is a name. This is a description: "Which rule
+  applies, and since when? One note per norm, with the text of the version in
+  force, its article and its dates. A reading of how a rule was applied goes to
+  Findings." Up to 500 characters. Agents that never talked to each other write
+  alike in a folder described this way, because each one answers the same
+  question with the same material.
+- **Create a subfolder when its first note arrives.** The structure you propose
+  may name more; what you create is what will be filled. An empty subfolder,
+  template and all, reads as a notebook that broke off, not as one being built.
 - **The order of folders is content**, and it is kept as data: the Notebook
   Context numbers the folders by it, so a folder name needs no number. Create the
   folders in reading order, or place one with \`after\`, and change the order
@@ -235,7 +261,9 @@ holds.
 - **Embed a short section** when the map reads better with it in place. The page
   shows an embed one level deep, and \`read_note\` returns what was written, so an
   agent reads the embedded note itself.
-- **Say in the guidance who adds the line** when a new note joins the context.
+- **Add the line of a map with the note it points at**, in the same session and
+  by whoever writes the note, and say so in the guidance. A map deferred to the
+  end is a map that does not exist when the writing stops.
 
 ## Templates
 
@@ -264,13 +292,17 @@ ${formattingTable()}
 
 1. The guidance opens with the paragraph that says what the notebook is.
 2. Every folder that receives notes, subfolders included, has its own template.
-3. Every folder description says where a note goes.
+3. Every folder description says the question its notes answer, what they
+   carry and where the rest goes.
 4. The folders are in reading order, and their names carry no numbers.
-5. Each folder with a template holds one real note that follows it, links to the
+5. No folder is empty: every subfolder holds the note it was created for.
+6. No note name repeats its folder, and the records that multiply are numbered.
+7. Every note written has its line in the map of its context.
+8. Each folder with a template holds one real note that follows it, links to the
    notes it mentions and states its properties. When the template cannot be
    filled from real material, the template is what changes.
-6. The maps of content the guidance declares exist.
-7. \`get_notebook_context\` reads the way the next agent needs it to.
+9. The maps of content the guidance declares exist.
+10. \`get_notebook_context\` reads the way the next agent needs it to.
 
 ## When to stop asking
 

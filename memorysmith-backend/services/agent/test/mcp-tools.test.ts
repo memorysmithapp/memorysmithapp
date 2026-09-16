@@ -635,6 +635,16 @@ describe('skills: the method, indexed by whoami', () => {
     expect(body).toContain('reorder_folder');
     expect(body).toContain('`tags: [contracts, procurement]`');
     expect(body).toContain('`convert-inline-tags`');
+    // What six agents writing one notebook showed the skill had to teach (#132):
+    // the three parts of a description, subfolders created with their first
+    // note, names without the kind of the folder, maps kept as notes arrive,
+    // and records that multiply numbered by the folder.
+    expect(body).toContain('the question its notes');
+    expect(body).toContain('Create a subfolder when its first note arrives');
+    expect(body).toContain('the folder says what kind of note it is');
+    expect(body).toContain('Add the line of a map with the note it points at');
+    expect(body).toContain('`next_number`');
+    expect(body).toContain('`[[EV-00042|reads only the name key]]`');
     // And no interview: the agent proposes, and the person confirms.
     expect(body).not.toContain('samples');
     expect(body).toContain('confirm it before creating anything');
