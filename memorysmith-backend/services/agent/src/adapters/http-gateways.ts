@@ -18,6 +18,7 @@ import type {
   BacklinksDto,
   FolderDto,
   GraphNodeDto,
+  NoteLinksDto,
   NoteRefDto,
   NoteSummaryDto,
   NotebookDetailDto,
@@ -60,6 +61,7 @@ function relatedNodeOf(node: GraphNodeDto): RelatedNode {
   return {
     noteId: node.note.noteId,
     name: node.note.name,
+    folderId: node.note.folderId,
     depth: node.depth,
     children: (node.children as GraphNodeDto[]).map(relatedNodeOf),
   };
@@ -376,11 +378,49 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     );
   }
 
+  /**
+   * The note, where it lives and where its links go (RN-AGT-033, RN-AGT-034).
+   * The links come from Discovery in the same breath, so an agent sees that a
+   * target reaches two notes the moment it reads the note, with no further call.
+   */
   async readNote(caller: AgentCaller, notebookId: string, noteId: string): Promise<NoteContent> {
+    const [note, found] = await Promise.all([
+      this.noteOf(caller, notebookId, noteId),
+      callApi<NoteLinksDto>(
+        this.origin,
+        caller,
+        `/discovery/notebooks/${notebookId}/notes/${noteId}/links`,
+      ),
+    ]);
+    return {
+      ...note,
+      links: found.links.map((link) => ({
+        target: link.target,
+        resolvedBy: link.by ?? 'pending',
+        notes: link.notes.map((each) => ({
+          noteId: each.noteId,
+          name: each.name === '' ? null : each.name,
+          folder: each.folderTrail,
+        })),
+      })),
+    };
+  }
+
+  /**
+   * The note alone, which is what a write answers: the links of a note just
+   * written are not projected yet, and answering them would answer the ones
+   * from before the write.
+   */
+  private async noteOf(
+    caller: AgentCaller,
+    notebookId: string,
+    noteId: string,
+  ): Promise<NoteContent> {
     const note = await callApi<{
       noteId: string;
       name: string | null;
       folderId: string;
+      folderTrail?: string[];
       position: string;
       content: string;
       revision: { versionId: string };
@@ -391,6 +431,7 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       name: note.name,
       folderId: note.folderId,
       position: note.position,
+      ...(note.folderTrail ? { folder: note.folderTrail } : {}),
       content: note.content,
       revision: note.revision.versionId,
       updatedAt: note.updatedAt,
@@ -414,7 +455,7 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
         },
       },
     );
-    return this.readNote(caller, input.notebookId, created.noteId);
+    return this.noteOf(caller, input.notebookId, created.noteId);
   }
 
   async reorderNote(
@@ -458,7 +499,7 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
         body: { content: input.content, baseRevision: input.baseRevision },
       },
     );
-    return this.readNote(caller, input.notebookId, input.noteId);
+    return this.noteOf(caller, input.notebookId, input.noteId);
   }
 
   async searchNotes(caller: AgentCaller, notebookId: string, query: string): Promise<SearchHit[]> {
@@ -471,6 +512,7 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     return found.hits.map((hit) => ({
       noteId: hit.note.noteId,
       name: hit.note.name,
+      folderId: hit.note.folderId,
       section: hit.section,
       excerpt: hit.excerpt,
       score: hit.score,

@@ -20,6 +20,7 @@
   "GET /discovery/notebooks/:v/links/:target",
   "GET /discovery/notebooks/:v/notes/:n/backlinks",
   "GET /discovery/notebooks/:v/notes/:n/graph",
+  "GET /discovery/notebooks/:v/notes/:n/links",
   "GET /health",
   "GET /knowledge/notebooks",
   "GET /knowledge/notebooks/:v",

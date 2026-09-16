@@ -105,7 +105,9 @@ function optionalAnchor(args: Record<string, unknown>): string | undefined {
 }
 
 function renderRelated(node: RelatedNode, indent = 0): string {
-  const line = `${'  '.repeat(indent)}- ${node.name} (${node.noteId})`;
+  // Two notes of one name live in two folders, and the folder is what tells
+  // the two lines apart.
+  const line = `${'  '.repeat(indent)}- ${node.name} (${node.noteId}, folder ${node.folderId})`;
   return [line, ...node.children.map((child) => renderRelated(child, indent + 1))].join('\n');
 }
 

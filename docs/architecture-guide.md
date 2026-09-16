@@ -1222,6 +1222,9 @@ svc-discovery    GET  /notebooks/:v/links/:target   what one wikilink target res
                     address cannot answer — none and several (RN-DSC-046)
                  GET  /notebooks/:v/graph   (the whole notebook graph, edges from the index)
                  GET  /notebooks/:v/notes/:n/graph?depth= · GET /notebooks/:v/notes/:n/backlinks
+                 GET  /notebooks/:v/notes/:n/links   every target a note writes and the
+                    notes each reaches, with their folder trails, from the projection
+                    alone and never from the content (RN-AGT-034)
                  GET  /notebooks/:v/health   (pending links, orphans)
                  GET  /notebooks/:v/facets  (content distribution, feeds the Overview)
                  POST /notebooks/:v/search   { query, mode: lexical }

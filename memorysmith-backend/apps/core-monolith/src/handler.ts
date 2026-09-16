@@ -85,6 +85,7 @@ import type { DiscoveryUseCases } from '@memorysmith/svc-discovery/adapters/http
 import type { SearchMeasure } from '@memorysmith/svc-discovery/domain';
 import {
   Backlinks,
+  NoteLinks,
   ResolveLinkTarget,
   GetFacetStats,
   RelatedNotes,
@@ -255,6 +256,7 @@ const auditUseCases: AuditUseCases = {
 const discoveryUseCases: DiscoveryUseCases = {
   related: (request) => new RelatedNotes(discoveryFor(request.subscription)),
   backlinks: (request) => new Backlinks(discoveryFor(request.subscription)),
+  noteLinks: (request) => new NoteLinks(discoveryFor(request.subscription)),
   resolveLinkTarget: (request) => new ResolveLinkTarget(discoveryFor(request.subscription)),
   health: (request) => new NotebookHealth(discoveryFor(request.subscription)),
   graph: (request) => new NotebookGraphQuery(discoveryFor(request.subscription)),
@@ -315,6 +317,7 @@ function discoveryFor(context: SubscriptionContext) {
     graph: built.graph,
     facets: built.facets,
     content: built.index,
+    structure: built.structure,
     catalog: new KnowledgeNoteCatalog(buildKnowledge(infra, context)),
     /**
      * One line per search, in the logs of the function (RN-DSC-027). A notebook

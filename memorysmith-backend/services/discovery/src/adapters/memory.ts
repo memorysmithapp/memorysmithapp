@@ -20,6 +20,7 @@ import {
   type NoteRef,
   type ResolvedTarget,
   type NotebookGraph,
+  type OutgoingTarget,
 } from '../domain/ports.js';
 import type { FacetSnapshot } from '../domain/FacetExtractor.js';
 import { resolveTarget, notebookNames, type NotebookNames } from '../domain/LinkResolver.js';
@@ -136,6 +137,29 @@ export class InMemoryLinkGraph implements LinkGraph {
     const before = this.resolved(notebookId).pending.length;
     this.notebook(notebookId).notes.set(note.noteId, note);
     return Math.max(0, before - this.resolved(notebookId).pending.length);
+  }
+
+  async outgoingOf(notebookId: string, noteId: string): Promise<OutgoingTarget[]> {
+    const state = this.notebook(notebookId);
+    if (!state.notes.has(noteId)) return [];
+    const names = this.names(notebookId);
+    const seen = new Set<string>();
+    const targets: OutgoingTarget[] = [];
+    for (const link of state.outgoing.get(noteId) ?? []) {
+      if (seen.has(link.name)) continue;
+      seen.add(link.name);
+      const answer = resolveTarget(link.name, names);
+      if (answer.kind === 'attachment') continue;
+      targets.push({
+        target: link.name,
+        by: answer.kind === 'note' ? answer.by : null,
+        notes: answer.noteIds
+          .filter((id) => id !== noteId)
+          .map((id) => state.notes.get(id))
+          .filter((note): note is NoteRef => note !== undefined),
+      });
+    }
+    return targets;
   }
 
   async resolveTarget(notebookId: string, target: string): Promise<ResolvedTarget> {

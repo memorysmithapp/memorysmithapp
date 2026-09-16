@@ -43,6 +43,7 @@ import {
 import { ulid, type SubscriptionId } from '@memorysmith/kernel';
 import type {
   PendingLink,
+  OutgoingTarget,
   ScanMeter,
   ProjectedNote,
   ProjectedVersions,
@@ -193,6 +194,55 @@ export class DynamoLinkGraph implements LinkGraph {
         }),
       );
     }
+  }
+
+  /**
+   * The targets of one note, out of the projection alone and never out of its
+   * content (rule 5): an `OUT#` edge is a target by name, under the name of the
+   * note it reaches; an `ALIAS#` item turns that edge into a target by alias,
+   * under the name the link wrote; a `PENDING#` item is a target that reaches
+   * nothing yet (RN-AGT-034).
+   */
+  async outgoingOf(notebookId: string, noteId: string): Promise<OutgoingTarget[]> {
+    const [edges, aliases, pending, noteItems] = await Promise.all([
+      this.query(notebookId, `OUT#${noteId}#`),
+      this.query(notebookId, 'ALIAS#'),
+      this.query(notebookId, 'PENDING#'),
+      this.query(notebookId, 'NOTE#'),
+    ]);
+    const notes = new Map(
+      noteItems.map((item) => [
+        String(item['noteId']),
+        {
+          noteId: String(item['noteId']),
+          name: String(item['name'] ?? ''),
+          aliases: (item['aliases'] as string[]) ?? [],
+          folderId: String(item['folderId'] ?? ''),
+        } satisfies NoteRef,
+      ]),
+    );
+    const byAlias = new Map(
+      aliases
+        .filter((item) => String(item['fromNoteId']) === noteId)
+        .map((item) => [String(item['toNoteId']), String(item['name'])]),
+    );
+
+    const targets = new Map<string, { by: 'name' | 'alias'; notes: NoteRef[] }>();
+    for (const edge of edges) {
+      const to = notes.get(String(edge['toNoteId']));
+      if (!to) continue;
+      const alias = byAlias.get(to.noteId);
+      const target = alias ?? to.name;
+      const entry = targets.get(target) ?? { by: alias ? 'alias' : 'name', notes: [] };
+      entry.notes.push(to);
+      targets.set(target, entry);
+    }
+    return [
+      ...[...targets].map(([target, entry]) => ({ target, by: entry.by, notes: entry.notes })),
+      ...pending
+        .filter((item) => String(item['fromNoteId']) === noteId)
+        .map((item) => ({ target: String(item['name']), by: null, notes: [] })),
+    ];
   }
 
   async replaceOutgoing(notebookId: string, note: NoteRef, links: LinkTarget[]): Promise<void> {

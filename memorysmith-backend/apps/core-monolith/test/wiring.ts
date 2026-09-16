@@ -115,6 +115,7 @@ import {
 } from '@memorysmith/svc-discovery/adapters/memory';
 import {
   Backlinks,
+  NoteLinks,
   ResolveLinkTarget,
   GetFacetStats,
   RelatedNotes,
@@ -294,6 +295,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     facets: discovery.facets,
     catalog: discovery.catalog,
     content: discovery.index,
+    structure: discovery.structure,
   };
   /**
    * In production the bus drives these; in the test the harness does, which
@@ -322,6 +324,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
   const discoveryUseCases: DiscoveryUseCases = {
     related: () => new RelatedNotes(discoveryDeps),
     backlinks: () => new Backlinks(discoveryDeps),
+    noteLinks: () => new NoteLinks(discoveryDeps),
     resolveLinkTarget: () => new ResolveLinkTarget(discoveryDeps),
     health: () => new NotebookHealth(discoveryDeps),
     graph: () => new NotebookGraphQuery(discoveryDeps),

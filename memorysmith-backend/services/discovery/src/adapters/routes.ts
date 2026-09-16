@@ -4,6 +4,7 @@
  *   GET  /notebooks/:v/graph
  *   GET  /notebooks/:v/notes/:n/graph?depth=
  *   GET  /notebooks/:v/notes/:n/backlinks
+ *   GET  /notebooks/:v/notes/:n/links     where the links of a note go
  *   GET  /notebooks/:v/links/:target      what one wikilink target resolves to
  *   GET  /notebooks/:v/health
  *   GET  /notebooks/:v/facets
@@ -23,6 +24,7 @@ import {
 import type {
   Backlinks,
   GetFacetStats,
+  NoteLinks,
   RelatedNotes,
   ResolveLinkTarget,
   SearchNotes,
@@ -43,6 +45,7 @@ export interface DiscoveryRequest {
 export interface DiscoveryUseCases {
   readonly related: (request: DiscoveryRequest) => RelatedNotes;
   readonly backlinks: (request: DiscoveryRequest) => Backlinks;
+  readonly noteLinks: (request: DiscoveryRequest) => NoteLinks;
   readonly resolveLinkTarget: (request: DiscoveryRequest) => ResolveLinkTarget;
   readonly health: (request: DiscoveryRequest) => NotebookHealth;
   readonly graph: (request: DiscoveryRequest) => NotebookGraphQuery;
@@ -96,6 +99,19 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
       ...(Number.isFinite(depth) ? { depth } : {}),
     });
     return present(c, tree, (node) => node);
+  });
+
+  /** Every target a note writes and what each reaches (RN-AGT-034). */
+  app.get('/notebooks/:v/notes/:n/links', async (c) => {
+    const request = c.get('discovery');
+    const notebookId = c.req.param('v') ?? '';
+    const denied = await guard(request, notebookId);
+    if (denied) return fail(c, denied);
+
+    const found = await useCases
+      .noteLinks(request)
+      .execute({ notebookId, noteId: c.req.param('n') ?? '' });
+    return present(c, found, (links) => ({ links }));
   });
 
   app.get('/notebooks/:v/notes/:n/backlinks', async (c) => {

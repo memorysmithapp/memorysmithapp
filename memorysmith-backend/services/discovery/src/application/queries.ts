@@ -21,6 +21,7 @@ import {
   type ScanMeter,
   type SearchLog,
 } from '../domain/ports.js';
+import type { StructureProjection } from './projections.js';
 import {
   QuerySyntaxError,
   comparedFacets,
@@ -39,6 +40,8 @@ export interface QueryDependencies {
   readonly content: ContentIndex;
   /** Where every search is measured (RN-DSC-027). */
   readonly searchLog?: SearchLog | undefined;
+  /** The shape of the notebook, which names the folders of a trail. */
+  readonly structure?: StructureProjection | undefined;
 }
 
 function candidateOf(note: IndexedNote): Candidate {
@@ -113,6 +116,53 @@ export class Backlinks {
  * NFC, case-exact — so the URL and the wikilink cannot disagree about which
  * note is which.
  */
+/**
+ * Where the links of a note go (RN-AGT-034): every target the note writes, what
+ * each reaches, and the folder trail of each note reached, so a target carried
+ * by notes in two folders tells them apart. It reads the projections and never
+ * the note, and is exactly as recent as they are.
+ */
+export class NoteLinks {
+  constructor(private readonly deps: QueryDependencies) {}
+
+  async execute(input: { notebookId: string; noteId: string }): Promise<
+    Result<
+      Array<{
+        target: string;
+        by: 'name' | 'alias' | null;
+        notes: Array<NoteRef & { folderTrail: string[] }>;
+      }>,
+      DomainError
+    >
+  > {
+    const [targets, structure] = await Promise.all([
+      this.deps.graph.outgoingOf(input.notebookId, input.noteId),
+      this.deps.structure?.get(input.notebookId) ?? Promise.resolve(null),
+    ]);
+    const trailOf = (folderId: string): string[] => {
+      const trail: string[] = [];
+      const seen = new Set<string>();
+      let current: string | null = folderId;
+      while (current && !seen.has(current)) {
+        seen.add(current);
+        const folder: { name: string; parentFolderId: string | null } | undefined =
+          structure?.folders.get(current);
+        if (!folder) break;
+        trail.unshift(folder.name);
+        current = folder.parentFolderId;
+      }
+      return trail;
+    };
+    return ok(
+      targets.map((each) => ({
+        target: each.target,
+        by: each.by,
+        notes: each.notes.map((note) => ({ ...note, folderTrail: trailOf(note.folderId) })),
+      })),
+    );
+  }
+}
+
 export class ResolveLinkTarget {
   constructor(private readonly deps: QueryDependencies) {}
 

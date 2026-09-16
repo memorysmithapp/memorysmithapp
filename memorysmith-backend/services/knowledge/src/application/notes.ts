@@ -190,14 +190,22 @@ export class ReadNote {
     ctx: RequestContext;
     notebookId: NotebookId;
     noteId: NoteId;
-  }): Promise<Result<{ note: Note; content: string }, DomainError>> {
+  }): Promise<Result<{ note: Note; content: string; folderTrail: string[] }, DomainError>> {
     const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'read');
     if (!notebook.ok) return notebook;
 
     const note = await liveNote(this.deps, notebook.value, input.notebookId, input.noteId);
     if (!note.ok) return note;
 
-    return ok({ note: note.value, content: await this.deps.content.read(note.value.bodyRef) });
+    return ok({
+      note: note.value,
+      content: await this.deps.content.read(note.value.bodyRef),
+      // The tree was already loaded to authorize, so where the note lives
+      // costs no read (RN-AGT-033).
+      folderTrail: notebook.value.folders
+        .trailOf(note.value.folderId)
+        .map((folder) => folder.name.value),
+    });
   }
 }
 

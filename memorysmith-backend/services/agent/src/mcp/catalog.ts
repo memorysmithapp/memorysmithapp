@@ -384,7 +384,12 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     title: 'Read a note',
     description:
       'Returns the complete Markdown of a note and its current revision, as `revision`: a ' +
-      'string to pass back unchanged as baseRevision when you edit it. With asOf, returns ' +
+      'string to pass back unchanged as baseRevision when you edit it. It also answers ' +
+      '`folder`, the names of the folders from the root down to the one the note lives in, and ' +
+      '`links`, every link target the note writes with the notes it reaches, each with its ' +
+      'identifier and folder: a target reaching two notes lists both, and a target no note ' +
+      'carries yet is `pending`. The links are as recent as the link index, which follows a ' +
+      'write within seconds. With asOf, returns ' +
       'the revision that was in force on that date, rebuilt from the audit trail, which is ' +
       'what lets a past piece of work be redone against the base as it stood then.',
     inputSchema: object(

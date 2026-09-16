@@ -412,9 +412,15 @@ test.describe('the tools', () => {
     const note = { ...where, note: created.noteId };
     // The tool hands the revision over as the string to pass back, not as the
     // content reference the API answers.
-    const read = parsed<{ content: string; revision: string }>(
-      await callTool(agent, 'read_note', note),
-    );
+    const read = parsed<{
+      content: string;
+      revision: string;
+      folder: string[];
+      links: unknown[];
+    }>(await callTool(agent, 'read_note', note));
+    // Where the note lives and where its links go come beside the body (#128).
+    expect(read.folder.length).toBeGreaterThan(0);
+    expect(Array.isArray(read.links)).toBe(true);
     const updated = parsed<{ content: string }>(
       await callTool(agent, 'update_note', {
         ...note,

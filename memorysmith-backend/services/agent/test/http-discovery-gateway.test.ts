@@ -5,7 +5,12 @@
  * printed "- undefined (undefined)" on staging while every other test passed.
  */
 
-import { backlinksSchema, graphNodeSchema, searchResultSchema } from '@memorysmith/contracts';
+import {
+  backlinksSchema,
+  graphNodeSchema,
+  noteLinksSchema,
+  searchResultSchema,
+} from '@memorysmith/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HttpDiscoveryGateway, HttpKnowledgeGateway } from '../src/adapters/http-gateways.js';
 import type { AgentCaller } from '../src/mcp/gateway.js';
@@ -59,7 +64,8 @@ describe('the connector reads Discovery as the contracts publish it', () => {
       noteId: FINDING,
       name: 'Achado 12',
       depth: 0,
-      children: [{ noteId: LAW, name: 'Lei 14.133', depth: 1, children: [] }],
+      folderId: FOLDER,
+      children: [{ noteId: LAW, name: 'Lei 14.133', folderId: FOLDER, depth: 1, children: [] }],
     });
   });
 
@@ -98,7 +104,73 @@ describe('the connector reads Discovery as the contracts publish it', () => {
     );
 
     expect(hits).toEqual([
-      { noteId: LAW, name: 'Lei 14.133', section: 'Vigência', excerpt: 'Art. 75', score: 2 },
+      {
+        noteId: LAW,
+        name: 'Lei 14.133',
+        folderId: FOLDER,
+        section: 'Vigência',
+        excerpt: 'Art. 75',
+        score: 2,
+      },
+    ]);
+  });
+
+  it('reads a note with the trail of its folder and where each of its links goes', async () => {
+    const OTHER = '01JBQ2X000000000000000F002';
+    const TWIN = '01JBQ2X000000000000000N004';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        const body = url.endsWith('/links')
+          ? noteLinksSchema.parse({
+              links: [
+                {
+                  target: 'Lei 14.133',
+                  by: 'name',
+                  notes: [
+                    { ...ref(LAW, 'Lei 14.133'), folderTrail: ['Normas', 'Federais'] },
+                    { ...ref(TWIN, 'Lei 14.133'), folderId: OTHER, folderTrail: ['Rascunhos'] },
+                  ],
+                },
+                { target: 'Portaria 9', by: null, notes: [] },
+              ],
+            })
+          : {
+              noteId: FINDING,
+              name: 'Achado 12',
+              folderId: FOLDER,
+              folderTrail: ['Achados', '2026'],
+              position: 'a0',
+              content: 'Ver [[Lei 14.133]] e [[Portaria 9]].',
+              revision: { versionId: 'v1' },
+              updatedAt: '2026-09-16T00:00:00.000Z',
+            };
+        return new Response(JSON.stringify(body), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }),
+    );
+
+    const note = await new HttpKnowledgeGateway('https://api.example.com').readNote(
+      caller,
+      'notebook',
+      FINDING,
+    );
+
+    expect(note.folder).toEqual(['Achados', '2026']);
+    // The body is what was written, links and all (RN-AGT-015).
+    expect(note.content).toBe('Ver [[Lei 14.133]] e [[Portaria 9]].');
+    expect(note.links).toEqual([
+      {
+        target: 'Lei 14.133',
+        resolvedBy: 'name',
+        notes: [
+          { noteId: LAW, name: 'Lei 14.133', folder: ['Normas', 'Federais'] },
+          { noteId: TWIN, name: 'Lei 14.133', folder: ['Rascunhos'] },
+        ],
+      },
+      { target: 'Portaria 9', resolvedBy: 'pending', notes: [] },
     ]);
   });
 });

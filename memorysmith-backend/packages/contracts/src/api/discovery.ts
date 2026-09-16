@@ -80,6 +80,21 @@ export const backlinksSchema = z.object({
   backlinks: z.array(noteRefSchema),
 });
 
+/**
+ * Where the links of a note go (RN-AGT-034): every target it writes, the notes
+ * each reaches with the folder trail of each, and whether a name or an alias
+ * answered. `by` is null for a pending target, which reaches no note yet.
+ */
+export const noteLinksSchema = z.object({
+  links: z.array(
+    z.object({
+      target: z.string().min(1),
+      by: z.enum(['name', 'alias']).nullable(),
+      notes: z.array(noteRefSchema.extend({ folderTrail: z.array(z.string()) })),
+    }),
+  ),
+});
+
 /** A link from a note to a name no note carries yet (RN-DSC-004). */
 export const pendingLinkSchema = z.object({
   fromNote: noteRefSchema,
@@ -137,6 +152,7 @@ export type GraphNodeDto = z.infer<typeof graphNodeSchema>;
 export type GraphNoteRefDto = z.infer<typeof graphNoteRefSchema>;
 export type NotebookGraphDto = z.infer<typeof notebookGraphSchema>;
 export type BacklinksDto = z.infer<typeof backlinksSchema>;
+export type NoteLinksDto = z.infer<typeof noteLinksSchema>;
 export type PendingLinkDto = z.infer<typeof pendingLinkSchema>;
 export type NotebookHealthDto = z.infer<typeof notebookHealthSchema>;
 export type SearchRequest = z.infer<typeof searchRequestSchema>;

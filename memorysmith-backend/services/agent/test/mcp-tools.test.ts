@@ -114,8 +114,9 @@ function gateways(overrides: Record<string, unknown> = {}) {
     relatedNotes: async () => ({
       noteId: 'n1',
       name: 'Achado 12',
+      folderId: 'f1',
       depth: 0,
-      children: [{ noteId: 'n2', name: 'Lei 14.133', depth: 1, children: [] }],
+      children: [{ noteId: 'n2', name: 'Lei 14.133', folderId: 'f2', depth: 1, children: [] }],
     }),
     backlinks: async () => [
       { noteId: 'n3', name: 'Achado 12', slug: 'achado-12', folderId: 'f2', position: 'a0' },
@@ -512,7 +513,10 @@ describe('The tool adapter translates in both directions', () => {
 
   it('renders the dependency tree as an indented outline', async () => {
     const result = await gateways().call('related_notes', { notebook: 'v1', note: 'n1' }, caller);
-    expect(result.content[0]?.text).toBe('- Achado 12 (n1)\n  - Lei 14.133 (n2)');
+    // The folder tells apart two notes of one name (#128).
+    expect(result.content[0]?.text).toBe(
+      '- Achado 12 (n1, folder f1)\n  - Lei 14.133 (n2, folder f2)',
+    );
   });
 
   it('says something useful when the connector reaches no notebook', async () => {

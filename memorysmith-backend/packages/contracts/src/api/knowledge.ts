@@ -120,6 +120,12 @@ export const noteSchema = noteSummarySchema.extend({
   revision: contentRefSchema,
   createdBy: authorshipSchema,
   deletedAt: instantSchema.nullable(),
+  /**
+   * The names of the folders from the root down to the one the note lives in
+   * (RN-AGT-033). Where the note is, never what identifies it. Answered by the
+   * read of one note; a write answers the note without it.
+   */
+  folderTrail: z.array(z.string()).optional(),
 });
 
 /**

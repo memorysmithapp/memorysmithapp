@@ -2,7 +2,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { extractLinks } from '../src/domain/LinkExtractor.js';
 import { extractFacets, facetDelta } from '../src/domain/FacetExtractor.js';
 import { normalize } from '../src/domain/SearchQuery.js';
-import { DynamoContentIndex, DynamoFacetIndex, partsOf } from '../src/adapters/aws.js';
+import {
+  DynamoContentIndex,
+  DynamoFacetIndex,
+  DynamoLinkGraph,
+  partsOf,
+} from '../src/adapters/aws.js';
 import {
   InMemoryContentIndex,
   InMemoryFacetIndex,
@@ -21,6 +26,7 @@ import {
 import {
   Backlinks,
   GetFacetStats,
+  NoteLinks,
   RelatedNotes,
   SearchNotes,
   NotebookGraphQuery,
@@ -878,6 +884,119 @@ describe('Discovery queries', () => {
       query: '   ',
     });
     expect(refused.ok).toBe(false);
+  });
+});
+
+describe('Where the links of a note go (RN-AGT-034)', () => {
+  it('answers each target with the notes it reaches and their folder trails', async () => {
+    const graph = new InMemoryLinkGraph();
+    const structure = new InMemoryStructureProjection();
+    await structure.upsertFolder(NOTEBOOK, {
+      folderId: 'f1',
+      name: 'Normas',
+      description: '',
+      parentFolderId: null,
+    });
+    await structure.upsertFolder(NOTEBOOK, {
+      folderId: 'f2',
+      name: 'Federais',
+      description: '',
+      parentFolderId: 'f1',
+    });
+    await structure.upsertFolder(NOTEBOOK, {
+      folderId: 'f3',
+      name: 'Rascunhos',
+      description: '',
+      parentFolderId: null,
+    });
+    const law = { noteId: 'n2', name: 'Lei 14.133', aliases: [], folderId: 'f2' };
+    const twin = { noteId: 'n3', name: 'Lei 14.133', aliases: [], folderId: 'f3' };
+    const decree = { noteId: 'n4', name: 'Decreto 1', aliases: ['D1'], folderId: 'f1' };
+    await graph.replaceOutgoing(NOTEBOOK, law, []);
+    await graph.replaceOutgoing(NOTEBOOK, twin, []);
+    await graph.replaceOutgoing(NOTEBOOK, decree, []);
+    await graph.replaceOutgoing(
+      NOTEBOOK,
+      { noteId: 'n1', name: 'Achado 12', aliases: [], folderId: 'f3' },
+      [
+        { name: 'Lei 14.133', anchor: null },
+        { name: 'D1', anchor: null },
+        { name: 'Portaria 9', anchor: null },
+      ],
+    );
+
+    const found = await new NoteLinks({
+      graph,
+      structure,
+      facets: new InMemoryFacetIndex(),
+      catalog: new InMemoryNoteCatalog(),
+      content: new InMemoryContentIndex(),
+    }).execute({ notebookId: NOTEBOOK, noteId: 'n1' });
+
+    expect(found.ok).toBe(true);
+    if (!found.ok) return;
+    const byTarget = new Map(found.value.map((link) => [link.target, link]));
+    // A name two folders carry reaches both, told apart by the trail.
+    expect(byTarget.get('Lei 14.133')?.by).toBe('name');
+    expect(
+      byTarget
+        .get('Lei 14.133')
+        ?.notes.map((note) => [note.noteId, note.folderTrail])
+        .sort(),
+    ).toEqual([
+      ['n2', ['Normas', 'Federais']],
+      ['n3', ['Rascunhos']],
+    ]);
+    expect(byTarget.get('D1')).toMatchObject({ by: 'alias', notes: [{ noteId: 'n4' }] });
+    expect(byTarget.get('Portaria 9')).toEqual({ target: 'Portaria 9', by: null, notes: [] });
+  });
+
+  it('answers nothing for a note the projection does not hold', async () => {
+    const found = await new NoteLinks({
+      graph: new InMemoryLinkGraph(),
+      facets: new InMemoryFacetIndex(),
+      catalog: new InMemoryNoteCatalog(),
+      content: new InMemoryContentIndex(),
+    }).execute({ notebookId: NOTEBOOK, noteId: 'nope' });
+    expect(found).toEqual({ ok: true, value: [] });
+  });
+});
+
+describe('The Dynamo link graph answers the targets of a note from its items', () => {
+  it('reads a name edge, an alias edge and a pending item back as targets', async () => {
+    const items = [
+      { SK: 'NOTE#n2', noteId: 'n2', name: 'Lei 14.133', aliases: [], folderId: 'f2' },
+      { SK: 'NOTE#n4', noteId: 'n4', name: 'Decreto 1', aliases: ['D1'], folderId: 'f1' },
+      { SK: 'OUT#n1#n2', fromNoteId: 'n1', toNoteId: 'n2' },
+      { SK: 'OUT#n1#n4', fromNoteId: 'n1', toNoteId: 'n4' },
+      { SK: 'ALIAS#D1#n1#n4', fromNoteId: 'n1', toNoteId: 'n4', name: 'D1' },
+      { SK: 'ALIAS#D1#n9#n4', fromNoteId: 'n9', toNoteId: 'n4', name: 'D1' },
+      { SK: 'PENDING#Portaria 9#n1', fromNoteId: 'n1', name: 'Portaria 9' },
+      { SK: 'PENDING#Outra#n9', fromNoteId: 'n9', name: 'Outra' },
+    ];
+    const db = {
+      send: async (command: { input: Record<string, unknown> }) => {
+        const prefix = (command.input['ExpressionAttributeValues'] as Record<string, string>)[
+          ':prefix'
+        ];
+        return { Items: items.filter((item) => item.SK.startsWith(prefix ?? '')) };
+      },
+    };
+    const graph = new DynamoLinkGraph({ value: 'SUB' } as never, db as never, 't');
+
+    expect(await graph.outgoingOf(NOTEBOOK, 'n1')).toEqual([
+      {
+        target: 'Lei 14.133',
+        by: 'name',
+        notes: [{ noteId: 'n2', name: 'Lei 14.133', aliases: [], folderId: 'f2' }],
+      },
+      {
+        target: 'D1',
+        by: 'alias',
+        notes: [{ noteId: 'n4', name: 'Decreto 1', aliases: ['D1'], folderId: 'f1' }],
+      },
+      { target: 'Portaria 9', by: null, notes: [] },
+    ]);
   });
 });
 

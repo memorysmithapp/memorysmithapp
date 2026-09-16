@@ -188,6 +188,32 @@ describe('Discovery answers over the API', () => {
     expect(backlinks.backlinks.map((note) => note.noteId)).toEqual([notes['achado']]);
   });
 
+  it('reads a note with the trail of its folder and where its links go', async () => {
+    const { notebookId, notes } = await seed();
+
+    const note = (await (
+      await call(`/knowledge/notebooks/${notebookId}/notes/${notes['achado']}`)
+    ).json()) as { folderTrail: string[] };
+    expect(note.folderTrail).toEqual(['Normas']);
+
+    const links = (await (
+      await call(`/discovery/notebooks/${notebookId}/notes/${notes['achado']}/links`)
+    ).json()) as {
+      links: Array<{
+        target: string;
+        by: string | null;
+        notes: Array<{ noteId: string; folderTrail: string[] }>;
+      }>;
+    };
+    expect(links.links).toEqual([
+      {
+        target: 'Lei 14.133',
+        by: 'name',
+        notes: [expect.objectContaining({ noteId: notes['lei'], folderTrail: ['Normas'] })],
+      },
+    ]);
+  });
+
   it('walks the dependency tree from a note', async () => {
     const { notebookId, notes } = await seed();
     const tree = (await (

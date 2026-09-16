@@ -90,6 +90,34 @@ test.describe('the graph of a notebook', () => {
     );
   });
 
+  test('[route:GET /discovery/notebooks/:v/notes/:n/links] says where every link of a note goes', async ({
+    owner,
+    notebook,
+  }) => {
+    const { alpha, beta } = await writeLinkedNotes(owner, notebook);
+
+    const found = await eventually(
+      'Beta among the targets of Alpha',
+      () =>
+        owner.ok<{
+          links: Array<{
+            target: string;
+            by: string | null;
+            notes: Array<NoteRef & { folderTrail: string[] }>;
+          }>;
+        }>('GET', `${discovery(notebook)}/notes/${alpha}/links`),
+      (answer) => answer.links.some((link) => link.notes.some((note) => note.noteId === beta)),
+    );
+    const toBeta = found.links.find((link) => link.target === 'Beta');
+    expect(toBeta?.by).toBe('name');
+    expect(toBeta?.notes[0]?.folderTrail.length).toBeGreaterThan(0);
+    expect(found.links.find((link) => link.target === 'Gamma')).toEqual({
+      target: 'Gamma',
+      by: null,
+      notes: [],
+    });
+  });
+
   test('[route:GET /discovery/notebooks/:v/links/:target] resolves a link by the name a note states', async ({
     owner,
     notebook,

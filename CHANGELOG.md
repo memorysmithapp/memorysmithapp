@@ -81,6 +81,8 @@ issues each entry cites.
 
 ### Added
 
+- **Reading a note says where it lives and where its links go.** `read_note` answers `folder`, the names of the folders from the root down to the note's own, and `links`, every link target the note writes with the notes it reaches — each with its identifier and folder —, whether a name or an alias answered, or that the target is still pending. A target that two folders each carry lists both, so an agent sees that a link reaches two notes the moment it reads the note, with no further call; the body stays byte for byte what was written. With `asOf` the links are left out, because the link index has no past. `related_notes` and `search_notes` answer the folder of each note too, so two notes of one name no longer print as two identical lines. Six agents writing a notebook in staging had put the folder into the name of 693 notes, because nothing else told a reader where a note was (RN-AGT-033, RN-AGT-034). (#128)
+
 - **The Notebook Context says how much the notebook holds.** One line before the tree, such as `811 notes · 68 of 200 folders`: the notes are the sum of the counts beside each folder, and the folders are said against the ceiling that refuses and truncates them, so an agent sees a design that multiplies folders before it runs into the limit (RN-AGT-032). (#131)
 
 - **Every search is measured.** One log line per query says which notebook, how many notes and items were read, how many bytes, the read units consumed and how long it took, so the day a notebook grows past what a scan should serve is seen rather than guessed (RN-DSC-027). (#134)

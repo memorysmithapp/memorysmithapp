@@ -70,14 +70,33 @@ export interface NoteContent {
   /** Where the note lives and where it sits; a note rebuilt from history has neither. */
   readonly folderId?: string;
   readonly position?: string;
+  /**
+   * The names of the folders from the root down to the note's own
+   * (RN-AGT-033): where the note is, never what identifies it.
+   */
+  readonly folder?: string[];
   readonly content: string;
   readonly revision: string;
   readonly updatedAt: string;
+  /**
+   * Every link target the content writes and what it reaches (RN-AGT-034),
+   * beside the body and never inside it. Left out of a revision from the
+   * past, because the link projection has no past.
+   */
+  readonly links?: NoteLink[];
+}
+
+export interface NoteLink {
+  readonly target: string;
+  /** Which answered, or `pending` when no note carries the target yet. */
+  readonly resolvedBy: 'name' | 'alias' | 'pending';
+  readonly notes: Array<{ noteId: string; name: string | null; folder: string[] }>;
 }
 
 export interface SearchHit {
   readonly noteId: string;
   readonly name: string;
+  readonly folderId: string;
   readonly section: string | null;
   readonly excerpt: string;
   readonly score: number;
@@ -86,6 +105,7 @@ export interface SearchHit {
 export interface RelatedNode {
   readonly noteId: string;
   readonly name: string;
+  readonly folderId: string;
   readonly depth: number;
   readonly children: RelatedNode[];
 }

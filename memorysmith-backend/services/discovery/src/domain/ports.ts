@@ -109,7 +109,20 @@ export interface AnnotatedNotebookGraph {
   readonly truncated: boolean;
 }
 
+/**
+ * What one link target a note writes resolves to, from the projection: the
+ * notes it reaches and whether a name or an alias answered, or nothing when it
+ * is pending (RN-AGT-034).
+ */
+export interface OutgoingTarget {
+  readonly target: string;
+  readonly by: 'name' | 'alias' | null;
+  readonly notes: readonly NoteRef[];
+}
+
 export interface LinkGraph {
+  /** Every target this note writes, as the projection resolved it. */
+  outgoingOf(notebookId: string, noteId: string): Promise<OutgoingTarget[]>;
   /** Replaces every outgoing edge of a note, resolving what it can. */
   replaceOutgoing(notebookId: string, note: NoteRef, links: LinkTarget[]): Promise<void>;
   /** Removes the note from the graph and returns its backlinks to pending. */

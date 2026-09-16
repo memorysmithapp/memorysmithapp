@@ -534,7 +534,10 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     const read = await useCases
       .readNote(request)
       .execute({ ctx: request.ctx, notebookId: notebookId.value, noteId: noteId.value });
-    return present(c, read, ({ note, content }) => noteToDto(note, content));
+    return present(c, read, ({ note, content, folderTrail }) => ({
+      ...noteToDto(note, content),
+      folderTrail,
+    }));
   });
 
   app.put('/notebooks/:v/notes/:n', async (c) => {

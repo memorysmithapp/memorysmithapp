@@ -93,6 +93,20 @@ export class FolderTree {
     return 1 + Math.max(...children.map((child) => this.heightOf(child.id)));
   }
 
+  /**
+   * The folders from the root down to this one, this one included. It is where
+   * a note lives, said by name, and never what identifies it (RN-AGT-033).
+   */
+  trailOf(id: FolderId): Folder[] {
+    const trail: Folder[] = [];
+    let current = this.get(id);
+    while (current) {
+      trail.unshift(current);
+      current = current.parentFolderId ? this.get(current.parentFolderId) : null;
+    }
+    return trail;
+  }
+
   descendantsOf(id: FolderId): Folder[] {
     return this.childrenOf(id).flatMap((child) => [child, ...this.descendantsOf(child.id)]);
   }
