@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import type { FolderId } from '@memorysmith/kernel';
-import { NoteId, Position, Role, NotebookRoleLimit } from '@memorysmith/kernel';
-import type { Folder } from '../src/domain/notebook/Folder.js';
+import {
+  FolderId,
+  Instant,
+  NoteId,
+  NotebookId,
+  Position,
+  Role,
+  NotebookRoleLimit,
+  Slug,
+  SubscriptionId,
+} from '@memorysmith/kernel';
+import { Folder } from '../src/domain/notebook/Folder.js';
+import { Notebook } from '../src/domain/notebook/Notebook.js';
+import { ShortText } from '../src/domain/values.js';
 import { NotePlacement } from '../src/domain/services/NotePlacement.js';
 import { RESERVED_FRONTMATTER_KEYS } from '@memorysmith/contracts';
 import { composeNotebookContext } from '../src/domain/services/NotebookContextComposer.js';
@@ -15,6 +26,7 @@ import {
   folderDescription,
   folderName,
   newNotebook,
+  notebookName,
   otherUser,
   rehydratedNotebookWithNotes,
   unwrap,
@@ -111,7 +123,7 @@ describe('NotebookContextComposer', () => {
     // A folder with children is rendered with a trailing slash, and its
     // children are numbered underneath it.
     expect(context).toContain(
-      `3. **Trabalhos/** \`${trabalhos.id.value}\`: Relatorios emitidos. (0 notes)`,
+      `3. **Trabalhos/** \`${trabalhos.id.value}\`: Relatorios emitidos. (0 notes here, 0 in subfolders)`,
     );
     expect(context).toContain(
       `   3.1. **2026** \`${year2026.id.value}\`: Emitidos neste exercicio. (0 notes)`,
@@ -152,6 +164,49 @@ describe('NotebookContextComposer', () => {
     expect(context).toContain(
       `               1.1.1.1.1.1. **L6** \`${nested[5]?.value}\`: Level L6. (0 notes)`,
     );
+  });
+
+  it('tells a folder that keeps its notes in subfolders from an empty one', () => {
+    // RN-AGT-035: "Business Knowledge/ (0 notes)" while six subfolders held 26.
+    const parentId = FolderId.generate();
+    const childId = FolderId.generate();
+    const at = (id: FolderId, parent: FolderId | null, name: string) =>
+      Folder.rehydrate({
+        id,
+        parentFolderId: parent,
+        name: folderName(name),
+        slug: unwrap(Slug.from(name)),
+        description: folderDescription(`Onde ficam as ${name}.`),
+        position: Position.first(),
+        createdBy: authorship(),
+        updatedAt: Instant.now(),
+      });
+    const notebook = Notebook.rehydrate({
+      id: NotebookId.generate(),
+      subscriptionId: SubscriptionId.generate(),
+      name: notebookName('Leitura'),
+      slug: unwrap(Slug.from('Leitura')),
+      description: unwrap(ShortText.create('')),
+      folders: [at(parentId, null, 'Negocio'), at(childId, parentId, 'Regras')],
+      limits: new Map(),
+      noteCounts: new Map([[childId.value, 26]]),
+      notebookNoteCount: 26,
+      templatedFolderIds: new Set(),
+      hasGuidance: false,
+      version: 1,
+      createdBy: authorship(),
+      updatedAt: Instant.now(),
+      deletedAt: null,
+    });
+
+    const context = composeNotebookContext({
+      notebook,
+      guidance: null,
+      reservedVocabulary: VOCABULARY,
+    });
+
+    expect(context).toContain('(0 notes here, 26 in subfolders)');
+    expect(context).toContain('Onde ficam as Regras. (26 notes)');
   });
 
   it('says how much the notebook holds, the folders against their ceiling', () => {

@@ -169,7 +169,8 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     title: 'Read the notebook context',
     description:
       'THE MAIN CALL. Returns the guidance of the notebook in full, followed by its folder tree ' +
-      'with the identifier of each folder, its description, the defined order, the note count ' +
+      'with the identifier of each folder, its description, the defined order, the notes it holds ' +
+      'directly and those in its subfolders, how many notes and folders the notebook holds, ' +
       'and which folders carry a template. Read this before writing anything: the guidance ' +
       'declares the conventions of this notebook, the folder descriptions say what belongs where, ' +
       'and the identifiers are what you pass to get_template, create_note and list_notes.',

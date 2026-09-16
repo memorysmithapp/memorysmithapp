@@ -17,6 +17,18 @@ export function folderTrailOf(folders: FolderNode[], folderId: string): FolderNo
 
 // Folder chain from the notebook root down to the folder holding the note, or []
 // when the note is not in the tree.
+/**
+ * The notes of a folder and of every folder under it, from the structure the
+ * page already loaded. A folder that keeps its notes in subfolders is not
+ * empty, and the question a tree answers is whether there is anything in here.
+ */
+export function subtreeNoteCount(folder: FolderNode): number {
+  return folder.children.reduce(
+    (total, child) => total + subtreeNoteCount(child),
+    folder.noteCount,
+  );
+}
+
 export function folderTrailForNote(folders: FolderNode[], noteId: string): FolderNode[] {
   for (const folder of folders) {
     if (folder.notes.some((note) => note.id === noteId)) return [folder];

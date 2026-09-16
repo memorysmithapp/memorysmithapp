@@ -94,6 +94,7 @@
     "guidance": "Guidance",
     "folders": "Folders",
     "root": "Root",
+    "noteCountSplit": "{{here}} here, {{below}} in subfolders",
     "hasTemplate": "template",
     "outlineHint": "The folder tree with each folder's description. It is what tells the agent where each note goes.",
     "backToNotebooks": "All notebooks",

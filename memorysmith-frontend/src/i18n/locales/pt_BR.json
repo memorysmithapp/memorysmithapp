@@ -94,6 +94,7 @@
     "guidance": "Orientação",
     "folders": "Pastas",
     "root": "Raiz",
+    "noteCountSplit": "{{here}} aqui, {{below}} nas subpastas",
     "hasTemplate": "modelo",
     "outlineHint": "A árvore de pastas com a descrição de cada uma. É ela que diz ao agente onde cada nota entra.",
     "backToNotebooks": "Todos os cadernos",

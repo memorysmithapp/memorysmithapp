@@ -1,3 +1,4 @@
+import { FolderCount } from './FolderCount';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -94,7 +95,7 @@ function FolderItem({
         <Link ref={linkRef} to={folderAddress(notebookId, folder.id)} title={folder.description}>
           {folder.name}
         </Link>
-        <span className="tree-count">{folder.noteCount > 0 ? folder.noteCount : ''}</span>
+        <FolderCount folder={folder} className="tree-count" />
       </div>
       {open && (
         <ul className="tree-children">

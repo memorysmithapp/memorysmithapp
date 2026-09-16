@@ -169,7 +169,19 @@ function indentFor(numbering: string): string {
 function describe(folder: Folder, notebook: Notebook, hasChildren: boolean): string {
   const name = hasChildren ? `${folder.name.value}/` : folder.name.value;
   const notes = notebook.noteCountOf(folder.id);
-  const annotations = [`${notes} ${notes === 1 ? 'note' : 'notes'}`];
+  // A folder that keeps its notes in subfolders is not empty, and an agent has
+  // no tooltip: it is told both, because the notes held directly are what
+  // matter when choosing where to write (RN-AGT-035).
+  const below = hasChildren
+    ? notebook.folders
+        .descendantsOf(folder.id)
+        .reduce((total, each) => total + notebook.noteCountOf(each.id), 0)
+    : 0;
+  const annotations = [
+    hasChildren
+      ? `${notes} ${notes === 1 ? 'note' : 'notes'} here, ${below} in subfolders`
+      : `${notes} ${notes === 1 ? 'note' : 'notes'}`,
+  ];
   if (notebook.hasTemplate(folder.id)) annotations.push('has TEMPLATE.md');
   // The identifier is fenced as code so that reading it and copying it into
   // the next call are the same gesture (RN-AGT-020).

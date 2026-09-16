@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { folderTrailForNote, folderTrailOf } from './trail';
+import { folderTrailForNote, folderTrailOf, subtreeNoteCount } from './trail';
 import { identifierOf } from '../../shared/api/note-address';
 import type { FolderNode, NoteSummary } from '../../shared/types/api';
 
@@ -97,5 +97,18 @@ describe('a note is reached by its identifier, wherever it is', () => {
 
   it('reaches nothing from a segment that is not an identifier', () => {
     expect(identifierOf('lei-14133--01j8x2k9qz3m4n5p6r7s8t9v0w')).toBeNull();
+  });
+});
+
+describe('the notes of a folder and of its whole subtree', () => {
+  it('sums three levels deep, so a folder holding its notes below is not empty', () => {
+    const leaf = { ...folder('01J8X2K9QZ3M4N5P6R7S8T9VL3', 'leaf', []), noteCount: 20 };
+    const middle = { ...folder('01J8X2K9QZ3M4N5P6R7S8T9VL2', 'middle', [], [leaf]), noteCount: 6 };
+    const top = folder('01J8X2K9QZ3M4N5P6R7S8T9VL1', 'top', [], [middle]);
+
+    expect(top.noteCount).toBe(0);
+    expect(subtreeNoteCount(top)).toBe(26);
+    expect(subtreeNoteCount(middle)).toBe(26);
+    expect(subtreeNoteCount(folder(EMPTY, 'empty', []))).toBe(0);
   });
 });

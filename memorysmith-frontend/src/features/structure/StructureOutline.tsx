@@ -1,3 +1,4 @@
+import { FolderCount } from './FolderCount';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { FolderNode } from '../../shared/types/api';
@@ -35,9 +36,7 @@ export function StructureOutline({ notebookId, folders }: StructureOutlineProps)
                 {t('structure.hasTemplate')}
               </Link>
             )}
-            <span className="outline-count">
-              {folder.noteCount > 0 ? t('notebooks.noteCount', { count: folder.noteCount }) : ''}
-            </span>
+            <FolderCount folder={folder} className="outline-count" label />
           </div>
           <p className="outline-desc">{folder.description}</p>
           {folder.children.length > 0 && (
