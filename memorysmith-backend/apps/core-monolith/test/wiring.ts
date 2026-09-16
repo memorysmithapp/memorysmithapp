@@ -107,6 +107,7 @@ import { AuditEventConsumer } from '@memorysmith/svc-audit/adapters/consumer';
 import type { AuditUseCases } from '@memorysmith/svc-audit/adapters/http';
 import {
   InMemoryContentIndex,
+  InMemoryProjectedVersions,
   InMemoryFacetIndex,
   InMemoryLinkGraph,
   InMemoryNoteCatalog,
@@ -303,6 +304,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     facets: discovery.facets,
     index: discovery.index,
     structure: discovery.structure,
+    versions: new InMemoryProjectedVersions(),
     content: {
       // The slot is addressed by its content id, exactly as the S3 adapter
       // addresses it; the version id alone is not unique across slots.

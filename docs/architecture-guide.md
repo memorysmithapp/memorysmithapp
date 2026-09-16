@@ -479,13 +479,18 @@ Access:     SubscriptionRequested · SubscriptionApproved · SubscriptionRejecte
             SubscriptionSuspended · SubscriptionReactivated · SubscriptionCanceled
             OwnershipTransferred · MemberJoined
             MemberRoleChanged · MemberRemoved · NotebookRoleLimitSet · NotebookRoleLimitCleared
-Knowledge:  NotebookCreated · NotebookRenamed · GuidanceUpdated · FolderAdded · FolderRenamed
-            FolderDescribed · FolderMoved · FolderReordered · FolderRemoved · TemplateUpdated
-            NoteCreated · NoteUpdated · NoteReordered · NoteMoved · NoteDeleted · NoteRestored
+Knowledge:  NotebookCreated · NotebookRenamed · NotebookDeleted · NotebookPurged
+            GuidanceUpdated · GuidanceDeleted · GuidancePurged
+            FolderAdded · FolderRenamed · FolderDescribed · FolderMoved · FolderReordered
+            FolderRemoved · TemplateUpdated · TemplateDeleted · TemplatePurged
+            NoteCreated · NoteUpdated · NoteReordered · NoteMoved · NoteDeleted · NotePurged
+            (retired, kept parseable: NoteRestored · NotebookRestored)
 Discovery:  NoteLinksResolved · NoteIndexed · LinkBroken
 ```
 
-Every event carries the `subscriptionId` and the `Authorship`. **Content events carry the complete `ContentRef`**, with `contentId`, `versionId`, `sha256` and `bytes`, and not only the `versionId`: that is what makes the audit trail a recovery index sufficient to rebuild the mapping between DynamoDB and S3 from zero (§9.2, §12.3). `NoteMoved` carries source and destination (`notebookId`, `folderId`), because whoever consumes it needs both sides.
+Every event carries the `subscriptionId` and the `Authorship`. **Content events carry the complete `ContentRef`**, with `contentId`, `versionId`, `sha256` and `bytes`, and not only the `versionId`: that is what makes the audit trail a recovery index sufficient to rebuild the mapping between DynamoDB and S3 from zero (§9.2, §12.3). `NoteMoved` carries source and destination (`notebookId`, `folderId`), because whoever consumes it needs both sides, **and the `ContentRef` live at that instant**, which is not a revision of its own: a projector reprojects a moved note from it, and a move without it was projected as an empty note, out of the search and out of the graph.
+
+**Every note event carries the `version` of the note the write produced**, a number that only grows. The bus promises delivery and not order, and the projection queue delivers a failed message again minutes later, so an older event of a note can arrive after a newer one; the version is what tells them apart (§11).
 
 Published through a **transactional outbox** (§10.4). Adding a consumer does not touch the core.
 
@@ -1007,6 +1012,14 @@ One counter item **per facet value**, and not a single statistics item per noteb
 **The cardinality ceiling is the free-text detector** (RN-DSC-024). `FDEF#{facet}` tracks how many distinct values the attribute has produced in the notebook; on passing the ceiling, the projector marks the attribute as `discarded`, deletes its `STAT#` items and starts ignoring it. That is how `source` never becomes a statistic, with no exclusion list in the code: an attribute whose value is unique per note gives itself away through its cardinality.
 
 **Assembling the panel is one `Query`** with the `STAT#` prefix per notebook, without touching a single note. Rebuilding (PE5): delete the `FACET#` and `STAT#` items of the notebook and reprocess the notes.
+
+### 11.3a The order of events, and why it does not matter
+
+The projector is delivered at least once and in no order, so every projection of a note is **gated by the version the event carries**. Before projecting, it claims the version in one conditional write, `S#{s}#PROJECTED / NOTE#{noteId}`, which succeeds only when the version is newer than the one recorded: an older event delivered late, and the same event delivered twice, change nothing. The item lives in a partition of the subscription and not of a notebook, because a note keeps its identifier when it moves between notebooks. A deletion claims its own version, and a purge claims one above any version a note can reach, so nothing about a note that is gone is ever projected again.
+
+**Two projections of one note may still run at once**, and the graph of a note is replaced over several writes, not one. The claim records the whole state — notebook, folder, content reference and whether the note is gone — and the projector reads it back once it has written: when a newer state was claimed meanwhile, it projects that state and looks again. Whichever projector finishes last leaves the projections on the newest note, whatever order the writes landed in.
+
+The handler reports each failed record through `batchItemFailures`. A record that threw used to send the whole batch of up to ten back to the queue, the records already projected included.
 
 ### 11.4 Ports
 

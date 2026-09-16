@@ -326,9 +326,12 @@ test.describe('notes', () => {
     owner,
     notebook,
   }) => {
+    const word = unique('moved')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
     const later = await owner.ok<Note>('POST', notesPath(notebook), {
       folderId: notebook.folderId,
-      content: '---\nname: Later finding\n---\n',
+      content: `---\nname: Later finding\n---\n\nIt says ${word}.\n`,
     });
     const reordered = await owner.call(
       'POST',
@@ -343,6 +346,23 @@ test.describe('notes', () => {
     expect(reordered.status).toBe(200);
     expect(moved.status).toBe(200);
     expect(moved.body.folderId).toBe(archive.folderId);
+
+    // A moved note is still found by its words, in its new folder: the move
+    // used to be projected as an empty note (#141).
+    const found = await eventually(
+      'the moved note found by its words, in its new folder',
+      () =>
+        owner.ok<{ hits: Array<{ note: { noteId: string; folderId: string } }> }>(
+          'POST',
+          `/discovery/notebooks/${notebook.notebookId}/search`,
+          { query: word },
+        ),
+      (answer) =>
+        answer.hits.some(
+          (hit) => hit.note.noteId === later.noteId && hit.note.folderId === archive.folderId,
+        ),
+    );
+    expect(found.hits.map((hit) => hit.note.noteId)).toContain(later.noteId);
   });
 
   test('[route:DELETE /knowledge/notebooks/:v/notes/:n] deletes a note out of every listing, for good', async ({

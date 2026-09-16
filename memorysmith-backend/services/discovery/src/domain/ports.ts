@@ -213,6 +213,38 @@ export interface FacetIndex {
   notebookNoteFacets(notebookId: string): Promise<Map<string, Record<string, string[]>>>;
 }
 
+/**
+ * What the projections last projected of one note, and at which version
+ * (#141). The bus promises delivery and not order, and the queue delivers a
+ * failed message again minutes later, so an older event of a note can arrive
+ * after a newer one. The version the event carries is what decides, and this
+ * is where the decision is kept.
+ *
+ * It keeps the whole state and not only the number, because two projections of
+ * one note may run at once and interleave their writes: whichever finishes
+ * last reads this back and, when a newer state was claimed meanwhile, projects
+ * that state, so the projections converge on the newest note whatever the
+ * order the writes landed in.
+ */
+export interface ProjectedNote {
+  readonly version: number;
+  readonly notebookId: string;
+  readonly folderId: string;
+  readonly contentRef: { contentId: string; versionId: string } | null;
+  /** Deleted or purged: the note takes part in nothing any more. */
+  readonly gone: boolean;
+}
+
+export interface ProjectedVersions {
+  /**
+   * Records `state` when its version is newer than the one recorded, and
+   * answers whether it did. An event whose version is not newer changes
+   * nothing, which is also what makes the same event delivered twice a no-op.
+   */
+  claim(noteId: string, state: ProjectedNote): Promise<boolean>;
+  current(noteId: string): Promise<ProjectedNote | null>;
+}
+
 /** Lexical search lives here too: name and folder, no index of its own. */
 export interface NoteCatalog {
   listNotes(notebookId: string): Promise<Array<NoteRef & { folderName: string }>>;

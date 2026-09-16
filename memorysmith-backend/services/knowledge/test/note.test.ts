@@ -149,6 +149,27 @@ describe('Note: ordering', () => {
 });
 
 describe('Note: moving', () => {
+  it('carries the content and the version on the move, so a projector can reproject it', () => {
+    // #141: a move without its ContentRef was projected as an empty note.
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId, 'Lei 14.133');
+    note.pullEvents();
+    note.markPersisted();
+
+    unwrap(
+      note.moveTo(
+        { notebookId: notebook.id, folderId: FolderId.generate(), position: note.position },
+        authorship(),
+      ),
+    );
+
+    const [moved] = note.pullEvents();
+    expect(moved?.type).toBe('NoteMoved');
+    expect(moved?.contentRef?.versionId).toBe(note.bodyRef.versionId);
+    // The version the write produces, which only grows.
+    expect(moved?.payload['version']).toBe(note.version + 1);
+  });
+
   it('preserves the NoteId and reports both sides of the move', () => {
     // RN-KNW-023: the identifier survives, and with it the whole timeline.
     const notebook = newNotebook();

@@ -8,8 +8,11 @@ import {
   InMemoryFacetIndex,
   InMemoryLinkGraph,
   InMemoryNoteCatalog,
+  InMemoryProjectedVersions,
   InMemoryStructureProjection,
 } from '../src/adapters/memory.js';
+import { dispatch } from '../src/adapters/dispatch.js';
+import { parseEvent } from '@memorysmith/contracts';
 import {
   ProjectNote,
   ProjectStructure,
@@ -179,7 +182,14 @@ describe('The projections, driven by events', () => {
     structure = new InMemoryStructureProjection();
     catalog = new InMemoryNoteCatalog();
     content = new Map();
-    project = new ProjectNote({ graph, facets, index, structure, content: reader });
+    project = new ProjectNote({
+      graph,
+      facets,
+      index,
+      structure,
+      content: reader,
+      versions: new InMemoryProjectedVersions(),
+    });
 
     const structureProjector = new ProjectStructure(structure);
     await structureProjector.onNotebook(NOTEBOOK, 'Normas e Legislacao');
@@ -362,6 +372,181 @@ describe('The projections, driven by events', () => {
     expect(stats.facets.find((facet) => facet.facet === 'maturity')?.values).toEqual([
       { value: 'seed', count: 45 },
     ]);
+  });
+});
+
+/**
+ * #141: the projections follow the note whatever order its events arrive in.
+ * Every event here goes through the contract and the dispatch the Lambda uses,
+ * shaped as the relay publishes it: the move that emptied a note was hidden by
+ * a test that built the event by hand, with a reference the real one lacked.
+ */
+describe('The projections follow the newest note, in any order', () => {
+  const SUBSCRIPTION = '01JBQ2X0000000000000000SBS';
+  const NB = '01JBQ2X00000000000000000NB';
+  const OTHER_NB = '01JBQ2X0000000000000000NB2';
+  const FOLDER = '01JBQ2X00000000000000000F1';
+  const MOVED_TO = '01JBQ2X00000000000000000F2';
+  const NOTE = '01JBQ2X00000000000000000N1';
+  const CONTENT = '01JBQ2X00000000000000000C1';
+
+  let index: InMemoryContentIndex;
+  let graph: InMemoryLinkGraph;
+  let facets: InMemoryFacetIndex;
+  let structure: InMemoryStructureProjection;
+  let bodies: Map<string, string>;
+  let projectors: { note: ProjectNote; structure: ProjectStructure };
+
+  beforeEach(async () => {
+    index = new InMemoryContentIndex();
+    graph = new InMemoryLinkGraph();
+    facets = new InMemoryFacetIndex();
+    structure = new InMemoryStructureProjection();
+    bodies = new Map();
+    projectors = {
+      note: new ProjectNote({
+        graph,
+        facets,
+        index,
+        structure,
+        versions: new InMemoryProjectedVersions(),
+        content: { read: async (ref) => bodies.get(ref.versionId) ?? '' },
+      }),
+      structure: new ProjectStructure(structure),
+    };
+  });
+
+  let sequence = 0;
+  /** An envelope as the relay publishes it, through the same contract. */
+  function envelope(
+    type: string,
+    payload: Record<string, unknown>,
+    revision: string | null,
+  ): ReturnType<typeof parseEvent> {
+    sequence += 1;
+    return parseEvent({
+      eventId: `01JBQ2X0000000000000${String(sequence).padStart(6, '0')}`,
+      type,
+      occurredAt: '2026-09-16T10:00:00.000Z',
+      subscriptionId: SUBSCRIPTION,
+      subject: 'NOTE',
+      subjectId: NOTE,
+      authorship: { userId: 'user-1', agent: null, at: '2026-09-16T10:00:00.000Z' },
+      contentRef: revision
+        ? { contentId: CONTENT, versionId: revision, sha256: 'a'.repeat(64), bytes: 10 }
+        : null,
+      storageDelta: 0,
+      payload,
+    });
+  }
+
+  const written = (version: number, revision: string, text: string) => {
+    bodies.set(
+      revision,
+      `---
+name: Nota
+---
+
+${text}
+`,
+    );
+    return envelope(
+      version === 1 ? 'NoteCreated' : 'NoteUpdated',
+      {
+        notebookId: NB,
+        noteId: NOTE,
+        folderId: FOLDER,
+        name: 'Nota',
+        ...(version === 1 ? { position: 'a0' } : {}),
+        version,
+      },
+      revision,
+    );
+  };
+
+  const indexed = async (notebookId = NB) =>
+    (await index.scanNotebook(notebookId)).find((note) => note.noteId === NOTE);
+
+  it('finds a moved note by its words, in its new folder', async () => {
+    await dispatch(projectors, written(1, 'v1', 'palavra rara'));
+    await dispatch(
+      projectors,
+      envelope(
+        'NoteMoved',
+        {
+          noteId: NOTE,
+          fromNotebookId: NB,
+          fromFolderId: FOLDER,
+          toNotebookId: NB,
+          toFolderId: MOVED_TO,
+          position: 'a0',
+          version: 2,
+        },
+        'v1',
+      ),
+    );
+
+    const note = await indexed();
+    expect(note?.folderId).toBe(MOVED_TO);
+    expect(note?.normalized).toContain('palavra rara');
+    expect(note?.name).toBe('nota');
+  });
+
+  it('keeps a note moved to another notebook findable there, and nowhere else', async () => {
+    await dispatch(projectors, written(1, 'v1', 'palavra rara'));
+    await dispatch(
+      projectors,
+      envelope(
+        'NoteMoved',
+        {
+          noteId: NOTE,
+          fromNotebookId: NB,
+          fromFolderId: FOLDER,
+          toNotebookId: OTHER_NB,
+          toFolderId: MOVED_TO,
+          position: 'a0',
+          version: 2,
+        },
+        'v1',
+      ),
+    );
+
+    expect(await indexed(NB)).toBeUndefined();
+    expect((await indexed(OTHER_NB))?.normalized).toContain('palavra rara');
+  });
+
+  it('leaves the newer text in place when an older event arrives late', async () => {
+    const older = written(2, 'v2', 'texto antigo');
+    const newer = written(3, 'v3', 'texto novo');
+
+    await dispatch(projectors, written(1, 'v1', 'primeiro'));
+    await dispatch(projectors, newer);
+    await dispatch(projectors, older);
+
+    const note = await indexed();
+    expect(note?.normalized).toContain('texto novo');
+    expect(note?.normalized).not.toContain('antigo');
+  });
+
+  it('changes nothing when the same event is delivered twice', async () => {
+    const event = written(1, 'v1', 'uma vez');
+    await dispatch(projectors, event);
+    bodies.set('v1', 'content changed behind the back of the projector');
+
+    await dispatch(projectors, event);
+
+    expect((await indexed())?.normalized).toContain('uma vez');
+  });
+
+  it('never projects a note again once it was deleted, whatever arrives after', async () => {
+    await dispatch(projectors, written(1, 'v1', 'antes'));
+    await dispatch(
+      projectors,
+      envelope('NoteDeleted', { notebookId: NB, noteId: NOTE, folderId: FOLDER, version: 3 }, null),
+    );
+    await dispatch(projectors, written(2, 'v2', 'atrasado'));
+
+    expect(await indexed()).toBeUndefined();
   });
 });
 

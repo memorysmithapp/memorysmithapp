@@ -15,13 +15,20 @@ import {
   DynamoContentIndex,
   DynamoFacetIndex,
   DynamoLinkGraph,
+  DynamoProjectedVersions,
   DynamoStructureProjection,
 } from '../adapters/aws.js';
 import { ProjectNote, ProjectStructure } from '../application/projections.js';
+import { dispatch } from '../adapters/dispatch.js';
 
 interface QueueEvent {
   detail?: unknown;
-  Records?: Array<{ body?: string }>;
+  Records?: Array<{ body?: string; messageId?: string }>;
+}
+
+/** What the queue reads back: only the records named here come back (#141). */
+interface BatchResponse {
+  batchItemFailures: Array<{ itemIdentifier: string }>;
 }
 
 function required(name: string): string {
@@ -59,117 +66,43 @@ function projectorsFor(subscriptionId: SubscriptionId) {
       index: new DynamoContentIndex(subscriptionId, db, table),
       structure: new DynamoStructureProjection(subscriptionId, db, table),
       content,
+      versions: new DynamoProjectedVersions(subscriptionId, db, table),
     }),
     structure: new ProjectStructure(new DynamoStructureProjection(subscriptionId, db, table)),
   };
 }
 
-export async function handler(event: QueueEvent): Promise<void> {
-  const raw = event.Records
-    ? event.Records.map((record) => {
-        const parsed = JSON.parse(record.body ?? '{}') as { detail?: unknown };
-        return parsed.detail ?? parsed;
-      })
-    : [event.detail].filter((detail) => detail !== undefined);
+/**
+ * Each record is projected on its own, and a record that fails is reported by
+ * itself. It used to throw out of the loop, which sent the whole batch of up to
+ * ten back to the queue — the records already projected included — to be
+ * projected again six minutes later, over whatever had been written since
+ * (#141). The version gate makes a redelivery harmless; this makes it rare.
+ */
+export async function handler(event: QueueEvent): Promise<BatchResponse> {
+  if (!event.Records) {
+    if (event.detail !== undefined) await projectOne(event.detail);
+    return { batchItemFailures: [] };
+  }
 
-  for (const each of raw) {
-    // Validated against the contract on this side too: an envelope only the
-    // producer knows is how a projection starts lying quietly (section 19).
-    const envelope = parseEvent(each);
-    const subscriptionId = SubscriptionId.fromClaim(envelope.subscriptionId);
-    if (!subscriptionId.ok) continue;
-
-    const projectors = projectorsFor(subscriptionId.value);
-    const payload = envelope.payload as Record<string, string>;
-    const contentRef = envelope.contentRef
-      ? { contentId: envelope.contentRef.contentId, versionId: envelope.contentRef.versionId }
-      : null;
-
-    switch (envelope.type) {
-      case 'NotebookCreated':
-      case 'NotebookRenamed':
-        await projectors.structure.onNotebook(
-          String(payload['notebookId']),
-          String(payload['name']),
-        );
-        break;
-
-      case 'FolderAdded':
-      case 'FolderRenamed':
-      case 'FolderDescribed':
-      case 'FolderMoved':
-        await projectors.structure.onFolder(String(payload['notebookId']), {
-          folderId: String(payload['folderId']),
-          name: String(payload['name'] ?? ''),
-          description: String(payload['description'] ?? ''),
-          parentFolderId: payload['toParentFolderId'] ?? payload['parentFolderId'] ?? null,
-        });
-        break;
-
-      case 'FolderRemoved': {
-        const removedFolderIds = (envelope.payload['removedFolderIds'] as string[]) ?? [];
-        // The notes first: what says a note is invalid is the folder above it,
-        // and the folders are what the next line forgets (RN-KNW-046).
-        await projectors.note.onFoldersRemoved(String(payload['notebookId']), removedFolderIds);
-        await projectors.structure.onFoldersRemoved(
-          String(payload['notebookId']),
-          removedFolderIds,
-        );
-        break;
-      }
-
-      case 'NotebookDeleted':
-        await projectors.note.onNotebookDeleted(String(payload['notebookId']));
-        await projectors.structure.onNotebookDeleted(String(payload['notebookId']));
-        break;
-
-      case 'NotePurged':
-        // The purge is delivered at least once and arrives after the deletion
-        // that caused it, so this is almost always a no-op. It is here because
-        // "almost always" is not a guarantee: a projection written between the
-        // deletion and the purge would otherwise stay.
-        await projectors.note.onDeleted({
-          notebookId: String(payload['notebookId']),
-          noteId: String(payload['noteId']),
-          folderId: String(payload['folderId']),
-          contentRef: null,
-        });
-        break;
-
-      case 'NoteCreated':
-      case 'NoteUpdated':
-        await projectors.note.onWritten({
-          notebookId: String(payload['notebookId']),
-          noteId: String(payload['noteId']),
-          folderId: String(payload['folderId']),
-          contentRef,
-        });
-        break;
-
-      case 'NoteMoved':
-        // The folder is part of the embedded prefix, so a move reindexes the
-        // note even though its words did not change (RN-DSC-012).
-        await projectors.note.onMoved({
-          notebookId: String(payload['toNotebookId']),
-          fromNotebookId: String(payload['fromNotebookId']),
-          noteId: String(payload['noteId']),
-          folderId: String(payload['toFolderId']),
-          contentRef,
-        });
-        break;
-
-      case 'NoteDeleted':
-        await projectors.note.onDeleted({
-          notebookId: String(payload['notebookId']),
-          noteId: String(payload['noteId']),
-          folderId: String(payload['folderId']),
-          contentRef: null,
-        });
-        break;
-
-      default:
-        // Everything else on the bus is somebody else's business.
-        break;
+  const failures: BatchResponse['batchItemFailures'] = [];
+  for (const record of event.Records) {
+    try {
+      const parsed = JSON.parse(record.body ?? '{}') as { detail?: unknown };
+      await projectOne(parsed.detail ?? parsed);
+    } catch (error) {
+      console.error('A projection failed and goes back to the queue alone', error);
+      failures.push({ itemIdentifier: record.messageId ?? '' });
     }
   }
+  return { batchItemFailures: failures };
+}
+
+async function projectOne(each: unknown): Promise<void> {
+  // Validated against the contract on this side too: an envelope only the
+  // producer knows is how a projection starts lying quietly (section 19).
+  const envelope = parseEvent(each);
+  const subscriptionId = SubscriptionId.fromClaim(envelope.subscriptionId);
+  if (!subscriptionId.ok) return;
+  await dispatch(projectorsFor(subscriptionId.value), envelope);
 }

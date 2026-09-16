@@ -251,14 +251,22 @@ export class Note {
     this._folderId = destination.folderId;
     this._position = destination.position;
     this._updatedBy = by;
-    this.record('NoteMoved', by, {
-      noteId: this.id.value,
-      fromNotebookId: fromNotebookId.value,
-      fromFolderId: fromFolderId.value,
-      toNotebookId: destination.notebookId.value,
-      toFolderId: destination.folderId.value,
-      position: destination.position.value,
-    });
+    // The content travels with the move: a projector that reprojects a moved
+    // note reads it from here, and a move without it was projected as an empty
+    // note, out of the search and out of the graph (#141).
+    this.record(
+      'NoteMoved',
+      by,
+      {
+        noteId: this.id.value,
+        fromNotebookId: fromNotebookId.value,
+        fromFolderId: fromFolderId.value,
+        toNotebookId: destination.notebookId.value,
+        toFolderId: destination.folderId.value,
+        position: destination.position.value,
+      },
+      this._bodyRef,
+    );
     return ok();
   }
 
@@ -334,7 +342,10 @@ export class Note {
       subject: 'NOTE',
       subjectId: this.id.value,
       authorship: by,
-      payload,
+      // The version this write produces, a number that only grows. The bus
+      // promises delivery and not order, and this is what lets a projection
+      // tell the newer state of a note from an older one delivered late (#141).
+      payload: { ...payload, version: this._version + 1 },
       contentRef,
       storageDelta,
     });

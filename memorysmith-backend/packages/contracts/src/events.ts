@@ -321,12 +321,21 @@ export const notebookPurgedPayload = z.object({
  * it carries no slug: a note is addressed by its identifier, and what a link
  * resolves against is the name itself.
  */
+/**
+ * The version of the note the write produced, which only grows. Every note
+ * event carries it, because the bus promises delivery and not order: it is what
+ * a projection compares to leave an older event delivered late without effect.
+ * Optional only so an event written before it existed stays parseable.
+ */
+const noteVersionSchema = z.number().int().positive().optional();
+
 export const noteCreatedPayload = z.object({
   notebookId: ulidSchema,
   noteId: ulidSchema,
   folderId: ulidSchema,
   name: z.string().min(1).nullable(),
   position: positionSchema,
+  version: noteVersionSchema,
 });
 
 export const noteUpdatedPayload = z.object({
@@ -334,6 +343,7 @@ export const noteUpdatedPayload = z.object({
   noteId: ulidSchema,
   folderId: ulidSchema,
   name: z.string().min(1).nullable(),
+  version: noteVersionSchema,
 });
 
 export const noteReorderedPayload = z.object({
@@ -341,6 +351,7 @@ export const noteReorderedPayload = z.object({
   noteId: ulidSchema,
   folderId: ulidSchema,
   position: positionSchema,
+  version: noteVersionSchema,
 });
 
 /** Carries BOTH sides, because whoever consumes it needs both (section 6.6). */
@@ -351,12 +362,14 @@ export const noteMovedPayload = z.object({
   toNotebookId: ulidSchema,
   toFolderId: ulidSchema,
   position: positionSchema,
+  version: noteVersionSchema,
 });
 
 export const noteDeletedPayload = z.object({
   notebookId: ulidSchema,
   noteId: ulidSchema,
   folderId: ulidSchema,
+  version: noteVersionSchema,
 });
 
 export const noteRestoredPayload = z.object({

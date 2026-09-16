@@ -65,8 +65,12 @@ export class AuditEvent {
     );
   }
 
+  /**
+   * A move carries the reference of the note so a projection can reproject it,
+   * and it changes no content: it is not a revision of its own.
+   */
   get changedContent(): boolean {
-    return this.contentRef !== null;
+    return this.contentRef !== null && this.type !== 'NoteMoved';
   }
 }
 

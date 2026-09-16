@@ -15,7 +15,14 @@ import { extractLinks } from '../domain/LinkExtractor.js';
 import { extractFacets } from '../domain/FacetExtractor.js';
 import { extractFrontmatterAliases } from '../domain/Aliases.js';
 import { normalize } from '../domain/SearchQuery.js';
-import type { ContentIndex, FacetIndex, LinkGraph, NoteRef } from '../domain/ports.js';
+import type {
+  ContentIndex,
+  FacetIndex,
+  LinkGraph,
+  NoteRef,
+  ProjectedNote,
+  ProjectedVersions,
+} from '../domain/ports.js';
 
 /**
  * The frontmatter is the facet projector's business (RN-DSC-018) and has no
@@ -69,7 +76,15 @@ export interface ProjectionDependencies {
   readonly index: ContentIndex;
   readonly structure: StructureProjection;
   readonly content: ContentReader;
+  /** What was last projected of each note, and at which version (#141). */
+  readonly versions: ProjectedVersions;
 }
+
+/**
+ * The version a purge is recorded at: above any version a note can reach, so
+ * nothing about a purged note is ever projected again.
+ */
+const PURGED = Number.MAX_SAFE_INTEGER;
 
 /**
  * What a note event carries. It does NOT carry a name: the name is read from
@@ -83,6 +98,11 @@ export interface NoteEvent {
   readonly noteId: string;
   readonly folderId: string;
   readonly contentRef: { contentId: string; versionId: string } | null;
+  /**
+   * The version of the note the write produced (#141). Absent only on an event
+   * written before versions existed, which is projected as it comes.
+   */
+  readonly version?: number | undefined;
 }
 
 /**
@@ -102,6 +122,69 @@ function refOf(event: NoteEvent, name: string, aliases: readonly string[]): Note
 
 export class ProjectNote {
   constructor(private readonly deps: ProjectionDependencies) {}
+
+  /**
+   * The one door of a note event: a write, a move, a deletion or a purge,
+   * projected only when it is newer than what was projected (#141).
+   *
+   * 1. The claim is one conditional write. An event whose version is not newer
+   *    changes nothing, which also makes a redelivered event a no-op.
+   * 2. The projection is several writes, and a newer event of the same note
+   *    may be projecting at the same time. So once this one is done it reads
+   *    the claim back, and when a newer state was claimed meanwhile it projects
+   *    THAT state and looks again. Whichever projector finishes last leaves the
+   *    projections on the newest note, whatever order the writes landed in.
+   */
+  async project(
+    event: NoteEvent & {
+      kind: 'written' | 'moved' | 'deleted' | 'purged';
+      fromNotebookId?: string;
+    },
+  ): Promise<void> {
+    if (event.version === undefined && event.kind !== 'purged') {
+      await this.apply(event);
+      return;
+    }
+    const state: ProjectedNote = {
+      version: event.kind === 'purged' ? PURGED : (event.version as number),
+      notebookId: event.notebookId,
+      folderId: event.folderId,
+      contentRef: event.contentRef,
+      gone: event.kind === 'deleted' || event.kind === 'purged',
+    };
+    if (!(await this.deps.versions.claim(event.noteId, state))) return;
+    await this.apply(event);
+
+    let projected = state.version;
+    for (let round = 0; round < 5; round++) {
+      const newest = await this.deps.versions.current(event.noteId);
+      if (!newest || newest.version <= projected) return;
+      projected = newest.version;
+      await this.apply({
+        kind: newest.gone ? 'deleted' : 'written',
+        notebookId: newest.notebookId,
+        noteId: event.noteId,
+        folderId: newest.folderId,
+        contentRef: newest.contentRef,
+      });
+    }
+  }
+
+  private async apply(
+    event: NoteEvent & {
+      kind: 'written' | 'moved' | 'deleted' | 'purged';
+      fromNotebookId?: string;
+    },
+  ): Promise<void> {
+    switch (event.kind) {
+      case 'written':
+        return this.onWritten(event);
+      case 'moved':
+        return this.onMoved({ ...event, fromNotebookId: event.fromNotebookId ?? event.notebookId });
+      default:
+        return this.onDeleted(event);
+    }
+  }
 
   /**
    * Runs on NoteCreated and NoteUpdated, and on NoteMoved, because a note that

@@ -12,6 +12,11 @@
  *   TEXT#{noteId}          the searchable portrait of one note
  *   STRUCT / SFOLDER#{id}  the local projection of the notebook shape
  *
+ * and, in a partition of the subscription and not of a notebook, because a note
+ * keeps its identifier when it moves between notebooks:
+ *
+ *   S#{s}#PROJECTED / NOTE#{noteId}   the version of the note last projected (#141)
+ *
  * A counter item per value, and not a single statistics item, for the same
  * reason the META rule exists: fifty notes written in parallel increment
  * different items instead of queuing behind one (PE8).
@@ -37,6 +42,8 @@ import {
 import type { SubscriptionId } from '@memorysmith/kernel';
 import type {
   PendingLink,
+  ProjectedNote,
+  ProjectedVersions,
   ContentIndex,
   IndexedNote,
   FacetIndex,
@@ -69,6 +76,55 @@ function chunk<T>(items: T[], size: number): T[][] {
 /** Every key starts with the subscription, like everywhere else (PE2). */
 function partition(subscriptionId: SubscriptionId, notebookId: string): string {
   return `S#${subscriptionId.value}#NOTEBOOK#${notebookId}`;
+}
+
+/**
+ * The version each note was last projected at. The claim is ONE conditional
+ * write, so two projectors racing for one note cannot both believe they are
+ * the newest: DynamoDB settles it.
+ */
+export class DynamoProjectedVersions implements ProjectedVersions {
+  constructor(
+    private readonly subscriptionId: SubscriptionId,
+    private readonly db: DynamoDBDocumentClient,
+    private readonly tableName: string,
+  ) {}
+
+  private key(noteId: string): Item {
+    return { PK: `S#${this.subscriptionId.value}#PROJECTED`, SK: `NOTE#${noteId}` };
+  }
+
+  async claim(noteId: string, state: ProjectedNote): Promise<boolean> {
+    try {
+      await this.db.send(
+        new PutCommand({
+          TableName: this.tableName,
+          Item: { ...this.key(noteId), entity: 'PROJECTED', noteId, ...state },
+          ConditionExpression: 'attribute_not_exists(SK) OR version < :version',
+          ExpressionAttributeValues: { ':version': state.version },
+        }),
+      );
+      return true;
+    } catch (error) {
+      if ((error as { name?: string })?.name === 'ConditionalCheckFailedException') return false;
+      throw error;
+    }
+  }
+
+  async current(noteId: string): Promise<ProjectedNote | null> {
+    const response = await this.db.send(
+      new GetCommand({ TableName: this.tableName, Key: this.key(noteId), ConsistentRead: true }),
+    );
+    const item = response.Item as Item | undefined;
+    if (!item) return null;
+    return {
+      version: Number(item['version']),
+      notebookId: String(item['notebookId']),
+      folderId: String(item['folderId']),
+      contentRef: (item['contentRef'] as ProjectedNote['contentRef']) ?? null,
+      gone: Boolean(item['gone']),
+    };
+  }
 }
 
 export class DynamoLinkGraph implements LinkGraph {

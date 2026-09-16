@@ -7,6 +7,8 @@
 import {
   GRAPH_LIMITS,
   type PendingLink,
+  type ProjectedNote,
+  type ProjectedVersions,
   type FacetIndex,
   type FacetStats,
   type GraphNode,
@@ -23,6 +25,22 @@ import type { FacetSnapshot } from '../domain/FacetExtractor.js';
 import { resolveTarget, notebookNames, type NotebookNames } from '../domain/LinkResolver.js';
 import { facetDelta, valuesOf } from '../domain/FacetExtractor.js';
 import type { StructureProjection, NotebookStructure } from '../application/projections.js';
+
+/** The versions last projected, in memory, with the same conditional claim. */
+export class InMemoryProjectedVersions implements ProjectedVersions {
+  private readonly notes = new Map<string, ProjectedNote>();
+
+  async claim(noteId: string, state: ProjectedNote): Promise<boolean> {
+    const recorded = this.notes.get(noteId);
+    if (recorded && recorded.version >= state.version) return false;
+    this.notes.set(noteId, state);
+    return true;
+  }
+
+  async current(noteId: string): Promise<ProjectedNote | null> {
+    return this.notes.get(noteId) ?? null;
+  }
+}
 
 interface Edge {
   readonly fromNoteId: string;
