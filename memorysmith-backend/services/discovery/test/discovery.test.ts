@@ -26,6 +26,7 @@ import {
   NotebookGraphQuery,
   NotebookHealth,
 } from '../src/application/queries.js';
+import type { ScanMeter, SearchMeasure } from '../src/domain/ports.js';
 
 const NOTEBOOK = 'notebook-1';
 
@@ -877,6 +878,57 @@ describe('Discovery queries', () => {
       query: '   ',
     });
     expect(refused.ok).toBe(false);
+  });
+});
+
+describe('Every search is measured', () => {
+  it('records the notes, the items, the bytes, the read units and the time of one search', async () => {
+    // RN-DSC-027: a notebook has no ceiling of notes, and this is what says
+    // when the scan stops being affordable.
+    const recorded: SearchMeasure[] = [];
+    const content = {
+      replaceNote: async () => undefined,
+      removeNote: async () => undefined,
+      scanNotebook: async (_notebookId: string, meter?: ScanMeter) => {
+        if (meter) {
+          meter.items += 3;
+          meter.bytes += 1200;
+          meter.readUnits += 1.5;
+        }
+        return [
+          {
+            noteId: 'n1',
+            name: 'nota',
+            folderId: 'f1',
+            folderName: 'pasta',
+            sections: [],
+            normalized: 'uma palavra rara',
+            original: 'uma palavra rara',
+            facets: {},
+          },
+        ];
+      },
+    };
+    const search = new SearchNotes({
+      graph: new InMemoryLinkGraph(),
+      facets: new InMemoryFacetIndex(),
+      catalog: new InMemoryNoteCatalog(),
+      content,
+      searchLog: { record: (measure) => recorded.push(measure) },
+    });
+
+    await search.execute({ notebookId: NOTEBOOK, query: 'rara' });
+
+    expect(recorded).toHaveLength(1);
+    expect(recorded[0]).toMatchObject({
+      notebookId: NOTEBOOK,
+      notesRead: 1,
+      itemsRead: 3,
+      bytesRead: 1200,
+      readUnits: 1.5,
+      hits: 1,
+    });
+    expect(recorded[0]?.durationMs).toBeGreaterThanOrEqual(0);
   });
 });
 

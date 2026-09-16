@@ -122,7 +122,7 @@ export class DynamoNoteRepository implements NoteRepository {
   }
 
   /**
-   * Every note item of the notebook, page after page. A notebook of 2,000 notes
+   * Every note item of the notebook, page after page. A notebook of thousands of notes
    * does not fit in the one megabyte a Query answers, and a listing that stopped
    * at the first page used to say nothing about the rest.
    */

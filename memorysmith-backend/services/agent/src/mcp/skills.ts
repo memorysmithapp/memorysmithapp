@@ -194,7 +194,8 @@ reader, and state each convention once.
   \`reorder_note\`.
 - **A folder is where a note lives, and not part of what identifies it**:
   moving a note keeps every link to it.
-- **The limits:** six levels deep, 200 folders and 2,000 notes in a notebook.
+- **The limits:** six levels deep and 200 folders in a notebook. There is no
+  limit of notes: what bounds a notebook is the storage of its subscription.
 
 ## Properties and tags
 

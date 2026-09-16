@@ -221,11 +221,8 @@ export class CreateNote {
     if (Buffer.byteLength(input.content, 'utf8') > NOTEBOOK_LIMITS.maxNoteBytes) {
       return err(DomainError.limitExceeded('A note holds at most 1 MB of content'));
     }
-    if (notebook.value.noteCount >= NOTEBOOK_LIMITS.maxNotes) {
-      return err(
-        DomainError.limitExceeded(`A notebook holds at most ${NOTEBOOK_LIMITS.maxNotes} notes`),
-      );
-    }
+    // There is no ceiling of notes (RN-KNW-010): what bounds the content of a
+    // notebook is the storage quota of its subscription, checked below.
     // One live note of each name in a folder (RN-KNW-042). A create retried
     // after its answer was lost is refused here naming the note it already
     // made, which is how one note stays one note (RN-AGT-024).

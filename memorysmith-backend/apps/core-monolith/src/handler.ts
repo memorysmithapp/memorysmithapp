@@ -82,6 +82,7 @@ import {
   ReadRevision,
 } from '@memorysmith/svc-audit/application';
 import type { DiscoveryUseCases } from '@memorysmith/svc-discovery/adapters/http';
+import type { SearchMeasure } from '@memorysmith/svc-discovery/domain';
 import {
   Backlinks,
   ResolveLinkTarget,
@@ -315,6 +316,24 @@ function discoveryFor(context: SubscriptionContext) {
     facets: built.facets,
     content: built.index,
     catalog: new KnowledgeNoteCatalog(buildKnowledge(infra, context)),
+    /**
+     * One line per search, in the logs of the function (RN-DSC-027). A notebook
+     * has no ceiling of notes, and this is what says when the scan stops being
+     * affordable: a query over the log group finds the notebooks whose search
+     * reads the most.
+     */
+    searchLog: {
+      record: (measure: SearchMeasure) => {
+        process.stdout.write(
+          `${JSON.stringify({
+            event: 'search',
+            subscriptionId: context.subscriptionId.value,
+            ...measure,
+          })}
+`,
+        );
+      },
+    },
   };
 }
 

@@ -149,7 +149,6 @@ export class RemovalPolicy {
 /** Product limits, declared so they become tests (software-vision.md, 14). */
 export const NOTEBOOK_LIMITS = {
   maxFolders: 200,
-  maxNotes: 2000,
   maxDepth: 6,
   maxNoteBytes: 1_048_576,
 } as const;

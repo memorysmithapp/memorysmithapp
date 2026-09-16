@@ -77,6 +77,8 @@ issues each entry cites.
 
 ### Added
 
+- **Every search is measured.** One log line per query says which notebook, how many notes and items were read, how many bytes, the read units consumed and how long it took, so the day a notebook grows past what a scan should serve is seen rather than guessed (RN-DSC-027). (#134)
+
 - **`delete_template` and `delete_guidance`, and a way to do it on the page.** The two tools take one away and answer what stays: the folder keeps its description and its notes, the notebook keeps its folders, its templates and every note. On the web the Guidance panel, the folder page and the page of Templates offer it to whoever may write, and it asks first, in the page rather than in a browser dialog, because what a person needs in order to answer is the sentence saying what survives — which does not fit in a dialog title. There is no undo, and the words do not promise one (RN-KNW-045). (#139)
 
 - **A Template and a Guidance can be deleted, and the folder or the notebook stays.** `DELETE /knowledge/notebooks/:v/folders/:f/template` and `DELETE /knowledge/notebooks/:v/guidance` remove one and answer `204`. There was no way to be rid of either: the only one was to remove the folder or delete the notebook that held it, because neither was an object a deletion could find. What a deleted one occupied leaves the storage count of the subscription, and no byte is destroyed: the content stays in the store, as it does for a deleted note (RN-KNW-045). (#139)
@@ -92,6 +94,8 @@ issues each entry cites.
 - **The report is the point, and it says what a person has to decide.** It names every edge gained together with the target and whether a name or an alias answered — the check after a run is not equality but **no edge lost**, since a note carrying `aliases:` starts answering targets that used to resolve to nothing — and it exits with `2` when one was lost. (#102)
 
 ### Removed
+
+- **The ceiling of 2,000 notes per notebook.** It protected no storage: it bounded the scan of the search, and it refused writes in a notebook doing its job — a notebook read by six agents reached 811 notes in 35 minutes. What bounds a notebook now is the storage quota of its subscription; the ceiling of 200 folders stays, because it bounds the Notebook Context an agent reads (RN-KNW-010). (#134)
 
 - **Restoring a notebook and restoring a note.** The two routes are gone, `POST /knowledge/notebooks/:v/restore` and `POST /knowledge/notebooks/:v/notes/:n/restore`, and both answer not found. They had no screen and no tool: the only way to reach one was to call the API by hand. What they stood on is gone with them — deleting is definitive (RN-KNW-029, RN-KNW-033) — and the two events, `NotebookRestored` and `NoteRestored`, stay in the contract marked as retired, so a trail already written stays parseable. (#140)
 

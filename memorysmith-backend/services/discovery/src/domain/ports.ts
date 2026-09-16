@@ -188,7 +188,37 @@ export interface IndexedNote {
 export interface ContentIndex {
   replaceNote(notebookId: string, note: IndexedNote): Promise<void>;
   removeNote(notebookId: string, noteId: string): Promise<void>;
-  scanNotebook(notebookId: string): Promise<IndexedNote[]>;
+  /** When a meter is given, the scan adds to it what it read. */
+  scanNotebook(notebookId: string, meter?: ScanMeter): Promise<IndexedNote[]>;
+}
+
+/**
+ * What one scan of a notebook read (RN-DSC-027). There is no ceiling of notes
+ * any more, so the cost of a search grows with the notebook, and this is what
+ * says when it becomes a real reason to change how the search is built.
+ */
+export interface ScanMeter {
+  /** Items of the index read, heads and parts. */
+  items: number;
+  /** Approximate bytes read. */
+  bytes: number;
+  /** Read capacity units consumed, as DynamoDB reports them. */
+  readUnits: number;
+}
+
+/** One line per search, written where the logs of an environment are read. */
+export interface SearchMeasure {
+  readonly notebookId: string;
+  readonly notesRead: number;
+  readonly itemsRead: number;
+  readonly bytesRead: number;
+  readonly readUnits: number;
+  readonly durationMs: number;
+  readonly hits: number;
+}
+
+export interface SearchLog {
+  record(measure: SearchMeasure): void;
 }
 
 export interface FacetStats {

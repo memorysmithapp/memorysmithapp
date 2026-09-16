@@ -62,31 +62,16 @@ function deps(notebook: Notebook) {
 }
 
 describe('notebook limits', () => {
-  it('refuses the note that would pass the ceiling of notes per notebook', async () => {
-    const { notebook, folderId } = rehydratedNotebookWithNotes(NOTEBOOK_LIMITS.maxNotes);
-
-    const refused = await new CreateNote(deps(notebook)).execute({
-      ctx,
-      notebookId: notebook.id,
-      folderId,
-      content: '# Uma nota a mais',
-      afterNoteId: null,
-      by: authorship(),
-    });
-
-    const error = expectErr(refused);
-    expect(error.code).toBe('LIMIT_EXCEEDED');
-    expect(error.message).toContain(String(NOTEBOOK_LIMITS.maxNotes));
-  });
-
-  it('admits the note that lands exactly on the ceiling', async () => {
-    const { notebook, folderId } = rehydratedNotebookWithNotes(NOTEBOOK_LIMITS.maxNotes - 1);
+  it('accepts a note past two thousand, because a notebook has no ceiling of notes', async () => {
+    // RN-KNW-010: the ceiling existed to bound the scan of the search, and it
+    // refused writes in a notebook doing its job. The storage quota is the bound.
+    const { notebook, folderId } = rehydratedNotebookWithNotes(5000);
 
     const created = await new CreateNote(deps(notebook)).execute({
       ctx,
       notebookId: notebook.id,
       folderId,
-      content: '# A última que cabe',
+      content: '# Uma nota a mais',
       afterNoteId: null,
       by: authorship(),
     });

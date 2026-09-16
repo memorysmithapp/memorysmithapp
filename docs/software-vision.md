@@ -593,7 +593,7 @@ Alphabetical ordering stays available as a display option in the client, without
 - **RN-KNW-044:** **A Template belongs to one folder and a Guidance to one notebook, and each is an object of its own**, not a field of its parent. A folder holds at most one Template and a notebook at most one Guidance, and what guarantees the "at most one" is the address of each: there is no second place the Template of a folder could live. Writing one is a write of that object and of nothing else, so it never locks the tree: two agents writing the Templates of two folders do not meet, and neither does one of them meet somebody renaming a third folder.
 - **RN-KNW-045:** **A Template and a Guidance are deleted on their own**, under the role that writes them, and the folder or the notebook stays. Deleting a Template leaves the folder with no suggested layout; deleting a Guidance leaves the notebook saying nothing about how it wants to be written. Until then, the only way to be rid of either was to remove the folder or delete the notebook that held it.
 - **RN-KNW-009:** Renaming, reordering or moving a folder or a note never changes the stored content, only pointers and order.
-- **RN-KNW-010:** A notebook supports up to 200 folders and 2,000 notes. Above the folder ceiling, the Notebook Context is truncated with an explicit notice.
+- **RN-KNW-010:** A notebook supports up to 200 folders. Above that ceiling the Notebook Context is truncated with an explicit notice. **There is no ceiling of notes**: what bounds the content of a notebook is the storage quota of its subscription (RN-SUB-019, RN-SUB-021).
 
 ### 8.3 Business rules: the note
 
@@ -771,7 +771,7 @@ What the search does **not** do is look for meaning. A note covering the subject
 - **RN-DSC-016:** The graph, the search and the facets are derived (PP5): deleting and rebuilding them from zero out of the notes is a supported operation, and it is the recovery plan for all of them.
 - **RN-DSC-025:** The search matches a **literal substring**, and not a whole word nor a stem. `14.133` is found by `14.133` and not by `14133`, because the separator was written by the author and inventing a normalisation of numbers would make the result impossible to explain. Accents and case, those are ignored on both sides.
 - **RN-DSC-026:** The fields `name`, `folder`, `content` and `section` are the only ones the backend knows by name. Every other query prefix, `title:` included, is resolved as a facet of the notebook, and a prefix matching no facet simply does not match, and is never an error.
-- **RN-DSC-027:** The search scans every note of the notebook on every query, which is sustained by the ceiling of 2,000 notes per notebook (RN-KNW-010). The scan has to walk the whole index: a search that answers from part of the notebook without saying it stopped is worse than no search.
+- **RN-DSC-027:** The search scans every note of the notebook on every query, and **records how many notes it read, how many bytes, the read units it consumed and how long it took**, one line per query in the logs of the environment. Nothing bounds a notebook but the storage of its subscription, so the cost of a search grows with the notebook, and that measurement is what shows when it becomes a real reason to change how the search is built. The scan has to walk the whole index: a search that answers from part of the notebook without saying it stopped is worse than no search.
 - **RN-DSC-028:** The frontmatter does not take part in the searchable text. It is matter for the facet projector (RN-DSC-018), and keeping it in the body would make every note match its own metadata.
 - **RN-DSC-029:** `![[target]]` is the embed form, and it produces **exactly the same edge** as `[[target]]`. The graph does not tell transclusion from reference apart, not even by counting: embedding a note and also linking to it is one single edge. An embed whose target does not exist yet follows RN-DSC-004 and becomes a pending link.
 
@@ -952,8 +952,7 @@ Declared so they become tests, and not folklore. The thesis is "without friction
 |---|---|
 | Note size | 1 MB |
 | Folders per notebook | 200 |
-| Notes per notebook | 2,000 |
-| Notes deleted by one `CASCADE` | 200 |
+| Notes per notebook | No ceiling; the storage quota of the subscription bounds it |
 | Tree depth | 6 levels |
 | Graph traversal depth | 3, with a ceiling of 200 nodes |
 | Propagation of a role change | up to 5 minutes |

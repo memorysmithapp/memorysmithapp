@@ -18,6 +18,8 @@ import {
   type ResolvedTarget,
   type ScoredNote,
   type PendingLink,
+  type ScanMeter,
+  type SearchLog,
 } from '../domain/ports.js';
 import {
   QuerySyntaxError,
@@ -35,6 +37,8 @@ export interface QueryDependencies {
   readonly facets: FacetIndex;
   readonly catalog: NoteCatalog;
   readonly content: ContentIndex;
+  /** Where every search is measured (RN-DSC-027). */
+  readonly searchLog?: SearchLog | undefined;
 }
 
 function candidateOf(note: IndexedNote): Candidate {
@@ -174,11 +178,13 @@ export class SearchNotes {
    * against every note in it. A hit always cites the note it came from, and
    * the section when the match fell under a heading (RN-DSC-010).
    *
-   * Scanning the whole notebook is a deliberate choice, not a shortcut. The notebook
-   * ceiling is 2.000 notes (RN-KNW-010), which is about 8 MB, and at that size
-   * a scan is cheaper and far simpler than an inverted index that would have
-   * to be kept in step with every write. What the scan may never do is stop
-   * early: `scanNotebook` walks every page, and the test below proves it.
+   * Scanning the whole notebook is a deliberate choice, not a shortcut: a scan
+   * is far simpler than an inverted index that would have to be kept in step
+   * with every write. A notebook has no ceiling of notes (RN-KNW-010), so the
+   * cost grows with the notebook, and every search is measured — notes, items,
+   * bytes, read units and time — so the day that cost becomes a real reason is
+   * seen in the logs rather than guessed (RN-DSC-027). What the scan may never
+   * do is stop early: `scanNotebook` walks every page, and a test proves it.
    */
   async execute(input: {
     notebookId: string;
@@ -193,7 +199,19 @@ export class SearchNotes {
       throw error;
     }
 
-    const notes = await this.deps.content.scanNotebook(input.notebookId);
+    const started = Date.now();
+    const meter: ScanMeter = { items: 0, bytes: 0, readUnits: 0 };
+    const notes = await this.deps.content.scanNotebook(input.notebookId, meter);
+    const measured = (hits: number) =>
+      this.deps.searchLog?.record({
+        notebookId: input.notebookId,
+        notesRead: notes.length,
+        itemsRead: meter.items,
+        bytesRead: meter.bytes,
+        readUnits: meter.readUnits,
+        durationMs: Date.now() - started,
+        hits,
+      });
 
     /**
      * An interval only means something over a date, and whether an attribute
@@ -230,6 +248,7 @@ export class SearchNotes {
       .map(({ note, candidate }) => ({ note, points: score(tree, candidate) }))
       .sort((left, right) => right.points - left.points)
       .slice(0, input.k ?? 10);
+    measured(scored.length);
     if (scored.length === 0) return ok([]);
 
     /**

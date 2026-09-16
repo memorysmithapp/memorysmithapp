@@ -25,7 +25,8 @@
  * index. CHUNK# items held one embedded vector each and were removed in 0.2.0:
  * they cost 14 KB apiece, ten times the note itself, and scoring them meant
  * reading all of them on every query. TEXT# costs about what the note costs,
- * and the notebook ceiling of 2.000 notes (RN-KNW-010) keeps the scan bounded.
+ * and every search is measured, because nothing bounds the notebook any more
+ * but the storage of its subscription (RN-KNW-010, RN-DSC-027).
  */
 
 import { resolveTarget, notebookNames } from '../domain/LinkResolver.js';
@@ -42,6 +43,7 @@ import {
 import { ulid, type SubscriptionId } from '@memorysmith/kernel';
 import type {
   PendingLink,
+  ScanMeter,
   ProjectedNote,
   ProjectedVersions,
   ContentIndex,
@@ -1091,7 +1093,7 @@ export class DynamoContentIndex implements ContentIndex {
     await this.removeParts(notebookId, noteId, null);
   }
 
-  async scanNotebook(notebookId: string): Promise<IndexedNote[]> {
+  async scanNotebook(notebookId: string, meter?: ScanMeter): Promise<IndexedNote[]> {
     const heads: Item[] = [];
     const parts = new Map<string, string>();
     let startKey: Record<string, unknown> | undefined;
@@ -1105,11 +1107,22 @@ export class DynamoContentIndex implements ContentIndex {
           TableName: this.tableName,
           KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
           ExpressionAttributeValues: { ':pk': this.pk(notebookId), ':prefix': 'TEXT#' },
+          ...(meter ? { ReturnConsumedCapacity: 'TOTAL' } : {}),
           ...(startKey ? { ExclusiveStartKey: startKey } : {}),
         }),
       );
 
+      if (meter) {
+        meter.readUnits += Number(
+          (response as { ConsumedCapacity?: { CapacityUnits?: number } }).ConsumedCapacity
+            ?.CapacityUnits ?? 0,
+        );
+      }
       for (const item of (response.Items ?? []) as Item[]) {
+        if (meter) {
+          meter.items += 1;
+          meter.bytes += Buffer.byteLength(JSON.stringify(item), 'utf8');
+        }
         if (item['entity'] === 'text-part') parts.set(String(item['SK']), String(item['text']));
         else heads.push(item);
       }
