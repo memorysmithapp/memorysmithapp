@@ -865,8 +865,11 @@ describe('Delivery 4 done criteria', () => {
 
   it('writes the Templates of 20 folders in parallel while one of them is renamed', async () => {
     const context = contextFor();
-    const { notebook } = await seedNotebook(context);
+    const seeded = await seedNotebook(context);
     const { notebooks, content } = repositories(context);
+    // Loaded through THIS repository, because the lock it writes under is the
+    // version its own read recorded.
+    const notebook = (await notebooks.findById(seeded.notebook.id)) as Notebook;
 
     const folders = [];
     for (let index = 0; index < 20; index++) {
@@ -885,23 +888,21 @@ describe('Delivery 4 done criteria', () => {
     expect((await notebooks.save(notebook)).ok).toBe(true);
 
     const refs = await Promise.all(
-      folders.map((folder) =>
-        content.create(`# Modelo de ${folder.name.value}
-`),
-      ),
+      folders.map((folder) => content.create(`# Modelo de ${folder.name.value}\n`)),
     );
     // Twenty Template writes and a rename of the tree, all at once. Each
     // Template is locked on its own item, so none of them meets another and
     // none of them meets the rename (RN-KNW-044).
     const [renamed, ...outcomes] = await Promise.all([
       (async () => {
-        const loaded = (await new DynamoNotebookRepository(context, db, TABLE_NAME).findById(
-          notebook.id,
-        )) as Notebook;
+        // A repository of its own, as a request would have: it reads the tree
+        // and writes it back under the lock its OWN read recorded.
+        const tree = new DynamoNotebookRepository(context, db, TABLE_NAME);
+        const loaded = (await tree.findById(notebook.id)) as Notebook;
         unwrap(
           loaded.renameFolder(folders[0]!.id, folderName('Pasta zero'), authorshipOf(context)),
         );
-        return new DynamoNotebookRepository(context, db, TABLE_NAME).save(loaded);
+        return tree.save(loaded);
       })(),
       ...folders.map((folder, index) =>
         new DynamoContentSlotRepository(context, db, TABLE_NAME).save(
