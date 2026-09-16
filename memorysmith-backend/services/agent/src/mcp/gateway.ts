@@ -39,6 +39,13 @@ export interface NotebookListing {
  * `null` when the note has none a link could use (RN-KNW-036). It is reported rather than
  * shown as an empty string, which is what an agent needs in order to say so.
  */
+/** One page of the index of a notebook (RN-AGT-031). */
+export interface NotePage {
+  readonly notes: NoteListing[];
+  /** Pass it back as `cursor` for the next page; `null` when this was the last. */
+  readonly nextCursor: string | null;
+}
+
 export interface NoteListing {
   readonly noteId: string;
   readonly name: string | null;
@@ -173,7 +180,11 @@ export interface KnowledgeGateway {
     notebookId: string,
     folderId: string,
   ): Promise<{ content: string; folderName: string; revision: string } | null>;
-  listNotes(caller: AgentCaller, notebookId: string, folderId?: string): Promise<NoteListing[]>;
+  /** One page of the index, in the defined order (RN-AGT-031). */
+  listNotes(
+    caller: AgentCaller,
+    input: { notebookId: string; folderId?: string; limit?: number; cursor?: string },
+  ): Promise<NotePage>;
   readNote(caller: AgentCaller, notebookId: string, noteId: string): Promise<NoteContent>;
   /** Without an anchor the note goes last in its folder. */
   createNote(

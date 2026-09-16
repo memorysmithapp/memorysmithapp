@@ -13,6 +13,7 @@
  *    AND the human, and a token with no binding writes nothing (RN-AGT-001).
  */
 
+import { pageOf } from '../mcp/note-pages.js';
 import type {
   BacklinksDto,
   FolderDto,
@@ -34,6 +35,7 @@ import {
   type KnowledgeGateway,
   type NoteContent,
   type NoteListing,
+  type NotePage,
   type NoteReference,
   type RelatedNode,
   type SearchHit,
@@ -342,16 +344,36 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
         };
   }
 
+  /**
+   * The index, in pages (RN-AGT-031). The route answers every note with its
+   * size, instant and authorship, which the interface uses; an agent receives
+   * the four fields of an index, one page at a time, in the defined order —
+   * which across folders is the order of the tree, read from the notebook.
+   */
   async listNotes(
     caller: AgentCaller,
-    notebookId: string,
-    folderId?: string,
-  ): Promise<NoteListing[]> {
-    const query = folderId ? `?folderId=${encodeURIComponent(folderId)}` : '';
-    const notes = await callApi<
-      Array<{ noteId: string; name: string | null; folderId: string; position: string }>
-    >(this.origin, caller, `/knowledge/notebooks/${notebookId}/notes${query}`);
-    return notes;
+    input: { notebookId: string; folderId?: string; limit?: number; cursor?: string },
+  ): Promise<NotePage> {
+    const query = input.folderId ? `?folderId=${encodeURIComponent(input.folderId)}` : '';
+    const [notes, detail] = await Promise.all([
+      callApi<Array<{ noteId: string; name: string | null; folderId: string; position: string }>>(
+        this.origin,
+        caller,
+        `/knowledge/notebooks/${input.notebookId}/notes${query}`,
+      ),
+      input.folderId
+        ? Promise.resolve({ folders: [{ folderId: input.folderId }] })
+        : callApi<{ folders: Array<{ folderId: string }> }>(
+            this.origin,
+            caller,
+            `/knowledge/notebooks/${input.notebookId}`,
+          ),
+    ]);
+    return pageOf(
+      notes,
+      detail.folders.map((folder) => folder.folderId),
+      { limit: input.limit, cursor: input.cursor },
+    );
   }
 
   async readNote(caller: AgentCaller, notebookId: string, noteId: string): Promise<NoteContent> {
@@ -411,9 +433,15 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       folderId: note.folderId,
       position: note.position,
     });
-    const siblings = (await this.listNotes(caller, input.notebookId, moved.folderId)).map(
-      listingOf,
-    );
+    // Every sibling, not a page of them: the answer is the whole folder in
+    // its new order.
+    const siblings = (
+      await callApi<NoteListing[]>(
+        this.origin,
+        caller,
+        `/knowledge/notebooks/${input.notebookId}/notes?folderId=${encodeURIComponent(moved.folderId)}`,
+      )
+    ).map(listingOf);
     return inDefinedOrder(siblings, (note) => note.noteId, listingOf(moved));
   }
 

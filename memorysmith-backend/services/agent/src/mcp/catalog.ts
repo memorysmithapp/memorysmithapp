@@ -353,7 +353,11 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     title: 'List notes',
     description:
       'Index of the notes of a notebook, or of a single folder, in the ORDER DEFINED by whoever ' +
-      'authored the notebook. The order is content, not decoration: it says where to start.',
+      'authored the notebook. The order is content, not decoration: it says where to start. ' +
+      'Each note comes as its identifier, name, folder and position, one page at a time: the ' +
+      'answer is { notes, nextCursor }, and while nextCursor is not null pass it back as cursor ' +
+      'to read the next page. Read a note with read_note, and find notes by their text with ' +
+      'search_notes instead of reading the whole index.',
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -361,6 +365,14 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
           type: 'string',
           description:
             'Optional: restrict to one folder, by the identifier get_notebook_context prints.',
+        },
+        limit: {
+          type: 'number',
+          description: 'Optional: how many notes one page holds, 100 when omitted and at most 500.',
+        },
+        cursor: {
+          type: 'string',
+          description: 'Optional: the nextCursor of the previous page, to continue from it.',
         },
       },
       ['notebook'],

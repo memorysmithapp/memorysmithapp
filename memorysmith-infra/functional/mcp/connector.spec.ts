@@ -372,7 +372,7 @@ test.describe('the tools', () => {
       'the notes of the folder in the order the agent gave them',
       () => callTool(agent, 'list_notes', { ...where, folder: notebook.folderId }),
       (answer) =>
-        (JSON.parse(answer.text) as Array<{ noteId: string }>)
+        (JSON.parse(answer.text) as { notes: Array<{ noteId: string }> }).notes
           .map((note) => note.noteId)
           .filter((id) => ours.has(id))
           .join() === [third.noteId, first.noteId, second.noteId].join(),
@@ -395,6 +395,19 @@ test.describe('the tools', () => {
     expect(
       (await callTool(agent, 'list_notes', { ...where, folder: notebook.folderId })).text,
     ).toContain(created.noteId);
+    // The index carries the four fields of each note and a cursor, and nothing
+    // else of the note (RN-AGT-031).
+    const page = parsed<{ notes: Array<Record<string, unknown>>; nextCursor: string | null }>(
+      await callTool(agent, 'list_notes', { ...where, folder: notebook.folderId, limit: 1 }),
+    );
+    expect(page.notes).toHaveLength(1);
+    expect(Object.keys(page.notes[0] ?? {}).sort()).toEqual([
+      'folderId',
+      'name',
+      'noteId',
+      'position',
+    ]);
+    expect(page.nextCursor).not.toBeNull();
 
     const note = { ...where, note: created.noteId };
     // The tool hands the revision over as the string to pass back, not as the

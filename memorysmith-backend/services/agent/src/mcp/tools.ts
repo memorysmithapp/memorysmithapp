@@ -370,8 +370,15 @@ export class McpToolAdapter {
 
       case 'list_notes': {
         const folder = typeof args['folder'] === 'string' ? args['folder'] : undefined;
+        const cursor = typeof args['cursor'] === 'string' ? args['cursor'] : undefined;
+        const limit = typeof args['limit'] === 'number' ? args['limit'] : undefined;
         return json(
-          await knowledge.listNotes(caller, requireString(args, 'notebook', 'list_notes'), folder),
+          await knowledge.listNotes(caller, {
+            notebookId: requireString(args, 'notebook', 'list_notes'),
+            ...(folder === undefined ? {} : { folderId: folder }),
+            ...(cursor === undefined ? {} : { cursor }),
+            ...(limit === undefined ? {} : { limit }),
+          }),
         );
       }
 
