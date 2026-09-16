@@ -24,6 +24,9 @@ import {
   type DomainEvent,
 } from '@memorysmith/kernel';
 import { Folder } from '../../../domain/notebook/Folder.js';
+import type { ContentSlot } from '../../../domain/content-slot/ContentSlot.js';
+import { Guidance } from '../../../domain/content-slot/Guidance.js';
+import { Template } from '../../../domain/content-slot/Template.js';
 import { Note } from '../../../domain/note/Note.js';
 import { Notebook } from '../../../domain/notebook/Notebook.js';
 import { FolderDescription, FolderName, ShortText, NotebookName } from '../../../domain/values.js';
@@ -78,7 +81,6 @@ export function notebookMetaItem(notebook: Notebook, pk: string): Item {
     name: notebook.name.value,
     slug: notebook.slug.value,
     description: notebook.description.value,
-    guidanceRef: serializeContentRef(notebook.guidanceRef),
     version: notebook.version + 1,
     createdBy: serializeAuthorship(notebook.createdBy),
     createdAt: notebook.createdBy.at.toISOString(),
@@ -102,7 +104,6 @@ export function folderItem(folder: Folder, pk: string, sk: string): Item {
     slug: folder.slug.value,
     description: folder.description.value,
     position: folder.position.value,
-    templateRef: serializeContentRef(folder.templateRef),
     createdBy: serializeAuthorship(folder.createdBy),
     updatedAt: folder.updatedAt.toISOString(),
   };
@@ -117,7 +118,6 @@ export function parseFolder(item: Item): Folder {
     slug: unwrapOrThrow(Slug.create(String(item['slug']))),
     description: unwrapOrThrow(FolderDescription.create(String(item['description']))),
     position: unwrapOrThrow(Position.create(String(item['position']))),
-    templateRef: parseContentRef(item['templateRef']),
     createdBy: parseAuthorship(item['createdBy']),
     updatedAt: unwrapOrThrow(Instant.fromISO(String(item['updatedAt']))),
   });
@@ -134,7 +134,9 @@ export function parseNotebook(items: Item[], subscriptionId: SubscriptionId): No
   const folders: Folder[] = [];
   const noteCounts = new Map<string, number>();
   const limits = new Map<string, NotebookRoleLimit>();
+  const templatedFolderIds = new Set<string>();
   let notebookNoteCount = 0;
+  let hasGuidance = false;
 
   for (const item of items) {
     const sk = String(item['SK']);
@@ -142,7 +144,13 @@ export function parseNotebook(items: Item[], subscriptionId: SubscriptionId): No
     else if (sk === 'FSTAT') notebookNoteCount = Number(item['noteCount'] ?? 0);
     else if (sk.startsWith('FSTAT#')) {
       noteCounts.set(sk.slice('FSTAT#'.length), Number(item['noteCount'] ?? 0));
-    } else if (sk.startsWith('LIMIT#')) {
+    } else if (sk.startsWith('FTPL#')) {
+      // The Template items of the notebook. They are aggregates of their own
+      // and are NOT loaded here: what the tree takes from them is which
+      // folders carry one (RN-KNW-044).
+      templatedFolderIds.add(sk.slice('FTPL#'.length));
+    } else if (sk === 'GUIDANCE') hasGuidance = true;
+    else if (sk.startsWith('LIMIT#')) {
       limits.set(sk.slice('LIMIT#'.length), NotebookRoleLimit.VIEWER);
     }
   }
@@ -153,15 +161,61 @@ export function parseNotebook(items: Item[], subscriptionId: SubscriptionId): No
     name: unwrapOrThrow(NotebookName.create(String(meta['name']))),
     slug: unwrapOrThrow(Slug.create(String(meta['slug']))),
     description: unwrapOrThrow(ShortText.create(String(meta['description'] ?? ''))),
-    guidanceRef: parseContentRef(meta['guidanceRef']),
     folders,
     limits,
     noteCounts,
     notebookNoteCount,
+    templatedFolderIds,
+    hasGuidance,
     version: Number(meta['version'] ?? 0),
     createdBy: parseAuthorship(meta['createdBy']),
     updatedAt: unwrapOrThrow(Instant.fromISO(String(meta['updatedAt']))),
     deletedAt: meta['deletedAt'] ? unwrapOrThrow(Instant.fromISO(String(meta['deletedAt']))) : null,
+  });
+}
+
+// ---- Content Slots: the Guidance of a notebook, the Template of a folder ----
+
+/**
+ * One shape for both, because what differs between them is the key and not the
+ * item: a pointer to the revision in force, who wrote it and the version the
+ * optimistic lock expects.
+ */
+export function contentSlotItem(slot: ContentSlot, pk: string, sk: string): Item {
+  return {
+    PK: pk,
+    SK: sk,
+    entity: slot.role,
+    notebookId: slot.notebookId.value,
+    ...(slot.folderId ? { folderId: slot.folderId.value } : {}),
+    contentRef: serializeContentRef(slot.ref),
+    createdBy: serializeAuthorship(slot.createdBy),
+    updatedBy: serializeAuthorship(slot.updatedBy),
+    updatedAt: slot.updatedBy.at.toISOString(),
+    version: slot.version + 1,
+  };
+}
+
+export function parseGuidance(item: Item, subscriptionId: SubscriptionId): Guidance {
+  return Guidance.rehydrate({
+    subscriptionId,
+    notebookId: unwrapOrThrow(NotebookId.create(String(item['notebookId']))),
+    ref: parseContentRef(item['contentRef']) as ContentRef,
+    createdBy: parseAuthorship(item['createdBy']),
+    updatedBy: parseAuthorship(item['updatedBy']),
+    version: Number(item['version'] ?? 0),
+  });
+}
+
+export function parseTemplate(item: Item, subscriptionId: SubscriptionId): Template {
+  return Template.rehydrate({
+    subscriptionId,
+    notebookId: unwrapOrThrow(NotebookId.create(String(item['notebookId']))),
+    folderId: unwrapOrThrow(FolderId.create(String(item['folderId']))),
+    ref: parseContentRef(item['contentRef']) as ContentRef,
+    createdBy: parseAuthorship(item['createdBy']),
+    updatedBy: parseAuthorship(item['updatedBy']),
+    version: Number(item['version'] ?? 0),
   });
 }
 

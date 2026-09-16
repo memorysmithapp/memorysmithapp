@@ -48,6 +48,7 @@ import type { KnowledgeRequest, KnowledgeUseCases } from '@memorysmith/svc-knowl
 import {
   ClearNotebookRoleLimit,
   CreateNotebook,
+  DeleteGuidance,
   DeleteNotebook,
   GetNotebook,
   GetNotebookContext,
@@ -59,6 +60,7 @@ import {
 } from '@memorysmith/svc-knowledge/application/notebooks';
 import {
   CreateFolder,
+  DeleteTemplate,
   GetTemplate,
   PatchFolder,
   PutTemplate,
@@ -219,6 +221,7 @@ const knowledgeUseCases: KnowledgeUseCases = {
   deleteNotebook: (request) => new DeleteNotebook(buildKnowledge(infra, request.subscription)),
   restoreNotebook: (request) => new RestoreNotebook(buildKnowledge(infra, request.subscription)),
   putGuidance: (request) => new PutGuidance(buildKnowledge(infra, request.subscription)),
+  deleteGuidance: (request) => new DeleteGuidance(buildKnowledge(infra, request.subscription)),
   getNotebookContext: (request) =>
     new GetNotebookContext(buildKnowledge(infra, request.subscription)),
   setNotebookLimit: (request) =>
@@ -231,6 +234,7 @@ const knowledgeUseCases: KnowledgeUseCases = {
   removeFolder: (request) => new RemoveFolder(buildKnowledge(infra, request.subscription)),
   putTemplate: (request) => new PutTemplate(buildKnowledge(infra, request.subscription)),
   getTemplate: (request) => new GetTemplate(buildKnowledge(infra, request.subscription)),
+  deleteTemplate: (request) => new DeleteTemplate(buildKnowledge(infra, request.subscription)),
   listNotes: (request) => new ListNotes(buildKnowledge(infra, request.subscription)),
   readNote: (request) => new ReadNote(buildKnowledge(infra, request.subscription)),
   createNote: (request) => new CreateNote(buildKnowledge(infra, request.subscription)),

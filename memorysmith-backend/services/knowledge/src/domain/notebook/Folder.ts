@@ -4,16 +4,15 @@
  * It is not a physical directory: nothing on disk or in S3 corresponds to it
  * (software-vision.md, section 3). Renaming, moving or reordering a folder
  * writes zero bytes of content, because the storage key encodes none of it.
+ *
+ * It carries no template either. The Template of a folder is an aggregate of
+ * its own, which names the folder rather than living inside it (RN-KNW-044),
+ * so writing one is not a mutation of this tree. Whether a folder has one is
+ * answered by the `Notebook`, which reads it in the same Query that loads the
+ * tree.
  */
 
-import type {
-  Authorship,
-  ContentRef,
-  FolderId,
-  Instant,
-  Position,
-  Slug,
-} from '@memorysmith/kernel';
+import type { Authorship, FolderId, Instant, Position, Slug } from '@memorysmith/kernel';
 import type { FolderDescription, FolderName } from '../values.js';
 
 export class Folder {
@@ -24,8 +23,6 @@ export class Folder {
     private _slug: Slug,
     private _description: FolderDescription,
     private _position: Position,
-    /** Opaque pointer to the Content Slot playing the template role. */
-    private _templateRef: ContentRef | null,
     readonly createdBy: Authorship,
     private _updatedAt: Instant,
   ) {}
@@ -46,7 +43,6 @@ export class Folder {
       input.slug,
       input.description,
       input.position,
-      null,
       input.createdBy,
       input.createdBy.at,
     );
@@ -60,7 +56,6 @@ export class Folder {
     slug: Slug;
     description: FolderDescription;
     position: Position;
-    templateRef: ContentRef | null;
     createdBy: Authorship;
     updatedAt: Instant;
   }): Folder {
@@ -71,7 +66,6 @@ export class Folder {
       input.slug,
       input.description,
       input.position,
-      input.templateRef,
       input.createdBy,
       input.updatedAt,
     );
@@ -91,12 +85,6 @@ export class Folder {
   }
   get position(): Position {
     return this._position;
-  }
-  get templateRef(): ContentRef | null {
-    return this._templateRef;
-  }
-  get hasTemplate(): boolean {
-    return this._templateRef !== null;
   }
   get updatedAt(): Instant {
     return this._updatedAt;
@@ -128,11 +116,6 @@ export class Folder {
 
   reorder(position: Position, at: Instant): void {
     this._position = position;
-    this._updatedAt = at;
-  }
-
-  attachTemplate(ref: ContentRef, at: Instant): void {
-    this._templateRef = ref;
     this._updatedAt = at;
   }
 }

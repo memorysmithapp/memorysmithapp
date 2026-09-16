@@ -45,7 +45,7 @@ export class FolderTree {
   /**
    * Children in the DEFINED order. Ties, possible under concurrency, are
    * broken by the ULID of the folder, so the ordering is never undefined
-   * (architecture-guide.md, section 6.4).
+   * (architecture-guide.md, section 6.5).
    */
   childrenOf(parentFolderId: FolderId | null): Folder[] {
     return this.all()

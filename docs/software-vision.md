@@ -496,10 +496,11 @@ Consistency boundary: the notebook and **its whole folder tree**.
 id, subscription_id,
 name, slug,                  -- slug unique within the subscription (RN-KNW-032)
 description,                 -- what shows up in the notebook catalogue
-guidance_ref?,               -- pointer to the Content Slot playing the Guidance role
 version,                     -- concurrency control of the aggregate
 created_by (Authorship), created_at, updated_at
 ```
+
+The Guidance is **not** a field here, and the Template is not a field of the folder: each is an entity of its own (RN-KNW-044). What the notebook still answers is which of its folders carry a Template and whether it has a Guidance, because that is what the Notebook Context and the tree show.
 
 #### Entity: `Folder`, part of the `Notebook` aggregate
 
@@ -509,7 +510,6 @@ parent_folder_id?,           -- null = root of the notebook
 name, slug,
 description,                 -- REQUIRED, 1 to 500 characters: it is what guides the agent
 position,                    -- order among sibling folders
-template_ref?,               -- pointer to the Content Slot playing the Template role
 created_by (Authorship), created_at, updated_at
 ```
 
@@ -530,6 +530,19 @@ The name is **not a field a caller writes**: it is the `name:` of the frontmatte
 
 `Note` is an aggregate of its own and not part of the `Notebook`. The technical justification is in `architecture-guide.md` §6.2; the product consequence is what matters here: **writing a note is cheap and concurrent**, which is the path through which the agent feeds the notebook.
 
+#### Entities: `Guidance` and `Template`, each an object of its own
+
+```
+Guidance:  notebook_id, content_ref, version, created_by, updated_by, updated_at
+Template:  notebook_id, folder_id, content_ref, version, created_by, updated_by, updated_at
+```
+
+Each **names its parent** rather than living inside it, as a note names its folder, and the cardinality is the one difference from a note: a notebook holds zero or one Guidance, a folder zero or one Template (RN-KNW-044). Three consequences, and they are the reason for the shape:
+
+- **each is deleted on its own** (RN-KNW-045), and the folder or the notebook stays;
+- **writing one is not a change to the tree**, so it contends with nothing but another write of the same object;
+- **when it goes, what it occupied goes with it**, off the storage count of the subscription (RN-SUB-021).
+
 #### Entity: `ContentSlot` and `ContentRef`
 
 A Content Slot is a Markdown document stored under an opaque identifier. **A note, a guidance and a template are the same kind of thing**; what differs is who points at it and with which role.
@@ -542,8 +555,8 @@ ContentRef:   content_id, revision, sha256, bytes
 | Role (`Content Role`) | Pointed at by | Field |
 |---|---|---|
 | `body` | A note | `body_ref` |
-| `guidance` | A notebook | `guidance_ref` |
-| `template` | A folder | `template_ref` |
+| `guidance` | The `Guidance` of a notebook | `content_ref` |
+| `template` | The `Template` of a folder | `content_ref` |
 
 From that follows the most counterintuitive product rule of the system: **`GUIDANCE.md` and `TEMPLATE.md` are not file names, they are roles.** There is no reserved name in storage. File names only come back into existence at the edge, in the export (§12) and in the UI.
 
@@ -551,7 +564,7 @@ Four similar things live together here, and mixing them up is expensive:
 
 | What it is | Where it lives | Who writes it |
 |---|---|---|
-| **Guidance** | A Content Slot pointed at by `guidance_ref`, with a revision and history | A human |
+| **Guidance** | A Content Slot pointed at by the `Guidance` of the notebook, with a revision and history | A human |
 | **The folder description** | The `description` attribute of the folder, 1 to 500 characters, with no revision | A human |
 | **Notebook Context** | Nowhere: it is composed on every read (§9.2) | The product, deriving |
 | **`GUIDANCE.md`, `STRUCTURE.md`, `TEMPLATE.md`** | Only at the edge: in the export (§12) and never in storage | The product, materialising |
@@ -577,6 +590,8 @@ Alphabetical ordering stays available as a display option in the client, without
 - **RN-KNW-006:** The `description` of a folder is required, between 1 and 500 characters. An empty description is not accepted, because it is what guides the writing of the agent.
 - **RN-KNW-007:** Removing a folder that contains folders or notes requires an explicit removal policy (`CASCADE` or `REJECT_IF_NOT_EMPTY`). There is no implicit default.
 - **RN-KNW-008:** A notebook has at most one Guidance and a folder at most one Template; both are optional.
+- **RN-KNW-044:** **A Template belongs to one folder and a Guidance to one notebook, and each is an object of its own**, not a field of its parent. A folder holds at most one Template and a notebook at most one Guidance, and what guarantees the "at most one" is the address of each: there is no second place the Template of a folder could live. Writing one is a write of that object and of nothing else, so it never locks the tree: two agents writing the Templates of two folders do not meet, and neither does one of them meet somebody renaming a third folder.
+- **RN-KNW-045:** **A Template and a Guidance are deleted on their own**, under the role that writes them, and the folder or the notebook stays. Deleting a Template leaves the folder with no suggested layout; deleting a Guidance leaves the notebook saying nothing about how it wants to be written. Until then, the only way to be rid of either was to remove the folder or delete the notebook that held it.
 - **RN-KNW-009:** Renaming, reordering or moving a folder or a note never changes the stored content, only pointers and order.
 - **RN-KNW-010:** A notebook supports up to 200 folders and 2,000 notes. Above the folder ceiling, the Notebook Context is truncated with an explicit notice.
 

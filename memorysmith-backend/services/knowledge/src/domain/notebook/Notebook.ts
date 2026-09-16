@@ -11,8 +11,13 @@
  * impossible, and that is what guarantees the emitted event always knows who
  * caused it.
  *
- * Guidance and Template are ContentRef pointers: the aggregate never carries
- * the Markdown itself (PP4, architecture-guide.md section 6.1).
+ * The Guidance of the notebook and the Template of a folder are NOT here.
+ * Each is an Aggregate Root of its own that names its parent (RN-KNW-044,
+ * architecture-guide.md section 6.1), so writing one is not a tree mutation
+ * and does not lock this aggregate. What stays here is what the tree has to
+ * say about them: WHICH folders carry a template and whether the notebook has
+ * a guidance, read in the same Query that loads the tree and taking part in no
+ * invariant.
  */
 
 import {
@@ -54,7 +59,6 @@ export class Notebook {
     private _name: NotebookName,
     private _slug: Slug,
     private _description: ShortText,
-    private _guidanceRef: ContentRef | null,
     private _folders: FolderTree,
     /** Per-user ceilings, loaded by the SAME Query that loaded the notebook. */
     private readonly _limits: Map<string, NotebookRoleLimit>,
@@ -66,6 +70,13 @@ export class Notebook {
      */
     private readonly _noteCounts: Map<string, number>,
     private readonly _notebookNoteCount: number,
+    /**
+     * Which folders carry a Template, and whether the notebook has a Guidance.
+     * Both are read from the slot items that came back with the tree, and both
+     * are read model: the aggregate answers them and never maintains them.
+     */
+    private readonly _templatedFolderIds: ReadonlySet<string>,
+    private readonly _hasGuidance: boolean,
     private _version: number,
     readonly createdBy: Authorship,
     private _updatedAt: Instant,
@@ -89,11 +100,12 @@ export class Notebook {
       input.name,
       slug.value,
       input.description,
-      null,
       FolderTree.empty(),
       new Map(),
       new Map(),
       0,
+      new Set(),
+      false,
       0,
       input.by,
       input.by.at,
@@ -115,11 +127,12 @@ export class Notebook {
     name: NotebookName;
     slug: Slug;
     description: ShortText;
-    guidanceRef: ContentRef | null;
     folders: Folder[];
     limits: Map<string, NotebookRoleLimit>;
     noteCounts: Map<string, number>;
     notebookNoteCount: number;
+    templatedFolderIds: ReadonlySet<string>;
+    hasGuidance: boolean;
     version: number;
     createdBy: Authorship;
     updatedAt: Instant;
@@ -131,11 +144,12 @@ export class Notebook {
       input.name,
       input.slug,
       input.description,
-      input.guidanceRef,
       FolderTree.fromFolders(input.folders),
       input.limits,
       input.noteCounts,
       input.notebookNoteCount,
+      input.templatedFolderIds,
+      input.hasGuidance,
       input.version,
       input.createdBy,
       input.updatedAt,
@@ -168,11 +182,13 @@ export class Notebook {
   get description(): ShortText {
     return this._description;
   }
-  get guidanceRef(): ContentRef | null {
-    return this._guidanceRef;
-  }
+  /** Whether a Guidance exists for this notebook, as the tree query saw it. */
   get hasGuidance(): boolean {
-    return this._guidanceRef !== null;
+    return this._hasGuidance;
+  }
+  /** Whether this folder carries a Template, as the tree query saw it. */
+  hasTemplate(folderId: FolderId): boolean {
+    return this._templatedFolderIds.has(folderId.value);
   }
   get folders(): FolderTree {
     return this._folders;
@@ -262,32 +278,6 @@ export class Notebook {
       notebookId: this.id.value,
       slug: this._slug.value,
     });
-    return ok();
-  }
-
-  /**
-   * Receives a ContentRef that is ALREADY written: whoever talks to the
-   * ContentStore is the use case, never the aggregate (section 10.5).
-   */
-  setGuidance(ref: ContentRef, by: Authorship): Result<void, DomainError> {
-    if (this._guidanceRef?.hasSameContentAs(ref)) {
-      // Byte-for-byte identical content: no new revision, no event (RN-KNW-028).
-      return ok();
-    }
-    // A guidance replaces the previous one, so what is stored grows only by
-    // the difference; the first one ever set grows by all of it.
-    const delta = ref.bytes - (this._guidanceRef?.bytes ?? 0);
-    this._guidanceRef = ref;
-    this.touch(by.at);
-    this.record(
-      'GuidanceUpdated',
-      'NOTEBOOK',
-      this.id.value,
-      by,
-      { notebookId: this.id.value },
-      ref,
-      delta,
-    );
     return ok();
   }
 
@@ -500,27 +490,6 @@ export class Notebook {
       removedFolderIds: removed.map((each) => each.value),
     });
     return ok(removed);
-  }
-
-  attachTemplate(id: FolderId, ref: ContentRef, by: Authorship): Result<void, DomainError> {
-    const folder = this._folders.get(id);
-    if (!folder) return err(DomainError.notFound('Folder not found in this notebook'));
-    if (folder.templateRef?.hasSameContentAs(ref)) return ok();
-
-    const delta = ref.bytes - (folder.templateRef?.bytes ?? 0);
-    folder.attachTemplate(ref, by.at);
-    this._folders = this._folders.withFolder(folder);
-    this.touch(by.at);
-    this.record(
-      'TemplateUpdated',
-      'FOLDER',
-      id.value,
-      by,
-      { notebookId: this.id.value, folderId: id.value },
-      ref,
-      delta,
-    );
-    return ok();
   }
 
   // ---- Events --------------------------------------------------------------

@@ -75,7 +75,7 @@ export class StorageRecount {
       const page = await this.deps.db.send(
         new ScanCommand({
           TableName: this.deps.tableName,
-          ProjectionExpression: 'PK, entity, bodyRef, guidanceRef, templateRef, deletedAt',
+          ProjectionExpression: 'PK, entity, bodyRef, contentRef, deletedAt',
           ...(startKey ? { ExclusiveStartKey: startKey } : {}),
         }),
       );
@@ -103,16 +103,18 @@ export class StorageRecount {
             }
             break;
           }
-          case 'NOTEBOOK': {
-            const bytes = bytesOf(item['guidanceRef']);
+          // A Guidance and a Template are items of their own since
+          // RN-KNW-044, each pointing at its content with the same attribute.
+          case 'GUIDANCE': {
+            const bytes = bytesOf(item['contentRef']);
             if (bytes > 0) {
               current.bytes += bytes;
               current.guidances += 1;
             }
             break;
           }
-          case 'FOLDER': {
-            const bytes = bytesOf(item['templateRef']);
+          case 'TEMPLATE': {
+            const bytes = bytesOf(item['contentRef']);
             if (bytes > 0) {
               current.bytes += bytes;
               current.templates += 1;

@@ -2,6 +2,8 @@
   "DELETE /access/members/:user",
   "DELETE /knowledge/notebooks/:v",
   "DELETE /knowledge/notebooks/:v/folders/:f",
+  "DELETE /knowledge/notebooks/:v/folders/:f/template",
+  "DELETE /knowledge/notebooks/:v/guidance",
   "DELETE /knowledge/notebooks/:v/limits/:user",
   "DELETE /knowledge/notebooks/:v/notes/:n",
   "GET /access/connector",

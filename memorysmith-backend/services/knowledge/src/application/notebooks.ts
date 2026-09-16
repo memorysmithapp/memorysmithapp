@@ -22,13 +22,20 @@ import {
 } from '@memorysmith/kernel';
 import { AuthorizationPolicy, type RequestContext } from '../domain/access/AuthorizationPolicy.js';
 import { composeNotebookContext } from '../domain/services/NotebookContextComposer.js';
+import { Guidance } from '../domain/content-slot/Guidance.js';
 import { Notebook } from '../domain/notebook/Notebook.js';
 import { ShortText, NotebookName } from '../domain/values.js';
-import type { ContentStore, NotebookRepository } from '../domain/ports/index.js';
+import type {
+  ContentSlotRepository,
+  ContentStore,
+  NotebookRepository,
+} from '../domain/ports/index.js';
 import { admitWrite, type StorageBudget } from '../domain/services/StorageQuota.js';
 
 export interface NotebookDependencies {
   readonly notebooks: NotebookRepository;
+  /** The Guidance of a notebook and the Template of a folder (RN-KNW-044). */
+  readonly slots: ContentSlotRepository;
   readonly content: ContentStore;
   /** What the plan allows and what is already stored (RN-SUB-021). */
   readonly storage: StorageBudget;
@@ -141,16 +148,24 @@ export class GetNotebook {
   async execute(input: {
     ctx: RequestContext;
     notebookId: NotebookId;
-  }): Promise<Result<{ notebook: Notebook; guidance: string | null; role: Role }, DomainError>> {
+  }): Promise<
+    Result<
+      { notebook: Notebook; guidance: { content: string; ref: ContentRef } | null; role: Role },
+      DomainError
+    >
+  > {
     const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'read');
     if (!notebook.ok) return notebook;
 
-    const guidance = notebook.value.guidanceRef
-      ? await this.deps.content.read(notebook.value.guidanceRef)
-      : null;
+    // The Guidance is an aggregate of its own, so reading it is a read of its
+    // own (RN-KNW-044). The tree says whether there is one; this says what it
+    // says, and with which revision the next write has to be based on.
+    const guidance = await this.deps.slots.findGuidance(input.notebookId);
     return ok({
       notebook: notebook.value,
-      guidance,
+      guidance: guidance
+        ? { content: await this.deps.content.read(guidance.ref), ref: guidance.ref }
+        : null,
       role: AuthorizationPolicy.effectiveRole(input.ctx, notebook.value),
     });
   }
@@ -305,7 +320,8 @@ export class PutGuidance {
     const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
     if (!notebook.ok) return notebook;
 
-    const current = notebook.value.guidanceRef;
+    const guidance = await this.deps.slots.findGuidance(input.notebookId);
+    const current = guidance?.ref ?? null;
     const fresh = await guardRevision(
       (ref) => this.deps.content.read(ref),
       current,
@@ -331,12 +347,48 @@ export class PutGuidance {
       ? await this.deps.content.overwrite(current.contentId, input.content)
       : await this.deps.content.create(input.content);
 
-    const applied = notebook.value.setGuidance(ref, input.by);
-    if (!applied.ok) return applied;
-    if (!notebook.value.hasChanges) return ok(ref); // identical bytes: no revision
+    const slot =
+      guidance ??
+      Guidance.create({
+        subscriptionId: notebook.value.subscriptionId,
+        notebookId: input.notebookId,
+        ref,
+        by: input.by,
+      });
+    if (guidance) {
+      const replaced = guidance.replace(ref, input.by);
+      if (!replaced.ok) return replaced;
+    }
+    if (!slot.hasChanges) return ok(ref); // identical bytes: no revision
 
-    const saved = await this.deps.notebooks.save(notebook.value);
+    const saved = await this.deps.slots.save(slot);
     return saved.ok ? ok(ref) : err(saved.error);
+  }
+}
+
+/**
+ * Deleting the Guidance of a notebook. The notebook stays, and it goes back to
+ * saying nothing about how it wants to be written (RN-KNW-045).
+ */
+export class DeleteGuidance {
+  constructor(private readonly deps: NotebookDependencies) {}
+
+  async execute(input: {
+    ctx: RequestContext;
+    notebookId: NotebookId;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>> {
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    if (!notebook.ok) return notebook;
+
+    const guidance = await this.deps.slots.findGuidance(input.notebookId);
+    if (!guidance) return err(DomainError.notFound('This notebook has no guidance'));
+
+    const deleted = guidance.delete(input.by);
+    if (!deleted.ok) return deleted;
+
+    const saved = await this.deps.slots.save(guidance);
+    return saved.ok ? ok() : err(saved.error);
   }
 }
 
@@ -351,9 +403,8 @@ export class GetNotebookContext {
     const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'read');
     if (!notebook.ok) return notebook;
 
-    const guidance = notebook.value.guidanceRef
-      ? await this.deps.content.read(notebook.value.guidanceRef)
-      : null;
+    const slot = await this.deps.slots.findGuidance(input.notebookId);
+    const guidance = slot ? await this.deps.content.read(slot.ref) : null;
     return ok(
       composeNotebookContext({
         notebook: notebook.value,

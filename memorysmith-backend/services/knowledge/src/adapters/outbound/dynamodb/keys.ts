@@ -7,10 +7,10 @@
  * code-review rule into a compiler rule (PE2, section 8.2).
  *
  * The lexicographic order of the sort keys is CHOSEN, not accidental:
- * FSTAT# and LIMIT# fall between FOLDER# and META, so the whole aggregate, the
- * counters AND the role ceilings come back in a single Query over a single
- * partition. EVENT# sorts before that range; NOTE#, SEEN# and SLUG# sort after
- * it.
+ * FSTAT#, FTPL#, GUIDANCE and LIMIT# fall between FOLDER# and META, so the
+ * whole aggregate, the counters, the two kinds of Content Slot AND the role
+ * ceilings come back in a single Query over a single partition. EVENT# sorts
+ * before that range; NOTE#, SEEN# and SLUG# sort after it.
  */
 
 import type { FolderId, NoteId, Position, SubscriptionId, NotebookId } from '@memorysmith/kernel';
@@ -42,6 +42,22 @@ export class KnowledgeKeys {
   /** Note counter of the whole notebook, projected into GSI1 as NBSTAT#. */
   notebookStat(): string {
     return 'FSTAT';
+  }
+
+  /**
+   * The Template of a folder, one item and therefore at most one Template
+   * (RN-KNW-044). It deliberately does NOT start with `FOLDER#`: the tree
+   * loader reads every key that does as a folder, and this is not one. It
+   * still falls inside the aggregate range, so the tree learns which folders
+   * carry a Template without a second query.
+   */
+  template(folderId: FolderId): string {
+    return `FTPL#${folderId.value}`;
+  }
+
+  /** The Guidance of the notebook: one notebook, one key, at most one item. */
+  guidance(): string {
+    return 'GUIDANCE';
   }
 
   limit(userId: string): string {
@@ -85,6 +101,16 @@ export class KnowledgeKeys {
 
   gsi1NotebookStat(notebookId: NotebookId): string {
     return `NBSTAT#${notebookId.value}`;
+  }
+
+  /**
+   * The Guidance item, projected into GSI1 so that LISTING the notebooks
+   * answers which of them have one. The listing reads one partition of the
+   * index and never loads a notebook, so without this entry the flag would be
+   * a guess.
+   */
+  gsi1NotebookGuidance(notebookId: NotebookId): string {
+    return `NBGUID#${notebookId.value}`;
   }
 
   /**

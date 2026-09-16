@@ -11,6 +11,7 @@
 
 import { NotebookId } from '@memorysmith/kernel';
 import type {
+  ContentSlotRepository,
   ContentStore,
   NoteRepository,
   NotebookRepository,
@@ -46,6 +47,8 @@ async function mapWithConcurrency<T, U>(
 interface KnowledgeSide {
   readonly notebooks: NotebookRepository;
   readonly notes: NoteRepository;
+  /** The Guidance and the Templates, each an aggregate of its own. */
+  readonly slots: ContentSlotRepository;
   readonly content: ContentStore;
 }
 
@@ -64,13 +67,22 @@ export class KnowledgeExportSource implements ExportSource {
     const folders = notebook.folders.all();
     const notes = await this.knowledge.notes.listByNotebook(parsed.value);
 
+    // Every Template of the notebook in one Query, rather than one read per
+    // folder: they live in the same partition (RN-KNW-044).
+    const templateOf = new Map(
+      (await this.knowledge.slots.listTemplates(parsed.value)).map((template) => [
+        template.folderId.value,
+        template.ref,
+      ]),
+    );
+    const guidanceSlot = await this.knowledge.slots.findGuidance(parsed.value);
+
     const [guidance, templates, bodies] = await Promise.all([
-      notebook.guidanceRef
-        ? this.knowledge.content.read(notebook.guidanceRef)
-        : Promise.resolve(null),
-      mapWithConcurrency(folders, READ_CONCURRENCY, async (folder) =>
-        folder.templateRef ? this.knowledge.content.read(folder.templateRef) : null,
-      ),
+      guidanceSlot ? this.knowledge.content.read(guidanceSlot.ref) : Promise.resolve(null),
+      mapWithConcurrency(folders, READ_CONCURRENCY, async (folder) => {
+        const ref = templateOf.get(folder.id.value);
+        return ref ? this.knowledge.content.read(ref) : null;
+      }),
       mapWithConcurrency(notes, READ_CONCURRENCY, (note) =>
         this.knowledge.content.read(note.bodyRef),
       ),

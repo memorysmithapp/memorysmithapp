@@ -4,7 +4,6 @@ import type { Folder } from '../src/domain/notebook/Folder.js';
 import { RemovalPolicy, NOTEBOOK_LIMITS } from '../src/domain/values.js';
 import {
   authorship,
-  contentRef,
   expectErr,
   folderDescription,
   folderName,
@@ -40,52 +39,6 @@ describe('Notebook: creation', () => {
     expect(unwrap(notebook.rename(notebookName('Jurisprudencia Tributaria'), authorship())));
     expect(notebook.slug.value).toBe('jurisprudencia-tributaria');
     expect(notebook.pullEvents()[0]?.type).toBe('NotebookRenamed');
-  });
-});
-
-describe('Notebook: guidance and template are pointers, never Markdown', () => {
-  it('stores a ContentRef and records the event carrying it', () => {
-    const notebook = newNotebook();
-    notebook.pullEvents();
-    const ref = contentRef();
-    unwrap(notebook.setGuidance(ref, authorship()));
-
-    expect(notebook.guidanceRef?.equals(ref)).toBe(true);
-    const [event] = notebook.pullEvents();
-    expect(event?.type).toBe('GuidanceUpdated');
-    // The complete ref travels inside the event (architecture-guide.md 6.5).
-    expect(event?.contentRef?.sha256).toBe(ref.sha256);
-    expect(event?.contentRef?.versionId).toBe(ref.versionId);
-    expect(event?.contentRef?.bytes).toBe(ref.bytes);
-  });
-
-  it('does not record a revision when the content is byte-for-byte identical', () => {
-    // RN-KNW-028: same bytes means no revision, no event, no re-indexing.
-    const notebook = newNotebook();
-    const first = contentRef('b'.repeat(64));
-    unwrap(notebook.setGuidance(first, authorship()));
-    notebook.pullEvents();
-
-    const sameContent = contentRef('b'.repeat(64));
-    unwrap(notebook.setGuidance(sameContent, authorship()));
-    expect(notebook.pullEvents()).toHaveLength(0);
-  });
-
-  it('attaches a template to a folder', () => {
-    const notebook = newNotebook();
-    const folder = unwrap(
-      notebook.addFolder(
-        null,
-        folderName('Normas'),
-        folderDescription('Normas.'),
-        null,
-        authorship(),
-      ),
-    );
-    notebook.pullEvents();
-    unwrap(notebook.attachTemplate(folder.id, contentRef('c'.repeat(64)), authorship()));
-    expect(notebook.folders.get(folder.id)?.hasTemplate).toBe(true);
-    expect(notebook.pullEvents()[0]?.type).toBe('TemplateUpdated');
   });
 });
 

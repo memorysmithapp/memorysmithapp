@@ -24,10 +24,13 @@ import {
 } from '@memorysmith/kernel';
 import { GetCommand, QueryCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import type { S3Client } from '@aws-sdk/client-s3';
+import { DynamoContentSlotRepository } from '../../src/adapters/outbound/dynamodb/DynamoContentSlotRepository.js';
 import { DynamoNotebookRepository } from '../../src/adapters/outbound/dynamodb/DynamoNotebookRepository.js';
 import { DynamoNoteRepository } from '../../src/adapters/outbound/dynamodb/DynamoNoteRepository.js';
 import { S3ContentStore } from '../../src/adapters/outbound/s3/S3ContentStore.js';
 import { Notebook } from '../../src/domain/notebook/Notebook.js';
+import { Guidance } from '../../src/domain/content-slot/Guidance.js';
+import { Template } from '../../src/domain/content-slot/Template.js';
 import { Note } from '../../src/domain/note/Note.js';
 import { NotePlacement, type NoteOrder } from '../../src/domain/services/NotePlacement.js';
 import { RemovalPolicy, ShortText, NotebookName } from '../../src/domain/values.js';
@@ -53,6 +56,7 @@ function repositories(context: SubscriptionContext) {
   return {
     notebooks: new DynamoNotebookRepository(context, db, TABLE_NAME),
     notes: new DynamoNoteRepository(context, db, TABLE_NAME),
+    slots: new DynamoContentSlotRepository(context, db, TABLE_NAME),
     content: new S3ContentStore(context, s3, BUCKET_NAME),
   };
 }
@@ -625,6 +629,91 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
   });
 });
 
+/**
+ * RN-KNW-044: each slot is an aggregate of its own, locked on its own item.
+ * These two cases are the done criteria of #139, and the second one is the one
+ * that proves the point: while a Template was a field of the `FOLDER` item,
+ * writing twenty of them locked the `META` item twenty times and a rename in
+ * the middle lost the race.
+ */
+describe('DynamoContentSlotRepository: a Guidance and a Template of their own', () => {
+  it('leaves exactly one Template when two first writes race for the same folder', async () => {
+    const context = contextFor();
+    const { notebook, folder } = await seedNotebook(context);
+    const { content } = repositories(context);
+
+    // Two writers that both read a folder with no Template, as two sessions
+    // starting from the same view would.
+    const [first, second] = await Promise.all([
+      content.create('# First writer\n'),
+      content.create('# Second writer\n'),
+    ]);
+    const outcomes = await Promise.all(
+      [first, second].map((ref) =>
+        // A repository of its own each, because each stands for one request.
+        new DynamoContentSlotRepository(context, db, TABLE_NAME).save(
+          Template.create({
+            subscriptionId: context.subscriptionId,
+            notebookId: notebook.id,
+            folderId: folder.id,
+            ref,
+            by: authorshipOf(context),
+          }),
+        ),
+      ),
+    );
+
+    expect(outcomes.filter((result) => result.ok)).toHaveLength(1);
+    expect(outcomes.filter((result) => !result.ok)).toHaveLength(1);
+
+    const stored = await repositories(context).slots.findTemplate(notebook.id, folder.id);
+    expect(stored).not.toBeNull();
+    expect([first.versionId, second.versionId]).toContain(stored?.revision);
+  });
+
+  it('deletes a Template without touching the folder, and the Guidance without touching META', async () => {
+    const context = contextFor();
+    const { notebook, folder } = await seedNotebook(context);
+    const { content, slots, notebooks } = repositories(context);
+
+    const guidance = Guidance.create({
+      subscriptionId: context.subscriptionId,
+      notebookId: notebook.id,
+      ref: await content.create('# Guidance\n'),
+      by: authorshipOf(context),
+    });
+    const template = Template.create({
+      subscriptionId: context.subscriptionId,
+      notebookId: notebook.id,
+      folderId: folder.id,
+      ref: await content.create('# Template\n'),
+      by: authorshipOf(context),
+    });
+    expect((await slots.save(guidance)).ok).toBe(true);
+    expect((await slots.save(template)).ok).toBe(true);
+    // The tree reports both, from the one Query that loads it.
+    const withSlots = (await notebooks.findById(notebook.id)) as Notebook;
+    expect(withSlots.hasGuidance).toBe(true);
+    expect(withSlots.hasTemplate(folder.id)).toBe(true);
+
+    unwrap(guidance.delete(authorshipOf(context)));
+    unwrap(template.delete(authorshipOf(context)));
+    expect((await slots.save(guidance)).ok).toBe(true);
+    expect((await slots.save(template)).ok).toBe(true);
+
+    const fresh = repositories(context);
+    expect(await fresh.slots.findGuidance(notebook.id)).toBeNull();
+    expect(await fresh.slots.findTemplate(notebook.id, folder.id)).toBeNull();
+    const after = (await fresh.notebooks.findById(notebook.id)) as Notebook;
+    expect(after.hasGuidance).toBe(false);
+    expect(after.hasTemplate(folder.id)).toBe(false);
+    // Neither deletion was a tree mutation: the folder is still there and the
+    // META item was never rewritten by any of the four writes.
+    expect(after.folders.get(folder.id)?.name.value).toBe('Normas');
+    expect(after.version).toBe(1);
+  });
+});
+
 describe('Delivery 4 done criteria', () => {
   /** The order GSI2 converges to, read as `converged` reads any index. */
   function settledOrder(
@@ -772,5 +861,64 @@ describe('Delivery 4 done criteria', () => {
       }),
     );
     expect(meta.Item?.['version']).toBe(1);
+  }, 120_000);
+
+  it('writes the Templates of 20 folders in parallel while one of them is renamed', async () => {
+    const context = contextFor();
+    const { notebook } = await seedNotebook(context);
+    const { notebooks, content } = repositories(context);
+
+    const folders = [];
+    for (let index = 0; index < 20; index++) {
+      folders.push(
+        unwrap(
+          notebook.addFolder(
+            null,
+            folderName(`Pasta ${index}`),
+            folderDescription(`A pasta numero ${index}.`),
+            null,
+            authorshipOf(context),
+          ),
+        ),
+      );
+    }
+    expect((await notebooks.save(notebook)).ok).toBe(true);
+
+    const refs = await Promise.all(
+      folders.map((folder) =>
+        content.create(`# Modelo de ${folder.name.value}
+`),
+      ),
+    );
+    // Twenty Template writes and a rename of the tree, all at once. Each
+    // Template is locked on its own item, so none of them meets another and
+    // none of them meets the rename (RN-KNW-044).
+    const [renamed, ...outcomes] = await Promise.all([
+      (async () => {
+        const loaded = (await new DynamoNotebookRepository(context, db, TABLE_NAME).findById(
+          notebook.id,
+        )) as Notebook;
+        unwrap(
+          loaded.renameFolder(folders[0]!.id, folderName('Pasta zero'), authorshipOf(context)),
+        );
+        return new DynamoNotebookRepository(context, db, TABLE_NAME).save(loaded);
+      })(),
+      ...folders.map((folder, index) =>
+        new DynamoContentSlotRepository(context, db, TABLE_NAME).save(
+          Template.create({
+            subscriptionId: context.subscriptionId,
+            notebookId: notebook.id,
+            folderId: folder.id,
+            ref: refs[index]!,
+            by: authorshipOf(context),
+          }),
+        ),
+      ),
+    ]);
+
+    expect(renamed?.ok).toBe(true);
+    expect(outcomes.filter((result) => !result.ok)).toHaveLength(0);
+    const after = (await repositories(context).notebooks.findById(notebook.id)) as Notebook;
+    for (const folder of folders) expect(after.hasTemplate(folder.id)).toBe(true);
   }, 120_000);
 });

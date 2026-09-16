@@ -5,7 +5,7 @@
  *
  * The envelope always carries the subscriptionId and the Authorship, and every
  * content-changing event carries the COMPLETE ContentRef, which is what makes
- * the audit trail a sufficient recovery index (sections 6.5, 9.2, 12.3).
+ * the audit trail a sufficient recovery index (sections 6.6, 9.2, 12.3).
  */
 
 import { z } from 'zod';
@@ -59,6 +59,7 @@ export const domainEventTypeSchema = z.enum([
   'NotebookDeleted',
   'NotebookRestored',
   'GuidanceUpdated',
+  'GuidanceDeleted',
   'FolderAdded',
   'FolderRenamed',
   'FolderDescribed',
@@ -66,6 +67,7 @@ export const domainEventTypeSchema = z.enum([
   'FolderReordered',
   'FolderRemoved',
   'TemplateUpdated',
+  'TemplateDeleted',
   'NoteCreated',
   'NoteUpdated',
   'NoteReordered',
@@ -205,6 +207,16 @@ export const guidanceUpdatedPayload = z.object({
   notebookId: ulidSchema,
 });
 
+/**
+ * The Guidance of a notebook was deleted, and the notebook stays (RN-KNW-045).
+ * The envelope carries the `ContentRef` that was live and a negative
+ * `storageDelta`: the bytes leave the count of the subscription, and the trail
+ * keeps naming the content nothing points at any more.
+ */
+export const guidanceDeletedPayload = z.object({
+  notebookId: ulidSchema,
+});
+
 export const folderAddedPayload = z.object({
   notebookId: ulidSchema,
   folderId: ulidSchema,
@@ -253,6 +265,12 @@ export const templateUpdatedPayload = z.object({
   folderId: ulidSchema,
 });
 
+/** The Template of a folder was deleted, and the folder stays (RN-KNW-045). */
+export const templateDeletedPayload = z.object({
+  notebookId: ulidSchema,
+  folderId: ulidSchema,
+});
+
 /**
  * The name is the `name:` the frontmatter of the content states (§5.3), and
  * it is `null` when the note has none a link could use (RN-KNW-036). It travels
@@ -282,7 +300,7 @@ export const noteReorderedPayload = z.object({
   position: positionSchema,
 });
 
-/** Carries BOTH sides, because whoever consumes it needs both (section 6.5). */
+/** Carries BOTH sides, because whoever consumes it needs both (section 6.6). */
 export const noteMovedPayload = z.object({
   noteId: ulidSchema,
   fromNotebookId: ulidSchema,
@@ -347,6 +365,7 @@ export const eventPayloadSchemas = {
   NotebookDeleted: notebookDeletedPayload,
   NotebookRestored: notebookRestoredPayload,
   GuidanceUpdated: guidanceUpdatedPayload,
+  GuidanceDeleted: guidanceDeletedPayload,
   FolderAdded: folderAddedPayload,
   FolderRenamed: folderRenamedPayload,
   FolderDescribed: folderDescribedPayload,
@@ -354,6 +373,7 @@ export const eventPayloadSchemas = {
   FolderReordered: folderReorderedPayload,
   FolderRemoved: folderRemovedPayload,
   TemplateUpdated: templateUpdatedPayload,
+  TemplateDeleted: templateDeletedPayload,
   NoteCreated: noteCreatedPayload,
   NoteUpdated: noteUpdatedPayload,
   NoteReordered: noteReorderedPayload,

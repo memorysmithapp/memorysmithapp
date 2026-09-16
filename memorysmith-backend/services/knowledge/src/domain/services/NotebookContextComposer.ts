@@ -156,7 +156,7 @@ function describe(folder: Folder, notebook: Notebook, hasChildren: boolean): str
   const name = hasChildren ? `${folder.name.value}/` : folder.name.value;
   const notes = notebook.noteCountOf(folder.id);
   const annotations = [`${notes} ${notes === 1 ? 'note' : 'notes'}`];
-  if (folder.hasTemplate) annotations.push('has TEMPLATE.md');
+  if (notebook.hasTemplate(folder.id)) annotations.push('has TEMPLATE.md');
   // The identifier is fenced as code so that reading it and copying it into
   // the next call are the same gesture (RN-AGT-020).
   return `**${name}** \`${folder.id.value}\`: ${folder.description.value} (${annotations.join(', ')})`;

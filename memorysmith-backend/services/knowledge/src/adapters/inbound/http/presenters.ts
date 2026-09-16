@@ -3,7 +3,7 @@
  * and the backend cannot drift: both import the same schemas.
  */
 
-import type { Role } from '@memorysmith/kernel';
+import type { ContentRef, Role } from '@memorysmith/kernel';
 import type {
   ContentDto,
   FolderDto,
@@ -24,7 +24,7 @@ export function folderToDto(folder: Folder, notebook: Notebook): FolderDto {
     slug: folder.slug.value,
     description: folder.description.value,
     position: folder.position.value,
-    hasTemplate: folder.hasTemplate,
+    hasTemplate: notebook.hasTemplate(folder.id),
     noteCount: notebook.noteCountOf(folder.id),
   };
 }
@@ -45,16 +45,14 @@ export function notebookToSummary(notebook: Notebook, role: Role): NotebookSumma
 export function notebookToDetail(
   notebook: Notebook,
   role: Role,
-  guidance: string | null,
+  /** The Guidance as its own aggregate answered it, content and revision. */
+  guidance: { content: string; ref: ContentRef } | null,
 ): NotebookDetailDto {
   return {
     ...notebookToSummary(notebook, role),
     // The tree in the DEFINED order, which is signal and not decoration (PP9).
     folders: notebook.folders.inOrder().map((folder) => folderToDto(folder, notebook)),
-    guidance:
-      guidance !== null && notebook.guidanceRef
-        ? { content: guidance, revision: notebook.guidanceRef.toJSON() }
-        : null,
+    guidance: guidance ? { content: guidance.content, revision: guidance.ref.toJSON() } : null,
   };
 }
 

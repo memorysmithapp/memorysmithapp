@@ -2,7 +2,7 @@
  * FolderTreePlacement resolves "put it after X inside Y" into a concrete
  * (parentFolderId, Position), and validates the two structural invariants that
  * a placement can break: maximum depth (I2, RN-KNW-003) and cycles (I3,
- * RN-KNW-004). Architecture-guide.md, section 6.6.
+ * RN-KNW-004). Architecture-guide.md, section 6.7.
  *
  * It is a domain service and not a method of the tree because the decision
  * involves the destination, the anchor and the subtree that travels along,

@@ -1,7 +1,7 @@
 /**
  * Value objects of the Knowledge context. All immutable, self-validating in
  * the constructor and compared by value. No raw string crosses the boundary of
- * the domain (architecture-guide.md, section 6.4).
+ * the domain (architecture-guide.md, section 6.5).
  */
 
 import { DomainError, err, ok, type Result } from '@memorysmith/kernel';

@@ -1,7 +1,7 @@
 /**
  * NotePlacement is to notes what FolderTreePlacement is to folders: it turns
  * "put it after this one" into a Position, without reading or rewriting any
- * sibling (architecture-guide.md, section 6.4).
+ * sibling (architecture-guide.md, section 6.5).
  *
  * The sibling list comes from GSI2, which already returns the notes of a
  * folder IN THE DEFINED ORDER, so the service never sorts and never scans.

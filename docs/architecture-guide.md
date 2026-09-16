@@ -337,8 +337,9 @@ export class Notebook {
     private readonly id: NotebookId,
     private name: NotebookName,
     private description: ShortText,
-    private guidance: ContentRef | null,       // opaque pointer; the aggregate never sees the Markdown
     private readonly folders: FolderTree,
+    private readonly hasGuidanceSlot: boolean,        // read model, from the same Query
+    private readonly templatedFolderIds: Set<string>, // read model, from the same Query
     private version: number,
   ) {}
 
@@ -350,8 +351,6 @@ export class Notebook {
   moveFolder(id: FolderId, newParentId: FolderId | null, after: FolderId | null, by: Authorship): Result<void>
   reorderFolder(id: FolderId, after: FolderId | null, by: Authorship): Result<void>
   removeFolder(id: FolderId, policy: RemovalPolicy, by: Authorship): Result<void>
-  attachTemplate(id: FolderId, ref: ContentRef, by: Authorship): Result<void>
-  setGuidance(ref: ContentRef, by: Authorship): Result<void>
 
   pullEvents(): DomainEvent[]
 }
@@ -368,7 +367,9 @@ export class Notebook {
 | I3 | Moving a folder never creates a cycle | RN-KNW-004 |
 | I4 | Every folder has a `Position` | RN-KNW-005 |
 | I5 | Removing a folder with children requires an explicit `RemovalPolicy` | RN-KNW-007 |
-| I6 | `Guidance` and `Template` are `ContentRef`s; the aggregate never carries the Markdown | PP4 |
+| I6 | *Retired in 0.6.0.* `Guidance` and `Template` are not in this aggregate at all (§6.3); PP4 is now guaranteed by each of them carrying a `ContentRef` |
+
+**There is no `setGuidance` and no `attachTemplate` here.** Both used to be methods of this aggregate, and what that meant is that writing the Template of one folder was a mutation of the whole tree: it took the optimistic lock of `META`, so it conflicted with renaming another folder and with writing the Template of another one. Neither could be deleted either, because nothing deletes a field. They are aggregates of their own since 0.6.0 (§6.3, RN-KNW-044). What the `Notebook` keeps is the two answers the tree has to give about them — **which folders carry a Template and whether the notebook has a Guidance** — read from the slot items that come back in the same `Query` that loads the tree (§9.3), maintained outside this aggregate exactly as the note counters are (§10.3) and taking part in no invariant.
 
 ### 6.2 `Note`, a separate Aggregate Root
 
@@ -379,7 +380,7 @@ export class Note {
     private notebookId: NotebookId,
     private folderId: FolderId,
     private name: string | null,        // the name: of the body (RN-KNW-035)
-    private position: Position,         // order within the folder (§6.4)
+    private position: Position,         // order within the folder (§6.5)
     private body: ContentRef,           // opaque pointer to a Content Slot (§9.2)
     private readonly createdBy: Authorship,
     private updatedBy: Authorship,
@@ -409,7 +410,39 @@ Details that follow from it:
 
 > **The separation of the aggregates only holds if persistence respects it.** Having `Note` outside `Notebook` in the domain is worth nothing if every note write still writes to the item representing the notebook. The rule that closes the argument is in §10.2: **a note transaction never touches the `META` item**. Without it, the decision of this section is a statement of intent.
 
-### 6.3 The other aggregates
+### 6.3 `Guidance` and `Template`, two more Aggregate Roots
+
+```typescript
+export abstract class ContentSlot {          // what the two have in common
+  protected constructor(
+    readonly subscriptionId: SubscriptionId,
+    readonly notebookId: NotebookId,
+    protected ref: ContentRef,               // opaque pointer; never the Markdown (PP4)
+    readonly createdBy: Authorship,
+    protected updatedBy: Authorship,
+    protected version: number,               // concurrency control of THIS object
+    protected deleted: boolean,
+  ) {}
+
+  replace(ref: ContentRef, by: Authorship): Result<boolean>   // false = identical bytes
+  delete(by: Authorship): Result<void>                       // RN-KNW-045
+}
+
+export class Guidance extends ContentSlot { /* names its notebook */ }
+export class Template extends ContentSlot { /* names its folder  */ }
+```
+
+The shape is `Note`'s (§6.2), for the same reason and with one difference: **the cardinality is zero or one**, and it is the KEY of the item that guarantees it (§9.3), not a check the code runs. There is no second address the Template of a folder could occupy, so two first writes racing for one folder end with exactly one Template and the loser is told it lost.
+
+Three things follow, and they are why the shape changed in 0.6.0:
+
+- **Each is deleted on its own** (RN-KNW-045). A field is not something a delete can find; an object is.
+- **Writing one is shape B of the transaction** (§10.2): one item and its event, with `META` nowhere in it. Twenty Templates written at once do not meet each other, and none of them meets a rename of the tree.
+- **The delete event declares the bytes it frees**, so what a deleted Template occupied leaves the storage count of the subscription (RN-SUB-021). `FolderRemoved` and `NotebookDeleted` declare zero, and while the slots were fields that zero was a lie.
+
+What the deletion does **not** do is destroy a revision: the item goes, the blob stays, and no path in the product destroys one (rule 8, §12.4). The event carries the `ContentRef` that was live, which is what keeps the audit trail a recovery index (§9.2).
+
+### 6.4 The other aggregates
 
 | Aggregate | Context | Invariants |
 |---|---|---|
@@ -417,7 +450,7 @@ Details that follow from it:
 | `NoteGraph` · `NotebookIndex` | Discovery | Projections, rebuildable at any moment (PE5) |
 | `AuditTrail` | Audit | Append-only: the only operation is `append` |
 
-### 6.4 Value Objects
+### 6.5 Value Objects
 
 `SubscriptionId` `NotebookId` `FolderId` `NoteId` `ContentId` (ULID) · `Slug` (of a notebook and of a folder only) · `Position` · `FolderDescription` (1 to 500 characters, required) · `ContentRef` · `Revision` · `RemovalPolicy` · `ErasureReason` · `SubscriptionStatus` · `Role` · `NotebookRoleLimit` · `Authorship` · `AgentIdentity` · `LinkTarget`.
 
@@ -439,7 +472,7 @@ Position.between(prev: Position | null, next: Position | null): Position
 
 Ties, possible under concurrency, are broken by the ULID of the item, so the ordering is never undefined. When a key passes 12 characters, a rebalancing command redistributes the siblings; it is rare maintenance, not a hot path.
 
-### 6.5 Domain events
+### 6.6 Domain events
 
 ```
 Access:     SubscriptionRequested · SubscriptionApproved · SubscriptionRejected
@@ -456,7 +489,7 @@ Every event carries the `subscriptionId` and the `Authorship`. **Content events 
 
 Published through a **transactional outbox** (§10.4). Adding a consumer does not touch the core.
 
-### 6.6 Domain services
+### 6.7 Domain services
 
 - **`FolderTreePlacement`** resolves "place after X inside Y" into `(parentId, Position)`, validating I2 and I3.
 - **`LinkExtractor`** extracts `[[wikilinks]]` and relative Markdown links from the **body** of the note. Universal syntax only: no field name, no notebook convention (PP4). The resolution rule is in §11.1.
@@ -482,6 +515,14 @@ export interface NoteRepository {
   save(note: Note): Promise<Result<void, ConcurrencyError>>;
 }
 
+// domain/ports/ContentSlotRepository.ts
+export interface ContentSlotRepository {          // the Guidance and the Templates (§6.3)
+  findGuidance(notebook: NotebookId): Promise<Guidance | null>;
+  findTemplate(notebook: NotebookId, folder: FolderId): Promise<Template | null>;
+  listTemplates(notebook: NotebookId): Promise<Template[]>;   // one Query; an export asks it
+  save(slot: ContentSlot): Promise<Result<void, ConcurrencyError>>;   // one save: the key is the adapter's business
+}
+
 // domain/ports/ContentStore.ts
 export interface ContentStore {
   create(markdown: string): Promise<ContentRef>;                       // a new slot, first revision
@@ -500,6 +541,7 @@ export interface EventPublisher { publish(events: DomainEvent[]): Promise<void>;
 | Port | Production adapter | Test adapter |
 |---|---|---|
 | `NotebookRepository` · `NoteRepository` | `DynamoNotebookRepository` · `DynamoNoteRepository` | `InMemory*` |
+| `ContentSlotRepository` | `DynamoContentSlotRepository` | `InMemoryContentSlotRepository` |
 | `ContentStore` | `S3ContentStore` | `InMemoryContentStore` |
 | `EventPublisher` | `OutboxEventPublisher` (writes in the same transaction) | `RecordingEventPublisher` |
 | `LinkGraph` | `DynamoLinkGraph` | `InMemoryLinkGraph` |
@@ -636,6 +678,8 @@ The `S3ContentStore` is the one that knows a `contentId` becomes `s/{subscriptio
 | Operation | S3 | DynamoDB | Projections |
 |---|---|---|---|
 | Rename / reorder a folder | 0 bytes | 1 transaction (2 writes): the `FOLDER` item + the optimistic lock of `META` | — |
+| Replace a Template or a Guidance | 1 `PutObject` | 1 transaction (2 writes): the slot item under **its own** lock, the event. `META` is not in it (§6.3) | — |
+| Delete a Template or a Guidance | **0 bytes**, and none destroyed | 1 transaction (2 writes): `Delete` of the slot item under its lock, the event carrying the reference that was live | — |
 | Reorder a note | **0 bytes** | 1 transaction (2 writes): `position` on the `NOTE` item, the event | — |
 | Move a note between folders | **0 bytes** | 1 transaction (2 writes + 1 check): `folderId`/`position` on the `NOTE` item, a `ConditionCheck` on the destination folder, the event | Reprojection of the note (§11.2) |
 | Move a note between notebooks | **0 bytes** | 1 transaction (6 writes + 2 checks): `Delete`+`Put` of the `NOTE` item (the PK changes), `Delete`+`Put` of the slug guard, `ConditionCheck` on the destination notebook and folder, the event | Reprojection + pruning of the edges at the source |
@@ -646,15 +690,17 @@ Moving between notebooks is the **only operation in the system that writes to tw
 **The trade-off: the bucket becomes unreadable to humans.** Two answers, both cheap:
 
 1. **Immutable metadata on `PutObject`**, with `subscription-id`, `content-id` and `created-at`. Only what never changes. We deliberately do **not** write `notebookId`, `folderId` or the name: they become lies on the first move, and keeping them up to date would give S3 back exactly the write we are eliminating.
-2. **The audit trail is the recovery index.** Since every content event carries the complete `ContentRef` (§6.5), `svc-audit` holds every `(noteId, contentId, versionId)` tuple that has ever existed. With the Knowledge table lost beyond the PITR window, the mapping is rebuildable from it.
+2. **The audit trail is the recovery index.** Since every content event carries the complete `ContentRef` (§6.6), `svc-audit` holds every `(noteId, contentId, versionId)` tuple that has ever existed. With the Knowledge table lost beyond the PITR window, the mapping is rebuildable from it.
 
 ### 9.3 Single-table design: `mv-knowledge`
 
 | Item | PK | SK | Attributes |
 |---|---|---|---|
-| Notebook | `S#{s}#NOTEBOOK#{v}` | `META` | name, slug, description, **guidanceRef**, version |
-| Folder | `S#{s}#NOTEBOOK#{v}` | `FOLDER#{folderId}` | parentFolderId, name, slug, description, position, **templateRef** |
+| Notebook | `S#{s}#NOTEBOOK#{v}` | `META` | name, slug, description, version |
+| Folder | `S#{s}#NOTEBOOK#{v}` | `FOLDER#{folderId}` | parentFolderId, name, slug, description, position |
 | Folder counter | `S#{s}#NOTEBOOK#{v}` | `FSTAT#{folderId}` | noteCount, updatedAt (asynchronous projection, §10.3) |
+| Template of a folder | `S#{s}#NOTEBOOK#{v}` | `FTPL#{folderId}` | notebookId, folderId, **contentRef**, version (§6.3) |
+| Guidance of the notebook | `S#{s}#NOTEBOOK#{v}` | `GUIDANCE` | notebookId, **contentRef**, version; indexed in `GSI1` as `NBGUID#{v}` |
 | Subscription usage | `S#{s}#NOTEBOOKS` | `USAGE` | storedBytes, updatedAt (asynchronous projection, §10.3, RN-SUB-021) |
 | Notebook counter | `S#{s}#NOTEBOOK#{v}` | `FSTAT` | noteCount, updatedAt; indexed in `GSI1` as `NBSTAT#{v}` |
 | Role ceiling in the notebook | `S#{s}#NOTEBOOK#{v}` | `LIMIT#{userId}` | limit (`VIEWER`), setBy, setAt: the demotion of §5.3 of the product |
@@ -663,15 +709,19 @@ Moving between notebooks is the **only operation in the system that writes to tw
 | Projection dedup | `S#{s}#NOTEBOOK#{v}` | `SEEN#{eventUlid}` | ttl; makes the counter exactly-once |
 | Outbox | `S#{s}#NOTEBOOK#{v}` | `EVENT#{ulid}` | payload, ttl |
 
-The three `…Ref`s are a serialised `ContentRef`, **the only link to S3 in the whole system**.
+`bodyRef` and the two `contentRef`s are a serialised `ContentRef`, **the only link to S3 in the whole system**.
 
-**The lexicographic order of the sort keys is chosen, not accidental.** `FSTAT#` and `LIMIT#` fall between `FOLDER#` and `META`, so the whole aggregate, the counters **and** the role ceilings come in a single `Query`, in a single partition:
+**The key of the two slot items is what makes "at most one" true** (RN-KNW-044): a folder has exactly one address a Template could occupy and a notebook exactly one for its Guidance, so the first write claims it with `attribute_not_exists` and a second one racing it is told it lost. Neither key may start with `FOLDER#`, because the tree loader reads every key that does as a folder.
+
+**The lexicographic order of the sort keys is chosen, not accidental.** `FSTAT#`, `FTPL#`, `GUIDANCE` and `LIMIT#` fall between `FOLDER#` and `META`, so the whole aggregate, the counters, the two kinds of slot **and** the role ceilings come in a single `Query`, in a single partition:
 
 ```
 Query  PK = S#{s}#NOTEBOOK#{v}   AND   SK BETWEEN 'FOLDER#' AND 'META'
-→ every folder + every counter + every ceiling + the META item
-       FOLDER#…    FSTAT / FSTAT#…       LIMIT#…          META
+→ every folder + every counter + every Template + the Guidance + every ceiling + the META item
+     FOLDER#…  FSTAT / FSTAT#…    FTPL#…         GUIDANCE      LIMIT#…         META
 ```
+
+The tree does not LOAD the slots from those items — each is an aggregate of its own, read on its own when its content is wanted — it takes from them the two answers it has to give: **which folders carry a Template and whether the notebook has a Guidance**.
 
 `EVENT#` falls before the range; `NOTE#`, `SEEN#` and `SLUG#` fall after it. It is that property that makes `get_notebook_context` return the annotated tree with the note count of each folder **without one query per folder**.
 
@@ -681,7 +731,7 @@ Query  PK = S#{s}#NOTEBOOK#{v}   AND   SK BETWEEN 'FOLDER#' AND 'META'
 
 | Index | PK | SK | Serves |
 |---|---|---|---|
-| `GSI1` | `S#{s}#NOTEBOOKS` | `NOTEBOOK#{v}` · `NBSTAT#{v}` | listing the notebooks of the subscription, with the count already |
+| `GSI1` | `S#{s}#NOTEBOOKS` | `NOTEBOOK#{v}` · `NBSTAT#{v}` · `NBGUID#{v}` | listing the notebooks of the subscription, with the count and the guidance flag already |
 | `GSI2` | `S#{s}#FOLDER#{f}` | `NOTE#{position}#{noteId}` | listing the notes of a folder, **in the defined order** |
 
 `GSI2` is **sparse**: the attributes forming its key only exist while `deletedAt` does not. A deleted note disappears from the listings without a line of filtering anywhere (§12.4). Alphabetical ordering stays available as a display ordering, done in the client over the result.
@@ -714,21 +764,23 @@ Every mutation is **one** `TransactWriteItems`, but there are **two shapes** of 
 
 ### 10.1 Shape A: a tree mutation (the `Notebook` aggregate)
 
-Creating, renaming, describing, moving, reordering or removing a folder; replacing a guidance or a template.
+Creating, renaming, describing, moving, reordering or removing a folder. **Replacing a Guidance or a Template is no longer one of these**: each is an aggregate of its own since 0.6.0 (§6.3) and takes shape B.
 
 1. An `Update` on the `META` item with `ConditionExpression: version = :expected`, which is the optimistic lock of the aggregate
 2. A `Put`/`Update`/`Delete` on the affected folder items
 3. A `Put` of the slug guard with `attribute_not_exists(PK)`, which puts I1 in the database and not only in memory
 4. A `Put` of the domain events into the **outbox**, in the same transaction
 
-### 10.2 Shape B: a note mutation (the `Note` aggregate)
+### 10.2 Shape B: a write locked on one item (the `Note`, the `Guidance`, the `Template`)
 
-Creating, editing, retitling, reordering, moving, deleting.
+Creating, editing, retitling, reordering, moving, deleting a note; replacing or deleting a Guidance or a Template.
 
-1. A `Put`/`Update`/`Delete` of the `NOTE` item with `ConditionExpression: version = :expected`, where the lock belongs to the item itself; a move between notebooks deletes the item it leaves under the same lock
+1. A `Put`/`Update`/`Delete` of the item with `ConditionExpression: version = :expected`, where the lock belongs to the item itself; a move between notebooks deletes the item it leaves under the same lock, and the FIRST write of a slot claims its key with `attribute_not_exists` instead
 2. A `Put` of the event into the outbox
 
 There is no third write. The `NSLUG` guard held one name per notebook, and a notebook has no name to hold: nothing is reserved on a write and nothing is released on a delete (RN-KNW-037).
+
+**The two slots take this shape because of what the other one cost.** While the Template was a field of the `FOLDER` item and the Guidance a field of `META`, writing either was shape A: it took the lock of the whole tree, so writing the Template of one folder conflicted with renaming another and two agents writing two Templates conflicted with each other. Now each contends only with another write of the same slot.
 
 > **No note transaction includes an item another note transaction includes** (PE8). It is this rule, and not the separation of the aggregates on its own, that keeps the hot path free of contention. DynamoDB cancels a transaction when any of its items is part of another transaction in flight, and **a `ConditionCheck` makes an item part of the transaction just as a write does**. So neither the `META` item of the notebook nor the `FOLDER#{f}` item a note goes into belongs in it: fifty notes written into one folder at once would all include that item, and all but one would be cancelled. The design once carried a `ConditionCheck` on the folder, on the belief that checking an item without writing it avoided the contention; DynamoDB Local runs transactions one at a time and agreed, and the first run of the adapter tests against the real DynamoDB of staging cancelled 33 of 50 parallel creates. Whether the folder, and on a move the destination notebook, exist is read by the use case before the write, and a read never conflicts with a transaction. The price is a window of milliseconds: a note written at the instant its folder is removed can land in a folder that no longer exists, and a `CASCADE` does not delete a note written into the subtree after it listed the notes to delete.
 
@@ -858,7 +910,7 @@ The split is not tidiness. A rendering assertion cannot live in a JSON file — 
 
 ### 11.1 The link graph
 
-`LinkExtractor` (§6.6) runs on every `NoteCreated` and `NoteUpdated`, and it says what a note **points at**; what a note **answers to** comes from two places, so resolving is a step of its own (`LinkResolver.ts`).
+`LinkExtractor` (§6.7) runs on every `NoteCreated` and `NoteUpdated`, and it says what a note **points at**; what a note **answers to** comes from two places, so resolving is a step of its own (`LinkResolver.ts`).
 
 **A target is a name, and the two forms reach it differently.** A wikilink target is literal: nothing in it is decoded, no extension is removed and no path segment is discarded (RN-DSC-043). The three tolerances belong to the Markdown form, in the order the specification fixes — split at the first unencoded `#`, then the path, then the extension, then decode. Decoding earlier undoes the escaping it exists for: `C%23%20basics` would split at a `#` its author encoded precisely so it would not be a delimiter.
 
@@ -1109,10 +1161,12 @@ svc-access       GET  /platform/subscriptions?status=      ─┐  platform sess
 svc-knowledge    GET  /notebooks · POST /notebooks
                  GET|PATCH|DELETE /notebooks/:v · POST /notebooks/:v/restore   (RN-KNW-033)
                  GET  /notebooks/:v/context   (structure and guidance in a single answer)
-                 PUT  /notebooks/:v/guidance
+                 PUT|DELETE /notebooks/:v/guidance
                  POST /notebooks/:v/folders · PATCH|DELETE /notebooks/:v/folders/:f
                  POST /notebooks/:v/folders/:f/reorder   { afterFolderId | null }
-                 GET|PUT /notebooks/:v/folders/:f/template
+                 GET|PUT|DELETE /notebooks/:v/folders/:f/template
+                 ── DELETE on either answers 204 and leaves the folder or the
+                    notebook standing (RN-KNW-045); each is an object of its own
                  GET|POST /notebooks/:v/notes · GET|PUT|DELETE /notebooks/:v/notes/:n
                  ── POST takes { folderId, content }: a note is created from its
                     content, and the name is read from it (RN-AGT-024)
@@ -1153,7 +1207,7 @@ Routing by path on a single CloudFront (`api.memorysmith.app/knowledge/*` and so
 Leaving this implicit is how authz holes are born. Each stage has an explicit owner:
 
 1. **The authorizer (`svc-access`).** It validates the Cognito JWT, confirms the active subscription is in `trial` or `active` (RN-SUB-007), resolves ownership (`isOwner`) and the role of the user in the subscription, and injects all of it into the request context (5 min cache). **It does not know what a notebook is**, nor could it: whoever holds the per-notebook ceiling is Knowledge.
-2. **The service that owns the resource.** The `AuthorizationPolicy`, a domain service and not an infrastructure port (§6.6), decides locally, with no network call.
+2. **The service that owns the resource.** The `AuthorizationPolicy`, a domain service and not an infrastructure port (§6.7), decides locally, with no network call.
 
 **The stage 2 decision, in one expression.** The effective role is the lesser of the subscription role and the notebook ceiling, and ownership overrides both:
 
@@ -1293,7 +1347,7 @@ The fixed cost of the whole DNS and TLS layer is therefore the hosted zone: arou
 | Job | Frequency | What it does |
 |---|---|---|
 | S3 orphan collection | Weekly | Collects unreferenced blobs, born from a failure between steps 1 and 3 of §10.5 |
-| `Position` rebalancing | On demand | Redistributes fractional keys that passed 12 characters (§6.4) |
+| `Position` rebalancing | On demand | Redistributes fractional keys that passed 12 characters (§6.5) |
 
 **Mandatory alarms per Lambda:** error rate, p99 duration, throttles and the depth of the dead-letter queue of the outbox relay.
 

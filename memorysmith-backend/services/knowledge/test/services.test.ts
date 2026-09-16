@@ -11,7 +11,6 @@ import {
 } from '../src/domain/access/AuthorizationPolicy.js';
 import {
   authorship,
-  contentRef,
   expectErr,
   folderDescription,
   folderName,
@@ -156,8 +155,9 @@ describe('NotebookContextComposer', () => {
   });
 
   it('flags a folder that has a template', () => {
-    const { notebook, folderId } = rehydratedNotebookWithNotes(2);
-    unwrap(notebook.attachTemplate(folderId, contentRef('f'.repeat(64)), authorship()));
+    // The Template is an aggregate of its own; what the tree carries is the
+    // fact that this folder has one (RN-KNW-044).
+    const { notebook, folderId } = rehydratedNotebookWithNotes(2, true);
     const context = composeNotebookContext({
       notebook,
       guidance: null,

@@ -52,6 +52,7 @@ import {
   ResolveAuthorship,
 } from '@memorysmith/svc-access/application/connectors';
 import {
+  InMemoryContentSlotRepository,
   InMemoryContentStore,
   InMemoryStorageBudget,
   InMemoryDatabase,
@@ -61,6 +62,7 @@ import {
 import {
   ClearNotebookRoleLimit,
   CreateNotebook,
+  DeleteGuidance,
   GetNotebook,
   GetNotebookContext,
   ListNotebooks,
@@ -72,6 +74,7 @@ import {
 } from '@memorysmith/svc-knowledge/application/notebooks';
 import {
   CreateFolder,
+  DeleteTemplate,
   GetTemplate,
   PatchFolder,
   PutTemplate,
@@ -194,6 +197,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
   const knowledgeRepos = (context: SubscriptionContext) => ({
     notebooks: new InMemoryNotebookRepository(context, knowledgeDb, events),
     notes: new InMemoryNoteRepository(context, knowledgeDb, events),
+    slots: new InMemoryContentSlotRepository(context, knowledgeDb, events),
     content: new InMemoryContentStore(context, knowledgeDb),
     storage,
     // The same list production injects, from the same specification (RN-AGT-025).
@@ -248,6 +252,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     deleteNotebook: (request) => new DeleteNotebook(knowledgeRepos(request.subscription)),
     restoreNotebook: (request) => new RestoreNotebook(knowledgeRepos(request.subscription)),
     putGuidance: (request) => new PutGuidance(knowledgeRepos(request.subscription)),
+    deleteGuidance: (request) => new DeleteGuidance(knowledgeRepos(request.subscription)),
     getNotebookContext: (request) => new GetNotebookContext(knowledgeRepos(request.subscription)),
     setNotebookLimit: (request) => new SetNotebookRoleLimit(knowledgeRepos(request.subscription)),
     clearNotebookLimit: (request) =>
@@ -258,6 +263,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     removeFolder: (request) => new RemoveFolder(knowledgeRepos(request.subscription)),
     putTemplate: (request) => new PutTemplate(knowledgeRepos(request.subscription)),
     getTemplate: (request) => new GetTemplate(knowledgeRepos(request.subscription)),
+    deleteTemplate: (request) => new DeleteTemplate(knowledgeRepos(request.subscription)),
     listNotes: (request) => new ListNotes(knowledgeRepos(request.subscription)),
     readNote: (request) => new ReadNote(knowledgeRepos(request.subscription)),
     createNote: (request) => new CreateNote(knowledgeRepos(request.subscription)),

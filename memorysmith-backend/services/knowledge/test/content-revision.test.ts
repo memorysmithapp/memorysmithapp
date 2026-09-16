@@ -9,22 +9,68 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { ContentId, ContentRef, NoteId, Position, Role, sha256Hex } from '@memorysmith/kernel';
+import {
+  ContentId,
+  ContentRef,
+  type FolderId,
+  NoteId,
+  Position,
+  Role,
+  sha256Hex,
+} from '@memorysmith/kernel';
 import { PutGuidance } from '../src/application/notebooks.js';
 import { PutTemplate } from '../src/application/folders.js';
 import { UpdateNote } from '../src/application/notes.js';
 import { Note } from '../src/domain/note/Note.js';
+import { Guidance } from '../src/domain/content-slot/Guidance.js';
+import { Template } from '../src/domain/content-slot/Template.js';
 import type { Notebook } from '../src/domain/notebook/Notebook.js';
 import { authorship, contentRef, expectErr, unwrap, user, notebookWithTree } from './fixtures.js';
 
 const ctx = { user, isOwner: true, role: Role.OWNER };
 
-function deps(notebook: Notebook, stored = 'the current content') {
+/**
+ * The Guidance and the Template are aggregates of their own (RN-KNW-044), so a
+ * test states what the slot repository answers instead of putting a pointer
+ * inside the notebook.
+ */
+function deps(
+  notebook: Notebook,
+  stored = 'the current content',
+  inForce: { guidance?: ContentRef; template?: ContentRef } = {},
+) {
   return {
     notebooks: {
       findById: async () => notebook,
       listAll: async () => [notebook],
       findBySlug: async () => null,
+      save: async () => ({ ok: true as const, value: undefined }),
+    },
+    slots: {
+      findGuidance: async () =>
+        inForce.guidance
+          ? Guidance.rehydrate({
+              subscriptionId: notebook.subscriptionId,
+              notebookId: notebook.id,
+              ref: inForce.guidance,
+              createdBy: authorship(),
+              updatedBy: authorship(),
+              version: 1,
+            })
+          : null,
+      findTemplate: async (_notebookId: unknown, folderId: FolderId) =>
+        inForce.template
+          ? Template.rehydrate({
+              subscriptionId: notebook.subscriptionId,
+              notebookId: notebook.id,
+              folderId,
+              ref: inForce.template,
+              createdBy: authorship(),
+              updatedBy: authorship(),
+              version: 1,
+            })
+          : null,
+      listTemplates: async () => [],
       save: async () => ({ ok: true as const, value: undefined }),
     },
     content: {
@@ -55,9 +101,10 @@ describe('guidance: the write echoes the revision it is based on', () => {
 
   it('refuses null when a guidance is already there', async () => {
     const { notebook } = notebookWithTree();
-    unwrap(notebook.setGuidance(contentRef('a'.repeat(64), 20), authorship()));
 
-    const refused = await new PutGuidance(deps(notebook)).execute({
+    const refused = await new PutGuidance(
+      deps(notebook, 'the current content', { guidance: contentRef('a'.repeat(64), 20) }),
+    ).execute({
       ctx,
       notebookId: notebook.id,
       content: '# Outro',
@@ -70,9 +117,10 @@ describe('guidance: the write echoes the revision it is based on', () => {
 
   it('answers a divergence with the current content attached', async () => {
     const { notebook } = notebookWithTree();
-    unwrap(notebook.setGuidance(contentRef('a'.repeat(64), 20), authorship()));
 
-    const refused = await new PutGuidance(deps(notebook, 'what the other hand wrote')).execute({
+    const refused = await new PutGuidance(
+      deps(notebook, 'what the other hand wrote', { guidance: contentRef('a'.repeat(64), 20) }),
+    ).execute({
       ctx,
       notebookId: notebook.id,
       content: '# Outro',
@@ -90,9 +138,10 @@ describe('guidance: the write echoes the revision it is based on', () => {
   it('goes through when the revision matches', async () => {
     const { notebook } = notebookWithTree();
     const current = contentRef('a'.repeat(64), 20);
-    unwrap(notebook.setGuidance(current, authorship()));
 
-    const written = await new PutGuidance(deps(notebook)).execute({
+    const written = await new PutGuidance(
+      deps(notebook, 'the current content', { guidance: current }),
+    ).execute({
       ctx,
       notebookId: notebook.id,
       content: '# Outro',
@@ -108,9 +157,10 @@ describe('template: the same guard, for the same reason', () => {
   it('refuses a stale revision', async () => {
     const { notebook, normas } = notebookWithTree();
     const folderId = unwrap(normas).id;
-    unwrap(notebook.attachTemplate(folderId, contentRef('a'.repeat(64), 20), authorship()));
 
-    const refused = await new PutTemplate(deps(notebook)).execute({
+    const refused = await new PutTemplate(
+      deps(notebook, 'the current content', { template: contentRef('a'.repeat(64), 20) }),
+    ).execute({
       ctx,
       notebookId: notebook.id,
       folderId,
@@ -161,10 +211,14 @@ describe('identical bytes: nothing reaches the store', () => {
   }
 
   /** The dependencies of a write, with a store that counts what reaches it. */
-  function counting(notebook: Notebook, extra: Record<string, unknown> = {}) {
+  function counting(
+    notebook: Notebook,
+    inForce: { guidance?: ContentRef; template?: ContentRef } = {},
+    extra: Record<string, unknown> = {},
+  ) {
     const writes: string[] = [];
     const dependencies = {
-      ...(deps(notebook, body) as unknown as Record<string, unknown>),
+      ...(deps(notebook, body, inForce) as unknown as Record<string, unknown>),
       ...extra,
       content: {
         create: async (): Promise<ContentRef> => {
@@ -184,8 +238,7 @@ describe('identical bytes: nothing reaches the store', () => {
   it('a Guidance sent again writes nothing, and answers the revision in force', async () => {
     const { notebook } = notebookWithTree();
     const inForce = refOf(body);
-    unwrap(notebook.setGuidance(inForce, authorship()));
-    const { writes, dependencies } = counting(notebook);
+    const { writes, dependencies } = counting(notebook, { guidance: inForce });
 
     const written = await new PutGuidance(
       dependencies as unknown as ConstructorParameters<typeof PutGuidance>[0],
@@ -205,8 +258,7 @@ describe('identical bytes: nothing reaches the store', () => {
     const { notebook, normas } = notebookWithTree();
     const folderId = unwrap(normas).id;
     const inForce = refOf(body);
-    unwrap(notebook.attachTemplate(folderId, inForce, authorship()));
-    const { writes, dependencies } = counting(notebook);
+    const { writes, dependencies } = counting(notebook, { template: inForce });
 
     const written = await new PutTemplate(
       dependencies as unknown as ConstructorParameters<typeof PutTemplate>[0],
@@ -225,8 +277,7 @@ describe('identical bytes: nothing reaches the store', () => {
 
   it('identical bytes on a stale revision are still a conflict', async () => {
     const { notebook } = notebookWithTree();
-    unwrap(notebook.setGuidance(refOf(body), authorship()));
-    const { writes, dependencies } = counting(notebook);
+    const { writes, dependencies } = counting(notebook, { guidance: refOf(body) });
 
     const refused = await new PutGuidance(
       dependencies as unknown as ConstructorParameters<typeof PutGuidance>[0],
@@ -257,15 +308,19 @@ describe('identical bytes: nothing reaches the store', () => {
       }),
     );
     const saved: Note[] = [];
-    const { writes, dependencies } = counting(notebook, {
-      notes: {
-        findById: async () => note,
-        save: async (each: Note) => {
-          saved.push(each);
-          return { ok: true as const, value: undefined };
+    const { writes, dependencies } = counting(
+      notebook,
+      {},
+      {
+        notes: {
+          findById: async () => note,
+          save: async (each: Note) => {
+            saved.push(each);
+            return { ok: true as const, value: undefined };
+          },
         },
       },
-    });
+    );
 
     const updated = await new UpdateNote(
       dependencies as unknown as ConstructorParameters<typeof UpdateNote>[0],

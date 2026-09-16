@@ -15,6 +15,7 @@ import {
   type Result,
 } from '@memorysmith/kernel';
 import type { RequestContext } from '../domain/access/AuthorizationPolicy.js';
+import { Template } from '../domain/content-slot/Template.js';
 import type { Note } from '../domain/note/Note.js';
 import type { Folder } from '../domain/notebook/Folder.js';
 import type { Notebook } from '../domain/notebook/Notebook.js';
@@ -209,7 +210,13 @@ export class RemoveFolder {
   }
 }
 
-/** The template is a Content Slot like any other; only the pointer differs. */
+/**
+ * The Template of a folder is an aggregate of its own (RN-KNW-044), so writing
+ * one is a write of one item and not a mutation of the tree: it contends with
+ * another write of the SAME template and with nothing else. The notebook is
+ * still loaded, because that is where the authorization decision and the
+ * existence of the folder are answered (section 14.2).
+ */
 export class PutTemplate {
   constructor(private readonly deps: NotebookDependencies) {}
 
@@ -229,9 +236,11 @@ export class PutTemplate {
     const folder = notebook.value.folders.get(input.folderId);
     if (!folder) return err(DomainError.notFound('Folder not found in this notebook'));
 
+    const template = await this.deps.slots.findTemplate(input.notebookId, input.folderId);
+    const current = template?.ref ?? null;
     const fresh = await guardRevision(
       (ref) => this.deps.content.read(ref),
-      folder.templateRef,
+      current,
       input.baseRevision,
     );
     if (!fresh.ok) return fresh;
@@ -239,28 +248,70 @@ export class PutTemplate {
     // Identical bytes are not a write: nothing reaches the store, and the
     // answer is the revision in force, which is the one the next write has to
     // state (RN-KNW-028).
-    if (folder.templateRef?.matchesContent(input.content)) return ok(folder.templateRef);
+    if (current?.matchesContent(input.content)) return ok(current);
 
     // Before the write reaches the store, and against the difference: a
     // template replaces the previous one (RN-SUB-021).
     const admitted = admitWrite(
       await this.deps.storage.current(),
-      Buffer.byteLength(input.content, 'utf8') - (folder.templateRef?.bytes ?? 0),
+      Buffer.byteLength(input.content, 'utf8') - (current?.bytes ?? 0),
     );
     if (!admitted.ok) return admitted;
 
-    const ref = folder.templateRef
-      ? await this.deps.content.overwrite(folder.templateRef.contentId, input.content)
+    const ref = current
+      ? await this.deps.content.overwrite(current.contentId, input.content)
       : await this.deps.content.create(input.content);
 
-    const attached = notebook.value.attachTemplate(input.folderId, ref, input.by);
-    if (!attached.ok) return attached;
+    const slot =
+      template ??
+      Template.create({
+        subscriptionId: notebook.value.subscriptionId,
+        notebookId: input.notebookId,
+        folderId: input.folderId,
+        ref,
+        by: input.by,
+      });
+    if (template) {
+      const replaced = template.replace(ref, input.by);
+      if (!replaced.ok) return replaced;
+    }
     // Identical bytes change nothing, and the reference is still the one the
     // next write has to name.
-    if (!notebook.value.hasChanges) return ok(ref);
+    if (!slot.hasChanges) return ok(ref);
 
-    const saved = await this.deps.notebooks.save(notebook.value);
+    const saved = await this.deps.slots.save(slot);
     return saved.ok ? ok(ref) : err(saved.error);
+  }
+}
+
+/**
+ * Deleting the Template of a folder. The folder stays, and it goes back to
+ * suggesting no layout for the notes kept there (RN-KNW-045).
+ */
+export class DeleteTemplate {
+  constructor(private readonly deps: NotebookDependencies) {}
+
+  async execute(input: {
+    ctx: RequestContext;
+    notebookId: NotebookId;
+    folderId: FolderId;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>> {
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    if (!notebook.ok) return notebook;
+
+    if (!notebook.value.folders.get(input.folderId)) {
+      return err(DomainError.notFound('Folder not found in this notebook'));
+    }
+
+    const template = await this.deps.slots.findTemplate(input.notebookId, input.folderId);
+    if (!template) return err(DomainError.notFound('This folder has no template'));
+
+    const deleted = template.delete(input.by);
+    if (!deleted.ok) return deleted;
+
+    const saved = await this.deps.slots.save(template);
+    return saved.ok ? ok() : err(saved.error);
   }
 }
 
@@ -279,15 +330,17 @@ export class GetTemplate {
 
     const folder = notebook.value.folders.get(input.folderId);
     if (!folder) return err(DomainError.notFound('Folder not found in this notebook'));
-    if (!folder.templateRef) return ok(null);
+
+    const template = await this.deps.slots.findTemplate(input.notebookId, input.folderId);
+    if (!template) return ok(null);
 
     // The revision is what the next write of this Template has to echo back
     // (RN-KNW-034). Without it a reader can only write blind, which the route
     // refuses, and the interface failed on reading it.
     return ok({
-      content: await this.deps.content.read(folder.templateRef),
+      content: await this.deps.content.read(template.ref),
       folderName: folder.name.value,
-      revision: folder.templateRef,
+      revision: template.ref,
     });
   }
 }

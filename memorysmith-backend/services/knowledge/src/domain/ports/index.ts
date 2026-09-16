@@ -22,6 +22,9 @@ import type {
 } from '@memorysmith/kernel';
 import type { Notebook } from '../notebook/Notebook.js';
 import type { Note } from '../note/Note.js';
+import type { ContentSlot } from '../content-slot/ContentSlot.js';
+import type { Guidance } from '../content-slot/Guidance.js';
+import type { Template } from '../content-slot/Template.js';
 import type { NoteOrder } from '../services/NotePlacement.js';
 
 export interface NotebookRepository {
@@ -63,6 +66,24 @@ export interface NoteRepository {
    * Update.
    */
   saveMoved(note: Note, from: { notebookId: NotebookId }): Promise<Result<void, ConcurrencyError>>;
+}
+
+/**
+ * The two Content Slots that are not notes, each an aggregate of its own
+ * (RN-KNW-044). They live in the partition of their notebook, so finding one
+ * is a single read of a key the parent identifies, and saving one is a write
+ * of one item plus its event: it never touches the `META` item, and therefore
+ * never contends with a tree mutation (section 10.2).
+ *
+ * There is one `save` and not two, because what differs between a Guidance and
+ * a Template is the key, and the key is the adapter's business.
+ */
+export interface ContentSlotRepository {
+  findGuidance(notebook: NotebookId): Promise<Guidance | null>;
+  findTemplate(notebook: NotebookId, folder: FolderId): Promise<Template | null>;
+  /** Every Template of a notebook, which is what an export reads. */
+  listTemplates(notebook: NotebookId): Promise<Template[]>;
+  save(slot: ContentSlot): Promise<Result<void, ConcurrencyError>>;
 }
 
 /**

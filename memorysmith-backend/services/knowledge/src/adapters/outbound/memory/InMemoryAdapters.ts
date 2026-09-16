@@ -26,14 +26,19 @@ import {
 } from '@memorysmith/kernel';
 import { createHash } from 'node:crypto';
 import type { Note } from '../../../domain/note/Note.js';
+import type { ContentSlot } from '../../../domain/content-slot/ContentSlot.js';
+import type { Guidance } from '../../../domain/content-slot/Guidance.js';
+import type { Template } from '../../../domain/content-slot/Template.js';
 import type { NoteOrder } from '../../../domain/services/NotePlacement.js';
 import type {
+  ContentSlotRepository,
   ContentStore,
   NoteRepository,
   NotebookRepository,
 } from '../../../domain/ports/index.js';
 import type { StorageBudget, StorageState } from '../../../domain/services/StorageQuota.js';
-import type { Notebook } from '../../../domain/notebook/Notebook.js';
+import { Notebook } from '../../../domain/notebook/Notebook.js';
+import { NotebookRoleLimit } from '@memorysmith/kernel';
 
 /** Records what was published, so a test can assert on the event stream. */
 export class RecordingEventPublisher implements EventPublisher {
@@ -81,11 +86,13 @@ export class InMemoryStorageBudget implements StorageBudget {
 export class InMemoryDatabase {
   readonly notebooks = new Map<string, { notebook: Notebook; version: number }>();
   readonly notes = new Map<string, { note: Note; version: number }>();
+  readonly slots = new Map<string, { slot: ContentSlot; version: number }>();
   readonly content = new Map<string, { revisions: Map<string, string>; latest: string }>();
 
   clear(): void {
     this.notebooks.clear();
     this.notes.clear();
+    this.slots.clear();
     this.content.clear();
   }
 }
@@ -98,6 +105,54 @@ function noteKey(sub: SubscriptionContext, notebook: NotebookId, note: NoteId): 
   return `${notebookKey(sub, notebook)}#NOTE#${note.value}`;
 }
 
+function guidanceKey(sub: SubscriptionContext, notebook: NotebookId): string {
+  return `${notebookKey(sub, notebook)}#GUIDANCE`;
+}
+
+function templateKey(sub: SubscriptionContext, notebook: NotebookId, folder: FolderId): string {
+  return `${notebookKey(sub, notebook)}#TEMPLATE#${folder.value}`;
+}
+
+/**
+ * Which folders carry a Template and whether the notebook has a Guidance, as
+ * the one Query of production reads them from the same partition: the slots
+ * are aggregates of their own, and this is the read model the tree reports
+ * (RN-KNW-044). Loading a notebook rebuilds it, which is what the Query does.
+ */
+function withSlotReadModel(
+  notebook: Notebook,
+  sub: SubscriptionContext,
+  db: InMemoryDatabase,
+): Notebook {
+  const prefix = `${notebookKey(sub, notebook.id)}#TEMPLATE#`;
+  const templatedFolderIds = new Set(
+    [...db.slots.keys()]
+      .filter((key) => key.startsWith(prefix))
+      .map((key) => key.slice(prefix.length)),
+  );
+  return Notebook.rehydrate({
+    id: notebook.id,
+    subscriptionId: notebook.subscriptionId,
+    name: notebook.name,
+    slug: notebook.slug,
+    description: notebook.description,
+    folders: notebook.folders.all(),
+    limits: new Map(
+      notebook.limitedUserIds.map((userId) => [userId, NotebookRoleLimit.VIEWER] as const),
+    ),
+    noteCounts: new Map(
+      notebook.folders.all().map((folder) => [folder.id.value, notebook.noteCountOf(folder.id)]),
+    ),
+    notebookNoteCount: notebook.noteCount,
+    templatedFolderIds,
+    hasGuidance: db.slots.has(guidanceKey(sub, notebook.id)),
+    version: notebook.version,
+    createdBy: notebook.createdBy,
+    updatedAt: notebook.updatedAt,
+    deletedAt: notebook.deletedAt,
+  });
+}
+
 export class InMemoryNotebookRepository implements NotebookRepository {
   constructor(
     private readonly sub: SubscriptionContext,
@@ -106,7 +161,8 @@ export class InMemoryNotebookRepository implements NotebookRepository {
   ) {}
 
   async findById(id: NotebookId): Promise<Notebook | null> {
-    return this.db.notebooks.get(notebookKey(this.sub, id))?.notebook ?? null;
+    const stored = this.db.notebooks.get(notebookKey(this.sub, id))?.notebook;
+    return stored ? withSlotReadModel(stored, this.sub, this.db) : null;
   }
 
   /**
@@ -118,7 +174,8 @@ export class InMemoryNotebookRepository implements NotebookRepository {
     return [...this.db.notebooks.entries()]
       .filter(([key]) => key.startsWith(prefix))
       .map(([, entry]) => entry.notebook)
-      .filter((notebook) => !notebook.isDeleted);
+      .filter((notebook) => !notebook.isDeleted)
+      .map((notebook) => withSlotReadModel(notebook, this.sub, this.db));
   }
 
   /**
@@ -206,6 +263,58 @@ export class InMemoryNoteRepository implements NoteRepository {
     // written.
     this.db.notes.delete(noteKey(this.sub, from.notebookId, note.id));
     return this.save(note);
+  }
+}
+
+/**
+ * The Guidance of a notebook and the Template of a folder, each keyed by its
+ * parent, which is what makes "at most one" true here as the item key makes it
+ * true in DynamoDB (RN-KNW-044).
+ */
+export class InMemoryContentSlotRepository implements ContentSlotRepository {
+  constructor(
+    private readonly sub: SubscriptionContext,
+    private readonly db: InMemoryDatabase,
+    private readonly events: EventPublisher,
+  ) {}
+
+  async findGuidance(notebook: NotebookId): Promise<Guidance | null> {
+    return (this.db.slots.get(guidanceKey(this.sub, notebook))?.slot as Guidance) ?? null;
+  }
+
+  async findTemplate(notebook: NotebookId, folder: FolderId): Promise<Template | null> {
+    return (this.db.slots.get(templateKey(this.sub, notebook, folder))?.slot as Template) ?? null;
+  }
+
+  async listTemplates(notebook: NotebookId): Promise<Template[]> {
+    const prefix = `${notebookKey(this.sub, notebook)}#TEMPLATE#`;
+    return [...this.db.slots.entries()]
+      .filter(([key]) => key.startsWith(prefix))
+      .map(([, entry]) => entry.slot as Template);
+  }
+
+  async save(slot: ContentSlot): Promise<Result<void, ConcurrencyError>> {
+    const key = slot.folderId
+      ? templateKey(this.sub, slot.notebookId, slot.folderId)
+      : guidanceKey(this.sub, slot.notebookId);
+    const stored = this.db.slots.get(key);
+    if (stored && stored.version !== slot.version) {
+      return { ok: false, error: new ConcurrencyError() };
+    }
+    // The first write claims the key: a second one that never read it finds
+    // the key taken, which is what `attribute_not_exists` answers in DynamoDB.
+    if (!stored && slot.version > 0) {
+      return { ok: false, error: new ConcurrencyError() };
+    }
+
+    const events = slot.pullEvents();
+    slot.markPersisted();
+    // Deleting takes the slot out; the content it pointed at stays in the
+    // store, as it does in production (rule 8).
+    if (slot.isDeleted) this.db.slots.delete(key);
+    else this.db.slots.set(key, { slot, version: slot.version });
+    await this.events.publish(events);
+    return ok();
   }
 }
 

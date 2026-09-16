@@ -112,6 +112,31 @@ test.describe('notebooks', () => {
     expect(stale.status).toBe(409);
     expect(stale.body.code).toBe('CONFLICT');
   });
+
+  test('[route:DELETE /knowledge/notebooks/:v/guidance] deletes the Guidance, and the notebook stays', async ({
+    owner,
+    notebook,
+  }) => {
+    const path = `${notebookPath(notebook)}/guidance`;
+    await owner.ok<{ revision: ContentRef }>('PUT', path, {
+      content: '# Guidance\n\nWritten so it can be deleted.\n',
+      baseRevision: null,
+    });
+
+    expect((await owner.call('DELETE', path)).status).toBe(204);
+
+    // The notebook is still there and simply says nothing any more
+    // (RN-KNW-045). Deleting one used to be impossible: the only way out was
+    // to delete the notebook that held it.
+    const detail = await owner.ok<{ guidance: unknown; hasGuidance: boolean }>(
+      'GET',
+      notebookPath(notebook),
+    );
+    expect(detail.guidance).toBeNull();
+    expect(detail.hasGuidance).toBe(false);
+    // A second deletion has nothing to delete.
+    expect((await owner.call('DELETE', path)).status).toBe(404);
+  });
 });
 
 test.describe('folders', () => {
@@ -213,6 +238,32 @@ test.describe('folders', () => {
     // The revision the next write echoes back, which the interface reads: its
     // absence is what broke the page of Templates.
     expect(read.revision.versionId).toBe(written.revision.versionId);
+  });
+
+  test('[route:DELETE /knowledge/notebooks/:v/folders/:f/template] deletes the Template, and the folder stays', async ({
+    owner,
+    notebook,
+  }) => {
+    const path = `${foldersPath(notebook)}/${notebook.folderId}/template`;
+    await owner.ok<{ revision: ContentRef }>('PUT', path, {
+      content: '---\nname:\n---\n\n## Written so it can be deleted\n',
+      baseRevision: null,
+    });
+
+    expect((await owner.call('DELETE', path)).status).toBe(204);
+
+    const read = await owner.ok<{ content: string | null }>('GET', path);
+    expect(read.content).toBeNull();
+    // The folder survives its Template, which is what makes each of them a
+    // unit of its own (RN-KNW-044, RN-KNW-045).
+    const detail = await owner.ok<{ folders: Array<Folder & { hasTemplate: boolean }> }>(
+      'GET',
+      notebookPath(notebook),
+    );
+    const folder = detail.folders.find((each) => each.folderId === notebook.folderId);
+    expect(folder?.name).toBe('Findings');
+    expect(folder?.hasTemplate).toBe(false);
+    expect((await owner.call('DELETE', path)).status).toBe(404);
   });
 });
 

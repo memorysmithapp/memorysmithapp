@@ -8,6 +8,9 @@ export { Notebook } from './notebook/Notebook.js';
 export { Folder } from './notebook/Folder.js';
 export { FolderTree } from './notebook/FolderTree.js';
 export { Note } from './note/Note.js';
+export { ContentSlot, type ContentSlotRole } from './content-slot/ContentSlot.js';
+export { Guidance } from './content-slot/Guidance.js';
+export { Template } from './content-slot/Template.js';
 export {
   FolderDescription,
   FolderName,
@@ -29,6 +32,7 @@ export {
   type RequestContext,
 } from './access/AuthorizationPolicy.js';
 export type {
+  ContentSlotRepository,
   ContentStore,
   EventPublisher,
   NoteRepository,

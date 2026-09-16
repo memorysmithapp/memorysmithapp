@@ -20,6 +20,8 @@ import {
 } from '@memorysmith/kernel';
 import { Notebook } from '../src/domain/notebook/Notebook.js';
 import { Folder } from '../src/domain/notebook/Folder.js';
+import { Guidance } from '../src/domain/content-slot/Guidance.js';
+import { Template } from '../src/domain/content-slot/Template.js';
 import { Note } from '../src/domain/note/Note.js';
 import { FolderDescription, FolderName, ShortText, NotebookName } from '../src/domain/values.js';
 import { NotePlacement, type NoteOrder } from '../src/domain/services/NotePlacement.js';
@@ -71,6 +73,27 @@ export function folderDescription(value: string): FolderDescription {
  */
 export function noteBody(name: string): string {
   return `---\nname: ${name}\n---\n\nThe general rule.\n`;
+}
+
+/** The Guidance of a notebook, as its own aggregate (RN-KNW-044). */
+export function newGuidance(notebook: Notebook, ref = contentRef()): Guidance {
+  return Guidance.create({
+    subscriptionId: notebook.subscriptionId,
+    notebookId: notebook.id,
+    ref,
+    by: authorship(),
+  });
+}
+
+/** The Template of a folder, as its own aggregate (RN-KNW-044). */
+export function newTemplate(notebook: Notebook, folderId: FolderId, ref = contentRef()): Template {
+  return Template.create({
+    subscriptionId: notebook.subscriptionId,
+    notebookId: notebook.id,
+    folderId,
+    ref,
+    by: authorship(),
+  });
 }
 
 export function newNotebook(name = 'Normas e Legislacao'): Notebook {
@@ -133,7 +156,11 @@ export function newNote(
  * A notebook as it comes back from storage, with the folder note counters that
  * travel in the same Query (architecture-guide.md, section 9.3).
  */
-export function rehydratedNotebookWithNotes(notes: number): {
+export function rehydratedNotebookWithNotes(
+  notes: number,
+  /** Whether the folder carries a Template, which the tree query answers. */
+  templated = false,
+): {
   notebook: Notebook;
   folderId: FolderId;
 } {
@@ -145,7 +172,6 @@ export function rehydratedNotebookWithNotes(notes: number): {
     slug: unwrap(Slug.from('Normas')),
     description: folderDescription('Texto normativo por artigo.'),
     position: Position.first(),
-    templateRef: null,
     createdBy: authorship(),
     updatedAt: Instant.now(),
   });
@@ -155,11 +181,12 @@ export function rehydratedNotebookWithNotes(notes: number): {
     name: notebookName('Normas e Legislacao'),
     slug: unwrap(Slug.from('Normas e Legislacao')),
     description: unwrap(ShortText.create('')),
-    guidanceRef: null,
     folders: [folder],
     limits: new Map(),
     noteCounts: new Map([[folderId.value, notes]]),
     notebookNoteCount: notes,
+    templatedFolderIds: templated ? new Set([folderId.value]) : new Set(),
+    hasGuidance: false,
     version: 7,
     createdBy: authorship(),
     updatedAt: Instant.now(),

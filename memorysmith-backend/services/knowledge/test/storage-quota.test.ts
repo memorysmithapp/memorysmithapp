@@ -11,7 +11,15 @@
 import { describe, expect, it } from 'vitest';
 import { admitWrite } from '../src/domain/services/StorageQuota.js';
 import { FolderId } from '@memorysmith/kernel';
-import { authorship, contentRef, newNote, newNotebook, noteBody, unwrap } from './fixtures.js';
+import {
+  authorship,
+  contentRef,
+  newGuidance,
+  newNote,
+  newNotebook,
+  noteBody,
+  unwrap,
+} from './fixtures.js';
 
 const folderId = FolderId.generate();
 
@@ -103,14 +111,24 @@ describe('storage: what each mutation declares', () => {
 
   it('a guidance costs the difference against the one it replaces', () => {
     const notebook = newNotebook();
-    notebook.pullEvents(); // NotebookCreated, which moves nothing
-    unwrap(notebook.setGuidance(contentRef('d'.repeat(64), 1000), authorship()));
-    const [first] = notebook.pullEvents();
+    const guidance = newGuidance(notebook, contentRef('d'.repeat(64), 1000));
+    const [first] = guidance.pullEvents();
     expect(first?.storageDelta).toBe(1000);
 
-    unwrap(notebook.setGuidance(contentRef('e'.repeat(64), 1500), authorship()));
-    const [second] = notebook.pullEvents();
+    unwrap(guidance.replace(contentRef('e'.repeat(64), 1500), authorship()));
+    const [second] = guidance.pullEvents();
     expect(second?.storageDelta).toBe(500);
+  });
+
+  it('deleting a guidance gives back every byte it held', () => {
+    const notebook = newNotebook();
+    const guidance = newGuidance(notebook, contentRef('d'.repeat(64), 1000));
+    guidance.pullEvents();
+
+    unwrap(guidance.delete(authorship()));
+    const [event] = guidance.pullEvents();
+    expect(event?.type).toBe('GuidanceDeleted');
+    expect(event?.storageDelta).toBe(-1000);
   });
 });
 

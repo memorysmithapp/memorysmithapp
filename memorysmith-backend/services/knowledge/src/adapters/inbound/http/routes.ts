@@ -26,6 +26,7 @@ import type {
   CreateNotebook,
   DeleteNotebook,
   GetNotebook,
+  DeleteGuidance,
   GetNotebookContext,
   ListNotebooks,
   PutGuidance,
@@ -35,6 +36,7 @@ import type {
 } from '../../../application/notebooks.js';
 import type {
   CreateFolder,
+  DeleteTemplate,
   GetTemplate,
   PatchFolder,
   PutTemplate,
@@ -82,6 +84,7 @@ export interface KnowledgeUseCases {
   readonly deleteNotebook: (request: KnowledgeRequest) => DeleteNotebook;
   readonly restoreNotebook: (request: KnowledgeRequest) => RestoreNotebook;
   readonly putGuidance: (request: KnowledgeRequest) => PutGuidance;
+  readonly deleteGuidance: (request: KnowledgeRequest) => DeleteGuidance;
   readonly getNotebookContext: (request: KnowledgeRequest) => GetNotebookContext;
   readonly setNotebookLimit: (request: KnowledgeRequest) => SetNotebookRoleLimit;
   readonly clearNotebookLimit: (request: KnowledgeRequest) => ClearNotebookRoleLimit;
@@ -91,6 +94,7 @@ export interface KnowledgeUseCases {
   readonly removeFolder: (request: KnowledgeRequest) => RemoveFolder;
   readonly putTemplate: (request: KnowledgeRequest) => PutTemplate;
   readonly getTemplate: (request: KnowledgeRequest) => GetTemplate;
+  readonly deleteTemplate: (request: KnowledgeRequest) => DeleteTemplate;
   readonly listNotes: (request: KnowledgeRequest) => ListNotes;
   readonly readNote: (request: KnowledgeRequest) => ReadNote;
   readonly createNote: (request: KnowledgeRequest) => CreateNote;
@@ -270,6 +274,27 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     return present(c, written, (ref) => ({ revision: ref.toJSON() }));
   });
 
+  /**
+   * Deleting the guidance of a notebook, which the notebook survives
+   * (RN-KNW-045). It was impossible while the guidance was a field of the
+   * `META` item: the only way to be rid of one was to delete the notebook.
+   */
+  app.delete('/notebooks/:v/guidance', async (c) => {
+    const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
+
+    const deleted = await useCases.deleteGuidance(request).execute({
+      ctx: request.ctx,
+      notebookId: notebookId.value,
+      by: author.value,
+    });
+    if (!deleted.ok) return fail(c, deleted.error);
+    return c.body(null, 204);
+  });
+
   // ---- Folders -------------------------------------------------------------
 
   app.post('/notebooks/:v/folders', async (c) => {
@@ -309,7 +334,9 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
         slug: folder.slug.value,
         description: folder.description.value,
         position: folder.position.value,
-        hasTemplate: folder.hasTemplate,
+        // A folder is born with no template: it is a unit of its own, and
+        // nothing wrote one yet (RN-KNW-044).
+        hasTemplate: false,
         noteCount: 0,
       }),
       201,
@@ -450,6 +477,26 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     if (!template.value) return c.json({ content: null }, 200);
     const { content, folderName, revision } = template.value;
     return c.json({ content, folderName, revision: revision.toJSON() }, 200);
+  });
+
+  /** Deleting the template of a folder, which the folder survives. */
+  app.delete('/notebooks/:v/folders/:f/template', async (c) => {
+    const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
+    const folderId = FolderId.create(c.req.param('f') ?? '');
+    if (!folderId.ok) return fail(c, folderId.error);
+
+    const deleted = await useCases.deleteTemplate(request).execute({
+      ctx: request.ctx,
+      notebookId: notebookId.value,
+      folderId: folderId.value,
+      by: author.value,
+    });
+    if (!deleted.ok) return fail(c, deleted.error);
+    return c.body(null, 204);
   });
 
   // ---- Notes ---------------------------------------------------------------

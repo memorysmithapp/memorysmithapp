@@ -1,5 +1,5 @@
 /**
- * Domain events (architecture-guide.md, section 6.5).
+ * Domain events (architecture-guide.md, section 6.6).
  *
  * Every event carries the subscriptionId and the Authorship. Content events
  * carry the COMPLETE ContentRef - contentId, versionId, sha256 and bytes - and
@@ -59,6 +59,7 @@ export const KNOWLEDGE_EVENT_TYPES = [
   'NotebookDeleted',
   'NotebookRestored',
   'GuidanceUpdated',
+  'GuidanceDeleted',
   'FolderAdded',
   'FolderRenamed',
   'FolderDescribed',
@@ -66,6 +67,7 @@ export const KNOWLEDGE_EVENT_TYPES = [
   'FolderReordered',
   'FolderRemoved',
   'TemplateUpdated',
+  'TemplateDeleted',
   'NoteCreated',
   'NoteUpdated',
   'NoteReordered',
