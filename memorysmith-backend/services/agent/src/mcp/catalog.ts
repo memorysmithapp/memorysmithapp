@@ -208,6 +208,18 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     annotations: { readOnlyHint: false, destructiveHint: true },
   },
   {
+    name: 'delete_guidance',
+    title: 'Delete the guidance of a notebook',
+    description:
+      'Removes the guidance of a notebook. The notebook keeps its folders, its templates and ' +
+      'every note; it simply stops declaring how it wants to be written, and the next agent ' +
+      'that comes here has only the folder descriptions to go by. Read the current one with ' +
+      'get_guidance first and confirm with the person: replacing it is usually what they ' +
+      'meant, and set_guidance does that in one call.',
+    inputSchema: object({ notebook: notebookArgument }, ['notebook']),
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+  },
+  {
     name: 'create_folder',
     title: 'Create a folder',
     description:
@@ -318,6 +330,21 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       ['notebook', 'folder', 'content', 'baseRevision'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: true },
+  },
+  {
+    name: 'delete_template',
+    title: 'Delete the template of a folder',
+    description:
+      'Removes the template of a folder. The folder stays, with its notes and its ' +
+      'description, and stops suggesting a layout for what is written there; the notes ' +
+      'already written keep the shape they have, because the server never validated one ' +
+      'against the template anyway. Confirm with the person, and prefer set_template when ' +
+      'what they want is a different skeleton rather than none.',
+    inputSchema: object({ notebook: notebookArgument, folder: folderArgument }, [
+      'notebook',
+      'folder',
+    ]),
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
   },
   {
     name: 'list_notes',

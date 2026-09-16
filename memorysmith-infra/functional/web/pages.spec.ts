@@ -103,15 +103,26 @@ test.describe('the pages of an account', () => {
     );
   });
 
-  test('[page:/notebooks/:notebookId/templates] lists the Templates of a notebook by folder, and opens one', async ({
+  test('[page:/notebooks/:notebookId/templates] lists the Templates of a notebook by folder, opens one and deletes it', async ({
     app,
     notebook,
+    words,
   }) => {
     await app.goto(notebook.page('/templates'));
 
     const box = app.locator('details.template-box', { hasText: 'Findings' });
     await box.locator('summary').click();
     await expect(box.getByRole('heading', { name: 'Verification' })).toBeVisible();
+
+    // The Template is an object of its own and is deleted on its own: the
+    // card goes and the folder stays (RN-KNW-045). It asks first, in the page,
+    // because what a person needs in order to answer is what survives.
+    await box.getByRole('button', { name: words.deleteSlot }).click();
+    await box.getByRole('button', { name: words.deleteSlotForGood }).click();
+    await expect(app.locator('details.template-box', { hasText: 'Findings' })).toHaveCount(0);
+
+    await app.goto(notebook.page(`/folders/${notebook.folderId.toLowerCase()}`));
+    await expect(app.getByRole('heading', { level: 1, name: 'Findings' })).toBeVisible();
   });
 
   test('[page:/notebooks/:notebookId/graph] draws the graph of a notebook from its projection', async ({

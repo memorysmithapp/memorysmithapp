@@ -248,6 +248,16 @@ export class McpToolAdapter {
         return json({ revision });
       }
 
+      case 'delete_guidance': {
+        const notebook = requireString(args, 'notebook', 'delete_guidance');
+        await knowledge.deleteGuidance(caller, notebook);
+        return text(
+          `The notebook ${notebook} no longer declares how it wants to be written. Its folders, ` +
+            'templates and notes are untouched; write a new guidance with set_guidance, passing ' +
+            'baseRevision: null.',
+        );
+      }
+
       case 'create_folder': {
         const parent = typeof args['parent'] === 'string' ? args['parent'] : undefined;
         const after = optionalAnchor(args);
@@ -289,6 +299,19 @@ export class McpToolAdapter {
           baseRevision: revisionArgument(args, 'set_template'),
         });
         return json({ revision });
+      }
+
+      case 'delete_template': {
+        const folder = requireString(args, 'folder', 'delete_template');
+        await knowledge.deleteTemplate(
+          caller,
+          requireString(args, 'notebook', 'delete_template'),
+          folder,
+        );
+        return text(
+          `The folder ${folder} no longer suggests a layout for the notes kept there. The ` +
+            'folder, its description and its notes are untouched.',
+        );
       }
 
       case 'delete_note': {

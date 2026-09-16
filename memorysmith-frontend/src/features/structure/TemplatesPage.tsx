@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import { Link, useLocation, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { canWrite, getTemplate, putTemplate } from '../../shared/api/source';
+import { canWrite, deleteTemplate, getTemplate, putTemplate } from '../../shared/api/source';
+import { DeleteContentSlot } from '../../shared/components/DeleteContentSlot';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { folderAddress } from '../../shared/api/note-address';
 import { queryState } from '../../shared/api/query-state';
@@ -86,18 +87,29 @@ export function TemplatesPage() {
               </Link>
             </summary>
             {template ? (
-              <WritableContent
-                raw={template.body}
-                notebookId={notebookId}
-                baseRevision={template.revision}
-                writable={canWrite(structure.effectiveRole)}
-                write={({ raw, baseRevision, keepalive }) =>
-                  putTemplate(notebookId, folder.id, raw, baseRevision, {
-                    keepalive: keepalive ?? false,
-                  })
-                }
-                invalidates={['template', notebookId, folder.id]}
-              />
+              <>
+                <WritableContent
+                  raw={template.body}
+                  notebookId={notebookId}
+                  baseRevision={template.revision}
+                  writable={canWrite(structure.effectiveRole)}
+                  write={({ raw, baseRevision, keepalive }) =>
+                    putTemplate(notebookId, folder.id, raw, baseRevision, {
+                      keepalive: keepalive ?? false,
+                    })
+                  }
+                  invalidates={['template', notebookId, folder.id]}
+                />
+                {canWrite(structure.effectiveRole) && (
+                  <DeleteContentSlot
+                    confirmation={t('folder.deleteTemplateConfirm')}
+                    remove={() => deleteTemplate(notebookId, folder.id)}
+                    // The list of folders with a Template comes from the
+                    // structure, so the card leaves the page with the slot.
+                    invalidates={['notebook-structure', notebookId]}
+                  />
+                )}
+              </>
             ) : failed ? (
               <p className="status">{t(messageKeyOf(query?.error))}</p>
             ) : (

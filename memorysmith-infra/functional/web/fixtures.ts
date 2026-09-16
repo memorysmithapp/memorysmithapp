@@ -29,6 +29,8 @@ export interface Words {
   readonly notFound: string;
   readonly version: string;
   readonly tryAgain: string;
+  readonly deleteSlot: string;
+  readonly deleteSlotForGood: string;
   readonly pending: (target: string) => string;
 }
 
@@ -44,6 +46,8 @@ export const WORDS: Record<AppLocale, Words> = {
     notFound: 'Not found.',
     version: 'Version',
     tryAgain: 'Try again',
+    deleteSlot: 'Delete',
+    deleteSlotForGood: 'Delete for good',
     pending: (target) => `No note carries the name “${target}” yet.`,
   },
   pt_BR: {
@@ -57,6 +61,8 @@ export const WORDS: Record<AppLocale, Words> = {
     notFound: 'Não encontrado.',
     version: 'Versão',
     tryAgain: 'Tentar de novo',
+    deleteSlot: 'Apagar',
+    deleteSlotForGood: 'Apagar de vez',
     pending: (target) => `Nenhuma nota se chama “${target}” ainda.`,
   },
 };

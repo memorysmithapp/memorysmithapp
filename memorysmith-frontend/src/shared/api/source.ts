@@ -184,6 +184,18 @@ export function putTemplate(
 }
 
 /**
+ * The two Content Slots that are not notes are deleted on their own, and their
+ * parent stays (RN-KNW-045).
+ */
+export function deleteGuidance(notebookId: string): Promise<void> {
+  return backend.deleteGuidance(notebookId);
+}
+
+export function deleteTemplate(notebookId: string, folderId: string): Promise<void> {
+  return backend.deleteTemplate(notebookId, folderId);
+}
+
+/**
  * Who may tick a box: whoever may write in THIS notebook. The effective role is
  * min(subscription role, notebook ceiling), and it is the only thing that decides
  * (section 5.3). Never the role in the subscription, which would let an EDITOR

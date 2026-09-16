@@ -271,6 +271,42 @@ test.describe('the tools', () => {
     );
   });
 
+  test('[tool:delete_guidance] [tool:delete_template] takes one away and leaves its parent standing', async ({
+    agent,
+    notebook,
+  }) => {
+    const folder = { notebook: notebook.notebookId, folder: notebook.folderId };
+    await callTool(agent, 'set_guidance', {
+      notebook: notebook.notebookId,
+      content: '# Guidance\n\nWritten so it can be taken away.\n',
+      baseRevision: null,
+    });
+    await callTool(agent, 'set_template', {
+      ...folder,
+      content: '---\nname:\n---\n\n## Written so it can be taken away\n',
+      baseRevision: null,
+    });
+
+    expect(
+      (await callTool(agent, 'delete_guidance', { notebook: notebook.notebookId })).isError,
+    ).toBe(false);
+    expect((await callTool(agent, 'delete_template', folder)).isError).toBe(false);
+
+    // Each one is gone, and its parent is not: the folder is still in the tree
+    // with its notes, and the notebook still answers (RN-KNW-045).
+    expect(
+      (await callTool(agent, 'get_guidance', { notebook: notebook.notebookId })).text,
+    ).toContain('baseRevision: null');
+    expect((await callTool(agent, 'get_template', folder)).text).toContain('no template');
+    const context = await callTool(agent, 'get_notebook_context', {
+      notebook: notebook.notebookId,
+    });
+    expect(context.text).toContain(notebook.folderId);
+    expect(context.text).not.toContain('has TEMPLATE.md');
+    // A second deletion has nothing to delete.
+    expect((await callTool(agent, 'delete_template', folder)).isError).toBe(true);
+  });
+
   test('[tool:reorder_folder] [tool:reorder_note] orders the folders of a level and the notes of a folder, when they are written and afterwards', async ({
     agent,
     notebook,

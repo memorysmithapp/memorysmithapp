@@ -195,6 +195,12 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     return written.revision.versionId;
   }
 
+  async deleteGuidance(caller: AgentCaller, notebookId: string): Promise<void> {
+    await callApi(this.origin, caller, `/knowledge/notebooks/${notebookId}/guidance`, {
+      method: 'DELETE',
+    });
+  }
+
   /**
    * The guidance with its revision. The Notebook Context is a document and cannot
    * carry one, so a write that has to echo the revision back needs this.
@@ -283,6 +289,15 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       { method: 'PUT', body: { content: input.content, baseRevision: input.baseRevision } },
     );
     return written.revision.versionId;
+  }
+
+  async deleteTemplate(caller: AgentCaller, notebookId: string, folderId: string): Promise<void> {
+    await callApi(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${notebookId}/folders/${folderId}/template`,
+      { method: 'DELETE' },
+    );
   }
 
   async deleteNote(caller: AgentCaller, notebookId: string, noteId: string): Promise<void> {

@@ -636,11 +636,13 @@ Alphabetical ordering stays available as a display option in the client, without
 | **`get_notebook_context`** | `(notebook)` | **The main call.** The full Guidance plus the tree with descriptions, order, note counts and which folders carry a template |
 | `get_guidance` | `(notebook)` | The Guidance as it is stored, with the revision to state when writing |
 | `set_guidance` | `(notebook, content, baseRevision)` | Writes the Guidance of the notebook, with conflict detection (RN-KNW-034), and answers the revision it produced |
+| `delete_guidance` | `(notebook)` | Deletes the Guidance; the notebook keeps its folders, its templates and every note (RN-KNW-045) |
 | `create_folder` | `(notebook, name, description, parent?, after?)` | Creates a folder; the description is required, because it is what says what belongs there. It goes last among its siblings, or right after `after` |
 | `reorder_folder` | `(notebook, folder, after)` | Moves a folder among its siblings: first with `after: null`, or right after a sibling (RN-AGT-029) |
 | `delete_folder` | `(notebook, folder, policy)` | Removes a folder under an explicit policy, `REJECT_IF_NOT_EMPTY` or `CASCADE` (RN-KNW-007); `CASCADE` deletes every note of the subtree, up to 200 (RN-KNW-040) |
 | `get_template` | `(notebook, folder)` | The Template of the folder, to read before writing, with the revision to state when replacing it |
 | `set_template` | `(notebook, folder, content, baseRevision)` | Writes the Template of the folder, with conflict detection (RN-KNW-034), and answers the revision it produced |
+| `delete_template` | `(notebook, folder)` | Deletes the Template; the folder, its description and its notes stay (RN-KNW-045) |
 | `list_notes` | `(notebook, folder?)` | The index of notes, in the defined order |
 | `read_note` | `(notebook, note, asOf?)` | The full Markdown and the current revision; with `asOf`, the revision in force on that date |
 | `create_note` | `(notebook, folder, content, after?)` | The ingestion path (§1.3). The name is the `name:` the content states, and a repeated call writes a second note (RN-AGT-024). It goes last in its folder, or right after `after` |
@@ -909,9 +911,9 @@ Zero lock-in is a requirement, not a courtesy: it is what makes the product safe
 |---|---|
 | Notebook catalogue | Cards with the name, the description, the note count and the last update, and under them the panel of the subscription: the count of notebooks and notes, pending links, orphan notes, quota usage and the distribution of the content across the facets the notebooks declare (§10.3) |
 | Notebook → Notebook Context | The notebook as the agent receives it in `get_notebook_context` (§9.2): the Guidance and the Templates as entry points and the folder tree with the description of each folder. Reading of the structure, with no reordering and no moving |
-| Notebook → Guidance | Reading of the Guidance of the notebook, with the task list clickable for whoever may write |
+| Notebook → Guidance | Reading of the Guidance of the notebook, with the task list clickable for whoever may write, who may also delete it: the deletion asks in the page, saying what stays (RN-KNW-045) |
 | Folder | Reading: the description of the folder, its Template and the notes in the declared order (PP9) |
-| Folder → Template | Reading of the Template of the folder, with the task list clickable for whoever may write |
+| Folder → Template | Reading of the Template of the folder, with the task list clickable for whoever may write, who may also delete it. Two screens write the same Template, the folder and the page of Templates, and both offer the deletion the same way (RN-KNW-045) |
 | Note | Reading: the frontmatter properties and the body in Markdown, with wikilinks navigable, the pending ones marked as such (RN-DSC-004), embeds expanded one level, and the task list clickable for whoever may write |
 | Notebook → Graph | The link graph of the whole notebook, navigable, with the note opened from it |
 | Notebook → Search | A single field over the text of the notebook, accepting fields and operators |

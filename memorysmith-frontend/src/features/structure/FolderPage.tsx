@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { canWrite, getTemplate, putTemplate } from '../../shared/api/source';
+import { canWrite, deleteTemplate, getTemplate, putTemplate } from '../../shared/api/source';
+import { DeleteContentSlot } from '../../shared/components/DeleteContentSlot';
 import {
   folderAddress,
   foldersAddress,
@@ -67,6 +68,15 @@ export function FolderPage() {
             }
             invalidates={['template', notebookId, folder.id]}
           />
+          {canWrite(structure.effectiveRole) && (
+            <DeleteContentSlot
+              confirmation={t('folder.deleteTemplateConfirm')}
+              remove={() => deleteTemplate(notebookId, folder.id)}
+              // The tree carries which folders have a Template, so the
+              // structure is read again and not only this Template.
+              invalidates={['notebook-structure', notebookId]}
+            />
+          )}
         </details>
       )}
 

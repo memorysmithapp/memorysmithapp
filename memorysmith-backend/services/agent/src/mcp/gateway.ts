@@ -128,6 +128,8 @@ export interface KnowledgeGateway {
     content: string,
     baseRevision: string | null,
   ): Promise<string>;
+  /** The notebook keeps everything it has; it simply stops saying how it wants to be written. */
+  deleteGuidance(caller: AgentCaller, notebookId: string): Promise<void>;
   /** The guidance with its revision, which is what a write has to echo back. */
   guidance(
     caller: AgentCaller,
@@ -162,6 +164,8 @@ export interface KnowledgeGateway {
     caller: AgentCaller,
     input: { notebookId: string; folderId: string; content: string; baseRevision: string | null },
   ): Promise<string>;
+  /** The folder stays and stops suggesting a layout for the notes kept there. */
+  deleteTemplate(caller: AgentCaller, notebookId: string, folderId: string): Promise<void>;
   deleteNote(caller: AgentCaller, notebookId: string, noteId: string): Promise<void>;
   notebookContext(caller: AgentCaller, notebookId: string): Promise<string>;
   template(
