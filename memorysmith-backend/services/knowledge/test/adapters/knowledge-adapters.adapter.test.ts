@@ -495,23 +495,62 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
     expect(listed.map((note) => note.name)).toEqual(['Lei 14.133', 'Lei 8.666']);
   });
 
-  it('writes a second note with the same name, and both stand', async () => {
-    // RN-KNW-037: nothing in a notebook is a key, so a repeated call creates
-    // rather than refusing (RN-AGT-024, and RN-AGT-004, removed).
+  it('refuses a second live note of a name in its folder, and lets another folder hold it', async () => {
+    // RN-KNW-042, in the database: the guard of the name is what refuses.
     const context = contextFor();
     const { notebook, folder } = await seedNotebook(context);
 
     const first = await createNote(context, notebook, folder.id, 'Lei 14.133');
     const second = await createNote(context, notebook, folder.id, 'Lei 14.133');
-    expect(first.saved.ok).toBe(true);
-    expect(second.saved.ok).toBe(true);
-    expect(second.note.id.value).not.toBe(first.note.id.value);
+    const elsewhere = await createNote(context, notebook, FolderId.generate(), 'Lei 14.133');
 
-    const listed = await converged(
-      () => repositories(context).notes.listByFolder(notebook.id, folder.id),
-      (notesListed) => notesListed.length === 2,
+    expect(first.saved.ok).toBe(true);
+    expect(second.saved.ok).toBe(false);
+    expect(
+      !second.saved.ok && (second.saved.error.details as { code?: string } | undefined)?.code,
+    ).toBe('ALREADY_EXISTS');
+    expect(elsewhere.saved.ok).toBe(true);
+    expect(
+      (await repositories(context).notes.findByName(notebook.id, folder.id, 'Lei 14.133'))?.value,
+    ).toBe(first.note.id.value);
+  });
+
+  it('leaves exactly one note when two creates of one name race for one folder', async () => {
+    const context = contextFor();
+    const { notebook, folder } = await seedNotebook(context);
+
+    const outcomes = await Promise.all([
+      createNote(context, notebook, folder.id, 'Parecer 12'),
+      createNote(context, notebook, folder.id, 'Parecer 12'),
+    ]);
+
+    expect(outcomes.filter((outcome) => outcome.saved.ok)).toHaveLength(1);
+  });
+
+  it('moves the guard with the name: a delete frees it and a rename takes the new one', async () => {
+    const context = contextFor();
+    const { notebook, folder } = await seedNotebook(context);
+    const { notes, content } = repositories(context);
+
+    const held = await createNote(context, notebook, folder.id, 'Lei 8.666');
+    const loaded = (await notes.findById(notebook.id, held.note.id)) as Note;
+    const renamedBody = '---\nname: Lei 14.133\n---\n\nCorpo.';
+    unwrap(
+      loaded.replaceBody(
+        await content.overwrite(loaded.bodyRef.contentId, renamedBody),
+        renamedBody,
+        authorshipOf(context),
+      ),
     );
-    expect(listed.filter((note) => note.name === 'Lei 14.133')).toHaveLength(2);
+    expect((await notes.save(loaded)).ok).toBe(true);
+
+    // The old name is free, the new one is held.
+    expect((await createNote(context, notebook, folder.id, 'Lei 8.666')).saved.ok).toBe(true);
+    expect((await createNote(context, notebook, folder.id, 'Lei 14.133')).saved.ok).toBe(false);
+
+    unwrap(loaded.delete(authorshipOf(context)));
+    expect((await notes.save(loaded)).ok).toBe(true);
+    expect((await createNote(context, notebook, folder.id, 'Lei 14.133')).saved.ok).toBe(true);
   });
 
   it('writes a note without reading its folder, whose existence the use case settles first', async () => {
@@ -894,7 +933,9 @@ describe('Delivery 4 done criteria', () => {
     const outcomes = await Promise.all(
       Array.from({ length: 50 }, async (_unused, index) => {
         const { notes, content } = repositories(context);
-        const markdown = `# Ingestao ${index}\n\nCorpo.`;
+        // Every one of them named, and every name distinct: fifty guards of one
+        // folder claimed at once, none of which may meet another (RN-KNW-042).
+        const markdown = `---\nname: Ingestao ${index}\n---\n\nCorpo.`;
         const body = await content.create(markdown);
         const note = unwrap(
           Note.create({

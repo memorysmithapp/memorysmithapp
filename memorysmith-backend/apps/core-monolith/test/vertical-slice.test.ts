@@ -170,6 +170,107 @@ describe('Removing a folder with CASCADE', () => {
   });
 });
 
+describe('One name per folder', () => {
+  const body = (name: string, text = 'Corpo.') => `---\nname: ${name}\n---\n\n${text}\n`;
+  const create = (notebookId: string, folderId: string, content: string) =>
+    call(`/knowledge/notebooks/${notebookId}/notes`, {
+      method: 'POST',
+      body: { folderId, content },
+    });
+  const folderIn = async (notebookId: string, name: string) =>
+    (
+      (await (
+        await call(`/knowledge/notebooks/${notebookId}/folders`, {
+          method: 'POST',
+          body: { name, description: `Onde ficam as ${name}.` },
+        })
+      ).json()) as { folderId: string }
+    ).folderId;
+  const listed = async (notebookId: string) =>
+    ((await (await call(`/knowledge/notebooks/${notebookId}/notes`)).json()) as unknown[]).length;
+
+  it('refuses a second note of a name in its folder, naming the note that holds it', async () => {
+    const { notebookId, folderId } = await seedNotebook();
+    const first = (await (await create(notebookId, folderId, body('Lei 14.133'))).json()) as {
+      noteId: string;
+    };
+
+    // A retry after a lost answer, or an agent that did not look: RN-KNW-042.
+    const twin = await create(notebookId, folderId, body('Lei 14.133', 'Outro corpo.'));
+    expect(twin.status).toBe(409);
+    const refusal = (await twin.json()) as { details: { code: string; noteId: string } };
+    expect(refusal.details.code).toBe('ALREADY_EXISTS');
+    expect(refusal.details.noteId).toBe(first.noteId);
+    expect(await listed(notebookId)).toBe(1);
+
+    // Case is part of a name: these two stand side by side (RN-KNW-037).
+    expect((await create(notebookId, folderId, body('lei 14.133'))).status).toBe(201);
+    // And a note with no name reserves nothing.
+    expect((await create(notebookId, folderId, 'Sem nome.\n')).status).toBe(201);
+    expect((await create(notebookId, folderId, 'Sem nome, outra.\n')).status).toBe(201);
+  });
+
+  it('lets another folder hold the same name', async () => {
+    const { notebookId, folderId } = await seedNotebook();
+    const other = await folderIn(notebookId, 'Pareceres');
+
+    expect((await create(notebookId, folderId, body('Lei 14.133'))).status).toBe(201);
+    expect((await create(notebookId, other, body('Lei 14.133'))).status).toBe(201);
+  });
+
+  it('refuses a rename or a move into a taken name, and changes nothing', async () => {
+    const { notebookId, folderId } = await seedNotebook();
+    const other = await folderIn(notebookId, 'Pareceres');
+    const held = (await (await create(notebookId, folderId, body('Lei 14.133'))).json()) as {
+      noteId: string;
+    };
+    const renamed = (await (await create(notebookId, folderId, body('Lei 8.666'))).json()) as {
+      noteId: string;
+    };
+    const moving = (await (await create(notebookId, other, body('Lei 14.133'))).json()) as {
+      noteId: string;
+    };
+
+    // The create answers the summary; the revision is on the note itself.
+    const current = (await (
+      await call(`/knowledge/notebooks/${notebookId}/notes/${renamed.noteId}`)
+    ).json()) as { revision: { versionId: string } };
+    const rename = await call(`/knowledge/notebooks/${notebookId}/notes/${renamed.noteId}`, {
+      method: 'PUT',
+      body: { content: body('Lei 14.133'), baseRevision: current.revision.versionId },
+    });
+    expect(rename.status).toBe(409);
+    expect(((await rename.json()) as { details: { noteId: string } }).details.noteId).toBe(
+      held.noteId,
+    );
+
+    const move = await call(`/knowledge/notebooks/${notebookId}/notes/${moving.noteId}/move`, {
+      method: 'POST',
+      body: { toFolderId: folderId },
+    });
+    expect(move.status).toBe(409);
+
+    const stillThere = (await (
+      await call(`/knowledge/notebooks/${notebookId}/notes/${moving.noteId}`)
+    ).json()) as { folderId: string };
+    expect(stillThere.folderId).toBe(other);
+    const unchanged = (await (
+      await call(`/knowledge/notebooks/${notebookId}/notes/${renamed.noteId}`)
+    ).json()) as { name: string };
+    expect(unchanged.name).toBe('Lei 8.666');
+  });
+
+  it('gives a name back when the note that held it is deleted', async () => {
+    const { notebookId, folderId } = await seedNotebook();
+    const held = (await (await create(notebookId, folderId, body('Lei 14.133'))).json()) as {
+      noteId: string;
+    };
+    await call(`/knowledge/notebooks/${notebookId}/notes/${held.noteId}`, { method: 'DELETE' });
+
+    expect((await create(notebookId, folderId, body('Lei 14.133'))).status).toBe(201);
+  });
+});
+
 describe('The authoring cycle', () => {
   it('writes guidance, a tree, a template and a note', async () => {
     const { notebookId, folderId } = await seedNotebook();
@@ -380,36 +481,6 @@ describe('Notebook lifecycle', () => {
 });
 
 describe('Note lifecycle', () => {
-  it('writes a second note with the same name, and both stand', async () => {
-    // RN-AGT-024: create_note always creates. Nothing in a notebook is a key, so
-    // two notes may be called the same thing (RN-KNW-037) and a repeated call
-    // writes rather than refusing (RN-AGT-004, removed).
-    const { notebookId, folderId } = await seedNotebook();
-    const first = (await (
-      await call(`/knowledge/notebooks/${notebookId}/notes`, {
-        method: 'POST',
-        body: { folderId, content: '---\nname: Lei 14.133\n---\n\nA geral.' },
-      })
-    ).json()) as { noteId: string; name: string };
-
-    const second = await call(`/knowledge/notebooks/${notebookId}/notes`, {
-      method: 'POST',
-      body: { folderId, content: '---\nname: Lei 14.133\n---\n\nOutra vez.' },
-    });
-    expect(second.status).toBe(201);
-    const twin = (await second.json()) as { noteId: string; name: string };
-
-    expect(twin.name).toBe('Lei 14.133');
-    expect(first.name).toBe('Lei 14.133');
-    expect(twin.noteId).not.toBe(first.noteId);
-
-    // And the listing holds both.
-    const listed = (await (
-      await call(`/knowledge/notebooks/${notebookId}/notes?folderId=${folderId}`)
-    ).json()) as Array<{ name: string | null }>;
-    expect(listed.filter((note) => note.name === 'Lei 14.133')).toHaveLength(2);
-  });
-
   it('writes a note whose content states no name, and says so', async () => {
     // RN-KNW-036: the note exists, it renders and it is searchable; what no
     // link can do is name it. Refusing the write is how an import loses a

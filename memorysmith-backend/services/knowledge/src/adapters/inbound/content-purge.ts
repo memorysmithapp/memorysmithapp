@@ -33,6 +33,7 @@ import {
   type DomainEventType,
   type EventSubject,
   Instant,
+  sha256Hex,
   SubscriptionId,
 } from '@memorysmith/kernel';
 import {
@@ -208,8 +209,19 @@ export class ContentPurge {
       // invalidated by its parent never freed them, and frees them here
       // (RN-SUB-021).
       storageDelta: item['deletedAt'] ? 0 : -(ref?.bytes ?? 0),
-      deletes: [String(item['SK'])],
+      deletes: [String(item['SK']), ...this.nameGuardOf(item)],
     });
+  }
+
+  /**
+   * The name guard a note still holds (RN-KNW-042). A note deleted on its own
+   * released it at the deletion, and another note may hold that name by now:
+   * deleting the guard then would free a name somebody else carries. Only a
+   * note invalidated by its parent still holds one, in a folder that is gone.
+   */
+  private nameGuardOf(item: Item): string[] {
+    if (item['deletedAt'] || typeof item['name'] !== 'string') return [];
+    return [`NAME#${String(item['folderId'] ?? '')}#${sha256Hex(item['name'])}`];
   }
 
   private async purgeTemplates(
@@ -263,7 +275,7 @@ export class ContentPurge {
    */
   private async purgeTree(context: Context): Promise<void> {
     const keys: string[] = [];
-    for (const prefix of ['FOLDER#', 'FSTAT', 'LIMIT#', 'SLUG#', 'META']) {
+    for (const prefix of ['FOLDER#', 'FSTAT', 'LIMIT#', 'NAME#', 'SLUG#', 'META']) {
       await this.walk(context, prefix, async (item) => {
         keys.push(String(item['SK']));
         return false; // counted as tree, not as a unit of its own

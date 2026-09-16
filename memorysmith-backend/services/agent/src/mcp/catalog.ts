@@ -394,10 +394,11 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'Creates a note in a folder. Read get_template for that folder first. Write the name of ' +
       'the note in `name:`, in the frontmatter that opens the content: it is the title the page ' +
       'shows and what every link looks for, and the skill `write-notes` says what the body ' +
-      'holds. THIS TOOL ALWAYS CREATES: calling it twice writes two notes, because ' +
-      'a notebook may hold two notes with one name, so a retry after a transport failure is NOT ' +
-      'safe. Read the note back before retrying. The note goes last in its folder unless you ' +
-      'pass after.',
+      'holds. A folder holds one note of each name: a name the folder already holds is ' +
+      'refused, naming the note that holds it, so a call retried after its answer was lost ' +
+      'finds the note it made instead of writing a twin. A note with no name reserves nothing, ' +
+      'so retrying one of those writes a second. Another folder may hold a note of the same ' +
+      'name. The note goes last in its folder unless you pass after.',
     inputSchema: object(
       {
         notebook: notebookArgument,

@@ -26,7 +26,15 @@
  * and nothing is created.
  */
 
-import { DomainError, err, ok, ulid, type Authorship, type Result } from '@memorysmith/kernel';
+import {
+  DomainError,
+  err,
+  noteName,
+  ok,
+  ulid,
+  type Authorship,
+  type Result,
+} from '@memorysmith/kernel';
 import type { NotebookDocument } from '../domain/NotebookDocumentBuilder.js';
 
 /** The versions of the document format this build reads. */
@@ -181,6 +189,26 @@ export class ImportNotebook {
           `This build reads notebook documents of version ${READABLE_DOCUMENT_VERSIONS.join(', ')}, and that one is ${document.documentVersion}`,
         ),
       );
+    }
+
+    // A folder holds one live note of each name (RN-KNW-042), and a document
+    // that says otherwise is refused here, whole, before anything is written:
+    // finding it on the second note of the pair would mean undoing a notebook
+    // half written (RN-PRT-014). The name is read by the same function
+    // Knowledge reads it with, so the two cannot disagree.
+    const seen = new Set<string>();
+    for (const note of document.notes) {
+      const name = noteName(note.body);
+      if (name === null) continue;
+      const key = JSON.stringify([note.folderId, name]);
+      if (seen.has(key)) {
+        return err(
+          DomainError.validation(
+            `That notebook document has two notes named "${name}" in one folder, and a folder holds one note of each name`,
+          ),
+        );
+      }
+      seen.add(key);
     }
     return ok(document);
   }

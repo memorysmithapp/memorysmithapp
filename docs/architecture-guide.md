@@ -404,7 +404,7 @@ Details that follow from it:
 
 - `notebookId` is **not `readonly`**: moving between notebooks is a first-class operation and the `NoteId` is preserved (RN-KNW-023). That is what keeps the timeline intact in `svc-audit`, whose key is by subject and not by notebook (§12.2). "Moving" implemented as delete plus create would lose the history exactly where it matters.
 - **There is no `rename`, and no `NoteName` to pass to one.** A note is named by the `name:` it states, and `replaceBody` is where the name is read (RN-KNW-035, RN-KNW-038). It takes the body **and** the reference to it, because a use case that passed a name in could pass one the content does not state: the reading belongs inside the aggregate, where it cannot be skipped.
-- **`moveTo` carries no conflict policy.** A name collides with nothing, in one notebook or in two (RN-KNW-037), so a destination has nothing to refuse and `SlugConflictPolicy` is gone with the rule that motivated it (RN-KNW-022, removed).
+- **`moveTo` carries no conflict policy.** There is nothing to choose between: a destination folder that already holds the name refuses the move (RN-KNW-042), and every other destination accepts it. `SlugConflictPolicy` is gone with the rule that motivated it (RN-KNW-022, removed). The refusal is not the aggregate's, because the aggregate cannot see the other notes of a folder: the use case reads the guard, and the guard in the transaction settles a race.
 - `replaceBody` takes a `ContentRef` that is already written: whoever talks to S3 is the use case, never the aggregate (§10.3).
 - `delete` marks, it does not destroy: the `bodyRef` remains and the timeline stays readable by `NoteId`.
 
@@ -780,7 +780,7 @@ Creating, editing, retitling, reordering, moving, deleting a note; replacing or 
 1. A `Put`/`Update`/`Delete` of the item with `ConditionExpression: version = :expected`, where the lock belongs to the item itself; a move between notebooks deletes the item it leaves under the same lock, and the FIRST write of a slot claims its key with `attribute_not_exists` instead
 2. A `Put` of the event into the outbox
 
-There is no third write. The `NSLUG` guard held one name per notebook, and a notebook has no name to hold: nothing is reserved on a write and nothing is released on a delete (RN-KNW-037).
+**A third write appears only when a name moves:** the guard `NAME#{folderId}#{sha256(name)}`, claimed with `attribute_not_exists(SK)` when a name arrives in a folder and released when it leaves it — on a rename, a move or a delete (RN-KNW-042). The key carries the hash and not the name, because a name has no length limit (RN-KNW-035) and a sort key holds 1,024 bytes; it sorts after `META`, so the Query of the tree never reads it. A release is conditioned on the guard being absent or held by the same note, so it never frees a name another note holds. **It keeps PE8:** the only two note transactions that include the same guard are two writes of one name into one folder, which are exactly the pair that must collide. A transaction cancelled on a claim is the refusal, never a retry; the repository tells it from a lost lock by which item the cancellation names. The guard of a note invalidated by its parent is purged with the note (§12.4).
 
 **The two slots take this shape because of what the other one cost.** While the Template was a field of the `FOLDER` item and the Guidance a field of `META`, writing either was shape A: it took the lock of the whole tree, so writing the Template of one folder conflicted with renaming another and two agents writing two Templates conflicted with each other. Now each contends only with another write of the same slot.
 
@@ -1149,7 +1149,7 @@ Cognito implements no automatic client registration mechanism, neither DCR nor C
 
 Both solved with no new mechanism:
 
-- **There is no idempotency, and its absence is the decision.** A note transaction writes no guard item, because a notebook holds no key: two notes may carry one name (RN-KNW-037) and a repeated `create_note` writes a second note (RN-AGT-024). The tool says so, and declares itself as not idempotent, which is what lets a client tell a retry that costs nothing from one that costs a duplicate.
+- **Idempotency is the name.** A folder holds one note of each name (RN-KNW-042), so a `create_note` retried after its answer was lost is refused naming the note the first call wrote, and the agent reads that note instead of writing a twin (RN-AGT-024, RN-AGT-030). The tool still declares itself as not idempotent, because a note with no name reserves nothing.
 - **Concurrency.** `update_note` requires `baseRevision`, and a divergence answers `CONFLICT` with the current content attached (RN-AGT-005).
 
 ---

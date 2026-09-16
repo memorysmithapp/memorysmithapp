@@ -223,14 +223,14 @@ describe('The tool catalog is the public contract', () => {
   });
 
   it('declares create_note as NOT idempotent, and update_note as destructive', () => {
-    // RN-AGT-024: a repeated call writes a second note, because nothing in a
-    // notebook is a key. Declaring it idempotent would tell a client that a retry
-    // is free, and it is not.
+    // RN-AGT-024: a name its folder holds is refused, but a note with no name
+    // reserves nothing, so a repeated call can still write a second note.
+    // Declaring it idempotent would tell a client that every retry is free.
     const create = TOOL_CATALOG.find((tool) => tool.name === 'create_note');
     const update = TOOL_CATALOG.find((tool) => tool.name === 'update_note');
     expect(create?.annotations.idempotentHint).toBe(false);
     expect(create?.annotations.destructiveHint).toBe(false);
-    expect(create?.description).toContain('ALWAYS CREATES');
+    expect(create?.description).toContain('one note of each name');
     expect(update?.annotations.destructiveHint).toBe(true);
   });
 
@@ -423,6 +423,31 @@ describe('The connector authors the notebook, and not only its notes', () => {
     const notebook = await adapter.call('delete_notebook', { notebook: 'v1' }, caller);
     expect(note.content[0]?.text).toContain('Nothing brings it back');
     expect(notebook.content[0]?.text).toContain('Nothing brings it back');
+  });
+
+  it('names the note that holds a taken name, and says what to do next', async () => {
+    // RN-AGT-030: a bare CONFLICT leaves an agent guessing whether to retry.
+    const adapter = gateways({
+      knowledge: {
+        createNote: async () => {
+          throw new GatewayError('CONFLICT', 'A note of this folder is already named "Lei"', {
+            code: 'ALREADY_EXISTS',
+            noteId: '01JBQ2X0000000000000000HLD',
+            name: 'Lei',
+          });
+        },
+      },
+    });
+    const result = await adapter.call(
+      'create_note',
+      { notebook: 'v1', folder: 'f1', content: 'A body the gateway refuses.' },
+      caller,
+    );
+    expect(result.isError).toBe(true);
+    const said = result.content[0]?.text ?? '';
+    expect(said).toContain('01JBQ2X0000000000000000HLD');
+    expect(said).toContain('update_note');
+    expect(said).toContain('Nothing was written');
   });
 
   it('passes a refusal by role through, instead of pretending it wrote', async () => {

@@ -19,7 +19,7 @@
  * of the body, read here on every write, so a note cannot exist whose name
  * disagrees with its content (RN-KNW-035). It is `null` when the content
  * states none a link could use (RN-KNW-036), and there is no slug:
- * nothing in a notebook is a key, and two notes may be called the same thing
+ * a name is a key only inside one folder, which the repository guards
  * (RN-KNW-037).
  */
 
@@ -228,9 +228,9 @@ export class Note {
    * (RN-KNW-023). Implementing it as delete plus create would lose the history
    * exactly where it matters.
    *
-   * A destination has nothing to refuse: a name collides with nothing, in
-   * one notebook or in two (RN-KNW-037), so there is no conflict policy left to
-   * apply (RN-KNW-022, removed).
+   * A destination folder that already holds the name refuses the move
+   * (RN-KNW-042), and that refusal belongs to the use case, which can see the
+   * folder: there is no conflict policy to apply here (RN-KNW-022, removed).
    */
   moveTo(
     destination: { notebookId: NotebookId; folderId: FolderId; position: Position },

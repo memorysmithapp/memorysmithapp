@@ -124,8 +124,9 @@ export const noteSchema = noteSummarySchema.extend({
 
 /**
  * A note is created from its content and nothing else: the name is the
- * `name:` its frontmatter states, and nothing else names it (RN-AGT-024). A repeated call writes a second note, because nothing in a
- * notebook is a key.
+ * `name:` its frontmatter states, and nothing else names it (RN-AGT-024). A
+ * name its folder already holds is refused with ALREADY_EXISTS, naming the note
+ * that holds it (RN-KNW-042).
  */
 export const createNoteRequestSchema = z.object({
   folderId: ulidSchema,
@@ -148,9 +149,9 @@ export const reorderNoteRequestSchema = z.object({
 });
 
 /**
- * Nothing collides on a move any more, in either direction: two notes may
- * carry one name in one notebook (RN-KNW-037), so a destination has nothing to
- * refuse and no policy to be given (RN-KNW-022, removed).
+ * A move carries no policy (RN-KNW-022, removed): a destination folder that
+ * already holds the name of the note refuses it, and any other accepts it
+ * (RN-KNW-042).
  */
 export const moveNoteRequestSchema = z.object({
   toNotebookId: ulidSchema.optional(),

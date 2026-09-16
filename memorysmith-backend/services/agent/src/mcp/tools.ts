@@ -130,6 +130,24 @@ function noteAnswer(note: NoteContent): ToolResult {
   return json(note.name === null ? { notice: UNNAMED_NOTE_NOTICE, ...note } : note);
 }
 
+/**
+ * The refusal of a name its folder already holds, said the way an agent can act
+ * on (RN-AGT-030): which note holds it, and the two things to do next. It is
+ * also what a create retried after a lost answer receives, and there the note
+ * named IS the one the first call wrote (RN-AGT-024).
+ */
+function nameTakenAnswer(error: GatewayError): string | null {
+  const details = error.details as { code?: string; noteId?: string; name?: string } | undefined;
+  if (details?.code !== 'ALREADY_EXISTS' || !details.noteId) return null;
+  return (
+    `ALREADY_EXISTS: this folder already holds a note named "${details.name ?? ''}", ` +
+    `${details.noteId}, and a folder holds one note of each name. Nothing was written. ` +
+    'If that note is the one you meant, as it is when a call retried after its answer was ' +
+    'lost lands here, read it with read_note and change it with update_note. Otherwise ' +
+    'choose another name, or write it in another folder, where the folder tells the two apart.'
+  );
+}
+
 export class McpToolAdapter {
   constructor(
     private readonly gateways: Gateways,
@@ -145,6 +163,8 @@ export class McpToolAdapter {
       return await this.dispatch(name, args, caller);
     } catch (error) {
       if (error instanceof GatewayError) {
+        const taken = nameTakenAnswer(error);
+        if (taken) return text(taken, true);
         // Actionable text, plus whatever the caller needs for the next attempt.
         const details = error.details ? `\n\n${JSON.stringify(error.details, null, 2)}` : '';
         return text(`${error.code}: ${error.message}${details}`, true);

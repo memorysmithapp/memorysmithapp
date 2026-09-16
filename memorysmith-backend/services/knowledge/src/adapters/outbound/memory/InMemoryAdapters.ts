@@ -235,11 +235,29 @@ export class InMemoryNoteRepository implements NoteRepository {
     }));
   }
 
+  async findByName(notebook: NotebookId, folder: FolderId, name: string): Promise<NoteId | null> {
+    return (await this.holderOf(notebook, folder, name, null))?.id ?? null;
+  }
+
   async save(note: Note): Promise<Result<void, ConcurrencyError>> {
     const key = noteKey(this.sub, note.notebookId, note.id);
     const stored = this.db.notes.get(key);
     if (stored && stored.version !== note.version) {
       return { ok: false, error: new ConcurrencyError() };
+    }
+    // The guard item of DynamoDB, as a question asked of the stored notes:
+    // another live note of this folder already carries the name (RN-KNW-042).
+    if (
+      !note.isDeleted &&
+      note.name !== null &&
+      (await this.holderOf(note.notebookId, note.folderId, note.name, note.id))
+    ) {
+      return {
+        ok: false,
+        error: new ConcurrencyError('A note of this folder already carries this name', {
+          code: 'ALREADY_EXISTS',
+        }),
+      };
     }
 
     const events = note.pullEvents();
@@ -254,9 +272,32 @@ export class InMemoryNoteRepository implements NoteRepository {
     from: { notebookId: NotebookId },
   ): Promise<Result<void, ConcurrencyError>> {
     // The item key itself changes, so the old one is deleted and a new one is
-    // written.
+    // written — unless the name is taken where it arrives, which changes
+    // nothing at all.
+    const previous = this.db.notes.get(noteKey(this.sub, from.notebookId, note.id));
     this.db.notes.delete(noteKey(this.sub, from.notebookId, note.id));
-    return this.save(note);
+    const saved = await this.save(note);
+    if (!saved.ok && previous) {
+      this.db.notes.set(noteKey(this.sub, from.notebookId, note.id), previous);
+    }
+    return saved;
+  }
+
+  private async holderOf(
+    notebook: NotebookId,
+    folder: FolderId,
+    name: string,
+    except: NoteId | null,
+  ): Promise<Note | null> {
+    const notes = await this.listByNotebook(notebook);
+    return (
+      notes.find(
+        (each) =>
+          each.folderId.equals(folder) &&
+          each.name === name &&
+          (except === null || !each.id.equals(except)),
+      ) ?? null
+    );
   }
 }
 

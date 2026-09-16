@@ -13,7 +13,14 @@
  * before that range; NOTE#, SEEN# and SLUG# sort after it.
  */
 
-import type { FolderId, NoteId, Position, SubscriptionId, NotebookId } from '@memorysmith/kernel';
+import {
+  sha256Hex,
+  type FolderId,
+  type NoteId,
+  type Position,
+  type SubscriptionId,
+  type NotebookId,
+} from '@memorysmith/kernel';
 
 /** The sort key of the notebook item itself. */
 export const META = 'META';
@@ -66,6 +73,16 @@ export class KnowledgeKeys {
 
   note(noteId: NoteId): string {
     return `NOTE#${noteId.value}`;
+  }
+
+  /**
+   * The name a live note of a folder holds (RN-KNW-037, RN-KNW-042). The key
+   * carries the HASH of the name and not the name: a name has no length limit
+   * (RN-KNW-035) and a sort key holds 1,024 bytes. It sorts after `META`, so
+   * the Query that loads the tree never reads it.
+   */
+  noteNameGuard(folderId: FolderId, name: string): string {
+    return `NAME#${folderId.value}#${sha256Hex(name)}`;
   }
 
   /** I1 in the database: unique among siblings (RN-KNW-002). */

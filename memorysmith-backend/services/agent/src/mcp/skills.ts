@@ -509,9 +509,11 @@ A link finds a note by its name **exactly**, case for case after Unicode
 normalisation: \`[[Lei 14.133]]\` finds the note named \`Lei 14.133\`, and
 \`[[lei 14133]]\` is a link waiting for a note of that name.
 
-**Two notes may carry the same name**, in one folder or in two. That is why
-\`create_note\` always creates: if a call fails on the way back, read the folder
-before calling it again, so that one note stays one note.
+**A folder holds one note of each name.** Another folder may hold a note of the
+same name, and the folder is what tells the two apart for whoever reads, never
+the link, which reaches every note of that name. A name the folder already holds
+is refused, naming the note that holds it: read that note and change it with
+\`update_note\`, or choose another name or another folder.
 
 ## Which Markdown this is
 

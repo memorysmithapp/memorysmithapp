@@ -53,6 +53,8 @@ function dependencies(notebook: Notebook, notes: { indexed: Note[]; table: Note[
         notes.indexed.map((note) => ({ noteId: note.id, position: note.position })),
       findById: async (_notebook: unknown, id: NoteId) =>
         notes.table.find((note) => note.id.equals(id)) ?? null,
+      // No name is taken in these cases: they are about where a note goes.
+      findByName: async () => null,
       save: async (note: Note) => {
         saved.push(note);
         return { ok: true as const, value: undefined };

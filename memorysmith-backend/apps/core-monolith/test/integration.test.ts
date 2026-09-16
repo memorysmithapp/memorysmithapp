@@ -6,6 +6,7 @@
  * This is what "the whole thing works" means before any of it is deployed.
  */
 
+import { createZip, readZip } from '@memorysmith/svc-portability/adapters/zip';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { searchResultSchema } from '@memorysmith/contracts';
 import { buildTestApp } from './wiring.js';
@@ -455,6 +456,37 @@ describe('Portability answers over the API', () => {
     expect(refused.status).toBe(400);
     expect(((await refused.json()) as { message: string }).message).toContain('.notebook');
 
+    const after = (await (await call('/knowledge/notebooks')).json()) as unknown[];
+    expect(after.length).toBe(before.length);
+  });
+
+  it('refuses a document with two notes of one name in one folder, and creates nothing', async () => {
+    // RN-KNW-042 and RN-PRT-014: found before the first write, never on the
+    // second note of the pair with half a notebook already written.
+    const { notebookId } = await seed();
+    await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
+    const exported = harness.archives.get([...harness.archives.keys()][0] ?? '') as Buffer;
+    const [entry, json] = Object.entries(readZip(exported))[0] as [string, string];
+    const document = JSON.parse(json) as { notes: Array<{ noteId: string }> };
+    const twin = { ...document.notes[0], noteId: '01JBQ2X00000000000000000TW' };
+    document.notes.push(twin as { noteId: string });
+
+    const prepared = (await (await call('/portability/imports', { method: 'POST' })).json()) as {
+      uploadKey: string;
+    };
+    harness.uploads.set(
+      prepared.uploadKey,
+      createZip([{ path: entry, content: JSON.stringify(document) }], new Date()),
+    );
+    const before = (await (await call('/knowledge/notebooks')).json()) as unknown[];
+
+    const refused = await call('/portability/imports/apply', {
+      method: 'POST',
+      body: { uploadKey: prepared.uploadKey, name: 'Normas com gemea' },
+    });
+
+    expect(refused.status).toBe(400);
+    expect(((await refused.json()) as { message: string }).message).toContain('one folder');
     const after = (await (await call('/knowledge/notebooks')).json()) as unknown[];
     expect(after.length).toBe(before.length);
   });

@@ -17,17 +17,20 @@
  * Whether the folder and the notebook exist is read by the use case before the
  * write, and a read never conflicts with a transaction.
  *
- * There is no third write any more. The NSLUG guard held one name per notebook,
- * and a notebook has no key to guard: two notes may carry one name (RN-KNW-037),
- * so nothing is reserved on a write and nothing is released on a delete.
+ * A third write appears only when the NAME moves: the guard of the folder it is
+ * held in (RN-KNW-042). A folder holds one live note of each name, so the guard
+ * is claimed with attribute_not_exists when a name arrives and released when it
+ * leaves — on a rename, a move or a delete. It keeps PE8: the only two note
+ * transactions that share a guard are two writes of one name into one folder,
+ * which are exactly the pair that must collide.
  */
 
 import {
   ConcurrencyError,
+  FolderId,
   NoteId,
   ok,
   Position,
-  type FolderId,
   type Result,
   type SubscriptionContext,
   type NotebookId,
@@ -47,6 +50,16 @@ interface NoteSnapshot {
   version: number;
   notebookId: string;
   deleted: boolean;
+  /** Where the name was held when the note was loaded, if it held one. */
+  folderId: string;
+  name: string | null;
+}
+
+/** The refusal of RN-KNW-042, which the use case turns into its answer. */
+export function nameTaken(): ConcurrencyError {
+  return new ConcurrencyError('A note of this folder already carries this name', {
+    code: 'ALREADY_EXISTS',
+  });
 }
 
 export class DynamoNoteRepository implements NoteRepository {
@@ -75,6 +88,18 @@ export class DynamoNoteRepository implements NoteRepository {
     const note = parseNote(response.Item as Item, this.sub.subscriptionId);
     this.remember(note);
     return note;
+  }
+
+  async findByName(notebook: NotebookId, folder: FolderId, name: string): Promise<NoteId | null> {
+    const response = await this.db.send(
+      new GetCommand({
+        TableName: this.tableName,
+        Key: { PK: this.keys.notebook(notebook), SK: this.keys.noteNameGuard(folder, name) },
+        ConsistentRead: true,
+      }),
+    );
+    const holder = response.Item?.['noteId'];
+    return holder ? unwrapOrThrow(NoteId.create(String(holder))) : null;
   }
 
   /** GSI2 already returns the notes of a folder IN THE DEFINED ORDER. */
@@ -142,7 +167,16 @@ export class DynamoNoteRepository implements NoteRepository {
 
   async save(note: Note): Promise<Result<void, ConcurrencyError>> {
     const snapshot = this.snapshots.get(note.id.value);
-    return this.commit(note, [this.noteWrite(note, snapshot)]);
+    const before = snapshot ? this.heldGuard(snapshot) : null;
+    const after = this.guardOf(note);
+    const guards =
+      before?.sk === after?.sk && before?.pk === after?.pk
+        ? []
+        : [
+            ...(before ? [this.release(note, before)] : []),
+            ...(after ? [this.claim(note, after)] : []),
+          ];
+    return this.commit(note, [this.noteWrite(note, snapshot), ...guards]);
   }
 
   /**
@@ -171,7 +205,66 @@ export class DynamoNoteRepository implements NoteRepository {
       },
       this.noteWrite(note, undefined),
     ];
+    // The name leaves the folder of the source notebook and arrives in the
+    // folder of the destination: two partitions, so never the same guard.
+    const before = snapshot ? this.heldGuard(snapshot) : null;
+    const after = this.guardOf(note);
+    if (before) items.push(this.release(note, before));
+    if (after) items.push(this.claim(note, after));
     return this.commit(note, items);
+  }
+
+  /** The guard a note holds as it is now: none when deleted or unnamed. */
+  private guardOf(note: Note): { pk: string; sk: string } | null {
+    if (note.isDeleted || note.name === null) return null;
+    return {
+      pk: this.keys.notebook(note.notebookId),
+      sk: this.keys.noteNameGuard(note.folderId, note.name),
+    };
+  }
+
+  /** The guard a note held when it was loaded. */
+  private heldGuard(snapshot: NoteSnapshot): { pk: string; sk: string } | null {
+    if (snapshot.deleted || snapshot.name === null) return null;
+    const folderId = unwrapOrThrow(FolderId.create(snapshot.folderId));
+    return {
+      pk: `S#${this.sub.subscriptionId.value}#NOTEBOOK#${snapshot.notebookId}`,
+      sk: this.keys.noteNameGuard(folderId, snapshot.name),
+    };
+  }
+
+  private claim(note: Note, guard: { pk: string; sk: string }): TransactItem {
+    return {
+      Put: {
+        TableName: this.tableName,
+        Item: {
+          PK: guard.pk,
+          SK: guard.sk,
+          entity: 'NAME',
+          noteId: note.id.value,
+          folderId: note.folderId.value,
+        },
+        // A second live note of this name in this folder is the one thing this
+        // item exists to refuse (RN-KNW-042).
+        ConditionExpression: 'attribute_not_exists(SK)',
+      },
+    };
+  }
+
+  /**
+   * Releases a guard only if THIS note holds it. A guard that is missing is
+   * released too, which is the state of a note written before the guard
+   * existed; one held by another note is never freed from here.
+   */
+  private release(note: Note, guard: { pk: string; sk: string }): TransactItem {
+    return {
+      Delete: {
+        TableName: this.tableName,
+        Key: { PK: guard.pk, SK: guard.sk },
+        ConditionExpression: 'attribute_not_exists(SK) OR noteId = :me',
+        ExpressionAttributeValues: { ':me': note.id.value },
+      },
+    };
   }
 
   /** The note item, locked on its own version. */
@@ -216,8 +309,17 @@ export class DynamoNoteRepository implements NoteRepository {
         }),
       );
     } catch (error) {
-      if (isTransactionCanceled(error)) return { ok: false, error: new ConcurrencyError() };
-      throw error;
+      if (!isTransactionCanceled(error)) throw error;
+      // Which item refused says which refusal this is: a claimed guard is a
+      // taken name, which no retry changes; anything else is a lost lock.
+      const reasons = (error as { CancellationReasons?: Array<{ Code?: string }> })
+        .CancellationReasons;
+      const claimRefused = (reasons ?? []).some(
+        (reason, index) =>
+          reason?.Code === 'ConditionalCheckFailed' &&
+          (all[index] as { Put?: { Item?: Item } }).Put?.Item?.['entity'] === 'NAME',
+      );
+      return { ok: false, error: claimRefused ? nameTaken() : new ConcurrencyError() };
     }
     note.markPersisted();
     this.remember(note);
@@ -229,6 +331,8 @@ export class DynamoNoteRepository implements NoteRepository {
       version: note.version,
       notebookId: note.notebookId.value,
       deleted: note.isDeleted,
+      folderId: note.folderId.value,
+      name: note.name,
     });
   }
 }

@@ -7,11 +7,12 @@
  * divergence answers CONFLICT WITH THE CURRENT CONTENT attached, so the caller
  * can choose between redoing and merging (RN-AGT-005).
  *
- * The other one used to be idempotency, and it is gone with the key it stood
- * on: **create_note always creates** (RN-AGT-024). Nothing in a notebook is
- * unique, two notes may carry one name (RN-KNW-037), and a repeated call
- * writes a second note. Answering ALREADY_EXISTS would mean the API refusing
- * what the model allows.
+ * The other one is what a folder holds once: a name (RN-KNW-037). Two live
+ * notes of one folder never carry the same name, so creating, renaming or moving
+ * into a name the folder already holds is refused, naming the note that holds
+ * it (RN-KNW-042) — and a create retried after its answer was lost finds the
+ * note it made instead of writing a twin (RN-AGT-024). Across folders names
+ * repeat freely, and the folder is what tells them apart for whoever reads.
  */
 
 import {
@@ -20,6 +21,7 @@ import {
   err,
   type FolderId,
   NoteId,
+  noteName,
   ok,
   type NotebookId,
   type Result,
@@ -65,6 +67,11 @@ async function liveNote(
   return ok(note);
 }
 
+/** Whether a refusal is a taken name, which no retry changes (RN-KNW-042). */
+function isNameTaken(error: DomainError): boolean {
+  return (error.details as { code?: string } | undefined)?.code === 'ALREADY_EXISTS';
+}
+
 /** Retries a lost optimistic lock up to three times before surfacing it. */
 async function withRetry<T>(
   operation: () => Promise<Result<T, DomainError>>,
@@ -72,9 +79,55 @@ async function withRetry<T>(
   let last: Result<T, DomainError> | null = null;
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     last = await operation();
-    if (last.ok || last.error.code !== 'CONFLICT') return last;
+    if (last.ok || last.error.code !== 'CONFLICT' || isNameTaken(last.error)) return last;
   }
   return last as Result<T, DomainError>;
+}
+
+/**
+ * The refusal of RN-KNW-042, naming the note that holds the name, so the
+ * caller can read it and update it instead of guessing (RN-AGT-030).
+ */
+function nameTakenBy(holder: NoteId, name: string): DomainError {
+  return DomainError.conflict(`A note of this folder is already named "${name}"`, {
+    code: 'ALREADY_EXISTS',
+    noteId: holder.value,
+    name,
+  });
+}
+
+/**
+ * Whether this folder already holds this name in another live note. It is
+ * read BEFORE anything is written, so a refused write leaves nothing in the
+ * store; the guard of the transaction is what settles a race the read lost.
+ */
+async function nameHeldElsewhere(
+  deps: NoteDependencies,
+  notebookId: NotebookId,
+  folderId: FolderId,
+  name: string | null,
+  self: NoteId | null,
+): Promise<DomainError | null> {
+  if (name === null) return null; // A note with no name reserves nothing.
+  const holder = await deps.notes.findByName(notebookId, folderId, name);
+  if (!holder || (self && holder.equals(self))) return null;
+  return nameTakenBy(holder, name);
+}
+
+/**
+ * A save refused on the guard: the race the read above lost. The answer is the
+ * same refusal, naming whoever won it.
+ */
+async function refusalOfSave(
+  deps: NoteDependencies,
+  error: DomainError,
+  notebookId: NotebookId,
+  folderId: FolderId,
+  name: string | null,
+): Promise<DomainError> {
+  if (!isNameTaken(error) || name === null) return error;
+  const holder = await deps.notes.findByName(notebookId, folderId, name);
+  return holder ? nameTakenBy(holder, name) : error;
 }
 
 /**
@@ -173,6 +226,13 @@ export class CreateNote {
         DomainError.limitExceeded(`A notebook holds at most ${NOTEBOOK_LIMITS.maxNotes} notes`),
       );
     }
+    // One live note of each name in a folder (RN-KNW-042). A create retried
+    // after its answer was lost is refused here naming the note it already
+    // made, which is how one note stays one note (RN-AGT-024).
+    const name = noteName(input.content);
+    const taken = await nameHeldElsewhere(this.deps, input.notebookId, input.folderId, name, null);
+    if (taken) return err(taken);
+
     // A new note costs its whole body, and the check runs before the content
     // is written so a refused write leaves nothing in the store (RN-SUB-021).
     const admitted = admitWrite(
@@ -210,7 +270,16 @@ export class CreateNote {
     if (!note.ok) return note;
 
     const saved = await this.deps.notes.save(note.value);
-    return saved.ok ? ok(note.value) : err(saved.error);
+    if (saved.ok) return ok(note.value);
+    return err(
+      await refusalOfSave(
+        this.deps,
+        saved.error,
+        input.notebookId,
+        input.folderId,
+        note.value.name,
+      ),
+    );
   }
 }
 
@@ -252,6 +321,20 @@ export class UpdateNote {
       // note answers as it is (RN-KNW-028).
       if (note.bodyRef.matchesContent(input.content)) return ok(note);
 
+      // Renaming is editing `name:`, and the new name is refused when another
+      // note of this folder already carries it (RN-KNW-038, RN-KNW-042).
+      const renamedTo = noteName(input.content);
+      if (renamedTo !== note.name) {
+        const taken = await nameHeldElsewhere(
+          this.deps,
+          input.notebookId,
+          note.folderId,
+          renamedTo,
+          note.id,
+        );
+        if (taken) return err(taken);
+      }
+
       // Only the difference between the revision that is live and the one
       // being written: an edit that shortens a note never costs anything.
       const admitted = admitWrite(
@@ -266,7 +349,10 @@ export class UpdateNote {
       if (!note.hasChanges) return ok(note); // identical bytes (RN-KNW-028)
 
       const saved = await this.deps.notes.save(note);
-      return saved.ok ? ok(note) : err(saved.error);
+      if (saved.ok) return ok(note);
+      return err(
+        await refusalOfSave(this.deps, saved.error, input.notebookId, note.folderId, note.name),
+      );
     });
   }
 }
@@ -346,6 +432,17 @@ export class MoveNote {
     if (!found.ok) return found;
     const note = found.value;
 
+    // A folder that already holds this name does not take a second note of it
+    // (RN-KNW-042), and the move changes nothing.
+    const taken = await nameHeldElsewhere(
+      this.deps,
+      destinationNotebookId,
+      input.toFolderId,
+      note.name,
+      note.id,
+    );
+    if (taken) return err(taken);
+
     const siblings = await siblingsWithAnchor(
       this.deps,
       destinationNotebookId,
@@ -370,7 +467,16 @@ export class MoveNote {
     const saved = crossNotebook
       ? await this.deps.notes.saveMoved(note, { notebookId: input.notebookId })
       : await this.deps.notes.save(note);
-    return saved.ok ? ok(note) : err(saved.error);
+    if (saved.ok) return ok(note);
+    return err(
+      await refusalOfSave(
+        this.deps,
+        saved.error,
+        destinationNotebookId,
+        input.toFolderId,
+        note.name,
+      ),
+    );
   }
 }
 

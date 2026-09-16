@@ -40,13 +40,23 @@ export interface NotebookRepository {
 }
 
 /**
- * A note is found by its identifier and by nothing else. There is no lookup by
- * name here, because a notebook holds no key: two notes may carry one name
- * (RN-KNW-037), and what resolves a name is Discovery, over its own
+ * A note is found by its identifier, and by its name only inside ONE folder:
+ * that is where a name is a key (RN-KNW-037). Across a notebook two notes may
+ * carry one name, and what resolves a name there is Discovery, over its own
  * projection.
+ *
+ * `save` and `saveMoved` refuse, with a `ConcurrencyError` whose details carry
+ * `code: 'ALREADY_EXISTS'`, a write that would leave two live notes of one name
+ * in one folder (RN-KNW-042). That refusal is final and is never retried: a
+ * lost optimistic lock may be tried again, a taken name is still taken.
  */
 export interface NoteRepository {
   findById(notebook: NotebookId, id: NoteId): Promise<Note | null>;
+  /**
+   * The live note of this folder that carries this name, read consistently: it
+   * is what a refusal names, and what a retry after a lost answer finds.
+   */
+  findByName(notebook: NotebookId, folder: FolderId, name: string): Promise<NoteId | null>;
   /** Notes of a folder, in the defined order, straight from GSI2. */
   listByFolder(notebook: NotebookId, folder: FolderId): Promise<Note[]>;
   listByNotebook(notebook: NotebookId): Promise<Note[]>;
