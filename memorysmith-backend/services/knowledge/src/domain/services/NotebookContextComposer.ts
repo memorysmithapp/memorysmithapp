@@ -71,6 +71,20 @@ export function composeNotebookContext(input: NotebookContextInput): string {
     return lines.join('\n') + '\n';
   }
 
+  /**
+   * How much the notebook holds, said once and before the tree (RN-AGT-032).
+   * The notes are the sum of the counts printed beside each folder below, so
+   * the two agree in the same document; the folders are said against their
+   * ceiling, because that one refuses and truncates (RN-KNW-010). There is no
+   * ceiling of notes to say them against.
+   */
+  const notes = folders.all().reduce((total, folder) => total + notebook.noteCountOf(folder.id), 0);
+  lines.push(
+    '',
+    `${notes} ${notes === 1 ? 'note' : 'notes'} · ${folders.size} of ${NOTEBOOK_LIMITS.maxFolders} folders`,
+    '',
+  );
+
   let rendered = 0;
   let truncated = false;
 

@@ -154,6 +154,19 @@ describe('NotebookContextComposer', () => {
     );
   });
 
+  it('says how much the notebook holds, the folders against their ceiling', () => {
+    // RN-AGT-032: the notes are the sum of the counts printed beside each
+    // folder, so the two agree; the folders are said against 200 (RN-KNW-010).
+    const { notebook } = rehydratedNotebookWithNotes(811);
+    const context = composeNotebookContext({
+      notebook,
+      guidance: null,
+      reservedVocabulary: VOCABULARY,
+    });
+    expect(context).toContain('811 notes · 1 of 200 folders');
+    expect(context).toContain('(811 notes)');
+  });
+
   it('flags a folder that has a template', () => {
     // The Template is an aggregate of its own; what the tree carries is the
     // fact that this folder has one (RN-KNW-044).

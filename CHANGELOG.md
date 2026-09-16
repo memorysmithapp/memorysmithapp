@@ -77,6 +77,8 @@ issues each entry cites.
 
 ### Added
 
+- **The Notebook Context says how much the notebook holds.** One line before the tree, such as `811 notes · 68 of 200 folders`: the notes are the sum of the counts beside each folder, and the folders are said against the ceiling that refuses and truncates them, so an agent sees a design that multiplies folders before it runs into the limit (RN-AGT-032). (#131)
+
 - **Every search is measured.** One log line per query says which notebook, how many notes and items were read, how many bytes, the read units consumed and how long it took, so the day a notebook grows past what a scan should serve is seen rather than guessed (RN-DSC-027). (#134)
 
 - **`delete_template` and `delete_guidance`, and a way to do it on the page.** The two tools take one away and answer what stays: the folder keeps its description and its notes, the notebook keeps its folders, its templates and every note. On the web the Guidance panel, the folder page and the page of Templates offer it to whoever may write, and it asks first, in the page rather than in a browser dialog, because what a person needs in order to answer is the sentence saying what survives — which does not fit in a dialog title. There is no undo, and the words do not promise one (RN-KNW-045). (#139)
