@@ -199,8 +199,8 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
   });
 
   /**
-   * Soft delete: the notebook leaves every listing, its name goes back to being
-   * available and not one byte is destroyed (RN-KNW-033).
+   * Definitive: the notebook leaves every listing, its name goes back to being
+   * available at once, and everything it holds is purged (RN-KNW-033).
    */
   app.delete('/notebooks/:v', async (c) => {
     const request = c.get('knowledge');

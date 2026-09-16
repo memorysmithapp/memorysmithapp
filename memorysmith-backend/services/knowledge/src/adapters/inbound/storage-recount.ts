@@ -22,9 +22,9 @@
  *
  * WHAT IT COUNTS is what RN-SUB-021 defines as live content, and nothing else:
  * the current revision of every note that is not deleted, plus each guidance
- * and each template. A notebook in the bin still holds its bytes, which is both
- * the rule and the truth: nothing was released, and restoring brings it all
- * back.
+ * and each template. A notebook that was deleted still holds its bytes until
+ * the purge completes, which is both the rule and the truth: the space is
+ * given back when the content stops existing, not at the click (RN-KNW-047).
  */
 
 import { PutCommand, ScanCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';

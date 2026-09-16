@@ -156,7 +156,7 @@ export class ProjectNote {
 
   /**
    * Deleting a note removes its edges, returns the backlinks that pointed at
-   * it to pending (RN-DSC-005), including on a soft delete (RN-DSC-013), and
+   * it to pending (RN-DSC-005), the moment it is deleted (RN-DSC-013), and
    * withdraws its facet portrait (RN-DSC-022).
    */
   async onDeleted(event: NoteEvent): Promise<void> {

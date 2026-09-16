@@ -116,7 +116,7 @@ export interface KnowledgeGateway {
     caller: AgentCaller,
     input: { name: string; description: string },
   ): Promise<NotebookListing>;
-  /** Soft delete: the notebook leaves the listings and no byte is destroyed. */
+  /** Definitive: the notebook leaves every listing and its content is purged. */
   deleteNotebook(caller: AgentCaller, notebookId: string): Promise<void>;
   /**
    * The revision the write is based on, null when the slot is still empty. It

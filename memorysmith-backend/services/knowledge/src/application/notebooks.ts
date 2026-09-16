@@ -60,10 +60,10 @@ async function loadAuthorized(
   if (!notebook) return err(DomainError.notFound('Notebook not found'));
   /**
    * A deleted notebook answers like one that does not exist, to every operation
-   * and every context: this single line is what makes the soft delete real for
-   * the folders, the templates, the guidance and every note inside, since all
-   * of them come through here. Restoring is the one path that loads it
-   * anyway, and it does so explicitly.
+   * and every context: this single line is what makes the invalidity of
+   * RN-KNW-046 real for the folders, the templates, the guidance and every
+   * note inside, since all of them come through here. Nothing loads a deleted
+   * notebook any more — there is no way back to load it for.
    */
   if (notebook.isDeleted) return err(DomainError.notFound('Notebook not found'));
 

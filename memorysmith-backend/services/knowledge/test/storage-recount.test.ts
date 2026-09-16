@@ -64,8 +64,8 @@ describe('storage recount', () => {
         bodyRef: ref(500),
         deletedAt: '2026-08-29T00:00:00Z',
       },
-      // The notebook is in the bin; nothing was released, and restoring brings it
-      // all back, so its notes keep counting (RN-SUB-021).
+      // The notebook was deleted and the purge has not run yet: nothing was
+      // released, so its notes keep counting until it does (RN-KNW-047).
       { PK: `S#${A}#NOTEBOOK#2`, entity: 'NOTEBOOK', deletedAt: '2026-08-29T00:00:00Z' },
       { PK: `S#${A}#NOTEBOOK#2`, entity: 'GUIDANCE', contentRef: ref(80) },
       { PK: `S#${A}#NOTEBOOK#2`, entity: 'NOTE', bodyRef: ref(300) },

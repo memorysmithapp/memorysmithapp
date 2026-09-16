@@ -384,7 +384,7 @@ export class Note {
     private body: ContentRef,           // opaque pointer to a Content Slot (§9.2)
     private readonly createdBy: Authorship,
     private updatedBy: Authorship,
-    private deletedAt: Instant | null,  // soft delete (§12.4)
+    private deletedAt: Instant | null,  // deleted, awaiting the purge (§12.4)
     private version: number,
   ) {}
 

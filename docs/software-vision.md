@@ -522,7 +522,7 @@ position,                    -- order within the folder
 body_ref,                    -- pointer to the Content Slot playing the body role
 created_by (Authorship),
 updated_by (Authorship),
-deleted_at?, deleted_by?,    -- soft delete
+deleted_at?, deleted_by?,    -- deleted, and awaiting the purge (RN-KNW-047)
 version                      -- concurrency control
 ```
 

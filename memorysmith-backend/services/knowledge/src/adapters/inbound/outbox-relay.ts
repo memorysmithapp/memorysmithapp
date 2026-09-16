@@ -251,8 +251,8 @@ export class OutboxRelay {
 
     if (bytes !== 0) {
       // One item per subscription, in the subscription's own partition rather
-      // than a notebook's: what a plan limits is the subscription, and a notebook in
-      // the bin is still holding its bytes.
+      // than a notebook's: what a plan limits is the subscription, and a
+      // notebook waiting for the purge is still holding its bytes.
       writes.push({
         Update: {
           TableName: this.deps.tableName,

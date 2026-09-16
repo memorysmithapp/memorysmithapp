@@ -116,8 +116,8 @@ export class KnowledgeKeys {
   /**
    * Stored bytes of the whole subscription, maintained by the outbox relay
    * (RN-SUB-021). It lives in the subscription's partition and not in a
-   * notebook's, because a plan limits the subscription, and a notebook in the bin is
-   * still holding what it holds.
+   * notebook's, because a plan limits the subscription, and a notebook waiting
+   * for the purge is still holding what it holds.
    */
   storageUsage(): string {
     return 'USAGE';
