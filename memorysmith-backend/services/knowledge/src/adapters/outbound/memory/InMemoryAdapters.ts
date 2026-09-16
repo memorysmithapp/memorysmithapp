@@ -228,12 +228,6 @@ export class InMemoryNoteRepository implements NoteRepository {
       .filter((note) => !note.isDeleted);
   }
 
-  async listLiveInFolders(notebook: NotebookId, folders: readonly FolderId[]): Promise<Note[]> {
-    return (await this.listByNotebook(notebook)).filter((note) =>
-      folders.some((folder) => folder.equals(note.folderId)),
-    );
-  }
-
   async siblingOrder(notebook: NotebookId, folder: FolderId): Promise<NoteOrder[]> {
     return (await this.listByFolder(notebook, folder)).map((note) => ({
       noteId: note.id,

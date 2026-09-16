@@ -214,20 +214,14 @@ describe('Note: deleting is not destroying', () => {
     expect(expectErr(note.delete(authorship())).code).toBe('NOT_FOUND');
   });
 
-  it('restores a deleted note', () => {
+  it('has no way back once it is deleted', () => {
+    // Deleting is definitive (RN-KNW-029): the mark is the state between the
+    // write and the purge, and nothing in the aggregate clears it.
     const notebook = newNotebook();
     const note = newNote(notebook, folderId);
     unwrap(note.delete(authorship()));
-    note.pullEvents();
 
-    unwrap(note.restore(authorship()));
-    expect(note.isDeleted).toBe(false);
-    expect(note.pullEvents()[0]?.type).toBe('NoteRestored');
-  });
-
-  it('refuses to restore a note that was never deleted', () => {
-    const notebook = newNotebook();
-    const note = newNote(notebook, folderId);
-    expect(expectErr(note.restore(authorship())).code).toBe('CONFLICT');
+    expect(note.isDeleted).toBe(true);
+    expect('restore' in note).toBe(false);
   });
 });

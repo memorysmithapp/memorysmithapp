@@ -77,7 +77,7 @@ describe('storage: what each mutation declares', () => {
     expect(updated?.storageDelta).toBe(0);
   });
 
-  it('deleting releases the body, and restoring puts it back', () => {
+  it('deleting releases the body, once and for good', () => {
     const notebook = newNotebook();
     const note = newNote(notebook, folderId, 'Contratação direta');
     const bytes = note.bodyRef.bytes;
@@ -86,10 +86,6 @@ describe('storage: what each mutation declares', () => {
     unwrap(note.delete(authorship()));
     const [deleted] = note.pullEvents();
     expect(deleted?.storageDelta).toBe(-bytes);
-
-    unwrap(note.restore(authorship()));
-    const [restored] = note.pullEvents();
-    expect(restored?.storageDelta).toBe(bytes);
   });
 
   it('reordering and moving are storage-neutral', () => {

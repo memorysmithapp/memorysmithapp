@@ -155,10 +155,12 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     name: 'delete_notebook',
     title: 'Delete a notebook',
     description:
-      'Removes a notebook from every listing. It is REVERSIBLE and destroys nothing: the folders, ' +
-      'the notes and every past revision stay exactly where they are, and the history remains ' +
-      'readable. Only the owner of the subscription may do this, and it takes the whole notebook ' +
-      'out of reach at once, so confirm with the person before calling it.',
+      'Deletes a notebook, and everything in it: its folders, its templates, its guidance and ' +
+      'every note, with every past revision of each. It is DEFINITIVE — there is no undo and no ' +
+      'trash — and it takes effect at once, while the content itself is destroyed in the ' +
+      'background shortly after. Only the owner of the subscription may do this. Read what is ' +
+      'in it with get_notebook_context and confirm with the person, naming the notebook, before ' +
+      'calling it.',
     inputSchema: object({ notebook: notebookArgument }, ['notebook']),
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
   },
@@ -275,11 +277,10 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     description:
       'Removes a folder from the tree of a notebook. There is NO implicit policy: with ' +
       'REJECT_IF_NOT_EMPTY a folder that holds subfolders or notes is refused, and with CASCADE ' +
-      'the whole subtree goes and every note in it is deleted, as delete_note deletes one. A ' +
-      'subtree holding more than 200 notes is refused: remove its subfolders one at a time. A ' +
-      'note deleted this way cannot be restored, because its folder is gone. Call ' +
-      'get_notebook_context first to see what the folder holds, and confirm with the person ' +
-      'before cascading.',
+      'the whole subtree goes — every subfolder, every note in it and every template — ' +
+      'DEFINITIVELY, with no undo and no trash. There is no ceiling on what one call takes, so ' +
+      'a CASCADE over a large subtree deletes all of it. Call get_notebook_context first to see ' +
+      'what the folder holds, and confirm with the person before cascading.',
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -462,9 +463,10 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     name: 'delete_note',
     title: 'Delete a note',
     description:
-      'Removes a note from the listings and from the search. It is REVERSIBLE and destroys no ' +
-      'byte: the history of the note stays readable by its identifier, and the links that ' +
-      'pointed at it become pending rather than lost.',
+      'Removes a note from the listings and from the search. It is DEFINITIVE: there is no undo ' +
+      'and no trash, and the content itself is destroyed in the background shortly after. The ' +
+      'links that pointed at it become pending rather than lost. Confirm with the person, naming ' +
+      'the note, before calling it.',
     inputSchema: object(
       { notebook: notebookArgument, note: { type: 'string', description: 'Note identifier.' } },
       ['notebook', 'note'],

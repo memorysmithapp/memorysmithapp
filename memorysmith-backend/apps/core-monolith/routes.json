@@ -47,8 +47,6 @@
   "POST /knowledge/notebooks/:v/notes",
   "POST /knowledge/notebooks/:v/notes/:n/move",
   "POST /knowledge/notebooks/:v/notes/:n/reorder",
-  "POST /knowledge/notebooks/:v/notes/:n/restore",
-  "POST /knowledge/notebooks/:v/restore",
   "POST /portability/imports",
   "POST /portability/imports/apply",
   "POST /portability/notebooks/:v/export",

@@ -55,7 +55,6 @@ import {
   ListNotebooks,
   PutGuidance,
   RenameNotebook,
-  RestoreNotebook,
   SetNotebookRoleLimit,
 } from '@memorysmith/svc-knowledge/application/notebooks';
 import {
@@ -74,7 +73,6 @@ import {
   MoveNote,
   ReadNote,
   ReorderNote,
-  RestoreNote,
   UpdateNote,
 } from '@memorysmith/svc-knowledge/application/notes';
 import type { AuditUseCases } from '@memorysmith/svc-audit/adapters/http';
@@ -219,7 +217,6 @@ const knowledgeUseCases: KnowledgeUseCases = {
   getNotebook: (request) => new GetNotebook(buildKnowledge(infra, request.subscription)),
   renameNotebook: (request) => new RenameNotebook(buildKnowledge(infra, request.subscription)),
   deleteNotebook: (request) => new DeleteNotebook(buildKnowledge(infra, request.subscription)),
-  restoreNotebook: (request) => new RestoreNotebook(buildKnowledge(infra, request.subscription)),
   putGuidance: (request) => new PutGuidance(buildKnowledge(infra, request.subscription)),
   deleteGuidance: (request) => new DeleteGuidance(buildKnowledge(infra, request.subscription)),
   getNotebookContext: (request) =>
@@ -242,7 +239,6 @@ const knowledgeUseCases: KnowledgeUseCases = {
   reorderNote: (request) => new ReorderNote(buildKnowledge(infra, request.subscription)),
   moveNote: (request) => new MoveNote(buildKnowledge(infra, request.subscription)),
   deleteNote: (request) => new DeleteNote(buildKnowledge(infra, request.subscription)),
-  restoreNote: (request) => new RestoreNote(buildKnowledge(infra, request.subscription)),
 };
 
 const auditUseCases: AuditUseCases = {

@@ -24,6 +24,7 @@ import {
   contentRef,
   expectErr,
   rehydratedNotebookWithNotes,
+  unwrap,
   user,
 } from './fixtures.js';
 
@@ -130,11 +131,13 @@ describe('notebook limits', () => {
   });
 });
 
-describe('the notes one CASCADE deletes', () => {
-  it('refuses a subtree holding more than one request can delete, before writing anything', async () => {
-    const { notebook, folderId } = rehydratedNotebookWithNotes(0);
+describe('removing a folder', () => {
+  it('is one write, whatever the subtree holds', async () => {
+    // RN-KNW-040 is removed: a CASCADE writes nothing under the folder, so
+    // there is no number of notes it could be refused for. What it does write
+    // is the tree, once.
+    const { notebook, folderId } = rehydratedNotebookWithNotes(5000);
     const writes: string[] = [];
-    const held = NOTEBOOK_LIMITS.maxNotesDeletedByCascade + 1;
     const cascade = new RemoveFolder({
       ...deps(notebook),
       notebooks: {
@@ -145,16 +148,9 @@ describe('the notes one CASCADE deletes', () => {
           return { ok: true as const, value: undefined };
         },
       },
-      notes: {
-        listLiveInFolders: async () => Array.from({ length: held }, () => ({}) as Note),
-        save: async () => {
-          writes.push('note');
-          return { ok: true as const, value: undefined };
-        },
-      },
     } as unknown as ConstructorParameters<typeof RemoveFolder>[0]);
 
-    const refused = await cascade.execute({
+    const removed = await cascade.execute({
       ctx,
       notebookId: notebook.id,
       folderId,
@@ -162,10 +158,8 @@ describe('the notes one CASCADE deletes', () => {
       by: authorship(),
     });
 
-    const error = expectErr(refused);
-    expect(error.code).toBe('LIMIT_EXCEEDED');
-    expect(error.message).toContain(String(held));
-    expect(writes).toEqual([]);
+    expect(unwrap(removed).map((id: { value: string }) => id.value)).toEqual([folderId.value]);
+    expect(writes).toEqual(['notebook']);
   });
 });
 

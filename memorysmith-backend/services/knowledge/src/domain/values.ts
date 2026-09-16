@@ -152,10 +152,4 @@ export const NOTEBOOK_LIMITS = {
   maxNotes: 2000,
   maxDepth: 6,
   maxNoteBytes: 1_048_576,
-  /**
-   * The notes one CASCADE deletes, inside the request that removes the folder
-   * (RN-KNW-040). Each is a write of its own, and a request has seconds, not
-   * minutes: a subtree holding more is refused before anything is written.
-   */
-  maxNotesDeletedByCascade: 200,
 } as const;

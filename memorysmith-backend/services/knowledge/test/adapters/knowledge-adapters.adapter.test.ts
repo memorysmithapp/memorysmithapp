@@ -525,25 +525,6 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
     expect(attempt.saved.ok).toBe(true);
   });
 
-  it('lists the live notes of the folders a CASCADE removes, and nothing else', async () => {
-    // RN-KNW-040 deletes what this returns, so it reads the base table
-    // consistently: a note written a moment ago is in it.
-    const context = contextFor();
-    const { notebook, folder } = await seedNotebook(context);
-    const { notes } = repositories(context);
-    const elsewhere = FolderId.generate();
-
-    const kept = await createNote(context, notebook, folder.id, 'Lei 14.133');
-    const gone = await createNote(context, notebook, folder.id, 'Lei 8.666');
-    await createNote(context, notebook, elsewhere, 'Parecer 12');
-    const loaded = (await notes.findById(notebook.id, gone.note.id)) as Note;
-    unwrap(loaded.delete(authorshipOf(context)));
-    expect((await notes.save(loaded)).ok).toBe(true);
-
-    const live = await repositories(context).notes.listLiveInFolders(notebook.id, [folder.id]);
-    expect(live.map((note) => note.id.value)).toEqual([kept.note.id.value]);
-  });
-
   it('takes a deleted note out of the listing of its folder', async () => {
     const context = contextFor();
     const { notebook, folder } = await seedNotebook(context);

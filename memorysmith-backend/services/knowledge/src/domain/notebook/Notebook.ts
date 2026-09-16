@@ -248,15 +248,14 @@ export class Notebook {
   }
 
   /**
-   * Soft delete, the same promise deleting a note makes (rule 8, RN-KNW-033):
-   * the notebook leaves every listing and NOT ONE BYTE is destroyed. The folders,
-   * the notes and every revision they point at stay exactly where they were,
-   * which is what makes this reversible and what keeps the audit trail
-   * readable afterwards. Nothing in the product destroys a revision, here or
-   * anywhere else (RN-AUD-006).
+   * Deleting is DEFINITIVE (RN-KNW-033), and this one write is the whole of
+   * it: the notebook leaves every listing at once, and everything under it —
+   * its folders, its notes, its Templates and its Guidance — becomes invalid
+   * in the same instant without being written (RN-KNW-046). What is left is
+   * purged in the background (RN-KNW-047), and nothing brings it back.
    *
-   * The slug goes back to being available, exactly as a deleted note frees
-   * its own (RN-KNW-030), so restoring requires it to be free again.
+   * The name goes back to being available immediately, because the notebook
+   * that held it is never coming back to claim it.
    */
   delete(by: Authorship): Result<void, DomainError> {
     if (this.isDeleted) return err(DomainError.notFound('This notebook is already deleted'));
@@ -266,17 +265,6 @@ export class Notebook {
       notebookId: this.id.value,
       slug: this._slug.value,
       noteCount: this._notebookNoteCount,
-    });
-    return ok();
-  }
-
-  restore(by: Authorship): Result<void, DomainError> {
-    if (!this.isDeleted) return err(DomainError.conflict('This notebook is not deleted'));
-    this._deletedAt = null;
-    this.touch(by.at);
-    this.record('NotebookRestored', 'NOTEBOOK', this.id.value, by, {
-      notebookId: this.id.value,
-      slug: this._slug.value,
     });
     return ok();
   }
@@ -459,6 +447,14 @@ export class Notebook {
    * (RN-KNW-007, I5). "Holds notes" is answered by the eventually consistent
    * counters that arrived with the aggregate, which is deliberate: the rule is
    * eventual consistency, not a transactional invariant (section 6.2).
+   *
+   * With `CASCADE` this is ONE write and nothing under the folder is touched:
+   * every note, every Template and every subfolder of the subtree becomes
+   * invalid the instant the tree stops showing them (RN-KNW-046), and the
+   * purge takes them afterwards. It used to delete the notes one by one inside
+   * the request, which is why it was refused above two hundred of them
+   * (RN-KNW-040, removed) and why a note written at the instant of the removal
+   * survived live in a folder nothing showed.
    */
   removeFolder(
     id: FolderId,

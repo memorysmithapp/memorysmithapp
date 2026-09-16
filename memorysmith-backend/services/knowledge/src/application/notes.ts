@@ -25,6 +25,7 @@ import {
   type Result,
 } from '@memorysmith/kernel';
 import type { RequestContext } from '../domain/access/AuthorizationPolicy.js';
+import type { Notebook } from '../domain/notebook/Notebook.js';
 import { Note } from '../domain/note/Note.js';
 import { NotePlacement, type NoteOrder } from '../domain/services/NotePlacement.js';
 import { NOTEBOOK_LIMITS } from '../domain/values.js';
@@ -37,6 +38,32 @@ export interface NoteDependencies extends NotebookDependencies {
 }
 
 const MAX_RETRIES = 3;
+
+/**
+ * A note, and only while every unit above it is valid (RN-KNW-046).
+ *
+ * A note lives in a folder, and a folder that was removed took everything
+ * under it out of reach in that one write: nothing under it was rewritten, so
+ * the item of a note whose folder is gone is still in the table, still
+ * pointing at its content, until the purge takes it. Whether the note is
+ * reachable is not what its own item says, it is what the tree says, and the
+ * tree is already loaded here.
+ *
+ * The notebook needs no check of its own: `loadAuthorized` answers a deleted
+ * one as not found before any of this runs.
+ */
+async function liveNote(
+  deps: NoteDependencies,
+  notebook: Notebook,
+  notebookId: NotebookId,
+  noteId: NoteId,
+): Promise<Result<Note, DomainError>> {
+  const note = await deps.notes.findById(notebookId, noteId);
+  if (!note || note.isDeleted || !notebook.folders.has(note.folderId)) {
+    return err(DomainError.notFound('Note not found'));
+  }
+  return ok(note);
+}
 
 /** Retries a lost optimistic lock up to three times before surfacing it. */
 async function withRetry<T>(
@@ -89,11 +116,17 @@ export class ListNotes {
     const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'read');
     if (!notebook.ok) return notebook;
 
-    return ok(
-      input.folderId
-        ? await this.deps.notes.listByFolder(input.notebookId, input.folderId)
-        : await this.deps.notes.listByNotebook(input.notebookId),
-    );
+    if (input.folderId) {
+      if (!notebook.value.folders.has(input.folderId)) {
+        return err(DomainError.notFound('Folder not found in this notebook'));
+      }
+      return ok(await this.deps.notes.listByFolder(input.notebookId, input.folderId));
+    }
+    // The notes of a notebook are the notes of its TREE: a note whose folder
+    // was removed is invalid and out of every listing, although its item is
+    // still there waiting for the purge (RN-KNW-046).
+    const notes = await this.deps.notes.listByNotebook(input.notebookId);
+    return ok(notes.filter((note) => notebook.value.folders.has(note.folderId)));
   }
 }
 
@@ -108,10 +141,10 @@ export class ReadNote {
     const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'read');
     if (!notebook.ok) return notebook;
 
-    const note = await this.deps.notes.findById(input.notebookId, input.noteId);
-    if (!note || note.isDeleted) return err(DomainError.notFound('Note not found'));
+    const note = await liveNote(this.deps, notebook.value, input.notebookId, input.noteId);
+    if (!note.ok) return note;
 
-    return ok({ note, content: await this.deps.content.read(note.bodyRef) });
+    return ok({ note: note.value, content: await this.deps.content.read(note.value.bodyRef) });
   }
 }
 
@@ -199,8 +232,9 @@ export class UpdateNote {
     }
 
     return withRetry(async () => {
-      const note = await this.deps.notes.findById(input.notebookId, input.noteId);
-      if (!note || note.isDeleted) return err(DomainError.notFound('Note not found'));
+      const found = await liveNote(this.deps, notebook.value, input.notebookId, input.noteId);
+      if (!found.ok) return found;
+      const note = found.value;
 
       if (note.revision !== input.baseRevision) {
         // The current content travels with the conflict, so the caller can
@@ -250,8 +284,9 @@ export class ReorderNote {
     const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
     if (!notebook.ok) return notebook;
 
-    const note = await this.deps.notes.findById(input.notebookId, input.noteId);
-    if (!note || note.isDeleted) return err(DomainError.notFound('Note not found'));
+    const found = await liveNote(this.deps, notebook.value, input.notebookId, input.noteId);
+    if (!found.ok) return found;
+    const note = found.value;
 
     const siblings = await siblingsWithAnchor(
       this.deps,
@@ -307,8 +342,9 @@ export class MoveNote {
       return err(DomainError.notFound('Folder not found in the destination notebook'));
     }
 
-    const note = await this.deps.notes.findById(input.notebookId, input.noteId);
-    if (!note || note.isDeleted) return err(DomainError.notFound('Note not found'));
+    const found = await liveNote(this.deps, origin.value, input.notebookId, input.noteId);
+    if (!found.ok) return found;
+    const note = found.value;
 
     const siblings = await siblingsWithAnchor(
       this.deps,
@@ -338,7 +374,11 @@ export class MoveNote {
   }
 }
 
-/** Soft delete: the note leaves the listings, the bytes stay (RN-KNW-029). */
+/**
+ * Deleting a note is definitive: it leaves every listing and the search at
+ * once, and what it leaves behind is purged in the background (RN-KNW-029,
+ * RN-KNW-047). There is no way back.
+ */
 export class DeleteNote {
   constructor(private readonly deps: NoteDependencies) {}
 
@@ -351,54 +391,12 @@ export class DeleteNote {
     const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
     if (!notebook.ok) return notebook;
 
-    const note = await this.deps.notes.findById(input.notebookId, input.noteId);
-    if (!note || note.isDeleted) return err(DomainError.notFound('Note not found'));
+    const found = await liveNote(this.deps, notebook.value, input.notebookId, input.noteId);
+    if (!found.ok) return found;
+    const note = found.value;
 
     const deleted = note.delete(input.by);
     if (!deleted.ok) return deleted;
-
-    const saved = await this.deps.notes.save(note);
-    return saved.ok ? ok() : err(saved.error);
-  }
-}
-
-export class RestoreNote {
-  constructor(private readonly deps: NoteDependencies) {}
-
-  async execute(input: {
-    ctx: RequestContext;
-    notebookId: NotebookId;
-    noteId: NoteId;
-    by: Authorship;
-  }): Promise<Result<void, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
-    if (!notebook.ok) return notebook;
-
-    const note = await this.deps.notes.findById(input.notebookId, input.noteId);
-    if (!note) return err(DomainError.notFound('Note not found'));
-
-    // A note lives in a folder, and the folder of this one may have been removed
-    // with it (RN-KNW-040). Restoring it there would bring back a live note no
-    // tree shows, so it is refused (RN-KNW-041).
-    if (!notebook.value.folders.has(note.folderId)) {
-      return err(
-        DomainError.conflict(
-          'The folder this note was in has been removed, so the note has nowhere to come back to.',
-        ),
-      );
-    }
-
-    // Nothing has to be free for a note to come back: another note may have
-    // been written under the same name in the meantime, and both stand
-    // (RN-KNW-037, and RN-KNW-030, removed).
-    //
-    // Bringing a note back puts its bytes back on the count, so it is a write
-    // that grows the stored content and is refused when there is no room.
-    const admitted = admitWrite(await this.deps.storage.current(), note.bodyRef.bytes);
-    if (!admitted.ok) return admitted;
-
-    const restored = note.restore(input.by);
-    if (!restored.ok) return restored;
 
     const saved = await this.deps.notes.save(note);
     return saved.ok ? ok() : err(saved.error);

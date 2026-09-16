@@ -69,7 +69,6 @@ import {
   PutGuidance,
   DeleteNotebook,
   RenameNotebook,
-  RestoreNotebook,
   SetNotebookRoleLimit,
 } from '@memorysmith/svc-knowledge/application/notebooks';
 import {
@@ -88,7 +87,6 @@ import {
   MoveNote,
   ReadNote,
   ReorderNote,
-  RestoreNote,
   UpdateNote,
 } from '@memorysmith/svc-knowledge/application/notes';
 import { InMemoryAuditTrail } from '@memorysmith/svc-audit/adapters/trail';
@@ -250,7 +248,6 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     getNotebook: (request) => new GetNotebook(knowledgeRepos(request.subscription)),
     renameNotebook: (request) => new RenameNotebook(knowledgeRepos(request.subscription)),
     deleteNotebook: (request) => new DeleteNotebook(knowledgeRepos(request.subscription)),
-    restoreNotebook: (request) => new RestoreNotebook(knowledgeRepos(request.subscription)),
     putGuidance: (request) => new PutGuidance(knowledgeRepos(request.subscription)),
     deleteGuidance: (request) => new DeleteGuidance(knowledgeRepos(request.subscription)),
     getNotebookContext: (request) => new GetNotebookContext(knowledgeRepos(request.subscription)),
@@ -271,7 +268,6 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     reorderNote: (request) => new ReorderNote(knowledgeRepos(request.subscription)),
     moveNote: (request) => new MoveNote(knowledgeRepos(request.subscription)),
     deleteNote: (request) => new DeleteNote(knowledgeRepos(request.subscription)),
-    restoreNote: (request) => new RestoreNote(knowledgeRepos(request.subscription)),
   };
 
   // Audit and Discovery, wired in memory. In production they are fed by the

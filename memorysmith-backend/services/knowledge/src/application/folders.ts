@@ -16,12 +16,10 @@ import {
 } from '@memorysmith/kernel';
 import type { RequestContext } from '../domain/access/AuthorizationPolicy.js';
 import { Template } from '../domain/content-slot/Template.js';
-import type { Note } from '../domain/note/Note.js';
 import type { Folder } from '../domain/notebook/Folder.js';
 import type { Notebook } from '../domain/notebook/Notebook.js';
-import { FolderDescription, FolderName, NOTEBOOK_LIMITS, RemovalPolicy } from '../domain/values.js';
+import { FolderDescription, FolderName, RemovalPolicy } from '../domain/values.js';
 import { guardRevision, loadAuthorized, type NotebookDependencies } from './notebooks.js';
-import type { NoteDependencies } from './notes.js';
 import { admitWrite } from '../domain/services/StorageQuota.js';
 
 export class CreateFolder {
@@ -132,21 +130,25 @@ export class ReorderFolder {
 }
 
 /**
- * Removing a folder. With CASCADE, every live note of the removed subtree is
- * deleted the way a note is deleted (RN-KNW-029), under the authorship of
- * whoever removed the folder, and BEFORE the folders go (RN-KNW-040). The
- * folders used to go alone, leaving their notes live and out of sight: out of
- * the tree, and still counted, searchable and restorable into nothing.
+ * Removing a folder is ONE write on the tree, whatever the subtree holds.
  *
- * Notes first, because a retry has to be able to finish the job. A note deleted
- * under a folder still standing is a folder a second CASCADE removes; a folder
- * gone with its notes still live left notes nothing could reach again.
+ * With `CASCADE`, every subfolder, every note and every Template under it
+ * becomes invalid in the same instant, without being written: what makes a
+ * note reachable is the tree, and the tree stopped showing it (RN-KNW-046).
+ * The purge takes them afterwards (RN-KNW-047).
  *
- * It all happens inside the request, so it is bounded: a subtree holding more
- * notes than one request can delete is refused before anything is written.
+ * It used to delete the notes one by one inside the request, and that is why
+ * it was refused above two hundred of them (RN-KNW-040, removed) and why a
+ * note written into the subtree at the instant of the removal survived live,
+ * in a folder nothing showed. Neither is true any more: nothing under the
+ * folder is listed, so there is nothing to miss and nothing to count.
+ *
+ * The explicit policy stays (RN-KNW-007): what it protects is the person from
+ * removing a subtree they had not looked at, and that is worth more now, not
+ * less.
  */
 export class RemoveFolder {
-  constructor(private readonly deps: NoteDependencies) {}
+  constructor(private readonly deps: NotebookDependencies) {}
 
   async execute(input: {
     ctx: RequestContext;
@@ -162,51 +164,11 @@ export class RemoveFolder {
     const policy = RemovalPolicy.create(input.policy);
     if (!policy.ok) return policy;
 
-    // The aggregate decides first, on the tree it holds; nothing is saved yet.
     const removed = notebook.value.removeFolder(input.folderId, policy.value, input.by);
     if (!removed.ok) return removed;
 
-    if (policy.value.cascades) {
-      const live = await this.deps.notes.listLiveInFolders(input.notebookId, removed.value);
-      const ceiling = NOTEBOOK_LIMITS.maxNotesDeletedByCascade;
-      if (live.length > ceiling) {
-        return err(
-          DomainError.limitExceeded(
-            `Removing this folder would delete ${live.length} notes, and one CASCADE deletes at most ${ceiling}. ` +
-              'Remove its subfolders one at a time, or delete some of its notes first.',
-          ),
-        );
-      }
-      for (const note of live) {
-        const deleted = await this.deleteNote(input.notebookId, note, input.by);
-        if (!deleted.ok) return deleted;
-      }
-    }
-
     const saved = await this.deps.notebooks.save(notebook.value);
     return saved.ok ? ok(removed.value) : err(saved.error);
-  }
-
-  /** One note, as DeleteNote deletes it, reading it again when another write got there first. */
-  private async deleteNote(
-    notebookId: NotebookId,
-    listed: Note,
-    by: Authorship,
-  ): Promise<Result<void, DomainError>> {
-    let note: Note | null = listed;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      if (!note || note.isDeleted) return ok();
-      const deleted = note.delete(by);
-      if (!deleted.ok) return deleted;
-      const saved = await this.deps.notes.save(note);
-      if (saved.ok) return ok();
-      note = await this.deps.notes.findById(notebookId, listed.id);
-    }
-    return err(
-      DomainError.conflict(
-        'A note of this folder kept changing while it was being deleted. Remove the folder again.',
-      ),
-    );
   }
 }
 

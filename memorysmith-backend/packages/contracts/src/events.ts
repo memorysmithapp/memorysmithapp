@@ -57,6 +57,8 @@ export const domainEventTypeSchema = z.enum([
   'NotebookCreated',
   'NotebookRenamed',
   'NotebookDeleted',
+  // Retired in 0.6.0 with restoring, which lost its object when deleting
+  // became definitive; kept so an event already written stays parseable.
   'NotebookRestored',
   'GuidanceUpdated',
   'GuidanceDeleted',
@@ -73,6 +75,7 @@ export const domainEventTypeSchema = z.enum([
   'NoteReordered',
   'NoteMoved',
   'NoteDeleted',
+  // Retired in 0.6.0 with restoring; kept so the trail stays parseable.
   'NoteRestored',
   // Discovery
   'NoteLinksResolved',

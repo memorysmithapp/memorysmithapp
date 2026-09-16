@@ -125,7 +125,7 @@ describe('Removing a folder with CASCADE', () => {
       ).json()) as { noteId: string }
     ).noteId;
 
-  it('deletes every note of the subtree, leaves the rest, and restores none into a removed folder', async () => {
+  it('takes every note of the subtree out of reach in one write, and leaves the rest', async () => {
     const { notebookId, folderId } = await seedNotebook();
     const folder = async (name: string, parentFolderId: string | null) =>
       (
@@ -152,7 +152,9 @@ describe('Removing a folder with CASCADE', () => {
       expect.arrayContaining([folderId, revoked]),
     );
 
-    // RN-KNW-040: the notes of the subtree went with it, and only those.
+    // RN-KNW-046: nothing under the folder was written, and nothing under it
+    // is listed any more. Only the notes of the tree are the notes of the
+    // notebook.
     const listed = (await (
       await call(`/knowledge/notebooks/${notebookId}/notes`)
     ).json()) as Array<{
@@ -160,12 +162,10 @@ describe('Removing a folder with CASCADE', () => {
     }>;
     expect(listed.map((note) => note.noteId)).toEqual([kept]);
 
-    // RN-KNW-041: a note has nowhere to come back to once its folder is gone.
+    // And each of them answers as not found, one by one, although its item is
+    // still in the table waiting for the purge.
     for (const noteId of [inFolder, inChild]) {
-      const restored = await call(`/knowledge/notebooks/${notebookId}/notes/${noteId}/restore`, {
-        method: 'POST',
-      });
-      expect(restored.status).toBe(409);
+      expect((await call(`/knowledge/notebooks/${notebookId}/notes/${noteId}`)).status).toBe(404);
     }
   });
 });

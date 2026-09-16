@@ -31,7 +31,6 @@ import type {
   ListNotebooks,
   PutGuidance,
   RenameNotebook,
-  RestoreNotebook,
   SetNotebookRoleLimit,
 } from '../../../application/notebooks.js';
 import type {
@@ -50,7 +49,6 @@ import type {
   MoveNote,
   ReadNote,
   ReorderNote,
-  RestoreNote,
   UpdateNote,
 } from '../../../application/notes.js';
 import {
@@ -82,7 +80,6 @@ export interface KnowledgeUseCases {
   readonly getNotebook: (request: KnowledgeRequest) => GetNotebook;
   readonly renameNotebook: (request: KnowledgeRequest) => RenameNotebook;
   readonly deleteNotebook: (request: KnowledgeRequest) => DeleteNotebook;
-  readonly restoreNotebook: (request: KnowledgeRequest) => RestoreNotebook;
   readonly putGuidance: (request: KnowledgeRequest) => PutGuidance;
   readonly deleteGuidance: (request: KnowledgeRequest) => DeleteGuidance;
   readonly getNotebookContext: (request: KnowledgeRequest) => GetNotebookContext;
@@ -102,7 +99,6 @@ export interface KnowledgeUseCases {
   readonly reorderNote: (request: KnowledgeRequest) => ReorderNote;
   readonly moveNote: (request: KnowledgeRequest) => MoveNote;
   readonly deleteNote: (request: KnowledgeRequest) => DeleteNote;
-  readonly restoreNote: (request: KnowledgeRequest) => RestoreNote;
 }
 
 type Variables = { knowledge: KnowledgeRequest };
@@ -216,23 +212,6 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     return noContent(
       c,
       await useCases.deleteNotebook(request).execute({
-        ctx: request.ctx,
-        notebookId: notebookId.value,
-        by: author.value,
-      }),
-    );
-  });
-
-  app.post('/notebooks/:v/restore', async (c) => {
-    const request = c.get('knowledge');
-    const author = request.authorship;
-    if (!author.ok) return fail(c, author.error);
-    const notebookId = parseNotebookId(c.req.param('v'));
-    if (!notebookId.ok) return fail(c, notebookId.error);
-
-    return noContent(
-      c,
-      await useCases.restoreNotebook(request).execute({
         ctx: request.ctx,
         notebookId: notebookId.value,
         by: author.value,
@@ -665,26 +644,6 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     return noContent(
       c,
       await useCases.deleteNote(request).execute({
-        ctx: request.ctx,
-        notebookId: notebookId.value,
-        noteId: noteId.value,
-        by: author.value,
-      }),
-    );
-  });
-
-  app.post('/notebooks/:v/notes/:n/restore', async (c) => {
-    const request = c.get('knowledge');
-    const author = request.authorship;
-    if (!author.ok) return fail(c, author.error);
-    const notebookId = parseNotebookId(c.req.param('v'));
-    if (!notebookId.ok) return fail(c, notebookId.error);
-    const noteId = NoteId.create(c.req.param('n') ?? '');
-    if (!noteId.ok) return fail(c, noteId.error);
-
-    return noContent(
-      c,
-      await useCases.restoreNote(request).execute({
         ctx: request.ctx,
         notebookId: notebookId.value,
         noteId: noteId.value,

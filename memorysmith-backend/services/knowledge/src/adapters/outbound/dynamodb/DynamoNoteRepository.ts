@@ -96,16 +96,6 @@ export class DynamoNoteRepository implements NoteRepository {
     return (await this.everyNoteOf(notebook, false)).filter((note) => !note.isDeleted);
   }
 
-  async listLiveInFolders(notebook: NotebookId, folders: readonly FolderId[]): Promise<Note[]> {
-    const wanted = new Set(folders.map((folder) => folder.value));
-    const live = (await this.everyNoteOf(notebook, true)).filter(
-      (note) => !note.isDeleted && wanted.has(note.folderId.value),
-    );
-    // Each of them is about to be written, under the version it was read at.
-    for (const note of live) this.remember(note);
-    return live;
-  }
-
   /**
    * Every note item of the notebook, page after page. A notebook of 2,000 notes
    * does not fit in the one megabyte a Query answers, and a listing that stopped

@@ -144,15 +144,6 @@ export async function handler(event: QueueEvent): Promise<void> {
         });
         break;
 
-      case 'NoteRestored':
-        await projectors.note.onRestored({
-          notebookId: String(payload['notebookId']),
-          noteId: String(payload['noteId']),
-          folderId: String(payload['folderId']),
-          contentRef,
-        });
-        break;
-
       default:
         // Everything else on the bus is somebody else's business.
         break;

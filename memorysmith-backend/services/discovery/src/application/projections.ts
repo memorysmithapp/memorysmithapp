@@ -163,11 +163,6 @@ export class ProjectNote {
     await this.deps.index.removeNote(event.notebookId, event.noteId);
   }
 
-  /** Restoring reindexes everything (RN-DSC-014). */
-  async onRestored(event: NoteEvent): Promise<void> {
-    await this.onWritten(event);
-  }
-
   /**
    * A cross-notebook move prunes the edges in the origin notebook (RN-DSC-006) and
    * re-resolves the outgoing ones against the slugs of the destination.

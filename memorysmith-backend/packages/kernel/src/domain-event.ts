@@ -57,6 +57,7 @@ export const KNOWLEDGE_EVENT_TYPES = [
   'NotebookCreated',
   'NotebookRenamed',
   'NotebookDeleted',
+  /** RETIRED in 0.6.0 with restoring; kept so the trail stays parseable. */
   'NotebookRestored',
   'GuidanceUpdated',
   'GuidanceDeleted',
@@ -73,6 +74,12 @@ export const KNOWLEDGE_EVENT_TYPES = [
   'NoteReordered',
   'NoteMoved',
   'NoteDeleted',
+  /**
+   * RETIRED in 0.6.0 with restoring, which lost its object when deleting
+   * became definitive (RN-KNW-029). It stays for the reason WorkspaceCreated
+   * does: the audit trail is append-only, and an event already written has to
+   * stay parseable forever.
+   */
   'NoteRestored',
 ] as const;
 

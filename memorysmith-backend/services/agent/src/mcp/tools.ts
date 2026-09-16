@@ -213,8 +213,9 @@ export class McpToolAdapter {
         const notebook = requireString(args, 'notebook', 'delete_notebook');
         await knowledge.deleteNotebook(caller, notebook);
         return text(
-          `The notebook ${notebook} is out of every listing. Nothing was destroyed: its notes and ` +
-            'their history are intact, and it can be brought back.',
+          `The notebook ${notebook} is gone, with its folders, its templates, its guidance and ` +
+            'every note in it. Nothing brings it back, and its content is destroyed shortly ' +
+            'after. Its name is free again.',
         );
       }
 
@@ -318,8 +319,8 @@ export class McpToolAdapter {
         const note = requireString(args, 'note', 'delete_note');
         await knowledge.deleteNote(caller, requireString(args, 'notebook', 'delete_note'), note);
         return text(
-          `The note ${note} left the listings and the search. Nothing was destroyed: its ` +
-            'history stays readable by note_history, and the links that pointed at it are now ' +
+          `The note ${note} left the listings and the search, for good. Nothing brings it back, ` +
+            'and its content is destroyed shortly after. The links that pointed at it are now ' +
             'pending rather than lost.',
         );
       }

@@ -65,16 +65,17 @@ test.describe('notebooks', () => {
     expect((await owner.ok<{ name: string }>('GET', notebookPath(notebook))).name).toBe(renamed);
   });
 
-  test('[route:DELETE /knowledge/notebooks/:v] [route:POST /knowledge/notebooks/:v/restore] deletes a notebook out of sight and restores it whole', async ({
+  test('[route:DELETE /knowledge/notebooks/:v] deletes a notebook for good, with everything under it', async ({
     owner,
     notebook,
   }) => {
     expect((await owner.call('DELETE', notebookPath(notebook))).status).toBe(204);
-    expect((await owner.call('GET', notebookPath(notebook))).status).toBe(404);
-    expect((await owner.call('POST', `${notebookPath(notebook)}/restore`)).status).toBe(204);
 
-    const restored = await owner.ok<{ folders: Folder[] }>('GET', notebookPath(notebook));
-    expect(restored.folders.map((folder) => folder.folderId)).toEqual([notebook.folderId]);
+    // Not found, at once, everywhere under it: the notebook, its notes and the
+    // route that used to bring it back (RN-KNW-033, RN-KNW-046).
+    expect((await owner.call('GET', notebookPath(notebook))).status).toBe(404);
+    expect((await owner.call('GET', `${notesPath(notebook)}/${notebook.noteId}`)).status).toBe(404);
+    expect((await owner.call('POST', `${notebookPath(notebook)}/restore`)).status).toBe(404);
   });
 
   test('[route:GET /knowledge/notebooks/:v/context] serves the notebook as an agent reads it before writing', async ({
@@ -210,11 +211,12 @@ test.describe('folders', () => {
     );
     expect(removed.status).toBe(200);
     expect(removed.body.removedFolderIds).toContain(notebook.folderId);
-    // The note of the folder went with it, and has nowhere to come back to
-    // (RN-KNW-040, RN-KNW-041).
+    // Nothing under the folder was written, and nothing under it is reachable:
+    // the note answers as not found, and so does its folder (RN-KNW-046).
+    expect((await owner.call('GET', `${notesPath(notebook)}/${notebook.noteId}`)).status).toBe(404);
     expect(
-      (await owner.call('POST', `${notesPath(notebook)}/${notebook.noteId}/restore`)).status,
-    ).toBe(409);
+      (await owner.call('GET', `${notesPath(notebook)}?folderId=${notebook.folderId}`)).status,
+    ).toBe(404);
   });
 
   test('[route:PUT /knowledge/notebooks/:v/folders/:f/template] [route:GET /knowledge/notebooks/:v/folders/:f/template] writes the Template of a folder and reads it back', async ({
@@ -343,7 +345,7 @@ test.describe('notes', () => {
     expect(moved.body.folderId).toBe(archive.folderId);
   });
 
-  test('[route:DELETE /knowledge/notebooks/:v/notes/:n] [route:POST /knowledge/notebooks/:v/notes/:n/restore] deletes a note out of every listing, and restores it', async ({
+  test('[route:DELETE /knowledge/notebooks/:v/notes/:n] deletes a note out of every listing, for good', async ({
     owner,
     notebook,
   }) => {
@@ -357,9 +359,10 @@ test.describe('notes', () => {
     );
     expect(listed.map((note) => note.noteId)).not.toContain(notebook.noteId);
 
-    expect((await owner.call('POST', `${path}/restore`)).status).toBe(204);
-    expect((await owner.call('GET', path)).status).toBe(200);
-    expect((await owner.call('POST', `${path}/restore`)).status).toBe(409);
+    // Deleting a note twice is deleting one that is not there (RN-KNW-029),
+    // and the route that brought one back is gone.
+    expect((await owner.call('DELETE', path)).status).toBe(404);
+    expect((await owner.call('POST', `${path}/restore`)).status).toBe(404);
   });
 });
 

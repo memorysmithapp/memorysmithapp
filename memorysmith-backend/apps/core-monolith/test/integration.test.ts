@@ -479,7 +479,7 @@ describe('Portability answers over the API', () => {
   });
 });
 
-describe('Deleting a notebook takes it out of reach without destroying it', () => {
+describe('Deleting a notebook takes it out of reach, for good', () => {
   it('removes it from every listing and from every context', async () => {
     const { notebookId, notes } = await seed();
 
@@ -502,34 +502,30 @@ describe('Deleting a notebook takes it out of reach without destroying it', () =
       (await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' })).status,
     ).toBe(404);
 
-    // Nothing was destroyed: the history of a note inside it still answers.
+    // The trail keeps every event of it, which is the one thing a deletion
+    // does not take away (rule 6).
     const history = (await (await call(`/audit/notes/${notes['lei']}/history`)).json()) as {
       entries: Array<{ type: string }>;
     };
     expect(history.entries.map((entry) => entry.type)).toContain('NoteCreated');
   });
 
-  it('frees the name and gives it back on restore', async () => {
+  it('frees the name at once, and gives it to nobody back', async () => {
     const { notebookId } = await seed();
     await call(`/knowledge/notebooks/${notebookId}`, { method: 'DELETE' });
 
-    // The slug is available again, exactly as a deleted note frees its own.
+    // The name is free the instant the notebook is deleted, because the
+    // notebook that held it is never coming back to claim it (RN-KNW-033).
     const twin = await call('/knowledge/notebooks', {
       method: 'POST',
       body: { name: 'Normas e Legislacao', description: 'Outro' },
     });
     expect(twin.status).toBe(201);
 
-    // And restoring is refused while the name belongs to someone else.
-    const refused = await call(`/knowledge/notebooks/${notebookId}/restore`, { method: 'POST' });
-    expect(refused.status).toBe(409);
-
-    const { notebookId: twinId } = (await twin.json()) as { notebookId: string };
-    await call(`/knowledge/notebooks/${twinId}`, { method: 'DELETE' });
+    // There is no way back. The route that was the only one is gone.
     expect(
       (await call(`/knowledge/notebooks/${notebookId}/restore`, { method: 'POST' })).status,
-    ).toBe(204);
-    expect((await call(`/knowledge/notebooks/${notebookId}`)).status).toBe(200);
+    ).toBe(404);
   });
 
   it('records the deletion in the trail, with authorship', async () => {

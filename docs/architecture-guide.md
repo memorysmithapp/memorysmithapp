@@ -398,7 +398,7 @@ export class Note {
 }
 ```
 
-> **Why did `Note` stay outside the `Notebook` aggregate?** If it were inside, creating a note would require loading and locking the whole tree, and the structural invariants do not depend on the content of the notes. Whether a folder holds notes is **eventual consistency**, not a transactional invariant: `REJECT_IF_NOT_EMPTY` reads the counter the outbox relay keeps (§10.3), and `CASCADE` reads the notes of the subtree consistently at the moment of removal and deletes them, one note transaction each, before the folders go (RN-KNW-040). It is the most important modelling decision of the system, because it is what keeps writing a note cheap and concurrent, and writing a note is the hot path through which the agent feeds the notebook.
+> **Why did `Note` stay outside the `Notebook` aggregate?** If it were inside, creating a note would require loading and locking the whole tree, and the structural invariants do not depend on the content of the notes. Whether a folder holds notes is **eventual consistency**, not a transactional invariant: `REJECT_IF_NOT_EMPTY` reads the counter the outbox relay keeps (§10.3), and `CASCADE` writes nothing under the folder at all: everything in the removed subtree becomes invalid the instant the tree stops showing it (RN-KNW-046), and the purge takes it afterwards (§12.4). It is the most important modelling decision of the system, because it is what keeps writing a note cheap and concurrent, and writing a note is the hot path through which the agent feeds the notebook.
 
 Details that follow from it:
 
@@ -782,7 +782,7 @@ There is no third write. The `NSLUG` guard held one name per notebook, and a not
 
 **The two slots take this shape because of what the other one cost.** While the Template was a field of the `FOLDER` item and the Guidance a field of `META`, writing either was shape A: it took the lock of the whole tree, so writing the Template of one folder conflicted with renaming another and two agents writing two Templates conflicted with each other. Now each contends only with another write of the same slot.
 
-> **No note transaction includes an item another note transaction includes** (PE8). It is this rule, and not the separation of the aggregates on its own, that keeps the hot path free of contention. DynamoDB cancels a transaction when any of its items is part of another transaction in flight, and **a `ConditionCheck` makes an item part of the transaction just as a write does**. So neither the `META` item of the notebook nor the `FOLDER#{f}` item a note goes into belongs in it: fifty notes written into one folder at once would all include that item, and all but one would be cancelled. The design once carried a `ConditionCheck` on the folder, on the belief that checking an item without writing it avoided the contention; DynamoDB Local runs transactions one at a time and agreed, and the first run of the adapter tests against the real DynamoDB of staging cancelled 33 of 50 parallel creates. Whether the folder, and on a move the destination notebook, exist is read by the use case before the write, and a read never conflicts with a transaction. The price is a window of milliseconds: a note written at the instant its folder is removed can land in a folder that no longer exists, and a `CASCADE` does not delete a note written into the subtree after it listed the notes to delete.
+> **No note transaction includes an item another note transaction includes** (PE8). It is this rule, and not the separation of the aggregates on its own, that keeps the hot path free of contention. DynamoDB cancels a transaction when any of its items is part of another transaction in flight, and **a `ConditionCheck` makes an item part of the transaction just as a write does**. So neither the `META` item of the notebook nor the `FOLDER#{f}` item a note goes into belongs in it: fifty notes written into one folder at once would all include that item, and all but one would be cancelled. The design once carried a `ConditionCheck` on the folder, on the belief that checking an item without writing it avoided the contention; DynamoDB Local runs transactions one at a time and agreed, and the first run of the adapter tests against the real DynamoDB of staging cancelled 33 of 50 parallel creates. Whether the folder, and on a move the destination notebook, exist is read by the use case before the write, and a read never conflicts with a transaction. The price used to be a window of milliseconds, in which a note written at the instant its folder was removed landed in a folder that no longer existed and survived a `CASCADE` that had already listed what to delete. It is closed, and not by locking anything: a `CASCADE` lists nothing and deletes nothing, so a note that lands in a removed folder is invalid the moment it lands (RN-KNW-046).
 
 A conflict produces a `TransactionCanceledException`, the repository translates it into a `ConcurrencyError` and the use case retries, up to 3 times. **The domain never sees an AWS exception** (PE7).
 
@@ -1082,7 +1082,9 @@ No query to Knowledge is needed: **the present lives in `mv-knowledge`, the past
 
 ### 12.4 Deleting is not destroying
 
-**`NoteDeleted` is a soft delete.** The `NOTE` item gains `deletedAt` and `deletedBy`, and **loses the key attributes of `GSI2`**: since the index is sparse (§9.3), the note disappears from the listings without a line of filtering anywhere. The `bodyRef` stays intact, so `read_note(asOf)` and `note_history` keep answering by `NoteId`. Nothing else is written: there is no guard to release, because a notebook reserves no name (RN-KNW-030, removed). Restoring is giving the index attributes back, which is free and becomes `NoteRestored`.
+**`NoteDeleted` writes the mark and nothing else.** The `NOTE` item gains `deletedAt` and `deletedBy`, and **loses the key attributes of `GSI2`**: since the index is sparse (§9.3), the note disappears from the listings without a line of filtering anywhere. Nothing else is written: there is no guard to release, because a notebook reserves no name (RN-KNW-030, removed). **The mark is not a second state the note can come back from**, it is the state between the deletion and the purge, and nothing clears it: deleting is definitive (RN-KNW-029) and restoring is gone with the rule it stood on.
+
+**Invalidity is inherited, and it costs nothing to declare** (RN-KNW-046). Deleting a notebook writes `deletedAt` on its `META` item; removing a folder writes the tree. Not one item under either is touched, and every one of them is out of reach from that instant, because what makes a note reachable is the tree and the tree no longer shows it. Every use case that reaches a note checks the chain against the tree it has already loaded, which costs no read: the tree came back in the same `Query` that authorised the request (§9.3).
 
 **There is no path that destroys content.** That is why `purge` does not exist on the `ContentStore` port (§7.1), and the absence is declared in the code itself as deliberate. Deleting hides the note and preserves the byte: no port, no route and no administrative act destroys what has already been written (RN-AUD-006, and RN-AUD-007, removed).
 
@@ -1159,7 +1161,7 @@ svc-access       GET  /platform/subscriptions?status=      ─┐  platform sess
                  PATCH /platform/subscriptions/:s/plan     ─┘  status without the transition
                                                                machine (RN-SUB-018)
 svc-knowledge    GET  /notebooks · POST /notebooks
-                 GET|PATCH|DELETE /notebooks/:v · POST /notebooks/:v/restore   (RN-KNW-033)
+                 GET|PATCH|DELETE /notebooks/:v   (deleting is definitive, RN-KNW-033)
                  GET  /notebooks/:v/context   (structure and guidance in a single answer)
                  PUT|DELETE /notebooks/:v/guidance
                  POST /notebooks/:v/folders · PATCH|DELETE /notebooks/:v/folders/:f
@@ -1176,7 +1178,6 @@ svc-knowledge    GET  /notebooks · POST /notebooks
                     the note as the full DTO. Answering less made a person
                     conflict with themselves on the second write.
                  POST /notebooks/:v/notes/:n/reorder   { afterNoteId | null }
-                 POST /notebooks/:v/notes/:n/restore
                  POST /notebooks/:v/notes/:n/move   { toNotebookId?, toFolderId }
                  PUT|DELETE /notebooks/:v/limits/:userId   { limit: VIEWER }   (§9.3)
 svc-discovery    GET  /notebooks/:v/links/:target   what one wikilink target resolves

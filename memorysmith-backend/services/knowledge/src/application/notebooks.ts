@@ -211,9 +211,11 @@ export class RenameNotebook {
 }
 
 /**
- * Deleting a notebook: reversible, and no byte is destroyed (RN-KNW-033). It is
- * an OWNER decision, like renaming, because it takes the whole notebook out of
- * reach at once (software-vision.md 5.2).
+ * Deleting a notebook is DEFINITIVE (RN-KNW-033): the notebook, its folders,
+ * its notes, its Templates and its Guidance leave every listing at once, and
+ * what is left of them is purged in the background (RN-KNW-047). It is an
+ * OWNER decision, like renaming, because it takes the whole notebook out of
+ * reach at once and nothing brings it back (software-vision.md 5.2).
  */
 export class DeleteNotebook {
   constructor(private readonly deps: NotebookDependencies) {}
@@ -230,45 +232,6 @@ export class DeleteNotebook {
     if (!deleted.ok) return deleted;
 
     const saved = await this.deps.notebooks.save(notebook.value);
-    return saved.ok ? ok() : err(saved.error);
-  }
-}
-
-/**
- * The way back. It is the ONE use case that loads a deleted notebook on purpose,
- * so it does not go through `loadAuthorized`, which answers 404 for one.
- */
-export class RestoreNotebook {
-  constructor(private readonly deps: NotebookDependencies) {}
-
-  async execute(input: {
-    ctx: RequestContext;
-    notebookId: NotebookId;
-    by: Authorship;
-  }): Promise<Result<void, DomainError>> {
-    const notebook = await this.deps.notebooks.findById(input.notebookId);
-    if (!notebook || !notebook.isDeleted) return err(DomainError.notFound('Notebook not found'));
-
-    const allowed = AuthorizationPolicy.require(input.ctx, notebook, 'administer');
-    if (!allowed.ok) return allowed;
-
-    // Deleting freed the slug, so restoring requires it to be free again,
-    // exactly as restoring a note does (RN-KNW-030).
-    const holder = await this.deps.notebooks.findBySlug(notebook.slug);
-    if (holder && !holder.id.equals(notebook.id)) {
-      return err(
-        DomainError.conflict('That name was taken by another notebook while this one was deleted', {
-          code: 'ALREADY_EXISTS',
-          notebookId: holder.id.value,
-          slug: notebook.slug.value,
-        }),
-      );
-    }
-
-    const restored = notebook.restore(input.by);
-    if (!restored.ok) return restored;
-
-    const saved = await this.deps.notebooks.save(notebook);
     return saved.ok ? ok() : err(saved.error);
   }
 }

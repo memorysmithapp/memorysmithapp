@@ -414,12 +414,15 @@ describe('The connector authors the notebook, and not only its notes', () => {
     expect(result.content[0]?.text).toContain('delete_folder requires the argument "policy"');
   });
 
-  it('says plainly that a deletion destroyed nothing', async () => {
+  it('says plainly that a deletion is definitive', async () => {
+    // Deleting is definitive and there is no trash (RN-KNW-029, RN-KNW-033).
+    // What the answer says is what an agent repeats to the person, so it says
+    // what went and that nothing brings it back.
     const { adapter } = spy();
     const note = await adapter.call('delete_note', { notebook: 'v1', note: 'n1' }, caller);
     const notebook = await adapter.call('delete_notebook', { notebook: 'v1' }, caller);
-    expect(note.content[0]?.text).toContain('history');
-    expect(notebook.content[0]?.text).toContain('Nothing was destroyed');
+    expect(note.content[0]?.text).toContain('Nothing brings it back');
+    expect(notebook.content[0]?.text).toContain('Nothing brings it back');
   });
 
   it('passes a refusal by role through, instead of pretending it wrote', async () => {

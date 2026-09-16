@@ -263,17 +263,22 @@ export class Note {
   }
 
   /**
-   * Soft delete: the note leaves the listings and the search, the bodyRef stays
-   * intact and the timeline keeps answering by NoteId (RN-KNW-029). Nothing is
-   * released with it, because the note held no name the notebook was keeping
-   * (RN-KNW-030, removed).
+   * Deleting is DEFINITIVE (RN-KNW-029). This write is the only one it makes:
+   * the note leaves every listing and the search at once, and what it leaves
+   * behind — its item and every revision of its content — is purged in the
+   * background (RN-KNW-047). Nothing brings it back.
+   *
+   * The mark is the transitory state between the two, and it is why the item
+   * is still here to be read: a purge that has not run yet must not make a
+   * deleted note readable again.
    */
   delete(by: Authorship): Result<void, DomainError> {
     if (this.isDeleted) return err(DomainError.notFound('This note is already deleted'));
     this._deletedAt = by.at;
     this._updatedBy = by;
-    // A deleted note is no longer live content, so its bytes leave the count.
-    // They do NOT leave the store: nothing here destroys a revision (PE8).
+    // A deleted note is no longer live content, so its bytes leave the count
+    // here, once. The purge that destroys them declares nothing more
+    // (RN-SUB-021).
     this.record(
       'NoteDeleted',
       by,
@@ -284,26 +289,6 @@ export class Note {
       },
       null,
       -this._bodyRef.bytes,
-    );
-    return ok();
-  }
-
-  /** Nothing has to be free for a note to come back (RN-KNW-037). */
-  restore(by: Authorship): Result<void, DomainError> {
-    if (!this.isDeleted) return err(DomainError.conflict('This note is not deleted'));
-    this._deletedAt = null;
-    this._updatedBy = by;
-    this.record(
-      'NoteRestored',
-      by,
-      {
-        notebookId: this._notebookId.value,
-        noteId: this.id.value,
-        folderId: this._folderId.value,
-        position: this._position.value,
-      },
-      null,
-      this._bodyRef.bytes,
     );
     return ok();
   }
