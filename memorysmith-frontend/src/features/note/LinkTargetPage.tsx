@@ -39,14 +39,14 @@ export function LinkTargetPage() {
   });
 
   if (isPending) return <NoteSkeleton />;
-  if (isError || !data) return <p className="status">{t('common.loadFailed')}</p>;
+  if (isError || !data) return <p className="status">{t('errors.unexpected')}</p>;
 
   const candidates = data.notes.map((note) => {
     const trail = folderTrailForNote(structure.folders, note.noteId);
     return {
       noteId: note.noteId,
       name: note.name,
-      folderPath: trail.map((each) => each.name).join(' / '),
+      folderPath: trail.map((each) => each.name).join(' › '),
       address: noteAddress(notebookId, note.noteId),
     };
   });

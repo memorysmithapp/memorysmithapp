@@ -223,6 +223,18 @@ test.describe('the pages of an account', () => {
     );
     await app.goto(notebook.page('/links/Checklist'));
     await expect(app).toHaveURL(notebook.page(`/notes/${notebook.noteId.toLowerCase()}`));
+
+    // On the note itself the pending link is drawn pending and can still be
+    // clicked: the choice opens where the link stands and says nobody carries
+    // the name yet (RN-DSC-060, #138).
+    const pending = app.locator('a.wikilink-pending', { hasText: 'Nowhere yet' });
+    await expect(pending).toHaveAttribute('aria-haspopup', 'menu');
+    await pending.click();
+    await expect(
+      app.getByRole('menu').getByText(words.pending('Nowhere yet'), { exact: false }),
+    ).toBeVisible();
+    await app.keyboard.press('Escape');
+    await expect(app.getByRole('menu')).toHaveCount(0);
   });
 
   test('[page:/notebooks/:notebookId/*] answers an address no page names inside a notebook with not found', async ({

@@ -907,7 +907,7 @@ A block embed resolves through `blockOf` in `transclusion.ts`, told apart from a
 | Address | What it names | Ambiguous? |
 |---|---|---|
 | `/notebooks/:notebookId/notes/:noteId` | One note, by its identifier alone (RN-DSC-045) | Never, by construction |
-| `/notebooks/:notebookId/links/<target>` | A link target. It leads to the note when one answers, renders the choice when several do and the pending state when none does (RN-DSC-046) | By design |
+| `/notebooks/:notebookId/links/<target>` | A link target, reached by opening a link in a new tab or by pasting its address. It leads to the note when one answers, renders the choice when several do and the pending state when none does; a click on a reading surface opens the same choice in place (RN-DSC-046, RN-DSC-060) | By design |
 
 **An address carries identifiers and nothing else**, and that holds for the notebook and the folder as much as for the note: `/notebooks/:notebookId/folders/:folderId`. A segment somebody reads goes stale the day what it reads is renamed or moved, and a segment nobody reads — a label beside the identifier — is a segment somebody eventually starts reading, so neither is kept. A note is not nested under its folder for the same reason. What a person reads instead is the **title of the tab**, which `useDocumentTitle` in `shared/components/document-title.ts` computes on render and which therefore cannot go stale (RN-DSC-058), and the folder trail, which the breadcrumb reads from the structure the layout already loaded.
 

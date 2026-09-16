@@ -1321,7 +1321,47 @@ body:has(.environment-banner) {
 .wikilink-pending {
   color: var(--pending);
   border-bottom: 1px dashed var(--pending);
-  cursor: help;
+  cursor: pointer;
+}
+
+/* The choice a link opens where it stands (RN-DSC-046). It hangs from the link
+   and never moves the text around it. */
+.link-choice {
+  position: relative;
+}
+.link-choice-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  min-width: 16rem;
+  max-width: min(28rem, 90vw);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+.link-choice-status {
+  padding: 0.25rem 0.5rem;
+  color: var(--text-soft);
+  font-size: 0.8rem;
+}
+.link-choice-item {
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  color: var(--text);
+  text-decoration: none;
+}
+.link-choice-item:hover,
+.link-choice-item:focus {
+  background: var(--border);
+  outline: none;
 }
 
 /* A file of the notebook that is not a note. This product stores no attachment,

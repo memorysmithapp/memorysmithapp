@@ -75,9 +75,9 @@ export function getTemplate(notebookId: string, folderId: string): Promise<Templ
 }
 
 /**
- * The address a wikilink navigates to, or `null` when the target does not
- * resolve to exactly one note — which is where the reading surface writes a
- * `pending:` link and the link target page takes over (RN-DSC-046).
+ * The address of the one note a target names, or `null` when none or several
+ * do. A reading surface resolves a wikilink with `wikilinkUrl`, which tells
+ * the three cases apart; this is the one-note half of it.
  */
 export function resolveNoteUrl(notebookId: string, target: string): string | null {
   const noteId = resolveNoteId(notebookId, target);
@@ -90,20 +90,40 @@ export function resolveNoteId(notebookId: string, target: string): string | null
 }
 
 /**
- * Where a wikilink goes: the note when exactly one carries the name, the
- * address of the TARGET when several do, and `null` — the pending state — when
- * none does (RN-DSC-046).
+ * Where a wikilink goes: the note when exactly one carries the name, and the
+ * address of the TARGET otherwise — several notes, which is the choice, or
+ * none, which is pending and still asks (RN-DSC-046, RN-DSC-060).
  *
- * The interface can tell the three apart without asking the server, because
- * the structure it drew the page from already carries every name. What it
- * cannot tell from here is an alias, and it does not have to: an alias only
- * ever resolves what no name matched, so a target no name answers goes to
- * the target page, which asks Discovery.
+ * The interface can tell one note from several without asking the server,
+ * because the structure it drew the page from already carries every name.
+ * What it cannot tell from here is an alias: an alias only ever resolves what
+ * no name matched, so a target no name answers is asked of Discovery when it
+ * is clicked.
  */
 export function wikilinkUrl(notebookId: string, target: string): string | null {
   const carried = notesNamed(notebookId, target);
   if (carried === 1) return resolveNoteUrl(notebookId, target);
   return linkTargetAddress(notebookId, target);
+}
+
+/**
+ * The names of the folders from the root down to the one that holds a note, in
+ * the structure the page already loaded. It is what tells two notes of one
+ * name apart in the choice of a link (RN-DSC-046): two folders may hold one
+ * name each, and two subfolders of one name under different parents are told
+ * apart by the trail above them.
+ */
+export function folderTrailOfNote(notebookId: string, noteId: string): string[] {
+  const walk = (nodes: NotebookStructure['folders'], above: string[]): string[] | null => {
+    for (const node of nodes) {
+      const trail = [...above, node.name];
+      if (node.notes.some((note) => note.id === noteId)) return trail;
+      const nested = walk(node.children, trail);
+      if (nested) return nested;
+    }
+    return null;
+  };
+  return walk(loaded.get(notebookId)?.folders ?? [], []) ?? [];
 }
 
 /**

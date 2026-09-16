@@ -1,3 +1,4 @@
+import { LinkChoice, linkTargetOf } from './LinkChoice';
 import {
   isValidElement,
   type AnchorHTMLAttributes,
@@ -93,6 +94,8 @@ function MarkdownAnchor({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAn
       </span>
     );
   }
+  // A target no single note answers by name opens its choice in place.
+  if (linkTargetOf(href)) return <LinkChoice href={href}>{children}</LinkChoice>;
   if (href.startsWith('/')) {
     return (
       <Link className="wikilink" to={href}>
