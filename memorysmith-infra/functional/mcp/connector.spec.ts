@@ -402,6 +402,12 @@ test.describe('the tools', () => {
     expect(
       (await callTool(agent, 'list_notes', { ...where, folder: notebook.folderId })).text,
     ).toContain(created.noteId);
+    // A second note, so a page of one has a page after it.
+    await callTool(agent, 'create_note', {
+      ...where,
+      folder: notebook.folderId,
+      content: '---\nname: Agent finding, the second\n---\n\nWritten by an agent.\n',
+    });
     // The index carries the four fields of each note and a cursor, and nothing
     // else of the note (RN-AGT-031).
     const page = parsed<{ notes: Array<Record<string, unknown>>; nextCursor: string | null }>(
