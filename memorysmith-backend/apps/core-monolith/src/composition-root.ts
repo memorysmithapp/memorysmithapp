@@ -40,6 +40,7 @@ import {
 import { ACCESS_LIMITS, StorageQuota } from '@memorysmith/svc-access/domain/values';
 import { DynamoNoteRepository } from '@memorysmith/svc-knowledge/adapters/notes';
 import { DynamoContentSlotRepository } from '@memorysmith/svc-knowledge/adapters/slots';
+import { DynamoFolderNumbers } from '@memorysmith/svc-knowledge/adapters/numbers';
 import { DynamoNotebookRepository } from '@memorysmith/svc-knowledge/adapters/notebooks';
 import { S3ContentStore } from '@memorysmith/svc-knowledge/adapters/content';
 import { DynamoStorageMeter } from '@memorysmith/svc-knowledge/adapters/storage';
@@ -120,6 +121,8 @@ export function buildKnowledge(infra: Infrastructure, context: SubscriptionConte
     // The Guidance of a notebook and the Template of a folder, each an
     // aggregate of its own and locked on its own item (RN-KNW-044).
     slots: new DynamoContentSlotRepository(context, infra.db, infra.knowledgeTable),
+    // The numbers each folder issues, one item per folder (RN-KNW-043).
+    numbers: new DynamoFolderNumbers(context, infra.db, infra.knowledgeTable),
     content: new S3ContentStore(context, infra.s3, infra.contentBucket),
     storage: { current: () => readStorageBudget(infra, context) },
     // The one layer allowed to know which version of the specification the

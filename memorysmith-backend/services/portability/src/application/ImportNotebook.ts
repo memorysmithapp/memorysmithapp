@@ -85,6 +85,13 @@ export interface NotebookWriter {
     content: string;
     by: Authorship;
   }): Promise<Result<void, DomainError>>;
+  /** Brings the counter of a folder up to the last number it had issued (RN-PRT-016). */
+  restoreNumber(input: {
+    notebookId: string;
+    folderId: string;
+    lastNumber: number;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>>;
   /** Undoes a half-written import, which is why an import creates a notebook. */
   deleteNotebook(input: { notebookId: string; by: Authorship }): Promise<Result<void, DomainError>>;
 }
@@ -271,6 +278,16 @@ export class ImportNotebook {
           by,
         });
         if (!template.ok) return undo(template);
+      }
+
+      if (folder.lastNumber !== undefined) {
+        const restored = await this.writer.restoreNumber({
+          notebookId,
+          folderId: written.value.folderId,
+          lastNumber: folder.lastNumber,
+          by,
+        });
+        if (!restored.ok) return undo(restored);
       }
     }
 

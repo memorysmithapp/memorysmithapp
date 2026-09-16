@@ -115,6 +115,9 @@ export const noteSummarySchema = z.object({
   updatedBy: authorshipSchema,
 });
 
+/** The number a folder issued, once and never again (RN-KNW-043). */
+export const folderNumberSchema = z.object({ number: z.number().int().positive() });
+
 export const noteSchema = noteSummarySchema.extend({
   content: z.string(),
   revision: contentRefSchema,
@@ -171,6 +174,7 @@ export type NotebookDetailDto = z.infer<typeof notebookDetailSchema>;
 export type ContentDto = z.infer<typeof contentSchema>;
 export type NoteSummaryDto = z.infer<typeof noteSummarySchema>;
 export type NoteDto = z.infer<typeof noteSchema>;
+export type FolderNumberDto = z.infer<typeof folderNumberSchema>;
 export type CreateNotebookRequest = z.infer<typeof createNotebookRequestSchema>;
 export type RenameNotebookRequest = z.infer<typeof renameNotebookRequestSchema>;
 export type PutContentRequest = z.infer<typeof putContentRequestSchema>;

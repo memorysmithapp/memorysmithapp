@@ -31,6 +31,7 @@ import type { Guidance } from '../../../domain/content-slot/Guidance.js';
 import type { Template } from '../../../domain/content-slot/Template.js';
 import type { NoteOrder } from '../../../domain/services/NotePlacement.js';
 import type {
+  FolderNumbers,
   ContentSlotRepository,
   ContentStore,
   NoteRepository,
@@ -88,12 +89,48 @@ export class InMemoryDatabase {
   readonly notes = new Map<string, { note: Note; version: number }>();
   readonly slots = new Map<string, { slot: ContentSlot; version: number }>();
   readonly content = new Map<string, { revisions: Map<string, string>; latest: string }>();
+  /** The last number each folder issued (RN-KNW-043). */
+  readonly numbers = new Map<string, number>();
 
   clear(): void {
     this.notebooks.clear();
     this.notes.clear();
     this.slots.clear();
     this.content.clear();
+    this.numbers.clear();
+  }
+}
+
+/** The counter of a folder, in memory: one step per request, as the table does it. */
+export class InMemoryFolderNumbers implements FolderNumbers {
+  constructor(
+    private readonly sub: SubscriptionContext,
+    private readonly db: InMemoryDatabase,
+  ) {}
+
+  private prefix(notebook: NotebookId): string {
+    return `${notebookKey(this.sub, notebook)}#SEQ#`;
+  }
+
+  async next(notebook: NotebookId, folder: FolderId): Promise<number> {
+    const key = `${this.prefix(notebook)}${folder.value}`;
+    const issued = (this.db.numbers.get(key) ?? 0) + 1;
+    this.db.numbers.set(key, issued);
+    return issued;
+  }
+
+  async lastIssued(notebook: NotebookId): Promise<Map<string, number>> {
+    const prefix = this.prefix(notebook);
+    return new Map(
+      [...this.db.numbers]
+        .filter(([key]) => key.startsWith(prefix))
+        .map(([key, value]) => [key.slice(prefix.length), value]),
+    );
+  }
+
+  async restore(notebook: NotebookId, folder: FolderId, lastNumber: number): Promise<void> {
+    const key = `${this.prefix(notebook)}${folder.value}`;
+    this.db.numbers.set(key, Math.max(this.db.numbers.get(key) ?? 0, lastNumber));
   }
 }
 

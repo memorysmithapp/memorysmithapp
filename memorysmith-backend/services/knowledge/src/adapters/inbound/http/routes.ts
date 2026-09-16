@@ -37,6 +37,7 @@ import type {
   CreateFolder,
   DeleteTemplate,
   GetTemplate,
+  NextNumber,
   PatchFolder,
   PutTemplate,
   RemoveFolder,
@@ -92,6 +93,7 @@ export interface KnowledgeUseCases {
   readonly putTemplate: (request: KnowledgeRequest) => PutTemplate;
   readonly getTemplate: (request: KnowledgeRequest) => GetTemplate;
   readonly deleteTemplate: (request: KnowledgeRequest) => DeleteTemplate;
+  readonly nextNumber: (request: KnowledgeRequest) => NextNumber;
   readonly listNotes: (request: KnowledgeRequest) => ListNotes;
   readonly readNote: (request: KnowledgeRequest) => ReadNote;
   readonly createNote: (request: KnowledgeRequest) => CreateNote;
@@ -456,6 +458,26 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     if (!template.value) return c.json({ content: null }, 200);
     const { content, folderName, revision } = template.value;
     return c.json({ content, folderName, revision: revision.toJSON() }, 200);
+  });
+
+  /** The next number of a folder, issued once and never again (RN-KNW-043). */
+  app.post('/notebooks/:v/folders/:f/numbers', async (c) => {
+    const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
+    const folderId = FolderId.create(c.req.param('f') ?? '');
+    if (!folderId.ok) return fail(c, folderId.error);
+
+    const issued = await useCases.nextNumber(request).execute({
+      ctx: request.ctx,
+      notebookId: notebookId.value,
+      folderId: folderId.value,
+      by: author.value,
+    });
+    if (!issued.ok) return fail(c, issued.error);
+    return c.json({ number: issued.value }, 200);
   });
 
   /** Deleting the template of a folder, which the folder survives. */

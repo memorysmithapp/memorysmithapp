@@ -311,6 +311,9 @@ export class DynamoNotebookRepository implements NotebookRepository {
           },
         },
         { Delete: { TableName: this.tableName, Key: { PK: pk, SK: `FSTAT#${id}` } } },
+        // The numbers of the folder go with it; its identifier is never reused,
+        // so no later folder can issue them again (RN-KNW-043).
+        { Delete: { TableName: this.tableName, Key: { PK: pk, SK: `SEQ#${id}` } } },
       );
     }
 

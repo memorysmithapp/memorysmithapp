@@ -43,6 +43,7 @@ export interface NotebookDocument {
     readonly description: string;
     readonly position: string;
     readonly template: string | null;
+    readonly lastNumber?: number;
   }>;
   readonly notes: ReadonlyArray<{
     readonly noteId: string;
@@ -62,6 +63,8 @@ export interface ExportFolder {
   readonly description: string;
   readonly position: string;
   readonly templateContent: string | null;
+  /** The last number the folder issued, or nothing when it issued none (RN-PRT-016). */
+  readonly lastNumber?: number;
 }
 
 export interface ExportNote {
@@ -97,6 +100,7 @@ export function buildNotebookDocument(input: ExportInput, now: string): Notebook
       description: folder.description,
       position: folder.position,
       template: folder.templateContent,
+      ...(folder.lastNumber ? { lastNumber: folder.lastNumber } : {}),
     })),
     notes: input.notes.map((note) => ({
       noteId: note.noteId,

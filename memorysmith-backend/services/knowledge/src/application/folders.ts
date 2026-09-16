@@ -20,6 +20,7 @@ import type { Folder } from '../domain/notebook/Folder.js';
 import type { Notebook } from '../domain/notebook/Notebook.js';
 import { FolderDescription, FolderName, RemovalPolicy } from '../domain/values.js';
 import { guardRevision, loadAuthorized, type NotebookDependencies } from './notebooks.js';
+import type { FolderNumbers } from '../domain/ports/index.js';
 import { admitWrite } from '../domain/services/StorageQuota.js';
 
 export class CreateFolder {
@@ -274,6 +275,60 @@ export class DeleteTemplate {
 
     const saved = await this.deps.slots.save(template);
     return saved.ok ? ok() : err(saved.error);
+  }
+}
+
+export interface NumberingDependencies extends NotebookDependencies {
+  readonly numbers: FolderNumbers;
+}
+
+/**
+ * The next number of a folder (RN-KNW-043, RN-AGT-036). It is a write: the
+ * notebook is authorized for writing and the Authorship is taken like every
+ * mutation's (rule 7), and the counter keeps who issued its last number.
+ */
+export class NextNumber {
+  constructor(private readonly deps: NumberingDependencies) {}
+
+  async execute(input: {
+    ctx: RequestContext;
+    notebookId: NotebookId;
+    folderId: FolderId;
+    by: Authorship;
+  }): Promise<Result<number, DomainError>> {
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    if (!notebook.ok) return notebook;
+    if (!notebook.value.folders.get(input.folderId)) {
+      return err(DomainError.notFound('Folder not found in this notebook'));
+    }
+    return ok(await this.deps.numbers.next(input.notebookId, input.folderId, input.by));
+  }
+}
+
+/**
+ * Brings the counter of a folder up to the last number an exported notebook
+ * had issued, which is what an import restores (RN-PRT-016).
+ */
+export class RestoreFolderNumber {
+  constructor(private readonly deps: NumberingDependencies) {}
+
+  async execute(input: {
+    ctx: RequestContext;
+    notebookId: NotebookId;
+    folderId: FolderId;
+    lastNumber: number;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>> {
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    if (!notebook.ok) return notebook;
+    if (!notebook.value.folders.get(input.folderId)) {
+      return err(DomainError.notFound('Folder not found in this notebook'));
+    }
+    if (!Number.isSafeInteger(input.lastNumber) || input.lastNumber < 0) {
+      return err(DomainError.validation('The last number of a folder is a whole number'));
+    }
+    await this.deps.numbers.restore(input.notebookId, input.folderId, input.lastNumber, input.by);
+    return ok();
   }
 }
 

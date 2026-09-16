@@ -35,6 +35,7 @@ export type {
   ContentSlotRepository,
   ContentStore,
   EventPublisher,
+  FolderNumbers,
   NoteRepository,
   NotebookRepository,
 } from './ports/index.js';

@@ -714,6 +714,7 @@ Moving between notebooks is the **only operation in the system that writes to tw
 | Note | `S#{s}#NOTEBOOK#{v}` | `NOTE#{noteId}` | folderId, name, position, **bodyRef**, createdBy, updatedBy, version, `deletedAt?`, `deletedBy?` |
 | Folder slug guard | `S#{s}#NOTEBOOK#{v}` | `SLUG#{parentId}#{slug}` | enforces I1 through `attribute_not_exists` |
 | Projection dedup | `S#{s}#NOTEBOOK#{v}` | `SEEN#{eventUlid}` | ttl; makes the counter exactly-once |
+| Numbers of a folder | `S#{s}#NOTEBOOK#{v}` | `SEQ#{folderId}` | lastNumber, issuedBy, issuedAt; advanced by ONE `UpdateItem` with `ADD lastNumber :one` answering the new value, in no transaction and never beside `META`, so requests on one folder are served in turn and none is cancelled (RN-KNW-043). Removed with its folder, beside `FSTAT#{folderId}` |
 | Outbox | `S#{s}#NOTEBOOK#{v}` | `EVENT#{ulid}` | payload, ttl |
 
 `bodyRef` and the two `contentRef`s are a serialised `ContentRef`, **the only link to S3 in the whole system**.
@@ -730,7 +731,7 @@ Query  PK = S#{s}#NOTEBOOK#{v}   AND   SK BETWEEN 'FOLDER#' AND 'META'
 
 The tree does not LOAD the slots from those items — each is an aggregate of its own, read on its own when its content is wanted — it takes from them the two answers it has to give: **which folders carry a Template and whether the notebook has a Guidance**.
 
-`EVENT#` falls before the range; `NOTE#`, `SEEN#` and `SLUG#` fall after it. It is that property that makes `get_notebook_context` return the annotated tree with the note count of each folder **without one query per folder**.
+`EVENT#` falls before the range; `NOTE#`, `SEEN#`, `SEQ#` and `SLUG#` fall after it. It is that property that makes `get_notebook_context` return the annotated tree with the note count of each folder **without one query per folder**.
 
 **Every key component ends in `#`, and one pair is why that is a rule rather than a habit.** `NOTE` is a prefix of `NOTEBOOK`, so a `begins_with` on a bare `NOTE` would reach a notebook item wherever the two meet; `NOTE#` never reaches `NOTEBOOK#`. The adapter suite asserts it against the table and against `GSI1`, where the notebook items live.
 
@@ -1203,6 +1204,8 @@ svc-knowledge    GET  /notebooks · POST /notebooks
                  POST /notebooks/:v/folders · PATCH|DELETE /notebooks/:v/folders/:f
                  POST /notebooks/:v/folders/:f/reorder   { afterFolderId | null }
                  GET|PUT|DELETE /notebooks/:v/folders/:f/template
+                 POST /notebooks/:v/folders/:f/numbers   { number }, the next number
+                    of a folder (RN-KNW-043)
                  ── DELETE on either answers 204 and leaves the folder or the
                     notebook standing (RN-KNW-045); each is an object of its own
                  GET|POST /notebooks/:v/notes · GET|PUT|DELETE /notebooks/:v/notes/:n

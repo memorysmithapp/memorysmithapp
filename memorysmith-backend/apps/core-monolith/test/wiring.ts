@@ -53,6 +53,7 @@ import {
 } from '@memorysmith/svc-access/application/connectors';
 import {
   InMemoryContentSlotRepository,
+  InMemoryFolderNumbers,
   InMemoryContentStore,
   InMemoryStorageBudget,
   InMemoryDatabase,
@@ -74,6 +75,8 @@ import {
 import {
   CreateFolder,
   DeleteTemplate,
+  NextNumber,
+  RestoreFolderNumber,
   GetTemplate,
   PatchFolder,
   PutTemplate,
@@ -198,6 +201,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     notebooks: new InMemoryNotebookRepository(context, knowledgeDb, events),
     notes: new InMemoryNoteRepository(context, knowledgeDb, events),
     slots: new InMemoryContentSlotRepository(context, knowledgeDb, events),
+    numbers: new InMemoryFolderNumbers(context, knowledgeDb),
     content: new InMemoryContentStore(context, knowledgeDb),
     storage,
     // The same list production injects, from the same specification (RN-AGT-025).
@@ -263,6 +267,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     putTemplate: (request) => new PutTemplate(knowledgeRepos(request.subscription)),
     getTemplate: (request) => new GetTemplate(knowledgeRepos(request.subscription)),
     deleteTemplate: (request) => new DeleteTemplate(knowledgeRepos(request.subscription)),
+    nextNumber: (request) => new NextNumber(knowledgeRepos(request.subscription)),
     listNotes: (request) => new ListNotes(knowledgeRepos(request.subscription)),
     readNote: (request) => new ReadNote(knowledgeRepos(request.subscription)),
     createNote: (request) => new CreateNote(knowledgeRepos(request.subscription)),
@@ -395,6 +400,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
           putGuidance: new PutGuidance(knowledgeRepos(request.subscription)),
           createFolder: new CreateFolder(knowledgeRepos(request.subscription)),
           putTemplate: new PutTemplate(knowledgeRepos(request.subscription)),
+          restoreFolderNumber: new RestoreFolderNumber(knowledgeRepos(request.subscription)),
           createNote: new CreateNote(knowledgeRepos(request.subscription)),
           deleteNotebook: new DeleteNotebook(knowledgeRepos(request.subscription)),
         },

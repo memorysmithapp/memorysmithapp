@@ -13,6 +13,7 @@ import { NotebookId } from '@memorysmith/kernel';
 import type {
   ContentSlotRepository,
   ContentStore,
+  FolderNumbers,
   NoteRepository,
   NotebookRepository,
 } from '@memorysmith/svc-knowledge/domain';
@@ -50,6 +51,8 @@ interface KnowledgeSide {
   /** The Guidance and the Templates, each an aggregate of its own. */
   readonly slots: ContentSlotRepository;
   readonly content: ContentStore;
+  /** The last number each folder issued, which the export carries (RN-PRT-016). */
+  readonly numbers: FolderNumbers;
 }
 
 export class KnowledgeExportSource implements ExportSource {
@@ -76,6 +79,7 @@ export class KnowledgeExportSource implements ExportSource {
       ]),
     );
     const guidanceSlot = await this.knowledge.slots.findGuidance(parsed.value);
+    const lastNumbers = await this.knowledge.numbers.lastIssued(parsed.value);
 
     const [guidance, templates, bodies] = await Promise.all([
       guidanceSlot ? this.knowledge.content.read(guidanceSlot.ref) : Promise.resolve(null),
@@ -99,6 +103,9 @@ export class KnowledgeExportSource implements ExportSource {
         description: folder.description.value,
         position: folder.position.value,
         templateContent: templates[index] ?? null,
+        ...(lastNumbers.get(folder.id.value)
+          ? { lastNumber: lastNumbers.get(folder.id.value) as number }
+          : {}),
       })),
       // Nothing derived travels: no name and no slug, because the name is
       // read from the body wherever it is needed (RN-PRT-010).

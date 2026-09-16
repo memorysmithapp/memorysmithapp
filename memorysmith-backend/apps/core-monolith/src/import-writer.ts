@@ -20,7 +20,11 @@ import type {
   DeleteNotebook,
   PutGuidance,
 } from '@memorysmith/svc-knowledge/application/notebooks';
-import type { CreateFolder, PutTemplate } from '@memorysmith/svc-knowledge/application/folders';
+import type {
+  CreateFolder,
+  PutTemplate,
+  RestoreFolderNumber,
+} from '@memorysmith/svc-knowledge/application/folders';
 import type { CreateNote } from '@memorysmith/svc-knowledge/application/notes';
 import type { RequestContext } from '@memorysmith/svc-knowledge/domain';
 
@@ -29,6 +33,7 @@ export interface KnowledgeWriteUseCases {
   readonly putGuidance: PutGuidance;
   readonly createFolder: CreateFolder;
   readonly putTemplate: PutTemplate;
+  readonly restoreFolderNumber: RestoreFolderNumber;
   readonly createNote: CreateNote;
   readonly deleteNotebook: DeleteNotebook;
 }
@@ -143,6 +148,25 @@ export class KnowledgeNotebookWriter implements NotebookWriter {
       by: input.by,
     });
     return created.ok ? ok() : created;
+  }
+
+  async restoreNumber(input: {
+    notebookId: string;
+    folderId: string;
+    lastNumber: number;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>> {
+    const notebookId = NotebookId.create(input.notebookId);
+    if (!notebookId.ok) return notebookId;
+    const folderId = FolderId.create(input.folderId);
+    if (!folderId.ok) return folderId;
+    return this.useCases.restoreFolderNumber.execute({
+      ctx: this.ctx,
+      notebookId: notebookId.value,
+      folderId: folderId.value,
+      lastNumber: input.lastNumber,
+      by: input.by,
+    });
   }
 
   async deleteNotebook(input: {

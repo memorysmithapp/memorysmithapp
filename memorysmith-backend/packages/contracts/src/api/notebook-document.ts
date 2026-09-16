@@ -46,6 +46,12 @@ export const documentFolderSchema = z.object({
   position: positionSchema,
   /** The Template of this folder, as Markdown, or `null` when it has none. */
   template: z.string().nullable(),
+  /**
+   * The last number this folder issued (RN-KNW-043), absent for a folder that
+   * issued none. An import restores it, so the notebook brought back never
+   * issues a number its notes already carry (RN-PRT-016).
+   */
+  lastNumber: z.number().int().positive().optional(),
 });
 
 export const documentNoteSchema = z.object({

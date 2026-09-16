@@ -21,6 +21,7 @@
   "exports": {
     "./adapters/notebooks": "./src/adapters/outbound/dynamodb/DynamoNotebookRepository.ts",
     "./adapters/slots": "./src/adapters/outbound/dynamodb/DynamoContentSlotRepository.ts",
+    "./adapters/numbers": "./src/adapters/outbound/dynamodb/DynamoFolderNumbers.ts",
     "./adapters/notes": "./src/adapters/outbound/dynamodb/DynamoNoteRepository.ts",
     "./adapters/content": "./src/adapters/outbound/s3/S3ContentStore.ts",
     "./adapters/storage": "./src/adapters/outbound/dynamodb/DynamoStorageMeter.ts",

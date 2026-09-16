@@ -275,7 +275,7 @@ export class ContentPurge {
    */
   private async purgeTree(context: Context): Promise<void> {
     const keys: string[] = [];
-    for (const prefix of ['FOLDER#', 'FSTAT', 'LIMIT#', 'NAME#', 'SLUG#', 'META']) {
+    for (const prefix of ['FOLDER#', 'FSTAT', 'LIMIT#', 'NAME#', 'SEQ#', 'SLUG#', 'META']) {
       await this.walk(context, prefix, async (item) => {
         keys.push(String(item['SK']));
         return false; // counted as tree, not as a unit of its own

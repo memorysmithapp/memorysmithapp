@@ -349,6 +349,24 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
   },
   {
+    name: 'next_number',
+    title: 'Issue the next number of a folder',
+    description:
+      'Issues the next whole number of a folder and answers it: 1 for a folder that never ' +
+      'issued one, then 2, 3 and on. A number is issued once and never again, not even after ' +
+      'the note that carried it is deleted, and a number you ask for and do not use leaves a ' +
+      'gap. Use it when the Guidance says a folder numbers its notes, such as records that ' +
+      'multiply: the name is the convention the Guidance states, such as EV-00042, and the ' +
+      'description goes in the text of a link, [[EV-00042|what it shows]]. Ask for a number ' +
+      'only when you are about to write the note that carries it. The server writes no name ' +
+      'and checks none against the number.',
+    inputSchema: object({ notebook: notebookArgument, folder: folderArgument }, [
+      'notebook',
+      'folder',
+    ]),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
     name: 'list_notes',
     title: 'List notes',
     description:

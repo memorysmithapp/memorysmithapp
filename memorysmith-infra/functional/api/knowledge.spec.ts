@@ -242,6 +242,19 @@ test.describe('folders', () => {
     expect(read.revision.versionId).toBe(written.revision.versionId);
   });
 
+  test('[route:POST /knowledge/notebooks/:v/folders/:f/numbers] issues the numbers of a folder, each once', async ({
+    owner,
+    notebook,
+  }) => {
+    const path = `${foldersPath(notebook)}/${notebook.folderId}/numbers`;
+    const issued = await Promise.all(
+      Array.from({ length: 5 }, () => owner.ok<{ number: number }>('POST', path)),
+    );
+    // RN-KNW-043: five requests at once, five distinct numbers from 1.
+    expect(issued.map((each) => each.number).sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5]);
+    expect((await owner.ok<{ number: number }>('POST', path)).number).toBe(6);
+  });
+
   test('[route:DELETE /knowledge/notebooks/:v/folders/:f/template] deletes the Template, and the folder stays', async ({
     owner,
     notebook,

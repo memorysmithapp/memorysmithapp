@@ -466,6 +466,41 @@ describe('Portability answers over the API', () => {
     expect(await bodies(job.notebookId)).toEqual(await bodies(notebookId));
   });
 
+  it('issues the numbers of a folder once, and an import carries on from the last one', async () => {
+    // RN-KNW-043, RN-PRT-016.
+    const { notebookId, folderId, notes } = await seed();
+    const numbers = `/knowledge/notebooks/${notebookId}/folders/${folderId}/numbers`;
+    const issue = async (path = numbers) =>
+      ((await (await call(path, { method: 'POST' })).json()) as { number: number }).number;
+
+    expect([await issue(), await issue(), await issue()]).toEqual([1, 2, 3]);
+    // Deleting a note gives no number back.
+    await call(`/knowledge/notebooks/${notebookId}/notes/${notes['lei']}`, { method: 'DELETE' });
+    expect(await issue()).toBe(4);
+    for (let n = 5; n <= 42; n++) await issue();
+
+    await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
+    const [exportKey] = [...harness.archives.keys()];
+    const prepared = (await (await call('/portability/imports', { method: 'POST' })).json()) as {
+      uploadKey: string;
+    };
+    harness.uploads.set(prepared.uploadKey, harness.archives.get(exportKey ?? '') as Buffer);
+    const job = (await (
+      await call('/portability/imports/apply', {
+        method: 'POST',
+        body: { uploadKey: prepared.uploadKey, name: 'Normas e Legislacao (numerada)' },
+      })
+    ).json()) as { notebookId: string };
+
+    const imported = (await (await call(`/knowledge/notebooks/${job.notebookId}`)).json()) as {
+      folders: Array<{ folderId: string }>;
+    };
+    const importedFolder = imported.folders[0]?.folderId ?? '';
+    expect(
+      await issue(`/knowledge/notebooks/${job.notebookId}/folders/${importedFolder}/numbers`),
+    ).toBe(43);
+  });
+
   it('refuses a document it cannot read, and creates nothing', async () => {
     // RN-PRT-014: refused whole, with the reason, before the first write.
     const before = (await (await call('/knowledge/notebooks')).json()) as unknown[];

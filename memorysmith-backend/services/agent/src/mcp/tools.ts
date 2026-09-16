@@ -337,6 +337,16 @@ export class McpToolAdapter {
         );
       }
 
+      case 'next_number': {
+        const folder = requireString(args, 'folder', 'next_number');
+        const number = await knowledge.nextNumber(
+          caller,
+          requireString(args, 'notebook', 'next_number'),
+          folder,
+        );
+        return json({ folder, number });
+      }
+
       case 'delete_note': {
         const note = requireString(args, 'note', 'delete_note');
         await knowledge.deleteNote(caller, requireString(args, 'notebook', 'delete_note'), note);

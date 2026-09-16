@@ -17,6 +17,7 @@ import { pageOf } from '../mcp/note-pages.js';
 import type {
   BacklinksDto,
   FolderDto,
+  FolderNumberDto,
   GraphNodeDto,
   NoteLinksDto,
   NoteRefDto,
@@ -293,6 +294,16 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       { method: 'PUT', body: { content: input.content, baseRevision: input.baseRevision } },
     );
     return written.revision.versionId;
+  }
+
+  async nextNumber(caller: AgentCaller, notebookId: string, folderId: string): Promise<number> {
+    const issued = await callApi<FolderNumberDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${notebookId}/folders/${folderId}/numbers`,
+      { method: 'POST' },
+    );
+    return issued.number;
   }
 
   async deleteTemplate(caller: AgentCaller, notebookId: string, folderId: string): Promise<void> {

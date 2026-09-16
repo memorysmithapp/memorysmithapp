@@ -43,6 +43,7 @@ function gateways(overrides: Record<string, unknown> = {}) {
     listNotes: async () => [
       { noteId: 'n1', name: 'Lei 14.133', slug: 'lei-14133', folderId: 'f1', position: 'a0' },
     ],
+    nextNumber: async () => 42,
     readNote: async () => ({
       noteId: 'n1',
       name: 'Lei 14.133',
@@ -166,6 +167,7 @@ describe('The tool catalog is the public contract', () => {
       'get_template',
       'set_template',
       'delete_template',
+      'next_number',
       'list_notes',
       'read_note',
       'create_note',
@@ -211,6 +213,7 @@ describe('The tool catalog is the public contract', () => {
       'delete_folder',
       'set_template',
       'delete_template',
+      'next_number',
       'create_note',
       'update_note',
       'reorder_note',
@@ -1148,6 +1151,18 @@ describe('the connector orders what it writes (RN-AGT-029)', () => {
       );
     expect(ids(folders, 'folderId')).toEqual(['f2', 'f1']);
     expect(ids(notes, 'noteId')).toEqual(['n2', 'n1']);
+  });
+
+  it('issues the next number of a folder as a write that is not idempotent', async () => {
+    // RN-AGT-036: a second call issues another number, so a retry is not free.
+    const tool = TOOL_CATALOG.find((each) => each.name === 'next_number');
+    expect(tool?.annotations).toMatchObject({
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+    });
+    const answer = await gateways().call('next_number', { notebook: 'v1', folder: 'f1' }, caller);
+    expect(JSON.parse(answer.content[0]?.text ?? '')).toEqual({ folder: 'f1', number: 42 });
   });
 
   it('declares both reorders as writes that destroy nothing', () => {

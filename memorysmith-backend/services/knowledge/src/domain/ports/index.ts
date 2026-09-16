@@ -9,6 +9,7 @@
  */
 
 import type {
+  Authorship,
   ContentId,
   ContentRef,
   DomainEvent,
@@ -104,6 +105,35 @@ export interface ContentStore {
   overwrite(slot: ContentId, markdown: string): Promise<ContentRef>;
   /** The exact revision the ref points at. */
   read(ref: ContentRef): Promise<string>;
+}
+
+/**
+ * The numbers a folder issues (RN-KNW-043): whole, increasing, from 1, one per
+ * request, never issued twice and never reused. The product knows the number
+ * and nothing else — no name is checked against it, and a prefix or a padding
+ * is a convention of the notebook (PP4).
+ *
+ * It is not part of any note transaction and never touches `META` (section
+ * 10.2): two agents asking one folder at once are served one after the other,
+ * and neither is cancelled. Issuing a number is not an audited event: the
+ * number enters the record when a note names itself with it, and that write is.
+ */
+export interface FolderNumbers {
+  /** Issues the next number of the folder, in one atomic step. */
+  next(notebook: NotebookId, folder: FolderId, by: Authorship): Promise<number>;
+  /** The last number each folder of the notebook issued, for the folders that issued any. */
+  lastIssued(notebook: NotebookId): Promise<Map<string, number>>;
+  /**
+   * Brings the counter of a folder up to `lastNumber`, and never down: what an
+   * import restores, so a notebook brought back never issues a number its
+   * notes already carry (RN-PRT-016).
+   */
+  restore(
+    notebook: NotebookId,
+    folder: FolderId,
+    lastNumber: number,
+    by: Authorship,
+  ): Promise<void>;
 }
 
 export interface EventPublisher {

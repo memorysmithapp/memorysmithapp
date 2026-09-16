@@ -26,6 +26,7 @@ import { GetCommand, QueryCommand, type DynamoDBDocumentClient } from '@aws-sdk/
 import type { S3Client } from '@aws-sdk/client-s3';
 import { ContentPurge } from '../../src/adapters/inbound/content-purge.js';
 import { DynamoContentSlotRepository } from '../../src/adapters/outbound/dynamodb/DynamoContentSlotRepository.js';
+import { DynamoFolderNumbers } from '../../src/adapters/outbound/dynamodb/DynamoFolderNumbers.js';
 import { S3ContentPurger } from '../../src/adapters/outbound/s3/S3ContentPurger.js';
 import { DynamoNotebookRepository } from '../../src/adapters/outbound/dynamodb/DynamoNotebookRepository.js';
 import { DynamoNoteRepository } from '../../src/adapters/outbound/dynamodb/DynamoNoteRepository.js';
@@ -1039,4 +1040,73 @@ describe('Delivery 4 done criteria', () => {
     const after = (await repositories(context).notebooks.findById(notebook.id)) as Notebook;
     for (const folder of folders) expect(after.hasTemplate(folder.id)).toBe(true);
   }, 120_000);
+});
+
+describe('DynamoFolderNumbers: a folder issues each number once (RN-KNW-043)', () => {
+  it('answers twenty distinct numbers, 1 to 20, to twenty requests at once, and none fails', async () => {
+    const context = contextFor();
+    const { notebook, folder } = await seedNotebook(context);
+    const numbers = new DynamoFolderNumbers(context, db, TABLE_NAME);
+
+    const issued = await Promise.all(
+      Array.from({ length: 20 }, () => numbers.next(notebook.id, folder.id, authorshipOf(context))),
+    );
+
+    expect([...issued].sort((a, b) => a - b)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
+    // Another folder of the same notebook starts at 1.
+    const other = FolderId.generate();
+    expect(await numbers.next(notebook.id, other, authorshipOf(context))).toBe(1);
+    expect((await numbers.lastIssued(notebook.id)).get(folder.id.value)).toBe(20);
+  });
+
+  it('restores a counter only upward, and loading the notebook never reads it', async () => {
+    const context = contextFor();
+    const { notebook, folder } = await seedNotebook(context);
+    const numbers = new DynamoFolderNumbers(context, db, TABLE_NAME);
+
+    await numbers.restore(notebook.id, folder.id, 42, authorshipOf(context));
+    await numbers.restore(notebook.id, folder.id, 7, authorshipOf(context));
+    expect(await numbers.next(notebook.id, folder.id, authorshipOf(context))).toBe(43);
+
+    // The counter sorts after META, outside the range that loads the aggregate.
+    const aggregate = await db.send(
+      new QueryCommand({
+        TableName: TABLE_NAME,
+        KeyConditionExpression: 'PK = :pk AND SK BETWEEN :from AND :to',
+        ExpressionAttributeValues: {
+          ':pk': `S#${context.subscriptionId.value}#NOTEBOOK#${notebook.id.value}`,
+          ':from': 'FOLDER#',
+          ':to': 'META',
+        },
+        ConsistentRead: true,
+      }),
+    );
+    expect((aggregate.Items ?? []).some((item) => String(item['SK']).startsWith('SEQ#'))).toBe(
+      false,
+    );
+  });
+
+  it('removes the counter with its folder', async () => {
+    const context = contextFor();
+    const { notebook, folder } = await seedNotebook(context);
+    const numbers = new DynamoFolderNumbers(context, db, TABLE_NAME);
+    await numbers.next(notebook.id, folder.id, authorshipOf(context));
+
+    const tree = new DynamoNotebookRepository(context, db, TABLE_NAME);
+    const loaded = (await tree.findById(notebook.id)) as Notebook;
+    unwrap(loaded.removeFolder(folder.id, RemovalPolicy.CASCADE, authorshipOf(context)));
+    expect((await tree.save(loaded)).ok).toBe(true);
+
+    const counter = await db.send(
+      new GetCommand({
+        TableName: TABLE_NAME,
+        Key: {
+          PK: `S#${context.subscriptionId.value}#NOTEBOOK#${notebook.id.value}`,
+          SK: `SEQ#${folder.id.value}`,
+        },
+        ConsistentRead: true,
+      }),
+    );
+    expect(counter.Item).toBeUndefined();
+  });
 });

@@ -193,6 +193,8 @@ export interface KnowledgeGateway {
   ): Promise<string>;
   /** The folder stays and stops suggesting a layout for the notes kept there. */
   deleteTemplate(caller: AgentCaller, notebookId: string, folderId: string): Promise<void>;
+  /** Issues the next number of a folder (RN-AGT-036). */
+  nextNumber(caller: AgentCaller, notebookId: string, folderId: string): Promise<number>;
   deleteNote(caller: AgentCaller, notebookId: string, noteId: string): Promise<void>;
   notebookContext(caller: AgentCaller, notebookId: string): Promise<string>;
   template(

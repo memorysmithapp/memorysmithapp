@@ -307,6 +307,13 @@ test.describe('the tools', () => {
     expect((await callTool(agent, 'delete_template', folder)).isError).toBe(true);
   });
 
+  test('[tool:next_number] issues the next number of a folder', async ({ agent, notebook }) => {
+    const folder = { notebook: notebook.notebookId, folder: notebook.folderId };
+    const first = parsed<{ number: number }>(await callTool(agent, 'next_number', folder));
+    const second = parsed<{ number: number }>(await callTool(agent, 'next_number', folder));
+    expect(second.number).toBe(first.number + 1);
+  });
+
   test('[tool:reorder_folder] [tool:reorder_note] orders the folders of a level and the notes of a folder, when they are written and afterwards', async ({
     agent,
     notebook,

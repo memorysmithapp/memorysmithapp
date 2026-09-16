@@ -10,7 +10,7 @@
  * FSTAT#, FTPL#, GUIDANCE and LIMIT# fall between FOLDER# and META, so the
  * whole aggregate, the counters, the two kinds of Content Slot AND the role
  * ceilings come back in a single Query over a single partition. EVENT# sorts
- * before that range; NOTE#, SEEN# and SLUG# sort after it.
+ * before that range; NOTE#, SEEN#, SEQ# and SLUG# sort after it.
  */
 
 import {
@@ -83,6 +83,15 @@ export class KnowledgeKeys {
    */
   noteNameGuard(folderId: FolderId, name: string): string {
     return `NAME#${folderId.value}#${sha256Hex(name)}`;
+  }
+
+  /**
+   * The counter of the numbers a folder issues (RN-KNW-043). It sorts after
+   * `META`, outside the range that loads the aggregate, so loading a notebook
+   * reads exactly what it read before the counter existed.
+   */
+  folderNumbers(folderId: FolderId): string {
+    return `SEQ#${folderId.value}`;
   }
 
   /** I1 in the database: unique among siblings (RN-KNW-002). */
