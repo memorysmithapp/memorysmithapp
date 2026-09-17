@@ -9,6 +9,7 @@
 
 import type {
   AccountLocaleDto,
+  ImportSelection,
   TransferDto,
   TransferListDto,
   DownloadLinkDto,
@@ -225,14 +226,20 @@ export async function prepareImport(): Promise<{ uploadKey: string; uploadUrl: s
 }
 
 /** Reads what was uploaded and writes the notebook it describes. */
+/**
+ * Starts the import and answers the transfer (RN-PRT-018). Writing a notebook
+ * of several hundred notes does not fit in one request, so what comes back is
+ * the job, which the page then follows.
+ */
 export async function applyImport(
   uploadKey: string,
   name: string,
-): Promise<{ notebookId: string; noteCount: number; folderCount: number }> {
-  return request<{ notebookId: string; noteCount: number; folderCount: number }>(
-    '/portability/imports/apply',
-    { method: 'POST', body: { uploadKey, name } },
-  );
+  selection: ImportSelection | null,
+): Promise<TransferDto> {
+  return request<TransferDto>('/portability/imports/apply', {
+    method: 'POST',
+    body: { uploadKey, name, selection },
+  });
 }
 
 /**

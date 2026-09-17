@@ -2920,3 +2920,144 @@ body.has-modal {
     flex: 1 1 8rem;
   }
 }
+
+/*
+ * Importing a notebook: a page of three steps, because what it has to show —
+ * what the document carries, what will be created and how far it got — never
+ * fitted in a button (#143, RN-PRT-017).
+ */
+.import-page {
+  max-width: 48rem;
+}
+.import-drop {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+  padding: 1.25rem;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+}
+.import-drop .chip {
+  cursor: pointer;
+  min-height: 2.5rem;
+  padding: 0 0.9rem;
+}
+.import-drop-hint {
+  color: var(--text-soft);
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+.import-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 1rem 0 0.5rem;
+  font-size: 0.86rem;
+}
+.import-name input {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.import-name input[aria-invalid='true'] {
+  border-color: var(--signal);
+}
+.import-presets {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 0.75rem 0;
+}
+.import-preset {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+.import-filter input {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.import-tree,
+.import-tree ul {
+  list-style: none;
+  margin: 0.5rem 0;
+  padding: 0;
+}
+.import-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.25rem;
+  font-size: 0.88rem;
+  /* A deep trail wraps rather than being cut, at any width. */
+  overflow-wrap: anywhere;
+}
+.import-row label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.25rem;
+  cursor: pointer;
+}
+.import-twisty,
+.import-only {
+  border: 0;
+  background: none;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  cursor: pointer;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+}
+.import-only {
+  margin-inline-start: auto;
+}
+.import-only:hover,
+.import-twisty:hover {
+  color: var(--text);
+}
+.import-row-count {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+.import-summary {
+  position: sticky;
+  bottom: 0;
+  margin-top: 1rem;
+  padding: 0.75rem 0;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  font-size: 0.86rem;
+}
+.import-summary p {
+  margin: 0 0 0.4rem;
+  color: var(--text-soft);
+}
+.import-conflict {
+  color: var(--signal);
+}
+.import-summary .chip {
+  cursor: pointer;
+  min-height: 2.5rem;
+  padding: 0 1rem;
+}
+.import-summary .chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.import-progress {
+  width: 100%;
+  height: 0.5rem;
+}

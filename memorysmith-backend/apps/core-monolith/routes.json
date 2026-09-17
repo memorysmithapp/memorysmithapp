@@ -55,6 +55,7 @@
   "POST /portability/imports",
   "POST /portability/imports/apply",
   "POST /portability/notebooks/:v/export",
+  "POST /portability/transfers/:t/cancel",
   "POST /portability/transfers/:t/download",
   "PUT /access/platform/subscriptions/:s/status",
   "PUT /access/session/locale",

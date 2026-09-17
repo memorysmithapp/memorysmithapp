@@ -29,6 +29,27 @@ async function call(
   });
 }
 
+/**
+ * Starts an import and answers the transfer it produced. The harness runs the
+ * worker inline, so the job has already ended when the call returns.
+ */
+async function imported_(
+  uploadKey: string,
+  name: string,
+): Promise<{ transferId: string; notebookId: string; status: string; failure: string | null }> {
+  const started = await call('/portability/imports/apply', {
+    method: 'POST',
+    body: { uploadKey, name },
+  });
+  const { transferId } = (await started.json()) as { transferId: string };
+  return (await (await call(`/portability/transfers/${transferId}`)).json()) as {
+    transferId: string;
+    notebookId: string;
+    status: string;
+    failure: string | null;
+  };
+}
+
 /** Drains what the writes published into the projections, as the bus would. */
 async function drainEvents(): Promise<void> {
   const envelopes = harness.events.published.map((event) => ({
@@ -535,19 +556,28 @@ describe('Portability answers over the API', () => {
     );
     harness.uploads.set(prepared.uploadKey, archive);
 
-    const job = (await (
-      await call('/portability/imports/apply', {
-        method: 'POST',
-        // The subscription holds each notebook name once (RN-KNW-032), and this
-        // document came from this very subscription: naming the copy is what
-        // makes "the same file twice gives two notebooks" true without the server
-        // inventing a suffix.
-        body: { uploadKey: prepared.uploadKey, name: 'Normas e Legislacao (copia)' },
-      })
-    ).json()) as { notebookId: string; status: string; folderCount: number; noteCount: number };
+    const started = await call('/portability/imports/apply', {
+      method: 'POST',
+      // The subscription holds each notebook name once (RN-KNW-032), and this
+      // document came from this very subscription: naming the copy is what
+      // makes "the same file twice gives two notebooks" true without the server
+      // inventing a suffix.
+      body: { uploadKey: prepared.uploadKey, name: 'Normas e Legislacao (copia)' },
+    });
+    // An import is a JOB: the API records it and answers, and a worker writes
+    // the notebook (RN-PRT-018). The harness runs that worker inline.
+    expect(started.status).toBe(202);
+    const { transferId } = (await started.json()) as { transferId: string };
+    const job = (await (await call(`/portability/transfers/${transferId}`)).json()) as {
+      notebookId: string;
+      status: string;
+      kind: string;
+      done: number;
+    };
 
-    expect(job.status).toBe('imported');
-    expect(job.noteCount).toBe(2);
+    expect(job.kind).toBe('import');
+    expect(job.status).toBe('ready');
+    expect(job.done).toBe(2);
     // A new notebook, never the one it came from (RN-PRT-012).
     expect(job.notebookId).not.toBe(notebookId);
     // And the upload is discarded once the import ends.
@@ -608,12 +638,7 @@ describe('Portability answers over the API', () => {
       uploadKey: string;
     };
     harness.uploads.set(prepared.uploadKey, harness.archives.get(exportKey ?? '') as Buffer);
-    const job = (await (
-      await call('/portability/imports/apply', {
-        method: 'POST',
-        body: { uploadKey: prepared.uploadKey, name: 'Normas e Legislacao (numerada)' },
-      })
-    ).json()) as { notebookId: string };
+    const job = await imported_(prepared.uploadKey, 'Normas e Legislacao (numerada)');
 
     const imported = (await (await call(`/knowledge/notebooks/${job.notebookId}`)).json()) as {
       folders: Array<{ folderId: string }>;
@@ -624,8 +649,12 @@ describe('Portability answers over the API', () => {
     ).toBe(43);
   });
 
+  /**
+   * An import is a job, so a refusal reaches the person as the END of that job
+   * and not as the status of a request — and it reaches them as a CODE, because
+   * the interface that shows it speaks two languages (RN-PRT-014, RN-PRT-018).
+   */
   it('refuses a document it cannot read, and creates nothing', async () => {
-    // RN-PRT-014: refused whole, with the reason, before the first write.
     const before = (await (await call('/knowledge/notebooks')).json()) as unknown[];
 
     const prepared = (await (await call('/portability/imports', { method: 'POST' })).json()) as {
@@ -633,15 +662,25 @@ describe('Portability answers over the API', () => {
     };
     harness.uploads.set(prepared.uploadKey, Buffer.from('not a zip at all'));
 
+    const job = await imported_(prepared.uploadKey, 'Nao vai nascer');
+    expect(job.status).toBe('failed');
+    expect(job.failure).toBe('NOT_AN_ARCHIVE');
+
+    const after = (await (await call('/knowledge/notebooks')).json()) as unknown[];
+    expect(after.length).toBe(before.length);
+  });
+
+  it('refuses an import with no name for the notebook it would create', async () => {
+    // The name is given by whoever imports, because a subscription holds each
+    // notebook name once (RN-KNW-032, RN-PRT-012).
+    const prepared = (await (await call('/portability/imports', { method: 'POST' })).json()) as {
+      uploadKey: string;
+    };
     const refused = await call('/portability/imports/apply', {
       method: 'POST',
       body: { uploadKey: prepared.uploadKey },
     });
     expect(refused.status).toBe(400);
-    expect(((await refused.json()) as { message: string }).message).toContain('.notebook');
-
-    const after = (await (await call('/knowledge/notebooks')).json()) as unknown[];
-    expect(after.length).toBe(before.length);
   });
 
   it('refuses a document with two notes of one name in one folder, and creates nothing', async () => {
@@ -664,15 +703,120 @@ describe('Portability answers over the API', () => {
     );
     const before = (await (await call('/knowledge/notebooks')).json()) as unknown[];
 
-    const refused = await call('/portability/imports/apply', {
-      method: 'POST',
-      body: { uploadKey: prepared.uploadKey, name: 'Normas com gemea' },
-    });
+    const job = await imported_(prepared.uploadKey, 'Normas com gemea');
 
-    expect(refused.status).toBe(400);
-    expect(((await refused.json()) as { message: string }).message).toContain('one folder');
+    expect(job.status).toBe('failed');
+    expect(job.failure).toBe('TWIN_NAMES');
     const after = (await (await call('/knowledge/notebooks')).json()) as unknown[];
     expect(after.length).toBe(before.length);
+  });
+
+  it('writes only what the selection asks for, and the folders above it as a path', async () => {
+    // RN-PRT-017: a notebook is often wanted for its design rather than for
+    // its notes, or for one folder of it.
+    const { notebookId } = await seed();
+    await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
+    const exported = harness.archives.get([...harness.archives.keys()][0] ?? '') as Buffer;
+    const [entry, json] = Object.entries(readZip(exported))[0] as [string, string];
+    const document = JSON.parse(json) as {
+      folders: Array<{ folderId: string }>;
+      notes: Array<{ noteId: string }>;
+    };
+
+    const prepared = (await (await call('/portability/imports', { method: 'POST' })).json()) as {
+      uploadKey: string;
+    };
+    harness.uploads.set(
+      prepared.uploadKey,
+      createZip([{ path: entry, content: JSON.stringify(document) }], new Date()),
+    );
+
+    // One note, and neither its folder nor the Guidance selected: the folder
+    // is written as a PATH, so the note never arrives without it.
+    const started = await call('/portability/imports/apply', {
+      method: 'POST',
+      body: {
+        uploadKey: prepared.uploadKey,
+        name: 'So uma nota',
+        selection: {
+          guidance: false,
+          folders: [],
+          templates: [],
+          notes: [document.notes[0]?.noteId],
+        },
+      },
+    });
+    const { transferId } = (await started.json()) as { transferId: string };
+    const job = (await (await call(`/portability/transfers/${transferId}`)).json()) as {
+      notebookId: string;
+      status: string;
+    };
+    expect(job.status).toBe('ready');
+
+    const written = (await (await call(`/knowledge/notebooks/${job.notebookId}`)).json()) as {
+      folders: Array<{ name: string; hasTemplate: boolean }>;
+      guidance: { content: string } | null;
+    };
+    expect(written.guidance).toBeNull();
+    expect(written.folders).toHaveLength(1);
+    // A path carries the name and the description of the folder, and no
+    // Template of its own.
+    expect(written.folders[0]?.hasTemplate).toBe(false);
+    const notes = (await (
+      await call(`/knowledge/notebooks/${job.notebookId}/notes`)
+    ).json()) as unknown[];
+    expect(notes).toHaveLength(1);
+  });
+
+  it('imports the structure of a notebook and not one note of it', async () => {
+    const { notebookId, folderId } = await seed();
+    await call(`/knowledge/notebooks/${notebookId}/guidance`, {
+      method: 'PUT',
+      body: { content: '# Orientacao\n\nUma norma por nota.\n', baseRevision: null },
+    });
+    await call(`/knowledge/notebooks/${notebookId}/folders/${folderId}/template`, {
+      method: 'PUT',
+      body: { content: '## Norma\n\n## Fundamento\n', baseRevision: null },
+    });
+    await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
+    const exported = harness.archives.get([...harness.archives.keys()][0] ?? '') as Buffer;
+    const [entry, json] = Object.entries(readZip(exported))[0] as [string, string];
+    const document = JSON.parse(json) as { folders: Array<{ folderId: string }> };
+
+    const prepared = (await (await call('/portability/imports', { method: 'POST' })).json()) as {
+      uploadKey: string;
+    };
+    harness.uploads.set(
+      prepared.uploadKey,
+      createZip([{ path: entry, content: JSON.stringify(document) }], new Date()),
+    );
+    const folders = document.folders.map((folder) => folder.folderId);
+
+    const started = await call('/portability/imports/apply', {
+      method: 'POST',
+      body: {
+        uploadKey: prepared.uploadKey,
+        name: 'So a estrutura',
+        selection: { guidance: true, folders, templates: folders, notes: [] },
+      },
+    });
+    const { transferId } = (await started.json()) as { transferId: string };
+    const job = (await (await call(`/portability/transfers/${transferId}`)).json()) as {
+      notebookId: string;
+    };
+
+    const written = (await (await call(`/knowledge/notebooks/${job.notebookId}`)).json()) as {
+      folders: Array<{ hasTemplate: boolean }>;
+      guidance: { content: string } | null;
+    };
+    // The design of the notebook and none of its notes, which is how a notebook
+    // is reused as the design of another (RN-PRT-017).
+    expect(written.guidance).not.toBeNull();
+    expect(written.folders[0]?.hasTemplate).toBe(true);
+    const notes = (await (
+      await call(`/knowledge/notebooks/${job.notebookId}/notes`)
+    ).json()) as unknown[];
+    expect(notes).toEqual([]);
   });
 
   it('answers 404 for an upload of another subscription', async () => {

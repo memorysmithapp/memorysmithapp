@@ -185,4 +185,75 @@ test.describe('the transfers of a person', () => {
   test('answers not found for a transfer that never existed', async ({ owner }) => {
     expect((await owner.call('GET', `/portability/transfers/${unknownId()}`)).status).toBe(404);
   });
+
+  /**
+   * Cancelling an import takes the notebook it had started back down whole,
+   * which frees its name (RN-PRT-018, RN-PRT-014). An import of this size ends
+   * in a moment, so the case asserts the invariant of whichever branch it
+   * lands in: cancelled in time leaves no notebook at all, and already ended
+   * leaves the notebook the import wrote.
+   */
+  test('[route:POST /portability/transfers/:t/cancel] cancels an import, and what it had started goes with it', async ({
+    owner,
+    notebook,
+  }) => {
+    const transfer = await exported(owner, notebook.notebookId);
+    const link = await owner.ok<{ downloadUrl: string }>(
+      'POST',
+      `/portability/transfers/${transfer.transferId}/download`,
+    );
+    const archive = new Uint8Array(await (await fetch(link.downloadUrl)).arrayBuffer());
+    const upload = await owner.ok<{ uploadKey: string; uploadUrl: string }>(
+      'POST',
+      '/portability/imports',
+    );
+    await fetch(upload.uploadUrl, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/zip' },
+      body: archive,
+    });
+
+    const name = unique('Cancelled');
+    const started = await owner.ok<{ transferId: string }>('POST', '/portability/imports/apply', {
+      uploadKey: upload.uploadKey,
+      name,
+    });
+    const cancelled = await owner.call(
+      'POST',
+      `/portability/transfers/${started.transferId}/cancel`,
+    );
+    expect([200, 409]).toContain(cancelled.status);
+
+    const ended = await eventually(
+      'the import to end',
+      () =>
+        owner.ok<{ status: string; notebookId: string | null }>(
+          'GET',
+          `/portability/transfers/${started.transferId}`,
+        ),
+      (each) => each.status !== 'running',
+    );
+    const notebooks = await owner.ok<Array<{ name: string; notebookId: string }>>(
+      'GET',
+      '/knowledge/notebooks',
+    );
+    const written = notebooks.filter((each) => each.name === name);
+
+    if (ended.status === 'cancelled') {
+      // Nothing was kept, and the name is free at once (RN-KNW-033).
+      expect(written).toEqual([]);
+      const twin = await owner.call<{ notebookId: string }>('POST', '/knowledge/notebooks', {
+        name,
+        description: 'The name is free again.',
+      });
+      expect(twin.status).toBe(201);
+      await owner.call('DELETE', `/knowledge/notebooks/${twin.body.notebookId}`);
+    } else {
+      expect(ended.status).toBe('ready');
+      expect(written).toHaveLength(1);
+      await owner.call('DELETE', `/knowledge/notebooks/${written[0]?.notebookId}`);
+    }
+
+    await owner.call('DELETE', `/portability/transfers/${transfer.transferId}`);
+  });
 });

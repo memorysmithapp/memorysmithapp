@@ -5,7 +5,6 @@
  * fails the Quality stage.
  */
 
-import { randomBytes } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { apiToken } from '../support/accounts.js';
@@ -323,9 +322,14 @@ test.describe('the pages of an account', () => {
  * through the interface, because the browser asks the content bucket whether it
  * may upload and the bucket answered no. Everything else in the suite uploads
  * from Node, where nobody asks.
+ *
+ * It is also the whole of the import page (#143): the document is read in the
+ * browser before a byte is uploaded, the name comes from the document and is
+ * checked as it is typed, what is imported may be chosen, and the import is a
+ * job with a progress.
  */
 test.describe('a notebook out and back in, through the browser', () => {
-  test('downloads a notebook from its page and imports the file back as another notebook', async ({
+  test('[page:/imports/new] reads the file, refuses the name it came with, and imports the structure alone', async ({
     app,
     notebook,
     state,
@@ -333,22 +337,44 @@ test.describe('a notebook out and back in, through the browser', () => {
   }) => {
     await app.goto(notebook.page());
 
-    const downloading = app.waitForEvent('download');
+    const downloading = app.waitForEvent('download', { timeout: 120_000 });
     await app.getByRole('button', { name: words.exportNotebook }).click();
-    const archive = join(tmpdir(), `Imported ${randomBytes(4).toString('hex')}.notebook`);
+    const archive = join(tmpdir(), `${notebook.name}.notebook`);
     await (await downloading).saveAs(archive);
 
-    // The name of the file is the name of the notebook the import creates, and
-    // a subscription holds each name once (RN-KNW-032), so it is a free one.
-    await app.goto(`${state.surfaces.site}/`);
+    await app.goto(`${state.surfaces.site}/imports/new`);
     const choosing = app.waitForEvent('filechooser');
-    await app.getByRole('button', { name: words.importNotebook }).click();
+    await app.getByRole('button', { name: words.chooseFile }).click();
     await (await choosing).setFiles(archive);
 
-    await app.waitForURL(/\/notebooks\/[0-9a-z]+$/, { timeout: 60_000 });
-    await expect(app.getByRole('heading', { level: 1, name: /^Imported / })).toBeVisible();
+    /**
+     * The name comes from the DOCUMENT and not from the file, and this document
+     * came home to the subscription it left: the page says so before anything
+     * is uploaded, which is what a person used to find out as raw text on a
+     * button (RN-KNW-032).
+     */
+    const name = app.getByLabel(words.notebookName);
+    await expect(name).toHaveValue(notebook.name);
+    await expect(app.getByText(words.nameTaken, { exact: false })).toBeVisible();
+    await expect(app.getByRole('button', { name: words.importAction })).toBeDisabled();
+
+    const free = `${notebook.name} again`;
+    await name.fill(free);
+    await app.getByRole('radio', { name: words.structureOnly }).check();
+    // The design of the notebook and not one note of it (RN-PRT-017).
+    await expect(app.locator('.import-summary')).toContainText(words.willCreateNoNotes);
+
+    await app.getByRole('button', { name: words.importAction }).click();
+    await expect(app.getByRole('link', { name: words.openNotebook })).toBeVisible({
+      timeout: 120_000,
+    });
+    await app.getByRole('link', { name: words.openNotebook }).click();
+
+    await expect(app.getByRole('heading', { level: 1, name: free })).toBeVisible();
     await expect(app.locator('a.outline-name', { hasText: 'Findings' })).toBeVisible();
-    await expect(app.locator('aside#notebook-sidebar', { hasText: 'Checklist' })).toBeVisible();
+    // Structure only: the folders arrived and the notes did not.
+    await app.goto(app.url().replace(/\/?$/, '/folders'));
+    await expect(app.locator('ul.note-list a')).toHaveCount(0);
   });
 });
 

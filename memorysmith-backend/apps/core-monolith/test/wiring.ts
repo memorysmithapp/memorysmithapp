@@ -99,12 +99,15 @@ import type {
   PortabilityUseCases,
 } from '@memorysmith/svc-portability/adapters/http';
 import {
+  CancelTransfer,
   DeleteTransfer,
   DownloadTransfer,
   GetTransfer,
   ListTransfers,
   RunExport,
+  RunImport,
   StartExport,
+  StartImport,
 } from '@memorysmith/svc-portability/application/transfers';
 import { InMemoryTransferStore } from '@memorysmith/svc-portability/adapters/dynamo';
 import { ExportNotebook } from '@memorysmith/svc-portability/application';
@@ -422,15 +425,33 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       new DownloadTransfer(transfers, archiveStore, request.subscription.userId.value),
     deleteTransfer: (request) =>
       new DeleteTransfer(transfers, archiveStore, request.subscription.userId.value),
+    cancelTransfer: (request) => new CancelTransfer(transfers, request.subscription.userId.value),
     prepareImport: (request) =>
       new PrepareImport(uploadStore, request.subscription.subscriptionId.value),
-    importNotebook: (request) =>
-      new ImportNotebook(
-        uploadStore,
-        request.write,
-        readZip,
-        parseNotebookDocument,
+    startImport: (request) =>
+      new StartImport(
+        transfers,
+        {
+          // The worker, inline: a test that had to wait for a queue would be a
+          // test of the queue (RN-PRT-018).
+          send: async (work) => {
+            const author = request.authorship;
+            if (!author.ok) return;
+            await new RunImport(
+              transfers,
+              new ImportNotebook(
+                uploadStore,
+                request.write,
+                readZip,
+                parseNotebookDocument,
+                request.subscription.subscriptionId.value,
+              ),
+              author.value,
+            ).execute(work);
+          },
+        },
         request.subscription.subscriptionId.value,
+        request.subscription.userId.value,
       ),
   };
 

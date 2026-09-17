@@ -48,6 +48,7 @@ describe('starting an export', () => {
         subscriptionId: SUBSCRIPTION,
         userId: USER,
         transferId: started.value.transferId,
+        kind: 'export',
         notebookId: NOTEBOOK,
       },
     ]);
@@ -88,6 +89,7 @@ describe('running an export', () => {
     subscriptionId: SUBSCRIPTION,
     userId: USER,
     transferId,
+    kind: 'export',
     notebookId: NOTEBOOK,
   });
 

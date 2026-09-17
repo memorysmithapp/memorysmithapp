@@ -24,6 +24,17 @@
  * that does not match the schema, a version of the format this build does not
  * read, and a size the plan does not allow are each answered with the reason
  * and nothing is created.
+ *
+ * **It may write PART of a document** (RN-PRT-017). A notebook is often wanted
+ * for its design rather than for its notes, or for one folder of it, and the
+ * only way used to be importing everything and deleting by hand. A folder that
+ * is not selected but holds something that is is written as a PATH: its name
+ * and its description and nothing else of its own, so a note never arrives
+ * without the folder it lives in.
+ *
+ * **And it is a job with a status** (RN-PRT-018): writing a notebook of several
+ * hundred notes does not fit in the 29 seconds of the API, so it reports its
+ * progress, and a cancel takes the notebook back down exactly as a failure does.
  */
 
 import {
@@ -39,6 +50,30 @@ import type { NotebookDocument } from '../domain/NotebookDocumentBuilder.js';
 
 /** The versions of the document format this build reads. */
 export const READABLE_DOCUMENT_VERSIONS: readonly string[] = ['1.0'];
+
+/**
+ * Why an import was refused, as a CODE and not as a sentence (RN-PRT-018).
+ *
+ * The refusal used to be the message of an HTTP error, in en-US, and an import
+ * is a job now: what reaches the person is the record of the transfer, read by
+ * an interface that speaks two languages. A code is what an interface can turn
+ * into words; a sentence is what it ends up showing raw.
+ */
+export const IMPORT_REFUSALS = {
+  notAnArchive: 'NOT_AN_ARCHIVE',
+  noDocument: 'NO_DOCUMENT',
+  badFormat: 'BAD_FORMAT',
+  unreadableVersion: 'UNREADABLE_VERSION',
+  twinNames: 'TWIN_NAMES',
+  danglingFolder: 'DANGLING_FOLDER',
+  cancelled: 'CANCELLED',
+} as const;
+
+/** The code of a refusal, when it carries one. */
+export function refusalOf(error: DomainError): string {
+  const details = error.details as { reason?: string; code?: string } | undefined;
+  return details?.reason ?? details?.code ?? error.code;
+}
 
 /** Where an uploaded document is read from, and what happens to it after. */
 export interface UploadStore {
@@ -102,6 +137,28 @@ export interface ImportJob {
   readonly status: 'imported';
   readonly folderCount: number;
   readonly noteCount: number;
+  /** Whether the Guidance was among what the selection asked for. */
+  readonly guidance: boolean;
+  readonly templateCount: number;
+}
+
+/**
+ * What part of the document to write (RN-PRT-017), by the identifiers the
+ * document carries. `null` is the whole document.
+ */
+export interface ImportSelection {
+  readonly guidance: boolean;
+  readonly folders: readonly string[];
+  readonly templates: readonly string[];
+  readonly notes: readonly string[];
+}
+
+/** How an import says where it got to, and whether it should still be running. */
+export interface ImportProgress {
+  /** Notes written so far, out of the notes the selection asked for. */
+  wrote(written: number, total: number): Promise<void>;
+  /** Answers true when somebody cancelled it: the notebook goes back down. */
+  cancelled(): Promise<boolean>;
 }
 
 const UPLOAD_TTL_SECONDS = 900;
@@ -149,6 +206,8 @@ export class ImportNotebook {
      */
     name: string | null;
     by: Authorship;
+    selection?: ImportSelection | null | undefined;
+    progress?: ImportProgress | undefined;
   }): Promise<Result<ImportJob, DomainError>> {
     // A key of another subscription is not readable and not addressable: the
     // prefix is checked before the store is asked (rules 1 and 2).
@@ -160,9 +219,10 @@ export class ImportNotebook {
     if (!archive) return err(DomainError.notFound('Upload not found'));
 
     try {
-      const document = this.readDocument(archive);
+      const selection = input.selection ?? null;
+      const document = this.readDocument(archive, selection);
       if (!document.ok) return document;
-      return await this.write(document.value, input.name, input.by);
+      return await this.write(document.value, input.name, input.by, selection, input.progress);
     } finally {
       // The upload is discarded whichever way the import ended: it was the
       // means of getting the bytes here and it is not a copy of the notebook.
@@ -170,30 +230,46 @@ export class ImportNotebook {
     }
   }
 
-  private readDocument(archive: Buffer): Result<NotebookDocument, DomainError> {
+  private readDocument(
+    archive: Buffer,
+    selection: ImportSelection | null,
+  ): Result<NotebookDocument, DomainError> {
     let entries: Record<string, string>;
     try {
       entries = this.unzip(archive);
     } catch {
-      return err(DomainError.validation('That file is not a .notebook archive'));
+      return err(
+        DomainError.validation('That file is not a .notebook archive', {
+          reason: IMPORT_REFUSALS.notAnArchive,
+        }),
+      );
     }
 
     const json = Object.entries(entries).find(([name]) => name.endsWith('.json'))?.[1];
     if (json === undefined) {
-      return err(DomainError.validation('That archive carries no notebook document'));
+      return err(
+        DomainError.validation('That archive carries no notebook document', {
+          reason: IMPORT_REFUSALS.noDocument,
+        }),
+      );
     }
 
     let document: NotebookDocument;
     try {
       document = this.parse(json);
     } catch {
-      return err(DomainError.validation('That notebook document does not match the format'));
+      return err(
+        DomainError.validation('That notebook document does not match the format', {
+          reason: IMPORT_REFUSALS.badFormat,
+        }),
+      );
     }
 
     if (!READABLE_DOCUMENT_VERSIONS.includes(document.documentVersion)) {
       return err(
         DomainError.validation(
           `This build reads notebook documents of version ${READABLE_DOCUMENT_VERSIONS.join(', ')}, and that one is ${document.documentVersion}`,
+          { reason: IMPORT_REFUSALS.unreadableVersion, version: document.documentVersion },
         ),
       );
     }
@@ -203,8 +279,12 @@ export class ImportNotebook {
     // finding it on the second note of the pair would mean undoing a notebook
     // half written (RN-PRT-014). The name is read by the same function
     // Knowledge reads it with, so the two cannot disagree.
+    // Only among the notes the selection asked for: two notes of one name in
+    // one folder are a conflict a person resolves by leaving one out, without
+    // editing the file (RN-PRT-017).
     const seen = new Set<string>();
     for (const note of document.notes) {
+      if (selection && !selection.notes.includes(note.noteId)) continue;
       const name = noteName(note.body);
       if (name === null) continue;
       const key = JSON.stringify([note.folderId, name]);
@@ -212,6 +292,7 @@ export class ImportNotebook {
         return err(
           DomainError.validation(
             `That notebook document has two notes named "${name}" in one folder, and a folder holds one note of each name`,
+            { reason: IMPORT_REFUSALS.twinNames, name },
           ),
         );
       }
@@ -231,7 +312,10 @@ export class ImportNotebook {
     document: NotebookDocument,
     name: string | null,
     by: Authorship,
+    selection: ImportSelection | null,
+    progress: ImportProgress | undefined,
   ): Promise<Result<ImportJob, DomainError>> {
+    const chosen = plan(document, selection);
     const created = await this.writer.createNotebook({
       name: name ?? document.notebook.name,
       description: document.notebook.description,
@@ -245,7 +329,14 @@ export class ImportNotebook {
       return failure;
     };
 
-    if (document.notebook.guidance !== null) {
+    /** A cancel takes the notebook down whole, exactly as a failure does. */
+    const stopped = async (): Promise<boolean> => {
+      if (!(await progress?.cancelled())) return false;
+      await this.writer.deleteNotebook({ notebookId, by });
+      return true;
+    };
+
+    if (document.notebook.guidance !== null && chosen.guidance) {
       const guidance = await this.writer.setGuidance({
         notebookId,
         content: document.notebook.guidance,
@@ -258,6 +349,9 @@ export class ImportNotebook {
     // map that resolves them to the ones this subscription mints (RN-PRT-013).
     const minted = new Map<string, string>();
     for (const folder of orderedFolders(document)) {
+      // A folder nothing selected, with nothing selected under it, is not
+      // written at all.
+      if (!chosen.folders.has(folder.folderId)) continue;
       const parentFolderId =
         folder.parentFolderId === null ? null : (minted.get(folder.parentFolderId) ?? null);
       const written = await this.writer.createFolder({
@@ -270,7 +364,7 @@ export class ImportNotebook {
       if (!written.ok) return undo(written);
       minted.set(folder.folderId, written.value.folderId);
 
-      if (folder.template !== null) {
+      if (folder.template !== null && chosen.templates.has(folder.folderId)) {
         const template = await this.writer.setTemplate({
           notebookId,
           folderId: written.value.folderId,
@@ -291,32 +385,105 @@ export class ImportNotebook {
       }
     }
 
-    for (const note of [...document.notes].sort(byPosition)) {
+    const notes = [...document.notes]
+      .filter((note) => chosen.notes.has(note.noteId))
+      .sort(byPosition);
+    let written = 0;
+    for (const note of notes) {
+      if (await stopped()) {
+        return err(
+          DomainError.validation('The import was cancelled', {
+            reason: IMPORT_REFUSALS.cancelled,
+          }),
+        );
+      }
       const folderId = minted.get(note.folderId);
       if (folderId === undefined) {
         return undo(
-          err(DomainError.validation(`A note points at a folder the document does not carry`)),
+          err(
+            DomainError.validation('A note points at a folder the document does not carry', {
+              reason: IMPORT_REFUSALS.danglingFolder,
+            }),
+          ),
         );
       }
       // The body is written as it was, so the name, the links and the facets
       // of the imported notebook are read from it by the same rules (#96, #97).
-      const written = await this.writer.createNote({
+      const wrote = await this.writer.createNote({
         notebookId,
         folderId,
         content: note.body,
         by,
       });
-      if (!written.ok) return undo(written);
+      if (!wrote.ok) return undo(wrote);
+      written += 1;
+      await progress?.wrote(written, notes.length);
     }
 
+    if (await stopped()) {
+      return err(
+        DomainError.validation('The import was cancelled', { reason: IMPORT_REFUSALS.cancelled }),
+      );
+    }
+
+    // What was actually WRITTEN under the selection, and not what the document
+    // carries (RN-PRT-015).
     return ok({
       importId: ulid(),
       notebookId,
       status: 'imported',
-      folderCount: document.folders.length,
-      noteCount: document.notes.length,
+      folderCount: chosen.folders.size,
+      noteCount: notes.length,
+      guidance: document.notebook.guidance !== null && chosen.guidance,
+      templateCount: [...chosen.templates].filter((folderId) =>
+        document.folders.some((folder) => folder.folderId === folderId && folder.template !== null),
+      ).length,
     });
   }
+}
+
+/**
+ * What the selection resolves to, over the document (RN-PRT-017).
+ *
+ * A folder that holds something selected is written even when it was not
+ * selected itself, **as a path**: its name and its description, and no Template
+ * of its own. So the set of folders is the closure of the selection upwards,
+ * and the set of Templates is not.
+ */
+function plan(
+  document: NotebookDocument,
+  selection: ImportSelection | null,
+): { guidance: boolean; folders: Set<string>; templates: Set<string>; notes: Set<string> } {
+  if (!selection) {
+    return {
+      guidance: true,
+      folders: new Set(document.folders.map((folder) => folder.folderId)),
+      templates: new Set(document.folders.map((folder) => folder.folderId)),
+      notes: new Set(document.notes.map((note) => note.noteId)),
+    };
+  }
+
+  const parentOf = new Map(
+    document.folders.map((folder) => [folder.folderId, folder.parentFolderId]),
+  );
+  const folders = new Set<string>();
+  const withAncestors = (folderId: string | null): void => {
+    let at = folderId;
+    while (at !== null && !folders.has(at)) {
+      folders.add(at);
+      at = parentOf.get(at) ?? null;
+    }
+  };
+
+  for (const folderId of selection.folders) withAncestors(folderId);
+  const notes = new Set(selection.notes);
+  for (const note of document.notes) {
+    if (notes.has(note.noteId)) withAncestors(note.folderId);
+  }
+  // A Template is only ever written on a folder that is being written.
+  const templates = new Set(selection.templates.filter((folderId) => folders.has(folderId)));
+
+  return { guidance: selection.guidance, folders, templates, notes };
 }
 
 /** Parents before children, and siblings in the order the document states. */

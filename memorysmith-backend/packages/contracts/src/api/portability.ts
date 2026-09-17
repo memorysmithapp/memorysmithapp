@@ -15,6 +15,30 @@ export const exportRequestSchema = z.object({
 });
 
 /**
+ * What part of a document an import writes (RN-PRT-017).
+ *
+ * A notebook is often wanted for its DESIGN — its Guidance, its folders and
+ * their Templates — rather than for its notes, or for one folder of it, and the
+ * only way used to be importing everything and deleting by hand. The
+ * identifiers are the ones the document carries: they are internal references,
+ * and every identifier the import writes is minted anew (RN-PRT-013).
+ *
+ * A folder that is not selected but holds something that is gets written **as a
+ * path**: its name and its description, and nothing else of its own, so a note
+ * never arrives without the folder it lives in. Omitting the selection
+ * altogether imports the whole document.
+ */
+export const importSelectionSchema = z.object({
+  guidance: z.boolean(),
+  folders: z.array(ulidSchema),
+  /** The folders whose Template is written, a subset of the folders above. */
+  templates: z.array(ulidSchema),
+  notes: z.array(ulidSchema),
+});
+
+export type ImportSelection = z.infer<typeof importSelectionSchema>;
+
+/**
  * A transfer: a notebook on its way out or a document on its way in, as a job
  * with a status (RN-PRT-018, RN-PRT-019). Both used to run inside the request
  * that asked for them, and the function behind the API stops at 29 seconds.

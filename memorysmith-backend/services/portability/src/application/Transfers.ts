@@ -7,19 +7,46 @@
  * seconds of the API. What the interface polls is the record.
  */
 
-import { DomainError, err, Instant, ok, ulid, type Result } from '@memorysmith/kernel';
+import {
+  DomainError,
+  err,
+  Instant,
+  ok,
+  ulid,
+  type Authorship,
+  type Result,
+} from '@memorysmith/kernel';
 import { startedTransfer, type Transfer, type TransferStore } from '../domain/Transfer.js';
 import type { ArchiveStore } from './ExportNotebook.js';
+import { refusalOf, type ImportJob, type ImportSelection } from './ImportNotebook.js';
 
 /** How long a download link lives. Issued at the moment of each download. */
 const URL_TTL_SECONDS = 900;
 
-/** What the worker is told to do, and the only thing the queue carries. */
+/**
+ * What the worker is told to do, and the only thing the queue carries.
+ *
+ * An export names the notebook it reads; an import names the upload it writes
+ * from, the name the notebook will carry and what part of the document was
+ * chosen (RN-PRT-017).
+ */
 export interface TransferWork {
   readonly subscriptionId: string;
   readonly userId: string;
   readonly transferId: string;
-  readonly notebookId: string;
+  readonly kind: 'export' | 'import';
+  readonly notebookId?: string | undefined;
+  readonly uploadKey?: string | undefined;
+  readonly name?: string | undefined;
+  readonly selection?: ImportSelection | null | undefined;
+  /**
+   * Who every write of an import is attributed to, carried in the message
+   * because the worker serves no request and has no token to read it from
+   * (rule 7). The connector travels with it, so an import asked for through a
+   * connector is recorded as that connector wrote it (RN-AGT-001).
+   */
+  readonly authorship?:
+    { userId: string; agent: { clientId: string; clientName: string } | null } | undefined;
 }
 
 export interface TransferQueue {
@@ -78,9 +105,108 @@ export class StartExport {
       subscriptionId: this.subscriptionId,
       userId: this.userId,
       transferId: transfer.transferId,
+      kind: 'export',
       notebookId: input.notebookId,
     });
     return ok(transfer);
+  }
+}
+
+/**
+ * Starting an import (RN-PRT-018). The file is already uploaded; what the API
+ * does is record the job and hand the work over, because writing a notebook of
+ * several hundred notes does not fit in the 29 seconds it is allowed to live.
+ *
+ * The name is checked here, before anything is written, for the same reason
+ * the interface checks it as it is typed: a subscription holds each notebook
+ * name once (RN-KNW-032), and finding out at the end of a long import is
+ * finding out too late. The server stays the judge either way — the write
+ * itself is what settles a name somebody took meanwhile.
+ */
+export class StartImport {
+  constructor(
+    private readonly transfers: TransferStore,
+    private readonly queue: TransferQueue,
+    private readonly subscriptionId: string,
+    private readonly userId: string,
+  ) {}
+
+  async execute(input: {
+    uploadKey: string;
+    name: string;
+    selection: ImportSelection | null;
+    by: Authorship;
+  }): Promise<Result<Transfer, DomainError>> {
+    if (!input.uploadKey.startsWith(`s/${this.subscriptionId}/imports/`)) {
+      return err(DomainError.notFound('Upload not found'));
+    }
+    if (input.name.trim().length === 0) {
+      return err(DomainError.validation('An import needs a name for the notebook it creates'));
+    }
+
+    const transfer = startedTransfer({
+      transferId: ulid(),
+      kind: 'import',
+      userId: this.userId,
+      // There is no notebook yet: the import creates one, and the transfer
+      // learns its identifier when the worker has written it.
+      notebookId: null,
+      notebookName: input.name.trim(),
+      requestedAt: Instant.now().toISOString(),
+      total: input.selection ? input.selection.notes.length : 0,
+    });
+    await this.transfers.put(transfer);
+    await this.queue.send({
+      subscriptionId: this.subscriptionId,
+      userId: this.userId,
+      transferId: transfer.transferId,
+      kind: 'import',
+      uploadKey: input.uploadKey,
+      name: transfer.notebookName,
+      selection: input.selection,
+      authorship: {
+        userId: input.by.user.value,
+        agent: input.by.agent
+          ? { clientId: input.by.agent.clientId, clientName: input.by.agent.clientName }
+          : null,
+      },
+    });
+    return ok(transfer);
+  }
+}
+
+/**
+ * Cancelling a transfer (RN-PRT-018). It marks the record, and the worker is
+ * what acts on it: an import takes its notebook back down whole at the next
+ * note it was about to write, which frees the name (RN-PRT-014, RN-KNW-033).
+ */
+export class CancelTransfer {
+  constructor(
+    private readonly transfers: TransferStore,
+    private readonly userId: string,
+  ) {}
+
+  async execute(transferId: string): Promise<Result<Transfer, DomainError>> {
+    const found = await this.transfers.get(this.userId, transferId);
+    if (!found) return err(DomainError.notFound('Transfer not found'));
+    if (found.status !== 'running') {
+      return err(DomainError.conflict('That transfer has already ended'));
+    }
+    /**
+     * An import is cancellable because it WRITES: stopping it takes the
+     * notebook it had started back down. An export writes nothing anybody can
+     * see until it ends, so there is nothing to undo and nothing to stop.
+     */
+    if (found.kind !== 'import') {
+      return err(
+        DomainError.conflict('An export cannot be cancelled: nothing of it is written yet'),
+      );
+    }
+    await this.transfers.patch(this.userId, transferId, {
+      status: 'cancelled',
+      finishedAt: Instant.now().toISOString(),
+    });
+    return ok({ ...found, status: 'cancelled' });
   }
 }
 
@@ -228,7 +354,7 @@ export class RunExport {
 
     try {
       const built = await this.exporter.execute({
-        notebookId: work.notebookId,
+        notebookId: work.notebookId ?? '',
         now: Instant.now(),
         report,
       });
@@ -256,6 +382,100 @@ export class RunExport {
       // (RN-SUB-021), and the counter moves when the bytes exist and not when
       // somebody clicked.
       await this.transfers.addKeptBytes(built.value.bytes);
+    } catch (error) {
+      await this.transfers.patch(work.userId, work.transferId, {
+        status: 'failed',
+        finishedAt: Instant.now().toISOString(),
+        failure: error instanceof Error ? error.message.slice(0, 200) : 'INTERNAL',
+      });
+    }
+  }
+}
+
+/**
+ * The worker side of an import: writes the notebook and records how far it got,
+ * and answers the cancel the interface may have asked for (RN-PRT-018).
+ */
+export interface ImportRunner {
+  execute(input: {
+    uploadKey: string;
+    name: string | null;
+    by: Authorship;
+    selection?: ImportSelection | null | undefined;
+    progress?:
+      | {
+          wrote(written: number, total: number): Promise<void>;
+          cancelled(): Promise<boolean>;
+        }
+      | undefined;
+  }): Promise<Result<ImportJob, DomainError>>;
+}
+
+export class RunImport {
+  constructor(
+    private readonly transfers: TransferStore,
+    private readonly importer: ImportRunner,
+    private readonly by: Authorship,
+  ) {}
+
+  async execute(work: TransferWork): Promise<void> {
+    const started = await this.transfers.get(work.userId, work.transferId);
+    if (!started || started.status !== 'running') return;
+
+    let lastWrite = Date.now();
+    let lastDone = 0;
+    const progress = {
+      wrote: async (written: number, total: number): Promise<void> => {
+        if (written - lastDone < PROGRESS_STEP && Date.now() - lastWrite < PROGRESS_INTERVAL_MS) {
+          return;
+        }
+        lastDone = written;
+        lastWrite = Date.now();
+        await this.transfers
+          .patch(work.userId, work.transferId, { done: written, total })
+          .catch(() => undefined);
+      },
+      /**
+       * Read from the record, because the cancel is a write of the API on the
+       * same record: the worker has no other way of hearing about it.
+       */
+      cancelled: async (): Promise<boolean> => {
+        const now = await this.transfers.get(work.userId, work.transferId);
+        return now === null || now.status === 'cancelled';
+      },
+    };
+
+    try {
+      const written = await this.importer.execute({
+        uploadKey: work.uploadKey ?? '',
+        name: work.name ?? null,
+        by: this.by,
+        selection: work.selection ?? null,
+        progress,
+      });
+
+      // A cancel that landed mid-import already ended the transfer, and the
+      // notebook went down with it: nothing here writes over that.
+      if (await progress.cancelled()) return;
+
+      if (!written.ok) {
+        await this.transfers.patch(work.userId, work.transferId, {
+          status: 'failed',
+          finishedAt: Instant.now().toISOString(),
+          // The code and not the sentence: what reaches the person is read by
+          // an interface that speaks two languages (RN-PRT-018).
+          failure: refusalOf(written.error),
+        });
+        return;
+      }
+
+      await this.transfers.patch(work.userId, work.transferId, {
+        status: 'ready',
+        finishedAt: Instant.now().toISOString(),
+        done: written.value.noteCount,
+        total: written.value.noteCount,
+        notebookId: written.value.notebookId,
+      });
     } catch (error) {
       await this.transfers.patch(work.userId, work.transferId, {
         status: 'failed',

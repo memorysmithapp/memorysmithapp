@@ -98,22 +98,21 @@ import {
 } from '@memorysmith/svc-discovery/application/queries';
 import type { PortabilityUseCases } from '@memorysmith/svc-portability/adapters/http';
 import {
+  CancelTransfer,
   DeleteTransfer,
   DownloadTransfer,
   GetTransfer,
   ListTransfers,
   StartExport,
+  StartImport,
 } from '@memorysmith/svc-portability/application/transfers';
 import { SqsTransferQueue } from '@memorysmith/svc-portability/adapters/sqs';
 import { SQSClient } from '@aws-sdk/client-sqs';
-import { readZip } from '@memorysmith/svc-portability/adapters/zip';
 import {
-  ImportNotebook,
   PrepareImport,
   type NotebookWriter,
 } from '@memorysmith/svc-portability/application/import';
 import { KnowledgeNotebookWriter } from './import-writer.js';
-import { parseNotebookDocument } from './composition-root.js';
 import { S3ArchiveStore, S3UploadStore } from '@memorysmith/svc-portability/adapters/s3';
 import { createApp } from './app.js';
 import {
@@ -346,18 +345,23 @@ const portabilityUseCases: PortabilityUseCases = {
       new S3ArchiveStore(infra.s3, infra.contentBucket),
       request.subscription.userId.value,
     ),
+  cancelTransfer: (request) =>
+    new CancelTransfer(
+      buildTransfers(infra, request.subscription),
+      request.subscription.userId.value,
+    ),
   prepareImport: (request) =>
     new PrepareImport(
       new S3UploadStore(infra.s3, infra.contentBucket),
       request.subscription.subscriptionId.value,
     ),
-  importNotebook: (request) =>
-    new ImportNotebook(
-      new S3UploadStore(infra.s3, infra.contentBucket),
-      request.write,
-      readZip,
-      parseNotebookDocument,
+  /** Two writes and no work, as the export: the worker writes the notebook. */
+  startImport: (request) =>
+    new StartImport(
+      buildTransfers(infra, request.subscription),
+      new SqsTransferQueue(sqs, transferQueueUrl),
       request.subscription.subscriptionId.value,
+      request.subscription.userId.value,
     ),
 };
 

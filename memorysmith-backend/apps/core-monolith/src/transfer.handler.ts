@@ -15,15 +15,41 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { S3Client } from '@aws-sdk/client-s3';
-import { SubscriptionContext } from '@memorysmith/kernel';
+import {
+  AgentIdentity,
+  Authorship,
+  Instant,
+  SubscriptionContext,
+  UserId,
+} from '@memorysmith/kernel';
 import { ExportNotebook } from '@memorysmith/svc-portability/application';
-import { RunExport, type TransferWork } from '@memorysmith/svc-portability/application/transfers';
-import { S3ArchiveStore } from '@memorysmith/svc-portability/adapters/s3';
-import { createZip } from '@memorysmith/svc-portability/adapters/zip';
+import {
+  RunExport,
+  RunImport,
+  type TransferWork,
+} from '@memorysmith/svc-portability/application/transfers';
+import { ImportNotebook } from '@memorysmith/svc-portability/application/import';
+import { S3ArchiveStore, S3UploadStore } from '@memorysmith/svc-portability/adapters/s3';
+import { createZip, readZip } from '@memorysmith/svc-portability/adapters/zip';
+import { KnowledgeNotebookWriter } from './import-writer.js';
+import {
+  CreateNotebook,
+  DeleteNotebook,
+  PutGuidance,
+} from '@memorysmith/svc-knowledge/application/notebooks';
+import {
+  CreateFolder,
+  PutTemplate,
+  RestoreFolderNumber,
+} from '@memorysmith/svc-knowledge/application/folders';
+import { CreateNote } from '@memorysmith/svc-knowledge/application/notes';
+import { ResolveRequestContext } from '@memorysmith/svc-access/application/context';
 import { DynamoTransferStore } from '@memorysmith/svc-portability/adapters/dynamo';
 import { KnowledgeExportSource } from './export-source.js';
 import {
+  buildAccess,
   buildKnowledge,
+  parseNotebookDocument,
   serializeNotebookDocument,
   type Infrastructure,
 } from './composition-root.js';
@@ -44,9 +70,11 @@ const infra: Infrastructure = {
   }),
   s3: new S3Client({}),
   knowledgeTable: required('KNOWLEDGE_TABLE'),
-  // The worker reads the notebook and writes the transfer, and touches
-  // neither access, nor the trail, nor the projections.
-  accessTable: '',
+  // An import writes as the person who asked for it, so the role they hold in
+  // the subscription is read here, from the same place the API reads it.
+  accessTable: required('ACCESS_TABLE'),
+  // The worker touches neither the trail nor the projections: both are fed by
+  // the events its writes publish.
   auditTable: '',
   discoveryTable: '',
   portabilityTable: required('PORTABILITY_TABLE'),
@@ -68,6 +96,57 @@ function contextOf(work: TransferWork): SubscriptionContext {
   return context.value;
 }
 
+/**
+ * Who every write of an import is attributed to (rule 7). The worker serves no
+ * request, so it is rebuilt from the message the API wrote, connector included:
+ * an import asked for through a connector is recorded as that connector wrote
+ * it (RN-AGT-001).
+ */
+function authorshipOf(work: TransferWork): Authorship {
+  const user = UserId.create(work.authorship?.userId ?? work.userId);
+  if (!user.ok) throw new Error(`An import named an unusable author: ${user.error.message}`);
+
+  let agent: AgentIdentity | null = null;
+  const named = work.authorship?.agent ?? null;
+  if (named) {
+    const identity = AgentIdentity.create(named.clientId, named.clientName);
+    if (!identity.ok) throw new Error(`An import named an unusable connector`);
+    agent = identity.value;
+  }
+
+  return Authorship.create(user.value, agent, Instant.now());
+}
+
+/**
+ * What an import writes with: the ordinary Knowledge use cases, so the quota,
+ * the limits and the events of an import are the ones of any other write.
+ *
+ * The role the person holds in the subscription is resolved here, as the API
+ * resolves it: a member who may not write has an import refused on its first
+ * write, exactly as they would anywhere else.
+ */
+async function writerFor(context: SubscriptionContext): Promise<KnowledgeNotebookWriter> {
+  const { scoped } = buildAccess(infra, context);
+  if (!scoped) throw new Error('unreachable: the worker was given a subscription');
+  const resolved = await new ResolveRequestContext(scoped.subscriptions).execute(context);
+  if (!resolved.ok) throw new Error(`An import could not be authorised: ${resolved.error.message}`);
+
+  const knowledge = buildKnowledge(infra, context);
+  return new KnowledgeNotebookWriter(
+    {
+      createNotebook: new CreateNotebook(knowledge),
+      putGuidance: new PutGuidance(knowledge),
+      createFolder: new CreateFolder(knowledge),
+      putTemplate: new PutTemplate(knowledge),
+      restoreFolderNumber: new RestoreFolderNumber(knowledge),
+      createNote: new CreateNote(knowledge),
+      deleteNotebook: new DeleteNotebook(knowledge),
+    },
+    resolved.value,
+    context.subscriptionId,
+  );
+}
+
 export async function handler(event: QueueEvent): Promise<void> {
   for (const record of event.Records ?? []) {
     const work = JSON.parse(record.body ?? '{}') as TransferWork;
@@ -78,6 +157,19 @@ export async function handler(event: QueueEvent): Promise<void> {
       infra.portabilityTable,
       work.subscriptionId,
     );
+
+    if (work.kind === 'import') {
+      const importer = new ImportNotebook(
+        new S3UploadStore(infra.s3, infra.contentBucket),
+        await writerFor(context),
+        readZip,
+        parseNotebookDocument,
+        work.subscriptionId,
+      );
+      await new RunImport(transfers, importer, authorshipOf(work)).execute(work);
+      continue;
+    }
+
     const exporter = new ExportNotebook(
       new KnowledgeExportSource(buildKnowledge(infra, context)),
       new S3ArchiveStore(infra.s3, infra.contentBucket),
@@ -85,7 +177,6 @@ export async function handler(event: QueueEvent): Promise<void> {
       work.subscriptionId,
       serializeNotebookDocument,
     );
-
     await new RunExport(transfers, exporter).execute(work);
   }
 }

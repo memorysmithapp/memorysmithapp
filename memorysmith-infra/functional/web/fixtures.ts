@@ -38,6 +38,12 @@ export interface Words {
   readonly download: string;
   readonly spaceUsed: string;
   readonly deleteUntouched: string;
+  readonly chooseFile: string;
+  readonly notebookName: string;
+  readonly nameTaken: string;
+  readonly importAction: string;
+  readonly structureOnly: string;
+  readonly willCreateNoNotes: string;
   readonly pending: (target: string) => string;
 }
 
@@ -62,6 +68,12 @@ export const WORDS: Record<AppLocale, Words> = {
     download: 'Download',
     spaceUsed: 'Space used',
     deleteUntouched: 'is not touched',
+    chooseFile: 'Choose a file',
+    notebookName: 'Name',
+    nameTaken: 'You already have a notebook named',
+    importAction: 'Import a notebook',
+    structureOnly: 'Structure only',
+    willCreateNoNotes: '0 notes',
     pending: (target) => `No note carries the name “${target}” yet.`,
   },
   pt_BR: {
@@ -84,6 +96,12 @@ export const WORDS: Record<AppLocale, Words> = {
     download: 'Baixar',
     spaceUsed: 'Espaço usado',
     deleteUntouched: 'não é tocado',
+    chooseFile: 'Escolher um arquivo',
+    notebookName: 'Nome',
+    nameTaken: 'Você já tem um caderno chamado',
+    importAction: 'Importar um caderno',
+    structureOnly: 'Só a estrutura',
+    willCreateNoNotes: '0 notas',
     pending: (target) => `Nenhuma nota se chama “${target}” ainda.`,
   },
 };

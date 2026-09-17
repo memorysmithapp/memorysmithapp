@@ -7,7 +7,8 @@
  *   POST   /transfers/:t/download      ->  a link issued at this moment
  *   DELETE /transfers/:t               ->  destroys the archive and its bytes
  *   POST   /imports                    ->  a short-lived address to upload to
- *   POST   /imports/apply              ->  reads the upload and writes the notebook
+ *   POST   /imports/apply              ->  starts the import, answers the transfer
+ *   POST   /transfers/:t/cancel        ->  takes a running import back down
  *
  * **An export is a job and not a request** (RN-PRT-019). Building the archive
  * means reading every note of the notebook, and the function behind this API
@@ -34,18 +35,17 @@ import {
   type SubscriptionContext,
 } from '@memorysmith/kernel';
 import type {
+  CancelTransfer,
   DeleteTransfer,
   DownloadTransfer,
   GetTransfer,
   ListTransfers,
   StartExport,
+  StartImport,
 } from '../application/Transfers.js';
+import type { ImportSelection } from '../application/ImportNotebook.js';
 import type { Transfer } from '../domain/Transfer.js';
-import type {
-  ImportNotebook,
-  PrepareImport,
-  NotebookWriter,
-} from '../application/ImportNotebook.js';
+import type { PrepareImport, NotebookWriter } from '../application/ImportNotebook.js';
 
 export interface PortabilityRequest {
   readonly subscription: SubscriptionContext;
@@ -71,8 +71,9 @@ export interface PortabilityUseCases {
   readonly getTransfer: (request: PortabilityRequest) => GetTransfer;
   readonly downloadTransfer: (request: PortabilityRequest) => DownloadTransfer;
   readonly deleteTransfer: (request: PortabilityRequest) => DeleteTransfer;
+  readonly cancelTransfer: (request: PortabilityRequest) => CancelTransfer;
   readonly prepareImport: (request: PortabilityRequest) => PrepareImport;
-  readonly importNotebook: (request: PortabilityRequest) => ImportNotebook;
+  readonly startImport: (request: PortabilityRequest) => StartImport;
 }
 
 /** What a transfer looks like on the wire, which is what it is (§16). */
@@ -152,6 +153,16 @@ export function createPortabilityRoutes(
   });
 
   /**
+   * Cancelling asks the worker to stop, and an import that stops takes its
+   * notebook back down whole, which frees its name (RN-PRT-018).
+   */
+  app.post('/transfers/:t/cancel', async (c) => {
+    const request = c.get('portability');
+    const cancelled = await useCases.cancelTransfer(request).execute(c.req.param('t') ?? '');
+    return present(c, cancelled, transferToDto);
+  });
+
+  /**
    * The file is uploaded, not posted. A request body has a ceiling a real
    * notebook clears easily, so the client asks for a place to put the file,
    * uploads it there, and then asks for it to be applied — the mirror image of
@@ -167,26 +178,31 @@ export function createPortabilityRoutes(
     }));
   });
 
+  /**
+   * Starts the import and answers the transfer. The work belongs to a worker:
+   * writing a notebook of several hundred notes does not fit in the 29 seconds
+   * this function is allowed to live, and the interface used to see that as
+   * `Failed to fetch` (RN-PRT-018).
+   */
   app.post('/imports/apply', async (c) => {
     const request = c.get('portability');
+    // A connector whose token was never bound may not write, and an import is
+    // a write like any other (rule 7, RN-AGT-001).
     const author = request.authorship;
     if (!author.ok) return fail(c, author.error);
+
     const body = (await c.req.json().catch(() => ({}))) as {
       uploadKey?: string;
       name?: string;
+      selection?: ImportSelection | null;
     };
-    const job = await useCases.importNotebook(request).execute({
+    const started = await useCases.startImport(request).execute({
       uploadKey: String(body.uploadKey ?? ''),
-      name: typeof body.name === 'string' && body.name.trim() ? body.name.trim() : null,
+      name: String(body.name ?? ''),
+      selection: body.selection ?? null,
       by: author.value,
     });
-    return present(c, job, (value) => ({
-      importId: value.importId,
-      notebookId: value.notebookId,
-      status: value.status,
-      folderCount: value.folderCount,
-      noteCount: value.noteCount,
-    }));
+    return started.ok ? c.json(transferToDto(started.value), 202) : fail(c, started.error);
   });
 
   return app;

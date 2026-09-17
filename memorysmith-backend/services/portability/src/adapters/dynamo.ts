@@ -31,6 +31,9 @@ type Item = Record<string, unknown>;
 /** The attributes a caller may patch, and no key among them. */
 const PATCHABLE = [
   'status',
+  // An import learns the identifier of the notebook it created only once the
+  // worker has written it.
+  'notebookId',
   'finishedAt',
   'done',
   'total',

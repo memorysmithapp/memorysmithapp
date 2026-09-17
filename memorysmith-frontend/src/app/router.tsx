@@ -10,6 +10,7 @@ import { NoteRoute } from '../features/structure/NoteRoute';
 import { ResumeReading } from '../features/structure/ResumeReading';
 import { TemplatesPage } from '../features/structure/TemplatesPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
+import { ImportNotebookPage } from '../features/portability/ImportNotebookPage';
 import { TransfersPage } from '../features/portability/TransfersPage';
 import { GraphPage } from '../features/graph/GraphPage';
 import { LinkTargetPage } from '../features/note/LinkTargetPage';
@@ -44,6 +45,7 @@ export const router = createBrowserRouter([
             element: <AppShell />,
             children: [
               { path: '/', element: <DashboardPage /> },
+              { path: '/imports/new', element: <ImportNotebookPage /> },
               { path: '/transfers', element: <TransfersPage /> },
               {
                 path: '/notebooks/:notebookId',
