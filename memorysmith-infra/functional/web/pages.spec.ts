@@ -5,6 +5,9 @@
  * fails the Quality stage.
  */
 
+import { randomBytes } from 'node:crypto';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { apiToken } from '../support/accounts.js';
 import { Api } from '../support/api.js';
 import { eventually } from '../support/eventually.js';
@@ -262,5 +265,39 @@ test.describe('the pages of an account', () => {
     await app.goto(`${state.surfaces.site}/notebooks/${notebookId.toLowerCase()}`);
     await expect(app.getByText(words.notFound, { exact: true })).toBeVisible();
     await expect(app.locator('aside#notebook-sidebar')).toHaveCount(0);
+  });
+});
+
+/**
+ * The case that would have caught #142: a `.notebook` had never been imported
+ * through the interface, because the browser asks the content bucket whether it
+ * may upload and the bucket answered no. Everything else in the suite uploads
+ * from Node, where nobody asks.
+ */
+test.describe('a notebook out and back in, through the browser', () => {
+  test('downloads a notebook from its page and imports the file back as another notebook', async ({
+    app,
+    notebook,
+    state,
+    words,
+  }) => {
+    await app.goto(notebook.page());
+
+    const downloading = app.waitForEvent('download');
+    await app.getByRole('button', { name: words.exportNotebook }).click();
+    const archive = join(tmpdir(), `Imported ${randomBytes(4).toString('hex')}.notebook`);
+    await (await downloading).saveAs(archive);
+
+    // The name of the file is the name of the notebook the import creates, and
+    // a subscription holds each name once (RN-KNW-032), so it is a free one.
+    await app.goto(`${state.surfaces.site}/`);
+    const choosing = app.waitForEvent('filechooser');
+    await app.getByRole('button', { name: words.importNotebook }).click();
+    await (await choosing).setFiles(archive);
+
+    await app.waitForURL(/\/notebooks\/[0-9a-z]+$/, { timeout: 60_000 });
+    await expect(app.getByRole('heading', { level: 1, name: /^Imported / })).toBeVisible();
+    await expect(app.locator('a.outline-name', { hasText: 'Findings' })).toBeVisible();
+    await expect(app.locator('aside#notebook-sidebar', { hasText: 'Checklist' })).toBeVisible();
   });
 });

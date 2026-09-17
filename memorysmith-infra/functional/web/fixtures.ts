@@ -31,6 +31,8 @@ export interface Words {
   readonly tryAgain: string;
   readonly deleteSlot: string;
   readonly deleteSlotForGood: string;
+  readonly exportNotebook: string;
+  readonly importNotebook: string;
   readonly pending: (target: string) => string;
 }
 
@@ -48,6 +50,8 @@ export const WORDS: Record<AppLocale, Words> = {
     tryAgain: 'Try again',
     deleteSlot: 'Delete',
     deleteSlotForGood: 'Delete for good',
+    exportNotebook: 'Download notebook',
+    importNotebook: 'Import a notebook',
     pending: (target) => `No note carries the name “${target}” yet.`,
   },
   pt_BR: {
@@ -63,6 +67,8 @@ export const WORDS: Record<AppLocale, Words> = {
     tryAgain: 'Tentar de novo',
     deleteSlot: 'Apagar',
     deleteSlotForGood: 'Apagar de vez',
+    exportNotebook: 'Baixar o caderno',
+    importNotebook: 'Importar um caderno',
     pending: (target) => `Nenhuma nota se chama “${target}” ainda.`,
   },
 };

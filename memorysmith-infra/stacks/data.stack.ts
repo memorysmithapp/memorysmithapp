@@ -47,9 +47,20 @@ export class DataStack extends Stack {
       enforceSSL: true,
       removalPolicy,
       ...(props.retainData === false ? { autoDeleteObjects: true } : {}),
+      /**
+       * What the SITE may do on this bucket from a browser, and nothing else
+       * reaches it: every object here is opened by a pre-signed URL, for one
+       * key, for minutes. CORS widens the VERB the browser may use, never the
+       * reach of the signature.
+       *
+       * GET is the download of an export. PUT is the upload of a `.notebook`
+       * before it is imported: without it the browser asks S3 whether it may
+       * upload, is told no, and the import dies in the preflight, before a
+       * byte leaves and before the API ever hears of it.
+       */
       cors: [
         {
-          allowedMethods: [HttpMethods.GET],
+          allowedMethods: [HttpMethods.GET, HttpMethods.PUT],
           allowedOrigins: [props.siteOrigin],
           allowedHeaders: ['*'],
         },

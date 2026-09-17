@@ -131,11 +131,17 @@ describe('the stacks of an environment', () => {
     });
   });
 
-  it('let the content bucket be read from the site of the environment alone', () => {
+  it('let the site of the environment download an export and upload an import, and no other origin', () => {
     const app = appFor('staging');
     const { data } = stacksOf(app, environmentOf(app.node));
+    // PUT is what the import of a `.notebook` needs: without it the browser is
+    // refused in the preflight and no file ever reaches the API (#142).
     Template.fromStack(data).hasResourceProperties('AWS::S3::Bucket', {
-      CorsConfiguration: { CorsRules: [{ AllowedOrigins: ['https://stg.memorysmith.app'] }] },
+      CorsConfiguration: {
+        CorsRules: [
+          { AllowedOrigins: ['https://stg.memorysmith.app'], AllowedMethods: ['GET', 'PUT'] },
+        ],
+      },
     });
   });
 
