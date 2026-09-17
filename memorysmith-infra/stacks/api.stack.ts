@@ -295,6 +295,9 @@ export class ApiStack extends Stack {
       environment: {
         KNOWLEDGE_TABLE: props.data.knowledgeTable.table.tableName,
         PORTABILITY_TABLE: props.data.portabilityTable.table.tableName,
+        // An IMPORT writes as the person who asked for it, so the worker
+        // resolves the role they hold where the API resolves it (RN-PRT-018).
+        ACCESS_TABLE: props.data.accessTable.table.tableName,
         CONTENT_BUCKET: props.data.contentBucket.bucketName,
       },
       // A notebook of thousands of notes is read note by note from the object
@@ -307,8 +310,15 @@ export class ApiStack extends Stack {
     // One at a time: each message is a whole notebook, and a batch would make
     // one large export hold up the others.
     transfers.function.addEventSource(new SqsEventSource(transferQueue, { batchSize: 1 }));
-    props.data.knowledgeTable.table.grantReadData(transfers.function);
+    /**
+     * An export READS the notebook and an import WRITES one, through the same
+     * use cases the API writes with: the same quota, the same limits and the
+     * same events, which reach the outbox of this table (RN-PRT-018).
+     */
+    props.data.knowledgeTable.table.grantReadWriteData(transfers.function);
     props.data.portabilityTable.table.grantReadWriteData(transfers.function);
+    // Read alone: the worker resolves a role and never changes one.
+    props.data.accessTable.table.grantReadData(transfers.function);
     props.data.contentBucket.grantRead(transfers.function);
     props.data.contentBucket.grantPut(transfers.function);
 
