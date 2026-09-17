@@ -75,6 +75,7 @@ function gateways(overrides: Record<string, unknown> = {}) {
       noteCount: 0,
     }),
     deleteNotebook: async () => undefined,
+    keptExportsOf: async () => 0,
     setGuidance: async () => 'v2',
     guidance: async () => ({ content: '# Proposito', revision: 'v1' }),
     createFolder: async () => ({
@@ -339,6 +340,9 @@ describe('The connector authors the notebook, and not only its notes', () => {
         deleteNotebook: async (_caller: unknown, notebookId: string) => {
           calls.push(`deleteNotebook:${notebookId}`);
         },
+        // An export survives the notebook it was made of, and whoever deletes
+        // one is told so where the deletion is confirmed (RN-PRT-021).
+        keptExportsOf: async () => 2,
         setGuidance: async (_caller: unknown, notebookId: string, content: string) => {
           calls.push(`setGuidance:${notebookId}:${content}`);
         },
@@ -427,6 +431,9 @@ describe('The connector authors the notebook, and not only its notes', () => {
     const notebook = await adapter.call('delete_notebook', { notebook: 'v1' }, caller);
     expect(note.content[0]?.text).toContain('Nothing brings it back');
     expect(notebook.content[0]?.text).toContain('Nothing brings it back');
+    // And what does NOT go with it: the exports of that notebook stay, which
+    // is the one way back from a deletion by mistake (RN-PRT-021).
+    expect(notebook.content[0]?.text).toContain('are 2 exports of this notebook in Transfers');
   });
 
   it('names the note that holds a taken name, and says what to do next', async () => {

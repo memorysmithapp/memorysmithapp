@@ -69,14 +69,34 @@ export class ApiStack extends Stack {
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id, props);
 
+    /**
+     * Where a transfer is handed over (RN-PRT-019). Building the archive of a
+     * notebook means reading every note of it, which is exactly what does not
+     * fit in the 29 seconds of the API.
+     */
+    const transferDlq = new Queue(this, 'TransferDeadLetter', {
+      queueName: physicalName(props.environment, 'mv-transfer-dlq'),
+      retentionPeriod: Duration.days(14),
+    });
+
+    const transferQueue = new Queue(this, 'TransferQueue', {
+      queueName: physicalName(props.environment, 'mv-transfer'),
+      // Longer than the timeout of the worker, or the same job is delivered
+      // again while the first invocation is still building the archive.
+      visibilityTimeout: Duration.minutes(16),
+      deadLetterQueue: { queue: transferDlq, maxReceiveCount: 3 },
+    });
+
     const environment = {
       ACCESS_TABLE: props.data.accessTable.table.tableName,
       KNOWLEDGE_TABLE: props.data.knowledgeTable.table.tableName,
       DISCOVERY_TABLE: props.data.discoveryTable.table.tableName,
+      PORTABILITY_TABLE: props.data.portabilityTable.table.tableName,
       AUDIT_TABLE: props.data.auditTable.table.tableName,
       CONTENT_BUCKET: props.data.contentBucket.bucketName,
       EVENT_BUS_NAME: props.data.eventBus.eventBusName,
       COGNITO_ISSUER: props.cognitoIssuer,
+      TRANSFER_QUEUE_URL: transferQueue.queueUrl,
       CONNECTOR_CLIENT_ID: props.connectorClientId,
       USER_POOL_ID: props.userPool.userPoolId,
     };
@@ -94,6 +114,8 @@ export class ApiStack extends Stack {
     props.data.accessTable.table.grantReadWriteData(api.function);
     props.data.knowledgeTable.table.grantReadWriteData(api.function);
     props.data.discoveryTable.table.grantReadWriteData(api.function);
+    props.data.portabilityTable.table.grantReadWriteData(api.function);
+    transferQueue.grantSendMessages(api.function);
     /**
      * Read and put, and deliberately NOT delete. `grantReadWrite` carries
      * `s3:DeleteObject*`, which includes deleting a version, and only ONE
@@ -113,6 +135,20 @@ export class ApiStack extends Stack {
       new PolicyStatement({
         actions: ['s3:DeleteObject'],
         resources: [props.data.contentBucket.arnForObjects('s/*/imports/*')],
+      }),
+    );
+    /**
+     * Deleting a kept export destroys its bytes (RN-PRT-020), and on a
+     * versioned bucket that means deleting a VERSION. It is scoped to
+     * `exports/` and to nothing else, so no revision of a note is within its
+     * reach: the one principal allowed to destroy one of those is the purge
+     * worker below (rule 8). The version is the one the worker recorded when
+     * it wrote the archive, so nothing is listed to find it.
+     */
+    api.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['s3:DeleteObject', 's3:DeleteObjectVersion'],
+        resources: [props.data.contentBucket.arnForObjects('s/*/exports/*')],
       }),
     );
     // The API READS the trail and can never write it: the Deny travels with
@@ -245,6 +281,41 @@ export class ApiStack extends Stack {
     new Alarm(this, 'PurgeDeadLetterDepth', {
       alarmDescription: 'Content purge: messages in the dead-letter queue',
       metric: purgeDlq.metricApproximateNumberOfMessagesVisible({ period: Duration.minutes(5) }),
+      threshold: 1,
+      evaluationPeriods: 1,
+      comparisonOperator: ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+      treatMissingData: TreatMissingData.NOT_BREACHING,
+    });
+
+    // ---- The transfer worker ------------------------------------------------
+
+    const transfers = new ServiceLambda(this, 'TransferWorker', {
+      entry: join(backend, 'apps', 'core-monolith', 'src', 'transfer.handler.ts'),
+      description: 'Builds the archive of an export, and records how far it got.',
+      environment: {
+        KNOWLEDGE_TABLE: props.data.knowledgeTable.table.tableName,
+        PORTABILITY_TABLE: props.data.portabilityTable.table.tableName,
+        CONTENT_BUCKET: props.data.contentBucket.bucketName,
+      },
+      // A notebook of thousands of notes is read note by note from the object
+      // store: the ceiling is what one notebook should hold open.
+      timeout: Duration.minutes(15),
+      memorySize: 1024,
+      latencyAlarm: false,
+    });
+
+    // One at a time: each message is a whole notebook, and a batch would make
+    // one large export hold up the others.
+    transfers.function.addEventSource(new SqsEventSource(transferQueue, { batchSize: 1 }));
+    props.data.knowledgeTable.table.grantReadData(transfers.function);
+    props.data.portabilityTable.table.grantReadWriteData(transfers.function);
+    props.data.contentBucket.grantRead(transfers.function);
+    props.data.contentBucket.grantPut(transfers.function);
+
+    // A message here is an export somebody asked for and will never get.
+    new Alarm(this, 'TransferDeadLetterDepth', {
+      alarmDescription: 'Transfer worker: messages in the dead-letter queue',
+      metric: transferDlq.metricApproximateNumberOfMessagesVisible({ period: Duration.minutes(5) }),
       threshold: 1,
       evaluationPeriods: 1,
       comparisonOperator: ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,

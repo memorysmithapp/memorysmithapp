@@ -11,6 +11,7 @@ import { RESERVED_FRONTMATTER_KEYS, type Deployment } from '@memorysmith/contrac
 import { serializeNotebookDocument } from '../src/composition-root.js';
 import {
   DomainError,
+  NotebookId,
   Role,
   type SubscriptionContext,
   type EventPublisher,
@@ -93,7 +94,19 @@ import {
   UpdateNote,
 } from '@memorysmith/svc-knowledge/application/notes';
 import { InMemoryAuditTrail } from '@memorysmith/svc-audit/adapters/trail';
-import type { PortabilityUseCases } from '@memorysmith/svc-portability/adapters/http';
+import type {
+  PortabilityRequest,
+  PortabilityUseCases,
+} from '@memorysmith/svc-portability/adapters/http';
+import {
+  DeleteTransfer,
+  DownloadTransfer,
+  GetTransfer,
+  ListTransfers,
+  RunExport,
+  StartExport,
+} from '@memorysmith/svc-portability/application/transfers';
+import { InMemoryTransferStore } from '@memorysmith/svc-portability/adapters/dynamo';
 import { ExportNotebook } from '@memorysmith/svc-portability/application';
 import { createZip, readZip } from '@memorysmith/svc-portability/adapters/zip';
 import { ImportNotebook, PrepareImport } from '@memorysmith/svc-portability/application/import';
@@ -354,20 +367,61 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     read: async (key: string) => uploads.get(key) ?? null,
     discard: async (key: string) => void uploads.delete(key),
   };
+  const archiveStore = {
+    put: async (key: string, archive: Buffer) => {
+      archives.set(key, archive);
+      // The harness is not versioned, so the revision is the key: what the
+      // tests exercise is that deleting reaches the exact revision it stored.
+      return { versionId: `v-${key}` };
+    },
+    presign: async (key: string, _ttl: number, filename: string) =>
+      `memory://${key}?filename=${filename}`,
+    destroy: async (key: string, _versionId: string) => void archives.delete(key),
+  };
+  /**
+   * The transfers of the harness, in the same store production uses in memory,
+   * and a queue that runs the worker inline: a test that had to wait for a
+   * queue would be a test of the queue (RN-PRT-019).
+   */
+  const transfers = new InMemoryTransferStore();
+  const exporterFor = (request: PortabilityRequest) =>
+    new ExportNotebook(
+      new KnowledgeExportSource(knowledgeRepos(request.subscription)),
+      archiveStore,
+      createZip,
+      request.subscription.subscriptionId.value,
+      serializeNotebookDocument,
+    );
   const portabilityUseCases: PortabilityUseCases = {
-    exportNotebook: (request) =>
-      new ExportNotebook(
-        new KnowledgeExportSource(knowledgeRepos(request.subscription)),
+    startExport: (request) =>
+      new StartExport(
+        transfers,
         {
-          put: async (key, archive) => {
-            archives.set(key, archive);
+          send: async (work) => {
+            await new RunExport(transfers, exporterFor(request)).execute(work);
           },
-          presign: async (key, _ttl, filename) => `memory://${key}?filename=${filename}`,
         },
-        createZip,
+        {
+          brief: async (notebookId: string) => {
+            const parsed = NotebookId.create(notebookId);
+            if (!parsed.ok) return null;
+            const repos = knowledgeRepos(request.subscription);
+            const notebook = await repos.notebooks.findById(parsed.value);
+            if (!notebook || notebook.isDeleted) return null;
+            const notes = await repos.notes.listByNotebook(parsed.value);
+            return { name: notebook.name.value, noteCount: notes.length };
+          },
+        },
+        { current: async () => ({ usedBytes: 0, limitBytes: Number.MAX_SAFE_INTEGER }) },
         request.subscription.subscriptionId.value,
-        serializeNotebookDocument,
+        request.subscription.userId.value,
       ),
+    listTransfers: (request) => new ListTransfers(transfers, request.subscription.userId.value),
+    getTransfer: (request) => new GetTransfer(transfers, request.subscription.userId.value),
+    downloadTransfer: (request) =>
+      new DownloadTransfer(transfers, archiveStore, request.subscription.userId.value),
+    deleteTransfer: (request) =>
+      new DeleteTransfer(transfers, archiveStore, request.subscription.userId.value),
     prepareImport: (request) =>
       new PrepareImport(uploadStore, request.subscription.subscriptionId.value),
     importNotebook: (request) =>

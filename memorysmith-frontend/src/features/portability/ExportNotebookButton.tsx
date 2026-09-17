@@ -1,49 +1,66 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { exportNotebook } from '../../shared/api/source';
+import { startExport } from '../../shared/api/source';
 import { DownloadIcon } from '../../shared/components/icons';
+import { saveArchive, useRefreshTransfers, useTransfers } from './transfers';
 
-type Phase = 'idle' | 'preparing' | 'failed';
+type Phase = 'idle' | 'starting' | 'failed';
 
 /**
- * Downloads the whole notebook as a folder of Markdown inside a ZIP, which is the
- * promise of zero lock-in made reachable in one click (software-vision.md 12).
+ * Starts the export of a notebook (RN-PRT-019).
  *
- * The archive is built on the server and answered as a short-lived link, not
- * as a response body: a notebook of two thousand notes does not fit in one. The
- * link carries a content disposition of attachment, so navigating to it saves
- * the file and leaves the application where it was.
+ * The whole export used to run inside the request behind this button, and the
+ * function serving it stops at 29 seconds: a notebook large enough failed, and
+ * the button said only that it had. It is a job now, followed in Transfers.
+ *
+ * **The common case stays one click.** A small notebook finishes in a moment,
+ * and while the person is still on this page the download starts by itself.
+ * Elsewhere in the application the toast offers it, and Transfers keeps it for
+ * as long as they want it.
  */
 export function ExportNotebookButton({ notebookId }: { notebookId: string }) {
   const { t } = useTranslation();
   const [phase, setPhase] = useState<Phase>('idle');
+  const [started, setStarted] = useState<string | null>(null);
+  const saved = useRef<string | null>(null);
+  const { data } = useTransfers();
+  const refresh = useRefreshTransfers();
 
-  async function download(): Promise<void> {
-    setPhase('preparing');
+  const mine = data?.transfers.find((transfer) => transfer.transferId === started);
+
+  // The one this click started, and only while this page is still open: the
+  // download of a transfer somebody started elsewhere is theirs to ask for.
+  useEffect(() => {
+    if (!mine || mine.status !== 'ready' || saved.current === mine.transferId) return;
+    saved.current = mine.transferId;
+    void saveArchive(mine.transferId);
+  }, [mine]);
+
+  async function begin(): Promise<void> {
+    setPhase('starting');
     try {
-      const job = await exportNotebook(notebookId);
-      if (!job.downloadUrl) {
-        setPhase('failed');
-        return;
-      }
-      window.location.assign(job.downloadUrl);
+      const transfer = await startExport(notebookId);
+      setStarted(transfer.transferId);
+      refresh();
       setPhase('idle');
     } catch {
       setPhase('failed');
     }
   }
 
+  const running = mine?.status === 'running';
+
   return (
     <button
       type="button"
       className="notebook-nav-link notebook-nav-action"
-      onClick={() => void download()}
-      disabled={phase === 'preparing'}
+      onClick={() => void begin()}
+      disabled={phase === 'starting' || running}
     >
       <DownloadIcon />
-      {phase === 'preparing' && t('portability.preparing')}
+      {phase === 'starting' && t('portability.preparing')}
       {phase === 'failed' && t('portability.failed')}
-      {phase === 'idle' && t('portability.download')}
+      {phase === 'idle' && (running ? t('portability.exporting') : t('portability.download'))}
     </button>
   );
 }

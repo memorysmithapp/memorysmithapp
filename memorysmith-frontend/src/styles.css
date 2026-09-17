@@ -2727,3 +2727,196 @@ body.has-modal {
   gap: 1rem;
   flex-wrap: wrap;
 }
+
+/*
+ * Transfers: files on their way in and out, in the place a browser puts its
+ * downloads — beside the identity, and never as a notification bell
+ * (RN-PRT-019, RN-PRT-020).
+ */
+.transfers-menu {
+  position: relative;
+}
+.transfers-trigger {
+  position: relative;
+  border: 0;
+  background: none;
+  color: var(--text-soft);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+}
+.transfers-trigger:hover {
+  color: var(--text);
+}
+/* A ring while something runs, filled as far as it got. */
+.transfers-ring {
+  position: absolute;
+  inset: 0.3rem;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent) var(--progress, 0%), transparent 0);
+  opacity: 0.35;
+  pointer-events: none;
+}
+/* A dot while something has finished that the person has not seen. */
+.transfers-dot {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.5rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--signal);
+}
+.transfers-panel {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  width: min(22rem, calc(100vw - 2rem));
+  padding: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
+}
+.transfers-panel h2 {
+  margin: 0 0 0.5rem;
+  font-family: var(--display);
+  font-size: 0.95rem;
+}
+.transfers-recent {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.transfers-line {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.15rem 0.5rem;
+  font-size: 0.84rem;
+}
+.transfers-line-name {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.transfers-line-state {
+  grid-column: 1;
+  color: var(--text-soft);
+  font-size: 0.78rem;
+}
+.transfers-line-bar {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 0.35rem;
+}
+.transfers-line-action,
+.transfers-see-all {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  align-self: center;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-family: var(--display);
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.transfers-see-all {
+  display: block;
+  margin-top: 0.6rem;
+  text-align: right;
+  text-decoration: none;
+}
+
+.transfers-page-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.transfers-kept {
+  color: var(--text-soft);
+  font-size: 0.84rem;
+}
+.transfers-filters {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.75rem 0 1rem;
+}
+.transfers-filters .chip {
+  cursor: pointer;
+  min-height: 2.25rem;
+  padding: 0 0.75rem;
+}
+.transfers-filters .chip.is-selected {
+  border-color: var(--accent);
+}
+.transfers-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.transfers-row {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.transfers-row-main {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.transfers-row-name {
+  font-family: var(--display);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.transfers-row-when,
+.transfers-row-state,
+.transfers-row-note,
+.transfers-row-confirm {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+.transfers-row-note {
+  margin: 0.4rem 0 0;
+}
+.transfers-row-bar {
+  flex-basis: 100%;
+  height: 0.35rem;
+}
+.transfers-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+.transfers-row-actions .chip {
+  cursor: pointer;
+  /* A comfortable target, here as everywhere a finger reaches. */
+  min-height: 2.5rem;
+  padding: 0 0.75rem;
+}
+.transfers-row-actions .chip.is-danger {
+  background: none;
+  border-color: var(--pending);
+  color: var(--pending);
+}
+
+/* At phone width the rows are cards already; the actions go full width. */
+@media (max-width: 600px) {
+  .transfers-row-actions .chip {
+    flex: 1 1 8rem;
+  }
+}

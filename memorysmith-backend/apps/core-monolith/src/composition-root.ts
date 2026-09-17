@@ -53,6 +53,7 @@ import {
   DynamoLinkGraph,
   DynamoStructureProjection,
 } from '@memorysmith/svc-discovery/adapters/aws';
+import { DynamoTransferStore } from '@memorysmith/svc-portability/adapters/dynamo';
 
 export interface Infrastructure {
   readonly db: DynamoDBDocumentClient;
@@ -61,6 +62,8 @@ export interface Infrastructure {
   readonly accessTable: string;
   readonly auditTable: string;
   readonly discoveryTable: string;
+  /** Where the transfers of each person live (RN-PRT-019, RN-PRT-020). */
+  readonly portabilityTable: string;
   readonly contentBucket: string;
 }
 
@@ -134,10 +137,15 @@ export function buildKnowledge(infra: Infrastructure, context: SubscriptionConte
 }
 
 /**
- * The two halves of the budget, joined HERE and nowhere else: how much is
- * stored is a Knowledge fact and how much is allowed is an Access one, and
- * neither context may read the other's table. Joining them is exactly what a
- * composition root is for.
+ * The THREE halves of the budget, joined HERE and nowhere else: how much
+ * content is stored is a Knowledge fact, how much the kept exports occupy is a
+ * Portability one, and how much is allowed is an Access one. No context may
+ * read the table of another, and joining them is exactly what a composition
+ * root is for.
+ *
+ * A kept export counts because it is bytes the subscription asked to keep
+ * (RN-SUB-021). What an import uploads does not: it is discarded the moment the
+ * import ends, whichever way it ended (RN-PRT-014).
  *
  * A subscription that cannot be read falls back to the default quota rather
  * than to zero: a transient read failure must not present itself to the person
@@ -149,11 +157,24 @@ export async function readStorageBudget(
 ): Promise<StorageState> {
   const meter = new DynamoStorageMeter(context, infra.db, infra.knowledgeTable);
   const platform = new DynamoPlatformAdmin(infra.db, infra.accessTable, NULL_OUTBOX_SINK);
-  const [usedBytes, subscription] = await Promise.all([
+  const transfers = buildTransfers(infra, context);
+  const [usedBytes, keptBytes, subscription] = await Promise.all([
     meter.usedBytes(),
+    transfers.keptBytes().catch(() => 0),
     platform.findById(context.subscriptionId).catch(() => null),
   ]);
-  return { usedBytes, limitBytes: (subscription?.quota ?? StorageQuota.DEFAULT).bytes };
+  return {
+    usedBytes: usedBytes + keptBytes,
+    limitBytes: (subscription?.quota ?? StorageQuota.DEFAULT).bytes,
+  };
+}
+
+/** The transfers of one subscription: the exports it keeps and the imports. */
+export function buildTransfers(
+  infra: Infrastructure,
+  context: SubscriptionContext,
+): DynamoTransferStore {
+  return new DynamoTransferStore(infra.db, infra.portabilityTable, context.subscriptionId.value);
 }
 
 /** Audit reads. Writing is the consumer's job, in its own deployable. */

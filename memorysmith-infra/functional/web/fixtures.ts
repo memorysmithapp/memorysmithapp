@@ -34,6 +34,10 @@ export interface Words {
   readonly exportNotebook: string;
   readonly importNotebook: string;
   readonly linkToSeveral: string;
+  readonly transfers: string;
+  readonly download: string;
+  readonly spaceUsed: string;
+  readonly deleteUntouched: string;
   readonly pending: (target: string) => string;
 }
 
@@ -54,6 +58,10 @@ export const WORDS: Record<AppLocale, Words> = {
     exportNotebook: 'Download notebook',
     importNotebook: 'Import a notebook',
     linkToSeveral: 'This link leads to more than one note',
+    transfers: 'Transfers',
+    download: 'Download',
+    spaceUsed: 'Space used',
+    deleteUntouched: 'is not touched',
     pending: (target) => `No note carries the name “${target}” yet.`,
   },
   pt_BR: {
@@ -72,6 +80,10 @@ export const WORDS: Record<AppLocale, Words> = {
     exportNotebook: 'Baixar o caderno',
     importNotebook: 'Importar um caderno',
     linkToSeveral: 'Este link leva a mais de uma nota',
+    transfers: 'Transferências',
+    download: 'Baixar',
+    spaceUsed: 'Espaço usado',
+    deleteUntouched: 'não é tocado',
     pending: (target) => `Nenhuma nota se chama “${target}” ainda.`,
   },
 };

@@ -14,17 +14,41 @@ export const exportRequestSchema = z.object({
   notebookId: ulidSchema,
 });
 
-export const exportJobSchema = z.object({
-  exportId: ulidSchema,
-  notebookId: ulidSchema,
-  status: z.enum(['pending', 'ready', 'failed']),
+/**
+ * A transfer: a notebook on its way out or a document on its way in, as a job
+ * with a status (RN-PRT-018, RN-PRT-019). Both used to run inside the request
+ * that asked for them, and the function behind the API stops at 29 seconds.
+ */
+export const transferSchema = z.object({
+  transferId: ulidSchema,
+  kind: z.enum(['export', 'import']),
+  status: z.enum(['running', 'ready', 'failed', 'cancelled']),
+  notebookId: ulidSchema.nullable(),
+  /** The name of the notebook AS IT WAS: an export survives its notebook. */
+  notebookName: z.string(),
   requestedAt: instantSchema,
-  /** Pre-signed and short-lived; present only once the job is ready. */
-  downloadUrl: z.string().url().nullable(),
-  expiresAt: instantSchema.nullable(),
-  noteCount: z.number().int().nonnegative().nullable(),
-  bytes: z.number().int().nonnegative().nullable(),
+  finishedAt: instantSchema.nullable(),
+  /** Notes read for an export, notes written for an import. */
+  done: z.number().int().nonnegative(),
+  total: z.number().int().nonnegative(),
+  bytes: z.number().int().nonnegative(),
+  /** A code the interface turns into words in the language of the person. */
+  failure: z.string().nullable(),
+});
+
+export const transferListSchema = z.object({
+  transfers: z.array(transferSchema),
+  /** What the kept exports of the subscription occupy (RN-SUB-021). */
+  keptBytes: z.number().int().nonnegative(),
+});
+
+/** Issued at the moment of each download, and never stored (RN-PRT-019). */
+export const downloadLinkSchema = z.object({
+  downloadUrl: z.string().url(),
+  expiresAt: instantSchema,
 });
 
 export type ExportRequest = z.infer<typeof exportRequestSchema>;
-export type ExportJobDto = z.infer<typeof exportJobSchema>;
+export type TransferDto = z.infer<typeof transferSchema>;
+export type TransferListDto = z.infer<typeof transferListSchema>;
+export type DownloadLinkDto = z.infer<typeof downloadLinkSchema>;

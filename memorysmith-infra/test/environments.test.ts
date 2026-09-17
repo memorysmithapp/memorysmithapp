@@ -122,6 +122,7 @@ describe('the stacks of an environment', () => {
       'mv-audit-staging',
       'mv-discovery-staging',
       'mv-knowledge-staging',
+      'mv-portability-staging',
     ]);
     Template.fromStack(data).hasResourceProperties('AWS::Events::EventBus', {
       Name: 'mv-events-staging',

@@ -11,10 +11,13 @@
  * reachable, and a link that leaks stops working within the quarter of an hour
  * the use case declares.
  *
- * Every archive is written with the `lifecycle=export` tag. That tag is what
- * the bucket rule expires on: an export is a derived artefact, rebuildable
- * from the notebook at any moment, and keeping it forever would be paying storage
- * for a copy of something we already store.
+ * **The archive carries no lifecycle tag any more.** It used to, and the bucket
+ * rule threw it away a day later, on the reasoning that an export is derived
+ * and rebuildable. It is not: the notebook it was made of can be deleted, and
+ * an export is then the one way back (RN-PRT-020). An export is kept until
+ * whoever generated it deletes it, and it counts towards the storage of the
+ * subscription while it is kept (RN-SUB-021). The tag stays on the upload of an
+ * IMPORT, which really is thrown away the moment the import ends.
  */
 
 import {
@@ -27,7 +30,14 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { ArchiveStore } from '../application/ExportNotebook.js';
 import type { UploadStore } from '../application/ImportNotebook.js';
 
-export const EXPORT_LIFECYCLE_TAG = { key: 'lifecycle', value: 'export' } as const;
+/**
+ * What the bucket rule expires on. It is worn by the upload of an IMPORT and by
+ * nothing else: that file has done its job the moment the import ends, whichever
+ * way it ended (RN-PRT-014). An export used to wear it too, and the bucket threw
+ * it away a day later — which is what made a backup something nobody could come
+ * back to (RN-PRT-020).
+ */
+export const UPLOAD_LIFECYCLE_TAG = { key: 'lifecycle', value: 'export' } as const;
 
 export class S3ArchiveStore implements ArchiveStore {
   constructor(
@@ -35,15 +45,30 @@ export class S3ArchiveStore implements ArchiveStore {
     private readonly bucket: string,
   ) {}
 
-  async put(key: string, archive: Buffer): Promise<void> {
-    await this.s3.send(
+  async put(key: string, archive: Buffer): Promise<{ versionId: string | null }> {
+    const written = await this.s3.send(
       new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
         Body: archive,
         ContentType: 'application/zip',
-        Tagging: `${EXPORT_LIFECYCLE_TAG.key}=${EXPORT_LIFECYCLE_TAG.value}`,
       }),
+    );
+    // The revision it wrote. An export is written once and never overwritten,
+    // so this version IS the object: deleting it destroys the bytes without
+    // listing versions and without leaving a delete marker (RN-PRT-020).
+    return { versionId: written.VersionId ?? null };
+  }
+
+  /**
+   * Destroys one revision of one archive. The role that calls this may delete a
+   * version under `exports/` and nowhere else, so no revision of a note is
+   * within its reach: the one principal allowed to destroy one of those is the
+   * purge worker (rule 8, RN-KNW-047).
+   */
+  async destroy(key: string, versionId: string): Promise<void> {
+    await this.s3.send(
+      new DeleteObjectCommand({ Bucket: this.bucket, Key: key, VersionId: versionId }),
     );
   }
 
@@ -91,7 +116,7 @@ export class S3UploadStore implements UploadStore {
         Bucket: this.bucket,
         Key: key,
         ContentType: 'application/zip',
-        Tagging: `${EXPORT_LIFECYCLE_TAG.key}=${EXPORT_LIFECYCLE_TAG.value}`,
+        Tagging: `${UPLOAD_LIFECYCLE_TAG.key}=${UPLOAD_LIFECYCLE_TAG.value}`,
       }),
       { expiresIn: expiresInSeconds },
     );

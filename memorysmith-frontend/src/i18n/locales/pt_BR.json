@@ -170,7 +170,8 @@
     "import": "Importar um caderno (.notebook)",
     "uploading": "Enviando…",
     "importing": "Escrevendo o caderno…",
-    "importFailed": "Não foi possível importar esse arquivo"
+    "importFailed": "Não foi possível importar esse arquivo",
+    "exporting": "Exportando… acompanhe em Transferências"
   },
   "graph": {
     "heading": "Grafo do caderno",
@@ -199,5 +200,32 @@
     "staging": "Staging",
     "development": "Desenvolvimento",
     "disposable": "O que é escrito neste ambiente é descartável."
+  },
+  "transfers": {
+    "heading": "Transferências",
+    "seeAll": "Ver todas",
+    "filter": "O que mostrar",
+    "filters": {
+      "all": "Todas",
+      "export": "Exportações",
+      "import": "Importações"
+    },
+    "empty": "Nada foi transferido ainda.",
+    "keptBytes": "Espaço usado: {{size}}",
+    "download": "Baixar",
+    "delete": "Apagar",
+    "deleteForGood": "Apagar de vez",
+    "deleteWarning": "Isto é definitivo. O caderno, se ainda existir, não é tocado.",
+    "notebookGone": "O caderno foi apagado depois desta exportação. Importá-la cria um caderno novo.",
+    "running": {
+      "export": "exportando · {{done}} de {{total}} notas",
+      "import": "importando · {{done}} de {{total}} notas"
+    },
+    "ended": {
+      "ready": "pronta",
+      "failed": "falhou",
+      "cancelled": "cancelada",
+      "running": "em andamento"
+    }
   }
 }

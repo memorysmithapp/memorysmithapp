@@ -9,7 +9,9 @@
 
 import type {
   AccountLocaleDto,
-  ExportJobDto,
+  TransferDto,
+  TransferListDto,
+  DownloadLinkDto,
   FolderDto,
   ContentDto,
   NoteDto,
@@ -233,8 +235,35 @@ export async function applyImport(
   );
 }
 
-export async function exportNotebook(notebookId: string): Promise<ExportJobDto> {
-  return request<ExportJobDto>(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
+/**
+ * The transfers: a notebook on its way out, and what is kept of it afterwards
+ * (RN-PRT-019, RN-PRT-020).
+ *
+ * An export is STARTED here and finished by a worker, because reading every
+ * note of a notebook does not fit in one request. What comes back is the
+ * transfer, which the interface then follows.
+ */
+export async function startExport(notebookId: string): Promise<TransferDto> {
+  return request<TransferDto>(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
+}
+
+export async function listTransfers(): Promise<TransferListDto> {
+  return request<TransferListDto>('/portability/transfers');
+}
+
+export async function getTransfer(transferId: string): Promise<TransferDto> {
+  return request<TransferDto>(`/portability/transfers/${transferId}`);
+}
+
+/** A link minted at this moment: a stored one would have expired (RN-PRT-019). */
+export async function downloadTransfer(transferId: string): Promise<DownloadLinkDto> {
+  return request<DownloadLinkDto>(`/portability/transfers/${transferId}/download`, {
+    method: 'POST',
+  });
+}
+
+export async function deleteTransfer(transferId: string): Promise<void> {
+  await request<void>(`/portability/transfers/${transferId}`, { method: 'DELETE' });
 }
 
 // ---- Writes ----------------------------------------------------------------

@@ -10,7 +10,11 @@
     "./adapters/zip": "./src/adapters/zip.ts",
     "./application": "./src/application/ExportNotebook.ts",
     "./domain": "./src/domain/NotebookDocumentBuilder.ts",
-    "./application/import": "./src/application/ImportNotebook.ts"
+    "./application/import": "./src/application/ImportNotebook.ts",
+    "./adapters/dynamo": "./src/adapters/dynamo.ts",
+    "./application/transfers": "./src/application/Transfers.ts",
+    "./domain/transfer": "./src/domain/Transfer.ts",
+    "./adapters/sqs": "./src/adapters/sqs.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -20,6 +24,9 @@
     "@aws-sdk/client-s3": "^3.1117.0",
     "@aws-sdk/s3-request-presigner": "^3.1117.0",
     "@memorysmith/kernel": "workspace:*",
-    "hono": "^4.13.3"
+    "hono": "^4.13.3",
+    "@aws-sdk/lib-dynamodb": "^3.1117.0",
+    "@aws-sdk/client-dynamodb": "^3.1117.0",
+    "@aws-sdk/client-sqs": "^3.1117.0"
   }
 }

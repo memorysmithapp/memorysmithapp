@@ -170,7 +170,8 @@
     "import": "Import a notebook (.notebook)",
     "uploading": "Uploading…",
     "importing": "Writing the notebook…",
-    "importFailed": "Could not import that file"
+    "importFailed": "Could not import that file",
+    "exporting": "Exporting… follow it in Transfers"
   },
   "graph": {
     "heading": "Notebook graph",
@@ -199,5 +200,32 @@
     "staging": "Staging",
     "development": "Development",
     "disposable": "What is written in this environment is disposable."
+  },
+  "transfers": {
+    "heading": "Transfers",
+    "seeAll": "See all",
+    "filter": "What to show",
+    "filters": {
+      "all": "All",
+      "export": "Exports",
+      "import": "Imports"
+    },
+    "empty": "Nothing has been transferred yet.",
+    "keptBytes": "Space used: {{size}}",
+    "download": "Download",
+    "delete": "Delete",
+    "deleteForGood": "Delete for good",
+    "deleteWarning": "This is definitive. The notebook, if it still exists, is not touched.",
+    "notebookGone": "The notebook was deleted after this export. Importing it creates a new one.",
+    "running": {
+      "export": "exporting · {{done}} of {{total}} notes",
+      "import": "importing · {{done}} of {{total}} notes"
+    },
+    "ended": {
+      "ready": "ready",
+      "failed": "failed",
+      "cancelled": "cancelled",
+      "running": "running"
+    }
   }
 }

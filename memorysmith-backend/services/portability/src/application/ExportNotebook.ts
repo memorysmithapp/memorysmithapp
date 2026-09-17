@@ -11,9 +11,16 @@
  * with the file names it existed to invent.
  *
  * Deleted notes do not enter the export (RN-PRT-006).
+ *
+ * **It runs in a worker and not in a request** (RN-PRT-019). Building the
+ * archive means reading every note of the notebook, and the function behind the
+ * API stops at 29 seconds: a notebook large enough could not be exported at
+ * all, and the button said only that it had failed. What this answers is where
+ * the archive landed; the link that reaches it is issued at the moment of each
+ * download, and never stored.
  */
 
-import { DomainError, err, Instant, ok, ulid, type Result } from '@memorysmith/kernel';
+import { DomainError, err, ok, ulid, type Instant, type Result } from '@memorysmith/kernel';
 import {
   archiveNameOf,
   buildNotebookDocument,
@@ -23,31 +30,44 @@ import {
 
 /** What the Knowledge context hands over for an export. */
 export interface ExportSource {
-  load(notebookId: string): Promise<ExportInput | null>;
+  /**
+   * `report` is called as the bodies are read, which is the only part of an
+   * export whose length depends on the notebook. It is what the progress of
+   * the job is made of (RN-PRT-019).
+   */
+  load(
+    notebookId: string,
+    report?: (readNotes: number, totalNotes: number) => void,
+  ): Promise<ExportInput | null>;
 }
 
 /** Where the archive lands, and how the caller reaches it. */
 export interface ArchiveStore {
-  put(key: string, archive: Buffer): Promise<void>;
+  /**
+   * Answers the revision it wrote. An export is written once and never
+   * overwritten, so that revision IS the object: deleting it by version
+   * destroys the bytes without listing anything and without leaving a delete
+   * marker behind (RN-PRT-020).
+   */
+  put(key: string, archive: Buffer): Promise<{ versionId: string | null }>;
   /**
    * A short-lived URL for that one object. `filename` is what the browser
    * saves it as: the identifier addresses the object, the name of the notebook
    * is what the person recognizes in their downloads folder.
    */
   presign(key: string, expiresInSeconds: number, filename: string): Promise<string>;
+  /** Destroys one revision of one archive, and nothing else can be reached. */
+  destroy(key: string, versionId: string): Promise<void>;
 }
 
-export interface ExportJob {
-  readonly exportId: string;
-  readonly notebookId: string;
-  readonly status: 'ready';
-  readonly downloadUrl: string;
-  readonly expiresAt: string;
+/** Where the archive of one export landed, and what it holds. */
+export interface StoredArchive {
+  readonly key: string;
+  readonly versionId: string | null;
+  readonly notebookName: string;
   readonly noteCount: number;
   readonly bytes: number;
 }
-
-const URL_TTL_SECONDS = 900;
 
 export class ExportNotebook {
   constructor(
@@ -67,8 +87,9 @@ export class ExportNotebook {
   async execute(input: {
     notebookId: string;
     now: Instant;
-  }): Promise<Result<ExportJob, DomainError>> {
-    const source = await this.source.load(input.notebookId);
+    report?: ((readNotes: number, totalNotes: number) => void) | undefined;
+  }): Promise<Result<StoredArchive, DomainError>> {
+    const source = await this.source.load(input.notebookId, input.report);
     if (!source) return err(DomainError.notFound('Notebook not found'));
 
     // Validated against the published schema before it is written: the export
@@ -82,25 +103,14 @@ export class ExportNotebook {
       new Date(input.now.epochMillis),
     );
 
-    const exportId = ulid();
     // The archive lives under the same subscription prefix as everything else.
-    const key = `s/${this.subscriptionId}/exports/${exportId}.notebook`;
-    await this.archives.put(key, archive);
-
-    const expiresAt = Instant.fromEpochMillis(input.now.epochMillis + URL_TTL_SECONDS * 1000);
+    const key = `s/${this.subscriptionId}/exports/${ulid()}.notebook`;
+    const { versionId } = await this.archives.put(key, archive);
 
     return ok({
-      exportId,
-      notebookId: input.notebookId,
-      status: 'ready',
-      downloadUrl: await this.archives.presign(
-        key,
-        URL_TTL_SECONDS,
-        archiveNameOf(source.notebookName),
-      ),
-      // The moment the link stops working, which is the only expiry there is:
-      // saying anything else here would promise a window that is not real.
-      expiresAt: expiresAt.ok ? expiresAt.value.toISOString() : input.now.toISOString(),
+      key,
+      versionId,
+      notebookName: archiveNameOf(source.notebookName),
       noteCount: source.notes.length,
       bytes: archive.length,
     });

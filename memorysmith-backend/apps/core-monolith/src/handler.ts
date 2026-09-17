@@ -97,8 +97,16 @@ import {
   NotebookHealth,
 } from '@memorysmith/svc-discovery/application/queries';
 import type { PortabilityUseCases } from '@memorysmith/svc-portability/adapters/http';
-import { ExportNotebook } from '@memorysmith/svc-portability/application';
-import { createZip, readZip } from '@memorysmith/svc-portability/adapters/zip';
+import {
+  DeleteTransfer,
+  DownloadTransfer,
+  GetTransfer,
+  ListTransfers,
+  StartExport,
+} from '@memorysmith/svc-portability/application/transfers';
+import { SqsTransferQueue } from '@memorysmith/svc-portability/adapters/sqs';
+import { SQSClient } from '@aws-sdk/client-sqs';
+import { readZip } from '@memorysmith/svc-portability/adapters/zip';
 import {
   ImportNotebook,
   PrepareImport,
@@ -114,13 +122,12 @@ import {
   buildAudit,
   buildDiscovery,
   buildKnowledge,
+  buildTransfers,
   readStorageBudget,
   roleOf,
   type Infrastructure,
 } from './composition-root.js';
 import { KnowledgeNoteCatalog } from './note-catalog.js';
-import { KnowledgeExportSource } from './export-source.js';
-import { serializeNotebookDocument } from './composition-root.js';
 
 function required(name: string): string {
   const value = process.env[name];
@@ -137,8 +144,12 @@ const infra: Infrastructure = {
   accessTable: required('ACCESS_TABLE'),
   auditTable: required('AUDIT_TABLE'),
   discoveryTable: required('DISCOVERY_TABLE'),
+  portabilityTable: required('PORTABILITY_TABLE'),
   contentBucket: required('CONTENT_BUCKET'),
 };
+
+const sqs = new SQSClient({});
+const transferQueueUrl = required('TRANSFER_QUEUE_URL');
 
 const verifier = new CognitoTokenVerifier(required('COGNITO_ISSUER'));
 
@@ -293,13 +304,47 @@ function notebookWriterFor(request: KnowledgeRequest): NotebookWriter {
 }
 
 const portabilityUseCases: PortabilityUseCases = {
-  exportNotebook: (request) =>
-    new ExportNotebook(
-      new KnowledgeExportSource(buildKnowledge(infra, request.subscription)),
-      new S3ArchiveStore(infra.s3, infra.contentBucket),
-      createZip,
+  /**
+   * Two writes and no work: the record and the message. Reading every note of
+   * a notebook does not fit in the 29 seconds of this function (RN-PRT-019).
+   */
+  startExport: (request) =>
+    new StartExport(
+      buildTransfers(infra, request.subscription),
+      new SqsTransferQueue(sqs, transferQueueUrl),
+      {
+        brief: async (notebookId: string) => {
+          const parsed = NotebookId.create(notebookId);
+          if (!parsed.ok) return null;
+          const knowledge = buildKnowledge(infra, request.subscription);
+          const notebook = await knowledge.notebooks.findById(parsed.value);
+          if (!notebook || notebook.isDeleted) return null;
+          const notes = await knowledge.notes.listByNotebook(parsed.value);
+          return { name: notebook.name.value, noteCount: notes.length };
+        },
+      },
+      { current: () => readStorageBudget(infra, request.subscription) },
       request.subscription.subscriptionId.value,
-      serializeNotebookDocument,
+      request.subscription.userId.value,
+    ),
+  listTransfers: (request) =>
+    new ListTransfers(
+      buildTransfers(infra, request.subscription),
+      request.subscription.userId.value,
+    ),
+  getTransfer: (request) =>
+    new GetTransfer(buildTransfers(infra, request.subscription), request.subscription.userId.value),
+  downloadTransfer: (request) =>
+    new DownloadTransfer(
+      buildTransfers(infra, request.subscription),
+      new S3ArchiveStore(infra.s3, infra.contentBucket),
+      request.subscription.userId.value,
+    ),
+  deleteTransfer: (request) =>
+    new DeleteTransfer(
+      buildTransfers(infra, request.subscription),
+      new S3ArchiveStore(infra.s3, infra.contentBucket),
+      request.subscription.userId.value,
     ),
   prepareImport: (request) =>
     new PrepareImport(

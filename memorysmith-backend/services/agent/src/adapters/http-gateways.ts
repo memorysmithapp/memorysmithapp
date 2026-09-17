@@ -183,6 +183,24 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     await callApi(this.origin, caller, `/knowledge/notebooks/${notebookId}`, { method: 'DELETE' });
   }
 
+  async keptExportsOf(caller: AgentCaller, notebookId: string): Promise<number> {
+    try {
+      const listed = await callApi<{
+        transfers: Array<{ kind: string; status: string; notebookId: string | null }>;
+      }>(this.origin, caller, '/portability/transfers');
+      return listed.transfers.filter(
+        (transfer) =>
+          transfer.kind === 'export' &&
+          transfer.status === 'ready' &&
+          transfer.notebookId === notebookId,
+      ).length;
+    } catch {
+      // The deletion happened either way, and a sentence about the exports is
+      // not worth turning a successful deletion into an error.
+      return 0;
+    }
+  }
+
   async setGuidance(
     caller: AgentCaller,
     notebookId: string,

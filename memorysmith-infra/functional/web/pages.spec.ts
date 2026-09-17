@@ -351,3 +351,43 @@ test.describe('a notebook out and back in, through the browser', () => {
     await expect(app.locator('aside#notebook-sidebar', { hasText: 'Checklist' })).toBeVisible();
   });
 });
+
+/**
+ * Transfers: where an export is followed and kept (#145, RN-PRT-019,
+ * RN-PRT-020). An export used to be a link of fifteen minutes that nothing
+ * listed, and the bucket threw the file away the next day.
+ */
+test.describe('the transfers of a person', () => {
+  test('[page:/transfers] exports a notebook from its page, keeps it, downloads it again and deletes it', async ({
+    app,
+    notebook,
+    state,
+    words,
+  }) => {
+    await app.goto(notebook.page());
+
+    // The download of a small notebook starts by itself while the person is
+    // still on the page that asked for it, so the common case stays one click.
+    const downloading = app.waitForEvent('download', { timeout: 120_000 });
+    await app.getByRole('button', { name: words.exportNotebook }).click();
+    expect(await (await downloading).suggestedFilename()).toContain('.notebook');
+
+    await app.goto(`${state.surfaces.site}/transfers`);
+    await expect(app.getByRole('heading', { level: 1, name: words.transfers })).toBeVisible();
+    const row = app.locator('.transfers-row', { hasText: notebook.name });
+    await expect(row).toBeVisible();
+
+    // Downloaded again, from a link minted at this moment: the export is kept
+    // until it is deleted, and it counts towards the space of the plan.
+    await expect(app.locator('.transfers-kept')).toContainText(words.spaceUsed);
+    const again = app.waitForEvent('download');
+    await row.getByRole('button', { name: words.download }).click();
+    expect(await (await again).suggestedFilename()).toContain('.notebook');
+
+    // Deleting asks on the page, saying that the notebook is not touched.
+    await row.getByRole('button', { name: words.deleteSlot, exact: true }).click();
+    await expect(row.getByText(words.deleteUntouched, { exact: false })).toBeVisible();
+    await row.getByRole('button', { name: words.deleteSlotForGood }).click();
+    await expect(app.locator('.transfers-row', { hasText: notebook.name })).toHaveCount(0);
+  });
+});

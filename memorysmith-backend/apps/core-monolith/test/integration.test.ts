@@ -425,25 +425,36 @@ describe('Audit answers over the API', () => {
 });
 
 describe('Portability answers over the API', () => {
-  it('exports the notebook as one document, reachable by a link', async () => {
+  /**
+   * The export is a JOB (RN-PRT-019): the API records it and answers `202`,
+   * and a worker builds the archive. The harness runs that worker inline, so
+   * what the case reads next is the transfer the worker finished.
+   */
+  it('exports the notebook as one document, kept as a transfer of the person who asked', async () => {
     const { notebookId } = await seed();
 
-    const job = (await (
-      await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' })
-    ).json()) as {
-      exportId: string;
+    const started = await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
+    expect(started.status).toBe(202);
+    const { transferId } = (await started.json()) as { transferId: string };
+
+    const transfer = (await (await call(`/portability/transfers/${transferId}`)).json()) as {
+      kind: string;
       status: string;
-      downloadUrl: string;
-      noteCount: number;
+      notebookId: string;
+      total: number;
       bytes: number;
     };
+    expect(transfer.kind).toBe('export');
+    expect(transfer.status).toBe('ready');
+    expect(transfer.total).toBe(2);
+    expect(transfer.bytes).toBeGreaterThan(0);
 
-    expect(job.status).toBe('ready');
-    expect(job.noteCount).toBe(2);
-    expect(job.bytes).toBeGreaterThan(0);
-    // The archive is never the body of the response: a notebook of two thousand
-    // notes would not fit in one, and the link is what the browser follows.
-    expect(job.downloadUrl).toContain(job.exportId);
+    // The link is minted at the moment of the download and never stored: a
+    // stored one would have expired by the time somebody came back to it.
+    const link = (await (
+      await call(`/portability/transfers/${transferId}/download`, { method: 'POST' })
+    ).json()) as { downloadUrl: string };
+    expect(link.downloadUrl).toContain('exports/');
 
     // Every key of this system begins with the subscription, this one too.
     const [key] = [...harness.archives.keys()];
@@ -457,6 +468,52 @@ describe('Portability answers over the API', () => {
     expect(inside).toContain('notebook.json');
     expect(inside).not.toContain('GUIDANCE.md');
     expect(inside).not.toContain('STRUCTURE.md');
+  });
+
+  it('keeps the export until it is deleted, and destroys its bytes when it is', async () => {
+    const { notebookId } = await seed();
+    const started = await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
+    const { transferId } = (await started.json()) as { transferId: string };
+
+    const listed = (await (await call('/portability/transfers')).json()) as {
+      transfers: Array<{ transferId: string; kind: string }>;
+      keptBytes: number;
+    };
+    expect(listed.transfers.map((each) => each.transferId)).toEqual([transferId]);
+    // A kept export occupies storage of the subscription (RN-SUB-021).
+    expect(listed.keptBytes).toBeGreaterThan(0);
+
+    expect((await call(`/portability/transfers/${transferId}`, { method: 'DELETE' })).status).toBe(
+      204,
+    );
+    const after = (await (await call('/portability/transfers')).json()) as {
+      transfers: unknown[];
+      keptBytes: number;
+    };
+    expect(after.transfers).toEqual([]);
+    expect(after.keptBytes).toBe(0);
+    // The bytes are gone with it, by the exact revision the worker wrote.
+    expect([...harness.archives.keys()]).toEqual([]);
+  });
+
+  it('survives the deletion of its notebook, because an export is a document', async () => {
+    const { notebookId } = await seed();
+    const started = await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
+    const { transferId } = (await started.json()) as { transferId: string };
+
+    await call(`/knowledge/notebooks/${notebookId}`, { method: 'DELETE' });
+
+    // It is the one way back from a deletion by mistake (RN-PRT-020), so it
+    // stays listed and stays downloadable.
+    const transfer = (await (await call(`/portability/transfers/${transferId}`)).json()) as {
+      status: string;
+      notebookName: string;
+    };
+    expect(transfer.status).toBe('ready');
+    expect(transfer.notebookName).toBe('Normas e Legislacao');
+    expect(
+      (await call(`/portability/transfers/${transferId}/download`, { method: 'POST' })).status,
+    ).toBe(200);
   });
 
   it('takes a .notebook back and writes the notebook it describes', async () => {

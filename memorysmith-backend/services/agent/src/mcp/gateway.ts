@@ -146,6 +146,13 @@ export interface KnowledgeGateway {
   /** Definitive: the notebook leaves every listing and its content is purged. */
   deleteNotebook(caller: AgentCaller, notebookId: string): Promise<void>;
   /**
+   * How many kept exports of that notebook the caller holds (RN-PRT-021). An
+   * export survives the notebook it was made of, and whoever deletes a notebook
+   * is told so where the deletion is confirmed: the connector is where a
+   * notebook is deleted, so the answer of the tool is that confirmation.
+   */
+  keptExportsOf(caller: AgentCaller, notebookId: string): Promise<number>;
+  /**
    * The revision the write is based on, null when the slot is still empty. It
    * answers the revision the write produced, which the next write names.
    */

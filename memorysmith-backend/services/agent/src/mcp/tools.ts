@@ -233,11 +233,20 @@ export class McpToolAdapter {
 
       case 'delete_notebook': {
         const notebook = requireString(args, 'notebook', 'delete_notebook');
+        const kept = await knowledge.keptExportsOf(caller, notebook);
         await knowledge.deleteNotebook(caller, notebook);
         return text(
           `The notebook ${notebook} is gone, with its folders, its templates, its guidance and ` +
             'every note in it. Nothing brings it back, and its content is destroyed shortly ' +
-            'after. Its name is free again.',
+            'after. Its name is free again.' +
+            // An export is a document and not a part of the notebook, so it
+            // stays — and it is the one way back from a deletion by mistake
+            // (RN-PRT-020, RN-PRT-021).
+            (kept > 0
+              ? ` There ${kept === 1 ? 'is 1 export' : `are ${kept} exports`} of this notebook in ` +
+                'Transfers, and they stay there: importing one creates the notebook again, with ' +
+                'new identifiers.'
+              : ''),
         );
       }
 

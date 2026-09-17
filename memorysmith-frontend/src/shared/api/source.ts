@@ -10,7 +10,7 @@
 // (shared/config/runtime-config.ts), and a page that cannot read it says so
 // before it renders anything.
 
-import type { ExportJobDto } from '@memorysmith/contracts';
+import type { DownloadLinkDto, TransferDto, TransferListDto } from '@memorysmith/contracts';
 import * as backend from './backend';
 import { linkTargetAddress, noteAddress } from './note-address';
 import type {
@@ -154,8 +154,24 @@ export function applyImport(uploadKey: string, name: string) {
   return backend.applyImport(uploadKey, name);
 }
 
-export function exportNotebook(notebookId: string): Promise<ExportJobDto> {
-  return backend.exportNotebook(notebookId);
+export function startExport(notebookId: string): Promise<TransferDto> {
+  return backend.startExport(notebookId);
+}
+
+export function listTransfers(): Promise<TransferListDto> {
+  return backend.listTransfers();
+}
+
+export function getTransfer(transferId: string): Promise<TransferDto> {
+  return backend.getTransfer(transferId);
+}
+
+export function downloadTransfer(transferId: string): Promise<DownloadLinkDto> {
+  return backend.downloadTransfer(transferId);
+}
+
+export function deleteTransfer(transferId: string): Promise<void> {
+  return backend.deleteTransfer(transferId);
 }
 
 export function resolveLinkTarget(notebookId: string, target: string) {

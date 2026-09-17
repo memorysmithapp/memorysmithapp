@@ -1,5 +1,5 @@
 /**
- * Storage, events and the four tables (architecture-guide.md, sections 9, 17).
+ * Storage, events and the five tables (architecture-guide.md, sections 9, 17).
  *
  * One table per service, and no service reads the table of another. They are
  * declared together because they are one lifecycle: they are what has to exist
@@ -27,6 +27,7 @@ export class DataStack extends Stack {
   readonly accessTable: SubscriptionTable;
   readonly knowledgeTable: SubscriptionTable;
   readonly discoveryTable: SubscriptionTable;
+  readonly portabilityTable: SubscriptionTable;
   readonly auditTable: AppendOnlyTable;
 
   constructor(scope: Construct, id: string, props: DataStackProps) {
@@ -66,19 +67,24 @@ export class DataStack extends Stack {
         },
       ],
       /**
-       * An export is a DERIVED artefact: it is rebuilt from the notebook on
-       * demand, and the link that reaches it lives fifteen minutes. Keeping it
-       * afterwards would be paying storage for a second copy of what we
-       * already store, so the archive expires by TAG rather than by prefix,
-       * because the prefix carries the subscription and there is one per
-       * customer, while the tag is written by the adapter that creates it.
+       * The upload of an IMPORT is a derived artefact and a short-lived one:
+       * the notebook it describes is either written or it is not, and either
+       * way the file has done its job (RN-PRT-014). It expires by TAG rather
+       * than by prefix, because the prefix carries the subscription and there
+       * is one per customer, while the tag is written by the adapter.
+       *
+       * An EXPORT used to wear the same tag, and the rule threw it away a day
+       * later. That was wrong: the notebook an export was made of can be
+       * deleted, and the export is then the one way back (RN-PRT-020). An
+       * export is kept until whoever generated it deletes it, and it counts
+       * towards the storage of the subscription while it is kept (RN-SUB-021).
        *
        * The rule touches nothing else in the bucket: a Content Slot carries no
        * such tag, and its versions are the historical reconstruction itself.
        */
       lifecycleRules: [
         {
-          id: 'ExpireNotebookExports',
+          id: 'ExpireImportUploads',
           enabled: true,
           tagFilters: { lifecycle: 'export' },
           expiration: Duration.days(1),
@@ -125,6 +131,18 @@ export class DataStack extends Stack {
 
     this.discoveryTable = new SubscriptionTable(this, 'DiscoveryTable', {
       tableName: named('mv-discovery'),
+      removalPolicy,
+    });
+
+    /**
+     * The transfers: a notebook on its way out, a document on its way in, and
+     * the exports a person keeps (RN-PRT-019, RN-PRT-020). It is the first
+     * table this context owns, because an export used to leave nothing behind
+     * but an object nothing listed, and a job that reports its progress has to
+     * be somewhere both the worker and the interface can reach.
+     */
+    this.portabilityTable = new SubscriptionTable(this, 'PortabilityTable', {
+      tableName: named('mv-portability'),
       removalPolicy,
     });
 
