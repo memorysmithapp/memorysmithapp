@@ -142,6 +142,14 @@ export interface LinkGraph {
   resolveTarget(notebookId: string, target: string): Promise<ResolvedTarget>;
   dependencyTree(notebookId: string, rootNoteId: string, depth: number): Promise<GraphNode | null>;
   backlinks(notebookId: string, noteId: string): Promise<NoteRef[]>;
+  /**
+   * Everything the graph holds of a notebook, gone in one sweep. Deleting a
+   * notebook takes every note of it, so turning the links between them into
+   * pending as each one goes is work whose result is thrown away — and it wrote
+   * a pending item for a note that was about to be removed, which is how a
+   * deleted notebook left items behind for ever (RN-KNW-047, RN-DSC-013).
+   */
+  removeNotebook(notebookId: string): Promise<void>;
   pending(notebookId: string): Promise<PendingLink[]>;
   /** Every note and every edge of the notebook, for the graph view. */
   wholeGraph(notebookId: string): Promise<NotebookGraph>;
@@ -201,6 +209,8 @@ export interface IndexedNote {
 export interface ContentIndex {
   replaceNote(notebookId: string, note: IndexedNote): Promise<void>;
   removeNote(notebookId: string, noteId: string): Promise<void>;
+  /** Every portrait of the notebook, gone in one sweep (RN-KNW-047). */
+  removeNotebook(notebookId: string): Promise<void>;
   /** When a meter is given, the scan adds to it what it read. */
   scanNotebook(notebookId: string, meter?: ScanMeter): Promise<IndexedNote[]>;
 }
@@ -254,6 +264,12 @@ export interface FacetIndex {
    * say", which is the question the graph view asks in order to color a node.
    */
   notebookNoteFacets(notebookId: string): Promise<Map<string, Record<string, string[]>>>;
+  /**
+   * Every portrait, every counter and every definition of the notebook, gone in
+   * one sweep. A counter of a notebook that no longer exists is not worth
+   * decrementing note by note (RN-KNW-047).
+   */
+  removeNotebook(notebookId: string): Promise<void>;
 }
 
 /**

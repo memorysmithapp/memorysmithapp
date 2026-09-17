@@ -40,7 +40,7 @@ import {
   UpdateCommand,
   type DynamoDBDocumentClient,
 } from '@aws-sdk/lib-dynamodb';
-import { ulid, type SubscriptionId } from '@memorysmith/kernel';
+import { Instant, ulid, type SubscriptionId } from '@memorysmith/kernel';
 import type {
   PendingLink,
   OutgoingTarget,
@@ -82,10 +82,69 @@ function partition(subscriptionId: SubscriptionId, notebookId: string): string {
 }
 
 /**
+ * Every item of a partition whose sort key begins with one of these prefixes,
+ * deleted. It is what a notebook deletion does to each projection: the notebook
+ * is gone and everything under it with it, so there is nothing to recompute,
+ * only bytes to stop paying for (RN-KNW-047).
+ *
+ * The keys are read in pages and deleted in batches of twenty-five, the two
+ * limits DynamoDB imposes, so a notebook of any size is swept whole.
+ */
+async function sweep(
+  db: DynamoDBDocumentClient,
+  tableName: string,
+  pk: string,
+  prefixes: readonly string[],
+): Promise<void> {
+  for (const prefix of prefixes) {
+    let startKey: Record<string, unknown> | undefined;
+    do {
+      const response: {
+        Items?: Record<string, unknown>[] | undefined;
+        LastEvaluatedKey?: Record<string, unknown> | undefined;
+      } = await db.send(
+        new QueryCommand({
+          TableName: tableName,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+          ExpressionAttributeValues: { ':pk': pk, ':prefix': prefix },
+          ProjectionExpression: 'SK',
+          ...(startKey ? { ExclusiveStartKey: startKey } : {}),
+        }),
+      );
+      const keys = ((response.Items ?? []) as Item[]).map((item) => String(item['SK']));
+      for (const batch of chunk(keys, 25)) {
+        await db.send(
+          new BatchWriteCommand({
+            RequestItems: {
+              [tableName]: batch.map((SK) => ({ DeleteRequest: { Key: { PK: pk, SK } } })),
+            },
+          }),
+        );
+      }
+      startKey = response.LastEvaluatedKey;
+    } while (startKey);
+  }
+}
+
+/**
  * The version each note was last projected at. The claim is ONE conditional
  * write, so two projectors racing for one note cannot both believe they are
  * the newest: DynamoDB settles it.
  */
+/**
+ * How long the marker of a DELETED note is kept. It is what stops an event of
+ * that note, delivered late, from projecting it back into the search
+ * (#141) — so it has to outlive every delivery it defends against, and no
+ * longer: one per note ever deleted, in a single partition, with nothing to
+ * collect them, is a partition that grows for ever (#147).
+ *
+ * The queue of the projector retains a message for fourteen days, and a message
+ * moved to its dead letter queue may be redriven within fourteen more, so
+ * thirty days covers the latest arrival the system can produce, with room to
+ * spare. A marker of a note still in use carries no deadline: it is replaced by
+ * every write of that note.
+ */
+const GONE_MARKER_TTL_DAYS = 30;
 export class DynamoProjectedVersions implements ProjectedVersions {
   constructor(
     private readonly subscriptionId: SubscriptionId,
@@ -102,7 +161,15 @@ export class DynamoProjectedVersions implements ProjectedVersions {
       await this.db.send(
         new PutCommand({
           TableName: this.tableName,
-          Item: { ...this.key(noteId), entity: 'PROJECTED', noteId, ...state },
+          Item: {
+            ...this.key(noteId),
+            entity: 'PROJECTED',
+            noteId,
+            ...state,
+            ...(state.gone
+              ? { ttl: Instant.now().plusDays(GONE_MARKER_TTL_DAYS).toEpochSeconds() }
+              : {}),
+          },
           ConditionExpression: 'attribute_not_exists(SK) OR version < :version',
           ExpressionAttributeValues: { ':version': state.version },
         }),
@@ -347,6 +414,18 @@ export class DynamoLinkGraph implements LinkGraph {
 
     const outgoing = await this.query(notebookId, `OUT#${noteId}#`);
     const incoming = await this.query(notebookId, `IN#${noteId}#`);
+    /**
+     * The targets of the note that reached nothing, and the marks on the edges
+     * an alias answered for. Neither is keyed by the note, so neither comes out
+     * of a prefix query: they are found by the note they belong to. They used
+     * to be left behind, and a `PENDING#` whose source is gone is invisible to
+     * every reader — a listing and a backlink both join against the `NOTE#`
+     * item — which is how it went unnoticed and stored for ever.
+     */
+    const mine = (item: Item): boolean =>
+      String(item['fromNoteId']) === noteId || String(item['toNoteId']) === noteId;
+    const pending = (await this.query(notebookId, 'PENDING#')).filter(mine);
+    const aliasEdges = (await this.query(notebookId, 'ALIAS#')).filter(mine);
 
     await this.remove(notebookId, [
       `NOTE#${noteId}`,
@@ -354,6 +433,8 @@ export class DynamoLinkGraph implements LinkGraph {
       ...outgoing.map((item) => `IN#${String(item['toNoteId'])}#${noteId}`),
       ...incoming.map((item) => String(item['SK'])),
       ...incoming.map((item) => `OUT#${String(item['fromNoteId'])}#${noteId}`),
+      ...pending.map((item) => String(item['SK'])),
+      ...aliasEdges.map((item) => String(item['SK'])),
     ]);
 
     if (name) {
@@ -391,6 +472,16 @@ export class DynamoLinkGraph implements LinkGraph {
       }
       await this.put(writes);
     }
+  }
+
+  async removeNotebook(notebookId: string): Promise<void> {
+    await sweep(this.db, this.tableName, this.pk(notebookId), [
+      'NOTE#',
+      'OUT#',
+      'IN#',
+      'PENDING#',
+      'ALIAS#',
+    ]);
   }
 
   async resolvePending(notebookId: string, note: NoteRef): Promise<number> {
@@ -854,6 +945,10 @@ export class DynamoFacetIndex implements FacetIndex {
     );
   }
 
+  async removeNotebook(notebookId: string): Promise<void> {
+    await sweep(this.db, this.tableName, this.pk(notebookId), ['FACET#', 'STAT#', 'FDEF#']);
+  }
+
   async notebookFacetStats(notebookId: string): Promise<FacetStats> {
     const [stats, definitions, portraits] = await Promise.all([
       this.query(notebookId, 'STAT#'),
@@ -1141,6 +1236,10 @@ export class DynamoContentIndex implements ContentIndex {
       }),
     );
     await this.removeParts(notebookId, noteId, null);
+  }
+
+  async removeNotebook(notebookId: string): Promise<void> {
+    await sweep(this.db, this.tableName, this.pk(notebookId), ['TEXT#']);
   }
 
   async scanNotebook(notebookId: string, meter?: ScanMeter): Promise<IndexedNote[]> {

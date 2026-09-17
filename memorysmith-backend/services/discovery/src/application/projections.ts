@@ -272,16 +272,23 @@ export class ProjectNote {
     }
   }
 
-  /** The notebook is gone, and so is every note it held. */
+  /**
+   * The notebook is gone, and so is every note it held: each projection wipes
+   * what it holds of that notebook in one sweep.
+   *
+   * It used to walk the notes one by one and delete each as if it were a
+   * deletion of its own, which left the notebook's partition dirty in two ways
+   * at once. Every deletion returned the links pointing at that note to
+   * pending, so a link between two notes of the notebook WROTE a pending item
+   * the moment the first one went — and the source of that link was removed
+   * right after, leaving an item nothing would ever read or collect. And the
+   * work was pointless either way: nothing under a deleted notebook is coming
+   * back to be re-resolved (RN-KNW-047, RN-DSC-013).
+   */
   async onNotebookDeleted(notebookId: string): Promise<void> {
-    for (const note of await this.deps.index.scanNotebook(notebookId)) {
-      await this.onDeleted({
-        notebookId,
-        noteId: note.noteId,
-        folderId: note.folderId,
-        contentRef: null,
-      });
-    }
+    await this.deps.graph.removeNotebook(notebookId);
+    await this.deps.facets.removeNotebook(notebookId);
+    await this.deps.index.removeNotebook(notebookId);
   }
 
   /**

@@ -945,6 +945,10 @@ The edge is written in both directions: a backlink becomes a `Query`, not a scan
 
 `NoteMoved` between folders **does not touch the graph**, because an edge is `noteId → noteId` and the folder takes no part in it. `NoteMoved` between notebooks prunes the edges of the note in the source notebook and re-resolves the outgoing ones against the names of the destination.
 
+**What a removal takes, and what it must not leave.** Removing a NOTE takes the four items keyed by it — its `NOTE#`, its `OUT#`, the `IN#` of each note it reached and the `IN#` of each note that reached it — and also the two that are **not** keyed by it: the `PENDING#` targets it wrote and the `ALIAS#` marks on the edges an alias answered for, each found by the note they belong to. Those two were left behind, and neither is visible to any reader: a pending listing and a backlink both join against the `NOTE#` item, so a pending link whose source is gone shows nowhere. What it does is occupy the partition for ever, which is what RN-KNW-047 promises it does not.
+
+**Deleting a NOTEBOOK sweeps each projection in one pass**, by the prefixes it owns, instead of walking the notes and deleting each as a deletion of its own. The walk was wrong twice over: nothing under a deleted notebook is coming back to be re-resolved, so returning its backlinks to pending is work thrown away — and it WROTE a pending item as the first note of a linked pair went, whose source was removed immediately after, so a deletion left more residue than it collected.
+
 ### 11.2 Search
 
 The search is **literal over the text of the notebook**, answered from one portrait per note in `mv-discovery`, a head and its parts:
@@ -1021,6 +1025,8 @@ One counter item **per facet value**, and not a single statistics item per noteb
 ### 11.3a The order of events, and why it does not matter
 
 The projector is delivered at least once and in no order, so every projection of a note is **gated by the version the event carries**. Before projecting, it claims the version in one conditional write, `S#{s}#PROJECTED / NOTE#{noteId}`, which succeeds only when the version is newer than the one recorded: an older event delivered late, and the same event delivered twice, change nothing. The item lives in a partition of the subscription and not of a notebook, because a note keeps its identifier when it moves between notebooks. A deletion claims its own version, and a purge claims one above any version a note can reach, so nothing about a note that is gone is ever projected again.
+
+**The marker of a note that is gone is kept for thirty days, and no longer.** It defends against one thing, an event of that note delivered late, so it has to outlive every delivery the system can produce: the queue of the projector retains a message for fourteen days, and a message moved to its dead letter queue may be redriven within fourteen more. Kept for ever it would be one item per note ever deleted, in a single partition of the subscription, with nothing to collect them — so it carries a `ttl` and DynamoDB collects it. The marker of a note still in use carries none: every write of that note replaces it.
 
 **Two projections of one note may still run at once**, and the graph of a note is replaced over several writes, not one. The claim records the whole state — notebook, folder, content reference and whether the note is gone — and the projector reads it back once it has written: when a newer state was claimed meanwhile, it projects that state and looks again. Whichever projector finishes last leaves the projections on the newest note, whatever order the writes landed in.
 

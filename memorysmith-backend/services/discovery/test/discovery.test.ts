@@ -362,6 +362,47 @@ describe('The projections, driven by events', () => {
     ]);
   });
 
+  /**
+   * #147: it used to walk the notes one by one, deleting each as a deletion of
+   * its own. Every one of those returned the links pointing at it to pending,
+   * so a link between two notes of the notebook WROTE a pending item as the
+   * first note went, and the note that wrote it was removed right after —
+   * leaving an item in the partition of a notebook that no longer exists, which
+   * nothing reads and nothing collects.
+   */
+  it('wipes what each projection holds of a deleted notebook, instead of walking its notes', async () => {
+    await write({ noteId: 'n1', markdown: '---\nname: Achado\n---\n\nVer [[Lei 14.133]].' });
+    await write({ noteId: 'n2', markdown: '---\nname: Lei 14.133\n---\n\nVer [[Ninguem]].' });
+
+    const swept: string[] = [];
+    const walked: string[] = [];
+    const watched = new ProjectNote({
+      graph: Object.assign(Object.create(Object.getPrototypeOf(graph) as object), graph, {
+        removeNotebook: async (notebookId: string) => {
+          swept.push('graph');
+          await graph.removeNotebook(notebookId);
+        },
+        removeNote: async (notebookId: string, noteId: string) => {
+          walked.push(noteId);
+          await graph.removeNote(notebookId, noteId);
+        },
+      }) as InMemoryLinkGraph,
+      facets,
+      index,
+      structure,
+      content: reader,
+      versions: new InMemoryProjectedVersions(),
+    });
+
+    await watched.onNotebookDeleted(NOTEBOOK);
+
+    expect(swept).toEqual(['graph']);
+    expect(walked).toEqual([]);
+    expect(await graph.pending(NOTEBOOK)).toEqual([]);
+    expect(await index.scanNotebook(NOTEBOOK)).toEqual([]);
+    expect((await facets.notebookFacetStats(NOTEBOOK)).facets).toEqual([]);
+  });
+
   it('drops an attribute that reveals itself as free text by cardinality', async () => {
     // RN-DSC-024: this is what keeps `source` from becoming a statistic,
     // without any exclusion list in the code.
@@ -1008,6 +1049,7 @@ describe('Every search is measured', () => {
     const content = {
       replaceNote: async () => undefined,
       removeNote: async () => undefined,
+      removeNotebook: async () => undefined,
       scanNotebook: async (_notebookId: string, meter?: ScanMeter) => {
         if (meter) {
           meter.items += 3;

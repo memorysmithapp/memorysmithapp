@@ -133,6 +133,11 @@ export class InMemoryLinkGraph implements LinkGraph {
     // RN-DSC-053).
   }
 
+  async removeNotebook(notebookId: string): Promise<void> {
+    this.notes.delete(notebookId);
+    this.outgoing.delete(notebookId);
+  }
+
   async resolvePending(notebookId: string, note: NoteRef): Promise<number> {
     const before = this.resolved(notebookId).pending.length;
     this.notebook(notebookId).notes.set(note.noteId, note);
@@ -318,6 +323,13 @@ export class InMemoryFacetIndex implements FacetIndex {
     return new Map([...portraits].map(([noteId, snapshot]) => [noteId, valuesOf(snapshot)]));
   }
 
+  async removeNotebook(notebookId: string): Promise<void> {
+    this.portraits.delete(notebookId);
+    this.counters.delete(notebookId);
+    this.kinds.delete(notebookId);
+    this.discarded.delete(notebookId);
+  }
+
   async notebookFacetStats(notebookId: string): Promise<FacetStats> {
     this.notebook(notebookId);
     const counters = this.counters.get(notebookId) as Map<string, number>;
@@ -419,6 +431,10 @@ export class InMemoryContentIndex implements ContentIndex {
 
   async removeNote(notebookId: string, noteId: string): Promise<void> {
     this.byNotebook.get(notebookId)?.delete(noteId);
+  }
+
+  async removeNotebook(notebookId: string): Promise<void> {
+    this.byNotebook.delete(notebookId);
   }
 
   async scanNotebook(notebookId: string): Promise<IndexedNote[]> {
