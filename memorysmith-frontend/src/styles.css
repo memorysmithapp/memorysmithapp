@@ -1326,42 +1326,157 @@ body:has(.environment-banner) {
 
 /* The choice a link opens where it stands (RN-DSC-046). It hangs from the link
    and never moves the text around it. */
-.link-choice {
-  position: relative;
+/*
+ * The choice a link to several notes opens (#144). It was a menu positioned
+ * inside whatever held the link, and a table of a note scrolls on its own, so a
+ * link in a table cell opened its menu inside the scroll box of the table,
+ * clipped by it. A dialog opened with showModal() lives in the top layer, which
+ * no ancestor clips and no stacking context reaches.
+ */
+.link-choice-dialog {
+  border: 0;
+  padding: 0;
+  background: none;
+  max-width: none;
+  max-height: none;
+  width: 100%;
+  height: 100%;
+  color: var(--text);
 }
-.link-choice-menu {
+.link-choice-dialog::backdrop {
+  background: rgb(14 21 38 / 0.45);
+}
+/* The page behind a modal does not scroll under it. */
+body.has-modal {
+  overflow: hidden;
+}
+.link-choice-card {
   position: absolute;
-  z-index: 20;
-  top: calc(100% + 0.25rem);
-  left: 0;
-  min-width: 16rem;
-  max-width: min(28rem, 90vw);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(32rem, calc(100vw - 2rem));
+  max-height: min(85vh, 40rem);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.28);
+}
+.link-choice-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1rem 0.5rem;
+}
+.link-choice-header h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.link-choice-close {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--text-soft);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+.link-choice-close:hover {
+  color: var(--text);
+}
+.link-choice-body {
+  overflow-y: auto;
+  padding: 0 1rem;
+}
+.link-choice-explanation {
+  margin: 0 0 0.75rem;
+  color: var(--text-soft);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.link-choice-options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.link-choice-option {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  padding: 0.4rem;
-  background: var(--surface);
+  /* A comfortable target on a phone, where this is a sheet under a thumb. */
+  min-height: 2.75rem;
+  padding: 0.6rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
-  font-size: 0.9rem;
-  line-height: 1.4;
-}
-.link-choice-status {
-  padding: 0.25rem 0.5rem;
-  color: var(--text-soft);
-  font-size: 0.8rem;
-}
-.link-choice-item {
-  padding: 0.35rem 0.5rem;
-  border-radius: 6px;
   color: var(--text);
   text-decoration: none;
+  /* The trail of a deep folder wraps instead of being cut. */
+  overflow-wrap: anywhere;
 }
-.link-choice-item:hover,
-.link-choice-item:focus {
+.link-choice-option:hover,
+.link-choice-option:focus-visible {
   background: var(--border);
   outline: none;
+}
+.link-choice-option.is-placeholder {
+  min-height: 3.25rem;
+  background: var(--border);
+  opacity: 0.45;
+}
+.link-choice-lead {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+.link-choice-under {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+.link-choice-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.75rem 1rem 1rem;
+}
+.link-choice-cancel {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font-family: var(--display);
+  font-size: 0.9rem;
+  min-height: 2.75rem;
+  padding: 0 1.1rem;
+  cursor: pointer;
+}
+.link-choice-cancel:hover {
+  background: var(--border);
+}
+
+/* On a phone it rises from the bottom, within reach of a thumb. */
+@media (max-width: 600px) {
+  .link-choice-card {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    transform: none;
+    width: 100%;
+    max-height: 85vh;
+    border-radius: 14px 14px 0 0;
+    border-bottom: 0;
+  }
+  .link-choice-footer .link-choice-cancel {
+    width: 100%;
+  }
 }
 
 /* A file of the notebook that is not a note. This product stores no attachment,

@@ -135,14 +135,18 @@
     "unnamed": "Unnamed note",
     "attachmentMissing": "This notebook holds no file by that name. Attachments are not stored here.",
     "targetPending": "No note carries the name “{{target}}” yet. The link is kept and resolves on its own when one does.",
-    "targetAmbiguous_one": "One note answers this target.",
-    "targetAmbiguous_other": "{{count}} notes carry this name, so the link reaches all of them. Which one did you mean?",
-    "targetByName": "They match by name.",
-    "targetByAlias": "No name matched, so these match by alias — and one of them gives the link up the day somebody writes a note under this name."
+    "linkLeadsToSeveral": "This link leads to more than one note",
+    "linkLeadsNowhere": "This link leads nowhere yet",
+    "targetNamed_one": "“{{target}}” is the name of one note.",
+    "targetNamed_other": "“{{target}}” is the name of {{count}} notes, each in its own folder. Choose which one to open.",
+    "targetAliased_one": "No note is named “{{target}}”. One note carries it as an alias.",
+    "targetAliased_other": "No note is named “{{target}}”, so it matched {{count}} notes that carry it as an alias — and one of them gives the link up the day somebody writes a note under this name."
   },
   "common": {
     "loading": "Loading…",
-    "notFound": "Not found."
+    "notFound": "Not found.",
+    "cancel": "Cancel",
+    "close": "Close"
   },
   "dashboard": {
     "heading": "Overview",

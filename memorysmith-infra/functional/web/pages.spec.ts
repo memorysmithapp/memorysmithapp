@@ -228,16 +228,66 @@ test.describe('the pages of an account', () => {
     await expect(app).toHaveURL(notebook.page(`/notes/${notebook.noteId.toLowerCase()}`));
 
     // On the note itself the pending link is drawn pending and can still be
-    // clicked: the choice opens where the link stands and says nobody carries
-    // the name yet (RN-DSC-060, #138).
+    // clicked: the choice opens over the page and says nobody carries the name
+    // yet (RN-DSC-060, #138, #144).
     const pending = app.locator('a.wikilink-pending', { hasText: 'Nowhere yet' });
-    await expect(pending).toHaveAttribute('aria-haspopup', 'menu');
+    await expect(pending).toHaveAttribute('aria-haspopup', 'dialog');
     await pending.click();
     await expect(
-      app.getByRole('menu').getByText(words.pending('Nowhere yet'), { exact: false }),
+      app.getByRole('dialog').getByText(words.pending('Nowhere yet'), { exact: false }),
     ).toBeVisible();
     await app.keyboard.press('Escape');
-    await expect(app.getByRole('menu')).toHaveCount(0);
+    await expect(app.getByRole('dialog')).toHaveCount(0);
+  });
+
+  /**
+   * #144: the choice was a menu positioned inside whatever held the link, and
+   * a table of a note scrolls on its own, so a link written in a table cell
+   * opened its menu inside the scroll box of the table — clipped by it, with a
+   * scrollbar of its own.
+   */
+  test('[page:/notebooks/:notebookId/notes/:noteId] opens the choice of a link written in a table over the page, and at phone width as a sheet', async ({
+    app,
+    notebook,
+    words,
+  }) => {
+    await app.goto(notebook.page(`/notes/${notebook.tableNoteId.toLowerCase()}`));
+    const link = app.locator('table a.wikilink', { hasText: 'Facet' });
+    await link.click();
+
+    const dialog = app.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toBeInViewport();
+    await expect(dialog.getByRole('heading', { name: words.linkToSeveral })).toBeVisible();
+
+    // Above the table and not inside it: the top layer is what no ancestor
+    // clips, so the choice is wider than the cell that held the link.
+    const table = await app.locator('table').boundingBox();
+    const card = await app.locator('.link-choice-card').boundingBox();
+    expect(card?.width ?? 0).toBeGreaterThan(280);
+    expect((card?.height ?? 0) + (card?.y ?? 0)).toBeGreaterThan(table?.y ?? 0);
+
+    // Each option is a folder trail, because both notes carry the same name.
+    const options = app.locator('.link-choice-option');
+    await expect(options).toHaveCount(2);
+    await expect(options.first()).toContainText('Findings');
+
+    // Esc closes it and the focus goes back to the link.
+    await app.keyboard.press('Escape');
+    await expect(app.getByRole('dialog')).toHaveCount(0);
+    await expect(link).toBeFocused();
+
+    // At phone width it rises from the bottom, with comfortable targets.
+    await app.setViewportSize({ width: 390, height: 780 });
+    await link.click();
+    const sheet = await app.locator('.link-choice-card').boundingBox();
+    expect(Math.round((sheet?.y ?? 0) + (sheet?.height ?? 0))).toBeGreaterThanOrEqual(770);
+    const option = await app.locator('.link-choice-option').first().boundingBox();
+    expect(option?.height ?? 0).toBeGreaterThanOrEqual(44);
+
+    // And choosing one opens that note.
+    await app.locator('.link-choice-option').first().click();
+    await expect(app).toHaveURL(notebook.page(`/notes/${notebook.facetNoteIds[0].toLowerCase()}`));
   });
 
   test('[page:/notebooks/:notebookId/*] answers an address no page names inside a notebook with not found', async ({

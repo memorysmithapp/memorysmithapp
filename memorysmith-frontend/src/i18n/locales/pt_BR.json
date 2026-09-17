@@ -135,14 +135,18 @@
     "unnamed": "Nota sem nome",
     "attachmentMissing": "Este caderno não tem arquivo com esse nome. Anexos não são guardados aqui.",
     "targetPending": "Nenhuma nota se chama “{{target}}” ainda. O link fica guardado e resolve sozinho quando alguma se chamar.",
-    "targetAmbiguous_one": "Uma nota responde a este alvo.",
-    "targetAmbiguous_other": "{{count}} notas carregam este nome, então o link chega a todas. Qual delas você queria?",
-    "targetByName": "Casam por nome.",
-    "targetByAlias": "Nenhum nome casou, então estas casam por apelido — e uma delas devolve o link no dia em que alguém escrever uma nota com este nome."
+    "linkLeadsToSeveral": "Este link leva a mais de uma nota",
+    "linkLeadsNowhere": "Este link ainda não leva a lugar nenhum",
+    "targetNamed_one": "“{{target}}” é o nome de uma nota.",
+    "targetNamed_other": "“{{target}}” é o nome de {{count}} notas, cada uma em sua pasta. Escolha qual abrir.",
+    "targetAliased_one": "Nenhuma nota se chama “{{target}}”. Uma nota carrega esse apelido.",
+    "targetAliased_other": "Nenhuma nota se chama “{{target}}”, então ele casou com {{count}} notas que o carregam como apelido — e uma delas devolve o link no dia em que alguém escrever uma nota com este nome."
   },
   "common": {
     "loading": "Carregando…",
-    "notFound": "Não encontrado."
+    "notFound": "Não encontrado.",
+    "cancel": "Cancelar",
+    "close": "Fechar"
   },
   "dashboard": {
     "heading": "Visão geral",

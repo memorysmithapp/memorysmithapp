@@ -33,6 +33,7 @@ export interface Words {
   readonly deleteSlotForGood: string;
   readonly exportNotebook: string;
   readonly importNotebook: string;
+  readonly linkToSeveral: string;
   readonly pending: (target: string) => string;
 }
 
@@ -52,6 +53,7 @@ export const WORDS: Record<AppLocale, Words> = {
     deleteSlotForGood: 'Delete for good',
     exportNotebook: 'Download notebook',
     importNotebook: 'Import a notebook',
+    linkToSeveral: 'This link leads to more than one note',
     pending: (target) => `No note carries the name “${target}” yet.`,
   },
   pt_BR: {
@@ -69,12 +71,21 @@ export const WORDS: Record<AppLocale, Words> = {
     deleteSlotForGood: 'Apagar de vez',
     exportNotebook: 'Baixar o caderno',
     importNotebook: 'Importar um caderno',
+    linkToSeveral: 'Este link leva a mais de uma nota',
     pending: (target) => `Nenhuma nota se chama “${target}” ainda.`,
   },
 };
 
 export const GUIDANCE = '# Guidance\n\nWrite one finding per note, and say how it was verified.\n';
 export const TEMPLATE = '## Finding\n\n## Verification\n';
+/**
+ * A link written INSIDE A TABLE, which is where the choice used to break: a
+ * table of a note scrolls on its own, and the menu opened inside that scroll
+ * box, clipped by it (#144). Two notes of the notebook carry the name it
+ * addresses, in two folders, so the click has a choice to offer.
+ */
+export const TABLE_NOTE =
+  '---\nname: Table\n---\n\n| Subject | Note |\n| --- | --- |\n| Extraction | [[Facet]] |\n';
 export const CHECKLIST =
   '---\nname: Checklist\n---\n\n- [ ] first\n- [ ] second\n\nIt points at [[Nowhere yet]].\n';
 
@@ -83,6 +94,10 @@ export interface WebNotebook {
   readonly name: string;
   readonly folderId: string;
   readonly noteId: string;
+  /** The note whose table holds a link to a name two notes carry. */
+  readonly tableNoteId: string;
+  /** The two notes named `Facet`, one per folder, in the order they were written. */
+  readonly facetNoteIds: readonly [string, string];
   /** An address of the interface inside this notebook, with the lower-case ids it uses. */
   readonly page: (path?: string) => string;
 }
@@ -157,11 +172,34 @@ export async function writeNotebook(owner: Api, state: RunState): Promise<WebNot
     folderId,
     content: CHECKLIST,
   });
+
+  // A second folder, so that one name reaching two notes is a real case: a
+  // folder holds one note of each name, and two folders may repeat it
+  // (RN-KNW-042).
+  const second = await owner.ok<{ folderId: string }>('POST', `${path}/folders`, {
+    name: 'Concepts',
+    description: 'What a web case defines.',
+  });
+  const facets: string[] = [];
+  for (const where of [folderId, second.folderId]) {
+    const facet = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: where,
+      content: '---\nname: Facet\n---\n\nWhat a value of the frontmatter becomes.\n',
+    });
+    facets.push(facet.noteId);
+  }
+  const table = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+    folderId,
+    content: TABLE_NOTE,
+  });
+
   return {
     notebookId,
     name,
     folderId,
     noteId,
+    tableNoteId: table.noteId,
+    facetNoteIds: [facets[0] ?? '', facets[1] ?? ''],
     page: (suffix = '') => `${state.surfaces.site}/notebooks/${notebookId.toLowerCase()}${suffix}`,
   };
 }

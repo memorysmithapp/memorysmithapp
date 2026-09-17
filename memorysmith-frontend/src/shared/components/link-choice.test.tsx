@@ -5,8 +5,8 @@
  * Every surface drew a link to a name several notes carry as a dead pending
  * span, because it resolved with the one-note half of the resolver. These
  * render the reading surface to static markup: whether the link is a link,
- * whether it announces the menu it opens, and whether it still has a real
- * address for a new tab. What the menu does on a click is exercised in the
+ * whether it announces the dialog it opens, and whether it still has a real
+ * address for a new tab. What the dialog does on a click is exercised in the
  * browser, by the functional suite.
  */
 
@@ -104,7 +104,7 @@ describe('a wikilink on the reading surface', () => {
   it('opens the choice where it stands when several notes carry the name', () => {
     const html = render('See [[Facet]].');
 
-    expect(html).toContain('aria-haspopup="menu"');
+    expect(html).toContain('aria-haspopup="dialog"');
     expect(html).toContain('class="wikilink"');
     // A real address, so a new tab reaches the page with the same choice.
     expect(html).toContain('href="/notebooks/01j8x2k9qz3m4n5p6r7s8t9v0a/links/Facet"');
@@ -125,7 +125,7 @@ describe('a wikilink on the reading surface', () => {
 
     // Only Discovery knows the aliases, so the click still asks (RN-DSC-060).
     expect(html).toContain('class="wikilink-pending"');
-    expect(html).toContain('aria-haspopup="menu"');
+    expect(html).toContain('aria-haspopup="dialog"');
     expect(html).toContain('href="/notebooks/01j8x2k9qz3m4n5p6r7s8t9v0a/links/Nobody"');
   });
 });
@@ -134,5 +134,87 @@ describe('the folder trail of a note', () => {
   it('names the folders from the root down to the note', async () => {
     const source = await import('../api/source');
     expect(source.folderTrailOfNote(NOTEBOOK, '01J8X2K9QZ3M4N5P6R7S8T9VN2')).toEqual(['Concepts']);
+  });
+});
+
+/**
+ * What the choice SAYS, rendered on its own (#144). It is one component and two
+ * places — the dialog a wikilink opens and the page at the address of the
+ * target — so what it explains is asserted once. Opening, closing and the focus
+ * are browser behaviour, and live in the functional suite.
+ */
+describe('what a link to several notes explains', () => {
+  let content: (props: {
+    target: string;
+    by: 'name' | 'alias' | null;
+    options: Array<{ noteId: string; name: string; trail: string[]; address: string }>;
+    state: 'loading' | 'error' | 'ready';
+  }) => string;
+
+  beforeAll(async () => {
+    const { LinkChoiceContent } = await import('./LinkChoiceContent');
+    content = (props) => renderToStaticMarkup(<LinkChoiceContent {...props} />);
+  });
+
+  const option = (noteId: string, name: string, trail: string[]) => ({
+    noteId,
+    name,
+    trail,
+    address: `/notebooks/n/notes/${noteId}`,
+  });
+
+  it('leads each option with its folder trail when the name matched', () => {
+    const html = content({
+      target: 'Facet',
+      by: 'name',
+      state: 'ready',
+      options: [option('n1', 'Facet', ['Code', 'Discovery']), option('n2', 'Facet', ['Decisions'])],
+    });
+
+    // The name is said once, in the explanation, because every option carries
+    // it: what tells them apart is the folder.
+    expect(html).toContain('Code › Discovery');
+    expect(html).toContain('Decisions');
+    // The locale of this file is the one the interface starts in, pt_BR.
+    expect(html).toContain('é o nome de 2 notas');
+    expect(html).not.toContain('link-choice-under');
+  });
+
+  it('leads each option with its name when an alias matched, and says it is less durable', () => {
+    const html = content({
+      target: 'LGL',
+      by: 'alias',
+      state: 'ready',
+      options: [option('n1', 'Lei 14.133', ['Norms']), option('n2', 'Lei Geral', ['Norms'])],
+    });
+
+    expect(html).toContain('Lei 14.133');
+    expect(html).toContain('link-choice-under');
+    expect(html).toContain('devolve o link');
+  });
+
+  it('says a name nobody carries is free, and offers nothing', () => {
+    const html = content({ target: 'Nowhere yet', by: null, state: 'ready', options: [] });
+
+    expect(html).toContain('Nenhuma nota se chama');
+    expect(html).not.toContain('link-choice-option');
+  });
+
+  it('shows placeholder rows while the target resolves, so a click is never ignored', () => {
+    const html = content({ target: 'Facet', by: null, state: 'loading', options: [] });
+
+    expect(html).toContain('aria-busy="true"');
+    expect(html).toContain('is-placeholder');
+  });
+
+  it('names the root when a note of the root is an option', () => {
+    const html = content({
+      target: 'Facet',
+      by: 'name',
+      state: 'ready',
+      options: [option('n1', 'Facet', []), option('n2', 'Facet', ['Code'])],
+    });
+
+    expect(html).toContain('Raiz');
   });
 });

@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { Navigate, Link, useOutletContext, useParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { Navigate, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { resolveLinkTarget } from '../../shared/api/source';
 import { noteAddress } from '../../shared/api/note-address';
-import { NoteSkeleton } from '../../shared/components/skeletons';
 import { useDocumentTitle } from '../../shared/components/document-title';
+import {
+  LinkChoiceContent,
+  type LinkChoiceOption,
+} from '../../shared/components/LinkChoiceContent';
 import { folderTrailForNote } from '../structure/trail';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
 import { useNotebookId } from '../structure/route-ids';
@@ -22,9 +24,14 @@ import { useNotebookId } from '../structure/route-ids';
  *
  * It is **notebook-wide**, because resolution is: binding the choice to a folder
  * trail was always slightly wrong.
+ *
+ * **One content, two places.** What it explains and what it offers is the same
+ * component the dialog of a wikilink renders (#144): a person who pasted the
+ * address and a person who clicked the link are answering the same question,
+ * and two copies of that answer drift apart.
  */
 export function LinkTargetPage() {
-  const { t } = useTranslation();
+  const navigate = useNavigate();
   const notebookId = useNotebookId();
   const { target = '' } = useParams();
   const { structure } = useOutletContext<NotebookOutletContext>();
@@ -38,18 +45,12 @@ export function LinkTargetPage() {
     enabled: decoded !== '',
   });
 
-  if (isPending) return <NoteSkeleton />;
-  if (isError || !data) return <p className="status">{t('errors.unexpected')}</p>;
-
-  const candidates = data.notes.map((note) => {
-    const trail = folderTrailForNote(structure.folders, note.noteId);
-    return {
-      noteId: note.noteId,
-      name: note.name,
-      folderPath: trail.map((each) => each.name).join(' › '),
-      address: noteAddress(notebookId, note.noteId),
-    };
-  });
+  const candidates: LinkChoiceOption[] = (data?.notes ?? []).map((note) => ({
+    noteId: note.noteId,
+    name: note.name,
+    trail: folderTrailForNote(structure.folders, note.noteId).map((each) => each.name),
+    address: noteAddress(notebookId, note.noteId),
+  }));
 
   // One note answers: this page is a step nobody asked for, so it steps aside
   // and the address in the bar becomes the address of the note.
@@ -59,27 +60,13 @@ export function LinkTargetPage() {
   return (
     <article className="content-pane link-target">
       <h1>{decoded}</h1>
-      {candidates.length === 0 ? (
-        <p className="status">{t('note.targetPending', { target: decoded })}</p>
-      ) : (
-        <>
-          <p className="status">
-            {t('note.targetAmbiguous', { count: candidates.length })}{' '}
-            {/* A choice is about a name or about an alias and never about
-                both, and the two are not equally durable: an edge held by an
-                alias goes the day somebody writes a note under that name. */}
-            {data.by === 'alias' ? t('note.targetByAlias') : t('note.targetByName')}
-          </p>
-          <ul className="note-list">
-            {candidates.map((each) => (
-              <li key={each.noteId}>
-                <Link to={each.address}>{each.name || t('note.unnamed')}</Link>
-                <span className="note-list-desc">{each.folderPath}</span>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+      <LinkChoiceContent
+        target={decoded}
+        by={data?.by ?? null}
+        options={candidates}
+        state={isPending ? 'loading' : isError || !data ? 'error' : 'ready'}
+        onPick={(address) => void navigate(address)}
+      />
     </article>
   );
 }
