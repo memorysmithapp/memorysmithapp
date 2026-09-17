@@ -1,19 +1,24 @@
 /**
  * HTTP surface of svc-audit (architecture-guide.md, section 14.1):
  *
- *   GET /notes/:n/history
- *   GET /notes/:n/revisions/:versionId
- *   GET /notes/:n/revisions?asOf=
+ *   GET /notebooks/:v/notes/:n/history
+ *   GET /notebooks/:v/notes/:n/revisions/:versionId
+ *   GET /notebooks/:v/notes/:n/revisions?asOf=
  *   GET /notebooks/:v/activity?from=&to=
  *
  * Everything here is a read. There is no write route, because the only writer
  * is the event consumer, and there is no update route anywhere, because the
  * table refuses one by IAM.
+ *
+ * A read of the trail is about a note OF A NOTEBOOK. The trail is indexed by
+ * the note alone, because a note keeps its history across a move (RN-AUD-004),
+ * and that is a fact of the store, never of the surface: a caller addresses a
+ * note where it lives, and is answered about the note that lives there.
  */
 
 import { Hono, type Context } from 'hono';
 import {
-  type DomainError,
+  DomainError,
   httpStatusFor,
   type Result,
   type SubscriptionContext,
@@ -28,6 +33,15 @@ import type { GetNoteHistory, GetNotebookActivity, ReadRevision } from '../../ap
  */
 export interface AuditRequest {
   readonly subscription: SubscriptionContext;
+  /**
+   * Whether that notebook still holds that note, LIVE: the note itself, the
+   * folder it lives in and the notebook above it (RN-KNW-046). Deleting is one
+   * write on the unit deleted and nothing under it is rewritten, so the trail
+   * cannot answer this out of its own entries — what is invalid left no event
+   * of its own, and waiting for the purge to say so is what let a deleted note
+   * serve its history and its content for a minute.
+   */
+  readonly holdsNote: (notebookId: string, noteId: string) => Promise<boolean>;
 }
 
 export interface AuditUseCases {
@@ -59,12 +73,30 @@ function present<T, U>(c: Context, result: Result<T, DomainError>, map: (value: 
   return result.ok ? c.json(map(result.value) as object, 200) : fail(c, result.error);
 }
 
+/**
+ * A note under anything deleted answers as missing here too, the instant it is
+ * deleted and not when the purge gets to it, and so does a note addressed
+ * through a notebook that does not hold it.
+ */
+async function guardNote(
+  request: AuditRequest,
+  notebookId: string,
+  noteId: string,
+): Promise<DomainError | null> {
+  return (await request.holdsNote(notebookId, noteId))
+    ? null
+    : DomainError.notFound('Note not found');
+}
+
 export function createAuditRoutes(useCases: AuditUseCases): Hono<{ Variables: Variables }> {
   const app = new Hono<{ Variables: Variables }>();
 
-  app.get('/notes/:n/history', async (c) => {
+  app.get('/notebooks/:v/notes/:n/history', async (c) => {
     const request = c.get('audit');
     const noteId = c.req.param('n') ?? '';
+    const denied = await guardNote(request, c.req.param('v') ?? '', noteId);
+    if (denied) return fail(c, denied);
+
     return present(c, await useCases.noteHistory(request).execute(noteId), (entries) => ({
       noteId,
       entries: entries.map(entryToDto),
@@ -72,9 +104,12 @@ export function createAuditRoutes(useCases: AuditUseCases): Hono<{ Variables: Va
   });
 
   /** The revision in force on a date, rebuilt from the trail (RN-AUD-005). */
-  app.get('/notes/:n/revisions', async (c) => {
+  app.get('/notebooks/:v/notes/:n/revisions', async (c) => {
     const request = c.get('audit');
     const noteId = c.req.param('n') ?? '';
+    const denied = await guardNote(request, c.req.param('v') ?? '', noteId);
+    if (denied) return fail(c, denied);
+
     const read = await useCases.readRevision(request).execute({
       noteId,
       asOf: c.req.query('asOf'),
@@ -88,9 +123,12 @@ export function createAuditRoutes(useCases: AuditUseCases): Hono<{ Variables: Va
     }));
   });
 
-  app.get('/notes/:n/revisions/:versionId', async (c) => {
+  app.get('/notebooks/:v/notes/:n/revisions/:versionId', async (c) => {
     const request = c.get('audit');
     const noteId = c.req.param('n') ?? '';
+    const denied = await guardNote(request, c.req.param('v') ?? '', noteId);
+    if (denied) return fail(c, denied);
+
     const read = await useCases.readRevision(request).execute({
       noteId,
       versionId: c.req.param('versionId'),
@@ -107,6 +145,11 @@ export function createAuditRoutes(useCases: AuditUseCases): Hono<{ Variables: Va
   app.get('/notebooks/:v/activity', async (c) => {
     const request = c.get('audit');
     const notebookId = c.req.param('v') ?? '';
+    /**
+     * No check of the notebook here, and that is the point: the activity of a
+     * notebook somebody DELETED is what a trail exists to answer, the deletion
+     * itself included. The subscription is what bounds this read.
+     */
     const activity = await useCases.notebookActivity(request).execute({
       notebookId,
       from: c.req.query('from'),

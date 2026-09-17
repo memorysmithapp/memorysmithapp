@@ -361,7 +361,9 @@ export interface HistoryEntryDto {
   contentRef: { versionId: string } | null;
 }
 
-export async function noteHistory(noteId: string): Promise<HistoryEntryDto[]> {
-  const history = await request<{ entries: HistoryEntryDto[] }>(`/audit/notes/${noteId}/history`);
+export async function noteHistory(notebookId: string, noteId: string): Promise<HistoryEntryDto[]> {
+  const history = await request<{ entries: HistoryEntryDto[] }>(
+    `/audit/notebooks/${notebookId}/notes/${noteId}/history`,
+  );
   return history.entries;
 }

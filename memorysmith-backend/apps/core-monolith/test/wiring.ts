@@ -420,6 +420,21 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       // A deleted notebook is unreadable to every context, not only to Knowledge.
       return notebook !== null && !notebook.isDeleted;
     },
+    // And Audit holds no note: what a notebook still holds, live, is a
+    // Knowledge fact (RN-KNW-046).
+    notebookHoldsNote: async (request, notebookId, noteId) => {
+      const kernel = await import('@memorysmith/kernel');
+      const parsedNotebook = kernel.NotebookId.create(notebookId);
+      const parsedNote = kernel.NoteId.create(noteId);
+      if (!parsedNotebook.ok || !parsedNote.ok) return false;
+      const repos = knowledgeRepos(request.subscription);
+      const [notebook, note] = await Promise.all([
+        repos.notebooks.findById(parsedNotebook.value),
+        repos.notes.findById(parsedNotebook.value, parsedNote.value),
+      ]);
+      if (!notebook || notebook.isDeleted || !note || note.isDeleted) return false;
+      return notebook.folders.has(note.folderId);
+    },
     resolveContext: async (request: AccessRequest) => {
       const context = request.context;
       if (!context) {

@@ -15,6 +15,7 @@ import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { S3Client } from '@aws-sdk/client-s3';
 import {
   DomainError,
+  NoteId,
   NotebookId,
   type SubscriptionContext,
   type SubscriptionId,
@@ -404,6 +405,26 @@ const app = createApp({
     // Discovery and Portability ask this question, and both must get a no.
     if (!notebook || notebook.isDeleted) return false;
     return request.ctx.isOwner || request.subscriptionRole.canRead();
+  },
+  /**
+   * The same chain the note use cases of Knowledge walk before answering, and
+   * the one the trail has no way of walking: a removed folder rewrites nothing
+   * under it, so the item of the note is still there, still pointing at its
+   * content, until the purge takes it. Whether it is reachable is what the tree
+   * says (RN-KNW-046).
+   */
+  notebookHoldsNote: async (request, notebookId, noteId) => {
+    const parsedNotebook = NotebookId.create(notebookId);
+    const parsedNote = NoteId.create(noteId);
+    if (!parsedNotebook.ok || !parsedNote.ok) return false;
+
+    const knowledge = buildKnowledge(infra, request.subscription);
+    const [notebook, note] = await Promise.all([
+      knowledge.notebooks.findById(parsedNotebook.value),
+      knowledge.notes.findById(parsedNotebook.value, parsedNote.value),
+    ]);
+    if (!notebook || notebook.isDeleted || !note || note.isDeleted) return false;
+    return notebook.folders.has(note.folderId);
   },
 });
 

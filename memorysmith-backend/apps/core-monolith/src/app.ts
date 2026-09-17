@@ -64,6 +64,17 @@ export interface AppDependencies {
    */
   readonly canReadNotebook: (request: KnowledgeRequest, notebookId: string) => Promise<boolean>;
   /**
+   * Whether a notebook still holds a note, live. Audit asks it before answering
+   * anything about a note, and only Knowledge can answer: a deleted folder
+   * rewrites nothing under it, so the note that is out of reach looks untouched
+   * from every other table (RN-KNW-046).
+   */
+  readonly notebookHoldsNote: (
+    request: KnowledgeRequest,
+    notebookId: string,
+    noteId: string,
+  ) => Promise<boolean>;
+  /**
    * What an import writes a notebook with. It is built here, per request, because
    * it joins two contexts that may not import each other.
    */
@@ -156,9 +167,16 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
       const resolved = await deps.resolveContext(session.value);
       if (!resolved.ok) return fail(c, resolved.error);
       c.set('knowledge', resolved.value);
-      c.set('audit', { subscription: resolved.value.subscription });
       const canRead = (notebookId: string): Promise<boolean> =>
         deps.canReadNotebook(resolved.value, notebookId);
+      c.set('audit', {
+        subscription: resolved.value.subscription,
+        // The whole chain in one question: the notebook the caller addressed,
+        // and the note that notebook holds at this instant.
+        holdsNote: async (notebookId: string, noteId: string) =>
+          (await canRead(notebookId)) &&
+          (await deps.notebookHoldsNote(resolved.value, notebookId, noteId)),
+      });
       c.set('discovery', {
         subscription: resolved.value.subscription,
         // Discovery holds no notebook, so whether the caller may read one is

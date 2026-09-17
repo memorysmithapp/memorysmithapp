@@ -86,9 +86,14 @@ async function drainAudit(): Promise<void> {
 
 type Agent = { clientId: string; clientName: string } | null;
 
-async function historyOf(noteId: string): Promise<Array<{ userId: string; agent: Agent }>> {
+async function historyOf(
+  notebookId: string,
+  noteId: string,
+): Promise<Array<{ userId: string; agent: Agent }>> {
   await drainAudit();
-  const history = (await (await call(`/audit/notes/${noteId}/history`)).json()) as {
+  const history = (await (
+    await call(`/audit/notebooks/${notebookId}/notes/${noteId}/history`)
+  ).json()) as {
     entries: Array<{ type: string; authorship: { userId: string; agent: Agent } }>;
   };
   return history.entries.map((entry) => ({
@@ -181,15 +186,25 @@ describe('a write through the connector records the person and the connector', (
       },
     });
     expect(updated.status).toBe(200);
+    const history = await historyOf(where.notebookId, created.noteId);
     const deleted = await call(`/knowledge/notebooks/${where.notebookId}/notes/${created.noteId}`, {
       method: 'DELETE',
       token,
     });
     expect(deleted.status).toBe(204);
 
-    const history = await historyOf(created.noteId);
-    expect(history).toHaveLength(3);
+    // Read before the deletion: a deleted note stops answering about itself
+    // (RN-AUD-010), and what is being asked here is who wrote, not what the
+    // trail serves. The activity of the notebook carries the deletion.
+    expect(history).toHaveLength(2);
     for (const entry of history) expect(entry).toEqual({ userId: 'user-owner', agent: CLAUDE });
+    await drainAudit();
+    const removal = (await (
+      await call(`/audit/notebooks/${where.notebookId}/activity`, { token })
+    ).json()) as { entries: Array<{ type: string; authorship: { agent: Agent } }> };
+    expect(removal.entries.find((entry) => entry.type === 'NoteDeleted')?.authorship.agent).toEqual(
+      CLAUDE,
+    );
   });
 
   it('in the listing of the notes, beside the person', async () => {
@@ -228,7 +243,9 @@ describe('a write through the connector records the person and the connector', (
     expect(rebound.status).toBe(204);
 
     const created = (await (await createNote(where, renewed)).json()) as { noteId: string };
-    expect(await historyOf(created.noteId)).toEqual([{ userId: 'user-owner', agent: CLAUDE }]);
+    expect(await historyOf(where.notebookId, created.noteId)).toEqual([
+      { userId: 'user-owner', agent: CLAUDE },
+    ]);
   });
 });
 
@@ -236,7 +253,9 @@ describe('a write through the interface records the person alone', () => {
   it('with no agent', async () => {
     const where = await place();
     const created = (await (await createNote(where, OWNER)).json()) as { noteId: string };
-    expect(await historyOf(created.noteId)).toEqual([{ userId: 'user-owner', agent: null }]);
+    expect(await historyOf(where.notebookId, created.noteId)).toEqual([
+      { userId: 'user-owner', agent: null },
+    ]);
   });
 });
 
@@ -335,7 +354,9 @@ describe('the binding route', () => {
     expect(again.status).toBe(409);
 
     const created = (await (await createNote(where, token)).json()) as { noteId: string };
-    expect(await historyOf(created.noteId)).toEqual([{ userId: 'user-owner', agent: CLAUDE }]);
+    expect(await historyOf(where.notebookId, created.noteId)).toEqual([
+      { userId: 'user-owner', agent: CLAUDE },
+    ]);
   });
 
   it('binds nothing to a refresh token no connector was bound to', async () => {

@@ -566,7 +566,7 @@ export class HttpAuditGateway implements AuditGateway {
 
   async noteHistory(
     caller: AgentCaller,
-    _notebookId: string,
+    notebookId: string,
     noteId: string,
   ): Promise<HistoryEntry[]> {
     const history = await callApi<{
@@ -576,7 +576,7 @@ export class HttpAuditGateway implements AuditGateway {
         authorship: { userId: string; agent: { clientId: string; clientName: string } | null };
         contentRef: { versionId: string } | null;
       }>;
-    }>(this.origin, caller, `/audit/notes/${noteId}/history`);
+    }>(this.origin, caller, `/audit/notebooks/${notebookId}/notes/${noteId}/history`);
 
     return history.entries.map((entry) => ({
       occurredAt: entry.occurredAt,
@@ -600,7 +600,7 @@ export class HttpAuditGateway implements AuditGateway {
     }>(
       this.origin,
       caller,
-      `/audit/notes/${input.noteId}/revisions?asOf=${encodeURIComponent(input.asOf)}`,
+      `/audit/notebooks/${input.notebookId}/notes/${input.noteId}/revisions?asOf=${encodeURIComponent(input.asOf)}`,
     );
     return {
       noteId: revision.noteId,

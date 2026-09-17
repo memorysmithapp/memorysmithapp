@@ -27,14 +27,18 @@ async function writeTwice(owner: Api, notebook: NotebookFixture) {
   });
   const history = await eventually(
     'both writes in the history',
-    () => owner.ok<{ entries: Entry[] }>('GET', `/audit/notes/${notebook.noteId}/history`),
+    () =>
+      owner.ok<{ entries: Entry[] }>(
+        'GET',
+        `/audit/notebooks/${notebook.notebookId}/notes/${notebook.noteId}/history`,
+      ),
     (answer) => answer.entries.filter((entry) => entry.contentRef !== null).length >= 2,
   );
   return { first, second, entries: history.entries };
 }
 
 test.describe('the audit trail', () => {
-  test('[route:GET /audit/notes/:n/history] records every write of a note, with the person who made it', async ({
+  test('[route:GET /audit/notebooks/:v/notes/:n/history] records every write of a note, with the person who made it', async ({
     owner,
     notebook,
   }) => {
@@ -47,7 +51,7 @@ test.describe('the audit trail', () => {
     }
   });
 
-  test('[route:GET /audit/notes/:n/revisions] answers what a note said at an instant', async ({
+  test('[route:GET /audit/notebooks/:v/notes/:n/revisions] answers what a note said at an instant', async ({
     owner,
     notebook,
   }) => {
@@ -56,14 +60,14 @@ test.describe('the audit trail', () => {
     const at = (instant: string) =>
       owner.ok<{ content: string }>(
         'GET',
-        `/audit/notes/${notebook.noteId}/revisions?asOf=${encodeURIComponent(instant)}`,
+        `/audit/notebooks/${notebook.notebookId}/notes/${notebook.noteId}/revisions?asOf=${encodeURIComponent(instant)}`,
       );
 
     expect((await at(written[0]?.occurredAt ?? '')).content).toBe(first.content);
     expect((await at(new Date().toISOString())).content).toBe(second.content);
   });
 
-  test('[route:GET /audit/notes/:n/revisions/:versionId] answers the content of one revision', async ({
+  test('[route:GET /audit/notebooks/:v/notes/:n/revisions/:versionId] answers the content of one revision', async ({
     owner,
     notebook,
   }) => {
@@ -71,7 +75,7 @@ test.describe('the audit trail', () => {
 
     const revision = await owner.ok<{ content: string }>(
       'GET',
-      `/audit/notes/${notebook.noteId}/revisions/${first.revision.versionId}`,
+      `/audit/notebooks/${notebook.notebookId}/notes/${notebook.noteId}/revisions/${first.revision.versionId}`,
     );
     expect(revision.content).toBe(first.content);
   });

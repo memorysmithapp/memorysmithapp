@@ -1102,6 +1102,8 @@ No query to Knowledge is needed: **the present lives in `mv-knowledge`, the past
 
 **Reconstruction ends where the purge begins.** A note that was deleted is destroyed, revision by revision, and step 2 then finds nothing: the trail keeps every event of that note, the purge included, and their content references point at content that no longer exists (RN-AUD-010). That is the price of RN-KNW-047, and it is paid on purpose — bytes a subscription threw away are bytes it would go on paying for. What is NOT purged is the superseded revision of a note still in use: editing a note destroys nothing, and only the history of a note somebody deleted stops being readable.
 
+**A read of the trail is about a note OF A NOTEBOOK, and checks the chain before it answers.** The trail is indexed by the note alone, because a note keeps its history across a move (RN-AUD-004); that is a fact of the store and never of the surface, so the two note reads take the notebook in the path and answer as missing when that notebook does not hold that note. The validity chain is the same one the note use cases of Knowledge walk, and it is asked of Knowledge, because the trail cannot answer it out of its own entries: deleting is ONE write on the unit deleted (§12.4), so a note under a removed folder left no event of its own and looks untouched from every table but the tree. Audit holds no notebook, exactly as Discovery holds none, so the question arrives on the request from the context that owns it (§14.2). **Waiting for the purge to answer it is not an option**: the purge runs a minute later, and in that minute the history and the content of a deleted note were still being served while every other surface already answered not found.
+
 ### 12.4 Deleting destroys, in the background
 
 **`NoteDeleted` writes the mark and nothing else.** The `NOTE` item gains `deletedAt` and `deletedBy`, and **loses the key attributes of `GSI2`**: since the index is sparse (§9.3), the note disappears from the listings without a line of filtering anywhere. Nothing else is written: there is no guard to release, because a notebook reserves no name (RN-KNW-030, removed). **The mark is not a second state the note can come back from**, it is the state between the deletion and the purge, and nothing clears it: deleting is definitive (RN-KNW-029) and restoring is gone with the rule it stood on.
@@ -1231,9 +1233,12 @@ svc-discovery    GET  /notebooks/:v/links/:target   what one wikilink target res
                  GET  /notebooks/:v/health   (pending links, orphans)
                  GET  /notebooks/:v/facets  (content distribution, feeds the Overview)
                  POST /notebooks/:v/search   { query, mode: lexical }
-svc-audit        GET  /notes/:n/history
-                 GET  /notes/:n/revisions · GET /notes/:n/revisions/:versionId
-                 GET  /notebooks/:v/activity?from=&to=
+svc-audit        GET  /notebooks/:v/notes/:n/history
+                 GET  /notebooks/:v/notes/:n/revisions
+                 GET  /notebooks/:v/notes/:n/revisions/:versionId
+                 GET  /notebooks/:v/activity?from=&to=   answers for a notebook
+                    somebody DELETED as well, the deletion included: that is
+                    what a trail is for, and the subscription bounds the read
 svc-portability  POST /notebooks/:v/export   → the pre-signed URL comes back in the same answer
 ```
 

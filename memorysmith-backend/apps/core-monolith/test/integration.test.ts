@@ -320,8 +320,10 @@ describe('Discovery answers over the API', () => {
 
 describe('Audit answers over the API', () => {
   it('serves the timeline of a note with authorship', async () => {
-    const { notes } = await seed();
-    const history = (await (await call(`/audit/notes/${notes['lei']}/history`)).json()) as {
+    const { notebookId, notes } = await seed();
+    const history = (await (
+      await call(`/audit/notebooks/${notebookId}/notes/${notes['lei']}/history`)
+    ).json()) as {
       entries: Array<{ type: string; authorship: { userId: string; agent: unknown } }>;
     };
 
@@ -342,19 +344,83 @@ describe('Audit answers over the API', () => {
     expect(types).toContain('NoteCreated');
   });
 
-  it('keeps the timeline after the note is deleted', async () => {
+  /**
+   * The trail never forgets and the product stops answering about what somebody
+   * deleted, from the instant of the deletion and not when the purge gets to it
+   * a minute later (RN-KNW-046, RN-AUD-010). A deletion is ONE write on the unit
+   * deleted, so a note under a removed folder carries no event of its own: what
+   * says it is out of reach is the tree, which is why this is asked of
+   * Knowledge (#146).
+   */
+  it('stops answering about a note the instant it is deleted, and keeps its entries in the trail', async () => {
     const { notebookId, notes } = await seed();
-    await call(`/knowledge/notebooks/${notebookId}/notes/${notes['lei']}`, { method: 'DELETE' });
+    const noteId = notes['lei'] ?? '';
+    const at = new Date().toISOString();
+    await call(`/knowledge/notebooks/${notebookId}/notes/${noteId}`, { method: 'DELETE' });
     await drainEvents();
 
-    // The note is gone from the listings and the history is still there.
-    expect((await call(`/knowledge/notebooks/${notebookId}/notes/${notes['lei']}`)).status).toBe(
-      404,
-    );
-    const history = (await (await call(`/audit/notes/${notes['lei']}/history`)).json()) as {
+    expect((await call(`/knowledge/notebooks/${notebookId}/notes/${noteId}`)).status).toBe(404);
+    expect((await call(`/audit/notebooks/${notebookId}/notes/${noteId}/history`)).status).toBe(404);
+    expect(
+      (
+        await call(
+          `/audit/notebooks/${notebookId}/notes/${noteId}/revisions?asOf=${encodeURIComponent(at)}`,
+        )
+      ).status,
+    ).toBe(404);
+
+    // Appended and immutable: what is refused is serving them, never keeping them.
+    const activity = (await (await call(`/audit/notebooks/${notebookId}/activity`)).json()) as {
       entries: Array<{ type: string }>;
     };
-    expect(history.entries.map((entry) => entry.type)).toContain('NoteDeleted');
+    expect(activity.entries.map((entry) => entry.type)).toContain('NoteDeleted');
+  });
+
+  it('stops answering about a note whose folder was removed, before any purge', async () => {
+    const { notebookId, folderId, notes } = await seed();
+    await call(`/knowledge/notebooks/${notebookId}/folders/${folderId}?policy=CASCADE`, {
+      method: 'DELETE',
+    });
+    await drainEvents();
+
+    expect(
+      (await call(`/audit/notebooks/${notebookId}/notes/${notes['lei']}/history`)).status,
+    ).toBe(404);
+  });
+
+  it('stops answering about a note whose notebook was deleted, before any purge', async () => {
+    const { notebookId, notes } = await seed();
+    await call(`/knowledge/notebooks/${notebookId}`, { method: 'DELETE' });
+    await drainEvents();
+
+    expect(
+      (await call(`/audit/notebooks/${notebookId}/notes/${notes['lei']}/history`)).status,
+    ).toBe(404);
+
+    // The activity of the notebook still answers, deletion and all: that is the
+    // one read of the trail a deletion does not take away (rule 6).
+    const activity = (await (await call(`/audit/notebooks/${notebookId}/activity`)).json()) as {
+      entries: Array<{ type: string }>;
+    };
+    expect(activity.entries.map((entry) => entry.type)).toContain('NotebookDeleted');
+  });
+
+  it('answers not found for a note addressed through a notebook that does not hold it', async () => {
+    const { notes } = await seed();
+    const other = (await (
+      await call('/knowledge/notebooks', {
+        method: 'POST',
+        body: { name: 'Outro caderno', description: 'Nada a ver com a nota.' },
+      })
+    ).json()) as { notebookId: string };
+
+    expect(
+      (await call(`/audit/notebooks/${other.notebookId}/notes/${notes['lei']}/history`)).status,
+    ).toBe(404);
+    expect(
+      (await call(`/audit/notebooks/01JBQ2X0000000000000000099/notes/${notes['lei']}/history`))
+        .status,
+    ).toBe(404);
   });
 });
 
@@ -596,11 +662,16 @@ describe('Deleting a notebook takes it out of reach, for good', () => {
     ).toBe(404);
 
     // The trail keeps every event of it, which is the one thing a deletion
-    // does not take away (rule 6).
-    const history = (await (await call(`/audit/notes/${notes['lei']}/history`)).json()) as {
+    // does not take away (rule 6) — and it stops serving them note by note,
+    // because what they point at is on its way to being destroyed (RN-AUD-010).
+    await drainEvents();
+    expect(
+      (await call(`/audit/notebooks/${notebookId}/notes/${notes['lei']}/history`)).status,
+    ).toBe(404);
+    const activity = (await (await call(`/audit/notebooks/${notebookId}/activity`)).json()) as {
       entries: Array<{ type: string }>;
     };
-    expect(history.entries.map((entry) => entry.type)).toContain('NoteCreated');
+    expect(activity.entries.map((entry) => entry.type)).toContain('NoteCreated');
   });
 
   it('frees the name at once, and gives it to nobody back', async () => {

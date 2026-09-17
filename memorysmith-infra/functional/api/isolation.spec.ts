@@ -33,11 +33,14 @@ test.describe('isolation', () => {
 
     const listed = await other.ok<Array<{ notebookId: string }>>('GET', '/knowledge/notebooks');
     expect(listed.map((each) => each.notebookId)).not.toContain(v);
-    const history = await other.ok<{ entries: unknown[] }>(
+    // The trail of a note of another subscription is not an empty history: it
+    // is a note that does not exist, because the notebook it is addressed
+    // through does not exist here (rule 9).
+    const history = await other.call(
       'GET',
-      `/audit/notes/${notebook.noteId}/history`,
+      `/audit/notebooks/${notebook.notebookId}/notes/${notebook.noteId}/history`,
     );
-    expect(history.entries).toEqual([]);
+    expect(history.status).toBe(404);
   });
 
   test('a platform administrator reaches no notebook, because the session carries no subscription', async ({
