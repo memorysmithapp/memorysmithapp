@@ -108,6 +108,13 @@ async function sweep(
           KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
           ExpressionAttributeValues: { ':pk': pk, ':prefix': prefix },
           ProjectionExpression: 'SK',
+          /**
+           * What was written a moment ago is exactly what a deletion must not
+           * miss. A `Query` that has not caught up answers fewer items than
+           * exist, and what it did not answer is never deleted: nothing walks
+           * these again, because what named them is gone (#152).
+           */
+          ConsistentRead: true,
           ...(startKey ? { ExclusiveStartKey: startKey } : {}),
         }),
       );
@@ -214,7 +221,13 @@ export class DynamoLinkGraph implements LinkGraph {
    * would silently hide half the graph, and the caller would have no way to
    * tell a small notebook from a truncated answer.
    */
-  private async query(notebookId: string, prefix: string): Promise<Item[]> {
+  /**
+   * `consistent` is for the walks of a DELETION and for nothing else: an edge
+   * written a moment before is one this must not miss, and what it misses
+   * nothing walks again (#152). A read that answers a person stays eventual,
+   * where consistency costs double and buys nothing.
+   */
+  private async query(notebookId: string, prefix: string, consistent = false): Promise<Item[]> {
     const items: Item[] = [];
     let startKey: Record<string, unknown> | undefined;
     do {
@@ -226,6 +239,7 @@ export class DynamoLinkGraph implements LinkGraph {
           TableName: this.tableName,
           KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
           ExpressionAttributeValues: { ':pk': this.pk(notebookId), ':prefix': prefix },
+          ...(consistent ? { ConsistentRead: true } : {}),
           ...(startKey ? { ExclusiveStartKey: startKey } : {}),
         }),
       );
@@ -412,8 +426,8 @@ export class DynamoLinkGraph implements LinkGraph {
     );
     const name = noteItem.Item?.['name'] === undefined ? null : String(noteItem.Item['name']);
 
-    const outgoing = await this.query(notebookId, `OUT#${noteId}#`);
-    const incoming = await this.query(notebookId, `IN#${noteId}#`);
+    const outgoing = await this.query(notebookId, `OUT#${noteId}#`, true);
+    const incoming = await this.query(notebookId, `IN#${noteId}#`, true);
     /**
      * The targets of the note that reached nothing, and the marks on the edges
      * an alias answered for. Neither is keyed by the note, so neither comes out
@@ -424,8 +438,8 @@ export class DynamoLinkGraph implements LinkGraph {
      */
     const mine = (item: Item): boolean =>
       String(item['fromNoteId']) === noteId || String(item['toNoteId']) === noteId;
-    const pending = (await this.query(notebookId, 'PENDING#')).filter(mine);
-    const aliasEdges = (await this.query(notebookId, 'ALIAS#')).filter(mine);
+    const pending = (await this.query(notebookId, 'PENDING#', true)).filter(mine);
+    const aliasEdges = (await this.query(notebookId, 'ALIAS#', true)).filter(mine);
 
     await this.remove(notebookId, [
       `NOTE#${noteId}`,
@@ -1346,6 +1360,9 @@ export class DynamoContentIndex implements ContentIndex {
           KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
           ExpressionAttributeValues: { ':pk': this.pk(notebookId), ':prefix': `TEXT#${noteId}#` },
           ProjectionExpression: 'SK',
+          // The parts of a note that was just written are the ones a delete
+          // must not miss, and nothing walks them again (#152).
+          ConsistentRead: true,
           ...(startKey ? { ExclusiveStartKey: startKey } : {}),
         }),
       );

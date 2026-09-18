@@ -634,7 +634,14 @@ describe('Portability answers over the API', () => {
   it('carries the history of a notebook out and brings it back, readable by date', async () => {
     const { notebookId, notes } = await seed();
     const noteId = notes['lei'] ?? '';
-    const before = new Date().toISOString();
+
+    /**
+     * The two writes have to land in different milliseconds, or there is no
+     * instant that separates them and "as it stood before the edit" asks a
+     * question with two answers. On this machine they always did; on the one
+     * the pipeline runs they did not.
+     */
+    await new Promise((resolve) => setTimeout(resolve, 5));
 
     // A second revision, so the past and the present differ.
     const current = (await (
@@ -683,10 +690,16 @@ describe('Portability answers over the API', () => {
     ).json()) as { entries: Array<{ type: string; occurredAt: string }> };
     expect(history.entries.map((entry) => entry.type)).toEqual(['NoteCreated', 'NoteUpdated']);
 
-    // And the body as it stood before the edit, which is the whole point.
+    /**
+     * And the body as it stood before the edit, which is the whole point. The
+     * date is read from the entry the archive brought, not from the clock of
+     * the test: what is being asked is "as this history says it stood", and a
+     * wall clock only approximates the instant the entry carries.
+     */
+    const created = history.entries[0]?.occurredAt ?? '';
     const past = (await (
       await call(
-        `/audit/notebooks/${job.notebookId}/notes/${lei}/revisions?asOf=${encodeURIComponent(before)}`,
+        `/audit/notebooks/${job.notebookId}/notes/${lei}/revisions?asOf=${encodeURIComponent(created)}`,
       )
     ).json()) as { content: string };
     expect(past.content).toContain('Art. 75.');
