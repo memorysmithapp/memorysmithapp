@@ -349,7 +349,12 @@ async function startExport(
     .locator('.export-choice')
     .getByLabel(words.notebookField, { exact: true })
     .selectOption({ label: notebookName });
-  await app.getByRole('button', { name: words.startExport }).click();
+  // Inside the dialog and exact: `Export` is also the start of the button that
+  // opened it.
+  await app
+    .locator('.export-choice')
+    .getByRole('button', { name: words.startExport, exact: true })
+    .click();
 }
 
 test.describe('a notebook out and back in, through the browser', () => {

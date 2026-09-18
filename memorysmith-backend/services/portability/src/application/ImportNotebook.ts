@@ -254,6 +254,16 @@ export class ImportNotebook {
     private readonly transferId: string = '',
   ) {}
 
+  /**
+   * Takes down a notebook this import wrote (#153). It is what a cancel the
+   * run of the job discovered after the importer had finished needs: the
+   * notebook is written, the transfer says cancelled, and a cancel leaves
+   * nothing (RN-PRT-014, RN-KNW-033).
+   */
+  async undo(notebookId: string, by: Authorship): Promise<void> {
+    await this.writer.deleteNotebook({ notebookId, by });
+  }
+
   async execute(input: {
     uploadKey: string;
     /**

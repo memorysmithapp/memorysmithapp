@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TransferDto } from '@memorysmith/contracts';
-import { progressOf, saveArchive, useTransfers } from './transfers';
+import { progressOf, saveArchive, useSaveStartedExports, useTransfers } from './transfers';
 import { StartTransfer } from './StartTransfer';
 
 /**
@@ -43,6 +43,12 @@ export function TransfersMenu() {
   const { data } = useTransfers();
 
   const transfers = data?.transfers ?? [];
+  /**
+   * The menu is in the frame of every screen and never unmounts, which is what
+   * makes it the one that can wait: an export started here saves itself the
+   * moment it is ready, whichever screen the person moved to (#151).
+   */
+  useSaveStartedExports(transfers);
   const running = transfers.filter((transfer) => transfer.status === 'running');
   const finished = transfers.filter(
     (transfer) => transfer.finishedAt !== null && transfer.finishedAt > seen,

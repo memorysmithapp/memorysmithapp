@@ -12,9 +12,12 @@ import {
   DeleteTransfer,
   ListTransfers,
   RunExport,
+  RunImport,
   StartExport,
+  StartImport,
   type TransferWork,
 } from '../src/application/Transfers.js';
+import { Authorship, Instant as Clock, UserId } from '@memorysmith/kernel';
 
 const SUBSCRIPTION = '01JBQ2X0000000000000000000';
 const USER = 'user-owner';
@@ -222,5 +225,72 @@ describe('deleting a transfer', () => {
     expect(deleted.ok).toBe(false);
     if (deleted.ok) return;
     expect(deleted.error.code).toBe('NOT_FOUND');
+  });
+});
+
+/**
+ * A cancel is a write of the API on the record, and the worker is what acts on
+ * it (RN-PRT-014, RN-KNW-033). The one it used to miss is the one that lands
+ * AFTER the importer has finished: the run of the job saw it, returned, and
+ * left the notebook standing under a transfer that said it was cancelled
+ * (#153). This is that instant, at the seam rather than by a race.
+ */
+describe('cancelling an import', () => {
+  const author = (): Authorship => {
+    const user = UserId.create(USER);
+    if (!user.ok) throw new Error('the test seeded an unusable author');
+    return Authorship.byHuman(user.value, Clock.now());
+  };
+
+  const NOTEBOOK_WRITTEN = '01JBQ2X0000000000000000009';
+
+  it('takes down what it wrote, when the cancel lands after the writing', async () => {
+    const transfers = new InMemoryTransferStore();
+    const started = await new StartImport(
+      transfers,
+      { send: async () => undefined },
+      SUBSCRIPTION,
+      USER,
+    ).execute({
+      uploadKey: `s/${SUBSCRIPTION}/imports/01JBQ2X000000000000000000A.notebook`,
+      name: 'Normas importadas',
+      selection: null,
+      by: author(),
+    });
+    if (!started.ok) throw new Error('the import did not start');
+
+    const undone: string[] = [];
+    const importer = {
+      undo: async (notebookId: string) => void undone.push(notebookId),
+      execute: async () => {
+        // The cancel lands here: the notebook is written, and the importer has
+        // already looked for the last time.
+        await transfers.patch(USER, started.value.transferId, { status: 'cancelled' });
+        return ok({
+          importId: '01JBQ2X000000000000000000B',
+          notebookId: NOTEBOOK_WRITTEN,
+          status: 'imported' as const,
+          folderCount: 2,
+          noteCount: 3,
+          guidance: true,
+          templateCount: 1,
+        });
+      },
+    };
+
+    await new RunImport(transfers, importer, author()).execute({
+      subscriptionId: SUBSCRIPTION,
+      userId: USER,
+      transferId: started.value.transferId,
+      kind: 'import',
+      uploadKey: `s/${SUBSCRIPTION}/imports/01JBQ2X000000000000000000A.notebook`,
+      name: 'Normas importadas',
+    });
+
+    expect(undone).toEqual([NOTEBOOK_WRITTEN]);
+    // And the record still says what the person asked for.
+    const ended = await transfers.get(USER, started.value.transferId);
+    expect(ended?.status).toBe('cancelled');
+    expect(ended?.notebookId).toBeNull();
   });
 });

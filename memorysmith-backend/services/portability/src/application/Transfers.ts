@@ -427,6 +427,12 @@ function reportUnexpected(kind: 'export' | 'import', work: TransferWork, error: 
  * and answers the cancel the interface may have asked for (RN-PRT-018).
  */
 export interface ImportRunner {
+  /**
+   * Takes down a notebook an import wrote, which is what a cancel discovered
+   * after the fact needs (#153): the importer holds the writer, and the run of
+   * the job is what learns too late.
+   */
+  undo(notebookId: string, by: Authorship): Promise<void>;
   execute(input: {
     uploadKey: string;
     name: string | null;
@@ -484,9 +490,17 @@ export class RunImport {
         progress,
       });
 
-      // A cancel that landed mid-import already ended the transfer, and the
-      // notebook went down with it: nothing here writes over that.
-      if (await progress.cancelled()) return;
+      /**
+       * A cancel that landed mid-import already ended the transfer, and the
+       * notebook went down with it. One that landed AFTER the importer's last
+       * look finds an import that finished, so what it has to undo is here:
+       * returning alone left the notebook standing, with the name it took,
+       * under a transfer that said it was cancelled (#153).
+       */
+      if (await progress.cancelled()) {
+        if (written.ok) await this.importer.undo(written.value.notebookId, this.by);
+        return;
+      }
 
       if (!written.ok) {
         await this.transfers.patch(work.userId, work.transferId, {

@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { listNotebooks, startExport } from '../../shared/api/source';
 import { ExportChoice } from './ExportChoice';
-import { saveArchive, useRefreshTransfers, useTransfers } from './transfers';
+import { rememberStartedExport, useRefreshTransfers } from './transfers';
 
 /**
  * Starting a transfer, from wherever you are (RN-PRT-019).
@@ -19,30 +19,18 @@ import { saveArchive, useRefreshTransfers, useTransfers } from './transfers';
  * listing must never reveal a notebook somebody cannot see (RN-PRT-020, rule 9
  * of the design), and `listNotebooks` answers exactly those.
  *
- * The convenience the notebook button had is kept: while this page is still
- * open, an export that finishes saves itself. Elsewhere Transfers keeps it for
- * as long as the person wants it.
+ * The convenience the notebook button had is kept, and it had to move with it:
+ * an export that finishes while this browser is still open saves itself, and
+ * what waits for it is the menu — starting one from the panel closes the
+ * panel, which unmounts this.
  */
 export function StartTransfer({ onStarted }: { onStarted?: () => void }) {
   const { t } = useTranslation();
   const [asking, setAsking] = useState(false);
   const [withHistory, setWithHistory] = useState(false);
   const [notebookId, setNotebookId] = useState('');
-  const [started, setStarted] = useState<string | null>(null);
-  const saved = useRef<string | null>(null);
   const refresh = useRefreshTransfers();
-  const { data } = useTransfers();
-
   const notebooks = useQuery({ queryKey: ['notebooks'], queryFn: listNotebooks, enabled: asking });
-  const mine = data?.transfers.find((transfer) => transfer.transferId === started);
-
-  // The one this click started, and only while this page is still open: the
-  // download of a transfer somebody started elsewhere is theirs to ask for.
-  useEffect(() => {
-    if (!mine || mine.status !== 'ready' || saved.current === mine.transferId) return;
-    saved.current = mine.transferId;
-    void saveArchive(mine.transferId);
-  }, [mine]);
 
   const choices = (notebooks.data ?? []).map((notebook) => ({
     id: notebook.id,
@@ -56,7 +44,12 @@ export function StartTransfer({ onStarted }: { onStarted?: () => void }) {
   async function begin(): Promise<void> {
     if (!chosen) return;
     const transfer = await startExport(chosen, withHistory);
-    setStarted(transfer.transferId);
+    /**
+     * Remembered rather than waited for here: starting one from the panel
+     * closes the panel, which unmounts this. The menu is what waits, because
+     * it is in the frame of every screen (#151).
+     */
+    rememberStartedExport(transfer.transferId);
     refresh();
     onStarted?.();
   }

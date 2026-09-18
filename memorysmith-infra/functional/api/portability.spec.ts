@@ -20,6 +20,7 @@ interface TransferDto {
   done: number;
   total: number;
   bytes: number;
+  failure: string | null;
 }
 
 /** The body of every note of a notebook, in an order that ignores identifiers. */
@@ -107,12 +108,16 @@ test.describe('a notebook out and back in', () => {
       await bodiesOf(owner, notebook.notebookId),
     );
 
-    // An upload is applied once: it is deleted after any attempt.
-    const again = await owner.call('POST', '/portability/imports/apply', {
-      uploadKey: upload.uploadKey,
-      name: unique('Twice'),
-    });
-    expect(again.status).toBe(404);
+    /**
+     * An upload is applied once: it is discarded when the import ends,
+     * whichever way it ended (RN-PRT-014). Applying it again is accepted as a
+     * JOB — the API records it and answers, and nothing is read until the
+     * worker runs (RN-PRT-018) — and that job ends refused, naming what it
+     * could not find.
+     */
+    const again = await importedFrom(owner, upload.uploadKey, unique('Twice'));
+    expect(again.status).toBe('failed');
+    expect(again.failure).toBe('NOT_FOUND');
   });
 });
 
