@@ -146,7 +146,7 @@ export function ImportNotebookPage() {
               {t('portability.importDone', { name: running.notebookName, count: running.done })}
             </p>
             {running.notebookId && (
-              <Link className="chip" to={notebookAddress(running.notebookId)}>
+              <Link className="button is-primary" to={notebookAddress(running.notebookId)}>
                 {t('portability.openNotebook')}
               </Link>
             )}
@@ -155,7 +155,7 @@ export function ImportNotebookPage() {
           <>
             <p className="status">{t(`portability.refusal.${running.failure ?? 'INTERNAL'}`)}</p>
             <p className="status">{t('portability.importKeptNothing')}</p>
-            <button type="button" className="chip" onClick={() => setStarted(null)}>
+            <button type="button" className="button is-quiet" onClick={() => setStarted(null)}>
               {t('portability.tryAgain')}
             </button>
           </>
@@ -178,7 +178,7 @@ export function ImportNotebookPage() {
           max={1}
         />
         <p className="status">{t('portability.importLeavePage')}</p>
-        <Link className="chip" to="/transfers">
+        <Link className="button is-quiet" to="/transfers">
           {t('transfers.heading')}
         </Link>
       </section>
@@ -210,7 +210,7 @@ export function ImportNotebookPage() {
             if (picked) void choose(picked);
           }}
         />
-        <button type="button" className="chip" onClick={() => input.current?.click()}>
+        <button type="button" className="button is-quiet" onClick={() => input.current?.click()}>
           {t('portability.chooseFile')}
         </button>
         <span className="import-drop-hint">{file ? file.name : t('portability.dropHint')}</span>
@@ -323,7 +323,12 @@ export function ImportNotebookPage() {
                 {t('portability.twinNames', { name: twin.name })}
               </p>
             ))}
-            <button type="button" className="chip" disabled={!ready} onClick={() => void begin()}>
+            <button
+              type="button"
+              className="button is-primary"
+              disabled={!ready}
+              onClick={() => void begin()}
+            >
               {t('portability.import')}
             </button>
           </footer>

@@ -150,7 +150,7 @@ function TransferLine({ transfer, onClose }: { transfer: TransferDto; onClose: (
       {transfer.status === 'ready' && transfer.kind === 'export' && (
         <button
           type="button"
-          className="transfers-line-action"
+          className="button is-quiet is-small"
           onClick={() => {
             onClose();
             void saveArchive(transfer.transferId);

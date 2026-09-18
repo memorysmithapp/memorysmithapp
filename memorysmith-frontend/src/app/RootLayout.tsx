@@ -30,8 +30,10 @@ export function RootLayout() {
 
   return (
     <>
-      <EnvironmentBanner />
       <Outlet />
+      {/* The last row of the window, and the last thing read: it declares, it
+          asks for nothing (#158). */}
+      <EnvironmentBanner />
     </>
   );
 }

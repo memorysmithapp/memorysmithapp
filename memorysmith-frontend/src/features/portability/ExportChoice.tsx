@@ -106,12 +106,12 @@ export function ExportChoice({
         </label>
 
         <div className="export-choice-actions">
-          <button type="button" className="chip" onClick={() => dialog.current?.close()}>
+          <button type="button" className="button is-quiet" onClick={() => dialog.current?.close()}>
             {t('portability.cancel')}
           </button>
           <button
             type="button"
-            className="chip"
+            className="button is-primary"
             disabled={notebooks.length === 0}
             onClick={() => {
               onConfirm();

@@ -57,10 +57,10 @@ export function StartTransfer({ onStarted }: { onStarted?: () => void }) {
   return (
     <>
       <div className="transfers-start">
-        <button type="button" className="chip" onClick={() => setAsking(true)}>
+        <button type="button" className="button is-primary" onClick={() => setAsking(true)}>
           {t('transfers.newExport')}
         </button>
-        <Link to="/imports/new" className="chip" onClick={() => onStarted?.()}>
+        <Link to="/imports/new" className="button is-quiet" onClick={() => onStarted?.()}>
           {t('transfers.newImport')}
         </Link>
       </div>

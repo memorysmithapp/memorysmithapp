@@ -180,7 +180,7 @@ export function LoginPage() {
           {withoutSubscription || expired || handedOver ? (
             <button
               type="button"
-              className="button-primary"
+              className="button is-primary is-wide"
               onClick={() => void beginSignIn(authConfig())}
             >
               {t('auth.signIn')}

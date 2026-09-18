@@ -13,6 +13,8 @@
   --accent: #0f56d7;
   --accent-soft: #e7edfb;
   --signal: #ff8a2b;
+  /* Named at last: five surfaces already fell back to this exact value. */
+  --danger: #b42318;
   --node-green: #16a34a;
   --pending: #a6ab9f;
   --code-bg: #f4f5f2;
@@ -78,11 +80,31 @@ a:hover {
   text-decoration: underline;
 }
 
+/* The window, and nothing taller (#158).
+ *
+ * The root is two rows: what the page fills, and the banner that says which
+ * environment this is. In production there is no banner, so the second row has
+ * nothing in it and no height — better than a strip kept empty, which costs a
+ * line of every window to say nothing.
+ *
+ * Nothing scrolls the DOCUMENT. The shell used to be a viewport tall with a
+ * banner fixed over it and a padding on the body to make room, which is a page
+ * 24 pixels taller than the window: a scrollbar that moved the layout and no
+ * content, while the sidebar and the middle each scrolled on their own.
+ */
+#root {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 1fr auto;
+}
+
 .app-shell {
-  min-height: 100vh;
-  min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
 }
 
 .app-header {
@@ -101,9 +123,9 @@ a:hover {
  * way of every click: it reads, it does not ask for anything.
  */
 .environment-banner {
-  position: fixed;
-  inset: auto 0 0 0;
-  z-index: 1000;
+  /* In the flow: it used to be fixed over the page, which covered the end of
+     the folder tree — and was given `pointer-events: none` to make that hurt
+     less, which is what covering something looks like when it is admitted. */
   height: 1.5rem;
   display: flex;
   align-items: center;
@@ -113,14 +135,10 @@ a:hover {
   font-family: var(--display);
   font-weight: 500;
   font-size: 0.75rem;
-  pointer-events: none;
 }
 .environment-banner-name {
   text-transform: uppercase;
   letter-spacing: 0.06em;
-}
-body:has(.environment-banner) {
-  padding-bottom: 1.5rem;
 }
 
 .brand {
@@ -149,9 +167,12 @@ body:has(.environment-banner) {
 }
 
 .app-main {
-  flex: 1;
   display: flex;
   min-height: 0;
+  /* A page that outgrows the window scrolls HERE, where it used to scroll the
+     document. The panes of a notebook scroll inside it, and neither of them
+     ever reaches past the row. */
+  overflow: auto;
 }
 .app-main > * {
   flex: 1;
@@ -260,8 +281,7 @@ body:has(.environment-banner) {
   background: var(--surface);
   padding: 1rem;
   overflow-y: auto;
-  max-height: calc(100vh - var(--header-h));
-  max-height: calc(100dvh - var(--header-h));
+  max-height: 100%;
   position: sticky;
   top: 0;
 }
@@ -343,8 +363,7 @@ body:has(.environment-banner) {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  max-height: calc(100vh - var(--header-h));
-  max-height: calc(100dvh - var(--header-h));
+  max-height: 100%;
 }
 .content-kicker {
   text-transform: uppercase;
@@ -1640,8 +1659,9 @@ body.has-modal {
 
 /* Login */
 .login-screen {
-  min-height: 100vh;
-  min-height: 100dvh;
+  /* The row it sits in is the window minus the banner, so it fills that and
+     does not measure the window again (#158). */
+  min-height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1714,31 +1734,7 @@ body.has-modal {
   color: var(--text-soft);
   margin: 0;
 }
-.button-primary {
-  border: 0;
-  border-radius: 6px;
-  background: var(--accent);
-  color: #ffffff;
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 0.95rem;
-  padding: 0.6rem;
-  cursor: pointer;
-}
-:root[data-theme='dark'] .button-primary {
-  color: #0b1220;
-}
-.button-primary:hover {
-  filter: brightness(1.08);
-}
-.button-ghost {
-  border: 0;
-  background: none;
-  color: var(--text-soft);
-  font-size: 0.82rem;
-  cursor: pointer;
-  padding: 0.2rem;
-}
+
 .login-demo-note {
   font-size: 0.72rem;
   color: var(--pending);
@@ -2062,6 +2058,104 @@ body.has-modal {
   font-family: var(--display);
   font-weight: 500;
   white-space: nowrap;
+}
+
+/* ---- The button (#157) --------------------------------------------------
+ *
+ * There was none. `.chip` is a LABEL — the size of a piece of metadata beside
+ * a title, blue on blue — and every action of the product borrowed it, so the
+ * action that commits and the one that cancels were the same tag, and a screen
+ * whose every control is blue spends on buttons the 18% the brand book gives
+ * the blue as STRUCTURE.
+ *
+ * Three intents, because the product has three: the one that commits, the
+ * quiet one beside it, and the one that destroys. The strong colour is spent
+ * on ONE action of a screen, and the others carry the surface.
+ *
+ * `.chip` stays what it always was: a label, on a span.
+ */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  /* A target a thumb reaches, which a control the size of a tag was not. */
+  min-height: 2.25rem;
+  padding: 0 0.95rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.875rem;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+.button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.button:disabled,
+.button[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* The one action of a screen that deserves the blue of the brand. */
+.button.is-primary {
+  background: var(--accent);
+  color: #ffffff;
+}
+.button.is-primary:hover:not(:disabled) {
+  background: #0c46ae;
+}
+
+/* Everything beside it: the surface, with an edge. */
+.button.is-quiet {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+.button.is-quiet:hover:not(:disabled) {
+  background: var(--bg);
+  border-color: var(--text-soft);
+}
+
+/* What destroys says so before it is pressed, and fills only under the hand. */
+.button.is-danger {
+  background: var(--surface);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.button.is-danger:hover:not(:disabled) {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+/* Inside a row of a list, where the row is the subject and the action is not. */
+.button.is-small {
+  min-height: 1.9rem;
+  padding: 0 0.7rem;
+  font-size: 0.8rem;
+}
+
+/* A form whose one action closes it, and which is as wide as its fields. */
+.button.is-wide {
+  width: 100%;
+}
+
+:root[data-theme='dark'] .button.is-primary {
+  /* The accent lightens in the dark theme, so the label darkens with it. */
+  color: #0b1220;
+}
+:root[data-theme='dark'] .button.is-primary:hover:not(:disabled) {
+  background: #9dbcf7;
 }
 
 /* Structure outline */
@@ -2814,11 +2908,14 @@ body.has-modal {
   width: 100%;
   height: 0.35rem;
 }
-.transfers-line-action,
+/* Where the action of a line sits. What it LOOKS like is the button (#157). */
+.transfers-line .button,
 .transfers-see-all {
   grid-row: 1 / span 2;
   grid-column: 2;
   align-self: center;
+}
+.transfers-see-all {
   border: 0;
   background: none;
   color: var(--accent);

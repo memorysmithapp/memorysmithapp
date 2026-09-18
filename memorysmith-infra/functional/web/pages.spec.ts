@@ -68,6 +68,24 @@ test.describe('the pages of an account', () => {
     await expect(app.locator('.environment-banner')).toContainText(
       state.version ? `Staging · ${state.version}` : 'Staging',
     );
+
+    /**
+     * And the window holds the whole shell: the banner is a ROW of it, not
+     * something fixed over the page with a padding on the body to make room —
+     * which is a document taller than the window, scrolling the layout and no
+     * content at all (#158). What scrolls is what has content: the sidebar of a
+     * notebook, and the middle.
+     */
+    const scrolls = await app.evaluate(() => {
+      // This suite is typed for Node, so the document is named rather than
+      // assumed: what runs here runs in the browser.
+      const page = globalThis as unknown as {
+        document: { documentElement: { scrollHeight: number; clientHeight: number } };
+      };
+      const root = page.document.documentElement;
+      return root.scrollHeight > root.clientHeight + 1;
+    });
+    expect(scrolls, 'the document scrolls, and nothing of it needs to').toBe(false);
     if (state.version) {
       await app.locator('button.user-menu-trigger').click();
       await expect(app.locator('p.user-menu-version')).toHaveText(

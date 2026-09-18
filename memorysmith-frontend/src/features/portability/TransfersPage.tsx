@@ -127,7 +127,7 @@ export function TransfersPage() {
                 <div className="transfers-row-actions">
                   <button
                     type="button"
-                    className="chip"
+                    className="button is-quiet is-small"
                     onClick={() => void saveArchive(transfer.transferId)}
                   >
                     {t('transfers.download')}
@@ -139,19 +139,23 @@ export function TransfersPage() {
                       <span className="transfers-row-confirm">{t('transfers.deleteWarning')}</span>
                       <button
                         type="button"
-                        className="chip is-danger"
+                        className="button is-danger is-small"
                         onClick={() => void remove(transfer)}
                       >
                         {t('transfers.deleteForGood')}
                       </button>
-                      <button type="button" className="chip" onClick={() => setDeleting(null)}>
+                      <button
+                        type="button"
+                        className="button is-quiet is-small"
+                        onClick={() => setDeleting(null)}
+                      >
                         {t('common.cancel')}
                       </button>
                     </>
                   ) : (
                     <button
                       type="button"
-                      className="chip"
+                      className="button is-quiet is-small"
                       onClick={() => setDeleting(transfer.transferId)}
                     >
                       {t('transfers.delete')}
