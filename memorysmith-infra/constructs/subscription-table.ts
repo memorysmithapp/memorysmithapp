@@ -120,6 +120,39 @@ export class AppendOnlyTable extends Construct {
   }
 
   /**
+   * Reading the trail and appending to it, which is what a transfer needs: an
+   * export may carry the history of a notebook (RN-PRT-022) and an import
+   * brings one back (RN-PRT-023). It is `grantRead` and `grantAppendOnly`
+   * together, which cannot simply be called side by side — the `Deny` each one
+   * carries would cancel the `Allow` of the other, and a Deny always wins.
+   *
+   * What it denies is what the trail is: nothing here alters an entry, and
+   * nothing here removes one.
+   */
+  grantReadAndAppend(grantee: IGrantable): void {
+    grantee.grantPrincipal.addToPrincipalPolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: [
+          'dynamodb:Query',
+          'dynamodb:GetItem',
+          'dynamodb:PutItem',
+          'dynamodb:BatchWriteItem',
+          'dynamodb:DescribeTable',
+        ],
+        resources: [this.table.tableArn, `${this.table.tableArn}/index/*`],
+      }),
+    );
+    grantee.grantPrincipal.addToPrincipalPolicy(
+      new PolicyStatement({
+        effect: Effect.DENY,
+        actions: ['dynamodb:UpdateItem', 'dynamodb:DeleteItem'],
+        resources: [this.table.tableArn, `${this.table.tableArn}/index/*`],
+      }),
+    );
+  }
+
+  /**
    * The ONE grant in the system that lets a principal remove an entry, and it
    * is given to exactly one: the purge worker (rule 6, RN-AUD-011). It is
    * written by hand, action by action, rather than taken from a grant helper,

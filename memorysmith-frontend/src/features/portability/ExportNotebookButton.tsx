@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { startExport } from '../../shared/api/source';
 import { DownloadIcon } from '../../shared/components/icons';
 import { saveArchive, useRefreshTransfers, useTransfers } from './transfers';
+import { ExportChoice } from './ExportChoice';
 
 type Phase = 'idle' | 'starting' | 'failed';
 
@@ -22,6 +23,8 @@ export function ExportNotebookButton({ notebookId }: { notebookId: string }) {
   const { t } = useTranslation();
   const [phase, setPhase] = useState<Phase>('idle');
   const [started, setStarted] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
+  const [withHistory, setWithHistory] = useState(false);
   const saved = useRef<string | null>(null);
   const { data } = useTransfers();
   const refresh = useRefreshTransfers();
@@ -39,7 +42,7 @@ export function ExportNotebookButton({ notebookId }: { notebookId: string }) {
   async function begin(): Promise<void> {
     setPhase('starting');
     try {
-      const transfer = await startExport(notebookId);
+      const transfer = await startExport(notebookId, withHistory);
       setStarted(transfer.transferId);
       refresh();
       setPhase('idle');
@@ -51,16 +54,25 @@ export function ExportNotebookButton({ notebookId }: { notebookId: string }) {
   const running = mine?.status === 'running';
 
   return (
-    <button
-      type="button"
-      className="notebook-nav-link notebook-nav-action"
-      onClick={() => void begin()}
-      disabled={phase === 'starting' || running}
-    >
-      <DownloadIcon />
-      {phase === 'starting' && t('portability.preparing')}
-      {phase === 'failed' && t('portability.failed')}
-      {phase === 'idle' && (running ? t('portability.exporting') : t('portability.download'))}
-    </button>
+    <>
+      <button
+        type="button"
+        className="notebook-nav-link notebook-nav-action"
+        onClick={() => setAsking(true)}
+        disabled={phase === 'starting' || running}
+      >
+        <DownloadIcon />
+        {phase === 'starting' && t('portability.preparing')}
+        {phase === 'failed' && t('portability.failed')}
+        {phase === 'idle' && (running ? t('portability.exporting') : t('portability.download'))}
+      </button>
+      <ExportChoice
+        open={asking}
+        withHistory={withHistory}
+        onToggleHistory={setWithHistory}
+        onConfirm={() => void begin()}
+        onClose={() => setAsking(false)}
+      />
+    </>
   );
 }

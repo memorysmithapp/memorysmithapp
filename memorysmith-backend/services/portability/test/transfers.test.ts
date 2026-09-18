@@ -50,6 +50,9 @@ describe('starting an export', () => {
         transferId: started.value.transferId,
         kind: 'export',
         notebookId: NOTEBOOK,
+        // An export carries the history only when it was asked for
+        // (RN-PRT-022).
+        withHistory: false,
       },
     ]);
   });

@@ -126,6 +126,8 @@ export class DynamoAuditTrail implements AuditTrail {
           authorship: event.authorship.toJSON(),
           contentRef: event.contentRef ? event.contentRef.toJSON() : null,
           payload: event.payload,
+          // Where the line came from, when it was not written here.
+          ...(event.importedBy ? { importedBy: event.importedBy } : {}),
           // Lets the activity screen ask "what happened in this notebook".
           ...(notebookOf(event)
             ? {
@@ -240,6 +242,7 @@ function parse(item: Item): AuditEvent {
       authorship,
       contentRef,
       payload: (item['payload'] ?? {}) as Record<string, unknown>,
+      importedBy: typeof item['importedBy'] === 'string' ? item['importedBy'] : null,
     }),
   );
 }

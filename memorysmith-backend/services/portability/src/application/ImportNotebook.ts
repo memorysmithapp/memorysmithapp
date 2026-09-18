@@ -46,10 +46,14 @@ import {
   type Authorship,
   type Result,
 } from '@memorysmith/kernel';
-import type { NotebookDocument } from '../domain/NotebookDocumentBuilder.js';
+import type { DocumentHistory, NotebookDocument } from '../domain/NotebookDocumentBuilder.js';
 
-/** The versions of the document format this build reads. */
-export const READABLE_DOCUMENT_VERSIONS: readonly string[] = ['1.0'];
+/**
+ * The versions of the document format this build reads. `1.1` added the
+ * history an export may carry and changed nothing else, so a `1.0` document is
+ * read exactly as it always was (RN-PRT-022).
+ */
+export const READABLE_DOCUMENT_VERSIONS: readonly string[] = ['1.0', '1.1'];
 
 /**
  * Why an import was refused, as a CODE and not as a sentence (RN-PRT-018).
@@ -119,7 +123,7 @@ export interface NotebookWriter {
     folderId: string;
     content: string;
     by: Authorship;
-  }): Promise<Result<void, DomainError>>;
+  }): Promise<Result<{ noteId: string }, DomainError>>;
   /** Brings the counter of a folder up to the last number it had issued (RN-PRT-016). */
   restoreNumber(input: {
     notebookId: string;
@@ -129,6 +133,47 @@ export interface NotebookWriter {
   }): Promise<Result<void, DomainError>>;
   /** Undoes a half-written import, which is why an import creates a notebook. */
   deleteNotebook(input: { notebookId: string; by: Authorship }): Promise<Result<void, DomainError>>;
+  /**
+   * Stores one body of the past and answers where it landed (RN-PRT-023). A
+   * revision the history names is content of this subscription from here on:
+   * the pair it was addressed by belonged to the subscription it came from,
+   * and reading it back is what makes `asOf` answer on an imported notebook.
+   */
+  storeRevision(input: {
+    content: string;
+  }): Promise<
+    Result<{ contentId: string; versionId: string; sha256: string; bytes: number }, DomainError>
+  >;
+}
+
+/**
+ * Where a reproduced entry of the trail is written (RN-PRT-023).
+ *
+ * It appends and does nothing else, which is the whole contract of the trail:
+ * nothing here alters an entry, and removing one belongs to the purge alone
+ * (RN-AUD-001). What it writes are ENTRIES OF THIS SUBSCRIPTION, keeping the
+ * person and the instant the archive carried, and each one records the transfer
+ * that brought it in, so the trail can always answer where a line came from.
+ */
+export interface TrailWriter {
+  append(
+    entries: ReadonlyArray<{
+      eventId: string;
+      type: string;
+      subject: string;
+      subjectId: string;
+      occurredAt: string;
+      authorship: {
+        userId: string;
+        agent: { clientId: string; clientName: string } | null;
+        at: string;
+      };
+      contentRef: { contentId: string; versionId: string; sha256: string; bytes: number } | null;
+      payload: Record<string, unknown>;
+      /** The transfer that brought this entry in. */
+      importedBy: string;
+    }>,
+  ): Promise<void>;
 }
 
 export interface ImportJob {
@@ -148,6 +193,12 @@ export interface ImportJob {
  */
 export interface ImportSelection {
   readonly guidance: boolean;
+  /**
+   * Whether the history the archive carries comes back with it (RN-PRT-023).
+   * It is one more item of the selection, like the Guidance: a person may want
+   * the notebook and not its past, or the past and not every note of it.
+   */
+  readonly history?: boolean;
   readonly folders: readonly string[];
   readonly templates: readonly string[];
   readonly notes: readonly string[];
@@ -193,6 +244,14 @@ export class ImportNotebook {
      */
     private readonly parse: (json: string) => NotebookDocument,
     private readonly subscriptionId: string,
+    /**
+     * Where a reproduced entry is written (RN-PRT-023). Absent where no trail
+     * can be reached, and an archive carrying a history is then written
+     * without it rather than refused: the notebook is what was asked for.
+     */
+    private readonly trail: TrailWriter | null = null,
+    /** The transfer this import is, recorded on every entry it reproduces. */
+    private readonly transferId: string = '',
   ) {}
 
   async execute(input: {
@@ -423,6 +482,7 @@ export class ImportNotebook {
         by,
       });
       if (!wrote.ok) return undo(wrote);
+      minted.set(note.noteId, wrote.value.noteId);
       written += 1;
       await progress?.wrote(written, notes.length);
     }
@@ -431,6 +491,11 @@ export class ImportNotebook {
       return err(
         DomainError.validation('The import was cancelled', { reason: IMPORT_REFUSALS.cancelled }),
       );
+    }
+
+    if (chosen.history && document.history && this.trail) {
+      const replayed = await this.replay(document.history, notebookId, minted);
+      if (!replayed.ok) return undo(replayed);
     }
 
     // What was actually WRITTEN under the selection, and not what the document
@@ -447,6 +512,92 @@ export class ImportNotebook {
       ).length,
     });
   }
+
+  /**
+   * Brings the history back as entries of THIS subscription (RN-PRT-023).
+   *
+   * Two things are re-keyed, and both for the same reason: an import mints
+   * every identifier anew (RN-PRT-013), so nothing the archive carried
+   * addresses anything here.
+   *
+   *   - **The identifiers.** Every note, folder and notebook of the archive is
+   *     replaced by what this import wrote. An entry about something the
+   *     selection left out is left out with it: it would name a note that does
+   *     not exist.
+   *   - **The content.** A revision is stored here first, which mints a pair of
+   *     this subscription, and the entry is pointed at that. An entry whose
+   *     body did not travel keeps saying who wrote and when, and points at
+   *     nothing — the archive of a purged notebook may well carry entries whose
+   *     bytes were already gone.
+   */
+  private async replay(
+    history: DocumentHistory,
+    notebookId: string,
+    minted: Map<string, string>,
+  ): Promise<Result<void, DomainError>> {
+    const stored = new Map<
+      string,
+      { contentId: string; versionId: string; sha256: string; bytes: number }
+    >();
+    for (const [key, body] of Object.entries(history.revisions)) {
+      const written = await this.writer.storeRevision({ content: body });
+      if (!written.ok) return written;
+      stored.set(key, written.value);
+    }
+
+    /**
+     * The notebook the archive came from, which its entries address. The
+     * document carries no identifier of its own — nothing derived is stored
+     * (RN-PRT-010) — so it is read from the entries that are about it.
+     */
+    const oldNotebookId = history.entries.find((entry) => entry.subject === 'NOTEBOOK')?.subjectId;
+    const address = new Map(minted);
+    if (oldNotebookId) address.set(oldNotebookId, notebookId);
+
+    const reproduced = [];
+    for (const entry of history.entries) {
+      const subjectId = address.get(entry.subjectId);
+      // Something the selection left out, or an entry about something this
+      // document does not carry at all.
+      if (subjectId === undefined) continue;
+
+      const ref = entry.contentRef
+        ? (stored.get(`${entry.contentRef.contentId}#${entry.contentRef.versionId}`) ?? null)
+        : null;
+
+      reproduced.push({
+        eventId: entry.eventId,
+        type: entry.type,
+        subject: entry.subject,
+        subjectId,
+        occurredAt: entry.occurredAt,
+        authorship: entry.authorship,
+        contentRef: ref,
+        payload: readdress(entry.payload, address),
+        importedBy: this.transferId,
+      });
+    }
+
+    if (reproduced.length > 0) await this.trail?.append(reproduced);
+    return ok(undefined);
+  }
+}
+
+/**
+ * Every identifier of the archive, wherever it sits in a payload, replaced by
+ * what this import minted for it. A value nothing minted is left as it was:
+ * the payload of an entry carries names, slugs and positions beside the
+ * identifiers, and none of those is addressed by anything.
+ */
+function readdress(
+  payload: Record<string, unknown>,
+  address: Map<string, string>,
+): Record<string, unknown> {
+  const mapped: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(payload)) {
+    mapped[key] = typeof value === 'string' ? (address.get(value) ?? value) : value;
+  }
+  return mapped;
 }
 
 /**
@@ -460,10 +611,17 @@ export class ImportNotebook {
 function plan(
   document: NotebookDocument,
   selection: ImportSelection | null,
-): { guidance: boolean; folders: Set<string>; templates: Set<string>; notes: Set<string> } {
+): {
+  guidance: boolean;
+  history: boolean;
+  folders: Set<string>;
+  templates: Set<string>;
+  notes: Set<string>;
+} {
   if (!selection) {
     return {
       guidance: true,
+      history: true,
       folders: new Set(document.folders.map((folder) => folder.folderId)),
       templates: new Set(document.folders.map((folder) => folder.folderId)),
       notes: new Set(document.notes.map((note) => note.noteId)),
@@ -490,7 +648,13 @@ function plan(
   // A Template is only ever written on a folder that is being written.
   const templates = new Set(selection.templates.filter((folderId) => folders.has(folderId)));
 
-  return { guidance: selection.guidance, folders, templates, notes };
+  return {
+    guidance: selection.guidance,
+    history: selection.history ?? false,
+    folders,
+    templates,
+    notes,
+  };
 }
 
 /** Parents before children, and siblings in the order the document states. */

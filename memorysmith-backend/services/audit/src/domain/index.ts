@@ -34,6 +34,12 @@ export class AuditEvent {
     /** The exact revision of the content at that instant (RN-AUD-003). */
     readonly contentRef: ContentRef | null,
     readonly payload: Record<string, unknown>,
+    /**
+     * The transfer that brought this entry in, when it did not happen here
+     * (RN-PRT-023). An entry the product wrote itself carries none, so the
+     * trail can always answer where a line came from.
+     */
+    readonly importedBy: string | null = null,
   ) {}
 
   static create(input: {
@@ -46,6 +52,7 @@ export class AuditEvent {
     authorship: Authorship;
     contentRef: ContentRef | null;
     payload: Record<string, unknown>;
+    importedBy?: string | null;
   }): Result<AuditEvent, DomainError> {
     if (!input.subjectId) {
       return err(DomainError.validation('An audit event needs a subject'));
@@ -61,6 +68,7 @@ export class AuditEvent {
         input.authorship,
         input.contentRef,
         input.payload,
+        input.importedBy ?? null,
       ),
     );
   }

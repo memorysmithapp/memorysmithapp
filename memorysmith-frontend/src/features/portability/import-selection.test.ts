@@ -17,7 +17,6 @@ import {
   nothing,
   selectionOf,
   stateOf,
-  structureOnly,
   treeOf,
   twinNames,
   withBranch,
@@ -119,13 +118,18 @@ describe('the presets', () => {
     expect(chosen.notes.size).toBe(3);
   });
 
-  it('structure only is the design, and not one note', () => {
-    // How a notebook is reused as the design of another (RN-PRT-017).
-    const chosen = structureOnly(tree);
-    expect(chosen.guidance).toBe(true);
-    expect(chosen.folders.size).toBe(3);
-    expect(chosen.templates.size).toBe(1);
-    expect(chosen.notes.size).toBe(0);
+  it('leaves the design of a notebook one selection away, with no preset for it', () => {
+    /**
+     * `Structure only` was a preset and is not any more: the Guidance and the
+     * Template of each folder are items of the tree, so taking the notes out of
+     * `everything` is the same thing and is what the tree does (RN-PRT-017).
+     */
+    const whole = everything(tree);
+    const design = { ...whole, notes: new Set<string>() };
+    expect(design.guidance).toBe(true);
+    expect(design.folders.size).toBe(3);
+    expect(design.templates.size).toBe(1);
+    expect(design.notes.size).toBe(0);
   });
 });
 
@@ -181,6 +185,12 @@ describe('what the summary states', () => {
 describe('what travels to the server', () => {
   it('is the identifiers the document carries, and nothing derived', () => {
     const selection = selectionOf(withNode(nothing, { kind: 'note', id: N2 }, true));
-    expect(selection).toEqual({ guidance: false, folders: [], templates: [], notes: [N2] });
+    expect(selection).toEqual({
+      guidance: false,
+      history: false,
+      folders: [],
+      templates: [],
+      notes: [N2],
+    });
   });
 });

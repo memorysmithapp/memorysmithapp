@@ -619,6 +619,91 @@ describe('Portability answers over the API', () => {
     expect(await bodies(job.notebookId)).toEqual(await bodies(notebookId));
   });
 
+  /**
+   * The round trip of a HISTORY (RN-PRT-022, RN-PRT-023). Deleting a notebook
+   * takes its trail with it (RN-AUD-011), so an export that carries the history
+   * is the only place it survives — and a history whose content cannot be read
+   * says that something was written and never what, which is why the archive
+   * carries the revisions its entries name.
+   *
+   * What proves it is `asOf`: reading a note of the IMPORTED notebook as it
+   * stood before its last edit answers the body it had then, written into
+   * another notebook, in another subscription's shape, by a person this
+   * subscription never saw writing it.
+   */
+  it('carries the history of a notebook out and brings it back, readable by date', async () => {
+    const { notebookId, notes } = await seed();
+    const noteId = notes['lei'] ?? '';
+    const before = new Date().toISOString();
+
+    // A second revision, so the past and the present differ.
+    const current = (await (
+      await call(`/knowledge/notebooks/${notebookId}/notes/${noteId}`)
+    ).json()) as { revision: { contentId: string; versionId: string } };
+    const edited = await call(`/knowledge/notebooks/${notebookId}/notes/${noteId}`, {
+      method: 'PUT',
+      body: {
+        content: '---\nname: Lei 14.133\n---\n\n# Lei 14.133\n\nArt. 75, com a redacao nova.',
+        baseRevision: current.revision.versionId,
+      },
+    });
+    expect(edited.status).toBe(200);
+    await drainEvents();
+
+    const started = await call(`/portability/notebooks/${notebookId}/export`, {
+      method: 'POST',
+      body: { withHistory: true },
+    });
+    expect(started.status).toBe(202);
+    const [exportKey] = [...harness.archives.keys()];
+    const archive = harness.archives.get(exportKey ?? '') as Buffer;
+
+    const prepared = (await (await call('/portability/imports', { method: 'POST' })).json()) as {
+      uploadKey: string;
+    };
+    harness.uploads.set(prepared.uploadKey, archive);
+    const job = await imported_(prepared.uploadKey, 'Normas e Legislacao (com historia)');
+    expect(job.status).toBe('ready');
+
+    const imported = (await (
+      await call(`/knowledge/notebooks/${job.notebookId}/notes`)
+    ).json()) as Array<{ noteId: string; name: string | null }>;
+    const lei = imported.find((note) => note.name === 'Lei 14.133')?.noteId ?? '';
+    expect(lei).not.toBe('');
+    // A new notebook mints new identifiers, always (RN-PRT-013).
+    expect(lei).not.toBe(noteId);
+
+    /**
+     * The entries came back as entries of this subscription, keeping the
+     * person and the instant they carried, re-keyed onto the note this import
+     * wrote.
+     */
+    const history = (await (
+      await call(`/audit/notebooks/${job.notebookId}/notes/${lei}/history`)
+    ).json()) as { entries: Array<{ type: string; occurredAt: string }> };
+    expect(history.entries.map((entry) => entry.type)).toEqual(['NoteCreated', 'NoteUpdated']);
+
+    // And the body as it stood before the edit, which is the whole point.
+    const past = (await (
+      await call(
+        `/audit/notebooks/${job.notebookId}/notes/${lei}/revisions?asOf=${encodeURIComponent(before)}`,
+      )
+    ).json()) as { content: string };
+    expect(past.content).toContain('Art. 75.');
+    expect(past.content).not.toContain('redacao nova');
+  });
+
+  it('carries no history when the export was not asked for one', async () => {
+    const { notebookId } = await seed();
+    await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
+    const [exportKey] = [...harness.archives.keys()];
+    const document = JSON.parse(
+      readZip(harness.archives.get(exportKey ?? '') as Buffer)['notebook.json'] ?? '{}',
+    ) as { documentVersion: string; history?: unknown };
+    expect(document.history).toBeUndefined();
+    expect(document.documentVersion).toBe('1.1');
+  });
+
   it('issues the numbers of a folder once, and an import carries on from the last one', async () => {
     // RN-KNW-043, RN-PRT-016.
     const { notebookId, folderId, notes } = await seed();

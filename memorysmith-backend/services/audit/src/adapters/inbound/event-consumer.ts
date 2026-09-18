@@ -31,7 +31,7 @@ function need<T>(result: Result<T, DomainError>): T {
   return result.value;
 }
 
-function toAuditEvent(envelope: EventEnvelope): AuditEvent {
+function toAuditEvent(envelope: EventEnvelope, importedBy: string | null = null): AuditEvent {
   const authorship = envelope.authorship.agent
     ? Authorship.byAgent(
         need(UserId.create(envelope.authorship.userId)),
@@ -70,6 +70,7 @@ function toAuditEvent(envelope: EventEnvelope): AuditEvent {
       authorship,
       contentRef,
       payload: envelope.payload as Record<string, unknown>,
+      importedBy,
     }),
   );
 }

@@ -14,7 +14,6 @@ import {
   nothing,
   selectionOf,
   stateOf,
-  structureOnly,
   treeOf,
   twinNames,
   withBranch,
@@ -25,7 +24,14 @@ import {
 } from './import-selection';
 import { useRefreshTransfers, useTransfers } from './transfers';
 
-type Preset = 'everything' | 'structure' | 'choose';
+/**
+ * Two, and there used to be three. `Structure only` went with the cycle that
+ * made the history an item: the Guidance and the Template of each folder are
+ * rows of the tree, ticked on their own, so the preset was a selection anybody
+ * can make by hand — and a third button that only sometimes meant what it said
+ * costs more than it saves (RN-PRT-017).
+ */
+type Preset = 'everything' | 'choose';
 
 /**
  * Importing a notebook: a page of three steps and an end (#143, RN-PRT-017,
@@ -85,7 +91,6 @@ export function ImportNotebookPage() {
     setPreset(next);
     if (!tree) return;
     if (next === 'everything') setChosen(everything(tree));
-    if (next === 'structure') setChosen(structureOnly(tree));
   }
 
   /** Changing anything in the tree switches the preset to it by itself. */
@@ -231,7 +236,7 @@ export function ImportNotebookPage() {
             role="radiogroup"
             aria-label={t('portability.whatToImport')}
           >
-            {(['everything', 'structure', 'choose'] as const).map((each) => (
+            {(['everything', 'choose'] as const).map((each) => (
               <label key={each} className="import-preset">
                 <input
                   type="radio"
@@ -268,6 +273,23 @@ export function ImportNotebookPage() {
                           }
                         />
                         {t('portability.notebookGuidance')}
+                      </label>
+                    </div>
+                  </li>
+                )}
+                {tree.historyEntries > 0 && (
+                  <li role="none">
+                    <div role="treeitem" aria-selected={chosen.history} className="import-row">
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={chosen.history}
+                          onChange={(event) => change({ ...chosen, history: event.target.checked })}
+                        />
+                        {t('portability.history')}
+                        <small>
+                          {t('portability.historyEntries', { count: tree.historyEntries })}
+                        </small>
                       </label>
                     </div>
                   </li>

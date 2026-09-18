@@ -299,6 +299,7 @@ function notebookWriterFor(request: KnowledgeRequest): NotebookWriter {
     },
     request.ctx,
     request.subscription.subscriptionId,
+    knowledge.content,
   );
 }
 

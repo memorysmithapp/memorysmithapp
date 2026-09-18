@@ -24,6 +24,7 @@ import { DomainError, err, ok, ulid, type Instant, type Result } from '@memorysm
 import {
   archiveNameOf,
   buildNotebookDocument,
+  type DocumentHistory,
   type ExportInput,
   type NotebookDocument,
 } from '../domain/NotebookDocumentBuilder.js';
@@ -39,6 +40,19 @@ export interface ExportSource {
     notebookId: string,
     report?: (readNotes: number, totalNotes: number) => void,
   ): Promise<ExportInput | null>;
+}
+
+/**
+ * What the Audit context hands over when an export was asked for the history
+ * of the notebook (RN-PRT-022).
+ *
+ * It answers the entries AND the revisions they name, because a history whose
+ * content cannot be read says only that something was written. Each revision is
+ * fetched by the exact pair its entry carries, never by listing: listing the
+ * versions of an object belongs to the purge and to nothing else (rule 8).
+ */
+export interface HistorySource {
+  of(notebookId: string): Promise<DocumentHistory>;
 }
 
 /** Where the archive lands, and how the caller reaches it. */
@@ -82,21 +96,36 @@ export class ExportNotebook {
      * domain nor this layer may import (RN-PRT-011).
      */
     private readonly serialize: (document: NotebookDocument) => { entry: string; content: string },
+    /**
+     * Absent where no history can be reached — the harness of a test that does
+     * not exercise it. An export that asks for one without it carries none.
+     */
+    private readonly history: HistorySource | null = null,
   ) {}
 
   async execute(input: {
     notebookId: string;
     now: Instant;
+    /**
+     * Carries the trail of the notebook, and every revision it names, so the
+     * archive is what a deletion cannot take back (RN-PRT-022). It is what
+     * makes the archive larger, and it counts in the storage of the plan like
+     * any kept export (RN-SUB-021).
+     */
+    withHistory?: boolean | undefined;
     report?: ((readNotes: number, totalNotes: number) => void) | undefined;
   }): Promise<Result<StoredArchive, DomainError>> {
     const source = await this.source.load(input.notebookId, input.report);
     if (!source) return err(DomainError.notFound('Notebook not found'));
 
+    const history =
+      input.withHistory && this.history ? await this.history.of(input.notebookId) : undefined;
+
     // Validated against the published schema before it is written: the export
     // writes nothing the schema does not describe, which is what makes the
     // format a specification rather than whatever this function happened to
     // produce (RN-PRT-011).
-    const document = buildNotebookDocument(source, input.now.toISOString());
+    const document = buildNotebookDocument({ ...source, history }, input.now.toISOString());
     const written = this.serialize(document);
     const archive = this.zip(
       [{ path: written.entry, content: written.content }],

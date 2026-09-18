@@ -178,7 +178,6 @@
     "whatToImport": "O que importar",
     "preset": {
       "everything": "Tudo",
-      "structure": "Só a estrutura",
       "choose": "Escolher itens"
     },
     "filter": "Filtrar por nome",
@@ -213,7 +212,17 @@
       "VALIDATION": "Esse documento foi recusado.",
       "NOT_FOUND": "O envio não foi encontrado. Escolha o arquivo de novo.",
       "INTERNAL": "Algo deu errado do nosso lado. Tente de novo."
-    }
+    },
+    "exportHeading": "Exportar caderno",
+    "exportWhat": "O que vai no arquivo",
+    "withHistory": "Incluir a história",
+    "withHistoryHint": "Quem escreveu o quê e quando, e o conteúdo de cada versão anterior. O arquivo fica maior, e uma exportação guardada ocupa o armazenamento do seu plano. Apagar um caderno leva a história junto, então é isto que a preserva.",
+    "startExport": "Exportar",
+    "cancel": "Cancelar",
+    "history": "História do caderno",
+    "historyEntries_one": "{{count}} registro",
+    "historyEntries_other": "{{count}} registros",
+    "noHistory": "Este arquivo não traz história."
   },
   "graph": {
     "heading": "Grafo do caderno",

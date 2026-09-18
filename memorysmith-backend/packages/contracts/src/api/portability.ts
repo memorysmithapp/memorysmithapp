@@ -12,6 +12,14 @@ import { instantSchema, ulidSchema } from '../common.js';
 
 export const exportRequestSchema = z.object({
   notebookId: ulidSchema,
+  /**
+   * Carries the trail of the notebook and every revision it names
+   * (RN-PRT-022). Deleting a notebook now takes its history with it
+   * (RN-AUD-011), so this is where a history is made to survive on purpose.
+   * The archive is larger for it, and a kept export counts towards the storage
+   * of the plan (RN-SUB-021).
+   */
+  withHistory: z.boolean().optional(),
 });
 
 /**
@@ -30,6 +38,8 @@ export const exportRequestSchema = z.object({
  */
 export const importSelectionSchema = z.object({
   guidance: z.boolean(),
+  /** Whether the history the archive carries comes back (RN-PRT-023). */
+  history: z.boolean().optional(),
   folders: z.array(ulidSchema),
   /** The folders whose Template is written, a subset of the folders above. */
   templates: z.array(ulidSchema),

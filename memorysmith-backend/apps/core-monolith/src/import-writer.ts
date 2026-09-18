@@ -26,7 +26,7 @@ import type {
   RestoreFolderNumber,
 } from '@memorysmith/svc-knowledge/application/folders';
 import type { CreateNote } from '@memorysmith/svc-knowledge/application/notes';
-import type { RequestContext } from '@memorysmith/svc-knowledge/domain';
+import type { ContentStore, RequestContext } from '@memorysmith/svc-knowledge/domain';
 
 export interface KnowledgeWriteUseCases {
   readonly createNotebook: CreateNotebook;
@@ -43,6 +43,8 @@ export class KnowledgeNotebookWriter implements NotebookWriter {
     private readonly useCases: KnowledgeWriteUseCases,
     private readonly ctx: RequestContext,
     private readonly subscriptionId: SubscriptionId,
+    /** Where a revision of the past is stored, when a history comes back. */
+    private readonly content: ContentStore,
   ) {}
 
   async createNotebook(input: {
@@ -130,7 +132,7 @@ export class KnowledgeNotebookWriter implements NotebookWriter {
     folderId: string;
     content: string;
     by: Authorship;
-  }): Promise<Result<void, DomainError>> {
+  }): Promise<Result<{ noteId: string }, DomainError>> {
     const notebookId = NotebookId.create(input.notebookId);
     if (!notebookId.ok) return notebookId;
     const folderId = FolderId.create(input.folderId);
@@ -147,7 +149,31 @@ export class KnowledgeNotebookWriter implements NotebookWriter {
       afterNoteId: null,
       by: input.by,
     });
-    return created.ok ? ok() : created;
+    // The identifier it minted, which is what re-keys the history the archive
+    // carried onto the notebook this import wrote (RN-PRT-023).
+    return created.ok ? ok({ noteId: created.value.id.value }) : created;
+  }
+
+  /**
+   * One body of the past, stored as content of THIS subscription (RN-PRT-023).
+   *
+   * It goes straight to the content store and through no use case, and that is
+   * the one place an import does: there is no note to write, no quota event to
+   * raise and no aggregate to change — it is a revision that already happened,
+   * and what the trail needs is somewhere to point.
+   */
+  async storeRevision(input: {
+    content: string;
+  }): Promise<
+    Result<{ contentId: string; versionId: string; sha256: string; bytes: number }, DomainError>
+  > {
+    const ref = await this.content.create(input.content);
+    return ok({
+      contentId: ref.contentId.value,
+      versionId: ref.versionId,
+      sha256: ref.sha256,
+      bytes: ref.bytes,
+    });
   }
 
   async restoreNumber(input: {

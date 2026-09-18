@@ -296,6 +296,9 @@ export class ApiStack extends Stack {
         // An IMPORT writes as the person who asked for it, so the worker
         // resolves the role they hold where the API resolves it (RN-PRT-018).
         ACCESS_TABLE: props.data.accessTable.table.tableName,
+        // An export may carry the history of the notebook (RN-PRT-022), and an
+        // import brings one back (RN-PRT-023).
+        AUDIT_TABLE: props.data.auditTable.table.tableName,
         CONTENT_BUCKET: props.data.contentBucket.bucketName,
       },
       // A notebook of thousands of notes is read note by note from the object
@@ -335,6 +338,14 @@ export class ApiStack extends Stack {
         resources: [props.data.contentBucket.arnForObjects('s/*/imports/*')],
       }),
     );
+    /**
+     * The trail, read and appended to and nothing else: an export may carry
+     * the history of a notebook and an import writes one back, keeping the
+     * person and the instant each entry carried (RN-PRT-022, RN-PRT-023).
+     * Altering an entry is denied here as everywhere, and removing one belongs
+     * to the purge alone (rule 6).
+     */
+    props.data.auditTable.grantReadAndAppend(transfers.function);
 
     // A message here is an export somebody asked for and will never get.
     new Alarm(this, 'TransferDeadLetterDepth', {

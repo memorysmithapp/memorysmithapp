@@ -250,8 +250,11 @@ export async function applyImport(
  * note of a notebook does not fit in one request. What comes back is the
  * transfer, which the interface then follows.
  */
-export async function startExport(notebookId: string): Promise<TransferDto> {
-  return request<TransferDto>(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
+export async function startExport(notebookId: string, withHistory = false): Promise<TransferDto> {
+  return request<TransferDto>(`/portability/notebooks/${notebookId}/export`, {
+    method: 'POST',
+    body: { withHistory },
+  });
 }
 
 export async function listTransfers(): Promise<TransferListDto> {

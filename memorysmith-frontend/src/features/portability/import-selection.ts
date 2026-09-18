@@ -38,11 +38,15 @@ export interface DocumentTree {
   readonly guidance: boolean;
   readonly folders: TreeFolder[];
   readonly noteCount: number;
+  /** How many entries of the trail the archive carries, if it carries any. */
+  readonly historyEntries: number;
 }
 
 /** Every identifier a selection can carry, which is what the presets fill. */
 export interface Chosen {
   readonly guidance: boolean;
+  /** The history the archive carries, when it carries one (RN-PRT-023). */
+  readonly history: boolean;
   readonly folders: ReadonlySet<string>;
   readonly templates: ReadonlySet<string>;
   readonly notes: ReadonlySet<string>;
@@ -110,6 +114,7 @@ export function treeOf(document: NotebookDocument): DocumentTree {
     guidance: document.notebook.guidance !== null,
     folders: build(null),
     noteCount: document.notes.length,
+    historyEntries: document.history?.entries.length ?? 0,
   };
 }
 
@@ -127,22 +132,18 @@ export function everything(tree: DocumentTree): Chosen {
     }
   };
   walk(tree.folders);
-  return { guidance: tree.guidance, folders, templates, notes };
-}
-
-/**
- * Structure only: the Guidance and every folder with its description and its
- * Template, and not one note. It is how a notebook is reused as the design of
- * another, and it was impossible without importing everything and deleting by
- * hand.
- */
-export function structureOnly(tree: DocumentTree): Chosen {
-  const whole = everything(tree);
-  return { ...whole, notes: new Set<string>() };
+  return {
+    guidance: tree.guidance,
+    history: tree.historyEntries > 0,
+    folders,
+    templates,
+    notes,
+  };
 }
 
 export const nothing: Chosen = {
   guidance: false,
+  history: false,
   folders: new Set<string>(),
   templates: new Set<string>(),
   notes: new Set<string>(),
@@ -159,7 +160,7 @@ export function branchOf(folder: TreeFolder): Chosen {
     for (const id of under.templates) templates.add(id);
     for (const id of under.notes) notes.add(id);
   }
-  return { guidance: false, folders, templates, notes };
+  return { guidance: false, history: false, folders, templates, notes };
 }
 
 /** Adds or removes a whole branch, which is what a checkbox of a tree does. */
@@ -188,6 +189,7 @@ export function withNode(
 ): Chosen {
   const next = {
     guidance: chosen.guidance,
+    history: chosen.history,
     folders: new Set(chosen.folders),
     templates: new Set(chosen.templates),
     notes: new Set(chosen.notes),
@@ -327,6 +329,7 @@ export function twinNames(
 export function selectionOf(chosen: Chosen): ImportSelection {
   return {
     guidance: chosen.guidance,
+    history: chosen.history,
     folders: [...chosen.folders],
     templates: [...chosen.templates],
     notes: [...chosen.notes],

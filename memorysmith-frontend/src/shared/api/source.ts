@@ -159,8 +159,8 @@ export function applyImport(uploadKey: string, name: string, selection: ImportSe
   return backend.applyImport(uploadKey, name, selection);
 }
 
-export function startExport(notebookId: string): Promise<TransferDto> {
-  return backend.startExport(notebookId);
+export function startExport(notebookId: string, withHistory = false): Promise<TransferDto> {
+  return backend.startExport(notebookId, withHistory);
 }
 
 export function listTransfers(): Promise<TransferListDto> {

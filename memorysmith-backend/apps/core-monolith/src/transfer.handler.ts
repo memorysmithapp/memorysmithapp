@@ -32,6 +32,10 @@ import { ImportNotebook } from '@memorysmith/svc-portability/application/import'
 import { S3ArchiveStore, S3UploadStore } from '@memorysmith/svc-portability/adapters/s3';
 import { createZip, readZip } from '@memorysmith/svc-portability/adapters/zip';
 import { KnowledgeNotebookWriter } from './import-writer.js';
+import { AuditHistorySource } from './history-source.js';
+import { ImportedTrailWriter } from './trail-writer.js';
+import { DynamoAuditTrail } from '@memorysmith/svc-audit/adapters/trail';
+import { S3RevisionReader } from '@memorysmith/svc-audit/adapters/content';
 import {
   CreateNotebook,
   DeleteNotebook,
@@ -73,9 +77,13 @@ const infra: Infrastructure = {
   // An import writes as the person who asked for it, so the role they hold in
   // the subscription is read here, from the same place the API reads it.
   accessTable: required('ACCESS_TABLE'),
-  // The worker touches neither the trail nor the projections: both are fed by
-  // the events its writes publish.
-  auditTable: '',
+  /**
+   * The worker touches the PROJECTIONS through nothing: they are fed by the
+   * events its writes publish. The trail it does touch, in both directions: an
+   * export may carry it (RN-PRT-022) and an import brings it back
+   * (RN-PRT-023).
+   */
+  auditTable: required('AUDIT_TABLE'),
   discoveryTable: '',
   portabilityTable: required('PORTABILITY_TABLE'),
   contentBucket: required('CONTENT_BUCKET'),
@@ -144,6 +152,9 @@ async function writerFor(context: SubscriptionContext): Promise<KnowledgeNoteboo
     },
     resolved.value,
     context.subscriptionId,
+    // Where a revision of the past lands, when a history comes back with the
+    // notebook (RN-PRT-023).
+    knowledge.content,
   );
 }
 
@@ -158,6 +169,13 @@ export async function handler(event: QueueEvent): Promise<void> {
       work.subscriptionId,
     );
 
+    /**
+     * The trail of THIS subscription, read for an export that carries the
+     * history and written for an import that brings one back (RN-PRT-022,
+     * RN-PRT-023).
+     */
+    const trail = new DynamoAuditTrail(infra.db, infra.auditTable, context.subscriptionId);
+
     if (work.kind === 'import') {
       const importer = new ImportNotebook(
         new S3UploadStore(infra.s3, infra.contentBucket),
@@ -165,6 +183,8 @@ export async function handler(event: QueueEvent): Promise<void> {
         readZip,
         parseNotebookDocument,
         work.subscriptionId,
+        new ImportedTrailWriter(trail, work.subscriptionId),
+        work.transferId,
       );
       await new RunImport(transfers, importer, authorshipOf(work)).execute(work);
       continue;
@@ -176,6 +196,10 @@ export async function handler(event: QueueEvent): Promise<void> {
       createZip,
       work.subscriptionId,
       serializeNotebookDocument,
+      new AuditHistorySource(
+        trail,
+        new S3RevisionReader(context.subscriptionId, infra.s3, infra.contentBucket),
+      ),
     );
     await new RunExport(transfers, exporter).execute(work);
   }

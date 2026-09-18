@@ -116,6 +116,8 @@ import { ImportNotebook, PrepareImport } from '@memorysmith/svc-portability/appl
 import { KnowledgeNotebookWriter } from '../src/import-writer.js';
 import { parseNotebookDocument } from '../src/composition-root.js';
 import { KnowledgeExportSource } from '../src/export-source.js';
+import { AuditHistorySource } from '../src/history-source.js';
+import { ImportedTrailWriter } from '../src/trail-writer.js';
 import {
   GetNoteHistory,
   GetNotebookActivity,
@@ -296,7 +298,22 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
   // Audit and Discovery, wired in memory. In production they are fed by the
   // event bus; here the test drives them directly.
   const auditTrail = new InMemoryAuditTrail();
-  const revisions = { read: async () => '' };
+  /**
+   * The past, read from the same in-memory store the present is written to.
+   * It answers by the pair the entry carries, exactly as the object store
+   * does, which is what lets a test read a note as it stood on a date — on an
+   * imported notebook included (RN-PRT-023).
+   */
+  const revisions = {
+    read: async (ref: { contentId: { value: string }; versionId: string }): Promise<string> => {
+      for (const [key, slot] of knowledgeDb.content) {
+        if (!key.endsWith(`/c/${ref.contentId.value}.md`)) continue;
+        const found = slot.revisions.get(ref.versionId);
+        if (found !== undefined) return found;
+      }
+      throw new Error(`No such revision: ${ref.contentId.value}@${ref.versionId}`);
+    },
+  };
   const auditUseCases: AuditUseCases = {
     noteHistory: () => new GetNoteHistory(auditTrail),
     notebookActivity: () => new GetNotebookActivity(auditTrail),
@@ -403,6 +420,8 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       createZip,
       request.subscription.subscriptionId.value,
       serializeNotebookDocument,
+      // The history an export may be asked to carry (RN-PRT-022).
+      new AuditHistorySource(auditTrail, revisions),
     );
   const portabilityUseCases: PortabilityUseCases = {
     startExport: (request) =>
@@ -454,6 +473,10 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
                 readZip,
                 parseNotebookDocument,
                 request.subscription.subscriptionId.value,
+                // Where a history the archive carried is written back, and the
+                // transfer every reproduced entry records (RN-PRT-023).
+                new ImportedTrailWriter(auditTrail, request.subscription.subscriptionId.value),
+                work.transferId,
               ),
               author.value,
             ).execute(work);
@@ -490,6 +513,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
         },
         request.ctx,
         request.subscription.subscriptionId,
+        knowledgeRepos(request.subscription).content,
       ),
     accessUseCases,
     knowledgeUseCases,

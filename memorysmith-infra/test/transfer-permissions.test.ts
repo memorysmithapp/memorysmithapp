@@ -199,44 +199,62 @@ describe('the upload an import discards', () => {
 describe('removing an entry of the trail', () => {
   const PURGE = 'Destroys the content and the items a deletion invalidated.';
   const AUDIT_CONSUMER = 'Appends every event of the bus to the audit trail. Append-only by IAM.';
+  const TRANSFER = TRANSFER_WORKER;
 
-  /** Every function of both stacks that carries a delete on the audit table. */
-  function deletersOfTheTrail(): string[] {
+  /**
+   * Whether a principal can actually remove one. Holding `BatchWriteItem` is
+   * not enough to say it can: that action puts as well as deletes, and every
+   * principal that appends in batches holds it. What settles it is the
+   * explicit `Deny`, which no `Allow` can override — which is the whole reason
+   * the trail is guaranteed by IAM and not by a promise.
+   */
+  function canRemove(template: Template, role: string): boolean {
+    const allowed = allowedOf(template, role).some(
+      (each) =>
+        each.resource.includes('AuditTable') &&
+        each.actions.some(
+          (action) => action === 'dynamodb:DeleteItem' || action === 'dynamodb:BatchWriteItem',
+        ),
+    );
+    return allowed && !deniedOf(template, role).includes('dynamodb:DeleteItem');
+  }
+
+  function removersOfTheTrail(): string[] {
     const found: string[] = [];
     for (const template of [SYNTHESISED.api, SYNTHESISED.projections]) {
       for (const [description, role] of rolesByDescription(template)) {
-        const removes = allowedOf(template, role).some(
-          (each) =>
-            each.resource.includes('AuditTable') &&
-            each.actions.some(
-              (action) => action === 'dynamodb:DeleteItem' || action === 'dynamodb:BatchWriteItem',
-            ),
-        );
-        if (removes) found.push(description);
+        if (canRemove(template, role)) found.push(description);
       }
     }
     return found;
   }
 
   it('is within reach of the purge worker, and of nothing else', () => {
-    // The consumer holds `BatchWriteItem` to append in batches, and an explicit
-    // Deny on removing: it is named here and then ruled out by that Deny.
-    expect(deletersOfTheTrail().filter((each) => each !== AUDIT_CONSUMER)).toEqual([PURGE]);
+    expect(removersOfTheTrail()).toEqual([PURGE]);
   });
 
-  it('is denied to the consumer by an explicit Deny, whatever it is allowed', () => {
-    const role = rolesByDescription(SYNTHESISED.projections).get(AUDIT_CONSUMER);
-    expect(role, `no function is described as "${AUDIT_CONSUMER}"`).toBeDefined();
-    expect(deniedOf(SYNTHESISED.projections, role ?? '')).toContain('dynamodb:DeleteItem');
+  it('is denied to everything that writes the trail without destroying it', () => {
+    // Both append, and both hold `BatchWriteItem` to do it in batches: the
+    // consumer of every event of the bus, and the worker that brings the
+    // history of an archive back (RN-PRT-023).
+    for (const [description, template] of [
+      [AUDIT_CONSUMER, SYNTHESISED.projections],
+      [TRANSFER, SYNTHESISED.api],
+    ] as const) {
+      const role = rolesByDescription(template).get(description);
+      expect(role, `no function is described as "${description}"`).toBeDefined();
+      expect(deniedOf(template, role ?? '')).toContain('dynamodb:DeleteItem');
+    }
   });
 
   it('never means altering one, for anybody', () => {
     for (const template of [SYNTHESISED.api, SYNTHESISED.projections]) {
       for (const [description, role] of rolesByDescription(template)) {
-        const alters = allowedOf(template, role).some(
-          (each) =>
-            each.resource.includes('AuditTable') && each.actions.includes('dynamodb:UpdateItem'),
-        );
+        const alters =
+          allowedOf(template, role).some(
+            (each) =>
+              each.resource.includes('AuditTable') && each.actions.includes('dynamodb:UpdateItem'),
+          ) && !deniedOf(template, role).includes('dynamodb:UpdateItem');
         expect(alters, `${description} may alter an entry of the trail`).toBe(false);
       }
     }
