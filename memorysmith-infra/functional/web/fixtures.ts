@@ -53,7 +53,9 @@ export interface Words {
 
 export const WORDS: Record<AppLocale, Words> = {
   en_US: {
-    openNotebook: 'Open a notebook',
+    // The link the import page shows when it ends, and not the heading of the
+    // dashboard, which is what this used to hold.
+    openNotebook: 'Open notebook',
     context: 'Notebook Context',
     guidance: 'Guidance',
     templates: 'Templates',
@@ -84,7 +86,7 @@ export const WORDS: Record<AppLocale, Words> = {
     pending: (target) => `No note carries the name “${target}” yet.`,
   },
   pt_BR: {
-    openNotebook: 'Abrir um caderno',
+    openNotebook: 'Abrir o caderno',
     context: 'Contexto do caderno',
     guidance: 'Orientação',
     templates: 'Modelos',
