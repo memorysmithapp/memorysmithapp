@@ -54,7 +54,14 @@ async function loadAuthorized(
   notebookId: NotebookId,
   action: 'read' | 'write' | 'administer',
 ): Promise<Result<Notebook, DomainError>> {
-  const notebook = await deps.notebooks.findById(notebookId);
+  /**
+   * A write loads the newest state of the notebook, because it is validated
+   * against what it loads: a folder created in the request before this one is
+   * not something a write may fail to see (#154). A read stays eventual.
+   */
+  const notebook = await deps.notebooks.findById(notebookId, {
+    for: action === 'read' ? 'read' : 'write',
+  });
   // A notebook of another subscription never even reaches here: the key the
   // repository builds carries the subscription of the token (RN-SUB-004).
   if (!notebook) return err(DomainError.notFound('Notebook not found'));

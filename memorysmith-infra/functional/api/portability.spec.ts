@@ -249,11 +249,23 @@ test.describe('the transfers of a person', () => {
         ),
       (each) => each.status !== 'running',
     );
-    const notebooks = await owner.ok<Array<{ name: string; notebookId: string }>>(
-      'GET',
-      '/knowledge/notebooks',
+    /**
+     * The listing is answered from an index, which settles a moment after the
+     * write: a notebook taken down by a cancel can still be in it. What the
+     * case asks is what the transfer ended as, so it waits for the listing to
+     * agree with that rather than reading it once.
+     */
+    const written = await eventually(
+      'the listing to settle',
+      async () => {
+        const notebooks = await owner.ok<Array<{ name: string; notebookId: string }>>(
+          'GET',
+          '/knowledge/notebooks',
+        );
+        return notebooks.filter((each) => each.name === name);
+      },
+      (found) => (ended.status === 'cancelled' ? found.length === 0 : found.length === 1),
     );
-    const written = notebooks.filter((each) => each.name === name);
 
     if (ended.status === 'cancelled') {
       // Nothing was kept, and the name is free at once (RN-KNW-033).

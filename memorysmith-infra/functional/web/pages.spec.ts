@@ -402,6 +402,15 @@ test.describe('a notebook out and back in, through the browser', () => {
      * writes it as a path, which is that selection made by hand.
      */
     await app.getByRole('radio', { name: words.chooseItems }).check();
+    /**
+     * Choosing items starts from what was selected, which is everything. A
+     * checkbox always takes the whole branch, so each folder goes off with its
+     * notes, and `only this item` then puts the folder back as a PATH — its
+     * name and its description, and nothing under it (RN-PRT-017).
+     */
+    for (const box of await app.locator('.import-tree > li > .import-row input').all()) {
+      if (await box.isChecked()) await box.uncheck();
+    }
     for (const only of await app.getByRole('button', { name: words.onlyThisItem }).all()) {
       await only.click();
     }

@@ -66,7 +66,10 @@ export class DynamoNotebookRepository implements NotebookRepository {
    * the META item, because the sort keys were chosen to sit in that order
    * (section 9.3).
    */
-  async findById(id: NotebookId): Promise<Notebook | null> {
+  async findById(
+    id: NotebookId,
+    options: { for: 'read' | 'write' } = { for: 'read' },
+  ): Promise<Notebook | null> {
     const response = await this.db.send(
       new QueryCommand({
         TableName: this.tableName,
@@ -76,6 +79,10 @@ export class DynamoNotebookRepository implements NotebookRepository {
           ':from': AGGREGATE_RANGE_START,
           ':to': AGGREGATE_RANGE_END,
         },
+        // A write is validated against what it loads, so it loads the newest
+        // state: a folder written a moment ago that a replica has not caught
+        // up with is a write refused over state that exists (#154).
+        ...(options.for === 'write' ? { ConsistentRead: true } : {}),
       }),
     );
     const items = (response.Items ?? []) as Item[];

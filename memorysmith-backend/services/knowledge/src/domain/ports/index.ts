@@ -29,7 +29,15 @@ import type { Template } from '../content-slot/Template.js';
 import type { NoteOrder } from '../services/NotePlacement.js';
 
 export interface NotebookRepository {
-  findById(id: NotebookId): Promise<Notebook | null>;
+  /**
+   * `for: 'write'` reads the NEWEST state of the partition. A write is
+   * validated against the aggregate it loads, and a replica that has not
+   * caught up answers a notebook without the folder written a moment ago —
+   * which refuses the write with a `404` naming that folder (#154). A read
+   * that answers a person stays eventual, where it costs half and a fraction
+   * of a second behind is what it is for.
+   */
+  findById(id: NotebookId, options?: { for: 'read' | 'write' }): Promise<Notebook | null>;
   /** Every notebook of the subscription, which is one partition of GSI1. */
   listAll(): Promise<Notebook[]>;
   /**
