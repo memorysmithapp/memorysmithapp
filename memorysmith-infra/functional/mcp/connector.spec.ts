@@ -167,7 +167,19 @@ test.describe('the tools', () => {
     expect(
       (await callTool(agent, 'delete_notebook', { notebook: created.notebookId })).isError,
     ).toBe(false);
-    expect((await callTool(agent, 'list_notebooks')).text).not.toContain(created.notebookId);
+
+    /**
+     * The listing is answered from a global index, which DynamoDB never serves
+     * with a consistent read: it settles a moment after the write. The
+     * deletion itself is immediate — reading that notebook answers as missing
+     * at once (RN-KNW-046) — and what this waits for is the listing to agree.
+     */
+    const listed = await eventually(
+      'the listing to stop naming a deleted notebook',
+      async () => (await callTool(agent, 'list_notebooks')).text,
+      (text) => !text.includes(created.notebookId),
+    );
+    expect(listed).not.toContain(created.notebookId);
   });
 
   test('[tool:get_guidance] [tool:set_guidance] [tool:get_notebook_context] writes the Guidance on the revision it read, and the context carries it', async ({
