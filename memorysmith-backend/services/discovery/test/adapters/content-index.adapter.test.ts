@@ -18,9 +18,21 @@ const table = process.env['DISCOVERY_TABLE'];
 if (!table)
   throw new Error('The adapter tests run against a deployed environment: set DISCOVERY_TABLE.');
 
-const db = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
-  marshallOptions: { removeUndefinedValues: true },
-});
+/**
+ * Retries further than the default, and adaptively, because these cases are a
+ * BURST no person makes: a note of 700 KB and one of 1 MB written, grown and
+ * deleted in one partition within seconds, each of them tens of items. An
+ * on-demand table answers that with `Throughput exceeds the current capacity`
+ * while it scales, and three attempts are not enough to ride it out.
+ *
+ * In the product nothing needs this: the work that walks a partition in bursts
+ * is a worker reading a queue, and a throttled run fails its message, which is
+ * redelivered — and a purge that runs twice destroys the same things twice.
+ */
+const db = DynamoDBDocumentClient.from(
+  new DynamoDBClient({ maxAttempts: 10, retryMode: 'adaptive' }),
+  { marshallOptions: { removeUndefinedValues: true } },
+);
 
 /** A body of about `bytes`, with accents, and a term that appears only at its end. */
 function bodyOf(bytes: number, term: string): string {
