@@ -19,7 +19,10 @@ import { webSession } from '../support/web-session.js';
 export type AppLocale = 'en_US' | 'pt_BR';
 
 export interface Words {
+  /** The heading over the notebooks of the dashboard. */
   readonly openNotebook: string;
+  /** The link the import page shows when its job ends, which is another text. */
+  readonly openImported: string;
   readonly context: string;
   readonly guidance: string;
   readonly templates: string;
@@ -53,9 +56,8 @@ export interface Words {
 
 export const WORDS: Record<AppLocale, Words> = {
   en_US: {
-    // The link the import page shows when it ends, and not the heading of the
-    // dashboard, which is what this used to hold.
-    openNotebook: 'Open notebook',
+    openNotebook: 'Open a notebook',
+    openImported: 'Open notebook',
     context: 'Notebook Context',
     guidance: 'Guidance',
     templates: 'Templates',
@@ -86,7 +88,8 @@ export const WORDS: Record<AppLocale, Words> = {
     pending: (target) => `No note carries the name “${target}” yet.`,
   },
   pt_BR: {
-    openNotebook: 'Abrir o caderno',
+    openNotebook: 'Abrir um caderno',
+    openImported: 'Abrir o caderno',
     context: 'Contexto do caderno',
     guidance: 'Orientação',
     templates: 'Modelos',

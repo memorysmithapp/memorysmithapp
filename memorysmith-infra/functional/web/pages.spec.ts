@@ -417,10 +417,10 @@ test.describe('a notebook out and back in, through the browser', () => {
     await expect(app.locator('.import-summary')).toContainText(words.willCreateNoNotes);
 
     await app.getByRole('button', { name: words.importAction }).click();
-    await expect(app.getByRole('link', { name: words.openNotebook })).toBeVisible({
+    await expect(app.getByRole('link', { name: words.openImported })).toBeVisible({
       timeout: 120_000,
     });
-    await app.getByRole('link', { name: words.openNotebook }).click();
+    await app.getByRole('link', { name: words.openImported }).click();
 
     await expect(app.getByRole('heading', { level: 1, name: free })).toBeVisible();
     await expect(app.locator('a.outline-name', { hasText: 'Findings' })).toBeVisible();
