@@ -81,6 +81,47 @@ export function useSaveStartedExports(transfers: readonly TransferDto[]): void {
   }, [transfers]);
 }
 
+/**
+ * What a transfer IS, in one line: the notebook, and the file it becomes or
+ * came from (#155). A row used to carry the name of the notebook and nothing
+ * else, so an export and an import of the same notebook read the same.
+ */
+export function lineOf(
+  transfer: TransferDto,
+  say: (key: string, values: Record<string, unknown>) => string,
+): string {
+  if (transfer.kind === 'export') {
+    return say('transfers.line.export', {
+      notebook: transfer.notebookName,
+      file: transfer.fileName ?? '',
+    });
+  }
+  return transfer.fileName
+    ? say('transfers.line.import', {
+        notebook: transfer.notebookName,
+        file: transfer.fileName,
+      })
+    : say('transfers.line.importNoFile', { notebook: transfer.notebookName });
+}
+
+/**
+ * What a transfer that ENDED produced, which is not the same question for the
+ * two kinds. An export is bytes the subscription keeps (RN-SUB-021); an import
+ * keeps nothing — the upload is discarded the moment it ends (RN-PRT-014) — so
+ * its size is always zero, and `0 B` beside an export of 1 MB reads as a job
+ * that did nothing, while it had written a whole notebook (#155).
+ */
+export function outcomeOf(
+  transfer: TransferDto,
+  say: (key: string, values?: Record<string, unknown>) => string,
+  size: (bytes: number) => string,
+): string {
+  if (transfer.kind === 'export') return size(transfer.bytes);
+  return transfer.done > 0
+    ? say('transfers.wrote', { count: transfer.done })
+    : say('transfers.wroteNothing');
+}
+
 /** How far a running transfer got, as a fraction, or `null` when it cannot say. */
 export function progressOf(transfer: TransferDto): number | null {
   if (transfer.status !== 'running' || transfer.total <= 0) return null;

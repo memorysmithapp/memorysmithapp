@@ -235,10 +235,11 @@ export async function applyImport(
   uploadKey: string,
   name: string,
   selection: ImportSelection | null,
+  fileName: string | null = null,
 ): Promise<TransferDto> {
   return request<TransferDto>('/portability/imports/apply', {
     method: 'POST',
-    body: { uploadKey, name, selection },
+    body: { uploadKey, name, selection, fileName },
   });
 }
 

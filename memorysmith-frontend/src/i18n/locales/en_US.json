@@ -281,6 +281,14 @@
     },
     "newExport": "New export",
     "newImport": "Import a notebook",
-    "noNotebooks": "There is no notebook to export yet."
+    "noNotebooks": "There is no notebook to export yet.",
+    "line": {
+      "export": "Export of “{{notebook}}” to {{file}}",
+      "import": "Import of {{file}} into “{{notebook}}”",
+      "importNoFile": "Import into “{{notebook}}”"
+    },
+    "wrote_one": "{{count}} note written",
+    "wrote_other": "{{count}} notes written",
+    "wroteNothing": "the design, with no note"
   }
 }

@@ -147,6 +147,12 @@ export class StartImport {
     uploadKey: string;
     name: string;
     selection: ImportSelection | null;
+    /**
+     * The file the person chose, as they see it in their own folder. The upload
+     * is addressed by an identifier, which says nothing to anybody, and the
+     * record is what Transfers reads back weeks later (#155).
+     */
+    fileName?: string | null;
     by: Authorship;
   }): Promise<Result<Transfer, DomainError>> {
     if (!input.uploadKey.startsWith(`s/${this.subscriptionId}/imports/`)) {
@@ -166,6 +172,7 @@ export class StartImport {
       notebookName: input.name.trim(),
       requestedAt: Instant.now().toISOString(),
       total: input.selection ? input.selection.notes.length : 0,
+      fileName: input.fileName?.trim() ? input.fileName.trim().slice(0, 200) : null,
     });
     await this.transfers.put(transfer);
     await this.queue.send({

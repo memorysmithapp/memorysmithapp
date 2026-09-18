@@ -38,6 +38,12 @@ export interface Transfer {
   readonly notebookId: string | null;
   /** The name of the notebook AS IT WAS, because the notebook may be gone. */
   readonly notebookName: string;
+  /**
+   * The file an IMPORT came from, as the person chose it, or nothing — a
+   * transfer recorded before this was kept, and every export, whose file is
+   * named after the notebook when it is downloaded (RN-PRT-019).
+   */
+  readonly fileName: string | null;
   readonly requestedAt: string;
   readonly finishedAt: string | null;
   /** How far it got: notes read for an export, notes written for an import. */
@@ -60,8 +66,10 @@ export function startedTransfer(input: {
   notebookName: string;
   requestedAt: string;
   total: number;
+  fileName?: string | null;
 }): Transfer {
   return {
+    fileName: null,
     ...input,
     status: 'running',
     finishedAt: null,

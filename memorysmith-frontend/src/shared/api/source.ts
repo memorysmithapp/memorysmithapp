@@ -155,8 +155,13 @@ export function prepareImport() {
   return backend.prepareImport();
 }
 
-export function applyImport(uploadKey: string, name: string, selection: ImportSelection | null) {
-  return backend.applyImport(uploadKey, name, selection);
+export function applyImport(
+  uploadKey: string,
+  name: string,
+  selection: ImportSelection | null,
+  fileName: string | null = null,
+) {
+  return backend.applyImport(uploadKey, name, selection, fileName);
 }
 
 export function startExport(notebookId: string, withHistory = false): Promise<TransferDto> {

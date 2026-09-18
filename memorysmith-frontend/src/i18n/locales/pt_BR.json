@@ -281,6 +281,14 @@
     },
     "newExport": "Nova exportação",
     "newImport": "Importar um caderno",
-    "noNotebooks": "Ainda não há caderno para exportar."
+    "noNotebooks": "Ainda não há caderno para exportar.",
+    "line": {
+      "export": "Exportação de “{{notebook}}” para {{file}}",
+      "import": "Importação de {{file}} para “{{notebook}}”",
+      "importNoFile": "Importação para “{{notebook}}”"
+    },
+    "wrote_one": "{{count}} nota escrita",
+    "wrote_other": "{{count}} notas escritas",
+    "wroteNothing": "o desenho, sem nota nenhuma"
   }
 }

@@ -6,7 +6,14 @@ import { deleteTransfer, listNotebooks } from '../../shared/api/source';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryState } from '../../shared/api/query-state';
-import { progressOf, saveArchive, useRefreshTransfers, useTransfers } from './transfers';
+import {
+  lineOf,
+  outcomeOf,
+  progressOf,
+  saveArchive,
+  useRefreshTransfers,
+  useTransfers,
+} from './transfers';
 import { StartTransfer } from './StartTransfer';
 
 type Filter = 'all' | 'export' | 'import';
@@ -95,7 +102,7 @@ export function TransfersPage() {
           return (
             <li key={transfer.transferId} className="transfers-row">
               <div className="transfers-row-main">
-                <span className="transfers-row-name">{transfer.notebookName}</span>
+                <span className="transfers-row-name">{lineOf(transfer, t)}</span>
                 <span className="transfers-row-when">
                   {new Intl.DateTimeFormat(locale, {
                     dateStyle: 'short',
@@ -109,7 +116,7 @@ export function TransfersPage() {
                         total: transfer.total,
                       })
                     : transfer.status === 'ready'
-                      ? sizeOf(transfer.bytes, locale)
+                      ? outcomeOf(transfer, t, (bytes) => sizeOf(bytes, locale))
                       : t(`transfers.ended.${transfer.status}`)}
                 </span>
                 {progress !== null && (

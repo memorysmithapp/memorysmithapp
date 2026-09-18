@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TransferDto } from '@memorysmith/contracts';
-import { progressOf, saveArchive, useSaveStartedExports, useTransfers } from './transfers';
+import { lineOf, progressOf, saveArchive, useSaveStartedExports, useTransfers } from './transfers';
 import { StartTransfer } from './StartTransfer';
 
 /**
@@ -133,7 +133,7 @@ function TransferLine({ transfer, onClose }: { transfer: TransferDto; onClose: (
 
   return (
     <div className="transfers-line">
-      <span className="transfers-line-name">{transfer.notebookName}</span>
+      <span className="transfers-line-name">{lineOf(transfer, t)}</span>
       <span className="transfers-line-state">
         {transfer.status === 'running'
           ? t(`transfers.running.${transfer.kind}`, {

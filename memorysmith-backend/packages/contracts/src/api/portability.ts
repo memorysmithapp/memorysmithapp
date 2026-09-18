@@ -68,6 +68,12 @@ export const transferSchema = z.object({
   bytes: z.number().int().nonnegative(),
   /** A code the interface turns into words in the language of the person. */
   failure: z.string().nullable(),
+  /**
+   * The file this transfer is about: the one an import came from, as the
+   * person chose it, and the one an export saves as, named after its notebook.
+   * `null` on an import recorded before a file name was kept (#155).
+   */
+  fileName: z.string().nullable(),
 });
 
 export const transferListSchema = z.object({

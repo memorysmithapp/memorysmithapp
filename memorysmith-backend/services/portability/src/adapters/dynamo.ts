@@ -42,6 +42,7 @@ const PATCHABLE = [
   'versionId',
   'failure',
   'notebookName',
+  'fileName',
 ] as const;
 
 export class DynamoTransferStore implements TransferStore {
@@ -177,6 +178,7 @@ function transferOf(item: Item): Transfer {
     key: item['key'] ? String(item['key']) : null,
     versionId: item['versionId'] ? String(item['versionId']) : null,
     failure: item['failure'] ? String(item['failure']) : null,
+    fileName: item['fileName'] ? String(item['fileName']) : null,
   };
 }
 

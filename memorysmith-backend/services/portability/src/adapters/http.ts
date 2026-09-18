@@ -26,6 +26,7 @@
  */
 
 import { Hono, type Context } from 'hono';
+import { archiveNameOf } from '../domain/NotebookDocumentBuilder.js';
 import {
   type Authorship,
   DomainError,
@@ -90,6 +91,12 @@ function transferToDto(transfer: Transfer): Record<string, unknown> {
     total: transfer.total,
     bytes: transfer.bytes,
     failure: transfer.failure,
+    /**
+     * The file this transfer is about (#155). An import carries the one the
+     * person chose; an export is named after its notebook, by the same
+     * function that names the download, so the row says what will be saved.
+     */
+    fileName: transfer.kind === 'import' ? transfer.fileName : archiveNameOf(transfer.notebookName),
   };
 }
 
@@ -200,11 +207,14 @@ export function createPortabilityRoutes(
       uploadKey?: string;
       name?: string;
       selection?: ImportSelection | null;
+      fileName?: string;
     };
     const started = await useCases.startImport(request).execute({
       uploadKey: String(body.uploadKey ?? ''),
       name: String(body.name ?? ''),
       selection: body.selection ?? null,
+      // What the person calls the file, which the upload key cannot say (#155).
+      fileName: body.fileName === undefined ? null : String(body.fileName),
       by: author.value,
     });
     return started.ok ? c.json(transferToDto(started.value), 202) : fail(c, started.error);

@@ -125,6 +125,9 @@ export function ImportNotebookPage() {
         prepared.uploadKey,
         name.trim(),
         selectionOf(chosen),
+        // What the person calls this file: the upload is addressed by an
+        // identifier, which says nothing to anybody reading Transfers later.
+        file.name,
       );
       setStarted(transfer.transferId);
       refresh();
