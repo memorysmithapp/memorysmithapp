@@ -71,6 +71,14 @@ vi.stubGlobal('matchMedia', () => ({
 
 let render: (markdown: string) => string;
 
+/**
+ * The hook loads the whole i18n bundle and the markdown pipeline before the
+ * first case, which on a cold or busy machine takes longer than the ten
+ * seconds vitest allows a hook by default. The work is the same; what changes
+ * is how long the suite is willing to wait for it.
+ */
+const LOADING_THE_PIPELINE_MS = 30_000;
+
 beforeAll(async () => {
   await import('../../i18n');
   const { WritableContent } = await import('./WritableContent');
@@ -90,7 +98,7 @@ beforeAll(async () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-});
+}, LOADING_THE_PIPELINE_MS);
 
 /** What each declared entry has to be true of, once rendered. */
 const EXPECTED: Record<string, (html: string) => void> = {
