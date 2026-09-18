@@ -47,6 +47,23 @@ async function exported(api: Api, notebookId: string): Promise<TransferDto> {
   );
 }
 
+/**
+ * Starts an import and waits for the worker to finish it. An import is a JOB
+ * like an export (RN-PRT-018): `apply` records it and answers the transfer,
+ * and what it wrote is read off that record when it ends.
+ */
+async function importedFrom(api: Api, uploadKey: string, name: string): Promise<TransferDto> {
+  const started = await api.ok<TransferDto>('POST', '/portability/imports/apply', {
+    uploadKey,
+    name,
+  });
+  return eventually(
+    'the import to end',
+    () => api.ok<TransferDto>('GET', `/portability/transfers/${started.transferId}`),
+    (transfer) => transfer.status !== 'running',
+  );
+}
+
 test.describe('a notebook out and back in', () => {
   test('[route:POST /portability/notebooks/:v/export] [route:GET /portability/transfers/:t] [route:POST /portability/transfers/:t/download] [route:POST /portability/imports] [route:POST /portability/imports/apply] exports a notebook as a job and imports it back as the same notebook', async ({
     owner,
@@ -83,13 +100,10 @@ test.describe('a notebook out and back in', () => {
     });
     expect(put.ok).toBe(true);
 
-    const imported = await owner.ok<{ notebookId: string; noteCount: number; folderCount: number }>(
-      'POST',
-      '/portability/imports/apply',
-      { uploadKey: upload.uploadKey, name: unique('Imported') },
-    );
-    expect(imported.noteCount).toBe(transfer.total);
-    expect(await bodiesOf(owner, imported.notebookId)).toEqual(
+    const imported = await importedFrom(owner, upload.uploadKey, unique('Imported'));
+    expect(imported.status).toBe('ready');
+    expect(imported.done).toBe(transfer.total);
+    expect(await bodiesOf(owner, imported.notebookId ?? '')).toEqual(
       await bodiesOf(owner, notebook.notebookId),
     );
 
@@ -172,12 +186,9 @@ test.describe('the transfers of a person', () => {
       headers: { 'content-type': 'application/zip' },
       body: archive,
     });
-    const imported = await owner.ok<{ notebookId: string; noteCount: number }>(
-      'POST',
-      '/portability/imports/apply',
-      { uploadKey: upload.uploadKey, name: unique('Back from the dead') },
-    );
-    expect(imported.noteCount).toBe(transfer.total);
+    const imported = await importedFrom(owner, upload.uploadKey, unique('Back from the dead'));
+    expect(imported.status).toBe('ready');
+    expect(imported.done).toBe(transfer.total);
 
     await owner.call('DELETE', `/portability/transfers/${transfer.transferId}`);
   });

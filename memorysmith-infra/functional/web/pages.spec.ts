@@ -343,7 +343,12 @@ async function startExport(
 ): Promise<void> {
   await app.getByRole('button', { name: words.transfers }).click();
   await app.getByRole('button', { name: words.newExport }).click();
-  await app.getByLabel(words.notebookField).selectOption({ label: notebookName });
+  // Scoped to the dialog and exact: `Notebook` is the start of several
+  // accessible names on the page behind it.
+  await app
+    .locator('.export-choice')
+    .getByLabel(words.notebookField, { exact: true })
+    .selectOption({ label: notebookName });
   await app.getByRole('button', { name: words.startExport }).click();
 }
 

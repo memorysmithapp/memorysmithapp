@@ -71,16 +71,24 @@ export function ExportChoice({
         {notebooks.length === 0 ? (
           <p className="export-choice-what">{t('transfers.noNotebooks')}</p>
         ) : (
-          <label className="export-choice-notebook">
-            {t('portability.exportNotebook')}
-            <select value={notebookId} onChange={(event) => onChooseNotebook(event.target.value)}>
+          <div className="export-choice-notebook">
+            {/* The label is beside the control and not around it: a label that
+                wraps a select takes the text of the chosen option into the
+                name of the field, and the name of the field is what a person
+                using a screen reader hears. */}
+            <label htmlFor="export-choice-notebook">{t('portability.exportNotebook')}</label>
+            <select
+              id="export-choice-notebook"
+              value={notebookId}
+              onChange={(event) => onChooseNotebook(event.target.value)}
+            >
               {notebooks.map((notebook) => (
                 <option key={notebook.id} value={notebook.id}>
                   {notebook.name}
                 </option>
               ))}
             </select>
-          </label>
+          </div>
         )}
 
         <p className="export-choice-what">{t('portability.exportWhat')}</p>
