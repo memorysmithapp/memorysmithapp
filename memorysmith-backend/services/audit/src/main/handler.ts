@@ -24,16 +24,19 @@ function required(name: string): string {
   return value;
 }
 
-const consumer = new AuditEventConsumer(
-  new RecordEvents(
-    new DynamoAuditTrail(
-      DynamoDBDocumentClient.from(new DynamoDBClient({}), {
-        marshallOptions: { removeUndefinedValues: true },
-      }),
-      required('AUDIT_TABLE'),
-    ),
-  ),
+const trail = new DynamoAuditTrail(
+  DynamoDBDocumentClient.from(new DynamoDBClient({}), {
+    marshallOptions: { removeUndefinedValues: true },
+  }),
+  required('AUDIT_TABLE'),
 );
+
+/**
+ * The same adapter answers both: what to append, and whether the trail of that
+ * notebook was closed by a purge (RN-AUD-011). Asking is a READ, and this role
+ * still cannot remove or change a single entry.
+ */
+const consumer = new AuditEventConsumer(new RecordEvents(trail, trail));
 
 export async function handler(event: BusEvent): Promise<void> {
   // The same function answers a direct bus target and an SQS-buffered one.

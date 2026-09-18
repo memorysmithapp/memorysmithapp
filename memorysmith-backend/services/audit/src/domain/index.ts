@@ -75,6 +75,44 @@ export class AuditEvent {
 }
 
 /**
+ * What survives the purge of a notebook (RN-AUD-011).
+ *
+ * The line is not the subject of the entry but what the entry is ABOUT. A
+ * `GuidanceUpdated` carries the notebook as its subject and is content of the
+ * notebook; the entries below are the notebook as an object of the
+ * subscription — that it was created, renamed, deleted, destroyed, and who
+ * could reach it. The subscription keeps those. Everything else that happened
+ * inside goes with the notebook.
+ *
+ * `NotebookRestored` is retired and stays here: an entry already written has
+ * to keep meaning what it meant.
+ */
+export const NOTEBOOK_LIFE_EVENT_TYPES: readonly DomainEventType[] = [
+  'NotebookCreated',
+  'NotebookRenamed',
+  'NotebookDeleted',
+  'NotebookRestored',
+  'NotebookPurged',
+  'NotebookRoleLimitSet',
+  'NotebookRoleLimitCleared',
+];
+
+export const survivesTheNotebook = (type: DomainEventType): boolean =>
+  NOTEBOOK_LIFE_EVENT_TYPES.includes(type);
+
+/**
+ * Which notebook an entry belongs to, or none when it is about the
+ * subscription itself. The payload answers first, because a note carries the
+ * notebook it lives in — and a move carries the one it arrived at, which is
+ * where its activity belongs from then on.
+ */
+export function notebookOf(event: AuditEvent): string | null {
+  const fromPayload = event.payload['notebookId'] ?? event.payload['toNotebookId'];
+  if (typeof fromPayload === 'string') return fromPayload;
+  return event.subject === 'NOTEBOOK' ? event.subjectId : null;
+}
+
+/**
  * The only operation is append. There is no update and no delete, here or
  * anywhere else: the immutability is enforced by an explicit IAM Deny on the
  * table, not by this interface (PE4). An interface that simply lacks the
@@ -86,6 +124,33 @@ export interface AuditTrail {
   timelineOf(subject: EventSubject, subjectId: string): Promise<AuditEvent[]>;
   /** Activity inside a notebook over a period, for the activity screen. */
   activityOf(notebookId: string, from: Instant | null, to: Instant | null): Promise<AuditEvent[]>;
+}
+
+/**
+ * Whether the trail of a notebook was closed, which is what the purge does to
+ * it (RN-AUD-011). The consumer asks before appending, because the events of
+ * the purge itself travel the ordinary way — outbox, bus, consumer — and
+ * therefore reach the trail AFTER the purge that wrote them has ended. What
+ * the erase could not remove, because it had not arrived yet, is what this
+ * keeps out.
+ */
+export interface ClosedTrails {
+  isClosed(subscriptionId: SubscriptionId, notebookId: string): Promise<boolean>;
+}
+
+/**
+ * The one operation in the system that removes an entry (rule 6, RN-AUD-011).
+ *
+ * It is a port of its own, reached by ONE principal — the purge worker — for
+ * the same reason destroying a revision is (rule 8): a capability that exists
+ * in one place is a capability nothing else can reach by accident.
+ */
+export interface TrailCloser {
+  /**
+   * Erases everything of that notebook but its life, and closes the trail so
+   * nothing of it is appended again. Erasing twice erases nothing.
+   */
+  close(notebookId: string, at: Instant): Promise<{ erased: number }>;
 }
 
 /**

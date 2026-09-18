@@ -55,6 +55,15 @@ export interface PurgeDependencies {
   readonly tableName: string;
   /** Built per subscription, from the envelope, like every repository (PE2). */
   readonly purgerFor: (subscriptionId: SubscriptionId) => ContentPurger;
+  /**
+   * Closes the trail of a notebook this purge destroyed (RN-AUD-011). It is a
+   * port of its own for the same reason destroying a revision is one (rule 8):
+   * this worker is the ONE principal in the system that removes an entry, and
+   * a capability that lives in one place is one nothing else reaches by
+   * accident. What is behind it belongs to Audit, and this context never names
+   * it — it is handed a function by the composition root.
+   */
+  readonly closeTrailOf: (subscriptionId: SubscriptionId, notebookId: string) => Promise<void>;
 }
 
 /**
@@ -127,7 +136,16 @@ export class ContentPurge {
         // The tree itself goes last, and only once nothing under it is left:
         // what is above a unit is what says the unit is invalid, so taking it
         // away first would leave a live note nothing marked.
-        if (context.budget > 0) await this.purgeTree(context);
+        if (context.budget > 0) {
+          await this.purgeTree(context);
+          /**
+           * And the trail of the notebook goes with it, keeping its life
+           * (RN-AUD-011). It is closed AFTER the tree, so a run that ran out
+           * of budget and continues in another message does not close a trail
+           * that is still receiving the purge of what is left.
+           */
+          await this.deps.closeTrailOf(context.subscriptionId, context.notebookId);
+        }
         break;
 
       default:

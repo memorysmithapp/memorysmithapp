@@ -15,6 +15,7 @@
 
 import {
   BatchWriteCommand,
+  GetCommand,
   QueryCommand,
   type DynamoDBDocumentClient,
 } from '@aws-sdk/lib-dynamodb';
@@ -31,7 +32,13 @@ import {
   type EventSubject,
   type Result,
 } from '@memorysmith/kernel';
-import { AuditEvent, type AuditTrail } from '../../domain/index.js';
+import {
+  AuditEvent,
+  notebookOf,
+  survivesTheNotebook,
+  type AuditTrail,
+  type ClosedTrails,
+} from '../../domain/index.js';
 
 type Item = Record<string, unknown>;
 
@@ -47,6 +54,19 @@ function partitionOf(event: AuditEvent): string {
 function sortKeyOf(event: AuditEvent): string {
   return `AT#${event.occurredAt.toISOString()}#${event.eventId}`;
 }
+
+/**
+ * Where a closed trail is marked (RN-AUD-011). It is a partition of its own and
+ * never an item of the notebook, so every read of the trail stays exactly what
+ * it was: one Query by PK, parsing entries and nothing else.
+ */
+export const closedKeyOf = (
+  subscriptionId: string,
+  notebookId: string,
+): { PK: string; SK: string } => ({
+  PK: `S#${subscriptionId}#TRAILCLOSED#${notebookId}`,
+  SK: 'CLOSED',
+});
 
 /** How many times a batch is offered again what the table handed back unwritten. */
 const UNPROCESSED_ATTEMPTS = 5;
@@ -159,12 +179,21 @@ export class DynamoAuditTrail implements AuditTrail {
     );
     return ((response.Items ?? []) as Item[]).map((item) => parse(item));
   }
-}
 
-function notebookOf(event: AuditEvent): string | null {
-  const fromPayload = event.payload['notebookId'] ?? event.payload['toNotebookId'];
-  if (typeof fromPayload === 'string') return fromPayload;
-  return event.subject === 'NOTEBOOK' ? event.subjectId : null;
+  /**
+   * Whether the purge closed that trail. The consumer asks it before appending
+   * an entry that belongs inside a notebook, because the events of a purge
+   * reach the trail after the purge that wrote them has ended (RN-AUD-011).
+   */
+  async isClosed(subscriptionId: SubscriptionId, notebookId: string): Promise<boolean> {
+    const found = await this.db.send(
+      new GetCommand({
+        TableName: this.tableName,
+        Key: closedKeyOf(subscriptionId.value, notebookId),
+      }),
+    );
+    return found.Item !== undefined;
+  }
 }
 
 function parse(item: Item): AuditEvent {
@@ -215,12 +244,34 @@ function parse(item: Item): AuditEvent {
   );
 }
 
-/** In-memory trail for tests, honouring the same append-only contract. */
-export class InMemoryAuditTrail implements AuditTrail {
+/**
+ * In-memory trail for tests, honouring the same contracts: it appends, it
+ * answers whether a trail was closed, and closing it erases everything of a
+ * notebook but its life (RN-AUD-011).
+ */
+export class InMemoryAuditTrail implements AuditTrail, ClosedTrails {
   private readonly events: AuditEvent[] = [];
+  private readonly closed = new Set<string>();
 
   async append(events: AuditEvent[]): Promise<void> {
     this.events.push(...events);
+  }
+
+  async isClosed(subscriptionId: SubscriptionId, notebookId: string): Promise<boolean> {
+    return this.closed.has(`${subscriptionId.value}#${notebookId}`);
+  }
+
+  /** What the purge does, through the port only it reaches. */
+  async closeNotebook(subscriptionId: SubscriptionId, notebookId: string): Promise<number> {
+    this.closed.add(`${subscriptionId.value}#${notebookId}`);
+    const doomed = this.events.filter(
+      (event) =>
+        event.subscriptionId.value === subscriptionId.value &&
+        notebookOf(event) === notebookId &&
+        !survivesTheNotebook(event.type),
+    );
+    for (const event of doomed) this.events.splice(this.events.indexOf(event), 1);
+    return doomed.length;
   }
 
   async timelineOf(subject: EventSubject, subjectId: string): Promise<AuditEvent[]> {

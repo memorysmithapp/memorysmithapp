@@ -80,7 +80,15 @@ export class AppendOnlyTable extends Construct {
     grantee.grantPrincipal.addToPrincipalPolicy(
       new PolicyStatement({
         effect: Effect.ALLOW,
-        actions: ['dynamodb:PutItem', 'dynamodb:BatchWriteItem', 'dynamodb:DescribeTable'],
+        actions: [
+          'dynamodb:PutItem',
+          'dynamodb:BatchWriteItem',
+          'dynamodb:DescribeTable',
+          // Reading ONE key: whether the trail of a notebook was closed by a
+          // purge, which decides whether an entry is appended at all
+          // (RN-AUD-011). Asking is not writing, and the Deny below is intact.
+          'dynamodb:GetItem',
+        ],
         resources: [this.table.tableArn, `${this.table.tableArn}/index/*`],
       }),
     );
@@ -106,6 +114,40 @@ export class AppendOnlyTable extends Construct {
       new PolicyStatement({
         effect: Effect.DENY,
         actions: ['dynamodb:UpdateItem', 'dynamodb:DeleteItem', 'dynamodb:PutItem'],
+        resources: [this.table.tableArn, `${this.table.tableArn}/index/*`],
+      }),
+    );
+  }
+
+  /**
+   * The ONE grant in the system that lets a principal remove an entry, and it
+   * is given to exactly one: the purge worker (rule 6, RN-AUD-011). It is
+   * written by hand, action by action, rather than taken from a grant helper,
+   * because every helper that hands out a delete hands out more than this.
+   *
+   * It queries the notebook index to find what to remove, removes it in
+   * batches, and writes the one item that marks the trail closed. It can
+   * neither change an entry nor read one: nothing here alters what was
+   * written, and what it removes it removes whole.
+   */
+  grantTrailPurge(grantee: IGrantable): void {
+    grantee.grantPrincipal.addToPrincipalPolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: [
+          'dynamodb:Query',
+          'dynamodb:DeleteItem',
+          'dynamodb:BatchWriteItem',
+          'dynamodb:PutItem',
+          'dynamodb:DescribeTable',
+        ],
+        resources: [this.table.tableArn, `${this.table.tableArn}/index/*`],
+      }),
+    );
+    grantee.grantPrincipal.addToPrincipalPolicy(
+      new PolicyStatement({
+        effect: Effect.DENY,
+        actions: ['dynamodb:UpdateItem'],
         resources: [this.table.tableArn, `${this.table.tableArn}/index/*`],
       }),
     );

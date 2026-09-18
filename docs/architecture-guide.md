@@ -1095,6 +1095,10 @@ The key is **by subject, not by notebook**, and that is not a detail: it is what
 
 **Immutability is not a convention (PE4): the role of the Lambda has an explicit `Deny` on `UpdateItem` and `DeleteItem` on the table.** There is no path, neither through a bug nor through an operator, that rewrites the past. It is the difference between "we do not alter the log" and "we cannot alter the log", and only the second one serves in front of a regulator.
 
+**And exactly one principal removes an entry: the purge worker, as part of a deletion (rule 6, RN-AUD-011).** Deleting a notebook destroys what happened inside it, the trail of it included, and what the subscription keeps is the life of the notebook: that it was created, renamed, deleted, destroyed, and who could reach it. The shape is the one §12.4 already uses for bytes — the capability lives in one place, behind a port of its own, and every other role keeps its `Deny`.
+
+It takes two writes and needs both, because **the events of a purge reach the trail after the purge that wrote them has ended**: they travel the ordinary way, through the outbox, the relay and the bus. So the worker marks the trail **closed** first, in a partition of its own (`S#{s}#TRAILCLOSED#{notebookId}`, kept 30 days), and erases second; and the consumer asks that mark before appending an entry that belongs inside a notebook. What was already there is erased, what arrives late is never appended, and the life of the notebook goes in either way. Reading the mark is the one `GetItem` the append-only role holds, and it removes nothing.
+
 ### 12.3 Revisions and historical reconstruction
 
 The bucket is versioned, so every write to a Content Slot produces an immutable `versionId`. **The event carries the complete `ContentRef`**, and that is the detail linking *"something happened"* to *"the content was this"*.

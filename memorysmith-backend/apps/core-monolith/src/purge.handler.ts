@@ -17,9 +17,10 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { S3Client } from '@aws-sdk/client-s3';
 import { SendMessageCommand, SQSClient } from '@aws-sdk/client-sqs';
-import type { SubscriptionId } from '@memorysmith/kernel';
+import { Instant, type SubscriptionId } from '@memorysmith/kernel';
 import { ContentPurge } from '@memorysmith/svc-knowledge/adapters/purge';
 import { S3ContentPurger } from '@memorysmith/svc-knowledge/adapters/purger';
+import { DynamoTrailCloser } from '@memorysmith/svc-audit/adapters/closer';
 
 interface QueueEvent {
   detail?: unknown;
@@ -40,12 +41,23 @@ const sqs = new SQSClient({});
 const bucket = required('CONTENT_BUCKET');
 const queueUrl = required('PURGE_QUEUE_URL');
 
+const auditTable = required('AUDIT_TABLE');
+
 const purge = new ContentPurge({
   db,
   tableName: required('KNOWLEDGE_TABLE'),
   // Per subscription, from the envelope: the worker serves no request, so
   // there is no claim to take it from (§8.2).
   purgerFor: (subscriptionId: SubscriptionId) => new S3ContentPurger(subscriptionId, s3, bucket),
+  /**
+   * The trail of a purged notebook keeps its life and loses what happened
+   * inside it (RN-AUD-011). This is the only principal that may remove an
+   * entry, and the composition root is where the two contexts meet: Knowledge
+   * asks for a notebook to be closed and never names the trail.
+   */
+  closeTrailOf: async (subscriptionId: SubscriptionId, notebookId: string) => {
+    await new DynamoTrailCloser(db, auditTable, subscriptionId).close(notebookId, Instant.now());
+  },
 });
 
 export async function handler(event: QueueEvent): Promise<void> {

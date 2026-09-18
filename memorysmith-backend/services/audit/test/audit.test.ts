@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Instant } from '@memorysmith/kernel';
+import { Instant, SubscriptionId } from '@memorysmith/kernel';
 import { DynamoAuditTrail, InMemoryAuditTrail } from '../src/adapters/outbound/DynamoAuditTrail.js';
 import {
   GetNoteHistory,
@@ -16,6 +16,13 @@ const NOTEBOOK = '01JBQ2X0000000000000000001';
 const NOTE = '01JBQ2X0000000000000000002';
 const FOLDER = '01JBQ2X0000000000000000003';
 const CONTENT = '01JBQ2X0000000000000000004';
+const OTHER_NOTE = '01JBQ2X0000000000000000005';
+
+/** Unwraps what the kernel hands back as a Result, in a test that seeded it. */
+function need<T>(result: { ok: true; value: T } | { ok: false }): T {
+  if (!result.ok) throw new Error('The test seeded an unusable value');
+  return result.value;
+}
 
 /** The bucket, faked: revision id to content. */
 class FakeRevisionReader implements RevisionReader {
@@ -63,7 +70,7 @@ function envelope(input: {
 
 async function seedTrail() {
   const trail = new InMemoryAuditTrail();
-  await new AuditEventConsumer(new RecordEvents(trail)).consume([
+  await new AuditEventConsumer(new RecordEvents(trail, trail)).consume([
     envelope({
       eventId: '01JBQ2X000000000000000000A',
       type: 'NoteCreated',
@@ -111,7 +118,12 @@ describe('The trail writes every entry the table hands back', () => {
   function tableHandingBack(unwrittenPerAnswer: number[]) {
     const offered: number[] = [];
     const db = {
-      send: async (command: { input: { RequestItems: Record<string, unknown[]> } }) => {
+      send: async (command: {
+        input: { RequestItems?: Record<string, unknown[]>; Key?: unknown };
+      }) => {
+        // The consumer asks whether the trail of that notebook was closed
+        // before it appends anything (RN-AUD-011). No notebook here was.
+        if (!command.input.RequestItems) return {};
         const requests = command.input.RequestItems['mv-audit'] ?? [];
         offered.push(requests.length);
         const unwritten = unwrittenPerAnswer.shift() ?? 0;
@@ -147,15 +159,15 @@ describe('The trail writes every entry the table hands back', () => {
 
   it('offers again only what the table did not write, until it is all written', async () => {
     const { trail, offered } = tableHandingBack([2, 1, 0]);
-    await new AuditEventConsumer(new RecordEvents(trail)).consume(three);
+    await new AuditEventConsumer(new RecordEvents(trail, trail)).consume(three);
     expect(offered).toEqual([3, 2, 1]);
   });
 
   it('fails when entries stay unwritten, so the events are delivered again', async () => {
     const { trail } = tableHandingBack([3, 3, 3, 3, 3, 3]);
-    await expect(new AuditEventConsumer(new RecordEvents(trail)).consume(three)).rejects.toThrow(
-      'not written',
-    );
+    await expect(
+      new AuditEventConsumer(new RecordEvents(trail, trail)).consume(three),
+    ).rejects.toThrow('not written');
   });
 });
 
@@ -186,7 +198,7 @@ describe('The trail is append-only and keyed by subject', () => {
   it('refuses an event that does not match its contract', async () => {
     const trail = new InMemoryAuditTrail();
     await expect(
-      new AuditEventConsumer(new RecordEvents(trail)).consume([
+      new AuditEventConsumer(new RecordEvents(trail, trail)).consume([
         { eventId: 'nope', type: 'NoteCreated' },
       ]),
     ).rejects.toThrow();
@@ -248,7 +260,7 @@ describe('read_note(asOf) rebuilds the past', () => {
   it('keeps answering after the note is deleted', async () => {
     // Deleting a note never destroys the content (RN-AUD-006).
     const { trail, content } = await seedTrail();
-    await new AuditEventConsumer(new RecordEvents(trail)).consume([
+    await new AuditEventConsumer(new RecordEvents(trail, trail)).consume([
       envelope({
         eventId: '01JBQ2X000000000000000000D',
         type: 'NoteDeleted',
@@ -278,7 +290,7 @@ describe('History and activity', () => {
 
   it('survives the note changing notebook, because the key is by subject', async () => {
     const { trail } = await seedTrail();
-    await new AuditEventConsumer(new RecordEvents(trail)).consume([
+    await new AuditEventConsumer(new RecordEvents(trail, trail)).consume([
       {
         eventId: '01JBQ2X000000000000000000E',
         type: 'NoteMoved',
@@ -312,7 +324,7 @@ describe('History and activity', () => {
     // history of something somebody deleted, because what it points at is
     // gone.
     const { trail, content } = await seedTrail();
-    await new AuditEventConsumer(new RecordEvents(trail)).consume([
+    await new AuditEventConsumer(new RecordEvents(trail, trail)).consume([
       {
         eventId: '01JBQ2X000000000000000000P',
         type: 'NotePurged',
@@ -369,7 +381,7 @@ describe('History and activity', () => {
 
   it('exposes no revision for an event that changed no content', async () => {
     const trail = new InMemoryAuditTrail();
-    await new AuditEventConsumer(new RecordEvents(trail)).consume([
+    await new AuditEventConsumer(new RecordEvents(trail, trail)).consume([
       envelope({
         eventId: '01JBQ2X000000000000000000G',
         type: 'NoteReordered',
@@ -380,5 +392,141 @@ describe('History and activity', () => {
     const timeline = await trail.timelineOf('NOTE', NOTE);
     expect(timeline[0]?.changedContent).toBe(false);
     expect(Instant.fromISO('2026-03-02T10:00:00.000Z').ok).toBe(true);
+  });
+});
+
+/**
+ * What a purge does to the trail of the notebook it destroyed (RN-AUD-011).
+ *
+ * The two halves are one feature: the erase takes what is already there, and
+ * the mark keeps out what arrives after it — which is most of it, because the
+ * events of a purge travel through the outbox and reach the consumer once the
+ * purge that wrote them has ended.
+ */
+describe('the trail of a purged notebook', () => {
+  const lifeOf = async (trail: InMemoryAuditTrail): Promise<string[]> =>
+    (await trail.activityOf(NOTEBOOK, null, null)).map((entry) => entry.type);
+
+  /** An entry about the notebook itself, which the subscription keeps. */
+  const NOTEBOOK_PAYLOADS: Record<string, Record<string, unknown>> = {
+    NotebookCreated: {
+      notebookId: NOTEBOOK,
+      name: 'Normas e Legislacao',
+      slug: 'normas-e-legislacao',
+      description: '',
+    },
+    NotebookDeleted: { notebookId: NOTEBOOK, slug: 'normas-e-legislacao', noteCount: 1 },
+    NotebookPurged: { notebookId: NOTEBOOK },
+  };
+
+  const notebookEnvelope = (input: {
+    eventId: string;
+    type: string;
+    at: string;
+  }): Record<string, unknown> => ({
+    ...envelope({ eventId: input.eventId, type: input.type, at: input.at }),
+    subject: 'NOTEBOOK',
+    subjectId: NOTEBOOK,
+    payload: NOTEBOOK_PAYLOADS[input.type] ?? { notebookId: NOTEBOOK },
+  });
+
+  async function seedNotebook(): Promise<InMemoryAuditTrail> {
+    const trail = new InMemoryAuditTrail();
+    await new AuditEventConsumer(new RecordEvents(trail, trail)).consume([
+      notebookEnvelope({
+        eventId: '01JBQ2X000000000000000000P',
+        type: 'NotebookCreated',
+        at: '2026-03-01T09:00:00.000Z',
+      }),
+      envelope({
+        eventId: '01JBQ2X000000000000000000Q',
+        type: 'NoteCreated',
+        at: '2026-03-01T10:00:00.000Z',
+        versionId: 'v1',
+      }),
+      envelope({
+        eventId: '01JBQ2X000000000000000000R',
+        type: 'NoteUpdated',
+        at: '2026-03-01T11:00:00.000Z',
+        versionId: 'v2',
+      }),
+      notebookEnvelope({
+        eventId: '01JBQ2X000000000000000000S',
+        type: 'NotebookDeleted',
+        at: '2026-03-02T09:00:00.000Z',
+      }),
+    ]);
+    return trail;
+  }
+
+  it('keeps the life of the notebook and takes what happened inside it', async () => {
+    const trail = await seedNotebook();
+    expect(await lifeOf(trail)).toHaveLength(4);
+
+    const subscription = need(SubscriptionId.fromClaim(SUBSCRIPTION));
+    expect(await trail.closeNotebook(subscription, NOTEBOOK)).toBe(2);
+
+    // What is left says the notebook existed and was deleted, and by whom.
+    expect(await lifeOf(trail)).toEqual(['NotebookDeleted', 'NotebookCreated']);
+    expect(await trail.timelineOf('NOTE', NOTE)).toEqual([]);
+  });
+
+  it('appends nothing of that notebook afterwards, and its purge all the same', async () => {
+    const trail = await seedNotebook();
+    const subscription = need(SubscriptionId.fromClaim(SUBSCRIPTION));
+    await trail.closeNotebook(subscription, NOTEBOOK);
+
+    /**
+     * Exactly what a purge publishes: one entry per unit destroyed, and one
+     * for the notebook. The first kind is what the erase could not take, since
+     * it had not arrived; the second is the notebook's own life.
+     */
+    const consumer = new AuditEventConsumer(new RecordEvents(trail, trail));
+    await consumer.consume([
+      envelope({
+        eventId: '01JBQ2X000000000000000000T',
+        type: 'NotePurged',
+        at: '2026-03-02T09:05:00.000Z',
+        versionId: 'v2',
+        payload: { notebookId: NOTEBOOK, noteId: NOTE, folderId: FOLDER },
+      }),
+      notebookEnvelope({
+        eventId: '01JBQ2X000000000000000000W',
+        type: 'NotebookPurged',
+        at: '2026-03-02T09:05:01.000Z',
+      }),
+    ]);
+
+    expect(await lifeOf(trail)).toEqual(['NotebookPurged', 'NotebookDeleted', 'NotebookCreated']);
+  });
+
+  it('touches no other notebook', async () => {
+    const trail = await seedNotebook();
+    const subscription = need(SubscriptionId.fromClaim(SUBSCRIPTION));
+    const other = '01JBQ2X000000000000000000Z';
+    await new AuditEventConsumer(new RecordEvents(trail, trail)).consume([
+      {
+        ...envelope({
+          eventId: '01JBQ2X000000000000000000V',
+          type: 'NoteCreated',
+          at: '2026-03-01T10:30:00.000Z',
+          versionId: 'v1',
+        }),
+        subjectId: OTHER_NOTE,
+        payload: {
+          notebookId: other,
+          noteId: OTHER_NOTE,
+          folderId: FOLDER,
+          name: 'Decreto 11.462',
+          slug: 'decreto-11462',
+          position: 'a0',
+        },
+      },
+    ]);
+
+    await trail.closeNotebook(subscription, NOTEBOOK);
+    expect((await trail.activityOf(other, null, null)).map((entry) => entry.type)).toEqual([
+      'NoteCreated',
+    ]);
   });
 });

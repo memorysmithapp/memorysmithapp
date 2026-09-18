@@ -750,6 +750,9 @@ describe('ContentPurge: what a deletion invalidated stops existing', () => {
       db,
       tableName: TABLE_NAME,
       purgerFor: (subscriptionId) => new S3ContentPurger(subscriptionId, s3, BUCKET_NAME),
+      // The trail is a table of another context; what this case reads is the
+      // one it purges.
+      closeTrailOf: async () => undefined,
     });
   }
 

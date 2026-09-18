@@ -302,7 +302,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     notebookActivity: () => new GetNotebookActivity(auditTrail),
     readRevision: () => new ReadRevision(auditTrail, revisions),
   };
-  const auditConsumer = new AuditEventConsumer(new RecordEvents(auditTrail));
+  const auditConsumer = new AuditEventConsumer(new RecordEvents(auditTrail, auditTrail));
 
   const discovery = {
     graph: new InMemoryLinkGraph(),

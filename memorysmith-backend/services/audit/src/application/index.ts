@@ -8,7 +8,10 @@
 import { DomainError, err, Instant, ok, type Result } from '@memorysmith/kernel';
 import {
   type AuditEvent,
+  type ClosedTrails,
+  notebookOf,
   revisionAt,
+  survivesTheNotebook,
   type AuditTrail,
   type RevisionReader,
 } from '../domain/index.js';
@@ -17,14 +20,48 @@ import {
  * Appends what the consumer handed over. Validating the envelope against its
  * contract is the job of the inbound adapter: Zod lives on the edge, never in
  * a use case (architecture-guide.md, section 4.1).
+ *
+ * What it does NOT append is an entry that belongs inside a notebook whose
+ * trail the purge closed (RN-AUD-011). This is not a second way of removing an
+ * entry — nothing here removes anything — it is the trail declining to open a
+ * chapter that was closed: the events of a purge reach the consumer after the
+ * purge that wrote them has ended, so without this the erase would be followed
+ * by the very entries it was meant to take.
+ *
+ * The life of the notebook still goes in, purge included: what it says is that
+ * the notebook existed and was destroyed, which is what the subscription keeps.
  */
 export class RecordEvents {
-  constructor(private readonly trail: AuditTrail) {}
+  constructor(
+    private readonly trail: AuditTrail,
+    private readonly closed: ClosedTrails,
+  ) {}
 
   async execute(events: AuditEvent[]): Promise<Result<{ appended: number }, DomainError>> {
     if (events.length === 0) return ok({ appended: 0 });
-    await this.trail.append(events);
-    return ok({ appended: events.length });
+
+    const wanted: AuditEvent[] = [];
+    // One question per notebook of the batch, and none at all for a batch that
+    // touches no notebook: this runs on every event of the bus.
+    const answered = new Map<string, boolean>();
+    for (const event of events) {
+      const notebookId = notebookOf(event);
+      if (!notebookId || survivesTheNotebook(event.type)) {
+        wanted.push(event);
+        continue;
+      }
+      const key = `${event.subscriptionId.value}#${notebookId}`;
+      let closed = answered.get(key);
+      if (closed === undefined) {
+        closed = await this.closed.isClosed(event.subscriptionId, notebookId);
+        answered.set(key, closed);
+      }
+      if (!closed) wanted.push(event);
+    }
+
+    if (wanted.length === 0) return ok({ appended: 0 });
+    await this.trail.append(wanted);
+    return ok({ appended: wanted.length });
   }
 }
 

@@ -227,6 +227,9 @@ export class ApiStack extends Stack {
         KNOWLEDGE_TABLE: props.data.knowledgeTable.table.tableName,
         CONTENT_BUCKET: props.data.contentBucket.bucketName,
         PURGE_QUEUE_URL: purgeQueue.queueUrl,
+        // A purged notebook keeps its life in the trail and loses what
+        // happened inside it (RN-AUD-011).
+        AUDIT_TABLE: props.data.auditTable.table.tableName,
       },
       // A subtree larger than one invocation continues in a new message, so
       // the ceiling is what one message should hold open and not what a
@@ -262,6 +265,14 @@ export class ApiStack extends Stack {
         resources: [props.data.contentBucket.bucketArn],
       }),
     );
+
+    /**
+     * And the one principal that may remove an entry of the trail (rule 6,
+     * RN-AUD-011). It is the same worker for the same reason: what destroys is
+     * one thing, reached through a port of its own. Every other role of the
+     * system keeps its explicit Deny.
+     */
+    props.data.auditTable.grantTrailPurge(purge.function);
 
     // A message in this queue is content that was deleted and still exists,
     // which is a promise of the product left unkept.

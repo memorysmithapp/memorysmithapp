@@ -88,6 +88,9 @@ function tableOf(items: Record<string, unknown>[]) {
     },
   };
 
+  /** The notebooks whose trail this purge closed (RN-AUD-011). */
+  const closed: string[] = [];
+
   const purge = new ContentPurge({
     db: db as never,
     tableName: 'mv-knowledge-test',
@@ -97,9 +100,12 @@ function tableOf(items: Record<string, unknown>[]) {
         return 1;
       },
     }),
+    closeTrailOf: async (_subscriptionId, notebookId: string) => {
+      closed.push(notebookId);
+    },
   });
 
-  return { purge, rows, purged, events };
+  return { purge, rows, purged, events, closed };
 }
 
 function noteItem(name: string, inFolder: string, bytes: number, deleted = false) {
@@ -162,7 +168,7 @@ describe('the purge of one deleted note', () => {
 
 describe('the purge of what a removed folder invalidated', () => {
   it('takes the notes of the removed folders and their Templates, and nothing else', async () => {
-    const { purge, rows, purged, events } = tableOf([
+    const { purge, rows, purged, events, closed } = tableOf([
       noteItem('gone', 'removed', 100),
       noteItem('also gone', 'removed child', 200),
       noteItem('kept', 'elsewhere', 400),
@@ -195,12 +201,15 @@ describe('the purge of what a removed folder invalidated', () => {
     expect(notes.map((event) => Number(event['storageDelta'])).sort((a, b) => a - b)).toEqual([
       -200, -100,
     ]);
+    // The notebook is alive, so its trail is untouched: what closes one is the
+    // deletion of the notebook and nothing smaller (RN-AUD-011).
+    expect(closed).toEqual([]);
   });
 });
 
 describe('the purge of a deleted notebook', () => {
   it('leaves nothing of it in the table but the outbox', async () => {
-    const { purge, rows, purged, events } = tableOf([
+    const { purge, rows, purged, events, closed } = tableOf([
       noteItem('deleted first', 'notes', 100, true),
       noteItem('still live', 'notes', 200),
       {
@@ -242,6 +251,13 @@ describe('the purge of a deleted notebook', () => {
     // when it was deleted.
     const freed = events.reduce((total, event) => total + Number(event['storageDelta'] ?? 0), 0);
     expect(freed).toBe(-(200 + 70 + 50));
+    /**
+     * And the trail of the notebook is closed, keeping its life and losing
+     * what happened inside it (RN-AUD-011). It happens after the tree, so a
+     * run that stopped on its budget does not close a trail that is still
+     * receiving the purge of what is left.
+     */
+    expect(closed).toEqual([NOTEBOOK]);
   });
 });
 
