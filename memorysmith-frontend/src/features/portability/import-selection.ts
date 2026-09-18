@@ -239,6 +239,50 @@ export function withBranch(chosen: Chosen, folder: TreeFolder, on: boolean): Cho
   return { ...chosen, folders, templates, notes };
 }
 
+/**
+ * The branch of a folder, in NOTES only (#156).
+ *
+ * The chooser asks two questions in two tabs, and each one has to answer only
+ * its own: which folders travel is the context, which notes travel is the
+ * notes. A checkbox in the notes that took the folder with it would undo what
+ * the other tab was for — and it did, on the first run against staging: the
+ * design of a notebook chosen in the context arrived with no folder at all.
+ */
+export function withBranchNotes(chosen: Chosen, folder: TreeFolder, on: boolean): Chosen {
+  const notes = new Set(chosen.notes);
+  for (const id of branchOf(folder).notes) {
+    if (on) notes.add(id);
+    else notes.delete(id);
+  }
+  return { ...chosen, notes };
+}
+
+/** On, off or mixed, counting the NOTES of a branch and nothing else. */
+export function stateOfNotes(chosen: Chosen, folder: TreeFolder): NodeState {
+  const held = [...branchOf(folder).notes];
+  if (held.length === 0) return 'off';
+  const chosenHere = held.filter((id) => chosen.notes.has(id)).length;
+  if (chosenHere === 0) return 'off';
+  return chosenHere === held.length ? 'on' : 'mixed';
+}
+
+/**
+ * A folder of the CONTEXT: the folder itself — its name and its description —
+ * and the Template that belongs to it, which cannot be written without it.
+ */
+export function withContextFolder(chosen: Chosen, folder: TreeFolder, on: boolean): Chosen {
+  const folders = new Set(chosen.folders);
+  const templates = new Set(chosen.templates);
+  if (on) {
+    folders.add(folder.id);
+    if (folder.template) templates.add(folder.id);
+  } else {
+    folders.delete(folder.id);
+    templates.delete(folder.id);
+  }
+  return { ...chosen, folders, templates };
+}
+
 /** Adds or removes one node alone, which is the `⋯` of a row. */
 export function withNode(
   chosen: Chosen,

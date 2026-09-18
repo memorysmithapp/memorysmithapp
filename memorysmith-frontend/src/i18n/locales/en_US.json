@@ -230,7 +230,9 @@
     },
     "noTemplate": "no Template",
     "wholeNotebook": "The whole notebook",
-    "wholeNotebookHint": "The Guidance, the Template of each folder, every note, and the history."
+    "wholeNotebookHint": "The Guidance, the Template of each folder, every note, and the history.",
+    "foldersAndTemplates": "Folders and their Templates",
+    "withTemplate": "with Template"
   },
   "graph": {
     "heading": "Notebook graph",

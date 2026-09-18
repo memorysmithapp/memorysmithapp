@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  stateOf,
-  withBranch,
+  stateOfNotes,
+  withBranchNotes,
+  withContextFolder,
   withNode,
   type Chosen,
   type DocumentTree,
@@ -17,11 +18,14 @@ import {
  * one chooser: what differs is where the tree came from, the archive for an
  * import and the API for an export, and both arrive in one shape.
  *
- * **Two questions, so two tabs.** The context of a notebook — its Guidance,
- * its history and the Template of each folder — is not the same question as
- * which notes travel, and one list that mixed them made both harder. The
- * Template belongs to a folder, so it is chosen in a tree of folders; the notes
- * are chosen in a tree of folders and notes.
+ * **Two questions, so two tabs, and each answers only its own.** The context of
+ * a notebook — its Guidance, its history, its folders and the Template of each
+ * one — is not the same question as which notes travel. So a folder is chosen
+ * in the context, with the Template that belongs to it, and the notes tab
+ * moves notes and never a folder: a checkbox there that took the folder with it
+ * would undo what the other tab was for, which is exactly what it did on the
+ * first run against staging — the design of a notebook arrived with no folder
+ * at all.
  *
  * **A tree that shows what is under what.** A note used to sit one `rem` from
  * its folder with no twisty, no count and no guide, so a folder of twelve notes
@@ -97,10 +101,10 @@ export function TransferChooser({
               />
             )}
             <li role="none" className="chooser-section">
-              <span className="chooser-section-name">{t('portability.folderTemplate')}</span>
+              <span className="chooser-section-name">{t('portability.foldersAndTemplates')}</span>
               <ul role="group" className="chooser-branch">
                 {tree.folders.map((folder) => (
-                  <TemplateRow
+                  <ContextFolderRow
                     key={folder.id}
                     folder={folder}
                     chosen={chosen}
@@ -194,8 +198,14 @@ function Row({
   );
 }
 
-/** The Templates, in a tree of folders: a Template belongs to its folder. */
-function TemplateRow({
+/**
+ * A folder of the context: the folder — its name and its description — and the
+ * Template that belongs to it. They travel together because a Template cannot
+ * be written on a folder that was not written, and they are chosen HERE because
+ * a folder without its notes is the design of a notebook, which is the most
+ * common thing to want out of one.
+ */
+function ContextFolderRow({
   folder,
   chosen,
   depth,
@@ -208,21 +218,20 @@ function TemplateRow({
 }) {
   const { t } = useTranslation();
   const under = folder.children;
-  const has = folder.template !== null;
 
   return (
     <Row
-      kind={has ? 'template' : 'folder'}
+      kind={folder.template ? 'template' : 'folder'}
       label={folder.name}
-      note={has ? undefined : t('portability.noTemplate')}
-      checked={has ? chosen.templates.has(folder.id) : false}
-      onToggle={(on) => onChange(withNode(chosen, { kind: 'template', id: folder.id }, on))}
+      note={folder.template ? t('portability.withTemplate') : t('portability.noTemplate')}
+      checked={chosen.folders.has(folder.id)}
+      onToggle={(on) => onChange(withContextFolder(chosen, folder, on))}
       depth={depth}
     >
       {under.length > 0 && (
         <ul role="group" className="chooser-branch">
           {under.map((child) => (
-            <TemplateRow
+            <ContextFolderRow
               key={child.id}
               folder={child}
               chosen={chosen}
@@ -237,9 +246,9 @@ function TemplateRow({
 }
 
 /**
- * A folder and what is in it. A checkbox always takes the whole branch, which
- * is what everyone expects of a tree; taking the folder ALONE — which writes it
- * as a path, with no note under it (RN-PRT-017) — is the control beside it.
+ * A folder and the notes in it. Its checkbox takes the notes of the whole
+ * branch and never the folder: which folders travel is the other tab, and a
+ * folder that holds a chosen note travels anyway, as a path (RN-PRT-017).
  */
 function NotesRow({
   folder,
@@ -258,7 +267,7 @@ function NotesRow({
   // A branch opens collapsed below the first level, so a tree of a thousand
   // notes draws a handful of rows until somebody asks for more.
   const [open, setOpen] = useState(depth === 0);
-  const state = stateOf(chosen, folder);
+  const state = stateOfNotes(chosen, folder);
   const notes = filter
     ? folder.notes.filter((note) => note.name.toLowerCase().includes(filter))
     : folder.notes;
@@ -275,7 +284,7 @@ function NotesRow({
       note={t('portability.noteCount', { count: folder.noteCount })}
       checked={state === 'on'}
       indeterminate={state === 'mixed'}
-      onToggle={(on) => onChange(withBranch(chosen, folder, on))}
+      onToggle={(on) => onChange(withBranchNotes(chosen, folder, on))}
       depth={depth}
       extra={
         <button

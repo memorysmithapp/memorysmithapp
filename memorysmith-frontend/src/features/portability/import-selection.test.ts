@@ -17,6 +17,9 @@ import {
   nothing,
   selectionOf,
   stateOf,
+  stateOfNotes,
+  withBranchNotes,
+  withContextFolder,
   treeOf,
   twinNames,
   withBranch,
@@ -192,5 +195,43 @@ describe('what travels to the server', () => {
       templates: [],
       notes: [N2],
     });
+  });
+});
+
+/**
+ * Two tabs, two questions, and neither answers the other's (#156).
+ *
+ * The chooser asks which folders travel in the context and which notes travel
+ * in the notes. A checkbox in the notes that took the folder with it undid the
+ * other tab — and it did, on the first run against staging: a notebook chosen
+ * for its design alone arrived with no folder at all.
+ */
+describe('what each tab of the chooser moves', () => {
+  it('lets the notes of a branch go without taking its folders', () => {
+    const everything_ = everything(tree);
+    const design = withBranchNotes(everything_, root, false);
+
+    expect(design.notes.size).toBe(0);
+    // The folders and their Templates are exactly what they were.
+    expect(design.folders).toEqual(everything_.folders);
+    expect(design.templates).toEqual(everything_.templates);
+    expect(stateOfNotes(design, root)).toBe('off');
+  });
+
+  it('carries a Template only with the folder it belongs to', () => {
+    const one = withContextFolder(nothing, root, true);
+    expect(one.folders).toEqual(new Set([ROOT]));
+    expect(one.templates).toEqual(new Set([ROOT]));
+
+    // And letting the folder go lets its Template go with it: a Template
+    // cannot be written on a folder that was not written.
+    const none = withContextFolder(one, root, false);
+    expect(none.folders.size).toBe(0);
+    expect(none.templates.size).toBe(0);
+  });
+
+  it('says a branch is mixed by its notes alone', () => {
+    const some = withNode(nothing, { kind: 'note', id: N1 }, true);
+    expect(stateOfNotes(some, root)).toBe('mixed');
   });
 });

@@ -230,7 +230,9 @@
     },
     "noTemplate": "sem Modelo",
     "wholeNotebook": "O caderno todo",
-    "wholeNotebookHint": "A Orientação, o Modelo de cada pasta, todas as notas e a história."
+    "wholeNotebookHint": "A Orientação, o Modelo de cada pasta, todas as notas e a história.",
+    "foldersAndTemplates": "Pastas e seus Modelos",
+    "withTemplate": "com Modelo"
   },
   "graph": {
     "heading": "Grafo do caderno",
