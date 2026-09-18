@@ -383,6 +383,7 @@ export class RunExport {
       // somebody clicked.
       await this.transfers.addKeptBytes(built.value.bytes);
     } catch (error) {
+      reportUnexpected('export', work, error);
       await this.transfers.patch(work.userId, work.transferId, {
         status: 'failed',
         finishedAt: Instant.now().toISOString(),
@@ -390,6 +391,21 @@ export class RunExport {
       });
     }
   }
+}
+
+/**
+ * What the record cannot hold. A failure nobody foresaw is kept on the transfer
+ * cut to 200 characters, which is where a sentence of the cloud provider names
+ * the thing it refused: the one that started #148 reached the person ending
+ * mid-word, at `perfo`. The worker serves no request and has nowhere to carry
+ * an error out to, so the whole of it is written here, where the log of the
+ * function keeps it.
+ */
+function reportUnexpected(kind: 'export' | 'import', work: TransferWork, error: unknown): void {
+  console.error(
+    `A transfer failed for a reason it did not foresee (${kind} ${work.transferId})`,
+    error,
+  );
 }
 
 /**
@@ -477,6 +493,7 @@ export class RunImport {
         notebookId: written.value.notebookId,
       });
     } catch (error) {
+      reportUnexpected('import', work, error);
       await this.transfers.patch(work.userId, work.transferId, {
         status: 'failed',
         finishedAt: Instant.now().toISOString(),

@@ -226,7 +226,14 @@ export class ImportNotebook {
     } finally {
       // The upload is discarded whichever way the import ended: it was the
       // means of getting the bytes here and it is not a copy of the notebook.
-      await this.uploads.discard(input.uploadKey);
+      //
+      // A discard that fails is not a failed import. This runs in a `finally`,
+      // so throwing here REPLACES the verdict of the import with the accident
+      // of its cleanup — which is how an import that wrote a whole notebook
+      // was reported as failed, over a file the bucket was going to expire
+      // anyway: the upload wears the lifecycle tag, and the rule of the bucket
+      // is what guarantees it goes (RN-PRT-014).
+      await this.uploads.discard(input.uploadKey).catch(() => undefined);
     }
   }
 

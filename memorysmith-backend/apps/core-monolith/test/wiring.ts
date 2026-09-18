@@ -365,10 +365,19 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
    * once the bytes are here.
    */
   const uploads = new Map<string, Buffer>();
+  /**
+   * What the store refuses. A discard runs after the notebook is written, so
+   * setting this is how a test reads what an import answers when only its
+   * cleanup failed.
+   */
+  const refusals: { discard: Error | null } = { discard: null };
   const uploadStore = {
     presignUpload: async (key: string) => `memory://upload/${key}`,
     read: async (key: string) => uploads.get(key) ?? null,
-    discard: async (key: string) => void uploads.delete(key),
+    discard: async (key: string) => {
+      if (refusals.discard) throw refusals.discard;
+      uploads.delete(key);
+    },
   };
   const archiveStore = {
     put: async (key: string, archive: Buffer) => {
@@ -552,5 +561,9 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     projectStructure,
     archives,
     uploads,
+    /** Makes the discard of an upload fail, or stop failing when given null. */
+    refuseDiscard: (error: Error | null): void => {
+      refusals.discard = error;
+    },
   };
 }

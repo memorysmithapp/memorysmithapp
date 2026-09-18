@@ -670,6 +670,36 @@ describe('Portability answers over the API', () => {
     expect(after.length).toBe(before.length);
   });
 
+  /**
+   * The discard of the upload runs in a `finally`, so it used to REPLACE the
+   * verdict of the import: a worker that could not delete the file wrote a
+   * whole notebook and recorded the job as failed, pointing at nothing (#148).
+   * The file is what the lifecycle rule of the bucket expires (RN-PRT-014);
+   * the notebook is what the person asked for.
+   */
+  it('records the notebook it wrote, even when the upload cannot be discarded', async () => {
+    const { notebookId } = await seed();
+    await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
+    const [exportKey] = [...harness.archives.keys()];
+    const prepared = (await (await call('/portability/imports', { method: 'POST' })).json()) as {
+      uploadKey: string;
+    };
+    harness.uploads.set(prepared.uploadKey, harness.archives.get(exportKey ?? '') as Buffer);
+
+    harness.refuseDiscard(new Error('AccessDenied: not authorized to perform s3:DeleteObject'));
+    try {
+      const job = await imported_(prepared.uploadKey, 'Normas e Legislacao (apesar da limpeza)');
+      expect(job.status).toBe('ready');
+      expect(job.notebookId).not.toBe(notebookId);
+      const written = (await (await call(`/knowledge/notebooks/${job.notebookId}`)).json()) as {
+        name: string;
+      };
+      expect(written.name).toBe('Normas e Legislacao (apesar da limpeza)');
+    } finally {
+      harness.refuseDiscard(null);
+    }
+  });
+
   it('refuses an import with no name for the notebook it would create', async () => {
     // The name is given by whoever imports, because a subscription holds each
     // notebook name once (RN-KNW-032, RN-PRT-012).
