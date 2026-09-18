@@ -177,7 +177,7 @@
     "nameTaken": "You already have a notebook named “{{name}}”. Choose another name, or delete that notebook and import again.",
     "whatToImport": "What to import",
     "preset": {
-      "everything": "Everything",
+      "everything": "The whole notebook",
       "choose": "Choose items"
     },
     "filter": "Filter by name",
@@ -223,7 +223,14 @@
     "historyEntries_one": "{{count}} entry",
     "historyEntries_other": "{{count}} entries",
     "noHistory": "This archive carries no history.",
-    "exportNotebook": "Notebook"
+    "exportNotebook": "Notebook",
+    "tab": {
+      "context": "Context",
+      "notes": "Notes"
+    },
+    "noTemplate": "no Template",
+    "wholeNotebook": "The whole notebook",
+    "wholeNotebookHint": "The Guidance, the Template of each folder, every note, and the history."
   },
   "graph": {
     "heading": "Notebook graph",

@@ -10,20 +10,9 @@
 import { z } from 'zod';
 import { instantSchema, ulidSchema } from '../common.js';
 
-export const exportRequestSchema = z.object({
-  notebookId: ulidSchema,
-  /**
-   * Carries the trail of the notebook and every revision it names
-   * (RN-PRT-022). Deleting a notebook now takes its history with it
-   * (RN-AUD-011), so this is where a history is made to survive on purpose.
-   * The archive is larger for it, and a kept export counts towards the storage
-   * of the plan (RN-SUB-021).
-   */
-  withHistory: z.boolean().optional(),
-});
-
 /**
- * What part of a document an import writes (RN-PRT-017).
+ * What part of a notebook a transfer carries — **in both directions**
+ * (RN-PRT-017 on the way in, RN-PRT-024 on the way out).
  *
  * A notebook is often wanted for its DESIGN — its Guidance, its folders and
  * their Templates — rather than for its notes, or for one folder of it, and the
@@ -36,7 +25,7 @@ export const exportRequestSchema = z.object({
  * never arrives without the folder it lives in. Omitting the selection
  * altogether imports the whole document.
  */
-export const importSelectionSchema = z.object({
+export const transferSelectionSchema = z.object({
   guidance: z.boolean(),
   /** Whether the history the archive carries comes back (RN-PRT-023). */
   history: z.boolean().optional(),
@@ -46,7 +35,19 @@ export const importSelectionSchema = z.object({
   notes: z.array(ulidSchema),
 });
 
-export type ImportSelection = z.infer<typeof importSelectionSchema>;
+export type TransferSelection = z.infer<typeof transferSelectionSchema>;
+
+export const exportRequestSchema = z.object({
+  notebookId: ulidSchema,
+  /**
+   * What the archive carries, absent for the whole notebook (RN-PRT-024). The
+   * history is one item of it: it is where a history is made to survive on
+   * purpose, since deleting a notebook takes its trail with it (RN-AUD-011),
+   * and it makes the archive larger — a kept export counts towards the storage
+   * of the plan (RN-SUB-021).
+   */
+  selection: transferSelectionSchema.nullish(),
+});
 
 /**
  * A transfer: a notebook on its way out or a document on its way in, as a job

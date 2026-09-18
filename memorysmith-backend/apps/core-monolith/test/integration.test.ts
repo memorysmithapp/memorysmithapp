@@ -657,10 +657,8 @@ describe('Portability answers over the API', () => {
     expect(edited.status).toBe(200);
     await drainEvents();
 
-    const started = await call(`/portability/notebooks/${notebookId}/export`, {
-      method: 'POST',
-      body: { withHistory: true },
-    });
+    // The whole notebook, which carries its history (RN-PRT-024).
+    const started = await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
     expect(started.status).toBe(202);
     const [exportKey] = [...harness.archives.keys()];
     const archive = harness.archives.get(exportKey ?? '') as Buffer;
@@ -706,15 +704,41 @@ describe('Portability answers over the API', () => {
     expect(past.content).not.toContain('redacao nova');
   });
 
-  it('carries no history when the export was not asked for one', async () => {
+  /**
+   * An export writes PART of a notebook, by the same shape a selection takes on
+   * the way in (RN-PRT-017, RN-PRT-024). This is the design of a notebook and
+   * nothing else: its Guidance, and not one note or history.
+   */
+  it('carries only what the selection asked for', async () => {
     const { notebookId } = await seed();
-    await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
+    await call(`/knowledge/notebooks/${notebookId}/guidance`, {
+      method: 'PUT',
+      body: { content: '# Como escrever aqui\n\nUma norma por nota.', baseRevision: null },
+    });
+
+    const started = await call(`/portability/notebooks/${notebookId}/export`, {
+      method: 'POST',
+      body: {
+        selection: { guidance: true, history: false, folders: [], templates: [], notes: [] },
+      },
+    });
+    expect(started.status).toBe(202);
+
     const [exportKey] = [...harness.archives.keys()];
     const document = JSON.parse(
       readZip(harness.archives.get(exportKey ?? '') as Buffer)['notebook.json'] ?? '{}',
-    ) as { documentVersion: string; history?: unknown };
-    expect(document.history).toBeUndefined();
+    ) as {
+      documentVersion: string;
+      history?: unknown;
+      notes: unknown[];
+      folders: unknown[];
+      notebook: { guidance: string | null };
+    };
     expect(document.documentVersion).toBe('1.1');
+    expect(document.history).toBeUndefined();
+    expect(document.notes).toEqual([]);
+    expect(document.folders).toEqual([]);
+    expect(document.notebook.guidance).not.toBeNull();
   });
 
   it('issues the numbers of a folder once, and an import carries on from the last one', async () => {

@@ -12,7 +12,7 @@
 
 import type {
   DownloadLinkDto,
-  ImportSelection,
+  TransferSelection,
   TransferDto,
   TransferListDto,
 } from '@memorysmith/contracts';
@@ -158,14 +158,17 @@ export function prepareImport() {
 export function applyImport(
   uploadKey: string,
   name: string,
-  selection: ImportSelection | null,
+  selection: TransferSelection | null,
   fileName: string | null = null,
 ) {
   return backend.applyImport(uploadKey, name, selection, fileName);
 }
 
-export function startExport(notebookId: string, withHistory = false): Promise<TransferDto> {
-  return backend.startExport(notebookId, withHistory);
+export function startExport(
+  notebookId: string,
+  selection: TransferSelection | null = null,
+): Promise<TransferDto> {
+  return backend.startExport(notebookId, selection);
 }
 
 export function listTransfers(): Promise<TransferListDto> {

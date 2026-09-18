@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { listNotebooks, startExport } from '../../shared/api/source';
 import { ExportChoice } from './ExportChoice';
 import { rememberStartedExport, useRefreshTransfers } from './transfers';
+import { selectionOf, type Chosen } from './import-selection';
 
 /**
  * Starting a transfer, from wherever you are (RN-PRT-019).
@@ -27,7 +28,6 @@ import { rememberStartedExport, useRefreshTransfers } from './transfers';
 export function StartTransfer({ onStarted }: { onStarted?: () => void }) {
   const { t } = useTranslation();
   const [asking, setAsking] = useState(false);
-  const [withHistory, setWithHistory] = useState(false);
   const [notebookId, setNotebookId] = useState('');
   const refresh = useRefreshTransfers();
   const notebooks = useQuery({ queryKey: ['notebooks'], queryFn: listNotebooks, enabled: asking });
@@ -41,9 +41,9 @@ export function StartTransfer({ onStarted }: { onStarted?: () => void }) {
   // an answer and the common case is one click.
   const chosen = notebookId || (choices[0]?.id ?? '');
 
-  async function begin(): Promise<void> {
+  async function begin(carrying: Chosen | null): Promise<void> {
     if (!chosen) return;
-    const transfer = await startExport(chosen, withHistory);
+    const transfer = await startExport(chosen, carrying === null ? null : selectionOf(carrying));
     /**
      * Remembered rather than waited for here: starting one from the panel
      * closes the panel, which unmounts this. The menu is what waits, because
@@ -69,9 +69,7 @@ export function StartTransfer({ onStarted }: { onStarted?: () => void }) {
         notebooks={choices}
         notebookId={chosen}
         onChooseNotebook={setNotebookId}
-        withHistory={withHistory}
-        onToggleHistory={setWithHistory}
-        onConfirm={() => void begin()}
+        onConfirm={(carrying) => void begin(carrying)}
         onClose={() => setAsking(false)}
       />
     </>

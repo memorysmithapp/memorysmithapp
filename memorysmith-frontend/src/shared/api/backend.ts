@@ -9,7 +9,7 @@
 
 import type {
   AccountLocaleDto,
-  ImportSelection,
+  TransferSelection,
   TransferDto,
   TransferListDto,
   DownloadLinkDto,
@@ -234,7 +234,7 @@ export async function prepareImport(): Promise<{ uploadKey: string; uploadUrl: s
 export async function applyImport(
   uploadKey: string,
   name: string,
-  selection: ImportSelection | null,
+  selection: TransferSelection | null,
   fileName: string | null = null,
 ): Promise<TransferDto> {
   return request<TransferDto>('/portability/imports/apply', {
@@ -251,10 +251,15 @@ export async function applyImport(
  * note of a notebook does not fit in one request. What comes back is the
  * transfer, which the interface then follows.
  */
-export async function startExport(notebookId: string, withHistory = false): Promise<TransferDto> {
+export async function startExport(
+  notebookId: string,
+  selection: TransferSelection | null = null,
+): Promise<TransferDto> {
   return request<TransferDto>(`/portability/notebooks/${notebookId}/export`, {
     method: 'POST',
-    body: { withHistory },
+    // Absent is the whole notebook, which is what almost everyone wants
+    // (RN-PRT-024).
+    body: { selection },
   });
 }
 

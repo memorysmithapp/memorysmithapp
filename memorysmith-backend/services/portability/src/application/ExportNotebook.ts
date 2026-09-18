@@ -24,10 +24,12 @@ import { DomainError, err, ok, ulid, type Instant, type Result } from '@memorysm
 import {
   archiveNameOf,
   buildNotebookDocument,
+  carried,
   type DocumentHistory,
   type ExportInput,
   type NotebookDocument,
 } from '../domain/NotebookDocumentBuilder.js';
+import type { ImportSelection } from './ImportNotebook.js';
 
 /** What the Knowledge context hands over for an export. */
 export interface ExportSource {
@@ -107,25 +109,33 @@ export class ExportNotebook {
     notebookId: string;
     now: Instant;
     /**
-     * Carries the trail of the notebook, and every revision it names, so the
-     * archive is what a deletion cannot take back (RN-PRT-022). It is what
-     * makes the archive larger, and it counts in the storage of the plan like
-     * any kept export (RN-SUB-021).
+     * What the archive carries, or nothing for the whole notebook
+     * (RN-PRT-024). The history is one item of it: it is what makes an archive
+     * survive the deletion of the notebook it describes (RN-PRT-022), what
+     * makes it larger, and it counts in the storage of the plan like any kept
+     * export (RN-SUB-021).
      */
-    withHistory?: boolean | undefined;
+    selection?: ImportSelection | null | undefined;
     report?: ((readNotes: number, totalNotes: number) => void) | undefined;
   }): Promise<Result<StoredArchive, DomainError>> {
     const source = await this.source.load(input.notebookId, input.report);
     if (!source) return err(DomainError.notFound('Notebook not found'));
 
+    const wanted = carried(source, input.selection ?? null);
+    /**
+     * The WHOLE notebook carries its history: a selection of nothing is the
+     * whole notebook, and the whole notebook is the context, the notes and the
+     * history (RN-PRT-024). A selection says so item by item.
+     */
+    const wantsHistory = input.selection ? (input.selection.history ?? false) : true;
     const history =
-      input.withHistory && this.history ? await this.history.of(input.notebookId) : undefined;
+      wantsHistory && this.history ? await this.history.of(input.notebookId) : undefined;
 
     // Validated against the published schema before it is written: the export
     // writes nothing the schema does not describe, which is what makes the
     // format a specification rather than whatever this function happened to
     // produce (RN-PRT-011).
-    const document = buildNotebookDocument({ ...source, history }, input.now.toISOString());
+    const document = buildNotebookDocument({ ...wanted, history }, input.now.toISOString());
     const written = this.serialize(document);
     const archive = this.zip(
       [{ path: written.entry, content: written.content }],
@@ -140,7 +150,7 @@ export class ExportNotebook {
       key,
       versionId,
       notebookName: archiveNameOf(source.notebookName),
-      noteCount: source.notes.length,
+      noteCount: wanted.notes.length,
       bytes: archive.length,
     });
   }

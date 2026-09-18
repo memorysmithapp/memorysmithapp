@@ -3180,7 +3180,9 @@ body.has-modal {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: min(30rem, calc(100vw - 2rem));
+  width: min(34rem, calc(100vw - 2rem));
+  max-height: min(85vh, 44rem);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -3248,4 +3250,187 @@ body.has-modal {
   background: var(--surface);
   color: var(--text);
   font: inherit;
+}
+
+/* ---- The chooser of a transfer (#156) -----------------------------------
+ *
+ * What a transfer carries, on both sides of the door. Two tabs, because the
+ * context of a notebook and its notes are two questions; and a tree that shows
+ * what is under what, which the old one did not: a note sat one `rem` from its
+ * folder with no twisty, no count and no guide, so a folder of twelve notes
+ * read as thirteen rows of one kind.
+ */
+.chooser {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.chooser-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.35rem 0.35rem 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.chooser-tab {
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  padding: 0.5rem 0.9rem;
+  background: none;
+  color: var(--text-soft);
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.chooser-tab.is-selected {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+  /* Over the border of the strip, so the tab and the panel are one sheet. */
+  margin-bottom: -1px;
+  padding-bottom: calc(0.5rem + 1px);
+}
+.chooser-panel {
+  padding: 0.75rem;
+  max-height: 22rem;
+  overflow-y: auto;
+}
+.chooser-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  margin-bottom: 0.5rem;
+}
+.chooser-filter input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.chooser-tree,
+.chooser-branch {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+/* The guide of a level: what makes a branch read as one. */
+.chooser-branch {
+  margin-left: 0.85rem;
+  padding-left: 0.4rem;
+  border-left: 1px solid var(--border);
+}
+.chooser-section {
+  margin-top: 0.75rem;
+}
+.chooser-section-name {
+  display: block;
+  padding: 0.25rem 0.1rem;
+  font-family: var(--display);
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-soft);
+}
+.chooser-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2rem;
+  border-radius: 6px;
+  padding-right: 0.35rem;
+}
+.chooser-row:hover {
+  background: var(--bg);
+}
+.chooser-label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+.chooser-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A folder carries the weight of the level; a note is the leaf of it. */
+.chooser-row.is-folder .chooser-name {
+  font-family: var(--display);
+  font-weight: 500;
+}
+.chooser-row.is-note .chooser-name {
+  color: var(--text-soft);
+}
+.chooser-row.is-guidance .chooser-name,
+.chooser-row.is-history .chooser-name,
+.chooser-row.is-template .chooser-name {
+  font-family: var(--display);
+}
+.chooser-note {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--pending);
+}
+.chooser-twisty {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+.chooser-twisty:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* The two sets an export offers, before the chooser is opened at all. */
+.export-choice-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.export-choice-preset {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.export-choice-preset span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.export-choice-preset small {
+  color: var(--muted, var(--text-soft));
+  line-height: 1.4;
+}
+
+@media (max-width: 40rem) {
+  .chooser-panel {
+    max-height: 16rem;
+  }
+  .chooser-row {
+    min-height: 2.4rem;
+  }
 }

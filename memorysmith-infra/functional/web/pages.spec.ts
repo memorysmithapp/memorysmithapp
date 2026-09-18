@@ -419,18 +419,17 @@ test.describe('a notebook out and back in, through the browser', () => {
      * each Template became items of the tree: `only this item` on a folder
      * writes it as a path, which is that selection made by hand.
      */
-    await app.getByRole('radio', { name: words.chooseItems }).check();
     /**
-     * Choosing items starts from what was selected, which is everything. A
-     * checkbox always takes the whole branch, so each folder goes off with its
-     * notes, and `only this item` then puts the folder back as a PATH — its
-     * name and its description, and nothing under it (RN-PRT-017).
+     * The design of the notebook and not one note of it (RN-PRT-017). The
+     * chooser asks two questions in two tabs (#156): the CONTEXT — the
+     * Guidance, the history and the Template of each folder — and the notes.
+     * Choosing starts from everything, so the design alone is the context kept
+     * and the notes let go, and a Template carries the folder it belongs to.
      */
-    for (const box of await app.locator('.import-tree > li > .import-row input').all()) {
+    await app.getByRole('radio', { name: words.chooseItems }).check();
+    await app.getByRole('tab', { name: words.tabNotes }).click();
+    for (const box of await app.locator('#chooser-panel-notes .chooser-row input').all()) {
       if (await box.isChecked()) await box.uncheck();
-    }
-    for (const only of await app.getByRole('button', { name: words.onlyThisItem }).all()) {
-      await only.click();
     }
     await expect(app.locator('.import-summary')).toContainText(words.willCreateNoNotes);
 

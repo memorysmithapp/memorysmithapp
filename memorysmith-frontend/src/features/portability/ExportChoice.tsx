@@ -1,5 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { getNotebookStructure } from '../../shared/api/source';
+import { TransferChooser } from './TransferChooser';
+import { everything, nothing, treeOfNotebook, type Chosen } from './import-selection';
 
 /**
  * What goes in the archive, asked before an export starts (RN-PRT-022).
@@ -24,8 +28,6 @@ export function ExportChoice({
   notebooks,
   notebookId,
   onChooseNotebook,
-  withHistory,
-  onToggleHistory,
   onConfirm,
   onClose,
 }: {
@@ -34,13 +36,27 @@ export function ExportChoice({
   notebooks: ReadonlyArray<{ id: string; name: string }>;
   notebookId: string;
   onChooseNotebook: (notebookId: string) => void;
-  withHistory: boolean;
-  onToggleHistory: (next: boolean) => void;
-  onConfirm: () => void;
+  /** What the archive carries. `null` is the whole notebook (RN-PRT-024). */
+  onConfirm: (chosen: Chosen | null) => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
   const dialog = useRef<HTMLDialogElement>(null);
+  const [preset, setPreset] = useState<'everything' | 'choose'>('everything');
+  const [chosen, setChosen] = useState<Chosen>(nothing);
+  const [filter, setFilter] = useState('');
+
+  /**
+   * The structure of the notebook, which is what an export chooses from: it
+   * has no document yet, so the tree comes from the API (#156). Asked only
+   * when somebody opens the chooser, and not when the dialog opens.
+   */
+  const structure = useQuery({
+    queryKey: ['notebook-structure', notebookId],
+    queryFn: () => getNotebookStructure(notebookId),
+    enabled: open && preset === 'choose' && notebookId !== '',
+  });
+  const tree = structure.data ? treeOfNotebook(structure.data) : null;
 
   useEffect(() => {
     const node = dialog.current;
@@ -93,17 +109,44 @@ export function ExportChoice({
 
         <p className="export-choice-what">{t('portability.exportWhat')}</p>
 
-        <label className="export-choice-option">
-          <input
-            type="checkbox"
-            checked={withHistory}
-            onChange={(event) => onToggleHistory(event.target.checked)}
-          />
-          <span>
-            <strong>{t('portability.withHistory')}</strong>
-            <small>{t('portability.withHistoryHint')}</small>
-          </span>
-        </label>
+        <div
+          className="export-choice-presets"
+          role="radiogroup"
+          aria-label={t('portability.exportWhat')}
+        >
+          {(['everything', 'choose'] as const).map((each) => (
+            <label key={each} className="export-choice-preset">
+              <input
+                type="radio"
+                name="export-preset"
+                checked={preset === each}
+                onChange={() => {
+                  setPreset(each);
+                  // Choosing starts from everything, which is what somebody
+                  // who opened it wants to take things OUT of.
+                  if (each === 'choose' && tree) setChosen(everything(tree));
+                }}
+              />
+              <span>
+                <strong>{t(`portability.preset.${each}`)}</strong>
+                {each === 'everything' && <small>{t('portability.wholeNotebookHint')}</small>}
+              </span>
+            </label>
+          ))}
+        </div>
+
+        {preset === 'choose' &&
+          (tree ? (
+            <TransferChooser
+              tree={tree}
+              chosen={chosen.folders.size === 0 && !chosen.guidance ? everything(tree) : chosen}
+              onChange={setChosen}
+              filter={filter}
+              onFilter={setFilter}
+            />
+          ) : (
+            <p className="export-choice-what">{t('common.loading')}</p>
+          ))}
 
         <div className="export-choice-actions">
           <button type="button" className="button is-quiet" onClick={() => dialog.current?.close()}>
@@ -114,7 +157,7 @@ export function ExportChoice({
             className="button is-primary"
             disabled={notebooks.length === 0}
             onClick={() => {
-              onConfirm();
+              onConfirm(preset === 'choose' ? chosen : null);
               dialog.current?.close();
             }}
           >

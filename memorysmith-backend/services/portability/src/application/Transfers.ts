@@ -36,11 +36,13 @@ export interface TransferWork {
   readonly transferId: string;
   readonly kind: 'export' | 'import';
   readonly notebookId?: string | undefined;
-  /** An export asked to carry the history of the notebook (RN-PRT-022). */
-  readonly withHistory?: boolean | undefined;
+  /**
+   * What the transfer carries, or nothing for the whole notebook: an export
+   * chooses now as an import already did (RN-PRT-017, RN-PRT-024).
+   */
+  readonly selection?: ImportSelection | null | undefined;
   readonly uploadKey?: string | undefined;
   readonly name?: string | undefined;
-  readonly selection?: ImportSelection | null | undefined;
   /**
    * Who every write of an import is attributed to, carried in the message
    * because the worker serves no request and has no token to read it from
@@ -78,12 +80,13 @@ export class StartExport {
   async execute(input: {
     notebookId: string;
     /**
-     * Carries the trail of the notebook and every revision it names, so the
-     * archive survives the deletion of what it describes with its history
-     * (RN-PRT-022). It makes the archive larger, and a kept export counts
-     * towards the storage of the plan (RN-SUB-021).
+     * What the archive carries, or nothing for the whole notebook
+     * (RN-PRT-024). The history is one item of it, and it is what makes an
+     * archive survive the deletion of the notebook it describes (RN-PRT-022);
+     * it also makes the archive larger, and a kept export counts towards the
+     * storage of the plan (RN-SUB-021).
      */
-    withHistory?: boolean;
+    selection?: ImportSelection | null;
   }): Promise<Result<Transfer, DomainError>> {
     const brief = await this.notebooks.brief(input.notebookId);
     if (!brief) return err(DomainError.notFound('Notebook not found'));
@@ -109,7 +112,8 @@ export class StartExport {
       notebookId: input.notebookId,
       notebookName: brief.name,
       requestedAt: Instant.now().toISOString(),
-      total: brief.noteCount,
+      // What it will read, which a selection narrows (RN-PRT-024).
+      total: input.selection ? input.selection.notes.length : brief.noteCount,
     });
     await this.transfers.put(transfer);
     await this.queue.send({
@@ -118,7 +122,7 @@ export class StartExport {
       transferId: transfer.transferId,
       kind: 'export',
       notebookId: input.notebookId,
-      withHistory: input.withHistory ?? false,
+      selection: input.selection ?? null,
     });
     return ok(transfer);
   }
@@ -336,7 +340,7 @@ export interface ExportRunner {
   execute(input: {
     notebookId: string;
     now: Instant;
-    withHistory?: boolean | undefined;
+    selection?: ImportSelection | null | undefined;
     report?: ((readNotes: number, totalNotes: number) => void) | undefined;
   }): Promise<
     Result<{ key: string; versionId: string | null; noteCount: number; bytes: number }, DomainError>
@@ -376,7 +380,7 @@ export class RunExport {
       const built = await this.exporter.execute({
         notebookId: work.notebookId ?? '',
         now: Instant.now(),
-        withHistory: work.withHistory ?? false,
+        selection: work.selection ?? null,
         report,
       });
       await Promise.all(pending);

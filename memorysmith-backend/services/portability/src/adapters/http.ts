@@ -123,12 +123,13 @@ export function createPortabilityRoutes(
       return fail(c, DomainError.forbidden('Notebook not found'));
     }
 
-    // The one thing an export chooses: whether the archive carries the history
-    // of the notebook (RN-PRT-022).
-    const body = (await c.req.json().catch(() => ({}))) as { withHistory?: unknown };
+    // What the archive carries, absent for the whole notebook (RN-PRT-024).
+    const body = (await c.req.json().catch(() => ({}))) as {
+      selection?: ImportSelection | null;
+    };
     const started = await useCases
       .startExport(request)
-      .execute({ notebookId, withHistory: body.withHistory === true });
+      .execute({ notebookId, selection: body.selection ?? null });
     return started.ok ? c.json(transferToDto(started.value), 202) : fail(c, started.error);
   });
 

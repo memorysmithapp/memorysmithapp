@@ -1,4 +1,4 @@
-import type { ImportSelection, NotebookDocument } from '@memorysmith/contracts';
+import type { NotebookDocument, TransferSelection } from '@memorysmith/contracts';
 
 /**
  * The tree of a `.notebook` document, and what a selection of it means
@@ -38,8 +38,13 @@ export interface DocumentTree {
   readonly guidance: boolean;
   readonly folders: TreeFolder[];
   readonly noteCount: number;
-  /** How many entries of the trail the archive carries, if it carries any. */
-  readonly historyEntries: number;
+  /**
+   * How many entries of the trail there are: a number when the tree was read
+   * from an archive, which carries them, and `null` when it was read from the
+   * API, where the notebook HAS a history and nobody counted it for a dialog
+   * (#156). Zero means there is none to choose.
+   */
+  readonly historyEntries: number | null;
 }
 
 /** Every identifier a selection can carry, which is what the presets fill. */
@@ -118,6 +123,59 @@ export function treeOf(document: NotebookDocument): DocumentTree {
   };
 }
 
+/**
+ * The same tree, read from the API instead of from an archive (#156).
+ *
+ * An import reads its document in the browser before a byte is uploaded, so
+ * its tree is free. An export has no document yet — the notebook is on the
+ * server — and what it chooses from is the structure the interface already
+ * loads for every page of a notebook: the folders with their descriptions and
+ * their counts, whether each has a Template, whether the notebook has a
+ * Guidance, and the notes in each folder.
+ *
+ * One shape, so one chooser draws both.
+ */
+export function treeOfNotebook(structure: {
+  guidance: string | null;
+  folders: ReadonlyArray<NotebookFolder>;
+}): DocumentTree {
+  const build = (folders: ReadonlyArray<NotebookFolder>): TreeFolder[] =>
+    folders.map((folder) => ({
+      kind: 'folder',
+      id: folder.id,
+      name: folder.name,
+      description: folder.description,
+      children: build(folder.children),
+      template: folder.hasTemplate ? { kind: 'template', id: folder.id, name: folder.name } : null,
+      notes: folder.notes.map((note) => ({ kind: 'note', id: note.id, name: note.name ?? '' })),
+      noteCount: folder.noteCount,
+    }));
+
+  const folders = build(structure.folders);
+  const count = (list: TreeFolder[]): number =>
+    list.reduce((total, folder) => total + folder.notes.length + count(folder.children), 0);
+
+  return {
+    guidance: structure.guidance !== null,
+    folders,
+    noteCount: count(folders),
+    // A notebook always has a trail; how much of one is not a question a
+    // dialog asks the server before it opens.
+    historyEntries: null,
+  };
+}
+
+/** A folder of a notebook, as the interface already holds it. */
+interface NotebookFolder {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly hasTemplate: boolean;
+  readonly noteCount: number;
+  readonly notes: ReadonlyArray<{ id: string; name: string | null }>;
+  readonly children: ReadonlyArray<NotebookFolder>;
+}
+
 /** Everything: the whole document, which is what almost everyone wants. */
 export function everything(tree: DocumentTree): Chosen {
   const folders = new Set<string>();
@@ -134,7 +192,7 @@ export function everything(tree: DocumentTree): Chosen {
   walk(tree.folders);
   return {
     guidance: tree.guidance,
-    history: tree.historyEntries > 0,
+    history: tree.historyEntries !== 0,
     folders,
     templates,
     notes,
@@ -220,8 +278,9 @@ export function countsOf(
   chosen: Chosen,
 ): { folders: number; templates: number; notes: number; guidance: boolean } {
   // A folder not selected but holding something selected is written as a path,
-  // so it counts among what will be created (RN-PRT-017).
-  const written = new Set(chosen.folders);
+  // so it counts among what will be created (RN-PRT-017) — and a Template is
+  // something selected, since it belongs to a folder (#156).
+  const written = new Set([...chosen.folders, ...chosen.templates]);
   const parentOf = new Map<string, string | null>();
   const walk = (list: TreeFolder[], parent: string | null): void => {
     for (const folder of list) {
@@ -326,7 +385,7 @@ export function twinNames(
 }
 
 /** What travels to the server: the identifiers the document carries. */
-export function selectionOf(chosen: Chosen): ImportSelection {
+export function selectionOf(chosen: Chosen): TransferSelection {
   return {
     guidance: chosen.guidance,
     history: chosen.history,

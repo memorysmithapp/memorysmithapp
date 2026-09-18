@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { NotebookDocument, TransferDto } from '@memorysmith/contracts';
 import { applyImport, listNotebooks, prepareImport } from '../../shared/api/source';
+import { TransferChooser } from './TransferChooser';
 import { notebookAddress } from '../../shared/api/note-address';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { ArchiveError, readNotebookArchive } from './notebook-archive';
@@ -13,14 +14,10 @@ import {
   everything,
   nothing,
   selectionOf,
-  stateOf,
   treeOf,
   twinNames,
-  withBranch,
-  withNode,
   type Chosen,
   type DocumentTree,
-  type TreeFolder,
 } from './import-selection';
 import { useRefreshTransfers, useTransfers } from './transfers';
 
@@ -253,62 +250,13 @@ export function ImportNotebookPage() {
           </div>
 
           {preset === 'choose' && (
-            <>
-              <label className="import-filter">
-                <span className="visually-hidden">{t('portability.filter')}</span>
-                <input
-                  type="text"
-                  value={filter}
-                  placeholder={t('portability.filter')}
-                  onChange={(event) => setFilter(event.target.value)}
-                />
-              </label>
-              <ul className="import-tree" role="tree" aria-label={t('portability.whatToImport')}>
-                {tree.guidance && (
-                  <li role="none">
-                    <div role="treeitem" aria-selected={chosen.guidance} className="import-row">
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={chosen.guidance}
-                          onChange={(event) =>
-                            change({ ...chosen, guidance: event.target.checked })
-                          }
-                        />
-                        {t('portability.notebookGuidance')}
-                      </label>
-                    </div>
-                  </li>
-                )}
-                {tree.historyEntries > 0 && (
-                  <li role="none">
-                    <div role="treeitem" aria-selected={chosen.history} className="import-row">
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={chosen.history}
-                          onChange={(event) => change({ ...chosen, history: event.target.checked })}
-                        />
-                        {t('portability.history')}
-                        <small>
-                          {t('portability.historyEntries', { count: tree.historyEntries })}
-                        </small>
-                      </label>
-                    </div>
-                  </li>
-                )}
-                {tree.folders.map((folder) => (
-                  <FolderRow
-                    key={folder.id}
-                    folder={folder}
-                    chosen={chosen}
-                    filter={filter.trim().toLowerCase()}
-                    depth={0}
-                    onChange={change}
-                  />
-                ))}
-              </ul>
-            </>
+            <TransferChooser
+              tree={tree}
+              chosen={chosen}
+              onChange={change}
+              filter={filter}
+              onFilter={setFilter}
+            />
           )}
 
           <footer className="import-summary" aria-live="polite">
@@ -338,152 +286,5 @@ export function ImportNotebookPage() {
         </>
       )}
     </section>
-  );
-}
-
-/**
- * One folder of the tree, with its Template and its notes.
- *
- * **A checkbox always takes the whole branch**, which is what everyone expects
- * of a tree; selecting only the node is the less common intent and lives in the
- * control beside it. Two checkboxes on one row would make every row ambiguous.
- *
- * A branch opens collapsed below the first level, so a tree of a thousand notes
- * draws a handful of rows until somebody asks for more.
- */
-function FolderRow({
-  folder,
-  chosen,
-  filter,
-  depth,
-  onChange,
-}: {
-  folder: TreeFolder;
-  chosen: Chosen;
-  filter: string;
-  depth: number;
-  onChange: (next: Chosen) => void;
-}) {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(depth === 0);
-  const state = stateOf(chosen, folder);
-
-  const matches = (text: string): boolean =>
-    filter.length === 0 || text.toLowerCase().includes(filter);
-  const notes = folder.notes.filter((note) => matches(note.name));
-  const hidden =
-    filter.length > 0 &&
-    !matches(folder.name) &&
-    notes.length === 0 &&
-    folder.children.length === 0;
-  if (hidden) return null;
-
-  return (
-    <li role="none">
-      <div
-        role="treeitem"
-        aria-expanded={open}
-        aria-checked={state === 'mixed' ? 'mixed' : state === 'on'}
-        className="import-row"
-        style={{ paddingInlineStart: `${depth}rem` }}
-      >
-        <button
-          type="button"
-          className="import-twisty"
-          onClick={() => setOpen((current) => !current)}
-          aria-label={open ? t('portability.collapse') : t('portability.expand')}
-        >
-          {open ? '▾' : '▸'}
-        </button>
-        <label>
-          <input
-            type="checkbox"
-            checked={state === 'on'}
-            ref={(node) => {
-              if (node) node.indeterminate = state === 'mixed';
-            }}
-            onChange={(event) => onChange(withBranch(chosen, folder, event.target.checked))}
-          />
-          {folder.name}
-        </label>
-        <span className="import-row-count">
-          {t('portability.noteCount', { count: folder.noteCount })}
-        </span>
-        {/* Only this node: a folder written as a path, or a Template without
-            the notes under it (RN-PRT-017). */}
-        <button
-          type="button"
-          className="import-only"
-          onClick={() =>
-            onChange(
-              withNode(chosen, { kind: 'folder', id: folder.id }, !chosen.folders.has(folder.id)),
-            )
-          }
-        >
-          {t('portability.onlyThis')}
-        </button>
-      </div>
-
-      {open && (
-        <ul role="group">
-          {folder.template && (
-            <li role="none">
-              <div
-                role="treeitem"
-                aria-selected={chosen.templates.has(folder.id)}
-                className="import-row"
-                style={{ paddingInlineStart: `${depth + 1}rem` }}
-              >
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={chosen.templates.has(folder.id)}
-                    onChange={(event) =>
-                      onChange(
-                        withNode(chosen, { kind: 'template', id: folder.id }, event.target.checked),
-                      )
-                    }
-                  />
-                  {t('portability.folderTemplate')}
-                </label>
-              </div>
-            </li>
-          )}
-          {folder.children.map((child) => (
-            <FolderRow
-              key={child.id}
-              folder={child}
-              chosen={chosen}
-              filter={filter}
-              depth={depth + 1}
-              onChange={onChange}
-            />
-          ))}
-          {notes.map((note) => (
-            <li role="none" key={note.id}>
-              <div
-                role="treeitem"
-                aria-selected={chosen.notes.has(note.id)}
-                className="import-row"
-                style={{ paddingInlineStart: `${depth + 1}rem` }}
-              >
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={chosen.notes.has(note.id)}
-                    onChange={(event) =>
-                      onChange(
-                        withNode(chosen, { kind: 'note', id: note.id }, event.target.checked),
-                      )
-                    }
-                  />
-                  {note.name || t('note.unnamed')}
-                </label>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </li>
   );
 }

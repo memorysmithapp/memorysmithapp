@@ -177,7 +177,7 @@
     "nameTaken": "Você já tem um caderno chamado “{{name}}”. Escolha outro nome, ou apague aquele caderno e importe de novo.",
     "whatToImport": "O que importar",
     "preset": {
-      "everything": "Tudo",
+      "everything": "O caderno todo",
       "choose": "Escolher itens"
     },
     "filter": "Filtrar por nome",
@@ -223,7 +223,14 @@
     "historyEntries_one": "{{count}} registro",
     "historyEntries_other": "{{count}} registros",
     "noHistory": "Este arquivo não traz história.",
-    "exportNotebook": "Caderno"
+    "exportNotebook": "Caderno",
+    "tab": {
+      "context": "Contexto",
+      "notes": "Notas"
+    },
+    "noTemplate": "sem Modelo",
+    "wholeNotebook": "O caderno todo",
+    "wholeNotebookHint": "A Orientação, o Modelo de cada pasta, todas as notas e a história."
   },
   "graph": {
     "heading": "Grafo do caderno",

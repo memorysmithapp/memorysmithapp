@@ -47,7 +47,8 @@ export interface Words {
   readonly nameTaken: string;
   readonly importAction: string;
   readonly chooseItems: string;
-  readonly onlyThisItem: string;
+  /** The tab of the chooser that holds the notes (#156). */
+  readonly tabNotes: string;
   readonly newExport: string;
   readonly startExport: string;
   readonly willCreateNoNotes: string;
@@ -81,7 +82,7 @@ export const WORDS: Record<AppLocale, Words> = {
     nameTaken: 'You already have a notebook named',
     importAction: 'Import a notebook',
     chooseItems: 'Choose items',
-    onlyThisItem: 'Only this item',
+    tabNotes: 'Notes',
     newExport: 'New export',
     startExport: 'Export',
     willCreateNoNotes: '0 notes',
@@ -113,7 +114,7 @@ export const WORDS: Record<AppLocale, Words> = {
     nameTaken: 'Você já tem um caderno chamado',
     importAction: 'Importar um caderno',
     chooseItems: 'Escolher itens',
-    onlyThisItem: 'Só este item',
+    tabNotes: 'Notas',
     newExport: 'Nova exportação',
     startExport: 'Exportar',
     willCreateNoNotes: '0 notas',

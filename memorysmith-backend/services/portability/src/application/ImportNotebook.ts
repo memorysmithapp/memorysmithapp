@@ -651,6 +651,13 @@ function plan(
   };
 
   for (const folderId of selection.folders) withAncestors(folderId);
+  /**
+   * A Template belongs to its folder, so choosing one carries that folder —
+   * as a path, if nothing else of it was chosen. Without this, the design of a
+   * notebook could be chosen and would arrive empty: the Templates had nowhere
+   * to be written (#156).
+   */
+  for (const folderId of selection.templates) withAncestors(folderId);
   const notes = new Set(selection.notes);
   for (const note of document.notes) {
     if (notes.has(note.noteId)) withAncestors(note.folderId);

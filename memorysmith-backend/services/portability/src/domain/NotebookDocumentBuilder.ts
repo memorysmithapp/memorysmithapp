@@ -118,6 +118,58 @@ export interface ExportInput {
   readonly history?: DocumentHistory | undefined;
 }
 
+/**
+ * What an export carries, under a selection (RN-PRT-024).
+ *
+ * It is the same shape a selection takes on the way IN (RN-PRT-017), and for
+ * the same reason: a folder that holds something chosen travels **as a path**
+ * — its name and its description and nothing else of its own — so a note never
+ * arrives without the folder it lives in, and a Template is only ever carried
+ * on a folder that is carried.
+ *
+ * `null` is the whole notebook, which is what almost everyone wants.
+ */
+export function carried(
+  input: ExportInput,
+  selection: {
+    guidance: boolean;
+    folders: readonly string[];
+    templates: readonly string[];
+    notes: readonly string[];
+  } | null,
+): ExportInput {
+  if (!selection) return input;
+
+  const parentOf = new Map(input.folders.map((folder) => [folder.folderId, folder.parentFolderId]));
+  const carriedFolders = new Set<string>();
+  const withAncestors = (folderId: string | null): void => {
+    let at = folderId;
+    while (at !== null && !carriedFolders.has(at)) {
+      carriedFolders.add(at);
+      at = parentOf.get(at) ?? null;
+    }
+  };
+
+  for (const folderId of selection.folders) withAncestors(folderId);
+  // A Template belongs to its folder, so choosing one carries that folder.
+  for (const folderId of selection.templates) withAncestors(folderId);
+  const notes = new Set(selection.notes);
+  for (const note of input.notes) if (notes.has(note.noteId)) withAncestors(note.folderId);
+
+  const templates = new Set(selection.templates.filter((id) => carriedFolders.has(id)));
+
+  return {
+    ...input,
+    guidance: selection.guidance ? input.guidance : null,
+    folders: input.folders
+      .filter((folder) => carriedFolders.has(folder.folderId))
+      .map((folder) =>
+        templates.has(folder.folderId) ? folder : { ...folder, templateContent: null },
+      ),
+    notes: input.notes.filter((note) => notes.has(note.noteId)),
+  };
+}
+
 export function buildNotebookDocument(input: ExportInput, now: string): NotebookDocument {
   return {
     documentVersion: NOTEBOOK_DOCUMENT_VERSION,
