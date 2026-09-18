@@ -803,6 +803,22 @@ describe('ContentPurge: what a deletion invalidated stops existing', () => {
     });
     expect((await slots.save(guidance)).ok).toBe(true);
 
+    /**
+     * The relay of this environment is listening on the stream of this very
+     * table, and the counters it applies are an `ADD`, which CREATES the item
+     * it addresses. So the case waits for the note it wrote to have been
+     * counted before it deletes anything: a `+1` that lands after the purge
+     * writes a counter back into a partition nothing can reach any more.
+     *
+     * In the product that window is the minute a deletion waits before the
+     * purge walks it, and the relay is ahead of it by seconds. Here there is
+     * no delay at all, so the case waits where the product waits.
+     */
+    await converged(
+      () => repositories(context).notebooks.findById(notebook.id),
+      (found) => (found ? found.noteCountOf(folder.id) : 0) === 1,
+    );
+
     // The deletion itself, as the route makes it: one repository, because one
     // repository stands for one request.
     const tree = new DynamoNotebookRepository(context, db, TABLE_NAME);
