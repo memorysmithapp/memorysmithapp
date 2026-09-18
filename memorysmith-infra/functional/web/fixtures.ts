@@ -31,7 +31,8 @@ export interface Words {
   readonly tryAgain: string;
   readonly deleteSlot: string;
   readonly deleteSlotForGood: string;
-  readonly exportNotebook: string;
+  /** The notebook a new export names, in the dialog that starts one. */
+  readonly notebookField: string;
   readonly importNotebook: string;
   readonly linkToSeveral: string;
   readonly transfers: string;
@@ -42,7 +43,10 @@ export interface Words {
   readonly notebookName: string;
   readonly nameTaken: string;
   readonly importAction: string;
-  readonly structureOnly: string;
+  readonly chooseItems: string;
+  readonly onlyThisItem: string;
+  readonly newExport: string;
+  readonly startExport: string;
   readonly willCreateNoNotes: string;
   readonly pending: (target: string) => string;
 }
@@ -61,7 +65,7 @@ export const WORDS: Record<AppLocale, Words> = {
     tryAgain: 'Try again',
     deleteSlot: 'Delete',
     deleteSlotForGood: 'Delete for good',
-    exportNotebook: 'Download notebook',
+    notebookField: 'Notebook',
     importNotebook: 'Import a notebook',
     linkToSeveral: 'This link leads to more than one note',
     transfers: 'Transfers',
@@ -72,7 +76,10 @@ export const WORDS: Record<AppLocale, Words> = {
     notebookName: 'Name',
     nameTaken: 'You already have a notebook named',
     importAction: 'Import a notebook',
-    structureOnly: 'Structure only',
+    chooseItems: 'Choose items',
+    onlyThisItem: 'Only this item',
+    newExport: 'New export',
+    startExport: 'Export',
     willCreateNoNotes: '0 notes',
     pending: (target) => `No note carries the name “${target}” yet.`,
   },
@@ -89,7 +96,7 @@ export const WORDS: Record<AppLocale, Words> = {
     tryAgain: 'Tentar de novo',
     deleteSlot: 'Apagar',
     deleteSlotForGood: 'Apagar de vez',
-    exportNotebook: 'Baixar o caderno',
+    notebookField: 'Caderno',
     importNotebook: 'Importar um caderno',
     linkToSeveral: 'Este link leva a mais de uma nota',
     transfers: 'Transferências',
@@ -100,7 +107,10 @@ export const WORDS: Record<AppLocale, Words> = {
     notebookName: 'Nome',
     nameTaken: 'Você já tem um caderno chamado',
     importAction: 'Importar um caderno',
-    structureOnly: 'Só a estrutura',
+    chooseItems: 'Escolher itens',
+    onlyThisItem: 'Só este item',
+    newExport: 'Nova exportação',
+    startExport: 'Exportar',
     willCreateNoNotes: '0 notas',
     pending: (target) => `Nenhuma nota se chama “${target}” ainda.`,
   },

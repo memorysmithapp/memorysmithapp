@@ -222,7 +222,8 @@
     "history": "History of the notebook",
     "historyEntries_one": "{{count}} entry",
     "historyEntries_other": "{{count}} entries",
-    "noHistory": "This archive carries no history."
+    "noHistory": "This archive carries no history.",
+    "exportNotebook": "Notebook"
   },
   "graph": {
     "heading": "Notebook graph",
@@ -277,6 +278,9 @@
       "failed": "failed",
       "cancelled": "cancelled",
       "running": "running"
-    }
+    },
+    "newExport": "New export",
+    "newImport": "Import a notebook",
+    "noNotebooks": "There is no notebook to export yet."
   }
 }

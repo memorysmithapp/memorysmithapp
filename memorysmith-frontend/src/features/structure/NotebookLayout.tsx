@@ -8,7 +8,6 @@ import type { NotebookStructure } from '../../shared/types/api';
 import { BrandMark } from '../../shared/components/BrandMark';
 import { GraphIcon, MenuIcon, PanelLeftCloseIcon } from '../../shared/components/icons';
 import { SearchBox } from '../search/SearchBox';
-import { ExportNotebookButton } from '../portability/ExportNotebookButton';
 import { FolderTree } from './FolderTree';
 import { FolderTreeSkeleton, NoteSkeleton } from '../../shared/components/skeletons';
 import { SkeletonBar } from '../../shared/components/Skeleton';
@@ -135,7 +134,6 @@ export function NotebookLayout() {
           <NavLink to={graphAddress(notebookId)} className="notebook-nav-link">
             <GraphIcon /> {t('graph.navLabel')}
           </NavLink>
-          <ExportNotebookButton notebookId={notebookId} />
         </nav>
         <p className="sidebar-caption">{t('structure.content')}</p>
         {data ? (

@@ -7,6 +7,7 @@ import { useDocumentTitle } from '../../shared/components/document-title';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryState } from '../../shared/api/query-state';
 import { progressOf, saveArchive, useRefreshTransfers, useTransfers } from './transfers';
+import { StartTransfer } from './StartTransfer';
 
 type Filter = 'all' | 'export' | 'import';
 
@@ -67,6 +68,8 @@ export function TransfersPage() {
           })}
         </span>
       </div>
+
+      <StartTransfer />
 
       <div className="transfers-filters" role="group" aria-label={t('transfers.filter')}>
         {(['all', 'export', 'import'] as const).map((each) => (

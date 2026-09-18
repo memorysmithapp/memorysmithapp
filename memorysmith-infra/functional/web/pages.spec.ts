@@ -12,6 +12,7 @@ import { Api } from '../support/api.js';
 import { eventually } from '../support/eventually.js';
 import { signInOnManagedLogin } from '../support/managed-login.js';
 import { expect, speak, test } from './fixtures.js';
+import type { Page } from '@playwright/test';
 
 test.describe('signing in', () => {
   test('[page:/login] [page:/auth/callback] hands a person to the managed login and back, signed in', async ({
@@ -328,6 +329,24 @@ test.describe('the pages of an account', () => {
  * checked as it is typed, what is imported may be chosen, and the import is a
  * job with a progress.
  */
+/**
+ * Starts an export of one notebook, from wherever the page is (#151).
+ *
+ * Transfers is on every screen and is where a transfer is followed: it is
+ * where one is started, so this opens it, asks for a new export, names the
+ * notebook and confirms.
+ */
+async function startExport(
+  app: Page,
+  words: { transfers: string; newExport: string; notebookField: string; startExport: string },
+  notebookName: string,
+): Promise<void> {
+  await app.getByRole('button', { name: words.transfers }).click();
+  await app.getByRole('button', { name: words.newExport }).click();
+  await app.getByLabel(words.notebookField).selectOption({ label: notebookName });
+  await app.getByRole('button', { name: words.startExport }).click();
+}
+
 test.describe('a notebook out and back in, through the browser', () => {
   test('[page:/imports/new] reads the file, refuses the name it came with, and imports the structure alone', async ({
     app,
@@ -337,8 +356,13 @@ test.describe('a notebook out and back in, through the browser', () => {
   }) => {
     await app.goto(notebook.page());
 
+    /**
+     * An export is started from Transfers, from wherever the person is: it
+     * used to be a button inside the notebook, which meant navigating to the
+     * notebook to export it (#151).
+     */
     const downloading = app.waitForEvent('download', { timeout: 120_000 });
-    await app.getByRole('button', { name: words.exportNotebook }).click();
+    await startExport(app, words, notebook.name);
     const archive = join(tmpdir(), `${notebook.name}.notebook`);
     await (await downloading).saveAs(archive);
 
@@ -360,8 +384,17 @@ test.describe('a notebook out and back in, through the browser', () => {
 
     const free = `${notebook.name} again`;
     await name.fill(free);
-    await app.getByRole('radio', { name: words.structureOnly }).check();
-    // The design of the notebook and not one note of it (RN-PRT-017).
+
+    /**
+     * The design of the notebook and not one note of it (RN-PRT-017). There
+     * used to be a preset for exactly this, and it went when the Guidance and
+     * each Template became items of the tree: `only this item` on a folder
+     * writes it as a path, which is that selection made by hand.
+     */
+    await app.getByRole('radio', { name: words.chooseItems }).check();
+    for (const only of await app.getByRole('button', { name: words.onlyThisItem }).all()) {
+      await only.click();
+    }
     await expect(app.locator('.import-summary')).toContainText(words.willCreateNoNotes);
 
     await app.getByRole('button', { name: words.importAction }).click();
@@ -395,7 +428,7 @@ test.describe('the transfers of a person', () => {
     // The download of a small notebook starts by itself while the person is
     // still on the page that asked for it, so the common case stays one click.
     const downloading = app.waitForEvent('download', { timeout: 120_000 });
-    await app.getByRole('button', { name: words.exportNotebook }).click();
+    await startExport(app, words, notebook.name);
     expect(await (await downloading).suggestedFilename()).toContain('.notebook');
 
     await app.goto(`${state.surfaces.site}/transfers`);

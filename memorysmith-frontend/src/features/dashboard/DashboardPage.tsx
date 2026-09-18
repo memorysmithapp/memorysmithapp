@@ -34,14 +34,6 @@ export function DashboardPage() {
     <section className="page dashboard">
       <div className="dashboard-heading-row">
         <h2 className="dashboard-section-heading">{t('dashboard.selectNotebook')}</h2>
-        {/* An import makes a NEW notebook, so it belongs where the notebooks
-            are listed and not inside one of them (RN-PRT-012). It is a page of
-            its own, because what it has to show — what the document carries,
-            what will be created and how far it got — does not fit in a button
-            (#143). */}
-        <Link to="/imports/new" className="notebook-nav-link notebook-nav-action">
-          {t('portability.import')}
-        </Link>
       </div>
       {state === 'error' && <p className="status">{t(messageKeyOf(query.error))}</p>}
       {state === 'pending' && <NotebookCatalogueSkeleton />}

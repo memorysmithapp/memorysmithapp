@@ -3125,3 +3125,30 @@ body.has-modal {
   justify-content: flex-end;
   gap: 0.5rem;
 }
+
+/* Starting a transfer, from the panel and from the page (#151). */
+.transfers-start {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.transfers-start .chip {
+  flex: 1;
+  text-align: center;
+  text-decoration: none;
+}
+.export-choice-notebook {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.export-choice-notebook select {
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}

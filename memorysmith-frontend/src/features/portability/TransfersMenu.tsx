@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TransferDto } from '@memorysmith/contracts';
 import { progressOf, saveArchive, useTransfers } from './transfers';
+import { StartTransfer } from './StartTransfer';
 
 /**
  * Transfers, beside the user menu (RN-PRT-019, RN-PRT-020).
@@ -72,10 +73,11 @@ export function TransfersMenu() {
     });
   }
 
-  // Nothing ever transferred: no icon, rather than an icon that opens on
-  // nothing. It appears with the first transfer.
-  if (transfers.length === 0) return null;
-
+  /**
+   * It used to disappear when nothing had ever been transferred, which was
+   * right while a transfer was started somewhere else. It is where one is
+   * started now (#151), so it is always here.
+   */
   const ring = running.length > 0 ? progressOf(running[0] as TransferDto) : null;
 
   return (
@@ -99,6 +101,8 @@ export function TransfersMenu() {
       {open && (
         <div className="transfers-panel">
           <h2>{t('transfers.heading')}</h2>
+          <StartTransfer onStarted={() => setOpen(false)} />
+          {transfers.length === 0 && <p className="status">{t('transfers.empty')}</p>}
           <ul className="transfers-recent">
             {transfers.slice(0, 4).map((transfer) => (
               <li key={transfer.transferId}>
@@ -106,9 +110,11 @@ export function TransfersMenu() {
               </li>
             ))}
           </ul>
-          <Link to="/transfers" className="transfers-see-all" onClick={() => setOpen(false)}>
-            {t('transfers.seeAll')} →
-          </Link>
+          {transfers.length > 0 && (
+            <Link to="/transfers" className="transfers-see-all" onClick={() => setOpen(false)}>
+              {t('transfers.seeAll')} →
+            </Link>
+          )}
         </div>
       )}
     </div>

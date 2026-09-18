@@ -222,7 +222,8 @@
     "history": "História do caderno",
     "historyEntries_one": "{{count}} registro",
     "historyEntries_other": "{{count}} registros",
-    "noHistory": "Este arquivo não traz história."
+    "noHistory": "Este arquivo não traz história.",
+    "exportNotebook": "Caderno"
   },
   "graph": {
     "heading": "Grafo do caderno",
@@ -277,6 +278,9 @@
       "failed": "falhou",
       "cancelled": "cancelada",
       "running": "em andamento"
-    }
+    },
+    "newExport": "Nova exportação",
+    "newImport": "Importar um caderno",
+    "noNotebooks": "Ainda não há caderno para exportar."
   }
 }
