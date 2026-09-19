@@ -374,6 +374,12 @@ async function startExport(
     .locator('.transfer-dialog')
     .getByRole('button', { name: words.startExport, exact: true })
     .click();
+  /**
+   * The dialog closes when the job has been ACCEPTED, and not when the button
+   * is pressed. Leaving the page before that aborts the request that starts
+   * the export, and nothing is ever exported (#160).
+   */
+  await expect(app.locator('.transfer-dialog')).toHaveCount(0);
 }
 
 /**
@@ -387,13 +393,16 @@ async function saveTheExport(
   app: Page,
   words: { download: string },
   site: string,
+  notebookName: string,
   to: string,
 ): Promise<void> {
   await app.goto(`${site}/transfers`);
-  const download = app.locator('.transfers-row').first().getByRole('button', {
-    name: words.download,
-    exact: true,
-  });
+  // The row of THIS notebook, because Transfers holds every transfer of the
+  // subscription and the newest is as likely to be an import of another case.
+  const download = app
+    .locator('.transfers-row', { hasText: notebookName })
+    .getByRole('button', { name: words.download, exact: true })
+    .first();
   await expect(download).toBeVisible({ timeout: 120_000 });
   const downloading = app.waitForEvent('download');
   await download.click();
@@ -416,15 +425,17 @@ test.describe('a notebook out and back in, through the browser', () => {
      */
     await startExport(app, words, notebook.name);
     const archive = join(tmpdir(), `${notebook.name}.notebook`);
-    await saveTheExport(app, words, state.surfaces.site, archive);
+    await saveTheExport(app, words, state.surfaces.site, notebook.name, archive);
 
     /**
      * And an import is asked for in the same dialog, from the same place: it
      * used to be a page of its own, so the two halves of one job were asked
      * for in two shapes (#160).
      */
-    await app.getByRole('button', { name: words.transfers }).click();
-    await app.getByRole('button', { name: words.importNotebook, exact: true }).click();
+    await app
+      .locator('.transfers-page')
+      .getByRole('button', { name: words.importNotebook, exact: true })
+      .click();
     const dialog = app.locator('.transfer-dialog');
     const choosing = app.waitForEvent('filechooser');
     await dialog.getByRole('button', { name: words.chooseFile }).click();
@@ -447,12 +458,6 @@ test.describe('a notebook out and back in, through the browser', () => {
     await name.fill(free);
 
     /**
-     * The design of the notebook and not one note of it (RN-PRT-017). There
-     * used to be a preset for exactly this, and it went when the Guidance and
-     * each Template became items of the tree: `only this item` on a folder
-     * writes it as a path, which is that selection made by hand.
-     */
-    /**
      * The design of the notebook and not one note of it (RN-PRT-017). The
      * chooser asks two questions in two tabs (#156): the CONTEXT — the
      * Guidance, the history and the Template of each folder — and the notes.
@@ -474,8 +479,11 @@ test.describe('a notebook out and back in, through the browser', () => {
     await dialog.getByRole('button', { name: words.importAction, exact: true }).click();
     await expect(dialog).toHaveCount(0);
 
-    await app.goto(`${state.surfaces.site}/transfers`);
-    const imported = app.getByRole('link', { name: words.openImported });
+    // The row of THIS import: Transfers holds every transfer of the
+    // subscription, and several of them ended in a notebook of their own.
+    const imported = app
+      .locator('.transfers-row', { hasText: free })
+      .getByRole('link', { name: words.openImported });
     await expect(imported).toBeVisible({ timeout: 120_000 });
     await imported.click();
 
