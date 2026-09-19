@@ -13,7 +13,8 @@
 
 import { CodePipelineClient, StartPipelineExecutionCommand } from '@aws-sdk/client-codepipeline';
 import { parseArgs } from 'node:util';
-import { git } from './lib/repository.js';
+import { connectionArnOf, pipelineRefusal } from './lib/pipelines.js';
+import { git, readText } from './lib/repository.js';
 
 const { values } = parseArgs({
   options: {
@@ -21,6 +22,16 @@ const { values } = parseArgs({
     branch: { type: 'string' },
   },
 });
+
+const off = pipelineRefusal({
+  environment: 'staging',
+  connectionArn: connectionArnOf(readText('memorysmith-infra/cdk.json'), 'staging'),
+  instead: 'pnpm -C memorysmith-infra deliver --environment staging',
+});
+if (off) {
+  console.error(off);
+  process.exit(1);
+}
 
 const head = git('rev-parse', 'HEAD');
 const branch = values.branch ?? git('rev-parse', '--abbrev-ref', 'HEAD');

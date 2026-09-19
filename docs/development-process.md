@@ -319,16 +319,21 @@ months later, to answer why a rule exists by pointing at the sentence of a real 
 
 ### 8.1 Staging validation
 
-Before a pull request is opened, `pnpm staging:status` runs with credentials of the account
-of staging, and the author is warned when the head commit did not run on staging. **Nothing blocks
-the merge**: merging without a staging run is a decision that belongs to the author, and this
-section is what makes it one taken knowingly.
+Delivery is a command a person runs (`architecture-guide.md` §20.1), so nothing in an account
+knows whether a branch was exercised: the author says it, and says what was exercised. **Nothing
+blocks the merge**: merging without a staging run is a decision that belongs to the author, and
+this section is what makes it one taken knowingly.
 
 ```
 ## Staging validation
 
-{the sentence pnpm staging:status printed}{when the head did not run: , and the merge is the author's decision}
+{the version staging served and the commit it was delivered from, and what was exercised on it}
+{or: nothing of this branch ran on staging, and the merge is the author's decision}
 ```
+
+A delivery of staging prints the version it served, which names the commit it was built from,
+and that sentence is what belongs here. What was exercised is the part no command can print: the
+screens opened, the tools called, the suites run against the environment.
 
 ### 8.2 AI productivity analysis
 
@@ -426,19 +431,22 @@ Run in this exact order:
                                                              the compare links at the bottom of the file
 6. Commit on a release branch  "chore(release): bump version to vX.Y.Z"
 7. Push the branch, open a PR, and merge it into main (never push the bump directly to main)
-8. The production pipeline, started by the merge, checks the release, deploys it and writes
-   the annotated tag vX.Y.Z on the merged commit
-9. The same pipeline publishes the GitHub Release of the tag, with the notes of that version's
-   CHANGELOG section
+8. On main, run  pnpm -C memorysmith-infra release-checks    ← a version that disagrees anywhere,
+                                                               or whose tag exists, stops here
+9. Deliver it       pnpm -C memorysmith-infra deliver --environment production
+10. Publish it      pnpm -C memorysmith-infra publish-release ← the annotated tag vX.Y.Z on the
+                                                                merged commit, and the GitHub
+                                                                Release with that version's notes
 ```
 
 The three projects share a single product version, because they are deployed together and a
 divergence between them never means anything to the user.
 
 Steps 1 to 5 have to land in the same commit on the release branch. The version bump
-reaches `main` only through the PR of step 7, and never through a direct push. Nobody tags
-by hand: a tag ruleset lets only the release App create a `v*` tag, and the pipeline writes it
-only after production serves the version (`architecture-guide.md` §20).
+reaches `main` only through the PR of step 7, and never through a direct push. Steps 8 to 10 run
+from a checkout of the merged `main`, and their order is the guarantee: nobody tags by hand, a tag
+ruleset lets only the release App create a `v*` tag, and step 10 runs only once production serves
+the version step 9 delivered (`architecture-guide.md` §20.1).
 
 ### 9.2 Three points that belong to the process
 

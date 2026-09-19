@@ -4,9 +4,9 @@
  *
  *   pnpm staging:status            with credentials of the account
  *
- * It exits 0 in every one of its three answers: a merge without a staging run
- * is a decision that belongs to the author, and this only makes sure it is made
- * knowingly.
+ * It exits 0 in every one of its answers, this one included: a merge without a
+ * staging run is a decision that belongs to the author, and this only makes
+ * sure it is made knowingly.
  */
 
 import {
@@ -16,11 +16,22 @@ import {
 } from '@aws-sdk/client-codepipeline';
 import { parseArgs } from 'node:util';
 import { describeStagingStatus, stagingStatusOf } from './lib/staging.js';
-import { git } from './lib/repository.js';
+import { connectionArnOf, pipelineRefusal } from './lib/pipelines.js';
+import { git, readText } from './lib/repository.js';
 
 const { values } = parseArgs({
   options: { pipeline: { type: 'string', default: 'memorysmith-staging' } },
 });
+
+const off = pipelineRefusal({
+  environment: 'staging',
+  connectionArn: connectionArnOf(readText('memorysmith-infra/cdk.json'), 'staging'),
+  instead: 'pnpm -C memorysmith-infra deliver --environment staging',
+});
+if (off) {
+  process.stdout.write(`${off}\n`);
+  process.exit(0);
+}
 
 const client = new CodePipelineClient({});
 const summaries: PipelineExecutionSummary[] = [];

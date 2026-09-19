@@ -1457,7 +1457,7 @@ Initial numbers, so they become tests and not folklore. The thesis of the produc
 |---|---|
 | Domain | Pure unit tests, **with no I/O and no framework mocks**. If an SDK mock is needed, the hexagon has leaked |
 | Use cases | With `InMemory` adapters |
-| Adapters | Against the real DynamoDB and S3 of staging, in its pipeline after the deploy, every case under a subscription of its own |
+| Adapters | Against the real DynamoDB and S3 of staging, after a delivery of it, every case under a subscription of its own |
 | Event contracts | Zod schemas validated on both sides (producer and consumer) |
 | End to end | Per vertical slice, in process |
 | Functional | Against the deployed staging, in Playwright Test, after its adapter tests: a case for every route of the core, checked in the Quality stage against `routes.json`, the manifest a test of the core keeps equal to the routes its app mounts; and a case for every tool of the connector, checked against its live `tools/list` and called through the official MCP SDK with a token the run obtains through the whole OAuth flow of the connector, in Chromium, as a client whose Client ID Metadata Document it publishes on the site of the environment; and a case for every page of the interface, in `en_US` and in `pt_BR`, checked in the Quality stage against the router, beside journeys that cross the surfaces: an agent that writes by the Guidance and the Template, a person who ticks its box on the web, and the history of the note naming both. A run creates accounts of its own through the Cognito admin API, asks for their subscriptions and approves them through the product, and deletes the accounts at the end. A projection is awaited by polling up to the target of §18, never by sleeping, and the latency of every route is recorded in the report and never gated |
@@ -1473,52 +1473,43 @@ Initial numbers, so they become tests and not folklore. The thesis of the produc
 
 ## 20. CI/CD
 
-### 20.1 A pipeline per environment, in one account
+### 20.1 Delivery runs from a workstation
 
-Delivery runs on AWS, in a CodePipeline V2 per environment, declared by `stacks/pipeline.stack.ts` and instantiated per environment (§17). **Both pipelines live in the account that holds production and staging.** Branch code runs only in the staging pipeline, which only a person starts, and the production pipeline listens only to `main`.
-
-**One account is a trade, and what it costs is written here.** Both pipelines deploy through the roles `cdk bootstrap` created in the account, and the execution role CloudFormation assumes can change anything in it, so a defect or a compromised dependency on a branch that staging builds can reach production, which two accounts would have made impossible. The Lambda concurrency quota is the account's, so a staging run can throttle production until the quota is raised. And the commands that refuse any account but their environment's no longer tell the two apart by credentials: the environment named on the command does. What stays separate is the name of everything each environment creates, and a condition on the `app:environment` tag wherever a permission would otherwise reach both.
-
-Each pipeline reads the repository through a CodeConnection that can only read, and one connection serves both. It clones the repository whole so the version can be computed (§23.3), and runs every stage as a CodeBuild project calling the same `pnpm` scripts a workstation runs. The stage after the source deploys the pipeline stack itself, so a change to the pipeline takes effect on the execution that carries it, and the only thing done by hand in an account is done once: `cdk bootstrap`, the connection authorised to GitHub, its ARN in `cdk.json`, and a first `cdk deploy` of the pipeline stack. Until the ARN is written, the app does not instantiate the pipeline at all.
-
-**Staging runs when somebody asks**, on a commit of any branch, and never on a push: a run costs money, and the decision to spend it belongs to whoever asks. `pnpm staging:start` starts it on the pushed head of the current branch, handing the branch over as a variable, and the last run wins.
+**Delivery is a command.** `pnpm -C memorysmith-infra deliver` raises an environment from the checkout it runs in: it refuses any account but the one `cdk.json` names for the environment, computes the version that environment serves (§23.3), and then does what the order of the environment demands rather than what is convenient.
 
 ```
-Source       the chosen commit, cloned whole
-SelfUpdate   the pipeline stack
-Quality      lint · format · typecheck · depcruise · the unit, contract and in-process tests
-Deliver      the SPA and the bundles built once · synth · the network and the hosting ·
-             the wait on DNS and on the sending identity · every other stack,
-             serving X.Y.Z-rc.N+sha7
-Smoke        every surface serves the version of this commit
-Adapters     the adapter tests, against the real DynamoDB and S3 of the environment
-Functional   the functional suite, whose report goes to a private bucket of the account
+deliver   the SPA and the bundles built once · synth · the network and the hosting ·
+          the wait on DNS and on the sending identity · every other stack ·
+          the smoke that asks every surface which version it serves
 ```
 
-**Production runs on every merge to `main` that touches what is deployed**: `memorysmith-backend/**`, `memorysmith-frontend/**`, `memorysmith-infra/**`, `pnpm-lock.yaml` or `pnpm-workspace.yaml`. A merge of documentation or governance starts nothing, which is what `development-process.md` §9 says about a change that alters nothing deployable. Executions queue, so two merges deploy in order.
+That order is not a preference (§17): Cognito refuses a sign-in domain whose parent resolves no A record, and the pool sends only from a verified identity, so the hosting and the network go first and the two waits stand between them and everything else. A step that fails stops the ones after it, and the version a delivery records on `deploy:sha` is the commit checked out, which is why a working tree holding changes that commit does not is said out loud before anything is deployed.
+
+**What runs before a delivery is what a workstation always ran:** `pnpm lint`, `pnpm format`, `pnpm typecheck`, `pnpm depcruise` and `pnpm -r test`. The adapter tests, which need the real DynamoDB and S3 of an environment, run after a delivery of staging, and the functional suite runs against the environment it names (§19).
+
+**A release is three commands, and their order is the guarantee.** `release-checks` first, which refuses a version that disagrees across `CLAUDE.md`, the manifests and `CHANGELOG.md`, or whose tag exists already; then the delivery of production; then `publish-release`, which writes the annotated tag and the GitHub Release of what production now serves. The tag is still written by the release App of the organisation, whose private key never leaves Secrets Manager and whose single permission is `Contents: write`, and a tag ruleset still lets only that App create a `v*` tag. What changed is where the command runs, never who signs it, so a version tag still means "this is in production" by construction.
+
+**What delivery by command costs is that nothing happens unasked.** No merge starts a deploy, so `main` holding a version and production serving it are two facts now, and only a delivery joins them. Nothing but the run of whoever asked says a branch was exercised on staging either: the pull request states what was validated in a sentence written by the person who ran it (`development-process.md` §8), where it used to quote an account. A ruleset on `main` still requires a pull request and refuses a force push and a deletion, because `main` is what a delivery of production is taken from.
+
+**Two environments in one account is a trade, and what it costs is written here.** The Lambda concurrency quota is the account's, so staging can throttle production until it is raised, and the commands that refuse any account but their environment's cannot tell the two apart by credentials: the environment named on the command does. What stays separate is the name of everything each environment creates, and a condition on the `app:environment` tag wherever a permission would otherwise reach both.
+
+### 20.2 The pipeline, declared and switched off
+
+`stacks/pipeline.stack.ts` declares a CodePipeline V2 per environment, and its cases hold it to the account it deploys through and to the order of its stages. **No pipeline is deployed.** The app instantiates one only when `cdk.json` names a connection for the environment (`bin/app.ts`), and neither environment names one: that empty `connectionArn` is the switch, and it is what makes the declaration cost nothing while it is off.
+
+What it delivered, when it was on, was the same thing `deliver` does, from a clone instead of a checkout: Source, SelfUpdate, ReleaseChecks in production, Quality, Deliver, Smoke, and Adapters and Functional in staging, with Release writing the tag at the end. Production started on a merge to `main` that touched what is deployed, and staging started when a person asked, because a run costs money.
+
+**Switching it back on is what raising it the first time was, minus what outlives a stack.** The CodeConnection to GitHub stays authorised in the account and the bootstrap of the account stays, so the ARN goes back into `cdk.json` and one `cdk deploy` of the pipeline stack of that environment raises it, and the stage after the source keeps it up to date from then on. While it is off, `pnpm staging:start`, `pnpm staging:status` and `pnpm staging:destroy` say so and name the command to run instead of failing against an account that has nothing to answer.
+
+**Staging is torn down from a workstation, and production cannot be.** `pnpm -C memorysmith-infra destroy-staging` refuses any account but the one `cdk.json` names for staging, and because production lives in that same account it deletes only what the stacks of staging list. It lists what the stacks retain before they go, deletes them one at a time in the reverse of a delivery, joining an operation already running instead of racing it, and then purges what no removal policy deletes: the five tables, the audit trail included, the content bucket with every version, the user pool and the log groups of functions that are gone. It holds a terminal for as long as it takes, and the sign-in domain alone takes over half an hour. Nothing deletes the hosted zone of staging, whose name servers the delegation in production names (§17).
+
+### 20.3 The commands of the infrastructure
+
+
+A delivery is made of commands: scripts of `memorysmith-infra`, written in TypeScript under `commands/`, which reach the product only through its surfaces and its contracts (§5.4). A pipeline, when one is on, calls these same scripts, which is what lets delivery move between an account and a workstation without changing what is run.
 
 ```
-Source         main
-SelfUpdate
-ReleaseChecks  the version agrees across CLAUDE.md, the manifests and CHANGELOG.md,
-               and its tag does not exist yet: a change without a bump stops here
-Quality
-Deliver        serving the version of the packages
-Smoke
-Release        the annotated tag vX.Y.Z and the GitHub Release, as the release App
-```
-
-**There is no manual approval before production: the merge is the approval**, and CloudFormation still rolls back a stack whose update fails. The tag and the release are written by a GitHub App of the organization with a single permission, `Contents: write`, whose private key lives in Secrets Manager of the account, and a tag ruleset lets only that App create a `v*` tag, so a version tag means "this is in production" by construction.
-
-**The pull request is warned, never blocked.** `pnpm staging:status` compares the head of a branch with the successful executions of staging and answers one of three things: this commit was validated, an earlier commit of the branch was, or nothing of the branch ever ran. The "Staging validation" section of the pull request states it (`development-process.md` §8). No check in GitHub gates a merge, and merging without a staging run is a decision that belongs to the author. A ruleset on `main` requires a pull request and refuses a force push and a deletion, because with production deploying on merge a direct push would reach production.
-
-**Staging is torn down from a project of its own, and production cannot be.** `pnpm staging:destroy` asks for the domain of staging, typed, and starts the `DestroyStaging` project on the pushed head of the branch. The project exists only in staging, because production has no destroy path, and runs `destroy-staging` there: it refuses any account but the one `cdk.json` names for staging, and because production lives in that same account it deletes only what the stacks of staging list, and its role may delete a user pool only when the pool is tagged `staging`. It lists what the stacks retain before they go, deletes them one at a time in the reverse of a delivery, joining an operation already running instead of racing it, and then purges what no removal policy deletes: the five tables, the audit trail included, the content bucket with every version, the user pool and the log groups of functions that are gone. It runs in the account and not on a workstation because the sign-in domain alone takes over half an hour to go. Its role is denied the pipeline stack and the bucket of its artifacts, and nothing deletes the hosted zone of staging, whose name servers the delegation in production names (§17).
-
-### 20.2 The commands of the infrastructure
-
-A pipeline and a workstation run the same commands: scripts of `memorysmith-infra`, written in TypeScript under `commands/`, which reach the product only through its surfaces and its contracts (§5.4).
-
-```
+deliver           raises an environment: build, synth, the stacks in order, the waits, the smoke
 served-version    the version an environment serves, from the branch and the commits ahead of main
 release-checks    the version agrees everywhere it is written, and its tag does not exist yet
 release-notes     the section of CHANGELOG.md of a version
@@ -1526,16 +1517,17 @@ wait-for-dns      waits until a name resolves, before the sign-in domain is depl
 wait-for-email-identity  waits until the sending identity is verified, before the pool is deployed
 smoke             every surface serves the version and the environment of the deploy
 publish-release   the annotated tag and the GitHub Release of a version, as the release App
-staging:start     starts staging on the pushed head of a branch
-staging:status    whether the head of a branch ran on staging
-staging:destroy   starts the teardown of staging, whose project runs destroy-staging
+destroy-staging   tears staging down, and refuses every other environment
+staging:start     starts staging on a pipeline, and says the pipeline is off while it is
+staging:status    whether the head of a branch ran on staging, on a pipeline
+staging:destroy   starts the teardown on a pipeline, and names destroy-staging while it is off
 onboard           an account and its subscription, through the API
 recount-storage   rebuilds the storage counter of every subscription (§10.3)
 reproject-links   rebuilds the link graph of every notebook (§11)
 agent-eval        a round of the blind agent evaluation against staging (§19)
 ```
 
-**End to end.** The vertical slice is verified in process, in the Quality stage, with `InMemory` adapters and the routes mounted the way `core-monolith` mounts them. Against a deployed environment, the Smoke stage proves which version every surface serves.
+**End to end.** The vertical slice is verified in process, before a delivery, with `InMemory` adapters and the routes mounted the way `core-monolith` mounts them. Against a deployed environment, the smoke that closes a delivery proves which version every surface serves.
 
 ---
 ## 21. Anti-patterns

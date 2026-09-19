@@ -12,6 +12,7 @@
     "release-checks": "tsx commands/release-checks.ts",
     "release-notes": "tsx commands/release-notes.ts",
     "deploy": "cdk deploy",
+    "deliver": "tsx commands/deliver.ts",
     "smoke": "tsx commands/smoke.ts",
     "wait-for-dns": "tsx commands/wait-for-dns.ts",
     "wait-for-email-identity": "tsx commands/wait-for-email-identity.ts",

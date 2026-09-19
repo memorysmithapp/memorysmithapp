@@ -12,6 +12,7 @@
 import { CodeBuildClient, StartBuildCommand } from '@aws-sdk/client-codebuild';
 import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
+import { connectionArnOf, pipelineRefusal } from './lib/pipelines.js';
 import { git, readText } from './lib/repository.js';
 
 const { values } = parseArgs({
@@ -25,6 +26,13 @@ function fail(message: string): never {
   console.error(message);
   process.exit(1);
 }
+
+const off = pipelineRefusal({
+  environment: 'staging',
+  connectionArn: connectionArnOf(readText('memorysmith-infra/cdk.json'), 'staging'),
+  instead: 'pnpm -C memorysmith-infra destroy-staging',
+});
+if (off) fail(off);
 
 const zone = (
   JSON.parse(readText('memorysmith-infra/cdk.json')) as {

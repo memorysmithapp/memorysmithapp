@@ -10,6 +10,7 @@ import { App, Stack } from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
 import { Topic } from 'aws-cdk-lib/aws-sns';
 import { describe, expect, it } from 'vitest';
+import { connectionArnOf, pipelineRefusal } from '../commands/lib/pipelines.js';
 import { environmentOf } from '../config/environments.js';
 import { tagDelivery } from '../constructs/deployment.js';
 import { DEPLOYED_PATHS, PipelineStack } from '../stacks/pipeline.stack.js';
@@ -364,5 +365,44 @@ describe('the trust of a pipeline', () => {
       expect(resource).toContain(':iam::222222222222:role/cdk-hnb659fds-*');
     }
     for (const resource of assumed) expect(resource).not.toContain('111111111111');
+  });
+});
+
+/**
+ * The switch that puts delivery back on a workstation: the app instantiates a
+ * pipeline only when cdk.json names a connection for the environment, and the
+ * commands that speak to one say so instead of failing against an account that
+ * has nothing to answer.
+ */
+describe('a pipeline that is switched off', () => {
+  const cdkJson = (arn: string): string =>
+    JSON.stringify({
+      context: { environments: { staging: { pipeline: { connectionArn: arn } } } },
+    });
+
+  it('is what an empty connection in cdk.json means, and a named one is not', () => {
+    expect(connectionArnOf(cdkJson(''), 'staging')).toBeUndefined();
+    expect(connectionArnOf(cdkJson('   '), 'staging')).toBeUndefined();
+    expect(connectionArnOf('{}', 'staging')).toBeUndefined();
+    expect(connectionArnOf(cdkJson(PIPELINE.connectionArn), 'staging')).toBe(
+      PIPELINE.connectionArn,
+    );
+  });
+
+  it('is not instantiated by the app, which is why the command names what to run instead', () => {
+    const refusal = pipelineRefusal({
+      environment: 'staging',
+      connectionArn: undefined,
+      instead: 'pnpm -C memorysmith-infra deliver --environment staging',
+    });
+    expect(refusal).toContain('switched off');
+    expect(refusal).toContain('pnpm -C memorysmith-infra deliver --environment staging');
+    expect(
+      pipelineRefusal({
+        environment: 'staging',
+        connectionArn: PIPELINE.connectionArn,
+        instead: 'anything',
+      }),
+    ).toBeNull();
   });
 });
