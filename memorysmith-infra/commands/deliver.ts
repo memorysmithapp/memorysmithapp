@@ -94,13 +94,18 @@ const require_ = createRequire(import.meta.url);
 /** tsx and the CDK, run by node itself, so no shell stands between the arguments. */
 const tsx = require_.resolve('tsx/cli');
 const cdk = require_.resolve('aws-cdk/bin/cdk');
-const pnpm = process.env['npm_execpath'];
 
-const run = (label: string, file: string, args: readonly string[]): void => {
+const run = (
+  label: string,
+  file: string,
+  args: readonly string[],
+  options: { readonly shell?: boolean } = {},
+): void => {
   say(`\n${label}`);
   const outcome = spawnSync(file, [...args], {
     stdio: 'inherit',
     cwd: join(REPOSITORY_ROOT, 'memorysmith-infra'),
+    shell: options.shell ?? false,
   });
   if (outcome.status !== 0) refuse(`\n${label} failed. Nothing after it ran.`);
 };
@@ -115,9 +120,14 @@ const ids = (names: readonly string[]): string[] =>
   names.map((name) => stackIdOf(environment, name));
 
 if (!values['skip-build']) {
-  if (!pnpm)
-    refuse('deliver builds the SPA through pnpm: run it as `pnpm -C memorysmith-infra deliver`.');
-  run('Building the SPA', process.execPath, [pnpm, '-C', '../memorysmith-frontend', 'build']);
+  // Through the pnpm that is running this when there is one, and through the
+  // one on the PATH otherwise, which is a shell away on Windows.
+  const pnpm = process.env['npm_execpath'];
+  if (pnpm) {
+    run('Building the SPA', process.execPath, [pnpm, '-C', '../memorysmith-frontend', 'build']);
+  } else {
+    run('Building the SPA', 'pnpm', ['-C', '../memorysmith-frontend', 'build'], { shell: true });
+  }
 }
 
 node('Synthesising', [
