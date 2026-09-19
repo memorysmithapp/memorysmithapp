@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { intlLocale } from '../../i18n';
 import type { TransferDto } from '@memorysmith/contracts';
 import { deleteTransfer, listNotebooks } from '../../shared/api/source';
 import { notebookAddress } from '../../shared/api/note-address';
@@ -46,7 +47,7 @@ function sizeOf(bytes: number, locale: string): string {
  */
 export function TransfersPage() {
   const { t, i18n } = useTranslation();
-  const locale = i18n.language === 'pt_BR' ? 'pt-BR' : 'en-US';
+  const locale = intlLocale(i18n.language);
   const [filter, setFilter] = useState<Filter>('all');
   const [deleting, setDeleting] = useState<string | null>(null);
   const transfers = useTransfers();

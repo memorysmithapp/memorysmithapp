@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { intlLocale } from '../../i18n';
 import {
   offeredFolders,
   pickBranch,
@@ -570,7 +571,7 @@ function BranchRow({
               // the one thing that differs is shown: when each was written.
               note={
                 inConflict.has(each.id) && each.updatedAt
-                  ? new Intl.DateTimeFormat(i18n.language, {
+                  ? new Intl.DateTimeFormat(intlLocale(i18n.language), {
                       dateStyle: 'medium',
                       timeStyle: 'short',
                     }).format(new Date(each.updatedAt))

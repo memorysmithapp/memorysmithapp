@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { intlLocale } from '../../i18n';
 import { listNotebooks } from '../../shared/api/source';
 import { notebookAddress } from '../../shared/api/note-address';
 import { LiveDashboard } from './LiveDashboard';
@@ -25,7 +26,7 @@ function formatDate(iso: string, locale: string): string {
  */
 export function DashboardPage() {
   const { t, i18n } = useTranslation();
-  const locale = i18n.language === 'pt_BR' ? 'pt-BR' : 'en-US';
+  const locale = intlLocale(i18n.language);
   const query = useQuery({ queryKey: ['notebooks'], queryFn: listNotebooks });
   const notebooks = query.data;
   const state = queryState(query);
