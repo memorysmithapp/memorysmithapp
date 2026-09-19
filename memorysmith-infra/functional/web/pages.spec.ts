@@ -342,17 +342,18 @@ test.describe('the pages of an account', () => {
  * may upload and the bucket answered no. Everything else in the suite uploads
  * from Node, where nobody asks.
  *
- * It is also the whole of the import page (#143): the document is read in the
- * browser before a byte is uploaded, the name comes from the document and is
- * checked as it is typed, what is imported may be chosen, and the import is a
- * job with a progress.
+ * It is also the whole of the import dialog (#143, #160): the document is read
+ * in the browser before a byte is uploaded, the name comes from the document
+ * and is checked as it is typed, what is imported may be chosen, and the job
+ * that follows is watched in Transfers like every other one.
  */
 /**
  * Starts an export of one notebook, from wherever the page is (#151).
  *
  * Transfers is on every screen and is where a transfer is followed: it is
  * where one is started, so this opens it, asks for a new export, names the
- * notebook and confirms.
+ * notebook and confirms. The panel closes as the dialog opens, which is why
+ * everything after the first click is scoped to the dialog (#160).
  */
 async function startExport(
   app: Page,
@@ -364,19 +365,43 @@ async function startExport(
   // Scoped to the dialog and exact: `Notebook` is the start of several
   // accessible names on the page behind it.
   await app
-    .locator('.export-choice')
+    .locator('.transfer-dialog')
     .getByLabel(words.notebookField, { exact: true })
     .selectOption({ label: notebookName });
   // Inside the dialog and exact: `Export` is also the start of the button that
   // opened it.
   await app
-    .locator('.export-choice')
+    .locator('.transfer-dialog')
     .getByRole('button', { name: words.startExport, exact: true })
     .click();
 }
 
+/**
+ * Saves the archive of the one export of this person, from Transfers.
+ *
+ * Nothing downloads by itself any more: an export used to save itself the
+ * moment it was ready, wherever the person had moved to, which was one way too
+ * many beside the two buttons that ask for it (#160).
+ */
+async function saveTheExport(
+  app: Page,
+  words: { download: string },
+  site: string,
+  to: string,
+): Promise<void> {
+  await app.goto(`${site}/transfers`);
+  const download = app.locator('.transfers-row').first().getByRole('button', {
+    name: words.download,
+    exact: true,
+  });
+  await expect(download).toBeVisible({ timeout: 120_000 });
+  const downloading = app.waitForEvent('download');
+  await download.click();
+  await (await downloading).saveAs(to);
+}
+
 test.describe('a notebook out and back in, through the browser', () => {
-  test('[page:/imports/new] reads the file, refuses the name it came with, and imports the structure alone', async ({
+  test('[page:/transfers] reads the file, refuses the name it came with, and imports the structure alone', async ({
     app,
     notebook,
     state,
@@ -389,14 +414,20 @@ test.describe('a notebook out and back in, through the browser', () => {
      * used to be a button inside the notebook, which meant navigating to the
      * notebook to export it (#151).
      */
-    const downloading = app.waitForEvent('download', { timeout: 120_000 });
     await startExport(app, words, notebook.name);
     const archive = join(tmpdir(), `${notebook.name}.notebook`);
-    await (await downloading).saveAs(archive);
+    await saveTheExport(app, words, state.surfaces.site, archive);
 
-    await app.goto(`${state.surfaces.site}/imports/new`);
+    /**
+     * And an import is asked for in the same dialog, from the same place: it
+     * used to be a page of its own, so the two halves of one job were asked
+     * for in two shapes (#160).
+     */
+    await app.getByRole('button', { name: words.transfers }).click();
+    await app.getByRole('button', { name: words.importNotebook, exact: true }).click();
+    const dialog = app.locator('.transfer-dialog');
     const choosing = app.waitForEvent('filechooser');
-    await app.getByRole('button', { name: words.chooseFile }).click();
+    await dialog.getByRole('button', { name: words.chooseFile }).click();
     await (await choosing).setFiles(archive);
 
     /**
@@ -405,10 +436,12 @@ test.describe('a notebook out and back in, through the browser', () => {
      * is uploaded, which is what a person used to find out as raw text on a
      * button (RN-KNW-032).
      */
-    const name = app.getByLabel(words.notebookName);
+    const name = dialog.getByLabel(words.notebookName);
     await expect(name).toHaveValue(notebook.name);
-    await expect(app.getByText(words.nameTaken, { exact: false })).toBeVisible();
-    await expect(app.getByRole('button', { name: words.importAction })).toBeDisabled();
+    await expect(dialog.getByText(words.nameTaken, { exact: false })).toBeVisible();
+    await expect(
+      dialog.getByRole('button', { name: words.importAction, exact: true }),
+    ).toBeDisabled();
 
     const free = `${notebook.name} again`;
     await name.fill(free);
@@ -426,18 +459,25 @@ test.describe('a notebook out and back in, through the browser', () => {
      * Choosing starts from everything, so the design alone is the context kept
      * and the notes let go, and a Template carries the folder it belongs to.
      */
-    await app.getByRole('radio', { name: words.chooseItems }).check();
-    await app.getByRole('tab', { name: words.tabNotes }).click();
-    for (const box of await app.locator('#chooser-panel-notes .chooser-row input').all()) {
+    await dialog.getByRole('radio', { name: words.chooseItems }).check();
+    await dialog.getByRole('tab', { name: words.tabNotes }).click();
+    for (const box of await dialog.locator('#chooser-panel-notes .chooser-row input').all()) {
       if (await box.isChecked()) await box.uncheck();
     }
-    await expect(app.locator('.import-summary')).toContainText(words.willCreateNoNotes);
+    await expect(dialog.locator('.transfer-summary')).toContainText(words.willCreateNoNotes);
 
-    await app.getByRole('button', { name: words.importAction }).click();
-    await expect(app.getByRole('link', { name: words.openImported })).toBeVisible({
-      timeout: 120_000,
-    });
-    await app.getByRole('link', { name: words.openImported }).click();
+    /**
+     * Starting it closes the dialog: the decision is over and the job is
+     * followed where every transfer is, which is the row that ends in the
+     * notebook it wrote (#160).
+     */
+    await dialog.getByRole('button', { name: words.importAction, exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+
+    await app.goto(`${state.surfaces.site}/transfers`);
+    const imported = app.getByRole('link', { name: words.openImported });
+    await expect(imported).toBeVisible({ timeout: 120_000 });
+    await imported.click();
 
     await expect(app.getByRole('heading', { level: 1, name: free })).toBeVisible();
     await expect(app.locator('a.outline-name', { hasText: 'Findings' })).toBeVisible();
@@ -461,23 +501,24 @@ test.describe('the transfers of a person', () => {
   }) => {
     await app.goto(notebook.page());
 
-    // The download of a small notebook starts by itself while the person is
-    // still on the page that asked for it, so the common case stays one click.
-    const downloading = app.waitForEvent('download', { timeout: 120_000 });
     await startExport(app, words, notebook.name);
-    expect(await (await downloading).suggestedFilename()).toContain('.notebook');
 
     await app.goto(`${state.surfaces.site}/transfers`);
     await expect(app.getByRole('heading', { level: 1, name: words.transfers })).toBeVisible();
     const row = app.locator('.transfers-row', { hasText: notebook.name });
     await expect(row).toBeVisible();
 
-    // Downloaded again, from a link minted at this moment: the export is kept
-    // until it is deleted, and it counts towards the space of the plan.
+    /**
+     * Downloaded from a link minted at this moment, and only when it is asked
+     * for: nothing saves itself any more (#160). The export is kept until it
+     * is deleted, and it counts towards the space of the plan.
+     */
     await expect(app.locator('.transfers-kept')).toContainText(words.spaceUsed);
-    const again = app.waitForEvent('download');
-    await row.getByRole('button', { name: words.download }).click();
-    expect(await (await again).suggestedFilename()).toContain('.notebook');
+    const download = row.getByRole('button', { name: words.download, exact: true });
+    await expect(download).toBeVisible({ timeout: 120_000 });
+    const downloading = app.waitForEvent('download');
+    await download.click();
+    expect(await (await downloading).suggestedFilename()).toContain('.notebook');
 
     // Deleting asks on the page, saying that the notebook is not touched.
     await row.getByRole('button', { name: words.deleteSlot, exact: true }).click();

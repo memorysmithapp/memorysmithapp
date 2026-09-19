@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { TransferDto, TransferListDto } from '@memorysmith/contracts';
 import { downloadTransfer, listTransfers } from '../../shared/api/source';
@@ -48,40 +47,6 @@ export async function saveArchive(transferId: string): Promise<void> {
 }
 
 /**
- * The exports this browser started, and the ones it already saved.
- *
- * It lives here, outside React, because the component that STARTS an export is
- * not the one that can wait for it: starting one from the panel closes the
- * panel, which unmounts it. What waits is the menu, which is in the frame of
- * every screen and never unmounts (#151).
- *
- * It is per page load, deliberately: the download that starts by itself is the
- * courtesy of "you are still here", and coming back tomorrow is what Transfers
- * is for.
- */
-const startedHere = new Set<string>();
-const savedHere = new Set<string>();
-
-export function rememberStartedExport(transferId: string): void {
-  startedHere.add(transferId);
-}
-
-/**
- * Saves an export this browser started, once, the moment it is ready. An
- * export somebody started elsewhere is theirs to ask for.
- */
-export function useSaveStartedExports(transfers: readonly TransferDto[]): void {
-  useEffect(() => {
-    for (const transfer of transfers) {
-      if (transfer.kind !== 'export' || transfer.status !== 'ready') continue;
-      if (!startedHere.has(transfer.transferId) || savedHere.has(transfer.transferId)) continue;
-      savedHere.add(transfer.transferId);
-      void saveArchive(transfer.transferId);
-    }
-  }, [transfers]);
-}
-
-/**
  * What a transfer IS, in one line: the notebook, and the file it becomes or
  * came from (#155). A row used to carry the name of the notebook and nothing
  * else, so an export and an import of the same notebook read the same.
@@ -90,18 +55,18 @@ export function lineOf(
   transfer: TransferDto,
   say: (key: string, values: Record<string, unknown>) => string,
 ): string {
-  if (transfer.kind === 'export') {
-    return say('transfers.line.export', {
-      notebook: transfer.notebookName,
-      file: transfer.fileName ?? '',
-    });
-  }
-  return transfer.fileName
-    ? say('transfers.line.import', {
-        notebook: transfer.notebookName,
-        file: transfer.fileName,
-      })
-    : say('transfers.line.importNoFile', { notebook: transfer.notebookName });
+  // Once. It used to name the notebook and then the file named after it, which
+  // is the same words twice over three lines of a panel (#160). The file is
+  // the second line of the row, where it belongs.
+  return say(`transfers.line.${transfer.kind}`, { notebook: transfer.notebookName });
+}
+
+/** The file a transfer is about, for the line under the name, or nothing. */
+export function fileOf(
+  transfer: TransferDto,
+  say: (key: string, values: Record<string, unknown>) => string,
+): string | null {
+  return transfer.fileName ? say('transfers.fromFile', { file: transfer.fileName }) : null;
 }
 
 /**

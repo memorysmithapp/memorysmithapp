@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { listNotebooks, startExport } from '../../shared/api/source';
 import { ExportChoice } from './ExportChoice';
-import { rememberStartedExport, useRefreshTransfers } from './transfers';
+import { ImportDialog } from './ImportDialog';
+import { useRefreshTransfers } from './transfers';
 import { selectionOf, type Chosen } from './import-selection';
+
+/** Which of the two transfers is being decided, or none. */
+export type Starting = 'export' | 'import' | null;
 
 /**
  * Starting a transfer, from wherever you are (RN-PRT-019).
@@ -20,17 +23,63 @@ import { selectionOf, type Chosen } from './import-selection';
  * listing must never reveal a notebook somebody cannot see (RN-PRT-020, rule 9
  * of the design), and `listNotebooks` answers exactly those.
  *
- * The convenience the notebook button had is kept, and it had to move with it:
- * an export that finishes while this browser is still open saves itself, and
- * what waits for it is the menu — starting one from the panel closes the
- * panel, which unmounts this.
+ * **Nothing downloads by itself.** An export used to save itself the moment it
+ * was ready, which was the only way to reach the file when it was a button
+ * inside a notebook. There are two buttons for it now — in the panel and on
+ * the page — so a third way, firing without being asked and wherever the
+ * person had moved to, is one too many (#160).
+ *
+ * The two halves are separate exports because **the buttons and the dialogs do
+ * not live in the same place**: inside the panel of the menu the buttons
+ * disappear when it closes, and a dialog that disappeared with them could
+ * never be opened by closing it (#160). The page, which never collapses, uses
+ * the two together.
  */
-export function StartTransfer({ onStarted }: { onStarted?: () => void }) {
+export function StartTransfer() {
+  const [starting, setStarting] = useState<Starting>(null);
+
+  return (
+    <>
+      <TransferActions onStart={setStarting} />
+      <TransferDialogs starting={starting} onClose={() => setStarting(null)} />
+    </>
+  );
+}
+
+/**
+ * The two ways in, drawn as peers: one of them being filled and the other
+ * outlined said one mattered more, which is not true (#160).
+ */
+export function TransferActions({ onStart }: { onStart: (starting: Starting) => void }) {
   const { t } = useTranslation();
-  const [asking, setAsking] = useState(false);
+
+  return (
+    <div className="transfers-start">
+      <button type="button" className="button is-quiet" onClick={() => onStart('export')}>
+        {t('transfers.newExport')}
+      </button>
+      <button type="button" className="button is-quiet" onClick={() => onStart('import')}>
+        {t('transfers.newImport')}
+      </button>
+    </div>
+  );
+}
+
+/** The decision itself, in the one dialog both sides share (#160). */
+export function TransferDialogs({
+  starting,
+  onClose,
+}: {
+  starting: Starting;
+  onClose: () => void;
+}) {
   const [notebookId, setNotebookId] = useState('');
   const refresh = useRefreshTransfers();
-  const notebooks = useQuery({ queryKey: ['notebooks'], queryFn: listNotebooks, enabled: asking });
+  const notebooks = useQuery({
+    queryKey: ['notebooks'],
+    queryFn: listNotebooks,
+    enabled: starting === 'export',
+  });
 
   const choices = (notebooks.data ?? []).map((notebook) => ({
     id: notebook.id,
@@ -43,35 +92,23 @@ export function StartTransfer({ onStarted }: { onStarted?: () => void }) {
 
   async function begin(carrying: Chosen | null): Promise<void> {
     if (!chosen) return;
-    const transfer = await startExport(chosen, carrying === null ? null : selectionOf(carrying));
-    /**
-     * Remembered rather than waited for here: starting one from the panel
-     * closes the panel, which unmounts this. The menu is what waits, because
-     * it is in the frame of every screen (#151).
-     */
-    rememberStartedExport(transfer.transferId);
+    await startExport(chosen, carrying === null ? null : selectionOf(carrying));
     refresh();
-    onStarted?.();
+    // The job is running; where it is watched is Transfers (#160).
+    onClose();
   }
 
   return (
     <>
-      <div className="transfers-start">
-        <button type="button" className="button is-primary" onClick={() => setAsking(true)}>
-          {t('transfers.newExport')}
-        </button>
-        <Link to="/imports/new" className="button is-quiet" onClick={() => onStarted?.()}>
-          {t('transfers.newImport')}
-        </Link>
-      </div>
       <ExportChoice
-        open={asking}
+        open={starting === 'export'}
         notebooks={choices}
         notebookId={chosen}
         onChooseNotebook={setNotebookId}
         onConfirm={(carrying) => void begin(carrying)}
-        onClose={() => setAsking(false)}
+        onClose={onClose}
       />
+      <ImportDialog open={starting === 'import'} onClose={onClose} />
     </>
   );
 }

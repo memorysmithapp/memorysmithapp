@@ -42,22 +42,26 @@ export function TransferChooser({
   onChange,
   filter,
   onFilter,
+  direction,
 }: {
   tree: DocumentTree;
   chosen: Chosen;
   onChange: (next: Chosen) => void;
   filter: string;
   onFilter: (next: string) => void;
+  /** Which way this is going, which is what the label of the tree says. */
+  direction: 'export' | 'import';
 }) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<ChooserTab>('context');
 
   const hasHistory = tree.historyEntries === null || tree.historyEntries > 0;
   const entries = tree.historyEntries;
+  const what = t(`portability.whatToCarry.${direction}`);
 
   return (
     <div className="chooser">
-      <div className="chooser-tabs" role="tablist" aria-label={t('portability.whatToImport')}>
+      <div className="chooser-tabs" role="tablist" aria-label={what}>
         {(['context', 'notes'] as const).map((each) => (
           <button
             key={each}
@@ -82,25 +86,30 @@ export function TransferChooser({
           aria-labelledby="chooser-tab-context"
         >
           <ul className="chooser-tree" role="tree" aria-label={t('portability.tab.context')}>
-            {tree.guidance && (
-              <Row
-                kind="guidance"
-                label={t('portability.notebookGuidance')}
-                checked={chosen.guidance}
-                onToggle={(on) => onChange({ ...chosen, guidance: on })}
-              />
-            )}
-            {hasHistory && (
-              <Row
-                kind="history"
-                label={t('portability.history')}
-                note={
-                  entries === null ? undefined : t('portability.historyEntries', { count: entries })
-                }
-                checked={chosen.history}
-                onToggle={(on) => onChange({ ...chosen, history: on })}
-              />
-            )}
+            {/* What is not there is SAID and not hidden: a row that disappears
+                cannot be told from a feature that was never built (#160). */}
+            <Row
+              kind="guidance"
+              label={t('portability.notebookGuidance')}
+              note={tree.guidance ? undefined : t('portability.thereIsNone')}
+              missing={!tree.guidance}
+              checked={tree.guidance && chosen.guidance}
+              onToggle={(on) => onChange({ ...chosen, guidance: on })}
+            />
+            <Row
+              kind="history"
+              label={t('portability.history')}
+              note={
+                !hasHistory
+                  ? t('portability.thereIsNone')
+                  : entries === null
+                    ? undefined
+                    : t('portability.historyEntries', { count: entries })
+              }
+              missing={!hasHistory}
+              checked={hasHistory && chosen.history}
+              onToggle={(on) => onChange({ ...chosen, history: on })}
+            />
             <li role="none" className="chooser-section">
               <span className="chooser-section-name">{t('portability.foldersAndTemplates')}</span>
               <ul role="group" className="chooser-branch">
@@ -157,6 +166,7 @@ function Row({
   note,
   checked,
   indeterminate,
+  missing = false,
   onToggle,
   depth = 0,
   children,
@@ -167,6 +177,8 @@ function Row({
   note?: string | undefined;
   checked: boolean;
   indeterminate?: boolean;
+  /** The notebook has none of this: the row stays, and says so. */
+  missing?: boolean;
   onToggle: (on: boolean) => void;
   depth?: number;
   children?: ReactNode;
@@ -177,7 +189,7 @@ function Row({
       <div
         role="treeitem"
         aria-selected={checked}
-        className={`chooser-row is-${kind}`}
+        className={`chooser-row is-${kind}${missing ? ' is-missing' : ''}`}
         style={{ paddingInlineStart: `${depth * 1.25}rem` }}
       >
         {extra}
@@ -185,6 +197,7 @@ function Row({
           <input
             type="checkbox"
             checked={checked}
+            disabled={missing}
             ref={(node) => {
               if (node) node.indeterminate = indeterminate ?? false;
             }}
@@ -231,28 +244,26 @@ function ContextFolderRow({
       onToggle={(on) => onChange(withContextFolder(chosen, folder, on))}
       depth={depth}
     >
-      {(folder.template || under.length > 0) && (
-        <ul role="group" className="chooser-branch">
-          {folder.template && (
-            <Row
-              kind="template"
-              label={t('portability.folderTemplate')}
-              checked={chosen.templates.has(folder.id)}
-              onToggle={(on) => onChange(withTemplate(chosen, folder, on))}
-              depth={depth + 1}
-            />
-          )}
-          {under.map((child) => (
-            <ContextFolderRow
-              key={child.id}
-              folder={child}
-              chosen={chosen}
-              depth={depth + 1}
-              onChange={onChange}
-            />
-          ))}
-        </ul>
-      )}
+      <ul role="group" className="chooser-branch">
+        <Row
+          kind="template"
+          label={t('portability.folderTemplate')}
+          note={folder.template ? undefined : t('portability.thereIsNone')}
+          missing={folder.template === null}
+          checked={folder.template !== null && chosen.templates.has(folder.id)}
+          onToggle={(on) => onChange(withTemplate(chosen, folder, on))}
+          depth={depth + 1}
+        />
+        {under.map((child) => (
+          <ContextFolderRow
+            key={child.id}
+            folder={child}
+            chosen={chosen}
+            depth={depth + 1}
+            onChange={onChange}
+          />
+        ))}
+      </ul>
     </Row>
   );
 }

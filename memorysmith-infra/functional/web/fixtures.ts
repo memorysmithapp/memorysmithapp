@@ -21,7 +21,7 @@ export type AppLocale = 'en_US' | 'pt_BR';
 export interface Words {
   /** The heading over the notebooks of the dashboard. */
   readonly openNotebook: string;
-  /** The link the import page shows when its job ends, which is another text. */
+  /** The link the row of a finished import carries, which is another text. */
   readonly openImported: string;
   readonly context: string;
   readonly guidance: string;
@@ -36,6 +36,7 @@ export interface Words {
   readonly deleteSlotForGood: string;
   /** The notebook a new export names, in the dialog that starts one. */
   readonly notebookField: string;
+  /** The action of the Transfers panel that opens the import dialog. */
   readonly importNotebook: string;
   readonly linkToSeveral: string;
   readonly transfers: string;
@@ -45,6 +46,7 @@ export interface Words {
   readonly chooseFile: string;
   readonly notebookName: string;
   readonly nameTaken: string;
+  /** What the import dialog commits with, which is the verb alone (#160). */
   readonly importAction: string;
   readonly chooseItems: string;
   /** The tab of the chooser that holds the notes (#156). */
@@ -80,7 +82,7 @@ export const WORDS: Record<AppLocale, Words> = {
     chooseFile: 'Choose a file',
     notebookName: 'Name',
     nameTaken: 'You already have a notebook named',
-    importAction: 'Import a notebook',
+    importAction: 'Import',
     chooseItems: 'Choose items',
     tabNotes: 'Notes',
     newExport: 'New export',
@@ -112,7 +114,7 @@ export const WORDS: Record<AppLocale, Words> = {
     chooseFile: 'Escolher um arquivo',
     notebookName: 'Nome',
     nameTaken: 'Você já tem um caderno chamado',
-    importAction: 'Importar um caderno',
+    importAction: 'Importar',
     chooseItems: 'Escolher itens',
     tabNotes: 'Notas',
     newExport: 'Nova exportação',

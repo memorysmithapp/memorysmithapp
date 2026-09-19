@@ -1,12 +1,15 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { TransferDto } from '@memorysmith/contracts';
 import { deleteTransfer, listNotebooks } from '../../shared/api/source';
+import { notebookAddress } from '../../shared/api/note-address';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryState } from '../../shared/api/query-state';
 import {
+  fileOf,
   lineOf,
   outcomeOf,
   progressOf,
@@ -103,6 +106,9 @@ export function TransfersPage() {
             <li key={transfer.transferId} className="transfers-row">
               <div className="transfers-row-main">
                 <span className="transfers-row-name">{lineOf(transfer, t)}</span>
+                {fileOf(transfer, t) && (
+                  <span className="transfers-row-file">{fileOf(transfer, t)}</span>
+                )}
                 <span className="transfers-row-when">
                   {new Intl.DateTimeFormat(locale, {
                     dateStyle: 'short',
@@ -128,6 +134,22 @@ export function TransfersPage() {
                 transfer.notebookId !== null &&
                 !alive.has(transfer.notebookId) && (
                   <p className="transfers-row-note">{t('transfers.notebookGone')}</p>
+                )}
+
+              {/* An import ends in a notebook, so its row is where that notebook
+                  is opened: the decision was a dialog and this is where it is
+                  followed (#160). */}
+              {transfer.status === 'ready' &&
+                transfer.kind === 'import' &&
+                transfer.notebookId !== null && (
+                  <div className="transfers-row-actions">
+                    <Link
+                      className="button is-quiet is-small"
+                      to={notebookAddress(transfer.notebookId)}
+                    >
+                      {t('portability.openNotebook')}
+                    </Link>
+                  </div>
                 )}
 
               {transfer.status === 'ready' && transfer.kind === 'export' && (

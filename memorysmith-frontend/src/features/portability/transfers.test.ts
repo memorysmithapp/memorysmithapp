@@ -10,7 +10,7 @@
 
 import { describe, expect, it } from 'vitest';
 import type { TransferDto } from '@memorysmith/contracts';
-import { lineOf, outcomeOf } from './transfers';
+import { fileOf, lineOf, outcomeOf } from './transfers';
 
 /** The words, as a test can read them: the key and what was put in it. */
 const say = (key: string, values?: Record<string, unknown>): string =>
@@ -39,26 +39,27 @@ function transfer(over: Partial<TransferDto>): TransferDto {
 }
 
 describe('what a row of Transfers says', () => {
-  it('names the notebook an export came from and the file it saves as', () => {
+  it('says the direction and the notebook, once', () => {
+    // It used to name the notebook and then the file named after it, which is
+    // the same words twice over three lines of a panel (#160).
     const line = lineOf(
       transfer({ kind: 'export', fileName: 'Normas e Legislacao.notebook' }),
       say,
     );
-    expect(line).toBe(
-      'transfers.line.export(notebook=Normas e Legislacao,file=Normas e Legislacao.notebook)',
+    expect(line).toBe('transfers.line.export(notebook=Normas e Legislacao)');
+    expect(lineOf(transfer({ kind: 'import' }), say)).toBe(
+      'transfers.line.import(notebook=Normas e Legislacao)',
     );
   });
 
-  it('names the file an import came from and the notebook it created', () => {
-    const line = lineOf(transfer({ kind: 'import', fileName: 'backup-2026-09.notebook' }), say);
-    expect(line).toBe(
-      'transfers.line.import(notebook=Normas e Legislacao,file=backup-2026-09.notebook)',
+  it('keeps the file for the line under it', () => {
+    expect(fileOf(transfer({ kind: 'import', fileName: 'backup-2026-09.notebook' }), say)).toBe(
+      'transfers.fromFile(file=backup-2026-09.notebook)',
     );
   });
 
-  it('says what it can about an import recorded before a file name was kept', () => {
-    const line = lineOf(transfer({ kind: 'import', fileName: null }), say);
-    expect(line).toBe('transfers.line.importNoFile(notebook=Normas e Legislacao)');
+  it('says nothing about a file a transfer was recorded without', () => {
+    expect(fileOf(transfer({ kind: 'import', fileName: null }), say)).toBeNull();
   });
 });
 

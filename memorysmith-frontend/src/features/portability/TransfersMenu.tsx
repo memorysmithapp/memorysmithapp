@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TransferDto } from '@memorysmith/contracts';
-import { lineOf, progressOf, saveArchive, useSaveStartedExports, useTransfers } from './transfers';
-import { StartTransfer } from './StartTransfer';
+import { lineOf, progressOf, saveArchive, useTransfers } from './transfers';
+import { TransferActions, TransferDialogs, type Starting } from './StartTransfer';
 
 /**
  * Transfers, beside the user menu (RN-PRT-019, RN-PRT-020).
@@ -38,17 +38,12 @@ function markSeen(at: string): void {
 export function TransfersMenu() {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [starting, setStarting] = useState<Starting>(null);
   const [seen, setSeen] = useState(seenAt);
   const root = useRef<HTMLDivElement>(null);
   const { data } = useTransfers();
 
   const transfers = data?.transfers ?? [];
-  /**
-   * The menu is in the frame of every screen and never unmounts, which is what
-   * makes it the one that can wait: an export started here saves itself the
-   * moment it is ready, whichever screen the person moved to (#151).
-   */
-  useSaveStartedExports(transfers);
   const running = transfers.filter((transfer) => transfer.status === 'running');
   const finished = transfers.filter(
     (transfer) => transfer.finishedAt !== null && transfer.finishedAt > seen,
@@ -107,7 +102,15 @@ export function TransfersMenu() {
       {open && (
         <div className="transfers-panel">
           <h2>{t('transfers.heading')}</h2>
-          <StartTransfer onStarted={() => setOpen(false)} />
+          <TransferActions
+            onStart={(kind) => {
+              // One surface at a time: the panel used to stay open behind the
+              // dialog it had opened (#160). The dialog itself is mounted
+              // outside the panel, so closing it here does not take it away.
+              setOpen(false);
+              setStarting(kind);
+            }}
+          />
           {transfers.length === 0 && <p className="status">{t('transfers.empty')}</p>}
           <ul className="transfers-recent">
             {transfers.slice(0, 4).map((transfer) => (
@@ -123,6 +126,7 @@ export function TransfersMenu() {
           )}
         </div>
       )}
+      <TransferDialogs starting={starting} onClose={() => setStarting(null)} />
     </div>
   );
 }

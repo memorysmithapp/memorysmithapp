@@ -1,27 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getNotebookStructure } from '../../shared/api/source';
 import { TransferChooser } from './TransferChooser';
-import { everything, nothing, treeOfNotebook, type Chosen } from './import-selection';
+import { TransferDialog } from './TransferDialog';
+import { countsOf, everything, nothing, treeOfNotebook, type Chosen } from './import-selection';
 
 /**
- * What goes in the archive, asked before an export starts (RN-PRT-022).
+ * What an export carries, asked in the dialog both sides share (#160).
  *
- * An export used to be one click inside a notebook and nothing to decide. It
- * is started from Transfers now, from wherever the person is (#151), so it
- * asks WHICH notebook — among the ones they can see, because a listing must
+ * An export is started from Transfers, from wherever the person is (#151), so
+ * it asks WHICH notebook — among the ones they can see, because a listing must
  * never reveal one they cannot (rule 9).
  *
  * And it asks what goes in the archive, which is not a detail of the file:
- * **deleting a notebook takes its history with it** (RN-AUD-011), so an
- * archive that carries the history is the only place that history survives.
- * What it costs is said where it is chosen — a larger file, counted against
- * the storage of the plan — rather than discovered afterwards.
- *
- * It is a modal dialog for the reason the choice of a link is one (#144):
- * `showModal()` puts it in the top layer, which no ancestor can clip, and
- * brings the focus handling with it.
+ * **deleting a notebook takes its history with it** (RN-AUD-011), so an archive
+ * that carries the history is the only place that history survives. The whole
+ * notebook is one click and carries everything; choosing opens the chooser
+ * (RN-PRT-024).
  */
 export function ExportChoice({
   open,
@@ -41,15 +37,14 @@ export function ExportChoice({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  const dialog = useRef<HTMLDialogElement>(null);
   const [preset, setPreset] = useState<'everything' | 'choose'>('everything');
   const [chosen, setChosen] = useState<Chosen>(nothing);
   const [filter, setFilter] = useState('');
 
   /**
-   * The structure of the notebook, which is what an export chooses from: it
-   * has no document yet, so the tree comes from the API (#156). Asked only
-   * when somebody opens the chooser, and not when the dialog opens.
+   * The structure of the notebook, which is what an export chooses from: it has
+   * no document yet, so the tree comes from the API (#156). Asked when somebody
+   * opens the chooser, and not when the dialog opens.
    */
   const structure = useQuery({
     queryKey: ['notebook-structure', notebookId],
@@ -74,111 +69,93 @@ export function ExportChoice({
     setChosen(everything(tree));
   }, [tree, preset, notebookId, started]);
 
-  useEffect(() => {
-    const node = dialog.current;
-    if (!node || !open) return;
-    if (!node.open) node.showModal();
-    document.body.classList.add('has-modal');
-    return () => document.body.classList.remove('has-modal');
-  }, [open]);
-
-  if (!open) return null;
+  const counts = tree ? countsOf(tree, chosen) : null;
 
   return (
-    <dialog
-      ref={dialog}
-      className="export-choice"
-      aria-labelledby="export-choice-heading"
+    <TransferDialog
+      open={open}
+      title={t('portability.exportHeading')}
       onClose={onClose}
-      onClick={(event) => {
-        // The backdrop is the dialog element itself outside its box.
-        if (event.target === dialog.current) {
-          dialog.current?.close();
-        }
-      }}
-    >
-      <div className="export-choice-box">
-        <h2 id="export-choice-heading">{t('portability.exportHeading')}</h2>
-
-        {notebooks.length === 0 ? (
-          <p className="export-choice-what">{t('transfers.noNotebooks')}</p>
-        ) : (
-          <div className="export-choice-notebook">
-            {/* The label is beside the control and not around it: a label that
-                wraps a select takes the text of the chosen option into the
-                name of the field, and the name of the field is what a person
-                using a screen reader hears. */}
-            <label htmlFor="export-choice-notebook">{t('portability.exportNotebook')}</label>
-            <select
-              id="export-choice-notebook"
-              value={notebookId}
-              onChange={(event) => onChooseNotebook(event.target.value)}
-            >
-              {notebooks.map((notebook) => (
-                <option key={notebook.id} value={notebook.id}>
-                  {notebook.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <p className="export-choice-what">{t('portability.exportWhat')}</p>
-
-        <div
-          className="export-choice-presets"
-          role="radiogroup"
-          aria-label={t('portability.exportWhat')}
-        >
-          {(['everything', 'choose'] as const).map((each) => (
-            <label key={each} className="export-choice-preset">
-              <input
-                type="radio"
-                name="export-preset"
-                checked={preset === each}
-                onChange={() => {
-                  setPreset(each);
-                  if (each === 'everything') setStarted('');
-                }}
-              />
-              <span>
-                <strong>{t(`portability.preset.${each}`)}</strong>
-                {each === 'everything' && <small>{t('portability.wholeNotebookHint')}</small>}
-              </span>
-            </label>
-          ))}
-        </div>
-
-        {preset === 'choose' &&
-          (tree ? (
-            <TransferChooser
-              tree={tree}
-              chosen={chosen}
-              onChange={setChosen}
-              filter={filter}
-              onFilter={setFilter}
-            />
-          ) : (
-            <p className="export-choice-what">{t('common.loading')}</p>
-          ))}
-
-        <div className="export-choice-actions">
-          <button type="button" className="button is-quiet" onClick={() => dialog.current?.close()}>
+      actions={
+        <>
+          {preset === 'choose' && counts && (
+            <p className="transfer-summary">
+              {t('portability.willCarry', {
+                folders: counts.folders,
+                templates: counts.templates,
+                notes: counts.notes,
+              })}
+            </p>
+          )}
+          <button type="button" className="button is-quiet" onClick={onClose}>
             {t('portability.cancel')}
           </button>
           <button
             type="button"
             className="button is-primary"
             disabled={notebooks.length === 0}
-            onClick={() => {
-              onConfirm(preset === 'choose' ? chosen : null);
-              dialog.current?.close();
-            }}
+            onClick={() => onConfirm(preset === 'choose' ? chosen : null)}
           >
             {t('portability.startExport')}
           </button>
+        </>
+      }
+    >
+      {notebooks.length === 0 ? (
+        <p className="status">{t('transfers.noNotebooks')}</p>
+      ) : (
+        <div className="transfer-field">
+          {/* The label is beside the control and not around it: a label that
+              wraps a select takes the text of the chosen option into the name
+              of the field, which is what a screen reader announces. */}
+          <label htmlFor="export-choice-notebook">{t('portability.exportNotebook')}</label>
+          <select
+            id="export-choice-notebook"
+            value={notebookId}
+            onChange={(event) => onChooseNotebook(event.target.value)}
+          >
+            {notebooks.map((notebook) => (
+              <option key={notebook.id} value={notebook.id}>
+                {notebook.name}
+              </option>
+            ))}
+          </select>
         </div>
+      )}
+
+      <div className="transfer-presets" role="radiogroup" aria-label={t('portability.exportWhat')}>
+        {(['everything', 'choose'] as const).map((each) => (
+          <label key={each} className="transfer-preset">
+            <input
+              type="radio"
+              name="export-preset"
+              checked={preset === each}
+              onChange={() => {
+                setPreset(each);
+                if (each === 'everything') setStarted('');
+              }}
+            />
+            <span>
+              <strong>{t(`portability.preset.${each}`)}</strong>
+              {each === 'everything' && <small>{t('portability.wholeNotebookHint')}</small>}
+            </span>
+          </label>
+        ))}
       </div>
-    </dialog>
+
+      {preset === 'choose' &&
+        (tree ? (
+          <TransferChooser
+            tree={tree}
+            chosen={chosen}
+            onChange={setChosen}
+            filter={filter}
+            onFilter={setFilter}
+            direction="export"
+          />
+        ) : (
+          <p className="status">{t('common.loading')}</p>
+        ))}
+    </TransferDialog>
   );
 }

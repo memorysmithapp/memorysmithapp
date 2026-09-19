@@ -167,7 +167,7 @@
     "download": "Download notebook (.notebook)",
     "preparing": "Preparing the archive…",
     "failed": "Could not prepare the archive",
-    "import": "Import a notebook",
+    "import": "Import",
     "importing": "Importing “{{name}}”",
     "exporting": "Exporting… follow it in Transfers",
     "importHeading": "Import a notebook",
@@ -232,7 +232,13 @@
     "wholeNotebook": "The whole notebook",
     "wholeNotebookHint": "The Guidance, the Template of each folder, every note, and the history.",
     "foldersAndTemplates": "Folders and their Templates",
-    "withTemplate": "with Template"
+    "withTemplate": "with Template",
+    "whatToCarry": {
+      "export": "What goes in the archive",
+      "import": "What to import"
+    },
+    "thereIsNone": "there is none",
+    "willCarry": "Will be carried: {{folders}} folders · {{templates}} Templates · {{notes}} notes"
   },
   "graph": {
     "heading": "Notebook graph",
@@ -292,12 +298,12 @@
     "newImport": "Import a notebook",
     "noNotebooks": "There is no notebook to export yet.",
     "line": {
-      "export": "Export of “{{notebook}}” to {{file}}",
-      "import": "Import of {{file}} into “{{notebook}}”",
-      "importNoFile": "Import into “{{notebook}}”"
+      "export": "Export · {{notebook}}",
+      "import": "Import · {{notebook}}"
     },
     "wrote_one": "{{count}} note written",
     "wrote_other": "{{count}} notes written",
-    "wroteNothing": "the design, with no note"
+    "wroteNothing": "the design, with no note",
+    "fromFile": "from {{file}}"
   }
 }
