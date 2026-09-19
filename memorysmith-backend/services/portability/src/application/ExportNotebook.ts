@@ -25,6 +25,8 @@ import {
   archiveNameOf,
   buildNotebookDocument,
   carried,
+  subjectsOf,
+  type CarriedSubjects,
   type DocumentHistory,
   type ExportInput,
   type NotebookDocument,
@@ -52,9 +54,14 @@ export interface ExportSource {
  * content cannot be read says only that something was written. Each revision is
  * fetched by the exact pair its entry carries, never by listing: listing the
  * versions of an object belongs to the purge and to nothing else (rule 8).
+ *
+ * `carried` is what the archive holds, and `null` is the whole notebook, which
+ * carries the trail whole. It is passed IN rather than applied to the answer,
+ * because filtering afterwards would pay a read of the object store for every
+ * revision the archive then threw away (#161).
  */
 export interface HistorySource {
-  of(notebookId: string): Promise<DocumentHistory>;
+  of(notebookId: string, carried: CarriedSubjects | null): Promise<DocumentHistory>;
 }
 
 /** Where the archive lands, and how the caller reaches it. */
@@ -128,8 +135,18 @@ export class ExportNotebook {
      * history (RN-PRT-024). A selection says so item by item.
      */
     const wantsHistory = input.selection ? (input.selection.history ?? false) : true;
+    /**
+     * And it carries the history OF WHAT IT CARRIES. Without a selection that
+     * is everything, entries about notes that were deleted included — the one
+     * place such an entry survives, since deleting a notebook takes its trail
+     * with it (RN-PRT-006, RN-AUD-011). With one, an entry about something the
+     * archive left out is left out with it, which is the rule the way in has
+     * always followed (RN-PRT-023, #161).
+     */
     const history =
-      wantsHistory && this.history ? await this.history.of(input.notebookId) : undefined;
+      wantsHistory && this.history
+        ? await this.history.of(input.notebookId, input.selection ? subjectsOf(wanted) : null)
+        : undefined;
 
     // Validated against the published schema before it is written: the export
     // writes nothing the schema does not describe, which is what makes the

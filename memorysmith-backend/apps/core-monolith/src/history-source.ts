@@ -14,11 +14,21 @@
  * left out rather than failing the export: the entry stays, saying that
  * something was written, and the export of a notebook is not lost over one
  * body whose bytes are already gone.
+ *
+ * **What the archive does not carry is filtered out before a revision is
+ * read** (#161). The archive of a selection carries the history of what is in
+ * it, and asking the object store for the body of a revision named by an entry
+ * that will be dropped is a read paid for nothing — and a body that would have
+ * travelled in the `revisions` of an archive that left the thing itself out.
  */
 
 import type { AuditEvent, AuditTrail, RevisionReader } from '@memorysmith/svc-audit/domain';
 import type { HistorySource } from '@memorysmith/svc-portability/application';
-import type { DocumentHistory } from '@memorysmith/svc-portability/domain';
+import {
+  carriesEntry,
+  type CarriedSubjects,
+  type DocumentHistory,
+} from '@memorysmith/svc-portability/domain';
 
 /** How many revisions are read from the object store at once. */
 const READ_CONCURRENCY = 24;
@@ -29,12 +39,12 @@ export class AuditHistorySource implements HistorySource {
     private readonly revisions: RevisionReader,
   ) {}
 
-  async of(notebookId: string): Promise<DocumentHistory> {
+  async of(notebookId: string, carried: CarriedSubjects | null): Promise<DocumentHistory> {
     const entries = await this.trail.activityOf(notebookId, null, null);
     // Oldest first: a history is read forwards, and an import replays it.
-    const ordered = [...entries].sort(
-      (left, right) => left.occurredAt.epochMillis - right.occurredAt.epochMillis,
-    );
+    const ordered = [...entries]
+      .filter((entry) => carriesEntry(entry, carried))
+      .sort((left, right) => left.occurredAt.epochMillis - right.occurredAt.epochMillis);
 
     const wanted = new Map<string, AuditEvent>();
     for (const entry of ordered) {

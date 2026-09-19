@@ -170,6 +170,83 @@ export function carried(
   };
 }
 
+/**
+ * What an archive carries, as the filter of the history has to ask it
+ * (RN-PRT-022, #161).
+ *
+ * An import already leaves out an entry about something the selection left out
+ * (RN-PRT-023). An export used to carry the trail of the whole notebook
+ * whatever was selected, so a partial archive arrived full of entries naming
+ * folders and notes that were not in it — and, worse, carrying the BODY of
+ * every revision those entries named, which is how a Guidance nobody asked for
+ * travelled inside the history of an archive that had left it out.
+ */
+export interface CarriedSubjects {
+  readonly guidance: boolean;
+  readonly folders: ReadonlySet<string>;
+  readonly templates: ReadonlySet<string>;
+  readonly notes: ReadonlySet<string>;
+}
+
+/** What a document carries, read off the document itself and not the request. */
+export function subjectsOf(input: ExportInput): CarriedSubjects {
+  return {
+    guidance: input.guidance !== null,
+    folders: new Set(input.folders.map((folder) => folder.folderId)),
+    templates: new Set(
+      input.folders
+        .filter((folder) => folder.templateContent !== null)
+        .map((folder) => folder.folderId),
+    ),
+    notes: new Set(input.notes.map((note) => note.noteId)),
+  };
+}
+
+/** The entries about the Guidance, which is content of the notebook. */
+const GUIDANCE_EVENTS: ReadonlySet<string> = new Set([
+  'GuidanceUpdated',
+  'GuidanceDeleted',
+  'GuidancePurged',
+]);
+
+/** The entries about a Template, which is content of its folder. */
+const TEMPLATE_EVENTS: ReadonlySet<string> = new Set([
+  'TemplateUpdated',
+  'TemplateDeleted',
+  'TemplatePurged',
+]);
+
+/**
+ * Whether an entry of the trail belongs in the archive (RN-PRT-022).
+ *
+ * `null` is the whole notebook, which carries the trail whole — the entries
+ * about notes that were DELETED included, since a deleted note travels nowhere
+ * else (RN-PRT-006) and deleting the notebook takes its trail with it
+ * (RN-AUD-011). That is the one place such an entry survives, so a selection
+ * is what drops it and never the default.
+ *
+ * Under a selection, the subject of an entry is not enough: a `GuidanceUpdated`
+ * is about the notebook and a `TemplateUpdated` is about a folder, so each is
+ * asked against the thing it is really about.
+ */
+export function carriesEntry(
+  entry: { readonly type: string; readonly subject: string; readonly subjectId: string },
+  carried: CarriedSubjects | null,
+): boolean {
+  if (carried === null) return true;
+  if (entry.subject === 'NOTE') return carried.notes.has(entry.subjectId);
+  if (entry.subject === 'FOLDER') {
+    if (!carried.folders.has(entry.subjectId)) return false;
+    return TEMPLATE_EVENTS.has(entry.type) ? carried.templates.has(entry.subjectId) : true;
+  }
+  if (entry.subject === 'NOTEBOOK') {
+    // The life of the notebook always travels: it is what an import reads the
+    // old identifier of the notebook off, so that it can re-key the rest.
+    return GUIDANCE_EVENTS.has(entry.type) ? carried.guidance : true;
+  }
+  return false;
+}
+
 export function buildNotebookDocument(input: ExportInput, now: string): NotebookDocument {
   return {
     documentVersion: NOTEBOOK_DOCUMENT_VERSION,
