@@ -7,6 +7,16 @@ import type { NotebookDocument, TransferSelection } from '@memorysmith/contracts
  * Everything here is a pure function over the document the browser read, which
  * is what makes it testable without a browser: the page draws what these
  * answer and sends what `selectionOf` builds.
+ *
+ * **A selection is asked as a scope first and as items second (#161).** It used
+ * to be asked item by item, in one tree that mixed five different kinds of
+ * thing, so the first question anybody actually has — *what am I bringing, the
+ * design of the notebook or the notebook* — had nowhere to be answered. It is
+ * two values now: a `Scope`, which says which species travel and whether each
+ * one travels whole, and a `Picked`, which holds what was ticked in the tab of
+ * each species. What goes on the wire is neither of them: it is the `Chosen`
+ * that `effectiveOf` computes out of both, which is where the dependency
+ * between the species is enforced once instead of in three components.
  */
 
 export interface TreeNote {
@@ -47,7 +57,7 @@ export interface DocumentTree {
   readonly historyEntries: number | null;
 }
 
-/** Every identifier a selection can carry, which is what the presets fill. */
+/** Every identifier a selection can carry, which is what travels. */
 export interface Chosen {
   readonly guidance: boolean;
   /** The history the archive carries, when it carries one (RN-PRT-023). */
@@ -58,6 +68,82 @@ export interface Chosen {
 }
 
 export type NodeState = 'on' | 'off' | 'mixed';
+
+/** The three species that have a hierarchy, and therefore a tab of their own. */
+export type Species = 'folders' | 'templates' | 'notes';
+
+/** How much of a species travels: all of it, or the items somebody picked. */
+export type Reach = 'all' | 'choose';
+
+/**
+ * The scope of a transfer: which species travel, and how much of each (#161).
+ *
+ * The five are not five of a kind. The Guidance and the history are a yes or a
+ * no, because there is nothing under them to walk. The other three have a
+ * hierarchy, so each one answers twice: whether it travels at all, and whether
+ * it travels whole or item by item.
+ */
+export interface Scope {
+  readonly guidance: boolean;
+  readonly history: boolean;
+  readonly folders: boolean;
+  readonly templates: boolean;
+  readonly notes: boolean;
+  readonly reach: {
+    readonly folders: Reach;
+    readonly templates: Reach;
+    readonly notes: Reach;
+  };
+}
+
+/** Every species, whole: where the chooser opens. */
+export const wholeScope: Scope = {
+  guidance: true,
+  history: true,
+  folders: true,
+  templates: true,
+  notes: true,
+  reach: { folders: 'all', templates: 'all', notes: 'all' },
+};
+
+/**
+ * What was ticked in the tab of each species — **what somebody asked for**, and
+ * not what will travel. A folder unticked later takes its notes out of the
+ * transfer, and `effectiveOf` is what says so; leaving them ticked here means
+ * that ticking the folder back brings them back rather than silently losing
+ * what the person had already chosen note by note.
+ */
+export interface Picked {
+  readonly folders: ReadonlySet<string>;
+  readonly templates: ReadonlySet<string>;
+  readonly notes: ReadonlySet<string>;
+}
+
+export const pickedNothing: Picked = {
+  folders: new Set<string>(),
+  templates: new Set<string>(),
+  notes: new Set<string>(),
+};
+
+/**
+ * A folder as one of the three tabs offers it.
+ *
+ * `offered` is the whole point: a folder that was not chosen but holds one that
+ * was still has to be DRAWN, or its children would hang off nothing — and it
+ * must not be choosable, because it is travelling as a path and a path carries
+ * its name and its description and nothing else of its own (RN-PRT-017). So it
+ * is a row with no box, and its Template and its notes are not offered on it.
+ */
+export interface OfferableFolder {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly template: TreeTemplate | null;
+  readonly notes: ReadonlyArray<TreeNote>;
+  readonly children: ReadonlyArray<OfferableFolder>;
+  readonly noteCount: number;
+  readonly offered: boolean;
+}
 
 /**
  * What a note is called, read from the `name:` of its frontmatter and from
@@ -176,27 +262,58 @@ interface NotebookFolder {
   readonly children: ReadonlyArray<NotebookFolder>;
 }
 
-/** Everything: the whole document, which is what almost everyone wants. */
-export function everything(tree: DocumentTree): Chosen {
+/** Every folder of a tree, depth first, which several of these walk. */
+function flatten(folders: ReadonlyArray<TreeFolder>): TreeFolder[] {
+  return folders.flatMap((folder) => [folder, ...flatten(folder.children)]);
+}
+
+/**
+ * What actually travels, out of a scope and what was ticked under it (#161).
+ *
+ * **This is the one place the dependency between the species is enforced**, and
+ * the direction is always the same: a Template and a note belong to a folder,
+ * so neither can travel without it. A species switched off carries nothing; a
+ * species on `all` carries everything its folders allow; a species on `choose`
+ * carries what was ticked, intersected with those same folders.
+ */
+export function effectiveOf(tree: DocumentTree, scope: Scope, picked: Picked): Chosen {
+  const every = flatten(tree.folders);
+
   const folders = new Set<string>();
+  if (scope.folders) {
+    for (const folder of every) {
+      if (scope.reach.folders === 'all' || picked.folders.has(folder.id)) folders.add(folder.id);
+    }
+  }
+
   const templates = new Set<string>();
   const notes = new Set<string>();
-  const walk = (list: TreeFolder[]): void => {
-    for (const folder of list) {
-      folders.add(folder.id);
-      if (folder.template) templates.add(folder.id);
-      for (const note of folder.notes) notes.add(note.id);
-      walk(folder.children);
+  for (const folder of every) {
+    // A folder that is not carried carries nothing of its own: it is a path.
+    if (!folders.has(folder.id)) continue;
+    if (scope.templates && folder.template !== null) {
+      if (scope.reach.templates === 'all' || picked.templates.has(folder.id)) {
+        templates.add(folder.id);
+      }
     }
-  };
-  walk(tree.folders);
+    if (!scope.notes) continue;
+    for (const note of folder.notes) {
+      if (scope.reach.notes === 'all' || picked.notes.has(note.id)) notes.add(note.id);
+    }
+  }
+
   return {
-    guidance: tree.guidance,
-    history: tree.historyEntries !== 0,
+    guidance: scope.guidance && tree.guidance,
+    history: scope.history && tree.historyEntries !== 0,
     folders,
     templates,
     notes,
   };
+}
+
+/** Everything: the whole document, which is what almost everyone wants. */
+export function everything(tree: DocumentTree): Chosen {
+  return effectiveOf(tree, wholeScope, pickedNothing);
 }
 
 export const nothing: Chosen = {
@@ -207,131 +324,146 @@ export const nothing: Chosen = {
   notes: new Set<string>(),
 };
 
-/** Every identifier of a branch: the folder, what it holds and what is under it. */
-export function branchOf(folder: TreeFolder): Chosen {
-  const folders = new Set<string>([folder.id]);
-  const templates = new Set<string>(folder.template ? [folder.id] : []);
-  const notes = new Set<string>(folder.notes.map((note) => note.id));
-  for (const child of folder.children) {
-    const under = branchOf(child);
-    for (const id of under.folders) folders.add(id);
-    for (const id of under.templates) templates.add(id);
-    for (const id of under.notes) notes.add(id);
-  }
-  return { guidance: false, history: false, folders, templates, notes };
-}
-
-/** Adds or removes a whole branch, which is what a checkbox of a tree does. */
-export function withBranch(chosen: Chosen, folder: TreeFolder, on: boolean): Chosen {
-  const branch = branchOf(folder);
-  const folders = new Set(chosen.folders);
-  const templates = new Set(chosen.templates);
-  const notes = new Set(chosen.notes);
-  const apply = (set: Set<string>, ids: Iterable<string>): void => {
-    for (const id of ids) {
-      if (on) set.add(id);
-      else set.delete(id);
-    }
-  };
-  apply(folders, branch.folders);
-  apply(templates, branch.templates);
-  apply(notes, branch.notes);
-  return { ...chosen, folders, templates, notes };
-}
-
 /**
- * The branch of a folder, in NOTES only (#156).
- *
- * The chooser asks two questions in two tabs, and each one has to answer only
- * its own: which folders travel is the context, which notes travel is the
- * notes. A checkbox in the notes that took the folder with it would undo what
- * the other tab was for — and it did, on the first run against staging: the
- * design of a notebook chosen in the context arrived with no folder at all.
+ * What each species contributes, as *carried over held* — which is what the row
+ * of the scope states, so the dependency between the species is visible in the
+ * first tab instead of being discovered in the third (#161).
  */
-export function withBranchNotes(chosen: Chosen, folder: TreeFolder, on: boolean): Chosen {
-  const notes = new Set(chosen.notes);
-  for (const id of branchOf(folder).notes) {
-    if (on) notes.add(id);
-    else notes.delete(id);
-  }
-  return { ...chosen, notes };
-}
-
-/** On, off or mixed, counting the NOTES of a branch and nothing else. */
-export function stateOfNotes(chosen: Chosen, folder: TreeFolder): NodeState {
-  const held = [...branchOf(folder).notes];
-  if (held.length === 0) return 'off';
-  const chosenHere = held.filter((id) => chosen.notes.has(id)).length;
-  if (chosenHere === 0) return 'off';
-  return chosenHere === held.length ? 'on' : 'mixed';
-}
-
-/**
- * A folder of the CONTEXT: the folder itself, its name and its description.
- *
- * Letting it go lets its Template go with it, and not the other way round: a
- * Template cannot be written on a folder that was not written, and a folder
- * carries no Template unless somebody says so. They are two objects of the
- * context and each is chosen on its own (#156).
- */
-export function withContextFolder(chosen: Chosen, folder: TreeFolder, on: boolean): Chosen {
-  const folders = new Set(chosen.folders);
-  const templates = new Set(chosen.templates);
-  if (on) folders.add(folder.id);
-  else {
-    folders.delete(folder.id);
-    templates.delete(folder.id);
-  }
-  return { ...chosen, folders, templates };
-}
-
-/**
- * The Template of a folder, chosen on its own — and carrying its folder with
- * it, because there is nowhere else to write it.
- */
-export function withTemplate(chosen: Chosen, folder: TreeFolder, on: boolean): Chosen {
-  const folders = new Set(chosen.folders);
-  const templates = new Set(chosen.templates);
-  if (on) {
-    templates.add(folder.id);
-    folders.add(folder.id);
-  } else {
-    templates.delete(folder.id);
-  }
-  return { ...chosen, folders, templates };
-}
-
-/** Adds or removes one node alone, which is the `⋯` of a row. */
-export function withNode(
+export function scopeCountsOf(
+  tree: DocumentTree,
   chosen: Chosen,
-  node: { kind: 'folder' | 'template' | 'note'; id: string },
-  on: boolean,
-): Chosen {
-  const next = {
-    guidance: chosen.guidance,
-    history: chosen.history,
-    folders: new Set(chosen.folders),
-    templates: new Set(chosen.templates),
-    notes: new Set(chosen.notes),
+): Record<Species, { carried: number; held: number }> {
+  const every = flatten(tree.folders);
+  return {
+    folders: { carried: chosen.folders.size, held: every.length },
+    templates: {
+      carried: chosen.templates.size,
+      held: every.filter((folder) => folder.template !== null).length,
+    },
+    notes: { carried: chosen.notes.size, held: tree.noteCount },
   };
-  const set =
-    node.kind === 'folder' ? next.folders : node.kind === 'template' ? next.templates : next.notes;
-  if (on) set.add(node.id);
-  else set.delete(node.id);
-  return next;
 }
 
-/** Selected, not selected, or mixed — which is what a folder usually is. */
-export function stateOf(chosen: Chosen, folder: TreeFolder): NodeState {
-  const branch = branchOf(folder);
-  const ids = [
-    ...[...branch.folders].map((id) => chosen.folders.has(id)),
-    ...[...branch.templates].map((id) => chosen.templates.has(id)),
-    ...[...branch.notes].map((id) => chosen.notes.has(id)),
-  ];
-  if (ids.every((on) => on)) return 'on';
-  if (ids.every((on) => !on)) return 'off';
-  return 'mixed';
+/**
+ * The tree a tab offers, pruned to what the folders allow (#161).
+ *
+ * `offered` of `null` is the Folders tab, where every folder is choosable
+ * because choosing them is the question. For the other two it is the set of
+ * folders that travel: a folder outside it is drawn when something under it is
+ * inside — otherwise its children would hang off nothing — and drawn as a path,
+ * with no box of its own and neither its Template nor its notes offered on it.
+ *
+ * A branch that offers nothing of the species is dropped whole, so the
+ * Templates tab of a notebook with four Templates is four rows and their
+ * parents, and not sixty-eight rows of which four matter.
+ */
+export function offeredFolders(
+  folders: ReadonlyArray<TreeFolder>,
+  offered: ReadonlySet<string> | null,
+  species: Species,
+): OfferableFolder[] {
+  const kept: OfferableFolder[] = [];
+  for (const folder of folders) {
+    const isOffered = offered === null || offered.has(folder.id);
+    const children = offeredFolders(folder.children, offered, species);
+    const offers =
+      isOffered &&
+      (species === 'folders' ||
+        (species === 'templates' ? folder.template !== null : folder.notes.length > 0));
+    if (!offers && children.length === 0) continue;
+    kept.push({
+      id: folder.id,
+      name: folder.name,
+      description: folder.description,
+      template: isOffered ? folder.template : null,
+      notes: isOffered ? folder.notes : [],
+      children,
+      noteCount: folder.noteCount,
+      offered: isOffered,
+    });
+  }
+  return kept;
+}
+
+/**
+ * Every identifier a branch offers for one species, counting only the folders
+ * that are offered — a path contributes its children and nothing of its own.
+ */
+function branchIds(folder: OfferableFolder, species: Species): string[] {
+  const here = !folder.offered
+    ? []
+    : species === 'folders'
+      ? [folder.id]
+      : species === 'templates'
+        ? folder.template !== null
+          ? [folder.id]
+          : []
+        : folder.notes.map((note) => note.id);
+  return [...here, ...folder.children.flatMap((child) => branchIds(child, species))];
+}
+
+/** The set a species is ticked in, which is the only thing that differs. */
+function setFor(picked: Picked, species: Species): ReadonlySet<string> {
+  return species === 'folders'
+    ? picked.folders
+    : species === 'templates'
+      ? picked.templates
+      : picked.notes;
+}
+
+function withSet(picked: Picked, species: Species, next: ReadonlySet<string>): Picked {
+  return species === 'folders'
+    ? { ...picked, folders: next }
+    : species === 'templates'
+      ? { ...picked, templates: next }
+      : { ...picked, notes: next };
+}
+
+/**
+ * Ticking a node takes the whole branch under it, in that species alone.
+ *
+ * It never reaches across species: ticking a folder in the Folders tab does not
+ * tick its Template, and ticking notes never ticks a folder. Which folders
+ * travel is one question and what they carry is another — a checkbox that
+ * answered both is exactly what made the previous chooser unreadable (#156).
+ */
+export function pickBranch(
+  picked: Picked,
+  folder: OfferableFolder,
+  species: Species,
+  on: boolean,
+): Picked {
+  const next = new Set(setFor(picked, species));
+  for (const id of branchIds(folder, species)) {
+    if (on) next.add(id);
+    else next.delete(id);
+  }
+  return withSet(picked, species, next);
+}
+
+/** Ticking one node alone, which is a leaf row: a note, or a Template. */
+export function pickOne(picked: Picked, species: Species, id: string, on: boolean): Picked {
+  const next = new Set(setFor(picked, species));
+  if (on) next.add(id);
+  else next.delete(id);
+  return withSet(picked, species, next);
+}
+
+/**
+ * On, off or mixed, over what the branch OFFERS of that species. A branch that
+ * offers nothing reads as off, because there is nothing in it to be on.
+ */
+export function stateOfBranch(
+  picked: Picked,
+  folder: OfferableFolder,
+  species: Species,
+): NodeState {
+  const ids = branchIds(folder, species);
+  if (ids.length === 0) return 'off';
+  const set = setFor(picked, species);
+  const on = ids.filter((id) => set.has(id)).length;
+  if (on === 0) return 'off';
+  return on === ids.length ? 'on' : 'mixed';
 }
 
 /** What will be created, which is what the summary states. */
@@ -435,13 +567,13 @@ export function twinNames(
     if (!chosen.notes.has(note.noteId)) continue;
     const name = nameOf(note.body);
     if (name === null) continue;
-    const key = `${note.folderId} ${name}`;
+    const key = `${note.folderId} ${name}`;
     seen.set(key, (seen.get(key) ?? 0) + 1);
   }
   return [...seen]
     .filter(([, count]) => count > 1)
     .map(([key]) => {
-      const [folderId = '', name = ''] = key.split(' ');
+      const [folderId = '', name = ''] = key.split(' ');
       return { folderId, name };
     });
 }

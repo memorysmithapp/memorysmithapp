@@ -3179,8 +3179,227 @@ body.has-modal {
   line-height: 1.4;
 }
 
+/* ---- The chooser of a transfer (#156, #161) -----------------------------
+ *
+ * What a transfer carries, on both sides of the door. Four tabs: the scope,
+ * which is five species and how much of each travels, and one tab per species
+ * that has a hierarchy, each showing only what the folders let through.
+ *
+ * The whole block was deleted by 52c87af while the dialog around it was being
+ * rebuilt, and nothing replaced it: the tabs stopped being tabs, the tree lost
+ * the guide down its side, and every row of a `<ul>` came back with a browser
+ * bullet. It is written again here rather than reverted, because the two tabs
+ * it was drawn for are four now and two of them carry a line of their own.
+ */
+.chooser {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.chooser-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.35rem 0.35rem 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.chooser-tab {
+  flex-shrink: 0;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  padding: 0.5rem 0.9rem;
+  background: none;
+  color: var(--text-soft);
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+/* A tab that is not open stays legible: it is disabled, not absent (#160). */
+.chooser-tab:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.chooser-tab.is-selected {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+  /* Over the border of the strip, so the tab and the panel are one sheet. */
+  margin-bottom: -1px;
+  padding-bottom: calc(0.5rem + 1px);
+}
+.chooser-panel {
+  padding: 0.75rem;
+  max-height: 22rem;
+  overflow-y: auto;
+}
+
+/* The scope: five rows, and the three with a hierarchy carry their reach. */
+.chooser-scope {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.chooser-scope-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+  min-height: 2.5rem;
+  padding: 0.35rem 0.3rem;
+  border-bottom: 1px solid var(--border);
+}
+.chooser-scope-row:last-child {
+  border-bottom: 0;
+}
+.chooser-scope-row .chooser-name {
+  font-family: var(--display);
+  font-weight: 500;
+}
+.chooser-scope-row.is-missing .chooser-name {
+  color: var(--text-soft);
+}
+/* Everything, or the items somebody picks: the reach of one species. */
+.chooser-reach {
+  display: flex;
+  gap: 0.75rem;
+  flex-basis: 100%;
+  padding-inline-start: 1.6rem;
+}
+.chooser-reach-option {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+
+/* Why this tab shows what it shows, and what to do when it shows nothing. */
+.chooser-scoping,
+.chooser-empty {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-soft);
+}
+.chooser-empty {
+  margin: 0.5rem 0;
+  padding: 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+.chooser-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  margin-bottom: 0.5rem;
+}
+.chooser-filter input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.chooser-tree,
+.chooser-branch {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+/* The guide of a level: what makes a branch read as one. */
+.chooser-branch {
+  margin-left: 0.85rem;
+  padding-left: 0.4rem;
+  border-left: 1px solid var(--border);
+}
+.chooser-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2rem;
+  border-radius: 6px;
+  padding-right: 0.35rem;
+}
+.chooser-row:hover {
+  background: var(--bg);
+}
+.chooser-label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+.chooser-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A folder carries the weight of the level; a note is the leaf of it. */
+.chooser-row.is-folder .chooser-name {
+  font-family: var(--display);
+  font-weight: 500;
+}
+.chooser-row.is-note .chooser-name {
+  color: var(--text-soft);
+}
+/* A folder travelling as a path: drawn so its children hang off something,
+   and not choosable, because it carries nothing of its own (RN-PRT-017). */
+.chooser-row.is-path {
+  color: var(--text-soft);
+}
+.chooser-row.is-path .chooser-label {
+  cursor: default;
+  /* Where the box of a chosen folder would be, so the levels stay aligned. */
+  padding-inline-start: 1.15rem;
+}
+.chooser-row.is-path .chooser-name {
+  font-family: var(--display);
+  font-style: italic;
+}
+.chooser-note {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--pending);
+}
+.chooser-twisty {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+.chooser-twisty:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+/* A leaf keeps the width of a twisty, so its name starts where the others do. */
+.chooser-twisty.is-empty {
+  cursor: default;
+}
+
 @media (max-width: 40rem) {
   .chooser-row {
     min-height: 2.4rem;
+  }
+  .chooser-panel {
+    max-height: none;
   }
 }

@@ -458,17 +458,17 @@ test.describe('a notebook out and back in, through the browser', () => {
     await name.fill(free);
 
     /**
-     * The design of the notebook and not one note of it (RN-PRT-017). The
-     * chooser asks two questions in two tabs (#156): the CONTEXT — the
-     * Guidance, the history and the Template of each folder — and the notes.
-     * Choosing starts from everything, so the design alone is the context kept
-     * and the notes let go, and a Template carries the folder it belongs to.
+     * The design of the notebook and not one note of it (RN-PRT-017).
+     *
+     * The chooser asks the SCOPE before the items (#161): five species, each
+     * saying whether it travels. So the design alone is one box — the notes
+     * let go — where it used to be a loop unticking every row of a tab, and
+     * the tab of the notes closes with them, because there is nothing left in
+     * it to choose.
      */
     await dialog.getByRole('radio', { name: words.chooseItems }).check();
-    await dialog.getByRole('tab', { name: words.tabNotes }).click();
-    for (const box of await dialog.locator('#chooser-panel-notes .chooser-row input').all()) {
-      if (await box.isChecked()) await box.uncheck();
-    }
+    await dialog.getByRole('checkbox', { name: words.tabNotes, exact: true }).uncheck();
+    await expect(dialog.getByRole('tab', { name: words.tabNotes, exact: true })).toBeDisabled();
     await expect(dialog.locator('.transfer-summary')).toContainText(words.willCreateNoNotes);
 
     /**

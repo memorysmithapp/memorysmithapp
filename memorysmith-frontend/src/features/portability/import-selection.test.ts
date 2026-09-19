@@ -2,9 +2,10 @@
  * What a selection of a `.notebook` document means (#143, RN-PRT-017).
  *
  * The page draws what these answer and sends what `selectionOf` builds, so this
- * is where the rules of the selection are proved: a checkbox takes the whole
- * branch, a folder shows three states, a folder holding something selected is
- * written as a path, and the summary states the consequences.
+ * is where the rules of the selection are proved: a scope decides which species
+ * travel, a checkbox takes the whole branch of one species, a folder that was
+ * not chosen but holds something that was is written as a path, and the summary
+ * states the consequences.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -12,19 +13,22 @@ import type { NotebookDocument } from '@memorysmith/contracts';
 import {
   countsOf,
   danglingLinks,
+  effectiveOf,
   everything,
   nameOf,
-  nothing,
+  offeredFolders,
+  pickBranch,
+  pickOne,
+  pickedNothing,
+  scopeCountsOf,
   selectionOf,
-  stateOf,
-  stateOfNotes,
-  withBranchNotes,
-  withContextFolder,
-  withTemplate,
+  stateOfBranch,
   treeOf,
   twinNames,
-  withBranch,
-  withNode,
+  wholeScope,
+  type Chosen,
+  type Picked,
+  type Scope,
 } from './import-selection';
 
 const ROOT = '01JBQ2X0000000000000000001';
@@ -98,6 +102,22 @@ const tree = treeOf(DOCUMENT);
 const root = tree.folders[0]!;
 const child = root.children[0]!;
 
+/** A scope over the whole one, which is where the chooser opens. */
+const scopeOf = (
+  over: Partial<Omit<Scope, 'reach'>> & { reach?: Partial<Scope['reach']> },
+): Scope => ({
+  ...wholeScope,
+  ...over,
+  reach: { ...wholeScope.reach, ...(over.reach ?? {}) },
+});
+
+/** What somebody ticked, from the identifiers alone. */
+const pick = (over: Partial<Record<keyof Picked, string[]>>): Picked => ({
+  folders: new Set(over.folders ?? []),
+  templates: new Set(over.templates ?? []),
+  notes: new Set(over.notes ?? []),
+});
+
 describe('the tree of a document', () => {
   it('counts the notes of a branch, subfolders included', () => {
     // A folder that keeps its notes in subfolders never reads as empty.
@@ -113,8 +133,16 @@ describe('the tree of a document', () => {
   });
 });
 
-describe('the presets', () => {
-  it('everything is the whole document', () => {
+/**
+ * The scope: which species travel, and how much of each (#161).
+ *
+ * The chooser opens on everything, and what a person does from there is take
+ * things out — which is why a scope is stored and a selection is derived. A
+ * selection held as state could not be unticked: letting the Guidance go
+ * emptied the set, which made `everything` answer again, which ticked it back.
+ */
+describe('the scope', () => {
+  it('opens on the whole document', () => {
     const chosen = everything(tree);
     expect(chosen.guidance).toBe(true);
     expect(chosen.folders.size).toBe(3);
@@ -122,49 +150,186 @@ describe('the presets', () => {
     expect(chosen.notes.size).toBe(3);
   });
 
-  it('leaves the design of a notebook one selection away, with no preset for it', () => {
-    /**
-     * `Structure only` was a preset and is not any more: the Guidance and the
-     * Template of each folder are items of the tree, so taking the notes out of
-     * `everything` is the same thing and is what the tree does (RN-PRT-017).
-     */
-    const whole = everything(tree);
-    const design = { ...whole, notes: new Set<string>() };
+  it('leaves the design of a notebook one box away', () => {
+    // `Structure only` was a preset and is not any more: the notes are a
+    // species of the scope, so taking them out is one click (RN-PRT-017).
+    const design = effectiveOf(tree, scopeOf({ notes: false }), pickedNothing);
     expect(design.guidance).toBe(true);
     expect(design.folders.size).toBe(3);
     expect(design.templates.size).toBe(1);
     expect(design.notes.size).toBe(0);
   });
+
+  it('carries nothing of a species that is switched off', () => {
+    const noTemplates = effectiveOf(tree, scopeOf({ templates: false }), pickedNothing);
+    expect(noTemplates.templates.size).toBe(0);
+    expect(noTemplates.folders.size).toBe(3);
+  });
+
+  it('empties the Templates and the notes when the folders go', () => {
+    // A Template and a note belong to a folder, so neither can travel without
+    // one. It was always true and the screen never said it (#161).
+    const none = effectiveOf(tree, scopeOf({ folders: false }), pickedNothing);
+    expect(none.folders.size).toBe(0);
+    expect(none.templates.size).toBe(0);
+    expect(none.notes.size).toBe(0);
+    // And the Guidance is not a folder, so it is untouched.
+    expect(none.guidance).toBe(true);
+  });
+
+  it('keeps a note out when the folder holding it was not chosen', () => {
+    const chosen = effectiveOf(
+      tree,
+      scopeOf({ reach: { folders: 'choose' } }),
+      pick({ folders: [CHILD] }),
+    );
+    expect(chosen.folders).toEqual(new Set([CHILD]));
+    // N1 lives in ROOT, which travels only as a path.
+    expect(chosen.notes).toEqual(new Set([N2, N3]));
+    expect(chosen.templates.size).toBe(0);
+  });
+
+  it('intersects what was ticked with the folders that travel', () => {
+    const chosen = effectiveOf(
+      tree,
+      scopeOf({ reach: { folders: 'choose', notes: 'choose' } }),
+      pick({ folders: [CHILD], notes: [N1, N2] }),
+    );
+    // N1 was ticked and its folder was not chosen, so it does not travel.
+    expect(chosen.notes).toEqual(new Set([N2]));
+  });
+
+  it('remembers what was ticked under a folder that was unticked', () => {
+    // Ticking the folder back brings the notes back, rather than silently
+    // losing what somebody had already chosen note by note.
+    const picked = pick({ folders: [CHILD], notes: [N2] });
+    const away = scopeOf({ folders: false, reach: { folders: 'choose', notes: 'choose' } });
+    expect(effectiveOf(tree, away, picked).notes.size).toBe(0);
+    const back = scopeOf({ reach: { folders: 'choose', notes: 'choose' } });
+    expect(effectiveOf(tree, back, picked).notes).toEqual(new Set([N2]));
+  });
 });
 
-describe('choosing in the tree', () => {
+describe('what each row of the scope states', () => {
+  it('counts what is carried over what is held', () => {
+    const counts = scopeCountsOf(tree, everything(tree));
+    expect(counts.folders).toEqual({ carried: 3, held: 3 });
+    expect(counts.templates).toEqual({ carried: 1, held: 1 });
+    expect(counts.notes).toEqual({ carried: 3, held: 3 });
+  });
+
+  it('falls with the folders, so the dependency shows in the first tab', () => {
+    const chosen = effectiveOf(
+      tree,
+      scopeOf({ reach: { folders: 'choose' } }),
+      pick({ folders: [CHILD] }),
+    );
+    const counts = scopeCountsOf(tree, chosen);
+    expect(counts.folders).toEqual({ carried: 1, held: 3 });
+    expect(counts.templates).toEqual({ carried: 0, held: 1 });
+    expect(counts.notes).toEqual({ carried: 2, held: 3 });
+  });
+});
+
+/**
+ * What each tab offers, and what a checkbox in it moves (#161).
+ *
+ * One species per tab, and a checkbox that never reaches across: ticking a
+ * folder does not tick its Template and ticking notes never ticks a folder.
+ * A checkbox that answered both questions is what made the previous chooser
+ * unreadable, and on the first run against staging a notebook chosen for its
+ * design alone arrived with no folder at all.
+ */
+describe('what a tab offers', () => {
+  it('offers every folder in the Folders tab', () => {
+    const offered = offeredFolders(tree.folders, null, 'folders');
+    expect(offered.map((folder) => folder.id)).toEqual([ROOT, OTHER]);
+    expect(offered[0]?.offered).toBe(true);
+    expect(offered[0]?.children.map((child_) => child_.id)).toEqual([CHILD]);
+  });
+
+  it('draws a folder that was not chosen as a path, and offers nothing on it', () => {
+    // Its children would otherwise hang off nothing, and it carries its name
+    // and its description and nothing else of its own (RN-PRT-017).
+    const offered = offeredFolders(tree.folders, new Set([CHILD]), 'notes');
+    expect(offered).toHaveLength(1);
+    expect(offered[0]?.id).toBe(ROOT);
+    expect(offered[0]?.offered).toBe(false);
+    expect(offered[0]?.notes).toEqual([]);
+    expect(offered[0]?.children[0]?.offered).toBe(true);
+  });
+
+  it('drops a branch that offers nothing of the species', () => {
+    // The Templates tab of a notebook with one Template is one row and not
+    // sixty-eight, and the folder with no notes is not in the Notes tab.
+    const templates = offeredFolders(tree.folders, new Set([ROOT, CHILD, OTHER]), 'templates');
+    expect(templates.map((folder) => folder.id)).toEqual([ROOT]);
+    expect(templates[0]?.children).toEqual([]);
+
+    const notes = offeredFolders(tree.folders, new Set([ROOT, CHILD, OTHER]), 'notes');
+    expect(notes.map((folder) => folder.id)).toEqual([ROOT]);
+  });
+});
+
+describe('choosing in a tab', () => {
+  const offered = offeredFolders(tree.folders, null, 'folders');
+  const offeredRoot = offered[0]!;
+
   it('takes the whole branch on a checkbox, and gives it back', () => {
-    const on = withBranch(nothing, root, true);
+    const on = pickBranch(pickedNothing, offeredRoot, 'folders', true);
     expect(on.folders).toEqual(new Set([ROOT, CHILD]));
-    expect(on.notes).toEqual(new Set([N1, N2, N3]));
-    expect(stateOf(on, root)).toBe('on');
-    expect(stateOf(withBranch(on, root, false), root)).toBe('off');
+    expect(stateOfBranch(on, offeredRoot, 'folders')).toBe('on');
+    expect(
+      stateOfBranch(pickBranch(on, offeredRoot, 'folders', false), offeredRoot, 'folders'),
+    ).toBe('off');
   });
 
-  it('shows a folder as mixed when only part of it is selected', () => {
-    const one = withNode(nothing, { kind: 'note', id: N2 }, true);
-    expect(stateOf(one, root)).toBe('mixed');
-    expect(stateOf(one, child)).toBe('mixed');
+  it('never reaches across species', () => {
+    const on = pickBranch(pickedNothing, offeredRoot, 'folders', true);
+    expect(on.templates.size).toBe(0);
+    expect(on.notes.size).toBe(0);
   });
 
-  it('selects only the node when that is what was asked', () => {
-    // The less common intent, which is why it is not the checkbox.
-    const only = withNode(nothing, { kind: 'folder', id: ROOT }, true);
-    expect(only.folders).toEqual(new Set([ROOT]));
-    expect(only.notes.size).toBe(0);
+  it('says a folder is mixed when part of its branch is chosen', () => {
+    const one = pickOne(pickedNothing, 'folders', CHILD, true);
+    expect(stateOfBranch(one, offeredRoot, 'folders')).toBe('mixed');
+  });
+
+  it('keeps a folder chosen when a folder under it is let go', () => {
+    // Which is how a folder without the folders under it is said: tick the
+    // branch, untick each child, and the parent stays on and reads as mixed.
+    const branch = pickBranch(pickedNothing, offeredRoot, 'folders', true);
+    const child_ = offeredRoot.children[0]!;
+    const alone = pickBranch(branch, child_, 'folders', false);
+    expect(alone.folders).toEqual(new Set([ROOT]));
+    expect(stateOfBranch(alone, offeredRoot, 'folders')).toBe('mixed');
+  });
+
+  it('counts only what a branch offers, so a path contributes its children', () => {
+    const notes = offeredFolders(tree.folders, new Set([CHILD]), 'notes');
+    const path = notes[0]!;
+    const on = pickBranch(pickedNothing, path, 'notes', true);
+    // ROOT is a path here, so its own note is not among what was ticked.
+    expect(on.notes).toEqual(new Set([N2, N3]));
   });
 });
 
 describe('what the summary states', () => {
+  /** One note of a subfolder, and nothing else: the smallest real selection. */
+  const oneNote: Chosen = effectiveOf(
+    tree,
+    scopeOf({
+      guidance: false,
+      history: false,
+      templates: false,
+      reach: { folders: 'choose', notes: 'choose' },
+    }),
+    pick({ folders: [CHILD], notes: [N2] }),
+  );
+
   it('counts a folder nothing selected but holding something selected', () => {
     // It is written as a PATH: its name and its description, and no Template.
-    const one = withNode(nothing, { kind: 'note', id: N2 }, true);
-    const counts = countsOf(tree, one);
+    const counts = countsOf(tree, oneNote);
     expect(counts.folders).toBe(2);
     expect(counts.templates).toBe(0);
     expect(counts.notes).toBe(1);
@@ -172,8 +337,12 @@ describe('what the summary states', () => {
   });
 
   it('counts the links a selection leaves pointing at notes left out', () => {
-    const one = withNode(nothing, { kind: 'note', id: N1 }, true);
-    expect(danglingLinks(DOCUMENT, one)).toBe(1);
+    const onlyN1 = effectiveOf(
+      tree,
+      scopeOf({ reach: { folders: 'choose', notes: 'choose' } }),
+      pick({ folders: [ROOT], notes: [N1] }),
+    );
+    expect(danglingLinks(DOCUMENT, onlyN1)).toBe(1);
     expect(danglingLinks(DOCUMENT, everything(tree))).toBe(0);
   });
 
@@ -181,68 +350,37 @@ describe('what the summary states', () => {
     // A folder holds one note of each name (RN-KNW-042), and the conflict is
     // resolved by leaving one out rather than by editing the file.
     expect(twinNames(DOCUMENT, everything(tree))).toEqual([{ folderId: CHILD, name: 'ADR-002' }]);
-    const one = withNode(nothing, { kind: 'note', id: N2 }, true);
-    expect(twinNames(DOCUMENT, one)).toEqual([]);
+    expect(twinNames(DOCUMENT, oneNote)).toEqual([]);
   });
 });
 
 describe('what travels to the server', () => {
   it('is the identifiers the document carries, and nothing derived', () => {
-    const selection = selectionOf(withNode(nothing, { kind: 'note', id: N2 }, true));
+    /**
+     * The folder is in it now. A note used to be sendable with its folder left
+     * out, on the strength of the server writing that folder as a path — which
+     * it still does, because an archive can be written by hand. The interface
+     * no longer produces such a selection: a note travels because its folder
+     * does (#161).
+     */
+    const selection = selectionOf(
+      effectiveOf(
+        tree,
+        scopeOf({
+          guidance: false,
+          history: false,
+          templates: false,
+          reach: { folders: 'choose', notes: 'choose' },
+        }),
+        pick({ folders: [CHILD], notes: [N2] }),
+      ),
+    );
     expect(selection).toEqual({
       guidance: false,
       history: false,
-      folders: [],
+      folders: [CHILD],
       templates: [],
       notes: [N2],
     });
-  });
-});
-
-/**
- * Two tabs, two questions, and neither answers the other's (#156).
- *
- * The chooser asks which folders travel in the context and which notes travel
- * in the notes. A checkbox in the notes that took the folder with it undid the
- * other tab — and it did, on the first run against staging: a notebook chosen
- * for its design alone arrived with no folder at all.
- */
-describe('what each tab of the chooser moves', () => {
-  it('lets the notes of a branch go without taking its folders', () => {
-    const everything_ = everything(tree);
-    const design = withBranchNotes(everything_, root, false);
-
-    expect(design.notes.size).toBe(0);
-    // The folders and their Templates are exactly what they were.
-    expect(design.folders).toEqual(everything_.folders);
-    expect(design.templates).toEqual(everything_.templates);
-    expect(stateOfNotes(design, root)).toBe('off');
-  });
-
-  it('takes a folder of the context without taking its Template', () => {
-    // Two objects, two boxes: a folder is its name and its description, and a
-    // Template is a document of its own.
-    const one = withContextFolder(nothing, root, true);
-    expect(one.folders).toEqual(new Set([ROOT]));
-    expect(one.templates.size).toBe(0);
-  });
-
-  it('carries the folder of a Template chosen on its own', () => {
-    // There is nowhere else to write it.
-    const one = withTemplate(nothing, root, true);
-    expect(one.templates).toEqual(new Set([ROOT]));
-    expect(one.folders).toEqual(new Set([ROOT]));
-  });
-
-  it('lets the Template go when the folder it belongs to goes', () => {
-    const one = withTemplate(nothing, root, true);
-    const none = withContextFolder(one, root, false);
-    expect(none.folders.size).toBe(0);
-    expect(none.templates.size).toBe(0);
-  });
-
-  it('says a branch is mixed by its notes alone', () => {
-    const some = withNode(nothing, { kind: 'note', id: N1 }, true);
-    expect(stateOfNotes(some, root)).toBe('mixed');
   });
 });

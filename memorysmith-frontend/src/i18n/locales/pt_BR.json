@@ -182,8 +182,6 @@
     },
     "filter": "Filtrar por nome",
     "notebookGuidance": "Orientação do caderno",
-    "folderTemplate": "Modelo da pasta",
-    "onlyThis": "Só este item",
     "expand": "Abrir",
     "collapse": "Fechar",
     "noteCount_one": "{{count}} nota",
@@ -226,19 +224,33 @@
     "exportNotebook": "Caderno",
     "tab": {
       "context": "Contexto",
+      "folders": "Pastas",
+      "templates": "Modelos",
       "notes": "Notas"
     },
     "noTemplate": "sem Modelo",
     "wholeNotebook": "O caderno todo",
-    "wholeNotebookHint": "A Orientação, o Modelo de cada pasta, todas as notas e a história.",
-    "foldersAndTemplates": "Pastas e seus Modelos",
-    "withTemplate": "com Modelo",
+    "wholeNotebookHint": "A Orientação, o Modelo de cada pasta, todas as notas e a história inteira — inclusive o registro do que foi apagado.",
     "whatToCarry": {
       "export": "O que vai no arquivo",
       "import": "O que importar"
     },
     "thereIsNone": "não há",
-    "willCarry": "Vai no arquivo: {{folders}} pastas · {{templates}} Modelos · {{notes}} notas"
+    "willCarry": "Vai no arquivo: {{folders}} pastas · {{templates}} Modelos · {{notes}} notas",
+    "reach": {
+      "all": "Tudo",
+      "choose": "Escolher itens"
+    },
+    "carriedOf": "{{carried}} de {{held}}",
+    "needsFolders": "depende das pastas",
+    "everyFolderHere": "Todas as pastas do caderno estão aqui, porque Pastas está levando tudo.",
+    "onlyChosenFolders": "Só aparecem as pastas escolhidas na aba Pastas.",
+    "noFolderChosen": {
+      "folders": "Este caderno não tem pasta.",
+      "templates": "Nenhuma pasta escolhida. Escolha uma na aba Pastas para escolher Modelos aqui.",
+      "notes": "Nenhuma pasta escolhida. Escolha uma na aba Pastas para escolher notas aqui."
+    },
+    "pathFolder": "caminho"
   },
   "graph": {
     "heading": "Grafo do caderno",

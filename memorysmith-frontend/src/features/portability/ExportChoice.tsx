@@ -1,10 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getNotebookStructure } from '../../shared/api/source';
 import { TransferChooser } from './TransferChooser';
 import { TransferDialog } from './TransferDialog';
-import { countsOf, everything, nothing, treeOfNotebook, type Chosen } from './import-selection';
+import {
+  countsOf,
+  effectiveOf,
+  pickedNothing,
+  treeOfNotebook,
+  wholeScope,
+  type Chosen,
+  type Picked,
+  type Scope,
+} from './import-selection';
 
 /**
  * What an export carries, asked in the dialog both sides share (#160).
@@ -38,7 +47,8 @@ export function ExportChoice({
 }) {
   const { t } = useTranslation();
   const [preset, setPreset] = useState<'everything' | 'choose'>('everything');
-  const [chosen, setChosen] = useState<Chosen>(nothing);
+  const [scope, setScope] = useState<Scope>(wholeScope);
+  const [picked, setPicked] = useState<Picked>(pickedNothing);
   const [filter, setFilter] = useState('');
 
   /**
@@ -54,22 +64,20 @@ export function ExportChoice({
   const tree = structure.data ? treeOfNotebook(structure.data) : null;
 
   /**
-   * Choosing starts from everything, which is what somebody who opened the
-   * chooser wants to take things OUT of — and it is set ONCE, when the tree
-   * arrives, because the tree is fetched only after the choice is made.
+   * What travels, out of the scope and what was ticked under it (#161).
    *
-   * It used to be derived at render, and a derived selection cannot be
-   * unticked: letting the Guidance go emptied the selection, which made the
-   * expression answer `everything` again, which ticked it back.
+   * It is DERIVED, and the scope it is derived from opens at everything: a
+   * selection held as state could not be unticked — letting the Guidance go
+   * emptied it, which made the expression answer `everything` again, which
+   * ticked it back — and a scope has no such fixed point, because `all` and
+   * `choose` are stored rather than inferred from what is in the set.
    */
-  const [started, setStarted] = useState('');
-  useEffect(() => {
-    if (!tree || preset !== 'choose' || started === notebookId) return;
-    setStarted(notebookId);
-    setChosen(everything(tree));
-  }, [tree, preset, notebookId, started]);
+  const chosen: Chosen | null = useMemo(
+    () => (tree ? effectiveOf(tree, scope, picked) : null),
+    [tree, scope, picked],
+  );
 
-  const counts = tree ? countsOf(tree, chosen) : null;
+  const counts = tree && chosen ? countsOf(tree, chosen) : null;
 
   return (
     <TransferDialog
@@ -132,7 +140,10 @@ export function ExportChoice({
               checked={preset === each}
               onChange={() => {
                 setPreset(each);
-                if (each === 'everything') setStarted('');
+                if (each === 'everything') {
+                  setScope(wholeScope);
+                  setPicked(pickedNothing);
+                }
               }}
             />
             <span>
@@ -144,11 +155,14 @@ export function ExportChoice({
       </div>
 
       {preset === 'choose' &&
-        (tree ? (
+        (tree && chosen ? (
           <TransferChooser
             tree={tree}
+            scope={scope}
+            onScope={setScope}
+            picked={picked}
+            onPicked={setPicked}
             chosen={chosen}
-            onChange={setChosen}
             filter={filter}
             onFilter={setFilter}
             direction="export"

@@ -9,13 +9,15 @@ import { TransferDialog } from './TransferDialog';
 import {
   countsOf,
   danglingLinks,
-  everything,
-  nothing,
+  effectiveOf,
+  pickedNothing,
   selectionOf,
   treeOf,
   twinNames,
-  type Chosen,
+  wholeScope,
   type DocumentTree,
+  type Picked,
+  type Scope,
 } from './import-selection';
 import { useRefreshTransfers } from './transfers';
 
@@ -41,7 +43,8 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
   const [refusal, setRefusal] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [preset, setPreset] = useState<'everything' | 'choose'>('everything');
-  const [chosen, setChosen] = useState<Chosen>(nothing);
+  const [scope, setScope] = useState<Scope>(wholeScope);
+  const [picked, setPicked] = useState<Picked>(pickedNothing);
   const [filter, setFilter] = useState('');
   const [starting, setStarting] = useState(false);
 
@@ -49,6 +52,15 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
   const refresh = useRefreshTransfers();
 
   const tree: DocumentTree | null = useMemo(() => (document ? treeOf(document) : null), [document]);
+  /**
+   * What travels, out of the scope and what was ticked under it (#161). It is
+   * derived and never stored, so unticking a folder takes its notes out of the
+   * transfer in the same instant it takes them out of the tab that offered them.
+   */
+  const chosen = useMemo(
+    () => (tree ? effectiveOf(tree, scope, picked) : null),
+    [tree, scope, picked],
+  );
 
   async function choose(chosenFile: File): Promise<void> {
     setRefusal(null);
@@ -58,7 +70,8 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
       setDocument(read);
       setName(read.notebook.name);
       setPreset('everything');
-      setChosen(everything(treeOf(read)));
+      setScope(wholeScope);
+      setPicked(pickedNothing);
     } catch (error) {
       setDocument(null);
       setRefusal(error instanceof ArchiveError ? error.refusal : 'BAD_FORMAT');
@@ -68,9 +81,9 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
   const taken = (notebooks.data ?? []).some(
     (notebook) => notebook.name.trim().toLowerCase() === name.trim().toLowerCase(),
   );
-  const counts = tree ? countsOf(tree, chosen) : null;
-  const twins = document ? twinNames(document, chosen) : [];
-  const dangling = document ? danglingLinks(document, chosen) : 0;
+  const counts = tree && chosen ? countsOf(tree, chosen) : null;
+  const twins = document && chosen ? twinNames(document, chosen) : [];
+  const dangling = document && chosen ? danglingLinks(document, chosen) : 0;
   const ready =
     document !== null && name.trim().length > 0 && !taken && twins.length === 0 && !starting;
 
@@ -90,7 +103,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
       const transfer: TransferDto = await applyImport(
         prepared.uploadKey,
         name.trim(),
-        preset === 'choose' ? selectionOf(chosen) : null,
+        preset === 'choose' && chosen ? selectionOf(chosen) : null,
         // What the person calls this file: the upload is addressed by an
         // identifier, which says nothing to anybody reading Transfers later.
         file.name,
@@ -113,7 +126,8 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
     setRefusal(null);
     setName('');
     setPreset('everything');
-    setChosen(nothing);
+    setScope(wholeScope);
+    setPicked(pickedNothing);
     setFilter('');
   }
 
@@ -213,7 +227,10 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
                   checked={preset === each}
                   onChange={() => {
                     setPreset(each);
-                    if (each === 'everything') setChosen(everything(tree));
+                    if (each === 'everything') {
+                      setScope(wholeScope);
+                      setPicked(pickedNothing);
+                    }
                   }}
                 />
                 <span>
@@ -224,11 +241,14 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
             ))}
           </div>
 
-          {preset === 'choose' && (
+          {preset === 'choose' && chosen && (
             <TransferChooser
               tree={tree}
+              scope={scope}
+              onScope={setScope}
+              picked={picked}
+              onPicked={setPicked}
               chosen={chosen}
-              onChange={setChosen}
               filter={filter}
               onFilter={setFilter}
               direction="import"

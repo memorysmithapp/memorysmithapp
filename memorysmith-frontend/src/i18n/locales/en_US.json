@@ -182,8 +182,6 @@
     },
     "filter": "Filter by name",
     "notebookGuidance": "Notebook Guidance",
-    "folderTemplate": "Folder Template",
-    "onlyThis": "Only this item",
     "expand": "Expand",
     "collapse": "Collapse",
     "noteCount_one": "{{count}} note",
@@ -226,19 +224,33 @@
     "exportNotebook": "Notebook",
     "tab": {
       "context": "Context",
+      "folders": "Folders",
+      "templates": "Templates",
       "notes": "Notes"
     },
     "noTemplate": "no Template",
     "wholeNotebook": "The whole notebook",
-    "wholeNotebookHint": "The Guidance, the Template of each folder, every note, and the history.",
-    "foldersAndTemplates": "Folders and their Templates",
-    "withTemplate": "with Template",
+    "wholeNotebookHint": "The Guidance, the Template of each folder, every note and the whole history — the record of what was deleted included.",
     "whatToCarry": {
       "export": "What goes in the archive",
       "import": "What to import"
     },
     "thereIsNone": "there is none",
-    "willCarry": "Will be carried: {{folders}} folders · {{templates}} Templates · {{notes}} notes"
+    "willCarry": "Will be carried: {{folders}} folders · {{templates}} Templates · {{notes}} notes",
+    "reach": {
+      "all": "Everything",
+      "choose": "Choose items"
+    },
+    "carriedOf": "{{carried}} of {{held}}",
+    "needsFolders": "needs folders",
+    "everyFolderHere": "Every folder of the notebook is here, because Folders is carrying everything.",
+    "onlyChosenFolders": "Only the folders chosen in the Folders tab appear here.",
+    "noFolderChosen": {
+      "folders": "This notebook has no folder.",
+      "templates": "No folder is chosen. Choose one in the Folders tab to choose Templates here.",
+      "notes": "No folder is chosen. Choose one in the Folders tab to choose notes here."
+    },
+    "pathFolder": "path"
   },
   "graph": {
     "heading": "Notebook graph",

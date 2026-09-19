@@ -49,7 +49,7 @@ export interface Words {
   /** What the import dialog commits with, which is the verb alone (#160). */
   readonly importAction: string;
   readonly chooseItems: string;
-  /** The tab of the chooser that holds the notes (#156). */
+  /** The notes, as the scope row and the tab of the chooser name them (#161). */
   readonly tabNotes: string;
   readonly newExport: string;
   readonly startExport: string;
