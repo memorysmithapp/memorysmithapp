@@ -492,8 +492,11 @@ function BranchRow({
 }) {
   const { t, i18n } = useTranslation();
   // A branch opens collapsed below the first level, so a tree of a thousand
-  // notes draws a handful of rows until somebody asks for more.
+  // notes draws a handful of rows until somebody asks for more — but a FILTER
+  // is somebody asking: what it matched may sit three levels down, and leaving
+  // it behind a twisty is the same as not finding it (#161).
   const [open, setOpen] = useState(depth === 0);
+  const shown = filter !== '' || open;
   const state = stateOfBranch(picked, folder, species);
 
   const notes =
@@ -543,7 +546,7 @@ function BranchRow({
         )
       }
     >
-      {open && (under.length > 0 || notes.length > 0) && (
+      {shown && (under.length > 0 || notes.length > 0) && (
         <ul role="group" className="chooser-branch">
           {under.map((child) => (
             <BranchRow

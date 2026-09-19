@@ -11,6 +11,7 @@ import {
   danglingLinks,
   effectiveOf,
   pickedNothing,
+  seedOf,
   selectionOf,
   treeOf,
   twinNames,
@@ -121,6 +122,30 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
     }
   }
 
+  /**
+   * From the refusal to the notes it is about, in one click (#161).
+   *
+   * A tab of a species opens only when that species is being chosen ITEM BY
+   * ITEM, so sending somebody to the notes means putting the chooser in the
+   * state where a note can be unticked — otherwise the button lands them back
+   * on the scope, which is what it did.
+   */
+  function showTwins(): void {
+    if (!tree) return;
+    setPreset('choose');
+    setScope((current) => ({
+      ...current,
+      folders: true,
+      notes: true,
+      reach: { ...current.reach, notes: 'choose' },
+    }));
+    setPicked((current) =>
+      current.notes.size === 0 ? { ...current, notes: seedOf(tree, 'notes') } : current,
+    );
+    setFilter('');
+    setTab('notes');
+  }
+
   function reset(): void {
     setFile(null);
     setDocument(null);
@@ -157,15 +182,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
                   <span className="is-conflict">
                     {t('portability.twinsBlock', { count: twins.length })}
                   </span>{' '}
-                  <button
-                    type="button"
-                    className="chooser-twins-open"
-                    onClick={() => {
-                      setPreset('choose');
-                      setTab('notes');
-                      setFilter('');
-                    }}
-                  >
+                  <button type="button" className="chooser-twins-open" onClick={showTwins}>
                     {t('portability.showTwins')}
                   </button>
                 </>
