@@ -26,6 +26,7 @@ import {
   stateOfBranch,
   treeOf,
   twinNames,
+  twinNoteIds,
   wholeScope,
   type Chosen,
   type Picked,
@@ -350,8 +351,39 @@ describe('what the summary states', () => {
   it('names a pair of notes that share a name in one folder, when both are selected', () => {
     // A folder holds one note of each name (RN-KNW-042), and the conflict is
     // resolved by leaving one out rather than by editing the file.
-    expect(twinNames(DOCUMENT, everything(tree))).toEqual([{ folderId: CHILD, name: 'ADR-002' }]);
+    expect(twinNames(DOCUMENT, everything(tree))).toEqual([
+      {
+        folderId: CHILD,
+        folderName: 'Decisions',
+        name: 'ADR-002',
+        count: 2,
+        noteIds: [N2, N3],
+      },
+    ]);
     expect(twinNames(DOCUMENT, oneNote)).toEqual([]);
+  });
+
+  it('carries the whole name, spaces and all', () => {
+    /**
+     * The pair used to be packed into a string key and unpacked with
+     * `split(' ')`, so every name was cut at its first space. A real notebook
+     * reported three collisions, two of them reading `Código:` and neither
+     * naming its folder — three sentences that could not tell the reader which
+     * notes they were about, on a screen whose only job was to let them find
+     * those notes and leave one out (#161).
+     */
+    const long = 'Código: Note.ts · create lê o nome do corpo';
+    const twinned = {
+      ...DOCUMENT,
+      notes: DOCUMENT.notes.map((note) =>
+        note.noteId === N2 || note.noteId === N3 ? { ...note, body: body(long) } : note,
+      ),
+    } as NotebookDocument;
+    const twins = twinNames(twinned, everything(treeOf(twinned)));
+    expect(twins).toHaveLength(1);
+    expect(twins[0]?.name).toBe(long);
+    expect(twins[0]?.folderName).toBe('Decisions');
+    expect(twinNoteIds(twins)).toEqual(new Set([N2, N3]));
   });
 });
 

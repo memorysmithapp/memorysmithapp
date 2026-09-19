@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { NotebookDocument, TransferDto } from '@memorysmith/contracts';
 import { applyImport, listNotebooks, prepareImport } from '../../shared/api/source';
 import { ArchiveError, readNotebookArchive } from './notebook-archive';
-import { TransferChooser } from './TransferChooser';
+import { TransferChooser, type ChooserTab } from './TransferChooser';
 import { TransferDialog } from './TransferDialog';
 import {
   countsOf,
@@ -46,6 +46,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
   const [scope, setScope] = useState<Scope>(wholeScope);
   const [picked, setPicked] = useState<Picked>(pickedNothing);
   const [filter, setFilter] = useState('');
+  const [tab, setTab] = useState<ChooserTab>('context');
   const [starting, setStarting] = useState(false);
 
   const notebooks = useQuery({ queryKey: ['notebooks'], queryFn: listNotebooks, enabled: open });
@@ -129,6 +130,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
     setScope(wholeScope);
     setPicked(pickedNothing);
     setFilter('');
+    setTab('context');
   }
 
   return (
@@ -149,6 +151,25 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
                 notes: t('portability.noteCount', { count: counts.notes }),
               })}
               {dangling > 0 && ` · ${t('portability.danglingLinks', { count: dangling })}`}
+              {twins.length > 0 && (
+                <>
+                  <br />
+                  <span className="is-conflict">
+                    {t('portability.twinsBlock', { count: twins.length })}
+                  </span>{' '}
+                  <button
+                    type="button"
+                    className="chooser-twins-open"
+                    onClick={() => {
+                      setPreset('choose');
+                      setTab('notes');
+                      setFilter('');
+                    }}
+                  >
+                    {t('portability.showTwins')}
+                  </button>
+                </>
+              )}
             </p>
           )}
           <button
@@ -254,14 +275,11 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
               filter={filter}
               onFilter={setFilter}
               direction="import"
+              tab={tab}
+              onTab={setTab}
+              twins={twins}
             />
           )}
-
-          {twins.map((twin) => (
-            <p key={`${twin.folderId}-${twin.name}`} className="status is-conflict">
-              {t('portability.twinNames', { name: twin.name })}
-            </p>
-          ))}
         </>
       )}
     </TransferDialog>

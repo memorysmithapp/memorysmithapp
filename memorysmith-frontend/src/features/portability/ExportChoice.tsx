@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getNotebookStructure } from '../../shared/api/source';
-import { TransferChooser } from './TransferChooser';
+import { TransferChooser, type ChooserTab } from './TransferChooser';
 import { TransferDialog } from './TransferDialog';
 import {
   countsOf,
@@ -50,6 +50,7 @@ export function ExportChoice({
   const [scope, setScope] = useState<Scope>(wholeScope);
   const [picked, setPicked] = useState<Picked>(pickedNothing);
   const [filter, setFilter] = useState('');
+  const [tab, setTab] = useState<ChooserTab>('context');
 
   /**
    * The structure of the notebook, which is what an export chooses from: it has
@@ -168,6 +169,8 @@ export function ExportChoice({
             filter={filter}
             onFilter={setFilter}
             direction="export"
+            tab={tab}
+            onTab={setTab}
           />
         ) : (
           <p className="status">{t('common.loading')}</p>

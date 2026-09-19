@@ -3325,6 +3325,86 @@ body.has-modal {
   border: 1px dashed var(--border);
   border-radius: 8px;
 }
+/*
+ * The names carried twice, which refuse the import (RN-KNW-042).
+ *
+ * They used to be a paragraph EACH at the foot of the dialog, so three of them
+ * took the room the tree needed to resolve them — and the tree is where they
+ * are resolved. The foot states the block once; the collisions live in the tab
+ * that holds the notes, and each one is a way in: it filters the tree to that
+ * name, which puts the copies side by side (#161).
+ */
+.chooser-twins {
+  flex-shrink: 0;
+  margin-bottom: 0.6rem;
+  padding: 0.6rem;
+  border: 1px solid var(--signal);
+  border-radius: 8px;
+}
+.chooser-twins-why {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-soft);
+}
+.chooser-twins ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.chooser-twin {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  width: 100%;
+  padding: 0.35rem 0.45rem;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.chooser-twin:hover {
+  background: var(--bg);
+}
+/* The whole name, wrapped: it is what tells one collision from another, and a
+   name cut at its first space told the reader nothing. */
+.chooser-twin-name {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+.chooser-twin-where {
+  font-size: 0.72rem;
+  color: var(--text-soft);
+}
+/* The way in, from the foot of the dialog. */
+.chooser-twins-open {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.chooser-row.is-twin .chooser-name {
+  color: var(--signal);
+}
+.chooser-row.is-twin .chooser-note {
+  color: var(--signal);
+}
+.transfer-summary .is-conflict {
+  color: var(--signal);
+}
+
 .chooser-filter {
   display: flex;
   align-items: center;

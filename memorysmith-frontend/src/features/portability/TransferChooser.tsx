@@ -7,6 +7,7 @@ import {
   scopeCountsOf,
   seedOf,
   stateOfBranch,
+  twinNoteIds,
   type Chosen,
   type DocumentTree,
   type OfferableFolder,
@@ -14,6 +15,7 @@ import {
   type Reach,
   type Scope,
   type Species,
+  type TwinNames,
 } from './import-selection';
 
 /**
@@ -57,6 +59,9 @@ export function TransferChooser({
   filter,
   onFilter,
   direction,
+  tab,
+  onTab,
+  twins = [],
 }: {
   tree: DocumentTree;
   scope: Scope;
@@ -69,9 +74,21 @@ export function TransferChooser({
   onFilter: (next: string) => void;
   /** Which way this is going, which is what the label of the tree says. */
   direction: 'export' | 'import';
+  /**
+   * Which tab is open, held by whoever opened the chooser: the foot of the
+   * dialog sends somebody straight to a conflict, and it cannot do that with
+   * the tab hidden in here (#161).
+   */
+  tab: ChooserTab;
+  onTab: (next: ChooserTab) => void;
+  /**
+   * Names carried twice in one folder, which refuse the import (RN-KNW-042).
+   * Empty on the way out: a notebook cannot hold two live notes of one name.
+   */
+  twins?: ReadonlyArray<TwinNames>;
 }) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<ChooserTab>('context');
+  const setTab = onTab;
 
   const counts = scopeCountsOf(tree, chosen);
   const what = t(`portability.whatToCarry.${direction}`);
@@ -142,6 +159,7 @@ export function TransferChooser({
             onPicked={onPicked}
             filter={filter}
             onFilter={onFilter}
+            twins={twins}
           />
         )}
       </div>
@@ -306,6 +324,7 @@ function ItemsPanel({
   onPicked,
   filter,
   onFilter,
+  twins,
 }: {
   tree: DocumentTree;
   species: Species;
@@ -315,8 +334,10 @@ function ItemsPanel({
   onPicked: (next: Picked) => void;
   filter: string;
   onFilter: (next: string) => void;
+  twins: ReadonlyArray<TwinNames>;
 }) {
   const { t } = useTranslation();
+  const inConflict = twinNoteIds(twins);
   // The Folders tab chooses the folders, so every folder is on offer there.
   const offered = species === 'folders' ? null : chosen.folders;
   const folders = offeredFolders(tree.folders, offered, species);
@@ -329,6 +350,23 @@ function ItemsPanel({
             ? t('portability.everyFolderHere')
             : t('portability.onlyChosenFolders')}
         </p>
+      )}
+      {species === 'notes' && twins.length > 0 && (
+        <div className="chooser-twins">
+          <p className="chooser-twins-why">{t('portability.twinsWhy')}</p>
+          <ul>
+            {twins.map((twin) => (
+              <li key={`${twin.folderId}-${twin.name}`}>
+                <button type="button" className="chooser-twin" onClick={() => onFilter(twin.name)}>
+                  <span className="chooser-twin-name">{twin.name}</span>
+                  <span className="chooser-twin-where">
+                    {t('portability.twinWhere', { count: twin.count, folder: twin.folderName })}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       {species === 'notes' && folders.length > 0 && (
         <label className="chooser-filter">
@@ -350,6 +388,7 @@ function ItemsPanel({
                 depth={0}
                 filter={species === 'notes' ? filter.trim().toLowerCase() : ''}
                 onPicked={onPicked}
+                inConflict={inConflict}
               />
             ))}
           </ul>
@@ -370,8 +409,11 @@ function Row({
   depth = 0,
   children,
   extra,
+  conflict = false,
 }: {
   kind: 'folder' | 'path' | 'template' | 'note';
+  /** This note shares its name with another in its folder (RN-KNW-042). */
+  conflict?: boolean;
   label: string;
   note?: string | undefined;
   checked: boolean;
@@ -387,7 +429,7 @@ function Row({
       <div
         role="treeitem"
         aria-selected={checked}
-        className={`chooser-row is-${kind}`}
+        className={`chooser-row is-${kind}${conflict ? ' is-twin' : ''}`}
         style={{ paddingInlineStart: `${depth * 1.25}rem` }}
       >
         {extra}
@@ -437,6 +479,7 @@ function BranchRow({
   depth,
   filter,
   onPicked,
+  inConflict,
 }: {
   folder: OfferableFolder;
   species: Species;
@@ -444,8 +487,10 @@ function BranchRow({
   depth: number;
   filter: string;
   onPicked: (next: Picked) => void;
+  /** The notes a name collision is about, which the row says so (RN-KNW-042). */
+  inConflict: ReadonlySet<string>;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   // A branch opens collapsed below the first level, so a tree of a thousand
   // notes draws a handful of rows until somebody asks for more.
   const [open, setOpen] = useState(depth === 0);
@@ -509,13 +554,25 @@ function BranchRow({
               depth={depth + 1}
               filter={filter}
               onPicked={onPicked}
+              inConflict={inConflict}
             />
           ))}
           {notes.map((each) => (
             <Row
               key={each.id}
               kind="note"
+              conflict={inConflict.has(each.id)}
               label={each.name || t('note.unnamed')}
+              // Two notes of one name in one folder are the same row twice, so
+              // the one thing that differs is shown: when each was written.
+              note={
+                inConflict.has(each.id) && each.updatedAt
+                  ? new Intl.DateTimeFormat(i18n.language, {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    }).format(new Date(each.updatedAt))
+                  : undefined
+              }
               checked={picked.notes.has(each.id)}
               onToggle={(on) => onPicked(pickOne(picked, 'notes', each.id, on))}
               depth={depth + 1}

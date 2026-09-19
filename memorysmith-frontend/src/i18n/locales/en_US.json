@@ -189,7 +189,6 @@
     "willCreate": "Will create: 1 notebook · {{folders}} · {{templates}} · {{notes}}",
     "danglingLinks_one": "1 link will point at a note left out.",
     "danglingLinks_other": "{{count}} links will point at notes left out.",
-    "twinNames": "Two notes named “{{name}}” are in one folder. Leave one out to import the other.",
     "importLeavePage": "You can leave this page: the import goes on.",
     "importDone_one": "“{{name}}” was imported, with {{count}} note.",
     "importDone_other": "“{{name}}” was imported, with {{count}} notes.",
@@ -254,7 +253,13 @@
     "countFolders_one": "{{count}} folder",
     "countFolders_other": "{{count}} folders",
     "countTemplates_one": "{{count}} Template",
-    "countTemplates_other": "{{count}} Templates"
+    "countTemplates_other": "{{count}} Templates",
+    "twinsBlock_one": "1 name is carried twice in its folder, so nothing is imported.",
+    "twinsBlock_other": "{{count}} names are carried twice in their folder, so nothing is imported.",
+    "showTwins": "Show them",
+    "twinsWhy": "A folder holds one note of each name. Choose a name to find its copies, and leave one of each out.",
+    "twinWhere_one": "{{count}} copy · in {{folder}}",
+    "twinWhere_other": "{{count}} copies · in {{folder}}"
   },
   "graph": {
     "heading": "Notebook graph",

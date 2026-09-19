@@ -189,7 +189,6 @@
     "willCreate": "Vai criar: 1 caderno · {{folders}} · {{templates}} · {{notes}}",
     "danglingLinks_one": "1 link vai apontar para uma nota que ficou de fora.",
     "danglingLinks_other": "{{count}} links vão apontar para notas que ficaram de fora.",
-    "twinNames": "Duas notas chamadas “{{name}}” estão na mesma pasta. Deixe uma de fora para importar a outra.",
     "importLeavePage": "Você pode sair desta página: a importação continua.",
     "importDone_one": "“{{name}}” foi importado, com {{count}} nota.",
     "importDone_other": "“{{name}}” foi importado, com {{count}} notas.",
@@ -254,7 +253,13 @@
     "countFolders_one": "{{count}} pasta",
     "countFolders_other": "{{count}} pastas",
     "countTemplates_one": "{{count}} Modelo",
-    "countTemplates_other": "{{count}} Modelos"
+    "countTemplates_other": "{{count}} Modelos",
+    "twinsBlock_one": "1 nome se repete dentro da pasta, e por isso nada é importado.",
+    "twinsBlock_other": "{{count}} nomes se repetem dentro da pasta, e por isso nada é importado.",
+    "showTwins": "Mostrar",
+    "twinsWhy": "Uma pasta guarda uma nota de cada nome. Escolha um nome para achar as cópias e deixe uma de fora.",
+    "twinWhere_one": "{{count}} cópia · em {{folder}}",
+    "twinWhere_other": "{{count}} cópias · em {{folder}}"
   },
   "graph": {
     "heading": "Grafo do caderno",

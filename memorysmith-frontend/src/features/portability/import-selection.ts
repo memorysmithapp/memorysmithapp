@@ -23,6 +23,13 @@ export interface TreeNote {
   readonly kind: 'note';
   readonly id: string;
   readonly name: string;
+  /**
+   * When the note was last written, which the document carries and the API
+   * structure does not. It is what tells two notes of ONE name in ONE folder
+   * apart: they are otherwise the same row twice, and nobody can choose which
+   * one to leave out of two identical labels (RN-KNW-042, #161).
+   */
+  readonly updatedAt?: string;
 }
 
 export interface TreeTemplate {
@@ -168,7 +175,12 @@ export function treeOf(document: NotebookDocument): DocumentTree {
   const notesOf = new Map<string, TreeNote[]>();
   for (const note of [...document.notes].sort((a, b) => (a.position < b.position ? -1 : 1))) {
     const held = notesOf.get(note.folderId) ?? [];
-    held.push({ kind: 'note', id: note.noteId, name: nameOf(note.body) ?? '' });
+    held.push({
+      kind: 'note',
+      id: note.noteId,
+      name: nameOf(note.body) ?? '',
+      updatedAt: note.updatedAt,
+    });
     notesOf.set(note.folderId, held);
   }
 
@@ -574,28 +586,55 @@ function targetsOf(body: string): string[] {
 }
 
 /**
- * Two notes of one name in one folder, among the SELECTED ones. Both selected
- * is a refusal (RN-KNW-042), and it is resolved by leaving one out rather than
- * by editing the file.
+ * Two notes of one name in one folder, among the SELECTED ones (RN-KNW-042).
+ *
+ * Both selected is a refusal, and it is resolved by leaving one out rather
+ * than by editing the file — so what this answers has to be enough to FIND
+ * them: the whole name, the folder that holds them, how many there are, and
+ * which notes they are, so the tree can mark them.
+ *
+ * The pair used to be packed into a string key and unpacked with `split(' ')`,
+ * which cut every name at its first space. A notebook whose notes are called
+ * `Código: Note.ts · create lê o nome do corpo` reported three conflicts, two
+ * of them reading `Código:` and neither naming its folder: three sentences
+ * that could not tell the reader which notes they were about (#161).
  */
-export function twinNames(
-  document: NotebookDocument,
-  chosen: Chosen,
-): Array<{ folderId: string; name: string }> {
-  const seen = new Map<string, number>();
+export interface TwinNames {
+  readonly folderId: string;
+  readonly folderName: string;
+  readonly name: string;
+  readonly count: number;
+  readonly noteIds: ReadonlyArray<string>;
+}
+
+export function twinNames(document: NotebookDocument, chosen: Chosen): TwinNames[] {
+  const folderNames = new Map(document.folders.map((folder) => [folder.folderId, folder.name]));
+  const seen = new Map<string, { folderId: string; name: string; noteIds: string[] }>();
   for (const note of document.notes) {
     if (!chosen.notes.has(note.noteId)) continue;
     const name = nameOf(note.body);
     if (name === null) continue;
-    const key = `${note.folderId} ${name}`;
-    seen.set(key, (seen.get(key) ?? 0) + 1);
+    // The pair is the KEY of a map and never a string somebody has to take
+    // apart again: a name holds spaces, and one held six.
+    const key = JSON.stringify([note.folderId, name]);
+    const held = seen.get(key) ?? { folderId: note.folderId, name, noteIds: [] };
+    held.noteIds.push(note.noteId);
+    seen.set(key, held);
   }
-  return [...seen]
-    .filter(([, count]) => count > 1)
-    .map(([key]) => {
-      const [folderId = '', name = ''] = key.split(' ');
-      return { folderId, name };
-    });
+  return [...seen.values()]
+    .filter((held) => held.noteIds.length > 1)
+    .map((held) => ({
+      folderId: held.folderId,
+      folderName: folderNames.get(held.folderId) ?? '',
+      name: held.name,
+      count: held.noteIds.length,
+      noteIds: held.noteIds,
+    }));
+}
+
+/** Every note a conflict is about, which is what the tree marks. */
+export function twinNoteIds(twins: ReadonlyArray<TwinNames>): ReadonlySet<string> {
+  return new Set(twins.flatMap((twin) => [...twin.noteIds]));
 }
 
 /** What travels to the server: the identifiers the document carries. */
