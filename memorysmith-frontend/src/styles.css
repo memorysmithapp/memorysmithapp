@@ -3191,13 +3191,28 @@ body.has-modal {
  * bullet. It is written again here rather than reverted, because the two tabs
  * it was drawn for are four now and two of them carry a line of their own.
  */
+/*
+ * ONE scroll, and it is the tree (#160, #161).
+ *
+ * The body of the dialog scrolls, so a tall tree took the tabs and the line
+ * saying what the tab is showing up and out of sight with it: deep in the notes
+ * of a notebook there was no way to tell which tab you were on. The chooser
+ * takes the height the body has left and never more, its tabs and its notice
+ * hold still, and what moves is the list.
+ */
 .chooser {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  /* Never collapsed by what sits above it, and never taller than its share. */
+  min-height: 12rem;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--surface);
   overflow: hidden;
 }
 .chooser-tabs {
+  flex-shrink: 0;
   display: flex;
   gap: 0.25rem;
   padding: 0.35rem 0.35rem 0;
@@ -3232,8 +3247,17 @@ body.has-modal {
   padding-bottom: calc(0.5rem + 1px);
 }
 .chooser-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 0.75rem;
-  max-height: 22rem;
+  overflow: hidden;
+}
+/* The one part that moves. */
+.chooser-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -3279,6 +3303,10 @@ body.has-modal {
 }
 
 /* Why this tab shows what it shows, and what to do when it shows nothing. */
+.chooser-scoping,
+.chooser-filter {
+  flex-shrink: 0;
+}
 .chooser-scoping,
 .chooser-empty {
   margin: 0 0 0.5rem;
@@ -3398,8 +3426,5 @@ body.has-modal {
 @media (max-width: 40rem) {
   .chooser-row {
     min-height: 2.4rem;
-  }
-  .chooser-panel {
-    max-height: none;
   }
 }

@@ -176,59 +176,61 @@ function ScopePanel({
   const entries = tree.historyEntries;
 
   return (
-    <ul className="chooser-scope" role="list">
-      <ScopeRow
-        kind="guidance"
-        label={t('portability.notebookGuidance')}
-        note={tree.guidance ? undefined : t('portability.thereIsNone')}
-        missing={!tree.guidance}
-        checked={tree.guidance && scope.guidance}
-        onToggle={(on) => onScope({ ...scope, guidance: on })}
-      />
-      <ScopeRow
-        kind="history"
-        label={t('portability.history')}
-        note={
-          !hasHistory
-            ? t('portability.thereIsNone')
-            : entries === null
-              ? undefined
-              : t('portability.historyEntries', { count: entries })
-        }
-        missing={!hasHistory}
-        checked={hasHistory && scope.history}
-        onToggle={(on) => onScope({ ...scope, history: on })}
-      />
-      {(['folders', 'templates', 'notes'] as const).map((species) => {
-        const held = counts[species].held;
-        // Nothing travels without its folder, so the two that depend on one
-        // say so instead of offering a box that would carry nothing.
-        const blocked = species !== 'folders' && !scope.folders;
-        const missing = held === 0 || blocked;
-        return (
-          <ScopeRow
-            key={species}
-            kind={species}
-            label={t(`portability.tab.${species}`)}
-            note={
-              held === 0
-                ? t('portability.thereIsNone')
-                : blocked
-                  ? t('portability.needsFolders')
-                  : t('portability.carriedOf', { carried: counts[species].carried, held })
-            }
-            missing={missing}
-            checked={!missing && scope[species]}
-            onToggle={(on) => onScope({ ...scope, [species]: on })}
-            reach={!missing && scope[species] ? scope.reach[species] : null}
-            onReach={(reach) => {
-              onScope({ ...scope, reach: { ...scope.reach, [species]: reach } });
-              if (reach === 'choose') onChoose(species);
-            }}
-          />
-        );
-      })}
-    </ul>
+    <div className="chooser-scroll">
+      <ul className="chooser-scope" role="list">
+        <ScopeRow
+          kind="guidance"
+          label={t('portability.notebookGuidance')}
+          note={tree.guidance ? undefined : t('portability.thereIsNone')}
+          missing={!tree.guidance}
+          checked={tree.guidance && scope.guidance}
+          onToggle={(on) => onScope({ ...scope, guidance: on })}
+        />
+        <ScopeRow
+          kind="history"
+          label={t('portability.history')}
+          note={
+            !hasHistory
+              ? t('portability.thereIsNone')
+              : entries === null
+                ? undefined
+                : t('portability.historyEntries', { count: entries })
+          }
+          missing={!hasHistory}
+          checked={hasHistory && scope.history}
+          onToggle={(on) => onScope({ ...scope, history: on })}
+        />
+        {(['folders', 'templates', 'notes'] as const).map((species) => {
+          const held = counts[species].held;
+          // Nothing travels without its folder, so the two that depend on one
+          // say so instead of offering a box that would carry nothing.
+          const blocked = species !== 'folders' && !scope.folders;
+          const missing = held === 0 || blocked;
+          return (
+            <ScopeRow
+              key={species}
+              kind={species}
+              label={t(`portability.tab.${species}`)}
+              note={
+                held === 0
+                  ? t('portability.thereIsNone')
+                  : blocked
+                    ? t('portability.needsFolders')
+                    : t('portability.carriedOf', { carried: counts[species].carried, held })
+              }
+              missing={missing}
+              checked={!missing && scope[species]}
+              onToggle={(on) => onScope({ ...scope, [species]: on })}
+              reach={!missing && scope[species] ? scope.reach[species] : null}
+              onReach={(reach) => {
+                onScope({ ...scope, reach: { ...scope.reach, [species]: reach } });
+                if (reach === 'choose') onChoose(species);
+              }}
+            />
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 
@@ -334,23 +336,25 @@ function ItemsPanel({
           <input type="search" value={filter} onChange={(event) => onFilter(event.target.value)} />
         </label>
       )}
-      {folders.length === 0 ? (
-        <p className="chooser-empty">{t(`portability.noFolderChosen.${species}`)}</p>
-      ) : (
-        <ul className="chooser-tree" role="tree" aria-label={t(`portability.tab.${species}`)}>
-          {folders.map((folder) => (
-            <BranchRow
-              key={folder.id}
-              folder={folder}
-              species={species}
-              picked={picked}
-              depth={0}
-              filter={species === 'notes' ? filter.trim().toLowerCase() : ''}
-              onPicked={onPicked}
-            />
-          ))}
-        </ul>
-      )}
+      <div className="chooser-scroll">
+        {folders.length === 0 ? (
+          <p className="chooser-empty">{t(`portability.noFolderChosen.${species}`)}</p>
+        ) : (
+          <ul className="chooser-tree" role="tree" aria-label={t(`portability.tab.${species}`)}>
+            {folders.map((folder) => (
+              <BranchRow
+                key={folder.id}
+                folder={folder}
+                species={species}
+                picked={picked}
+                depth={0}
+                filter={species === 'notes' ? filter.trim().toLowerCase() : ''}
+                onPicked={onPicked}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
     </>
   );
 }
