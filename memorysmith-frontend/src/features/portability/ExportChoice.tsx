@@ -89,9 +89,9 @@ export function ExportChoice({
           {preset === 'choose' && counts && (
             <p className="transfer-summary">
               {t('portability.willCarry', {
-                folders: counts.folders,
-                templates: counts.templates,
-                notes: counts.notes,
+                folders: t('portability.countFolders', { count: counts.folders }),
+                templates: t('portability.countTemplates', { count: counts.templates }),
+                notes: t('portability.noteCount', { count: counts.notes }),
               })}
             </p>
           )}
@@ -148,7 +148,9 @@ export function ExportChoice({
             />
             <span>
               <strong>{t(`portability.preset.${each}`)}</strong>
-              {each === 'everything' && <small>{t('portability.wholeNotebookHint')}</small>}
+              {each === 'everything' && preset === 'everything' && (
+                <small>{t('portability.wholeNotebookHint')}</small>
+              )}
             </span>
           </label>
         ))}

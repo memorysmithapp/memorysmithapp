@@ -186,7 +186,7 @@
     "collapse": "Fechar",
     "noteCount_one": "{{count}} nota",
     "noteCount_other": "{{count}} notas",
-    "willCreate": "Vai criar: 1 caderno · {{folders}} pastas · {{templates}} Modelos · {{notes}} notas",
+    "willCreate": "Vai criar: 1 caderno · {{folders}} · {{templates}} · {{notes}}",
     "danglingLinks_one": "1 link vai apontar para uma nota que ficou de fora.",
     "danglingLinks_other": "{{count}} links vão apontar para notas que ficaram de fora.",
     "twinNames": "Duas notas chamadas “{{name}}” estão na mesma pasta. Deixe uma de fora para importar a outra.",
@@ -236,7 +236,7 @@
       "import": "O que importar"
     },
     "thereIsNone": "não há",
-    "willCarry": "Vai no arquivo: {{folders}} pastas · {{templates}} Modelos · {{notes}} notas",
+    "willCarry": "Vai no arquivo: {{folders}} · {{templates}} · {{notes}}",
     "reach": {
       "all": "Tudo",
       "choose": "Escolher itens"
@@ -250,7 +250,11 @@
       "templates": "Nenhuma pasta escolhida. Escolha uma na aba Pastas para escolher Modelos aqui.",
       "notes": "Nenhuma pasta escolhida. Escolha uma na aba Pastas para escolher notas aqui."
     },
-    "pathFolder": "caminho"
+    "pathFolder": "caminho",
+    "countFolders_one": "{{count}} pasta",
+    "countFolders_other": "{{count}} pastas",
+    "countTemplates_one": "{{count}} Modelo",
+    "countTemplates_other": "{{count}} Modelos"
   },
   "graph": {
     "heading": "Grafo do caderno",

@@ -186,7 +186,7 @@
     "collapse": "Collapse",
     "noteCount_one": "{{count}} note",
     "noteCount_other": "{{count}} notes",
-    "willCreate": "Will be created: 1 notebook · {{folders}} folders · {{templates}} Templates · {{notes}} notes",
+    "willCreate": "Will create: 1 notebook · {{folders}} · {{templates}} · {{notes}}",
     "danglingLinks_one": "1 link will point at a note left out.",
     "danglingLinks_other": "{{count}} links will point at notes left out.",
     "twinNames": "Two notes named “{{name}}” are in one folder. Leave one out to import the other.",
@@ -236,7 +236,7 @@
       "import": "What to import"
     },
     "thereIsNone": "there is none",
-    "willCarry": "Will be carried: {{folders}} folders · {{templates}} Templates · {{notes}} notes",
+    "willCarry": "Will be carried: {{folders}} · {{templates}} · {{notes}}",
     "reach": {
       "all": "Everything",
       "choose": "Choose items"
@@ -250,7 +250,11 @@
       "templates": "No folder is chosen. Choose one in the Folders tab to choose Templates here.",
       "notes": "No folder is chosen. Choose one in the Folders tab to choose notes here."
     },
-    "pathFolder": "path"
+    "pathFolder": "path",
+    "countFolders_one": "{{count}} folder",
+    "countFolders_other": "{{count}} folders",
+    "countTemplates_one": "{{count}} Template",
+    "countTemplates_other": "{{count}} Templates"
   },
   "graph": {
     "heading": "Notebook graph",
