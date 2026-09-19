@@ -2,7 +2,7 @@
  * Harness for the adapter tests: the real DynamoDB and S3 of a deployed
  * environment (architecture-guide.md, sections 19 and 20).
  *
- * They run in the staging pipeline, after the deploy, against the table and
+ * They run after a delivery of staging, against the table and
  * the bucket the environment already has, and never against an emulator: an
  * emulator agrees with the real service until the day it does not, and that day
  * used to be found in production. Every case works under a subscription of its

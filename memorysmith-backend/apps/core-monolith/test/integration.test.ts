@@ -639,7 +639,7 @@ describe('Portability answers over the API', () => {
      * The two writes have to land in different milliseconds, or there is no
      * instant that separates them and "as it stood before the edit" asks a
      * question with two answers. On this machine they always did; on the one
-     * the pipeline runs they did not.
+     * a build ran on they did not.
      */
     await new Promise((resolve) => setTimeout(resolve, 5));
 
