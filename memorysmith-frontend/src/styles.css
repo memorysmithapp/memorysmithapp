@@ -3286,12 +3286,17 @@ body.has-modal {
 .chooser-scope-row.is-missing .chooser-name {
   color: var(--text-soft);
 }
-/* Everything, or the items somebody picks: the reach of one species. */
+/*
+ * Everything, or the items somebody picks: the reach of one species.
+ *
+ * On the row and not under it. A second line per species made the scope three
+ * rows taller than the box had, so the tab whose whole job is showing the five
+ * species at once showed three and hid two.
+ */
 .chooser-reach {
   display: flex;
   gap: 0.75rem;
-  flex-basis: 100%;
-  padding-inline-start: 1.6rem;
+  flex-wrap: wrap;
 }
 .chooser-reach-option {
   display: flex;

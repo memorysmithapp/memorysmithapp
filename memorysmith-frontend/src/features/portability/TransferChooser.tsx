@@ -269,7 +269,6 @@ function ScopeRow({
         />
         <span className="chooser-name">{label}</span>
       </label>
-      {note !== undefined && <span className="chooser-note">{note}</span>}
       {reach && onReach && (
         <div className="chooser-reach" role="radiogroup" aria-label={label}>
           {(['all', 'choose'] as const).map((each) => (
@@ -285,6 +284,7 @@ function ScopeRow({
           ))}
         </div>
       )}
+      {note !== undefined && <span className="chooser-note">{note}</span>}
     </li>
   );
 }
