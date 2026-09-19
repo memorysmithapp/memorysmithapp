@@ -345,6 +345,26 @@ export function scopeCountsOf(
 }
 
 /**
+ * Every identifier of a species, which is where `Choose items` starts from.
+ *
+ * Flipping a species from `Everything` to `Choose items` with nothing ticked
+ * would drop it to nothing at once — the tab would open on a tree where every
+ * box is empty and the summary would say the species is not travelling, which
+ * is the opposite of what somebody opening a chooser is doing. They are taking
+ * things OUT. So the first flip fills the set, and only the first: a set that
+ * already holds something is work somebody did, and flipping back and forth
+ * never destroys it.
+ */
+export function seedOf(tree: DocumentTree, species: Species): ReadonlySet<string> {
+  const every = flatten(tree.folders);
+  if (species === 'folders') return new Set(every.map((folder) => folder.id));
+  if (species === 'templates') {
+    return new Set(every.filter((folder) => folder.template !== null).map((folder) => folder.id));
+  }
+  return new Set(every.flatMap((folder) => folder.notes.map((note) => note.id)));
+}
+
+/**
  * The tree a tab offers, pruned to what the folders allow (#161).
  *
  * `offered` of `null` is the Folders tab, where every folder is choosable

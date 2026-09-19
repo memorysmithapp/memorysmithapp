@@ -21,6 +21,7 @@ import {
   pickOne,
   pickedNothing,
   scopeCountsOf,
+  seedOf,
   selectionOf,
   stateOfBranch,
   treeOf,
@@ -382,5 +383,37 @@ describe('what travels to the server', () => {
       templates: [],
       notes: [N2],
     });
+  });
+});
+
+/**
+ * Where `Choose items` starts from (#161).
+ *
+ * The scope opens on everything and somebody who opens a tab is taking things
+ * out of it. A flip into `Choose items` with nothing ticked would drop the
+ * species to nothing at once, and the tab would open on a tree of empty boxes
+ * saying that nothing of it travels — which is the opposite of the gesture.
+ */
+describe('the seed of a tab', () => {
+  it('is every identifier of the species', () => {
+    expect(seedOf(tree, 'folders')).toEqual(new Set([ROOT, CHILD, OTHER]));
+    // Only the folders that HAVE one: `CHILD` and `OTHER` carry no Template.
+    expect(seedOf(tree, 'templates')).toEqual(new Set([ROOT]));
+    expect(seedOf(tree, 'notes')).toEqual(new Set([N1, N2, N3]));
+  });
+
+  it('leaves what travels exactly as it was, so the flip changes nothing', () => {
+    const all = effectiveOf(tree, wholeScope, pickedNothing);
+    const seeded: Picked = {
+      folders: seedOf(tree, 'folders'),
+      templates: seedOf(tree, 'templates'),
+      notes: seedOf(tree, 'notes'),
+    };
+    const choosing = effectiveOf(
+      tree,
+      scopeOf({ reach: { folders: 'choose', templates: 'choose', notes: 'choose' } }),
+      seeded,
+    );
+    expect(choosing).toEqual(all);
   });
 });

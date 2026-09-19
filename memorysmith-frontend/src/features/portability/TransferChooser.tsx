@@ -5,6 +5,7 @@ import {
   pickBranch,
   pickOne,
   scopeCountsOf,
+  seedOf,
   stateOfBranch,
   type Chosen,
   type DocumentTree,
@@ -121,7 +122,15 @@ export function TransferChooser({
             scope={scope}
             onScope={onScope}
             counts={counts}
-            onOpen={(species) => setTab(species)}
+            onChoose={(species) => {
+              // The tab opens on everything, which is what somebody who asked
+              // to choose is taking things out of — and only when nothing was
+              // ticked, so flipping back and forth never destroys their work.
+              if (picked[species].size === 0) {
+                onPicked({ ...picked, [species]: seedOf(tree, species) });
+              }
+              setTab(species);
+            }}
           />
         ) : (
           <ItemsPanel
@@ -153,13 +162,14 @@ function ScopePanel({
   scope,
   onScope,
   counts,
-  onOpen,
+  onChoose,
 }: {
   tree: DocumentTree;
   scope: Scope;
   onScope: (next: Scope) => void;
   counts: Record<Species, { carried: number; held: number }>;
-  onOpen: (species: Species) => void;
+  /** Called when a species is flipped to `Choose items`, which opens its tab. */
+  onChoose: (species: Species) => void;
 }) {
   const { t } = useTranslation();
   const hasHistory = tree.historyEntries === null || tree.historyEntries > 0;
@@ -213,7 +223,7 @@ function ScopePanel({
             reach={!missing && scope[species] ? scope.reach[species] : null}
             onReach={(reach) => {
               onScope({ ...scope, reach: { ...scope.reach, [species]: reach } });
-              if (reach === 'choose') onOpen(species);
+              if (reach === 'choose') onChoose(species);
             }}
           />
         );
