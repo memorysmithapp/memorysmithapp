@@ -24,6 +24,10 @@ export const MAINTENANCE_JOBS = {
     entry: 'memorysmith-backend/apps/core-monolith/src/reproject.ts',
     rebuilds: 'the link graph of every notebook',
   },
+  'migrate-slots': {
+    entry: 'memorysmith-backend/apps/core-monolith/src/migrate-slots.ts',
+    rebuilds: 'the Guidance and the Templates written before they had a life of their own',
+  },
 } as const satisfies Record<string, MaintenanceJob>;
 
 export type MaintenanceJobName = keyof typeof MAINTENANCE_JOBS;

@@ -23,6 +23,7 @@
     "staging:destroy": "tsx commands/staging-destroy.ts",
     "recount-storage": "tsx commands/maintenance.ts recount-storage",
     "reproject-links": "tsx commands/maintenance.ts reproject-links",
+    "migrate-slots": "tsx commands/maintenance.ts migrate-slots",
     "functional": "playwright test -c functional/playwright.config.ts",
     "agent-eval": "tsx agent-eval/run.ts"
   },
