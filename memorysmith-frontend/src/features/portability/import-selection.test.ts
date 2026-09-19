@@ -20,6 +20,7 @@ import {
   stateOfNotes,
   withBranchNotes,
   withContextFolder,
+  withTemplate,
   treeOf,
   twinNames,
   withBranch,
@@ -218,13 +219,23 @@ describe('what each tab of the chooser moves', () => {
     expect(stateOfNotes(design, root)).toBe('off');
   });
 
-  it('carries a Template only with the folder it belongs to', () => {
+  it('takes a folder of the context without taking its Template', () => {
+    // Two objects, two boxes: a folder is its name and its description, and a
+    // Template is a document of its own.
     const one = withContextFolder(nothing, root, true);
     expect(one.folders).toEqual(new Set([ROOT]));
-    expect(one.templates).toEqual(new Set([ROOT]));
+    expect(one.templates.size).toBe(0);
+  });
 
-    // And letting the folder go lets its Template go with it: a Template
-    // cannot be written on a folder that was not written.
+  it('carries the folder of a Template chosen on its own', () => {
+    // There is nowhere else to write it.
+    const one = withTemplate(nothing, root, true);
+    expect(one.templates).toEqual(new Set([ROOT]));
+    expect(one.folders).toEqual(new Set([ROOT]));
+  });
+
+  it('lets the Template go when the folder it belongs to goes', () => {
+    const one = withTemplate(nothing, root, true);
     const none = withContextFolder(one, root, false);
     expect(none.folders.size).toBe(0);
     expect(none.templates.size).toBe(0);

@@ -5,6 +5,7 @@ import {
   withBranchNotes,
   withContextFolder,
   withNode,
+  withTemplate,
   type Chosen,
   type DocumentTree,
   type TreeFolder,
@@ -199,11 +200,14 @@ function Row({
 }
 
 /**
- * A folder of the context: the folder — its name and its description — and the
- * Template that belongs to it. They travel together because a Template cannot
- * be written on a folder that was not written, and they are chosen HERE because
- * a folder without its notes is the design of a notebook, which is the most
- * common thing to want out of one.
+ * A folder of the context, and its Template under it — **two objects, two
+ * boxes**. A folder without its notes is the design of a notebook, and a
+ * Template is a document of its own that a person may want without the folder's
+ * notes, or not want at all.
+ *
+ * What ties them is one way only: choosing the Template carries its folder,
+ * because there is nowhere else to write it, and letting the folder go lets the
+ * Template go with it. Choosing the folder carries no Template.
  */
 function ContextFolderRow({
   folder,
@@ -221,15 +225,23 @@ function ContextFolderRow({
 
   return (
     <Row
-      kind={folder.template ? 'template' : 'folder'}
+      kind="folder"
       label={folder.name}
-      note={folder.template ? t('portability.withTemplate') : t('portability.noTemplate')}
       checked={chosen.folders.has(folder.id)}
       onToggle={(on) => onChange(withContextFolder(chosen, folder, on))}
       depth={depth}
     >
-      {under.length > 0 && (
+      {(folder.template || under.length > 0) && (
         <ul role="group" className="chooser-branch">
+          {folder.template && (
+            <Row
+              kind="template"
+              label={t('portability.folderTemplate')}
+              checked={chosen.templates.has(folder.id)}
+              onToggle={(on) => onChange(withTemplate(chosen, folder, on))}
+              depth={depth + 1}
+            />
+          )}
           {under.map((child) => (
             <ContextFolderRow
               key={child.id}

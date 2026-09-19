@@ -58,6 +58,22 @@ export function ExportChoice({
   });
   const tree = structure.data ? treeOfNotebook(structure.data) : null;
 
+  /**
+   * Choosing starts from everything, which is what somebody who opened the
+   * chooser wants to take things OUT of — and it is set ONCE, when the tree
+   * arrives, because the tree is fetched only after the choice is made.
+   *
+   * It used to be derived at render, and a derived selection cannot be
+   * unticked: letting the Guidance go emptied the selection, which made the
+   * expression answer `everything` again, which ticked it back.
+   */
+  const [started, setStarted] = useState('');
+  useEffect(() => {
+    if (!tree || preset !== 'choose' || started === notebookId) return;
+    setStarted(notebookId);
+    setChosen(everything(tree));
+  }, [tree, preset, notebookId, started]);
+
   useEffect(() => {
     const node = dialog.current;
     if (!node || !open) return;
@@ -122,9 +138,7 @@ export function ExportChoice({
                 checked={preset === each}
                 onChange={() => {
                   setPreset(each);
-                  // Choosing starts from everything, which is what somebody
-                  // who opened it wants to take things OUT of.
-                  if (each === 'choose' && tree) setChosen(everything(tree));
+                  if (each === 'everything') setStarted('');
                 }}
               />
               <span>
@@ -139,7 +153,7 @@ export function ExportChoice({
           (tree ? (
             <TransferChooser
               tree={tree}
-              chosen={chosen.folders.size === 0 && !chosen.guidance ? everything(tree) : chosen}
+              chosen={chosen}
               onChange={setChosen}
               filter={filter}
               onFilter={setFilter}

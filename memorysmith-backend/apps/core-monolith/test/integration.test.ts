@@ -863,6 +863,84 @@ describe('Portability answers over the API', () => {
     expect(after.length).toBe(before.length);
   });
 
+  /**
+   * The design of a notebook: its Guidance and the Template of a folder, and
+   * not one note (RN-PRT-017). It is the most common thing to want out of a
+   * notebook, and what the chooser asks for in its first tab (#156) — so what
+   * arrives is asserted by content and not by a flag.
+   */
+  it('writes the Guidance and the Template a selection asked for, with their content', async () => {
+    const { notebookId, folderId } = await seed();
+    const guidance = '# Como escrever aqui\n\nUma norma por nota.';
+    const template = '---\nname: \n---\n\n# \n\nArt. ';
+    await call(`/knowledge/notebooks/${notebookId}/guidance`, {
+      method: 'PUT',
+      body: { content: guidance, baseRevision: null },
+    });
+    await call(`/knowledge/notebooks/${notebookId}/folders/${folderId}/template`, {
+      method: 'PUT',
+      body: { content: template, baseRevision: null },
+    });
+
+    await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
+    const exported = harness.archives.get([...harness.archives.keys()][0] ?? '') as Buffer;
+    const [entry, json] = Object.entries(readZip(exported))[0] as [string, string];
+    const document = JSON.parse(json) as { folders: Array<{ folderId: string }> };
+
+    const prepared = (await (await call('/portability/imports', { method: 'POST' })).json()) as {
+      uploadKey: string;
+    };
+    harness.uploads.set(
+      prepared.uploadKey,
+      createZip([{ path: entry, content: json }], new Date()),
+    );
+
+    // The Guidance and the Template of that folder, and no note. The folder
+    // itself is not named: a Template carries the folder it belongs to,
+    // because there is nowhere else to write it (#156).
+    const started = await call('/portability/imports/apply', {
+      method: 'POST',
+      body: {
+        uploadKey: prepared.uploadKey,
+        name: 'So o desenho',
+        selection: {
+          guidance: true,
+          history: false,
+          folders: [],
+          templates: [document.folders[0]?.folderId],
+          notes: [],
+        },
+      },
+    });
+    const { transferId } = (await started.json()) as { transferId: string };
+    const job = (await (await call(`/portability/transfers/${transferId}`)).json()) as {
+      notebookId: string;
+      status: string;
+    };
+    expect(job.status).toBe('ready');
+
+    const written = (await (await call(`/knowledge/notebooks/${job.notebookId}`)).json()) as {
+      folders: Array<{ folderId: string; hasTemplate: boolean }>;
+      guidance: { content: string } | null;
+    };
+    expect(written.guidance?.content).toBe(guidance);
+    expect(written.folders).toHaveLength(1);
+    expect(written.folders[0]?.hasTemplate).toBe(true);
+
+    // By content, because `hasTemplate` says a slot exists and not what is in it.
+    const carried = (await (
+      await call(
+        `/knowledge/notebooks/${job.notebookId}/folders/${written.folders[0]?.folderId}/template`,
+      )
+    ).json()) as { content: string };
+    expect(carried.content).toBe(template);
+
+    const notes = (await (
+      await call(`/knowledge/notebooks/${job.notebookId}/notes`)
+    ).json()) as unknown[];
+    expect(notes).toHaveLength(0);
+  });
+
   it('writes only what the selection asks for, and the folders above it as a path', async () => {
     // RN-PRT-017: a notebook is often wanted for its design rather than for
     // its notes, or for one folder of it.

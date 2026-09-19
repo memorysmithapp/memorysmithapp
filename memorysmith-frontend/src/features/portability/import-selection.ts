@@ -267,17 +267,35 @@ export function stateOfNotes(chosen: Chosen, folder: TreeFolder): NodeState {
 }
 
 /**
- * A folder of the CONTEXT: the folder itself — its name and its description —
- * and the Template that belongs to it, which cannot be written without it.
+ * A folder of the CONTEXT: the folder itself, its name and its description.
+ *
+ * Letting it go lets its Template go with it, and not the other way round: a
+ * Template cannot be written on a folder that was not written, and a folder
+ * carries no Template unless somebody says so. They are two objects of the
+ * context and each is chosen on its own (#156).
  */
 export function withContextFolder(chosen: Chosen, folder: TreeFolder, on: boolean): Chosen {
   const folders = new Set(chosen.folders);
   const templates = new Set(chosen.templates);
-  if (on) {
-    folders.add(folder.id);
-    if (folder.template) templates.add(folder.id);
-  } else {
+  if (on) folders.add(folder.id);
+  else {
     folders.delete(folder.id);
+    templates.delete(folder.id);
+  }
+  return { ...chosen, folders, templates };
+}
+
+/**
+ * The Template of a folder, chosen on its own — and carrying its folder with
+ * it, because there is nowhere else to write it.
+ */
+export function withTemplate(chosen: Chosen, folder: TreeFolder, on: boolean): Chosen {
+  const folders = new Set(chosen.folders);
+  const templates = new Set(chosen.templates);
+  if (on) {
+    templates.add(folder.id);
+    folders.add(folder.id);
+  } else {
     templates.delete(folder.id);
   }
   return { ...chosen, folders, templates };
