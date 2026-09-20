@@ -140,6 +140,14 @@ export interface LinkGraph {
    * of the two answered (RN-DSC-046).
    */
   resolveTarget(notebookId: string, target: string): Promise<ResolvedTarget>;
+  /**
+   * Every note of the notebook as this projection knows it: the name it
+   * states and the spellings it declares, which is what a target is resolved
+   * against (§5.2). A reading surface reads it to draw a link by WHAT IT
+   * REACHES rather than by how many notes carry the name — an alias is read
+   * by this context and by no other (rule 5, RN-DSC-046).
+   */
+  notesOf(notebookId: string): Promise<NoteRef[]>;
   dependencyTree(notebookId: string, rootNoteId: string, depth: number): Promise<GraphNode | null>;
   backlinks(notebookId: string, noteId: string): Promise<NoteRef[]>;
   /**

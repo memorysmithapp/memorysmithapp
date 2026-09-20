@@ -101,6 +101,111 @@ describe('DynamoLinkGraph: what a deletion leaves behind', () => {
   });
 });
 
+/**
+ * Two targets that reach ONE note (#163).
+ *
+ * The in-memory graph cannot show this and never could: it keeps the targets
+ * as written and resolves them at read time, so it never builds a key, let
+ * alone the same key twice. Here the edge is keyed by the pair it joins, both
+ * targets build it, and a batch carrying a key twice is refused WHOLE — which
+ * cost the note every link it had, the ones that had nothing to do with the
+ * repetition included.
+ */
+describe('DynamoLinkGraph: two targets, one note at the end of both', () => {
+  it('keeps every link of the note, and writes one edge', async () => {
+    const subscription = SubscriptionId.generate();
+    const notebookId = NotebookId.generate().value;
+    const graph = new DynamoLinkGraph(subscription, db, table);
+
+    await graph.replaceOutgoing(notebookId, note('n2', 'Lei 14.133', ['LGL']), []);
+    await graph.replaceOutgoing(notebookId, note('n3', 'Parecer'), []);
+
+    // By its name, by its alias, and a third target of its own: the shape a
+    // note takes when it quotes a source and also links to it.
+    await graph.replaceOutgoing(notebookId, note('n1', 'Achado'), [
+      { name: 'Lei 14.133', anchor: null },
+      { name: 'LGL', anchor: null },
+      { name: 'Parecer', anchor: null },
+    ]);
+
+    const targets = await graph.outgoingOf(notebookId, 'n1');
+    expect(targets.map((each) => each.target).sort()).toEqual(['Lei 14.133', 'Parecer']);
+    const left = await partitionOf(subscription, notebookId);
+    expect(left.filter((sk) => sk === 'OUT#n1#n2')).toEqual(['OUT#n1#n2']);
+    expect(left).toContain('OUT#n1#n3');
+    expect(left).toContain('IN#n2#n1');
+
+    await graph.removeNotebook(notebookId);
+  });
+
+  it('keeps them when one note repeats a spelling of its own', async () => {
+    const subscription = SubscriptionId.generate();
+    const notebookId = NotebookId.generate().value;
+    const graph = new DynamoLinkGraph(subscription, db, table);
+
+    // One note, one alias declared twice: one target, and the same edge built
+    // twice inside a single iteration.
+    await graph.replaceOutgoing(notebookId, note('n2', 'Lei 14.133', ['LGL', 'LGL']), []);
+    await graph.replaceOutgoing(notebookId, note('n1', 'Achado'), [{ name: 'LGL', anchor: null }]);
+
+    expect((await graph.outgoingOf(notebookId, 'n1')).map((each) => each.target)).toEqual(['LGL']);
+
+    await graph.removeNotebook(notebookId);
+  });
+
+  it('leaves the edges it had when the write that would replace them fails', async () => {
+    const subscription = SubscriptionId.generate();
+    const notebookId = NotebookId.generate().value;
+    const graph = new DynamoLinkGraph(subscription, db, table);
+
+    await graph.replaceOutgoing(notebookId, note('n2', 'Lei 14.133'), []);
+    await graph.replaceOutgoing(notebookId, note('n1', 'Achado'), [
+      { name: 'Lei 14.133', anchor: null },
+    ]);
+
+    // A note whose links cannot be written keeps the ones it had: the write
+    // comes first now, and only what it replaced is taken away.
+    const broken = new DynamoLinkGraph(subscription, db, 'mv-discovery-does-not-exist');
+    await expect(
+      broken.replaceOutgoing(notebookId, note('n1', 'Achado'), [{ name: 'Parecer', anchor: null }]),
+    ).rejects.toThrow();
+    expect((await graph.outgoingOf(notebookId, 'n1')).map((each) => each.target)).toEqual([
+      'Lei 14.133',
+    ]);
+
+    await graph.removeNotebook(notebookId);
+  });
+});
+
+/**
+ * A pending link resolves when the note that answers it is written, by its
+ * name **or by its alias** (§5.5). The alias half swept nothing, so a link
+ * waited for a rewrite of its own source that nobody had a reason to make.
+ */
+describe('DynamoLinkGraph: what was waiting for a name, and for a spelling', () => {
+  it('resolves a pending link when a note carries the target as an alias', async () => {
+    const subscription = SubscriptionId.generate();
+    const notebookId = NotebookId.generate().value;
+    const graph = new DynamoLinkGraph(subscription, db, table);
+
+    await graph.replaceOutgoing(notebookId, note('n1', 'Achado'), [{ name: 'LGL', anchor: null }]);
+    // Nothing answers it yet: the target is there and reaches no note.
+    expect((await graph.outgoingOf(notebookId, 'n1'))[0]?.notes).toEqual([]);
+
+    const later = note('n2', 'Lei 14.133', ['LGL']);
+    await graph.replaceOutgoing(notebookId, later, []);
+    await graph.resolvePending(notebookId, later);
+
+    const target = (await graph.outgoingOf(notebookId, 'n1'))[0];
+    expect(target?.target).toBe('LGL');
+    expect(target?.by).toBe('alias');
+    expect(target?.notes.map((each) => each.noteId)).toEqual(['n2']);
+    expect((await graph.backlinks(notebookId, 'n2')).map((each) => each.noteId)).toEqual(['n1']);
+
+    await graph.removeNotebook(notebookId);
+  });
+});
+
 describe('DynamoProjectedVersions: the marker of a note that is gone', () => {
   it('carries a deadline, and the marker of a live note does not', async () => {
     const subscription = SubscriptionId.generate();

@@ -89,6 +89,10 @@ export class InMemoryLinkGraph implements LinkGraph {
     return notebookNames([...this.notebook(notebookId).notes.values()]);
   }
 
+  async notesOf(notebookId: string): Promise<NoteRef[]> {
+    return [...this.notebook(notebookId).notes.values()];
+  }
+
   /** Every edge of the notebook, resolved against the notebook as it stands. */
   private resolved(notebookId: string): { edges: Edge[]; pending: Pending[] } {
     const state = this.notebook(notebookId);

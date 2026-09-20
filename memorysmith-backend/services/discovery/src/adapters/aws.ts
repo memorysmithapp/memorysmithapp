@@ -249,31 +249,55 @@ export class DynamoLinkGraph implements LinkGraph {
     return items;
   }
 
+  /**
+   * A batch write of this projection, and the ONE place a key is made unique
+   * (#163).
+   *
+   * An edge is keyed by the pair it joins and never by the target that was
+   * written, which is what §5.4 asks for: one edge per pair, however many
+   * links point along it. So two targets of one note that reach one note — a
+   * name and an alias of it, the ordinary way to write about a source you are
+   * quoting — build the same key twice, and **DynamoDB refuses a batch
+   * carrying a key twice, whole**. Every link of that note was lost, the ones
+   * that had nothing to do with the repetition included.
+   *
+   * It is deduplicated here rather than in each caller because four different
+   * places build these items, and each of them could produce the pair again.
+   */
   private async put(items: Item[]): Promise<void> {
-    for (let index = 0; index < items.length; index += 25) {
-      await this.db.send(
-        new BatchWriteCommand({
-          RequestItems: {
-            [this.tableName]: items
-              .slice(index, index + 25)
-              .map((item) => ({ PutRequest: { Item: item } })),
-          },
-        }),
-      );
+    const unique = new Map(items.map((item) => [`${String(item['SK'])}`, item]));
+    for (const batch of chunk([...unique.values()], 25)) {
+      await this.writeAll(batch.map((item) => ({ PutRequest: { Item: item } })));
     }
   }
 
   private async remove(notebookId: string, sortKeys: string[]): Promise<void> {
-    for (let index = 0; index < sortKeys.length; index += 25) {
-      await this.db.send(
-        new BatchWriteCommand({
-          RequestItems: {
-            [this.tableName]: sortKeys.slice(index, index + 25).map((sk) => ({
-              DeleteRequest: { Key: { PK: this.pk(notebookId), SK: sk } },
-            })),
-          },
-        }),
+    for (const batch of chunk([...new Set(sortKeys)], 25)) {
+      await this.writeAll(
+        batch.map((sk) => ({ DeleteRequest: { Key: { PK: this.pk(notebookId), SK: sk } } })),
       );
+    }
+  }
+
+  /**
+   * A batch write, sent again until DynamoDB has taken every request of it.
+   *
+   * A throttled batch answers `UnprocessedItems` rather than an error, so
+   * ignoring it loses edges in silence — which is what this projection did
+   * where the content index already retried.
+   */
+  private async writeAll(requests: Array<Record<string, unknown>>): Promise<void> {
+    let pending = requests;
+    for (let attempt = 0; pending.length > 0 && attempt < 8; attempt++) {
+      const answer = await this.db.send(
+        new BatchWriteCommand({ RequestItems: { [this.tableName]: pending as never } }),
+      );
+      pending = (answer.UnprocessedItems?.[this.tableName] as Array<Record<string, unknown>>) ?? [];
+      if (pending.length > 0)
+        await new Promise((resolve) => setTimeout(resolve, 50 * 2 ** attempt));
+    }
+    if (pending.length > 0) {
+      throw new Error(`The link graph left ${pending.length} writes unprocessed`);
     }
   }
 
@@ -337,7 +361,7 @@ export class DynamoLinkGraph implements LinkGraph {
     const existing = await this.query(notebookId, `OUT#${note.noteId}#`);
     const pending = await this.query(notebookId, 'PENDING#');
     const aliasEdges = await this.query(notebookId, 'ALIAS#');
-    await this.remove(notebookId, [
+    const stale = [
       ...existing.map((item) => String(item['SK'])),
       ...existing.map((item) => `IN#${String(item['toNoteId'])}#${note.noteId}`),
       ...pending
@@ -346,10 +370,23 @@ export class DynamoLinkGraph implements LinkGraph {
       ...aliasEdges
         .filter((item) => String(item['fromNoteId']) === note.noteId)
         .map((item) => String(item['SK'])),
-    ]);
+    ];
 
     const names = this.namesOf(await this.query(notebookId, 'NOTE#'));
     const writes: Item[] = [];
+
+    /**
+     * The notes this note reaches BY NAME, which is what decides whether an
+     * edge may be marked as held by an alias below: an edge a name also
+     * reaches is not the alias's to lose (RN-DSC-053).
+     */
+    const byName = new Set<string>();
+    for (const link of links) {
+      const answer = resolveTarget(link.name, names);
+      if (answer.kind === 'note' && answer.by === 'name') {
+        for (const targetId of answer.noteIds) byName.add(targetId);
+      }
+    }
 
     for (const link of links) {
       const answer = resolveTarget(link.name, names);
@@ -361,7 +398,7 @@ export class DynamoLinkGraph implements LinkGraph {
           writes.push(...this.edgeItems(notebookId, note.noteId, targetId));
           // An edge that exists because an ALIAS matched is marked, because a
           // note written later under that name takes it away (RN-DSC-053).
-          if (answer.by === 'alias') {
+          if (answer.by === 'alias' && !byName.has(targetId)) {
             writes.push({
               PK: this.pk(notebookId),
               SK: `ALIAS#${link.name}#${note.noteId}#${targetId}`,
@@ -383,7 +420,20 @@ export class DynamoLinkGraph implements LinkGraph {
       }
       // An attachment renders and is never an edge (RN-DSC-044).
     }
+
+    /**
+     * Written first, and only then is what is no longer there taken away
+     * (#163). It used to delete first, so a write that failed left the note
+     * with NO edges instead of with the ones it had — and the retry cannot
+     * repair that, because the projected version was claimed before applying:
+     * only a later write of that note would have.
+     */
     await this.put(writes);
+    const written = new Set(writes.map((item) => String(item['SK'])));
+    await this.remove(
+      notebookId,
+      stale.filter((sk) => !written.has(sk)),
+    );
   }
 
   /** The edge, written in BOTH directions so a backlink is a Query. */
@@ -498,35 +548,72 @@ export class DynamoLinkGraph implements LinkGraph {
     ]);
   }
 
+  /**
+   * The links that were waiting for this note, turned into edges: §5.5 says a
+   * pending link resolves on its own when a note carrying that name **or that
+   * alias** is later written.
+   *
+   * The alias half was missing, so a note written under an alias somebody had
+   * already linked left that link pending until its source was rewritten. An
+   * alias only ever answers what no name did, so a pending target a note is
+   * NAMED after is never taken by an alias: those pending items are gone by
+   * the time this runs, taken by the name (§5.2, step 8).
+   */
   async resolvePending(notebookId: string, note: NoteRef): Promise<number> {
     if (note.name.length > 0) await this.takeBackFromAliases(notebookId, note);
 
-    const waiting =
+    const byName =
       note.name.length === 0 ? [] : await this.query(notebookId, `PENDING#${note.name}#`);
+    const byAlias: Array<{ item: Item; alias: string }> = [];
+    for (const alias of note.aliases ?? []) {
+      if (alias.length === 0) continue;
+      for (const item of await this.query(notebookId, `PENDING#${alias}#`)) {
+        byAlias.push({ item, alias });
+      }
+    }
+    const waiting = [...byName, ...byAlias.map((each) => each.item)];
     if (waiting.length === 0) return 0;
 
-    await this.put(
-      waiting.flatMap((item) => {
+    const edgeFrom = (from: string): Item[] => [
+      {
+        PK: this.pk(notebookId),
+        SK: `OUT#${from}#${note.noteId}`,
+        entity: 'EDGE',
+        fromNoteId: from,
+        toNoteId: note.noteId,
+      },
+      {
+        PK: this.pk(notebookId),
+        SK: `IN#${note.noteId}#${from}`,
+        entity: 'EDGE',
+        fromNoteId: from,
+        toNoteId: note.noteId,
+      },
+    ];
+
+    await this.put([
+      ...byName.flatMap((item) => {
+        const from = String(item['fromNoteId']);
+        return from === note.noteId ? [] : edgeFrom(from);
+      }),
+      // An edge an alias answered for is marked, because a note written later
+      // under that name takes it away (RN-DSC-053).
+      ...byAlias.flatMap(({ item, alias }) => {
         const from = String(item['fromNoteId']);
         if (from === note.noteId) return [];
         return [
+          ...edgeFrom(from),
           {
             PK: this.pk(notebookId),
-            SK: `OUT#${from}#${note.noteId}`,
-            entity: 'EDGE',
+            SK: `ALIAS#${alias}#${from}#${note.noteId}`,
+            entity: 'ALIASEDGE',
             fromNoteId: from,
             toNoteId: note.noteId,
-          },
-          {
-            PK: this.pk(notebookId),
-            SK: `IN#${note.noteId}#${from}`,
-            entity: 'EDGE',
-            fromNoteId: from,
-            toNoteId: note.noteId,
+            name: alias,
           },
         ];
       }),
-    );
+    ]);
     await this.remove(
       notebookId,
       waiting.map((item) => String(item['SK'])),
@@ -558,6 +645,15 @@ export class DynamoLinkGraph implements LinkGraph {
         return from === note.noteId ? [] : this.edgeItems(notebookId, from, note.noteId);
       }),
     );
+  }
+
+  async notesOf(notebookId: string): Promise<NoteRef[]> {
+    return (await this.query(notebookId, 'NOTE#')).map((item) => ({
+      noteId: String(item['noteId']),
+      name: String(item['name'] ?? ''),
+      aliases: Array.isArray(item['aliases']) ? (item['aliases'] as string[]) : [],
+      folderId: String(item['folderId'] ?? ''),
+    }));
   }
 
   async resolveTarget(notebookId: string, target: string): Promise<ResolvedTarget> {

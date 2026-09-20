@@ -71,7 +71,11 @@ export function notebookNames(
     for (const alias of note.aliases ?? []) {
       const key = asName(alias);
       if (key.length === 0) continue;
-      byAlias.set(key, [...(byAlias.get(key) ?? []), note.noteId]);
+      const held = byAlias.get(key) ?? [];
+      // One note, one edge, however many times it declares the spelling: a
+      // note repeating an alias used to answer its own id twice, and the two
+      // became the same edge written twice (#163).
+      if (!held.includes(note.noteId)) byAlias.set(key, [...held, note.noteId]);
     }
   }
 
