@@ -646,10 +646,14 @@ a:hover {
   padding: 4px 8px;
   text-align: start;
 }
+/* The header is told apart by the type and by a heavier rule, and not by a
+   fill: white over the paper made the one part of a table that is drawn on
+   another material, and the only tint a table has left is the row under the
+   pointer, which is what makes that tint read as the pointer (#165). */
 .markdown th {
-  background: var(--surface);
   font-weight: 600;
   color: var(--text);
+  border-bottom: 2px solid var(--text-soft);
 }
 .markdown tbody tr:hover {
   background: var(--code-bg);
@@ -1523,23 +1527,38 @@ body.has-modal {
 /* Transclusion: another note, shown in place. The left rule and the source
    line exist for one reason: a passage without provenance is indistinguishable
    from what the author wrote. */
+/*
+ * A passage brought from another note is the SAME passage: same paper, same
+ * spacing, same tints (#165).
+ *
+ * It used to be a white card over the paper, and a card costs twice. Every
+ * tint of this surface is translucent over what is behind it — a callout is
+ * `rgba(…, 0.1)`, and so are a code block, a table row under the pointer and
+ * a property row — so the same callout read as two different callouts
+ * depending on whether it had been embedded. And the card had a rem of room on
+ * the left and none on the right, so a callout and a diagram, which paint
+ * their own box, ran flush into its edge and over its rounded corner.
+ *
+ * What is left is what an embed actually has to say: a rule down the side, in
+ * the blue of structure, and the note it came from named underneath. A
+ * quotation carries the same gesture in the hairline of the surface, so the
+ * two read as what they are — another voice, and another note.
+ */
 .embed {
   margin: 1.2rem 0;
-  padding: 0.1rem 0 0.1rem 1rem;
-  border-left: 3px solid var(--accent-soft);
-  background: var(--surface);
-  border-radius: 0 6px 6px 0;
+  padding-inline-start: 1rem;
+  border-inline-start: 2px solid var(--accent);
 }
 .embed-body > .markdown > :first-child {
-  margin-top: 0.6rem;
+  margin-top: 0;
 }
 .embed-body > .markdown > :last-child {
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.35rem;
 }
 .embed-source {
   font-size: 0.82rem;
   color: var(--text-soft);
-  padding: 0 0 0.5rem;
+  padding: 0;
 }
 .embed-source a {
   color: var(--text-soft);
