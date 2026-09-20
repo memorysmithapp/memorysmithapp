@@ -122,6 +122,16 @@ export class ContentPurge {
         await this.purgeOrphanContent(context, envelope);
         break;
 
+      /**
+       * A file of the notebook (#166, RN-KNW-051). Its item stays at the
+       * deletion as a tombstone, so nothing answers it while the bytes are
+       * still there; here both go, bytes first and item second, which is the
+       * order everything in this worker takes.
+       */
+      case 'FileDeleted':
+        await this.purgeOneFile(context, envelope);
+        break;
+
       case 'FolderRemoved': {
         const removed = new Set((envelope.payload['removedFolderIds'] as string[]) ?? []);
         await this.purgeTemplates(context, (folderId) => removed.has(folderId));
@@ -175,6 +185,29 @@ export class ContentPurge {
   }
 
   /** The content of a slot whose item is already gone. */
+  /** The bytes of one file, and then the item that named them. */
+  private async purgeOneFile(context: Context, envelope: DeletionEnvelope): Promise<void> {
+    const ref = parseContentRef(envelope.contentRef);
+    const fileId = String(envelope.payload['fileId'] ?? '');
+    if (ref) await context.purger.purge(ref.contentId, 'file');
+    if (!fileId) return;
+    await this.deps.db.send(
+      new TransactWriteCommand({
+        TransactItems: [
+          {
+            Delete: {
+              TableName: this.deps.tableName,
+              Key: {
+                PK: `S#${context.subscriptionId.value}#NOTEBOOK#${context.notebookId}`,
+                SK: `FILE#${fileId}`,
+              },
+            },
+          },
+        ],
+      }),
+    );
+  }
+
   private async purgeOrphanContent(context: Context, envelope: DeletionEnvelope): Promise<void> {
     const ref = parseContentRef(envelope.contentRef);
     if (!ref) return;

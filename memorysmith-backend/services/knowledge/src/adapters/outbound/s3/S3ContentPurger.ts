@@ -24,7 +24,7 @@ export interface ContentPurger {
    * nothing and is not an error: the worker is delivered at least once, so a
    * second pass has to be a no-op (RN-KNW-047).
    */
-  purge(slot: ContentId): Promise<number>;
+  purge(slot: ContentId, kind?: 'note' | 'file'): Promise<number>;
 }
 
 /** What one DeleteObjects call takes. */
@@ -37,8 +37,15 @@ export class S3ContentPurger implements ContentPurger {
     private readonly bucket: string,
   ) {}
 
-  async purge(slot: ContentId): Promise<number> {
-    const key = `s/${this.subscriptionId.value}/c/${slot.value}.md`;
+  async purge(slot: ContentId, kind: 'note' | 'file' = 'note'): Promise<number> {
+    // The two key shapes of this bucket: a Content Slot is Markdown under
+    // `c/` and carries the extension of what it is, and a file of a notebook
+    // is bytes under `f/` and carries none, because the extension of a name
+    // decides nothing anywhere in this product (#166, §9.2).
+    const key =
+      kind === 'file'
+        ? `s/${this.subscriptionId.value}/f/${slot.value}`
+        : `s/${this.subscriptionId.value}/c/${slot.value}.md`;
     let destroyed = 0;
     let keyMarker: string | undefined;
     let versionMarker: string | undefined;
