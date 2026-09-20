@@ -3123,6 +3123,13 @@ body.has-modal {
   border-radius: 10px;
   background: var(--bg);
 }
+/* Once the document is read, the box that asked for it steps back: what is
+   being decided is below it, and it was taking that room (#161). */
+.import-drop.is-chosen {
+  padding: 0.45rem 0.6rem;
+  border-style: solid;
+  background: none;
+}
 .import-drop-hint {
   color: var(--text-soft);
   font-size: 0.85rem;

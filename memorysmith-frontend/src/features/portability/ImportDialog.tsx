@@ -216,7 +216,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
       }
     >
       <div
-        className="import-drop"
+        className={document ? 'import-drop is-chosen' : 'import-drop'}
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
           event.preventDefault();
