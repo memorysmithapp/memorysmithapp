@@ -739,6 +739,48 @@
       ]
     },
     {
+      "id": "resolution/an-attachment-needs-no-extension",
+      "notation": "attachment",
+      "notebook": {
+        "attachments": ["esquema de blocos"]
+      },
+      "markdown": "![[esquema de blocos]]\n",
+      "links": [
+        {
+          "name": "esquema de blocos",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "esquema de blocos",
+          "kind": "attachment",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/a-name-that-looks-like-a-file-and-is-not-one",
+      "notation": "attachment",
+      "notebook": {
+        "attachments": ["esquema de blocos"]
+      },
+      "markdown": "![[colheita-2026.csv]]\n",
+      "links": [
+        {
+          "name": "colheita-2026.csv",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "colheita-2026.csv",
+          "kind": "pending",
+          "edges": 0
+        }
+      ]
+    },
+    {
       "id": "resolution/the-pipe-is-a-dimension-when-the-target-is-an-attachment",
       "notation": "image-dimensions",
       "notebook": {

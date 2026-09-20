@@ -481,7 +481,11 @@ A link inside a code span or a fenced code block is an example, not a reference.
 
 An **attachment** is a file of the notebook that is not a note: an image, a PDF, anything with bytes and no prose this document reads. It is not a note, so a reference to one is not a link in the sense this section opens with — it is here because it is resolved here, and because an attachment and a note are the only two things a `![[…]]` can name.
 
-**An attachment is addressed by its name**, which is the whole of it, extension included: `diagram.png`, never `diagram`. The comparison is the one §5.3 states for the name of a note — normalised to NFC, case-exact, folded in no other way — and the tolerances of §5.2 apply the same way they do to a note: `![alt](../assets/diagram%20final.png)` addresses the attachment named `diagram final.png`, because a path plays no part in identity here either.
+**An attachment is addressed by its name**, which is whatever it was called: `diagram.png`, `diagram`, `diagram.final`. **An extension is not required and decides nothing** — it is part of the name when it is written, like any other characters, and an implementation MUST NOT read one to decide what a target is. What a target is is decided by what the notebook **holds**: a note of that name, else an attachment of that name, else nothing (§5.2).
+
+The comparison is the one §5.3 states for the name of a note — normalised to NFC, case-exact, folded in no other way — and the tolerances of §5.2 apply the same way they do to a note: `![alt](../assets/diagram%20final.png)` addresses the attachment named `diagram final.png`, because a path plays no part in identity here either.
+
+**What the attachment is, and how it is shown, is its own property and not its name.** An implementation that stores attachments knows the media type of each one, and that is what decides whether it is drawn and how. A name ending in `.png` over a document is a name ending in `.png`.
 
 A note and an attachment are both addressed by a name, and the two are keys of the same shape for the same reason: an address that survives the file being moved, and that two implementations cannot read differently.
 

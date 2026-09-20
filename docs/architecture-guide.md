@@ -862,6 +862,18 @@ That amends the rule "only the two extractors read content", deliberately and in
 
 The frontmatter block and the YAML subset of §6.2 live in the kernel with it, and `FacetExtractor` reads them from there. **There is exactly one function in this repository that finds the frontmatter of a body**, which is the property `slugify` lost by being written twice.
 
+### 10.9 The files of a notebook
+
+**The bytes go under an opaque key like every other piece of content** (design rule 4): `s/{subscriptionId}/f/{contentId}`, with no extension, no notebook, no path and no name in it, so renaming a file, moving it between paths and moving its notebook write nothing to the object store. The metadata — the name, the description, the type, the tags and the path — is an item of the notebook partition, under `FILE#`, and the name is guarded by an `FNAME#` item written under a condition (RN-KNW-049): two uploads of one name arriving together would both find it free if the guard were a read.
+
+Both sort **before** `FOLDER#`, which is the lower bound of the Query that loads the aggregate, so a notebook with two thousand files loads exactly as fast as one with none.
+
+**Which types are accepted is injected, not transcribed.** The list is published in `@memorysmith/contracts` and the composition root hands it to the use case as a port, the way the reserved vocabulary already is: the domain and the application of a context import the kernel and nothing else, and what the product decided to accept is a decision, not a rule of the domain.
+
+**The bytes are served from the object store**, through a link minted per request and signed, and never proxied by the API: an `<img>` cannot carry a bearer token, and a file somebody uploaded has no business running inside the origin of the product. What is drawn is served `inline` and everything else `attachment`.
+
+**Discovery learns what a notebook keeps from the events**, `FileKept` and `FileDeleted`, and holds one `ATTACH#` item per name. Resolution then answers three things instead of two — a note, an attachment, nothing — and the reading surface draws each one for what it is (RN-DSC-061).
+
 ### 11.0 The notation, declared once as data
 
 **The list of what the product reads is written once**, in the MemorySmith Markdown Specification: the same notation as prose, in the document [`docs/markdown-spec.md`](markdown-spec.md), as data (`spec.json`) and as an executable suite (`tests/conformance.json`), the last two in `memorysmith-backend/packages/markdown-spec/`. It follows the version of the product (RN-AGT-022). **The document is in `docs/` and the rest is a package of the backend**, because the document is what the product publishes and the data and the suite are what it implements with — and what keeps the three moving together, now that no folder does it, is the checker, which reads the document across the repository and fails when it is not there. It used to be a repository of its own, pinned here by a git tag, and changing a notation took a release there and a pin bump here before the first line of implementation. A notation now changes in the same commit as the readers that implement it, and the three files move together.
@@ -1218,6 +1230,12 @@ svc-knowledge    GET  /notebooks · POST /notebooks
                  GET|PUT|DELETE /notebooks/:v/folders/:f/template
                  POST /notebooks/:v/folders/:f/numbers   { number }, the next number
                     of a folder (RN-KNW-043)
+                 POST|GET /notebooks/:v/files   the files a notebook keeps beside its
+                    notes: the bytes arrive inline, base64 (#166, RN-KNW-048)
+                 GET  /notebooks/:v/files/:f/link   a signed link to the object store,
+                    which is what an <img> can follow and what a download is
+                 DELETE /notebooks/:v/files/:f   definitive, and the purge takes the
+                    bytes (RN-KNW-051)
                  ── DELETE on either answers 204 and leaves the folder or the
                     notebook standing (RN-KNW-045); each is an object of its own
                  GET|POST /notebooks/:v/notes · GET|PUT|DELETE /notebooks/:v/notes/:n
