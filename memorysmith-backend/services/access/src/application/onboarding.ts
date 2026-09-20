@@ -101,6 +101,12 @@ export interface SessionView {
    * because the same call already answers everything else the shell needs.
    */
   readonly usedBytes: number | null;
+  /**
+   * Whether this person has already been shown what the product is (#167).
+   * False for somebody who never was, and the interface answers that by
+   * opening the welcome surface once, on the sign-in that follows.
+   */
+  readonly welcomeSeen: boolean;
 }
 
 export class GetSession {
@@ -163,6 +169,9 @@ export class GetSession {
       links: described,
       role: role.name,
       usedBytes: input.context ? await this.usedBytes() : null,
+      // A person with no link at all has been welcomed by nobody, which is
+      // the honest answer and also the one that welcomes them.
+      welcomeSeen: links.some((link) => link.welcomedAt !== null),
     });
   }
 }

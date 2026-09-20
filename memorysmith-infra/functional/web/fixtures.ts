@@ -67,6 +67,11 @@ export interface Words {
   readonly startExport: string;
   readonly willCreateNoNotes: string;
   readonly pending: (target: string) => string;
+  /** The entry of the user menu that reopens the welcome surface (#167). */
+  readonly aboutMenu: string;
+  /** Its heading, and the section that carries the address of the connector. */
+  readonly aboutHeading: string;
+  readonly aboutConnector: string;
 }
 
 export const WORDS: Record<AppLocale, Words> = {
@@ -107,6 +112,9 @@ export const WORDS: Record<AppLocale, Words> = {
     startExport: 'Export',
     willCreateNoNotes: '0 notes',
     pending: (target) => `No note carries the name “${target}” yet.`,
+    aboutMenu: 'About MemorySmith.app',
+    aboutHeading: 'Welcome to MemorySmith.app',
+    aboutConnector: 'Connecting your AI assistant',
   },
   pt_BR: {
     openNotebook: 'Abrir um caderno',
@@ -145,6 +153,9 @@ export const WORDS: Record<AppLocale, Words> = {
     startExport: 'Exportar',
     willCreateNoNotes: '0 notas',
     pending: (target) => `Nenhuma nota se chama “${target}” ainda.`,
+    aboutMenu: 'Sobre o MemorySmith.app',
+    aboutHeading: 'Bem-vindo ao MemorySmith.app',
+    aboutConnector: 'Conectando seu assistente de IA',
   },
 };
 

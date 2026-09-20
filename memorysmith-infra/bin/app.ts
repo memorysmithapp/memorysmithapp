@@ -108,6 +108,7 @@ const release = new FrontendReleaseStack(app, id('FrontendRelease'), {
   distribution: hosting.distribution,
   config: {
     apiOrigin: api.apiOrigin,
+    connectorOrigin: `https://${network.mcpDomainName}`,
     cognitoDomain: identity.hostedUiOrigin,
     cognitoClientId: identity.webClient.userPoolClientId,
     environment: deployment.environment,

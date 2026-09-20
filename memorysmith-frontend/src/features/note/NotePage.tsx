@@ -4,6 +4,7 @@ import { useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getNote } from '../../shared/api/source';
 import { foldersAddress } from '../../shared/api/note-address';
+import { copyText } from '../../shared/lib/clipboard';
 import { WritableContent } from '../../shared/components/WritableContent';
 import { NoteSkeleton } from '../../shared/components/skeletons';
 import { useDocumentTitle } from '../../shared/components/document-title';
@@ -37,27 +38,7 @@ export function NotePage({ noteId }: { noteId: string }) {
 
   async function copyNote() {
     if (!data) return;
-    // The async clipboard API can stay pending forever in embedded or
-    // automated contexts, so race it against a short timeout and fall back
-    // to the legacy path when it does not settle.
-    const viaApi = navigator.clipboard
-      ?.writeText(data.raw)
-      .then(() => true)
-      .catch(() => false);
-    const done = await Promise.race([
-      viaApi ?? Promise.resolve(false),
-      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 350)),
-    ]);
-    if (!done) {
-      const scratch = document.createElement('textarea');
-      scratch.value = data.raw;
-      scratch.style.position = 'fixed';
-      scratch.style.opacity = '0';
-      document.body.appendChild(scratch);
-      scratch.select();
-      document.execCommand('copy');
-      scratch.remove();
-    }
+    await copyText(data.raw);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }

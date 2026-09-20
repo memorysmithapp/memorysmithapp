@@ -52,6 +52,14 @@ export async function recordAccountLocale(locale: AccountLocaleDto): Promise<voi
   await request<void>('/access/session/locale', { method: 'PUT', body: { locale } });
 }
 
+/**
+ * Records that this person has been shown what the product is (#167), which is
+ * what makes the welcome surface stop opening on its own.
+ */
+export async function recordWelcomeSeen(): Promise<void> {
+  await request<void>('/access/session/welcomed', { method: 'POST' });
+}
+
 function toSummary(notebook: NotebookSummaryDto): NotebookSummary {
   return {
     id: notebook.notebookId,

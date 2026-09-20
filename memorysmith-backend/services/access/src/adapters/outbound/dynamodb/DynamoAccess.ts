@@ -244,24 +244,47 @@ export class DynamoUserLinkRepository implements UserLinkRepository {
       isOwner: Boolean(item['isOwner']),
       isDefault: Boolean(item['isDefault']),
       joinedAt: String(item['joinedAt']),
+      welcomedAt: item['welcomedAt'] ? String(item['welcomedAt']) : null,
     }));
   }
 
-  async link(link: SubscriptionLink): Promise<void> {
+  /**
+   * An update and not a put, so the fields this repository does not own
+   * survive it. A put here is what would un-welcome somebody the moment
+   * ownership of their subscription changed hands (#167).
+   */
+  async link(link: Omit<SubscriptionLink, 'welcomedAt'>): Promise<void> {
     await this.db.send(
-      new PutCommand({
+      new UpdateCommand({
         TableName: this.tableName,
-        Item: {
-          PK: `USER#${link.userId.value}`,
-          SK: `SUB#${link.subscriptionId.value}`,
-          entity: 'LINK',
-          subscriptionId: link.subscriptionId.value,
-          isOwner: link.isOwner,
-          isDefault: link.isDefault,
-          joinedAt: link.joinedAt,
+        Key: { PK: `USER#${link.userId.value}`, SK: `SUB#${link.subscriptionId.value}` },
+        UpdateExpression:
+          'SET entity = :entity, subscriptionId = :id, isOwner = :owner, ' +
+          'isDefault = :active, joinedAt = :joined',
+        ExpressionAttributeValues: {
+          ':entity': 'LINK',
+          ':id': link.subscriptionId.value,
+          ':owner': link.isOwner,
+          ':active': link.isDefault,
+          ':joined': link.joinedAt,
         },
       }),
     );
+  }
+
+  async markWelcomed(user: UserId, at: string): Promise<void> {
+    // Every link, because being welcomed happens to a PERSON and not to one of
+    // their subscriptions: joining a second one does not make the product new.
+    for (const link of await this.linksOf(user)) {
+      await this.db.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: { PK: `USER#${user.value}`, SK: `SUB#${link.subscriptionId.value}` },
+          UpdateExpression: 'SET welcomedAt = if_not_exists(welcomedAt, :at)',
+          ExpressionAttributeValues: { ':at': at },
+        }),
+      );
+    }
   }
 
   async unlink(user: UserId, subscriptionId: SubscriptionId): Promise<void> {

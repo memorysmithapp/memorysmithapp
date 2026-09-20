@@ -66,6 +66,12 @@ export const sessionSchema = z.object({
    * the active link, it is what lets the shell show how much room is left.
    */
   usedBytes: z.number().int().nonnegative().nullable(),
+  /**
+   * Whether this person has already been shown what the product is (#167).
+   * The interface opens the welcome surface when it is false, and records it
+   * so the next sign-in opens the dashboard instead.
+   */
+  welcomeSeen: z.boolean(),
 });
 
 export const switchSubscriptionRequestSchema = z.object({

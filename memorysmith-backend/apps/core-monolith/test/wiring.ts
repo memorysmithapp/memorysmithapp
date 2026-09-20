@@ -34,7 +34,7 @@ import {
   RequestSubscription,
   SwitchActiveSubscription,
 } from '@memorysmith/svc-access/application/onboarding';
-import { ChooseLanguage } from '@memorysmith/svc-access/application/account';
+import { ChooseLanguage, RecordWelcome } from '@memorysmith/svc-access/application/account';
 import {
   ListPlatformQueue,
   ReviewSubscription,
@@ -280,6 +280,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     },
     switchSubscription: () => new SwitchActiveSubscription(links),
     chooseLanguage: () => new ChooseLanguage(new InMemoryAccountDirectory()),
+    recordWelcome: () => new RecordWelcome(links),
     listPlatformQueue: () => new ListPlatformQueue(platform),
     reviewSubscription: () => new ReviewSubscription(platform),
     listMembers: (request) => {

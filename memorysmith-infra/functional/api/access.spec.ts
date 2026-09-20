@@ -16,6 +16,7 @@ interface Session {
   activeSubscription: { subscriptionId: string; status: string; quota: string } | null;
   subscriptions: Array<{ subscriptionId: string; status: string; quota: string; isOwner: boolean }>;
   role: string;
+  welcomeSeen: boolean;
 }
 
 test.describe('the session', () => {
@@ -65,6 +66,20 @@ test.describe('the session', () => {
     expect(unknown.status).toBe(400);
     expect(unknown.body.code).toBe('VALIDATION');
     expect(await localeOf(state, state.accounts.owner)).toBe('en_US');
+  });
+
+  test('[route:POST /access/session/welcomed] records the welcome once, and the session says so from then on', async ({
+    owner,
+  }) => {
+    const recorded = await owner.call('POST', '/access/session/welcomed');
+    const after = await owner.ok<Session>('GET', '/access/session');
+    // Twice, because the second one is what the user menu does: it may not
+    // move the date, and it may not fail either.
+    const again = await owner.call('POST', '/access/session/welcomed');
+
+    expect(recorded.status).toBe(204);
+    expect(after.welcomeSeen).toBe(true);
+    expect(again.status).toBe(204);
   });
 });
 

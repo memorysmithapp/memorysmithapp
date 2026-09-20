@@ -52,6 +52,13 @@ export interface LiveSession {
   /** The role in the active subscription, already resolved by the API. */
   readonly role: SessionDto['role'];
   readonly subscriptions: SessionDto['subscriptions'];
+  /**
+   * Whether this person has already been shown what the product is (#167).
+   * The shell opens the welcome surface once when it is false; a session that
+   * could not be described answers true, because guessing wrong here means
+   * throwing somebody who has been here for months at the front door.
+   */
+  readonly welcomeSeen: boolean;
 }
 
 interface SessionStore {
@@ -67,6 +74,8 @@ interface SessionStore {
   loaded: boolean;
   error: string | null;
   load: () => Promise<void>;
+  /** The welcome was shown; the surface never opens by itself again. */
+  markWelcomeSeen: () => void;
   clear: () => void;
 }
 
@@ -118,6 +127,7 @@ export const useLiveSession = create<SessionStore>((set) => ({
           subscriptionStatus: active?.status ?? null,
           role: dto.role,
           subscriptions: dto.subscriptions,
+          welcomeSeen: dto.welcomeSeen ?? true,
         },
       });
     } catch (error) {
@@ -147,10 +157,15 @@ export const useLiveSession = create<SessionStore>((set) => ({
                 subscriptionStatus: null,
                 role: 'NONE',
                 subscriptions: [],
+                welcomeSeen: true,
               }
             : null,
       });
     }
+  },
+
+  markWelcomeSeen(): void {
+    set((state) => (state.session ? { session: { ...state.session, welcomeSeen: true } } : {}));
   },
 
   clear(): void {

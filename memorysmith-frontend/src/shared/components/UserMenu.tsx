@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LOCALES, setLocale, type Locale } from '../../i18n';
 import { recordAccountLocale } from '../api/backend';
@@ -234,6 +235,17 @@ export function UserMenu() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/*
+            Where the welcome surface lives after it has opened once (#167).
+            It is the only place that says where the connector of this
+            environment answers, which is what an agent is pointed at.
+          */}
+          <div className="user-menu-section">
+            <Link className="user-menu-link" to="/about" onClick={() => setOpen(false)}>
+              {t('about.menu')}
+            </Link>
           </div>
 
           <div className="user-menu-section">

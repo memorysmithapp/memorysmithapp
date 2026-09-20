@@ -1,5 +1,6 @@
 {
   "apiOrigin": "https://api.stg.memorysmith.app",
+  "connectorOrigin": "https://mcp.stg.memorysmith.app",
   "cognitoDomain": "https://auth.stg.memorysmith.app",
   "cognitoClientId": "the app client of the interface in that environment",
   "environment": "development",

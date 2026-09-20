@@ -25,6 +25,13 @@ const frontendDist = join(here, '..', '..', 'memorysmith-frontend', 'dist');
 /** What the interface reads at runtime, and nothing else. */
 export interface InterfaceConfig {
   readonly apiOrigin: string;
+  /**
+   * Where the connector of this environment answers (#167). The interface
+   * publishes it on the welcome surface, because an agent writing in the
+   * notebooks is what this product is, and nothing else in the product ever
+   * said where to point one.
+   */
+  readonly connectorOrigin: string;
   readonly cognitoDomain: string;
   readonly cognitoClientId: string;
   readonly environment: string;

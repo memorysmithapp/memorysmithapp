@@ -46,6 +46,7 @@
   "POST /access/platform/subscriptions/:s/reject",
   "POST /access/platform/subscriptions/:s/suspend",
   "POST /access/session/subscription",
+  "POST /access/session/welcomed",
   "POST /access/subscriptions",
   "POST /access/subscriptions/:s/ownership",
   "POST /discovery/notebooks/:v/search",

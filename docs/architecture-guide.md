@@ -597,10 +597,13 @@ Two product questions have to cross the boundary. Neither reveals content, and b
 **Exception 1: the links of the user.** Identity is global; a subscription is a link (RN-SUB-011). The `UserId` is the Cognito `sub` and belongs to no subscription:
 
 ```
-Link      PK: USER#{userId}   SK: SUB#{subscriptionId}   { isOwner, joinedAt, isDefault }
+Link      PK: USER#{userId}   SK: SUB#{subscriptionId}   { isOwner, joinedAt, isDefault,
+                                                          welcomedAt }
 ```
 
 It answers *"which subscriptions do I take part in?"* and nothing else (RN-SUB-003).
+
+`welcomedAt` is the one attribute here that is not about the link: it says when this person was shown what the product is (RN-ACC-019), and it rides on this item because the exception names a KEY SHAPE and adds none. It is written on every link the person holds, because being welcomed happened to them and not to one of their subscriptions, and writing a link never touches it — which is why that write is an update and not a put.
 
 **Exception 2: the platform queue.** The `PLATFORM_ADMIN` has to list subscriptions by status to approve them. A GSI in `mv-access` solves it, projecting **metadata only**:
 

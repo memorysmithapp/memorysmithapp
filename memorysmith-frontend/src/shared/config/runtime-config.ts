@@ -14,6 +14,12 @@ import type { DeploymentEnvironment } from '@memorysmith/contracts';
 export interface RuntimeConfig {
   /** Where the product API answers, with no trailing slash. */
   readonly apiOrigin: string;
+  /**
+   * Where the connector of this environment answers, with no trailing slash.
+   * The welcome surface publishes it, because pointing an agent at this
+   * notebook is the one thing nothing in the product used to say (#167).
+   */
+  readonly connectorOrigin: string;
   /** Where the sign-in page answers, with no trailing slash. */
   readonly cognitoDomain: string;
   /** The app client of the interface. */
@@ -46,6 +52,7 @@ export function parseRuntimeConfig(raw: unknown): RuntimeConfig {
   }
   return {
     apiOrigin: text(fields, 'apiOrigin').replace(/\/$/, ''),
+    connectorOrigin: text(fields, 'connectorOrigin').replace(/\/$/, ''),
     cognitoDomain: text(fields, 'cognitoDomain').replace(/\/$/, ''),
     cognitoClientId: text(fields, 'cognitoClientId'),
     environment: environment as DeploymentEnvironment,

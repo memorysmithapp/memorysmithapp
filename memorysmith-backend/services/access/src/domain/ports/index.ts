@@ -40,11 +40,25 @@ export interface SubscriptionLink {
   readonly isOwner: boolean;
   readonly isDefault: boolean;
   readonly joinedAt: string;
+  /**
+   * When this person was first shown what the product is (#167), or null while
+   * they never were. It rides on the link because the link is the one item
+   * this context already holds about a person, and it is an ATTRIBUTE of it:
+   * exception 1 names a key shape, and this adds none.
+   */
+  readonly welcomedAt: string | null;
 }
 
 export interface UserLinkRepository {
   linksOf(user: UserId): Promise<SubscriptionLink[]>;
-  link(link: SubscriptionLink): Promise<void>;
+  /**
+   * Writes the link, and never the welcome: joining a subscription says
+   * nothing about whether the person has already been welcomed, and an
+   * ownership transfer rewrites both ends of a link.
+   */
+  link(link: Omit<SubscriptionLink, 'welcomedAt'>): Promise<void>;
+  /** Records that this person has seen the welcome, on every link they hold. */
+  markWelcomed(user: UserId, at: string): Promise<void>;
   unlink(user: UserId, subscriptionId: SubscriptionId): Promise<void>;
   /** Switching the active subscription is an explicit act (RN-SUB-013). */
   setDefault(user: UserId, subscriptionId: SubscriptionId): Promise<void>;
@@ -71,7 +85,7 @@ export interface SubscriptionOnboarding {
   /** Subscription and link, written together. */
   create(input: {
     subscription: Subscription;
-    link: SubscriptionLink;
+    link: Omit<SubscriptionLink, 'welcomedAt'>;
   }): Promise<Result<void, ConcurrencyError>>;
   /** Whether this user already asked for a subscription of their own. */
   ownedBy(user: UserId): Promise<SubscriptionId | null>;

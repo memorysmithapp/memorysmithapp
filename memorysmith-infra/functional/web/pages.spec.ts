@@ -94,6 +94,26 @@ test.describe('the pages of an account', () => {
     }
   });
 
+  test('[page:/about] says what the product is, and where an agent is pointed at it', async ({
+    app,
+    state,
+    words,
+  }) => {
+    await app.goto(`${state.surfaces.site}/`);
+
+    // From the user menu, which is where it lives once it has opened by
+    // itself: the fixture account has been here before (#167).
+    await app.locator('button.user-menu-trigger').click();
+    await app.getByRole('link', { name: words.aboutMenu }).click();
+    await app.waitForURL(`${state.surfaces.site}/about`);
+
+    await expect(app.getByRole('heading', { name: words.aboutHeading })).toBeVisible();
+    await expect(app.getByRole('heading', { name: words.aboutConnector })).toBeVisible();
+    // The address of THIS environment, published by its own configuration:
+    // a page that shows the wrong one sends every agent somewhere else.
+    await expect(app.locator('.about-connector code')).toHaveText(state.surfaces.mcp);
+  });
+
   test('[page:/notebooks/:notebookId] opens a notebook on its context: its name, its folders and their Templates', async ({
     app,
     notebook,

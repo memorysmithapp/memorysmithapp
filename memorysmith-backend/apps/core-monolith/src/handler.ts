@@ -27,7 +27,7 @@ import {
   RequestSubscription,
   SwitchActiveSubscription,
 } from '@memorysmith/svc-access/application/onboarding';
-import { ChooseLanguage } from '@memorysmith/svc-access/application/account';
+import { ChooseLanguage, RecordWelcome } from '@memorysmith/svc-access/application/account';
 import { CognitoAccountDirectory } from '@memorysmith/svc-access/adapters/cognito';
 import {
   ListPlatformQueue,
@@ -183,6 +183,7 @@ const accessUseCases: AccessUseCases = {
     return new RequestSubscription(onboarding, links);
   },
   chooseLanguage: () => new ChooseLanguage(accountDirectory),
+  recordWelcome: (request) => new RecordWelcome(buildAccess(infra, request.context).links),
   getSession: (request) => {
     const { links, platform, scoped } = buildAccess(infra, request.context);
     const context = request.context;

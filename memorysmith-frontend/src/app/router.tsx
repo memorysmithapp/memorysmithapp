@@ -10,6 +10,7 @@ import { NoteRoute } from '../features/structure/NoteRoute';
 import { ResumeReading } from '../features/structure/ResumeReading';
 import { TemplatesPage } from '../features/structure/TemplatesPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
+import { AboutPage, WelcomeGate } from '../features/about/AboutPage';
 import { TransfersPage } from '../features/portability/TransfersPage';
 import { GraphPage } from '../features/graph/GraphPage';
 import { LinkTargetPage } from '../features/note/LinkTargetPage';
@@ -43,7 +44,17 @@ export const router = createBrowserRouter([
           {
             element: <AppShell />,
             children: [
-              { path: '/', element: <DashboardPage /> },
+              {
+                path: '/',
+                element: (
+                  <WelcomeGate>
+                    <DashboardPage />
+                  </WelcomeGate>
+                ),
+              },
+              // What the product is, opened once by itself and from the user
+              // menu from then on (#167).
+              { path: '/about', element: <AboutPage /> },
               { path: '/transfers', element: <TransfersPage /> },
               {
                 path: '/notebooks/:notebookId',

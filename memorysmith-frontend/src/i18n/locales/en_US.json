@@ -333,5 +333,71 @@
     "wrote_other": "{{count}} notes written",
     "wroteNothing": "the design, with no note",
     "fromFile": "from {{file}}"
+  },
+  "about": {
+    "menu": "About MemorySmith.app",
+    "title": "About MemorySmith.app",
+    "heading": "Welcome to MemorySmith.app",
+    "lead": "Structured knowledge, natively readable and writable by humans and agents.",
+    "what": {
+      "heading": "What this is",
+      "body": "MemorySmith hosts notebooks of notes written in Markdown. A notebook holds folders, a folder holds notes, and everything you write here stays plain text you can read without us: every note keeps its whole history, and every notebook can be exported in full at any time.",
+      "guidance": "What makes a notebook here different is that it says how it wants to be written. Its Guidance states what the notebook is for and how to write in it; each folder carries a description and a Template. An agent reads both before writing a single line, which is how a notebook stays coherent after a hundred notes instead of drifting into a folder of loose files."
+    },
+    "interface": {
+      "heading": "What you will find here",
+      "body": "This interface is a reading tool before it is an editing one. These are the surfaces it gives you:",
+      "notebooks": {
+        "term": "Notebooks",
+        "definition": "The first screen lists them, with how many notes each one holds and when it last changed. Opening one takes you back to where you stopped reading."
+      },
+      "folders": {
+        "term": "Folders and notes",
+        "definition": "The side panel is the structure of the notebook, in the order the notebook itself declares. A note shows its properties, its links and what links back to it."
+      },
+      "guidance": {
+        "term": "Guidance and Templates",
+        "definition": "Readable on their own screens, so you can see the rules an agent is following before you read what it wrote."
+      },
+      "graph": {
+        "term": "Graph",
+        "definition": "Every note as a point and every link as a line, which is where an isolated note, or a cluster nobody connected, becomes visible."
+      },
+      "search": {
+        "term": "Search",
+        "definition": "Across the notes of a notebook, by what they say and by the properties they declare."
+      },
+      "transfers": {
+        "term": "Transfers",
+        "definition": "Exporting a notebook, or importing one, from the menu beside your picture. What comes out is Markdown files in folders, and nothing else."
+      }
+    },
+    "connector": {
+      "heading": "Connecting your AI assistant",
+      "body": "This is the part worth doing today. MemorySmith answers AI tools through a remote MCP server, so an assistant does not merely read your notebooks: it writes in them, obeying the Guidance of the notebook and the Template of each folder. The address of this environment is:",
+      "claude": {
+        "heading": "In Claude",
+        "one": "Open <b>Settings</b> and then <b>Connectors</b>.",
+        "two": "Choose <b>Add custom connector</b> and paste the address above.",
+        "three": "Claude opens a sign-in page; sign in with this same account and authorise it.",
+        "four": "Start a conversation and ask for your notebooks. The assistant will list them."
+      },
+      "chatgpt": {
+        "heading": "In ChatGPT",
+        "one": "Open <b>Settings</b>, then <b>Connectors</b>, and choose to add one.",
+        "two": "Paste the address above and authorise it with this same account.",
+        "three": "In a conversation, enable the connector and ask for your notebooks."
+      },
+      "sameAccount": "Whichever tool you use, sign in with the same account you are reading this with: the assistant reaches exactly the notebooks you reach, with exactly your permissions, and every change it makes is recorded under your name."
+    },
+    "agent": {
+      "heading": "What to ask it first",
+      "body": "You do not have to build anything here by hand. Ask the assistant, in your own words:",
+      "one": "“Create a notebook in MemorySmith for my reading notes, with the folders that make sense, and write its Guidance.”",
+      "two": "“Read my notebook and tell me what is missing from it.”",
+      "three": "“Write a note about what we just discussed, in the right folder.”",
+      "skills": "The connector carries written methods for the tasks that go wrong most often — designing a notebook from scratch, writing a note this product can read — and a good assistant reads them before it starts. You will see it do so."
+    },
+    "start": "Start reading"
   }
 }

@@ -167,9 +167,13 @@ describe('API DTOs', () => {
       // No subscription also means nothing stored under one, and null says
       // that, where a zero would claim an empty subscription exists.
       usedBytes: null,
+      // Somebody who has never been shown what the product is, which is every
+      // brand new account: the interface opens the welcome surface once.
+      welcomeSeen: false,
     });
     expect(session.activeSubscription).toBeNull();
     expect(session.role).toBe('NONE');
     expect(session.usedBytes).toBeNull();
+    expect(session.welcomeSeen).toBe(false);
   });
 });

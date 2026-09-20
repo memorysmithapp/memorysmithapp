@@ -42,7 +42,7 @@ import type {
   RebindConnector,
   TokenCredential,
 } from '../../../application/connectors.js';
-import type { ChooseLanguage } from '../../../application/account.js';
+import type { ChooseLanguage, RecordWelcome } from '../../../application/account.js';
 import type { UserProfile } from '../../../domain/ports/index.js';
 import { connectorBindingRequestSchema, sessionSchema } from '@memorysmith/contracts';
 import type { TokenVerifier } from './authentication.js';
@@ -64,6 +64,7 @@ export interface AccessUseCases {
   readonly getSession: (request: AccessRequest) => GetSession;
   readonly switchSubscription: (request: AccessRequest) => SwitchActiveSubscription;
   readonly chooseLanguage: (request: AccessRequest) => ChooseLanguage;
+  readonly recordWelcome: (request: AccessRequest) => RecordWelcome;
   readonly listPlatformQueue: (request: AccessRequest) => ListPlatformQueue;
   readonly reviewSubscription: (request: AccessRequest) => ReviewSubscription;
   readonly listMembers: (request: AccessRequest) => ListMembers;
@@ -139,6 +140,7 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
       subscriptions: view.value.links,
       role: view.value.role,
       usedBytes: view.value.usedBytes,
+      welcomeSeen: view.value.welcomeSeen,
     };
     // Parsed, not cast. A cast would let the shape drift from the declared
     // contract in silence, which is exactly how this response came to send
@@ -175,6 +177,20 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
         profile: request.profile,
         locale: String(body.locale ?? ''),
       }),
+      204,
+    );
+  });
+
+  /**
+   * The person has been shown what the product is (#167). Recorded when the
+   * welcome surface opens by itself, and never when it is opened from the user
+   * menu: what this date answers is whether it still has to open on its own.
+   */
+  app.post('/session/welcomed', async (c) => {
+    const request = c.get('access');
+    return respond(
+      c,
+      await useCases.recordWelcome(request).execute({ profile: request.profile }),
       204,
     );
   });

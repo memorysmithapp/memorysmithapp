@@ -336,5 +336,71 @@
     "wrote_other": "{{count}} notas escritas",
     "wroteNothing": "o desenho, sem nota nenhuma",
     "fromFile": "de {{file}}"
+  },
+  "about": {
+    "menu": "Sobre o MemorySmith.app",
+    "title": "Sobre o MemorySmith.app",
+    "heading": "Bem-vindo ao MemorySmith.app",
+    "lead": "Conhecimento estruturado, lido e escrito nativamente por pessoas e agentes.",
+    "what": {
+      "heading": "O que é isto",
+      "body": "O MemorySmith hospeda cadernos de notas escritas em Markdown. Um caderno tem pastas, uma pasta tem notas, e tudo o que você escreve aqui continua sendo texto puro que você lê sem depender de nós: cada nota guarda todo o seu histórico, e cada caderno pode ser exportado por inteiro a qualquer momento.",
+      "guidance": "O que torna um caderno daqui diferente é que ele diz como quer ser escrito. A Orientação declara para que o caderno serve e como escrever nele; cada pasta carrega uma descrição e um Modelo. Um agente lê os dois antes de escrever a primeira linha, e é isso que mantém um caderno coerente depois de cem notas, em vez de virar uma pasta de arquivos soltos."
+    },
+    "interface": {
+      "heading": "O que você encontra aqui",
+      "body": "Esta interface é uma ferramenta de leitura antes de ser de edição. Estas são as telas que ela oferece:",
+      "notebooks": {
+        "term": "Cadernos",
+        "definition": "A primeira tela lista todos, com quantas notas cada um tem e quando mudou pela última vez. Abrir um leva você de volta ao ponto onde parou de ler."
+      },
+      "folders": {
+        "term": "Pastas e notas",
+        "definition": "O painel lateral é a estrutura do caderno, na ordem que o próprio caderno declara. Uma nota mostra suas propriedades, seus links e o que aponta de volta para ela."
+      },
+      "guidance": {
+        "term": "Orientação e Modelos",
+        "definition": "Podem ser lidos em telas próprias, então você vê as regras que um agente está seguindo antes de ler o que ele escreveu."
+      },
+      "graph": {
+        "term": "Grafo",
+        "definition": "Cada nota como um ponto e cada link como uma linha, que é onde uma nota isolada, ou um grupo que ninguém conectou, fica visível."
+      },
+      "search": {
+        "term": "Busca",
+        "definition": "Nas notas de um caderno, pelo que elas dizem e pelas propriedades que declaram."
+      },
+      "transfers": {
+        "term": "Transferências",
+        "definition": "Exportar um caderno, ou importar um, pelo menu ao lado da sua foto. O que sai são arquivos Markdown em pastas, e nada além disso."
+      }
+    },
+    "connector": {
+      "heading": "Conectando seu assistente de IA",
+      "body": "Esta é a parte que vale fazer hoje. O MemorySmith responde a ferramentas de IA por um servidor MCP remoto, então o assistente não apenas lê seus cadernos: ele escreve neles, obedecendo à Orientação do caderno e ao Modelo de cada pasta. O endereço deste ambiente é:",
+      "claude": {
+        "heading": "No Claude",
+        "one": "Abra <b>Configurações</b> e depois <b>Conectores</b>.",
+        "two": "Escolha <b>Adicionar conector personalizado</b> e cole o endereço acima.",
+        "three": "O Claude abre uma tela de login; entre com esta mesma conta e autorize.",
+        "four": "Comece uma conversa e peça seus cadernos. O assistente vai listá-los."
+      },
+      "chatgpt": {
+        "heading": "No ChatGPT",
+        "one": "Abra <b>Configurações</b>, depois <b>Conectores</b>, e escolha adicionar um.",
+        "two": "Cole o endereço acima e autorize com esta mesma conta.",
+        "three": "Em uma conversa, habilite o conector e peça seus cadernos."
+      },
+      "sameAccount": "Seja qual for a ferramenta, entre com a mesma conta com que você está lendo isto: o assistente alcança exatamente os cadernos que você alcança, com exatamente as suas permissões, e cada mudança que ele faz fica registrada no seu nome."
+    },
+    "agent": {
+      "heading": "O que pedir primeiro",
+      "body": "Você não precisa construir nada aqui à mão. Peça ao assistente, com as suas palavras:",
+      "one": "“Crie um caderno no MemorySmith para minhas notas de leitura, com as pastas que fizerem sentido, e escreva a Orientação dele.”",
+      "two": "“Leia meu caderno e me diga o que está faltando nele.”",
+      "three": "“Escreva uma nota sobre o que acabamos de conversar, na pasta certa.”",
+      "skills": "O conector carrega métodos escritos para as tarefas que mais dão errado — desenhar um caderno do zero, escrever uma nota que este produto consegue ler — e um bom assistente os lê antes de começar. Você vai vê-lo fazer isso."
+    },
+    "start": "Começar a ler"
   }
 }

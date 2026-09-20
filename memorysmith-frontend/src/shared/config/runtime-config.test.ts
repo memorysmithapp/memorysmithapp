@@ -10,6 +10,7 @@ import { loadRuntimeConfig, parseRuntimeConfig, runtimeConfig } from './runtime-
 
 const STAGING = {
   apiOrigin: 'https://api.stg.memorysmith.app/',
+  connectorOrigin: 'https://mcp.stg.memorysmith.app/',
   cognitoDomain: 'https://auth.stg.memorysmith.app',
   cognitoClientId: 'client-id',
   environment: 'staging',
@@ -21,6 +22,7 @@ describe('the runtime configuration', () => {
     expect(parseRuntimeConfig(STAGING)).toEqual({
       ...STAGING,
       apiOrigin: 'https://api.stg.memorysmith.app',
+      connectorOrigin: 'https://mcp.stg.memorysmith.app',
     });
   });
 

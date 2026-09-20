@@ -82,8 +82,16 @@ export class InMemoryUserLinkRepository implements UserLinkRepository {
       .map(([, link]) => link);
   }
 
-  async link(link: SubscriptionLink): Promise<void> {
-    this.db.links.set(this.key(link.userId, link.subscriptionId), link);
+  async link(link: Omit<SubscriptionLink, 'welcomedAt'>): Promise<void> {
+    const key = this.key(link.userId, link.subscriptionId);
+    this.db.links.set(key, { ...link, welcomedAt: this.db.links.get(key)?.welcomedAt ?? null });
+  }
+
+  async markWelcomed(user: UserId, at: string): Promise<void> {
+    for (const link of await this.linksOf(user)) {
+      if (link.welcomedAt) continue;
+      this.db.links.set(this.key(user, link.subscriptionId), { ...link, welcomedAt: at });
+    }
   }
 
   async unlink(user: UserId, subscriptionId: SubscriptionId): Promise<void> {
