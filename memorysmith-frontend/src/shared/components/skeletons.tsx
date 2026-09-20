@@ -34,7 +34,11 @@ export function NotebookCatalogueSkeleton({ cards = 3 }: { cards?: number }) {
   );
 }
 
-/** The KPI tiles and the facet charts of the overview. */
+/**
+ * The four tiles of the overview, and nothing under them: a skeleton promises
+ * the shape of what is coming, so one that drew charts the screen no longer
+ * has would be a promise the page then breaks.
+ */
 export function DashboardSkeleton() {
   return (
     <SkeletonRegion>
@@ -43,19 +47,6 @@ export function DashboardSkeleton() {
           <div className="stat-tile" key={index}>
             <SkeletonBar width="3.5rem" height="2rem" />
             <SkeletonBar width="5rem" height="0.8rem" />
-          </div>
-        ))}
-      </div>
-      <div className="chart-row-skeleton">
-        {Array.from({ length: 3 }, (_, index) => (
-          <div className="chart-card" key={index}>
-            <SkeletonBar width="40%" height="1.1rem" />
-            {Array.from({ length: 4 }, (_, bar) => (
-              <div className="hbar-row" key={bar}>
-                <SkeletonBar width="5rem" height="0.8rem" />
-                <SkeletonBar height="0.7rem" />
-              </div>
-            ))}
           </div>
         ))}
       </div>

@@ -1008,7 +1008,7 @@ The third item is the decisive one: the search **looked** like it worked because
 
 ### 11.3 Curation facets
 
-The third projection, the one that serves the curation panel. The business rules are in `software-vision.md` §10.3.
+The third projection, the one the graph of a notebook colours and filters by, and the one an unknown query prefix resolves against. The business rules are in `software-vision.md` §10.3.
 
 `FacetExtractor` runs on every `NoteCreated`, `NoteUpdated`, `NoteDeleted` and `NoteRestored`: it loads the blob through the `ContentRef` of the event, reads **only the frontmatter block** and classifies each key-value pair by the **shape of the value**: a date, a boolean, a short enumerable value and a list of short values are aggregatable; free text is discarded (RN-DSC-020). There is no key list in the code and no per-notebook configuration: the vocabulary belongs to the Guidance, and `maturity` and `reviewed`, the standard facets of the product, are to the extractor attributes like any other. It is the second sanctioned reader of content, next to `LinkExtractor`, and like it, it lives outside the core (PP4).
 
@@ -1271,7 +1271,7 @@ svc-discovery    GET  /notebooks/:v/links/:target   what one wikilink target res
                     notes each reaches, with their folder trails, from the projection
                     alone and never from the content (RN-AGT-034)
                  GET  /notebooks/:v/health   (pending links, orphans)
-                 GET  /notebooks/:v/facets  (content distribution, feeds the Overview)
+                 GET  /notebooks/:v/facets  (content distribution, feeds the graph)
                  POST /notebooks/:v/search   { query, mode: lexical }
 svc-audit        GET  /notebooks/:v/notes/:n/history
                  GET  /notebooks/:v/notes/:n/revisions

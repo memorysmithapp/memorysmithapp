@@ -155,14 +155,10 @@
     "kpiNotebooks": "Cadernos",
     "kpiNotes": "Notas",
     "kpiPending": "Links pendentes",
-    "otherTypes": "Outros",
     "selectNotebook": "Abrir um caderno",
     "prevNotebooks": "Cadernos anteriores",
     "nextNotebooks": "Próximos cadernos",
     "kpiOrphans": "Notas órfãs",
-    "noFacets": "Estes cadernos ainda não declaram atributos nas notas, então não há o que representar.",
-    "moreFacets": "Mais {{count}} atributo(s) contado(s) e não representado(s).",
-    "discardedFacets": "{{count}} atributo(s) ficaram fora das estatísticas por serem texto livre: {{names}}.",
     "unavailableNotebooks": "{{count}} caderno(s) não responderam, então estes totais estão incompletos."
   },
   "portability": {

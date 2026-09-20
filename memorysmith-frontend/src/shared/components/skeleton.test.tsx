@@ -43,10 +43,12 @@ describe('a placeholder occupies the frame of what it stands in for', () => {
     expect((html.match(/notebook-card-skeleton/g) ?? []).length).toBe(3);
   });
 
-  it('draws four tiles and the charts of the overview', () => {
+  it('draws the four tiles of the overview, and nothing under them', () => {
     const html = render(<parts.DashboardSkeleton />);
     expect((html.match(/stat-tile/g) ?? []).length).toBe(4);
-    expect((html.match(/chart-card/g) ?? []).length).toBe(3);
+    // The charts are gone from the screen, so they are gone from what the
+    // skeleton promises: a skeleton is a claim about what is coming.
+    expect(html).not.toContain('chart-card');
   });
 
   it('draws a note with a name, properties and a body', () => {

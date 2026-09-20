@@ -927,23 +927,6 @@ a:hover {
   color: var(--text-soft);
 }
 
-.chart-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
-  gap: 1rem;
-  margin-bottom: 1.75rem;
-}
-.chart-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1rem 1.25rem 1.25rem;
-}
-.chart-card h2 {
-  margin: 0 0 0.75rem;
-  font-size: 0.95rem;
-}
-
 .seq-seed {
   background: var(--seq-seed);
 }
@@ -962,59 +945,10 @@ a:hover {
 .cat-3 {
   background: var(--cat-3);
 }
-.cat-other {
-  background: var(--cat-other);
-}
-
-.hbar-row {
-  display: grid;
-  grid-template-columns: 11rem 1fr 3.2rem;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.3rem 0;
-}
-.hbar-label {
-  font-size: 0.8rem;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.hbar-track {
-  display: flex;
-  gap: 2px;
-  height: 18px;
-}
-.hbar-seg {
-  border-radius: 4px;
-  min-width: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-.hbar-seg-label {
-  font-size: 0.68rem;
-  color: var(--surface);
-  font-weight: 600;
-}
-.seq-seed .hbar-seg-label,
-.hbar-seg.seq-seed .hbar-seg-label {
-  color: var(--text);
-}
-:root[data-theme='dark'] .hbar-seg.seq-evergreen .hbar-seg-label {
-  color: #0b1220;
-}
 .dashboard-footnote {
   font-size: 0.78rem;
   color: var(--text-soft);
   margin: 0.2rem 0 0;
-}
-
-.hbar-total {
-  font-size: 0.76rem;
-  color: var(--text-soft);
-  text-align: right;
 }
 
 .barlist {
@@ -2564,18 +2498,10 @@ body.has-modal {
 
   /* The label column of a bar chart cannot keep a desktop width when the
      chart itself is 340px wide. */
-  .hbar-row {
-    grid-template-columns: 6.5rem 1fr 2.6rem;
-    gap: 0.4rem;
-  }
   .barlist-row {
     grid-template-columns: 5.5rem 1fr 2.6rem;
     gap: 0.4rem;
   }
-  .chart-card {
-    padding: 0.9rem 1rem 1rem;
-  }
-
   .login-screen {
     padding: 1rem;
   }
@@ -2602,9 +2528,6 @@ body.has-modal {
   }
   .page {
     padding: 0.75rem;
-  }
-  .hbar-row {
-    grid-template-columns: 5rem 1fr 2.4rem;
   }
   .barlist-row {
     grid-template-columns: 4.5rem 1fr 2.4rem;
@@ -2700,18 +2623,6 @@ body.has-modal {
   flex-direction: column;
   gap: 0.75rem;
   cursor: default;
-}
-
-.chart-row-skeleton {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-  gap: 1rem;
-}
-
-.chart-row-skeleton .chart-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
 }
 
 .tree-skeleton {

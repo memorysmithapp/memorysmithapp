@@ -1,55 +1,26 @@
-// The dashboard over real notebooks.
-//
-// It charts the attributes the notebooks actually declare, not a fixed set: see
-// live-stats.ts for why a hardcoded `maturity` chart cannot be a product
-// feature. A notebook whose notes carry no frontmatter simply has no charts, and
-// the tiles above still say what it holds.
+/**
+ * The overview of the dashboard: four numbers about everything the account
+ * holds.
+ *
+ * It used to chart whatever attributes the notebooks declared, which was an
+ * honest feature and the wrong one for this screen: the charts answered a
+ * question nobody was asking at the door, and they cost a second read of every
+ * notebook to draw. What is left is what somebody wants on arriving — how much
+ * there is, and how much of it is broken.
+ *
+ * The two counts that matter are on the right for a reason. A pending link and
+ * an orphan note are the two ways a notebook quietly stops being a graph, and
+ * this is the one screen that looks across every notebook at once.
+ */
 
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { loadLiveStats, type LiveFacet } from '../../shared/api/live-stats';
+import { loadLiveStats } from '../../shared/api/live-stats';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryState } from '../../shared/api/query-state';
 import { DashboardSkeleton } from '../../shared/components/skeletons';
 
 const nf = new Intl.NumberFormat();
-
-/** Values beyond this fold into a single "other" bar, which is named. */
-const VALUES_PER_FACET = 8;
-/** Only the richest facets get a chart; the rest are counted, not drawn. */
-const FACETS_CHARTED = 4;
-
-function FacetChart({ facet }: { facet: LiveFacet }) {
-  const { t } = useTranslation();
-  const top = facet.values.slice(0, VALUES_PER_FACET);
-  const rest = facet.values.slice(VALUES_PER_FACET);
-  const restTotal = rest.reduce((sum, each) => sum + each.count, 0);
-  const bars = restTotal > 0 ? [...top, { value: '__other__', count: restTotal }] : top;
-  const max = Math.max(...bars.map((bar) => bar.count));
-
-  return (
-    <div className="chart-card">
-      <h2>{facet.facet}</h2>
-      {bars.map((bar) => (
-        <div key={bar.value} className="hbar-row">
-          <span className="hbar-label">
-            {bar.value === '__other__' ? t('dashboard.otherTypes') : bar.value}
-          </span>
-          <div className="hbar-track">
-            <div
-              className="hbar-seg"
-              style={{
-                width: `${max > 0 ? (bar.count / max) * 100 : 0}%`,
-                background: bar.value === '__other__' ? 'var(--cat-other)' : 'var(--accent)',
-              }}
-            />
-          </div>
-          <span className="hbar-total">{nf.format(bar.count)}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 export function LiveDashboard() {
   const { t } = useTranslation();
@@ -66,9 +37,6 @@ export function LiveDashboard() {
   // the compiler can see it. Everything below reads an answer that exists.
   const data = query.data;
   if (state === 'pending' || !data) return <DashboardSkeleton />;
-
-  const charted = data.facets.slice(0, FACETS_CHARTED);
-  const notCharted = data.facets.length - charted.length;
 
   return (
     <>
@@ -93,31 +61,15 @@ export function LiveDashboard() {
         </div>
       </div>
 
-      {charted.length > 0 ? (
-        <div className="chart-row">
-          {charted.map((facet) => (
-            <FacetChart key={facet.facet} facet={facet} />
-          ))}
-        </div>
-      ) : (
-        <p className="status">{t('dashboard.noFacets')}</p>
-      )}
-
-      {/* What was left out is said out loud, never dropped in silence. */}
-      {notCharted > 0 && (
-        <p className="dashboard-footnote">{t('dashboard.moreFacets', { count: notCharted })}</p>
-      )}
+      {/*
+        The one caveat that survived the charts, and it survived because it is
+        about the NUMBERS and not about what was drawn beside them: a notebook
+        that did not answer leaves all four short. Numbers that quietly
+        under-report are worse than numbers missing.
+      */}
       {data.unavailable > 0 && (
         <p className="dashboard-footnote">
           {t('dashboard.unavailableNotebooks', { count: data.unavailable })}
-        </p>
-      )}
-      {data.discarded.length > 0 && (
-        <p className="dashboard-footnote">
-          {t('dashboard.discardedFacets', {
-            count: data.discarded.length,
-            names: data.discarded.join(', '),
-          })}
         </p>
       )}
     </>

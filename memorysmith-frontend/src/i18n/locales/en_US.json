@@ -155,14 +155,10 @@
     "kpiNotebooks": "Notebooks",
     "kpiNotes": "Notes",
     "kpiPending": "Pending links",
-    "otherTypes": "Other",
     "selectNotebook": "Open a notebook",
     "prevNotebooks": "Previous notebooks",
     "nextNotebooks": "Next notebooks",
     "kpiOrphans": "Orphan notes",
-    "noFacets": "These notebooks declare no attributes in their notes yet, so there is nothing to chart.",
-    "moreFacets": "{{count}} more attribute(s) counted but not charted.",
-    "discardedFacets": "{{count}} attribute(s) left out of the statistics as free text: {{names}}.",
     "unavailableNotebooks": "{{count}} notebook(s) did not answer, so these totals are short."
   },
   "portability": {
