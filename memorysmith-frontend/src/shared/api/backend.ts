@@ -24,6 +24,8 @@ import type {
   NotebookGraphDto,
   NotebookHealthDto,
   NotebookNamesDto,
+  NotebookFileDto,
+  FileListDto,
   NoteRefDto,
   NotebookSummaryDto,
 } from '@memorysmith/contracts';
@@ -111,6 +113,26 @@ function nest(folders: FolderDto[], notes: NoteSummaryDto[]): FolderNode[] {
 export async function getNotebookNames(notebookId: string): Promise<NoteRefDto[]> {
   const answer = await request<NotebookNamesDto>(`/discovery/notebooks/${notebookId}/names`);
   return answer.notes;
+}
+
+/** The files a notebook keeps beside its notes (#166). */
+export async function getNotebookFiles(notebookId: string): Promise<NotebookFileDto[]> {
+  const answer = await request<FileListDto>(`/knowledge/notebooks/${notebookId}/files`);
+  return answer.files;
+}
+
+/**
+ * A link a browser follows on its own, minted at this moment and pointing at
+ * the object store: it carries its own authorisation, which is what an `<img>`
+ * needs, and it is served from an origin that is not the product's.
+ */
+export async function linkToFile(
+  notebookId: string,
+  fileId: string,
+): Promise<{ url: string; expiresAt: string }> {
+  return request<{ url: string; expiresAt: string }>(
+    `/knowledge/notebooks/${notebookId}/files/${fileId}/link`,
+  );
 }
 
 export async function getNotebookStructure(notebookId: string): Promise<NotebookStructure> {

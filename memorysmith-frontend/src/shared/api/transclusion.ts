@@ -18,7 +18,6 @@
  * a link and is never dropped, which is what `demoteEmbeds` does.
  */
 
-import { isAttachmentName } from './attachment';
 import {
   codeRegions,
   insideCode,
@@ -46,7 +45,16 @@ export const EMBED_LIMIT = 10;
  * the ceiling are demoted to plain wikilinks instead of being dropped, because
  * losing the reference would be worse than not expanding it.
  */
-export function splitEmbeds(body: string, limit = EMBED_LIMIT): BodySegment[] {
+export function splitEmbeds(
+  body: string,
+  /**
+   * Whether the notebook keeps a FILE under that name (#166). An embed of one
+   * expands nothing here: it stays in the text run, where the wikilink pass
+   * turns it into the attachment the page draws by its type.
+   */
+  keeps: (name: string) => boolean = () => false,
+  limit = EMBED_LIMIT,
+): BodySegment[] {
   const segments: BodySegment[] = [];
   const code = codeRegions(body);
   const tables = tableRegions(body);
@@ -57,9 +65,10 @@ export function splitEmbeds(body: string, limit = EMBED_LIMIT): BodySegment[] {
     const at = match.index ?? 0;
     const target = (match[1] ?? '').trim();
     if (!target) continue;
-    // An attachment is not a note, so there is nothing to transclude: it is
-    // left in the text run, where the wikilink pass reports it (RN-DSC-049).
-    if (isAttachmentName(target)) continue;
+    // A file is not a note, so there is nothing to transclude: it is left in
+    // the text run, where the wikilink pass turns it into the attachment the
+    // page draws by its type (RN-DSC-061).
+    if (keeps(target)) continue;
     // An embed written inside code is an example of the notation, not a use of
     // it: expanding it would replace the very text somebody was showing.
     if (insideCode(code, at)) continue;

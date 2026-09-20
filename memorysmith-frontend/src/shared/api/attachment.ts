@@ -1,21 +1,19 @@
-/**
- * A target that names a file rather than a note: an attachment, addressed by
- * its whole name, extension included (§5.8).
- *
- * **This product stores no attachment**, so the reference resolves to nothing.
- * That is not an error and the specification says exactly what it is: reported
- * the way a pending link is (RN-DSC-049). What it must not be is what it was —
- * a `![[diagram.png]]` fell through the wikilink path and was drawn as a link
- * to a note nobody will ever write, telling the reader the wrong thing about
- * their own notebook.
- *
- * The extension is what tells a file from a name, and a name may carry a
- * dot: this is the list of what a notebook actually keeps beside its notes, so
- * `Lei 14.133` is a note and `engelbart.jpg` is not.
- */
-const ATTACHMENT =
-  /\.(png|jpe?g|gif|webp|svg|bmp|ico|pdf|mp4|webm|mov|mp3|wav|ogg|csv|xlsx?|docx?|pptx?|zip|txt|json|ya?ml)$/i;
+import { fileKept } from './source';
 
-export function isAttachmentName(target: string): boolean {
-  return ATTACHMENT.test(target.trim());
+/**
+ * A target that names a file the notebook keeps rather than a note (§5.8, #166).
+ *
+ * It used to be a guess: a list of extensions in a regular expression, because
+ * the product stored no file and the only thing it could do with
+ * `![[diagram.png]]` was keep it from being drawn as a link to a note nobody
+ * would ever write.
+ *
+ * A notebook keeps files now, and **the extension decides nothing**: a file is
+ * called whatever it was called, with an extension, without one, or with one
+ * that contradicts its type. So the question is no longer what the name looks
+ * like, it is what the notebook HOLDS — which the page already knows, because
+ * it reads the files of the notebook the way it reads its names (RN-DSC-061).
+ */
+export function isAttachmentName(notebookId: string, target: string): boolean {
+  return fileKept(notebookId, target.trim()) !== null;
 }

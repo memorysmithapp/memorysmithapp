@@ -3196,6 +3196,68 @@ body.has-modal {
   line-height: 1.4;
 }
 
+/* ---- A file of the notebook, inside a note (#166) ----------------------
+ *
+ * Two shapes and not three: what a browser draws without executing anything
+ * is drawn, and everything else is a card. A PDF can be framed, and that is
+ * exactly why it is not — half the browsers of a phone ignore the frame and
+ * offer a download, and a surface that works on one machine and comes out a
+ * grey rectangle on another is worse than a card that behaves the same
+ * everywhere.
+ */
+.attachment-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-block: var(--p-spacing);
+  border-radius: 8px;
+}
+.attachment-player {
+  display: block;
+  width: 100%;
+  margin-block: var(--p-spacing);
+}
+.attachment-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block: var(--p-spacing);
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+  border-inline-start: 2px solid var(--accent);
+  border-radius: 8px;
+}
+.attachment-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.attachment-card-name {
+  font-family: var(--display);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.attachment-card-note {
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  overflow-wrap: anywhere;
+}
+.attachment-card-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+.attachment-card-actions a {
+  font-size: 0.85rem;
+}
+/* A name the notebook keeps nothing under: the shape a pending link takes. */
+.attachment-loading {
+  color: var(--text-soft);
+}
+
 /* ---- The tab strip (#161) -----------------------------------------------
  *
  * A few things to look at, one at a time. It was drawn inside the chooser of a

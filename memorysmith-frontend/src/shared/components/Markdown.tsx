@@ -1,3 +1,5 @@
+import { Attachment } from './Attachment';
+import { useNotebookId } from './notebook-id';
 import { LinkChoice, linkTargetOf } from './LinkChoice';
 import {
   isValidElement,
@@ -66,16 +68,27 @@ function MarkdownImage({ alt, ...rest }: ImgHTMLAttributes<HTMLImageElement>) {
 
 function MarkdownAnchor({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAnchorElement>) {
   const { t } = useTranslation();
+  const notebookId = useNotebookId();
   // An attachment is a file of the notebook that is not a note, and this product
   // stores none: the reference resolves to nothing, and saying so is what the
   // specification asks for. Drawing it as a link to a note nobody will ever
   // write told the reader the wrong thing about their own notebook (RN-DSC-049).
+  /**
+   * A file the notebook keeps, drawn by its TYPE (#166, RN-DSC-061): an image,
+   * audio and video are drawn, and everything else is a card with a download.
+   * A name the notebook keeps nothing under is reported the way a pending link
+   * is, which is what `Attachment` does with it.
+   */
   if (href?.startsWith('attachment:')) {
-    return (
-      <span className="attachment-missing" title={t('note.attachmentMissing')}>
-        {children}
-      </span>
-    );
+    const name = decodeURIComponent(href.slice('attachment:'.length));
+    if (!notebookId) {
+      return (
+        <span className="attachment-missing" title={t('note.attachmentMissing')}>
+          {children}
+        </span>
+      );
+    }
+    return <Attachment notebookId={notebookId} name={name} />;
   }
   if (href?.startsWith('pending:')) {
     return (

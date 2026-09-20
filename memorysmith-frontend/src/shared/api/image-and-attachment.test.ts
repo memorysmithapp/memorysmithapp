@@ -12,7 +12,6 @@
 
 import { describe, expect, it } from 'vitest';
 import { readImageAlt } from './image-dimensions';
-import { isAttachmentName } from './attachment';
 import { resolveWikilinks } from './markdown';
 import { splitEmbeds } from './transclusion';
 
@@ -54,17 +53,29 @@ describe('the pipe in an alt text separates the description from the dimensions'
   });
 });
 
-describe('an attachment is a file of the notebook that is not a note', () => {
-  it('is told from a name by its extension, and a name may carry a dot', () => {
-    expect(isAttachmentName('engelbart.jpg')).toBe(true);
-    expect(isAttachmentName('colheita-2026.csv')).toBe(true);
-    expect(isAttachmentName('Lei 14.133')).toBe(false);
-    expect(isAttachmentName('Lei 14.133.md')).toBe(false);
+describe('an attachment is a file the notebook keeps, and not a name that looks like one', () => {
+  /**
+   * The extension decides NOTHING (#166). What a target is is decided by what
+   * the notebook holds, which is what the page loaded — so every case below
+   * says what is kept, and the two that matter most are the ones where the
+   * name would have said the opposite.
+   */
+  const keeps = (name: string): boolean => ['esquema de blocos', 'engelbart.jpg'].includes(name);
+
+  it('is what the notebook keeps, with an extension or without one', () => {
+    // A name with no extension at all, which the old guess called a note.
+    expect(resolveWikilinks('Ver ![[esquema de blocos]].', () => null, keeps)).toContain(
+      'attachment:',
+    );
+    // And a name that looks like a file and is not one: nothing is kept
+    // under it, so it is a pending link like any other.
+    const out = resolveWikilinks('Ver ![[colheita-2026.csv]].', () => null, keeps);
+    expect(out).toContain('pending:');
+    expect(out).not.toContain('attachment:');
   });
 
-  it('is reported as an unresolved reference, and never as a pending note', () => {
-    const resolve = (): string | null => null;
-    const out = resolveWikilinks('Ver ![[engelbart.jpg]] no arquivo.', resolve);
+  it('is reported as the file it is, and never as a pending note', () => {
+    const out = resolveWikilinks('Ver ![[engelbart.jpg]] no arquivo.', () => null, keeps);
 
     expect(out).toContain('attachment:');
     expect(out).not.toContain('pending:');
@@ -72,13 +83,13 @@ describe('an attachment is a file of the notebook that is not a note', () => {
   });
 
   it('carries its dimensions in the same pipe, and shows neither as text', () => {
-    const out = resolveWikilinks('![[engelbart.jpg|100x145]]', () => null);
+    const out = resolveWikilinks('![[engelbart.jpg|100x145]]', () => null, keeps);
     expect(out).toContain('attachment:');
     expect(out).not.toContain('100x145');
   });
 
   it('is never transcluded, because there is no note to expand', () => {
-    const segments = splitEmbeds('![[engelbart.jpg]] and ![[Lei 14.133]]');
+    const segments = splitEmbeds('![[engelbart.jpg]] and ![[Lei 14.133]]', keeps);
     expect(segments.filter((each) => each.kind === 'embed')).toHaveLength(1);
     expect(
       segments.some((each) => each.kind === 'text' && each.text.includes('engelbart.jpg')),

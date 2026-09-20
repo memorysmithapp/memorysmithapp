@@ -18,6 +18,7 @@ import type {
 } from '@memorysmith/contracts';
 import * as backend from './backend';
 import { linkTargetAddress, noteAddress } from './note-address';
+import type { NotebookFileDto } from '@memorysmith/contracts';
 import type {
   NoteDetail,
   SearchHit,
@@ -43,6 +44,32 @@ const loaded = new Map<string, NotebookStructure>();
  * the old behaviour and never a wrong address.
  */
 const spellings = new Map<string, Map<string, string[]>>();
+
+/**
+ * The files each notebook keeps, by the name a note addresses them with
+ * (#166). The extension of a name decides nothing: what a target reaches is
+ * decided by what the notebook HOLDS, which is this map, and how it is drawn
+ * is decided by its type.
+ */
+const files = new Map<string, Map<string, NotebookFileDto>>();
+
+export async function getNotebookFiles(notebookId: string): Promise<number> {
+  const kept = await backend.getNotebookFiles(notebookId);
+  files.set(notebookId, new Map(kept.map((file) => [file.name.normalize('NFC'), file])));
+  return kept.length;
+}
+
+/** The file the notebook keeps under that name, or `null` when it keeps none. */
+export function fileKept(notebookId: string, name: string): NotebookFileDto | null {
+  return files.get(notebookId)?.get(name.normalize('NFC')) ?? null;
+}
+
+export function linkToFile(
+  notebookId: string,
+  fileId: string,
+): Promise<{ url: string; expiresAt: string }> {
+  return backend.linkToFile(notebookId, fileId);
+}
 
 export async function getNotebookNames(notebookId: string): Promise<number> {
   const notes = await backend.getNotebookNames(notebookId);

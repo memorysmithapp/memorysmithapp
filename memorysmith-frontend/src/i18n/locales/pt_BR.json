@@ -133,14 +133,16 @@
     "copied": "Copiado",
     "copyHint": "Copiar o Markdown da nota para a área de transferência",
     "unnamed": "Nota sem nome",
-    "attachmentMissing": "Este caderno não tem arquivo com esse nome. Anexos não são guardados aqui.",
+    "attachmentMissing": "Este caderno não guarda nenhum arquivo com esse nome.",
     "targetPending": "Nenhuma nota se chama “{{target}}” ainda. O link fica guardado e resolve sozinho quando alguma se chamar.",
     "linkLeadsToSeveral": "Este link leva a mais de uma nota",
     "linkLeadsNowhere": "Este link ainda não leva a lugar nenhum",
     "targetNamed_one": "“{{target}}” é o nome de uma nota.",
     "targetNamed_other": "“{{target}}” é o nome de {{count}} notas, cada uma em sua pasta. Escolha qual abrir.",
     "targetAliased_one": "Nenhuma nota se chama “{{target}}”. Uma nota carrega esse apelido.",
-    "targetAliased_other": "Nenhuma nota se chama “{{target}}”, então ele casou com {{count}} notas que o carregam como apelido — e uma delas devolve o link no dia em que alguém escrever uma nota com este nome."
+    "targetAliased_other": "Nenhuma nota se chama “{{target}}”, então ele casou com {{count}} notas que o carregam como apelido — e uma delas devolve o link no dia em que alguém escrever uma nota com este nome.",
+    "attachmentOpen": "Abrir",
+    "attachmentDownload": "Baixar"
   },
   "common": {
     "loading": "Carregando…",

@@ -133,14 +133,16 @@
     "copied": "Copied",
     "copyHint": "Copy the note's Markdown to the clipboard",
     "unnamed": "Unnamed note",
-    "attachmentMissing": "This notebook holds no file by that name. Attachments are not stored here.",
+    "attachmentMissing": "This notebook keeps no file under that name.",
     "targetPending": "No note carries the name “{{target}}” yet. The link is kept and resolves on its own when one does.",
     "linkLeadsToSeveral": "This link leads to more than one note",
     "linkLeadsNowhere": "This link leads nowhere yet",
     "targetNamed_one": "“{{target}}” is the name of one note.",
     "targetNamed_other": "“{{target}}” is the name of {{count}} notes, each in its own folder. Choose which one to open.",
     "targetAliased_one": "No note is named “{{target}}”. One note carries it as an alias.",
-    "targetAliased_other": "No note is named “{{target}}”, so it matched {{count}} notes that carry it as an alias — and one of them gives the link up the day somebody writes a note under this name."
+    "targetAliased_other": "No note is named “{{target}}”, so it matched {{count}} notes that carry it as an alias — and one of them gives the link up the day somebody writes a note under this name.",
+    "attachmentOpen": "Open",
+    "attachmentDownload": "Download"
   },
   "common": {
     "loading": "Loading…",

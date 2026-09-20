@@ -5,6 +5,7 @@ import { splitEmbeds } from '../api/transclusion';
 import { remoteImageHosts, resolveWikilinks } from '../api/markdown';
 import { taskBoxes, toggleTaskAt } from '../api/tasklist';
 import { wikilinkUrl } from '../api/source';
+import { isAttachmentName } from '../api/attachment';
 import { Markdown } from './Markdown';
 import { Transclusion } from './Transclusion';
 import { useGroupedWrite, type TaskWriter } from './TaskListWriter';
@@ -77,13 +78,17 @@ export function WritableContent({
   const split = text.startsWith('---') ? text.indexOf('\n---', 3) + 4 : 0;
   const body = text.slice(split);
 
-  const segments = splitEmbeds(body).map((segment) =>
+  const segments = splitEmbeds(body, (name) => isAttachmentName(notebookId, name)).map((segment) =>
     segment.kind === 'text'
       ? {
           ...segment,
           // One resolver for every surface: one note is a link, several are
           // the choice, and none is pending and still asks (RN-DSC-046, #138).
-          rendered: resolveWikilinks(segment.text, (name) => wikilinkUrl(notebookId, name)),
+          rendered: resolveWikilinks(
+            segment.text,
+            (name) => wikilinkUrl(notebookId, name),
+            (name) => isAttachmentName(notebookId, name),
+          ),
         }
       : segment,
   );

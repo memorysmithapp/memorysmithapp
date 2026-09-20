@@ -126,14 +126,20 @@ const EXPECTED: Record<string, (html: string) => void> = {
     expect(html).toMatch(/embed|status/);
   },
   attachment: (html) => {
-    // A file of the notebook that is not a note. This product stores none, so the
-    // reference resolves to nothing and says so — reported the way a pending
-    // link is, and never drawn as a link to a note nobody will ever write
-    // (RN-DSC-049).
-    expect(html).toContain('attachment-missing');
+    /**
+     * A file of the notebook that is not a note. The notebook of this case
+     * keeps NONE — the extension of the name decides nothing since #166 — so
+     * the reference reaches nothing and is reported the way a pending link is
+     * (§5.8, RN-DSC-049). What it must never be is a link: a reader following
+     * it would land on a note nobody will ever write.
+     *
+     * That a target the notebook DOES keep is drawn by its type is the other
+     * half, and it is asserted where the notebook is real: the resolution in
+     * `image-and-attachment.test.ts`, and the drawing in the functional suite.
+     */
     expect(html).toContain('engelbart.jpg');
+    expect(html).toMatch(/pending/);
     expect(html).not.toContain('![[');
-    expect(html).not.toContain('wikilink-pending');
     expect(html).not.toMatch(/<a[^>]*>engelbart/);
   },
   'image-dimensions': (html) => {

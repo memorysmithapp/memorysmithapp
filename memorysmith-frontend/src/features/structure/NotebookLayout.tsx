@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getNotebookNames, getNotebookStructure } from '../../shared/api/source';
+import { getNotebookFiles, getNotebookNames, getNotebookStructure } from '../../shared/api/source';
 import { graphAddress, notebookAddress } from '../../shared/api/note-address';
 import type { NotebookStructure } from '../../shared/types/api';
 import { BrandMark } from '../../shared/components/BrandMark';
+import { NotebookIdProvider } from '../../shared/components/notebook-id';
 import { GraphIcon, MenuIcon, PanelLeftCloseIcon } from '../../shared/components/icons';
 import { SearchBox } from '../search/SearchBox';
 import { FolderTree } from './FolderTree';
@@ -79,6 +80,18 @@ export function NotebookLayout() {
     enabled: notebookId !== '',
   });
 
+  /**
+   * And what it keeps beside its notes (#166): a note reaches a file with
+   * `![[name]]`, and what a target IS cannot be read off the name — the
+   * extension decides nothing — so the page reads the files the way it reads
+   * the names.
+   */
+  useQuery({
+    queryKey: ['notebook-files', notebookId],
+    queryFn: () => getNotebookFiles(notebookId),
+    enabled: notebookId !== '',
+  });
+
   if (!notebookId) return <p className="status">{t('common.notFound')}</p>;
   if (queryState(query) === 'error') {
     return <p className="status">{t(messageKeyOf(query.error))}</p>;
@@ -94,76 +107,78 @@ export function NotebookLayout() {
    */
 
   return (
-    <div className={`notebook-layout${navOpen ? ' nav-open' : ''}`}>
-      {/* Shown by CSS only where the sidebar is a drawer. */}
-      <button
-        type="button"
-        className="notebook-nav-toggle"
-        aria-label={t('structure.openNavigation')}
-        aria-expanded={navOpen}
-        aria-controls="notebook-sidebar"
-        onClick={() => setNavOpen(true)}
-      >
-        <MenuIcon />
-        <span>{data ? data.notebook.name : <SkeletonBar width="8rem" height="1rem" />}</span>
-      </button>
-      <div
-        className="notebook-nav-scrim"
-        hidden={!navOpen}
-        onClick={() => setNavOpen(false)}
-        aria-hidden="true"
-      />
-      <aside className="notebook-sidebar" id="notebook-sidebar">
-        {/* The drawer covers the app header, so it carries the brand itself.
-            Shown by CSS only where the sidebar is a drawer. */}
-        <div className="notebook-nav-head">
-          <span className="brand">
-            <BrandMark />
-          </span>
-          <button
-            type="button"
-            className="notebook-nav-close"
-            aria-label={t('structure.closeNavigation')}
-            ref={closeRef}
-            onClick={() => setNavOpen(false)}
-          >
-            <PanelLeftCloseIcon />
-          </button>
-        </div>
-        <Link to="/" className="back-link">
-          ← {t('structure.backToNotebooks')}
-        </Link>
-        <Link
-          to={notebookAddress(notebookId)}
-          className="notebook-title-link"
-          title={t('structure.heading')}
+    <NotebookIdProvider notebookId={notebookId}>
+      <div className={`notebook-layout${navOpen ? ' nav-open' : ''}`}>
+        {/* Shown by CSS only where the sidebar is a drawer. */}
+        <button
+          type="button"
+          className="notebook-nav-toggle"
+          aria-label={t('structure.openNavigation')}
+          aria-expanded={navOpen}
+          aria-controls="notebook-sidebar"
+          onClick={() => setNavOpen(true)}
         >
-          <h2>{data ? data.notebook.name : <SkeletonBar width="10rem" height="1.4rem" />}</h2>
-        </Link>
-        {data ? (
-          <SearchBox notebookId={notebookId} structure={data} />
-        ) : (
-          <SkeletonBar height="2.2rem" />
-        )}
-        <nav className="notebook-nav">
-          <NavLink to={graphAddress(notebookId)} className="notebook-nav-link">
-            <GraphIcon /> {t('graph.navLabel')}
-          </NavLink>
-        </nav>
-        <p className="sidebar-caption">{t('structure.content')}</p>
-        {data ? (
-          <FolderTree notebookId={notebookId} folders={data.folders} />
-        ) : (
-          <FolderTreeSkeleton />
-        )}
-      </aside>
-      <section className="notebook-content">
-        {data ? (
-          <Outlet context={{ structure: data } satisfies NotebookOutletContext} />
-        ) : (
-          <NoteSkeleton />
-        )}
-      </section>
-    </div>
+          <MenuIcon />
+          <span>{data ? data.notebook.name : <SkeletonBar width="8rem" height="1rem" />}</span>
+        </button>
+        <div
+          className="notebook-nav-scrim"
+          hidden={!navOpen}
+          onClick={() => setNavOpen(false)}
+          aria-hidden="true"
+        />
+        <aside className="notebook-sidebar" id="notebook-sidebar">
+          {/* The drawer covers the app header, so it carries the brand itself.
+            Shown by CSS only where the sidebar is a drawer. */}
+          <div className="notebook-nav-head">
+            <span className="brand">
+              <BrandMark />
+            </span>
+            <button
+              type="button"
+              className="notebook-nav-close"
+              aria-label={t('structure.closeNavigation')}
+              ref={closeRef}
+              onClick={() => setNavOpen(false)}
+            >
+              <PanelLeftCloseIcon />
+            </button>
+          </div>
+          <Link to="/" className="back-link">
+            ← {t('structure.backToNotebooks')}
+          </Link>
+          <Link
+            to={notebookAddress(notebookId)}
+            className="notebook-title-link"
+            title={t('structure.heading')}
+          >
+            <h2>{data ? data.notebook.name : <SkeletonBar width="10rem" height="1.4rem" />}</h2>
+          </Link>
+          {data ? (
+            <SearchBox notebookId={notebookId} structure={data} />
+          ) : (
+            <SkeletonBar height="2.2rem" />
+          )}
+          <nav className="notebook-nav">
+            <NavLink to={graphAddress(notebookId)} className="notebook-nav-link">
+              <GraphIcon /> {t('graph.navLabel')}
+            </NavLink>
+          </nav>
+          <p className="sidebar-caption">{t('structure.content')}</p>
+          {data ? (
+            <FolderTree notebookId={notebookId} folders={data.folders} />
+          ) : (
+            <FolderTreeSkeleton />
+          )}
+        </aside>
+        <section className="notebook-content">
+          {data ? (
+            <Outlet context={{ structure: data } satisfies NotebookOutletContext} />
+          ) : (
+            <NoteSkeleton />
+          )}
+        </section>
+      </div>
+    </NotebookIdProvider>
   );
 }

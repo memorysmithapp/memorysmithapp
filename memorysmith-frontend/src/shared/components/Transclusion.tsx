@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getNote, resolveNoteId, wikilinkUrl } from '../api/source';
+import { isAttachmentName } from '../api/attachment';
 import { noteAddress } from '../api/note-address';
 import { demoteEmbeds, blockOf, isBlockAnchor, sectionOf } from '../api/transclusion';
 import { resolveWikilinks } from '../api/markdown';
@@ -81,7 +82,11 @@ export function Transclusion({
            * implemented halfway.
            */
           <Markdown>
-            {resolveWikilinks(demoteEmbeds(cut), (each) => wikilinkUrl(notebookId, each))}
+            {resolveWikilinks(
+              demoteEmbeds(cut),
+              (each) => wikilinkUrl(notebookId, each),
+              (each) => isAttachmentName(notebookId, each),
+            )}
           </Markdown>
         )}
       </div>
