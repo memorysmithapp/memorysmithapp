@@ -20,6 +20,7 @@ import {
   useTransfers,
 } from './transfers';
 import { StartTransfer } from './StartTransfer';
+import { queryKeys } from '../../shared/api/query-keys';
 
 type Filter = 'all' | 'export' | 'import';
 
@@ -54,7 +55,7 @@ export function TransfersPage() {
   const transfers = useTransfers();
   const refresh = useRefreshTransfers();
   // What still exists, so a row can say that the notebook of an export is gone.
-  const notebooks = useQuery({ queryKey: ['notebooks'], queryFn: listNotebooks });
+  const notebooks = useQuery({ queryKey: queryKeys.notebooks(), queryFn: listNotebooks });
 
   useDocumentTitle(t('transfers.heading'));
 

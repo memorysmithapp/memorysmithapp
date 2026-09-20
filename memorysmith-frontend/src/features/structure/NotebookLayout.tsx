@@ -15,6 +15,7 @@ import { SkeletonBar } from '../../shared/components/Skeleton';
 import { queryState } from '../../shared/api/query-state';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { useNotebookId } from './route-ids';
+import { queryKeys } from '../../shared/api/query-keys';
 
 export interface NotebookOutletContext {
   structure: NotebookStructure;
@@ -59,7 +60,7 @@ export function NotebookLayout() {
   }, [navOpen]);
 
   const query = useQuery({
-    queryKey: ['notebook-structure', notebookId],
+    queryKey: queryKeys.notebookStructure(notebookId),
     queryFn: () => getNotebookStructure(notebookId),
     enabled: notebookId !== '',
   });
@@ -75,7 +76,7 @@ export function NotebookLayout() {
    * page waits for it.
    */
   useQuery({
-    queryKey: ['notebook-names', notebookId],
+    queryKey: queryKeys.notebookNames(notebookId),
     queryFn: () => getNotebookNames(notebookId),
     enabled: notebookId !== '',
   });
@@ -87,7 +88,7 @@ export function NotebookLayout() {
    * the names.
    */
   useQuery({
-    queryKey: ['notebook-files', notebookId],
+    queryKey: queryKeys.notebookFiles(notebookId),
     queryFn: () => getNotebookFiles(notebookId),
     enabled: notebookId !== '',
   });

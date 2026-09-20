@@ -10,6 +10,7 @@ import { Markdown } from './Markdown';
 import { Transclusion } from './Transclusion';
 import { useGroupedWrite, type TaskWriter } from './TaskListWriter';
 import { useWriteStatus } from '../store/write-status';
+import type { InterfaceQueryKey } from '../api/query-keys';
 
 /**
  * A reading surface whose task boxes can be ticked, when the effective role in
@@ -36,7 +37,12 @@ export function WritableContent({
   baseRevision: string | null;
   writable: boolean;
   write: TaskWriter;
-  invalidates: unknown[];
+  /**
+   * What to read again once this write lands. It is typed as a key this
+   * interface actually HOLDS (#170): `unknown[]` accepted a key nobody
+   * registered, and invalidating one of those is a silent no-op.
+   */
+  invalidates: InterfaceQueryKey;
 }) {
   const client = useQueryClient();
   const { t } = useTranslation();

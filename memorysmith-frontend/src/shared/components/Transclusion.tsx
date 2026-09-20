@@ -8,6 +8,7 @@ import { demoteEmbeds, blockOf, isBlockAnchor, sectionOf } from '../api/transclu
 import { resolveWikilinks } from '../api/markdown';
 import { Markdown } from './Markdown';
 import { TransclusionSkeleton } from './skeletons';
+import { queryKeys } from '../api/query-keys';
 
 /**
  * One transcluded block: the content of another note, shown in place.
@@ -33,7 +34,7 @@ export function Transclusion({
   const noteId = resolveNoteId(notebookId, name);
 
   const { data, isPending, isError } = useQuery({
-    queryKey: ['note', notebookId, noteId],
+    queryKey: queryKeys.note(notebookId, noteId),
     queryFn: () => getNote(notebookId, noteId ?? ''),
     enabled: noteId !== null,
   });

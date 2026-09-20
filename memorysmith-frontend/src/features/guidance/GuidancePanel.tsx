@@ -7,6 +7,7 @@ import { useDocumentTitle } from '../../shared/components/document-title';
 import { NotebookBreadcrumb } from '../structure/NotebookBreadcrumb';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
 import { useNotebookId } from '../structure/route-ids';
+import { queryKeys } from '../../shared/api/query-keys';
 
 export function GuidancePanel() {
   const { t } = useTranslation();
@@ -29,13 +30,13 @@ export function GuidancePanel() {
             write={({ raw, baseRevision, keepalive }) =>
               putGuidance(notebookId, raw, baseRevision, { keepalive: keepalive ?? false })
             }
-            invalidates={['notebook-structure', notebookId]}
+            invalidates={queryKeys.notebookStructure(notebookId)}
           />
           {canWrite(structure.effectiveRole) && (
             <DeleteContentSlot
               confirmation={t('structure.deleteGuidanceConfirm')}
               remove={() => deleteGuidance(notebookId)}
-              invalidates={['notebook-structure', notebookId]}
+              invalidates={queryKeys.notebookStructure(notebookId)}
             />
           )}
         </>

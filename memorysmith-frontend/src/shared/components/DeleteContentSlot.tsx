@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { messageKeyOf } from '../api/error-mapper';
+import type { InterfaceQueryKey } from '../api/query-keys';
 
 type Phase = 'idle' | 'confirming' | 'deleting' | 'failed';
 
@@ -25,7 +26,12 @@ export function DeleteContentSlot({
   /** The sentence that says what goes and what stays, in the active locale. */
   confirmation: string;
   remove: () => Promise<void>;
-  invalidates: unknown[];
+  /**
+   * What to read again once this write lands. It is typed as a key this
+   * interface actually HOLDS (#170): `unknown[]` accepted a key nobody
+   * registered, and invalidating one of those is a silent no-op.
+   */
+  invalidates: InterfaceQueryKey;
 }) {
   const { t } = useTranslation();
   const client = useQueryClient();

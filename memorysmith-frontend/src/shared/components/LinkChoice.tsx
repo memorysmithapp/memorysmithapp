@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { folderTrailOfNote, notesReaching, resolveLinkTarget } from '../api/source';
 import { noteAddress } from '../api/note-address';
 import { LinkChoiceContent, type LinkChoiceOption } from './LinkChoiceContent';
+import { queryKeys } from '../api/query-keys';
 
 const TARGET_ADDRESS = /^\/notebooks\/([0-9a-hjkmnp-tv-z]{26})\/links\/(.+)$/i;
 
@@ -59,7 +60,7 @@ export function LinkChoice({ href, children }: { href: string; children: ReactNo
   const dialog = useRef<HTMLDialogElement>(null);
 
   const { data, isPending, isError } = useQuery({
-    queryKey: ['link-target', parsed?.notebookId, parsed?.target],
+    queryKey: queryKeys.linkTarget(parsed?.notebookId, parsed?.target),
     queryFn: () => resolveLinkTarget(parsed?.notebookId ?? '', parsed?.target ?? ''),
     enabled: asked && parsed !== null,
   });

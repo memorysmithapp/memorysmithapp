@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { TransferDto, TransferListDto } from '@memorysmith/contracts';
 import { downloadTransfer, listTransfers } from '../../shared/api/source';
+import { queryKeys } from '../../shared/api/query-keys';
 
 /**
  * The transfers of whoever is signed in, and how the interface follows one that
@@ -13,7 +14,7 @@ import { downloadTransfer, listTransfers } from '../../shared/api/source';
  */
 const POLL_MS = 2_000;
 
-export const TRANSFERS_KEY = ['transfers'] as const;
+export const TRANSFERS_KEY = queryKeys.transfers();
 
 export function useTransfers(enabled = true) {
   return useQuery({

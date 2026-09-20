@@ -330,6 +330,53 @@ test.describe('the pages of an account', () => {
     await expect(app.locator('.editor-refusal')).toContainText(words.conflict);
   });
 
+  test('renames a note from the editor, and the tree follows without a reload', async ({
+    app,
+    notebook,
+    state,
+    words,
+  }) => {
+    /**
+     * Its own note, never the one of the fixture: renaming a note other cases
+     * of this run read by name would break them, and a case that depends on
+     * the order it runs in is not a case.
+     */
+    const api = new Api(state.surfaces.api, await apiToken(state, state.accounts.owner));
+    const before = `Before ${Date.now()}`;
+    const after = `After ${Date.now()}`;
+    const made = await api.ok<{ noteId: string }>(
+      'POST',
+      `/knowledge/notebooks/${notebook.notebookId}/notes`,
+      {
+        folderId: notebook.folderId,
+        content: `---
+name: ${before}
+---
+
+A note to rename.
+`,
+      },
+    );
+
+    await app.goto(`${state.surfaces.site}/notebooks/${notebook.notebookId}/notes/${made.noteId}`);
+    await expect(app.locator('.tree-note', { hasText: before })).toBeVisible();
+
+    await app.getByRole('button', { name: words.editNote }).click();
+    const area = app.locator('textarea.note-editor-area');
+    await area.fill((await area.inputValue()).replace(`name: ${before}`, `name: ${after}`));
+    await app.getByRole('button', { name: words.confirmEdit }).click();
+    await app.getByRole('button', { name: words.writeIt }).click();
+
+    /**
+     * No reload anywhere in this case (#170). The structure draws the tree and
+     * is also what every `[[…]]` resolves against, so a rename that does not
+     * reach it leaves the whole notebook painting by the old name.
+     */
+    await expect(app.locator('.note-header h1')).toHaveText(after);
+    await expect(app.locator('.tree-note', { hasText: after })).toBeVisible();
+    await expect(app.locator('.tree-note', { hasText: before })).toHaveCount(0);
+  });
+
   test('[page:/notebooks/:notebookId/links/:target] keeps a link to a name nobody carries, and follows one that resolves', async ({
     app,
     notebook,

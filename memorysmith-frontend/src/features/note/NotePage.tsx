@@ -22,6 +22,7 @@ import { NoteHistory } from './NoteHistory';
 import { withAlias } from '../../shared/api/markdown';
 import { ApiError } from '../../shared/api/error-mapper';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../../shared/api/query-keys';
 import { useBlocker } from 'react-router-dom';
 import { folderTrailForNote } from '../structure/trail';
 import { NotebookBreadcrumb, folderCrumbs } from '../structure/NotebookBreadcrumb';
@@ -67,7 +68,7 @@ export function NotePage({ noteId }: { noteId: string }) {
     else blocker.reset();
   }, [blocker, t]);
   const { data, isPending, isError } = useQuery({
-    queryKey: ['note', notebookId, noteId],
+    queryKey: queryKeys.note(notebookId, noteId),
     queryFn: () => getNote(notebookId, noteId),
   });
 
@@ -104,11 +105,22 @@ export function NotePage({ noteId }: { noteId: string }) {
         message: outcome.message.trim(),
       });
       setEditing(false);
-      await client.invalidateQueries({ queryKey: ['note', notebookId, noteId] });
-      await client.invalidateQueries({ queryKey: ['note-history', notebookId, noteId] });
-      // The name of a note is the index of the notebook: a rename changes the
-      // tree, the outline and every link that reaches it.
-      await client.invalidateQueries({ queryKey: ['structure', notebookId] });
+      await client.invalidateQueries({ queryKey: queryKeys.note(notebookId, noteId) });
+      await client.invalidateQueries({ queryKey: queryKeys.noteHistory(notebookId, noteId) });
+      /**
+       * The name of a note is the INDEX of the notebook (#170). The structure
+       * is what draws the tree, the outline and the breadcrumb, and it is also
+       * what `notesReaching` answers out of — so a rename that does not reach
+       * here leaves every `[[…]]` in the notebook painting by the name the
+       * note used to have: the new one pending though it resolves, the old one
+       * resolved though it reaches nothing.
+       *
+       * The aliases go with it, because the editor offers keeping the old name
+       * as one, and that is precisely the case where those links must keep
+       * resolving.
+       */
+      await client.invalidateQueries({ queryKey: queryKeys.notebookStructure(notebookId) });
+      await client.invalidateQueries({ queryKey: queryKeys.notebookNames(notebookId) });
     } catch (error) {
       setRefusal(
         error instanceof ApiError
@@ -231,7 +243,7 @@ export function NotePage({ noteId }: { noteId: string }) {
               { keepalive: keepalive ?? false },
             )
           }
-          invalidates={['note', notebookId, noteId]}
+          invalidates={queryKeys.note(notebookId, noteId)}
         />
       )}
 

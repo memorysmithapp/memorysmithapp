@@ -15,6 +15,7 @@ import { searchNotes } from '../../shared/api/source';
 import { noteAddress } from '../../shared/api/note-address';
 import { ApiError } from '../../shared/api/error-mapper';
 import { highlight } from './highlight';
+import { queryKeys } from '../../shared/api/query-keys';
 
 /** Long enough that a typed word is one request, short enough to feel live. */
 const DEBOUNCE_MS = 250;
@@ -95,7 +96,7 @@ export function SearchBox({ notebookId, structure }: SearchBoxProps) {
   );
 
   const { data, isFetching, error } = useQuery({
-    queryKey: ['notebook-search', notebookId, debounced],
+    queryKey: queryKeys.notebookSearch(notebookId, debounced),
     queryFn: () => searchNotes(notebookId, debounced, MAX_HITS),
     enabled: debounced !== '',
     // The previous answer stays on screen while the next one is in flight, so

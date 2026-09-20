@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { rendersAs, type NotebookFileDto } from '@memorysmith/contracts';
 import { fileKept, linkToFile } from '../api/source';
+import { queryKeys } from '../api/query-keys';
 
 /**
  * A file of the notebook, shown where a note referenced it (#166).
@@ -24,7 +25,7 @@ export function Attachment({ notebookId, name }: { notebookId: string; name: str
   const file = fileKept(notebookId, name);
 
   const link = useQuery({
-    queryKey: ['file-link', notebookId, file?.fileId],
+    queryKey: queryKeys.fileLink(notebookId, file?.fileId),
     queryFn: () => linkToFile(notebookId, file?.fileId ?? ''),
     enabled: file !== null,
     // A link lasts an hour; asking again halfway through is cheaper than

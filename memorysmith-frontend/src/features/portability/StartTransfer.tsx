@@ -6,6 +6,7 @@ import { ExportChoice } from './ExportChoice';
 import { ImportDialog } from './ImportDialog';
 import { useRefreshTransfers } from './transfers';
 import { selectionOf, type Chosen } from './import-selection';
+import { queryKeys } from '../../shared/api/query-keys';
 
 /** Which of the two transfers is being decided, or none. */
 export type Starting = 'export' | 'import' | null;
@@ -76,7 +77,7 @@ export function TransferDialogs({
   const [notebookId, setNotebookId] = useState('');
   const refresh = useRefreshTransfers();
   const notebooks = useQuery({
-    queryKey: ['notebooks'],
+    queryKey: queryKeys.notebooks(),
     queryFn: listNotebooks,
     enabled: starting === 'export',
   });

@@ -16,6 +16,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { NotebookStructure } from '../types/api';
 import type * as Backend from '../api/backend';
+import { queryKeys } from '../api/query-keys';
 
 const NOTEBOOK = '01J8X2K9QZ3M4N5P6R7S8T9V0A';
 
@@ -101,7 +102,7 @@ beforeAll(async () => {
             baseRevision="rev-1"
             writable={false}
             write={() => Promise.resolve('rev-2')}
-            invalidates={[]}
+            invalidates={queryKeys.note(NOTEBOOK, 'unused-by-this-case')}
           />
         </MemoryRouter>
       </QueryClientProvider>,

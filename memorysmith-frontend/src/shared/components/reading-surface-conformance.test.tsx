@@ -45,6 +45,7 @@ import {
   DELEGATED_TO_THE_BASE_PARSER,
   RECOGNISED_NOTATION,
 } from '@memorysmith/contracts';
+import { queryKeys } from '../api/query-keys';
 
 function memoryStorage(): Storage {
   const map = new Map<string, string>();
@@ -93,7 +94,7 @@ beforeAll(async () => {
             baseRevision={null}
             writable={true}
             write={() => Promise.resolve('rev-2')}
-            invalidates={[]}
+            invalidates={queryKeys.note('01J8X2K9QZ3M4N5P6R7S8T9V0A', 'unused-by-this-case')}
           />
         </MemoryRouter>
       </QueryClientProvider>,

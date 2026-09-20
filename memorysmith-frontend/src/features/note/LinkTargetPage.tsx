@@ -10,6 +10,7 @@ import {
 import { folderTrailForNote } from '../structure/trail';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
 import { useNotebookId } from '../structure/route-ids';
+import { queryKeys } from '../../shared/api/query-keys';
 
 /**
  * The address of a **link target**, which is a wikilink concept and not a note
@@ -40,7 +41,7 @@ export function LinkTargetPage() {
   useDocumentTitle(decoded, structure.notebook.name);
 
   const { data, isPending, isError } = useQuery({
-    queryKey: ['link-target', notebookId, decoded],
+    queryKey: queryKeys.linkTarget(notebookId, decoded),
     queryFn: () => resolveLinkTarget(notebookId, decoded),
     enabled: decoded !== '',
   });

@@ -21,6 +21,7 @@ import {
   type Scope,
 } from './import-selection';
 import { useRefreshTransfers } from './transfers';
+import { queryKeys } from '../../shared/api/query-keys';
 
 /**
  * What an import writes, asked in the dialog both sides share (#160).
@@ -52,7 +53,11 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
   const [tab, setTab] = useState<ChooserTab>('context');
   const [starting, setStarting] = useState(false);
 
-  const notebooks = useQuery({ queryKey: ['notebooks'], queryFn: listNotebooks, enabled: open });
+  const notebooks = useQuery({
+    queryKey: queryKeys.notebooks(),
+    queryFn: listNotebooks,
+    enabled: open,
+  });
   const refresh = useRefreshTransfers();
 
   const tree: DocumentTree | null = useMemo(() => (document ? treeOf(document) : null), [document]);

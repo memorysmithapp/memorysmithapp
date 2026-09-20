@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { noteHistory } from '../../shared/api/backend';
 import { intlLocale } from '../../i18n';
+import { queryKeys } from '../../shared/api/query-keys';
 
 /**
  * What happened to this note, and what its authors said about it (#169,
@@ -19,7 +20,7 @@ import { intlLocale } from '../../i18n';
 export function NoteHistory({ notebookId, noteId }: { notebookId: string; noteId: string }) {
   const { t, i18n } = useTranslation();
   const { data, isPending, isError } = useQuery({
-    queryKey: ['note-history', notebookId, noteId],
+    queryKey: queryKeys.noteHistory(notebookId, noteId),
     queryFn: () => noteHistory(notebookId, noteId),
   });
 

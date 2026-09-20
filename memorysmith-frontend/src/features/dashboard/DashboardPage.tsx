@@ -9,6 +9,7 @@ import { CardCarousel } from '../../shared/components/CardCarousel';
 import { NotebookCatalogueSkeleton } from '../../shared/components/skeletons';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryState } from '../../shared/api/query-state';
+import { queryKeys } from '../../shared/api/query-keys';
 
 /**
  * The locale drives the format, never a literal in the code: the same instant
@@ -27,7 +28,7 @@ function formatDate(iso: string, locale: string): string {
 export function DashboardPage() {
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
-  const query = useQuery({ queryKey: ['notebooks'], queryFn: listNotebooks });
+  const query = useQuery({ queryKey: queryKeys.notebooks(), queryFn: listNotebooks });
   const notebooks = query.data;
   const state = queryState(query);
 

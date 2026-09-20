@@ -14,6 +14,7 @@ import {
   type Picked,
   type Scope,
 } from './import-selection';
+import { queryKeys } from '../../shared/api/query-keys';
 
 /**
  * What an export carries, asked in the dialog both sides share (#160).
@@ -62,7 +63,7 @@ export function ExportChoice({
    * notebook MEANS for this notebook, in numbers (#161).
    */
   const structure = useQuery({
-    queryKey: ['notebook-structure', notebookId],
+    queryKey: queryKeys.notebookStructure(notebookId),
     queryFn: () => getNotebookStructure(notebookId),
     enabled: open && notebookId !== '',
   });

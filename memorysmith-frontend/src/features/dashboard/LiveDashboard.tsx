@@ -19,12 +19,13 @@ import { loadLiveStats } from '../../shared/api/live-stats';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryState } from '../../shared/api/query-state';
 import { DashboardSkeleton } from '../../shared/components/skeletons';
+import { queryKeys } from '../../shared/api/query-keys';
 
 const nf = new Intl.NumberFormat();
 
 export function LiveDashboard() {
   const { t } = useTranslation();
-  const query = useQuery({ queryKey: ['live-stats'], queryFn: loadLiveStats });
+  const query = useQuery({ queryKey: queryKeys.liveStats(), queryFn: loadLiveStats });
   const state = queryState(query);
 
   // Three states, told apart. `isLoading || !data` said "Loading…" forever

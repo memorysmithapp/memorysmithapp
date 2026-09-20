@@ -15,6 +15,7 @@ import { templateAnchor } from './StructureOutline';
 import { NotebookBreadcrumb } from './NotebookBreadcrumb';
 import type { NotebookOutletContext } from './NotebookLayout';
 import { useNotebookId } from './route-ids';
+import { queryKeys } from '../../shared/api/query-keys';
 
 interface TemplatedFolder {
   folder: FolderNode;
@@ -43,7 +44,7 @@ export function TemplatesPage() {
 
   const queries = useQueries({
     queries: templated.map(({ folder }) => ({
-      queryKey: ['template', notebookId, folder.id],
+      queryKey: queryKeys.template(notebookId, folder.id),
       queryFn: () => getTemplate(notebookId, folder.id),
     })),
   });
@@ -98,7 +99,7 @@ export function TemplatesPage() {
                       keepalive: keepalive ?? false,
                     })
                   }
-                  invalidates={['template', notebookId, folder.id]}
+                  invalidates={queryKeys.template(notebookId, folder.id)}
                 />
                 {canWrite(structure.effectiveRole) && (
                   <DeleteContentSlot
@@ -106,7 +107,7 @@ export function TemplatesPage() {
                     remove={() => deleteTemplate(notebookId, folder.id)}
                     // The list of folders with a Template comes from the
                     // structure, so the card leaves the page with the slot.
-                    invalidates={['notebook-structure', notebookId]}
+                    invalidates={queryKeys.notebookStructure(notebookId)}
                   />
                 )}
               </>

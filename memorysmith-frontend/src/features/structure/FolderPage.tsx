@@ -15,6 +15,7 @@ import type { NotebookOutletContext } from './NotebookLayout';
 import { folderTrailOf } from './trail';
 import { NotebookBreadcrumb, folderCrumbs } from './NotebookBreadcrumb';
 import { useNotebookId } from './route-ids';
+import { queryKeys } from '../../shared/api/query-keys';
 
 /**
  * A folder, addressed by its identifier alone (RN-DSC-045). Renaming it or
@@ -34,7 +35,7 @@ export function FolderPage() {
   useDocumentTitle(folder?.name, structure.notebook.name);
 
   const { data: template } = useQuery({
-    queryKey: ['template', notebookId, folder?.id],
+    queryKey: queryKeys.template(notebookId, folder?.id),
     queryFn: () => getTemplate(notebookId, folder?.id ?? ''),
     enabled: Boolean(folder?.hasTemplate),
   });
@@ -66,7 +67,7 @@ export function FolderPage() {
                 keepalive: keepalive ?? false,
               })
             }
-            invalidates={['template', notebookId, folder.id]}
+            invalidates={queryKeys.template(notebookId, folder.id)}
           />
           {canWrite(structure.effectiveRole) && (
             <DeleteContentSlot
@@ -74,7 +75,7 @@ export function FolderPage() {
               remove={() => deleteTemplate(notebookId, folder.id)}
               // The tree carries which folders have a Template, so the
               // structure is read again and not only this Template.
-              invalidates={['notebook-structure', notebookId]}
+              invalidates={queryKeys.notebookStructure(notebookId)}
             />
           )}
         </details>
