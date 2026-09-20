@@ -2941,18 +2941,9 @@ body.has-modal {
   color: var(--text-soft);
   font-size: 0.84rem;
 }
+/* The filter of the page, which is a tab strip: see `.tabs` (#161). */
 .transfers-filters {
-  display: flex;
-  gap: 0.4rem;
   margin: 0.75rem 0 1rem;
-}
-.transfers-filters .chip {
-  cursor: pointer;
-  min-height: 2.25rem;
-  padding: 0 0.75rem;
-}
-.transfers-filters .chip.is-selected {
-  border-color: var(--accent);
 }
 .transfers-rows {
   list-style: none;
@@ -3186,6 +3177,69 @@ body.has-modal {
   line-height: 1.4;
 }
 
+/* ---- The tab strip (#161) -----------------------------------------------
+ *
+ * A few things to look at, one at a time. It was drawn inside the chooser of a
+ * transfer and it belongs to the product: the filter of Transfers asked the
+ * same question with three chips, and a chip is a label (#157).
+ *
+ * The tabs WRAP and the strip does not scroll. It used to carry `overflow-x`,
+ * for five tabs on a narrow screen — and `overflow-x` on a box whose `overflow-y`
+ * is visible computes that axis to `auto` as well, so the one pixel by which
+ * the open tab sits over the border of the strip became a vertical scrollbar
+ * beside the tabs, with a single pixel to move. A second row on a phone is
+ * better than a bar that scrolls nothing.
+ */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.35rem 0.35rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  flex-shrink: 0;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  padding: 0.5rem 0.9rem;
+  background: none;
+  color: var(--text-soft);
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+/* A tab that is not open stays legible: it is disabled, not absent (#160). */
+.tab:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.tab.is-selected {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+  /* Over the border of the strip, so the tab and the panel are one sheet. */
+  margin-bottom: -1px;
+  padding-bottom: calc(0.5rem + 1px);
+}
+/* A tab is marked when what is inside it is why the screen cannot go on. */
+.tab.is-marked {
+  color: var(--signal);
+}
+.tab.is-marked:disabled {
+  color: var(--text-soft);
+}
+.tab-count {
+  margin-inline-start: 0.35rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--signal);
+  color: var(--paper, #fff);
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
 /* ---- The chooser of a transfer (#156, #161) -----------------------------
  *
  * What a transfer carries, on both sides of the door. Four tabs: the scope,
@@ -3220,38 +3274,7 @@ body.has-modal {
 }
 .chooser-tabs {
   flex-shrink: 0;
-  display: flex;
-  gap: 0.25rem;
-  padding: 0.35rem 0.35rem 0;
   background: var(--bg);
-  border-bottom: 1px solid var(--border);
-  overflow-x: auto;
-}
-.chooser-tab {
-  flex-shrink: 0;
-  border: 1px solid transparent;
-  border-bottom: 0;
-  border-radius: 8px 8px 0 0;
-  padding: 0.5rem 0.9rem;
-  background: none;
-  color: var(--text-soft);
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-/* A tab that is not open stays legible: it is disabled, not absent (#160). */
-.chooser-tab:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-.chooser-tab.is-selected {
-  background: var(--surface);
-  border-color: var(--border);
-  color: var(--text);
-  /* Over the border of the strip, so the tab and the panel are one sheet. */
-  margin-bottom: -1px;
-  padding-bottom: calc(0.5rem + 1px);
 }
 .chooser-panel {
   display: flex;
@@ -3269,6 +3292,19 @@ body.has-modal {
 }
 
 /* The scope: five rows, and the three with a hierarchy carry their reach. */
+/* The whole notebook or part of it, at the head of the first tab (#161). */
+.chooser-scroll > .transfer-presets {
+  /* Side by side: the five rows under them are the point of this tab, and two
+     boxes stacked took a quarter of the height it has. */
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.7rem;
+}
+.chooser-scroll > .transfer-presets .transfer-preset {
+  flex: 1 1 10rem;
+  padding: 0.5rem 0.7rem;
+}
 .chooser-scope {
   list-style: none;
   margin: 0;
@@ -3292,6 +3328,19 @@ body.has-modal {
 }
 .chooser-scope-row.is-missing .chooser-name {
   color: var(--text-soft);
+}
+/* Under the whole notebook the five rows are no longer a question: they are
+   what the whole notebook means here, ticked and still readable. */
+.chooser-scope-row.is-frozen .chooser-label {
+  cursor: default;
+}
+/* The mark that says this travels, where the box would be. */
+.chooser-mark {
+  display: inline-block;
+  width: 0.95rem;
+  text-align: center;
+  color: var(--node-green, var(--accent));
+  font-weight: 700;
 }
 /*
  * Everything, or the items somebody picks: the reach of one species.
@@ -3341,21 +3390,6 @@ body.has-modal {
  * a tab of their own now, lit and counted, and each row names the whole thing:
  * the name, the folder that holds it, how many copies, and the way in (#161).
  */
-.chooser-tab.is-conflict {
-  color: var(--signal);
-}
-.chooser-tab.is-conflict:disabled {
-  color: var(--text-soft);
-}
-.chooser-tab-count {
-  margin-inline-start: 0.35rem;
-  padding: 0 0.35rem;
-  border-radius: 999px;
-  background: var(--signal);
-  color: var(--paper, #fff);
-  font-size: 0.7rem;
-  line-height: 1.5;
-}
 .chooser-twins {
   list-style: none;
   margin: 0;
@@ -3363,6 +3397,14 @@ body.has-modal {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+/* The rule one group of refusals comes from, above the group and not repeated
+   on each of its rows. */
+.chooser-conflict-why {
+  margin: 0.8rem 0 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  line-height: 1.4;
 }
 .chooser-twin {
   display: flex;

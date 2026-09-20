@@ -174,11 +174,9 @@
     "chooseFile": "Choose a file",
     "dropHint": "Drop a .notebook file here, or choose one.",
     "notebookName": "Name",
-    "nameTaken": "You already have a notebook named “{{name}}”. Choose another name, or delete that notebook and import again.",
-    "whatToImport": "What to import",
     "preset": {
       "everything": "The whole notebook",
-      "choose": "Choose items"
+      "choose": "Part of it"
     },
     "filter": "Filter by name",
     "notebookGuidance": "Notebook Guidance",
@@ -211,7 +209,6 @@
       "INTERNAL": "Something went wrong on our side. Try again."
     },
     "exportHeading": "Export notebook",
-    "exportWhat": "What goes in the archive",
     "withHistory": "Include the history",
     "withHistoryHint": "Who wrote what and when, and the content of every earlier revision. The archive is larger, and a kept export counts towards the storage of your plan. Deleting a notebook takes its history with it, so this is what keeps it.",
     "startExport": "Export",
@@ -255,13 +252,19 @@
     "countFolders_other": "{{count}} folders",
     "countTemplates_one": "{{count}} Template",
     "countTemplates_other": "{{count}} Templates",
-    "twinsBlock_one": "1 name is carried twice in its folder, so nothing is imported.",
-    "twinsBlock_other": "{{count}} names are carried twice in their folder, so nothing is imported.",
+    "twinsBlock_one": "1 name is carried twice in its folder.",
+    "twinsBlock_other": "{{count}} names are carried twice in their folder.",
     "showTwins": "See why",
     "twinsWhy": "A folder holds one note of each name, so an import carrying two of one name is refused whole. Leave one of each out and the import goes.",
     "twinWhere_one": "In the folder “{{folder}}” · {{count}} copy",
     "twinWhere_other": "In the folder “{{folder}}” · {{count}} copies",
-    "findTwin": "Find them in the notes"
+    "findTwin": "Find them in the notes",
+    "conflictsWhy": "Nothing is imported while anything is here. Each row says what refuses, and the way out of it.",
+    "nameTakenTitle": "The name “{{name}}” is already in use",
+    "nameTakenWhy": "You already have a notebook of that name, and a subscription holds one notebook of each name. Choose another name, or delete that notebook and import again.",
+    "nameTakenBlock": "The name is already a notebook of yours.",
+    "changeName": "Change the name",
+    "nothingImported": "Nothing is imported until that is resolved."
   },
   "graph": {
     "heading": "Notebook graph",

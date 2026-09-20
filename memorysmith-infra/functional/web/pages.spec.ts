@@ -449,13 +449,38 @@ test.describe('a notebook out and back in, through the browser', () => {
      */
     const name = dialog.getByLabel(words.notebookName);
     await expect(name).toHaveValue(notebook.name);
-    await expect(dialog.getByText(words.nameTaken, { exact: false })).toBeVisible();
     await expect(
       dialog.getByRole('button', { name: words.importAction, exact: true }),
     ).toBeDisabled();
 
+    /**
+     * And it says so in the two places a refusal is said, neither of which is
+     * under the field: **the foot**, in one line that does not grow, and the
+     * **tab of the refusals**, where it is said in full with the way out. A
+     * sentence appearing under the field moved the chooser down and back up
+     * as the name was typed, which is what it is for (#161).
+     */
+    await expect(dialog.locator('#transfer-refusal')).toContainText(words.nameTakenBlock);
+    await dialog.getByRole('button', { name: words.showTwins, exact: true }).click();
+    await expect(dialog.getByRole('tab', { name: new RegExp(words.tabConflicts) })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await expect(dialog.getByText(words.nameTakenTitle, { exact: false })).toBeVisible();
+
+    /**
+     * The strip of tabs does not scroll. It carried `overflow-x` for a narrow
+     * screen, which computes the other axis to `auto` as well, so the pixel by
+     * which the open tab sits over the border of the strip drew a vertical
+     * scrollbar beside the tabs with one pixel to move (#161).
+     */
+    const strip = dialog.locator('.chooser-tabs');
+    expect(await strip.evaluate((el) => el.scrollHeight - el.clientHeight)).toBe(0);
+    expect(await strip.evaluate((el) => el.scrollWidth - el.clientWidth)).toBe(0);
+
     const free = `${notebook.name} again`;
     await name.fill(free);
+    await expect(dialog.locator('#transfer-refusal')).toHaveCount(0);
 
     /**
      * The design of the notebook and not one note of it (RN-PRT-017).
@@ -466,7 +491,7 @@ test.describe('a notebook out and back in, through the browser', () => {
      * the tab of the notes closes with them, because there is nothing left in
      * it to choose.
      */
-    await dialog.getByRole('radio', { name: words.chooseItems }).check();
+    await dialog.getByRole('radio', { name: words.partOfIt, exact: true }).check();
     await dialog.getByRole('checkbox', { name: words.tabNotes, exact: true }).uncheck();
     await expect(dialog.getByRole('tab', { name: words.tabNotes, exact: true })).toBeDisabled();
     await expect(dialog.locator('.transfer-summary')).toContainText(words.willCreateNoNotes);
@@ -522,6 +547,19 @@ test.describe('the transfers of a person', () => {
      * is deleted, and it counts towards the space of the plan.
      */
     await expect(app.locator('.transfers-kept')).toContainText(words.spaceUsed);
+
+    /**
+     * What is shown is chosen in a TAB STRIP and no longer in three chips: one
+     * of three, one at a time, switching the list below it, which is what a
+     * tab is — and a chip is a label (#157, #161). The export just made is an
+     * export, so it survives that filter and would not survive the other.
+     */
+    await app.getByRole('tab', { name: words.filterExports, exact: true }).click();
+    await expect(row).toBeVisible();
+    await app.getByRole('tab', { name: words.filterImports, exact: true }).click();
+    await expect(app.locator('.transfers-row', { hasText: notebook.name })).toHaveCount(0);
+    await app.getByRole('tab', { name: words.filterAll, exact: true }).click();
+
     const download = row.getByRole('button', { name: words.download, exact: true });
     await expect(download).toBeVisible({ timeout: 120_000 });
     const downloading = app.waitForEvent('download');

@@ -40,15 +40,27 @@ export interface Words {
   readonly importNotebook: string;
   readonly linkToSeveral: string;
   readonly transfers: string;
+  /** The three tabs the page filters itself with (#161). */
+  readonly filterAll: string;
+  readonly filterExports: string;
+  readonly filterImports: string;
   readonly download: string;
   readonly spaceUsed: string;
   readonly deleteUntouched: string;
   readonly chooseFile: string;
   readonly notebookName: string;
-  readonly nameTaken: string;
+  /** The one line of the foot that says the import is refused (#161). */
+  readonly nameTakenBlock: string;
+  /** And the row of the tab that says the whole of it. */
+  readonly nameTakenTitle: string;
+  /** The tab every refusal is in, which opens only when there is one. */
+  readonly tabConflicts: string;
+  /** The button of the foot that opens it. */
+  readonly showTwins: string;
   /** What the import dialog commits with, which is the verb alone (#160). */
   readonly importAction: string;
-  readonly chooseItems: string;
+  /** The whole notebook, or part of it: the head of the first tab (#161). */
+  readonly partOfIt: string;
   /** The notes, as the scope row and the tab of the chooser name them (#161). */
   readonly tabNotes: string;
   readonly newExport: string;
@@ -76,14 +88,20 @@ export const WORDS: Record<AppLocale, Words> = {
     importNotebook: 'Import a notebook',
     linkToSeveral: 'This link leads to more than one note',
     transfers: 'Transfers',
+    filterAll: 'All',
+    filterExports: 'Exports',
+    filterImports: 'Imports',
     download: 'Download',
     spaceUsed: 'Space used',
     deleteUntouched: 'is not touched',
     chooseFile: 'Choose a file',
     notebookName: 'Name',
-    nameTaken: 'You already have a notebook named',
+    nameTakenBlock: 'The name is already a notebook of yours',
+    nameTakenTitle: 'is already in use',
+    tabConflicts: 'Conflicts',
+    showTwins: 'See why',
     importAction: 'Import',
-    chooseItems: 'Choose items',
+    partOfIt: 'Part of it',
     tabNotes: 'Notes',
     newExport: 'New export',
     startExport: 'Export',
@@ -108,14 +126,20 @@ export const WORDS: Record<AppLocale, Words> = {
     importNotebook: 'Importar um caderno',
     linkToSeveral: 'Este link leva a mais de uma nota',
     transfers: 'Transferências',
+    filterAll: 'Todas',
+    filterExports: 'Exportações',
+    filterImports: 'Importações',
     download: 'Baixar',
     spaceUsed: 'Espaço usado',
     deleteUntouched: 'não é tocado',
     chooseFile: 'Escolher um arquivo',
     notebookName: 'Nome',
-    nameTaken: 'Você já tem um caderno chamado',
+    nameTakenBlock: 'O nome já é de um caderno seu',
+    nameTakenTitle: 'já está em uso',
+    tabConflicts: 'Inconsistências',
+    showTwins: 'Ver o motivo',
     importAction: 'Importar',
-    chooseItems: 'Escolher itens',
+    partOfIt: 'Parte dele',
     tabNotes: 'Notas',
     newExport: 'Nova exportação',
     startExport: 'Exportar',

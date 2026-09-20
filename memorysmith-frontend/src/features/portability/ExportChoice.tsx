@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getNotebookStructure } from '../../shared/api/source';
-import { TransferChooser, type ChooserTab } from './TransferChooser';
+import { TransferChooser, type ChooserTab, type Preset } from './TransferChooser';
 import { TransferDialog } from './TransferDialog';
 import {
   countsOf,
@@ -46,7 +46,7 @@ export function ExportChoice({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  const [preset, setPreset] = useState<'everything' | 'choose'>('everything');
+  const [preset, setPreset] = useState<Preset>('everything');
   const [scope, setScope] = useState<Scope>(wholeScope);
   const [picked, setPicked] = useState<Picked>(pickedNothing);
   const [filter, setFilter] = useState('');
@@ -54,13 +54,17 @@ export function ExportChoice({
 
   /**
    * The structure of the notebook, which is what an export chooses from: it has
-   * no document yet, so the tree comes from the API (#156). Asked when somebody
-   * opens the chooser, and not when the dialog opens.
+   * no document yet, so the tree comes from the API (#156).
+   *
+   * Asked when the dialog opens, because the chooser is on the screen whichever
+   * the answer to *the whole notebook or part of it* is: that question is the
+   * head of its first tab now, and the five rows under it are what the whole
+   * notebook MEANS for this notebook, in numbers (#161).
    */
   const structure = useQuery({
     queryKey: ['notebook-structure', notebookId],
     queryFn: () => getNotebookStructure(notebookId),
-    enabled: open && preset === 'choose' && notebookId !== '',
+    enabled: open && notebookId !== '',
   });
   const tree = structure.data ? treeOfNotebook(structure.data) : null;
 
@@ -87,7 +91,7 @@ export function ExportChoice({
       onClose={onClose}
       actions={
         <>
-          {preset === 'choose' && counts && (
+          {counts && (
             <p className="transfer-summary">
               {t('portability.willCarry', {
                 folders: t('portability.countFolders', { count: counts.folders }),
@@ -132,32 +136,7 @@ export function ExportChoice({
         </div>
       )}
 
-      <div className="transfer-presets" role="radiogroup" aria-label={t('portability.exportWhat')}>
-        {(['everything', 'choose'] as const).map((each) => (
-          <label key={each} className="transfer-preset">
-            <input
-              type="radio"
-              name="export-preset"
-              checked={preset === each}
-              onChange={() => {
-                setPreset(each);
-                if (each === 'everything') {
-                  setScope(wholeScope);
-                  setPicked(pickedNothing);
-                }
-              }}
-            />
-            <span>
-              <strong>{t(`portability.preset.${each}`)}</strong>
-              {each === 'everything' && preset === 'everything' && (
-                <small>{t('portability.wholeNotebookHint')}</small>
-              )}
-            </span>
-          </label>
-        ))}
-      </div>
-
-      {preset === 'choose' &&
+      {notebooks.length > 0 &&
         (tree && chosen ? (
           <TransferChooser
             tree={tree}
@@ -171,6 +150,14 @@ export function ExportChoice({
             direction="export"
             tab={tab}
             onTab={setTab}
+            preset={preset}
+            onPreset={(next) => {
+              setPreset(next);
+              if (next === 'everything') {
+                setScope(wholeScope);
+                setPicked(pickedNothing);
+              }
+            }}
           />
         ) : (
           <p className="status">{t('common.loading')}</p>

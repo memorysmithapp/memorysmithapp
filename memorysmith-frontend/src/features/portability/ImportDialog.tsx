@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { NotebookDocument, TransferDto } from '@memorysmith/contracts';
 import { applyImport, listNotebooks, prepareImport } from '../../shared/api/source';
 import { ArchiveError, readNotebookArchive } from './notebook-archive';
-import { TransferChooser, type ChooserTab } from './TransferChooser';
+import { TransferChooser, type ChooserTab, type Preset } from './TransferChooser';
 import { TransferDialog } from './TransferDialog';
 import {
   countsOf,
@@ -39,11 +39,13 @@ import { useRefreshTransfers } from './transfers';
 export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const input = useRef<HTMLInputElement>(null);
+  /** The field the name is typed in, which a refusal sends the person back to. */
+  const nameField = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [document, setDocument] = useState<NotebookDocument | null>(null);
   const [refusal, setRefusal] = useState<string | null>(null);
   const [name, setName] = useState('');
-  const [preset, setPreset] = useState<'everything' | 'choose'>('everything');
+  const [preset, setPreset] = useState<Preset>('everything');
   const [scope, setScope] = useState<Scope>(wholeScope);
   const [picked, setPicked] = useState<Picked>(pickedNothing);
   const [filter, setFilter] = useState('');
@@ -122,10 +124,28 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
     }
   }
 
+  /**
+   * The whole notebook, or part of it. It is answered inside the chooser now,
+   * so choosing the whole notebook no longer takes the chooser off the screen
+   * — and the tab that says what refuses stays reachable either way (#161).
+   */
+  function choosePreset(next: Preset): void {
+    setPreset(next);
+    if (next === 'everything') {
+      setScope(wholeScope);
+      setPicked(pickedNothing);
+    }
+  }
+
   /** From the refusal to the tab that explains it, in one click (#161). */
-  function showTwins(): void {
-    setPreset('choose');
+  function showRefusals(): void {
     setTab('conflicts');
+  }
+
+  /** And from there back to the field that names the notebook. */
+  function fixName(): void {
+    nameField.current?.focus();
+    nameField.current?.select();
   }
 
   /**
@@ -138,6 +158,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
    */
   function findNote(twin: string): void {
     if (!tree) return;
+    setPreset('choose');
     setScope((current) => ({
       ...current,
       folders: true,
@@ -181,13 +202,26 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
                 notes: t('portability.noteCount', { count: counts.notes }),
               })}
               {dangling > 0 && ` · ${t('portability.danglingLinks', { count: dangling })}`}
-              {twins.length > 0 && (
+              {(taken || twins.length > 0) && (
                 <>
                   <br />
-                  <span className="is-conflict">
-                    {t('portability.twinsBlock', { count: twins.length })}
+                  {/* The one line saying the import is refused, and it does not
+                      grow with the number of refusals: what each one is, and
+                      the way out of it, is in the tab this opens. It is also
+                      what the name field points at, because the sentence that
+                      used to sit under the field is in that tab now. */}
+                  <span className="is-conflict" id="transfer-refusal">
+                    {[
+                      taken ? t('portability.nameTakenBlock') : null,
+                      twins.length > 0
+                        ? t('portability.twinsBlock', { count: twins.length })
+                        : null,
+                      t('portability.nothingImported'),
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
                   </span>{' '}
-                  <button type="button" className="chooser-twins-open" onClick={showTwins}>
+                  <button type="button" className="chooser-twins-open" onClick={showRefusals}>
                     {t('portability.showTwins')}
                   </button>
                 </>
@@ -247,46 +281,21 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
         <>
           <div className="transfer-field">
             <label htmlFor="import-notebook-name">{t('portability.notebookName')}</label>
+            {/* What is wrong with the name is said in the foot and in full in
+                the tab of the refusals, and no longer in a line under the
+                field, which moved the whole screen as it was typed (#161). */}
             <input
+              ref={nameField}
               id="import-notebook-name"
               type="text"
               value={name}
               onChange={(event) => setName(event.target.value)}
               aria-invalid={taken}
+              aria-describedby={taken ? 'transfer-refusal' : undefined}
             />
           </div>
-          {taken && <p className="status">{t('portability.nameTaken', { name })}</p>}
 
-          <div
-            className="transfer-presets"
-            role="radiogroup"
-            aria-label={t('portability.whatToCarry.import')}
-          >
-            {(['everything', 'choose'] as const).map((each) => (
-              <label key={each} className="transfer-preset">
-                <input
-                  type="radio"
-                  name="import-preset"
-                  checked={preset === each}
-                  onChange={() => {
-                    setPreset(each);
-                    if (each === 'everything') {
-                      setScope(wholeScope);
-                      setPicked(pickedNothing);
-                    }
-                  }}
-                />
-                <span>
-                  <strong>{t(`portability.preset.${each}`)}</strong>
-                  {each === 'everything' && preset === 'everything' && (
-                    <small>{t('portability.wholeNotebookHint')}</small>
-                  )}
-                </span>
-              </label>
-            ))}
-          </div>
-
-          {preset === 'choose' && chosen && (
+          {chosen && (
             <TransferChooser
               tree={tree}
               scope={scope}
@@ -299,7 +308,11 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
               direction="import"
               tab={tab}
               onTab={setTab}
+              preset={preset}
+              onPreset={choosePreset}
               twins={twins}
+              nameTaken={taken ? name.trim() : null}
+              onFixName={fixName}
               onFindNote={findNote}
             />
           )}

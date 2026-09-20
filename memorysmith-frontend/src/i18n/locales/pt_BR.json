@@ -174,11 +174,9 @@
     "chooseFile": "Escolher um arquivo",
     "dropHint": "Solte um arquivo .notebook aqui, ou escolha um.",
     "notebookName": "Nome",
-    "nameTaken": "Você já tem um caderno chamado “{{name}}”. Escolha outro nome, ou apague aquele caderno e importe de novo.",
-    "whatToImport": "O que importar",
     "preset": {
       "everything": "O caderno todo",
-      "choose": "Escolher itens"
+      "choose": "Parte dele"
     },
     "filter": "Filtrar por nome",
     "notebookGuidance": "Orientação do caderno",
@@ -211,7 +209,6 @@
       "INTERNAL": "Algo deu errado do nosso lado. Tente de novo."
     },
     "exportHeading": "Exportar caderno",
-    "exportWhat": "O que vai no arquivo",
     "withHistory": "Incluir a história",
     "withHistoryHint": "Quem escreveu o quê e quando, e o conteúdo de cada versão anterior. O arquivo fica maior, e uma exportação guardada ocupa o armazenamento do seu plano. Apagar um caderno leva a história junto, então é isto que a preserva.",
     "startExport": "Exportar",
@@ -255,13 +252,19 @@
     "countFolders_other": "{{count}} pastas",
     "countTemplates_one": "{{count}} Modelo",
     "countTemplates_other": "{{count}} Modelos",
-    "twinsBlock_one": "1 nome se repete dentro da pasta, e por isso nada é importado.",
-    "twinsBlock_other": "{{count}} nomes se repetem dentro da pasta, e por isso nada é importado.",
+    "twinsBlock_one": "1 nome é carregado duas vezes na pasta dele.",
+    "twinsBlock_other": "{{count}} nomes são carregados duas vezes na pasta deles.",
     "showTwins": "Ver o motivo",
     "twinsWhy": "Uma pasta guarda uma nota de cada nome, então uma importação que traz duas com o mesmo nome é recusada inteira. Deixe uma de cada fora e a importação segue.",
     "twinWhere_one": "Na pasta “{{folder}}” · {{count}} cópia",
     "twinWhere_other": "Na pasta “{{folder}}” · {{count}} cópias",
-    "findTwin": "Achar nas notas"
+    "findTwin": "Achar nas notas",
+    "conflictsWhy": "Nada é importado enquanto houver algo aqui. Cada linha diz o que recusa, e a saída dela.",
+    "nameTakenTitle": "O nome “{{name}}” já está em uso",
+    "nameTakenWhy": "Você já tem um caderno com esse nome, e uma assinatura tem um caderno de cada nome. Escolha outro nome, ou apague aquele caderno e importe de novo.",
+    "nameTakenBlock": "O nome já é de um caderno seu.",
+    "changeName": "Mudar o nome",
+    "nothingImported": "Nada é importado até resolver."
   },
   "graph": {
     "heading": "Grafo do caderno",

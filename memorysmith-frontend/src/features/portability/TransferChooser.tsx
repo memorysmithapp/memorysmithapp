@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { intlLocale } from '../../i18n';
+import { Tabs } from '../../shared/components/Tabs';
 import {
   offeredFolders,
   pickBranch,
@@ -45,8 +46,19 @@ import {
  *
  * **A tab that is not open stays visible and disabled**, never hidden: a tab
  * that disappears cannot be told from one that was never built (#160).
+ *
+ * **The whole notebook or part of it is the first thing the first tab asks**,
+ * and the chooser is on the screen whichever the answer is. It used to be a
+ * pair of radios ABOVE the chooser, which made the chooser appear and vanish —
+ * and what vanished with it was the tab that holds what refuses: somebody
+ * importing a whole notebook under a name they already have was told so by a
+ * sentence appearing under the name field, pushing the screen down under their
+ * hand, because there was nowhere else for it to be said (#161).
  */
 export type ChooserTab = 'context' | Species | 'conflicts';
+
+/** The whole notebook, or part of it (RN-PRT-017, RN-PRT-024). */
+export type Preset = 'everything' | 'choose';
 
 const TABS: ReadonlyArray<ChooserTab> = [
   'context',
@@ -70,7 +82,11 @@ export function TransferChooser({
   direction,
   tab,
   onTab,
+  preset,
+  onPreset,
   twins = [],
+  nameTaken = null,
+  onFixName,
   onFindNote,
 }: {
   tree: DocumentTree;
@@ -92,10 +108,25 @@ export function TransferChooser({
   tab: ChooserTab;
   onTab: (next: ChooserTab) => void;
   /**
+   * The whole notebook, or part of it. It is the head of the first tab, and
+   * the three species that have a hierarchy open a tab of their own only under
+   * `choose` (RN-PRT-017, RN-PRT-024).
+   */
+  preset: Preset;
+  onPreset: (next: Preset) => void;
+  /**
    * Names carried twice in one folder, which refuse the import (RN-KNW-042).
    * Empty on the way out: a notebook cannot hold two live notes of one name.
    */
   twins?: ReadonlyArray<TwinNames>;
+  /**
+   * The name this import would arrive under, when a notebook of the
+   * subscription already holds it (RN-KNW-032). It refuses the import like a
+   * collision does, so it is told where every refusal is told.
+   */
+  nameTaken?: string | null;
+  /** Back to the field that holds the name, which is outside the chooser. */
+  onFixName?: (() => void) | undefined;
   /**
    * Take me to the copies of this name. The chooser cannot do it on its own:
    * the notes have to be being chosen item by item for one to be unticked, and
@@ -109,11 +140,15 @@ export function TransferChooser({
   const counts = scopeCountsOf(tree, chosen);
   const what = t(`portability.whatToCarry.${direction}`);
 
+  /** How many things refuse what is being asked for, all of them in one tab. */
+  const refusals = twins.length + (nameTaken === null ? 0 : 1);
+
   /** A species is choosable when it travels, in items, and there is any. */
   const opens = (each: ChooserTab): boolean => {
     if (each === 'context') return true;
-    if (each === 'conflicts') return twins.length > 0;
+    if (each === 'conflicts') return refusals > 0;
     return (
+      preset === 'choose' &&
       scope[each] &&
       scope.reach[each] === 'choose' &&
       counts[each].held > 0 &&
@@ -128,49 +163,42 @@ export function TransferChooser({
 
   return (
     <div className="chooser">
-      <div className="chooser-tabs" role="tablist" aria-label={what}>
-        {TABS.map((each) => {
-          const disabled = !opens(each);
-          const marked = each === 'conflicts' && twins.length > 0;
-          return (
-            <button
-              key={each}
-              type="button"
-              role="tab"
-              id={`chooser-tab-${each}`}
-              aria-selected={active === each}
-              aria-controls={`chooser-panel-${each}`}
-              disabled={disabled}
-              className={[
-                'chooser-tab',
-                active === each ? 'is-selected' : '',
-                marked ? 'is-conflict' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              onClick={() => setTab(each)}
-            >
-              {t(`portability.tab.${each}`)}
-              {marked && <span className="chooser-tab-count">{twins.length}</span>}
-            </button>
-          );
-        })}
-      </div>
+      <Tabs
+        id="chooser"
+        label={what}
+        className="chooser-tabs"
+        active={active}
+        onSelect={setTab}
+        tabs={TABS.map((each) => ({
+          key: each,
+          label: t(`portability.tab.${each}`),
+          disabled: !opens(each),
+          ...(each === 'conflicts' && refusals > 0 ? { count: refusals } : {}),
+        }))}
+      />
 
       <div
         className="chooser-panel"
         role="tabpanel"
-        id={`chooser-panel-${active}`}
+        id="chooser-panel"
         aria-labelledby={`chooser-tab-${active}`}
       >
         {active === 'conflicts' ? (
-          <ConflictsPanel twins={twins} onFindNote={onFindNote} />
+          <ConflictsPanel
+            twins={twins}
+            nameTaken={nameTaken}
+            onFixName={onFixName}
+            onFindNote={onFindNote}
+          />
         ) : active === 'context' ? (
           <ScopePanel
             tree={tree}
             scope={scope}
             onScope={onScope}
             counts={counts}
+            preset={preset}
+            onPreset={onPreset}
+            direction={direction}
             onChoose={(species) => {
               // The tab opens on everything, which is what somebody who asked
               // to choose is taking things out of — and only when nothing was
@@ -200,39 +228,76 @@ export function TransferChooser({
 }
 
 /**
- * The scope: five species, and for the three that have a hierarchy, how much of
- * each one travels.
+ * The scope: the whole notebook or part of it, and under it five species —
+ * for the three that have a hierarchy, how much of each one travels.
  *
  * What is not there is SAID and not hidden, which is the rule the whole dialog
  * follows (#160): a notebook with no Guidance keeps the row and says there is
  * none, and so does one with no Template anywhere and one with no history.
+ *
+ * Under **the whole notebook** the five rows are still drawn, ticked and
+ * frozen: they are no longer a question, and they are the answer to *what does
+ * the whole notebook mean here* — which the sentence beside the choice says in
+ * words and these rows say in numbers.
  */
 function ScopePanel({
   tree,
   scope,
   onScope,
   counts,
+  preset,
+  onPreset,
+  direction,
   onChoose,
 }: {
   tree: DocumentTree;
   scope: Scope;
   onScope: (next: Scope) => void;
   counts: Record<Species, { carried: number; held: number }>;
+  preset: Preset;
+  onPreset: (next: Preset) => void;
+  direction: 'export' | 'import';
   /** Called when a species is flipped to `Choose items`, which opens its tab. */
   onChoose: (species: Species) => void;
 }) {
   const { t } = useTranslation();
   const hasHistory = tree.historyEntries === null || tree.historyEntries > 0;
   const entries = tree.historyEntries;
+  // Under the whole notebook nothing here is a question, and every row says so.
+  const frozen = preset === 'everything';
 
   return (
     <div className="chooser-scroll">
+      <div
+        className="transfer-presets"
+        role="radiogroup"
+        aria-label={t(`portability.whatToCarry.${direction}`)}
+      >
+        {(['everything', 'choose'] as const).map((each) => (
+          <label key={each} className="transfer-preset">
+            <input
+              type="radio"
+              name="transfer-preset"
+              checked={preset === each}
+              onChange={() => onPreset(each)}
+            />
+            <span>
+              <strong>{t(`portability.preset.${each}`)}</strong>
+              {each === 'everything' && preset === 'everything' && (
+                <small>{t('portability.wholeNotebookHint')}</small>
+              )}
+            </span>
+          </label>
+        ))}
+      </div>
+
       <ul className="chooser-scope" role="list">
         <ScopeRow
           kind="guidance"
           label={t('portability.notebookGuidance')}
           note={tree.guidance ? undefined : t('portability.thereIsNone')}
           missing={!tree.guidance}
+          frozen={frozen}
           checked={tree.guidance && scope.guidance}
           onToggle={(on) => onScope({ ...scope, guidance: on })}
         />
@@ -247,6 +312,7 @@ function ScopePanel({
                 : t('portability.historyEntries', { count: entries })
           }
           missing={!hasHistory}
+          frozen={frozen}
           checked={hasHistory && scope.history}
           onToggle={(on) => onScope({ ...scope, history: on })}
         />
@@ -269,9 +335,10 @@ function ScopePanel({
                     : t('portability.carriedOf', { carried: counts[species].carried, held })
               }
               missing={missing}
+              frozen={frozen}
               checked={!missing && scope[species]}
               onToggle={(on) => onScope({ ...scope, [species]: on })}
-              reach={!missing && scope[species] ? scope.reach[species] : null}
+              reach={!frozen && !missing && scope[species] ? scope.reach[species] : null}
               onReach={(reach) => {
                 onScope({ ...scope, reach: { ...scope.reach, [species]: reach } });
                 if (reach === 'choose') onChoose(species);
@@ -291,6 +358,7 @@ function ScopeRow({
   note,
   checked,
   missing,
+  frozen = false,
   onToggle,
   reach,
   onReach,
@@ -301,6 +369,8 @@ function ScopeRow({
   checked: boolean;
   /** The notebook has none of this, or nothing to hold it: it says so. */
   missing: boolean;
+  /** The whole notebook is travelling, so the row states rather than asks. */
+  frozen?: boolean;
   onToggle: (on: boolean) => void;
   /** Absent on the two species that have nothing under them to walk. */
   reach?: Reach | null;
@@ -309,16 +379,34 @@ function ScopeRow({
   const { t } = useTranslation();
 
   return (
-    <li className={`chooser-scope-row is-${kind}${missing ? ' is-missing' : ''}`}>
-      <label className="chooser-label">
-        <input
-          type="checkbox"
-          checked={checked}
-          disabled={missing}
-          onChange={(event) => onToggle(event.target.checked)}
-        />
-        <span className="chooser-name">{label}</span>
-      </label>
+    <li
+      className={`chooser-scope-row is-${kind}${missing ? ' is-missing' : ''}${
+        frozen ? ' is-frozen' : ''
+      }`}
+    >
+      {/* Under the whole notebook the row STATES that this travels, with a
+          mark and not with a box: a box nobody can tick is a control that does
+          nothing, and a disabled one draws its tick so faintly that five of
+          them read as five empty squares under a choice saying everything
+          goes. */}
+      {frozen ? (
+        <span className="chooser-label">
+          <span className="chooser-mark" aria-hidden="true">
+            {checked ? '✓' : ''}
+          </span>
+          <span className="chooser-name">{label}</span>
+        </span>
+      ) : (
+        <label className="chooser-label">
+          <input
+            type="checkbox"
+            checked={checked}
+            disabled={missing}
+            onChange={(event) => onToggle(event.target.checked)}
+          />
+          <span className="chooser-name">{label}</span>
+        </label>
+      )}
       {reach && onReach && (
         <div className="chooser-reach" role="radiogroup" aria-label={label}>
           {(['all', 'choose'] as const).map((each) => (
@@ -414,50 +502,81 @@ function ItemsPanel({
 }
 
 /**
- * What refuses the import, in a tab of its own (#161).
+ * What refuses the import, all of it in a tab of its own (#161).
  *
- * It was a strip above the tree of the notes, which is the one place a
- * collision is RESOLVED — so the explanation of the problem sat on top of the
- * room needed to fix it, and three collisions left almost no tree. A refusal
- * is not a fifth thing to choose; it is the reason the choosing cannot end,
- * and it earns the tab it now has, lit and counted, opening only when there is
- * one to show.
+ * The collisions were a strip above the tree of the notes, which is the one
+ * place a collision is RESOLVED — so the explanation of the problem sat on top
+ * of the room needed to fix it, and three of them left almost no tree. A
+ * refusal is not a fifth thing to choose; it is the reason the choosing cannot
+ * end, and it earns the tab it now has, lit and counted, opening only when
+ * there is one to show.
  *
- * Each row names the whole thing: the name, the folder that holds it, how many
- * copies there are, and a way into the tree where one of them is let go.
+ * **The name already taken is a refusal like any other**, and it is here for
+ * the same reason: it was a sentence under the name field, appearing and
+ * disappearing as the name was typed, moving everything below it — the room
+ * where what travels is chosen — down and back up under the hand of whoever
+ * was typing (RN-KNW-032).
+ *
+ * Each row names the whole thing and offers the way out: the name, where it
+ * is, and either the field that names the notebook or the tree where one of
+ * two copies is let go.
  */
 function ConflictsPanel({
   twins,
+  nameTaken,
+  onFixName,
   onFindNote,
 }: {
   twins: ReadonlyArray<TwinNames>;
+  nameTaken: string | null;
+  onFixName?: (() => void) | undefined;
   onFindNote?: ((name: string) => void) | undefined;
 }) {
   const { t } = useTranslation();
 
   return (
     <>
-      <p className="chooser-scoping">{t('portability.twinsWhy')}</p>
+      <p className="chooser-scoping">{t('portability.conflictsWhy')}</p>
       <div className="chooser-scroll">
-        <ul className="chooser-twins">
-          {twins.map((twin) => (
-            <li key={`${twin.folderId}-${twin.name}`} className="chooser-twin">
-              <span className="chooser-twin-name">{twin.name}</span>
-              <span className="chooser-twin-where">
-                {t('portability.twinWhere', { count: twin.count, folder: twin.folderName })}
+        {nameTaken !== null && (
+          <ul className="chooser-twins">
+            <li className="chooser-twin">
+              <span className="chooser-twin-name">
+                {t('portability.nameTakenTitle', { name: nameTaken })}
               </span>
-              {onFindNote && (
-                <button
-                  type="button"
-                  className="chooser-twins-open"
-                  onClick={() => onFindNote(twin.name)}
-                >
-                  {t('portability.findTwin')}
+              <span className="chooser-twin-where">{t('portability.nameTakenWhy')}</span>
+              {onFixName && (
+                <button type="button" className="chooser-twins-open" onClick={onFixName}>
+                  {t('portability.changeName')}
                 </button>
               )}
             </li>
-          ))}
-        </ul>
+          </ul>
+        )}
+        {twins.length > 0 && (
+          <>
+            <p className="chooser-conflict-why">{t('portability.twinsWhy')}</p>
+            <ul className="chooser-twins">
+              {twins.map((twin) => (
+                <li key={`${twin.folderId}-${twin.name}`} className="chooser-twin">
+                  <span className="chooser-twin-name">{twin.name}</span>
+                  <span className="chooser-twin-where">
+                    {t('portability.twinWhere', { count: twin.count, folder: twin.folderName })}
+                  </span>
+                  {onFindNote && (
+                    <button
+                      type="button"
+                      className="chooser-twins-open"
+                      onClick={() => onFindNote(twin.name)}
+                    >
+                      {t('portability.findTwin')}
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </div>
     </>
   );

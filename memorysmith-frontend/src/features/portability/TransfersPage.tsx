@@ -7,6 +7,7 @@ import type { TransferDto } from '@memorysmith/contracts';
 import { deleteTransfer, listNotebooks } from '../../shared/api/source';
 import { notebookAddress } from '../../shared/api/note-address';
 import { useDocumentTitle } from '../../shared/components/document-title';
+import { Tabs } from '../../shared/components/Tabs';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryState } from '../../shared/api/query-state';
 import {
@@ -82,25 +83,32 @@ export function TransfersPage() {
 
       <StartTransfer />
 
-      <div className="transfers-filters" role="group" aria-label={t('transfers.filter')}>
-        {(['all', 'export', 'import'] as const).map((each) => (
-          <button
-            key={each}
-            type="button"
-            className={filter === each ? 'chip is-selected' : 'chip'}
-            aria-pressed={filter === each}
-            onClick={() => setFilter(each)}
-          >
-            {t(`transfers.filters.${each}`)}
-          </button>
-        ))}
-      </div>
+      {/* One of three, one at a time, and what is below is the one that is
+          open: that is a tab strip, and it was three chips — a chip is a
+          label (#157), so the control that switches the view of the page was
+          dressed as metadata (#161). */}
+      <Tabs
+        id="transfers"
+        label={t('transfers.filter')}
+        className="transfers-filters"
+        tabs={(['all', 'export', 'import'] as const).map((each) => ({
+          key: each,
+          label: t(`transfers.filters.${each}`),
+        }))}
+        active={filter}
+        onSelect={setFilter}
+      />
 
       {state === 'error' && <p className="status">{t(messageKeyOf(transfers.error))}</p>}
       {state === 'pending' && <p className="status">{t('common.loading')}</p>}
       {state === 'ready' && rows.length === 0 && <p className="status">{t('transfers.empty')}</p>}
 
-      <ul className="transfers-rows">
+      <ul
+        className="transfers-rows"
+        role="tabpanel"
+        id="transfers-panel"
+        aria-labelledby={`transfers-tab-${filter}`}
+      >
         {rows.map((transfer) => {
           const progress = progressOf(transfer);
           return (
