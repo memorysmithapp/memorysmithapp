@@ -137,6 +137,7 @@ import {
 import {
   Backlinks,
   NoteLinks,
+  NotebookNames,
   ResolveLinkTarget,
   GetFacetStats,
   RelatedNotes,
@@ -364,6 +365,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     backlinks: () => new Backlinks(discoveryDeps),
     noteLinks: () => new NoteLinks(discoveryDeps),
     resolveLinkTarget: () => new ResolveLinkTarget(discoveryDeps),
+    names: () => new NotebookNames(discoveryDeps),
     health: () => new NotebookHealth(discoveryDeps),
     graph: () => new NotebookGraphQuery(discoveryDeps),
     search: () => new SearchNotes(discoveryDeps),

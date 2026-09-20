@@ -137,6 +137,86 @@ test.describe('the graph of a notebook', () => {
     expect(resolved.notes.map((note) => note.noteId)).toEqual([beta]);
   });
 
+  test('[route:GET /discovery/notebooks/:v/names] answers the name of each note and its spellings', async ({
+    owner,
+    notebook,
+  }) => {
+    const { beta } = await writeLinkedNotes(owner, notebook);
+    await owner.ok<{ noteId: string }>(
+      'POST',
+      `/knowledge/notebooks/${notebook.notebookId}/notes`,
+      {
+        folderId: notebook.folderId,
+        content: '---\nname: Delta\naliases: [Quarta nota]\n---\n\nIt is also called that.\n',
+      },
+    );
+
+    /**
+     * What a reading surface draws a link by: an alias is read by this context
+     * and by no other, so the tree the page is drawn from cannot carry one
+     * (rule 5, RN-DSC-046).
+     */
+    const answer = await eventually(
+      'Delta among the names, with the spelling it declares',
+      () =>
+        owner.ok<{ notes: Array<NoteRef & { aliases: string[] }> }>(
+          'GET',
+          `${discovery(notebook)}/names`,
+        ),
+      (found) => found.notes.some((note) => note.aliases.includes('Quarta nota')),
+    );
+    expect(answer.notes.map((note) => note.noteId)).toContain(beta);
+  });
+
+  /**
+   * The shape that lost a note every link it had (#163): a name and a spelling
+   * of the SAME note, which is how anybody writes about a source they quote.
+   * The edge is keyed by the pair it joins, so both targets built one key, and
+   * a batch carrying a key twice is refused whole.
+   */
+  test('[route:GET /discovery/notebooks/:v/notes/:n/links] keeps every link when two targets reach one note', async ({
+    owner,
+    notebook,
+  }) => {
+    const write = (content: string) =>
+      owner.ok<{ noteId: string }>('POST', `/knowledge/notebooks/${notebook.notebookId}/notes`, {
+        folderId: notebook.folderId,
+        content,
+      });
+
+    const source = await write('---\nname: Fonte\naliases: [A fonte]\n---\n\nThe source.\n');
+    const other = await write('---\nname: Outra\n---\n\nAnother note.\n');
+    const citing = await write(
+      '---\nname: Citando\n---\n\nBy name [[Fonte]], by spelling [[A fonte]], and [[Outra]].\n',
+    );
+
+    const found = await eventually(
+      'the three links of Citando',
+      () =>
+        owner.ok<{
+          links: Array<{ target: string; by: string | null; notes: NoteRef[] }>;
+        }>('GET', `${discovery(notebook)}/notes/${citing.noteId}/links`),
+      (answer) => answer.links.length >= 2,
+    );
+
+    // One edge per pair, and the pair a NAME reaches is not the alias's to
+    // hold (RN-DSC-053): the target reads as the name.
+    const toSource = found.links.find((link) =>
+      link.notes.some((note) => note.noteId === source.noteId),
+    );
+    expect(toSource?.by).toBe('name');
+    expect(
+      found.links.some((link) => link.notes.some((note) => note.noteId === other.noteId)),
+    ).toBe(true);
+
+    // And the note it quotes says so back, once.
+    const backlinks = await owner.ok<{ backlinks: NoteRef[] }>(
+      'GET',
+      `${discovery(notebook)}/notes/${source.noteId}/backlinks`,
+    );
+    expect(backlinks.backlinks.filter((note) => note.noteId === citing.noteId)).toHaveLength(1);
+  });
+
   test('[route:GET /discovery/notebooks/:v/health] reports the link to a note nobody wrote', async ({
     owner,
     notebook,

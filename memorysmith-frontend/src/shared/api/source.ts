@@ -27,39 +27,54 @@ import type {
 } from '../types/api';
 
 /**
- * The one note of a loaded structure that carries a name, by identifier, or
- * `null` when none or several carry it. It walks the structure the page is
- * already showing, so a link costs no request.
- *
- * A target is a NAME, compared after NFC and folded in no other way
- * (RN-DSC-041): a near miss is a pending link and never a landing. A name
- * carried by several notes is a choice and not a note, and what gets an
- * address then is the target (RN-DSC-046).
- */
-function soleNoteNamed(target: string, structure: NotebookStructure | undefined): string | null {
-  if (!structure) return null;
-  const wanted = target.normalize('NFC');
-  const found: string[] = [];
-
-  const walk = (nodes: NotebookStructure['folders']): void => {
-    for (const node of nodes) {
-      for (const note of node.notes) {
-        if ((note.name ?? '').normalize('NFC') === wanted) found.push(note.id);
-      }
-      walk(node.children);
-    }
-  };
-  walk(structure.folders);
-
-  return found.length === 1 ? (found[0] ?? null) : null;
-}
-
-/**
  * The structures the screens have already loaded. A wikilink resolves against
  * this instead of asking the API again: the tree it needs is the tree the page
  * is already showing.
  */
 const loaded = new Map<string, NotebookStructure>();
+
+/**
+ * The spellings each notebook answers to, by target: an alias is read by
+ * Discovery and by nothing else (rule 5), so it arrives in a call of its own
+ * and is remembered beside the structure.
+ *
+ * Until it arrives a target no NAME matches reaches nothing, which is exactly
+ * what the page drew before this existed — so a slow answer costs a moment of
+ * the old behaviour and never a wrong address.
+ */
+const spellings = new Map<string, Map<string, string[]>>();
+
+export async function getNotebookNames(notebookId: string): Promise<number> {
+  const notes = await backend.getNotebookNames(notebookId);
+  const byAlias = new Map<string, string[]>();
+  for (const note of notes) {
+    for (const alias of note.aliases) {
+      const key = alias.normalize('NFC').trim();
+      if (key.length === 0) continue;
+      const held = byAlias.get(key) ?? [];
+      if (!held.includes(note.noteId)) byAlias.set(key, [...held, note.noteId]);
+    }
+  }
+  spellings.set(notebookId, byAlias);
+  return notes.length;
+}
+
+/**
+ * The notes a target REACHES, which is the question a reading surface has to
+ * answer to draw a link: every note whose name matches it, or — only when
+ * none does — every note carrying it as an alias (§5.2, steps 7 and 8).
+ *
+ * The surface used to ask how many notes were NAMED that, which is a different
+ * question: a target an alias answered counted zero, so the link was painted
+ * as a link to nothing and an embed of it expanded nothing, while clicking it
+ * reached the note (#164).
+ */
+export function notesReaching(notebookId: string, target: string): string[] {
+  const wanted = target.normalize('NFC');
+  const named = noteIdsNamed(notebookId, wanted);
+  if (named.length > 0) return named;
+  return spellings.get(notebookId)?.get(wanted) ?? [];
+}
 
 export function listNotebooks(): Promise<NotebookSummary[]> {
   return backend.listNotebooks();
@@ -91,7 +106,8 @@ export function resolveNoteUrl(notebookId: string, target: string): string | nul
 
 /** The identifier of the one note a target names, which a transclusion expands. */
 export function resolveNoteId(notebookId: string, target: string): string | null {
-  return soleNoteNamed(target, loaded.get(notebookId));
+  const reached = notesReaching(notebookId, target);
+  return reached.length === 1 ? (reached[0] ?? null) : null;
 }
 
 /**
@@ -106,8 +122,8 @@ export function resolveNoteId(notebookId: string, target: string): string | null
  * is clicked.
  */
 export function wikilinkUrl(notebookId: string, target: string): string | null {
-  const carried = notesNamed(notebookId, target);
-  if (carried === 1) return resolveNoteUrl(notebookId, target);
+  const reached = notesReaching(notebookId, target);
+  if (reached.length === 1) return resolveNoteUrl(notebookId, target);
   return linkTargetAddress(notebookId, target);
 }
 
@@ -132,22 +148,31 @@ export function folderTrailOfNote(notebookId: string, noteId: string): string[] 
 }
 
 /**
+ * The notes of the loaded structure that carry that name, by identifier. A
+ * name is compared after NFC and folded in no other way (RN-DSC-041).
+ */
+function noteIdsNamed(notebookId: string, wanted: string): string[] {
+  const structure = loaded.get(notebookId);
+  if (!structure) return [];
+  const found: string[] = [];
+  const walk = (nodes: NotebookStructure['folders']): void => {
+    for (const node of nodes) {
+      for (const note of node.notes) {
+        if ((note.name ?? '').normalize('NFC') === wanted) found.push(note.id);
+      }
+      walk(node.children);
+    }
+  };
+  walk(structure.folders);
+  return found;
+}
+
+/**
  * How many notes of the loaded structure carry that name. One is a link, none
  * is pending, and several is the choice.
  */
 export function notesNamed(notebookId: string, target: string): number {
-  const structure = loaded.get(notebookId);
-  if (!structure) return 0;
-  const wanted = target.normalize('NFC');
-  const count = (nodes: NotebookStructure['folders']): number =>
-    nodes.reduce(
-      (total, node) =>
-        total +
-        node.notes.filter((note) => (note.name ?? '').normalize('NFC') === wanted).length +
-        count(node.children),
-      0,
-    );
-  return count(structure.folders);
+  return noteIdsNamed(notebookId, target.normalize('NFC')).length;
 }
 
 /** The whole notebook as a downloadable archive, prepared on demand. */

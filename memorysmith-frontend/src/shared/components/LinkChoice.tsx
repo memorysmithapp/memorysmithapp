@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 're
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { folderTrailOfNote, notesNamed, resolveLinkTarget } from '../api/source';
+import { folderTrailOfNote, notesReaching, resolveLinkTarget } from '../api/source';
 import { noteAddress } from '../api/note-address';
 import { LinkChoiceContent, type LinkChoiceOption } from './LinkChoiceContent';
 
@@ -108,7 +108,10 @@ export function LinkChoice({ href, children }: { href: string; children: ReactNo
 
   if (!parsed) return <span className="wikilink-pending">{children}</span>;
 
-  const pending = notesNamed(parsed.notebookId, parsed.target) === 0;
+  // Pending is what reaches no note, by its name or by a spelling one of them
+  // declares. It used to be what no note was NAMED, so a link an alias
+  // answered was drawn as a link to nothing and behaved as a link (#164).
+  const pending = notesReaching(parsed.notebookId, parsed.target).length === 0;
 
   const ask = (event: MouseEvent<HTMLAnchorElement>) => {
     // A modifier or a middle click keeps the ordinary behaviour of a link.

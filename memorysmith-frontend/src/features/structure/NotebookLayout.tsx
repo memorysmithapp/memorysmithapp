@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getNotebookStructure } from '../../shared/api/source';
+import { getNotebookNames, getNotebookStructure } from '../../shared/api/source';
 import { graphAddress, notebookAddress } from '../../shared/api/note-address';
 import type { NotebookStructure } from '../../shared/types/api';
 import { BrandMark } from '../../shared/components/BrandMark';
@@ -63,6 +63,21 @@ export function NotebookLayout() {
     enabled: notebookId !== '',
   });
   const { data } = query;
+
+  /**
+   * What the notebook answers to besides the names the tree carries: the
+   * spellings each note declares, which are read by Discovery and by nothing
+   * else (rule 5). A link is drawn by what it REACHES, and without this a
+   * target an alias answers was drawn as a target that reaches nothing (#164).
+   *
+   * It runs beside the structure and never in front of it: nothing on the
+   * page waits for it.
+   */
+  useQuery({
+    queryKey: ['notebook-names', notebookId],
+    queryFn: () => getNotebookNames(notebookId),
+    enabled: notebookId !== '',
+  });
 
   if (!notebookId) return <p className="status">{t('common.notFound')}</p>;
   if (queryState(query) === 'error') {

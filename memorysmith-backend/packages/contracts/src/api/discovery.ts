@@ -36,6 +36,13 @@ export const resolvedTargetSchema = z.object({
   notes: z.array(noteRefSchema),
 });
 
+/**
+ * What the notebook answers to: every note with the name it states and the
+ * spellings it declares. A reading surface reads it once and draws every link
+ * of a page by what it REACHES (RN-DSC-046).
+ */
+export const notebookNamesSchema = z.object({ notes: z.array(noteRefSchema) });
+
 /** BFS from a note: depth capped at 3, 200 nodes, cycles deduplicated. */
 export const graphNodeSchema: z.ZodType<{
   note: z.infer<typeof noteRefSchema>;
@@ -147,6 +154,7 @@ export const facetStatsSchema = z.object({
 });
 
 export type NoteRefDto = z.infer<typeof noteRefSchema>;
+export type NotebookNamesDto = z.infer<typeof notebookNamesSchema>;
 export type ResolvedTargetDto = z.infer<typeof resolvedTargetSchema>;
 export type GraphNodeDto = z.infer<typeof graphNodeSchema>;
 export type GraphNoteRefDto = z.infer<typeof graphNoteRefSchema>;

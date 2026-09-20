@@ -89,6 +89,7 @@ import type { SearchMeasure } from '@memorysmith/svc-discovery/domain';
 import {
   Backlinks,
   NoteLinks,
+  NotebookNames,
   ResolveLinkTarget,
   GetFacetStats,
   RelatedNotes,
@@ -272,6 +273,7 @@ const discoveryUseCases: DiscoveryUseCases = {
   backlinks: (request) => new Backlinks(discoveryFor(request.subscription)),
   noteLinks: (request) => new NoteLinks(discoveryFor(request.subscription)),
   resolveLinkTarget: (request) => new ResolveLinkTarget(discoveryFor(request.subscription)),
+  names: (request) => new NotebookNames(discoveryFor(request.subscription)),
   health: (request) => new NotebookHealth(discoveryFor(request.subscription)),
   graph: (request) => new NotebookGraphQuery(discoveryFor(request.subscription)),
   search: (request) => new SearchNotes(discoveryFor(request.subscription)),

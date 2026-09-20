@@ -23,6 +23,8 @@ import type {
   NotebookDetailDto,
   NotebookGraphDto,
   NotebookHealthDto,
+  NotebookNamesDto,
+  NoteRefDto,
   NotebookSummaryDto,
 } from '@memorysmith/contracts';
 import type {
@@ -98,6 +100,17 @@ function nest(folders: FolderDto[], notes: NoteSummaryDto[]): FolderNode[] {
     }));
 
   return build(null);
+}
+
+/**
+ * What the notebook answers to, from the context that reads an alias: the
+ * name each note states and the spellings it declares (RN-DSC-046). Knowledge
+ * never reads either, so the structure the page is drawn from cannot carry
+ * them (rule 5).
+ */
+export async function getNotebookNames(notebookId: string): Promise<NoteRefDto[]> {
+  const answer = await request<NotebookNamesDto>(`/discovery/notebooks/${notebookId}/names`);
+  return answer.notes;
 }
 
 export async function getNotebookStructure(notebookId: string): Promise<NotebookStructure> {

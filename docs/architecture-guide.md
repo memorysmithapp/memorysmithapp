@@ -1235,6 +1235,12 @@ svc-discovery    GET  /notebooks/:v/links/:target   what one wikilink target res
                     to: the notes it reaches and whether a name or an alias
                     answered. The interface asks it for the two cases an
                     address cannot answer — none and several (RN-DSC-046)
+                 GET  /notebooks/:v/names   what the notebook answers to: the name
+                    each note states and the spellings it declares. A reading
+                    surface reads it once per notebook and draws every link by
+                    what it REACHES; an alias is read by this context and by no
+                    other, so the structure the page is drawn from cannot carry
+                    one (rule 5, RN-DSC-046)
                  GET  /notebooks/:v/graph   (the whole notebook graph, edges from the index)
                  GET  /notebooks/:v/notes/:n/graph?depth= · GET /notebooks/:v/notes/:n/backlinks
                  GET  /notebooks/:v/notes/:n/links   every target a note writes and the

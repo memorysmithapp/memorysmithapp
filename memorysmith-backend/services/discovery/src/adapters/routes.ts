@@ -6,6 +6,7 @@
  *   GET  /notebooks/:v/notes/:n/backlinks
  *   GET  /notebooks/:v/notes/:n/links     where the links of a note go
  *   GET  /notebooks/:v/links/:target      what one wikilink target resolves to
+ *   GET  /notebooks/:v/names              what the notebook answers to: names and aliases
  *   GET  /notebooks/:v/health
  *   GET  /notebooks/:v/facets
  *   POST /notebooks/:v/search   { query }   lexical, over names and folders
@@ -26,6 +27,7 @@ import type {
   GetFacetStats,
   NoteLinks,
   RelatedNotes,
+  NotebookNames,
   ResolveLinkTarget,
   SearchNotes,
   NotebookGraphQuery,
@@ -47,6 +49,7 @@ export interface DiscoveryUseCases {
   readonly backlinks: (request: DiscoveryRequest) => Backlinks;
   readonly noteLinks: (request: DiscoveryRequest) => NoteLinks;
   readonly resolveLinkTarget: (request: DiscoveryRequest) => ResolveLinkTarget;
+  readonly names: (request: DiscoveryRequest) => NotebookNames;
   readonly health: (request: DiscoveryRequest) => NotebookHealth;
   readonly graph: (request: DiscoveryRequest) => NotebookGraphQuery;
   readonly search: (request: DiscoveryRequest) => SearchNotes;
@@ -142,6 +145,21 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
       .resolveLinkTarget(request)
       .execute({ notebookId, target: c.req.param('target') ?? '' });
     return present(c, resolved, (answer) => answer);
+  });
+
+  /**
+   * What the notebook answers to, which a reading surface reads ONCE and then
+   * resolves every link of a page against: how many notes a target reaches,
+   * by name or by the spellings a note declares (RN-DSC-046).
+   */
+  app.get('/notebooks/:v/names', async (c) => {
+    const request = c.get('discovery');
+    const notebookId = c.req.param('v') ?? '';
+    const denied = await guard(request, notebookId);
+    if (denied) return fail(c, denied);
+
+    const found = await useCases.names(request).execute({ notebookId });
+    return present(c, found, (notes) => ({ notes }));
   });
 
   app.get('/notebooks/:v/health', async (c) => {
