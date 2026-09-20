@@ -181,7 +181,13 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: 'node_modules' },
-    exclude: { path: '(^|/)(node_modules|dist|cdk[.]out|coverage)/' },
+    /*
+     * Generated output, never source: the bundles of a synth, the coverage of
+     * a run and the HTML report a functional run leaves behind — which ships
+     * with a copy of the Playwright trace viewer, and cruising a bundled
+     * viewer reports circular imports that are nobody's to fix.
+     */
+    exclude: { path: '(^|/)(node_modules|dist|cdk[.]out|coverage|functional-report)/' },
     tsPreCompilationDeps: true,
     combinedDependencies: true,
     enhancedResolveOptions: {

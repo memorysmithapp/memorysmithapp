@@ -469,14 +469,23 @@ test.describe('a notebook out and back in, through the browser', () => {
     await expect(dialog.getByText(words.nameTakenTitle, { exact: false })).toBeVisible();
 
     /**
-     * The strip of tabs does not scroll. It carried `overflow-x` for a narrow
-     * screen, which computes the other axis to `auto` as well, so the pixel by
-     * which the open tab sits over the border of the strip drew a vertical
-     * scrollbar beside the tabs with one pixel to move (#161).
+     * The strip of tabs is not a scroll box. It carried `overflow-x` for a
+     * narrow screen, and `overflow-x` on a box whose other axis is visible
+     * makes that axis scrollable too — so the pixel by which the open tab sits
+     * over the border of the strip drew a vertical scrollbar beside the tabs,
+     * with one pixel to move (#161).
+     *
+     * What is asserted is the computed overflow and not the geometry: that
+     * pixel is still THERE, by design, and `scrollHeight` reports it on a box
+     * that overflows visibly. A scrollbar belongs to a scroll container, so
+     * what says there is none is that the box is not one.
      */
     const strip = dialog.locator('.chooser-tabs');
-    expect(await strip.evaluate((el) => el.scrollHeight - el.clientHeight)).toBe(0);
-    expect(await strip.evaluate((el) => el.scrollWidth - el.clientWidth)).toBe(0);
+    const overflow = await strip.evaluate((el) => {
+      const style = el.ownerDocument.defaultView?.getComputedStyle(el);
+      return `${style?.overflowX}/${style?.overflowY}`;
+    });
+    expect(overflow).toBe('visible/visible');
 
     const free = `${notebook.name} again`;
     await name.fill(free);

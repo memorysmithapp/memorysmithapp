@@ -182,6 +182,7 @@
     "notebookGuidance": "Orientação do caderno",
     "expand": "Abrir",
     "collapse": "Fechar",
+    "noteCount_zero": "{{count}} notas",
     "noteCount_one": "{{count}} nota",
     "noteCount_other": "{{count}} notas",
     "willCreate": "Vai criar: 1 caderno · {{folders}} · {{templates}} · {{notes}}",
@@ -248,8 +249,10 @@
       "notes": "Nenhuma pasta escolhida. Escolha uma na aba Pastas para escolher notas aqui."
     },
     "pathFolder": "caminho",
+    "countFolders_zero": "{{count}} pastas",
     "countFolders_one": "{{count}} pasta",
     "countFolders_other": "{{count}} pastas",
+    "countTemplates_zero": "{{count}} Modelos",
     "countTemplates_one": "{{count}} Modelo",
     "countTemplates_other": "{{count}} Modelos",
     "twinsBlock_one": "1 nome é carregado duas vezes na pasta dele.",
