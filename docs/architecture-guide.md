@@ -1107,6 +1107,8 @@ A consumer of **every** event on the bus, from every service.
 
 with `subject ∈ {SUBSCRIPTION, MEMBER, NOTEBOOK, FOLDER, NOTE}`. One `Query` by `PK` returns the complete timeline of any object, in chronological order, with no scan.
 
+**The line an author leaves about a change travels in the payload (RN-AUD-012).** It is written by the aggregate, on the event, when the write carried one: the request takes `message`, `replaceBody` puts it in the payload of `NoteUpdated`, and it reaches this table with the entry, immutable like everything else here. Nothing was added to the shape of an entry to carry it — a payload is what an event is about — and the read draws it out into a field of its own, so a reader of the history does not have to know which key it sits under. A write with no line is recorded without one, which is what every write was before it existed.
+
 The key is **by subject, not by notebook**, and that is not a detail: it is what makes the timeline of a note survive it changing folder and notebook, as long as the `NoteId` is preserved. It is the reason `moveTo` exists as a command instead of being implemented as delete plus create (§6.2).
 
 **Immutability is not a convention (PE4): the role of the Lambda has an explicit `Deny` on `UpdateItem` and `DeleteItem` on the table.** There is no path, neither through a bug nor through an operator, that rewrites the past. It is the difference between "we do not alter the log" and "we cannot alter the log", and only the second one serves in front of a regulator.

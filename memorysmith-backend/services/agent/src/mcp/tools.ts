@@ -478,6 +478,7 @@ export class McpToolAdapter {
           noteId: requireString(args, 'note', 'update_note'),
           content: requireString(args, 'content', 'update_note'),
           baseRevision: requireString(args, 'baseRevision', 'update_note'),
+          message: optionalString(args, 'message'),
         });
         return noteAnswer(updated);
       }

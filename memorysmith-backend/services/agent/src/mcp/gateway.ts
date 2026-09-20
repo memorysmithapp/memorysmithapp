@@ -134,6 +134,13 @@ export interface HistoryEntry {
   /** The client_id URL of the connector that wrote, beside its name. */
   readonly agentClientId: string | null;
   readonly revision: string | null;
+  /**
+   * The line its author left about the change (RN-AUD-012), or null when the
+   * write carried none. What a person writes in the interface and what an
+   * agent sends with `update_note` are the same field, so the history reads
+   * the same way whoever wrote it.
+   */
+  readonly message: string | null;
 }
 
 export interface FolderListing {
@@ -257,7 +264,13 @@ export interface KnowledgeGateway {
   ): Promise<NoteContent>;
   updateNote(
     caller: AgentCaller,
-    input: { notebookId: string; noteId: string; content: string; baseRevision: string },
+    input: {
+      notebookId: string;
+      noteId: string;
+      content: string;
+      baseRevision: string;
+      message?: string | null;
+    },
   ): Promise<NoteContent>;
   /**
    * First in its folder with no anchor, or right after a note of it. Answers the

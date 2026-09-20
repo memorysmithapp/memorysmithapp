@@ -80,6 +80,13 @@ export interface Words {
   /** What the password screen says before it changes anything. */
   readonly endsOtherSessions: string;
   readonly cancel: string;
+  /** Writing a note from the interface (#169). */
+  readonly editNote: string;
+  readonly confirmEdit: string;
+  readonly messageLabel: string;
+  readonly writeIt: string;
+  readonly historyHeading: string;
+  readonly conflict: string;
 }
 
 export const WORDS: Record<AppLocale, Words> = {
@@ -128,6 +135,12 @@ export const WORDS: Record<AppLocale, Words> = {
     initials: 'Your initials',
     endsOtherSessions: 'Changing your password ends every other session',
     cancel: 'Cancel',
+    editNote: 'Edit this note',
+    confirmEdit: 'Confirm',
+    messageLabel: 'A line about this change',
+    writeIt: 'Write it',
+    historyHeading: 'History of this note',
+    conflict: 'Somebody else wrote this note',
   },
   pt_BR: {
     openNotebook: 'Abrir um caderno',
@@ -174,6 +187,12 @@ export const WORDS: Record<AppLocale, Words> = {
     initials: 'Suas iniciais',
     endsOtherSessions: 'Trocar a senha encerra todas as outras sessões',
     cancel: 'Cancelar',
+    editNote: 'Editar esta nota',
+    confirmEdit: 'Confirmar',
+    messageLabel: 'Uma linha sobre esta mudança',
+    writeIt: 'Gravar',
+    historyHeading: 'Histórico desta nota',
+    conflict: 'Outra pessoa gravou esta nota',
   },
 };
 

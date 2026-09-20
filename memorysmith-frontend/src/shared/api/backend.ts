@@ -421,7 +421,7 @@ export async function createNote(
 export async function updateNote(
   notebookId: string,
   noteId: string,
-  input: { content: string; baseRevision: string; name?: string },
+  input: { content: string; baseRevision: string; name?: string; message?: string },
   options: { keepalive?: boolean } = {},
 ): Promise<NoteDto> {
   // The answer carries the revision this write produced, which is what the
@@ -472,6 +472,8 @@ export interface HistoryEntryDto {
   type: string;
   authorship: { userId: string; agent: { clientName: string } | null };
   contentRef: { versionId: string } | null;
+  /** The line its author left about the change, or null (RN-AUD-012). */
+  message: string | null;
 }
 
 export async function noteHistory(notebookId: string, noteId: string): Promise<HistoryEntryDto[]> {

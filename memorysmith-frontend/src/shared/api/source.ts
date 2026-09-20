@@ -255,7 +255,12 @@ export function searchNotes(notebookId: string, query: string, k: number): Promi
 export function updateNote(
   notebookId: string,
   noteId: string,
-  input: { content: string; baseRevision: string },
+  input: {
+    content: string;
+    baseRevision: string;
+    /** One line about this change, recorded in the trail (RN-AUD-012). */
+    message?: string;
+  },
   options: { keepalive?: boolean } = {},
 ): Promise<string> {
   // The version the write produced. Every writer of a Content Slot answers

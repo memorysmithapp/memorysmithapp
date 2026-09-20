@@ -538,7 +538,9 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'Replaces the body of a note. baseRevision is REQUIRED and must be the revision you read: ' +
       'if the note changed meanwhile, this fails with CONFLICT and returns the current content, ' +
       'so you can choose between redoing and merging. Blind overwrite is not accepted. This is ' +
-      'also how a note is renamed: change the `name:` of its frontmatter.',
+      'also how a note is renamed: change the `name:` of its frontmatter. Pass message to say ' +
+      'what you changed and why: it is recorded in the history of the note beside the instant ' +
+      'and who wrote, and it is what a person reads there months later.',
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -547,6 +549,10 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
         baseRevision: {
           type: 'string',
           description: 'The revision this edit is based on, as returned by read_note.',
+        },
+        message: {
+          type: 'string',
+          description: 'One line about this change, recorded in the history of the note. Optional.',
         },
       },
       ['notebook', 'note', 'content', 'baseRevision'],

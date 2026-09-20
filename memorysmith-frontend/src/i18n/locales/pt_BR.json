@@ -438,5 +438,44 @@
     "done": "Sua senha foi trocada. Todas as outras sessões desta conta vão precisar entrar de novo.",
     "back": "Voltar ao seu perfil",
     "failed": "Não foi possível trocar a senha."
+  },
+  "editor": {
+    "edit": "Editar esta nota",
+    "read": "Voltar à leitura",
+    "area": "O Markdown desta nota",
+    "confirm": "Confirmar",
+    "cancel": "Cancelar",
+    "askHeading": "O que mudou?",
+    "messageLabel": "Uma linha sobre esta mudança",
+    "messagePlaceholder": "Corrigi a data da reunião",
+    "messageOptional": "Opcional. Vai para o histórico da nota, ao lado da data e do seu nome.",
+    "write": "Gravar",
+    "writing": "Gravando…",
+    "back": "Voltar ao texto",
+    "willBeNamed_one": "Esta nota hoje não tem nome. Ela vai se chamar “{{name}}”, e {{count}} link que esperava por esse nome passa a resolver.",
+    "willBeNamed_other": "Esta nota hoje não tem nome. Ela vai se chamar “{{name}}”, e {{count}} links que esperavam por esse nome passam a resolver.",
+    "willBeNamed_zero": "Esta nota hoje não tem nome. Ela vai se chamar “{{name}}”.",
+    "willBeUnnamed_zero": "Esta nota vai ficar SEM NOME. Ela continua aqui, continua sendo exibida e continua apontando para fora — e nenhum link vai conseguir alcançá-la.",
+    "willBeUnnamed_one": "Esta nota vai ficar SEM NOME. Ela continua aqui, continua sendo exibida e continua apontando para fora, e {{count}} link que aponta para ela hoje fica pendente.",
+    "willBeUnnamed_other": "Esta nota vai ficar SEM NOME. Ela continua aqui, continua sendo exibida e continua apontando para fora, e {{count}} links que apontam para ela hoje ficam pendentes.",
+    "willBeRenamed": "Isto renomeia a nota de “{{from}}” para “{{to}}”. {{losing}} links para o nome antigo ficam pendentes, e {{gaining}} links para o novo passam a resolver. Nada mais é reescrito.",
+    "keepAlias": "Manter “{{name}}” como alias, para os links continuarem chegando",
+    "conflict": "Outra pessoa gravou esta nota depois que você abriu. Leia de novo e refaça sua mudança.",
+    "failed": "Não foi possível gravar.",
+    "leaveWarning": "Você tem mudanças que ainda não gravou. Sair e perdê-las?"
+  },
+  "history": {
+    "heading": "Histórico desta nota",
+    "loading": "Lendo o histórico…",
+    "failed": "Não foi possível ler o histórico.",
+    "aPerson": "Pela interface",
+    "noMessage": "Nenhuma linha foi deixada sobre esta mudança.",
+    "kind": {
+      "NoteCreated": "Criada",
+      "NoteUpdated": "Gravada",
+      "NoteMoved": "Movida",
+      "NoteReordered": "Reordenada",
+      "NoteDeleted": "Excluída"
+    }
   }
 }

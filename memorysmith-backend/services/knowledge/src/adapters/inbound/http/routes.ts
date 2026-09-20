@@ -54,6 +54,7 @@ import type {
   UpdateNote,
 } from '../../../application/notes.js';
 import type { DeleteFile, KeepFile, LinkToFile, ListFiles } from '../../../application/files.js';
+import { NOTE_MESSAGE_MAX_LENGTH } from '@memorysmith/contracts';
 import {
   fileToDto,
   folderToDto,
@@ -581,6 +582,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     const body = (await c.req.json().catch(() => ({}))) as {
       content?: string;
       baseRevision?: string;
+      message?: string;
     };
     const content = String(body.content ?? '');
     const updated = await useCases.updateNote(request).execute({
@@ -589,6 +591,10 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       noteId: noteId.value,
       content,
       baseRevision: String(body.baseRevision ?? ''),
+      // What the author said about this change, which the trail records beside
+      // the instant and the authorship (RN-AUD-012). Never required.
+      message:
+        typeof body.message === 'string' ? body.message.slice(0, NOTE_MESSAGE_MAX_LENGTH) : null,
       by: author.value,
     });
     /**

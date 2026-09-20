@@ -148,10 +148,25 @@ export const createNoteRequestSchema = z.object({
  * There is no name here either, and no route that renames a note: a note is
  * renamed by editing its content (RN-KNW-038).
  */
+/**
+ * The ceiling of the line an author leaves about a change (RN-AUD-012). It is
+ * a LINE: long enough for a sentence that says what changed and why, short
+ * enough that nobody mistakes it for the place to write the note.
+ */
+export const NOTE_MESSAGE_MAX_LENGTH = 280;
+
 export const updateNoteRequestSchema = z.object({
   content: z.string().max(1_048_576),
   /** The revision the edit was based on; divergence answers CONFLICT. */
   baseRevision: z.string().min(1),
+  /**
+   * A line from the author about this change (RN-AUD-012), recorded in the
+   * trail beside the instant and the authorship. It is OPTIONAL: a write with
+   * no line is recorded without one, which is what every write of an agent
+   * has been until now. A field people are forced to fill is a field that
+   * fills with `.`.
+   */
+  message: z.string().max(NOTE_MESSAGE_MAX_LENGTH).optional(),
 });
 
 export const reorderNoteRequestSchema = z.object({

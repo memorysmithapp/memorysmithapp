@@ -46,6 +46,86 @@ function unquote(value: string): string {
  * this parser drops is an attribute the graph offers and the note appears not
  * to have.
  */
+/**
+ * The four delimiters of the form that addresses a note (§5.3). A name
+ * carrying one of them is no name: the note exists and renders, and no link
+ * can reach it (RN-KNW-036).
+ */
+const UNADDRESSABLE = /[#[\]|]/;
+
+/**
+ * What the note WILL be called if this text is written, or null for no name.
+ *
+ * The server is the authority — it reads `name:` on every write, in the kernel
+ * (RN-KNW-035) — and this predicts the same answer, because the editor has to
+ * say what a write will do BEFORE it is confirmed (#169). It is the same rule,
+ * in the same order: a single text value, NFC, trimmed, carrying none of the
+ * four delimiters. There is no chain: nothing falls through to a heading.
+ */
+export function noteNameOf(raw: string): string | null {
+  const { frontmatter, lists } = splitFrontmatter(raw);
+  if (lists.has('name')) return null;
+  const name = (frontmatter['name'] ?? '').normalize('NFC').trim();
+  if (name.length === 0 || UNADDRESSABLE.test(name)) return null;
+  return name;
+}
+
+/**
+ * The same text with one more alias in its frontmatter (#169).
+ *
+ * It is what the editor offers whoever is renaming a note: an alias resolves
+ * exactly what no name resolved (§5.2, step 8), so every `[[old name]]` keeps
+ * arriving — and the day somebody writes a note actually named that, the name
+ * takes those links back (RN-DSC-053).
+ *
+ * It edits the frontmatter OF THE NOTE BEING WRITTEN and nothing else. Nothing
+ * here rewrites another note: the product does not edit prose somebody else
+ * typed, which is the whole reason a rename costs what it costs.
+ *
+ * Three shapes, because `aliases:` can already be any of them: a list, which
+ * gains a line; a single value, which becomes a list of two; and absent, which
+ * is written as a list of one right after the block opens. A note with no
+ * frontmatter at all gets one.
+ */
+export function withAlias(raw: string, alias: string): string {
+  const text = toUnixNewlines(raw);
+  const wanted = alias.normalize('NFC').trim();
+  if (wanted.length === 0) return text;
+
+  if (!text.startsWith('---')) return `---\naliases:\n  - ${wanted}\n---\n\n${text}`;
+  const end = text.indexOf('\n---', 3);
+  if (end === -1) return `---\naliases:\n  - ${wanted}\n---\n\n${text}`;
+
+  const head = text.slice(text.indexOf('\n') + 1, end);
+  const rest = text.slice(end);
+  const lines = head.split('\n');
+
+  const at = lines.findIndex((line) => /^aliases\s*:/u.test(line));
+  if (at === -1) {
+    return `---\n${['aliases:', `  - ${wanted}`, ...lines].join('\n')}${rest}`;
+  }
+
+  const declared = (lines[at] ?? '').replace(/^aliases\s*:/u, '').trim();
+  if (declared.length === 0) {
+    // Already a list: the alias joins it, right under the key, so the note
+    // reads the way its author left it.
+    const next = [...lines];
+    next.splice(at + 1, 0, `  - ${wanted}`);
+    return `---\n${next.join('\n')}${rest}`;
+  }
+
+  // A single value written on the key line becomes a list of the two.
+  const inline = declared.startsWith('[') ? null : declared;
+  const next = [...lines];
+  if (inline === null) {
+    const inner = declared.slice(1, declared.lastIndexOf(']'));
+    next[at] = `aliases: [${inner.trim().length > 0 ? `${inner}, ` : ''}${wanted}]`;
+  } else {
+    next.splice(at, 1, 'aliases:', `  - ${inline}`, `  - ${wanted}`);
+  }
+  return `---\n${next.join('\n')}${rest}`;
+}
+
 export function splitFrontmatter(input: string): SplitDocument {
   const raw = toUnixNewlines(input);
   const bare = { frontmatter: {}, lists: new Set<string>(), body: raw };

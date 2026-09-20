@@ -556,7 +556,13 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
 
   async updateNote(
     caller: AgentCaller,
-    input: { notebookId: string; noteId: string; content: string; baseRevision: string },
+    input: {
+      notebookId: string;
+      noteId: string;
+      content: string;
+      baseRevision: string;
+      message?: string | null;
+    },
   ): Promise<NoteContent> {
     await callApi(
       this.origin,
@@ -564,7 +570,13 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       `/knowledge/notebooks/${input.notebookId}/notes/${input.noteId}`,
       {
         method: 'PUT',
-        body: { content: input.content, baseRevision: input.baseRevision },
+        body: {
+          content: input.content,
+          baseRevision: input.baseRevision,
+          // Only when there is one: an empty line is no line, and the entry
+          // is written without it (RN-AUD-012).
+          ...(input.message ? { message: input.message } : {}),
+        },
       },
     );
     return this.noteOf(caller, input.notebookId, input.noteId);
@@ -632,6 +644,7 @@ export class HttpAuditGateway implements AuditGateway {
         type: string;
         authorship: { userId: string; agent: { clientId: string; clientName: string } | null };
         contentRef: { versionId: string } | null;
+        message: string | null;
       }>;
     }>(this.origin, caller, `/audit/notebooks/${notebookId}/notes/${noteId}/history`);
 
@@ -642,6 +655,7 @@ export class HttpAuditGateway implements AuditGateway {
       agentName: entry.authorship.agent?.clientName ?? null,
       agentClientId: entry.authorship.agent?.clientId ?? null,
       revision: entry.contentRef?.versionId ?? null,
+      message: entry.message ?? null,
     }));
   }
 

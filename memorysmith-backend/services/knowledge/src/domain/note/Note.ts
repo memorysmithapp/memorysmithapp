@@ -179,7 +179,18 @@ export class Note {
    * one apart from its content (RN-KNW-038). Identical bytes cannot state a
    * different name, so the early return costs nothing.
    */
-  replaceBody(ref: ContentRef, body: string, by: Authorship): Result<boolean, DomainError> {
+  replaceBody(
+    ref: ContentRef,
+    body: string,
+    by: Authorship,
+    /**
+     * What the author said about this change (RN-AUD-012). It travels in the
+     * payload of the event and reaches the trail with it, and it is the one
+     * thing on a revision that nobody but the author can supply. An empty one
+     * is no line at all: the entry is written without it.
+     */
+    message: string | null = null,
+  ): Result<boolean, DomainError> {
     if (this.isDeleted) return err(DomainError.notFound('This note is deleted'));
     if (this._bodyRef.hasSameContentAs(ref)) return ok(false);
 
@@ -198,6 +209,7 @@ export class Note {
         noteId: this.id.value,
         folderId: this._folderId.value,
         name: this._name,
+        ...(message && message.trim().length > 0 ? { message: message.trim() } : {}),
       },
       ref,
       delta,

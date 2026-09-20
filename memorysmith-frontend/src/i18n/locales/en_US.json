@@ -435,5 +435,44 @@
     "done": "Your password was changed. Every other session of this account will be asked to sign in again.",
     "back": "Back to your profile",
     "failed": "The password could not be changed."
+  },
+  "editor": {
+    "edit": "Edit this note",
+    "read": "Back to reading",
+    "area": "The Markdown of this note",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "askHeading": "What changed?",
+    "messageLabel": "A line about this change",
+    "messagePlaceholder": "Fixed the date of the meeting",
+    "messageOptional": "Optional. It goes into the history of the note, beside the date and your name.",
+    "write": "Write it",
+    "writing": "Writing…",
+    "back": "Back to the text",
+    "willBeNamed_one": "This note has no name today. It will be called “{{name}}”, and {{count}} link waiting for that name will resolve.",
+    "willBeNamed_other": "This note has no name today. It will be called “{{name}}”, and {{count}} links waiting for that name will resolve.",
+    "willBeNamed_zero": "This note has no name today. It will be called “{{name}}”.",
+    "willBeUnnamed_zero": "This note will have NO NAME. It will still be here, still render and still link outward — and no link will be able to reach it.",
+    "willBeUnnamed_one": "This note will have NO NAME. It will still be here, still render and still link outward, and the {{count}} link that points at it today goes pending.",
+    "willBeUnnamed_other": "This note will have NO NAME. It will still be here, still render and still link outward, and the {{count}} links that point at it today go pending.",
+    "willBeRenamed": "This renames the note from “{{from}}” to “{{to}}”. {{losing}} links to the old name go pending, and {{gaining}} links to the new one resolve. Nothing else is rewritten.",
+    "keepAlias": "Keep “{{name}}” as an alias, so the links to it keep arriving",
+    "conflict": "Somebody else wrote this note since you opened it. Read it again and redo your change.",
+    "failed": "That could not be written.",
+    "leaveWarning": "You have changes you have not written. Leave and lose them?"
+  },
+  "history": {
+    "heading": "History of this note",
+    "loading": "Reading the history…",
+    "failed": "The history could not be read.",
+    "aPerson": "From the interface",
+    "noMessage": "No line was left about this change.",
+    "kind": {
+      "NoteCreated": "Created",
+      "NoteUpdated": "Written",
+      "NoteMoved": "Moved",
+      "NoteReordered": "Reordered",
+      "NoteDeleted": "Deleted"
+    }
   }
 }

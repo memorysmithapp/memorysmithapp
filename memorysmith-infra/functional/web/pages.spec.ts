@@ -276,6 +276,60 @@ test.describe('the pages of an account', () => {
     await expect(box('second')).toBeChecked();
   });
 
+  test('[page:/notebooks/:notebookId/notes/:noteId] writes a note from the interface with a line, which the history answers, and conflicts with a write it did not see', async ({
+    app,
+    notebook,
+    state,
+    words,
+  }) => {
+    await app.goto(
+      `${state.surfaces.site}/notebooks/${notebook.notebookId}/notes/${notebook.noteId}`,
+    );
+
+    // The toggle is there because this account writes in this notebook.
+    await app.getByRole('button', { name: words.editNote }).click();
+    const area = app.locator('textarea.note-editor-area');
+    // What is typed is WHAT WAS TYPED: the frontmatter is in the box, not the
+    // properties the reading surface drew out of it (RN-KNW-052).
+    await expect(area).toHaveValue(/^---/);
+
+    const line = `Written by a functional case at ${new Date().toISOString()}`;
+    await area.fill(`${await area.inputValue()}\n\nA paragraph this case wrote.\n`);
+    await app.getByRole('button', { name: words.confirmEdit }).click();
+    await app.getByLabel(words.messageLabel).fill(line);
+    await app.getByRole('button', { name: words.writeIt }).click();
+
+    // Back to reading, with the paragraph in it.
+    await expect(app.getByText('A paragraph this case wrote.')).toBeVisible();
+
+    // And the line is in the history, which is the whole reason the field
+    // exists: a message written into a drawer nobody opens is a form.
+    await app.getByText(words.historyHeading).click();
+    await expect(app.getByText(line)).toBeVisible();
+
+    /**
+     * A write the screen did not see: the API writes the same note directly,
+     * so the revision the page is holding is retired. The next write from the
+     * interface must say somebody else wrote, and not overwrite them.
+     */
+    const api = new Api(state.surfaces.api, await apiToken(state, state.accounts.owner));
+    const read = await api.ok<{ raw: string; revision: { versionId: string } }>(
+      'GET',
+      `/knowledge/notebooks/${notebook.notebookId}/notes/${notebook.noteId}`,
+    );
+    await api.ok('PUT', `/knowledge/notebooks/${notebook.notebookId}/notes/${notebook.noteId}`, {
+      content: `${read.raw}\n\nWritten around the interface.\n`,
+      baseRevision: read.revision.versionId,
+      message: 'A write the screen never saw',
+    });
+
+    await app.getByRole('button', { name: words.editNote }).click();
+    await app.locator('textarea.note-editor-area').fill(`${read.raw}\n\nAnd one more.\n`);
+    await app.getByRole('button', { name: words.confirmEdit }).click();
+    await app.getByRole('button', { name: words.writeIt }).click();
+    await expect(app.locator('.editor-refusal')).toContainText(words.conflict);
+  });
+
   test('[page:/notebooks/:notebookId/links/:target] keeps a link to a name nobody carries, and follows one that resolves', async ({
     app,
     notebook,

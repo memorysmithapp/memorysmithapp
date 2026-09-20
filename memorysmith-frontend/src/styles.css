@@ -3948,3 +3948,158 @@ body.has-modal {
   /* The accent lightens in the dark theme, so the letters darken with it. */
   color: #0b1220;
 }
+
+/* Writing a note (#169). The text area is the note: same measure, same type
+   as the reading surface, so what is typed sits where what is read sat. */
+.note-tools {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+.note-editor {
+  margin-top: 1rem;
+}
+.note-editor-area {
+  width: 100%;
+  min-height: 60vh;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  line-height: 1.7;
+  tab-size: 2;
+  resize: vertical;
+}
+.note-editor-area:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.note-editor-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.85rem;
+}
+/* What the write will do, said before it is confirmed. The pending colour is
+   the one a link to nothing already wears, so the two read as one fact. */
+.editor-notice {
+  margin: 0 0 0.9rem;
+  padding: 0.7rem 0.85rem;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 6px 6px 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.editor-notice.is-pending {
+  border-left-color: var(--signal);
+  background: color-mix(in srgb, var(--signal) 12%, transparent);
+}
+.editor-alias {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.editor-refusal {
+  margin: 0.75rem 0 0;
+  padding: 0.7rem 0.85rem;
+  border-left: 3px solid var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  border-radius: 0 6px 6px 0;
+  color: var(--danger);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+/* A short question over whatever is behind it. It is a sentence and two
+   buttons, so it is sized like one. */
+.ask-dialog {
+  border: 0;
+  padding: 0;
+  background: none;
+  max-width: none;
+  max-height: none;
+  width: 100%;
+  height: 100%;
+  color: var(--text);
+}
+.ask-dialog::backdrop {
+  background: rgb(14 21 38 / 0.45);
+}
+.ask-dialog-box {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(30rem, calc(100vw - 2rem));
+  max-height: min(85vh, 40rem);
+  overflow-y: auto;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.28);
+}
+.ask-dialog-box h2 {
+  margin: 0 0 1rem;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.ask-dialog-foot {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+/* The history of a note: closed by default, because it answers a question
+   somebody asks and is never the note itself. */
+.history-box {
+  margin-top: 2rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+.history-box > summary {
+  cursor: pointer;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--text-soft);
+}
+.history-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.9rem;
+}
+.history-list li {
+  padding-left: 0.85rem;
+  border-left: 2px solid var(--border);
+}
+.history-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+.history-kind {
+  font-size: 0.7rem;
+}
+.history-message {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+.history-message.is-empty {
+  color: var(--pending);
+  font-style: italic;
+}

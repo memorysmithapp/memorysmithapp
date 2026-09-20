@@ -20,6 +20,13 @@ export const auditEntrySchema = z.object({
   occurredAt: instantSchema,
   authorship: authorshipSchema,
   contentRef: contentRefSchema.nullable(),
+  /**
+   * The line its author left about the change (RN-AUD-012), or null when the
+   * write carried none. It is drawn out of the payload rather than left in it
+   * because it is the one thing of an entry a PERSON wrote, and a reader of
+   * the history should not have to know which key it sits under.
+   */
+  message: z.string().nullable(),
   payload: z.record(z.string(), z.unknown()),
 });
 
