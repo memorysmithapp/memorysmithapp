@@ -43,6 +43,14 @@ export function NotePage({ noteId }: { noteId: string }) {
   const [writing, setWriting] = useState(false);
   const [refusal, setRefusal] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  /**
+   * Whether the history is open. It is state and not just an attribute of the
+   * `<details>` because React renders the children of a closed one anyway:
+   * mounted eagerly, the history asked the trail for every note anybody
+   * opened, which is a request nobody wanted and, for the length of one
+   * defect, the render that took the page down.
+   */
+  const [historyOpen, setHistoryOpen] = useState(false);
   const client = useQueryClient();
 
   /**
@@ -232,9 +240,13 @@ export function NotePage({ noteId }: { noteId: string }) {
         (RN-AUD-012). Closed by default: it is the answer to a question
         somebody asks, never the note itself.
       */}
-      <details className="history-box">
+      <details
+        className="history-box"
+        open={historyOpen}
+        onToggle={(event) => setHistoryOpen(event.currentTarget.open)}
+      >
         <summary>{t('history.heading')}</summary>
-        <NoteHistory notebookId={notebookId} noteId={noteId} />
+        {historyOpen ? <NoteHistory notebookId={notebookId} noteId={noteId} /> : null}
       </details>
     </article>
   );

@@ -8,6 +8,7 @@
  */
 
 import { useTranslation } from 'react-i18next';
+import { intlLocale } from '../../i18n';
 
 /** Above this share of the plan, the bar stops being neutral and warns. */
 const WARN_AT = 0.8;
@@ -44,7 +45,7 @@ export function formatBytes(bytes: number, locale: string): string {
 
 export function StorageBar({ usedBytes, quotaBytes }: { usedBytes: number; quotaBytes: number }) {
   const { t, i18n } = useTranslation();
-  const locale = i18n.language === 'pt_BR' ? 'pt-BR' : 'en-US';
+  const locale = intlLocale(i18n.language);
   const share = quotaBytes > 0 ? usedBytes / quotaBytes : 0;
   const level = share >= FULL_AT ? 'full' : share >= WARN_AT ? 'warn' : 'ok';
 

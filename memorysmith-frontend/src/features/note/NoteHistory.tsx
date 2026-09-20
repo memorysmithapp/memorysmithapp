@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { noteHistory } from '../../shared/api/backend';
+import { intlLocale } from '../../i18n';
 
 /**
  * What happened to this note, and what its authors said about it (#169,
@@ -28,7 +29,14 @@ export function NoteHistory({ notebookId, noteId }: { notebookId: string; noteId
   // Newest first: what somebody opening a history wants is the last thing that
   // happened, and the trail is answered in the order it was written.
   const entries = [...data].reverse();
-  const when = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' });
+  // `intlLocale` and not `i18n.language`: the interface names its locales
+  // `en_US` and `pt_BR`, and `Intl` takes a BCP 47 tag and throws on anything
+  // else. This is the fourth surface to need it and the helper is why it is
+  // one call rather than a fourth conversion written out by hand.
+  const when = new Intl.DateTimeFormat(intlLocale(i18n.language), {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
 
   return (
     <ol className="history-list">
