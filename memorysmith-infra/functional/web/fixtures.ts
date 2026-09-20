@@ -72,6 +72,14 @@ export interface Words {
   /** Its heading, and the section that carries the address of the connector. */
   readonly aboutHeading: string;
   readonly aboutConnector: string;
+  /** The two entries of the user menu that lead to the person (#168). */
+  readonly profileMenu: string;
+  readonly passwordMenu: string;
+  /** The source of a picture that is drawn here and asks nothing of anybody. */
+  readonly initials: string;
+  /** What the password screen says before it changes anything. */
+  readonly endsOtherSessions: string;
+  readonly cancel: string;
 }
 
 export const WORDS: Record<AppLocale, Words> = {
@@ -115,6 +123,11 @@ export const WORDS: Record<AppLocale, Words> = {
     aboutMenu: 'About MemorySmith.app',
     aboutHeading: 'Welcome to MemorySmith.app',
     aboutConnector: 'Connecting your AI assistant',
+    profileMenu: 'Your profile',
+    passwordMenu: 'Change your password',
+    initials: 'Your initials',
+    endsOtherSessions: 'Changing your password ends every other session',
+    cancel: 'Cancel',
   },
   pt_BR: {
     openNotebook: 'Abrir um caderno',
@@ -156,6 +169,11 @@ export const WORDS: Record<AppLocale, Words> = {
     aboutMenu: 'Sobre o MemorySmith.app',
     aboutHeading: 'Bem-vindo ao MemorySmith.app',
     aboutConnector: 'Conectando seu assistente de IA',
+    profileMenu: 'Seu perfil',
+    passwordMenu: 'Trocar a senha',
+    initials: 'Suas iniciais',
+    endsOtherSessions: 'Trocar a senha encerra todas as outras sessões',
+    cancel: 'Cancelar',
   },
 };
 

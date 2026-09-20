@@ -114,6 +114,39 @@ test.describe('the pages of an account', () => {
     await expect(app.locator('.about-connector code')).toHaveText(state.surfaces.mcp);
   });
 
+  test('[page:/profile] [page:/profile/password] draws the initials nobody is asked for, and asks for the current password before changing it', async ({
+    app,
+    state,
+    words,
+  }) => {
+    await app.goto(`${state.surfaces.site}/`);
+    await app.locator('button.user-menu-trigger').click();
+    await app.getByRole('link', { name: words.profileMenu }).click();
+    await app.waitForURL(`${state.surfaces.site}/profile`);
+
+    // The e-mail is shown and cannot be typed: changing it is another
+    // delivery with another rule (RN-ACC-021).
+    const email = app.locator('.field input[type="email"]');
+    await expect(email).toHaveValue(state.accounts.owner.email);
+    await expect(email).toBeDisabled();
+
+    /**
+     * The source that asks nothing of anybody: choosing it draws two letters
+     * HERE, and no request leaves for them. Which is the whole point of the
+     * option, so the case proves the drawing and not the label.
+     */
+    await app.getByText(words.initials, { exact: true }).click();
+    await expect(app.locator('.profile-face .avatar-initials')).toBeVisible();
+
+    await app.getByRole('link', { name: words.passwordMenu }).click();
+    await app.waitForURL(`${state.surfaces.site}/profile/password`);
+    // It says what it will do to the other sessions BEFORE it happens.
+    await expect(app.getByText(words.endsOtherSessions)).toBeVisible();
+    // And giving up is free: nothing about the account was touched.
+    await app.getByRole('button', { name: words.cancel }).click();
+    await app.waitForURL(`${state.surfaces.site}/profile`);
+  });
+
   test('[page:/notebooks/:notebookId] opens a notebook on its context: its name, its folders and their Templates', async ({
     app,
     notebook,

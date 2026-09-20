@@ -158,6 +158,10 @@ describe('API DTOs', () => {
         email: 'owner@example.com',
         name: 'Owner',
         isPlatformAdmin: false,
+        // Nobody chose a source, so the face is the one the product has always
+        // drawn, and there is no picture of their own behind it (#168).
+        avatar: 'gravatar',
+        picture: null,
       },
       activeSubscription: null,
       subscriptions: [],

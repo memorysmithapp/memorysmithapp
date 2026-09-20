@@ -18,6 +18,7 @@
 import type {
   AgentIdentity,
   ConcurrencyError,
+  DomainError,
   Instant,
   Result,
   SubscriptionId,
@@ -25,7 +26,7 @@ import type {
   UserId,
 } from '@memorysmith/kernel';
 import type { Subscription } from '../subscription/Subscription.js';
-import type { AccountLocale, Email } from '../values.js';
+import type { AccountLocale, AvatarSource, Email, PersonName } from '../values.js';
 
 /** The subscription the session acts for; there is no findById by design. */
 export interface SubscriptionRepository {
@@ -122,11 +123,65 @@ export interface UserProfile {
 }
 
 /**
- * The account itself, where the identity provider keeps it (RN-ACC-018). Access
- * writes one attribute of it, the language, and reads none: who the person is
- * travels in the token.
+ * The account itself, where the identity provider keeps it (RN-ACC-018). The
+ * language and the name are attributes of the account, because identity is
+ * global and belongs to no subscription; the PICTURE is not here, because the
+ * product decided it is data of the person inside a subscription (RN-ACC-022).
  */
 export interface AccountDirectory {
   /** Records the language every message to this account is written in. */
   setLocale(account: Email, locale: AccountLocale): Promise<void>;
+  /** Records the name every screen shows for this person (RN-ACC-021). */
+  setName(account: Email, name: PersonName): Promise<void>;
+  /**
+   * The name recorded on the account, or null when it carries none. It is
+   * read where the token cannot answer: a token minted before the change
+   * still carries the old name, and a screen that shows it is a screen that
+   * refused the edit it just accepted.
+   */
+  nameOf(account: Email): Promise<string | null>;
+  /**
+   * Changes the password, proving the current one (RN-ACC-023). It answers a
+   * validation failure when the current password is wrong or the new one does
+   * not satisfy the policy of the pool, and NEVER says which.
+   *
+   * It ends the other sessions of the account, which is what a password change
+   * means and what the screen says before it happens.
+   */
+  changePassword(account: Email, current: string, next: string): Promise<Result<void, DomainError>>;
+}
+
+/**
+ * The face beside a person, INSIDE one subscription (RN-ACC-022).
+ *
+ * Keyed under the subscription like everything else, which is what keeps
+ * design rule 1 whole and opens no third exception of section 8.3: a picture
+ * is data of the membership, not of the global identity. Somebody who takes
+ * part in two subscriptions has a picture in each, and that is not an
+ * accident — the face your colleagues see and the face your other notebook
+ * sees are not obliged to be the same one.
+ */
+export interface MemberAvatar {
+  readonly source: AvatarSource;
+  /** The bytes of an uploaded picture, or null for every other source. */
+  readonly picture: Uint8Array | null;
+  readonly mime: string | null;
+}
+
+export interface AvatarRepository {
+  find(user: UserId): Promise<MemberAvatar | null>;
+  save(user: UserId, avatar: MemberAvatar): Promise<void>;
+}
+
+/**
+ * What an uploaded picture is allowed to be, injected by the composition root
+ * (PE2). The catalogue of types and the reader that checks a declared type
+ * against the bytes are published by the contracts package, which `domain/`
+ * and `application/` do not import: the root passes the reading in, exactly as
+ * it does for the types a notebook accepts.
+ */
+export interface PictureTypes {
+  readonly accepted: readonly string[];
+  /** Whether these bytes support the type they were declared under. */
+  supports(mime: string, bytes: Uint8Array): boolean;
 }

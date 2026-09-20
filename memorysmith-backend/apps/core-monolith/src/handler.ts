@@ -27,7 +27,15 @@ import {
   RequestSubscription,
   SwitchActiveSubscription,
 } from '@memorysmith/svc-access/application/onboarding';
-import { ChooseLanguage, RecordWelcome } from '@memorysmith/svc-access/application/account';
+import {
+  ChangePassword,
+  ChooseLanguage,
+  EditProfile,
+  pictureUrlOf,
+  ReadProfile,
+  RecordWelcome,
+  SetProfilePicture,
+} from '@memorysmith/svc-access/application/account';
 import { CognitoAccountDirectory } from '@memorysmith/svc-access/adapters/cognito';
 import {
   ListPlatformQueue,
@@ -129,6 +137,7 @@ import {
   buildDiscovery,
   buildKnowledge,
   buildTransfers,
+  PICTURE_CATALOGUE,
   readStorageBudget,
   roleOf,
   type Infrastructure,
@@ -174,7 +183,10 @@ function signedWithIam(c: Context): boolean {
 }
 
 /** Where the language of an account is recorded: on the account, in the pool (RN-ACC-018). */
-const accountDirectory = new CognitoAccountDirectory(required('USER_POOL_ID'));
+const accountDirectory = new CognitoAccountDirectory(
+  required('USER_POOL_ID'),
+  required('WEB_CLIENT_ID'),
+);
 
 /** The Access use cases, each built from the subscription of this request. */
 const accessUseCases: AccessUseCases = {
@@ -183,6 +195,16 @@ const accessUseCases: AccessUseCases = {
     return new RequestSubscription(onboarding, links);
   },
   chooseLanguage: () => new ChooseLanguage(accountDirectory),
+  readProfile: (request) =>
+    new ReadProfile(accountDirectory, buildAccess(infra, request.context).scoped?.avatars ?? null),
+  editProfile: (request) =>
+    new EditProfile(accountDirectory, buildAccess(infra, request.context).scoped?.avatars ?? null),
+  setProfilePicture: (request) =>
+    new SetProfilePicture(
+      buildAccess(infra, request.context).scoped?.avatars ?? null,
+      PICTURE_CATALOGUE,
+    ),
+  changePassword: () => new ChangePassword(accountDirectory),
   recordWelcome: (request) => new RecordWelcome(buildAccess(infra, request.context).links),
   getSession: (request) => {
     const { links, platform, scoped } = buildAccess(infra, request.context);
@@ -199,6 +221,16 @@ const accessUseCases: AccessUseCases = {
       // The stored bytes live in the Knowledge table, which Access does not
       // read; the root is what joins them (composition-root.ts).
       async () => (context ? (await readStorageBudget(infra, context)).usedBytes : 0),
+      // The face of this person inside the active subscription, and the name
+      // recorded on their account: the shell draws both and neither is in the
+      // token — the name it carries is the one that was true when it was
+      // minted (#168).
+      async () => {
+        const avatar = await scoped?.avatars.find(request.profile.userId);
+        if (!avatar) return null;
+        return { source: avatar.source.name, picture: pictureUrlOf(avatar) };
+      },
+      async () => accountDirectory.nameOf(request.profile.email),
     );
   },
   switchSubscription: (request) =>

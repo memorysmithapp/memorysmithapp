@@ -399,5 +399,41 @@
       "skills": "The connector carries written methods for the tasks that go wrong most often — designing a notebook from scratch, writing a note this product can read — and a good assistant reads them before it starts. You will see it do so."
     },
     "start": "Start reading"
+  },
+  "profile": {
+    "menu": "Your profile",
+    "title": "Your profile",
+    "heading": "Your profile",
+    "pictureHeading": "Your picture",
+    "source": {
+      "gravatar": "Gravatar",
+      "initials": "Your initials",
+      "upload": "A picture of yours"
+    },
+    "choosePicture": "Choose a picture…",
+    "pictureRefused": "That file could not be used as a picture. Choose a PNG, a JPEG or a WebP.",
+    "gravatarDiscloses": "Gravatar draws your picture from gravatar.com, which receives the hash of your e-mail and the address of whoever is looking at the screen. Choosing your initials stops that: they are drawn here, and nothing leaves.",
+    "name": "Name",
+    "email": "E-mail",
+    "emailReadOnly": "This is what you sign in with, and where every message goes. It cannot be changed here.",
+    "save": "Save",
+    "saved": "Saved",
+    "failed": "That could not be saved."
+  },
+  "password": {
+    "menu": "Change your password",
+    "heading": "Change your password",
+    "endsOtherSessions": "Changing your password ends every other session of this account: any other device will be asked to sign in again. This one stays open.",
+    "current": "Current password",
+    "next": "New password",
+    "again": "New password, again",
+    "policy": "At least 12 characters, with an upper case letter, a lower case letter and a digit.",
+    "mismatch": "The two do not match.",
+    "confirm": "Change the password",
+    "working": "Changing…",
+    "cancel": "Cancel",
+    "done": "Your password was changed. Every other session of this account will be asked to sign in again.",
+    "back": "Back to your profile",
+    "failed": "The password could not be changed."
   }
 }

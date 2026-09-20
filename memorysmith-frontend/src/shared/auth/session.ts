@@ -9,7 +9,7 @@
 // token (RN-SUB-013).
 
 import { create } from 'zustand';
-import type { SessionDto } from '@memorysmith/contracts';
+import type { AvatarSourceDto, SessionDto } from '@memorysmith/contracts';
 import { claimsOf, readTokens, type AuthConfig } from './oauth';
 import { ApiError } from '../api/error-mapper';
 import { getSession } from '../api/backend';
@@ -59,6 +59,10 @@ export interface LiveSession {
    * throwing somebody who has been here for months at the front door.
    */
   readonly welcomeSeen: boolean;
+  /** Where the face beside this person comes from (#168, RN-ACC-022). */
+  readonly avatar: AvatarSourceDto;
+  /** The picture they uploaded, as a data URL, when that is the source. */
+  readonly picture: string | null;
 }
 
 interface SessionStore {
@@ -76,6 +80,17 @@ interface SessionStore {
   load: () => Promise<void>;
   /** The welcome was shown; the surface never opens by itself again. */
   markWelcomeSeen: () => void;
+  /**
+   * What the person just saved about themselves, applied to the shell without
+   * asking the API again: the header draws their face on every screen, and a
+   * name that only changes on the next page load reads as an edit that did
+   * not take (#168).
+   */
+  applyProfile: (profile: {
+    name: string;
+    avatar: AvatarSourceDto;
+    picture: string | null;
+  }) => void;
   clear: () => void;
 }
 
@@ -128,6 +143,8 @@ export const useLiveSession = create<SessionStore>((set) => ({
           role: dto.role,
           subscriptions: dto.subscriptions,
           welcomeSeen: dto.welcomeSeen ?? true,
+          avatar: dto.user.avatar ?? 'gravatar',
+          picture: dto.user.picture ?? null,
         },
       });
     } catch (error) {
@@ -158,10 +175,16 @@ export const useLiveSession = create<SessionStore>((set) => ({
                 role: 'NONE',
                 subscriptions: [],
                 welcomeSeen: true,
+                avatar: 'gravatar',
+                picture: null,
               }
             : null,
       });
     }
+  },
+
+  applyProfile(profile): void {
+    set((state) => (state.session ? { session: { ...state.session, ...profile } } : {}));
   },
 
   markWelcomeSeen(): void {

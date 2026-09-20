@@ -8,7 +8,11 @@
  */
 
 import { RESERVED_FRONTMATTER_KEYS, type Deployment } from '@memorysmith/contracts';
-import { FILE_TYPE_CATALOGUE, serializeNotebookDocument } from '../src/composition-root.js';
+import {
+  FILE_TYPE_CATALOGUE,
+  PICTURE_CATALOGUE,
+  serializeNotebookDocument,
+} from '../src/composition-root.js';
 import {
   DomainError,
   NotebookId,
@@ -23,6 +27,7 @@ import type { KnowledgeRequest, KnowledgeUseCases } from '@memorysmith/svc-knowl
 import {
   InMemoryAccessDatabase,
   InMemoryAccountDirectory,
+  InMemoryAvatarRepository,
   InMemoryConnectorBindingRepository,
   InMemoryOnboarding,
   InMemoryPlatformAdmin,
@@ -34,7 +39,15 @@ import {
   RequestSubscription,
   SwitchActiveSubscription,
 } from '@memorysmith/svc-access/application/onboarding';
-import { ChooseLanguage, RecordWelcome } from '@memorysmith/svc-access/application/account';
+import {
+  ChangePassword,
+  ChooseLanguage,
+  EditProfile,
+  pictureUrlOf,
+  ReadProfile,
+  RecordWelcome,
+  SetProfilePicture,
+} from '@memorysmith/svc-access/application/account';
 import {
   ListPlatformQueue,
   ReviewSubscription,
@@ -205,6 +218,9 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
   const verifier = new FakeTokenVerifier();
 
   const links = new InMemoryUserLinkRepository(accessDb);
+  // One directory for the whole run, so a name recorded by an edit is the
+  // name the next session reads (#168).
+  const accountDirectory = new InMemoryAccountDirectory();
   const onboarding = new InMemoryOnboarding(accessDb, events);
   const platform = new InMemoryPlatformAdmin(accessDb, events);
 
@@ -214,6 +230,8 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     return {
       subscriptions: new InMemorySubscriptionRepository(context, accessDb, events),
       connectors: new InMemoryConnectorBindingRepository(context, accessDb),
+      // The face of a person inside this subscription (#168).
+      avatars: new InMemoryAvatarRepository(context, accessDb),
     };
   };
 
@@ -276,11 +294,23 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
             : null;
         },
         async () => storage.usedBytes,
+        async () => {
+          const avatar = await scoped?.avatars.find(request.profile.userId);
+          return avatar ? { source: avatar.source.name, picture: pictureUrlOf(avatar) } : null;
+        },
+        async () => accountDirectory.nameOf(request.profile.email),
       );
     },
     switchSubscription: () => new SwitchActiveSubscription(links),
-    chooseLanguage: () => new ChooseLanguage(new InMemoryAccountDirectory()),
+    chooseLanguage: () => new ChooseLanguage(accountDirectory),
     recordWelcome: () => new RecordWelcome(links),
+    readProfile: (request) =>
+      new ReadProfile(accountDirectory, scopedAccess(request)?.avatars ?? null),
+    editProfile: (request) =>
+      new EditProfile(accountDirectory, scopedAccess(request)?.avatars ?? null),
+    setProfilePicture: (request) =>
+      new SetProfilePicture(scopedAccess(request)?.avatars ?? null, PICTURE_CATALOGUE),
+    changePassword: () => new ChangePassword(accountDirectory),
     listPlatformQueue: () => new ListPlatformQueue(platform),
     reviewSubscription: () => new ReviewSubscription(platform),
     listMembers: (request) => {

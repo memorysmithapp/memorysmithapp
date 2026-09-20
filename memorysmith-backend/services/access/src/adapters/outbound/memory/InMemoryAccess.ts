@@ -6,6 +6,7 @@
 
 import {
   ConcurrencyError,
+  DomainError,
   ok,
   type AgentIdentity,
   type Instant,
@@ -18,9 +19,11 @@ import {
   type UserId,
 } from '@memorysmith/kernel';
 import type { Subscription } from '../../../domain/subscription/Subscription.js';
-import type { AccountLocale, Email } from '../../../domain/values.js';
+import type { AccountLocale, Email, PersonName } from '../../../domain/values.js';
 import type {
   AccountDirectory,
+  AvatarRepository,
+  MemberAvatar,
   ConnectorBindingRepository,
   PlatformSubscriptionAdmin,
   PlatformSubscriptionView,
@@ -34,11 +37,13 @@ export class InMemoryAccessDatabase {
   readonly subscriptions = new Map<string, { subscription: Subscription; version: number }>();
   readonly links = new Map<string, SubscriptionLink>();
   readonly connectors = new Map<string, { agent: AgentIdentity; expiresAt: Instant }>();
+  readonly avatars = new Map<string, MemberAvatar>();
 
   clear(): void {
     this.subscriptions.clear();
     this.links.clear();
     this.connectors.clear();
+    this.avatars.clear();
   }
 }
 
@@ -226,8 +231,55 @@ export class InMemoryConnectorBindingRepository implements ConnectorBindingRepos
 /** The language of each account, kept by e-mail, as the identity provider keeps it. */
 export class InMemoryAccountDirectory implements AccountDirectory {
   readonly locales = new Map<string, string>();
+  readonly names = new Map<string, string>();
+  readonly passwords = new Map<string, string>();
 
   async setLocale(account: Email, locale: AccountLocale): Promise<void> {
     this.locales.set(account.value, locale.name);
+  }
+
+  async setName(account: Email, name: PersonName): Promise<void> {
+    this.names.set(account.value, name.value);
+  }
+
+  async nameOf(account: Email): Promise<string | null> {
+    return this.names.get(account.value) ?? null;
+  }
+
+  /**
+   * The same refusal for both halves, like the real one: which of the two
+   * failed is exactly what an unauthenticated retry must not learn.
+   */
+  async changePassword(
+    account: Email,
+    current: string,
+    next: string,
+  ): Promise<Result<void, DomainError>> {
+    const held = this.passwords.get(account.value);
+    if (held !== undefined && held !== current) {
+      return { ok: false, error: DomainError.validation('The password could not be changed') };
+    }
+    this.passwords.set(account.value, next);
+    return ok();
+  }
+}
+
+/** The same, in memory: one picture per person per subscription. */
+export class InMemoryAvatarRepository implements AvatarRepository {
+  constructor(
+    private readonly sub: SubscriptionContext,
+    private readonly db: InMemoryAccessDatabase,
+  ) {}
+
+  private key(user: UserId): string {
+    return `S#${this.sub.subscriptionId.value}#AVATAR#${user.value}`;
+  }
+
+  async find(user: UserId): Promise<MemberAvatar | null> {
+    return this.db.avatars.get(this.key(user)) ?? null;
+  }
+
+  async save(user: UserId, avatar: MemberAvatar): Promise<void> {
+    this.db.avatars.set(this.key(user), avatar);
   }
 }

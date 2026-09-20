@@ -202,6 +202,93 @@ export class AccountLocale {
   }
 }
 
+/**
+ * AvatarSource: where the face beside a person comes from (RN-ACC-022).
+ *
+ * Three, and the person chooses among them. A URL they type is not one of
+ * them: an image whose destination names a host discloses the reader to that
+ * host, and an avatar renders on every screen without anybody opening
+ * anything (RN-DSC-040).
+ */
+export const AVATAR_SOURCES = ['gravatar', 'initials', 'upload'] as const;
+
+export type AvatarSourceName = (typeof AVATAR_SOURCES)[number];
+
+export class AvatarSource {
+  private readonly __avatarSource!: void;
+  private constructor(readonly name: AvatarSourceName) {}
+
+  static readonly GRAVATAR = new AvatarSource('gravatar');
+  static readonly INITIALS = new AvatarSource('initials');
+  static readonly UPLOAD = new AvatarSource('upload');
+
+  /** What a person who has chosen nothing gets, which is what they get today. */
+  static readonly DEFAULT = AvatarSource.GRAVATAR;
+
+  static create(raw: string): Result<AvatarSource, DomainError> {
+    switch (raw) {
+      case 'gravatar':
+        return ok(AvatarSource.GRAVATAR);
+      case 'initials':
+        return ok(AvatarSource.INITIALS);
+      case 'upload':
+        return ok(AvatarSource.UPLOAD);
+      default:
+        return err(
+          DomainError.validation(`Not a source of a picture: ${String(raw)}`, {
+            accepted: AVATAR_SOURCES,
+          }),
+        );
+    }
+  }
+
+  equals(other: unknown): boolean {
+    return other instanceof AvatarSource && other.name === this.name;
+  }
+
+  toString(): string {
+    return this.name;
+  }
+
+  toJSON(): string {
+    return this.name;
+  }
+}
+
+/**
+ * PersonName: what every screen shows and what an author line says.
+ *
+ * It is the person's to write, so the only things refused are the ones that
+ * would make a screen show something other than a name: nothing at all, and
+ * more than a line of one.
+ */
+export class PersonName {
+  private readonly __personName!: void;
+  private constructor(readonly value: string) {}
+
+  static readonly MAX_LENGTH = 120;
+
+  static create(raw: string): Result<PersonName, DomainError> {
+    const name = String(raw ?? '')
+      .normalize('NFC')
+      .replace(/\s+/gu, ' ')
+      .trim();
+    if (name.length === 0) return err(DomainError.validation('A name cannot be empty'));
+    if (name.length > PersonName.MAX_LENGTH) {
+      return err(
+        DomainError.validation(`A name is at most ${PersonName.MAX_LENGTH} characters`, {
+          length: name.length,
+        }),
+      );
+    }
+    return ok(new PersonName(name));
+  }
+
+  toString(): string {
+    return this.value;
+  }
+}
+
 export const ACCESS_LIMITS = {
   /** RN-ACC-016: role changes take up to five minutes to propagate. */
   authorizerCacheSeconds: 300,
@@ -211,4 +298,17 @@ export const ACCESS_LIMITS = {
    * that outlived the token would answer for a credential nobody can present.
    */
   connectorRefreshTokenDays: 30,
+  /**
+   * The ceiling of a picture somebody uploads, in bytes (RN-ACC-022).
+   *
+   * An avatar is not content of a notebook: it rides on no notebook, counts
+   * against no quota and is purged by no deletion of one. What keeps it
+   * honest is that it is BOUNDED instead — the interface draws the chosen
+   * file down to 256 pixels before sending it, and anything still over this
+   * is refused. At this size it is kept beside the choice that names it, so
+   * replacing a picture overwrites the old one and leaves nothing behind.
+   */
+  avatarMaxBytes: 64 * 1024,
+  /** The side, in pixels, the interface draws a picture down to before sending it. */
+  avatarSide: 256,
 } as const;

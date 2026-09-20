@@ -7,6 +7,7 @@
  *   USER#{u}       / SUB#{s}               the link, exception 1 of section 8.3
  *   S#{s}          / CONNECTOR#TOKEN#{jti}      the connector of an access token
  *   S#{s}          / CONNECTOR#REFRESH#{sha256} the connector a refresh token renews
+ *   S#{s}          / AVATAR#{userId}       the face of that person in this subscription
  *
  *   GSI2: PLATFORM#{st}   -> REQUESTED#{ts}#{s}                   platform queue
  *
@@ -40,8 +41,16 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { Subscription } from '../../../domain/subscription/Subscription.js';
 import type { Membership } from '../../../domain/subscription/Subscription.js';
-import { Email, RejectionReason, StorageQuota, SubscriptionType } from '../../../domain/values.js';
+import {
+  AvatarSource,
+  Email,
+  RejectionReason,
+  StorageQuota,
+  SubscriptionType,
+} from '../../../domain/values.js';
 import type {
+  AvatarRepository,
+  MemberAvatar,
   ConnectorBindingRepository,
   PlatformSubscriptionAdmin,
   PlatformSubscriptionView,
@@ -506,5 +515,60 @@ export class DynamoConnectorBindingRepository implements ConnectorBindingReposit
     if (!item) return null;
     if (need(Instant.fromISO(String(item['expiresAt']))).isAtOrBefore(now)) return null;
     return need(AgentIdentity.create(String(item['clientId']), String(item['clientName'])));
+  }
+}
+
+/**
+ * The face of one person INSIDE this subscription (RN-ACC-022).
+ *
+ * Keyed under the subscription like everything else, so design rule 1 holds
+ * and no third exception of section 8.3 is opened: a picture is data of the
+ * membership. The bytes live on the item, not in the object store, because an
+ * avatar is bounded rather than budgeted — the interface draws it down to
+ * `avatarSide` pixels before sending it and the use case refuses anything over
+ * `avatarMaxBytes`. At that size, replacing a picture OVERWRITES the old one,
+ * and there is nothing left behind for a purge to find.
+ */
+export class DynamoAvatarRepository implements AvatarRepository {
+  constructor(
+    private readonly sub: SubscriptionContext,
+    private readonly db: DynamoDBDocumentClient,
+    private readonly tableName: string,
+  ) {}
+
+  private key(user: UserId): Item {
+    return { PK: `S#${this.sub.subscriptionId.value}`, SK: `AVATAR#${user.value}` };
+  }
+
+  async find(user: UserId): Promise<MemberAvatar | null> {
+    const found = await this.db.send(
+      new GetCommand({ TableName: this.tableName, Key: this.key(user) }),
+    );
+    const item = found.Item as Item | undefined;
+    if (!item) return null;
+    const source = AvatarSource.create(String(item['source'] ?? ''));
+    const picture = item['picture'] as Uint8Array | undefined;
+    return {
+      source: source.ok ? source.value : AvatarSource.DEFAULT,
+      picture: picture ? new Uint8Array(picture) : null,
+      mime: item['mime'] ? String(item['mime']) : null,
+    };
+  }
+
+  async save(user: UserId, avatar: MemberAvatar): Promise<void> {
+    await this.db.send(
+      new PutCommand({
+        TableName: this.tableName,
+        Item: {
+          ...this.key(user),
+          entity: 'AVATAR',
+          userId: user.value,
+          source: avatar.source.name,
+          // Written only when there is one: an item carrying an empty binary
+          // is an item that says a picture exists.
+          ...(avatar.picture && avatar.mime ? { picture: avatar.picture, mime: avatar.mime } : {}),
+        },
+      }),
+    );
   }
 }

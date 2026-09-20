@@ -16,7 +16,7 @@ import { signOut as endHostedSession } from '../auth/oauth';
 import { loadedRuntimeConfig } from '../config/runtime-config';
 import { gravatarDisplayName } from '../auth/gravatar';
 import { clearHandover } from '../../features/auth/LoginPage';
-import { Avatar } from './Avatar';
+import { Avatar, type AvatarSource } from './Avatar';
 import { StorageBar } from './StorageBar';
 import { MonitorIcon, MoonIcon, SunIcon } from './icons';
 
@@ -36,6 +36,8 @@ interface Identity {
   readonly subscriptionQuotaBytes: number | null;
   readonly usedBytes: number | null;
   readonly subscriptionStatus: SubscriptionStatus | null;
+  readonly avatar: AvatarSource;
+  readonly picture: string | null;
 }
 
 /**
@@ -53,6 +55,8 @@ function identityOf(live: LiveSession): Identity {
     subscriptionQuotaBytes: live.subscriptionQuotaBytes,
     usedBytes: live.usedBytes,
     subscriptionStatus: live.subscriptionStatus,
+    avatar: live.avatar,
+    picture: live.picture,
   };
 }
 
@@ -126,12 +130,24 @@ export function UserMenu() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        <Avatar email={user.email} size={32} />
+        <Avatar
+          email={user.email}
+          size={32}
+          source={user.avatar}
+          picture={user.picture}
+          name={shownName || user.name}
+        />
       </button>
       {open && (
         <div className="user-menu-panel">
           <div className="user-menu-identity">
-            <Avatar email={user.email} size={48} />
+            <Avatar
+              email={user.email}
+              size={48}
+              source={user.avatar}
+              picture={user.picture}
+              name={shownName || user.name}
+            />
             <div>
               {/*
                 One line per thing. With no name to show, the e-mail is the
@@ -243,6 +259,12 @@ export function UserMenu() {
             environment answers, which is what an agent is pointed at.
           */}
           <div className="user-menu-section">
+            <Link className="user-menu-link" to="/profile" onClick={() => setOpen(false)}>
+              {t('profile.menu')}
+            </Link>
+            <Link className="user-menu-link" to="/profile/password" onClick={() => setOpen(false)}>
+              {t('password.menu')}
+            </Link>
             <Link className="user-menu-link" to="/about" onClick={() => setOpen(false)}>
               {t('about.menu')}
             </Link>

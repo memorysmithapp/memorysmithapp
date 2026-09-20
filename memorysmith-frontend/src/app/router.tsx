@@ -11,6 +11,8 @@ import { ResumeReading } from '../features/structure/ResumeReading';
 import { TemplatesPage } from '../features/structure/TemplatesPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { AboutPage, WelcomeGate } from '../features/about/AboutPage';
+import { ProfilePage } from '../features/profile/ProfilePage';
+import { PasswordPage } from '../features/profile/PasswordPage';
 import { TransfersPage } from '../features/portability/TransfersPage';
 import { GraphPage } from '../features/graph/GraphPage';
 import { LinkTargetPage } from '../features/note/LinkTargetPage';
@@ -55,6 +57,10 @@ export const router = createBrowserRouter([
               // What the product is, opened once by itself and from the user
               // menu from then on (#167).
               { path: '/about', element: <AboutPage /> },
+              // What a person is called, the face beside it, and the password
+              // they sign in with (#168).
+              { path: '/profile', element: <ProfilePage /> },
+              { path: '/profile/password', element: <PasswordPage /> },
               { path: '/transfers', element: <TransfersPage /> },
               {
                 path: '/notebooks/:notebookId',

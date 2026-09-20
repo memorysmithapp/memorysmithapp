@@ -57,6 +57,13 @@ export interface ApiStackProps extends StackProps {
   readonly cognitoIssuer: string;
   /** The app client of the connector proxy, whose tokens write as a connector. */
   readonly connectorClientId: string;
+  /**
+   * The app client of the interface. The API proves a current password by
+   * authenticating with it before setting a new one (#168, RN-ACC-023), which
+   * is how a change is told apart from a recovery without widening the scopes
+   * of the token the browser holds.
+   */
+  readonly webClientId: string;
   readonly frontendOrigin: string;
   /** The pool whose accounts record the language they are written to in (RN-ACC-018). */
   readonly userPool: IUserPool;
@@ -99,6 +106,7 @@ export class ApiStack extends Stack {
       TRANSFER_QUEUE_URL: transferQueue.queueUrl,
       CONNECTOR_CLIENT_ID: props.connectorClientId,
       USER_POOL_ID: props.userPool.userPoolId,
+      WEB_CLIENT_ID: props.webClientId,
     };
 
     const api = new ServiceLambda(this, 'CoreApi', {
@@ -109,8 +117,21 @@ export class ApiStack extends Stack {
       memorySize: 1024,
     });
 
-    // The one thing the API writes on an account of the pool: its language.
-    props.userPool.grant(api.function, 'cognito-idp:AdminUpdateUserAttributes');
+    /**
+     * What the API does on an account of the pool: writes its language and
+     * its name, reads the name back, and changes the password of whoever
+     * proved the current one (RN-ACC-018, RN-ACC-021, RN-ACC-023). The last
+     * one is three actions, because a change is an authentication, a set and
+     * the end of the other sessions.
+     */
+    props.userPool.grant(
+      api.function,
+      'cognito-idp:AdminUpdateUserAttributes',
+      'cognito-idp:AdminGetUser',
+      'cognito-idp:AdminInitiateAuth',
+      'cognito-idp:AdminSetUserPassword',
+      'cognito-idp:AdminUserGlobalSignOut',
+    );
     props.data.accessTable.table.grantReadWriteData(api.function);
     props.data.knowledgeTable.table.grantReadWriteData(api.function);
     props.data.discoveryTable.table.grantReadWriteData(api.function);

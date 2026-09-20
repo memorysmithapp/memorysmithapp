@@ -121,6 +121,7 @@ function deployed(): Map<string, Record<string, string>> {
     userPool: identity.userPool,
     cognitoIssuer: identity.issuer,
     connectorClientId: identity.proxyClient.userPoolClientId,
+    webClientId: identity.webClient.userPoolClientId,
     frontendOrigin: `https://${network.siteDomainName}`,
   });
   const projections = new ProjectionsStack(app, stackId(environment, 'Projections'), {

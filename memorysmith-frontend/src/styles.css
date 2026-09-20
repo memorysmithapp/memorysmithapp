@@ -3792,3 +3792,159 @@ body.has-modal {
   border-color: var(--accent);
   color: var(--accent);
 }
+
+/* The profile and the password (#168): two short documents, set like the
+   welcome surface, because they are read once and left. */
+.profile {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
+.profile h1 {
+  margin: 0 0 1.5rem;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.4rem;
+  letter-spacing: -0.02em;
+}
+.profile-section {
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.profile-section:last-of-type {
+  border-bottom: 0;
+}
+/* The face beside its choices, so the answer to "what will this look like"
+   is the picture itself and never a name for one. */
+.profile-face {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+.profile-caption {
+  margin: 0 0 0.6rem;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+}
+.profile-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.profile-sources label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.profile-sources label.is-selected {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.profile-sources label:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+/* A file input is the one control a browser will not let anybody style, so
+   the label is the button and the input is hidden inside it. */
+.profile-upload {
+  border-color: var(--border);
+  cursor: pointer;
+}
+.profile-upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.profile-note {
+  margin: 1rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--text-soft);
+}
+.profile-failure {
+  margin: 0 0 1rem;
+  color: var(--danger);
+  font-size: 0.875rem;
+}
+.profile-done {
+  margin: 0 0 1.5rem;
+  line-height: 1.6;
+}
+.profile-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+/* The shape a field takes on these screens: the label above, the control
+   below, and whatever has to be said about it under both. */
+.field {
+  display: block;
+  margin-bottom: 1rem;
+}
+.field-label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+.field input {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+}
+.field input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.field input:disabled {
+  background: var(--code-bg);
+  color: var(--text-soft);
+}
+.field-hint {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--text-soft);
+}
+.field-hint.is-wrong {
+  color: var(--danger);
+}
+
+/* The one source that asks nothing of anybody: two letters over the blue of
+   the brand, drawn here, with no request leaving (RN-ACC-022). */
+.avatar-initials {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #ffffff;
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  user-select: none;
+}
+:root[data-theme='dark'] .avatar-initials {
+  /* The accent lightens in the dark theme, so the letters darken with it. */
+  color: #0b1220;
+}

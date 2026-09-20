@@ -402,5 +402,41 @@
       "skills": "O conector carrega métodos escritos para as tarefas que mais dão errado — desenhar um caderno do zero, escrever uma nota que este produto consegue ler — e um bom assistente os lê antes de começar. Você vai vê-lo fazer isso."
     },
     "start": "Começar a ler"
+  },
+  "profile": {
+    "menu": "Seu perfil",
+    "title": "Seu perfil",
+    "heading": "Seu perfil",
+    "pictureHeading": "Sua foto",
+    "source": {
+      "gravatar": "Gravatar",
+      "initials": "Suas iniciais",
+      "upload": "Uma foto sua"
+    },
+    "choosePicture": "Escolher uma foto…",
+    "pictureRefused": "Esse arquivo não pôde ser usado como foto. Escolha um PNG, um JPEG ou um WebP.",
+    "gravatarDiscloses": "O Gravatar busca sua foto em gravatar.com, que recebe o hash do seu e-mail e o endereço de quem está olhando a tela. Escolher suas iniciais encerra isso: elas são desenhadas aqui, e nada sai.",
+    "name": "Nome",
+    "email": "E-mail",
+    "emailReadOnly": "É com ele que você entra, e é para ele que vai cada mensagem. Não pode ser alterado aqui.",
+    "save": "Salvar",
+    "saved": "Salvo",
+    "failed": "Não foi possível salvar."
+  },
+  "password": {
+    "menu": "Trocar a senha",
+    "heading": "Trocar a senha",
+    "endsOtherSessions": "Trocar a senha encerra todas as outras sessões desta conta: qualquer outro dispositivo vai precisar entrar de novo. Esta aqui continua aberta.",
+    "current": "Senha atual",
+    "next": "Nova senha",
+    "again": "Nova senha, de novo",
+    "policy": "Pelo menos 12 caracteres, com uma letra maiúscula, uma minúscula e um dígito.",
+    "mismatch": "As duas não coincidem.",
+    "confirm": "Trocar a senha",
+    "working": "Trocando…",
+    "cancel": "Cancelar",
+    "done": "Sua senha foi trocada. Todas as outras sessões desta conta vão precisar entrar de novo.",
+    "back": "Voltar ao seu perfil",
+    "failed": "Não foi possível trocar a senha."
   }
 }

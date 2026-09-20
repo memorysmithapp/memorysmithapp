@@ -12,7 +12,7 @@ import type { Api } from '../support/api.js';
 import { expect, test, unknownId } from './fixtures.js';
 
 interface Session {
-  user: { userId: string; email: string; isPlatformAdmin: boolean };
+  user: { userId: string; email: string; name: string; isPlatformAdmin: boolean; avatar: string };
   activeSubscription: { subscriptionId: string; status: string; quota: string } | null;
   subscriptions: Array<{ subscriptionId: string; status: string; quota: string; isOwner: boolean }>;
   role: string;
@@ -80,6 +80,107 @@ test.describe('the session', () => {
     expect(recorded.status).toBe(204);
     expect(after.welcomeSeen).toBe(true);
     expect(again.status).toBe(204);
+  });
+});
+
+test.describe('the person', () => {
+  test('[route:GET /access/profile] [route:PUT /access/profile] records the name the person typed, and the session answers it from then on', async ({
+    owner,
+  }) => {
+    const chosen = `Owner ${Date.now()}`;
+    const saved = await owner.call('PUT', '/access/profile', {
+      name: chosen,
+      avatar: 'initials',
+    });
+    const profile = await owner.ok<{ name: string; avatar: string; email: string }>(
+      'GET',
+      '/access/profile',
+    );
+    const session = await owner.ok<Session>('GET', '/access/session');
+
+    expect(saved.status).toBe(204);
+    expect(profile.name).toBe(chosen);
+    expect(profile.avatar).toBe('initials');
+    // And the name wins over the one the TOKEN carries, which is the one that
+    // was true when it was minted (RN-ACC-021).
+    expect(session.user.name).toBe(chosen);
+    expect(session.user.avatar).toBe('initials');
+  });
+
+  test('[route:PUT /access/profile] refuses a name that is not one, and a source that does not exist', async ({
+    owner,
+  }) => {
+    const empty = await owner.call<{ code: string }>('PUT', '/access/profile', {
+      name: '   ',
+      avatar: 'gravatar',
+    });
+    const invented = await owner.call<{ code: string }>('PUT', '/access/profile', {
+      name: 'Owner',
+      avatar: 'a-url-of-my-own',
+    });
+    // And a source with nothing behind it: choosing the upload without ever
+    // having sent a picture would leave every screen drawing nothing.
+    const nothing = await owner.call<{ code: string }>('PUT', '/access/profile', {
+      name: 'Owner',
+      avatar: 'upload',
+    });
+
+    expect(empty.status).toBe(400);
+    expect(invented.status).toBe(400);
+    expect(invented.body.code).toBe('VALIDATION');
+    expect(nothing.status).toBe(400);
+  });
+
+  test('[route:PUT /access/profile/picture] keeps a picture and refuses bytes that are not the type they claim', async ({
+    owner,
+  }) => {
+    // The smallest real PNG there is, which is what makes this a check of the
+    // BYTES and not of a name: nothing here is called anything.
+    const png =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const kept = await owner.call('PUT', '/access/profile/picture', {
+      mime: 'image/png',
+      bytes: png,
+    });
+    const profile = await owner.ok<{ picture: string | null }>('GET', '/access/profile');
+    // A PDF declared as a picture: the bytes say otherwise and that is what decides.
+    const lying = await owner.call<{ code: string }>('PUT', '/access/profile/picture', {
+      mime: 'image/png',
+      bytes: Buffer.from('%PDF-1.7\n').toString('base64'),
+    });
+    const unknown = await owner.call<{ code: string }>('PUT', '/access/profile/picture', {
+      mime: 'image/gif',
+      bytes: png,
+    });
+
+    expect(kept.status).toBe(204);
+    expect(profile.picture?.startsWith('data:image/png;base64,')).toBe(true);
+    expect(lying.status).toBe(400);
+    expect(unknown.status).toBe(400);
+  });
+
+  test('[route:POST /access/password] refuses a change that does not state the current password', async ({
+    owner,
+  }) => {
+    /**
+     * The refusal and not the change: changing the password of the account the
+     * rest of this suite signs in with would end every other case of the run.
+     * What is worth proving here is the half that guards it, and that the
+     * refusal says nothing about WHICH half failed.
+     */
+    const wrong = await owner.call<{ code: string; message: string }>('POST', '/access/password', {
+      current: 'not-the-password-of-this-account',
+      next: 'Another-Password-12345',
+    });
+    const empty = await owner.call<{ code: string }>('POST', '/access/password', {
+      current: '',
+      next: 'Another-Password-12345',
+    });
+
+    expect(wrong.status).toBe(400);
+    expect(wrong.body.code).toBe('VALIDATION');
+    expect(wrong.body.message).not.toContain('password policy');
+    expect(empty.status).toBe(400);
   });
 });
 

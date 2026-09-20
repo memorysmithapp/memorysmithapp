@@ -9,6 +9,7 @@
 
 import type {
   AccountLocaleDto,
+  AvatarSourceDto,
   TransferSelection,
   TransferDto,
   TransferListDto,
@@ -58,6 +59,30 @@ export async function recordAccountLocale(locale: AccountLocaleDto): Promise<voi
  */
 export async function recordWelcomeSeen(): Promise<void> {
   await request<void>('/access/session/welcomed', { method: 'POST' });
+}
+
+/**
+ * The name and the source of the picture (#168, RN-ACC-021). What the person
+ * typed wins over what any provider says about them, from here on.
+ */
+export async function editProfile(name: string, avatar: AvatarSourceDto): Promise<void> {
+  await request<void>('/access/profile', { method: 'PUT', body: { name, avatar } });
+}
+
+/**
+ * The picture itself, already drawn down to a square by the browser: the bytes
+ * that cross are the bytes that get stored, so nothing large ever travels.
+ */
+export async function setProfilePicture(mime: string, bytes: string): Promise<void> {
+  await request<void>('/access/profile/picture', { method: 'PUT', body: { mime, bytes } });
+}
+
+/**
+ * A change and not a recovery, so it states the current password (RN-ACC-023).
+ * It ends every other session of the account, which the screen says first.
+ */
+export async function changePassword(current: string, next: string): Promise<void> {
+  await request<void>('/access/password', { method: 'POST', body: { current, next } });
 }
 
 function toSummary(notebook: NotebookSummaryDto): NotebookSummary {

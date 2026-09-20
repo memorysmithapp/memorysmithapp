@@ -18,6 +18,7 @@
 import {
   bytesSupport,
   FILE_MIME_TYPES,
+  PICTURE_MIME_TYPES,
   fileTypeOf,
   RESERVED_FRONTMATTER_KEYS,
   NOTEBOOK_DOCUMENT_ENTRY,
@@ -28,6 +29,7 @@ import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import type { S3Client } from '@aws-sdk/client-s3';
 import { Role, type SubscriptionContext } from '@memorysmith/kernel';
 import {
+  DynamoAvatarRepository,
   DynamoConnectorBindingRepository,
   DynamoOnboarding,
   DynamoPlatformAdmin,
@@ -41,6 +43,7 @@ import {
   type ResolvedContext,
 } from '@memorysmith/svc-access/application/context';
 import { ACCESS_LIMITS, StorageQuota } from '@memorysmith/svc-access/domain/values';
+import type { PictureTypes } from '@memorysmith/svc-access/domain/ports';
 import { DynamoNoteRepository } from '@memorysmith/svc-knowledge/adapters/notes';
 import { DynamoContentSlotRepository } from '@memorysmith/svc-knowledge/adapters/slots';
 import { DynamoFolderNumbers } from '@memorysmith/svc-knowledge/adapters/numbers';
@@ -89,6 +92,10 @@ export function buildAccess(infra: Infrastructure, context: SubscriptionContext 
           NULL_OUTBOX_SINK,
         ),
         connectors: buildConnectorBindings(infra, context),
+        // The face of a person INSIDE this subscription (#168, RN-ACC-022):
+        // keyed under the subscription like everything else, which is what
+        // keeps design rule 1 whole and opens no third exception of §8.3.
+        avatars: new DynamoAvatarRepository(context, infra.db, infra.accessTable),
       }
     : null;
 
@@ -130,6 +137,16 @@ export function parseNotebookDocument(json: string): NotebookDocument {
  * of a context import the kernel and nothing else, so what the product decided
  * to accept is injected HERE, where knowing it is the job.
  */
+/**
+ * What a picture somebody uploads is allowed to be (#168). Three types, the
+ * ones a browser draws without executing anything, and the bytes are read to
+ * check the type declared over them, exactly as a file of a notebook is.
+ */
+export const PICTURE_CATALOGUE: PictureTypes = {
+  accepted: PICTURE_MIME_TYPES,
+  supports: (mimeType, bytes) => bytesSupport(mimeType, bytes),
+};
+
 export const FILE_TYPE_CATALOGUE: FileTypes = {
   accepted: FILE_MIME_TYPES,
   canonical: (mimeType) => fileTypeOf(mimeType)?.mimeType ?? null,

@@ -755,6 +755,7 @@ S#{s}              / META                  → subscription: ownerId, status, ty
 S#{s}              / USER#{userId}          → a user known to the subscription
 S#{s}              / MEMBER#{userId}        → membership: role (EDITOR | VIEWER)
 USER#{userId}      / SUB#{subscriptionId}   → the link (§8.3, exception 1)
+S#{subscriptionId} / AVATAR#{userId}        → the face of that person here (RN-ACC-022)
 S#{s}              / CONNECTOR#TOKEN#{jti}        → the connector an access token was issued to
                                                     (ttl = the expiry of the token)
 S#{s}              / CONNECTOR#REFRESH#{sha256}   → the connector a refresh token renews (ttl = 30 days)

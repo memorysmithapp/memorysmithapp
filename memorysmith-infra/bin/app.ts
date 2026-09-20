@@ -77,6 +77,7 @@ const api = new ApiStack(app, id('Api'), {
   userPool: identity.userPool,
   cognitoIssuer: identity.issuer,
   connectorClientId: identity.proxyClient.userPoolClientId,
+  webClientId: identity.webClient.userPoolClientId,
   frontendOrigin: `https://${network.siteDomainName}`,
 });
 

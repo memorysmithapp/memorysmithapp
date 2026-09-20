@@ -44,6 +44,8 @@ describe('the pages of the interface', () => {
       '/auth/callback',
       '/',
       '/about',
+      '/profile',
+      '/profile/password',
       '/transfers',
       '/notebooks/:notebookId',
       '/notebooks/:notebookId/guidance',

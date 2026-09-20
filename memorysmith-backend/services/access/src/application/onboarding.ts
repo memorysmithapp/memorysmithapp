@@ -107,6 +107,17 @@ export interface SessionView {
    * opening the welcome surface once, on the sign-in that follows.
    */
   readonly welcomeSeen: boolean;
+  /** Where the face beside this person comes from (RN-ACC-022). */
+  readonly avatar: string;
+  /** The uploaded picture as a data URL, or null when there is none. */
+  readonly picture: string | null;
+  /**
+   * The name recorded on the account, which wins over the one in the token
+   * (RN-ACC-021): a token minted before the last edit still carries what it
+   * replaced, and a shell that shows it is a shell that refused the edit it
+   * just accepted.
+   */
+  readonly name: string;
 }
 
 export class GetSession {
@@ -125,6 +136,18 @@ export class GetSession {
      * never reads: the composition root passes the reading in.
      */
     private readonly usedBytes: () => Promise<number> = async () => 0,
+    /**
+     * The face of this person inside the ACTIVE subscription, and the name
+     * recorded on their account. Both are functions rather than repositories:
+     * one is scoped to a subscription this use case may not have, and the
+     * other lives in the identity provider, which this context reaches through
+     * a port of its own. The root joins them.
+     */
+    private readonly avatarOf: () => Promise<{
+      source: string;
+      picture: string | null;
+    } | null> = async () => null,
+    private readonly nameOf: () => Promise<string | null> = async () => null,
   ) {}
 
   async execute(input: {
@@ -154,6 +177,10 @@ export class GetSession {
      * subscriptions at once (RN-SUB-003). Without a context there is no
      * subscription to have a role in, and NONE is the honest answer.
      */
+    // Read once, before the answer is assembled: a session with no
+    // subscription has no face to read, and gets the default.
+    const face = input.context ? await this.avatarOf() : null;
+
     let role = Role.NONE;
     if (input.context && this.subscriptions) {
       const subscription = await this.subscriptions.find();
@@ -172,6 +199,9 @@ export class GetSession {
       // A person with no link at all has been welcomed by nobody, which is
       // the honest answer and also the one that welcomes them.
       welcomeSeen: links.some((link) => link.welcomedAt !== null),
+      avatar: face?.source ?? 'gravatar',
+      picture: face?.picture ?? null,
+      name: (await this.nameOf()) ?? input.profile.name,
     });
   }
 }

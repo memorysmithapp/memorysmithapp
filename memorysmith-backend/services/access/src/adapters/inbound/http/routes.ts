@@ -42,9 +42,20 @@ import type {
   RebindConnector,
   TokenCredential,
 } from '../../../application/connectors.js';
-import type { ChooseLanguage, RecordWelcome } from '../../../application/account.js';
+import type {
+  ChangePassword,
+  ChooseLanguage,
+  EditProfile,
+  ReadProfile,
+  RecordWelcome,
+  SetProfilePicture,
+} from '../../../application/account.js';
 import type { UserProfile } from '../../../domain/ports/index.js';
-import { connectorBindingRequestSchema, sessionSchema } from '@memorysmith/contracts';
+import {
+  connectorBindingRequestSchema,
+  profileSchema,
+  sessionSchema,
+} from '@memorysmith/contracts';
 import type { TokenVerifier } from './authentication.js';
 
 /** What the auth middleware puts on the request. */
@@ -65,6 +76,10 @@ export interface AccessUseCases {
   readonly switchSubscription: (request: AccessRequest) => SwitchActiveSubscription;
   readonly chooseLanguage: (request: AccessRequest) => ChooseLanguage;
   readonly recordWelcome: (request: AccessRequest) => RecordWelcome;
+  readonly readProfile: (request: AccessRequest) => ReadProfile;
+  readonly editProfile: (request: AccessRequest) => EditProfile;
+  readonly setProfilePicture: (request: AccessRequest) => SetProfilePicture;
+  readonly changePassword: (request: AccessRequest) => ChangePassword;
   readonly listPlatformQueue: (request: AccessRequest) => ListPlatformQueue;
   readonly reviewSubscription: (request: AccessRequest) => ReviewSubscription;
   readonly listMembers: (request: AccessRequest) => ListMembers;
@@ -131,8 +146,10 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
       user: {
         userId: view.value.user.userId.value,
         email: view.value.user.email.value,
-        name: view.value.user.name,
+        name: view.value.name,
         isPlatformAdmin: view.value.user.isPlatformAdmin,
+        avatar: view.value.avatar,
+        picture: view.value.picture,
       },
       // The active subscription is the one the TOKEN names, never the one the
       // list happens to start with (RN-SUB-002).
@@ -191,6 +208,79 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
     return respond(
       c,
       await useCases.recordWelcome(request).execute({ profile: request.profile }),
+      204,
+    );
+  });
+
+  // ---- The person --------------------------------------------------------
+
+  /**
+   * The profile of whoever is signed in (RN-ACC-021, RN-ACC-022). The name is
+   * read from the ACCOUNT and not from the token, because a token minted
+   * before the last edit still carries what it replaced.
+   */
+  app.get('/profile', async (c) => {
+    const request = c.get('access');
+    const view = await useCases.readProfile(request).execute({ profile: request.profile });
+    if (!view.ok) return respond(c, view);
+    return c.json(profileSchema.parse(view.value), 200);
+  });
+
+  app.put('/profile', async (c) => {
+    const request = c.get('access');
+    const body = (await c.req.json().catch(() => ({}))) as { name?: string; avatar?: string };
+    return respond(
+      c,
+      await useCases.editProfile(request).execute({
+        profile: request.profile,
+        name: String(body.name ?? ''),
+        avatar: String(body.avatar ?? ''),
+      }),
+      204,
+    );
+  });
+
+  /**
+   * The picture itself, base64 in the body: the interface has already drawn it
+   * down to a side that fits in a request, and the type it declares is checked
+   * against the bytes, because what a file is called establishes nothing.
+   */
+  app.put('/profile/picture', async (c) => {
+    const request = c.get('access');
+    const body = (await c.req.json().catch(() => ({}))) as { mime?: string; bytes?: string };
+    let bytes: Uint8Array;
+    try {
+      bytes = new Uint8Array(Buffer.from(String(body.bytes ?? ''), 'base64'));
+    } catch {
+      return respond(c, {
+        ok: false,
+        error: DomainError.validation('The picture is not base64'),
+      });
+    }
+    return respond(
+      c,
+      await useCases
+        .setProfilePicture(request)
+        .execute({ profile: request.profile, mime: String(body.mime ?? ''), bytes }),
+      204,
+    );
+  });
+
+  /**
+   * Changing a password ends the other sessions of the account, which the
+   * screen says before it happens. Nothing here is stored and nothing is
+   * logged: the two passwords cross this handler and end in the pool.
+   */
+  app.post('/password', async (c) => {
+    const request = c.get('access');
+    const body = (await c.req.json().catch(() => ({}))) as { current?: string; next?: string };
+    return respond(
+      c,
+      await useCases.changePassword(request).execute({
+        profile: request.profile,
+        current: String(body.current ?? ''),
+        next: String(body.next ?? ''),
+      }),
       204,
     );
   });

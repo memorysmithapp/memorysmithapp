@@ -21,6 +21,55 @@ import {
   notebookRoleLimitSchema,
 } from '../common.js';
 
+/**
+ * Where the face beside a person comes from (RN-ACC-022). A URL they type is
+ * not among them: an avatar renders on every screen, for every member, without
+ * anybody opening anything, so a host of their own would be disclosed to
+ * everyone who ever draws it (RN-DSC-040).
+ */
+export const avatarSourceSchema = z.enum(['gravatar', 'initials', 'upload']);
+
+/** The types a picture is kept as: the three every browser draws without executing anything. */
+export const PICTURE_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const;
+
+/**
+ * The profile the person edits (RN-ACC-021). The e-mail is here to be SHOWN:
+ * it is what they sign in with and the key every message goes to, and changing
+ * it is another delivery with another rule.
+ */
+export const profileSchema = z.object({
+  email: z.string().email(),
+  name: z.string(),
+  avatar: avatarSourceSchema,
+  /** The uploaded picture as a data URL, or null when no picture was sent. */
+  picture: z.string().nullable(),
+});
+
+export const editProfileRequestSchema = z.object({
+  name: z.string(),
+  avatar: avatarSourceSchema,
+});
+
+/**
+ * The picture, inline and base64, because the interface has already drawn it
+ * down to a side that fits in a request: an upload that asks the browser to
+ * perform a PUT of its own is one more door for one small image.
+ */
+export const setPictureRequestSchema = z.object({
+  mime: z.enum(PICTURE_MIME_TYPES),
+  bytes: z.string().min(1),
+});
+
+/**
+ * A CHANGE and not a recovery (RN-ACC-023): the current password proves the
+ * person in front of the screen, where a code sent to a mailbox proves the
+ * mailbox.
+ */
+export const changePasswordRequestSchema = z.object({
+  current: z.string().min(1),
+  next: z.string().min(1),
+});
+
 /** One link between a user and a subscription (architecture-guide.md 8.3). */
 export const subscriptionLinkSchema = z.object({
   subscriptionId: ulidSchema,
@@ -50,6 +99,13 @@ export const sessionSchema = z.object({
     email: z.string().email(),
     name: z.string(),
     isPlatformAdmin: z.boolean(),
+    /**
+     * Where the face beside this person comes from, and the picture itself
+     * when they uploaded one (RN-ACC-022). It rides on the session because
+     * every screen draws it and none of them should have to ask.
+     */
+    avatar: avatarSourceSchema,
+    picture: z.string().nullable(),
   }),
   activeSubscription: subscriptionLinkSchema.nullable(),
   subscriptions: z.array(subscriptionLinkSchema),
@@ -206,6 +262,11 @@ export type MemberDto = z.infer<typeof memberSchema>;
 export type PlatformSubscriptionDto = z.infer<typeof platformSubscriptionSchema>;
 export type SwitchSubscriptionRequest = z.infer<typeof switchSubscriptionRequestSchema>;
 export type AccountLocaleDto = z.infer<typeof accountLocaleSchema>;
+export type AvatarSourceDto = z.infer<typeof avatarSourceSchema>;
+export type ProfileDto = z.infer<typeof profileSchema>;
+export type EditProfileRequest = z.infer<typeof editProfileRequestSchema>;
+export type SetPictureRequest = z.infer<typeof setPictureRequestSchema>;
+export type ChangePasswordRequest = z.infer<typeof changePasswordRequestSchema>;
 export type ChooseLanguageRequest = z.infer<typeof chooseLanguageRequestSchema>;
 export type RequestSubscriptionRequest = z.infer<typeof requestSubscriptionRequestSchema>;
 export type ChangeMemberRoleRequest = z.infer<typeof changeMemberRoleRequestSchema>;
