@@ -306,6 +306,25 @@ export class ProjectNote {
 }
 
 /** Keeps the structure projection in step with the tree events. */
+/**
+ * What a notebook keeps beside its notes (#166).
+ *
+ * It is not indexed and it makes no edge: what the graph has to learn is that
+ * the NAME answers, so a note referencing a file stops being told that its
+ * picture does not exist, and so a reading surface can draw it.
+ */
+export class ProjectFiles {
+  constructor(private readonly graph: LinkGraph) {}
+
+  async onKept(notebookId: string, name: string): Promise<void> {
+    await this.graph.keepAttachment(notebookId, name);
+  }
+
+  async onDeleted(notebookId: string, name: string): Promise<void> {
+    await this.graph.forgetAttachment(notebookId, name);
+  }
+}
+
 export class ProjectStructure {
   constructor(private readonly structure: StructureProjection) {}
 

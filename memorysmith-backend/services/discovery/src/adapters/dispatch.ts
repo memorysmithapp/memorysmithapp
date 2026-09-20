@@ -8,11 +8,13 @@
  */
 
 import type { EventEnvelope } from '@memorysmith/contracts';
-import type { ProjectNote, ProjectStructure } from '../application/projections.js';
+import type { ProjectFiles, ProjectNote, ProjectStructure } from '../application/projections.js';
 
 export interface Projectors {
   readonly note: ProjectNote;
   readonly structure: ProjectStructure;
+  /** What the notebook keeps beside its notes (#166). */
+  readonly files: ProjectFiles;
 }
 
 export async function dispatch(projectors: Projectors, envelope: EventEnvelope): Promise<void> {
@@ -66,6 +68,19 @@ export async function dispatch(projectors: Projectors, envelope: EventEnvelope):
         folderId: String(payload['folderId']),
         contentRef: null,
       });
+      break;
+
+    /**
+     * What a notebook keeps beside its notes (#166). It is not indexed and it
+     * is no edge: what the graph needs to know is that the NAME answers, so a
+     * note referencing it stops being told its picture does not exist.
+     */
+    case 'FileKept':
+      await projectors.files.onKept(String(payload['notebookId']), String(payload['name']));
+      break;
+
+    case 'FileDeleted':
+      await projectors.files.onDeleted(String(payload['notebookId']), String(payload['name']));
       break;
 
     case 'NoteCreated':

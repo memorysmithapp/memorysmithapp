@@ -18,7 +18,7 @@ import {
   DynamoProjectedVersions,
   DynamoStructureProjection,
 } from '../adapters/aws.js';
-import { ProjectNote, ProjectStructure } from '../application/projections.js';
+import { ProjectFiles, ProjectNote, ProjectStructure } from '../application/projections.js';
 import { dispatch } from '../adapters/dispatch.js';
 
 interface QueueEvent {
@@ -59,15 +59,18 @@ function projectorsFor(subscriptionId: SubscriptionId) {
     },
   };
 
+  const graph = new DynamoLinkGraph(subscriptionId, db, table);
+
   return {
     note: new ProjectNote({
-      graph: new DynamoLinkGraph(subscriptionId, db, table),
+      graph,
       facets: new DynamoFacetIndex(subscriptionId, db, table),
       index: new DynamoContentIndex(subscriptionId, db, table),
       structure: new DynamoStructureProjection(subscriptionId, db, table),
       content,
       versions: new DynamoProjectedVersions(subscriptionId, db, table),
     }),
+    files: new ProjectFiles(graph),
     structure: new ProjectStructure(new DynamoStructureProjection(subscriptionId, db, table)),
   };
 }

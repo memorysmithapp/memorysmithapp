@@ -88,8 +88,13 @@ export interface NoteContent {
 
 export interface NoteLink {
   readonly target: string;
-  /** Which answered, or `pending` when no note carries the target yet. */
-  readonly resolvedBy: 'name' | 'alias' | 'pending';
+  /**
+   * Which answered: the name of a note, a spelling one of them declares, a
+   * **file the notebook keeps**, or nothing yet. A file is not an edge and it
+   * is not nothing either, and telling an agent its picture does not exist is
+   * how a notebook gets written twice (#166).
+   */
+  readonly resolvedBy: 'name' | 'alias' | 'attachment' | 'pending';
   readonly notes: Array<{ noteId: string; name: string | null; folder: string[] }>;
 }
 

@@ -309,12 +309,14 @@ export class DynamoLinkGraph implements LinkGraph {
    * nothing yet (RN-AGT-034).
    */
   async outgoingOf(notebookId: string, noteId: string): Promise<OutgoingTarget[]> {
-    const [edges, aliases, pending, noteItems] = await Promise.all([
+    const [edges, aliases, pending, noteItems, attachments] = await Promise.all([
       this.query(notebookId, `OUT#${noteId}#`),
       this.query(notebookId, 'ALIAS#'),
       this.query(notebookId, 'PENDING#'),
       this.query(notebookId, 'NOTE#'),
+      this.attachmentsOf(notebookId),
     ]);
+    const kept = new Set(attachments.map((name) => name.normalize('NFC')));
     const notes = new Map(
       noteItems.map((item) => [
         String(item['noteId']),
@@ -343,10 +345,27 @@ export class DynamoLinkGraph implements LinkGraph {
       targets.set(target, entry);
     }
     return [
-      ...[...targets].map(([target, entry]) => ({ target, by: entry.by, notes: entry.notes })),
+      ...[...targets].map(([target, entry]) => ({
+        target,
+        kind: 'note' as const,
+        by: entry.by,
+        notes: entry.notes,
+      })),
+      // A target no note answers may still be a FILE the notebook keeps: it
+      // renders, it is no edge, and it is not nothing (§5.8, #166).
       ...pending
         .filter((item) => String(item['fromNoteId']) === noteId)
-        .map((item) => ({ target: String(item['name']), by: null, notes: [] })),
+        .map((item) => {
+          const target = String(item['name']);
+          return {
+            target,
+            kind: kept.has(target.normalize('NFC'))
+              ? ('attachment' as const)
+              : ('pending' as const),
+            by: null,
+            notes: [],
+          };
+        }),
     ];
   }
 
@@ -372,7 +391,10 @@ export class DynamoLinkGraph implements LinkGraph {
         .map((item) => String(item['SK'])),
     ];
 
-    const names = this.namesOf(await this.query(notebookId, 'NOTE#'));
+    const names = this.namesOf(
+      await this.query(notebookId, 'NOTE#'),
+      await this.attachmentsOf(notebookId),
+    );
     const writes: Item[] = [];
 
     /**
@@ -456,14 +478,19 @@ export class DynamoLinkGraph implements LinkGraph {
     ];
   }
 
-  /** What the notebook answers to, out of the note items it already holds. */
-  private namesOf(items: Item[]) {
+  /**
+   * What the notebook answers to, out of the items it already holds: the names
+   * of its notes, the spellings they declare, and the names of the files it
+   * keeps (#166).
+   */
+  private namesOf(items: Item[], attachments: string[] = []) {
     return notebookNames(
       items.map((item) => ({
         noteId: String(item['noteId']),
         name: item['name'] === undefined ? null : String(item['name']),
         aliases: Array.isArray(item['aliases']) ? (item['aliases'] as string[]) : [],
       })),
+      attachments,
     );
   }
 
@@ -645,6 +672,19 @@ export class DynamoLinkGraph implements LinkGraph {
         return from === note.noteId ? [] : this.edgeItems(notebookId, from, note.noteId);
       }),
     );
+  }
+
+  /** The names of the files the notebook keeps (#166). */
+  async attachmentsOf(notebookId: string): Promise<string[]> {
+    return (await this.query(notebookId, 'ATTACH#')).map((item) => String(item['name']));
+  }
+
+  async keepAttachment(notebookId: string, name: string): Promise<void> {
+    await this.put([{ PK: this.pk(notebookId), SK: `ATTACH#${name}`, entity: 'ATTACHMENT', name }]);
+  }
+
+  async forgetAttachment(notebookId: string, name: string): Promise<void> {
+    await this.remove(notebookId, [`ATTACH#${name}`]);
   }
 
   async notesOf(notebookId: string): Promise<NoteRef[]> {

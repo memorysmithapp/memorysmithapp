@@ -41,7 +41,15 @@ export const resolvedTargetSchema = z.object({
  * spellings it declares. A reading surface reads it once and draws every link
  * of a page by what it REACHES (RN-DSC-046).
  */
-export const notebookNamesSchema = z.object({ notes: z.array(noteRefSchema) });
+export const notebookNamesSchema = z.object({
+  notes: z.array(noteRefSchema),
+  /**
+   * The names of the files the notebook keeps (#166). A reading surface draws
+   * a link by what it REACHES, and a file is one of the three things a target
+   * can reach.
+   */
+  attachments: z.array(z.string()),
+});
 
 /** BFS from a note: depth capped at 3, 200 nodes, cycles deduplicated. */
 export const graphNodeSchema: z.ZodType<{
@@ -96,6 +104,12 @@ export const noteLinksSchema = z.object({
   links: z.array(
     z.object({
       target: z.string().min(1),
+      /**
+       * What the target reaches: a note, a **file** the notebook keeps, or
+       * nothing yet. An attachment is no edge and it is not nothing either
+       * (§5.8, #166).
+       */
+      kind: z.enum(['note', 'attachment', 'pending']),
       by: z.enum(['name', 'alias']).nullable(),
       notes: z.array(noteRefSchema.extend({ folderTrail: z.array(z.string()) })),
     }),

@@ -126,13 +126,16 @@ describe('the connector reads Discovery as the contracts publish it', () => {
               links: [
                 {
                   target: 'Lei 14.133',
+                  kind: 'note',
                   by: 'name',
                   notes: [
                     { ...ref(LAW, 'Lei 14.133'), folderTrail: ['Normas', 'Federais'] },
                     { ...ref(TWIN, 'Lei 14.133'), folderId: OTHER, folderTrail: ['Rascunhos'] },
                   ],
                 },
-                { target: 'Portaria 9', by: null, notes: [] },
+                { target: 'Portaria 9', kind: 'pending', by: null, notes: [] },
+                // A file the notebook keeps: no edge, and not nothing (#166).
+                { target: 'esquema de blocos', kind: 'attachment', by: null, notes: [] },
               ],
             })
           : {
@@ -171,6 +174,7 @@ describe('the connector reads Discovery as the contracts publish it', () => {
         ],
       },
       { target: 'Portaria 9', resolvedBy: 'pending', notes: [] },
+      { target: 'esquema de blocos', resolvedBy: 'attachment', notes: [] },
     ]);
   });
 });

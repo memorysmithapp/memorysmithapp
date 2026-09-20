@@ -20,6 +20,7 @@ import { dispatch } from '../src/adapters/dispatch.js';
 import { parseEvent } from '@memorysmith/contracts';
 import {
   ProjectNote,
+  ProjectFiles,
   ProjectStructure,
   type ContentReader,
 } from '../src/application/projections.js';
@@ -443,7 +444,7 @@ describe('The projections follow the newest note, in any order', () => {
   let facets: InMemoryFacetIndex;
   let structure: InMemoryStructureProjection;
   let bodies: Map<string, string>;
-  let projectors: { note: ProjectNote; structure: ProjectStructure };
+  let projectors: { note: ProjectNote; structure: ProjectStructure; files: ProjectFiles };
 
   beforeEach(async () => {
     index = new InMemoryContentIndex();
@@ -460,6 +461,7 @@ describe('The projections follow the newest note, in any order', () => {
         versions: new InMemoryProjectedVersions(),
         content: { read: async (ref) => bodies.get(ref.versionId) ?? '' },
       }),
+      files: new ProjectFiles(graph),
       structure: new ProjectStructure(structure),
     };
   });
@@ -1028,15 +1030,19 @@ describe('The Dynamo link graph answers the targets of a note from its items', (
     expect(await graph.outgoingOf(NOTEBOOK, 'n1')).toEqual([
       {
         target: 'Lei 14.133',
+        kind: 'note',
         by: 'name',
         notes: [{ noteId: 'n2', name: 'Lei 14.133', aliases: [], folderId: 'f2' }],
       },
       {
         target: 'D1',
+        kind: 'note',
         by: 'alias',
         notes: [{ noteId: 'n4', name: 'Decreto 1', aliases: ['D1'], folderId: 'f1' }],
       },
-      { target: 'Portaria 9', by: null, notes: [] },
+      // Nothing carries it, and the notebook keeps no file of that name
+      // either: it reaches nothing (#166).
+      { target: 'Portaria 9', kind: 'pending', by: null, notes: [] },
     ]);
   });
 });

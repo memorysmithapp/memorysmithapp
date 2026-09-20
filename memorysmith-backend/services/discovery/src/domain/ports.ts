@@ -116,6 +116,13 @@ export interface AnnotatedNotebookGraph {
  */
 export interface OutgoingTarget {
   readonly target: string;
+  /**
+   * What the target reaches: a note, a FILE the notebook keeps, or nothing
+   * yet. An attachment is never an edge (§5.1) and it is not nothing either,
+   * and a reader that cannot tell those two apart tells an author their
+   * picture does not exist (#166).
+   */
+  readonly kind: 'note' | 'attachment' | 'pending';
   readonly by: 'name' | 'alias' | null;
   readonly notes: readonly NoteRef[];
 }
@@ -148,6 +155,15 @@ export interface LinkGraph {
    * by this context and by no other (rule 5, RN-DSC-046).
    */
   notesOf(notebookId: string): Promise<NoteRef[]>;
+  /**
+   * The names of the files the notebook keeps (#166). A target that matches
+   * one is an attachment: it renders, it is no edge, and it is the other half
+   * of what a reading surface has to know to draw a link.
+   */
+  attachmentsOf(notebookId: string): Promise<string[]>;
+  /** The notebook keeps a file under this name, or stopped keeping one. */
+  keepAttachment(notebookId: string, name: string): Promise<void>;
+  forgetAttachment(notebookId: string, name: string): Promise<void>;
   dependencyTree(notebookId: string, rootNoteId: string, depth: number): Promise<GraphNode | null>;
   backlinks(notebookId: string, noteId: string): Promise<NoteRef[]>;
   /**

@@ -425,7 +425,7 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       ...note,
       links: found.links.map((link) => ({
         target: link.target,
-        resolvedBy: link.by ?? 'pending',
+        resolvedBy: link.by ?? (link.kind === 'attachment' ? 'attachment' : 'pending'),
         notes: link.notes.map((each) => ({
           noteId: each.noteId,
           name: each.name === '' ? null : each.name,

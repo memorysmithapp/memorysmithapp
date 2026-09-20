@@ -167,17 +167,24 @@ export class NoteLinks {
  * What the notebook answers to: the name each note states and the spellings it
  * declares (RN-DSC-046, RN-DSC-053).
  *
- * A reading surface draws a wikilink by what it REACHES, and an alias is read
- * by this context alone — Knowledge interprets nothing of a note beyond its
- * `name:` (rule 5). It used to have only the names, from the structure it drew
+ * A reading surface draws a wikilink by what it REACHES, and both halves are
+ * read by this context alone: an alias, because Knowledge interprets nothing
+ * of a note beyond its `name:` (rule 5), and the name of a file the notebook
+ * keeps, which is the third thing a target can reach (#166). It used to have only the names, from the structure it drew
  * the page with, so a link an alias answered was painted as a link to nothing
  * and an embed of one expanded nothing.
  */
 export class NotebookNames {
   constructor(private readonly deps: QueryDependencies) {}
 
-  async execute(input: { notebookId: string }): Promise<Result<NoteRef[], DomainError>> {
-    return ok(await this.deps.graph.notesOf(input.notebookId));
+  async execute(input: {
+    notebookId: string;
+  }): Promise<Result<{ notes: NoteRef[]; attachments: string[] }, DomainError>> {
+    const [notes, attachments] = await Promise.all([
+      this.deps.graph.notesOf(input.notebookId),
+      this.deps.graph.attachmentsOf(input.notebookId),
+    ]);
+    return ok({ notes, attachments });
   }
 }
 

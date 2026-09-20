@@ -71,6 +71,8 @@ interface Pending {
 export class InMemoryLinkGraph implements LinkGraph {
   private readonly notes = new Map<string, Map<string, NoteRef>>();
   private readonly outgoing = new Map<string, Map<string, LinkTarget[]>>();
+  /** What the notebook keeps beside its notes, by name (#166). */
+  private readonly attachments = new Map<string, Set<string>>();
 
   private notebook(notebookId: string): {
     notes: Map<string, NoteRef>;
@@ -86,11 +88,29 @@ export class InMemoryLinkGraph implements LinkGraph {
 
   /** What the notebook answers to right now: its names and then its aliases. */
   private names(notebookId: string): NotebookNames {
-    return notebookNames([...this.notebook(notebookId).notes.values()]);
+    return notebookNames(
+      [...this.notebook(notebookId).notes.values()],
+      [...(this.attachments.get(notebookId) ?? new Set<string>())],
+    );
   }
 
   async notesOf(notebookId: string): Promise<NoteRef[]> {
     return [...this.notebook(notebookId).notes.values()];
+  }
+
+  /** The names of the files the notebook keeps (#166). */
+  async attachmentsOf(notebookId: string): Promise<string[]> {
+    return [...(this.attachments.get(notebookId) ?? new Set<string>())];
+  }
+
+  async keepAttachment(notebookId: string, name: string): Promise<void> {
+    const kept = this.attachments.get(notebookId) ?? new Set<string>();
+    kept.add(name);
+    this.attachments.set(notebookId, kept);
+  }
+
+  async forgetAttachment(notebookId: string, name: string): Promise<void> {
+    this.attachments.get(notebookId)?.delete(name);
   }
 
   /** Every edge of the notebook, resolved against the notebook as it stands. */
@@ -158,9 +178,12 @@ export class InMemoryLinkGraph implements LinkGraph {
       if (seen.has(link.name)) continue;
       seen.add(link.name);
       const answer = resolveTarget(link.name, names);
-      if (answer.kind === 'attachment') continue;
       targets.push({
         target: link.name,
+        // A file the notebook keeps is an attachment: it renders, it is no
+        // edge, and it is not a target that reaches nothing (#166).
+        kind:
+          answer.kind === 'note' ? 'note' : answer.kind === 'attachment' ? 'attachment' : 'pending',
         by: answer.kind === 'note' ? answer.by : null,
         notes: answer.noteIds
           .filter((id) => id !== noteId)

@@ -159,7 +159,7 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
     if (denied) return fail(c, denied);
 
     const found = await useCases.names(request).execute({ notebookId });
-    return present(c, found, (notes) => ({ notes }));
+    return present(c, found, (answer) => answer);
   });
 
   app.get('/notebooks/:v/health', async (c) => {
