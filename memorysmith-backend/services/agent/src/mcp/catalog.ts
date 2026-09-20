@@ -457,6 +457,81 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
   },
   {
+    name: 'keep_file',
+    title: 'Keep a file in a notebook',
+    description:
+      'Keeps a file in the notebook so a note can show it: write `![[name]]` in the note and ' +
+      'the page draws it. The NAME is what a note addresses, and it is a name like any other ' +
+      '\u2014 an extension is yours to write or to leave out, and it decides nothing. What decides ' +
+      'how the file is drawn, and whether it may be kept at all, is mimeType: an image, an ' +
+      'audio and a video are drawn on the page, and everything else is a card with a download. ' +
+      'The bytes travel inline, base64, up to 8 MB. The type is checked against the bytes, so a ' +
+      'declaration they do not support is refused naming both. A notebook keeps one file of ' +
+      'each name; the path only organises, so moving a file never breaks a note.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        name: {
+          type: 'string',
+          description:
+            'What a note addresses with `![[name]]`. An extension is optional and decides nothing.',
+        },
+        description: {
+          type: 'string',
+          description: 'What this file is, for whoever reads the notebook without opening it.',
+        },
+        mimeType: {
+          type: 'string',
+          description:
+            'The type of the content, which is what decides how it is drawn. One of: ' +
+            'image/png, image/jpeg, image/webp, image/gif, image/svg+xml, application/pdf, ' +
+            'audio/mpeg, audio/wav, audio/ogg, audio/webm, video/mp4, video/webm, ' +
+            'video/quicktime, and the three Office documents (docx, xlsx, pptx).',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional: the subjects of this file, the way a note carries tags.',
+        },
+        path: {
+          type: 'string',
+          description:
+            'Optional: where it sits, written like a path, `/desenhos/arquitetura`. It ' +
+            'organises and never addresses: the name is what a note writes.',
+        },
+        contentBase64: { type: 'string', description: 'The bytes of the file, base64.' },
+      },
+      ['notebook', 'name', 'mimeType', 'contentBase64'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
+    name: 'list_files',
+    title: 'List the files of a notebook',
+    description:
+      'Every file the notebook keeps, with the name a note addresses it by, what it is, its ' +
+      'type, its tags and where it sits. Read it before keeping one, so a note points at what ' +
+      'is already there instead of a second copy of it.',
+    inputSchema: object({ notebook: notebookArgument }, ['notebook']),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'delete_file',
+    title: 'Delete a file',
+    description:
+      'Deletes a file of the notebook. It is DEFINITIVE \u2014 there is no undo and no trash \u2014 its ' +
+      'bytes are destroyed shortly after, and every note that showed it renders a pending ' +
+      'reference from that instant. Its name is free again at once.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        file: { type: 'string', description: 'File identifier, as list_files prints it.' },
+      },
+      ['notebook', 'file'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+  },
+  {
     name: 'update_note',
     title: 'Update a note',
     description:

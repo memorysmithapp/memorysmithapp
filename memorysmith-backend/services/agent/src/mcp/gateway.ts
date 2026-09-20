@@ -86,6 +86,17 @@ export interface NoteContent {
   readonly links?: NoteLink[];
 }
 
+/** A file of a notebook, as the connector answers it (#166). */
+export interface NotebookFileRef {
+  readonly fileId: string;
+  readonly name: string;
+  readonly description: string;
+  readonly mimeType: string;
+  readonly tags: string[];
+  readonly path: string;
+  readonly bytes: number;
+}
+
 export interface NoteLink {
   readonly target: string;
   /**
@@ -208,6 +219,25 @@ export interface KnowledgeGateway {
   /** Issues the next number of a folder (RN-AGT-036). */
   nextNumber(caller: AgentCaller, notebookId: string, folderId: string): Promise<number>;
   deleteNote(caller: AgentCaller, notebookId: string, noteId: string): Promise<void>;
+  /**
+   * What a notebook keeps beside its notes (#166). The bytes travel inline,
+   * base64: an agent that must perform an HTTP PUT of its own is an agent that
+   * cannot keep a file at all.
+   */
+  keepFile(
+    caller: AgentCaller,
+    notebookId: string,
+    file: {
+      name: string;
+      description: string;
+      mimeType: string;
+      tags: string[];
+      path: string;
+      contentBase64: string;
+    },
+  ): Promise<NotebookFileRef>;
+  listFiles(caller: AgentCaller, notebookId: string): Promise<NotebookFileRef[]>;
+  deleteFile(caller: AgentCaller, notebookId: string, fileId: string): Promise<void>;
   notebookContext(caller: AgentCaller, notebookId: string): Promise<string>;
   template(
     caller: AgentCaller,

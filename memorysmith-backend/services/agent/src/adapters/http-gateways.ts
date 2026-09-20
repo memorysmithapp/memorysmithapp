@@ -16,6 +16,7 @@
 import { pageOf } from '../mcp/note-pages.js';
 import type {
   BacklinksDto,
+  FileListDto,
   FolderDto,
   FolderNumberDto,
   GraphNodeDto,
@@ -23,6 +24,7 @@ import type {
   NoteRefDto,
   NoteSummaryDto,
   NotebookDetailDto,
+  NotebookFileDto,
   SearchResultDto,
 } from '@memorysmith/contracts';
 import {
@@ -42,6 +44,7 @@ import {
   type RelatedNode,
   type SearchHit,
   type NotebookListing,
+  type NotebookFileRef,
 } from '../mcp/gateway.js';
 
 /**
@@ -331,6 +334,42 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       `/knowledge/notebooks/${notebookId}/folders/${folderId}/template`,
       { method: 'DELETE' },
     );
+  }
+
+  async keepFile(
+    caller: AgentCaller,
+    notebookId: string,
+    file: {
+      name: string;
+      description: string;
+      mimeType: string;
+      tags: string[];
+      path: string;
+      contentBase64: string;
+    },
+  ): Promise<NotebookFileRef> {
+    const kept = await callApi<NotebookFileDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${notebookId}/files`,
+      { method: 'POST', body: file },
+    );
+    return fileRefOf(kept);
+  }
+
+  async listFiles(caller: AgentCaller, notebookId: string): Promise<NotebookFileRef[]> {
+    const listed = await callApi<FileListDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${notebookId}/files`,
+    );
+    return listed.files.map(fileRefOf);
+  }
+
+  async deleteFile(caller: AgentCaller, notebookId: string, fileId: string): Promise<void> {
+    await callApi(this.origin, caller, `/knowledge/notebooks/${notebookId}/files/${fileId}`, {
+      method: 'DELETE',
+    });
   }
 
   async deleteNote(caller: AgentCaller, notebookId: string, noteId: string): Promise<void> {
@@ -630,4 +669,17 @@ export class HttpAuditGateway implements AuditGateway {
       updatedAt: revision.occurredAt,
     };
   }
+}
+
+/** A file as the API answers it, as the connector says it. */
+function fileRefOf(file: NotebookFileDto): NotebookFileRef {
+  return {
+    fileId: file.fileId,
+    name: file.name,
+    description: file.description,
+    mimeType: file.mimeType,
+    tags: file.tags,
+    path: file.path,
+    bytes: file.bytes,
+  };
 }

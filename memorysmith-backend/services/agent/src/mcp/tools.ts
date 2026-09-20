@@ -99,6 +99,17 @@ function anchorArgument(args: Record<string, unknown>, tool: string): string | n
 }
 
 /** On a creation the anchor is optional, and without one the item goes last. */
+/** An argument that may be left out, which is most of what a file carries. */
+function optionalString(args: Record<string, unknown>, name: string): string | undefined {
+  const value = args[name];
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function optionalStrings(args: Record<string, unknown>, name: string): string[] | undefined {
+  const value = args[name];
+  return Array.isArray(value) ? value.map((each) => String(each)) : undefined;
+}
+
 function optionalAnchor(args: Record<string, unknown>): string | undefined {
   const value = args['after'];
   return typeof value === 'string' && value.length > 0 ? value : undefined;
@@ -363,6 +374,43 @@ export class McpToolAdapter {
           `The note ${note} left the listings and the search, for good. Nothing brings it back, ` +
             'and its content is destroyed shortly after. The links that pointed at it are now ' +
             'pending rather than lost.',
+        );
+      }
+
+      /**
+       * What a notebook keeps beside its notes (#166). The name is what a
+       * note addresses with `![[name]]`, and the type is what decides how it
+       * is drawn \u2014 the extension of the name decides nothing.
+       */
+      case 'keep_file': {
+        const notebook = requireString(args, 'notebook', 'keep_file');
+        const kept = await knowledge.keepFile(caller, notebook, {
+          name: requireString(args, 'name', 'keep_file'),
+          description: optionalString(args, 'description') ?? '',
+          mimeType: requireString(args, 'mimeType', 'keep_file'),
+          tags: optionalStrings(args, 'tags') ?? [],
+          path: optionalString(args, 'path') ?? '/',
+          contentBase64: requireString(args, 'contentBase64', 'keep_file'),
+        });
+        return json({
+          ...kept,
+          reference: `![[${kept.name}]]`,
+          note: 'Write that reference in a note and the page draws this file.',
+        });
+      }
+
+      case 'list_files':
+        return json({
+          files: await knowledge.listFiles(caller, requireString(args, 'notebook', 'list_files')),
+        });
+
+      case 'delete_file': {
+        const file = requireString(args, 'file', 'delete_file');
+        await knowledge.deleteFile(caller, requireString(args, 'notebook', 'delete_file'), file);
+        return text(
+          `The file ${file} is gone, for good, and its bytes are destroyed shortly after. ` +
+            'Every note that showed it now renders a pending reference, and its name is free ' +
+            'again.',
         );
       }
 
