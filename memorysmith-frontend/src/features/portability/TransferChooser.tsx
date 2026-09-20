@@ -46,9 +46,17 @@ import {
  * **A tab that is not open stays visible and disabled**, never hidden: a tab
  * that disappears cannot be told from one that was never built (#160).
  */
-export type ChooserTab = 'context' | Species;
+export type ChooserTab = 'context' | Species | 'conflicts';
 
-const TABS: ReadonlyArray<ChooserTab> = ['context', 'folders', 'templates', 'notes'];
+const TABS: ReadonlyArray<ChooserTab> = [
+  'context',
+  'folders',
+  'templates',
+  'notes',
+  // Last, and lit: it is not a fifth thing to choose but the reason the
+  // choosing cannot end, and it opens only when there is one (#161).
+  'conflicts',
+];
 
 export function TransferChooser({
   tree,
@@ -63,6 +71,7 @@ export function TransferChooser({
   tab,
   onTab,
   twins = [],
+  onFindNote,
 }: {
   tree: DocumentTree;
   scope: Scope;
@@ -87,6 +96,12 @@ export function TransferChooser({
    * Empty on the way out: a notebook cannot hold two live notes of one name.
    */
   twins?: ReadonlyArray<TwinNames>;
+  /**
+   * Take me to the copies of this name. The chooser cannot do it on its own:
+   * the notes have to be being chosen item by item for one to be unticked, and
+   * that is the scope, which lives with whoever opened the chooser.
+   */
+  onFindNote?: (name: string) => void;
 }) {
   const { t } = useTranslation();
   const setTab = onTab;
@@ -95,21 +110,28 @@ export function TransferChooser({
   const what = t(`portability.whatToCarry.${direction}`);
 
   /** A species is choosable when it travels, in items, and there is any. */
-  const opens = (species: Species): boolean =>
-    scope[species] &&
-    scope.reach[species] === 'choose' &&
-    counts[species].held > 0 &&
-    (species === 'folders' || scope.folders);
+  const opens = (each: ChooserTab): boolean => {
+    if (each === 'context') return true;
+    if (each === 'conflicts') return twins.length > 0;
+    return (
+      scope[each] &&
+      scope.reach[each] === 'choose' &&
+      counts[each].held > 0 &&
+      (each === 'folders' || scope.folders)
+    );
+  };
 
-  // A tab that closes under the person — unticking Folders closes three —
-  // hands the chooser back to the scope rather than drawing an empty panel.
-  const active: ChooserTab = tab === 'context' || opens(tab) ? tab : 'context';
+  // A tab that closes under the person — unticking Folders closes three, and
+  // resolving the last collision closes this one — hands the chooser back to
+  // the scope rather than drawing an empty panel.
+  const active: ChooserTab = opens(tab) ? tab : 'context';
 
   return (
     <div className="chooser">
       <div className="chooser-tabs" role="tablist" aria-label={what}>
         {TABS.map((each) => {
-          const disabled = each !== 'context' && !opens(each);
+          const disabled = !opens(each);
+          const marked = each === 'conflicts' && twins.length > 0;
           return (
             <button
               key={each}
@@ -119,10 +141,17 @@ export function TransferChooser({
               aria-selected={active === each}
               aria-controls={`chooser-panel-${each}`}
               disabled={disabled}
-              className={active === each ? 'chooser-tab is-selected' : 'chooser-tab'}
+              className={[
+                'chooser-tab',
+                active === each ? 'is-selected' : '',
+                marked ? 'is-conflict' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
               onClick={() => setTab(each)}
             >
               {t(`portability.tab.${each}`)}
+              {marked && <span className="chooser-tab-count">{twins.length}</span>}
             </button>
           );
         })}
@@ -134,7 +163,9 @@ export function TransferChooser({
         id={`chooser-panel-${active}`}
         aria-labelledby={`chooser-tab-${active}`}
       >
-        {active === 'context' ? (
+        {active === 'conflicts' ? (
+          <ConflictsPanel twins={twins} onFindNote={onFindNote} />
+        ) : active === 'context' ? (
           <ScopePanel
             tree={tree}
             scope={scope}
@@ -352,23 +383,6 @@ function ItemsPanel({
             : t('portability.onlyChosenFolders')}
         </p>
       )}
-      {species === 'notes' && twins.length > 0 && (
-        <div className="chooser-twins">
-          <p className="chooser-twins-why">{t('portability.twinsWhy')}</p>
-          <ul>
-            {twins.map((twin) => (
-              <li key={`${twin.folderId}-${twin.name}`}>
-                <button type="button" className="chooser-twin" onClick={() => onFilter(twin.name)}>
-                  <span className="chooser-twin-name">{twin.name}</span>
-                  <span className="chooser-twin-where">
-                    {t('portability.twinWhere', { count: twin.count, folder: twin.folderName })}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
       {species === 'notes' && folders.length > 0 && (
         <label className="chooser-filter">
           <span>{t('portability.filter')}</span>
@@ -394,6 +408,56 @@ function ItemsPanel({
             ))}
           </ul>
         )}
+      </div>
+    </>
+  );
+}
+
+/**
+ * What refuses the import, in a tab of its own (#161).
+ *
+ * It was a strip above the tree of the notes, which is the one place a
+ * collision is RESOLVED — so the explanation of the problem sat on top of the
+ * room needed to fix it, and three collisions left almost no tree. A refusal
+ * is not a fifth thing to choose; it is the reason the choosing cannot end,
+ * and it earns the tab it now has, lit and counted, opening only when there is
+ * one to show.
+ *
+ * Each row names the whole thing: the name, the folder that holds it, how many
+ * copies there are, and a way into the tree where one of them is let go.
+ */
+function ConflictsPanel({
+  twins,
+  onFindNote,
+}: {
+  twins: ReadonlyArray<TwinNames>;
+  onFindNote?: ((name: string) => void) | undefined;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <>
+      <p className="chooser-scoping">{t('portability.twinsWhy')}</p>
+      <div className="chooser-scroll">
+        <ul className="chooser-twins">
+          {twins.map((twin) => (
+            <li key={`${twin.folderId}-${twin.name}`} className="chooser-twin">
+              <span className="chooser-twin-name">{twin.name}</span>
+              <span className="chooser-twin-where">
+                {t('portability.twinWhere', { count: twin.count, folder: twin.folderName })}
+              </span>
+              {onFindNote && (
+                <button
+                  type="button"
+                  className="chooser-twins-open"
+                  onClick={() => onFindNote(twin.name)}
+                >
+                  {t('portability.findTwin')}
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
       </div>
     </>
   );

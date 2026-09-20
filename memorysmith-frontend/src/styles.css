@@ -3328,50 +3328,44 @@ body.has-modal {
 /*
  * The names carried twice, which refuse the import (RN-KNW-042).
  *
- * They used to be a paragraph EACH at the foot of the dialog, so three of them
- * took the room the tree needed to resolve them — and the tree is where they
- * are resolved. The foot states the block once; the collisions live in the tab
- * that holds the notes, and each one is a way in: it filters the tree to that
- * name, which puts the copies side by side (#161).
+ * They were a paragraph EACH at the foot of the dialog, then a strip above the
+ * tree of the notes — which is the one place a collision is RESOLVED, so the
+ * statement of the problem sat on top of the room needed to fix it. They have
+ * a tab of their own now, lit and counted, and each row names the whole thing:
+ * the name, the folder that holds it, how many copies, and the way in (#161).
  */
-.chooser-twins {
-  flex-shrink: 0;
-  margin-bottom: 0.6rem;
-  padding: 0.6rem;
-  border: 1px solid var(--signal);
-  border-radius: 8px;
+.chooser-tab.is-conflict {
+  color: var(--signal);
 }
-.chooser-twins-why {
-  margin: 0 0 0.45rem;
-  font-size: 0.78rem;
-  line-height: 1.45;
+.chooser-tab.is-conflict:disabled {
   color: var(--text-soft);
 }
-.chooser-twins ul {
+.chooser-tab-count {
+  margin-inline-start: 0.35rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--signal);
+  color: var(--paper, #fff);
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+.chooser-twins {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.5rem;
 }
 .chooser-twin {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.1rem;
-  width: 100%;
-  padding: 0.35rem 0.45rem;
-  border: 0;
-  border-radius: 6px;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: start;
-  cursor: pointer;
-}
-.chooser-twin:hover {
-  background: var(--bg);
+  gap: 0.2rem;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-inline-start: 3px solid var(--signal);
+  border-radius: 8px;
 }
 /* The whole name, wrapped: it is what tells one collision from another, and a
    name cut at its first space told the reader nothing. */
@@ -3382,22 +3376,22 @@ body.has-modal {
   overflow-wrap: anywhere;
 }
 .chooser-twin-where {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--text-soft);
 }
-/* The way in, from the foot of the dialog. */
+/* The way in: from the foot to the tab, and from a row to the tree. */
 .chooser-twins-open {
+  margin-top: 0.15rem;
   border: 0;
   padding: 0;
   background: none;
   color: var(--accent);
   font: inherit;
+  font-size: 0.78rem;
   text-decoration: underline;
   cursor: pointer;
 }
-.chooser-row.is-twin .chooser-name {
-  color: var(--signal);
-}
+.chooser-row.is-twin .chooser-name,
 .chooser-row.is-twin .chooser-note {
   color: var(--signal);
 }

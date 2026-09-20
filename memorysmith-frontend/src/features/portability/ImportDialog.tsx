@@ -122,17 +122,22 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
     }
   }
 
+  /** From the refusal to the tab that explains it, in one click (#161). */
+  function showTwins(): void {
+    setPreset('choose');
+    setTab('conflicts');
+  }
+
   /**
-   * From the refusal to the notes it is about, in one click (#161).
+   * And from there into the tree, where one of the copies is let go.
    *
    * A tab of a species opens only when that species is being chosen ITEM BY
    * ITEM, so sending somebody to the notes means putting the chooser in the
-   * state where a note can be unticked — otherwise the button lands them back
-   * on the scope, which is what it did.
+   * state where a note can be unticked — otherwise it lands them back on the
+   * scope, which is what it did.
    */
-  function showTwins(): void {
+  function findNote(twin: string): void {
     if (!tree) return;
-    setPreset('choose');
     setScope((current) => ({
       ...current,
       folders: true,
@@ -142,7 +147,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
     setPicked((current) =>
       current.notes.size === 0 ? { ...current, notes: seedOf(tree, 'notes') } : current,
     );
-    setFilter('');
+    setFilter(twin);
     setTab('notes');
   }
 
@@ -295,6 +300,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
               tab={tab}
               onTab={setTab}
               twins={twins}
+              onFindNote={findNote}
             />
           )}
         </>

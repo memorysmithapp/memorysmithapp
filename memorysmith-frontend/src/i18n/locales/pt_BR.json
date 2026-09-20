@@ -225,7 +225,8 @@
       "context": "Contexto",
       "folders": "Pastas",
       "templates": "Modelos",
-      "notes": "Notas"
+      "notes": "Notas",
+      "conflicts": "Inconsistências"
     },
     "noTemplate": "sem Modelo",
     "wholeNotebook": "O caderno todo",
@@ -256,10 +257,11 @@
     "countTemplates_other": "{{count}} Modelos",
     "twinsBlock_one": "1 nome se repete dentro da pasta, e por isso nada é importado.",
     "twinsBlock_other": "{{count}} nomes se repetem dentro da pasta, e por isso nada é importado.",
-    "showTwins": "Mostrar",
-    "twinsWhy": "Uma pasta guarda uma nota de cada nome. Escolha um nome para achar as cópias e deixe uma de fora.",
-    "twinWhere_one": "{{count}} cópia · em {{folder}}",
-    "twinWhere_other": "{{count}} cópias · em {{folder}}"
+    "showTwins": "Ver o motivo",
+    "twinsWhy": "Uma pasta guarda uma nota de cada nome, então uma importação que traz duas com o mesmo nome é recusada inteira. Deixe uma de cada fora e a importação segue.",
+    "twinWhere_one": "Na pasta “{{folder}}” · {{count}} cópia",
+    "twinWhere_other": "Na pasta “{{folder}}” · {{count}} cópias",
+    "findTwin": "Achar nas notas"
   },
   "graph": {
     "heading": "Grafo do caderno",

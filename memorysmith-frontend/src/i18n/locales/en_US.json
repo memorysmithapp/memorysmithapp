@@ -225,7 +225,8 @@
       "context": "Context",
       "folders": "Folders",
       "templates": "Templates",
-      "notes": "Notes"
+      "notes": "Notes",
+      "conflicts": "Conflicts"
     },
     "noTemplate": "no Template",
     "wholeNotebook": "The whole notebook",
@@ -256,10 +257,11 @@
     "countTemplates_other": "{{count}} Templates",
     "twinsBlock_one": "1 name is carried twice in its folder, so nothing is imported.",
     "twinsBlock_other": "{{count}} names are carried twice in their folder, so nothing is imported.",
-    "showTwins": "Show them",
-    "twinsWhy": "A folder holds one note of each name. Choose a name to find its copies, and leave one of each out.",
-    "twinWhere_one": "{{count}} copy · in {{folder}}",
-    "twinWhere_other": "{{count}} copies · in {{folder}}"
+    "showTwins": "See why",
+    "twinsWhy": "A folder holds one note of each name, so an import carrying two of one name is refused whole. Leave one of each out and the import goes.",
+    "twinWhere_one": "In the folder “{{folder}}” · {{count}} copy",
+    "twinWhere_other": "In the folder “{{folder}}” · {{count}} copies",
+    "findTwin": "Find them in the notes"
   },
   "graph": {
     "heading": "Notebook graph",
