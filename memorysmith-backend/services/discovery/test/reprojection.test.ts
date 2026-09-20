@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
 import { noteName } from '@memorysmith/kernel';
 import { extractLinks } from '../src/domain/LinkExtractor.js';
 import { extractFrontmatterAliases } from '../src/domain/Aliases.js';
-import { resolveAll, type ReadNote } from '../src/adapters/reprojection.js';
+import { distinctEdges, resolveAll, type ReadNote } from '../src/adapters/reprojection.js';
 
 /** A note as the rebuild reads it: from its bytes, by the current rules. */
 function read(noteId: string, markdown: string): ReadNote {
@@ -82,5 +82,38 @@ describe('rebuilding the graph of a migrated notebook', () => {
 
     expect(rebuilt.edges).toEqual([]);
     expect(rebuilt.pending).toBe(1);
+  });
+});
+
+/**
+ * What the report counts is EDGES, and an edge is a pair (§5.4). The plan
+ * resolves every target, so a note reaching one note by its name and by a
+ * spelling of it answers twice — and counting those as two edges made a
+ * notebook that is perfectly projected report a difference for ever (#163).
+ */
+describe('what the report of a rebuild counts', () => {
+  const notebook = [
+    read('fonte', '---\nname: Fonte\naliases: [A fonte]\n---\n\nThe source.\n'),
+    read('outra', '---\nname: Outra\n---\n\nAnother note.\n'),
+    read(
+      'citando',
+      '---\nname: Citando\n---\n\nBy name [[Fonte]], by spelling [[A fonte]], and [[Outra]].\n',
+    ),
+  ];
+
+  it('answers one entry per target, which is what names the target in the report', () => {
+    expect(
+      resolveAll(notebook).edges.map((edge) => `${edge.from}->${edge.to} (${edge.target})`),
+    ).toEqual(['citando->fonte (Fonte)', 'citando->fonte (A fonte)', 'citando->outra (Outra)']);
+  });
+
+  it('counts one edge per pair, keeping the target that answered first', () => {
+    const edges = distinctEdges(resolveAll(notebook).edges);
+    expect(edges.map((edge) => `${edge.from}->${edge.to}`)).toEqual([
+      'citando->fonte',
+      'citando->outra',
+    ]);
+    expect(edges[0]?.target).toBe('Fonte');
+    expect(edges[0]?.by).toBe('name');
   });
 });

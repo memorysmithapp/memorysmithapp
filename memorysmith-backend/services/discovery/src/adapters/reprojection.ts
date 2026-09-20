@@ -82,6 +82,27 @@ export interface NotebookPlan {
 const edgeKey = (edge: { from: string; to: string }): string => `${edge.from} -> ${edge.to}`;
 
 /**
+ * One edge per pair, however many targets point along it (§5.4).
+ *
+ * `resolveAll` answers one entry per TARGET, because the report names the
+ * target that produced each edge — and a note reaching one note by its name
+ * and by a spelling of it, which is how anybody writes about a source they
+ * quote, produces two entries for one edge. Counting them as two made a
+ * healthy notebook report a difference no rebuild could ever close, and a
+ * difference nobody can close is a report nobody reads (#163).
+ *
+ * The first entry of a pair is kept, and `resolveAll` walks the targets in
+ * the order the note wrote them.
+ */
+export function distinctEdges(edges: readonly PlannedEdge[]): PlannedEdge[] {
+  const found = new Map<string, PlannedEdge>();
+  for (const edge of edges) {
+    if (!found.has(edgeKey(edge))) found.set(edgeKey(edge), edge);
+  }
+  return [...found.values()];
+}
+
+/**
  * The subscription a note item belongs to, read off the partition it sits in.
  *
  * `fromClaim` is the only door into the type and it is named after where the
@@ -118,15 +139,17 @@ export class LinkReprojection {
       const after = resolveAll(read);
       const before = await this.deps.graphFor(subscriptionId).currentEdges(notebookId);
 
+      const edges = distinctEdges(after.edges);
+
       const held = new Set(before.map(edgeKey));
-      const found = new Set(after.edges.map(edgeKey));
+      const found = new Set(edges.map(edgeKey));
       plans.push({
         subscriptionId: subscriptionId.value,
         notebookId,
         notes: read,
         before: before.length,
-        after: after.edges,
-        gained: after.edges.filter((edge) => !held.has(edgeKey(edge))),
+        after: edges,
+        gained: edges.filter((edge) => !held.has(edgeKey(edge))),
         lost: before.filter((edge) => !found.has(edgeKey(edge))),
         pending: after.pending,
       });
