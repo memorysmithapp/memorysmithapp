@@ -16,6 +16,9 @@
  */
 
 import {
+  bytesSupport,
+  FILE_MIME_TYPES,
+  fileTypeOf,
   RESERVED_FRONTMATTER_KEYS,
   NOTEBOOK_DOCUMENT_ENTRY,
   notebookDocumentSchema,
@@ -43,6 +46,9 @@ import { DynamoContentSlotRepository } from '@memorysmith/svc-knowledge/adapters
 import { DynamoFolderNumbers } from '@memorysmith/svc-knowledge/adapters/numbers';
 import { DynamoNotebookRepository } from '@memorysmith/svc-knowledge/adapters/notebooks';
 import { S3ContentStore } from '@memorysmith/svc-knowledge/adapters/content';
+import { DynamoFileRepository } from '@memorysmith/svc-knowledge/adapters/files';
+import { S3FileStore } from '@memorysmith/svc-knowledge/adapters/file-store';
+import type { FileTypes } from '@memorysmith/svc-knowledge/domain';
 import { DynamoStorageMeter } from '@memorysmith/svc-knowledge/adapters/storage';
 import type { StorageState } from '@memorysmith/svc-knowledge/domain';
 import { DynamoAuditTrail } from '@memorysmith/svc-audit/adapters/trail';
@@ -117,6 +123,19 @@ export function parseNotebookDocument(json: string): NotebookDocument {
   return notebookDocumentSchema.parse(JSON.parse(json)) as NotebookDocument;
 }
 
+/**
+ * Which types a notebook accepts, from the list the product publishes (#166).
+ *
+ * The same shape the reserved vocabulary takes: the domain and the application
+ * of a context import the kernel and nothing else, so what the product decided
+ * to accept is injected HERE, where knowing it is the job.
+ */
+export const FILE_TYPE_CATALOGUE: FileTypes = {
+  accepted: FILE_MIME_TYPES,
+  canonical: (mimeType) => fileTypeOf(mimeType)?.mimeType ?? null,
+  supports: (mimeType, bytes) => bytesSupport(mimeType, bytes),
+};
+
 export function buildKnowledge(infra: Infrastructure, context: SubscriptionContext) {
   return {
     notebooks: new DynamoNotebookRepository(context, infra.db, infra.knowledgeTable),
@@ -127,6 +146,12 @@ export function buildKnowledge(infra: Infrastructure, context: SubscriptionConte
     // The numbers each folder issues, one item per folder (RN-KNW-043).
     numbers: new DynamoFolderNumbers(context, infra.db, infra.knowledgeTable),
     content: new S3ContentStore(context, infra.s3, infra.contentBucket),
+    // What a notebook keeps beside its notes: bytes with a name (#166). The
+    // key is opaque like the key of a note, and carries no extension, because
+    // the extension of a name decides nothing anywhere here.
+    files: new DynamoFileRepository(context, infra.db, infra.knowledgeTable),
+    fileStore: new S3FileStore(context, infra.s3, infra.contentBucket),
+    fileTypes: FILE_TYPE_CATALOGUE,
     storage: { current: () => readStorageBudget(infra, context) },
     // The one layer allowed to know which version of the specification the
     // product implements. The Notebook Context declares these names to the agent

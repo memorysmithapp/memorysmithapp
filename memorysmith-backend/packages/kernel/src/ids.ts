@@ -92,6 +92,17 @@ export class NoteId extends UlidIdentifier {
   }
 }
 
+/** Addresses a file a notebook keeps beside its notes (#166). */
+export class FileId extends UlidIdentifier {
+  private readonly __fileId!: void;
+  static create(raw: string): Result<FileId, DomainError> {
+    return parseUlid(raw, 'FileId', (value) => new FileId(value));
+  }
+  static generate(): FileId {
+    return new FileId(ulid());
+  }
+}
+
 /**
  * Addresses a Content Slot. Stored explicitly and never derived from a NoteId:
  * one day the same slot may be pointed at by another Content Role

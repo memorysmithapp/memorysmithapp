@@ -78,6 +78,12 @@ import {
   ReorderNote,
   UpdateNote,
 } from '@memorysmith/svc-knowledge/application/notes';
+import {
+  DeleteFile,
+  KeepFile,
+  LinkToFile,
+  ListFiles,
+} from '@memorysmith/svc-knowledge/application/files';
 import type { AuditUseCases } from '@memorysmith/svc-audit/adapters/http';
 import {
   GetNoteHistory,
@@ -256,6 +262,10 @@ const knowledgeUseCases: KnowledgeUseCases = {
   reorderNote: (request) => new ReorderNote(buildKnowledge(infra, request.subscription)),
   moveNote: (request) => new MoveNote(buildKnowledge(infra, request.subscription)),
   deleteNote: (request) => new DeleteNote(buildKnowledge(infra, request.subscription)),
+  keepFile: (request) => new KeepFile(buildKnowledge(infra, request.subscription)),
+  listFiles: (request) => new ListFiles(buildKnowledge(infra, request.subscription)),
+  linkToFile: (request) => new LinkToFile(buildKnowledge(infra, request.subscription)),
+  deleteFile: (request) => new DeleteFile(buildKnowledge(infra, request.subscription)),
 };
 
 const auditUseCases: AuditUseCases = {

@@ -10,7 +10,8 @@
 import { Hono, type Context } from 'hono';
 import {
   type Authorship,
-  type DomainError,
+  DomainError,
+  FileId,
   FolderId,
   httpStatusFor,
   NoteId,
@@ -52,7 +53,9 @@ import type {
   ReorderNote,
   UpdateNote,
 } from '../../../application/notes.js';
+import type { DeleteFile, KeepFile, LinkToFile, ListFiles } from '../../../application/files.js';
 import {
+  fileToDto,
   folderToDto,
   noteToDto,
   noteToSummary,
@@ -101,6 +104,10 @@ export interface KnowledgeUseCases {
   readonly reorderNote: (request: KnowledgeRequest) => ReorderNote;
   readonly moveNote: (request: KnowledgeRequest) => MoveNote;
   readonly deleteNote: (request: KnowledgeRequest) => DeleteNote;
+  readonly keepFile: (request: KnowledgeRequest) => KeepFile;
+  readonly listFiles: (request: KnowledgeRequest) => ListFiles;
+  readonly linkToFile: (request: KnowledgeRequest) => LinkToFile;
+  readonly deleteFile: (request: KnowledgeRequest) => DeleteFile;
 }
 
 type Variables = { knowledge: KnowledgeRequest };
@@ -700,6 +707,100 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
         by: author.value,
       }),
     );
+  });
+
+  /**
+   * The files a notebook keeps (#166). The bytes travel inline, base64: an
+   * agent that must perform an HTTP PUT of its own is an agent that cannot
+   * keep a file at all.
+   */
+  app.post('/notebooks/:v/files', async (c) => {
+    const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
+
+    const body = (await c.req.json().catch(() => ({}))) as {
+      name?: string;
+      description?: string;
+      mimeType?: string;
+      tags?: string[];
+      path?: string;
+      contentBase64?: string;
+    };
+
+    let bytes: Uint8Array;
+    try {
+      bytes = new Uint8Array(Buffer.from(String(body.contentBase64 ?? ''), 'base64'));
+    } catch {
+      return fail(c, DomainError.validation('The bytes of a file travel base64'));
+    }
+
+    const kept = await useCases.keepFile(request).execute({
+      ctx: request.ctx,
+      notebookId: notebookId.value,
+      name: String(body.name ?? ''),
+      description: String(body.description ?? ''),
+      mimeType: String(body.mimeType ?? ''),
+      tags: Array.isArray(body.tags) ? body.tags.map((tag) => String(tag)) : [],
+      path: String(body.path ?? '/'),
+      bytes,
+      by: author.value,
+    });
+    return present(c, kept, (file) => fileToDto(file), 201);
+  });
+
+  app.get('/notebooks/:v/files', async (c) => {
+    const request = c.get('knowledge');
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
+
+    const listed = await useCases
+      .listFiles(request)
+      .execute({ ctx: request.ctx, notebookId: notebookId.value });
+    return present(c, listed, (files) => ({ files: files.map(fileToDto) }));
+  });
+
+  /**
+   * A link a browser follows on its own, which is what an `<img>` needs. It
+   * points at the object store and not here, so a file somebody uploaded is
+   * served from an origin that is not the one the product runs in.
+   */
+  app.get('/notebooks/:v/files/:f/link', async (c) => {
+    const request = c.get('knowledge');
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
+    const fileId = FileId.create(c.req.param('f') ?? '');
+    if (!fileId.ok) return fail(c, fileId.error);
+
+    const link = await useCases.linkToFile(request).execute({
+      ctx: request.ctx,
+      notebookId: notebookId.value,
+      fileId: fileId.value,
+    });
+    return present(c, link, (signed) => ({
+      url: signed.url,
+      expiresAt: signed.expiresAt.toISOString(),
+    }));
+  });
+
+  app.delete('/notebooks/:v/files/:f', async (c) => {
+    const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
+    const fileId = FileId.create(c.req.param('f') ?? '');
+    if (!fileId.ok) return fail(c, fileId.error);
+
+    const deleted = await useCases.deleteFile(request).execute({
+      ctx: request.ctx,
+      notebookId: notebookId.value,
+      fileId: fileId.value,
+      by: author.value,
+    });
+    return deleted.ok ? c.body(null, 204) : fail(c, deleted.error);
   });
 
   app.delete('/notebooks/:v/limits/:user', async (c) => {

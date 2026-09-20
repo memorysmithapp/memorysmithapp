@@ -9,10 +9,12 @@ import type {
   FolderDto,
   NoteDto,
   NoteSummaryDto,
+  NotebookFileDto,
   NotebookDetailDto,
   NotebookSummaryDto,
 } from '@memorysmith/contracts';
 import type { Note } from '../../../domain/note/Note.js';
+import type { NotebookFile } from '../../../domain/file/NotebookFile.js';
 import type { Notebook } from '../../../domain/notebook/Notebook.js';
 import type { Folder } from '../../../domain/notebook/Folder.js';
 
@@ -82,4 +84,24 @@ export function noteToDto(note: Note, content: string): NoteDto {
 
 export function contentToDto(content: string, revision: NoteDto['revision']): ContentDto {
   return { content, revision };
+}
+
+/**
+ * A file of a notebook as the API answers it (#166). No URL here: a link is
+ * minted when it is asked for, because it expires and a listing that carried
+ * one would age in the hands of whoever read it.
+ */
+export function fileToDto(file: NotebookFile): NotebookFileDto {
+  return {
+    fileId: file.id.value,
+    name: file.name,
+    description: file.description,
+    mimeType: file.mimeType,
+    tags: [...file.tags],
+    path: file.path,
+    bytes: file.contentRef.bytes,
+    sha256: file.contentRef.sha256,
+    updatedAt: file.updatedBy.at.toISOString(),
+    authorship: file.updatedBy.toJSON(),
+  };
 }

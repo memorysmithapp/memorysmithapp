@@ -414,3 +414,108 @@ test.describe('the role limit of a notebook', () => {
     expect((await owner.call('DELETE', path)).status).toBe(404);
   });
 });
+
+/**
+ * What a notebook keeps beside its notes (#166).
+ *
+ * The extension of a name decides nothing here: a file is named whatever it
+ * was called, and the TYPE is what says how it is drawn, whether it may be
+ * kept at all and what comes back when it is asked for.
+ */
+test.describe('the files of a notebook', () => {
+  /** A PNG of one pixel: what is read is the signature, not the picture. */
+  const PNG = Buffer.from([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+  ]).toString('base64');
+  const PDF = Buffer.from('%PDF-1.7\n1 0 obj\n').toString('base64');
+
+  interface NotebookFile {
+    fileId: string;
+    name: string;
+    mimeType: string;
+    path: string;
+    tags: string[];
+    bytes: number;
+  }
+
+  test('[route:POST /knowledge/notebooks/:v/files] [route:GET /knowledge/notebooks/:v/files] keeps a file under a name with no extension and lists it', async ({
+    owner,
+    notebook,
+  }) => {
+    const name = unique('esquema de blocos');
+    const kept = await owner.ok<NotebookFile>('POST', `${notebookPath(notebook)}/files`, {
+      name,
+      description: 'O desenho que a nota da arquitetura mostra',
+      mimeType: 'image/png',
+      tags: ['arquitetura'],
+      path: '/desenhos/arquitetura',
+      contentBase64: PNG,
+    });
+    expect(kept.name).toBe(name);
+    expect(kept.mimeType).toBe('image/png');
+    expect(kept.path).toBe('/desenhos/arquitetura');
+    expect(kept.bytes).toBeGreaterThan(0);
+
+    const listed = await owner.ok<{ files: NotebookFile[] }>(
+      'GET',
+      `${notebookPath(notebook)}/files`,
+    );
+    expect(listed.files.map((file) => file.name)).toContain(name);
+
+    // The type is checked against the bytes, so a page kept as a picture is
+    // refused before a byte is stored.
+    const lying = await owner.call('POST', `${notebookPath(notebook)}/files`, {
+      name: unique('inocente'),
+      mimeType: 'image/png',
+      contentBase64: Buffer.from('<!doctype html><script>alert(1)</script>').toString('base64'),
+    });
+    expect(lying.status).toBe(400);
+
+    // And a type that is not on the list is refused naming what is.
+    const unsupported = await owner.call('POST', `${notebookPath(notebook)}/files`, {
+      name: unique('planilha antiga'),
+      mimeType: 'application/vnd.ms-excel',
+      contentBase64: PDF,
+    });
+    expect(unsupported.status).toBe(400);
+  });
+
+  test('[route:GET /knowledge/notebooks/:v/files/:f/link] [route:DELETE /knowledge/notebooks/:v/files/:f] answers a link a browser follows, and deleting is definitive', async ({
+    owner,
+    notebook,
+  }) => {
+    const name = unique('relatorio');
+    const kept = await owner.ok<NotebookFile>('POST', `${notebookPath(notebook)}/files`, {
+      name,
+      mimeType: 'application/pdf',
+      contentBase64: PDF,
+    });
+
+    const link = await owner.ok<{ url: string; expiresAt: string }>(
+      'GET',
+      `${notebookPath(notebook)}/files/${kept.fileId}/link`,
+    );
+    // It points at the object store and not at the API, which is what lets an
+    // <img> follow it and what keeps a file somebody uploaded out of the
+    // origin the product runs in.
+    expect(link.url).toContain('http');
+    expect(Date.parse(link.expiresAt)).toBeGreaterThan(Date.now());
+
+    const fetched = await fetch(link.url);
+    expect(fetched.status).toBe(200);
+    expect(fetched.headers.get('content-type')).toContain('application/pdf');
+
+    const deleted = await owner.call('DELETE', `${notebookPath(notebook)}/files/${kept.fileId}`);
+    expect(deleted.status).toBe(204);
+
+    const gone = await owner.call('GET', `${notebookPath(notebook)}/files/${kept.fileId}/link`);
+    expect(gone.status).toBe(404);
+
+    // The name is free again, which is what deleting definitively means.
+    await owner.ok<NotebookFile>('POST', `${notebookPath(notebook)}/files`, {
+      name,
+      mimeType: 'image/png',
+      contentBase64: PNG,
+    });
+  });
+});

@@ -31,6 +31,8 @@ export const eventSubjectSchema = z.enum([
   'NOTEBOOK',
   'FOLDER',
   'NOTE',
+  // What a notebook keeps beside its notes: bytes with a name (#166).
+  'FILE',
 ]);
 
 export const domainEventTypeSchema = z.enum([
@@ -75,6 +77,10 @@ export const domainEventTypeSchema = z.enum([
   'FolderRemoved',
   'TemplateUpdated',
   'TemplateDeleted',
+  // A file of a notebook, kept and deleted. There is no update: bytes are
+  // replaced by keeping them again under the same name (#166).
+  'FileKept',
+  'FileDeleted',
   'NoteCreated',
   'NoteUpdated',
   'NoteReordered',
@@ -329,6 +335,21 @@ export const notebookPurgedPayload = z.object({
  */
 const noteVersionSchema = z.number().int().positive().optional();
 
+/**
+ * A file a notebook keeps, kept and deleted (#166). There is no `FileUpdated`:
+ * bytes are replaced by keeping them again under the same name, which is a
+ * `FileKept` of its own with the content reference of the new bytes.
+ */
+export const fileKeptPayload = z.object({
+  notebookId: ulidSchema,
+  fileId: ulidSchema,
+  name: z.string().min(1),
+  mimeType: z.string().min(1),
+  path: z.string(),
+});
+
+export const fileDeletedPayload = fileKeptPayload;
+
 export const noteCreatedPayload = z.object({
   notebookId: ulidSchema,
   noteId: ulidSchema,
@@ -434,6 +455,8 @@ export const eventPayloadSchemas = {
   TemplatePurged: templatePurgedPayload,
   GuidancePurged: guidancePurgedPayload,
   NotebookPurged: notebookPurgedPayload,
+  FileKept: fileKeptPayload,
+  FileDeleted: fileDeletedPayload,
   NoteCreated: noteCreatedPayload,
   NoteUpdated: noteUpdatedPayload,
   NoteReordered: noteReorderedPayload,

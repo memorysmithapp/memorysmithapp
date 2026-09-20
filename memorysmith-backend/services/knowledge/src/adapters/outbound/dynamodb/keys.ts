@@ -15,6 +15,7 @@
 
 import {
   sha256Hex,
+  type FileId,
   type FolderId,
   type NoteId,
   type Position,
@@ -35,6 +36,25 @@ export class KnowledgeKeys {
   /** Every item of a notebook lives in this one partition. */
   notebook(notebookId: NotebookId): string {
     return `S#${this.subscriptionId.value}#NOTEBOOK#${notebookId.value}`;
+  }
+
+  /**
+   * A file of the notebook (#166). `FILE#` sorts BEFORE `FOLDER#`, which is
+   * the lower bound of the Query that loads the aggregate, so the files of a
+   * notebook are never read by anything that reads its tree.
+   */
+  file(fileId: FileId): string {
+    return `FILE#${fileId.value}`;
+  }
+
+  /**
+   * The name a live file of the notebook holds (RN-KNW-049). It carries the
+   * HASH of the name for the reason the guard of a note name does: a name has
+   * no length limit and a sort key holds 1,024 bytes. `FNAME#` also sorts
+   * before `FOLDER#`.
+   */
+  fileNameGuard(name: string): string {
+    return `FNAME#${sha256Hex(name.normalize('NFC'))}`;
   }
 
   folder(folderId: FolderId): string {

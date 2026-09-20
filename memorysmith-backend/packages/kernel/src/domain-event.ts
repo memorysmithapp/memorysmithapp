@@ -79,6 +79,10 @@ export const KNOWLEDGE_EVENT_TYPES = [
   'FolderRemoved',
   'TemplateUpdated',
   'TemplateDeleted',
+  // A file of a notebook. There is no update: bytes are replaced by keeping
+  // them again under the same name (#166).
+  'FileKept',
+  'FileDeleted',
   'NoteCreated',
   'NoteUpdated',
   'NoteReordered',
@@ -107,7 +111,15 @@ export type DomainEventType = (typeof DOMAIN_EVENT_TYPES)[number];
  * The audit trail is keyed BY SUBJECT, not by notebook, which is what makes the
  * timeline of a note survive it moving folder and notebook (section 12.2).
  */
-export type EventSubject = 'SUBSCRIPTION' | 'WORKSPACE' | 'MEMBER' | 'NOTEBOOK' | 'FOLDER' | 'NOTE';
+export type EventSubject =
+  | 'SUBSCRIPTION'
+  | 'WORKSPACE'
+  | 'MEMBER'
+  | 'NOTEBOOK'
+  | 'FOLDER'
+  | 'NOTE'
+  // What a notebook keeps beside its notes: bytes with a name (#166).
+  | 'FILE';
 
 export interface DomainEvent<TPayload = Record<string, unknown>> {
   /** ULID: orders the outbox and the audit sort key by generation time. */

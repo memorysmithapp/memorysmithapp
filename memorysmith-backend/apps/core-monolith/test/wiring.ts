@@ -8,7 +8,7 @@
  */
 
 import { RESERVED_FRONTMATTER_KEYS, type Deployment } from '@memorysmith/contracts';
-import { serializeNotebookDocument } from '../src/composition-root.js';
+import { FILE_TYPE_CATALOGUE, serializeNotebookDocument } from '../src/composition-root.js';
 import {
   DomainError,
   NotebookId,
@@ -56,6 +56,8 @@ import {
   InMemoryContentSlotRepository,
   InMemoryFolderNumbers,
   InMemoryContentStore,
+  InMemoryFileRepository,
+  InMemoryFileStore,
   InMemoryStorageBudget,
   InMemoryDatabase,
   InMemoryNoteRepository,
@@ -93,6 +95,12 @@ import {
   ReorderNote,
   UpdateNote,
 } from '@memorysmith/svc-knowledge/application/notes';
+import {
+  DeleteFile,
+  KeepFile,
+  LinkToFile,
+  ListFiles,
+} from '@memorysmith/svc-knowledge/application/files';
 import { InMemoryAuditTrail } from '@memorysmith/svc-audit/adapters/trail';
 import type {
   PortabilityRequest,
@@ -216,12 +224,39 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
   /** Shared by every use case of this app, exactly as the counter is in production. */
   const storage = new InMemoryStorageBudget();
 
+  /**
+   * One repository per subscription and kept between calls: a use case is
+   * built per request, and a file kept by one has to be there for the next.
+   */
+  const fileRepositories = new Map<string, InMemoryFileRepository>();
+  const fileStores = new Map<string, InMemoryFileStore>();
+  const fileRepositoryOf = (context: SubscriptionContext): InMemoryFileRepository => {
+    const held = fileRepositories.get(context.subscriptionId.value);
+    if (held) return held;
+    const made = new InMemoryFileRepository(context);
+    fileRepositories.set(context.subscriptionId.value, made);
+    return made;
+  };
+  const fileStoreOf = (context: SubscriptionContext): InMemoryFileStore => {
+    const held = fileStores.get(context.subscriptionId.value);
+    if (held) return held;
+    const made = new InMemoryFileStore(context);
+    fileStores.set(context.subscriptionId.value, made);
+    return made;
+  };
+
   const knowledgeRepos = (context: SubscriptionContext) => ({
     notebooks: new InMemoryNotebookRepository(context, knowledgeDb, events),
     notes: new InMemoryNoteRepository(context, knowledgeDb, events),
     slots: new InMemoryContentSlotRepository(context, knowledgeDb, events),
     numbers: new InMemoryFolderNumbers(context, knowledgeDb),
     content: new InMemoryContentStore(context, knowledgeDb),
+    // The files of a notebook and their bytes (#166), each in a map of its own
+    // per subscription, which is what the partition of the table is.
+    files: fileRepositoryOf(context),
+    fileStore: fileStoreOf(context),
+    // The same list production injects, from the same published table (#166).
+    fileTypes: FILE_TYPE_CATALOGUE,
     storage,
     // The same list production injects, from the same specification (RN-AGT-025).
     reservedVocabulary: RESERVED_FRONTMATTER_KEYS,
@@ -294,6 +329,10 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     reorderNote: (request) => new ReorderNote(knowledgeRepos(request.subscription)),
     moveNote: (request) => new MoveNote(knowledgeRepos(request.subscription)),
     deleteNote: (request) => new DeleteNote(knowledgeRepos(request.subscription)),
+    keepFile: (request) => new KeepFile(knowledgeRepos(request.subscription)),
+    listFiles: (request) => new ListFiles(knowledgeRepos(request.subscription)),
+    linkToFile: (request) => new LinkToFile(knowledgeRepos(request.subscription)),
+    deleteFile: (request) => new DeleteFile(knowledgeRepos(request.subscription)),
   };
 
   // Audit and Discovery, wired in memory. In production they are fed by the

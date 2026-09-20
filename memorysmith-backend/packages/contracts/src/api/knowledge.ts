@@ -18,6 +18,7 @@ import {
   positionSchema,
   removalPolicySchema,
   roleSchema,
+  sha256Schema,
   slugSchema,
   ulidSchema,
 } from '../common.js';
@@ -167,6 +168,49 @@ export const moveNoteRequestSchema = z.object({
   toFolderId: ulidSchema,
   afterNoteId: ulidSchema.nullable().default(null),
 });
+
+/**
+ * A file a notebook keeps (#166, RN-KNW-048).
+ *
+ * The NAME addresses it — a note reaches it with `![[name]]`, wherever it sits
+ * — and the PATH organises it, written like a path of a filesystem and
+ * created by writing a file into it. Neither the path nor the extension takes
+ * part in identity, and a notebook holds one file of each name (RN-KNW-049).
+ */
+export const notebookFileSchema = z.object({
+  fileId: ulidSchema,
+  name: z.string().min(1).max(512),
+  description: z.string().max(500),
+  mimeType: z.string().min(1).max(255),
+  tags: z.array(z.string().min(1).max(40)).max(20),
+  /** `/pasta/subpasta`, normalised, `/` for a file that sits at the root. */
+  path: z.string().max(1024),
+  bytes: z.number().int().nonnegative(),
+  sha256: sha256Schema,
+  updatedAt: instantSchema,
+  authorship: authorshipSchema,
+});
+
+/**
+ * Keeping a file through the API or the connector: the bytes travel inline,
+ * base64, because an agent that has to perform an HTTP PUT of its own is an
+ * agent that cannot keep a file at all. What is above the ceiling is refused
+ * saying what the ceiling is, and never truncated.
+ */
+export const createFileRequestSchema = z.object({
+  name: z.string().min(1).max(512),
+  description: z.string().max(500).default(''),
+  mimeType: z.string().min(1).max(255),
+  tags: z.array(z.string().min(1).max(40)).max(20).default([]),
+  path: z.string().max(1024).default('/'),
+  contentBase64: z.string().min(1),
+});
+
+export const fileListSchema = z.object({ files: z.array(notebookFileSchema) });
+
+export type NotebookFileDto = z.infer<typeof notebookFileSchema>;
+export type CreateFileRequest = z.infer<typeof createFileRequestSchema>;
+export type FileListDto = z.infer<typeof fileListSchema>;
 
 export type NotebookSummaryDto = z.infer<typeof notebookSummarySchema>;
 export type FolderDto = z.infer<typeof folderSchema>;

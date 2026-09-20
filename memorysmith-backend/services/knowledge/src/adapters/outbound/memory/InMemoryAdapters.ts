@@ -13,10 +13,12 @@ import {
   ConcurrencyError,
   ContentId,
   ContentRef,
+  DomainError,
   Instant,
   ok,
   type DomainEvent,
   type EventPublisher,
+  type FileId,
   type FolderId,
   type NoteId,
   type Result,
@@ -26,11 +28,15 @@ import {
 } from '@memorysmith/kernel';
 import { createHash } from 'node:crypto';
 import type { Note } from '../../../domain/note/Note.js';
+import type { NotebookFile } from '../../../domain/file/NotebookFile.js';
 import type { ContentSlot } from '../../../domain/content-slot/ContentSlot.js';
 import type { Guidance } from '../../../domain/content-slot/Guidance.js';
 import type { Template } from '../../../domain/content-slot/Template.js';
 import type { NoteOrder } from '../../../domain/services/NotePlacement.js';
 import type {
+  FileRepository,
+  FileStore,
+  SignedFile,
   FolderNumbers,
   ContentSlotRepository,
   ContentStore,
@@ -431,5 +437,92 @@ export class InMemoryContentStore implements ContentStore {
     const ref = ContentRef.create({ contentId, versionId, sha256, bytes });
     if (!ref.ok) throw new Error(ref.error.message);
     return ref.value;
+  }
+}
+
+/**
+ * The files of a notebook, in memory (#166). One map, keyed the way the table
+ * keys them, and the guard of the name asked as a question of what is stored —
+ * which is what the conditional write of the adapter does for real.
+ */
+export class InMemoryFileRepository implements FileRepository {
+  private readonly files = new Map<string, NotebookFile>();
+
+  constructor(private readonly sub: SubscriptionContext) {}
+
+  private key(notebook: NotebookId, fileId: string): string {
+    return `${notebookKey(this.sub, notebook)}#FILE#${fileId}`;
+  }
+
+  async findById(notebook: NotebookId, file: FileId): Promise<NotebookFile | null> {
+    const found = this.files.get(this.key(notebook, file.value));
+    return found && !found.isDeleted ? found : null;
+  }
+
+  async findByName(notebook: NotebookId, name: string): Promise<NotebookFile | null> {
+    const wanted = name.normalize('NFC').trim();
+    return (await this.list(notebook)).find((file) => file.name === wanted) ?? null;
+  }
+
+  async list(notebook: NotebookId): Promise<NotebookFile[]> {
+    const prefix = `${notebookKey(this.sub, notebook)}#FILE#`;
+    return [...this.files.entries()]
+      .filter(([key]) => key.startsWith(prefix))
+      .map(([, file]) => file)
+      .filter((file) => !file.isDeleted);
+  }
+
+  async save(file: NotebookFile): Promise<Result<void, DomainError>> {
+    const held = await this.findByName(file.notebookId, file.name);
+    if (!file.isDeleted && held && !held.id.equals(file.id)) {
+      return {
+        ok: false,
+        error: DomainError.conflict(
+          `This notebook already keeps a file called "${file.name}"`,
+          held.id.value,
+        ),
+      };
+    }
+    file.pullEvents();
+    this.files.set(this.key(file.notebookId, file.id.value), file);
+    return { ok: true, value: undefined };
+  }
+}
+
+/** The bytes of a file, in memory, keyed the way the object store keys them. */
+export class InMemoryFileStore implements FileStore {
+  private readonly bytes = new Map<string, Uint8Array>();
+
+  constructor(private readonly sub: SubscriptionContext) {}
+
+  private keyOf(contentId: ContentId, versionId: string): string {
+    return `s/${this.sub.subscriptionId.value}/f/${contentId.value}@${versionId}`;
+  }
+
+  async put(bytes: Uint8Array, _mimeType: string): Promise<ContentRef> {
+    const contentId = ContentId.generate();
+    const versionId = `v1-${Instant.now().epochMillis}`;
+    this.bytes.set(this.keyOf(contentId, versionId), bytes);
+    const ref = ContentRef.create({
+      contentId,
+      versionId,
+      sha256: createHash('sha256').update(bytes).digest('hex'),
+      bytes: bytes.byteLength,
+    });
+    if (!ref.ok) throw new Error(ref.error.message);
+    return ref.value;
+  }
+
+  async read(ref: ContentRef): Promise<Uint8Array> {
+    return this.bytes.get(this.keyOf(ref.contentId, ref.versionId)) ?? new Uint8Array();
+  }
+
+  async signedUrl(ref: ContentRef, downloadName: string): Promise<SignedFile> {
+    const expiresAt = Instant.fromEpochMillis(Date.now() + 3_600_000);
+    if (!expiresAt.ok) throw new Error(expiresAt.error.message);
+    return {
+      url: `memory://files/${ref.contentId.value}/${encodeURIComponent(downloadName)}`,
+      expiresAt: expiresAt.value,
+    };
   }
 }

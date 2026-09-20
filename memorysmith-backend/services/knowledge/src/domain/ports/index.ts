@@ -12,8 +12,11 @@ import type {
   Authorship,
   ContentId,
   ContentRef,
+  DomainError,
   DomainEvent,
+  FileId,
   FolderId,
+  Instant,
   NoteId,
   Position,
   Slug,
@@ -23,6 +26,7 @@ import type {
 } from '@memorysmith/kernel';
 import type { Notebook } from '../notebook/Notebook.js';
 import type { Note } from '../note/Note.js';
+import type { NotebookFile } from '../file/NotebookFile.js';
 import type { ContentSlot } from '../content-slot/ContentSlot.js';
 import type { Guidance } from '../content-slot/Guidance.js';
 import type { Template } from '../content-slot/Template.js';
@@ -142,6 +146,63 @@ export interface FolderNumbers {
     lastNumber: number,
     by: Authorship,
   ): Promise<void>;
+}
+
+/**
+ * Which types a notebook accepts, and whether bytes support the one they were
+ * declared under (#166, RN-KNW-050).
+ *
+ * It is a PORT and not a table in here, for the reason the reserved vocabulary
+ * is injected rather than transcribed: the list is a decision of the product,
+ * it is published in the contracts both ends read, and the domain of a context
+ * imports the kernel and nothing else. The composition root is the one layer
+ * allowed to know it.
+ */
+export interface FileTypes {
+  /** The whole list, for a refusal that names what is accepted. */
+  readonly accepted: readonly string[];
+  /** The type as this catalogue names it, or `null` when it is not on the list. */
+  canonical(mimeType: string): string | null;
+  /** Whether these bytes can be what they say they are. */
+  supports(mimeType: string, bytes: Uint8Array): boolean;
+}
+
+/** A link a browser follows on its own, which is what an `<img>` needs. */
+export interface SignedFile {
+  readonly url: string;
+  readonly expiresAt: Instant;
+}
+
+/**
+ * The bytes of a file (#166). Separate from `ContentStore` on purpose: that
+ * one speaks Markdown and this one speaks bytes, and a port that did both
+ * would have to say `string | Uint8Array` everywhere and be told apart by a
+ * flag.
+ *
+ * There is no `purge` here either, for the reason the content port has none:
+ * destroying a revision belongs to one principal and reaches the store through
+ * a port of its own (rule 8).
+ */
+export interface FileStore {
+  put(bytes: Uint8Array, mimeType: string): Promise<ContentRef>;
+  read(ref: ContentRef): Promise<Uint8Array>;
+  signedUrl(ref: ContentRef, downloadName: string, mimeType: string): Promise<SignedFile>;
+}
+
+/**
+ * The files of a notebook (#166, RN-KNW-048).
+ *
+ * `save` guards the name: a notebook holds one file of each name
+ * (RN-KNW-049), and the guard is an item written under a condition and not a
+ * read followed by a write, because two uploads of one name arriving together
+ * would both find the name free.
+ */
+export interface FileRepository {
+  findById(notebook: NotebookId, file: FileId): Promise<NotebookFile | null>;
+  findByName(notebook: NotebookId, name: string): Promise<NotebookFile | null>;
+  /** Every live file of the notebook, in the order they were kept. */
+  list(notebook: NotebookId): Promise<NotebookFile[]>;
+  save(file: NotebookFile): Promise<Result<void, DomainError>>;
 }
 
 export interface EventPublisher {

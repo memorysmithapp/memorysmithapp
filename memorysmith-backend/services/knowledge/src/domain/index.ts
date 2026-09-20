@@ -21,6 +21,8 @@ export {
 } from './values.js';
 export { FolderTreePlacement, type Placement } from './services/FolderTreePlacement.js';
 export { NotePlacement, type NoteOrder } from './services/NotePlacement.js';
+export { NotebookFile } from './file/NotebookFile.js';
+export type { FileTypes } from './ports/index.js';
 export {
   composeNotebookContext,
   type NotebookContextInput,
