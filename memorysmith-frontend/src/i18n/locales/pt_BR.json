@@ -269,7 +269,10 @@
     "nameTakenWhy": "Você já tem um caderno com esse nome, e uma assinatura tem um caderno de cada nome. Escolha outro nome, ou apague aquele caderno e importe de novo.",
     "nameTakenBlock": "O nome já é de um caderno seu.",
     "changeName": "Mudar o nome",
-    "nothingImported": "Nada é importado até resolver."
+    "nothingImported": "Nada é importado até resolver.",
+    "countFiles_one": "{{count}} arquivo",
+    "countFiles_other": "{{count}} arquivos",
+    "countFiles_zero": "{{count}} arquivos"
   },
   "graph": {
     "heading": "Grafo do caderno",

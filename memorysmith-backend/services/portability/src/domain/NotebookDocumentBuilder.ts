@@ -26,7 +26,7 @@
  * through that schema, so what reaches the archive is what the specification
  * of the format describes and nothing else (RN-PRT-011).
  */
-export const NOTEBOOK_DOCUMENT_VERSION = '1.1';
+export const NOTEBOOK_DOCUMENT_VERSION = '1.2';
 
 /**
  * One entry of the trail, as the archive carries it, and the revisions those
@@ -58,6 +58,22 @@ export interface DocumentHistory {
   readonly revisions: Record<string, string>;
 }
 
+/**
+ * One file the notebook keeps, with its bytes base64 (RN-PRT-025).
+ *
+ * No identifier: an import mints its own, and nothing addresses a file by one.
+ * A note reaches a file by NAME, which is what makes the `![[name]]` of an
+ * imported note find the picture it always found.
+ */
+export interface DocumentFile {
+  readonly name: string;
+  readonly description: string;
+  readonly mimeType: string;
+  readonly tags: readonly string[];
+  readonly path: string;
+  readonly bytes: string;
+}
+
 export interface NotebookDocument {
   readonly documentVersion: string;
   readonly exportedAt: string;
@@ -85,6 +101,8 @@ export interface NotebookDocument {
   }>;
   /** Absent unless the export was asked to carry it (RN-PRT-022). */
   readonly history?: DocumentHistory;
+  /** Absent from every document written before `1.2` (RN-PRT-025). */
+  readonly files?: readonly DocumentFile[];
 }
 
 /** What the Knowledge context hands over, with nothing computed. */
@@ -116,6 +134,13 @@ export interface ExportInput {
   readonly notes: ExportNote[];
   /** What the trail says about this notebook, when it was asked for. */
   readonly history?: DocumentHistory | undefined;
+  /**
+   * The files the notebook keeps. They are outside the selection on purpose: a
+   * file belongs to the notebook rather than to a folder, and an embed that
+   * lands pending because the picture was left behind is a worse default than
+   * a larger archive (RN-PRT-025).
+   */
+  readonly files?: readonly DocumentFile[] | undefined;
 }
 
 /**
@@ -277,6 +302,8 @@ export function buildNotebookDocument(input: ExportInput, now: string): Notebook
     // Absent unless it was asked for: a document without history is a `1.0`
     // document in every way that matters (RN-PRT-022).
     ...(input.history ? { history: input.history } : {}),
+    // And the files, whenever the notebook keeps any (RN-PRT-025).
+    ...(input.files && input.files.length > 0 ? { files: input.files } : {}),
   };
 }
 

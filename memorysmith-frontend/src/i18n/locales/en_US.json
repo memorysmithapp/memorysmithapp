@@ -266,7 +266,10 @@
     "nameTakenWhy": "You already have a notebook of that name, and a subscription holds one notebook of each name. Choose another name, or delete that notebook and import again.",
     "nameTakenBlock": "The name is already a notebook of yours.",
     "changeName": "Change the name",
-    "nothingImported": "Nothing is imported until that is resolved."
+    "nothingImported": "Nothing is imported until that is resolved.",
+    "countFiles_one": "{{count}} file",
+    "countFiles_other": "{{count}} files",
+    "countFiles_zero": "{{count}} files"
   },
   "graph": {
     "heading": "Notebook graph",

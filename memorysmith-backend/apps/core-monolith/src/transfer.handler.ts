@@ -47,6 +47,7 @@ import {
   RestoreFolderNumber,
 } from '@memorysmith/svc-knowledge/application/folders';
 import { CreateNote } from '@memorysmith/svc-knowledge/application/notes';
+import { KeepFile } from '@memorysmith/svc-knowledge/application/files';
 import { ResolveRequestContext } from '@memorysmith/svc-access/application/context';
 import { DynamoTransferStore } from '@memorysmith/svc-portability/adapters/dynamo';
 import { KnowledgeExportSource } from './export-source.js';
@@ -148,6 +149,7 @@ async function writerFor(context: SubscriptionContext): Promise<KnowledgeNoteboo
       putTemplate: new PutTemplate(knowledge),
       restoreFolderNumber: new RestoreFolderNumber(knowledge),
       createNote: new CreateNote(knowledge),
+      keepFile: new KeepFile(knowledge),
       deleteNotebook: new DeleteNotebook(knowledge),
     },
     resolved.value,

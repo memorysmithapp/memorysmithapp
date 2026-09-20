@@ -37,6 +37,8 @@ export type {
   ContentSlotRepository,
   ContentStore,
   EventPublisher,
+  FileRepository,
+  FileStore,
   FolderNumbers,
   NoteRepository,
   NotebookRepository,

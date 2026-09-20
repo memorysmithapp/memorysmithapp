@@ -53,7 +53,7 @@ import type { DocumentHistory, NotebookDocument } from '../domain/NotebookDocume
  * history an export may carry and changed nothing else, so a `1.0` document is
  * read exactly as it always was (RN-PRT-022).
  */
-export const READABLE_DOCUMENT_VERSIONS: readonly string[] = ['1.0', '1.1'];
+export const READABLE_DOCUMENT_VERSIONS: readonly string[] = ['1.0', '1.1', '1.2'];
 
 /**
  * Why an import was refused, as a CODE and not as a sentence (RN-PRT-018).
@@ -124,6 +124,24 @@ export interface NotebookWriter {
     content: string;
     by: Authorship;
   }): Promise<Result<{ noteId: string }, DomainError>>;
+  /**
+   * Keeps one file of the archive under the notebook it created (RN-PRT-025).
+   *
+   * It goes through the same door an upload does, so a file that arrives with
+   * a type its bytes do not support is refused here exactly as it would be at
+   * the door — an archive is not a way around the check that decides what a
+   * file IS.
+   */
+  keepFile(input: {
+    notebookId: string;
+    name: string;
+    description: string;
+    mimeType: string;
+    tags: readonly string[];
+    path: string;
+    bytes: Uint8Array;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>>;
   /** Brings the counter of a folder up to the last number it had issued (RN-PRT-016). */
   restoreNumber(input: {
     notebookId: string;
@@ -501,6 +519,33 @@ export class ImportNotebook {
       return err(
         DomainError.validation('The import was cancelled', { reason: IMPORT_REFUSALS.cancelled }),
       );
+    }
+
+    /**
+     * The files, before the history and after the notes: a note that
+     * references one is already written, and a file the archive carries is
+     * kept whatever the selection left out, because a file belongs to the
+     * notebook rather than to a folder (RN-PRT-025).
+     */
+    for (const file of document.files ?? []) {
+      if (await stopped()) {
+        return err(
+          DomainError.validation('The import was cancelled', {
+            reason: IMPORT_REFUSALS.cancelled,
+          }),
+        );
+      }
+      const keep = await this.writer.keepFile({
+        notebookId,
+        name: file.name,
+        description: file.description,
+        mimeType: file.mimeType,
+        tags: file.tags,
+        path: file.path,
+        bytes: new Uint8Array(Buffer.from(file.bytes, 'base64')),
+        by,
+      });
+      if (!keep.ok) return undo(keep);
     }
 
     if (chosen.history && document.history && this.trail) {

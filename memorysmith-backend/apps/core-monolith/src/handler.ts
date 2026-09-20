@@ -340,6 +340,9 @@ function notebookWriterFor(request: KnowledgeRequest): NotebookWriter {
       putTemplate: new PutTemplate(knowledge),
       restoreFolderNumber: new RestoreFolderNumber(knowledge),
       createNote: new CreateNote(knowledge),
+      // An archive carries the files of the notebook, and they come back
+      // through the door an upload uses (#166, RN-PRT-025).
+      keepFile: new KeepFile(knowledge),
       deleteNotebook: new DeleteNotebook(knowledge),
     },
     request.ctx,

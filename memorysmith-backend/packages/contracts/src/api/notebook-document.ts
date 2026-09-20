@@ -42,14 +42,15 @@ import { domainEventTypeSchema } from '../events.js';
  * its bodies are written in: that notation follows the version of the product
  * that wrote it (RN-PRT-011).
  */
-export const NOTEBOOK_DOCUMENT_VERSION = '1.1';
+export const NOTEBOOK_DOCUMENT_VERSION = '1.2';
 
 /**
  * The versions this build can read. `1.1` added the history an export may
- * carry, and nothing else: a `1.0` document is a `1.1` document with no
- * history, so it is read exactly as it always was (RN-PRT-022).
+ * carry and `1.2` the files the notebook keeps, and neither added anything
+ * else: an older document is a newer one with that part missing, so it is read
+ * exactly as it always was (RN-PRT-022, RN-PRT-025).
  */
-export const READABLE_DOCUMENT_VERSIONS = ['1.0', '1.1'] as const;
+export const READABLE_DOCUMENT_VERSIONS = ['1.0', '1.1', '1.2'] as const;
 
 export const documentFolderSchema = z.object({
   folderId: ulidSchema,
@@ -116,6 +117,31 @@ export const documentHistorySchema = z.object({
   revisions: z.record(z.string().min(1), z.string()),
 });
 
+/**
+ * One file the notebook keeps (RN-PRT-025, RN-KNW-048).
+ *
+ * The bytes travel **base64 inside the document**, because the document is one
+ * file and that is the whole promise of the format: an archive whose pictures
+ * live somewhere else is not an archive. What it costs is a third more bytes
+ * than the file itself, and the alternative — a second entry beside the JSON —
+ * costs an archive that can be half-restored.
+ *
+ * No identifier travels. An import mints its own (RN-PRT-013), and nothing
+ * addresses a file by id: a note reaches one by NAME, which is what makes the
+ * `![[name]]` of an imported note find the picture it always found.
+ */
+export const documentFileSchema = z.object({
+  name: z.string().min(1).max(512),
+  description: z.string().max(500),
+  /** What the file IS, which is what decides how it is drawn (RN-KNW-050). */
+  mimeType: z.string().min(1).max(128),
+  tags: z.array(z.string().min(1).max(40)).max(20),
+  /** Where it was filed, written like a path of a filesystem. */
+  path: z.string().max(512),
+  /** The bytes, base64. */
+  bytes: z.string(),
+});
+
 export const notebookDocumentSchema = z.object({
   /** The shape of this document. Read before anything else. */
   documentVersion: z.enum(READABLE_DOCUMENT_VERSIONS),
@@ -133,9 +159,18 @@ export const notebookDocumentSchema = z.object({
    * document ever written.
    */
   history: documentHistorySchema.optional(),
+  /**
+   * The files the notebook keeps, absent from every document written before
+   * `1.2`. They are NOT part of the selection: a file belongs to the notebook
+   * rather than to a folder, any note carried may reference any of them, and
+   * an embed that lands pending because the picture was left behind is a
+   * worse default than a larger archive (RN-PRT-025).
+   */
+  files: z.array(documentFileSchema).optional(),
 });
 
 export type NotebookDocument = z.infer<typeof notebookDocumentSchema>;
+export type DocumentFile = z.infer<typeof documentFileSchema>;
 export type DocumentHistory = z.infer<typeof documentHistorySchema>;
 export type DocumentHistoryEntry = z.infer<typeof documentHistoryEntrySchema>;
 export type DocumentFolder = z.infer<typeof documentFolderSchema>;

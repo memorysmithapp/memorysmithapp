@@ -26,6 +26,7 @@ import type {
   RestoreFolderNumber,
 } from '@memorysmith/svc-knowledge/application/folders';
 import type { CreateNote } from '@memorysmith/svc-knowledge/application/notes';
+import type { KeepFile } from '@memorysmith/svc-knowledge/application/files';
 import type { ContentStore, RequestContext } from '@memorysmith/svc-knowledge/domain';
 
 export interface KnowledgeWriteUseCases {
@@ -35,6 +36,8 @@ export interface KnowledgeWriteUseCases {
   readonly putTemplate: PutTemplate;
   readonly restoreFolderNumber: RestoreFolderNumber;
   readonly createNote: CreateNote;
+  /** The files an archive carries back, through the door an upload uses (#166). */
+  readonly keepFile: KeepFile;
   readonly deleteNotebook: DeleteNotebook;
 }
 
@@ -125,6 +128,41 @@ export class KnowledgeNotebookWriter implements NotebookWriter {
       by: input.by,
     });
     return written.ok ? ok() : written;
+  }
+
+  /**
+   * One file of the archive, kept under the notebook the import created
+   * (RN-PRT-025).
+   *
+   * It goes through `KeepFile`, which is the same door an upload uses: the
+   * declared type is checked against the bytes, the quota is asked, and a name
+   * the notebook already holds is refused. An import is not a way around the
+   * check that decides what a file IS.
+   */
+  async keepFile(input: {
+    notebookId: string;
+    name: string;
+    description: string;
+    mimeType: string;
+    tags: readonly string[];
+    path: string;
+    bytes: Uint8Array;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>> {
+    const notebookId = NotebookId.create(input.notebookId);
+    if (!notebookId.ok) return notebookId;
+    const kept = await this.useCases.keepFile.execute({
+      ctx: this.ctx,
+      notebookId: notebookId.value,
+      name: input.name,
+      description: input.description,
+      mimeType: input.mimeType,
+      tags: input.tags,
+      path: input.path,
+      bytes: input.bytes,
+      by: input.by,
+    });
+    return kept.ok ? ok() : kept;
   }
 
   async createNote(input: {

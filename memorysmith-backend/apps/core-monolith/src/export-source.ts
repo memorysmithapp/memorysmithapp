@@ -13,6 +13,8 @@ import { NotebookId } from '@memorysmith/kernel';
 import type {
   ContentSlotRepository,
   ContentStore,
+  FileRepository,
+  FileStore,
   FolderNumbers,
   NoteRepository,
   NotebookRepository,
@@ -53,6 +55,9 @@ interface KnowledgeSide {
   readonly content: ContentStore;
   /** The last number each folder issued, which the export carries (RN-PRT-016). */
   readonly numbers: FolderNumbers;
+  /** The files the notebook keeps, which travel with it (RN-PRT-025). */
+  readonly files: FileRepository;
+  readonly fileStore: FileStore;
 }
 
 export class KnowledgeExportSource implements ExportSource {
@@ -80,8 +85,9 @@ export class KnowledgeExportSource implements ExportSource {
     );
     const guidanceSlot = await this.knowledge.slots.findGuidance(parsed.value);
     const lastNumbers = await this.knowledge.numbers.lastIssued(parsed.value);
+    const kept = await this.knowledge.files.list(parsed.value);
 
-    const [guidance, templates, bodies] = await Promise.all([
+    const [guidance, templates, bodies, fileBytes] = await Promise.all([
       guidanceSlot ? this.knowledge.content.read(guidanceSlot.ref) : Promise.resolve(null),
       mapWithConcurrency(folders, READ_CONCURRENCY, async (folder) => {
         const ref = templateOf.get(folder.id.value);
@@ -89,6 +95,11 @@ export class KnowledgeExportSource implements ExportSource {
       }),
       mapWithConcurrency(notes, READ_CONCURRENCY, (note) =>
         this.knowledge.content.read(note.bodyRef),
+      ),
+      // The bytes themselves, because an archive whose pictures live somewhere
+      // else is not an archive (RN-PRT-025).
+      mapWithConcurrency(kept, READ_CONCURRENCY, (file) =>
+        this.knowledge.fileStore.read(file.contentRef),
       ),
     ]);
 
@@ -116,6 +127,19 @@ export class KnowledgeExportSource implements ExportSource {
         createdAt: note.createdBy.at.toISOString(),
         updatedAt: note.updatedBy.at.toISOString(),
         content: bodies[index] ?? '',
+      })),
+      /**
+       * The files, with no identifier of their own: an import mints one, and
+       * nothing addresses a file by id. A note reaches one by NAME, which is
+       * what makes the `![[name]]` of an imported note find its picture.
+       */
+      files: kept.map((file, index) => ({
+        name: file.name,
+        description: file.description,
+        mimeType: file.mimeType,
+        tags: [...file.tags],
+        path: file.path,
+        bytes: Buffer.from(fileBytes[index] ?? new Uint8Array()).toString('base64'),
       })),
     };
   }

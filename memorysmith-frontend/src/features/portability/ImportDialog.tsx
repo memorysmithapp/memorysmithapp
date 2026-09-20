@@ -201,6 +201,11 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
                 templates: t('portability.countTemplates', { count: counts.templates }),
                 notes: t('portability.noteCount', { count: counts.notes }),
               })}
+              {/* The files the archive carries. They are not part of the
+                  selection — a file belongs to the notebook, not to a folder —
+                  so they are said rather than chosen (RN-PRT-025). */}
+              {(document?.files?.length ?? 0) > 0 &&
+                ` · ${t('portability.countFiles', { count: document?.files?.length ?? 0 })}`}
               {dangling > 0 && ` · ${t('portability.danglingLinks', { count: dangling })}`}
               {(taken || twins.length > 0) && (
                 <>

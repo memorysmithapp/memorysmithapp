@@ -119,6 +119,65 @@ test.describe('a notebook out and back in', () => {
     expect(again.status).toBe('failed');
     expect(again.failure).toBe('NOT_FOUND');
   });
+  test('carries the files of the notebook out and back in, by name', async ({
+    owner,
+    notebook,
+  }) => {
+    /**
+     * The smallest real PNG there is, kept under a name with NO EXTENSION, so
+     * what comes back is proved to travel by its type and never by its name
+     * (RN-PRT-025, RN-KNW-050).
+     */
+    const png =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const name = unique('A picture');
+    await owner.ok('POST', `/knowledge/notebooks/${notebook.notebookId}/files`, {
+      name,
+      description: 'Kept by a functional case',
+      mimeType: 'image/png',
+      tags: ['portable'],
+      path: '/evidence',
+      bytes: png,
+    });
+    // And a note that shows it, so what the round trip has to preserve is the
+    // reference as much as the bytes.
+    await owner.ok('POST', `/knowledge/notebooks/${notebook.notebookId}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: ${unique('Shows the picture')}\n---\n\n![[${name}]]\n`,
+    });
+
+    const transfer = await exported(owner, notebook.notebookId);
+    expect(transfer.status).toBe('ready');
+    const link = await owner.ok<{ downloadUrl: string }>(
+      'POST',
+      `/portability/transfers/${transfer.transferId}/download`,
+    );
+    const archive = new Uint8Array(await (await fetch(link.downloadUrl)).arrayBuffer());
+
+    const upload = await owner.ok<{ uploadKey: string; uploadUrl: string }>(
+      'POST',
+      '/portability/imports',
+    );
+    await fetch(upload.uploadUrl, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/zip' },
+      body: archive,
+    });
+    const imported = await importedFrom(owner, upload.uploadKey, unique('With files'));
+    expect(imported.status).toBe('ready');
+
+    const files = await owner.ok<
+      Array<{ name: string; mimeType: string; path: string; tags: string[]; bytes: number }>
+    >('GET', `/knowledge/notebooks/${imported.notebookId ?? ''}/files`);
+    const brought = files.find((file) => file.name === name);
+    expect(brought, 'the file came back under its name').toBeDefined();
+    expect(brought?.mimeType).toBe('image/png');
+    expect(brought?.path).toBe('/evidence');
+    expect(brought?.tags).toEqual(['portable']);
+    // The bytes, not a placeholder: an archive whose pictures live somewhere
+    // else is not an archive.
+    expect(brought?.bytes).toBeGreaterThan(0);
+  });
 });
 
 test.describe('the transfers of a person', () => {
