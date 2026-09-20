@@ -78,7 +78,7 @@ Four documents in `docs/`, and beside them the specification of the notation, ea
 | The paragraph answers | It belongs to |
 |---|---|
 | "This is true about Markdown / MCP / auditing in general" | [`docs/knowledge-base.md`](docs/knowledge-base.md) |
-| "This notation **means this, and produces this**" | [`docs/markdown-spec/SPEC.md`](docs/markdown-spec/SPEC.md) |
+| "This notation **means this, and produces this**" | [`docs/markdown-spec.md`](docs/markdown-spec.md) |
 | "This is what our product does, and under which rule" | [`docs/software-vision.md`](docs/software-vision.md) |
 | "This is **how the software is built**" | [`docs/architecture-guide.md`](docs/architecture-guide.md) |
 | "This is **how work flows**, from the need to the merge" | [`docs/development-process.md`](docs/development-process.md) |
@@ -92,7 +92,7 @@ The last two rows of the table separate what confuses most. The test: "the outbo
 
 ### A notation lives in three files
 
-**A notation lives in `SPEC.md`, `spec.json` and `tests/conformance.json` of `docs/markdown-spec/` at once, and the three move in the same commit**, together with the reader that implements it. A notation without a conformance case is not part of the specification. The one exception is already known to `tools/check-spec.mjs`, which is the `test` script of the package: an entry whose reader is `reading-surface` is rendering, and is proved by the renderer rather than by a case. The specification carries no version of its own and follows the version of the product.
+**A notation lives in three files at once — the document, [`docs/markdown-spec.md`](docs/markdown-spec.md), and `spec.json` and `tests/conformance.json` of `memorysmith-backend/packages/markdown-spec/` — and the three move in the same commit**, together with the reader that implements it. The document is in `docs/` because it is what the product **publishes**; the data, the suite and the checker are a package of the backend because they are what it **implements**, and code of this product lives there. What keeps the three together now that they do not share a folder is `tools/check-spec.mjs`, which reads the document across the repository and fails when it is missing rather than skipping it. A notation without a conformance case is not part of the specification. The one exception is already known to the checker, which is the `test` script of the package: an entry whose reader is `reading-surface` is rendering, and is proved by the renderer rather than by a case. The specification carries no version of its own and follows the version of the product.
 
 ### Business rule codes
 
@@ -137,7 +137,7 @@ The reason is not preference. Everything the product exposes is already en-US: t
 
 ### Examples of the specification, in any language
 
-The examples inside `docs/markdown-spec/SPEC.md` and its conformance suite may be in any language, and some are not in English on purpose: `[[Contratação Direta 2.0]]` is what proves an accent is carried into the key rather than folded out of it, and `[[日本語]]` that a name in a non-Latin script is a name. An English-only suite would never test either. The prose around them is en-US like everything else.
+The examples inside `docs/markdown-spec.md` and its conformance suite may be in any language, and some are not in English on purpose: `[[Contratação Direta 2.0]]` is what proves an accent is carried into the key rather than folded out of it, and `[[日本語]]` that a name in a non-Latin script is a name. An English-only suite would never test either. The prose around them is en-US like everything else.
 
 Neither the git history nor issues and pull requests already written are rewritten: they are dated records.
 

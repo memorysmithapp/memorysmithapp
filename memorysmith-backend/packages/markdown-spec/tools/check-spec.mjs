@@ -1,11 +1,17 @@
 #!/usr/bin/env node
 // The consistency check of the specification.
 //
-// A notation lives in three files at once — SPEC.md, spec.json and
-// tests/conformance.json — and the failure it exists to prevent is the three of them
-// drifting apart in silence. This is what refuses that. It is the `test` script of its
-// package, so it runs wherever the suites of the repository run, with no dependencies, no
-// build and no network.
+// A notation lives in three files at once — the document in `docs/markdown-spec.md`,
+// `spec.json` and `tests/conformance.json` — and the failure it exists to prevent is the
+// three of them drifting apart in silence. This is what refuses that. It is the `test`
+// script of its package, so it runs wherever the suites of the repository run, with no
+// dependencies, no build and no network.
+//
+// The document is in `docs/` and the data is a package of the backend, because the
+// document is what the product PUBLISHES and the rest is what it implements (#162). The
+// folder that used to hold both is what made "the three move together" obvious, so this
+// is now what carries that rule: the document is read across the repository, and a
+// document that is not there fails the build instead of being skipped.
 //
 // It validates spec.json against schema/spec.schema.json with a validator that
 // implements only the keywords the schema actually uses, and that FAILS on any keyword it
@@ -17,6 +23,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+/** The document of the specification, which lives with the other documents. */
+const documentPath = join(root, '..', '..', '..', 'docs', 'markdown-spec.md');
 const errors = [];
 const fail = (where, message) => errors.push(`${where}: ${message}`);
 
@@ -33,7 +41,13 @@ const readJson = (relative) => {
 const schema = readJson('schema/spec.schema.json');
 const spec = readJson('spec.json');
 const conformance = readJson('tests/conformance.json');
-const specText = readFileSync(join(root, 'SPEC.md'), 'utf8');
+let specText = '';
+try {
+  specText = readFileSync(documentPath, 'utf8');
+} catch {
+  fail('docs/markdown-spec.md', 'is missing: the document and the data move together');
+  report();
+}
 
 if (!schema || !spec || !conformance) {
   report();
@@ -224,7 +238,7 @@ for (const testCase of cases) {
       );
       continue;
     }
-    // SPEC.md 5.4, 5.5 and 5.8: only a note produces an edge, and a note that matches
+    // The specification § 5.4, 5.5 and 5.8: only a note produces an edge, and a note that matches
     // produces one per match.
     if (outcome.kind !== 'note' && outcome.edges !== 0) {
       fail(
@@ -255,7 +269,7 @@ for (const entry of notations) {
 }
 
 // ---------------------------------------------------------------------------
-// Every section reference resolves to a real heading of SPEC.md.
+// Every section reference resolves to a real heading of the document.
 // ---------------------------------------------------------------------------
 
 const headings = new Set(
@@ -268,7 +282,7 @@ for (const entry of notations) {
     if (!headings.has(section)) {
       fail(
         'spec.json',
-        `the notation "${entry.id}" points at SPEC.md § ${section}, which has no heading`,
+        `the notation "${entry.id}" points at the specification § ${section}, which has no heading`,
       );
     }
   }
@@ -282,7 +296,7 @@ for (const match of specText.matchAll(/§(\d+(?:\.\d+)*)/g)) {
   if (!headings.has(match[1])) danglingRefs.add(match[1]);
 }
 for (const section of [...danglingRefs].sort()) {
-  fail('SPEC.md', `refers to § ${section}, which has no heading`);
+  fail('docs/markdown-spec.md', `refers to § ${section}, which has no heading`);
 }
 
 // ---------------------------------------------------------------------------
@@ -290,7 +304,7 @@ for (const section of [...danglingRefs].sort()) {
 //
 // There is no version to mirror. The specification follows the version of the product that
 // carries it, and a number written in these files would be one more place to forget: 0.2.0
-// was once released with the header of SPEC.md still saying 0.1.0.
+// was once released with the header of the document still saying 0.1.0.
 // ---------------------------------------------------------------------------
 
 if (conformance.spec !== spec.spec) {

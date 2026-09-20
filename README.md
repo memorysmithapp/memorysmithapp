@@ -486,7 +486,7 @@ core/
 | [`docs/software-vision.md`](docs/software-vision.md) | What the product does and under which rule: the vision, the ubiquitous language, roles, entities, business rules, the MCP catalogue and the screens |
 | [`docs/architecture-guide.md`](docs/architecture-guide.md) | How it is built: tactical DDD, hexagonal, single-table DynamoDB, the outbox, MCP and OAuth, infrastructure and tests |
 | [`docs/knowledge-base.md`](docs/knowledge-base.md) | The domain it operates in: Markdown, knowledge management, MCP, retrieval, auditing and data protection law |
-| [`docs/markdown-spec/SPEC.md`](docs/markdown-spec/SPEC.md) | The notation a note is written in: what each form means and produces, as prose, as data and as the conformance suite that proves it |
+| [`docs/markdown-spec.md`](docs/markdown-spec.md) | The notation a note is written in: what each form means and produces. Its data and its conformance suite are the package the product implements it with, `memorysmith-backend/packages/markdown-spec` |
 | [`docs/development-process.md`](docs/development-process.md) | How work flows: from the issue of whoever uses it to the merge, with triage, roadmap and what each commit has to touch |
 | [`CLAUDE.md`](CLAUDE.md) | The working rules of the repository, including the thirteen non-negotiable design decisions |
 | [`SECURITY.md`](SECURITY.md) | How to report an isolation failure or a vulnerability, in private |

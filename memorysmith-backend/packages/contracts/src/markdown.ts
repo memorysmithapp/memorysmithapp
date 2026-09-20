@@ -2,10 +2,10 @@
  * The notation the product reads inside the body of a note, DERIVED from the
  * specification rather than transcribed from it.
  *
- * The notation is declared once, as data, in `docs/markdown-spec/`: the
- * MemorySmith Markdown Specification, carrying the same list as prose
- * (`SPEC.md`), as data (`spec.json`) and as an executable suite
- * (`tests/conformance.json`). It has no version of its own — it follows the
+ * The notation is declared once: the MemorySmith Markdown Specification,
+ * carrying the same list as prose, in the document `docs/markdown-spec.md`,
+ * as data (`spec.json`) and as an executable suite (`tests/conformance.json`),
+ * the last two in the package this file reads them from. It has no version of its own — it follows the
  * version of the product — and a notation changes in the same commit as the
  * readers that implement it.
  *

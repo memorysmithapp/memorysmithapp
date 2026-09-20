@@ -36,8 +36,6 @@ importers:
         specifier: ^3.2.7
         version: 3.2.7(@types/debug@4.1.13)(@types/node@24.13.3)(supports-color@7.2.0)(tsx@4.23.12)
 
-  docs/markdown-spec: {}
-
   memorysmith-backend: {}
 
   memorysmith-backend/apps/core-monolith:
@@ -89,12 +87,14 @@ importers:
     dependencies:
       '@memorysmith/markdown-spec':
         specifier: workspace:*
-        version: link:../../../docs/markdown-spec
+        version: link:../markdown-spec
       zod:
         specifier: ^4.0.0
         version: 4.4.3
 
   memorysmith-backend/packages/kernel: {}
+
+  memorysmith-backend/packages/markdown-spec: {}
 
   memorysmith-backend/services/access:
     dependencies:

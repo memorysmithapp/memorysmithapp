@@ -8,7 +8,7 @@ packages:
   # The Markdown specification the product reads, declared once as data. It is
   # a package so the contracts can derive the notation from it and so its own
   # check runs with every other suite; it follows the version of the product.
-  - docs/markdown-spec
+  - memorysmith-backend/packages/markdown-spec
 
 allowBuilds:
   esbuild: true

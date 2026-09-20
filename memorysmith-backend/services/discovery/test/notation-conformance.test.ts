@@ -3,7 +3,7 @@
  * MemorySmith Markdown Specification (RN-AGT-022, RN-AGT-023).
  *
  * The cases are not written here and they are not a copy of anything written
- * here. They come from `docs/markdown-spec/tests/conformance.json`, so a case
+ * here. They come from `packages/markdown-spec/tests/conformance.json`, so a case
  * the extractors fail breaks the build: the product cannot quietly stop
  * reading what it says it reads. **Every case runs.** The specification
  * changes in the same commit as the readers that implement it, so there is no

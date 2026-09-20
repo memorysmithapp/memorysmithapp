@@ -67,7 +67,7 @@ This document does not reproduce a source. It does not carry the flanking rules 
 
 What no source can give is the place where a form meets the rest of this specification, and that is what §3 and §4 add. A fenced code block is CommonMark, and that a `[[link]]` inside one produces no edge is §5.6. A block quote is CommonMark, and that one beginning `[!warning]` is a callout is §7.1. CommonMark admits raw HTML, and that a Reader here MUST NOT render it is §7.9 — a security boundary, and the one place this specification narrows a source rather than following it. Each crossing is stated where an author meets it, and again in the section that governs it.
 
-From §5 onward no source stands above this document. That is where implementations of Markdown usually diverge in silence, and every form there is stated with a syntax, an example and an effect, with a machine-readable counterpart in [`spec.json`](spec.json) and at least one case in the [conformance suite](tests/).
+From §5 onward no source stands above this document. That is where implementations of Markdown usually diverge in silence, and every form there is stated with a syntax, an example and an effect, with a machine-readable counterpart in [`spec.json`](../memorysmith-backend/packages/markdown-spec/spec.json) and at least one case in the [conformance suite](tests/).
 
 ---
 
@@ -793,15 +793,17 @@ note to one that deserves a note of its own.
 
 ## 9. The machine-readable specification
 
-[`spec.json`](spec.json) carries every notation of §3 to §7 as data: an identifier, which reader decides it, the syntax, a worked example and the observable effect. It is validated by [`schema/spec.schema.json`](schema/spec.schema.json).
+**This document is the specification; the data and the suite are how the product implements it.** The document lives here, with the other documents of the repository; [`spec.json`](../memorysmith-backend/packages/markdown-spec/spec.json), the schema that validates it and the conformance suite live in a package of the backend, `@memorysmith/markdown-spec`, and the three of them move in the same change (#162).
+
+[`spec.json`](../memorysmith-backend/packages/markdown-spec/spec.json) carries every notation of §3 to §7 as data: an identifier, which reader decides it, the syntax, a worked example and the observable effect. It is validated by [`schema/spec.schema.json`](../memorysmith-backend/packages/markdown-spec/schema/spec.schema.json).
 
 It exists so that a specification and an implementation cannot drift apart in prose. An implementation SHOULD build its own documentation, and anything it teaches an agent, from this file rather than from a copy of it.
 
 ## 10. The conformance suite
 
-[`tests/conformance.json`](tests/conformance.json) is the executable half of this document: each case is a Markdown input and the links and attributes a conforming Indexer produces from it. A case that exercises a rule about the rest of the notebook — §5.4, §5.5 and §5.8, where what a target becomes depends on what else exists — carries the notes and attachments it needs alongside the input. A case whose expectation is *nothing* — a link inside a code fence, an external destination — is as normative as any other.
+[`tests/conformance.json`](../memorysmith-backend/packages/markdown-spec/tests/conformance.json) is the executable half of this document: each case is a Markdown input and the links and attributes a conforming Indexer produces from it. A case that exercises a rule about the rest of the notebook — §5.4, §5.5 and §5.8, where what a target becomes depends on what else exists — carries the notes and attachments it needs alongside the input. A case whose expectation is *nothing* — a link inside a code fence, an external destination — is as normative as any other.
 
-An implementation claiming the Indexer role SHOULD run the suite in its own continuous integration. See [`tests/README.md`](tests/README.md) for the format.
+An implementation claiming the Indexer role SHOULD run the suite in its own continuous integration. See [`tests/README.md`](../memorysmith-backend/packages/markdown-spec/tests/README.md) for the format.
 
 The forms of §3 and §4 carry no cases here, and need none: CommonMark and GFM each ship a suite of their own, and an implementation demonstrates those forms by passing it. What this suite covers is the part nobody else tests, which is the same reason §5 to §7 exist.
 
@@ -879,3 +881,29 @@ Every form this document declares, in one table. The last column is the section 
 | Prose in frontmatter | over 40 characters | Read and discarded | 6.3 |
 | `name:` | in the frontmatter | The name of the note, and the only thing that names it; never an attribute | 5.3, 6.5 |
 | Raw HTML | `<div>`, `<abbr>` | Shown as text, never rendered. A security boundary | 7.9 |
+
+---
+
+## Licence
+
+Creative Commons Attribution 4.0 International (CC BY 4.0). Copyright (c) 2026
+MemorySmith.app.
+
+**The text of this specification** — this document and the prose of
+[`tests/README.md`](../memorysmith-backend/packages/markdown-spec/tests/README.md) — is licensed under the Creative Commons
+Attribution 4.0 International License. You are free to **share** it, copying and
+redistributing it in any medium or format, and to **adapt** it, remixing, transforming and
+building upon it for any purpose, even commercially, under one term: **attribution**. You
+must give appropriate credit, provide a link to the license and indicate if changes were
+made — in any reasonable manner, but never in a way that suggests the licensor endorses
+you or your use. The full legal code is at
+<https://creativecommons.org/licenses/by/4.0/legalcode>.
+
+**The data and the suite are not covered by it.** `spec.json`,
+`schema/spec.schema.json`, `tests/conformance.json` and `tools/check-spec.mjs` are
+licensed under the MIT License, in the `LICENSE` file at the root of this repository, so
+that an implementation may embed them without an attribution obligation on its output.
+
+**"MemorySmith" is a trademark.** This license grants rights over the text and no rights
+over the name: anyone may implement this specification, and only an implementation that
+passes the conformance suite may describe itself as conforming to it.

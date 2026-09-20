@@ -31,7 +31,7 @@ describe('the specification, as this build reads it', () => {
     // still pointed at the site it was published on would send an agent to a
     // page that no longer exists.
     expect(MARKDOWN_SPEC_NAME).toBe('MemorySmith Markdown Specification');
-    expect(MARKDOWN_SPEC_URL).toMatch(/\/docs\/markdown-spec\/SPEC\.md$/);
+    expect(MARKDOWN_SPEC_URL).toMatch(/\/docs\/markdown-spec\.md$/);
     expect(RECOGNISED_NOTATION.length).toBeGreaterThan(0);
   });
 

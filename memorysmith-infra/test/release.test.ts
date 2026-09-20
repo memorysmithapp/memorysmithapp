@@ -133,7 +133,10 @@ describe('the checks of a release', () => {
   it('leave alone a manifest that declares no version, which follows the product', () => {
     const problems = releaseProblems({
       claudeMd: CLAUDE_MD,
-      manifests: [...agreeing, { path: 'docs/markdown-spec/package.json', version: undefined }],
+      manifests: [
+        ...agreeing,
+        { path: 'memorysmith-backend/packages/markdown-spec/package.json', version: undefined },
+      ],
       changelog: CHANGELOG,
       tagExists: false,
     });

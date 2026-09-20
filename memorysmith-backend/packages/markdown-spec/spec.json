@@ -2,7 +2,7 @@
   "$schema": "./schema/spec.schema.json",
   "spec": "MemorySmith Markdown Specification",
   "variant": "MemorySmith",
-  "url": "https://github.com/memorysmithapp/memorysmithapp/blob/main/docs/markdown-spec/SPEC.md",
+  "url": "https://github.com/memorysmithapp/memorysmithapp/blob/main/docs/markdown-spec.md",
   "sources": [
     {
       "id": "commonmark",

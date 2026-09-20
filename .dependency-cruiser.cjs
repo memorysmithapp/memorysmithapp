@@ -91,7 +91,8 @@ module.exports = {
     {
       name: 'frontend-reads-the-specification-through-contracts',
       comment:
-        'The Markdown specification in docs/markdown-spec is data the contracts derive from. The ' +
+        'The Markdown specification is data the contracts derive from, in the package of the ' +
+        'backend that holds it beside the document it belongs to (#162). The ' +
         'frontend reads the notation and its cases from @memorysmith/contracts, so the ' +
         'specification has one door into the interface and not two (architecture-guide.md, ' +
         'section 11.0).',
@@ -100,7 +101,7 @@ module.exports = {
       // Both shapes: the package name, which is what an import the frontend does
       // not declare resolves to, and the real path, which is what a relative import
       // or a declared dependency resolves to.
-      to: { path: '(^|/)docs/markdown-spec/|(^|/)@memorysmith/markdown-spec(/|$)' },
+      to: { path: '(^|/)packages/markdown-spec/|(^|/)@memorysmith/markdown-spec(/|$)' },
     },
     {
       name: 'infrastructure-never-loads-what-operates-it',
@@ -131,12 +132,15 @@ module.exports = {
       name: 'contracts-stay-standalone',
       comment:
         'The published language depends on nothing of ours: the frontend imports it, so a ' +
-        'dependency here would drag the backend into the browser bundle.',
+        'dependency here would drag the backend into the browser bundle. The one exception ' +
+        'is the specification, which is DATA and no code: the contracts derive the notation ' +
+        'from it rather than transcribing it, and it is the one door the notation has into ' +
+        'the interface (architecture-guide.md, section 11.0, RN-AGT-022).',
       severity: 'error',
       from: { path: CONTRACTS },
       to: {
         path: '^memorysmith-(backend|frontend|infra)/',
-        pathNot: CONTRACTS,
+        pathNot: [CONTRACTS, '(^|/)packages/markdown-spec/'],
       },
     },
     {
