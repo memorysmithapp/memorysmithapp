@@ -12,13 +12,14 @@
 
 import type {
   DownloadLinkDto,
+  FileLinkDto,
+  NotebookFileDto,
   TransferSelection,
   TransferDto,
   TransferListDto,
 } from '@memorysmith/contracts';
 import * as backend from './backend';
 import { linkTargetAddress, noteAddress } from './note-address';
-import type { NotebookFileDto } from '@memorysmith/contracts';
 import type {
   NoteDetail,
   SearchHit,
@@ -64,10 +65,7 @@ export function fileKept(notebookId: string, name: string): NotebookFileDto | nu
   return files.get(notebookId)?.get(name.normalize('NFC')) ?? null;
 }
 
-export function linkToFile(
-  notebookId: string,
-  fileId: string,
-): Promise<{ url: string; expiresAt: string }> {
+export function linkToFile(notebookId: string, fileId: string): Promise<FileLinkDto> {
   return backend.linkToFile(notebookId, fileId);
 }
 

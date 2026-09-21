@@ -19,7 +19,7 @@ import { GetObjectCommand, PutObjectCommand, type S3Client } from '@aws-sdk/clie
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createHash } from 'node:crypto';
 import { rendersAs } from '@memorysmith/contracts';
-import type { FileStore, SignedFile } from '../../../domain/ports/index.js';
+import type { FileDisposition, FileStore, SignedFile } from '../../../domain/ports/index.js';
 
 /** How long a link to a file lasts. Long enough to read a note, and no longer. */
 const LINK_SECONDS = 3600;
@@ -79,7 +79,12 @@ export class S3FileStore implements FileStore {
    * the object store and not at the API — so a file somebody uploaded is
    * served from an origin that is not the one the product runs in.
    */
-  async signedUrl(ref: ContentRef, downloadName: string, mimeType: string): Promise<SignedFile> {
+  async signedUrl(
+    ref: ContentRef,
+    downloadName: string,
+    mimeType: string,
+    disposition: FileDisposition,
+  ): Promise<SignedFile> {
     const url = await getSignedUrl(
       this.s3,
       new GetObjectCommand({
@@ -87,8 +92,12 @@ export class S3FileStore implements FileStore {
         Key: this.keyOf(ref.contentId),
         VersionId: ref.versionId,
         ResponseContentType: mimeType,
+        // Which of the two it is was decided by the application (#171). It
+        // used to be decided here, off the type, and that is why a card had
+        // two verbs doing one thing: one link, signed as an attachment, under
+        // both of them.
         ResponseContentDisposition:
-          rendersAs(mimeType) === 'card'
+          disposition === 'attachment'
             ? `attachment; filename="${downloadName.replace(/["\\]/g, '')}"`
             : 'inline',
       }),

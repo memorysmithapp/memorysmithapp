@@ -10,7 +10,7 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import { buildTestApp } from './wiring.js';
-import { fileListSchema, notebookFileSchema } from '@memorysmith/contracts';
+import { fileLinkSchema, fileListSchema, notebookFileSchema } from '@memorysmith/contracts';
 import { MAX_INLINE_BYTES } from '@memorysmith/svc-knowledge/application/files';
 
 type App = ReturnType<typeof buildTestApp>;
@@ -223,6 +223,46 @@ describe('a notebook keeps files', () => {
    * with a `413` naming nothing, before the message explaining the limit could
    * run. A declared limit nobody can hit is not a limit.
    */
+  /**
+   * A card offers two verbs and they were one link (#171). The disposition was
+   * chosen by the type rather than by the verb, so every card was signed as an
+   * attachment and `Abrir` opened a tab that downloaded the file and closed.
+   */
+  it('answers where a file is shown and where it is saved, and says which shows anything', async () => {
+    const notebookId = await seedNotebook();
+    const pdf = notebookFileSchema.parse(
+      await (
+        await keep(notebookId, { name: 'slide', mimeType: 'application/pdf', contentBase64: PDF })
+      ).json(),
+    );
+    const sheet = notebookFileSchema.parse(
+      await (
+        await keep(notebookId, {
+          name: 'planilha',
+          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          contentBase64: Buffer.from([0x50, 0x4b, 0x03, 0x04]).toString('base64'),
+        })
+      ).json(),
+    );
+
+    // A PDF: shown inline where it is opened, saved where it is downloaded.
+    const shown = fileLinkSchema.parse(
+      await (await call(`/knowledge/notebooks/${notebookId}/files/${pdf.fileId}/link`)).json(),
+    );
+    expect(shown.opens).toBe(true);
+    expect(shown.url).toContain('/inline/');
+    expect(shown.downloadUrl).toContain('/attachment/');
+
+    // A spreadsheet: nothing displays it, so both addresses save it and the
+    // card is told not to offer the verb it could not keep.
+    const saved = fileLinkSchema.parse(
+      await (await call(`/knowledge/notebooks/${notebookId}/files/${sheet.fileId}/link`)).json(),
+    );
+    expect(saved.opens).toBe(false);
+    expect(saved.url).toContain('/attachment/');
+    expect(saved.downloadUrl).toContain('/attachment/');
+  });
+
   it('declares a ceiling the transport can carry', () => {
     const INVOCATION_LIMIT = 6 * 1024 * 1024;
     const encoded = Math.ceil(MAX_INLINE_BYTES / 3) * 4;

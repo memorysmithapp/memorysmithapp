@@ -27,6 +27,18 @@ export interface FileType {
   /** How a reading surface draws it (RN-DSC-061). */
   readonly renders: 'image' | 'audio' | 'video' | 'card';
   /**
+   * Whether a browser can **show** it on its own, which is a different
+   * question from whether this product draws it in the page (#171). A PDF is
+   * a card here — half the browsers of a phone refuse to frame one — and is
+   * still something every browser opens in a viewer of its own. The three
+   * Office documents are neither: a tab pointed at one downloads it, so
+   * offering to open it would promise what no browser does.
+   *
+   * Absent means what it says for everything drawn: an image, an audio and a
+   * video are shown by definition.
+   */
+  readonly opens?: boolean;
+  /**
    * The signatures the bytes may start with, as hex. Empty when the format
    * carries no magic number of its own and is recognised by `sniff` below.
    */
@@ -46,7 +58,13 @@ export const FILE_TYPES: readonly FileType[] = [
   },
   // Text, and recognised as text: see `sniff`.
   { mimeType: 'image/svg+xml', extensions: ['.svg'], renders: 'image', magic: [] },
-  { mimeType: 'application/pdf', extensions: ['.pdf'], renders: 'card', magic: ['25504446'] },
+  {
+    mimeType: 'application/pdf',
+    extensions: ['.pdf'],
+    renders: 'card',
+    opens: true,
+    magic: ['25504446'],
+  },
   {
     mimeType: 'audio/mpeg',
     extensions: ['.mp3'],
@@ -89,6 +107,21 @@ export function fileTypeOf(mimeType: string): FileType | null {
 /** How a reading surface draws this type, `card` for anything it cannot draw. */
 export function rendersAs(mimeType: string): FileType['renders'] {
   return fileTypeOf(mimeType)?.renders ?? 'card';
+}
+
+/**
+ * Whether a browser shows this on its own (#171).
+ *
+ * It is what decides whether a card may offer to **open** the file, and it is
+ * asked of the type rather than of the shape: everything drawn is shown by
+ * definition, a PDF is a card the browser still opens, and a document nothing
+ * displays is a download whichever verb is pressed. A type nobody knows is
+ * not opened, for the same reason it is served as an attachment.
+ */
+export function opensInBrowser(mimeType: string): boolean {
+  const type = fileTypeOf(mimeType);
+  if (!type) return false;
+  return type.renders === 'card' ? type.opens === true : true;
 }
 
 const hexOf = (bytes: Uint8Array, from: number, length: number): string =>

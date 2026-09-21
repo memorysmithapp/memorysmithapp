@@ -34,6 +34,7 @@ import type { Guidance } from '../../../domain/content-slot/Guidance.js';
 import type { Template } from '../../../domain/content-slot/Template.js';
 import type { NoteOrder } from '../../../domain/services/NotePlacement.js';
 import type {
+  FileDisposition,
   FileRepository,
   FileStore,
   SignedFile,
@@ -528,11 +529,18 @@ export class InMemoryFileStore implements FileStore {
     return this.bytes.get(this.keyOf(ref.contentId, ref.versionId)) ?? new Uint8Array();
   }
 
-  async signedUrl(ref: ContentRef, downloadName: string): Promise<SignedFile> {
+  async signedUrl(
+    ref: ContentRef,
+    downloadName: string,
+    _mimeType: string,
+    disposition: FileDisposition,
+  ): Promise<SignedFile> {
     const expiresAt = Instant.fromEpochMillis(Date.now() + 3_600_000);
     if (!expiresAt.ok) throw new Error(expiresAt.error.message);
     return {
-      url: `memory://files/${ref.contentId.value}/${encodeURIComponent(downloadName)}`,
+      // The disposition is in the address so a case can read it: what the
+      // real store puts in a signed query, this one puts in the path (#171).
+      url: `memory://files/${ref.contentId.value}/${disposition}/${encodeURIComponent(downloadName)}`,
       expiresAt: expiresAt.value,
     };
   }

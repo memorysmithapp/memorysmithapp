@@ -33,9 +33,27 @@ import {
 } from '@memorysmith/kernel';
 import type { RequestContext } from '../domain/access/AuthorizationPolicy.js';
 import { NotebookFile } from '../domain/file/NotebookFile.js';
-import type { FileRepository, FileStore, FileTypes, SignedFile } from '../domain/ports/index.js';
+import type { FileRepository, FileStore, FileTypes } from '../domain/ports/index.js';
 import { loadAuthorized, type NotebookDependencies } from './notebooks.js';
 import { admitWrite } from '../domain/services/StorageQuota.js';
+import { opensInBrowser } from '@memorysmith/contracts';
+
+/**
+ * Where the bytes of a file are, for whoever is going to show it (#171).
+ *
+ * Two addresses, because a card offers two verbs and they are not the same
+ * verb: `url` is how this file is meant to be shown — in the page when it is
+ * drawn, in a tab of its own when a browser displays it, and as a download
+ * when nothing does — and `downloadUrl` always saves it under its name.
+ * `opens` says which of the two the page may offer, so the interface does not
+ * have to know the list of types by heart.
+ */
+export interface FileLink {
+  readonly url: string;
+  readonly downloadUrl: string;
+  readonly opens: boolean;
+  readonly expiresAt: Instant;
+}
 
 export interface FileDependencies extends NotebookDependencies {
   readonly files: FileRepository;
@@ -180,13 +198,31 @@ export class LinkToFile {
     ctx: RequestContext;
     notebookId: NotebookId;
     fileId: FileId;
-  }): Promise<Result<SignedFile, DomainError>> {
+  }): Promise<Result<FileLink, DomainError>> {
     const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'read');
     if (!notebook.ok) return notebook;
 
     const file = await this.deps.files.findById(input.notebookId, input.fileId);
     if (!file) return err(DomainError.notFound('File not found'));
-    return ok(await this.deps.fileStore.signedUrl(file.contentRef, file.name, file.mimeType));
+
+    /**
+     * Two addresses for one file, and the type decides what the first one is
+     * (#171, RN-KNW-050). What a browser shows is served `inline`, so opening
+     * it opens it; what nothing displays is served as an attachment under both,
+     * because a verb that saves the file whatever is pressed should not be
+     * offered twice. The second address always saves.
+     */
+    const shown = opensInBrowser(file.mimeType) ? 'inline' : 'attachment';
+    const [url, download] = await Promise.all([
+      this.deps.fileStore.signedUrl(file.contentRef, file.name, file.mimeType, shown),
+      this.deps.fileStore.signedUrl(file.contentRef, file.name, file.mimeType, 'attachment'),
+    ]);
+    return ok({
+      url: url.url,
+      downloadUrl: download.url,
+      opens: opensInBrowser(file.mimeType),
+      expiresAt: url.expiresAt,
+    });
   }
 }
 

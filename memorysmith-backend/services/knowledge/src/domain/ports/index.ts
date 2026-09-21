@@ -183,10 +183,23 @@ export interface SignedFile {
  * destroying a revision belongs to one principal and reaches the store through
  * a port of its own (rule 8).
  */
+/**
+ * How the object store is asked to serve the bytes (#171). `inline` is a file
+ * a browser shows where it was opened; `attachment` is one it saves under the
+ * name it was given. The policy of which is which belongs to the application
+ * and not here: this port signs what it was told to sign.
+ */
+export type FileDisposition = 'inline' | 'attachment';
+
 export interface FileStore {
   put(bytes: Uint8Array, mimeType: string): Promise<ContentRef>;
   read(ref: ContentRef): Promise<Uint8Array>;
-  signedUrl(ref: ContentRef, downloadName: string, mimeType: string): Promise<SignedFile>;
+  signedUrl(
+    ref: ContentRef,
+    downloadName: string,
+    mimeType: string,
+    disposition: FileDisposition,
+  ): Promise<SignedFile>;
 }
 
 /**

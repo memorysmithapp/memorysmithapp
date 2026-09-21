@@ -26,6 +26,7 @@ import type {
   NotebookHealthDto,
   NotebookNamesDto,
   NotebookFileDto,
+  FileLinkDto,
   FileListDto,
   NoteRefDto,
   NotebookSummaryDto,
@@ -159,13 +160,10 @@ export async function getNotebookFiles(notebookId: string): Promise<NotebookFile
  * the object store: it carries its own authorisation, which is what an `<img>`
  * needs, and it is served from an origin that is not the product's.
  */
-export async function linkToFile(
-  notebookId: string,
-  fileId: string,
-): Promise<{ url: string; expiresAt: string }> {
-  return request<{ url: string; expiresAt: string }>(
-    `/knowledge/notebooks/${notebookId}/files/${fileId}/link`,
-  );
+export async function linkToFile(notebookId: string, fileId: string): Promise<FileLinkDto> {
+  // Typed by the DTO the API publishes and not by hand: a response retyped
+  // here is what refused every write of a task box for a whole release (0.5.1).
+  return request<FileLinkDto>(`/knowledge/notebooks/${notebookId}/files/${fileId}/link`);
 }
 
 export async function getNotebookStructure(notebookId: string): Promise<NotebookStructure> {

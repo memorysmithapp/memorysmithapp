@@ -223,7 +223,27 @@ export const createFileRequestSchema = z.object({
 
 export const fileListSchema = z.object({ files: z.array(notebookFileSchema) });
 
+/**
+ * Where the bytes of a file are (#171).
+ *
+ * Two addresses and not one: `url` is how the file is meant to be shown — in
+ * the page when it is drawn, in a tab of its own when a browser displays it,
+ * and as a download when nothing does — while `downloadUrl` always saves it
+ * under its name. `opens` says whether the first of the two shows anything, so
+ * a screen can offer to open a file without knowing the list of types.
+ *
+ * Both are minted at the moment of the read and expire together: a stored link
+ * would be expired by the time somebody came back to it.
+ */
+export const fileLinkSchema = z.object({
+  url: z.string().min(1),
+  downloadUrl: z.string().min(1),
+  opens: z.boolean(),
+  expiresAt: instantSchema,
+});
+
 export type NotebookFileDto = z.infer<typeof notebookFileSchema>;
+export type FileLinkDto = z.infer<typeof fileLinkSchema>;
 export type CreateFileRequest = z.infer<typeof createFileRequestSchema>;
 export type FileListDto = z.infer<typeof fileListSchema>;
 

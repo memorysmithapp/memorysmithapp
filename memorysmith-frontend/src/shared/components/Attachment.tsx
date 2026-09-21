@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { rendersAs, type NotebookFileDto } from '@memorysmith/contracts';
+import { rendersAs, type FileLinkDto, type NotebookFileDto } from '@memorysmith/contracts';
 import { fileKept, linkToFile } from '../api/source';
 import { queryKeys } from '../api/query-keys';
 
@@ -9,11 +9,15 @@ import { queryKeys } from '../api/query-keys';
  *
  * **Two shapes and not three.** What a browser draws without executing
  * anything is drawn — an image, audio, video — and everything else, the PDF
- * included, is a **card** with what it is and two verbs. A PDF *can* be
- * framed, and that is exactly why it is not: half the browsers of a phone
- * ignore the frame and offer a download instead, and a surface that works on
- * the machine it was built on and comes out a grey rectangle on somebody
- * else's is worse than a card that behaves the same everywhere.
+ * included, is a **card** with what it is and what can be done with it. A PDF
+ * *can* be framed, and that is exactly why it is not: half the browsers of a
+ * phone ignore the frame and offer a download instead, and a surface that
+ * works on the machine it was built on and comes out a grey rectangle on
+ * somebody else's is worse than a card that behaves the same everywhere.
+ *
+ * A new tab is not a frame, which is why the card still offers to **open**
+ * what a browser opens — the PDF — and offers only the download for the three
+ * Office documents, which no browser shows (#171).
  *
  * The bytes come from a link that is minted when this renders and that points
  * at the object store, never at the API: it carries its own authorisation, so
@@ -43,9 +47,10 @@ export function Attachment({ notebookId, name }: { notebookId: string; name: str
     );
   }
 
-  const url = link.data?.url;
-  if (!url) return <span className="attachment-loading">{file.name}</span>;
+  const address = link.data;
+  if (!address) return <span className="attachment-loading">{file.name}</span>;
 
+  const url = address.url;
   const shape = rendersAs(file.mimeType);
   if (shape === 'image') {
     return <img className="attachment-image" src={url} alt={file.description || file.name} />;
@@ -56,11 +61,20 @@ export function Attachment({ notebookId, name }: { notebookId: string; name: str
   if (shape === 'video') {
     return <video className="attachment-player" controls src={url} />;
   }
-  return <AttachmentCard file={file} url={url} />;
+  return <AttachmentCard file={file} link={address} />;
 }
 
-/** What is not drawn: what it is, how big it is, and two ways out of the page. */
-function AttachmentCard({ file, url }: { file: NotebookFileDto; url: string }) {
+/**
+ * What is not drawn: what it is, how big it is, and the ways out of the page.
+ *
+ * **Open is offered only where it opens something** (#171). The two verbs used
+ * to hang off one address, signed as an attachment for every card, so opening
+ * a PDF opened a tab that downloaded it and closed — and for a `.docx` no
+ * browser would have shown anything anyway. The API now answers where the file
+ * is shown and where it is saved, and says which of the two shows anything; a
+ * card that shows nothing offers the one verb it can keep.
+ */
+function AttachmentCard({ file, link }: { file: NotebookFileDto; link: FileLinkDto }) {
   const { t } = useTranslation();
   return (
     <span className="attachment-card">
@@ -74,10 +88,12 @@ function AttachmentCard({ file, url }: { file: NotebookFileDto; url: string }) {
         )}
       </span>
       <span className="attachment-card-actions">
-        <a href={url} target="_blank" rel="noreferrer">
-          {t('note.attachmentOpen')}
-        </a>
-        <a href={url} download={file.name}>
+        {link.opens && (
+          <a href={link.url} target="_blank" rel="noreferrer">
+            {t('note.attachmentOpen')}
+          </a>
+        )}
+        <a href={link.downloadUrl} download={file.name}>
           {t('note.attachmentDownload')}
         </a>
       </span>

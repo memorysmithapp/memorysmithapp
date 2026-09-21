@@ -787,6 +787,8 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     });
     return present(c, link, (signed) => ({
       url: signed.url,
+      downloadUrl: signed.downloadUrl,
+      opens: signed.opens,
       expiresAt: signed.expiresAt.toISOString(),
     }));
   });
