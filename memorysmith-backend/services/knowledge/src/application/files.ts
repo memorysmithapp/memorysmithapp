@@ -52,8 +52,22 @@ export interface FileDependencies extends NotebookDependencies {
  * place to move a film through. Above this the answer says what the ceiling is
  * and nothing is stored: a truncated file is worse than a refusal, because it
  * looks like a file.
+ *
+ * **The number is the transport, and it is stated rather than wished** (#172).
+ * It was 8 MB, and 8 MB was unreachable: the request carrying the bytes is a
+ * synchronous invocation, which stops at 6 MB, and base64 costs a third on top
+ * of the file. So everything between 4.4 MB and 8 MB died in front of this
+ * code, with a `413` from the platform that names no ceiling and no unit —
+ * while the product believed it was accepting those files. 4 MiB encodes to
+ * 5.33 MiB and leaves the envelope room to spare, which is why it is the
+ * number here: a limit nobody can hit is not a limit, it is a promise.
+ *
+ * Whoever wants to keep more than this wants the bytes out of the request,
+ * the way an import already takes them — a short-lived upload URL, followed
+ * by a PUT — and that is a surface for a person rather than for an agent,
+ * because an agent filling `contentBase64` pays for every byte twice.
  */
-export const MAX_INLINE_BYTES = 8 * 1024 * 1024;
+export const MAX_INLINE_BYTES = 4 * 1024 * 1024;
 
 export class KeepFile {
   constructor(private readonly deps: FileDependencies) {}

@@ -465,7 +465,7 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       '\u2014 an extension is yours to write or to leave out, and it decides nothing. What decides ' +
       'how the file is drawn, and whether it may be kept at all, is mimeType: an image, an ' +
       'audio and a video are drawn on the page, and everything else is a card with a download. ' +
-      'The bytes travel inline, base64, up to 8 MB. The type is checked against the bytes, so a ' +
+      'The bytes travel inline, base64, up to 4 MB. The type is checked against the bytes, so a ' +
       'declaration they do not support is refused naming both. A notebook keeps one file of ' +
       'each name; the path only organises, so moving a file never breaks a note.',
     inputSchema: object(

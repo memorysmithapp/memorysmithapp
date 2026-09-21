@@ -11,6 +11,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { buildTestApp } from './wiring.js';
 import { fileListSchema, notebookFileSchema } from '@memorysmith/contracts';
+import { MAX_INLINE_BYTES } from '@memorysmith/svc-knowledge/application/files';
 
 type App = ReturnType<typeof buildTestApp>;
 let harness: App;
@@ -212,6 +213,41 @@ describe('a notebook keeps files', () => {
       (await keep(notebookId, { name: 'gravacao', mimeType: 'image/png', contentBase64: PNG }))
         .status,
     ).toBe(201);
+  });
+
+  /**
+   * The ceiling this door declares has to be a ceiling this door can reach
+   * (#172). It said 8 MB while the request carrying the bytes is a synchronous
+   * invocation that stops at 6 MB — and base64 costs a third on top of the
+   * file — so every file between 4.4 MB and 8 MB was refused by the platform,
+   * with a `413` naming nothing, before the message explaining the limit could
+   * run. A declared limit nobody can hit is not a limit.
+   */
+  it('declares a ceiling the transport can carry', () => {
+    const INVOCATION_LIMIT = 6 * 1024 * 1024;
+    const encoded = Math.ceil(MAX_INLINE_BYTES / 3) * 4;
+    // What travels beside the bytes: the name, the description, the tags, the
+    // path and the field names of the envelope.
+    const envelope = 8 * 1024;
+
+    expect(encoded + envelope).toBeLessThan(INVOCATION_LIMIT);
+  });
+
+  it('refuses a file above the ceiling with the limit, not with a platform error', async () => {
+    const notebookId = await seedNotebook();
+    const tooLarge = Buffer.alloc(MAX_INLINE_BYTES + 1);
+    // A PNG signature, so the size is what refuses it and not the type.
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(tooLarge);
+
+    const response = await keep(notebookId, {
+      name: 'grande-demais.png',
+      mimeType: 'image/png',
+      contentBase64: tooLarge.toString('base64'),
+    });
+
+    expect(response.status).toBe(413);
+    const body = (await response.json()) as { message: string };
+    expect(body.message).toContain(`${MAX_INLINE_BYTES / (1024 * 1024)} MB`);
   });
 
   it('answers not found for a notebook the session cannot see', async () => {
