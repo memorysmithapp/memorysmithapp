@@ -85,20 +85,30 @@ async function ask(question: string, fallback?: string): Promise<string> {
   return answer || fallback || '';
 }
 
-/** A password, typed without echo. */
+/**
+ * A password, typed without echo.
+ *
+ * The prompt is written first and the **output stream** is muted for as long
+ * as the answer is being typed, which is how a terminal asks for a password
+ * without showing it. It used to replace `_writeToOutput` on the interface
+ * instead — an internal of the callback `readline`, which the promises API
+ * this command uses does not carry, so the line threw `Cannot read properties
+ * of undefined` the first time anybody reached it. Everything readline emits
+ * while a line is being edited, the echo and the escape codes that redraw it,
+ * goes through this one method, so muting it mutes all of them, and the
+ * prompt already on the screen stays where it is.
+ */
 async function askSecret(question: string): Promise<string> {
-  const output = prompts as unknown as { _writeToOutput: (chunk: string) => void };
-  const original = output._writeToOutput.bind(prompts);
-  let muted = false;
-  output._writeToOutput = (chunk) => {
-    if (!muted) original(chunk);
-  };
-  const pending = prompts.question(`  ${question}: `);
-  muted = true;
-  const answer = await pending;
-  output._writeToOutput = original;
-  process.stdout.write('\n');
-  return answer;
+  const stream = process.stdout;
+  const original = stream.write.bind(stream);
+  stream.write(`  ${question}: `);
+  stream.write = (() => true) as typeof stream.write;
+  try {
+    return await prompts.question('');
+  } finally {
+    stream.write = original;
+    stream.write('\n');
+  }
 }
 
 async function choose(question: string, options: readonly string[], fallback: string) {
@@ -170,10 +180,17 @@ const existing: AdminGetUserCommandOutput | null = await cognito
 
 /**
  * An account that never set a password is one nobody holds: it came out of an
- * invitation and stopped there, which is also what a run interrupted halfway
- * leaves. Taking it over is how a second run finishes what the first started.
- * An account in any other state belongs to a person, and the only way in is
- * the password that person has.
+ * invitation and stopped there. Taking it over is how a run finishes what an
+ * invitation started. An account in any other state belongs to a person, and
+ * the only way in is the password that person has.
+ *
+ * **A run interrupted between here and the hand-over is not one of the two.**
+ * It leaves the account signed in on a working password this command generated
+ * and then forgot, and Cognito calls that `CONFIRMED`, which is what it calls
+ * a person too. There is no state to read them apart by, so the way back is to
+ * put the account where the invitation would have: a temporary password set
+ * from outside, `aws cognito-idp admin-set-user-password --no-permanent`, and
+ * then run this again.
  */
 const unclaimed = ['FORCE_CHANGE_PASSWORD', 'RESET_REQUIRED'];
 const claimed = existing !== null && !unclaimed.includes(existing.UserStatus ?? '');
