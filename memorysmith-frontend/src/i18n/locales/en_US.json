@@ -378,16 +378,19 @@
       "body": "This is the part worth doing today. MemorySmith answers AI tools through a remote MCP server, so an assistant does not merely read your notebooks: it writes in them, obeying the Guidance of the notebook and the Template of each folder. The address of this environment is:",
       "claude": {
         "heading": "In Claude",
-        "one": "Open <b>Settings</b> and then <b>Connectors</b>.",
-        "two": "Choose <b>Add custom connector</b> and paste the address above.",
-        "three": "Claude opens a sign-in page; sign in with this same account and authorise it.",
-        "four": "Start a conversation and ask for your notebooks. The assistant will list them."
+        "one": "In the side menu, open <b>Customize</b> and then <b>Connectors</b>.",
+        "two": "Click <b>Add</b> and choose <b>Add custom connector</b>.",
+        "three": "Under <b>Name</b>, write <b>MemorySmith.app</b>; under <b>Remote MCP server URL</b>, paste the address above; click <b>Continue</b>.",
+        "four": "Claude opens the MemorySmith sign-in page (if it does not, click <b>Connect</b> on the connector); sign in with this same account and authorise it.",
+        "five": "In a conversation, check under <b>+</b> and then <b>Connectors</b> that MemorySmith.app is switched on, and ask for your notebooks."
       },
       "chatgpt": {
         "heading": "In ChatGPT",
-        "one": "Open <b>Settings</b>, then <b>Connectors</b>, and choose to add one.",
-        "two": "Paste the address above and authorise it with this same account.",
-        "three": "In a conversation, enable the connector and ask for your notebooks."
+        "one": "In the browser, not the phone or tablet app, which does not show these options: in <b>Settings</b>, open <b>Plugins</b>, then <b>Developer mode</b>, and switch it on: it is what lets you add a server that is not in the catalogue.",
+        "two": "In the side menu, open <b>Plugins</b> and click the <b>+</b> beside the search.",
+        "three": "Under <b>Name</b>, write <b>MemorySmith.app</b>; under <b>Connection</b>, keep <b>Server URL</b> and paste the address above; keep <b>Authentication</b> on <b>OAuth</b>.",
+        "four": "Tick <b>I understand and want to continue</b> and click <b>Create</b>; the warning is the same for any server outside the catalogue. Sign in with this same account and authorise it.",
+        "five": "In a conversation, click the <b>+</b>, type <b>MemorySmith</b>, pick the plugin and ask for your notebooks."
       },
       "sameAccount": "Whichever tool you use, sign in with the same account you are reading this with: the assistant reaches exactly the notebooks you reach, with exactly your permissions, and every change it makes is recorded under your name."
     },

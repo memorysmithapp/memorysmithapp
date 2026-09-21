@@ -25,6 +25,14 @@ export function WelcomeGate({ children }: { children: ReactNode }) {
 }
 
 /**
+ * The steps of adding the connector in each client, in the words the client's
+ * own screens use. Those screens move under us: they were reread in both
+ * clients for 0.6.1, when the Claude entry had moved to Customize and ChatGPT
+ * had renamed connectors to plugins behind a developer mode (#182).
+ */
+const STEPS = ['one', 'two', 'three', 'four', 'five'] as const;
+
+/**
  * What this product is, said once, to whoever just arrived (#167, RN-ACC-019).
  *
  * It opens by itself on the first sign-in of an account and never again, and
@@ -118,7 +126,7 @@ export function AboutPage() {
 
         <h3>{t('about.connector.claude.heading')}</h3>
         <ol className="about-steps">
-          {(['one', 'two', 'three', 'four'] as const).map((step) => (
+          {STEPS.map((step) => (
             <li key={step}>
               <Trans i18nKey={`about.connector.claude.${step}`} components={{ b: <strong /> }} />
             </li>
@@ -127,7 +135,7 @@ export function AboutPage() {
 
         <h3>{t('about.connector.chatgpt.heading')}</h3>
         <ol className="about-steps">
-          {(['one', 'two', 'three'] as const).map((step) => (
+          {STEPS.map((step) => (
             <li key={step}>
               <Trans i18nKey={`about.connector.chatgpt.${step}`} components={{ b: <strong /> }} />
             </li>
