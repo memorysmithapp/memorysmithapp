@@ -25,12 +25,20 @@ export interface Delegation {
   readonly nameServers: readonly string[];
 }
 
-/** Who writes the tag and the GitHub Release of a version: production only. */
-export interface ReleaseAppConfig {
-  readonly appId: string;
-  readonly installationId: string;
-  /** The name of the secret holding the private key of the App, in PEM. */
-  readonly privateKeySecret: string;
+/**
+ * How the pipeline authenticates to write the tag and the GitHub Release of a
+ * version: production only, and only while a pipeline exists.
+ *
+ * It used to be a GitHub App of the organisation, with its private key in
+ * Secrets Manager. The App was removed when delivery came back to a
+ * workstation, and what a pipeline needs now is a **token** with
+ * `contents: write`, which CodeBuild reads from Secrets Manager into
+ * `GITHUB_TOKEN`. A person running the release needs none of this: the
+ * command falls back to the token of their `gh`.
+ */
+export interface ReleaseConfig {
+  /** The name of the secret holding the token. */
+  readonly tokenSecret: string;
 }
 
 /** The pipeline of an environment (architecture-guide.md, section 20). */
@@ -39,7 +47,7 @@ export interface PipelineConfig {
   readonly connectionArn: string;
   /** `owner/name`. */
   readonly repository: string;
-  readonly release: ReleaseAppConfig | null;
+  readonly release: ReleaseConfig | null;
 }
 
 export interface EnvironmentConfig {
@@ -114,13 +122,7 @@ export function environmentOf(node: ContextReader): EnvironmentConfig {
     pipeline: {
       connectionArn: optional(pipeline['connectionArn']),
       repository: optional(pipeline['repository']) || 'memorysmithapp/memorysmithapp',
-      release: release
-        ? {
-            appId: optional(release['appId']),
-            installationId: optional(release['installationId']),
-            privateKeySecret: optional(release['privateKeySecret']),
-          }
-        : null,
+      release: release ? { tokenSecret: optional(release['tokenSecret']) } : null,
     },
   };
 }

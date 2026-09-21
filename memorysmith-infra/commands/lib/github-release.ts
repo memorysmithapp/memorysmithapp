@@ -1,37 +1,21 @@
 /**
- * The tag and the GitHub Release of a version, written by the release App
- * (architecture-guide.md, section 20).
+ * The tag and the GitHub Release of a version (architecture-guide.md, §20).
  *
- * The production pipeline is the only thing that writes a `v*` tag, and it
- * writes it after the deploy succeeded, so a version tag means "this is in
- * production" by construction. It authenticates as a GitHub App of the
- * organization with a single permission, Contents: write: the connection the
- * pipeline reads the repository through can read and nothing else.
+ * **Written by whoever runs the command, with a token.** It used to be written
+ * by a GitHub App of the organisation, because the only thing that wrote a
+ * `v*` tag was the production pipeline — a process with no person inside it,
+ * which therefore needed an identity of its own. Delivery came back to a
+ * workstation, the pipeline was switched off and the App was removed, so the
+ * tag is now written by the person running the release, and the guarantee it
+ * used to carry moved to where it always did the work: this function.
  *
- * The tag is ANNOTATED, like every tag of this repository, and the publication
- * is idempotent: an execution retried after the tag was written finds it,
- * checks that it points at the same commit, and goes on to the release.
+ * The tag is ANNOTATED, like every tag of this repository — an object in
+ * `/git/tags` and only then a ref pointing at it — and the publication is
+ * **idempotent**: an execution retried after the tag was written finds it,
+ * refuses it if it points at another commit, and goes on to the release.
  */
-
-import { createSign } from 'node:crypto';
 
 const API = 'https://api.github.com';
-
-const base64url = (value: string | Buffer): string => Buffer.from(value).toString('base64url');
-
-/**
- * The JWT a GitHub App authenticates as itself with. It is backdated a minute
- * for clock drift, as GitHub recommends, and lives nine minutes, under the ten
- * GitHub allows.
- */
-export function appJwt(appId: string, privateKeyPem: string, now: number = Date.now()): string {
-  const issuedAt = Math.floor(now / 1000) - 60;
-  const header = base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
-  const payload = base64url(JSON.stringify({ iat: issuedAt, exp: issuedAt + 540, iss: appId }));
-  const signer = createSign('RSA-SHA256');
-  signer.update(`${header}.${payload}`);
-  return `${header}.${payload}.${signer.sign(privateKeyPem).toString('base64url')}`;
-}
 
 type Fetch = typeof fetch;
 
@@ -61,24 +45,6 @@ function expect2xx(result: { status: number; body: Record<string, unknown> }, wh
   if (result.status < 200 || result.status >= 300) {
     throw new Error(`${what} answered ${result.status}: ${String(result.body['message'] ?? '')}`);
   }
-}
-
-/** A token of the installation, which is what writes to the repository. */
-export async function installationToken(
-  jwt: string,
-  installationId: string,
-  fetchImpl: Fetch = fetch,
-): Promise<string> {
-  const result = await call(
-    fetchImpl,
-    jwt,
-    'POST',
-    `/app/installations/${installationId}/access_tokens`,
-  );
-  expect2xx(result, 'Creating an installation token');
-  const token = result.body['token'];
-  if (typeof token !== 'string') throw new Error('GitHub answered no installation token.');
-  return token;
 }
 
 /** The commit a tag points at, following an annotated tag to its object. */

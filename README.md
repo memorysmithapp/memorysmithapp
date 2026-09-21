@@ -224,7 +224,7 @@ What differs between the two environments is written once, in [`memorysmith-infr
     "pipeline": {
       "connectionArn": "arn:aws:codeconnections:us-east-1:111111111111:connection/<id>",
       "repository": "your-organization/your-repository",
-      "release": { "appId": "<id>", "installationId": "<id>", "privateKeySecret": "memorysmith/release-app" }
+      "release": { "tokenSecret": "memorysmith/release-token" }
     }
   },
   "staging": {
@@ -303,11 +303,11 @@ What follows happens once, and from then on a delivery is one command.
    pnpm install
    pnpm -C memorysmith-infra exec cdk bootstrap aws://<account>/us-east-1 --profile <profile>
    ```
-2. **Create the release App**: a GitHub App of your organization with a single permission, `Contents: write`, installed on the repository. Its private key, in PEM, goes into Secrets Manager of the account under the name `privateKeySecret` gives, and its app id and installation id into `pipeline.release` of production. It is the only credential that writes to GitHub, and all it writes is the tag and the release of a version.
-3. **In GitHub, create two rulesets.** On `main`: a pull request is required, and a force push and a deletion are refused, because `main` is what a delivery of production is taken from. On tags: only the release App creates a `v*` tag, so a version tag means that version is in production.
+2. **Nothing to create for the release.** The tag and the GitHub Release of a version are written by `publish-release`, signed by whoever runs it: `GITHUB_TOKEN` when the environment sets one, and otherwise the token of the `gh` CLI that person is already signed in to. A GitHub App is only needed to deliver from a pipeline, where there is no person to sign as, and that case is at the end of this section.
+3. **In GitHub, protect `main`**: a pull request is required, and a force push and a deletion are refused, because `main` is what a delivery of production is taken from. A second ruleset over `v*` tags is worth it as soon as more than one person can push: what it buys is that a version tag can only be written by the identity that publishes releases, and what refuses a wrong tag until then is `publish-release`, which annotates it, takes the notes from the section of that version and refuses a tag already pointing at another commit.
 4. **Ask for room.** A new account usually comes with 10 concurrent Lambda executions, which the product exhausts on its first calls, and production and staging share them, so request the increase. A budget alert costs nothing and says when something runs that should not.
 
-**To deliver inside the account instead**, from a pipeline rather than a workstation, two more steps: create a GitHub connection in **Developer Tools** → **Settings** → **Connections**, authorise it on the repository and write its ARN in `pipeline.connectionArn` of the environments that want one; then deploy their pipeline stacks by hand, once. From there each pipeline updates itself, production starts on a merge to `main` that touches what is deployed, and staging starts when somebody asks. Until an ARN is written, the app does not instantiate the pipeline at all, and `pnpm staging:start`, `pnpm staging:status` and `pnpm staging:destroy` say so and name the command to run instead.
+**To deliver inside the account instead**, from a pipeline rather than a workstation, two more steps: create a GitHub connection in **Developer Tools** → **Settings** → **Connections**, authorise it on the repository and write its ARN in `pipeline.connectionArn` of the environments that want one; put a GitHub token with `contents: write` in Secrets Manager and name that secret in `pipeline.release.tokenSecret` of production, which is what the Release stage signs the tag with, since a pipeline has no person to sign as; then deploy their pipeline stacks by hand, once. From there each pipeline updates itself, production starts on a merge to `main` that touches what is deployed, and staging starts when somebody asks. Until an ARN is written, the app does not instantiate the pipeline at all, and `pnpm staging:start`, `pnpm staging:status` and `pnpm staging:destroy` say so and name the command to run instead.
 
 ### Delivering
 

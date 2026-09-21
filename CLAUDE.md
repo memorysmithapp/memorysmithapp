@@ -209,7 +209,7 @@ The canonical version of the product lives **in this file**, under § Project id
 
 **While the base version is `0.x`, the rule above does not hold:** SemVer treats that range as unstable, and a contract break enters as a minor bump, recorded in `CHANGELOG.md` under `Removed` or `Changed`. From `1.0.0` on it holds without exception, because by then somebody is integrated on the other side.
 
-**Inviolable:** the version bump reaches `main` only through a PR, never through a direct push. The tag is written by `publish-release` **after** the merge, once production serves the version, and points at the merged commit; nobody tags by hand, and only the release App may create a `v*` tag. A change that alters nothing deployable, such as documentation and repository governance, **does not cut a version**: it waits in `[Unreleased]` for the next cycle, which takes the whole accumulation. The ten-step flow is in `development-process.md` §9.1, and what cuts a version, in §9.
+**Inviolable:** the version bump reaches `main` only through a PR, never through a direct push. The tag is written by `publish-release` **after** the merge, once production serves the version, and points at the merged commit; **nobody tags by hand**, which is a discipline now and not a lock — the GitHub App that was the only actor allowed to write a `v*` tag existed because the pipeline wrote it, and both are gone. What holds the guarantee is the command: it refuses a version that disagrees anywhere, it annotates the tag in two steps, it takes the notes from the section of that version, and it refuses a tag that already points at another commit, because a version names one commit. A change that alters nothing deployable, such as documentation and repository governance, **does not cut a version**: it waits in `[Unreleased]` for the next cycle, which takes the whole accumulation. The ten-step flow is in `development-process.md` §9.1, and what cuts a version, in §9.
 
 ### CHANGELOG
 
@@ -227,7 +227,7 @@ Use the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) categories: `Ad
 - Never commit or push directly to `main`.
 - Never work around the protection. Do not use "Bypass rules and merge", `gh ... --admin`, `git push --no-verify` or an equivalent, even holding administrator rights.
 - If a merge is blocked, **stop and report**. Ask how to proceed instead of overriding the rule.
-- The only direct writes to `main` are the annotated tags the release App writes on already merged commits, through `publish-release`.
+- The only direct writes to `main` are the annotated tags `publish-release` writes on already merged commits.
 
 ### Branch names
 

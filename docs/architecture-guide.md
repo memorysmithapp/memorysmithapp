@@ -1546,7 +1546,7 @@ release-notes     the section of CHANGELOG.md of a version
 wait-for-dns      waits until a name resolves, before the sign-in domain is deployed
 wait-for-email-identity  waits until the sending identity is verified, before the pool is deployed
 smoke             every surface serves the version and the environment of the deploy
-publish-release   the annotated tag and the GitHub Release of a version, as the release App
+publish-release   the annotated tag and the GitHub Release of a version, signed by whoever runs it
 destroy-staging   tears staging down, and refuses every other environment
 staging:start     starts staging on a pipeline, and says the pipeline is off while it is
 staging:status    whether the head of a branch ran on staging, on a pipeline
