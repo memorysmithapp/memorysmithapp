@@ -6,7 +6,12 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { loadRuntimeConfig, parseRuntimeConfig, runtimeConfig } from './runtime-config';
+import {
+  connectorEndpoint,
+  loadRuntimeConfig,
+  parseRuntimeConfig,
+  runtimeConfig,
+} from './runtime-config';
 
 const STAGING = {
   apiOrigin: 'https://api.stg.memorysmith.app/',
@@ -24,6 +29,12 @@ describe('the runtime configuration', () => {
       apiOrigin: 'https://api.stg.memorysmith.app',
       connectorOrigin: 'https://mcp.stg.memorysmith.app',
     });
+  });
+
+  it('points a client at the path the connector answers on, not at its host (#180)', () => {
+    expect(connectorEndpoint(parseRuntimeConfig(STAGING))).toBe(
+      'https://mcp.stg.memorysmith.app/mcp',
+    );
   });
 
   it('names the field that is missing', () => {

@@ -11,11 +11,19 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-09-21
+
 ### Changed
+
+- **The welcome page opens on what the product is: a person and their agents writing the same notebooks.** Its first paragraph described a notebook as folders of Markdown notes and closed on "plain text you can read without us", an *us* the page never named — a reader could take it for the product or for the agents, which appear only further down. It now says, before anything else, that MemorySmith is where you and your AI agents build knowledge together, that the same notes are read and written from both sides — by you in the interface, by an agent through the connector — and then that nothing is locked in: every note stays plain text with its whole history, and every notebook exports in full. The button that closes the page says **Get started** instead of *Start reading*, since what a person does next is not only read. (#181)
 
 - **The tag and the Release of a version are signed by whoever publishes them.** They were written by a GitHub App of the organisation, which existed for one reason: the only thing that wrote a `v*` tag was the production pipeline, a process with no person inside it, and a tag ruleset made that literally the only possibility. Delivery came back to a workstation in 0.6.0, the pipeline was switched off, and the App was removed with the AWS integrations of the repository — which left the release of 0.6.0 unable to be published at all, since the single actor allowed to write the tag no longer existed. `publish-release` now takes a token: `GITHUB_TOKEN` when the environment sets one, which is what a pipeline injects from Secrets Manager, and otherwise the token of the `gh` CLI, which whoever runs a release from their machine already has. **Nothing of what the command guarantees changed**: the tag is annotated in two steps, the notes come from the section of that version, and a tag already pointing at another commit is refused, because a version names one commit. What is gone is the impossibility of tagging by hand, which was a lock whose key one person carried anyway; `CLAUDE.md`, the process and the README say so instead of describing a rule that no longer exists.
 
 ### Fixed
+
+- **The steps for adding the connector follow the screens Claude and ChatGPT show today, and say what to answer in each field.** They sent a person to *Settings → Connectors* in both clients, and neither has it there any more: Claude moved connectors to **Customize**, and ChatGPT calls them **plugins** and offers a custom one only with **Developer mode** switched on — and only in the browser, since the phone and tablet apps do not show the options at all. Each client now gets five steps, in the words its own screens use: where the form is, what to write under the name and the address, which authentication to keep, the warning ChatGPT shows for any server outside its catalogue, and how to switch the connector on inside a conversation (RN-ACC-020, RN-AGT-012). (#182)
+
+- **The welcome page gives the address a client can actually connect to.** It published the address of the connector as `https://mcp.memorysmith.app`, which is where the service lives and not where it answers: the MCP server is at `https://mcp.memorysmith.app/mcp`, and a custom connector added with the address as shown found no server there. It is the one instruction the page exists to give, and it is the one thing on it that did not work. The page now shows and copies the endpoint of its own environment, `/mcp` included, and a case holds it (RN-ACC-020). (#180)
 
 - **Onboarding a second account no longer dies at the password prompt.** Every step of `onboard` that asks for a password — the one of an account that already exists, the one a `--set-password` run sets, and the one of the platform admin who authorises a subscription for somebody else — went through a helper that muted the echo by replacing an internal of the callback `readline`. The command uses the promises API, which does not carry that internal, so the helper threw `Cannot read properties of undefined` the first time anybody reached it. It never worked and nobody could have noticed: the first account of an empty pool operates the platform and authorises itself, so the prompt is unreachable until the second one. The echo is now muted at the output stream, which is where readline writes the characters as they are typed. **A run interrupted between creating the account and handing it over is still not recoverable by running it again**, and the comment claiming otherwise was wrong: the account is left on a working password the command generated and forgot, which Cognito reports as `CONFIRMED` — the same thing it reports for a person. The way back is written where the code decides: put the account where an invitation would have, with `admin-set-user-password --no-permanent`, and run the command again.
 
@@ -540,7 +548,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.5.7...v0.6.0
 [0.5.7]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.5.6...v0.5.7
 [0.5.6]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.5.5...v0.5.6

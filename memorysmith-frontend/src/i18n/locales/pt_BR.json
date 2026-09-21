@@ -345,7 +345,7 @@
     "lead": "Conhecimento estruturado, lido e escrito nativamente por pessoas e agentes.",
     "what": {
       "heading": "O que é isto",
-      "body": "O MemorySmith hospeda cadernos de notas escritas em Markdown. Um caderno tem pastas, uma pasta tem notas, e tudo o que você escreve aqui continua sendo texto puro que você lê sem depender de nós: cada nota guarda todo o seu histórico, e cada caderno pode ser exportado por inteiro a qualquer momento.",
+      "body": "O MemorySmith é onde você e seus agentes de IA constroem conhecimento juntos. Um caderno tem pastas, uma pasta tem notas em Markdown, e as mesmas notas são lidas e escritas pelos dois lados: por você, nesta interface, e pelo agente, pelo conector. Nada fica preso aqui dentro: cada nota continua sendo texto puro e guarda todo o seu histórico, e cada caderno pode ser exportado por inteiro a qualquer momento.",
       "guidance": "O que torna um caderno daqui diferente é que ele diz como quer ser escrito. A Orientação declara para que o caderno serve e como escrever nele; cada pasta carrega uma descrição e um Modelo. Um agente lê os dois antes de escrever a primeira linha, e é isso que mantém um caderno coerente depois de cem notas, em vez de virar uma pasta de arquivos soltos."
     },
     "interface": {
@@ -381,16 +381,19 @@
       "body": "Esta é a parte que vale fazer hoje. O MemorySmith responde a ferramentas de IA por um servidor MCP remoto, então o assistente não apenas lê seus cadernos: ele escreve neles, obedecendo à Orientação do caderno e ao Modelo de cada pasta. O endereço deste ambiente é:",
       "claude": {
         "heading": "No Claude",
-        "one": "Abra <b>Configurações</b> e depois <b>Conectores</b>.",
-        "two": "Escolha <b>Adicionar conector personalizado</b> e cole o endereço acima.",
-        "three": "O Claude abre uma tela de login; entre com esta mesma conta e autorize.",
-        "four": "Comece uma conversa e peça seus cadernos. O assistente vai listá-los."
+        "one": "No menu lateral, abra <b>Personalizar</b> e depois <b>Conectores</b>.",
+        "two": "Clique em <b>Adicionar</b> e escolha <b>Adicionar conector personalizado</b>.",
+        "three": "Em <b>Nome</b>, escreva <b>MemorySmith.app</b>; em <b>URL do servidor MCP</b>, cole o endereço acima; clique em <b>Continuar</b>.",
+        "four": "O Claude abre a tela de login do MemorySmith (se não abrir, clique em <b>Conectar</b> no conector); entre com esta mesma conta e autorize.",
+        "five": "Numa conversa, confira em <b>+</b> e depois <b>Conectores</b> que o MemorySmith.app está ligado, e peça seus cadernos."
       },
       "chatgpt": {
         "heading": "No ChatGPT",
-        "one": "Abra <b>Configurações</b>, depois <b>Conectores</b>, e escolha adicionar um.",
-        "two": "Cole o endereço acima e autorize com esta mesma conta.",
-        "three": "Em uma conversa, habilite o conector e peça seus cadernos."
+        "one": "Pelo navegador, e não pelo app de celular ou tablet, que não mostra estas opções: em <b>Configurações</b>, abra <b>Plugins</b>, depois <b>Modo de desenvolvedor</b>, e ligue-o: é ele que permite adicionar um servidor que não está no catálogo.",
+        "two": "No menu lateral, abra <b>Plugins</b> e clique no <b>+</b> ao lado da busca.",
+        "three": "Em <b>Nome</b>, escreva <b>MemorySmith.app</b>; em <b>Conexão</b>, deixe <b>URL do servidor</b> e cole o endereço acima; deixe <b>Autenticação</b> em <b>OAuth</b>.",
+        "four": "Marque <b>Entendi e quero continuar</b> e clique em <b>Criar</b>; o aviso é o mesmo para qualquer servidor fora do catálogo. Entre com esta mesma conta e autorize.",
+        "five": "Numa conversa, clique no <b>+</b>, digite <b>MemorySmith</b>, escolha o plugin e peça seus cadernos."
       },
       "sameAccount": "Seja qual for a ferramenta, entre com a mesma conta com que você está lendo isto: o assistente alcança exatamente os cadernos que você alcança, com exatamente as suas permissões, e cada mudança que ele faz fica registrada no seu nome."
     },
@@ -402,7 +405,7 @@
       "three": "“Escreva uma nota sobre o que acabamos de conversar, na pasta certa.”",
       "skills": "O conector carrega métodos escritos para as tarefas que mais dão errado — desenhar um caderno do zero, escrever uma nota que este produto consegue ler — e um bom assistente os lê antes de começar. Você vai vê-lo fazer isso."
     },
-    "start": "Começar a ler"
+    "start": "Começar"
   },
   "profile": {
     "menu": "Seu perfil",

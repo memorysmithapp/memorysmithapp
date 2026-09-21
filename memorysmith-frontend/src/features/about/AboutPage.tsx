@@ -4,7 +4,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import { BrandMark } from '../../shared/components/BrandMark';
 import { CheckIcon, CopyIcon } from '../../shared/components/icons';
 import { useDocumentTitle } from '../../shared/components/document-title';
-import { loadedRuntimeConfig } from '../../shared/config/runtime-config';
+import { connectorEndpoint, loadedRuntimeConfig } from '../../shared/config/runtime-config';
 import { copyText } from '../../shared/lib/clipboard';
 import { recordWelcomeSeen } from '../../shared/api/backend';
 import { useLiveSession } from '../../shared/auth/session';
@@ -25,6 +25,14 @@ export function WelcomeGate({ children }: { children: ReactNode }) {
 }
 
 /**
+ * The steps of adding the connector in each client, in the words the client's
+ * own screens use. Those screens move under us: they were reread in both
+ * clients for 0.6.1, when the Claude entry had moved to Customize and ChatGPT
+ * had renamed connectors to plugins behind a developer mode (#182).
+ */
+const STEPS = ['one', 'two', 'three', 'four', 'five'] as const;
+
+/**
  * What this product is, said once, to whoever just arrived (#167, RN-ACC-019).
  *
  * It opens by itself on the first sign-in of an account and never again, and
@@ -34,13 +42,15 @@ export function WelcomeGate({ children }: { children: ReactNode }) {
  *
  * The address of the connector is the reason this surface exists at all: an
  * agent writing in the notebooks is what the product IS, and nothing else in
- * the interface ever said where to point one. It is read from the runtime
- * configuration, so each environment publishes its own.
+ * the interface ever said where to point one. It is derived from the runtime
+ * configuration, so each environment publishes its own, and it is the endpoint
+ * and not the host: a client pointed at the host finds no server (#180).
  */
 export function AboutPage() {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
-  const connector = loadedRuntimeConfig()?.connectorOrigin ?? '';
+  const config = loadedRuntimeConfig();
+  const connector = config ? connectorEndpoint(config) : '';
   const welcomed = useLiveSession((s) => s.session?.welcomeSeen ?? true);
   const markWelcomeSeen = useLiveSession((s) => s.markWelcomeSeen);
 
@@ -116,7 +126,7 @@ export function AboutPage() {
 
         <h3>{t('about.connector.claude.heading')}</h3>
         <ol className="about-steps">
-          {(['one', 'two', 'three', 'four'] as const).map((step) => (
+          {STEPS.map((step) => (
             <li key={step}>
               <Trans i18nKey={`about.connector.claude.${step}`} components={{ b: <strong /> }} />
             </li>
@@ -125,7 +135,7 @@ export function AboutPage() {
 
         <h3>{t('about.connector.chatgpt.heading')}</h3>
         <ol className="about-steps">
-          {(['one', 'two', 'three'] as const).map((step) => (
+          {STEPS.map((step) => (
             <li key={step}>
               <Trans i18nKey={`about.connector.chatgpt.${step}`} components={{ b: <strong /> }} />
             </li>
