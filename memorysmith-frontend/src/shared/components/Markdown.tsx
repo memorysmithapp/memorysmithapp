@@ -80,12 +80,21 @@ function MarkdownAnchor({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAn
    * is, which is what `Attachment` does with it.
    */
   if (href?.startsWith('attachment:')) {
-    // The address carries the dimension the pipe declared, after the encoded
-    // name, where nothing else can be (§3.14, #173).
-    const address = href.slice('attachment:'.length);
+    /**
+     * The address carries the dimension the pipe declared, after the encoded
+     * name, where nothing else can be (§3.14, #173).
+     *
+     * **Decoded before it is split**, because the parser percent-encodes what
+     * it does not have to leave alone: the separator arrives as `%7C` and
+     * looking for `|` found nothing, which sent the whole string — dimension
+     * included — to be looked up as the name of a file. A name carrying a
+     * pipe is no name anyway (§5.3), so the last one is the separator or
+     * there is none.
+     */
+    const address = decodeURIComponent(href.slice('attachment:'.length));
     const at = address.lastIndexOf('|');
     const measured = at === -1 ? null : readDimensions(address.slice(at + 1));
-    const name = decodeURIComponent(measured ? address.slice(0, at) : address);
+    const name = measured ? address.slice(0, at) : address;
     if (!notebookId) {
       return (
         <span className="attachment-missing" title={t('note.attachmentMissing')}>
