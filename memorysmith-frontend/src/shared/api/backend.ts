@@ -280,11 +280,6 @@ export async function getNotebookGraph(notebookId: string): Promise<NotebookGrap
   return request<NotebookGraphDto>(`/discovery/notebooks/${notebookId}/graph`);
 }
 
-/**
- * The export of a whole notebook, as a folder of Markdown inside a ZIP. The API
- * answers with a short-lived link rather than with the bytes, so what comes
- * back here is where to fetch it and until when.
- */
 /** A short-lived address to upload a `.notebook` file to (RN-PRT-014). */
 export async function prepareImport(): Promise<{ uploadKey: string; uploadUrl: string }> {
   return request<{ uploadKey: string; uploadUrl: string }>('/portability/imports', {
@@ -293,7 +288,6 @@ export async function prepareImport(): Promise<{ uploadKey: string; uploadUrl: s
   });
 }
 
-/** Reads what was uploaded and writes the notebook it describes. */
 /**
  * Starts the import and answers the transfer (RN-PRT-018). Writing a notebook
  * of several hundred notes does not fit in one request, so what comes back is

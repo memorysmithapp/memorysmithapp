@@ -491,6 +491,61 @@ describe('Portability answers over the API', () => {
     expect(inside).not.toContain('STRUCTURE.md');
   });
 
+  /**
+   * The trail of a notebook that keeps a file names a subject the archive had
+   * never been asked to carry (#175). The document schema held a second,
+   * hand-typed copy of the list of subjects, `FILE` was added to the canonical
+   * one alone, and the export of the ordinary notebook — no selection, so the
+   * whole history travels (RN-PRT-024) — was refused at serialisation with
+   * zero bytes written.
+   */
+  it('exports a notebook that keeps a file, history and all', async () => {
+    const { notebookId } = await seed();
+
+    const kept = await call(`/knowledge/notebooks/${notebookId}/files`, {
+      method: 'POST',
+      body: {
+        name: 'engelbart.png',
+        description: 'A picture a note shows.',
+        mimeType: 'image/png',
+        tags: ['teste'],
+        path: '/imagens',
+        contentBase64: Buffer.from([
+          0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44,
+          0x52,
+        ]).toString('base64'),
+      },
+    });
+    expect(kept.status).toBe(201);
+    // The trail is a projection, and the harness drains the bus by hand.
+    await drainEvents();
+
+    const started = await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
+    expect(started.status).toBe(202);
+    const { transferId } = (await started.json()) as { transferId: string };
+
+    const transfer = (await (await call(`/portability/transfers/${transferId}`)).json()) as {
+      status: string;
+      failure: string | null;
+      bytes: number;
+    };
+    expect(transfer.failure).toBeNull();
+    expect(transfer.status).toBe('ready');
+    expect(transfer.bytes).toBeGreaterThan(0);
+
+    const [exportKey] = [...harness.archives.keys()];
+    const document = JSON.parse(
+      readZip(harness.archives.get(exportKey ?? '') as Buffer)['notebook.json'] ?? '{}',
+    ) as {
+      files?: Array<{ name: string; mimeType: string; bytes: string }>;
+      history?: { entries: Array<{ subject: string }> };
+    };
+
+    // The file travels (RN-PRT-025), and so does the entry that names it.
+    expect(document.files?.map((file) => file.name)).toEqual(['engelbart.png']);
+    expect(document.history?.entries.some((entry) => entry.subject === 'FILE')).toBe(true);
+  });
+
   it('keeps the export until it is deleted, and destroys its bytes when it is', async () => {
     const { notebookId } = await seed();
     const started = await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });

@@ -448,7 +448,17 @@ export class InMemoryContentStore implements ContentStore {
 export class InMemoryFileRepository implements FileRepository {
   private readonly files = new Map<string, NotebookFile>();
 
-  constructor(private readonly sub: SubscriptionContext) {}
+  /**
+   * The publisher is not decoration (#175). The adapter of the table writes
+   * every event of a file into the outbox in the same transaction, and a
+   * double that pulled them and dropped them made the whole downstream of a
+   * file — the trail, and therefore the history an archive carries —
+   * invisible to every test that runs against it.
+   */
+  constructor(
+    private readonly sub: SubscriptionContext,
+    private readonly events: EventPublisher,
+  ) {}
 
   private key(notebook: NotebookId, fileId: string): string {
     return `${notebookKey(this.sub, notebook)}#FILE#${fileId}`;
@@ -483,8 +493,9 @@ export class InMemoryFileRepository implements FileRepository {
         ),
       };
     }
-    file.pullEvents();
+    const events = file.pullEvents();
     this.files.set(this.key(file.notebookId, file.id.value), file);
+    await this.events.publish(events);
     return { ok: true, value: undefined };
   }
 }

@@ -251,7 +251,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
   const fileRepositoryOf = (context: SubscriptionContext): InMemoryFileRepository => {
     const held = fileRepositories.get(context.subscriptionId.value);
     if (held) return held;
-    const made = new InMemoryFileRepository(context);
+    const made = new InMemoryFileRepository(context, events);
     fileRepositories.set(context.subscriptionId.value, made);
     return made;
   };

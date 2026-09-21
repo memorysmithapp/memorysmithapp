@@ -33,7 +33,7 @@ import {
   positionSchema,
   ulidSchema,
 } from '../common.js';
-import { domainEventTypeSchema } from '../events.js';
+import { domainEventTypeSchema, eventSubjectSchema } from '../events.js';
 
 /**
  * The version of the DOCUMENT, which is not the version of the product. It says
@@ -94,7 +94,13 @@ export const documentNoteSchema = z.object({
 export const documentHistoryEntrySchema = z.object({
   eventId: ulidSchema,
   type: domainEventTypeSchema,
-  subject: z.enum(['SUBSCRIPTION', 'WORKSPACE', 'MEMBER', 'NOTEBOOK', 'FOLDER', 'NOTE']),
+  /**
+   * The subjects the domain writes, and not a copy of them (#175). A list
+   * retyped here went one cycle without `FILE` — the subject the files of #166
+   * write — and every export of a notebook that kept a file was refused at
+   * this schema, with the trail it could not carry as the only clue.
+   */
+  subject: eventSubjectSchema,
   subjectId: z.string().min(1),
   occurredAt: instantSchema,
   authorship: authorshipSchema,
