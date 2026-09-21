@@ -117,6 +117,9 @@ export function ExportChoice({
                 templates: t('portability.countTemplates', { count: counts.templates }),
                 notes: t('portability.noteCount', { count: counts.notes }),
               })}
+              {/* And the files, which are most of what an archive weighs: the
+                  summary that never named them is the whole of #176. */}
+              {counts.files > 0 && ` · ${t('portability.countFiles', { count: counts.files })}`}
             </p>
           )}
           <button type="button" className="button is-quiet" onClick={onClose}>

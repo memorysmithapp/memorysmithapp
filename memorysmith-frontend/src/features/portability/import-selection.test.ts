@@ -482,6 +482,27 @@ describe('the files are a species of the selection', () => {
   it('seeds the tab with every file, because opening it means taking some out', () => {
     expect([...seedOf(tree, 'files')]).toEqual(['engelbart.jpg', 'esquema.png']);
   });
+
+  /**
+   * The summary of both dialogs is built from these counts, and the files were
+   * missing from it — which is the whole of what #176 set out to fix: a screen
+   * that asks what travels and never names the megabytes it is about to carry
+   * is asking half a question.
+   */
+  it('is counted in what the transfer will carry', () => {
+    expect(countsOf(tree, effectiveOf(tree, wholeScope, pickedNothing)).files).toBe(2);
+
+    const um = effectiveOf(
+      tree,
+      scopeOf({ reach: { files: 'choose' } }),
+      pick({ files: ['esquema.png'] }),
+    );
+    expect(countsOf(tree, um).files).toBe(1);
+
+    expect(countsOf(tree, effectiveOf(tree, scopeOf({ files: false }), pickedNothing)).files).toBe(
+      0,
+    );
+  });
 });
 
 /**

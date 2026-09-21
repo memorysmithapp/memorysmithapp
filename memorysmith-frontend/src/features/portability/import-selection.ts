@@ -582,7 +582,7 @@ export function stateOfBranch(
 export function countsOf(
   tree: DocumentTree,
   chosen: Chosen,
-): { folders: number; templates: number; notes: number; guidance: boolean } {
+): { folders: number; templates: number; notes: number; files: number; guidance: boolean } {
   // A folder not selected but holding something selected is written as a path,
   // so it counts among what will be created (RN-PRT-017) — and a Template is
   // something selected, since it belongs to a folder (#156).
@@ -624,6 +624,9 @@ export function countsOf(
     folders: written.size,
     templates: [...chosen.templates].filter((id) => written.has(id)).length,
     notes: chosen.notes.size,
+    // The files travel because they were chosen, and nothing above them takes
+    // one out: what was chosen is what is carried (#176).
+    files: chosen.files.size,
     guidance: tree.guidance && chosen.guidance,
   };
 }

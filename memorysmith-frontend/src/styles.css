@@ -3309,6 +3309,10 @@ body.has-modal {
   list-style: none;
   margin: 0;
   padding: 0;
+  /* The tracks the rows borrow, so the reach of every species starts at one
+     x and every count ends at one x (see the row below). */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
 }
 /*
  * One species of the scope, in THREE COLUMNS and not in a row that wraps.
@@ -3325,9 +3329,25 @@ body.has-modal {
  * species that have no reach — the Guidance and the history — do not slide
  * their count into the second.
  */
+/*
+ * The columns are the LIST's and not each row's.
+ *
+ * A grid per row aligns the three cells of that row and nothing else: the
+ * first column takes what is left, so where the reach of a species began
+ * still moved with the width of the count beside it — `10 de 10` pushed it
+ * ten pixels left of `5 de 5`. Grid shares tracks between siblings only
+ * inside one container, so the list holds the tracks and every row borrows
+ * them with `subgrid`, which is what makes the alignment real.
+ *
+ * Where `subgrid` is not understood the declaration is dropped and the row
+ * keeps the three columns of its own below, which is the behaviour this had
+ * before: aligned within a row, and close enough between them.
+ */
 .chooser-scope-row {
   display: grid;
+  grid-column: 1 / -1;
   grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: subgrid;
   align-items: center;
   column-gap: 0.9rem;
   row-gap: 0.35rem;
