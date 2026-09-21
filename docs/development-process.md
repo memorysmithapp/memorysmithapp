@@ -444,9 +444,14 @@ divergence between them never means anything to the user.
 
 Steps 1 to 5 have to land in the same commit on the release branch. The version bump
 reaches `main` only through the PR of step 7, and never through a direct push. Steps 8 to 10 run
-from a checkout of the merged `main`, and their order is the guarantee: nobody tags by hand, a tag
-ruleset lets only the release App create a `v*` tag, and step 10 runs only once production serves
-the version step 9 delivered (`architecture-guide.md` §20.1).
+from a checkout of the merged `main`, and their order is the guarantee: nobody tags by hand, and
+step 10 runs only once production serves the version step 9 delivered (`architecture-guide.md`
+§20.1). A tag ruleset used to make the first half of that sentence impossible to break, by letting
+only a GitHub App write a `v*` tag; the App existed because the pipeline wrote the tag, and when
+delivery came back to a workstation both were removed. What refuses a wrong tag now is
+`publish-release` itself: it annotates in two steps, takes the notes from the section of that
+version, and refuses a tag that already points at another commit, because **a version names one
+commit**.
 
 ### 9.2 Three points that belong to the process
 

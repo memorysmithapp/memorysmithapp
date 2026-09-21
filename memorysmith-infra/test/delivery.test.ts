@@ -4,9 +4,8 @@
  * (architecture-guide.md, section 20).
  */
 
-import { createVerify, generateKeyPairSync } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { appJwt, publishRelease } from '../commands/lib/github-release.js';
+import { publishRelease } from '../commands/lib/github-release.js';
 import { smokeProblems, type SurfaceAnswers } from '../commands/lib/smoke.js';
 
 const EXPECTED = { environment: 'staging', version: '0.6.0-rc.12+a1b2c3d' };
@@ -59,31 +58,6 @@ describe('the smoke of a deploy', () => {
   });
 });
 
-describe('the JWT the release App authenticates with', () => {
-  it('is signed with its key, names the App, and lives under ten minutes', () => {
-    const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
-    const now = Date.UTC(2026, 8, 20, 12);
-    const jwt = appJwt(
-      '123456',
-      privateKey.export({ type: 'pkcs1', format: 'pem' }).toString(),
-      now,
-    );
-
-    const [header, payload, signature] = jwt.split('.');
-    const verifier = createVerify('RSA-SHA256');
-    verifier.update(`${header}.${payload}`);
-    expect(verifier.verify(publicKey, Buffer.from(signature ?? '', 'base64url'))).toBe(true);
-
-    const claims = JSON.parse(Buffer.from(payload ?? '', 'base64url').toString()) as Record<
-      string,
-      number | string
-    >;
-    expect(claims['iss']).toBe('123456');
-    expect(Number(claims['exp']) - Number(claims['iat'])).toBeLessThan(600);
-    expect(Number(claims['iat'])).toBeLessThan(now / 1000);
-  });
-});
-
 /** A GitHub that answers from a table, and records what it was asked. */
 function github(answers: Record<string, { status: number; body?: unknown }>) {
   const asked: string[] = [];
@@ -97,7 +71,7 @@ function github(answers: Record<string, { status: number; body?: unknown }>) {
 }
 
 const RELEASE = {
-  token: 'installation-token',
+  token: 'a-token-with-contents-write',
   repository: 'memorysmithapp/memorysmithapp',
   version: '0.6.0',
   commit: 'c0ffee',

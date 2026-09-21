@@ -26,12 +26,7 @@
         ],
         "pipeline": {
           "connectionArn": "",
-          "repository": "memorysmithapp/memorysmithapp",
-          "release": {
-            "appId": "4933372",
-            "installationId": "161448482",
-            "privateKeySecret": "memorysmith/release-app"
-          }
+          "repository": "memorysmithapp/memorysmithapp"
         }
       },
       "staging": {

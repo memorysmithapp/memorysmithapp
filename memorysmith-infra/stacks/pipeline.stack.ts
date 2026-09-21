@@ -579,11 +579,15 @@ export class PipelineStack extends Stack {
 
     if (production && environment.pipeline.release) {
       const release = environment.pipeline.release;
-      const key = secretsmanager.Secret.fromSecretNameV2(
-        this,
-        'ReleaseAppKey',
-        release.privateKeySecret,
-      );
+      /**
+       * The token the release is written with, read straight into the
+       * environment of the build by CodeBuild: the command takes it from
+       * `GITHUB_TOKEN` and never stores it. It used to be the private key of
+       * a GitHub App, which existed because a pipeline has no person inside
+       * it to sign as; the App is gone and a token says the same thing with
+       * one secret instead of three identifiers.
+       */
+      const key = secretsmanager.Secret.fromSecretNameV2(this, 'ReleaseToken', release.tokenSecret);
       const publish = new codebuild.PipelineProject(this, 'Release', {
         projectName: physicalName(environment, 'memorysmith-release'),
         environment: {
@@ -591,9 +595,10 @@ export class PipelineStack extends Stack {
           computeType: codebuild.ComputeType.SMALL,
           environmentVariables: {
             GITHUB_REPOSITORY: { value: environment.pipeline.repository },
-            GITHUB_APP_ID: { value: release.appId },
-            GITHUB_APP_INSTALLATION_ID: { value: release.installationId },
-            GITHUB_APP_KEY_SECRET_ID: { value: key.secretName },
+            GITHUB_TOKEN: {
+              value: key.secretName,
+              type: codebuild.BuildEnvironmentVariableType.SECRETS_MANAGER,
+            },
           },
         },
         logging: { cloudWatch: { logGroup: logs, prefix: 'Release' } },

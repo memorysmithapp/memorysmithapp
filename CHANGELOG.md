@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Changed
+
+- **The tag and the Release of a version are signed by whoever publishes them.** They were written by a GitHub App of the organisation, which existed for one reason: the only thing that wrote a `v*` tag was the production pipeline, a process with no person inside it, and a tag ruleset made that literally the only possibility. Delivery came back to a workstation in 0.6.0, the pipeline was switched off, and the App was removed with the AWS integrations of the repository — which left the release of 0.6.0 unable to be published at all, since the single actor allowed to write the tag no longer existed. `publish-release` now takes a token: `GITHUB_TOKEN` when the environment sets one, which is what a pipeline injects from Secrets Manager, and otherwise the token of the `gh` CLI, which whoever runs a release from their machine already has. **Nothing of what the command guarantees changed**: the tag is annotated in two steps, the notes come from the section of that version, and a tag already pointing at another commit is refused, because a version names one commit. What is gone is the impossibility of tagging by hand, which was a lock whose key one person carried anyway; `CLAUDE.md`, the process and the README say so instead of describing a rule that no longer exists.
+
 ## [0.6.0] - 2026-09-21
 
 ### Changed

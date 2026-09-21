@@ -29,7 +29,7 @@ const ENVIRONMENTS = {
     delegations: [],
     pipeline: {
       ...PIPELINE,
-      release: { appId: '1', installationId: '2', privateKeySecret: 'memorysmith/release-app' },
+      release: { tokenSecret: 'memorysmith/release-token' },
     },
   },
   staging: {
