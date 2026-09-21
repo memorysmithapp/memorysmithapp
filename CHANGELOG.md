@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-09-21
+
 ### Changed
 
 - **The welcome page opens on what the product is: a person and their agents writing the same notebooks.** Its first paragraph described a notebook as folders of Markdown notes and closed on "plain text you can read without us", an *us* the page never named — a reader could take it for the product or for the agents, which appear only further down. It now says, before anything else, that MemorySmith is where you and your AI agents build knowledge together, that the same notes are read and written from both sides — by you in the interface, by an agent through the connector — and then that nothing is locked in: every note stays plain text with its whole history, and every notebook exports in full. The button that closes the page says **Get started** instead of *Start reading*, since what a person does next is not only read. (#181)
@@ -546,7 +548,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.5.7...v0.6.0
 [0.5.7]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.5.6...v0.5.7
 [0.5.6]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.5.5...v0.5.6
