@@ -21,7 +21,7 @@ import {
 } from '../api/remark-memorysmith-ring';
 import { useTranslation } from 'react-i18next';
 import { toUnixNewlines } from '../api/markdown';
-import { readImageAlt } from '../api/image-dimensions';
+import { readDimensions, readImageAlt } from '../api/image-dimensions';
 import { followable } from '../api/address';
 import { ordinalAt } from '../api/tasklist';
 import { remarkCallouts } from '../api/remark-callouts';
@@ -80,7 +80,12 @@ function MarkdownAnchor({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAn
    * is, which is what `Attachment` does with it.
    */
   if (href?.startsWith('attachment:')) {
-    const name = decodeURIComponent(href.slice('attachment:'.length));
+    // The address carries the dimension the pipe declared, after the encoded
+    // name, where nothing else can be (§3.14, #173).
+    const address = href.slice('attachment:'.length);
+    const at = address.lastIndexOf('|');
+    const measured = at === -1 ? null : readDimensions(address.slice(at + 1));
+    const name = decodeURIComponent(measured ? address.slice(0, at) : address);
     if (!notebookId) {
       return (
         <span className="attachment-missing" title={t('note.attachmentMissing')}>
@@ -88,7 +93,14 @@ function MarkdownAnchor({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAn
         </span>
       );
     }
-    return <Attachment notebookId={notebookId} name={name} />;
+    return (
+      <Attachment
+        notebookId={notebookId}
+        name={name}
+        width={measured?.width ?? null}
+        height={measured?.height ?? null}
+      />
+    );
   }
   if (href?.startsWith('pending:')) {
     return (

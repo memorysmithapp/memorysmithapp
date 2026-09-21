@@ -24,7 +24,23 @@ import { queryKeys } from '../api/query-keys';
  * an `<img>` can follow it, and a file somebody uploaded is served from an
  * origin that is not the one the product runs in.
  */
-export function Attachment({ notebookId, name }: { notebookId: string; name: string }) {
+export function Attachment({
+  notebookId,
+  name,
+  width = null,
+  height = null,
+}: {
+  notebookId: string;
+  name: string;
+  /**
+   * What the pipe declared, in CSS pixels (§3.14, #173). A width alone keeps
+   * the aspect ratio; a width and a height set both. They are written as
+   * attributes rather than as style, so the browser reserves the box before
+   * the bytes arrive and the note stops reflowing as pictures land.
+   */
+  width?: number | null;
+  height?: number | null;
+}) {
   const { t } = useTranslation();
   const file = fileKept(notebookId, name);
 
@@ -51,15 +67,28 @@ export function Attachment({ notebookId, name }: { notebookId: string; name: str
   if (!address) return <span className="attachment-loading">{file.name}</span>;
 
   const url = address.url;
+  // A dimension is only ever a dimension of something with one: an audio
+  // player has no width the author is talking about, and a card is text.
+  const sized = {
+    ...(width === null ? {} : { width }),
+    ...(height === null ? {} : { height }),
+  };
   const shape = rendersAs(file.mimeType);
   if (shape === 'image') {
-    return <img className="attachment-image" src={url} alt={file.description || file.name} />;
+    return (
+      <img
+        className="attachment-image"
+        src={url}
+        alt={file.description || file.name}
+        {...sized}
+      />
+    );
   }
   if (shape === 'audio') {
     return <audio className="attachment-player" controls src={url} />;
   }
   if (shape === 'video') {
-    return <video className="attachment-player" controls src={url} />;
+    return <video className="attachment-player" controls src={url} {...sized} />;
   }
   return <AttachmentCard file={file} link={address} />;
 }

@@ -2,6 +2,8 @@
 // wikilink resolution. The backend never interprets note content (PP4); these
 // helpers exist purely for presentation.
 
+import { readDimensions } from './image-dimensions';
+
 export interface SplitDocument {
   frontmatter: Record<string, string>;
   /**
@@ -331,7 +333,17 @@ function resolveWikilinksIn(
     // attachment takes the dimensions, and a target that resolves to neither
     // takes the alias — because reading it as a dimension would discard text
     // an author wrote (RN-DSC-049).
-    if (keeps(clean)) return `[${text}](attachment:${encodeURIComponent(clean)})`;
+    if (keeps(clean)) {
+      // The dimension travels with the address, because the name is already
+      // percent-encoded and a bare `|` after it cannot be part of it (#173).
+      // Dropping it here is what made `![[picture|120]]` render at full size:
+      // the notation was read and then thrown away one line before it was used.
+      const measured = label === undefined ? null : readDimensions(label);
+      const sized = measured
+        ? `|${measured.width}${measured.height === null ? '' : `x${measured.height}`}`
+        : '';
+      return `[${text}](attachment:${encodeURIComponent(clean)}${sized})`;
+    }
     const url = resolve(clean.normalize('NFC'));
     return url ? `[${text}](${url})` : `[${text}](pending:${encodeURIComponent(clean)})`;
   });

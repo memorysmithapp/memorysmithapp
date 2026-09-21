@@ -82,10 +82,29 @@ describe('an attachment is a file the notebook keeps, and not a name that looks 
     expect(out).toContain('engelbart.jpg');
   });
 
-  it('carries its dimensions in the same pipe, and shows neither as text', () => {
-    const out = resolveWikilinks('![[engelbart.jpg|100x145]]', () => null, keeps);
-    expect(out).toContain('attachment:');
-    expect(out).not.toContain('100x145');
+  /**
+   * This case used to assert that the dimension does not reach the page as
+   * text, and nothing else — which dropping it satisfied perfectly (#173). The
+   * dimension is notation the specification declares, so what it has to do is
+   * **arrive**: it travels with the address, after the encoded name, where
+   * nothing else can be, and the reading surface takes it off there.
+   */
+  it('carries its dimensions in the same pipe, to the address and not to the page', () => {
+    const both = resolveWikilinks('![[engelbart.jpg|100x145]]', () => null, keeps);
+    // The `!` is still in front: this pass reads the wikilink, and stripping
+    // the bang is `demoteEmbeds`, one step earlier in the real pipeline.
+    expect(both).toBe('![engelbart.jpg](attachment:engelbart.jpg|100x145)');
+
+    // A width on its own keeps the aspect ratio, and travels the same way.
+    expect(resolveWikilinks('![[engelbart.jpg|120]]', () => null, keeps)).toBe(
+      '![engelbart.jpg](attachment:engelbart.jpg|120)',
+    );
+
+    // A value that is not a dimension is not one: nothing is applied, and it
+    // is not shown either, because the name of the file is what a file shows.
+    expect(resolveWikilinks('![[engelbart.jpg|grande]]', () => null, keeps)).toBe(
+      '![engelbart.jpg](attachment:engelbart.jpg)',
+    );
   });
 
   it('is never transcluded, because there is no note to expand', () => {

@@ -24,16 +24,28 @@ export interface ImageAlt {
 /** `100` or `100x145`, and nothing else. */
 const DIMENSIONS = /^(\d{1,5})(?:x(\d{1,5}))?$/;
 
+/**
+ * What follows a pipe, when it is a dimension and not text (#173).
+ *
+ * The wikilink embed of an attachment carries the same thing the alt text of a
+ * Markdown image does — `![[engelbart.jpg|100x145]]` and
+ * `![Engelbart|100x145](…)` mean one thing — so both read it here.
+ */
+export function readDimensions(value: string): { width: number; height: number | null } | null {
+  const measured = DIMENSIONS.exec(value.trim());
+  if (!measured) return null;
+  return {
+    width: Number(measured[1]),
+    height: measured[2] === undefined ? null : Number(measured[2]),
+  };
+}
+
 export function readImageAlt(alt: string): ImageAlt {
   const at = alt.lastIndexOf('|');
   if (at === -1) return { description: alt, width: null, height: null };
 
-  const measured = DIMENSIONS.exec(alt.slice(at + 1).trim());
+  const measured = readDimensions(alt.slice(at + 1));
   if (!measured) return { description: alt, width: null, height: null };
 
-  return {
-    description: alt.slice(0, at).trim(),
-    width: Number(measured[1]),
-    height: measured[2] === undefined ? null : Number(measured[2]),
-  };
+  return { description: alt.slice(0, at).trim(), width: measured.width, height: measured.height };
 }
