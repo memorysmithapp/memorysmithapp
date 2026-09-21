@@ -15,9 +15,9 @@ export interface RuntimeConfig {
   /** Where the product API answers, with no trailing slash. */
   readonly apiOrigin: string;
   /**
-   * Where the connector of this environment answers, with no trailing slash.
-   * The welcome surface publishes it, because pointing an agent at this
-   * notebook is the one thing nothing in the product used to say (#167).
+   * The origin of the connector of this environment, with no trailing slash.
+   * It is the host, not the address a client is pointed at, which is
+   * {@link connectorEndpoint}.
    */
   readonly connectorOrigin: string;
   /** Where the sign-in page answers, with no trailing slash. */
@@ -83,4 +83,13 @@ export function runtimeConfig(): RuntimeConfig {
 /** The configuration when it is loaded, and null before, for code that may run either way. */
 export function loadedRuntimeConfig(): RuntimeConfig | null {
   return loaded;
+}
+
+/**
+ * The address a client is pointed at to reach the connector (RN-ACC-020): the
+ * origin and the path the MCP server answers on. The welcome surface published
+ * the origin alone, and a client given it found no server there (#180).
+ */
+export function connectorEndpoint(config: Pick<RuntimeConfig, 'connectorOrigin'>): string {
+  return `${config.connectorOrigin}/mcp`;
 }
