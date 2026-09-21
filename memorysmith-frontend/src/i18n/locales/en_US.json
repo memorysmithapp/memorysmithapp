@@ -221,7 +221,8 @@
       "folders": "Folders",
       "templates": "Templates",
       "notes": "Notes",
-      "conflicts": "Conflicts"
+      "conflicts": "Conflicts",
+      "files": "Files"
     },
     "noTemplate": "no Template",
     "wholeNotebook": "The whole notebook",
@@ -265,7 +266,8 @@
     "nothingImported": "Nothing is imported until that is resolved.",
     "countFiles_one": "{{count}} file",
     "countFiles_other": "{{count}} files",
-    "countFiles_zero": "{{count}} files"
+    "countFiles_zero": "{{count}} files",
+    "filesBelongToTheNotebook": "A file belongs to the notebook and not to a folder: leaving one out never leaves a note out with it, and any note that travels may reference any of them. What it costs is an embed that lands pending."
   },
   "graph": {
     "heading": "Notebook graph",

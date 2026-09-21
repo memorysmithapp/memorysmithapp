@@ -51,10 +51,25 @@ export interface TreeFolder {
   readonly noteCount: number;
 }
 
+/**
+ * A file the notebook keeps, as a chooser offers it (#176). Flat on purpose: a
+ * file belongs to the notebook and not to a folder, so there is no branch to
+ * walk and nothing above it to take it out of the transfer.
+ */
+export interface TreeFile {
+  readonly kind: 'file';
+  /** The NAME, which is the address of a file and what a note writes. */
+  readonly name: string;
+  readonly mimeType: string;
+  readonly bytes: number;
+}
+
 export interface DocumentTree {
   readonly guidance: boolean;
   readonly folders: TreeFolder[];
   readonly noteCount: number;
+  /** The files the notebook keeps, in the order they were kept (#176). */
+  readonly files: readonly TreeFile[];
   /**
    * How many entries of the trail there are: a number when the tree was read
    * from an archive, which carries them, and `null` when it was read from the
@@ -72,12 +87,20 @@ export interface Chosen {
   readonly folders: ReadonlySet<string>;
   readonly templates: ReadonlySet<string>;
   readonly notes: ReadonlySet<string>;
+  /** By NAME, on both sides: no identifier of a file travels (RN-PRT-025). */
+  readonly files: ReadonlySet<string>;
 }
 
 export type NodeState = 'on' | 'off' | 'mixed';
 
-/** The three species that have a hierarchy, and therefore a tab of their own. */
-export type Species = 'folders' | 'templates' | 'notes';
+/** The species chosen item by item, each with a tab of its own. */
+export type Species = 'folders' | 'templates' | 'notes' | 'files';
+
+/**
+ * The three that have a hierarchy. The files are the fourth species and the
+ * only flat one: its tab is a list, and nothing above a file can take it out.
+ */
+export type BranchSpecies = Exclude<Species, 'files'>;
 
 /** How much of a species travels: all of it, or the items somebody picked. */
 export type Reach = 'all' | 'choose';
@@ -96,10 +119,17 @@ export interface Scope {
   readonly folders: boolean;
   readonly templates: boolean;
   readonly notes: boolean;
+  /**
+   * The files the notebook keeps (#176). They used to travel always and
+   * silently, which is the one thing a chooser must not do: an archive was
+   * mostly files and the screen that asked what to carry never named them.
+   */
+  readonly files: boolean;
   readonly reach: {
     readonly folders: Reach;
     readonly templates: Reach;
     readonly notes: Reach;
+    readonly files: Reach;
   };
 }
 
@@ -110,7 +140,10 @@ export const wholeScope: Scope = {
   folders: true,
   templates: true,
   notes: true,
-  reach: { folders: 'all', templates: 'all', notes: 'all' },
+  // Every file, which stays the default: an embed that lands pending because
+  // the picture was left behind is worse than a larger archive (RN-PRT-025).
+  files: true,
+  reach: { folders: 'all', templates: 'all', notes: 'all', files: 'all' },
 };
 
 /**
@@ -124,12 +157,15 @@ export interface Picked {
   readonly folders: ReadonlySet<string>;
   readonly templates: ReadonlySet<string>;
   readonly notes: ReadonlySet<string>;
+  /** The names of the files, since a file has no identifier that travels. */
+  readonly files: ReadonlySet<string>;
 }
 
 export const pickedNothing: Picked = {
   folders: new Set<string>(),
   templates: new Set<string>(),
   notes: new Set<string>(),
+  files: new Set<string>(),
 };
 
 /**
@@ -216,6 +252,13 @@ export function treeOf(document: NotebookDocument): DocumentTree {
   return {
     guidance: document.notebook.guidance !== null,
     folders: build(null),
+    // Absent from every document written before `1.2`, which still imports.
+    files: (document.files ?? []).map((file) => ({
+      kind: 'file' as const,
+      name: file.name,
+      mimeType: file.mimeType,
+      bytes: Math.floor((file.bytes.length * 3) / 4),
+    })),
     noteCount: document.notes.length,
     historyEntries: document.history?.entries.length ?? 0,
   };
@@ -236,6 +279,8 @@ export function treeOf(document: NotebookDocument): DocumentTree {
 export function treeOfNotebook(structure: {
   guidance: string | null;
   folders: ReadonlyArray<NotebookFolder>;
+  /** What the notebook keeps beside its notes, which the API answers (#176). */
+  files: ReadonlyArray<{ name: string; mimeType: string; bytes: number }>;
 }): DocumentTree {
   const build = (folders: ReadonlyArray<NotebookFolder>): TreeFolder[] =>
     folders.map((folder) => ({
@@ -256,6 +301,12 @@ export function treeOfNotebook(structure: {
   return {
     guidance: structure.guidance !== null,
     folders,
+    files: structure.files.map((file) => ({
+      kind: 'file' as const,
+      name: file.name,
+      mimeType: file.mimeType,
+      bytes: file.bytes,
+    })),
     noteCount: count(folders),
     // A notebook always has a trail; how much of one is not a question a
     // dialog asks the server before it opens.
@@ -314,12 +365,25 @@ export function effectiveOf(tree: DocumentTree, scope: Scope, picked: Picked): C
     }
   }
 
+  /**
+   * A file belongs to the NOTEBOOK and not to a folder, so nothing above it
+   * can take it out: a folder left behind never leaves a picture behind with
+   * it, and any note that travels may reference any file (RN-PRT-025).
+   */
+  const files = new Set<string>();
+  if (scope.files) {
+    for (const file of tree.files) {
+      if (scope.reach.files === 'all' || picked.files.has(file.name)) files.add(file.name);
+    }
+  }
+
   return {
     guidance: scope.guidance && tree.guidance,
     history: scope.history && tree.historyEntries !== 0,
     folders,
     templates,
     notes,
+    files,
   };
 }
 
@@ -334,6 +398,7 @@ export const nothing: Chosen = {
   folders: new Set<string>(),
   templates: new Set<string>(),
   notes: new Set<string>(),
+  files: new Set<string>(),
 };
 
 /**
@@ -353,6 +418,7 @@ export function scopeCountsOf(
       held: every.filter((folder) => folder.template !== null).length,
     },
     notes: { carried: chosen.notes.size, held: tree.noteCount },
+    files: { carried: chosen.files.size, held: tree.files.length },
   };
 }
 
@@ -368,6 +434,7 @@ export function scopeCountsOf(
  * never destroys it.
  */
 export function seedOf(tree: DocumentTree, species: Species): ReadonlySet<string> {
+  if (species === 'files') return new Set(tree.files.map((file) => file.name));
   const every = flatten(tree.folders);
   if (species === 'folders') return new Set(every.map((folder) => folder.id));
   if (species === 'templates') {
@@ -645,5 +712,8 @@ export function selectionOf(chosen: Chosen): TransferSelection {
     folders: [...chosen.folders],
     templates: [...chosen.templates],
     notes: [...chosen.notes],
+    // By name, and by name on the way in too: no identifier of a file travels
+    // in a document, so a name is the only address both sides have (#176).
+    files: [...chosen.files],
   };
 }

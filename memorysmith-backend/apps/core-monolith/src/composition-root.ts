@@ -20,6 +20,7 @@ import {
   FILE_MIME_TYPES,
   PICTURE_MIME_TYPES,
   fileTypeOf,
+  opensInBrowser,
   RESERVED_FRONTMATTER_KEYS,
   NOTEBOOK_DOCUMENT_ENTRY,
   notebookDocumentSchema,
@@ -151,6 +152,9 @@ export const FILE_TYPE_CATALOGUE: FileTypes = {
   accepted: FILE_MIME_TYPES,
   canonical: (mimeType) => fileTypeOf(mimeType)?.mimeType ?? null,
   supports: (mimeType, bytes) => bytesSupport(mimeType, bytes),
+  // Whether a browser shows it on its own, which decides whether the file is
+  // served inline and whether a card may offer to open it (#171).
+  opens: (mimeType) => opensInBrowser(mimeType),
 };
 
 export function buildKnowledge(infra: Infrastructure, context: SubscriptionContext) {

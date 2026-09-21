@@ -546,6 +546,120 @@ describe('Portability answers over the API', () => {
     expect(document.history?.entries.some((entry) => entry.subject === 'FILE')).toBe(true);
   });
 
+  /**
+   * The files are a species of the selection, chosen by NAME on both sides
+   * (#176, RN-PRT-025). No identifier of a file travels in a document, so a
+   * name is the only address the two halves of a transfer share — which is
+   * also what makes an imported `![[name]]` find the file it always found.
+   */
+  it('carries the files a selection names, and leaves the rest of them behind', async () => {
+    const { notebookId } = await seed();
+    const png = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44,
+      0x52,
+    ]).toString('base64');
+
+    for (const name of ['engelbart.png', 'esquema.png']) {
+      const kept = await call(`/knowledge/notebooks/${notebookId}/files`, {
+        method: 'POST',
+        body: {
+          name,
+          description: '',
+          mimeType: 'image/png',
+          tags: [],
+          path: '/',
+          contentBase64: png,
+        },
+      });
+      expect(kept.status).toBe(201);
+    }
+
+    const started = await call(`/portability/notebooks/${notebookId}/export`, {
+      method: 'POST',
+      body: {
+        selection: {
+          guidance: true,
+          history: false,
+          folders: [],
+          templates: [],
+          notes: [],
+          files: ['esquema.png'],
+        },
+      },
+    });
+    expect(started.status).toBe(202);
+
+    const [exportKey] = [...harness.archives.keys()];
+    const document = JSON.parse(
+      readZip(harness.archives.get(exportKey ?? '') as Buffer)['notebook.json'] ?? '{}',
+    ) as { files?: Array<{ name: string }> };
+    expect(document.files?.map((file) => file.name)).toEqual(['esquema.png']);
+  });
+
+  it('imports the files a selection names, by the name a note addresses them with', async () => {
+    const { notebookId } = await seed();
+    const png = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44,
+      0x52,
+    ]).toString('base64');
+    for (const name of ['engelbart.png', 'esquema.png']) {
+      await call(`/knowledge/notebooks/${notebookId}/files`, {
+        method: 'POST',
+        body: {
+          name,
+          description: '',
+          mimeType: 'image/png',
+          tags: [],
+          path: '/',
+          contentBase64: png,
+        },
+      });
+    }
+
+    // The whole notebook goes out, both files with it.
+    const started = await call(`/portability/notebooks/${notebookId}/export`, {
+      method: 'POST',
+      body: {
+        selection: { guidance: true, history: false, folders: [], templates: [], notes: [] },
+      },
+    });
+    expect(started.status).toBe(202);
+    const [exportKey] = [...harness.archives.keys()];
+    const archive = harness.archives.get(exportKey ?? '') as Buffer;
+
+    // And one of them comes back, chosen by name.
+    const prepared = (await (await call('/portability/imports', { method: 'POST' })).json()) as {
+      uploadKey: string;
+    };
+    harness.uploads.set(prepared.uploadKey, archive);
+    const started2 = await call('/portability/imports/apply', {
+      method: 'POST',
+      body: {
+        uploadKey: prepared.uploadKey,
+        name: 'Normas e Legislacao (so um desenho)',
+        selection: {
+          guidance: true,
+          history: false,
+          folders: [],
+          templates: [],
+          notes: [],
+          files: ['esquema.png'],
+        },
+      },
+    });
+    const { transferId } = (await started2.json()) as { transferId: string };
+    const job = (await (await call(`/portability/transfers/${transferId}`)).json()) as {
+      status: string;
+      notebookId: string;
+    };
+    expect(job.status).toBe('ready');
+
+    const kept = (await (await call(`/knowledge/notebooks/${job.notebookId}/files`)).json()) as {
+      files: Array<{ name: string }>;
+    };
+    expect(kept.files.map((file) => file.name)).toEqual(['esquema.png']);
+  });
+
   it('keeps the export until it is deleted, and destroys its bytes when it is', async () => {
     const { notebookId } = await seed();
     const started = await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });

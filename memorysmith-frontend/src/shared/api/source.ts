@@ -60,6 +60,15 @@ export async function getNotebookFiles(notebookId: string): Promise<number> {
   return kept.length;
 }
 
+/**
+ * The files themselves, for a screen that has to show them rather than resolve
+ * a name against them — the chooser of a transfer, which offers them as a
+ * species of the selection (#176).
+ */
+export function listNotebookFiles(notebookId: string): Promise<NotebookFileDto[]> {
+  return backend.getNotebookFiles(notebookId);
+}
+
 /** The file the notebook keeps under that name, or `null` when it keeps none. */
 export function fileKept(notebookId: string, name: string): NotebookFileDto | null {
   return files.get(notebookId)?.get(name.normalize('NFC')) ?? null;

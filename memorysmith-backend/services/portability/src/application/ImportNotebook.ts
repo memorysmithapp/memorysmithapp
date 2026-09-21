@@ -220,6 +220,13 @@ export interface ImportSelection {
   readonly folders: readonly string[];
   readonly templates: readonly string[];
   readonly notes: readonly string[];
+  /**
+   * The files, **by name** (#176, RN-PRT-025). No identifier of a file travels
+   * in a document — an import mints its own, and a note reaches one by name —
+   * so a name is the only address both sides of a transfer share, and it is
+   * what the two chooser tabs tick. Absent is every file the archive holds.
+   */
+  readonly files?: readonly string[] | undefined;
 }
 
 /** How an import says where it got to, and whether it should still be running. */
@@ -523,11 +530,18 @@ export class ImportNotebook {
 
     /**
      * The files, before the history and after the notes: a note that
-     * references one is already written, and a file the archive carries is
-     * kept whatever the selection left out, because a file belongs to the
-     * notebook rather than to a folder (RN-PRT-025).
+     * references one is already written by the time its picture arrives.
+     *
+     * A file belongs to the notebook rather than to a folder, so nothing the
+     * selection left out takes one with it — a file travels because it was
+     * **chosen**, by name, and a selection that names none carries every file
+     * the archive holds, which is what almost everyone wants (RN-PRT-025,
+     * #176).
      */
-    for (const file of document.files ?? []) {
+    const wantedFiles = selection?.files;
+    for (const file of (document.files ?? []).filter(
+      (file) => wantedFiles === undefined || wantedFiles.includes(file.name),
+    )) {
       if (await stopped()) {
         return err(
           DomainError.validation('The import was cancelled', {

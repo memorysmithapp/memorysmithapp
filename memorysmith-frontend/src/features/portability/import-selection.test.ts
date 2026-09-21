@@ -98,6 +98,24 @@ const DOCUMENT: NotebookDocument = {
       body: body('ADR-002'),
     },
   ],
+  files: [
+    {
+      name: 'engelbart.jpg',
+      description: 'A face.',
+      mimeType: 'image/jpeg',
+      tags: [],
+      path: '/',
+      bytes: 'AAAA',
+    },
+    {
+      name: 'esquema.png',
+      description: 'A drawing.',
+      mimeType: 'image/png',
+      tags: [],
+      path: '/desenhos',
+      bytes: 'AAAAAAAA',
+    },
+  ],
 } as NotebookDocument;
 
 const tree = treeOf(DOCUMENT);
@@ -118,6 +136,7 @@ const pick = (over: Partial<Record<keyof Picked, string[]>>): Picked => ({
   folders: new Set(over.folders ?? []),
   templates: new Set(over.templates ?? []),
   notes: new Set(over.notes ?? []),
+  files: new Set(over.files ?? []),
 });
 
 describe('the tree of a document', () => {
@@ -414,7 +433,54 @@ describe('what travels to the server', () => {
       folders: [CHILD],
       templates: [],
       notes: [N2],
+      // The files travel by NAME, and this selection carries both (#176).
+      files: ['engelbart.jpg', 'esquema.png'],
     });
+  });
+});
+
+/**
+ * The files are the fourth species chosen item by item, and the only flat one
+ * (#176). They used to travel always and silently: an archive was mostly files
+ * and the screen that asked what to carry never named them.
+ */
+describe('the files are a species of the selection', () => {
+  it('carries every one of them by default, which is what the rule defends', () => {
+    const chosen = effectiveOf(tree, wholeScope, pickedNothing);
+    expect([...chosen.files]).toEqual(['engelbart.jpg', 'esquema.png']);
+  });
+
+  it('carries none when the species is off', () => {
+    const chosen = effectiveOf(tree, scopeOf({ files: false }), pickedNothing);
+    expect([...chosen.files]).toEqual([]);
+    // And nothing else moves: a file belongs to the notebook, not to a folder.
+    expect(chosen.notes.size).toBe(3);
+    expect(chosen.folders.size).toBe(3);
+  });
+
+  it('carries the ones ticked, by name, when it is chosen item by item', () => {
+    const chosen = effectiveOf(
+      tree,
+      scopeOf({ reach: { files: 'choose' } }),
+      pick({ files: ['esquema.png'] }),
+    );
+    expect([...chosen.files]).toEqual(['esquema.png']);
+  });
+
+  it('is never taken out by a folder, because no folder holds a file', () => {
+    // Every folder left behind, every file still carried: the dependency the
+    // other three species have does not exist here.
+    const chosen = effectiveOf(
+      tree,
+      scopeOf({ folders: false, templates: false, notes: false }),
+      pickedNothing,
+    );
+    expect(chosen.folders.size).toBe(0);
+    expect([...chosen.files]).toEqual(['engelbart.jpg', 'esquema.png']);
+  });
+
+  it('seeds the tab with every file, because opening it means taking some out', () => {
+    expect([...seedOf(tree, 'files')]).toEqual(['engelbart.jpg', 'esquema.png']);
   });
 });
 
@@ -440,6 +506,7 @@ describe('the seed of a tab', () => {
       folders: seedOf(tree, 'folders'),
       templates: seedOf(tree, 'templates'),
       notes: seedOf(tree, 'notes'),
+      files: seedOf(tree, 'files'),
     };
     const choosing = effectiveOf(
       tree,

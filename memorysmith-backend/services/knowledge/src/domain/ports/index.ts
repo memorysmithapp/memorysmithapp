@@ -165,6 +165,14 @@ export interface FileTypes {
   canonical(mimeType: string): string | null;
   /** Whether these bytes can be what they say they are. */
   supports(mimeType: string, bytes: Uint8Array): boolean;
+  /**
+   * Whether a browser **shows** this type on its own, which is what decides
+   * whether the file may be served `inline` (#171). It comes through the port
+   * for the reason the rest of the catalogue does: the list belongs to the
+   * contracts the product publishes, and `application/` reads it through a
+   * port rather than importing it.
+   */
+  opens(mimeType: string): boolean;
 }
 
 /** A link a browser follows on its own, which is what an `<img>` needs. */

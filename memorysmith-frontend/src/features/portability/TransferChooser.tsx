@@ -65,6 +65,9 @@ const TABS: ReadonlyArray<ChooserTab> = [
   'folders',
   'templates',
   'notes',
+  // The files, which are flat: a file belongs to the notebook and not to a
+  // folder, so the tab is a list and nothing above it takes one out (#176).
+  'files',
   // Last, and lit: it is not a fifth thing to choose but the reason the
   // choosing cannot end, and it opens only when there is one (#161).
   'conflicts',
@@ -152,7 +155,7 @@ export function TransferChooser({
       scope[each] &&
       scope.reach[each] === 'choose' &&
       counts[each].held > 0 &&
-      (each === 'folders' || scope.folders)
+      (each === 'folders' || each === 'files' || scope.folders)
     );
   };
 
@@ -209,6 +212,8 @@ export function TransferChooser({
               setTab(species);
             }}
           />
+        ) : active === 'files' ? (
+          <FilesPanel tree={tree} picked={picked} onPicked={onPicked} />
         ) : (
           <ItemsPanel
             tree={tree}
@@ -316,11 +321,12 @@ function ScopePanel({
           checked={hasHistory && scope.history}
           onToggle={(on) => onScope({ ...scope, history: on })}
         />
-        {(['folders', 'templates', 'notes'] as const).map((species) => {
+        {(['folders', 'templates', 'notes', 'files'] as const).map((species) => {
           const held = counts[species].held;
           // Nothing travels without its folder, so the two that depend on one
-          // say so instead of offering a box that would carry nothing.
-          const blocked = species !== 'folders' && !scope.folders;
+          // say so instead of offering a box that would carry nothing. The
+          // files depend on nothing: they belong to the notebook (#176).
+          const blocked = species !== 'folders' && species !== 'files' && !scope.folders;
           const missing = held === 0 || blocked;
           return (
             <ScopeRow
@@ -499,6 +505,75 @@ function ItemsPanel({
       </div>
     </>
   );
+}
+
+/**
+ * The files, which are a list and not a tree (#176).
+ *
+ * There is nothing to walk: a file belongs to the notebook rather than to a
+ * folder, so no folder above it can take it out and no branch can be half
+ * ticked. What each row shows is what decides whether somebody wants it — the
+ * name a note writes, the type and the size — and the size is why the tab
+ * exists at all, since the files are usually most of what an archive weighs.
+ */
+function FilesPanel({
+  tree,
+  picked,
+  onPicked,
+}: {
+  tree: DocumentTree;
+  picked: Picked;
+  onPicked: (next: Picked) => void;
+}) {
+  const { t } = useTranslation();
+
+  const toggle = (name: string, on: boolean): void => {
+    const next = new Set(picked.files);
+    if (on) next.add(name);
+    else next.delete(name);
+    onPicked({ ...picked, files: next });
+  };
+
+  return (
+    <>
+      <p className="chooser-scoping">{t('portability.filesBelongToTheNotebook')}</p>
+      <div className="chooser-scroll">
+        {tree.files.length === 0 ? (
+          <p className="chooser-empty">{t('portability.thereIsNone')}</p>
+        ) : (
+          <ul className="chooser-files" role="list" aria-label={t('portability.tab.files')}>
+            {tree.files.map((file) => (
+              <li key={file.name} className="chooser-file">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={picked.files.has(file.name)}
+                    onChange={(event) => toggle(file.name, event.target.checked)}
+                  />
+                  <span className="chooser-file-name">{file.name}</span>
+                  <span className="chooser-file-note">
+                    {file.mimeType} · {readableBytes(file.bytes)}
+                  </span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </>
+  );
+}
+
+/** A size a person reads, in the units a person uses. */
+function readableBytes(bytes: number): string {
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
 }
 
 /**

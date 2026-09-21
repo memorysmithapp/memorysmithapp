@@ -161,6 +161,13 @@ export function carried(
     folders: readonly string[];
     templates: readonly string[];
     notes: readonly string[];
+    /**
+     * The files, **by name** and never by identifier: no identifier of a file
+     * travels in a document, so a name is the only address the two sides
+     * share (#176, RN-PRT-025). Absent is every file, which is what an
+     * archive written before this carried.
+     */
+    files?: readonly string[] | undefined;
   } | null,
 ): ExportInput {
   if (!selection) return input;
@@ -192,6 +199,14 @@ export function carried(
         templates.has(folder.folderId) ? folder : { ...folder, templateContent: null },
       ),
     notes: input.notes.filter((note) => notes.has(note.noteId)),
+    /**
+     * A file belongs to the notebook and not to a folder, so nothing above it
+     * takes it out: it travels because it was chosen, and that is the whole
+     * rule. Absent means every file.
+     */
+    ...(selection.files === undefined
+      ? {}
+      : { files: (input.files ?? []).filter((file) => selection.files?.includes(file.name)) }),
   };
 }
 

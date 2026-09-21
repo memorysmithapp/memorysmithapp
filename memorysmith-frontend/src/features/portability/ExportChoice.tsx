@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getNotebookStructure } from '../../shared/api/source';
+import { getNotebookStructure, listNotebookFiles } from '../../shared/api/source';
 import { TransferChooser, type ChooserTab, type Preset } from './TransferChooser';
 import { TransferDialog } from './TransferDialog';
 import {
@@ -67,7 +67,20 @@ export function ExportChoice({
     queryFn: () => getNotebookStructure(notebookId),
     enabled: open && notebookId !== '',
   });
-  const tree = structure.data ? treeOfNotebook(structure.data) : null;
+
+  /**
+   * And the files it keeps, which are a species of the selection like any
+   * other (#176). They are not part of the structure: a file belongs to the
+   * notebook rather than to a folder, so it arrives in a call of its own.
+   */
+  const files = useQuery({
+    queryKey: queryKeys.notebookFiles(notebookId),
+    queryFn: () => listNotebookFiles(notebookId),
+    enabled: open && notebookId !== '',
+  });
+
+  const tree =
+    structure.data && files.data ? treeOfNotebook({ ...structure.data, files: files.data }) : null;
 
   /**
    * What travels, out of the scope and what was ticked under it (#161).

@@ -33,6 +33,20 @@ export const transferSelectionSchema = z.object({
   /** The folders whose Template is written, a subset of the folders above. */
   templates: z.array(ulidSchema),
   notes: z.array(ulidSchema),
+  /**
+   * The files the transfer carries, **by name** (#176, RN-PRT-025).
+   *
+   * Not by identifier, and not because it would be inconvenient: no identifier
+   * of a file travels in a document, so an import has nothing else to choose
+   * by — and a name is what a file is addressed by everywhere else in this
+   * product, which is what makes an imported `![[name]]` find what it always
+   * found. The two sides therefore choose the same way, which the other four
+   * species cannot do.
+   *
+   * Absent means every file, which is what an archive written before this
+   * carried and what almost everyone wants.
+   */
+  files: z.array(z.string().min(1).max(512)).optional(),
 });
 
 export type TransferSelection = z.infer<typeof transferSelectionSchema>;

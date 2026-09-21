@@ -335,34 +335,37 @@ function resolveWikilinksIn(
   resolve: (name: string) => string | null,
   keeps: (name: string) => boolean,
 ): string {
-  return body.replace(WIKILINK, (_all, bang: string | undefined, target: string, label?: string) => {
-    const clean = target.split('#')[0]?.trim().replace(/\\$/, '').trim() ?? '';
-    const embed = bang !== undefined;
-    const text = displayText(clean, label, target, (name) => embed && keeps(name));
-    if (!clean) return `[${text}](pending:)`;
-    // The pipe is read by WHAT THE TARGET IS: a note takes the alias, an
-    // attachment takes the dimensions, and a target that resolves to neither
-    // takes the alias — because reading it as a dimension would discard text
-    // an author wrote (RN-DSC-049).
-    //
-    // **Only an embed reaches a file** (#174). A `[[name]]` is resolved against
-    // the notes of the notebook and their aliases, and against nothing else:
-    // §5.2 lists the whole of resolution and an attachment is in none of its
-    // steps, so a name only a file carries is a pending link like any other.
-    if (embed && keeps(clean)) {
-      // The dimension travels with the address, because the name is already
-      // percent-encoded and a bare `|` after it cannot be part of it (#173).
-      // Dropping it here is what made `![[picture|120]]` render at full size:
-      // the notation was read and then thrown away one line before it was used.
-      const measured = label === undefined ? null : readDimensions(label);
-      const sized = measured
-        ? `|${measured.width}${measured.height === null ? '' : `x${measured.height}`}`
-        : '';
-      return `[${text}](attachment:${encodeURIComponent(clean)}${sized})`;
-    }
-    const url = resolve(clean.normalize('NFC'));
-    return url ? `[${text}](${url})` : `[${text}](pending:${encodeURIComponent(clean)})`;
-  });
+  return body.replace(
+    WIKILINK,
+    (_all, bang: string | undefined, target: string, label?: string) => {
+      const clean = target.split('#')[0]?.trim().replace(/\\$/, '').trim() ?? '';
+      const embed = bang !== undefined;
+      const text = displayText(clean, label, target, (name) => embed && keeps(name));
+      if (!clean) return `[${text}](pending:)`;
+      // The pipe is read by WHAT THE TARGET IS: a note takes the alias, an
+      // attachment takes the dimensions, and a target that resolves to neither
+      // takes the alias — because reading it as a dimension would discard text
+      // an author wrote (RN-DSC-049).
+      //
+      // **Only an embed reaches a file** (#174). A `[[name]]` is resolved against
+      // the notes of the notebook and their aliases, and against nothing else:
+      // §5.2 lists the whole of resolution and an attachment is in none of its
+      // steps, so a name only a file carries is a pending link like any other.
+      if (embed && keeps(clean)) {
+        // The dimension travels with the address, because the name is already
+        // percent-encoded and a bare `|` after it cannot be part of it (#173).
+        // Dropping it here is what made `![[picture|120]]` render at full size:
+        // the notation was read and then thrown away one line before it was used.
+        const measured = label === undefined ? null : readDimensions(label);
+        const sized = measured
+          ? `|${measured.width}${measured.height === null ? '' : `x${measured.height}`}`
+          : '';
+        return `[${text}](attachment:${encodeURIComponent(clean)}${sized})`;
+      }
+      const url = resolve(clean.normalize('NFC'));
+      return url ? `[${text}](${url})` : `[${text}](pending:${encodeURIComponent(clean)})`;
+    },
+  );
 }
 
 /**

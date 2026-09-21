@@ -36,7 +36,6 @@ import { NotebookFile } from '../domain/file/NotebookFile.js';
 import type { FileRepository, FileStore, FileTypes } from '../domain/ports/index.js';
 import { loadAuthorized, type NotebookDependencies } from './notebooks.js';
 import { admitWrite } from '../domain/services/StorageQuota.js';
-import { opensInBrowser } from '@memorysmith/contracts';
 
 /**
  * Where the bytes of a file are, for whoever is going to show it (#171).
@@ -212,7 +211,8 @@ export class LinkToFile {
      * because a verb that saves the file whatever is pressed should not be
      * offered twice. The second address always saves.
      */
-    const shown = opensInBrowser(file.mimeType) ? 'inline' : 'attachment';
+    const opens = this.deps.fileTypes.opens(file.mimeType);
+    const shown = opens ? 'inline' : 'attachment';
     const [url, download] = await Promise.all([
       this.deps.fileStore.signedUrl(file.contentRef, file.name, file.mimeType, shown),
       this.deps.fileStore.signedUrl(file.contentRef, file.name, file.mimeType, 'attachment'),
@@ -220,7 +220,7 @@ export class LinkToFile {
     return ok({
       url: url.url,
       downloadUrl: download.url,
-      opens: opensInBrowser(file.mimeType),
+      opens,
       expiresAt: url.expiresAt,
     });
   }

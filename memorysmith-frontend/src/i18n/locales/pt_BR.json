@@ -222,7 +222,8 @@
       "folders": "Pastas",
       "templates": "Modelos",
       "notes": "Notas",
-      "conflicts": "Inconsistências"
+      "conflicts": "Inconsistências",
+      "files": "Arquivos"
     },
     "noTemplate": "sem Modelo",
     "wholeNotebook": "O caderno todo",
@@ -268,7 +269,8 @@
     "nothingImported": "Nada é importado até resolver.",
     "countFiles_one": "{{count}} arquivo",
     "countFiles_other": "{{count}} arquivos",
-    "countFiles_zero": "{{count}} arquivos"
+    "countFiles_zero": "{{count}} arquivos",
+    "filesBelongToTheNotebook": "Um arquivo pertence ao caderno e não a uma pasta: deixar um de fora nunca deixa uma nota de fora junto, e qualquer nota que viaja pode referenciar qualquer um deles. O custo é um embed que cai pendente."
   },
   "graph": {
     "heading": "Grafo do caderno",

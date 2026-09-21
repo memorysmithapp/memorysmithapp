@@ -76,12 +76,7 @@ export function Attachment({
   const shape = rendersAs(file.mimeType);
   if (shape === 'image') {
     return (
-      <img
-        className="attachment-image"
-        src={url}
-        alt={file.description || file.name}
-        {...sized}
-      />
+      <img className="attachment-image" src={url} alt={file.description || file.name} {...sized} />
     );
   }
   if (shape === 'audio') {
