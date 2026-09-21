@@ -54,19 +54,10 @@ const spellings = new Map<string, Map<string, string[]>>();
  */
 const files = new Map<string, Map<string, NotebookFileDto>>();
 
-export async function getNotebookFiles(notebookId: string): Promise<number> {
+export async function getNotebookFiles(notebookId: string): Promise<NotebookFileDto[]> {
   const kept = await backend.getNotebookFiles(notebookId);
   files.set(notebookId, new Map(kept.map((file) => [file.name.normalize('NFC'), file])));
-  return kept.length;
-}
-
-/**
- * The files themselves, for a screen that has to show them rather than resolve
- * a name against them — the chooser of a transfer, which offers them as a
- * species of the selection (#176).
- */
-export function listNotebookFiles(notebookId: string): Promise<NotebookFileDto[]> {
-  return backend.getNotebookFiles(notebookId);
+  return kept;
 }
 
 /** The file the notebook keeps under that name, or `null` when it keeps none. */

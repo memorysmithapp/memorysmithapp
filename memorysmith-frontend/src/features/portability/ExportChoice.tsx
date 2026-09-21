@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getNotebookStructure, listNotebookFiles } from '../../shared/api/source';
+import { getNotebookFiles, getNotebookStructure } from '../../shared/api/source';
 import { TransferChooser, type ChooserTab, type Preset } from './TransferChooser';
 import { TransferDialog } from './TransferDialog';
 import {
@@ -72,10 +72,15 @@ export function ExportChoice({
    * And the files it keeps, which are a species of the selection like any
    * other (#176). They are not part of the structure: a file belongs to the
    * notebook rather than to a folder, so it arrives in a call of its own.
+   *
+   * It is the SAME query the notebook page runs, under the same key and
+   * answering the same shape. It answered a count there and a list here for
+   * one afternoon, and what react-query holds under a key is whatever was
+   * written to it first: this dialog read the count and asked it for files.
    */
   const files = useQuery({
     queryKey: queryKeys.notebookFiles(notebookId),
-    queryFn: () => listNotebookFiles(notebookId),
+    queryFn: () => getNotebookFiles(notebookId),
     enabled: open && notebookId !== '',
   });
 
