@@ -60,6 +60,12 @@ export interface TreeFile {
   readonly kind: 'file';
   /** The NAME, which is the address of a file and what a note writes. */
   readonly name: string;
+  /**
+   * What it is, in the words of whoever kept it. It is the one thing on the
+   * row that says whether somebody wants this file: a name and a type say
+   * what it is called and how it is drawn, never what is in it.
+   */
+  readonly description: string;
   readonly mimeType: string;
   readonly bytes: number;
 }
@@ -256,6 +262,7 @@ export function treeOf(document: NotebookDocument): DocumentTree {
     files: (document.files ?? []).map((file) => ({
       kind: 'file' as const,
       name: file.name,
+      description: file.description,
       mimeType: file.mimeType,
       bytes: Math.floor((file.bytes.length * 3) / 4),
     })),
@@ -280,7 +287,12 @@ export function treeOfNotebook(structure: {
   guidance: string | null;
   folders: ReadonlyArray<NotebookFolder>;
   /** What the notebook keeps beside its notes, which the API answers (#176). */
-  files: ReadonlyArray<{ name: string; mimeType: string; bytes: number }>;
+  files: ReadonlyArray<{
+    name: string;
+    description: string;
+    mimeType: string;
+    bytes: number;
+  }>;
 }): DocumentTree {
   const build = (folders: ReadonlyArray<NotebookFolder>): TreeFolder[] =>
     folders.map((folder) => ({
@@ -304,6 +316,7 @@ export function treeOfNotebook(structure: {
     files: structure.files.map((file) => ({
       kind: 'file' as const,
       name: file.name,
+      description: file.description,
       mimeType: file.mimeType,
       bytes: file.bytes,
     })),

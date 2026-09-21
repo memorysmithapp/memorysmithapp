@@ -160,16 +160,38 @@ export function wikilinkUrl(notebookId: string, target: string): string | null {
  * apart by the trail above them.
  */
 export function folderTrailOfNote(notebookId: string, noteId: string): string[] {
-  const walk = (nodes: NotebookStructure['folders'], above: string[]): string[] | null => {
+  return folderOfNote(notebookId, noteId).trail;
+}
+
+/**
+ * The same walk, answering what the choice of a link actually shows: the trail
+ * of names, and the **description of the folder that holds the note**.
+ *
+ * The trail tells two notes of one name apart, and the description is what
+ * says which of the two somebody meant — `Decisões` and `Decisões` under
+ * different parents are told apart by the path, and `01 Contexto` is told from
+ * `02 Integrações` by what each one is for, which is written on the folder and
+ * was being left on the server.
+ */
+export function folderOfNote(
+  notebookId: string,
+  noteId: string,
+): { trail: string[]; description: string } {
+  const walk = (
+    nodes: NotebookStructure['folders'],
+    above: string[],
+  ): { trail: string[]; description: string } | null => {
     for (const node of nodes) {
       const trail = [...above, node.name];
-      if (node.notes.some((note) => note.id === noteId)) return trail;
+      if (node.notes.some((note) => note.id === noteId)) {
+        return { trail, description: node.description };
+      }
       const nested = walk(node.children, trail);
       if (nested) return nested;
     }
     return null;
   };
-  return walk(loaded.get(notebookId)?.folders ?? [], []) ?? [];
+  return walk(loaded.get(notebookId)?.folders ?? [], []) ?? { trail: [], description: '' };
 }
 
 /**

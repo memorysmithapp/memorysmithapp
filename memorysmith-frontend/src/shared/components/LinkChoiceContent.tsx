@@ -22,7 +22,33 @@ export interface LinkChoiceOption {
   readonly name: string;
   /** The folders from the root down to the one that holds the note. */
   readonly trail: readonly string[];
+  /**
+   * What the folder that holds it is for, in the words of whoever wrote the
+   * notebook. A path tells two notes of one name apart; the description says
+   * which of the two was meant, and it is the one thing on this row that
+   * answers that without opening either.
+   */
+  readonly folderDescription: string;
   readonly address: string;
+}
+
+/**
+ * How long a description may be on a row of a choice.
+ *
+ * It is a folder description, which is written to be read whole somewhere
+ * else — the chooser, the tree, the Notebook Context an agent reads. Here it
+ * is a hint under a path, and three rows of prose would bury the paths they
+ * were supposed to tell apart. Cut on a word, never mid-word, and say that it
+ * was cut.
+ */
+const DESCRIPTION_LIMIT = 120;
+
+export function shortened(description: string, limit = DESCRIPTION_LIMIT): string {
+  const text = description.trim().replace(/\s+/g, ' ');
+  if (text.length <= limit) return text;
+  const cut = text.slice(0, limit);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > limit * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
 }
 
 export interface LinkChoiceContentProps {
@@ -76,8 +102,13 @@ export function LinkChoiceContent({ target, by, options, state, onPick }: LinkCh
   }
 
   const byAlias = by === 'alias';
+  /**
+   * The path, written the way a path is written. It was `A › B`, which reads
+   * as a breadcrumb of a page somebody is on; this is an address of a place a
+   * note is IN, and `/A/B` says so — the root included, as `/`.
+   */
   const trailOf = (option: LinkChoiceOption): string =>
-    option.trail.join(' › ') || t('structure.root');
+    option.trail.length === 0 ? '/' : `/${option.trail.join('/')}`;
   const pick = (address: string) => (event: MouseEvent<HTMLAnchorElement>) => {
     if (!onPick) return;
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
@@ -103,6 +134,9 @@ export function LinkChoiceContent({ target, by, options, state, onPick }: LinkCh
                   is already in the explanation: the trail alone tells them
                   apart. Matched by alias, the names differ and lead. */}
               {byAlias && <span className="link-choice-under">{trailOf(option)}</span>}
+              {option.folderDescription.trim().length > 0 && (
+                <span className="link-choice-about">{shortened(option.folderDescription)}</span>
+              )}
             </a>
           </li>
         ))}

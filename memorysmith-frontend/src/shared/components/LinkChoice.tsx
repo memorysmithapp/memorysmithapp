@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 're
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { folderTrailOfNote, notesReaching, resolveLinkTarget } from '../api/source';
+import { folderOfNote, notesReaching, resolveLinkTarget } from '../api/source';
 import { noteAddress } from '../api/note-address';
 import { LinkChoiceContent, type LinkChoiceOption } from './LinkChoiceContent';
 import { queryKeys } from '../api/query-keys';
@@ -128,12 +128,16 @@ export function LinkChoice({ href, children }: { href: string; children: ReactNo
     anchor.current?.focus();
   };
 
-  const options: LinkChoiceOption[] = (data?.notes ?? []).map((note) => ({
-    noteId: note.noteId,
-    name: note.name,
-    trail: folderTrailOfNote(parsed.notebookId, note.noteId),
-    address: noteAddress(parsed.notebookId, note.noteId),
-  }));
+  const options: LinkChoiceOption[] = (data?.notes ?? []).map((note) => {
+    const folder = folderOfNote(parsed.notebookId, note.noteId);
+    return {
+      noteId: note.noteId,
+      name: note.name,
+      trail: folder.trail,
+      folderDescription: folder.description,
+      address: noteAddress(parsed.notebookId, note.noteId),
+    };
+  });
 
   return (
     <span className="link-choice">

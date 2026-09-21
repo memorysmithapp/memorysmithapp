@@ -46,12 +46,18 @@ export function LinkTargetPage() {
     enabled: decoded !== '',
   });
 
-  const candidates: LinkChoiceOption[] = (data?.notes ?? []).map((note) => ({
-    noteId: note.noteId,
-    name: note.name,
-    trail: folderTrailForNote(structure.folders, note.noteId).map((each) => each.name),
-    address: noteAddress(notebookId, note.noteId),
-  }));
+  const candidates: LinkChoiceOption[] = (data?.notes ?? []).map((note) => {
+    const trail = folderTrailForNote(structure.folders, note.noteId);
+    return {
+      noteId: note.noteId,
+      name: note.name,
+      trail: trail.map((each) => each.name),
+      // What the folder holding it is for, which is what tells two notes of
+      // one name apart without opening either.
+      folderDescription: trail[trail.length - 1]?.description ?? '',
+      address: noteAddress(notebookId, note.noteId),
+    };
+  });
 
   // One note answers: this page is a step nobody asked for, so it steps aside
   // and the address in the bar becomes the address of the note.

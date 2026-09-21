@@ -550,9 +550,19 @@ function FilesPanel({
                     checked={picked.files.has(file.name)}
                     onChange={(event) => toggle(file.name, event.target.checked)}
                   />
-                  <span className="chooser-file-name">{file.name}</span>
-                  <span className="chooser-file-note">
-                    {file.mimeType} · {readableBytes(file.bytes)}
+                  {/* What it is called, then what it IS, then how it is drawn
+                      and how much it weighs. The description leads over the
+                      type because the type was never the question: a name and
+                      a MIME say what a file is called and how it is shown,
+                      and only the description says whether you want it. */}
+                  <span className="chooser-file-body">
+                    <span className="chooser-file-name">{file.name}</span>
+                    {file.description.length > 0 && (
+                      <span className="chooser-file-about">{file.description}</span>
+                    )}
+                    <span className="chooser-file-note">
+                      {file.mimeType} · {readableBytes(file.bytes)}
+                    </span>
                   </span>
                 </label>
               </li>

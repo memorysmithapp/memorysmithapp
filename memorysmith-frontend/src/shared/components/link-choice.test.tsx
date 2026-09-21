@@ -156,7 +156,13 @@ describe('what a link to several notes explains', () => {
   let content: (props: {
     target: string;
     by: 'name' | 'alias' | null;
-    options: Array<{ noteId: string; name: string; trail: string[]; address: string }>;
+    options: Array<{
+      noteId: string;
+      name: string;
+      trail: string[];
+      folderDescription: string;
+      address: string;
+    }>;
     state: 'loading' | 'error' | 'ready';
   }) => string;
 
@@ -165,10 +171,11 @@ describe('what a link to several notes explains', () => {
     content = (props) => renderToStaticMarkup(<LinkChoiceContent {...props} />);
   });
 
-  const option = (noteId: string, name: string, trail: string[]) => ({
+  const option = (noteId: string, name: string, trail: string[], folderDescription = '') => ({
     noteId,
     name,
     trail,
+    folderDescription,
     address: `/notebooks/n/notes/${noteId}`,
   });
 
@@ -181,9 +188,12 @@ describe('what a link to several notes explains', () => {
     });
 
     // The name is said once, in the explanation, because every option carries
-    // it: what tells them apart is the folder.
-    expect(html).toContain('Code › Discovery');
-    expect(html).toContain('Decisions');
+    // it: what tells them apart is the folder, written as the path it is.
+    expect(html).toContain('/Code/Discovery');
+    expect(html).toContain('/Decisions');
+    // And not as a breadcrumb, which reads as a page somebody is on rather
+    // than as a place a note is in.
+    expect(html).not.toContain('›');
     // The locale of this file is the one the interface starts in, pt_BR.
     expect(html).toContain('é o nome de 2 notas');
     expect(html).not.toContain('link-choice-under');
@@ -216,7 +226,7 @@ describe('what a link to several notes explains', () => {
     expect(html).toContain('is-placeholder');
   });
 
-  it('names the root when a note of the root is an option', () => {
+  it('writes the root as the root of a path, which is the slash', () => {
     const html = content({
       target: 'Facet',
       by: 'name',
@@ -224,6 +234,48 @@ describe('what a link to several notes explains', () => {
       options: [option('n1', 'Facet', []), option('n2', 'Facet', ['Code'])],
     });
 
-    expect(html).toContain('Raiz');
+    expect(html).toContain('>/<');
+    expect(html).toContain('/Code');
+  });
+
+  /**
+   * The description of the folder is what says which of two notes of one name
+   * was meant, without opening either (#176 follow-up). It is written to be
+   * read whole somewhere else, so here it is cut — on a word, and saying so.
+   */
+  it('carries what the folder is for, cut where it would bury the paths', () => {
+    const curta = 'O que foi decidido.';
+    const longa =
+      'Texto normativo por artigo, uma norma por nota, com o fundamento de cada uma e a ' +
+      'referência ao processo que a originou, para que a leitura comece pela norma e não pelo caso.';
+
+    const html = content({
+      target: 'Facet',
+      by: 'name',
+      state: 'ready',
+      options: [
+        option('n1', 'Facet', ['Decisions'], curta),
+        option('n2', 'Facet', ['Norms'], longa),
+      ],
+    });
+
+    expect(html).toContain(curta);
+    expect(html).toContain('…');
+    // Cut on a word: what is shown is a prefix of what was written.
+    const shown = /link-choice-about">([^<]*)</g;
+    const cortada = [...html.matchAll(shown)].map((each) => each[1] ?? '')[1] ?? '';
+    expect(cortada.length).toBeLessThan(longa.length);
+    expect(longa.startsWith(cortada.replace('…', '').trim())).toBe(true);
+  });
+
+  it('says nothing where the folder says nothing', () => {
+    const html = content({
+      target: 'Facet',
+      by: 'name',
+      state: 'ready',
+      options: [option('n1', 'Facet', ['Decisions'], '   ')],
+    });
+
+    expect(html).not.toContain('link-choice-about');
   });
 });

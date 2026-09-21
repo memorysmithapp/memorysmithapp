@@ -67,11 +67,23 @@ export function Attachment({
   if (!address) return <span className="attachment-loading">{file.name}</span>;
 
   const url = address.url;
-  // A dimension is only ever a dimension of something with one: an audio
-  // player has no width the author is talking about, and a card is text.
+  /**
+   * A dimension is only ever a dimension of something with one: an audio
+   * player has no width the author is talking about, and a card is text.
+   *
+   * The attributes reserve the box before the bytes arrive. A **height** also
+   * travels as a style, because the reading surface sets `height: auto` on an
+   * image — which is right when only a width was asked for, and is what an
+   * author is overruling when they write `200x60`: two numbers mean both, and
+   * deforming the picture is the thing they asked for (§3.14).
+   *
+   * A width larger than the column is still capped by `max-width`, and that
+   * one stays: an image wider than the page it is on is a worse answer than
+   * an image smaller than the number.
+   */
   const sized = {
     ...(width === null ? {} : { width }),
-    ...(height === null ? {} : { height }),
+    ...(height === null ? {} : { height, style: { height: `${height}px` } }),
   };
   const shape = rendersAs(file.mimeType);
   if (shape === 'image') {

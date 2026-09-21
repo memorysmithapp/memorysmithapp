@@ -1390,6 +1390,14 @@ body.has-modal {
   background: var(--border);
   opacity: 0.45;
 }
+/* What the folder holding this note is for, under the path: the one line on
+   the row that says which of two notes of one name was meant. */
+.link-choice-about {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-soft);
+}
+
 .link-choice-lead {
   font-family: var(--display);
   font-weight: 500;
@@ -3302,14 +3310,114 @@ body.has-modal {
   margin: 0;
   padding: 0;
 }
+/*
+ * One species of the scope, in THREE COLUMNS and not in a row that wraps.
+ *
+ * It was a flex row — name, then the reach, then the count — so where the
+ * reach of a species began depended on how long its name was: `Orientação do
+ * caderno` pushed its radios far to the right and `Notas` left them near the
+ * left, and the counts, whose width varies with the numbers in them, landed
+ * wherever the radios ended. Six rows of one question read as six questions.
+ *
+ * A grid shares its columns between the rows, which is the whole point: the
+ * reach of every species starts at one x, and the counts end at one x, whatever
+ * is written in either. The count is pinned to the third column so the two
+ * species that have no reach — the Guidance and the history — do not slide
+ * their count into the second.
+ */
 .chooser-scope-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 0.4rem 0.6rem;
+  column-gap: 0.9rem;
+  row-gap: 0.35rem;
   min-height: 2.5rem;
   padding: 0.35rem 0.3rem;
   border-bottom: 1px solid var(--border);
+}
+.chooser-scope-row .chooser-reach {
+  grid-column: 2;
+}
+.chooser-scope-row /*
+ * The files of a notebook, as the tab that chooses them lists one (#176).
+ *
+ * A list and not a tree, because a file belongs to the notebook and there is
+ * no branch to walk — so the row carries what decides whether somebody wants
+ * this one: the name a note writes, what it is, and, quietly under both, how
+ * it is drawn and how much it weighs.
+ */
+.chooser-files {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.chooser-file > label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  column-gap: 0.55rem;
+  padding: 0.45rem 0.3rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.chooser-file > label:hover {
+  background: var(--border);
+}
+.chooser-file input {
+  /* Aligned with the first line of the name, not with the middle of a row
+     three lines tall. */
+  margin-top: 0.15rem;
+}
+.chooser-file-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.chooser-file-name {
+  font-family: var(--display);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.chooser-file-about {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text-soft);
+  /* Two lines at most: a description is here to tell one file from another,
+     and a paragraph of one would push the next file off the panel. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.chooser-file-note {
+  font-size: 0.72rem;
+  color: var(--pending);
+}
+
+.chooser-note {
+  grid-column: 3;
+  justify-self: end;
+  text-align: right;
+}
+/* On a phone the three columns do not fit: the row becomes two lines, with
+   the reach and the count under the name and still aligned with each other. */
+@media (max-width: 560px) {
+  .chooser-scope-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .chooser-scope-row .chooser-label {
+    grid-column: 1 / -1;
+  }
+  .chooser-scope-row .chooser-reach {
+    grid-column: 1;
+  }
+  .chooser-scope-row .chooser-note {
+    grid-column: 2;
+  }
 }
 .chooser-scope-row:last-child {
   border-bottom: 0;
