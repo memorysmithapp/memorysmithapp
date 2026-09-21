@@ -345,7 +345,7 @@
     "lead": "Conhecimento estruturado, lido e escrito nativamente por pessoas e agentes.",
     "what": {
       "heading": "O que é isto",
-      "body": "O MemorySmith hospeda cadernos de notas escritas em Markdown. Um caderno tem pastas, uma pasta tem notas, e tudo o que você escreve aqui continua sendo texto puro que você lê sem depender de nós: cada nota guarda todo o seu histórico, e cada caderno pode ser exportado por inteiro a qualquer momento.",
+      "body": "O MemorySmith é onde você e seus agentes de IA constroem conhecimento juntos. Um caderno tem pastas, uma pasta tem notas em Markdown, e as mesmas notas são lidas e escritas pelos dois lados: por você, nesta interface, e pelo agente, pelo conector. Nada fica preso aqui dentro: cada nota continua sendo texto puro e guarda todo o seu histórico, e cada caderno pode ser exportado por inteiro a qualquer momento.",
       "guidance": "O que torna um caderno daqui diferente é que ele diz como quer ser escrito. A Orientação declara para que o caderno serve e como escrever nele; cada pasta carrega uma descrição e um Modelo. Um agente lê os dois antes de escrever a primeira linha, e é isso que mantém um caderno coerente depois de cem notas, em vez de virar uma pasta de arquivos soltos."
     },
     "interface": {

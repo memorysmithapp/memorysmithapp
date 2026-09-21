@@ -342,7 +342,7 @@
     "lead": "Structured knowledge, natively readable and writable by humans and agents.",
     "what": {
       "heading": "What this is",
-      "body": "MemorySmith hosts notebooks of notes written in Markdown. A notebook holds folders, a folder holds notes, and everything you write here stays plain text you can read without us: every note keeps its whole history, and every notebook can be exported in full at any time.",
+      "body": "MemorySmith is where you and your AI agents build knowledge together. A notebook holds folders, a folder holds notes in Markdown, and the same notes are read and written from both sides: by you, in this interface, and by an agent, through the connector. Nothing is locked in here: every note stays plain text and keeps its whole history, and every notebook can be exported in full at any time.",
       "guidance": "What makes a notebook here different is that it says how it wants to be written. Its Guidance states what the notebook is for and how to write in it; each folder carries a description and a Template. An agent reads both before writing a single line, which is how a notebook stays coherent after a hundred notes instead of drifting into a folder of loose files."
     },
     "interface": {
