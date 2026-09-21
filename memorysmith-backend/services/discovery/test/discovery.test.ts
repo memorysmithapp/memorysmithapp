@@ -74,6 +74,8 @@ describe('LinkExtractor: a target is a name', () => {
       name: 'C# basics',
       anchor: null,
       raw: 'C%23%20basics',
+      // The Markdown form is a link and never an embed (#174).
+      embed: false,
     });
   });
 

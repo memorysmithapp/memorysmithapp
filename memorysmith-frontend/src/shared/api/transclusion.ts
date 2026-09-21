@@ -86,7 +86,7 @@ export function splitEmbeds(
     // would reach the page as the literal `![[…]]` — dropped notation, which
     // is the one thing §7.3 forbids in every place expansion cannot happen.
     // Code is untouched, because `demoteEmbeds` rewrites outside it.
-    const before = demoteEmbeds(body.slice(cursor, at));
+    const before = demoteEmbeds(body.slice(cursor, at), keeps);
     if (before.length > 0) segments.push({ kind: 'text', text: before });
     segments.push({ kind: 'embed', target, anchor: match[2]?.trim() ?? null });
     cursor = at + match[0].length;
@@ -94,13 +94,24 @@ export function splitEmbeds(
   }
 
   const rest = body.slice(cursor);
-  if (rest.length > 0) segments.push({ kind: 'text', text: demoteEmbeds(rest) });
+  if (rest.length > 0) segments.push({ kind: 'text', text: demoteEmbeds(rest, keeps) });
   return segments;
 }
 
-/** `![[x]]` becomes `[[x]]`: a reference instead of an expansion. */
-export function demoteEmbeds(body: string): string {
-  return outsideCode(body, (text) => text.replace(EMBED, (all) => all.slice(1)));
+/**
+ * `![[x]]` becomes `[[x]]`: a reference instead of an expansion.
+ *
+ * **An embed of a file keeps its `!`** (#174). Demoting exists for an embed
+ * that cannot be expanded here — one inside a table cell, one inside embedded
+ * content — and an attachment is not one of those: the page draws it. Taking
+ * the bang off it was what made `[[picture]]` and `![[picture]]` arrive at the
+ * wikilink pass as the same three characters, so a **link** to a file drew the
+ * file. A link addresses a note (§5.2), and only the embed reaches a file.
+ */
+export function demoteEmbeds(body: string, keeps: (name: string) => boolean = () => false): string {
+  return outsideCode(body, (text) =>
+    text.replace(EMBED, (all, target: string) => (keeps(target.trim()) ? all : all.slice(1))),
+  );
 }
 
 const HEADING = /^(#{1,6})\s+(.+?)\s*$/;

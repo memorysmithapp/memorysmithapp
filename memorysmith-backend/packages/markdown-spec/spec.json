@@ -284,7 +284,7 @@
       "reader": "reading-surface",
       "syntax": "![[diagram.png]]",
       "example": "![[engelbart.jpg]]",
-      "effect": "A file of the notebook that is not a note. It is addressed by its name, which is whatever it was called: an extension is part of the name when it is written and decides nothing, and an implementation MUST NOT read one to decide what a target is — what a target is is decided by what the notebook holds. The comparison is the one a note name takes — normalised to NFC, case-exact, folded in no other way — with a path playing no part in identity. It renders in place and is never an edge: the graph is between notes, so an attachment appears in no graph and generates no backlink. A name that matches nothing in the notebook is reported the way a pending link is, and is not an error.",
+      "effect": "A file of the notebook that is not a note. It is addressed by its name, which is whatever it was called: an extension is part of the name when it is written and decides nothing, and an implementation MUST NOT read one to decide what a target is — what a target is is decided by what the notebook holds. The comparison is the one a note name takes — normalised to NFC, case-exact, folded in no other way — with a path playing no part in identity. It renders in place and is never an edge: the graph is between notes, so an attachment appears in no graph and generates no backlink. A name that matches nothing in the notebook is reported the way a pending link is, and is not an error. Only an embed names one: a `[[target]]` is resolved against the notes and their aliases alone (§5.2), so a link whose target only a file carries is a pending link.",
       "spec": "5.8"
     },
     {

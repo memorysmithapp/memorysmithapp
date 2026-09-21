@@ -489,6 +489,8 @@ The comparison is the one §5.3 states for the name of a note — normalised to 
 
 A note and an attachment are both addressed by a name, and the two are keys of the same shape for the same reason: an address that survives the file being moved, and that two implementations cannot read differently.
 
+**Only an embed names an attachment.** A `[[target]]` is resolved by §5.2 and by nothing else — the names of the notes, then their aliases, then nothing — and an attachment appears in none of its steps: a link whose target only a file carries is a **pending link**, reported as §5.5 asks, and it is not an error. The two forms differ here and nowhere else: what they produce for the graph is the same, which is nothing.
+
 **An attachment reference is never an edge.** The graph is between notes (§5.1). An embed of an attachment renders, it is deduplicated like anything else, and it appears in no graph and generates no backlink. A name that matches nothing in the notebook is reported the way a pending link is (§5.5), and MUST NOT be an error.
 
 **`![[target|value]]` is read by what the target is.** When the target is a note, the pipe is the alias of §5.1. When it is an attachment, the pipe carries the dimensions of §3.14. When the target resolves to neither — the common case while a notebook is being written — **the pipe is an alias**, because a reference to a note that does not exist yet is what §5.5 exists to keep visible, and reading it as a dimension would discard the text an author wrote.

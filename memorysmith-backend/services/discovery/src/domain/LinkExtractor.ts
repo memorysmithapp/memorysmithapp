@@ -29,6 +29,20 @@ export interface ExtractedLink {
   readonly anchor: string | null;
   /** What the author actually typed, for the health report. */
   readonly raw: string;
+  /**
+   * Whether it was written as an **embed** (#174).
+   *
+   * The graph does not tell the two forms apart and must not: an embed and a
+   * link to one target are one edge, not two (§5.4, RN-DSC-029). What the flag
+   * decides is **what a target may reach**: a file of the notebook is named by
+   * `![[…]]` and by nothing else (§5.8), so a plain `[[…]]` of that name
+   * resolves against the notes alone, and is pending when none answers.
+   *
+   * A target written both ways in one note is embedded: the two occurrences
+   * collapse into one entry, and the one that reaches further is the truth
+   * about the note.
+   */
+  readonly embed: boolean;
 }
 
 /**
@@ -37,7 +51,7 @@ export interface ExtractedLink {
  * inside a table cell arrives with the escaped pipe its author had to write
  * there.
  */
-const WIKILINK = /\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g;
+const WIKILINK = /(!)?\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g;
 /**
  * A link, and NOT an image: the `!` in front is the whole difference between
  * the two forms, and reading it as a link made an image a note. A relative
@@ -77,19 +91,24 @@ function percentDecode(value: string): string {
  * `raw` is what the author typed — the health report shows a target as it was
  * written, not as it was read.
  */
-function asName(value: string, anchor: string | null, raw: string): ExtractedLink | null {
+function asName(
+  value: string,
+  anchor: string | null,
+  raw: string,
+  embed = false,
+): ExtractedLink | null {
   const name = value.trim().normalize('NFC');
   if (name.length === 0) return null;
-  return { name, anchor: anchor === null ? null : anchor.trim().normalize('NFC'), raw };
+  return { name, anchor: anchor === null ? null : anchor.trim().normalize('NFC'), raw, embed };
 }
 
 /** The wikilink form: the target is what was typed, and nothing touches it. */
-function fromWikilink(target: string): ExtractedLink | null {
+function fromWikilink(target: string, embed: boolean): ExtractedLink | null {
   // Inside a table cell the pipe of an alias is escaped, so a target arriving
   // from there ends at the backslash its author had to write.
   const written = target.replace(/\\$/, '');
   const { path, anchor } = splitAnchor(written);
-  return asName(path, anchor, target);
+  return asName(path, anchor, target, embed);
 }
 
 /** The Markdown form: the three tolerances, in the order the specification fixes. */
@@ -121,10 +140,20 @@ export function extractLinks(markdown: string): ExtractedLink[] {
   const body = stripCodeBlocks(markdown);
   const found = new Map<string, ExtractedLink>();
   const add = (link: ExtractedLink | null): void => {
-    if (link && !found.has(link.name)) found.set(link.name, link);
+    if (!link) return;
+    const held = found.get(link.name);
+    if (!held) {
+      found.set(link.name, link);
+      return;
+    }
+    // One entry per target, and it remembers that the note embedded it
+    // somewhere: the edge is the same either way, what the target reaches is
+    // not (#174).
+    if (link.embed && !held.embed) found.set(link.name, { ...held, embed: true });
   };
 
-  for (const match of body.matchAll(WIKILINK)) add(fromWikilink(match[1] ?? ''));
+  for (const match of body.matchAll(WIKILINK))
+    add(fromWikilink(match[2] ?? '', match[1] !== undefined));
   for (const match of body.matchAll(MARKDOWN_LINK)) add(fromMarkdownLink(match[1] ?? ''));
 
   // A definition on its own is not a link: it renders nothing where it stands

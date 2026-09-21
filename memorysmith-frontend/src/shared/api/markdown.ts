@@ -196,7 +196,17 @@ export function guidanceDescription(guidance: string): string {
   return '';
 }
 
-const WIKILINK = /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g;
+/**
+ * A wikilink, with the `!` in front of it when it is an embed (#174).
+ *
+ * The bang is captured and not assumed away, because it is what tells a
+ * **link** from an **embed**, and the two reach different things: a link
+ * addresses a note and nothing else (§5.2), while an embed may also name a
+ * file the notebook keeps (§5.8). By the time this pass runs, the bang of a
+ * note embed has been taken off by `demoteEmbeds` — an embed that could not be
+ * expanded is a reference — so what still carries one is an embed of a file.
+ */
+const WIKILINK = /(!)?\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g;
 
 /**
  * Code, where notation is characters and nothing else.
@@ -325,15 +335,21 @@ function resolveWikilinksIn(
   resolve: (name: string) => string | null,
   keeps: (name: string) => boolean,
 ): string {
-  return body.replace(WIKILINK, (_all, target: string, label?: string) => {
+  return body.replace(WIKILINK, (_all, bang: string | undefined, target: string, label?: string) => {
     const clean = target.split('#')[0]?.trim().replace(/\\$/, '').trim() ?? '';
-    const text = displayText(clean, label, target, keeps);
+    const embed = bang !== undefined;
+    const text = displayText(clean, label, target, (name) => embed && keeps(name));
     if (!clean) return `[${text}](pending:)`;
     // The pipe is read by WHAT THE TARGET IS: a note takes the alias, an
     // attachment takes the dimensions, and a target that resolves to neither
     // takes the alias — because reading it as a dimension would discard text
     // an author wrote (RN-DSC-049).
-    if (keeps(clean)) {
+    //
+    // **Only an embed reaches a file** (#174). A `[[name]]` is resolved against
+    // the notes of the notebook and their aliases, and against nothing else:
+    // §5.2 lists the whole of resolution and an attachment is in none of its
+    // steps, so a name only a file carries is a pending link like any other.
+    if (embed && keeps(clean)) {
       // The dimension travels with the address, because the name is already
       // percent-encoded and a bare `|` after it cannot be part of it (#173).
       // Dropping it here is what made `![[picture|120]]` render at full size:

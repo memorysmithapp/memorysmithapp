@@ -91,7 +91,18 @@ export function notebookNames(
  * is between notes, and a name matching nothing is reported as pending rather
  * than treated as an error.
  */
-export function resolveTarget(target: string, names: NotebookNames): Resolution {
+export function resolveTarget(
+  target: string,
+  names: NotebookNames,
+  /**
+   * Whether the reference was written as an embed (#174). A file is named by
+   * `![[…]]` and by nothing else (§5.8), so a plain link of that name is
+   * resolved against the notes alone and is pending when none answers —
+   * §5.2 lists the whole of resolution and an attachment is in none of its
+   * steps. An edge is unaffected either way: an attachment is never one.
+   */
+  embed = true,
+): Resolution {
   const key = asName(target);
 
   const byName = names.byName.get(key);
@@ -104,7 +115,7 @@ export function resolveTarget(target: string, names: NotebookNames): Resolution 
     return { target: key, kind: 'note', by: 'alias', noteIds: byAlias };
   }
 
-  if (names.attachments.has(key)) {
+  if (embed && names.attachments.has(key)) {
     return { target: key, kind: 'attachment', by: null, noteIds: [] };
   }
 

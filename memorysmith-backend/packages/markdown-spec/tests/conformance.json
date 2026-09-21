@@ -148,7 +148,9 @@
       "facets": {
         "maturity": {
           "kind": "enum",
-          "values": ["evergreen"]
+          "values": [
+            "evergreen"
+          ]
         }
       }
     },
@@ -159,7 +161,10 @@
       "facets": {
         "tags": {
           "kind": "list",
-          "values": ["contracts", "procurement"]
+          "values": [
+            "contracts",
+            "procurement"
+          ]
         }
       }
     },
@@ -170,7 +175,10 @@
       "facets": {
         "tags": {
           "kind": "list",
-          "values": ["contracts", "procurement"]
+          "values": [
+            "contracts",
+            "procurement"
+          ]
         }
       }
     },
@@ -181,7 +189,9 @@
       "facets": {
         "reviewed": {
           "kind": "boolean",
-          "values": ["true"]
+          "values": [
+            "true"
+          ]
         }
       }
     },
@@ -192,7 +202,9 @@
       "facets": {
         "reviewed_at": {
           "kind": "date",
-          "values": ["2026-09-03"]
+          "values": [
+            "2026-09-03"
+          ]
         }
       }
     },
@@ -209,7 +221,9 @@
       "facets": {
         "tags": {
           "kind": "list",
-          "values": ["contracts"]
+          "values": [
+            "contracts"
+          ]
         }
       }
     },
@@ -221,11 +235,15 @@
       "facets": {
         "aliases": {
           "kind": "list",
-          "values": ["RTO"]
+          "values": [
+            "RTO"
+          ]
         },
         "tags": {
           "kind": "list",
-          "values": ["continuity"]
+          "values": [
+            "continuity"
+          ]
         }
       }
     },
@@ -236,7 +254,10 @@
       "facets": {
         "author": {
           "kind": "list",
-          "values": ["Ana Prado", "Bruno Lima"]
+          "values": [
+            "Ana Prado",
+            "Bruno Lima"
+          ]
         }
       }
     },
@@ -247,7 +268,10 @@
       "facets": {
         "aliases": {
           "kind": "list",
-          "values": ["RTO", "Recovery Time"]
+          "values": [
+            "RTO",
+            "Recovery Time"
+          ]
         }
       }
     },
@@ -258,7 +282,9 @@
       "facets": {
         "updated": {
           "kind": "date",
-          "values": ["2026-09-05"]
+          "values": [
+            "2026-09-05"
+          ]
         }
       }
     },
@@ -277,7 +303,9 @@
       "facets": {
         "title": {
           "kind": "enum",
-          "values": ["Lei 14.133"]
+          "values": [
+            "Lei 14.133"
+          ]
         }
       }
     },
@@ -295,7 +323,9 @@
       "facets": {
         "tags": {
           "kind": "enum",
-          "values": ["continuity"]
+          "values": [
+            "continuity"
+          ]
         }
       }
     },
@@ -306,7 +336,9 @@
       "facets": {
         "norma": {
           "kind": "enum",
-          "values": ["federal"]
+          "values": [
+            "federal"
+          ]
         }
       }
     },
@@ -616,7 +648,10 @@
       "id": "resolution/one-name-in-two-notes-is-two-edges",
       "notation": "wikilink",
       "notebook": {
-        "notes": ["---\nname: Índice\n---\n", "---\nname: Índice\n---\n\nOutra nota, mesmo nome.\n"]
+        "notes": [
+          "---\nname: Índice\n---\n",
+          "---\nname: Índice\n---\n\nOutra nota, mesmo nome.\n"
+        ]
       },
       "markdown": "Ver [[Índice]].",
       "links": [
@@ -637,7 +672,9 @@
       "id": "resolution/a-name-no-note-carries-is-pending",
       "notation": "wikilink",
       "notebook": {
-        "notes": ["---\nname: Lei 14.133\n---\n"]
+        "notes": [
+          "---\nname: Lei 14.133\n---\n"
+        ]
       },
       "markdown": "See [[Lei 14.134]].",
       "links": [
@@ -658,7 +695,9 @@
       "id": "resolution/case-must-match-exactly",
       "notation": "wikilink",
       "notebook": {
-        "notes": ["---\nname: Lei 14.133\n---\n"]
+        "notes": [
+          "---\nname: Lei 14.133\n---\n"
+        ]
       },
       "markdown": "See [[lei 14.133]].",
       "links": [
@@ -679,7 +718,9 @@
       "id": "resolution/nfd-and-nfc-name-one-note",
       "notation": "wikilink",
       "notebook": {
-        "notes": ["---\nname: Ação\n---\n"]
+        "notes": [
+          "---\nname: Ação\n---\n"
+        ]
       },
       "markdown": "Ver [[Ação]].",
       "links": [
@@ -700,7 +741,9 @@
       "id": "resolution/a-note-with-no-name-cannot-be-addressed",
       "notation": "note-name",
       "notebook": {
-        "notes": ["# Article 75\n\nThe exception.\n"]
+        "notes": [
+          "# Article 75\n\nThe exception.\n"
+        ]
       },
       "markdown": "See [[Article 75]].",
       "links": [
@@ -721,7 +764,9 @@
       "id": "resolution/an-attachment-is-not-an-edge",
       "notation": "attachment",
       "notebook": {
-        "attachments": ["engelbart.jpg"]
+        "attachments": [
+          "engelbart.jpg"
+        ]
       },
       "markdown": "![[engelbart.jpg]]",
       "links": [
@@ -739,10 +784,35 @@
       ]
     },
     {
+      "id": "resolution/a-link-of-an-attachment-name-is-pending",
+      "notation": "attachment",
+      "notebook": {
+        "attachments": [
+          "engelbart.jpg"
+        ]
+      },
+      "markdown": "[[engelbart.jpg]]",
+      "links": [
+        {
+          "name": "engelbart.jpg",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "engelbart.jpg",
+          "kind": "pending",
+          "edges": 0
+        }
+      ]
+    },
+    {
       "id": "resolution/an-attachment-needs-no-extension",
       "notation": "attachment",
       "notebook": {
-        "attachments": ["esquema de blocos"]
+        "attachments": [
+          "esquema de blocos"
+        ]
       },
       "markdown": "![[esquema de blocos]]\n",
       "links": [
@@ -763,7 +833,9 @@
       "id": "resolution/a-name-that-looks-like-a-file-and-is-not-one",
       "notation": "attachment",
       "notebook": {
-        "attachments": ["esquema de blocos"]
+        "attachments": [
+          "esquema de blocos"
+        ]
       },
       "markdown": "![[colheita-2026.csv]]\n",
       "links": [
@@ -784,7 +856,9 @@
       "id": "resolution/the-pipe-is-a-dimension-when-the-target-is-an-attachment",
       "notation": "image-dimensions",
       "notebook": {
-        "attachments": ["engelbart.jpg"]
+        "attachments": [
+          "engelbart.jpg"
+        ]
       },
       "markdown": "![[engelbart.jpg|100x145]]",
       "links": [
@@ -805,7 +879,9 @@
       "id": "resolution/the-markdown-form-reaches-the-same-note",
       "notation": "markdown-relative-link",
       "notebook": {
-        "notes": ["---\nname: Lei 14.133\n---\n"]
+        "notes": [
+          "---\nname: Lei 14.133\n---\n"
+        ]
       },
       "markdown": "See [the procurement act](../decisions/Lei%2014.133.md).",
       "links": [
@@ -826,7 +902,9 @@
       "id": "resolution/a-heading-is-not-what-a-link-resolves-against",
       "notation": "note-name",
       "notebook": {
-        "notes": ["---\nname: Lei 14.133\n---\n\n# The general rule\n"]
+        "notes": [
+          "---\nname: Lei 14.133\n---\n\n# The general rule\n"
+        ]
       },
       "markdown": "See [[Lei 14.133]], not [[The general rule]].",
       "links": [
@@ -856,7 +934,9 @@
       "id": "resolution/a-title-key-is-not-what-a-link-resolves-against",
       "notation": "note-name",
       "notebook": {
-        "notes": ["---\ntitle: Lei 14.133\n---\n\nThe general rule.\n"]
+        "notes": [
+          "---\ntitle: Lei 14.133\n---\n\nThe general rule.\n"
+        ]
       },
       "markdown": "See [[Lei 14.133]].",
       "links": [
@@ -877,7 +957,9 @@
       "id": "resolution/an-alias-catches-a-target-no-name-matches",
       "notation": "frontmatter-aliases",
       "notebook": {
-        "notes": ["---\nname: Recovery Time Objective\naliases: [RTO]\n---\n"]
+        "notes": [
+          "---\nname: Recovery Time Objective\naliases: [RTO]\n---\n"
+        ]
       },
       "markdown": "See [[RTO]].",
       "links": [

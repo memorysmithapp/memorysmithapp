@@ -84,7 +84,7 @@ export function Transclusion({
            */
           <Markdown>
             {resolveWikilinks(
-              demoteEmbeds(cut),
+              demoteEmbeds(cut, (each) => isAttachmentName(notebookId, each)),
               (each) => wikilinkUrl(notebookId, each),
               (each) => isAttachmentName(notebookId, each),
             )}

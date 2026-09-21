@@ -91,20 +91,47 @@ describe('an attachment is a file the notebook keeps, and not a name that looks 
    */
   it('carries its dimensions in the same pipe, to the address and not to the page', () => {
     const both = resolveWikilinks('![[engelbart.jpg|100x145]]', () => null, keeps);
-    // The `!` is still in front: this pass reads the wikilink, and stripping
-    // the bang is `demoteEmbeds`, one step earlier in the real pipeline.
-    expect(both).toBe('![engelbart.jpg](attachment:engelbart.jpg|100x145)');
+    // The bang is consumed by this pass now, because it is what tells an
+    // embed from a link (#174): what comes out is the reference the page draws.
+    expect(both).toBe('[engelbart.jpg](attachment:engelbart.jpg|100x145)');
 
     // A width on its own keeps the aspect ratio, and travels the same way.
     expect(resolveWikilinks('![[engelbart.jpg|120]]', () => null, keeps)).toBe(
-      '![engelbart.jpg](attachment:engelbart.jpg|120)',
+      '[engelbart.jpg](attachment:engelbart.jpg|120)',
     );
 
     // A value that is not a dimension is not one: nothing is applied, and it
     // is not shown either, because the name of the file is what a file shows.
     expect(resolveWikilinks('![[engelbart.jpg|grande]]', () => null, keeps)).toBe(
-      '![engelbart.jpg](attachment:engelbart.jpg)',
+      '[engelbart.jpg](attachment:engelbart.jpg)',
     );
+  });
+
+  /**
+   * §5.2 lists the whole of resolution — the names of the notes, then their
+   * aliases, then pending — and an attachment appears in none of its ten
+   * steps. §5.8 says which form reaches one: an attachment and a note are the
+   * two things a `![[…]]` can name. So a link is a link (#174).
+   */
+  it('is reached by the embed and never by a link of the same name', () => {
+    const embed = resolveWikilinks('![[engelbart.jpg]]', () => null, keeps);
+    expect(embed).toBe('[engelbart.jpg](attachment:engelbart.jpg)');
+
+    // The same name without the bang addresses a NOTE called `engelbart.jpg`,
+    // which no notebook here carries: pending, like any other name nothing
+    // answers. It used to draw the picture, which made the two forms one.
+    const link = resolveWikilinks('[[engelbart.jpg]]', () => null, keeps);
+    expect(link).toBe('[engelbart.jpg](pending:engelbart.jpg)');
+    expect(link).not.toContain('attachment:');
+
+    // And when a note IS called that, the link reaches the note — the file of
+    // that name changes nothing, because they were never in the same list.
+    const note = resolveWikilinks(
+      '[[engelbart.jpg]]',
+      (name) => (name === 'engelbart.jpg' ? '/v/a/nota' : null),
+      keeps,
+    );
+    expect(note).toBe('[engelbart.jpg](/v/a/nota)');
   });
 
   it('is never transcluded, because there is no note to expand', () => {

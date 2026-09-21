@@ -85,7 +85,8 @@ describe('the conformance suite of the specification', () => {
       // only once there is a notebook to answer it, so the case carries one.
       const names = notebookOf(each);
       const resolved = extractLinks(each.markdown).map((link) => {
-        const answer = resolveTarget(link.name, names);
+        // The form matters: only an embed may name a file (§5.8, #174).
+        const answer = resolveTarget(link.name, names, link.embed);
         return { target: answer.target, kind: answer.kind, edges: answer.noteIds.length };
       });
 
