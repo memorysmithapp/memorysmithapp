@@ -8,8 +8,8 @@
  * answer for the storage counter.
  *
  * It is needed at least once for real: the counter started existing after the
- * vaults did, so every subscription written before it began at zero while
- * holding a vault full of notes. It is also the repair for the ordinary ways a
+ * notebooks did, so every subscription written before it began at zero while
+ * holding a notebook full of notes. It is also the repair for the ordinary ways a
  * delta can be lost — a stream record dropped past its retries, a relay bug —
  * and it costs nothing to keep around.
  *
@@ -22,9 +22,9 @@
  *
  * WHAT IT COUNTS is what RN-SUB-021 defines as live content, and nothing else:
  * the current revision of every note that is not deleted, plus each guidance
- * and each template. A vault in the bin still holds its bytes, which is both
- * the rule and the truth: nothing was released, and restoring brings it all
- * back.
+ * and each template. A notebook that was deleted still holds its bytes until
+ * the purge completes, which is both the rule and the truth: the space is
+ * given back when the content stops existing, not at the click (RN-KNW-047).
  */
 
 import { PutCommand, ScanCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
@@ -43,7 +43,7 @@ export interface SubscriptionUsage {
   readonly templates: number;
 }
 
-/** `S#{subscriptionId}#VAULT#{vaultId}` and `S#{subscriptionId}#VAULTS`. */
+/** `S#{subscriptionId}#NOTEBOOK#{notebookId}` and `S#{subscriptionId}#NOTEBOOKS`. */
 const SUBSCRIPTION_OF_KEY = /^S#([^#]+)#/;
 
 /** Reads `bytes` off a serialized ContentRef, tolerating a missing pointer. */
@@ -75,7 +75,7 @@ export class StorageRecount {
       const page = await this.deps.db.send(
         new ScanCommand({
           TableName: this.deps.tableName,
-          ProjectionExpression: 'PK, entity, bodyRef, guidanceRef, templateRef, deletedAt',
+          ProjectionExpression: 'PK, entity, bodyRef, contentRef, deletedAt',
           ...(startKey ? { ExclusiveStartKey: startKey } : {}),
         }),
       );
@@ -103,16 +103,18 @@ export class StorageRecount {
             }
             break;
           }
-          case 'VAULT': {
-            const bytes = bytesOf(item['guidanceRef']);
+          // A Guidance and a Template are items of their own since
+          // RN-KNW-044, each pointing at its content with the same attribute.
+          case 'GUIDANCE': {
+            const bytes = bytesOf(item['contentRef']);
             if (bytes > 0) {
               current.bytes += bytes;
               current.guidances += 1;
             }
             break;
           }
-          case 'FOLDER': {
-            const bytes = bytesOf(item['templateRef']);
+          case 'TEMPLATE': {
+            const bytes = bytesOf(item['contentRef']);
             if (bytes > 0) {
               current.bytes += bytes;
               current.templates += 1;
@@ -155,7 +157,7 @@ export class StorageRecount {
         new PutCommand({
           TableName: this.deps.tableName,
           Item: {
-            PK: `S#${each.subscriptionId}#VAULTS`,
+            PK: `S#${each.subscriptionId}#NOTEBOOKS`,
             SK: 'USAGE',
             entity: 'USAGE',
             storedBytes: each.storedBytes,

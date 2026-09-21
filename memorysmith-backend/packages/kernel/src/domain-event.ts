@@ -1,5 +1,5 @@
 /**
- * Domain events (architecture-guide.md, section 6.5).
+ * Domain events (architecture-guide.md, section 6.6).
  *
  * Every event carries the subscriptionId and the Authorship. Content events
  * carry the COMPLETE ContentRef - contentId, versionId, sha256 and bytes - and
@@ -41,20 +41,36 @@ export const ACCESS_EVENT_TYPES = [
    * parseable forever.
    */
   'WorkspaceCreated',
+  /**
+   * RETIRED in 0.6.0 with the invitation of a member, which left the API until
+   * it comes back with a screen. It stays for the reason above.
+   */
   'MemberInvited',
   'MemberJoined',
   'MemberRoleChanged',
   'MemberRemoved',
-  'VaultRoleLimitSet',
-  'VaultRoleLimitCleared',
+  'NotebookRoleLimitSet',
+  'NotebookRoleLimitCleared',
 ] as const;
 
 export const KNOWLEDGE_EVENT_TYPES = [
-  'VaultCreated',
-  'VaultRenamed',
-  'VaultDeleted',
-  'VaultRestored',
+  'NotebookCreated',
+  'NotebookRenamed',
+  'NotebookDeleted',
+  /** RETIRED in 0.6.0 with restoring; kept so the trail stays parseable. */
+  'NotebookRestored',
+  /**
+   * What the purge destroyed, one event per unit (RN-KNW-047, RN-AUD-010).
+   * Each carries the `ContentRef` that was live and the bytes it freed, and
+   * each is recorded under the authorship of whoever deleted the unit above
+   * it. They are the last thing the trail ever hears about that unit.
+   */
+  'NotebookPurged',
+  'GuidancePurged',
+  'TemplatePurged',
+  'NotePurged',
   'GuidanceUpdated',
+  'GuidanceDeleted',
   'FolderAdded',
   'FolderRenamed',
   'FolderDescribed',
@@ -62,11 +78,22 @@ export const KNOWLEDGE_EVENT_TYPES = [
   'FolderReordered',
   'FolderRemoved',
   'TemplateUpdated',
+  'TemplateDeleted',
+  // A file of a notebook. There is no update: bytes are replaced by keeping
+  // them again under the same name (#166).
+  'FileKept',
+  'FileDeleted',
   'NoteCreated',
   'NoteUpdated',
   'NoteReordered',
   'NoteMoved',
   'NoteDeleted',
+  /**
+   * RETIRED in 0.6.0 with restoring, which lost its object when deleting
+   * became definitive (RN-KNW-029). It stays for the reason WorkspaceCreated
+   * does: the audit trail is append-only, and an event already written has to
+   * stay parseable forever.
+   */
   'NoteRestored',
 ] as const;
 
@@ -81,10 +108,18 @@ export const DOMAIN_EVENT_TYPES = [
 export type DomainEventType = (typeof DOMAIN_EVENT_TYPES)[number];
 
 /**
- * The audit trail is keyed BY SUBJECT, not by vault, which is what makes the
- * timeline of a note survive it moving folder and vault (section 12.2).
+ * The audit trail is keyed BY SUBJECT, not by notebook, which is what makes the
+ * timeline of a note survive it moving folder and notebook (section 12.2).
  */
-export type EventSubject = 'SUBSCRIPTION' | 'WORKSPACE' | 'MEMBER' | 'VAULT' | 'FOLDER' | 'NOTE';
+export type EventSubject =
+  | 'SUBSCRIPTION'
+  | 'WORKSPACE'
+  | 'MEMBER'
+  | 'NOTEBOOK'
+  | 'FOLDER'
+  | 'NOTE'
+  // What a notebook keeps beside its notes: bytes with a name (#166).
+  | 'FILE';
 
 export interface DomainEvent<TPayload = Record<string, unknown>> {
   /** ULID: orders the outbox and the audit sort key by generation time. */
@@ -104,7 +139,7 @@ export interface DomainEvent<TPayload = Record<string, unknown>> {
    *
    * The aggregate declares it instead of the counter deriving it from the
    * event type, because the type does not carry the answer: `NoteUpdated` is
-   * emitted both by a retitle, which changes no content and moves nothing, and
+   * emitted both by a rename, which changes no content and moves nothing, and
    * by a new body, which moves the difference between two revisions. Only the
    * aggregate knows which of the two just happened.
    *

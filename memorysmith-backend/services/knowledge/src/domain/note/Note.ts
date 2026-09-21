@@ -1,5 +1,5 @@
 /**
- * Note: an Aggregate Root of its own, deliberately NOT part of Vault.
+ * Note: an Aggregate Root of its own, deliberately NOT part of Notebook.
  *
  * If it were inside, creating a note would have to load and lock the whole
  * tree, and the structural invariants do not depend on note content. "A folder
@@ -9,11 +9,18 @@
  * concurrent (architecture-guide.md, section 6.2).
  *
  * Two details follow from it:
- *  - vaultId is NOT readonly: moving between vaults is a first-class operation
+ *  - notebookId is NOT readonly: moving between notebooks is a first-class operation
  *    and the NoteId is preserved (RN-KNW-023), which is what keeps the audit
- *    timeline intact, since its key is by subject and not by vault.
+ *    timeline intact, since its key is by subject and not by notebook.
  *  - replaceBody takes an ALREADY written ContentRef: whoever talks to S3 is
  *    the use case, never the aggregate.
+ *
+ * The name is NOT a field a caller sets. It is the `name:` of the frontmatter
+ * of the body, read here on every write, so a note cannot exist whose name
+ * disagrees with its content (RN-KNW-035). It is `null` when the content
+ * states none a link could use (RN-KNW-036), and there is no slug:
+ * a name is a key only inside one folder, which the repository guards
+ * (RN-KNW-037).
  */
 
 import {
@@ -26,25 +33,22 @@ import {
   type Instant,
   type NoteId,
   ok,
+  noteName,
   type Position,
-  type Slug,
   type SubscriptionId,
-  type VaultId,
+  type NotebookId,
   type DomainEvent,
   type Result,
 } from '@memorysmith/kernel';
-import type { NoteTitle } from '../values.js';
-
 export class Note {
   private readonly events: DomainEvent[] = [];
 
   private constructor(
     readonly id: NoteId,
     readonly subscriptionId: SubscriptionId,
-    private _vaultId: VaultId,
+    private _notebookId: NotebookId,
     private _folderId: FolderId,
-    private _title: NoteTitle,
-    private _slug: Slug,
+    private _name: string | null,
     private _position: Position,
     private _bodyRef: ContentRef,
     readonly createdBy: Authorship,
@@ -53,24 +57,28 @@ export class Note {
     private _version: number,
   ) {}
 
+  /**
+   * The body arrives alongside the reference to it, because the name is read
+   * from the bytes and this is where that reading belongs: a use case that
+   * passed a name in could pass one the content does not say.
+   */
   static create(input: {
     id: NoteId;
     subscriptionId: SubscriptionId;
-    vaultId: VaultId;
+    notebookId: NotebookId;
     folderId: FolderId;
-    title: NoteTitle;
-    slug: Slug;
+    body: string;
     position: Position;
     bodyRef: ContentRef;
     by: Authorship;
   }): Result<Note, DomainError> {
+    const name = noteName(input.body);
     const note = new Note(
       input.id,
       input.subscriptionId,
-      input.vaultId,
+      input.notebookId,
       input.folderId,
-      input.title,
-      input.slug,
+      name,
       input.position,
       input.bodyRef,
       input.by,
@@ -82,11 +90,10 @@ export class Note {
       'NoteCreated',
       input.by,
       {
-        vaultId: input.vaultId.value,
+        notebookId: input.notebookId.value,
         noteId: input.id.value,
         folderId: input.folderId.value,
-        title: input.title.value,
-        slug: input.slug.value,
+        name,
         position: input.position.value,
       },
       input.bodyRef,
@@ -98,10 +105,9 @@ export class Note {
   static rehydrate(input: {
     id: NoteId;
     subscriptionId: SubscriptionId;
-    vaultId: VaultId;
+    notebookId: NotebookId;
     folderId: FolderId;
-    title: NoteTitle;
-    slug: Slug;
+    name: string | null;
     position: Position;
     bodyRef: ContentRef;
     createdBy: Authorship;
@@ -112,10 +118,9 @@ export class Note {
     return new Note(
       input.id,
       input.subscriptionId,
-      input.vaultId,
+      input.notebookId,
       input.folderId,
-      input.title,
-      input.slug,
+      input.name,
       input.position,
       input.bodyRef,
       input.createdBy,
@@ -135,17 +140,15 @@ export class Note {
     this._version += 1;
   }
 
-  get vaultId(): VaultId {
-    return this._vaultId;
+  get notebookId(): NotebookId {
+    return this._notebookId;
   }
   get folderId(): FolderId {
     return this._folderId;
   }
-  get title(): NoteTitle {
-    return this._title;
-  }
-  get slug(): Slug {
-    return this._slug;
+  /** The `name:` the content states, or `null` when no link can name this note. */
+  get name(): string | null {
+    return this._name;
   }
   get position(): Position {
     return this._position;
@@ -167,32 +170,27 @@ export class Note {
     return this._bodyRef.versionId;
   }
 
-  retitle(title: NoteTitle, slug: Slug, by: Authorship): Result<void, DomainError> {
-    if (this.isDeleted) return err(DomainError.notFound('This note is deleted'));
-    this._title = title;
-    this._slug = slug;
-    this._updatedBy = by;
-    this.record(
-      'NoteUpdated',
-      by,
-      {
-        vaultId: this._vaultId.value,
-        noteId: this.id.value,
-        folderId: this._folderId.value,
-        title: title.value,
-        slug: slug.value,
-      },
-      this._bodyRef,
-    );
-    return ok();
-  }
-
   /**
    * If the content is byte-for-byte identical to the current one there is no
    * new revision, no event and no re-indexing (RN-KNW-028). The caller can
    * tell it was a no-op because no event was recorded.
+   *
+   * This is also how a note is renamed: there is no operation that renames
+   * one apart from its content (RN-KNW-038). Identical bytes cannot state a
+   * different name, so the early return costs nothing.
    */
-  replaceBody(ref: ContentRef, by: Authorship): Result<boolean, DomainError> {
+  replaceBody(
+    ref: ContentRef,
+    body: string,
+    by: Authorship,
+    /**
+     * What the author said about this change (RN-AUD-012). It travels in the
+     * payload of the event and reaches the trail with it, and it is the one
+     * thing on a revision that nobody but the author can supply. An empty one
+     * is no line at all: the entry is written without it.
+     */
+    message: string | null = null,
+  ): Result<boolean, DomainError> {
     if (this.isDeleted) return err(DomainError.notFound('This note is deleted'));
     if (this._bodyRef.hasSameContentAs(ref)) return ok(false);
 
@@ -201,16 +199,17 @@ export class Note {
     // stays in the store and stops being counted (RN-SUB-021).
     const delta = ref.bytes - this._bodyRef.bytes;
     this._bodyRef = ref;
+    this._name = noteName(body);
     this._updatedBy = by;
     this.record(
       'NoteUpdated',
       by,
       {
-        vaultId: this._vaultId.value,
+        notebookId: this._notebookId.value,
         noteId: this.id.value,
         folderId: this._folderId.value,
-        title: this._title.value,
-        slug: this._slug.value,
+        name: this._name,
+        ...(message && message.trim().length > 0 ? { message: message.trim() } : {}),
       },
       ref,
       delta,
@@ -219,7 +218,7 @@ export class Note {
   }
 
   /**
-   * A single write on this item: zero bytes in S3, and the vault META item is
+   * A single write on this item: zero bytes in S3, and the notebook META item is
    * not touched (PE8). The Position itself is computed by the use case, which
    * is the only layer that can see the siblings.
    */
@@ -228,7 +227,7 @@ export class Note {
     this._position = position;
     this._updatedBy = by;
     this.record('NoteReordered', by, {
-      vaultId: this._vaultId.value,
+      notebookId: this._notebookId.value,
       noteId: this.id.value,
       folderId: this._folderId.value,
       position: position.value,
@@ -241,82 +240,75 @@ export class Note {
    * (RN-KNW-023). Implementing it as delete plus create would lose the history
    * exactly where it matters.
    *
-   * The slug arrives already resolved against the destination vault: the
-   * conflict policy is applied by NoteRelocation, which is the domain service
-   * that can see whether the slug is taken there (RN-KNW-022).
+   * A destination folder that already holds the name refuses the move
+   * (RN-KNW-042), and that refusal belongs to the use case, which can see the
+   * folder: there is no conflict policy to apply here (RN-KNW-022, removed).
    */
   moveTo(
-    destination: { vaultId: VaultId; folderId: FolderId; slug: Slug; position: Position },
+    destination: { notebookId: NotebookId; folderId: FolderId; position: Position },
     by: Authorship,
   ): Result<void, DomainError> {
     if (this.isDeleted) return err(DomainError.notFound('This note is deleted'));
 
-    const fromVaultId = this._vaultId;
+    const fromNotebookId = this._notebookId;
     const fromFolderId = this._folderId;
-    if (fromVaultId.equals(destination.vaultId) && fromFolderId.equals(destination.folderId)) {
+    if (
+      fromNotebookId.equals(destination.notebookId) &&
+      fromFolderId.equals(destination.folderId)
+    ) {
       return err(DomainError.validation('The note is already in that folder'));
     }
 
-    this._vaultId = destination.vaultId;
+    this._notebookId = destination.notebookId;
     this._folderId = destination.folderId;
-    this._slug = destination.slug;
     this._position = destination.position;
     this._updatedBy = by;
-    this.record('NoteMoved', by, {
-      noteId: this.id.value,
-      fromVaultId: fromVaultId.value,
-      fromFolderId: fromFolderId.value,
-      toVaultId: destination.vaultId.value,
-      toFolderId: destination.folderId.value,
-      slug: destination.slug.value,
-      position: destination.position.value,
-    });
+    // The content travels with the move: a projector that reprojects a moved
+    // note reads it from here, and a move without it was projected as an empty
+    // note, out of the search and out of the graph (#141).
+    this.record(
+      'NoteMoved',
+      by,
+      {
+        noteId: this.id.value,
+        fromNotebookId: fromNotebookId.value,
+        fromFolderId: fromFolderId.value,
+        toNotebookId: destination.notebookId.value,
+        toFolderId: destination.folderId.value,
+        position: destination.position.value,
+      },
+      this._bodyRef,
+    );
     return ok();
   }
 
   /**
-   * Soft delete: the note leaves the listings and the search, the bodyRef stays
-   * intact and the timeline keeps answering by NoteId (RN-KNW-029). The slug is
-   * released back to the vault in the same transaction (RN-KNW-030).
+   * Deleting is DEFINITIVE (RN-KNW-029). This write is the only one it makes:
+   * the note leaves every listing and the search at once, and what it leaves
+   * behind — its item and every revision of its content — is purged in the
+   * background (RN-KNW-047). Nothing brings it back.
+   *
+   * The mark is the transitory state between the two, and it is why the item
+   * is still here to be read: a purge that has not run yet must not make a
+   * deleted note readable again.
    */
   delete(by: Authorship): Result<void, DomainError> {
     if (this.isDeleted) return err(DomainError.notFound('This note is already deleted'));
     this._deletedAt = by.at;
     this._updatedBy = by;
-    // A deleted note is no longer live content, so its bytes leave the count.
-    // They do NOT leave the store: nothing here destroys a revision (PE8).
+    // A deleted note is no longer live content, so its bytes leave the count
+    // here, once. The purge that destroys them declares nothing more
+    // (RN-SUB-021).
     this.record(
       'NoteDeleted',
       by,
       {
-        vaultId: this._vaultId.value,
+        notebookId: this._notebookId.value,
         noteId: this.id.value,
         folderId: this._folderId.value,
-        slug: this._slug.value,
       },
       null,
       -this._bodyRef.bytes,
-    );
-    return ok();
-  }
-
-  /** Restoring requires the slug to be free again (RN-KNW-030). */
-  restore(by: Authorship): Result<void, DomainError> {
-    if (!this.isDeleted) return err(DomainError.conflict('This note is not deleted'));
-    this._deletedAt = null;
-    this._updatedBy = by;
-    this.record(
-      'NoteRestored',
-      by,
-      {
-        vaultId: this._vaultId.value,
-        noteId: this.id.value,
-        folderId: this._folderId.value,
-        slug: this._slug.value,
-        position: this._position.value,
-      },
-      null,
-      this._bodyRef.bytes,
     );
     return ok();
   }
@@ -333,8 +325,8 @@ export class Note {
    * One unit of work publishes at most one `NoteUpdated`.
    *
    * That event is a snapshot and not a diff: every recorder of it writes the
-   * whole of what the note now is, title, slug, folder and the ContentRef that
-   * is live at that instant. So a second one within the same save supersedes
+   * whole of what the note now is, name, folder and the ContentRef that is
+   * live at that instant. So a second one within the same save supersedes
    * the first entirely, and keeping both would publish two events for one
    * operation, the earlier of which cites a revision that is already
    * superseded. Retitling and rewriting a note in a single call did exactly
@@ -362,7 +354,10 @@ export class Note {
       subject: 'NOTE',
       subjectId: this.id.value,
       authorship: by,
-      payload,
+      // The version this write produces, a number that only grows. The bus
+      // promises delivery and not order, and this is what lets a projection
+      // tell the newer state of a note from an older one delivered late (#141).
+      payload: { ...payload, version: this._version + 1 },
       contentRef,
       storageDelta,
     });

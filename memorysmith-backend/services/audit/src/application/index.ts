@@ -8,7 +8,10 @@
 import { DomainError, err, Instant, ok, type Result } from '@memorysmith/kernel';
 import {
   type AuditEvent,
+  type ClosedTrails,
+  notebookOf,
   revisionAt,
+  survivesTheNotebook,
   type AuditTrail,
   type RevisionReader,
 } from '../domain/index.js';
@@ -17,31 +20,88 @@ import {
  * Appends what the consumer handed over. Validating the envelope against its
  * contract is the job of the inbound adapter: Zod lives on the edge, never in
  * a use case (architecture-guide.md, section 4.1).
+ *
+ * What it does NOT append is an entry that belongs inside a notebook whose
+ * trail the purge closed (RN-AUD-011). This is not a second way of removing an
+ * entry — nothing here removes anything — it is the trail declining to open a
+ * chapter that was closed: the events of a purge reach the consumer after the
+ * purge that wrote them has ended, so without this the erase would be followed
+ * by the very entries it was meant to take.
+ *
+ * The life of the notebook still goes in, purge included: what it says is that
+ * the notebook existed and was destroyed, which is what the subscription keeps.
  */
 export class RecordEvents {
-  constructor(private readonly trail: AuditTrail) {}
+  constructor(
+    private readonly trail: AuditTrail,
+    private readonly closed: ClosedTrails,
+  ) {}
 
   async execute(events: AuditEvent[]): Promise<Result<{ appended: number }, DomainError>> {
     if (events.length === 0) return ok({ appended: 0 });
-    await this.trail.append(events);
-    return ok({ appended: events.length });
+
+    const wanted: AuditEvent[] = [];
+    // One question per notebook of the batch, and none at all for a batch that
+    // touches no notebook: this runs on every event of the bus.
+    const answered = new Map<string, boolean>();
+    for (const event of events) {
+      const notebookId = notebookOf(event);
+      if (!notebookId || survivesTheNotebook(event.type)) {
+        wanted.push(event);
+        continue;
+      }
+      const key = `${event.subscriptionId.value}#${notebookId}`;
+      let closed = answered.get(key);
+      if (closed === undefined) {
+        closed = await this.closed.isClosed(event.subscriptionId, notebookId);
+        answered.set(key, closed);
+      }
+      if (!closed) wanted.push(event);
+    }
+
+    if (wanted.length === 0) return ok({ appended: 0 });
+    await this.trail.append(wanted);
+    return ok({ appended: wanted.length });
   }
+}
+
+/**
+ * The trail never forgets, and the product still stops answering about what
+ * somebody deleted (RN-AUD-010). A purged note has a `NotePurged` in its
+ * timeline, and from that event on there is nothing to read: the revisions it
+ * points at were destroyed, so a history that still listed them would be an
+ * index of content nobody can fetch.
+ *
+ * The entries stay where they are, appended and immutable (rule 6). What this
+ * refuses is serving them, with the 404 of a note nobody can see.
+ *
+ * An EMPTY timeline is not a refusal. The trail is fed by events and follows a
+ * write within seconds, so a note written a moment ago has no entry yet, and a
+ * reader waiting for its history has to be told "nothing yet" rather than
+ * "this note does not exist".
+ */
+function wasPurged(timeline: readonly AuditEvent[]): boolean {
+  return timeline.some((event) => event.type.endsWith('Purged'));
 }
 
 export class GetNoteHistory {
   constructor(private readonly trail: AuditTrail) {}
 
-  /** Indexed by NoteId, so it survives the note changing vault (RN-AUD-004). */
+  /** Indexed by NoteId, so it survives the note changing notebook (RN-AUD-004). */
   async execute(noteId: string): Promise<Result<AuditEvent[], DomainError>> {
-    return ok(await this.trail.timelineOf('NOTE', noteId));
+    const timeline = await this.trail.timelineOf('NOTE', noteId);
+    if (wasPurged(timeline)) {
+      return err(DomainError.notFound('Note not found'));
+    }
+    return ok(timeline);
   }
 }
 
-export class GetVaultActivity {
+export class GetNotebookActivity {
   constructor(private readonly trail: AuditTrail) {}
 
   async execute(input: {
-    vaultId: string;
+    notebookId: string;
     from?: string | undefined;
     to?: string | undefined;
   }): Promise<Result<AuditEvent[], DomainError>> {
@@ -52,7 +112,7 @@ export class GetVaultActivity {
 
     return ok(
       await this.trail.activityOf(
-        input.vaultId,
+        input.notebookId,
         from?.ok ? from.value : null,
         to?.ok ? to.value : null,
       ),
@@ -77,7 +137,9 @@ export class ReadRevision {
     versionId?: string | undefined;
   }): Promise<Result<{ event: AuditEvent; content: string }, DomainError>> {
     const timeline = await this.trail.timelineOf('NOTE', input.noteId);
-    if (timeline.length === 0) return err(DomainError.notFound('Note not found'));
+    if (wasPurged(timeline)) {
+      return err(DomainError.notFound('Note not found'));
+    }
 
     const chosen = input.versionId
       ? (timeline.find((event) => event.contentRef?.versionId === input.versionId) ?? null)

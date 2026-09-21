@@ -1,4 +1,10 @@
 {
+  "slot": {
+    "delete": "Delete",
+    "confirm": "Delete for good",
+    "deleting": "Deleting…",
+    "cancel": "Keep it"
+  },
   "write": {
     "unsaved": "Unsaved changes",
     "saving": "Saving…",
@@ -6,9 +12,7 @@
   },
   "reserved": {
     "aliases": "Aliases",
-    "tags": "Tags",
-    "created": "Created",
-    "updated": "Updated"
+    "tags": "Tags"
   },
   "app": {
     "title": "MemorySmith",
@@ -35,7 +39,7 @@
     "handingOver": "Taking you to the sign-in page...",
     "handoverFailed": "The sign-in did not complete. Try again.",
     "sessionExpired": "Your session expired and was ended here. Signing in again picks up exactly where you left off: nothing was lost.",
-    "noneSubscription": "This account reaches no subscription yet. A subscription is what holds your vaults, and it is granted by hand while there is no automatic billing.",
+    "noneSubscription": "This account reaches no subscription yet. A subscription is what holds your notebooks, and it is granted by hand while there is no automatic billing.",
     "pendingSubscription": "Your subscription is waiting for approval. Approval is manual at this stage, and the product opens as soon as it is granted.",
     "blockedSubscription": "This subscription is not active at the moment. Nothing was lost: the data stays exactly where it is and becomes reachable again once access is restored."
   },
@@ -73,93 +77,209 @@
     "pt_BR": "Português"
   },
   "search": {
-    "placeholder": "Search the whole vault…",
+    "placeholder": "Search the whole notebook…",
     "searching": "Searching…",
     "empty": "No notes match.",
     "invalid": "Invalid query. Check the quotes, parentheses and operators.",
     "failed": "The search failed. Try again.",
-    "syntaxHint": "Searches the whole text. Accepts \"exact phrase\", -exclude, OR, title:, folder:, section:, content: and frontmatter attributes, such as maturity:evergreen."
+    "syntaxHint": "Searches the whole text. Accepts \"exact phrase\", -exclude, OR, name:, folder:, section:, content: and frontmatter attributes, such as maturity:evergreen."
   },
-  "vaults": {
-    "heading": "Vaults",
+  "notebooks": {
+    "heading": "Notebooks",
     "noteCount": "{{count}} notes",
     "updatedAt": "updated {{date}}",
-    "open": "Open vault"
+    "open": "Open notebook"
   },
   "structure": {
     "guidance": "Guidance",
     "folders": "Folders",
     "root": "Root",
+    "noteCountSplit": "{{here}} here, {{below}} in subfolders",
     "hasTemplate": "template",
     "outlineHint": "The folder tree with each folder's description. It is what tells the agent where each note goes.",
-    "backToVaults": "All vaults",
-    "openNavigation": "Vault navigation",
+    "backToNotebooks": "All notebooks",
+    "openNavigation": "Notebook navigation",
     "closeNavigation": "Close navigation",
-    "heading": "Vault Context",
-    "intro": "How this vault describes itself, and what the agent receives from get_vault_context: the Guidance says what the vault is, each folder says what belongs in it, and the folder Template says how a note is laid out.",
-    "guidanceHint": "What this vault is and how to write in it",
+    "heading": "Notebook Context",
+    "intro": "How this notebook describes itself, and what the agent receives from get_notebook_context: the Guidance says what the notebook is, each folder says what belongs in it, and the folder Template says how a note is laid out.",
+    "guidanceHint": "What this notebook is and how to write in it",
+    "deleteGuidanceConfirm": "Delete the guidance of this notebook? Its folders, its templates and every note stay; the notebook simply stops saying how it wants to be written. This cannot be undone.",
     "templates": "Templates",
     "templatesHint_one": "{{count}} folder with a suggested layout",
     "templatesHint_other": "{{count}} folders with a suggested layout",
-    "noTemplates": "No folder in this vault declares a Template.",
+    "noTemplates": "No folder in this notebook declares a Template.",
     "templateOf": "Template of folder {{folder}}",
     "openFolder": "Open folder",
     "content": "Content",
-    "breadcrumb": "Vault context trail"
+    "breadcrumb": "Notebook context trail"
   },
   "folder": {
     "notesHeading": "Notes in this folder",
     "template": "Template",
     "templateHint": "Suggested layout for notes in this folder. The server never validates against it.",
+    "deleteTemplateConfirm": "Delete the template of this folder? The folder, its description and its notes stay, and the notes already written keep the shape they have. This cannot be undone.",
     "empty": "No notes in this folder yet."
   },
   "note": {
     "properties": "Properties",
     "embedSectionMissing": "The section \"{{section}}\" is not in this note.",
     "writeConflict": "That change was not saved. Someone wrote here first, and the content was reloaded.",
+    "linkChoice": "The notes the link “{{target}}” may lead to",
     "pendingLink": "Pending link: the target note does not exist yet.",
     "remoteImages_one": "Opening this note fetched an image from {{hosts}}, so that site was told your address and the moment you read this.",
     "remoteImages_other": "Opening this note fetched images from {{count}} other sites — {{hosts}} — so each of them was told your address and the moment you read this.",
     "refusedLink": "This address is not one the reading surface follows, so the text stays and the link does not.",
     "copy": "Copy",
     "copied": "Copied",
-    "copyHint": "Copy the note's Markdown to the clipboard"
+    "copyHint": "Copy the note's Markdown to the clipboard",
+    "unnamed": "Unnamed note",
+    "attachmentMissing": "This notebook keeps no file under that name.",
+    "targetPending": "No note carries the name “{{target}}” yet. The link is kept and resolves on its own when one does.",
+    "linkLeadsToSeveral": "This link leads to more than one note",
+    "linkLeadsNowhere": "This link leads nowhere yet",
+    "targetNamed_one": "“{{target}}” is the name of one note.",
+    "targetNamed_other": "“{{target}}” is the name of {{count}} notes, each in its own folder. Choose which one to open.",
+    "targetAliased_one": "No note is named “{{target}}”. One note carries it as an alias.",
+    "targetAliased_other": "No note is named “{{target}}”, so it matched {{count}} notes that carry it as an alias — and one of them gives the link up the day somebody writes a note under this name.",
+    "attachmentOpen": "Open",
+    "attachmentDownload": "Download"
   },
   "common": {
     "loading": "Loading…",
-    "notFound": "Not found."
+    "notFound": "Not found.",
+    "cancel": "Cancel",
+    "close": "Close"
   },
   "dashboard": {
     "heading": "Overview",
-    "kpiVaults": "Vaults",
+    "kpiNotebooks": "Notebooks",
     "kpiNotes": "Notes",
     "kpiPending": "Pending links",
-    "otherTypes": "Other",
-    "selectVault": "Open a vault",
-    "prevVaults": "Previous vaults",
-    "nextVaults": "Next vaults",
+    "selectNotebook": "Open a notebook",
+    "prevNotebooks": "Previous notebooks",
+    "nextNotebooks": "Next notebooks",
     "kpiOrphans": "Orphan notes",
-    "noFacets": "These vaults declare no attributes in their notes yet, so there is nothing to chart.",
-    "moreFacets": "{{count}} more attribute(s) counted but not charted.",
-    "discardedFacets": "{{count}} attribute(s) left out of the statistics as free text: {{names}}.",
-    "unavailableVaults": "{{count}} vault(s) did not answer, so these totals are short."
+    "unavailableNotebooks": "{{count}} notebook(s) did not answer, so these totals are short."
   },
   "portability": {
-    "download": "Download vault (.zip)",
+    "download": "Download notebook (.notebook)",
     "preparing": "Preparing the archive…",
-    "failed": "Could not prepare the archive"
+    "failed": "Could not prepare the archive",
+    "import": "Import",
+    "importing": "Importing “{{name}}”",
+    "exporting": "Exporting… follow it in Transfers",
+    "importHeading": "Import a notebook",
+    "chooseFile": "Choose a file",
+    "dropHint": "Drop a .notebook file here, or choose one.",
+    "notebookName": "Name",
+    "preset": {
+      "everything": "The whole notebook",
+      "choose": "Part of it"
+    },
+    "filter": "Filter by name",
+    "notebookGuidance": "Notebook Guidance",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "noteCount_one": "{{count}} note",
+    "noteCount_other": "{{count}} notes",
+    "willCreate": "Will create: 1 notebook · {{folders}} · {{templates}} · {{notes}}",
+    "danglingLinks_one": "1 link will point at a note left out.",
+    "danglingLinks_other": "{{count}} links will point at notes left out.",
+    "importLeavePage": "You can leave this page: the import goes on.",
+    "importDone_one": "“{{name}}” was imported, with {{count}} note.",
+    "importDone_other": "“{{name}}” was imported, with {{count}} notes.",
+    "importKeptNothing": "Nothing was kept: the notebook it had started was taken back down.",
+    "openNotebook": "Open notebook",
+    "tryAgain": "Try again",
+    "refusal": {
+      "NOT_AN_ARCHIVE": "That file is not a .notebook archive.",
+      "NO_DOCUMENT": "That archive carries no notebook document.",
+      "BAD_FORMAT": "That notebook document does not match the format this product reads.",
+      "UNREADABLE_VERSION": "That document was written in a version of the format this build does not read.",
+      "TWIN_NAMES": "That selection has two notes of one name in one folder, and a folder holds one note of each name.",
+      "DANGLING_FOLDER": "A note of that document points at a folder the document does not carry.",
+      "CANCELLED": "The import was cancelled.",
+      "ALREADY_EXISTS": "A notebook of that name already exists. Choose another name and try again.",
+      "LIMIT_EXCEEDED": "The storage of this plan has no room for that notebook.",
+      "UPLOAD": "The file could not be uploaded. Try again.",
+      "VALIDATION": "That document was refused.",
+      "NOT_FOUND": "The upload was not found. Choose the file again.",
+      "INTERNAL": "Something went wrong on our side. Try again."
+    },
+    "exportHeading": "Export notebook",
+    "withHistory": "Include the history",
+    "withHistoryHint": "Who wrote what and when, and the content of every earlier revision. The archive is larger, and a kept export counts towards the storage of your plan. Deleting a notebook takes its history with it, so this is what keeps it.",
+    "startExport": "Export",
+    "cancel": "Cancel",
+    "history": "History of the notebook",
+    "historyEntries_one": "{{count}} entry",
+    "historyEntries_other": "{{count}} entries",
+    "noHistory": "This archive carries no history.",
+    "exportNotebook": "Notebook",
+    "tab": {
+      "context": "Context",
+      "folders": "Folders",
+      "templates": "Templates",
+      "notes": "Notes",
+      "conflicts": "Conflicts",
+      "files": "Files"
+    },
+    "noTemplate": "no Template",
+    "wholeNotebook": "The whole notebook",
+    "wholeNotebookHint": "The Guidance, the Template of each folder, every note and the whole history — the record of what was deleted included.",
+    "whatToCarry": {
+      "export": "What goes in the archive",
+      "import": "What to import"
+    },
+    "thereIsNone": "there is none",
+    "willCarry": "Will be carried: {{folders}} · {{templates}} · {{notes}}",
+    "reach": {
+      "all": "Everything",
+      "choose": "Choose items"
+    },
+    "carriedOf": "{{carried}} of {{held}}",
+    "needsFolders": "needs folders",
+    "everyFolderHere": "Every folder of the notebook is here, because Folders is carrying everything.",
+    "onlyChosenFolders": "Only the folders chosen in the Folders tab appear here.",
+    "noFolderChosen": {
+      "folders": "This notebook has no folder.",
+      "templates": "No folder is chosen. Choose one in the Folders tab to choose Templates here.",
+      "notes": "No folder is chosen. Choose one in the Folders tab to choose notes here."
+    },
+    "pathFolder": "path",
+    "countFolders_one": "{{count}} folder",
+    "countFolders_other": "{{count}} folders",
+    "countTemplates_one": "{{count}} Template",
+    "countTemplates_other": "{{count}} Templates",
+    "twinsBlock_one": "1 name is carried twice in its folder.",
+    "twinsBlock_other": "{{count}} names are carried twice in their folder.",
+    "showTwins": "See why",
+    "twinsWhy": "A folder holds one note of each name, so an import carrying two of one name is refused whole. Leave one of each out and the import goes.",
+    "twinWhere_one": "In the folder “{{folder}}” · {{count}} copy",
+    "twinWhere_other": "In the folder “{{folder}}” · {{count}} copies",
+    "findTwin": "Find them in the notes",
+    "conflictsWhy": "Nothing is imported while anything is here. Each row says what refuses, and the way out of it.",
+    "nameTakenTitle": "The name “{{name}}” is already in use",
+    "nameTakenWhy": "You already have a notebook of that name, and a subscription holds one notebook of each name. Choose another name, or delete that notebook and import again.",
+    "nameTakenBlock": "The name is already a notebook of yours.",
+    "changeName": "Change the name",
+    "nothingImported": "Nothing is imported until that is resolved.",
+    "countFiles_one": "{{count}} file",
+    "countFiles_other": "{{count}} files",
+    "countFiles_zero": "{{count}} files",
+    "filesBelongToTheNotebook": "A file belongs to the notebook and not to a folder: leaving one out never leaves a note out with it, and any note that travels may reference any of them. What it costs is an embed that lands pending."
   },
   "graph": {
-    "heading": "Vault graph",
-    "navLabel": "Vault graph",
+    "heading": "Notebook graph",
+    "navLabel": "Notebook graph",
     "controls": "Controls",
     "openControls": "Open controls",
     "closeControls": "Close controls",
     "attributeNodes": "Add",
     "hint": "Scroll to zoom · drag to pan · click a note to open it, an attribute to hold its notes",
     "hintTouch": "Pinch to zoom · drag to pan · tap a note to open it, an attribute to hold its notes",
-    "empty": "This vault has no notes to draw yet.",
-    "truncated": "Showing the first 2000 notes of this vault."
+    "empty": "This notebook has no notes to draw yet.",
+    "truncated": "Showing the first 2000 notes of this notebook."
   },
   "errors": {
     "validation": "Something in what was sent is not accepted.",
@@ -170,5 +290,190 @@
     "unauthenticated": "Sign in to continue.",
     "offline": "The application could not reach the server.",
     "unexpected": "Something went wrong."
+  },
+  "environment": {
+    "production": "Production",
+    "staging": "Staging",
+    "development": "Development",
+    "disposable": "What is written in this environment is disposable."
+  },
+  "transfers": {
+    "heading": "Transfers",
+    "seeAll": "See all",
+    "filter": "What to show",
+    "filters": {
+      "all": "All",
+      "export": "Exports",
+      "import": "Imports"
+    },
+    "empty": "Nothing has been transferred yet.",
+    "keptBytes": "Space used: {{size}}",
+    "download": "Download",
+    "delete": "Delete",
+    "deleteForGood": "Delete for good",
+    "deleteWarning": "This is definitive. The notebook, if it still exists, is not touched.",
+    "notebookGone": "The notebook was deleted after this export. Importing it creates a new one.",
+    "running": {
+      "export": "exporting · {{done}} of {{total}} notes",
+      "import": "importing · {{done}} of {{total}} notes"
+    },
+    "ended": {
+      "ready": "ready",
+      "failed": "failed",
+      "cancelled": "cancelled",
+      "running": "running"
+    },
+    "newExport": "New export",
+    "newImport": "Import a notebook",
+    "noNotebooks": "There is no notebook to export yet.",
+    "line": {
+      "export": "Export · {{notebook}}",
+      "import": "Import · {{notebook}}"
+    },
+    "wrote_one": "{{count}} note written",
+    "wrote_other": "{{count}} notes written",
+    "wroteNothing": "the design, with no note",
+    "fromFile": "from {{file}}"
+  },
+  "about": {
+    "menu": "About MemorySmith.app",
+    "title": "About MemorySmith.app",
+    "heading": "Welcome to MemorySmith.app",
+    "lead": "Structured knowledge, natively readable and writable by humans and agents.",
+    "what": {
+      "heading": "What this is",
+      "body": "MemorySmith hosts notebooks of notes written in Markdown. A notebook holds folders, a folder holds notes, and everything you write here stays plain text you can read without us: every note keeps its whole history, and every notebook can be exported in full at any time.",
+      "guidance": "What makes a notebook here different is that it says how it wants to be written. Its Guidance states what the notebook is for and how to write in it; each folder carries a description and a Template. An agent reads both before writing a single line, which is how a notebook stays coherent after a hundred notes instead of drifting into a folder of loose files."
+    },
+    "interface": {
+      "heading": "What you will find here",
+      "body": "This interface is a reading tool before it is an editing one. These are the surfaces it gives you:",
+      "notebooks": {
+        "term": "Notebooks",
+        "definition": "The first screen lists them, with how many notes each one holds and when it last changed. Opening one takes you back to where you stopped reading."
+      },
+      "folders": {
+        "term": "Folders and notes",
+        "definition": "The side panel is the structure of the notebook, in the order the notebook itself declares. A note shows its properties, its links and what links back to it."
+      },
+      "guidance": {
+        "term": "Guidance and Templates",
+        "definition": "Readable on their own screens, so you can see the rules an agent is following before you read what it wrote."
+      },
+      "graph": {
+        "term": "Graph",
+        "definition": "Every note as a point and every link as a line, which is where an isolated note, or a cluster nobody connected, becomes visible."
+      },
+      "search": {
+        "term": "Search",
+        "definition": "Across the notes of a notebook, by what they say and by the properties they declare."
+      },
+      "transfers": {
+        "term": "Transfers",
+        "definition": "Exporting a notebook, or importing one, from the menu beside your picture. What comes out is Markdown files in folders, and nothing else."
+      }
+    },
+    "connector": {
+      "heading": "Connecting your AI assistant",
+      "body": "This is the part worth doing today. MemorySmith answers AI tools through a remote MCP server, so an assistant does not merely read your notebooks: it writes in them, obeying the Guidance of the notebook and the Template of each folder. The address of this environment is:",
+      "claude": {
+        "heading": "In Claude",
+        "one": "Open <b>Settings</b> and then <b>Connectors</b>.",
+        "two": "Choose <b>Add custom connector</b> and paste the address above.",
+        "three": "Claude opens a sign-in page; sign in with this same account and authorise it.",
+        "four": "Start a conversation and ask for your notebooks. The assistant will list them."
+      },
+      "chatgpt": {
+        "heading": "In ChatGPT",
+        "one": "Open <b>Settings</b>, then <b>Connectors</b>, and choose to add one.",
+        "two": "Paste the address above and authorise it with this same account.",
+        "three": "In a conversation, enable the connector and ask for your notebooks."
+      },
+      "sameAccount": "Whichever tool you use, sign in with the same account you are reading this with: the assistant reaches exactly the notebooks you reach, with exactly your permissions, and every change it makes is recorded under your name."
+    },
+    "agent": {
+      "heading": "What to ask it first",
+      "body": "You do not have to build anything here by hand. Ask the assistant, in your own words:",
+      "one": "“Create a notebook in MemorySmith for my reading notes, with the folders that make sense, and write its Guidance.”",
+      "two": "“Read my notebook and tell me what is missing from it.”",
+      "three": "“Write a note about what we just discussed, in the right folder.”",
+      "skills": "The connector carries written methods for the tasks that go wrong most often — designing a notebook from scratch, writing a note this product can read — and a good assistant reads them before it starts. You will see it do so."
+    },
+    "start": "Start reading"
+  },
+  "profile": {
+    "menu": "Your profile",
+    "title": "Your profile",
+    "heading": "Your profile",
+    "pictureHeading": "Your picture",
+    "source": {
+      "gravatar": "Gravatar",
+      "initials": "Your initials",
+      "upload": "A picture of yours"
+    },
+    "choosePicture": "Choose a picture…",
+    "pictureRefused": "That file could not be used as a picture. Choose a PNG, a JPEG or a WebP.",
+    "gravatarDiscloses": "Gravatar draws your picture from gravatar.com, which receives the hash of your e-mail and the address of whoever is looking at the screen. Choosing your initials stops that: they are drawn here, and nothing leaves.",
+    "name": "Name",
+    "email": "E-mail",
+    "emailReadOnly": "This is what you sign in with, and where every message goes. It cannot be changed here.",
+    "save": "Save",
+    "saved": "Saved",
+    "failed": "That could not be saved."
+  },
+  "password": {
+    "menu": "Change your password",
+    "heading": "Change your password",
+    "endsOtherSessions": "Changing your password ends every other session of this account: any other device will be asked to sign in again. This one stays open.",
+    "current": "Current password",
+    "next": "New password",
+    "again": "New password, again",
+    "policy": "At least 12 characters, with an upper case letter, a lower case letter and a digit.",
+    "mismatch": "The two do not match.",
+    "confirm": "Change the password",
+    "working": "Changing…",
+    "cancel": "Cancel",
+    "done": "Your password was changed. Every other session of this account will be asked to sign in again.",
+    "back": "Back to your profile",
+    "failed": "The password could not be changed."
+  },
+  "editor": {
+    "edit": "Edit this note",
+    "read": "Back to reading",
+    "area": "The Markdown of this note",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "askHeading": "What changed?",
+    "messageLabel": "A line about this change",
+    "messagePlaceholder": "Fixed the date of the meeting",
+    "messageOptional": "Optional. It goes into the history of the note, beside the date and your name.",
+    "write": "Write it",
+    "writing": "Writing…",
+    "back": "Back to the text",
+    "willBeNamed_one": "This note has no name today. It will be called “{{name}}”, and {{count}} link waiting for that name will resolve.",
+    "willBeNamed_other": "This note has no name today. It will be called “{{name}}”, and {{count}} links waiting for that name will resolve.",
+    "willBeNamed_zero": "This note has no name today. It will be called “{{name}}”.",
+    "willBeUnnamed_zero": "This note will have NO NAME. It will still be here, still render and still link outward — and no link will be able to reach it.",
+    "willBeUnnamed_one": "This note will have NO NAME. It will still be here, still render and still link outward, and the {{count}} link that points at it today goes pending.",
+    "willBeUnnamed_other": "This note will have NO NAME. It will still be here, still render and still link outward, and the {{count}} links that point at it today go pending.",
+    "willBeRenamed": "This renames the note from “{{from}}” to “{{to}}”. {{losing}} links to the old name go pending, and {{gaining}} links to the new one resolve. Nothing else is rewritten.",
+    "keepAlias": "Keep “{{name}}” as an alias, so the links to it keep arriving",
+    "conflict": "Somebody else wrote this note since you opened it. Read it again and redo your change.",
+    "failed": "That could not be written.",
+    "leaveWarning": "You have changes you have not written. Leave and lose them?"
+  },
+  "history": {
+    "heading": "History of this note",
+    "loading": "Reading the history…",
+    "failed": "The history could not be read.",
+    "aPerson": "From the interface",
+    "noMessage": "No line was left about this change.",
+    "kind": {
+      "NoteCreated": "Created",
+      "NoteUpdated": "Written",
+      "NoteMoved": "Moved",
+      "NoteReordered": "Reordered",
+      "NoteDeleted": "Deleted"
+    }
   }
 }

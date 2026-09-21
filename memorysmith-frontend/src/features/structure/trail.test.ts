@@ -1,34 +1,38 @@
 /**
- * What a `root/*` path names.
+ * What an identifier in an address reaches.
  *
- * The question has two callers that must never disagree: the route, which
- * decides what to render, and resuming a reading, which asks it BEFORE
- * navigating. A remembered note that has been deleted, renamed or moved must
- * land on the tree and never on the not-found line, and this is where that is
- * decided — with the structure already in hand, so it costs no request and
- * cannot flash.
+ * The address carries identifiers alone (RN-DSC-045), so the folder trail a
+ * breadcrumb shows is read from the structure, by identifier, and never from
+ * the path. That is what makes an address survive a rename and a move — the
+ * two things that used to break it (RN-DSC-057).
  */
 
 import { describe, expect, it } from 'vitest';
-import { noteAt } from './trail';
+import { folderTrailForNote, folderTrailOf, subtreeNoteCount } from './trail';
+import { identifierOf } from '../../shared/api/note-address';
 import type { FolderNode, NoteSummary } from '../../shared/types/api';
 
-function note(slug: string, folderId: string): NoteSummary {
-  return { id: `n-${slug}`, slug, title: slug, folderId };
+const DECISIONS = '01J8X2K9QZ3M4N5P6R7S8T9VD1';
+const YEAR = '01J8X2K9QZ3M4N5P6R7S8T9VD2';
+const EMPTY = '01J8X2K9QZ3M4N5P6R7S8T9VE1';
+const LEI = '01J8X2K9QZ3M4N5P6R7S8T9V0W';
+const ART = '01J8X2K9QZ3M4N5P6R7S8T9V0X';
+
+function note(id: string, name: string, folderId: string): NoteSummary {
+  return { id, name, folderId };
 }
 
 function folder(
-  slug: string,
-  slugPath: string,
+  id: string,
+  name: string,
   notes: NoteSummary[],
   children: FolderNode[] = [],
 ): FolderNode {
   return {
-    id: `f-${slugPath}`,
+    id,
     parentId: null,
-    name: slug,
-    slug,
-    slugPath,
+    name,
+    slug: name.toLowerCase(),
     description: 'a folder',
     position: 1,
     hasTemplate: false,
@@ -40,47 +44,71 @@ function folder(
 
 const folders: FolderNode[] = [
   folder(
-    'decisions',
-    'decisions',
-    [note('lei-14133', 'f-decisions')],
-    [folder('2026', 'decisions/2026', [note('article-75', 'f-decisions/2026')])],
+    DECISIONS,
+    'Decisions',
+    [note(LEI, 'Lei 14.133', DECISIONS)],
+    [folder(YEAR, '2026', [note(ART, 'Article 75', YEAR)])],
   ),
-  folder('empty', 'empty', []),
+  folder(EMPTY, 'Empty', []),
 ];
 
-describe('a path names a note, or it does not', () => {
-  it('finds a note in a top-level folder', () => {
-    expect(noteAt(folders, 'decisions/lei-14133')).toBe('lei-14133');
+const names = (trail: FolderNode[]): string[] => trail.map((each) => each.name);
+
+describe('a folder is reached by its identifier', () => {
+  it('gives the trail from the root down to a nested folder', () => {
+    expect(names(folderTrailOf(folders, YEAR))).toEqual(['Decisions', '2026']);
+    expect(names(folderTrailOf(folders, EMPTY))).toEqual(['Empty']);
   });
 
-  it('finds a note in a nested folder', () => {
-    expect(noteAt(folders, 'decisions/2026/article-75')).toBe('article-75');
+  it('still reaches a folder after it was renamed', () => {
+    const renamed = [{ ...folders[0]!, name: 'Rulings' }, folders[1]!];
+    expect(names(folderTrailOf(renamed, DECISIONS))).toEqual(['Rulings']);
   });
 
-  it('says no to a folder, which is not a note', () => {
-    expect(noteAt(folders, 'decisions')).toBeNull();
-    expect(noteAt(folders, 'decisions/2026')).toBeNull();
+  it('reaches nothing for an identifier the tree does not hold', () => {
+    expect(folderTrailOf(folders, '01J8X2K9QZ3M4N5P6R7S8T9VZZ')).toEqual([]);
   });
 
-  it('says no to the vault root', () => {
-    expect(noteAt(folders, '')).toBeNull();
+  it('reaches nothing for a note identifier, which is not a folder', () => {
+    expect(folderTrailOf(folders, LEI)).toEqual([]);
+  });
+});
+
+describe('a note is reached by its identifier, wherever it is', () => {
+  it('gives the folders above a note', () => {
+    expect(names(folderTrailForNote(folders, LEI))).toEqual(['Decisions']);
+    expect(names(folderTrailForNote(folders, ART))).toEqual(['Decisions', '2026']);
   });
 
-  it('says no to a note that is no longer there', () => {
-    expect(noteAt(folders, 'decisions/deleted-yesterday')).toBeNull();
+  it('follows a note that was moved, because the address never named its folder', () => {
+    const moved = [
+      folder(DECISIONS, 'Decisions', [], [folder(YEAR, '2026', [note(ART, 'Article 75', YEAR)])]),
+      folder(EMPTY, 'Empty', [note(LEI, 'Lei 14.133', EMPTY)]),
+    ];
+    expect(names(folderTrailForNote(moved, LEI))).toEqual(['Empty']);
   });
 
-  it('says no to a note under a folder that is no longer there', () => {
-    expect(noteAt(folders, 'archive/lei-14133')).toBeNull();
+  it('reaches the same note from an identifier written in either case', () => {
+    const lower = identifierOf(LEI.toLowerCase());
+    const upper = identifierOf(LEI);
+    expect(lower).toBe(upper);
+    expect(names(folderTrailForNote(folders, lower ?? ''))).toEqual(['Decisions']);
   });
 
-  it('does not find a note by its slug alone, outside its folder', () => {
-    // The path is the address. A note answering at the vault root because it
-    // exists somewhere would resume into a URL that renders nothing.
-    expect(noteAt(folders, 'lei-14133')).toBeNull();
+  it('reaches nothing from a segment that is not an identifier', () => {
+    expect(identifierOf('lei-14133--01j8x2k9qz3m4n5p6r7s8t9v0w')).toBeNull();
   });
+});
 
-  it('does not confuse a note of one folder with the same slug in another', () => {
-    expect(noteAt(folders, 'empty/lei-14133')).toBeNull();
+describe('the notes of a folder and of its whole subtree', () => {
+  it('sums three levels deep, so a folder holding its notes below is not empty', () => {
+    const leaf = { ...folder('01J8X2K9QZ3M4N5P6R7S8T9VL3', 'leaf', []), noteCount: 20 };
+    const middle = { ...folder('01J8X2K9QZ3M4N5P6R7S8T9VL2', 'middle', [], [leaf]), noteCount: 6 };
+    const top = folder('01J8X2K9QZ3M4N5P6R7S8T9VL1', 'top', [], [middle]);
+
+    expect(top.noteCount).toBe(0);
+    expect(subtreeNoteCount(top)).toBe(26);
+    expect(subtreeNoteCount(middle)).toBe(26);
+    expect(subtreeNoteCount(folder(EMPTY, 'empty', []))).toBe(0);
   });
 });

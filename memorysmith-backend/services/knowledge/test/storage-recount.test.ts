@@ -40,11 +40,11 @@ function tableOf(items: Record<string, unknown>[]) {
 describe('storage recount', () => {
   it('counts live notes, guidance and templates, per subscription', async () => {
     const { db } = tableOf([
-      { PK: `S#${A}#VAULT#1`, entity: 'VAULT', guidanceRef: ref(100) },
-      { PK: `S#${A}#VAULT#1`, entity: 'FOLDER', templateRef: ref(50) },
-      { PK: `S#${A}#VAULT#1`, entity: 'NOTE', bodyRef: ref(1000) },
-      { PK: `S#${A}#VAULT#1`, entity: 'NOTE', bodyRef: ref(2000) },
-      { PK: `S#${B}#VAULT#9`, entity: 'NOTE', bodyRef: ref(7) },
+      { PK: `S#${A}#NOTEBOOK#1`, entity: 'GUIDANCE', contentRef: ref(100) },
+      { PK: `S#${A}#NOTEBOOK#1`, entity: 'TEMPLATE', contentRef: ref(50) },
+      { PK: `S#${A}#NOTEBOOK#1`, entity: 'NOTE', bodyRef: ref(1000) },
+      { PK: `S#${A}#NOTEBOOK#1`, entity: 'NOTE', bodyRef: ref(2000) },
+      { PK: `S#${B}#NOTEBOOK#9`, entity: 'NOTE', bodyRef: ref(7) },
     ]);
 
     const usage = await new StorageRecount({ db: db as never, tableName: 't' }).measure();
@@ -55,24 +55,20 @@ describe('storage recount', () => {
     ]);
   });
 
-  it('leaves out a deleted note, and keeps the ones in a deleted vault', async () => {
+  it('leaves out a deleted note, and keeps the ones in a deleted notebook', async () => {
     const { db } = tableOf([
-      { PK: `S#${A}#VAULT#1`, entity: 'NOTE', bodyRef: ref(1000) },
+      { PK: `S#${A}#NOTEBOOK#1`, entity: 'NOTE', bodyRef: ref(1000) },
       {
-        PK: `S#${A}#VAULT#1`,
+        PK: `S#${A}#NOTEBOOK#1`,
         entity: 'NOTE',
         bodyRef: ref(500),
         deletedAt: '2026-08-29T00:00:00Z',
       },
-      // The vault is in the bin; nothing was released, and restoring brings it
-      // all back, so its notes keep counting (RN-SUB-021).
-      {
-        PK: `S#${A}#VAULT#2`,
-        entity: 'VAULT',
-        deletedAt: '2026-08-29T00:00:00Z',
-        guidanceRef: ref(80),
-      },
-      { PK: `S#${A}#VAULT#2`, entity: 'NOTE', bodyRef: ref(300) },
+      // The notebook was deleted and the purge has not run yet: nothing was
+      // released, so its notes keep counting until it does (RN-KNW-047).
+      { PK: `S#${A}#NOTEBOOK#2`, entity: 'NOTEBOOK', deletedAt: '2026-08-29T00:00:00Z' },
+      { PK: `S#${A}#NOTEBOOK#2`, entity: 'GUIDANCE', contentRef: ref(80) },
+      { PK: `S#${A}#NOTEBOOK#2`, entity: 'NOTE', bodyRef: ref(300) },
     ]);
 
     const [usage] = await new StorageRecount({ db: db as never, tableName: 't' }).measure();
@@ -83,11 +79,11 @@ describe('storage recount', () => {
 
   it('ignores the items that point at no content', async () => {
     const { db } = tableOf([
-      { PK: `S#${A}#VAULT#1`, entity: 'VAULT' }, // vault with no guidance
-      { PK: `S#${A}#VAULT#1`, entity: 'FOLDER' }, // folder with no template
-      { PK: `S#${A}#VAULT#1`, entity: 'EVENT', contentRef: ref(999) }, // outbox row
-      { PK: `S#${A}#VAULTS`, entity: 'USAGE', storedBytes: 12345 }, // the counter itself
-      { PK: `S#${A}#VAULT#1`, entity: 'NOTE', bodyRef: ref(42) },
+      { PK: `S#${A}#NOTEBOOK#1`, entity: 'NOTEBOOK' }, // the notebook item points at nothing
+      { PK: `S#${A}#NOTEBOOK#1`, entity: 'FOLDER' }, // and neither does a folder
+      { PK: `S#${A}#NOTEBOOK#1`, entity: 'EVENT', contentRef: ref(999) }, // outbox row
+      { PK: `S#${A}#NOTEBOOKS`, entity: 'USAGE', storedBytes: 12345 }, // the counter itself
+      { PK: `S#${A}#NOTEBOOK#1`, entity: 'NOTE', bodyRef: ref(42) },
     ]);
 
     const [usage] = await new StorageRecount({ db: db as never, tableName: 't' }).measure();
@@ -96,14 +92,16 @@ describe('storage recount', () => {
   });
 
   it('replaces the counter rather than adding to it', async () => {
-    const { db, written } = tableOf([{ PK: `S#${A}#VAULT#1`, entity: 'NOTE', bodyRef: ref(4096) }]);
+    const { db, written } = tableOf([
+      { PK: `S#${A}#NOTEBOOK#1`, entity: 'NOTE', bodyRef: ref(4096) },
+    ]);
     const recount = new StorageRecount({ db: db as never, tableName: 't' });
 
     await recount.apply(await recount.measure());
 
     expect(written).toHaveLength(1);
     expect(written[0]).toMatchObject({
-      PK: `S#${A}#VAULTS`,
+      PK: `S#${A}#NOTEBOOKS`,
       SK: 'USAGE',
       storedBytes: 4096,
     });

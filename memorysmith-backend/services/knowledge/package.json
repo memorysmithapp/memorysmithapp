@@ -1,9 +1,9 @@
 {
   "name": "@memorysmith/svc-knowledge",
-  "version": "0.5.7",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
-  "description": "Knowledge bounded context, the core domain: vaults, guidance, folders, order, templates and notes.",
+  "description": "Knowledge bounded context, the core domain: notebooks, guidance, folders, order, templates and notes.",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run --config vitest.config.ts",
@@ -14,23 +14,32 @@
     "@aws-sdk/client-eventbridge": "^3.1117.0",
     "@aws-sdk/client-s3": "^3.1117.0",
     "@aws-sdk/lib-dynamodb": "^3.1117.0",
+    "@aws-sdk/s3-request-presigner": "^3.1117.0",
     "@memorysmith/contracts": "workspace:*",
     "@memorysmith/kernel": "workspace:*",
     "hono": "^4.13.3"
   },
   "exports": {
-    "./adapters/vaults": "./src/adapters/outbound/dynamodb/DynamoVaultRepository.ts",
+    "./adapters/notebooks": "./src/adapters/outbound/dynamodb/DynamoNotebookRepository.ts",
+    "./adapters/slots": "./src/adapters/outbound/dynamodb/DynamoContentSlotRepository.ts",
+    "./adapters/numbers": "./src/adapters/outbound/dynamodb/DynamoFolderNumbers.ts",
     "./adapters/notes": "./src/adapters/outbound/dynamodb/DynamoNoteRepository.ts",
     "./adapters/content": "./src/adapters/outbound/s3/S3ContentStore.ts",
+    "./adapters/files": "./src/adapters/outbound/dynamodb/DynamoFileRepository.ts",
+    "./adapters/file-store": "./src/adapters/outbound/s3/S3FileStore.ts",
     "./adapters/storage": "./src/adapters/outbound/dynamodb/DynamoStorageMeter.ts",
     "./adapters/memory": "./src/adapters/outbound/memory/InMemoryAdapters.ts",
     "./adapters/http": "./src/adapters/inbound/http/routes.ts",
     "./adapters/presenters": "./src/adapters/inbound/http/presenters.ts",
     "./adapters/relay": "./src/adapters/inbound/outbox-relay.ts",
     "./adapters/recount": "./src/adapters/inbound/storage-recount.ts",
-    "./application/vaults": "./src/application/vaults.ts",
+    "./adapters/slot-migration": "./src/adapters/inbound/slot-migration.ts",
+    "./adapters/purge": "./src/adapters/inbound/content-purge.ts",
+    "./adapters/purger": "./src/adapters/outbound/s3/S3ContentPurger.ts",
+    "./application/notebooks": "./src/application/notebooks.ts",
     "./application/folders": "./src/application/folders.ts",
     "./application/notes": "./src/application/notes.ts",
+    "./application/files": "./src/application/files.ts",
     "./domain": "./src/domain/index.ts"
   }
 }

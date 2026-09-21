@@ -19,10 +19,14 @@ import { ServiceLambda } from '../constructs/service-lambda.js';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { readFileSync } from 'node:fs';
+import { physicalName, type EnvironmentConfig } from '../config/environments.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
 export interface IdentityStackProps extends StackProps {
+  readonly environment: EnvironmentConfig;
+  /** The host of the interface, where the sign-in page returns to. */
+  readonly siteDomainName: string;
   /** mv-access, where the links of the user live (exception 1 of §8.3). */
   accessTable: ITable;
   /** Public origin of the MCP service, e.g. https://mcp.memorysmith.app */
@@ -31,52 +35,39 @@ export interface IdentityStackProps extends StackProps {
   authDomainName: string;
   authCertificate: ICertificate;
   hostedZone: IHostedZone;
+  /** The address the messages of the pool leave from, on a verified identity (network.stack). */
+  readonly senderAddress: string;
 }
 
 /**
- * The three messages the pool can send, in the product's own words.
+ * The templates of the pool, which the custom message trigger replaces.
  *
- * They used to be the provider's factory text, and what arrived was
- * `Your username is x and temporary password is y.` — no sentence of ours, no
- * explanation of what this is, in English whatever the account speaks, from a
- * company nobody has heard of. It is the screen BEFORE the sign-in page,
- * which is fully dressed in the brand, and it was the seam showing at the
- * worst possible moment.
+ * Every invitation, confirmation code and forgot-password code is written by
+ * the trigger, in HTML, with the signature of the brand and in the language of
+ * the account (RN-ACC-017, RN-ACC-018; `pool-messages.ts` in the Access
+ * service). They used to be the provider's factory text, and then these
+ * templates, in plain text and in en-US whatever the account spoke. What stays
+ * here is what the pool would send for a message the trigger left unanswered,
+ * which none of the three is, kept in the product's words so that the pool
+ * never holds the provider's text again.
  *
  * **Three messages, two templates.** Cognito uses the verification template
  * for the confirmation code AND for the forgot-password code, so that text has
  * to serve both errands. It is written to say what the code is for without
  * claiming which of the two it is.
- *
- * **Both languages, in one message.** The pool holds one template and knows
- * nothing about the locale of an account, and the product speaks two. Saying
- * everything twice is not elegant and it is honest: the alternative is a
- * `CustomMessage` trigger that reads the account and answers in its language,
- * which is more moving parts and belongs with the sender (#57).
- *
- * **Plain text, deliberately.** The sending account is the Cognito default —
- * no custom sender and a ceiling of 50 messages a day — and a message showing
- * `<p>` tags is worse than one that never tried. The visual identity needs
- * HTML and a hosted asset, and therefore needs SES first, so it waits with the
- * address in #57.
  */
-const INVITATION: cognito.UserInvitationConfig = {
-  emailSubject: 'Sua conta no MemorySmith · Your MemorySmith account',
+/**
+ * Outside production a subject says which environment sent it, before anything
+ * else: an invitation from staging looks exactly like one from production, and
+ * the account it creates is thrown away with the environment.
+ */
+function subject(environment: EnvironmentConfig, text: string): string {
+  return environment.name === 'production' ? text : `[${environment.name}] ${text}`;
+}
+
+const invitation = (environment: EnvironmentConfig): cognito.UserInvitationConfig => ({
+  emailSubject: subject(environment, 'Your MemorySmith.app account'),
   emailBody: [
-    'Sua conta no MemorySmith foi criada.',
-    '',
-    'Usuário: {username}',
-    'Senha provisória: {####}',
-    '',
-    'Entre em https://memorysmith.app e escolha uma senha sua no primeiro',
-    'acesso. A senha acima vale uma vez só.',
-    '',
-    'O MemorySmith guarda bases de conhecimento em Markdown e as serve a',
-    'ferramentas de IA. Se você não esperava esta mensagem, ignore-a: sem esse',
-    'primeiro acesso, a conta não faz nada.',
-    '',
-    '—',
-    '',
     'Your MemorySmith account has been created.',
     '',
     'Username: {username}',
@@ -85,31 +76,26 @@ const INVITATION: cognito.UserInvitationConfig = {
     'Sign in at https://memorysmith.app and choose a password of your own on',
     'the first visit. The one above works once.',
     '',
-    'MemorySmith keeps knowledge vaults in Markdown and serves them to AI',
+    'MemorySmith keeps knowledge notebooks in Markdown and serves them to AI',
     'tools. If you were not expecting this message, ignore it: without that',
     'first sign-in, the account does nothing.',
   ].join('\n'),
-};
+});
 
-const VERIFICATION: cognito.UserVerificationConfig = {
+const verification = (environment: EnvironmentConfig): cognito.UserVerificationConfig => ({
   emailStyle: cognito.VerificationEmailStyle.CODE,
-  emailSubject: 'Seu código do MemorySmith · Your MemorySmith code',
+  emailSubject: subject(environment, 'Your MemorySmith code'),
   emailBody: [
-    'Seu código do MemorySmith é {####}.',
-    '',
-    'Ele foi pedido em https://memorysmith.app, para confirmar seu endereço ou',
-    'para definir uma nova senha. Se não foi você, ignore esta mensagem: sem o',
-    'código, nada acontece.',
-    '',
-    '—',
-    '',
-    'Your MemorySmith code is {####}.',
+    // No full stop after the digits: somebody copying a code out of an email
+    // copies what they see, and a period sitting against the last digit reads
+    // as part of it often enough to be worth losing.
+    'Your MemorySmith code is {####}',
     '',
     'It was requested at https://memorysmith.app, to confirm your address or to',
     'set a new password. If it was not you, ignore this message: without the',
     'code, nothing happens.',
   ].join('\n'),
-};
+});
 
 export class IdentityStack extends Stack {
   readonly userPool: cognito.UserPool;
@@ -156,8 +142,31 @@ export class IdentityStack extends Stack {
     // It reads the links and the subscription metadata, and nothing else.
     props.accessTable.grantReadData(preTokenGeneration);
 
+    /**
+     * Where the messages of the pool are written, in the language of the account
+     * (RN-ACC-017, RN-ACC-018). It reads only the event: the language is an
+     * attribute of the account, and the site is where a message sends the person.
+     */
+    const customMessage = new ServiceLambda(this, 'CustomMessage', {
+      entry: join(
+        here,
+        '..',
+        '..',
+        'memorysmith-backend',
+        'services',
+        'access',
+        'src',
+        'adapters',
+        'inbound',
+        'custom-message.ts',
+      ),
+      description: 'Writes the messages of the user pool, in the language of the account.',
+      timeout: Duration.seconds(5),
+      environment: { SITE_ORIGIN: `https://${props.siteDomainName}` },
+    }).function;
+
     this.userPool = new cognito.UserPool(this, 'UserPool', {
-      userPoolName: 'memorysmith-users',
+      userPoolName: physicalName(props.environment, 'memorysmith-users'),
       featurePlan: cognito.FeaturePlan.ESSENTIALS,
       selfSignUpEnabled: false,
       signInAliases: { email: true },
@@ -168,10 +177,22 @@ export class IdentityStack extends Stack {
         requireLowercase: true,
         requireUppercase: true,
         requireSymbols: false,
+        // Declared, not inherited: the invitation states it, and a message that
+        // states a number the pool does not hold is a promise nobody keeps.
+        tempPasswordValidity: Duration.days(7),
       },
       mfa: cognito.Mfa.OPTIONAL,
-      userInvitation: INVITATION,
-      userVerification: VERIFICATION,
+      /**
+       * Through SES, from the domain of the environment (RN-ACC-017). The
+       * identity is verified before this stack is deployed (network.stack).
+       */
+      email: cognito.UserPoolEmail.withSES({
+        fromEmail: props.senderAddress,
+        fromName: 'MemorySmith',
+        sesVerifiedDomain: props.siteDomainName,
+      }),
+      userInvitation: invitation(props.environment),
+      userVerification: verification(props.environment),
     });
     // Access-token claim customization requires the V2_0 trigger event.
     this.userPool.addTrigger(
@@ -179,9 +200,8 @@ export class IdentityStack extends Stack {
       preTokenGeneration,
       cognito.LambdaVersion.V2_0,
     );
+    this.userPool.addTrigger(cognito.UserPoolOperation.CUSTOM_MESSAGE, customMessage);
 
-    const domainPrefix = this.node.tryGetContext('cognitoDomainPrefix') as string;
-    const zoneName = this.node.tryGetContext('hostedZoneName') as string;
     this.issuer = `https://cognito-idp.${this.region}.amazonaws.com/${this.userPool.userPoolId}`;
 
     this.hostedUiOrigin = `https://${props.authDomainName}`;
@@ -214,7 +234,6 @@ export class IdentityStack extends Stack {
       recordName: props.authDomainName,
       target: RecordTarget.fromAlias(new UserPoolDomainTarget(this.userPoolDomain)),
     });
-    void domainPrefix;
 
     this.proxyClient = this.userPool.addClient('CimdProxyClient', {
       userPoolClientName: 'cimd-proxy',
@@ -249,8 +268,11 @@ export class IdentityStack extends Stack {
       oAuth: {
         flows: { authorizationCodeGrant: true },
         scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
-        callbackUrls: [`https://${zoneName}/auth/callback`, 'http://localhost:5173/auth/callback'],
-        logoutUrls: [`https://${zoneName}/`, 'http://localhost:5173/'],
+        callbackUrls: [
+          `https://${props.siteDomainName}/auth/callback`,
+          'http://localhost:5173/auth/callback',
+        ],
+        logoutUrls: [`https://${props.siteDomainName}/`, 'http://localhost:5173/'],
       },
       preventUserExistenceErrors: true,
       accessTokenValidity: Duration.hours(1),
@@ -276,8 +298,9 @@ export class IdentityStack extends Stack {
      * repository, where it stays forever and is read by everyone who clones
      * it. It would also make the deploy decide who operates the platform,
      * which is an operational act and not an infrastructure one. The pool
-     * therefore comes up empty, and `deploy-aws/onboard.ps1` creates the
-     * account, its subscription and its first vault against the API.
+     * therefore comes up empty, and the onboard command of memorysmith-infra
+     * creates the account, its subscription and its first notebook against the
+     * API.
      */
 
     /**

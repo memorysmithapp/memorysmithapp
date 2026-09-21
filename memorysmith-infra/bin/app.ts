@@ -4,12 +4,15 @@
  * instantiates this list, and moving to per-service deployables later means
  * changing THIS file, not the stacks.
  *
+ * One app, two environments (section 17): `-c environment=production|staging`
+ * chooses which one a synth describes, and `config/environments.ts` reads what
+ * differs between them from cdk.json.
+ *
  * Everything runs in one region. CloudFront requires its certificate in
  * us-east-1 by its own rule, which is why the network stack lives there.
  */
 
 import { App, Tags } from 'aws-cdk-lib';
-import pkg from '../package.json' with { type: 'json' };
 import { NetworkStack } from '../stacks/network.stack.js';
 import { IdentityStack } from '../stacks/identity.stack.js';
 import { DataStack } from '../stacks/data.stack.js';
@@ -17,45 +20,70 @@ import { ApiStack } from '../stacks/api.stack.js';
 import { ProjectionsStack } from '../stacks/projections.stack.js';
 import { AgentStack } from '../stacks/agent.stack.js';
 import { FrontendHostingStack } from '../stacks/frontend-hosting.stack.js';
+import { FrontendReleaseStack } from '../stacks/frontend-release.stack.js';
+import { PipelineStack } from '../stacks/pipeline.stack.js';
+import { deploymentOf, tagDelivery } from '../constructs/deployment.js';
+import { environmentOf, stackId } from '../config/environments.js';
 
 const app = new App();
-const env = {
-  account: process.env['CDK_DEFAULT_ACCOUNT'],
-  region: process.env['CDK_DEFAULT_REGION'] ?? 'us-east-1',
-};
+
+const environment = environmentOf(app.node);
+/** The environment, the version and the commit this deploy declares (section 23.3). */
+const deployment = deploymentOf(app);
+
+/**
+ * The account comes from cdk.json and never from the credentials, so the CDK
+ * refuses a deploy into any account but the one the environment names.
+ * Production and staging name the same one, and what tells them apart is
+ * `-c environment` and the names it produces (section 17).
+ */
+const env = { account: environment.account, region: environment.region };
+const id = (name: string): string => stackId(environment, name);
 
 /** A sandbox may drop its data on destroy; a real environment never does. */
 const retainData = app.node.tryGetContext('retainData') !== 'false';
 
-const network = new NetworkStack(app, 'MemorysmithNetwork', { env });
+const network = new NetworkStack(app, id('Network'), { env, environment });
 
 // Data comes before Identity: the pre-token-generation trigger reads the links
 // of the user from mv-access, which is what turns the active subscription into
 // a signed claim (§8.5).
-const data = new DataStack(app, 'MemorysmithData', { env, retainData });
-
-const identity = new IdentityStack(app, 'MemorysmithIdentity', {
+const data = new DataStack(app, id('Data'), {
   env,
+  environment,
+  retainData,
+  siteOrigin: `https://${network.siteDomainName}`,
+});
+
+const identity = new IdentityStack(app, id('Identity'), {
+  env,
+  environment,
   mcpOrigin: `https://${network.mcpDomainName}`,
+  siteDomainName: network.siteDomainName,
   accessTable: data.accessTable.table,
   authDomainName: network.authDomainName,
   authCertificate: network.authCertificate,
   hostedZone: network.hostedZone,
+  senderAddress: network.senderAddress,
 });
 
-const api = new ApiStack(app, 'MemorysmithApi', {
+const api = new ApiStack(app, id('Api'), {
   env,
+  environment,
   data,
   hostedZone: network.hostedZone,
   certificate: network.apiCertificate,
   apiDomainName: network.apiDomainName,
+  userPool: identity.userPool,
   cognitoIssuer: identity.issuer,
+  connectorClientId: identity.proxyClient.userPoolClientId,
+  webClientId: identity.webClient.userPoolClientId,
   frontendOrigin: `https://${network.siteDomainName}`,
 });
 
-new ProjectionsStack(app, 'MemorysmithProjections', { env, data });
+const projections = new ProjectionsStack(app, id('Projections'), { env, environment, data });
 
-new AgentStack(app, 'MemorysmithAgent', {
+const agent = new AgentStack(app, id('Agent'), {
   env,
   hostedZone: network.hostedZone,
   certificate: network.mcpCertificate,
@@ -64,16 +92,43 @@ new AgentStack(app, 'MemorysmithAgent', {
   hostedUiOrigin: identity.hostedUiOrigin,
   proxyClient: identity.proxyClient,
   internalApiOrigin: api.apiOrigin,
+  coreApi: api.httpApi,
 });
 
-new FrontendHostingStack(app, 'MemorysmithFrontend', {
+const hosting = new FrontendHostingStack(app, id('Frontend'), {
   env,
   hostedZone: network.hostedZone,
   certificate: network.siteCertificate,
   domainName: network.siteDomainName,
 });
 
+// Last: what the interface reads at runtime names the API and the app client.
+const release = new FrontendReleaseStack(app, id('FrontendRelease'), {
+  env,
+  bucket: hosting.bucket,
+  distribution: hosting.distribution,
+  config: {
+    apiOrigin: api.apiOrigin,
+    connectorOrigin: `https://${network.mcpDomainName}`,
+    cognitoDomain: identity.hostedUiOrigin,
+    cognitoClientId: identity.webClient.userPoolClientId,
+    environment: deployment.environment,
+    version: deployment.version,
+  },
+});
+
+/**
+ * The pipeline of this environment, once its connection to GitHub exists. It
+ * is deployed by hand once, after `cdk bootstrap`, and deploys itself from
+ * then on (section 20).
+ */
+if (environment.pipeline.connectionArn) {
+  new PipelineStack(app, id('Pipeline'), { env, environment });
+}
+
 Tags.of(app).add('app:project', 'memorysmith');
+Tags.of(app).add('app:environment', environment.name);
 // Derived, never written literally: a version repeated by hand is a version that
-// drifts, and this tag had been asserting 0.2.0 through two releases.
-Tags.of(app).add('app:version', pkg.version);
+// drifts, and this tag had been asserting 0.2.0 through two releases. It goes on
+// what a deploy delivers, and never on the pipeline, which delivers every version.
+tagDelivery([network, data, identity, api, projections, agent, hosting, release], deployment);

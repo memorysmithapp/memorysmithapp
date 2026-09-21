@@ -1,0 +1,45 @@
+{
+  "id": "AE-01",
+  "title": "A notebook designed with material at hand",
+  "exercises": "The skill that designs a notebook, for a person who has material of what they write at hand.",
+  "skills": ["design-notebook"],
+  "turns": 8,
+  "checks": [
+    "room-held",
+    "whoami-before-first-write",
+    "design-skill-before-create",
+    "notebook-has-guidance",
+    "guidance-opens-without-heading",
+    "folders-described-beyond-their-name",
+    "folders-with-notes-have-templates",
+    "notes-state-a-name",
+    "frontmatter-follows-templates",
+    "links-land",
+    "template-links-name-notes",
+    "no-duplicate-writes"
+  ],
+  "rubric": [
+    "The Guidance names the vocabulary, the properties with their accepted values, the naming convention with a good and a bad example, and what not to do.",
+    "A folder description answers where a note goes, instead of naming the folder again.",
+    "The notes written follow their Template, from the material the person gave.",
+    "The notebook uses the practices of the skill where the material calls for them: short linked notes, properties with accepted values, the maps of content the Guidance declares, and formatting that fits the material.",
+    "The executor stopped asking once it could write.",
+    "No field asserts a state only the person can know."
+  ],
+  "variants": [
+    {
+      "id": "pt_BR",
+      "person": "marina",
+      "request": "Oi! Sou nutricionista e quero parar de perder minhas anotações. Queria um lugar organizado para os casos dos meus pacientes (sem identificar ninguém), os protocolos que uso no consultório e os artigos que leio. Consegue montar isso pra mim? Tenho uns exemplos de anotação aqui, se ajudar.",
+      "persona": "persona-pt_BR.md",
+      "setup": { "kind": "empty" }
+    },
+    {
+      "id": "en_US",
+      "person": "tom",
+      "request": "Hi! I'm an amateur astronomer and my observing notes are scattered everywhere. I'd like one organized place for my observing sessions, the equipment I use and the objects I still want to observe. Can you set that up for me? I have a few of my notes handy if that helps.",
+      "persona": "persona-en_US.md",
+      "setup": { "kind": "empty" }
+    }
+  ]
+}

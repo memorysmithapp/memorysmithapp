@@ -3,48 +3,44 @@
  * (architecture-guide.md, section 11.3). It reads ONLY the frontmatter block
  * and classifies each key-value pair BY THE SHAPE OF THE VALUE.
  *
- * There is no list of keys in the code and no per-vault configuration: the
+ * The block itself and the YAML subset of it are read by the kernel, which is
+ * also where the name of a note is read from: there
+ * is exactly one function in this repository that finds the frontmatter of a
+ * body, because two readers of the same bytes is the defect this cycle is
+ * paying off.
+ *
+ * There is no list of keys in the code and no per-notebook configuration: the
  * vocabulary belongs to the guidance, and `maturity` and `reviewed`, the two
  * facets the product declares, are to this extractor attributes like any other
  * (RN-DSC-019, RN-DSC-020).
  *
  * Free text is discarded. An attribute that reveals itself as free text
  * through use is dropped by the cardinality ceiling (RN-DSC-024), which is why
- * `title` and `source` never become statistics without anyone maintaining an
- * exclusion list.
+ * `source` never becomes a statistic without anyone maintaining an exclusion
+ * list. The name of a note is kept out by decision, below, and not by use.
  *
  * The shape is the FORM THE AUTHOR WROTE, and never how many values that form
  * happens to hold: `tags: [contracts]` is a list of one item, and adding a
  * second value to an attribute must not change what the attribute is.
  */
 
+import { frontmatterOf, NAME_KEY, type FrontmatterEntry } from '@memorysmith/kernel';
+
 export type FacetKind = 'date' | 'boolean' | 'enum' | 'list';
 
 /**
- * The vocabulary the profile reserves, always in en-US (RN-DSC-030).
+ * **There is no list of reserved keys in this extractor, and there never was
+ * one it used.** Reserved means declared, not enforced: every attribute is
+ * classified by the shape of its value, so `created: manually` degrades to an
+ * ordinary enum instead of being an error and `autor:` written by a notebook in
+ * pt-BR stays legal and stays indexed. What the reservation buys is the name,
+ * and the name is read from the specification where it is needed — the
+ * Notebook Context that declares it to an agent (RN-AGT-025) and the interface
+ * that may translate its label (RN-DSC-030), never the bytes.
  *
- * Reserved means **declared**, not enforced. Nothing in this extractor treats
- * these four differently: they are classified by the shape of their value like
- * every other attribute, so `created: manually` degrades to an ordinary enum
- * instead of being an error. What the reservation buys is a name every vault
- * spells the same way, which is what lets a tool, an interface or an agent say
- * something about "when this was written" without asking the vault first.
- *
- * The interface may translate the LABEL of one of these and never the bytes,
- * which is the same line PP4 draws everywhere else.
+ * The one key this file does know is the one it must never index, and it
+ * arrives from the kernel, which is where it is read.
  */
-export const RESERVED_KEYS = ['aliases', 'tags', 'created', 'updated'] as const;
-export type ReservedKey = (typeof RESERVED_KEYS)[number];
-
-/**
- * `title` is deliberately NOT reserved. The title of a note is structural, and
- * a `title:` in the frontmatter is an ordinary attribute that the cardinality
- * ceiling switches off on its own (RN-DSC-024) — which is exactly what should
- * happen to a key that is different in every note.
- */
-export function isReserved(key: string): key is ReservedKey {
-  return (RESERVED_KEYS as readonly string[]).includes(key);
-}
 
 export interface FacetValue {
   readonly facet: string;
@@ -59,82 +55,12 @@ export type FacetSnapshot = Record<string, FacetValue>;
 const MAX_ENUM_LENGTH = 40;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2})?)?/;
 
-export function extractFrontmatter(markdown: string): string | null {
-  if (!markdown.startsWith('---')) return null;
-  const match = /^---\r?\n([\s\S]*?)\r?\n---/.exec(markdown);
-  return match?.[1] ?? null;
-}
-
-/** How the author wrote the value, which is what decides the kind. */
-type WrittenForm = 'scalar' | 'list';
-
-interface Entry {
-  readonly written: WrittenForm;
-  readonly values: string[];
-}
-
-/**
- * A deliberately small YAML reader: scalars, inline lists and dash lists, and
- * nothing else. Anything more would be interpreting the vault, which is not
- * the backend's business.
- *
- * It carries the written form out alongside the values, because flattening
- * both into an array is what made a list of one item indistinguishable from a
- * scalar, and those are not the same attribute.
- */
-function parseFrontmatter(block: string): Record<string, Entry> {
-  const entries: Record<string, Entry> = {};
-  const lines = block.split(/\r?\n/);
-  let currentKey: string | null = null;
-
-  for (const line of lines) {
-    if (/^\s*#/.test(line) || line.trim().length === 0) continue;
-
-    const listItem = /^\s*-\s+(.*)$/.exec(line);
-    if (listItem && currentKey) {
-      entries[currentKey] = {
-        written: 'list',
-        values: [...(entries[currentKey]?.values ?? []), unquote(listItem[1] ?? '')],
-      };
-      continue;
-    }
-
-    const pair = /^([A-Za-z0-9_-]+)\s*:\s*(.*)$/.exec(line);
-    if (!pair) continue;
-    const key = (pair[1] ?? '').trim();
-    const raw = (pair[2] ?? '').trim();
-    currentKey = key;
-
-    if (raw.length === 0) {
-      // `key:` on its own is either an empty value or the head of a dash list.
-      // The lines that follow decide, and until one arrives it holds nothing.
-      entries[key] = { written: 'scalar', values: [] };
-    } else if (raw.startsWith('[') && raw.endsWith(']')) {
-      entries[key] = {
-        written: 'list',
-        values: raw
-          .slice(1, -1)
-          .split(',')
-          .map((each) => unquote(each.trim()))
-          .filter((each) => each.length > 0),
-      };
-    } else {
-      entries[key] = { written: 'scalar', values: [unquote(raw)] };
-    }
-  }
-  return entries;
-}
-
-function unquote(value: string): string {
-  return value.replace(/^["']|["']$/g, '').trim();
-}
-
 /**
  * The kind, decided by the form the author wrote (RN-DSC-020). Deciding it by
  * the number of values gave one attribute two kinds across the notes of a
- * single vault, settled by a fact about whichever note was being read.
+ * single notebook, settled by a fact about whichever note was being read.
  */
-function kindOf({ written, values }: Entry): FacetKind | null {
+function kindOf({ written, values }: FrontmatterEntry): FacetKind | null {
   if (values.length === 0) return null;
   if (written === 'list') {
     return values.every((value) => value.length <= MAX_ENUM_LENGTH) ? 'list' : null;
@@ -153,13 +79,20 @@ function canonical(kind: FacetKind, value: string): string {
   return value;
 }
 
-/** The portrait of one note: what it says about itself, in aggregable form. */
+/**
+ * The portrait of one note: what it says about itself, in aggregable form.
+ *
+ * `name` produces nothing here, whatever the shape of its value
+ * (RN-DSC-050). It names the note (RN-KNW-035) and a note is not a category of
+ * itself; leaving it to the cardinality ceiling would mean a small notebook
+ * showing a facet made of names, and a `name:` of the wrong shape surfacing
+ * as one — a facet that appears only when a value is malformed is exactly the
+ * surprise the shape rule exists to prevent.
+ */
 export function extractFacets(markdown: string): FacetSnapshot {
-  const block = extractFrontmatter(markdown);
-  if (!block) return {};
-
   const snapshot: FacetSnapshot = {};
-  for (const [facet, entry] of Object.entries(parseFrontmatter(block))) {
+  for (const [facet, entry] of Object.entries(frontmatterOf(markdown))) {
+    if (facet === NAME_KEY) continue;
     const kind = kindOf(entry);
     if (!kind) continue; // free text and empties are described, not counted
     snapshot[facet] = {

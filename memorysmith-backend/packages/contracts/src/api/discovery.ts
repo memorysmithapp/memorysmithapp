@@ -9,13 +9,46 @@
  */
 
 import { z } from 'zod';
-import { instantSchema, slugSchema, ulidSchema } from '../common.js';
+import { instantSchema, ulidSchema } from '../common.js';
 
+/**
+ * A note as the projections name it. There is no slug: a link resolves against
+ * the name (RN-DSC-041) and the interface addresses a note by its identifier
+ * (RN-DSC-045), so what travels is what each of the two reads.
+ */
 export const noteRefSchema = z.object({
   noteId: ulidSchema,
-  title: z.string(),
-  slug: slugSchema,
+  name: z.string(),
+  aliases: z.array(z.string()),
   folderId: ulidSchema,
+});
+
+/**
+ * What one wikilink target resolves to: every note whose name matches it or —
+ * when none does — every note carrying it as an alias, with which of the two
+ * answered. The two are not equally durable, and the interface says so
+ * (RN-DSC-046, RN-DSC-053).
+ */
+export const resolvedTargetSchema = z.object({
+  target: z.string().min(1),
+  kind: z.enum(['note', 'attachment', 'pending']),
+  by: z.enum(['name', 'alias']).nullable(),
+  notes: z.array(noteRefSchema),
+});
+
+/**
+ * What the notebook answers to: every note with the name it states and the
+ * spellings it declares. A reading surface reads it once and draws every link
+ * of a page by what it REACHES (RN-DSC-046).
+ */
+export const notebookNamesSchema = z.object({
+  notes: z.array(noteRefSchema),
+  /**
+   * The names of the files the notebook keeps (#166). A reading surface draws
+   * a link by what it REACHES, and a file is one of the three things a target
+   * can reach.
+   */
+  attachments: z.array(z.string()),
 });
 
 /** BFS from a note: depth capped at 3, 200 nodes, cycles deduplicated. */
@@ -32,25 +65,27 @@ export const graphNodeSchema: z.ZodType<{
 );
 
 /**
- * A node of the whole-vault graph: the note, plus the portrait the facet
+ * A node of the whole-notebook graph: the note, plus the portrait the facet
  * projection keeps of it, so a reader can color the graph by an attribute the
- * vault itself declares. The values were classified BY SHAPE (RN-DSC-019), so
+ * notebook itself declares. The values were classified BY SHAPE (RN-DSC-019), so
  * the backend still interprets nothing: what an attribute means is a decision
- * of whoever authored the vault. A note with no frontmatter carries `{}`.
+ * of whoever authored the notebook. A note with no frontmatter carries `{}`.
  */
 export const graphNoteRefSchema = noteRefSchema.extend({
   facets: z.record(z.string(), z.array(z.string())),
 });
 
 /**
- * The whole link graph of a vault. Edges are index pairs into `nodes`, because
+ * The whole link graph of a notebook. Edges are index pairs into `nodes`, because
  * a graph repeats every identifier twice per edge and an index is two bytes
  * where a ULID is twenty-six.
  */
-export const vaultGraphSchema = z.object({
+export const notebookGraphSchema = z.object({
   nodes: z.array(graphNoteRefSchema),
   edges: z.array(z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()])),
-  pending: z.array(z.object({ from: z.number().int().nonnegative(), targetSlug: slugSchema })),
+  pending: z.array(
+    z.object({ from: z.number().int().nonnegative(), targetName: z.string().min(1) }),
+  ),
   /** True when the node ceiling cut the graph short. Never truncate silently. */
   truncated: z.boolean(),
 });
@@ -60,16 +95,42 @@ export const backlinksSchema = z.object({
   backlinks: z.array(noteRefSchema),
 });
 
-export const brokenLinkSchema = z.object({
-  fromNote: noteRefSchema,
-  targetSlug: slugSchema,
+/**
+ * Where the links of a note go (RN-AGT-034): every target it writes, the notes
+ * each reaches with the folder trail of each, and whether a name or an alias
+ * answered. `by` is null for a pending target, which reaches no note yet.
+ */
+export const noteLinksSchema = z.object({
+  links: z.array(
+    z.object({
+      target: z.string().min(1),
+      /**
+       * What the target reaches: a note, a **file** the notebook keeps, or
+       * nothing yet. An attachment is no edge and it is not nothing either
+       * (§5.8, #166).
+       */
+      kind: z.enum(['note', 'attachment', 'pending']),
+      by: z.enum(['name', 'alias']).nullable(),
+      notes: z.array(noteRefSchema.extend({ folderTrail: z.array(z.string()) })),
+    }),
+  ),
 });
 
-export const vaultHealthSchema = z.object({
-  brokenLinks: z.array(brokenLinkSchema),
+/** A link from a note to a name no note carries yet (RN-DSC-004). */
+export const pendingLinkSchema = z.object({
+  fromNote: noteRefSchema,
+  targetName: z.string().min(1),
+});
+
+/**
+ * What a notebook reports about its own links. There is no list of broken
+ * links, because nothing in a notebook is ever broken: a link whose target does
+ * not exist yet is pending (RN-DSC-004), and deleting a note returns the links
+ * that pointed at it to pending (RN-DSC-005).
+ */
+export const notebookHealthSchema = z.object({
   orphans: z.array(noteRefSchema),
-  /** A link whose target does not exist YET is pending, not broken (RN-DSC-004). */
-  pendingLinks: z.array(brokenLinkSchema),
+  pendingLinks: z.array(pendingLinkSchema),
 });
 
 export const searchRequestSchema = z.object({
@@ -107,12 +168,15 @@ export const facetStatsSchema = z.object({
 });
 
 export type NoteRefDto = z.infer<typeof noteRefSchema>;
+export type NotebookNamesDto = z.infer<typeof notebookNamesSchema>;
+export type ResolvedTargetDto = z.infer<typeof resolvedTargetSchema>;
 export type GraphNodeDto = z.infer<typeof graphNodeSchema>;
 export type GraphNoteRefDto = z.infer<typeof graphNoteRefSchema>;
-export type VaultGraphDto = z.infer<typeof vaultGraphSchema>;
+export type NotebookGraphDto = z.infer<typeof notebookGraphSchema>;
 export type BacklinksDto = z.infer<typeof backlinksSchema>;
-export type BrokenLinkDto = z.infer<typeof brokenLinkSchema>;
-export type VaultHealthDto = z.infer<typeof vaultHealthSchema>;
+export type NoteLinksDto = z.infer<typeof noteLinksSchema>;
+export type PendingLinkDto = z.infer<typeof pendingLinkSchema>;
+export type NotebookHealthDto = z.infer<typeof notebookHealthSchema>;
 export type SearchRequest = z.infer<typeof searchRequestSchema>;
 export type SearchHitDto = z.infer<typeof searchHitSchema>;
 export type SearchResultDto = z.infer<typeof searchResultSchema>;

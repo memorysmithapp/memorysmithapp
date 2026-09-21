@@ -25,7 +25,7 @@ small and even if you are not sure:
 
 | What you observed | Why it is serious |
 |---|---|
-| Content, a vault name, a note or a member of **another subscription** | Isolation by subscription is the central guarantee of the product: every data key starts with the subscription, and no request may choose which one |
+| Content, a notebook name, a note or a member of **another subscription** | Isolation by subscription is the central guarantee of the product: every data key starts with the subscription, and no request may choose which one |
 | A resource that is not yours answering **`403`** instead of `404` | The `403` confirms that the thing exists, and that confirmation is already a leak |
 | A platform administrator session reaching **customer content** | A platform token carries no subscription, so there should be no key it can assemble |
 | A record of the **audit trail** altered or deleted | The trail is append-only by IAM policy, not by discipline |
@@ -42,11 +42,11 @@ Friction in use, a missing feature, a defect that leaks no data and breaks no au
 and questions about installing follow the normal path:
 [open a feedback issue](https://github.com/memorysmithapp/memorysmithapp/issues/new?template=01-feedback.yml).
 
-## Vault content in reports
+## Notebook content in reports
 
 When reporting, **do not paste real content from your notes**, customer names or business
 data, neither here nor in a public issue. Describe the shape of the problem with invented
-examples, and send identifiers (`vaultId`, `noteId`) instead of text. If the fix depends on
+examples, and send identifiers (`notebookId`, `noteId`) instead of text. If the fix depends on
 seeing the content, we will ask for it through an agreed path.
 
 ## Response

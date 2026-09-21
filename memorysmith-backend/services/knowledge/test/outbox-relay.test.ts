@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { OutboxRelay, envelopeOf } from '../src/adapters/inbound/outbox-relay.js';
 
 const SUBSCRIPTION = '01JBQ2X0000000000000000000';
-const VAULT = '01JBQ2X0000000000000000001';
+const NOTEBOOK = '01JBQ2X0000000000000000001';
 const NOTE = '01JBQ2X0000000000000000002';
 const FOLDER = '01JBQ2X0000000000000000003';
 const EVENT = '01JBQ2X0000000000000000005';
 
 const outboxItem = {
-  PK: `S#${SUBSCRIPTION}#VAULT#${VAULT}`,
+  PK: `S#${SUBSCRIPTION}#NOTEBOOK#${NOTEBOOK}`,
   SK: `EVENT#${EVENT}`,
   entity: 'EVENT',
   eventId: EVENT,
@@ -25,10 +25,10 @@ const outboxItem = {
     bytes: 12,
   },
   payload: {
-    vaultId: VAULT,
+    notebookId: NOTEBOOK,
     noteId: NOTE,
     folderId: FOLDER,
-    title: 'Lei 14.133',
+    name: 'Lei 14.133',
     slug: 'lei-14133',
     position: 'a0',
   },
@@ -70,7 +70,7 @@ describe('OutboxRelay', () => {
 
   it('refuses to publish an envelope that does not match its contract', async () => {
     const { relay } = fakes();
-    const broken = { ...outboxItem, payload: { vaultId: VAULT } };
+    const broken = { ...outboxItem, payload: { notebookId: NOTEBOOK } };
     await expect(relay.process([broken])).rejects.toThrow();
   });
 
@@ -81,7 +81,7 @@ describe('OutboxRelay', () => {
     expect(busCalls).toHaveLength(0);
   });
 
-  it('moves the folder and vault counters, guarded by a dedup item', async () => {
+  it('moves the folder and notebook counters, guarded by a dedup item', async () => {
     const { relay, dbCalls } = fakes();
     await relay.process([outboxItem]);
 
@@ -106,7 +106,7 @@ describe('OutboxRelay', () => {
       {
         ...outboxItem,
         type: 'NoteDeleted',
-        payload: { vaultId: VAULT, noteId: NOTE, folderId: FOLDER, slug: 'lei-14133' },
+        payload: { notebookId: NOTEBOOK, noteId: NOTE, folderId: FOLDER, slug: 'lei-14133' },
       },
     ]);
     const items = (
@@ -122,11 +122,47 @@ describe('OutboxRelay', () => {
         ...outboxItem,
         type: 'NoteReordered',
         contentRef: null,
-        payload: { vaultId: VAULT, noteId: NOTE, folderId: FOLDER, position: 'a1' },
+        payload: { notebookId: NOTEBOOK, noteId: NOTE, folderId: FOLDER, position: 'a1' },
       },
     ]);
     // Reordering moves no note in or out of a folder, so no counter moves.
     expect(reorder.dbCalls).toHaveLength(0);
+  });
+
+  it('publishes a batch of the stream in calls of at most ten events, and counts them all', async () => {
+    // The stream hands the relay up to 25 records, and PutEvents takes ten.
+    // Staging refused every batch of more than ten until this held.
+    const { relay, busCalls, dbCalls } = fakes();
+    const batch = Array.from({ length: 25 }, (_unused, index) => {
+      const eventId = `01JBQ2X00000000000000000${String(index).padStart(2, '0')}`;
+      return { ...outboxItem, SK: `EVENT#${eventId}`, eventId };
+    });
+
+    const result = await relay.process(batch);
+
+    expect(result.published).toBe(25);
+    const sizes = busCalls.map(
+      (call) => (call as { input: { Entries: unknown[] } }).input.Entries.length,
+    );
+    expect(sizes).toEqual([10, 10, 5]);
+    expect(dbCalls).toHaveLength(25);
+  });
+
+  it('fails the batch when the bus refuses an event, so the stream delivers it again', async () => {
+    const relay = new OutboxRelay({
+      bus: {
+        send: async () => ({
+          FailedEntryCount: 1,
+          Entries: [{ ErrorCode: 'InternalFailure', ErrorMessage: 'try again' }],
+        }),
+      } as never,
+      db: { send: async () => undefined } as never,
+      tableName: 'mv-knowledge',
+      busName: 'mv-events',
+      source: 'memorysmith.knowledge',
+    });
+
+    await expect(relay.process([outboxItem])).rejects.toThrow('refused 1 of 1');
   });
 
   it('builds the envelope with no attribute of the storage layer', () => {

@@ -1,19 +1,29 @@
 /**
- * Network stack: the memorysmith.app hosted zone reference and the regional
- * ACM certificate for the MCP host (architecture-guide.md, section 17).
+ * Network stack: the hosted zone of the environment and its certificates
+ * (architecture-guide.md, section 17).
  *
- * The hosted zone already exists (created when the domain was delegated); this
- * stack references it by id from cdk.json context instead of looking it up, so
- * `cdk synth` works without AWS credentials.
+ * The hosted zone already exists, created by hand once per environment, because
+ * its name servers are drawn when it is created and recreating it would break
+ * the delegation. This stack references it by id, from cdk.json, instead of
+ * looking it up, so `cdk synth` works without AWS credentials.
  */
 
-import { Stack, type StackProps } from 'aws-cdk-lib';
+import { Duration, Stack, type StackProps } from 'aws-cdk-lib';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as ses from 'aws-cdk-lib/aws-ses';
 import type { Construct } from 'constructs';
+import type { EnvironmentConfig } from '../config/environments.js';
+
+export interface NetworkStackProps extends StackProps {
+  readonly environment: EnvironmentConfig;
+}
 
 export class NetworkStack extends Stack {
-  readonly hostedZone: route53.IHostedZone;
+  readonly hostedZone: route53.IPublicHostedZone;
+  /** The address every message of the user pool leaves from (RN-ACC-017). */
+  readonly senderAddress: string;
+  readonly sendingIdentity: ses.EmailIdentity;
   readonly mcpCertificate: acm.ICertificate;
   readonly apiCertificate: acm.ICertificate;
   /**
@@ -29,19 +39,58 @@ export class NetworkStack extends Stack {
   readonly siteDomainName: string;
   readonly authDomainName: string;
 
-  constructor(scope: Construct, id: string, props?: StackProps) {
+  constructor(scope: Construct, id: string, props: NetworkStackProps) {
     super(scope, id, props);
 
-    const zoneName = this.node.tryGetContext('hostedZoneName') as string;
-    const zoneId = this.node.tryGetContext('hostedZoneId') as string;
+    const zoneName = props.environment.hostedZoneName;
     this.mcpDomainName = `mcp.${zoneName}`;
     this.apiDomainName = `api.${zoneName}`;
     this.siteDomainName = zoneName;
     this.authDomainName = `auth.${zoneName}`;
 
-    this.hostedZone = route53.HostedZone.fromHostedZoneAttributes(this, 'HostedZone', {
-      hostedZoneId: zoneId,
+    this.hostedZone = route53.PublicHostedZone.fromPublicHostedZoneAttributes(this, 'HostedZone', {
+      hostedZoneId: props.environment.hostedZoneId,
       zoneName,
+    });
+
+    /**
+     * The domain the messages of the pool leave from (RN-ACC-017), verified by
+     * the DKIM records the CDK publishes in the zone, with a MAIL FROM of its own
+     * so the envelope is the domain's too. It lives in this stack, the first a
+     * delivery deploys, because Cognito sends only from a verified identity and a
+     * new one verifies minutes after its records exist: the delivery waits for it
+     * before the identity stack, the way it waits for DNS (section 17).
+     */
+    this.senderAddress = `no-reply@${zoneName}`;
+    this.sendingIdentity = new ses.EmailIdentity(this, 'SendingIdentity', {
+      identity: ses.Identity.publicHostedZone(this.hostedZone),
+      mailFromDomain: `mail.${zoneName}`,
+    });
+
+    /**
+     * The zones below this one, delegated here, in code (section 17). The name
+     * servers are the ones Route 53 drew when that zone was created, written in
+     * cdk.json.
+     *
+     * The record replaces one that already exists, because the delegation is
+     * needed before this stack is ever deployed: staging has to run, and be
+     * validated, before the merge that delivers production for the first time,
+     * so the record is written by hand once, with these same values, when an
+     * installation is brought up. `deleteExisting` is safe only because it is
+     * set from the day the record joined the stack; turning it on for a record
+     * already deployed would delete that record. The CDK marks it deprecated for
+     * the other half of that danger: a first deploy that fails after deleting the
+     * record by hand leaves no delegation until one is written again, which costs
+     * staging and never production.
+     */
+    props.environment.delegations.forEach((delegation, index) => {
+      new route53.NsRecord(this, `Delegation${index}`, {
+        zone: this.hostedZone,
+        recordName: delegation.recordName,
+        values: [...delegation.nameServers],
+        ttl: Duration.days(2),
+        deleteExisting: true,
+      });
     });
 
     // One certificate per distribution, with SANs covering its hosts

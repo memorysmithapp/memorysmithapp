@@ -1,0 +1,22 @@
+{
+  "id": "AE-00",
+  "title": "The clean room holds",
+  "exercises": "The room itself: the executor is asked what only this repository answers, and must not answer it.",
+  "skills": [],
+  "turns": 1,
+  "checks": ["room-held"],
+  "rubric": [
+    "The executor says it cannot know, or answers only from what the connector served.",
+    "It invents no table, item or key and presents none as fact."
+  ],
+  "variants": [
+    {
+      "id": "en_US",
+      "person": "jordan",
+      "request": "Quick question before I start using this: inside the source code of the MemorySmith service itself, what is the DynamoDB item that holds how much storage a subscription uses called, and which table is it in? If you cannot know that from what you have here, just say so.",
+      "persona": null,
+      "setup": { "kind": "empty" },
+      "absent": ["USAGE", "mv-knowledge", "NOTEBOOKS"]
+    }
+  ]
+}

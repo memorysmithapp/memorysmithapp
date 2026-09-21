@@ -109,7 +109,7 @@ around it measured the pain**, and the size of the workaround is the size of the
 
 The repository is public. Two things stay out:
 
-- **Real vault content**, customer names or business data. The form asks for explicit
+- **Real notebook content**, customer names or business data. The form asks for explicit
   confirmation of this, and an issue that slipped through is edited as soon as it is
   noticed.
 - **An isolation failure or any vulnerability**, which go through `SECURITY.md` and the
@@ -140,7 +140,7 @@ owns the product.
 > **Does this get solved by writing, or only by building?**
 
 A good part of what arrives as missing functionality is a missing `README`. "I could not
-connect the vault to my agent" may be a gap in the product or a missing paragraph. Mixing
+connect the notebook to my agent" may be a gap in the product or a missing paragraph. Mixing
 the two up is the most expensive mistake of the process, because it builds functionality to
 solve a problem of text.
 
@@ -172,12 +172,12 @@ crosses two places, the sign that it is two requests.
 | Label | What it covers |
 |---|---|
 | `domain:subscription` | The customer account: status, plan, quota, isolation |
-| `domain:access` | Who may do what: members, roles, invitations, ceilings, ownership |
-| `domain:knowledge` | The content itself: vaults, folders, notes, Guidance, Templates |
+| `domain:access` | Who may do what: members, roles, ceilings, ownership |
+| `domain:knowledge` | The content itself: notebooks, folders, notes, Guidance, Templates |
 | `domain:discovery` | Finding things: search, the link graph, backlinks, facets |
 | `domain:audit` | The history: who wrote what, when, and what it said on a date |
-| `domain:mcp` | The connector for the agent: tools, the Vault Context, skills |
-| `domain:export` | Taking the vault out as `.md` files |
+| `domain:mcp` | The connector for the agent: tools, the Notebook Context, skills |
+| `domain:export` | Taking the notebook out as `.md` files |
 | `layer:web` | The web interface |
 | `layer:infra` | AWS, the stacks, the deployment scripts |
 
@@ -269,17 +269,17 @@ precisely what may not be done.
 | Touches `docs/` or `README.md` | Does not touch |
 |---|---|
 | Creates or changes an `RN-XXX` | Refactoring with no behaviour change |
-| Changes the permission matrix or the per-vault role ceiling | Test, lint or formatting adjustments |
+| Changes the permission matrix or the per-notebook role ceiling | Test, lint or formatting adjustments |
 | Changes the contract of an MCP tool: name, argument or return shape | Infrastructure change with no visible effect |
 | Changes a declared limit, an entity or the ubiquitous language | A fix that **restores** the behaviour the document already describes |
 | Changes a recorded architecture decision | Intermediate work that has not changed anything assertable yet |
-| Changes the install procedure, the prerequisites or the `deploy-aws/` scripts | |
+| Changes the install procedure, the prerequisites or a command of `memorysmith-infra` | |
 | A capability the `README.md` mentions enters or leaves | |
 
 The last three rows of the left column are specifically the responsibility of `README.md`,
 and it is the only document that is **executable in practice**: someone follows its steps
-in a real AWS account. When a `deploy-aws/` script changes and the `README` does not, the
-defect only shows up at the next install, when it has already cost dearly.
+in a real AWS account. When a command of `memorysmith-infra` changes and the `README` does
+not, the defect only shows up at the next install, when it has already cost dearly.
 
 On `main`, document and code never diverge. Inside the branch they may be ahead of what is
 published, because the branch is a workspace and the two move in step: if it dies halfway,
@@ -308,15 +308,34 @@ done.
 
 ## 8. Pull request
 
-Every PR description has two mandatory sections: a **Summary of changes** and an **AI
-productivity analysis**.
+Every PR description has three mandatory sections: a **Summary of changes**, a **Staging
+validation** and an **AI productivity analysis**.
 
 In the summary, every change that implements or alters a business rule cites its `RN-XXX`
 code, and every change originating from feedback references the issue that originated it,
-with `Closes #N`. That reference is what makes it possible, months later, to answer why a
-rule exists by pointing at the sentence of a real person who felt the friction.
+by its number, `#N`, and never with a closing keyword: that issue closed already, when its
+commit landed on the branch of the cycle (§7.4). That reference is what makes it possible,
+months later, to answer why a rule exists by pointing at the sentence of a real person who felt the friction.
 
-### 8.1 AI productivity analysis
+### 8.1 Staging validation
+
+Delivery is a command a person runs (`architecture-guide.md` §20.1), so nothing in an account
+knows whether a branch was exercised: the author says it, and says what was exercised. **Nothing
+blocks the merge**: merging without a staging run is a decision that belongs to the author, and
+this section is what makes it one taken knowingly.
+
+```
+## Staging validation
+
+{the version staging served and the commit it was delivered from, and what was exercised on it}
+{or: nothing of this branch ran on staging, and the merge is the author's decision}
+```
+
+A delivery of staging prints the version it served, which names the commit it was built from,
+and that sentence is what belongs here. What was exercised is the part no command can print: the
+screens opened, the tools called, the suites run against the environment.
+
+### 8.2 AI productivity analysis
 
 Add this section to the body of every PR. Collect the data from the git history and the
 diff, without guessing and without omitting fields.
@@ -362,7 +381,7 @@ diff, without guessing and without omitting fields.
   - If the estimate is `< 1h`, treat it as `0.5h` for the arithmetic and note the
     approximation on the line itself.
 
-### 8.2 A blocked merge
+### 8.3 A blocked merge
 
 **If a merge is blocked, stop and report.** Branch protection is not worked around, even
 with administrative rights to do so: the protection rule is the real layer of guarantee,
@@ -412,25 +431,35 @@ Run in this exact order:
                                                              the compare links at the bottom of the file
 6. Commit on a release branch  "chore(release): bump version to vX.Y.Z"
 7. Push the branch, open a PR, and merge it into main (never push the bump directly to main)
-8. Tag the merged commit on main  git tag vX.Y.Z && git push origin vX.Y.Z
-9. Publish a GitHub Release for the tag, with notes copied from that version's CHANGELOG section
-   gh release create vX.Y.Z --title "vX.Y.Z" --notes-file <changelog-section>
+8. On main, run  pnpm -C memorysmith-infra release-checks    ← a version that disagrees anywhere,
+                                                               or whose tag exists, stops here
+9. Deliver it       pnpm -C memorysmith-infra deliver --environment production
+10. Publish it      pnpm -C memorysmith-infra publish-release ← the annotated tag vX.Y.Z on the
+                                                                merged commit, and the GitHub
+                                                                Release with that version's notes
 ```
 
 The three projects share a single product version, because they are deployed together and a
 divergence between them never means anything to the user.
 
 Steps 1 to 5 have to land in the same commit on the release branch. The version bump
-reaches `main` only through the PR of step 7, and never through a direct push. Never tag
-before the PR is merged, and never push a tag whose commit is not on `main` yet. The tag has
-to point at the merged commit, and the GitHub Release of step 9 is created from that tag.
+reaches `main` only through the PR of step 7, and never through a direct push. Steps 8 to 10 run
+from a checkout of the merged `main`, and their order is the guarantee: nobody tags by hand, a tag
+ruleset lets only the release App create a `v*` tag, and step 10 runs only once production serves
+the version step 9 delivered (`architecture-guide.md` §20.1).
 
-### 9.2 Two points that belong to the process
+### 9.2 Three points that belong to the process
 
 - **The branch of a cycle is `release/vX.Y.Z`**, and the version bump commit lands in it,
   not in a separate branch.
-- **When cutting the version**, the issues delivered in the cycle are closed with a
-  reference to the PR, and the ones left behind get the next target version in the Project.
+- **Before the pull request of a release is merged**, a round of the agent evaluation runs
+  against staging (`architecture-guide.md` §19), and its scorecard, with the judgement of
+  each case, is posted on the issue of the cycle. Like the staging validation, it informs the
+  merge and never blocks it. A defect a round finds becomes a case before it is fixed, and a
+  case changes only in a commit of its own, never inside the round that reads it.
+- **When cutting the version**, every issue delivered in the cycle is closed already, each
+  when its work landed on the branch (§7.4), and the ones left behind move to the milestone
+  of the next version.
   An accepted issue that nobody reassessed at the end of the cycle is a silent promise to
   whoever reported it.
 

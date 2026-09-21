@@ -21,9 +21,9 @@ export class DomainError {
     /**
      * FORBIDDEN answers 404 so that a 403 never confirms the existence of a
      * resource the caller cannot see (RN-SUB-004). The one deliberate
-     * exception is a write refused by a vault role limit: the member already
-     * sees the vault in their list (RN-ACC-012), so hiding it there would
-     * protect nothing and produce a vault that appears on screen and vanishes
+     * exception is a write refused by a notebook role limit: the member already
+     * sees the notebook in their list (RN-ACC-012), so hiding it there would
+     * protect nothing and produce a notebook that appears on screen and vanishes
      * on write (architecture-guide.md, section 14.2).
      */
     readonly revealsExistence: boolean = false,

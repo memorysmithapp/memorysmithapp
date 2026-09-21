@@ -1,42 +1,38 @@
 import type { FolderNode } from '../../shared/types/api';
 
-// Folder chain from the vault root down to the folder at slugPath, or [] when
-// no folder matches.
-export function folderTrail(folders: FolderNode[], slugPath: string): FolderNode[] {
+/**
+ * The chain of folders from the notebook root down to the folder of that
+ * identifier, or [] when it is not in the tree. The breadcrumb is built from
+ * it: the trail of a folder is what a person reads, and the address never
+ * carries it (RN-DSC-045).
+ */
+export function folderTrailOf(folders: FolderNode[], folderId: string): FolderNode[] {
   for (const folder of folders) {
-    if (folder.slugPath === slugPath) return [folder];
-    const nested = folderTrail(folder.children, slugPath);
+    if (folder.id === folderId) return [folder];
+    const nested = folderTrailOf(folder.children, folderId);
     if (nested.length) return [folder, ...nested];
   }
   return [];
 }
 
+// Folder chain from the notebook root down to the folder holding the note, or []
+// when the note is not in the tree.
 /**
- * The slug of the note a `root/*` path names, or null when it names anything
- * else: the vault root, a folder, or something that is no longer there.
- *
- * Two callers need exactly this question and they must not answer it apart.
- * `FolderRoute` asks it to decide what to render, and resuming a reading asks
- * it before navigating: a remembered note that has since been deleted, moved
- * or renamed has to land on the tree, never on the not-found line.
+ * The notes of a folder and of every folder under it, from the structure the
+ * page already loaded. A folder that keeps its notes in subfolders is not
+ * empty, and the question a tree answers is whether there is anything in here.
  */
-export function noteAt(folders: FolderNode[], path: string): string | null {
-  if (!path || folderTrail(folders, path).length) return null;
-
-  const cut = path.lastIndexOf('/');
-  const folderPath = cut >= 0 ? path.slice(0, cut) : '';
-  const noteSlug = cut >= 0 ? path.slice(cut + 1) : path;
-  const chain = folderPath ? folderTrail(folders, folderPath) : [];
-  const folder = chain[chain.length - 1];
-  return folder?.notes.some((note) => note.slug === noteSlug) ? noteSlug : null;
+export function subtreeNoteCount(folder: FolderNode): number {
+  return folder.children.reduce(
+    (total, child) => total + subtreeNoteCount(child),
+    folder.noteCount,
+  );
 }
 
-// Folder chain from the vault root down to the folder holding the note with
-// noteSlug, or [] when the note is not in the tree.
-export function folderTrailForNote(folders: FolderNode[], noteSlug: string): FolderNode[] {
+export function folderTrailForNote(folders: FolderNode[], noteId: string): FolderNode[] {
   for (const folder of folders) {
-    if (folder.notes.some((note) => note.slug === noteSlug)) return [folder];
-    const nested = folderTrailForNote(folder.children, noteSlug);
+    if (folder.notes.some((note) => note.id === noteId)) return [folder];
+    const nested = folderTrailForNote(folder.children, noteId);
     if (nested.length) return [folder, ...nested];
   }
   return [];

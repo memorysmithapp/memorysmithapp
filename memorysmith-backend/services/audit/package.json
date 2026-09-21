@@ -1,6 +1,6 @@
 {
   "name": "@memorysmith/svc-audit",
-  "version": "0.5.7",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "description": "Audit bounded context: the append-only trail. Consumer of every event of the bus, and the one service whose immutability is enforced by IAM rather than by code.",
@@ -8,6 +8,7 @@
     "./domain": "./src/domain/index.ts",
     "./application": "./src/application/index.ts",
     "./adapters/trail": "./src/adapters/outbound/DynamoAuditTrail.ts",
+    "./adapters/closer": "./src/adapters/outbound/DynamoTrailCloser.ts",
     "./adapters/content": "./src/adapters/outbound/S3RevisionReader.ts",
     "./adapters/http": "./src/adapters/inbound/routes.ts",
     "./adapters/consumer": "./src/adapters/inbound/event-consumer.ts",

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { parseEvent, eventEnvelopeSchema } from '../src/events.js';
-import { vaultDetailSchema } from '../src/api/knowledge.js';
+import { notebookDetailSchema } from '../src/api/knowledge.js';
 import { sessionSchema } from '../src/api/access.js';
 
 const SUBSCRIPTION = '01JBQ2X0000000000000000000';
-const VAULT = '01JBQ2X0000000000000000001';
+const NOTEBOOK = '01JBQ2X0000000000000000001';
 const NOTE = '01JBQ2X0000000000000000002';
 const FOLDER = '01JBQ2X0000000000000000003';
 const CONTENT = '01JBQ2X0000000000000000004';
@@ -32,10 +32,10 @@ const noteCreated = {
     bytes: 512,
   },
   payload: {
-    vaultId: VAULT,
+    notebookId: NOTEBOOK,
     noteId: NOTE,
     folderId: FOLDER,
-    title: 'Lei 14.133, art. 75',
+    name: 'Lei 14.133, art. 75',
     slug: 'lei-14133-art-75',
     position: 'a0',
   },
@@ -56,7 +56,7 @@ describe('event contracts', () => {
   });
 
   it('rejects a payload that does not match its own event type', () => {
-    const mismatched = { ...noteCreated, payload: { vaultId: VAULT } };
+    const mismatched = { ...noteCreated, payload: { notebookId: NOTEBOOK } };
     expect(() => parseEvent(mismatched)).toThrow();
   });
 
@@ -73,16 +73,16 @@ describe('event contracts', () => {
     expect(parseEvent(fromUi).authorship.agent).toBeNull();
   });
 
-  it('accepts a cross-vault move carrying both sides', () => {
+  it('accepts a cross-notebook move carrying both sides', () => {
     const moved = {
       ...noteCreated,
       type: 'NoteMoved' as const,
       contentRef: null,
       payload: {
         noteId: NOTE,
-        fromVaultId: VAULT,
+        fromNotebookId: NOTEBOOK,
         fromFolderId: FOLDER,
-        toVaultId: '01JBQ2X0000000000000000007',
+        toNotebookId: '01JBQ2X0000000000000000007',
         toFolderId: '01JBQ2X0000000000000000008',
         slug: 'lei-14133-art-75',
         position: 'a1',
@@ -93,9 +93,9 @@ describe('event contracts', () => {
 });
 
 describe('API DTOs', () => {
-  it('describes a vault with its annotated tree', () => {
-    const detail = vaultDetailSchema.parse({
-      vaultId: VAULT,
+  it('describes a notebook with its annotated tree', () => {
+    const detail = notebookDetailSchema.parse({
+      notebookId: NOTEBOOK,
       workspaceId: WORKSPACE,
       name: 'Normas e Legislacao',
       slug: 'normas-e-legislacao',
@@ -124,8 +124,8 @@ describe('API DTOs', () => {
   it('refuses a folder with an empty description', () => {
     // The description is what steers where the agent writes (RN-KNW-006).
     expect(() =>
-      vaultDetailSchema.parse({
-        vaultId: VAULT,
+      notebookDetailSchema.parse({
+        notebookId: NOTEBOOK,
         workspaceId: WORKSPACE,
         name: 'V',
         slug: 'v',
@@ -158,6 +158,10 @@ describe('API DTOs', () => {
         email: 'owner@example.com',
         name: 'Owner',
         isPlatformAdmin: false,
+        // Nobody chose a source, so the face is the one the product has always
+        // drawn, and there is no picture of their own behind it (#168).
+        avatar: 'gravatar',
+        picture: null,
       },
       activeSubscription: null,
       subscriptions: [],
@@ -167,9 +171,13 @@ describe('API DTOs', () => {
       // No subscription also means nothing stored under one, and null says
       // that, where a zero would claim an empty subscription exists.
       usedBytes: null,
+      // Somebody who has never been shown what the product is, which is every
+      // brand new account: the interface opens the welcome surface once.
+      welcomeSeen: false,
     });
     expect(session.activeSubscription).toBeNull();
     expect(session.role).toBe('NONE');
     expect(session.usedBytes).toBeNull();
+    expect(session.welcomeSeen).toBe(false);
   });
 });

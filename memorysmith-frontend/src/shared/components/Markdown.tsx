@@ -1,7 +1,11 @@
+import { Attachment } from './Attachment';
+import { useNotebookId } from './notebook-id';
+import { LinkChoice, linkTargetOf } from './LinkChoice';
 import {
   isValidElement,
   type AnchorHTMLAttributes,
   type HTMLAttributes,
+  type ImgHTMLAttributes,
   type ReactNode,
 } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -17,6 +21,7 @@ import {
 } from '../api/remark-memorysmith-ring';
 import { useTranslation } from 'react-i18next';
 import { toUnixNewlines } from '../api/markdown';
+import { readDimensions, readImageAlt } from '../api/image-dimensions';
 import { followable } from '../api/address';
 import { ordinalAt } from '../api/tasklist';
 import { remarkCallouts } from '../api/remark-callouts';
@@ -42,8 +47,70 @@ interface MarkdownProps {
 
 type LiProps = HTMLAttributes<HTMLLIElement> & { node?: unknown };
 
+/**
+ * An image, with the dimensions the specification puts in its alt text
+ * (RN-DSC-048). What precedes the pipe is the description and is never
+ * dropped; what follows it is width, or width and height, in CSS pixels, and
+ * never appears as text. A value that is neither stays part of the
+ * description, because deleting an accessibility label is the worse failure.
+ */
+function MarkdownImage({ alt, ...rest }: ImgHTMLAttributes<HTMLImageElement>) {
+  const read = readImageAlt(alt ?? '');
+  return (
+    <img
+      {...rest}
+      alt={read.description}
+      {...(read.width === null ? {} : { width: read.width })}
+      {...(read.height === null ? {} : { height: read.height })}
+    />
+  );
+}
+
 function MarkdownAnchor({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAnchorElement>) {
   const { t } = useTranslation();
+  const notebookId = useNotebookId();
+  // An attachment is a file of the notebook that is not a note, and this product
+  // stores none: the reference resolves to nothing, and saying so is what the
+  // specification asks for. Drawing it as a link to a note nobody will ever
+  // write told the reader the wrong thing about their own notebook (RN-DSC-049).
+  /**
+   * A file the notebook keeps, drawn by its TYPE (#166, RN-DSC-061): an image,
+   * audio and video are drawn, and everything else is a card with a download.
+   * A name the notebook keeps nothing under is reported the way a pending link
+   * is, which is what `Attachment` does with it.
+   */
+  if (href?.startsWith('attachment:')) {
+    /**
+     * The address carries the dimension the pipe declared, after the encoded
+     * name, where nothing else can be (§3.14, #173).
+     *
+     * **Decoded before it is split**, because the parser percent-encodes what
+     * it does not have to leave alone: the separator arrives as `%7C` and
+     * looking for `|` found nothing, which sent the whole string — dimension
+     * included — to be looked up as the name of a file. A name carrying a
+     * pipe is no name anyway (§5.3), so the last one is the separator or
+     * there is none.
+     */
+    const address = decodeURIComponent(href.slice('attachment:'.length));
+    const at = address.lastIndexOf('|');
+    const measured = at === -1 ? null : readDimensions(address.slice(at + 1));
+    const name = measured ? address.slice(0, at) : address;
+    if (!notebookId) {
+      return (
+        <span className="attachment-missing" title={t('note.attachmentMissing')}>
+          {children}
+        </span>
+      );
+    }
+    return (
+      <Attachment
+        notebookId={notebookId}
+        name={name}
+        width={measured?.width ?? null}
+        height={measured?.height ?? null}
+      />
+    );
+  }
   if (href?.startsWith('pending:')) {
     return (
       <span className="wikilink-pending" title={t('note.pendingLink')}>
@@ -61,6 +128,8 @@ function MarkdownAnchor({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAn
       </span>
     );
   }
+  // A target no single note answers by name opens its choice in place.
+  if (linkTargetOf(href)) return <LinkChoice href={href}>{children}</LinkChoice>;
   if (href.startsWith('/')) {
     return (
       <Link className="wikilink" to={href}>
@@ -233,7 +302,7 @@ export function Markdown({ children, source, onToggleTask, writable = false }: M
         // Raw HTML is NOT enabled, and its absence is the point: no
         // `rehype-raw` is loaded, so a note carrying `<script>` is text. It is
         // a security boundary rather than a rendering preference, because a
-        // vault is written by several people and by agents (profile 5.10).
+        // notebook is written by several people and by agents (profile 5.10).
         rehypePlugins={[[rehypeKatex, { throwOnError: false }]]}
         // Which addresses this surface will follow, and the reason the stock
         // filter is not doing it, are in `address.ts` (RN-DSC-039).
@@ -241,6 +310,7 @@ export function Markdown({ children, source, onToggleTask, writable = false }: M
         components={{
           a: MarkdownAnchor,
           code: MarkdownCode,
+          img: MarkdownImage,
           li: (props: LiProps) => (
             <TaskItem
               {...props}

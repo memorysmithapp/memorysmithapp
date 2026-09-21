@@ -39,7 +39,7 @@ describe('the message names the failure that happened', () => {
     expect(reasonFor(expired)).toBe('errors.unauthenticated');
   });
 
-  it('does not claim a conflict for a vault that is out of room', () => {
+  it('does not claim a conflict for a notebook that is out of room', () => {
     expect(reasonFor(new ApiError('LIMIT_EXCEEDED', 'quota', 429))).toBe('errors.limitExceeded');
   });
 

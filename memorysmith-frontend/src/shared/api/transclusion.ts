@@ -23,7 +23,7 @@ import {
   insideCode,
   insideTable,
   outsideCode,
-  slugify,
+  headingKey,
   tableRegions,
 } from './markdown';
 
@@ -45,7 +45,16 @@ export const EMBED_LIMIT = 10;
  * the ceiling are demoted to plain wikilinks instead of being dropped, because
  * losing the reference would be worse than not expanding it.
  */
-export function splitEmbeds(body: string, limit = EMBED_LIMIT): BodySegment[] {
+export function splitEmbeds(
+  body: string,
+  /**
+   * Whether the notebook keeps a FILE under that name (#166). An embed of one
+   * expands nothing here: it stays in the text run, where the wikilink pass
+   * turns it into the attachment the page draws by its type.
+   */
+  keeps: (name: string) => boolean = () => false,
+  limit = EMBED_LIMIT,
+): BodySegment[] {
   const segments: BodySegment[] = [];
   const code = codeRegions(body);
   const tables = tableRegions(body);
@@ -56,6 +65,10 @@ export function splitEmbeds(body: string, limit = EMBED_LIMIT): BodySegment[] {
     const at = match.index ?? 0;
     const target = (match[1] ?? '').trim();
     if (!target) continue;
+    // A file is not a note, so there is nothing to transclude: it is left in
+    // the text run, where the wikilink pass turns it into the attachment the
+    // page draws by its type (RN-DSC-061).
+    if (keeps(target)) continue;
     // An embed written inside code is an example of the notation, not a use of
     // it: expanding it would replace the very text somebody was showing.
     if (insideCode(code, at)) continue;
@@ -73,7 +86,7 @@ export function splitEmbeds(body: string, limit = EMBED_LIMIT): BodySegment[] {
     // would reach the page as the literal `![[…]]` — dropped notation, which
     // is the one thing §7.3 forbids in every place expansion cannot happen.
     // Code is untouched, because `demoteEmbeds` rewrites outside it.
-    const before = demoteEmbeds(body.slice(cursor, at));
+    const before = demoteEmbeds(body.slice(cursor, at), keeps);
     if (before.length > 0) segments.push({ kind: 'text', text: before });
     segments.push({ kind: 'embed', target, anchor: match[2]?.trim() ?? null });
     cursor = at + match[0].length;
@@ -81,13 +94,24 @@ export function splitEmbeds(body: string, limit = EMBED_LIMIT): BodySegment[] {
   }
 
   const rest = body.slice(cursor);
-  if (rest.length > 0) segments.push({ kind: 'text', text: demoteEmbeds(rest) });
+  if (rest.length > 0) segments.push({ kind: 'text', text: demoteEmbeds(rest, keeps) });
   return segments;
 }
 
-/** `![[x]]` becomes `[[x]]`: a reference instead of an expansion. */
-export function demoteEmbeds(body: string): string {
-  return outsideCode(body, (text) => text.replace(EMBED, (all) => all.slice(1)));
+/**
+ * `![[x]]` becomes `[[x]]`: a reference instead of an expansion.
+ *
+ * **An embed of a file keeps its `!`** (#174). Demoting exists for an embed
+ * that cannot be expanded here — one inside a table cell, one inside embedded
+ * content — and an attachment is not one of those: the page draws it. Taking
+ * the bang off it was what made `[[picture]]` and `![[picture]]` arrive at the
+ * wikilink pass as the same three characters, so a **link** to a file drew the
+ * file. A link addresses a note (§5.2), and only the embed reaches a file.
+ */
+export function demoteEmbeds(body: string, keeps: (name: string) => boolean = () => false): string {
+  return outsideCode(body, (text) =>
+    text.replace(EMBED, (all, target: string) => (keeps(target.trim()) ? all : all.slice(1))),
+  );
 }
 
 const HEADING = /^(#{1,6})\s+(.+?)\s*$/;
@@ -102,7 +126,7 @@ const HEADING = /^(#{1,6})\s+(.+?)\s*$/;
  * here would mean this function decides what the reader shows.
  *
  * An identifier that names nothing answers null, and the caller renders it the
- * way it renders a pending link. It is never an error: a vault is read most
+ * way it renders a pending link. It is never an error: a notebook is read most
  * while it is being written.
  */
 export function blockOf(markdown: string, identifier: string): string | null {
@@ -133,12 +157,12 @@ function escapeRegExp(value: string): string {
 
 /**
  * The section of a document, cut syntactically: from the heading whose slug
- * matches the anchor to the next heading of equal or higher level. No vault
+ * matches the anchor to the next heading of equal or higher level. No notebook
  * convention takes part in this, which is what keeps it on the right side of
  * PP4.
  */
 export function sectionOf(markdown: string, anchor: string): string | null {
-  const wanted = slugify(anchor);
+  const wanted = headingKey(anchor);
   const lines = markdown.split('\n');
   let start = -1;
   let level = 0;
@@ -148,7 +172,7 @@ export function sectionOf(markdown: string, anchor: string): string | null {
     if (!heading) continue;
 
     if (start === -1) {
-      if (slugify(heading[2] ?? '') === wanted) {
+      if (headingKey(heading[2] ?? '') === wanted) {
         start = index;
         level = (heading[1] ?? '').length;
       }

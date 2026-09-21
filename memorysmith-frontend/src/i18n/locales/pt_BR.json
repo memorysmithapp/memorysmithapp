@@ -1,4 +1,10 @@
 {
+  "slot": {
+    "delete": "Apagar",
+    "confirm": "Apagar de vez",
+    "deleting": "Apagando…",
+    "cancel": "Manter"
+  },
   "write": {
     "unsaved": "Alterações não salvas",
     "saving": "Salvando…",
@@ -6,9 +12,7 @@
   },
   "reserved": {
     "aliases": "Apelidos",
-    "tags": "Etiquetas",
-    "created": "Criado em",
-    "updated": "Atualizado em"
+    "tags": "Etiquetas"
   },
   "app": {
     "title": "MemorySmith",
@@ -35,7 +39,7 @@
     "handingOver": "Levando você à página de entrada...",
     "handoverFailed": "A entrada não foi concluída. Tente de novo.",
     "sessionExpired": "Sua sessão expirou e foi encerrada aqui. Entrar de novo retoma exatamente de onde você parou: nada foi perdido.",
-    "noneSubscription": "Esta conta ainda não alcança nenhuma assinatura. A assinatura é o que guarda os seus vaults, e enquanto não há cobrança automática ela é liberada à mão.",
+    "noneSubscription": "Esta conta ainda não alcança nenhuma assinatura. A assinatura é o que guarda os seus cadernos, e enquanto não há cobrança automática ela é liberada à mão.",
     "pendingSubscription": "Sua assinatura está aguardando autorização. A liberação é manual nesta fase, e o produto abre assim que ela for aprovada.",
     "blockedSubscription": "Esta assinatura não está ativa no momento. Nada foi perdido: os dados continuam exatamente onde estão e voltam a ser alcançáveis assim que o acesso for restabelecido."
   },
@@ -73,93 +77,212 @@
     "pt_BR": "Português"
   },
   "search": {
-    "placeholder": "Buscar em todo o vault…",
+    "placeholder": "Buscar em todo o caderno…",
     "searching": "Buscando…",
     "empty": "Nenhuma nota encontrada.",
     "invalid": "Consulta inválida. Verifique as aspas, os parênteses e os operadores.",
     "failed": "A busca falhou. Tente de novo.",
-    "syntaxHint": "Busca no texto inteiro. Aceita \"frase exata\", -excluir, OR, title:, folder:, section:, content: e atributos do frontmatter, como maturity:evergreen."
+    "syntaxHint": "Busca no texto inteiro. Aceita \"frase exata\", -excluir, OR, name:, folder:, section:, content: e atributos do frontmatter, como maturity:evergreen."
   },
-  "vaults": {
-    "heading": "Vaults",
+  "notebooks": {
+    "heading": "Cadernos",
     "noteCount": "{{count}} notas",
     "updatedAt": "atualizado em {{date}}",
-    "open": "Abrir vault"
+    "open": "Abrir caderno"
   },
   "structure": {
     "guidance": "Orientação",
     "folders": "Pastas",
     "root": "Raiz",
+    "noteCountSplit": "{{here}} aqui, {{below}} nas subpastas",
     "hasTemplate": "modelo",
     "outlineHint": "A árvore de pastas com a descrição de cada uma. É ela que diz ao agente onde cada nota entra.",
-    "backToVaults": "Todos os vaults",
-    "openNavigation": "Navegação do vault",
+    "backToNotebooks": "Todos os cadernos",
+    "openNavigation": "Navegação do caderno",
     "closeNavigation": "Fechar navegação",
-    "heading": "Contexto do Vault",
-    "intro": "Como este vault se descreve, e o que o agente recebe em get_vault_context: a Orientação diz o que ele é, cada pasta diz o que se guarda nela e o Modelo da pasta diz como a nota se estrutura.",
-    "guidanceHint": "O que este vault é e como se escreve nele",
+    "heading": "Contexto do caderno",
+    "intro": "Como este caderno se descreve, e o que o agente recebe em get_notebook_context: a Orientação diz o que ele é, cada pasta diz o que se guarda nela e o Modelo da pasta diz como a nota se estrutura.",
+    "guidanceHint": "O que este caderno é e como se escreve nele",
+    "deleteGuidanceConfirm": "Apagar a Orientação deste caderno? As pastas, os Modelos e todas as notas continuam; o caderno apenas deixa de dizer como quer ser escrito. Não há como desfazer.",
     "templates": "Modelos",
     "templatesHint_one": "{{count}} pasta com leiaute sugerido",
     "templatesHint_other": "{{count}} pastas com leiaute sugerido",
-    "noTemplates": "Nenhuma pasta deste vault declara um Modelo.",
+    "noTemplates": "Nenhuma pasta deste caderno declara um Modelo.",
     "templateOf": "Modelo da pasta {{folder}}",
     "openFolder": "Abrir pasta",
     "content": "Conteúdo",
-    "breadcrumb": "Trilha do contexto do vault"
+    "breadcrumb": "Trilha do contexto do caderno"
   },
   "folder": {
     "notesHeading": "Notas nesta pasta",
     "template": "Modelo",
     "templateHint": "Leiaute sugerido para as notas desta pasta. O servidor nunca valida contra ele.",
+    "deleteTemplateConfirm": "Apagar o Modelo desta pasta? A pasta, a descrição dela e as notas continuam, e as notas já escritas mantêm a forma que têm. Não há como desfazer.",
     "empty": "Ainda não há notas nesta pasta."
   },
   "note": {
     "properties": "Propriedades",
     "embedSectionMissing": "A seção \"{{section}}\" não existe nesta nota.",
     "writeConflict": "A alteração não foi salva. Alguém escreveu aqui antes, e o conteúdo foi recarregado.",
+    "linkChoice": "As notas a que o link “{{target}}” pode levar",
     "pendingLink": "Link pendente: a nota alvo ainda não existe.",
     "remoteImages_one": "Abrir esta nota buscou uma imagem em {{hosts}}, então esse site recebeu seu endereço e o momento em que você leu.",
     "remoteImages_other": "Abrir esta nota buscou imagens em {{count}} outros sites — {{hosts}} —, então cada um deles recebeu seu endereço e o momento em que você leu.",
     "refusedLink": "Este endereço não é dos que a superfície de leitura segue, então o texto fica e o link não.",
     "copy": "Copiar",
     "copied": "Copiado",
-    "copyHint": "Copiar o Markdown da nota para a área de transferência"
+    "copyHint": "Copiar o Markdown da nota para a área de transferência",
+    "unnamed": "Nota sem nome",
+    "attachmentMissing": "Este caderno não guarda nenhum arquivo com esse nome.",
+    "targetPending": "Nenhuma nota se chama “{{target}}” ainda. O link fica guardado e resolve sozinho quando alguma se chamar.",
+    "linkLeadsToSeveral": "Este link leva a mais de uma nota",
+    "linkLeadsNowhere": "Este link ainda não leva a lugar nenhum",
+    "targetNamed_one": "“{{target}}” é o nome de uma nota.",
+    "targetNamed_other": "“{{target}}” é o nome de {{count}} notas, cada uma em sua pasta. Escolha qual abrir.",
+    "targetAliased_one": "Nenhuma nota se chama “{{target}}”. Uma nota carrega esse apelido.",
+    "targetAliased_other": "Nenhuma nota se chama “{{target}}”, então ele casou com {{count}} notas que o carregam como apelido — e uma delas devolve o link no dia em que alguém escrever uma nota com este nome.",
+    "attachmentOpen": "Abrir",
+    "attachmentDownload": "Baixar"
   },
   "common": {
     "loading": "Carregando…",
-    "notFound": "Não encontrado."
+    "notFound": "Não encontrado.",
+    "cancel": "Cancelar",
+    "close": "Fechar"
   },
   "dashboard": {
     "heading": "Visão geral",
-    "kpiVaults": "Vaults",
+    "kpiNotebooks": "Cadernos",
     "kpiNotes": "Notas",
     "kpiPending": "Links pendentes",
-    "otherTypes": "Outros",
-    "selectVault": "Abrir um vault",
-    "prevVaults": "Vaults anteriores",
-    "nextVaults": "Próximos vaults",
+    "selectNotebook": "Abrir um caderno",
+    "prevNotebooks": "Cadernos anteriores",
+    "nextNotebooks": "Próximos cadernos",
     "kpiOrphans": "Notas órfãs",
-    "noFacets": "Estes vaults ainda não declaram atributos nas notas, então não há o que representar.",
-    "moreFacets": "Mais {{count}} atributo(s) contado(s) e não representado(s).",
-    "discardedFacets": "{{count}} atributo(s) ficaram fora das estatísticas por serem texto livre: {{names}}.",
-    "unavailableVaults": "{{count}} vault(s) não responderam, então estes totais estão incompletos."
+    "unavailableNotebooks": "{{count}} caderno(s) não responderam, então estes totais estão incompletos."
   },
   "portability": {
-    "download": "Baixar vault (.zip)",
+    "download": "Baixar o caderno (.notebook)",
     "preparing": "Preparando o arquivo…",
-    "failed": "Não foi possível preparar o arquivo"
+    "failed": "Não foi possível preparar o arquivo",
+    "import": "Importar",
+    "importing": "Importando “{{name}}”",
+    "exporting": "Exportando… acompanhe em Transferências",
+    "importHeading": "Importar um caderno",
+    "chooseFile": "Escolher um arquivo",
+    "dropHint": "Solte um arquivo .notebook aqui, ou escolha um.",
+    "notebookName": "Nome",
+    "preset": {
+      "everything": "O caderno todo",
+      "choose": "Parte dele"
+    },
+    "filter": "Filtrar por nome",
+    "notebookGuidance": "Orientação do caderno",
+    "expand": "Abrir",
+    "collapse": "Fechar",
+    "noteCount_zero": "{{count}} notas",
+    "noteCount_one": "{{count}} nota",
+    "noteCount_other": "{{count}} notas",
+    "willCreate": "Vai criar: 1 caderno · {{folders}} · {{templates}} · {{notes}}",
+    "danglingLinks_one": "1 link vai apontar para uma nota que ficou de fora.",
+    "danglingLinks_other": "{{count}} links vão apontar para notas que ficaram de fora.",
+    "importLeavePage": "Você pode sair desta página: a importação continua.",
+    "importDone_one": "“{{name}}” foi importado, com {{count}} nota.",
+    "importDone_other": "“{{name}}” foi importado, com {{count}} notas.",
+    "importKeptNothing": "Nada foi guardado: o caderno que ela tinha começado foi desfeito.",
+    "openNotebook": "Abrir o caderno",
+    "tryAgain": "Tentar de novo",
+    "refusal": {
+      "NOT_AN_ARCHIVE": "Esse arquivo não é um pacote .notebook.",
+      "NO_DOCUMENT": "Esse pacote não carrega nenhum documento de caderno.",
+      "BAD_FORMAT": "Esse documento de caderno não segue o formato que este produto lê.",
+      "UNREADABLE_VERSION": "Esse documento foi escrito numa versão do formato que esta build não lê.",
+      "TWIN_NAMES": "Essa seleção tem duas notas com o mesmo nome na mesma pasta, e uma pasta guarda uma nota de cada nome.",
+      "DANGLING_FOLDER": "Uma nota desse documento aponta para uma pasta que o documento não carrega.",
+      "CANCELLED": "A importação foi cancelada.",
+      "ALREADY_EXISTS": "Já existe um caderno com esse nome. Escolha outro nome e tente de novo.",
+      "LIMIT_EXCEEDED": "O espaço deste plano não comporta esse caderno.",
+      "UPLOAD": "Não foi possível enviar o arquivo. Tente de novo.",
+      "VALIDATION": "Esse documento foi recusado.",
+      "NOT_FOUND": "O envio não foi encontrado. Escolha o arquivo de novo.",
+      "INTERNAL": "Algo deu errado do nosso lado. Tente de novo."
+    },
+    "exportHeading": "Exportar caderno",
+    "withHistory": "Incluir a história",
+    "withHistoryHint": "Quem escreveu o quê e quando, e o conteúdo de cada versão anterior. O arquivo fica maior, e uma exportação guardada ocupa o armazenamento do seu plano. Apagar um caderno leva a história junto, então é isto que a preserva.",
+    "startExport": "Exportar",
+    "cancel": "Cancelar",
+    "history": "História do caderno",
+    "historyEntries_one": "{{count}} registro",
+    "historyEntries_other": "{{count}} registros",
+    "noHistory": "Este arquivo não traz história.",
+    "exportNotebook": "Caderno",
+    "tab": {
+      "context": "Contexto",
+      "folders": "Pastas",
+      "templates": "Modelos",
+      "notes": "Notas",
+      "conflicts": "Inconsistências",
+      "files": "Arquivos"
+    },
+    "noTemplate": "sem Modelo",
+    "wholeNotebook": "O caderno todo",
+    "wholeNotebookHint": "A Orientação, o Modelo de cada pasta, todas as notas e a história inteira — inclusive o registro do que foi apagado.",
+    "whatToCarry": {
+      "export": "O que vai no arquivo",
+      "import": "O que importar"
+    },
+    "thereIsNone": "não há",
+    "willCarry": "Vai no arquivo: {{folders}} · {{templates}} · {{notes}}",
+    "reach": {
+      "all": "Tudo",
+      "choose": "Escolher itens"
+    },
+    "carriedOf": "{{carried}} de {{held}}",
+    "needsFolders": "depende das pastas",
+    "everyFolderHere": "Todas as pastas do caderno estão aqui, porque Pastas está levando tudo.",
+    "onlyChosenFolders": "Só aparecem as pastas escolhidas na aba Pastas.",
+    "noFolderChosen": {
+      "folders": "Este caderno não tem pasta.",
+      "templates": "Nenhuma pasta escolhida. Escolha uma na aba Pastas para escolher Modelos aqui.",
+      "notes": "Nenhuma pasta escolhida. Escolha uma na aba Pastas para escolher notas aqui."
+    },
+    "pathFolder": "caminho",
+    "countFolders_zero": "{{count}} pastas",
+    "countFolders_one": "{{count}} pasta",
+    "countFolders_other": "{{count}} pastas",
+    "countTemplates_zero": "{{count}} Modelos",
+    "countTemplates_one": "{{count}} Modelo",
+    "countTemplates_other": "{{count}} Modelos",
+    "twinsBlock_one": "1 nome é carregado duas vezes na pasta dele.",
+    "twinsBlock_other": "{{count}} nomes são carregados duas vezes na pasta deles.",
+    "showTwins": "Ver o motivo",
+    "twinsWhy": "Uma pasta guarda uma nota de cada nome, então uma importação que traz duas com o mesmo nome é recusada inteira. Deixe uma de cada fora e a importação segue.",
+    "twinWhere_one": "Na pasta “{{folder}}” · {{count}} cópia",
+    "twinWhere_other": "Na pasta “{{folder}}” · {{count}} cópias",
+    "findTwin": "Achar nas notas",
+    "conflictsWhy": "Nada é importado enquanto houver algo aqui. Cada linha diz o que recusa, e a saída dela.",
+    "nameTakenTitle": "O nome “{{name}}” já está em uso",
+    "nameTakenWhy": "Você já tem um caderno com esse nome, e uma assinatura tem um caderno de cada nome. Escolha outro nome, ou apague aquele caderno e importe de novo.",
+    "nameTakenBlock": "O nome já é de um caderno seu.",
+    "changeName": "Mudar o nome",
+    "nothingImported": "Nada é importado até resolver.",
+    "countFiles_one": "{{count}} arquivo",
+    "countFiles_other": "{{count}} arquivos",
+    "countFiles_zero": "{{count}} arquivos",
+    "filesBelongToTheNotebook": "Um arquivo pertence ao caderno e não a uma pasta: deixar um de fora nunca deixa uma nota de fora junto, e qualquer nota que viaja pode referenciar qualquer um deles. O custo é um embed que cai pendente."
   },
   "graph": {
-    "heading": "Grafo do vault",
-    "navLabel": "Grafo do vault",
+    "heading": "Grafo do caderno",
+    "navLabel": "Grafo do caderno",
     "controls": "Controles",
     "openControls": "Abrir controles",
     "closeControls": "Fechar controles",
     "attributeNodes": "Adicionar",
     "hint": "Role para ampliar · arraste para mover · clique numa nota para abri-la, num atributo para fixar suas notas",
     "hintTouch": "Pince para ampliar · arraste para mover · toque numa nota para abri-la, num atributo para fixar suas notas",
-    "empty": "Este vault ainda não tem notas para desenhar.",
-    "truncated": "Mostrando as primeiras 2000 notas deste vault."
+    "empty": "Este caderno ainda não tem notas para desenhar.",
+    "truncated": "Mostrando as primeiras 2000 notas deste caderno."
   },
   "errors": {
     "validation": "Algo no que foi enviado não é aceito.",
@@ -170,5 +293,190 @@
     "unauthenticated": "Entre para continuar.",
     "offline": "O aplicativo não conseguiu falar com o servidor.",
     "unexpected": "Algo deu errado."
+  },
+  "environment": {
+    "production": "Produção",
+    "staging": "Staging",
+    "development": "Desenvolvimento",
+    "disposable": "O que é escrito neste ambiente é descartável."
+  },
+  "transfers": {
+    "heading": "Transferências",
+    "seeAll": "Ver todas",
+    "filter": "O que mostrar",
+    "filters": {
+      "all": "Todas",
+      "export": "Exportações",
+      "import": "Importações"
+    },
+    "empty": "Nada foi transferido ainda.",
+    "keptBytes": "Espaço usado: {{size}}",
+    "download": "Baixar",
+    "delete": "Apagar",
+    "deleteForGood": "Apagar de vez",
+    "deleteWarning": "Isto é definitivo. O caderno, se ainda existir, não é tocado.",
+    "notebookGone": "O caderno foi apagado depois desta exportação. Importá-la cria um caderno novo.",
+    "running": {
+      "export": "exportando · {{done}} de {{total}} notas",
+      "import": "importando · {{done}} de {{total}} notas"
+    },
+    "ended": {
+      "ready": "pronta",
+      "failed": "falhou",
+      "cancelled": "cancelada",
+      "running": "em andamento"
+    },
+    "newExport": "Nova exportação",
+    "newImport": "Importar um caderno",
+    "noNotebooks": "Ainda não há caderno para exportar.",
+    "line": {
+      "export": "Exportação · {{notebook}}",
+      "import": "Importação · {{notebook}}"
+    },
+    "wrote_one": "{{count}} nota escrita",
+    "wrote_other": "{{count}} notas escritas",
+    "wroteNothing": "o desenho, sem nota nenhuma",
+    "fromFile": "de {{file}}"
+  },
+  "about": {
+    "menu": "Sobre o MemorySmith.app",
+    "title": "Sobre o MemorySmith.app",
+    "heading": "Bem-vindo ao MemorySmith.app",
+    "lead": "Conhecimento estruturado, lido e escrito nativamente por pessoas e agentes.",
+    "what": {
+      "heading": "O que é isto",
+      "body": "O MemorySmith hospeda cadernos de notas escritas em Markdown. Um caderno tem pastas, uma pasta tem notas, e tudo o que você escreve aqui continua sendo texto puro que você lê sem depender de nós: cada nota guarda todo o seu histórico, e cada caderno pode ser exportado por inteiro a qualquer momento.",
+      "guidance": "O que torna um caderno daqui diferente é que ele diz como quer ser escrito. A Orientação declara para que o caderno serve e como escrever nele; cada pasta carrega uma descrição e um Modelo. Um agente lê os dois antes de escrever a primeira linha, e é isso que mantém um caderno coerente depois de cem notas, em vez de virar uma pasta de arquivos soltos."
+    },
+    "interface": {
+      "heading": "O que você encontra aqui",
+      "body": "Esta interface é uma ferramenta de leitura antes de ser de edição. Estas são as telas que ela oferece:",
+      "notebooks": {
+        "term": "Cadernos",
+        "definition": "A primeira tela lista todos, com quantas notas cada um tem e quando mudou pela última vez. Abrir um leva você de volta ao ponto onde parou de ler."
+      },
+      "folders": {
+        "term": "Pastas e notas",
+        "definition": "O painel lateral é a estrutura do caderno, na ordem que o próprio caderno declara. Uma nota mostra suas propriedades, seus links e o que aponta de volta para ela."
+      },
+      "guidance": {
+        "term": "Orientação e Modelos",
+        "definition": "Podem ser lidos em telas próprias, então você vê as regras que um agente está seguindo antes de ler o que ele escreveu."
+      },
+      "graph": {
+        "term": "Grafo",
+        "definition": "Cada nota como um ponto e cada link como uma linha, que é onde uma nota isolada, ou um grupo que ninguém conectou, fica visível."
+      },
+      "search": {
+        "term": "Busca",
+        "definition": "Nas notas de um caderno, pelo que elas dizem e pelas propriedades que declaram."
+      },
+      "transfers": {
+        "term": "Transferências",
+        "definition": "Exportar um caderno, ou importar um, pelo menu ao lado da sua foto. O que sai são arquivos Markdown em pastas, e nada além disso."
+      }
+    },
+    "connector": {
+      "heading": "Conectando seu assistente de IA",
+      "body": "Esta é a parte que vale fazer hoje. O MemorySmith responde a ferramentas de IA por um servidor MCP remoto, então o assistente não apenas lê seus cadernos: ele escreve neles, obedecendo à Orientação do caderno e ao Modelo de cada pasta. O endereço deste ambiente é:",
+      "claude": {
+        "heading": "No Claude",
+        "one": "Abra <b>Configurações</b> e depois <b>Conectores</b>.",
+        "two": "Escolha <b>Adicionar conector personalizado</b> e cole o endereço acima.",
+        "three": "O Claude abre uma tela de login; entre com esta mesma conta e autorize.",
+        "four": "Comece uma conversa e peça seus cadernos. O assistente vai listá-los."
+      },
+      "chatgpt": {
+        "heading": "No ChatGPT",
+        "one": "Abra <b>Configurações</b>, depois <b>Conectores</b>, e escolha adicionar um.",
+        "two": "Cole o endereço acima e autorize com esta mesma conta.",
+        "three": "Em uma conversa, habilite o conector e peça seus cadernos."
+      },
+      "sameAccount": "Seja qual for a ferramenta, entre com a mesma conta com que você está lendo isto: o assistente alcança exatamente os cadernos que você alcança, com exatamente as suas permissões, e cada mudança que ele faz fica registrada no seu nome."
+    },
+    "agent": {
+      "heading": "O que pedir primeiro",
+      "body": "Você não precisa construir nada aqui à mão. Peça ao assistente, com as suas palavras:",
+      "one": "“Crie um caderno no MemorySmith para minhas notas de leitura, com as pastas que fizerem sentido, e escreva a Orientação dele.”",
+      "two": "“Leia meu caderno e me diga o que está faltando nele.”",
+      "three": "“Escreva uma nota sobre o que acabamos de conversar, na pasta certa.”",
+      "skills": "O conector carrega métodos escritos para as tarefas que mais dão errado — desenhar um caderno do zero, escrever uma nota que este produto consegue ler — e um bom assistente os lê antes de começar. Você vai vê-lo fazer isso."
+    },
+    "start": "Começar a ler"
+  },
+  "profile": {
+    "menu": "Seu perfil",
+    "title": "Seu perfil",
+    "heading": "Seu perfil",
+    "pictureHeading": "Sua foto",
+    "source": {
+      "gravatar": "Gravatar",
+      "initials": "Suas iniciais",
+      "upload": "Uma foto sua"
+    },
+    "choosePicture": "Escolher uma foto…",
+    "pictureRefused": "Esse arquivo não pôde ser usado como foto. Escolha um PNG, um JPEG ou um WebP.",
+    "gravatarDiscloses": "O Gravatar busca sua foto em gravatar.com, que recebe o hash do seu e-mail e o endereço de quem está olhando a tela. Escolher suas iniciais encerra isso: elas são desenhadas aqui, e nada sai.",
+    "name": "Nome",
+    "email": "E-mail",
+    "emailReadOnly": "É com ele que você entra, e é para ele que vai cada mensagem. Não pode ser alterado aqui.",
+    "save": "Salvar",
+    "saved": "Salvo",
+    "failed": "Não foi possível salvar."
+  },
+  "password": {
+    "menu": "Trocar a senha",
+    "heading": "Trocar a senha",
+    "endsOtherSessions": "Trocar a senha encerra todas as outras sessões desta conta: qualquer outro dispositivo vai precisar entrar de novo. Esta aqui continua aberta.",
+    "current": "Senha atual",
+    "next": "Nova senha",
+    "again": "Nova senha, de novo",
+    "policy": "Pelo menos 12 caracteres, com uma letra maiúscula, uma minúscula e um dígito.",
+    "mismatch": "As duas não coincidem.",
+    "confirm": "Trocar a senha",
+    "working": "Trocando…",
+    "cancel": "Cancelar",
+    "done": "Sua senha foi trocada. Todas as outras sessões desta conta vão precisar entrar de novo.",
+    "back": "Voltar ao seu perfil",
+    "failed": "Não foi possível trocar a senha."
+  },
+  "editor": {
+    "edit": "Editar esta nota",
+    "read": "Voltar à leitura",
+    "area": "O Markdown desta nota",
+    "confirm": "Confirmar",
+    "cancel": "Cancelar",
+    "askHeading": "O que mudou?",
+    "messageLabel": "Uma linha sobre esta mudança",
+    "messagePlaceholder": "Corrigi a data da reunião",
+    "messageOptional": "Opcional. Vai para o histórico da nota, ao lado da data e do seu nome.",
+    "write": "Gravar",
+    "writing": "Gravando…",
+    "back": "Voltar ao texto",
+    "willBeNamed_one": "Esta nota hoje não tem nome. Ela vai se chamar “{{name}}”, e {{count}} link que esperava por esse nome passa a resolver.",
+    "willBeNamed_other": "Esta nota hoje não tem nome. Ela vai se chamar “{{name}}”, e {{count}} links que esperavam por esse nome passam a resolver.",
+    "willBeNamed_zero": "Esta nota hoje não tem nome. Ela vai se chamar “{{name}}”.",
+    "willBeUnnamed_zero": "Esta nota vai ficar SEM NOME. Ela continua aqui, continua sendo exibida e continua apontando para fora — e nenhum link vai conseguir alcançá-la.",
+    "willBeUnnamed_one": "Esta nota vai ficar SEM NOME. Ela continua aqui, continua sendo exibida e continua apontando para fora, e {{count}} link que aponta para ela hoje fica pendente.",
+    "willBeUnnamed_other": "Esta nota vai ficar SEM NOME. Ela continua aqui, continua sendo exibida e continua apontando para fora, e {{count}} links que apontam para ela hoje ficam pendentes.",
+    "willBeRenamed": "Isto renomeia a nota de “{{from}}” para “{{to}}”. {{losing}} links para o nome antigo ficam pendentes, e {{gaining}} links para o novo passam a resolver. Nada mais é reescrito.",
+    "keepAlias": "Manter “{{name}}” como alias, para os links continuarem chegando",
+    "conflict": "Outra pessoa gravou esta nota depois que você abriu. Leia de novo e refaça sua mudança.",
+    "failed": "Não foi possível gravar.",
+    "leaveWarning": "Você tem mudanças que ainda não gravou. Sair e perdê-las?"
+  },
+  "history": {
+    "heading": "Histórico desta nota",
+    "loading": "Lendo o histórico…",
+    "failed": "Não foi possível ler o histórico.",
+    "aPerson": "Pela interface",
+    "noMessage": "Nenhuma linha foi deixada sobre esta mudança.",
+    "kind": {
+      "NoteCreated": "Criada",
+      "NoteUpdated": "Gravada",
+      "NoteMoved": "Movida",
+      "NoteReordered": "Reordenada",
+      "NoteDeleted": "Excluída"
+    }
   }
 }

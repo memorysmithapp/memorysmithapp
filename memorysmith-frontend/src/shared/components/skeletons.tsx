@@ -10,10 +10,10 @@ import { SkeletonBar, SkeletonRegion, SkeletonText } from './Skeleton';
  * avoid, and so would six hand-rolled ones.
  */
 
-/** A vault card in the catalogue. */
-export function VaultCardSkeleton() {
+/** A notebook card in the catalogue. */
+export function NotebookCardSkeleton() {
   return (
-    <div className="vault-card vault-card-skeleton" aria-hidden="true">
+    <div className="notebook-card notebook-card-skeleton" aria-hidden="true">
       <SkeletonBar width="70%" height="1.4rem" />
       <SkeletonText lines={2} />
       <SkeletonBar width="55%" height="0.8rem" />
@@ -22,19 +22,23 @@ export function VaultCardSkeleton() {
 }
 
 /** The catalogue strip, which used to be simply empty while it loaded. */
-export function VaultCatalogueSkeleton({ cards = 3 }: { cards?: number }) {
+export function NotebookCatalogueSkeleton({ cards = 3 }: { cards?: number }) {
   return (
     <SkeletonRegion>
       <div className="card-row-skeleton">
         {Array.from({ length: cards }, (_, index) => (
-          <VaultCardSkeleton key={index} />
+          <NotebookCardSkeleton key={index} />
         ))}
       </div>
     </SkeletonRegion>
   );
 }
 
-/** The KPI tiles and the facet charts of the overview. */
+/**
+ * The four tiles of the overview, and nothing under them: a skeleton promises
+ * the shape of what is coming, so one that drew charts the screen no longer
+ * has would be a promise the page then breaks.
+ */
 export function DashboardSkeleton() {
   return (
     <SkeletonRegion>
@@ -43,19 +47,6 @@ export function DashboardSkeleton() {
           <div className="stat-tile" key={index}>
             <SkeletonBar width="3.5rem" height="2rem" />
             <SkeletonBar width="5rem" height="0.8rem" />
-          </div>
-        ))}
-      </div>
-      <div className="chart-row-skeleton">
-        {Array.from({ length: 3 }, (_, index) => (
-          <div className="chart-card" key={index}>
-            <SkeletonBar width="40%" height="1.1rem" />
-            {Array.from({ length: 4 }, (_, bar) => (
-              <div className="hbar-row" key={bar}>
-                <SkeletonBar width="5rem" height="0.8rem" />
-                <SkeletonBar height="0.7rem" />
-              </div>
-            ))}
           </div>
         ))}
       </div>
@@ -79,7 +70,7 @@ export function FolderTreeSkeleton() {
   );
 }
 
-/** A note: its title, its properties and its body. */
+/** A note: its name, its properties and its body. */
 export function NoteSkeleton() {
   return (
     <SkeletonRegion>

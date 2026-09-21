@@ -8,7 +8,7 @@
  *
  * With a fractional index each item stores a string key, and inserting between
  * "a0" and "a1" produces "a0V". Reordering is a SINGLE write on the moved
- * item, whatever the number of siblings (architecture-guide.md, section 6.4).
+ * item, whatever the number of siblings (architecture-guide.md, section 6.5).
  *
  * Ties, possible under concurrency, are broken by the ULID of the item, so the
  * ordering is never undefined. Keys longer than REBALANCE_THRESHOLD are a sign
@@ -24,7 +24,7 @@ const DIGITS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const SMALLEST_INTEGER = 'A00000000000000000000000000';
 const POSITION_PATTERN = /^[a-zA-Z][0-9A-Za-z]*$/;
 
-/** Above this length, a rebalance is due (architecture-guide.md, section 6.4). */
+/** Above this length, a rebalance is due (architecture-guide.md, section 6.5). */
 export const REBALANCE_THRESHOLD = 12;
 
 /**

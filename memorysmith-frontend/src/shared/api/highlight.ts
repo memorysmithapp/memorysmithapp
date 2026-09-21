@@ -26,7 +26,7 @@
  * front of that check would swallow a diagram.
  *
  * **The markup arrives as elements and never as an HTML string.** §7.9 refuses
- * raw HTML as a security boundary — a vault is written by several people and
+ * raw HTML as a security boundary — a notebook is written by several people and
  * by agents, and a page that renders arbitrary HTML out of one is a script
  * injection whose trigger is written by whoever wrote the note. A highlighter
  * returning HTML to be injected reopens that door with the note body as its
@@ -34,8 +34,8 @@
  * elements, so nothing is ever parsed as markup.
  *
  * **The languages are enumerated rather than bundled.** Prism carries close to
- * three hundred grammars and a knowledge vault writes in a handful. The list
- * is what a vault of this product plausibly holds — the languages of its own
+ * three hundred grammars and a knowledge notebook writes in a handful. The list
+ * is what a notebook of this product plausibly holds — the languages of its own
  * repository, the two query languages, the three configuration formats and the
  * two shells — and adding one is a line, which is the point: a bundle nobody
  * chose is a bundle nobody can defend.

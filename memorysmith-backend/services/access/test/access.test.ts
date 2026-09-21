@@ -13,7 +13,6 @@ import { Subscription } from '../src/domain/subscription/Subscription.js';
 import { Email, RejectionReason } from '../src/domain/values.js';
 import {
   InMemoryAccessDatabase,
-  InMemoryInviteRepository,
   InMemoryOnboarding,
   InMemoryPlatformAdmin,
   InMemorySubscriptionRepository,
@@ -26,13 +25,7 @@ import {
   SwitchActiveSubscription,
 } from '../src/application/onboarding.js';
 import { ListPlatformQueue, ReviewSubscription } from '../src/application/platform.js';
-import {
-  AcceptInvite,
-  ChangeMemberRole,
-  InviteMember,
-  RemoveMember,
-  TransferOwnership,
-} from '../src/application/members.js';
+import { ChangeMemberRole, RemoveMember, TransferOwnership } from '../src/application/members.js';
 import { ResolveRequestContext } from '../src/application/ResolveRequestContext.js';
 
 function unwrap<T>(result: Result<T, { message: string }>): T {
@@ -267,8 +260,8 @@ describe('Platform surface', () => {
       requestedAt: expect.any(String),
       memberCount: 0,
     });
-    // Nothing about vaults or content is even representable in this view.
-    expect(Object.keys(queue[0] ?? {})).not.toContain('vaults');
+    // Nothing about notebooks or content is even representable in this view.
+    expect(Object.keys(queue[0] ?? {})).not.toContain('notebooks');
   });
 
   it('answers 404 to a caller who is not a platform admin', async () => {
@@ -382,7 +375,7 @@ describe('Platform surface', () => {
   });
 });
 
-describe('Invites and members', () => {
+describe('Members', () => {
   async function activeSubscription() {
     const onboarding = new InMemoryOnboarding(db, events);
     const { subscriptionId } = unwrap(
@@ -405,151 +398,64 @@ describe('Invites and members', () => {
       subscriptionId,
       context,
       subscriptions: new InMemorySubscriptionRepository(context, db, events),
-      invites: new InMemoryInviteRepository(context, db, events),
       links: new InMemoryUserLinkRepository(db),
     };
   }
 
-  it('lets only the owner invite', async () => {
-    const { context, subscriptions, invites } = await activeSubscription();
+  /**
+   * A member written straight into the aggregate, with the link that reaches the
+   * subscription. No route makes a person a member of somebody else's
+   * subscription since the invitation left the API, so the cases of what an
+   * owner does to a member start from one.
+   */
+  async function withMember(
+    subscriptions: InMemorySubscriptionRepository,
+    links: InMemoryUserLinkRepository,
+    context: SubscriptionContext,
+  ) {
+    const subscription = await subscriptions.find();
+    if (!subscription) throw new Error('no subscription');
+    unwrap(
+      subscription.addMember(
+        invitee,
+        unwrap(Email.create('invitee@example.com')),
+        Role.EDITOR,
+        owner,
+        Authorship.byHuman(owner),
+      ),
+    );
+    unwrap(await subscriptions.save(subscription));
+    await links.link({
+      userId: invitee,
+      subscriptionId: context.subscriptionId,
+      isOwner: false,
+      isDefault: true,
+      joinedAt: Instant.now().toISOString(),
+    });
+  }
+
+  it('lets only the owner change a role', async () => {
+    const { context, subscriptions, links } = await activeSubscription();
+    await withMember(subscriptions, links, context);
 
     const asMember = contextOf(context.subscriptionId, invitee);
-    const refused = await new InviteMember(
+    const refused = await new ChangeMemberRole(
       new InMemorySubscriptionRepository(asMember, db, events),
-      invites,
     ).execute({
       context: asMember,
-      email: 'outro@example.com',
-      role: 'EDITOR',
+      userId: invitee,
+      role: 'VIEWER',
       by: Authorship.byHuman(invitee),
     });
     const error = expectErr(refused);
     expect(error.code).toBe('FORBIDDEN');
     // The member sees the subscription they belong to, so this is a real 403.
     expect(error.revealsExistence).toBe(true);
-
-    unwrap(
-      await new InviteMember(subscriptions, invites).execute({
-        context,
-        email: 'invitee@example.com',
-        role: 'EDITOR',
-        by: Authorship.byHuman(owner),
-      }),
-    );
-  });
-
-  it('turns an invite into a membership of the subscription and a link', async () => {
-    const { context, subscriptions, invites, links } = await activeSubscription();
-
-    const issued = unwrap(
-      await new InviteMember(subscriptions, invites).execute({
-        context,
-        email: 'invitee@example.com',
-        role: 'EDITOR',
-        by: Authorship.byHuman(owner),
-      }),
-    );
-    // A pending invite grants no access at all (RN-ACC-004).
-    expect((await subscriptions.find())?.hasMember(invitee)).toBe(false);
-
-    const accepted = unwrap(
-      await new AcceptInvite(invites, subscriptions, links).execute({
-        profile: profileOf(invitee, 'invitee@example.com'),
-        token: issued.token.value,
-        by: Authorship.byHuman(invitee),
-      }),
-    );
-    expect(accepted.role).toBe('EDITOR');
-    expect((await subscriptions.find())?.memberRole(invitee)).toBe(Role.EDITOR);
-
-    // Accepting does not create a subscription for the invitee (RN-SUB-017).
-    const inviteeLinks = await links.linksOf(invitee);
-    expect(inviteeLinks).toHaveLength(1);
-    expect(inviteeLinks[0]?.isOwner).toBe(false);
-  });
-
-  it('refuses an invite accepted from another e-mail address', async () => {
-    const { context, subscriptions, invites, links } = await activeSubscription();
-    const issued = unwrap(
-      await new InviteMember(subscriptions, invites).execute({
-        context,
-        email: 'invitee@example.com',
-        role: 'VIEWER',
-        by: Authorship.byHuman(owner),
-      }),
-    );
-
-    const wrongPerson = await new AcceptInvite(invites, subscriptions, links).execute({
-      profile: profileOf(invitee, 'someone-else@example.com'),
-      token: issued.token.value,
-      by: Authorship.byHuman(invitee),
-    });
-    expect(expectErr(wrongPerson).code).toBe('FORBIDDEN');
-  });
-
-  it('expires an invite after seven days', async () => {
-    const { context, subscriptions, invites, links } = await activeSubscription();
-    const sentAt = unwrap(Instant.fromISO('2026-03-01T10:00:00.000Z'));
-    const issued = unwrap(
-      await new InviteMember(subscriptions, invites).execute({
-        context,
-        email: 'invitee@example.com',
-        role: 'VIEWER',
-        by: Authorship.byHuman(owner, sentAt),
-      }),
-    );
-
-    const tooLate = unwrap(Instant.fromISO('2026-03-09T10:00:00.000Z'));
-    const refused = await new AcceptInvite(invites, subscriptions, links).execute({
-      profile: profileOf(invitee, 'invitee@example.com'),
-      token: issued.token.value,
-      by: Authorship.byHuman(invitee, tooLate),
-    });
-    expect(expectErr(refused).message).toContain('expired');
-  });
-
-  it('refuses a second invite to an e-mail that is already a member', async () => {
-    // RN-ACC-003: the e-mail is unique among the members of a SUBSCRIPTION,
-    // which used to mean "of a workspace".
-    const { context, subscriptions, invites, links } = await activeSubscription();
-    const issued = unwrap(
-      await new InviteMember(subscriptions, invites).execute({
-        context,
-        email: 'invitee@example.com',
-        role: 'EDITOR',
-        by: Authorship.byHuman(owner),
-      }),
-    );
-    await new AcceptInvite(invites, subscriptions, links).execute({
-      profile: profileOf(invitee, 'invitee@example.com'),
-      token: issued.token.value,
-      by: Authorship.byHuman(invitee),
-    });
-
-    const again = await new InviteMember(subscriptions, invites).execute({
-      context,
-      email: 'invitee@example.com',
-      role: 'VIEWER',
-      by: Authorship.byHuman(owner),
-    });
-    expect(expectErr(again).code).toBe('CONFLICT');
   });
 
   it('changes a role and removes a member', async () => {
-    const { context, subscriptions, invites, links } = await activeSubscription();
-    const issued = unwrap(
-      await new InviteMember(subscriptions, invites).execute({
-        context,
-        email: 'invitee@example.com',
-        role: 'EDITOR',
-        by: Authorship.byHuman(owner),
-      }),
-    );
-    await new AcceptInvite(invites, subscriptions, links).execute({
-      profile: profileOf(invitee, 'invitee@example.com'),
-      token: issued.token.value,
-      by: Authorship.byHuman(invitee),
-    });
+    const { context, subscriptions, links } = await activeSubscription();
+    await withMember(subscriptions, links, context);
 
     unwrap(
       await new ChangeMemberRole(subscriptions).execute({
@@ -584,20 +490,8 @@ describe('Invites and members', () => {
   });
 
   it('transfers ownership atomically, demoting the previous holder', async () => {
-    const { context, subscriptions, invites, links } = await activeSubscription();
-    const issued = unwrap(
-      await new InviteMember(subscriptions, invites).execute({
-        context,
-        email: 'invitee@example.com',
-        role: 'EDITOR',
-        by: Authorship.byHuman(owner),
-      }),
-    );
-    await new AcceptInvite(invites, subscriptions, links).execute({
-      profile: profileOf(invitee, 'invitee@example.com'),
-      token: issued.token.value,
-      by: Authorship.byHuman(invitee),
-    });
+    const { context, subscriptions, links } = await activeSubscription();
+    await withMember(subscriptions, links, context);
 
     unwrap(
       await new TransferOwnership(subscriptions, links).execute({

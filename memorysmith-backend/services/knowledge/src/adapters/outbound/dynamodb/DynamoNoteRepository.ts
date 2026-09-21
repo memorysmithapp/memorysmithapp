@@ -4,28 +4,36 @@
  *
  * One TransactWriteItems carries:
  *   1. the NOTE item with ConditionExpression version = :expected, so the lock
- *      is on the item itself;
- *   2. a ConditionCheck with attribute_exists on the destination FOLDER item
- *      and, on a cross-vault move, on the destination META item too;
- *   3. the NSLUG guard, put or deleted as the slug enters or leaves the vault;
- *   4. the event, into the outbox.
+ *      is on the item itself (a move between notebooks deletes the item it
+ *      moves from, under the same lock);
+ *   2. the event, into the outbox.
  *
- * NO NOTE TRANSACTION EVER WRITES TO THE META ITEM (PE8). That single rule,
- * and not the aggregate split by itself, is what keeps the hot path free of
- * contention: META is one item, and an agent writing fifty notes in a row
- * would turn it into the bottleneck of the entire vault.
+ * NO NOTE TRANSACTION INCLUDES AN ITEM ANOTHER NOTE TRANSACTION INCLUDES (PE8).
+ * DynamoDB cancels a transaction when any item of it is part of another
+ * transaction in flight, and a ConditionCheck makes an item part of it just as
+ * a write does. So neither the META item of the notebook nor the FOLDER item a
+ * note is written into belongs in the transaction: fifty notes written into one
+ * folder at once would all include it, and all but one would be cancelled.
+ * Whether the folder and the notebook exist is read by the use case before the
+ * write, and a read never conflicts with a transaction.
+ *
+ * A third write appears only when the NAME moves: the guard of the folder it is
+ * held in (RN-KNW-042). A folder holds one live note of each name, so the guard
+ * is claimed with attribute_not_exists when a name arrives and released when it
+ * leaves — on a rename, a move or a delete. It keeps PE8: the only two note
+ * transactions that share a guard are two writes of one name into one folder,
+ * which are exactly the pair that must collide.
  */
 
 import {
   ConcurrencyError,
+  FolderId,
   NoteId,
   ok,
   Position,
-  type FolderId,
   type Result,
-  type Slug,
   type SubscriptionContext,
-  type VaultId,
+  type NotebookId,
 } from '@memorysmith/kernel';
 import type { DynamoDBDocumentClient, TransactWriteCommandInput } from '@aws-sdk/lib-dynamodb';
 import { GetCommand, QueryCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
@@ -33,16 +41,25 @@ import type { Note } from '../../../domain/note/Note.js';
 import type { NoteOrder } from '../../../domain/services/NotePlacement.js';
 import type { NoteRepository } from '../../../domain/ports/index.js';
 import { KnowledgeKeys } from './keys.js';
-import { isTransactionCanceled } from './DynamoVaultRepository.js';
+import { isTransactionCanceled } from './DynamoNotebookRepository.js';
 import { noteItem, outboxItem, parseNote, unwrapOrThrow, type Item } from './items.js';
 
 type TransactItem = NonNullable<TransactWriteCommandInput['TransactItems']>[number];
 
 interface NoteSnapshot {
   version: number;
-  slug: string;
-  vaultId: string;
+  notebookId: string;
   deleted: boolean;
+  /** Where the name was held when the note was loaded, if it held one. */
+  folderId: string;
+  name: string | null;
+}
+
+/** The refusal of RN-KNW-042, which the use case turns into its answer. */
+export function nameTaken(): ConcurrencyError {
+  return new ConcurrencyError('A note of this folder already carries this name', {
+    code: 'ALREADY_EXISTS',
+  });
 }
 
 export class DynamoNoteRepository implements NoteRepository {
@@ -57,11 +74,14 @@ export class DynamoNoteRepository implements NoteRepository {
     this.keys = new KnowledgeKeys(sub.subscriptionId);
   }
 
-  async findById(vault: VaultId, id: NoteId): Promise<Note | null> {
+  async findById(notebook: NotebookId, id: NoteId): Promise<Note | null> {
     const response = await this.db.send(
       new GetCommand({
         TableName: this.tableName,
-        Key: { PK: this.keys.vault(vault), SK: this.keys.note(id) },
+        Key: { PK: this.keys.notebook(notebook), SK: this.keys.note(id) },
+        // A note written a moment ago anchors the next placement, and its
+        // version is what the next write is locked on: neither may be stale.
+        ConsistentRead: true,
       }),
     );
     if (!response.Item) return null;
@@ -70,21 +90,20 @@ export class DynamoNoteRepository implements NoteRepository {
     return note;
   }
 
-  /** Resolves through the NSLUG guard, which is the index of slug to note. */
-  async findBySlug(vault: VaultId, slug: Slug): Promise<Note | null> {
-    const guard = await this.db.send(
+  async findByName(notebook: NotebookId, folder: FolderId, name: string): Promise<NoteId | null> {
+    const response = await this.db.send(
       new GetCommand({
         TableName: this.tableName,
-        Key: { PK: this.keys.vault(vault), SK: this.keys.noteSlugGuard(slug.value) },
+        Key: { PK: this.keys.notebook(notebook), SK: this.keys.noteNameGuard(folder, name) },
+        ConsistentRead: true,
       }),
     );
-    const noteId = guard.Item?.['noteId'];
-    if (!noteId) return null;
-    return this.findById(vault, unwrapOrThrow(NoteId.create(String(noteId))));
+    const holder = response.Item?.['noteId'];
+    return holder ? unwrapOrThrow(NoteId.create(String(holder))) : null;
   }
 
   /** GSI2 already returns the notes of a folder IN THE DEFINED ORDER. */
-  async listByFolder(_vault: VaultId, folder: FolderId): Promise<Note[]> {
+  async listByFolder(_notebook: NotebookId, folder: FolderId): Promise<Note[]> {
     const response = await this.db.send(
       new QueryCommand({
         TableName: this.tableName,
@@ -98,21 +117,38 @@ export class DynamoNoteRepository implements NoteRepository {
     );
   }
 
-  async listByVault(vault: VaultId): Promise<Note[]> {
-    const response = await this.db.send(
-      new QueryCommand({
-        TableName: this.tableName,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-        ExpressionAttributeValues: { ':pk': this.keys.vault(vault), ':prefix': 'NOTE#' },
-      }),
-    );
-    return ((response.Items ?? []) as Item[])
-      .map((item) => parseNote(item, this.sub.subscriptionId))
-      .filter((note) => !note.isDeleted);
+  async listByNotebook(notebook: NotebookId): Promise<Note[]> {
+    return (await this.everyNoteOf(notebook, false)).filter((note) => !note.isDeleted);
+  }
+
+  /**
+   * Every note item of the notebook, page after page. A notebook of thousands of notes
+   * does not fit in the one megabyte a Query answers, and a listing that stopped
+   * at the first page used to say nothing about the rest.
+   */
+  private async everyNoteOf(notebook: NotebookId, consistent: boolean): Promise<Note[]> {
+    const notes: Note[] = [];
+    let startKey: Record<string, unknown> | undefined;
+    do {
+      const response = await this.db.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+          ExpressionAttributeValues: { ':pk': this.keys.notebook(notebook), ':prefix': 'NOTE#' },
+          ConsistentRead: consistent,
+          ...(startKey ? { ExclusiveStartKey: startKey } : {}),
+        }),
+      );
+      for (const item of (response.Items ?? []) as Item[]) {
+        notes.push(parseNote(item, this.sub.subscriptionId));
+      }
+      startKey = response.LastEvaluatedKey;
+    } while (startKey);
+    return notes;
   }
 
   /** Identity and order key only: all a placement decision needs. */
-  async siblingOrder(_vault: VaultId, folder: FolderId): Promise<NoteOrder[]> {
+  async siblingOrder(_notebook: NotebookId, folder: FolderId): Promise<NoteOrder[]> {
     const response = await this.db.send(
       new QueryCommand({
         TableName: this.tableName,
@@ -131,27 +167,34 @@ export class DynamoNoteRepository implements NoteRepository {
 
   async save(note: Note): Promise<Result<void, ConcurrencyError>> {
     const snapshot = this.snapshots.get(note.id.value);
-    const items = this.writesFor(note, snapshot);
-    return this.commit(note, items);
+    const before = snapshot ? this.heldGuard(snapshot) : null;
+    const after = this.guardOf(note);
+    const guards =
+      before?.sk === after?.sk && before?.pk === after?.pk
+        ? []
+        : [
+            ...(before ? [this.release(note, before)] : []),
+            ...(after ? [this.claim(note, after)] : []),
+          ];
+    return this.commit(note, [this.noteWrite(note, snapshot), ...guards]);
   }
 
   /**
-   * The cross-vault move: the only operation that writes into two vault
-   * partitions in one transaction (section 9.2). It does not lock either
-   * vault, since the tree does not change; existence ConditionChecks are
-   * enough. Forgetting the origin slug guard would pin that slug in the origin
-   * vault forever.
+   * The cross-notebook move: the only operation that writes into two notebook
+   * partitions in one transaction (section 9.2). Both items are the note's own,
+   * the one it leaves and the one it becomes, so it locks no notebook and
+   * includes nothing another note transaction could include.
    */
   async saveMoved(
     note: Note,
-    from: { vaultId: VaultId; slug: Slug },
+    from: { notebookId: NotebookId },
   ): Promise<Result<void, ConcurrencyError>> {
     const snapshot = this.snapshots.get(note.id.value);
     const items: TransactItem[] = [
       {
         Delete: {
           TableName: this.tableName,
-          Key: { PK: this.keys.vault(from.vaultId), SK: this.keys.note(note.id) },
+          Key: { PK: this.keys.notebook(from.notebookId), SK: this.keys.note(note.id) },
           ...(snapshot
             ? {
                 ConditionExpression: 'version = :expected',
@@ -160,38 +203,77 @@ export class DynamoNoteRepository implements NoteRepository {
             : {}),
         },
       },
-      {
-        Delete: {
-          TableName: this.tableName,
-          Key: {
-            PK: this.keys.vault(from.vaultId),
-            SK: this.keys.noteSlugGuard(from.slug.value),
-          },
-        },
-      },
-      // The destination vault must exist at the instant of the write.
-      {
-        ConditionCheck: {
-          TableName: this.tableName,
-          Key: { PK: this.keys.vault(note.vaultId), SK: 'META' },
-          ConditionExpression: 'attribute_exists(PK)',
-        },
-      },
-      ...this.writesFor(note, undefined),
+      this.noteWrite(note, undefined),
     ];
+    // The name leaves the folder of the source notebook and arrives in the
+    // folder of the destination: two partitions, so never the same guard.
+    const before = snapshot ? this.heldGuard(snapshot) : null;
+    const after = this.guardOf(note);
+    if (before) items.push(this.release(note, before));
+    if (after) items.push(this.claim(note, after));
     return this.commit(note, items);
   }
 
-  private writesFor(note: Note, snapshot: NoteSnapshot | undefined): TransactItem[] {
-    const pk = this.keys.vault(note.vaultId);
-    const items: TransactItem[] = [];
+  /** The guard a note holds as it is now: none when deleted or unnamed. */
+  private guardOf(note: Note): { pk: string; sk: string } | null {
+    if (note.isDeleted || note.name === null) return null;
+    return {
+      pk: this.keys.notebook(note.notebookId),
+      sk: this.keys.noteNameGuard(note.folderId, note.name),
+    };
+  }
 
-    // 1. The note item, locked on its own version.
-    items.push({
+  /** The guard a note held when it was loaded. */
+  private heldGuard(snapshot: NoteSnapshot): { pk: string; sk: string } | null {
+    if (snapshot.deleted || snapshot.name === null) return null;
+    const folderId = unwrapOrThrow(FolderId.create(snapshot.folderId));
+    return {
+      pk: `S#${this.sub.subscriptionId.value}#NOTEBOOK#${snapshot.notebookId}`,
+      sk: this.keys.noteNameGuard(folderId, snapshot.name),
+    };
+  }
+
+  private claim(note: Note, guard: { pk: string; sk: string }): TransactItem {
+    return {
+      Put: {
+        TableName: this.tableName,
+        Item: {
+          PK: guard.pk,
+          SK: guard.sk,
+          entity: 'NAME',
+          noteId: note.id.value,
+          folderId: note.folderId.value,
+        },
+        // A second live note of this name in this folder is the one thing this
+        // item exists to refuse (RN-KNW-042).
+        ConditionExpression: 'attribute_not_exists(SK)',
+      },
+    };
+  }
+
+  /**
+   * Releases a guard only if THIS note holds it. A guard that is missing is
+   * released too, which is the state of a note written before the guard
+   * existed; one held by another note is never freed from here.
+   */
+  private release(note: Note, guard: { pk: string; sk: string }): TransactItem {
+    return {
+      Delete: {
+        TableName: this.tableName,
+        Key: { PK: guard.pk, SK: guard.sk },
+        ConditionExpression: 'attribute_not_exists(SK) OR noteId = :me',
+        ExpressionAttributeValues: { ':me': note.id.value },
+      },
+    };
+  }
+
+  /** The note item, locked on its own version. */
+  private noteWrite(note: Note, snapshot: NoteSnapshot | undefined): TransactItem {
+    return {
       Put: {
         TableName: this.tableName,
         Item: noteItem(note, {
-          pk,
+          pk: this.keys.notebook(note.notebookId),
           sk: this.keys.note(note.id),
           gsi2pk: this.keys.folderPartition(note.folderId),
           gsi2sk: this.keys.gsi2Note(note.position, note.id),
@@ -203,56 +285,12 @@ export class DynamoNoteRepository implements NoteRepository {
             }
           : { ConditionExpression: 'attribute_not_exists(SK)' }),
       },
-    });
-
-    // 2. The destination folder must exist, checked WITHOUT writing to it.
-    items.push({
-      ConditionCheck: {
-        TableName: this.tableName,
-        Key: { PK: pk, SK: this.keys.folder(note.folderId) },
-        ConditionExpression: 'attribute_exists(SK)',
-      },
-    });
-
-    // 3. The slug guard enters or leaves the vault with the note.
-    const previousSlug = snapshot?.slug;
-    if (note.isDeleted) {
-      // Deleting releases the slug back to the vault (RN-KNW-030).
-      items.push({
-        Delete: {
-          TableName: this.tableName,
-          Key: { PK: pk, SK: this.keys.noteSlugGuard(note.slug.value) },
-        },
-      });
-    } else if (!snapshot || snapshot.deleted || previousSlug !== note.slug.value) {
-      items.push({
-        Put: {
-          TableName: this.tableName,
-          Item: {
-            PK: pk,
-            SK: this.keys.noteSlugGuard(note.slug.value),
-            entity: 'NSLUG',
-            noteId: note.id.value,
-          },
-          ConditionExpression: 'attribute_not_exists(SK)',
-        },
-      });
-      if (previousSlug && previousSlug !== note.slug.value) {
-        items.push({
-          Delete: {
-            TableName: this.tableName,
-            Key: { PK: pk, SK: this.keys.noteSlugGuard(previousSlug) },
-          },
-        });
-      }
-    }
-
-    return items;
+    };
   }
 
   private async commit(note: Note, items: TransactItem[]): Promise<Result<void, ConcurrencyError>> {
-    const pk = this.keys.vault(note.vaultId);
-    // 4. The event, into the outbox, in the same transaction.
+    const pk = this.keys.notebook(note.notebookId);
+    // The event, into the outbox, in the same transaction.
     const events = note.pullEvents();
     const all = [
       ...items,
@@ -271,8 +309,17 @@ export class DynamoNoteRepository implements NoteRepository {
         }),
       );
     } catch (error) {
-      if (isTransactionCanceled(error)) return { ok: false, error: new ConcurrencyError() };
-      throw error;
+      if (!isTransactionCanceled(error)) throw error;
+      // Which item refused says which refusal this is: a claimed guard is a
+      // taken name, which no retry changes; anything else is a lost lock.
+      const reasons = (error as { CancellationReasons?: Array<{ Code?: string }> })
+        .CancellationReasons;
+      const claimRefused = (reasons ?? []).some(
+        (reason, index) =>
+          reason?.Code === 'ConditionalCheckFailed' &&
+          (all[index] as { Put?: { Item?: Item } }).Put?.Item?.['entity'] === 'NAME',
+      );
+      return { ok: false, error: claimRefused ? nameTaken() : new ConcurrencyError() };
     }
     note.markPersisted();
     this.remember(note);
@@ -282,9 +329,10 @@ export class DynamoNoteRepository implements NoteRepository {
   private remember(note: Note): void {
     this.snapshots.set(note.id.value, {
       version: note.version,
-      slug: note.slug.value,
-      vaultId: note.vaultId.value,
+      notebookId: note.notebookId.value,
       deleted: note.isDeleted,
+      folderId: note.folderId.value,
+      name: note.name,
     });
   }
 }

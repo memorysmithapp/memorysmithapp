@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { resolveNoteUrl } from '../api/source';
-import { slugify } from '../api/markdown';
+import { DRAWN_RESERVED_KEYS, NAME_KEY } from '@memorysmith/contracts';
+import { wikilinkUrl } from '../api/source';
 
-// Frontmatter values are vault content, so they may carry [[wikilinks]],
+// Frontmatter values are notebook content, so they may carry [[wikilinks]],
 // markdown links and raw URLs. This renderer makes them navigable without
 // interpreting anything else.
 const TOKEN =
@@ -12,36 +12,69 @@ const TOKEN =
 
 interface PropertyValueProps {
   value: string;
-  /** The vault wrote this one as a list, so it is drawn as chips. */
+  /** The notebook wrote this one as a list, so it is drawn as chips. */
   list: boolean;
-  vaultSlug: string;
+  notebookId: string;
 }
 
 /**
  * Which icon names the property, by the shape of its value and never by its
  * key. It is the same reading the facet projector does (FacetExtractor.ts):
- * the vocabulary of a vault belongs to its Guidance, so a list of blessed key
+ * the vocabulary of a notebook belongs to its Guidance, so a list of blessed key
  * names here would be this layer deciding what `status` means.
  */
 /**
- * The four keys the profile reserves, always written in en-US (RN-DSC-030).
- * The list is here because this is the layer allowed to know it: the backend
- * classifies every attribute by shape and knows no key at all.
+ * The keys the specification reserves, minus the one that names the note:
+ * `name` is drawn as the name and never as a property, because a note is not
+ * a category of itself (RN-DSC-050, RN-DSC-051).
+ *
+ * The list is not written here. It is derived from the specification, in the
+ * contracts package, so this file cannot drift from the extractor or from the
+ * notation the product reads — which is what it did while three copies of it
+ * existed (RN-DSC-030).
  */
-const RESERVED = ['aliases', 'tags', 'created', 'updated'] as const;
+const RESERVED = DRAWN_RESERVED_KEYS;
 
 /**
  * How a property is LABELLED. The reserved keys may be shown translated; every
  * other attribute keeps the name whoever wrote the note gave it, in whatever
  * language they gave it.
  *
- * The translation stops at the label and never reaches the bytes. A vault
+ * The translation stops at the label and never reaches the bytes. A notebook
  * written in Portuguese still stores `created`, still exports `created`, and
  * still answers `created:2026-09` in the search — the word on screen is the
  * only thing that changes, which is the same line PP4 draws everywhere else.
  */
 export function propertyLabel(key: string, t: (key: string) => string): string {
-  return (RESERVED as readonly string[]).includes(key) ? t(`reserved.${key}`) : key;
+  return RESERVED.includes(key) ? t(`reserved.${key}`) : key;
+}
+
+/**
+ * The properties in the order they are drawn: the reserved keys first, in the
+ * order the specification declares them, and then the vocabulary of the notebook
+ * in the order the note wrote it (RN-DSC-051).
+ *
+ * That is the honest shape of the block. The first group is the same in every
+ * notebook of every language and is what the product can say something about; the
+ * second belongs to the Guidance, and the product knows nothing about it
+ * beyond the shape of its value. Drawing them shuffled together, which is what
+ * the written order did, asked the reader to know which was which.
+ */
+export function orderedProperties(
+  entries: ReadonlyArray<readonly [string, string]>,
+): Array<readonly [string, string]> {
+  const rank = (key: string): number => {
+    const at = RESERVED.indexOf(key);
+    return at === -1 ? RESERVED.length : at;
+  };
+  return entries
+    .filter(([key]) => key !== NAME_KEY)
+    .map((entry, index) => ({ entry, index }))
+    .sort((left, right) => {
+      const byGroup = rank(left.entry[0]) - rank(right.entry[0]);
+      return byGroup !== 0 ? byGroup : left.index - right.index;
+    })
+    .map(({ entry }) => entry);
 }
 
 export function propertyType(value: string, list: boolean): 'list' | 'date' | 'checkbox' | 'text' {
@@ -51,7 +84,7 @@ export function propertyType(value: string, list: boolean): 'list' | 'date' | 'c
   return 'text';
 }
 
-function renderRich(value: string, vaultSlug: string, pendingHint: string): ReactNode[] {
+function renderRich(value: string, notebookId: string, pendingHint: string): ReactNode[] {
   const parts: ReactNode[] = [];
   let cursor = 0;
   let key = 0;
@@ -63,7 +96,7 @@ function renderRich(value: string, vaultSlug: string, pendingHint: string): Reac
     if (wikiTarget) {
       const label = (wikiLabel ?? wikiTarget).trim();
       const target = wikiTarget.split('#')[0]?.trim() ?? '';
-      const url = target ? resolveNoteUrl(vaultSlug, slugify(target)) : null;
+      const url = target ? wikilinkUrl(notebookId, target.normalize('NFC')) : null;
       parts.push(
         url ? (
           <Link key={key++} className="wikilink" to={url}>
@@ -94,7 +127,7 @@ function renderRich(value: string, vaultSlug: string, pendingHint: string): Reac
   return parts;
 }
 
-export function PropertyValue({ value, list, vaultSlug }: PropertyValueProps) {
+export function PropertyValue({ value, list, notebookId }: PropertyValueProps) {
   const { t } = useTranslation();
 
   if (list) {
@@ -112,5 +145,5 @@ export function PropertyValue({ value, list, vaultSlug }: PropertyValueProps) {
     );
   }
 
-  return <>{renderRich(value, vaultSlug, t('note.pendingLink'))}</>;
+  return <>{renderRich(value, notebookId, t('note.pendingLink'))}</>;
 }

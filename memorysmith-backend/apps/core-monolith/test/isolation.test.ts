@@ -64,19 +64,19 @@ async function onboard(
   return subscriptionId;
 }
 
-async function createVault(app: App, token: string, name: string): Promise<string> {
-  const created = await app.app.request('/knowledge/vaults', {
+async function createNotebook(app: App, token: string, name: string): Promise<string> {
+  const created = await app.app.request('/knowledge/notebooks', {
     method: 'POST',
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
     body: JSON.stringify({ name, description: 'Base de normas' }),
   });
   expect(created.status).toBe(201);
-  const { vaultId } = (await created.json()) as { vaultId: string };
-  return vaultId;
+  const { notebookId } = (await created.json()) as { notebookId: string };
+  return notebookId;
 }
 
 describe('Isolation between subscriptions', () => {
-  it('answers 404, not 403, for a vault of another subscription', async () => {
+  it('answers 404, not 403, for a notebook of another subscription', async () => {
     await onboard(harness, {
       token: 'token-a',
       sub: 'user-a',
@@ -88,13 +88,13 @@ describe('Isolation between subscriptions', () => {
       email: 'b@example.com',
     });
 
-    const vaultOfB = await createVault(harness, 'token-b', 'Normas de B');
+    const notebookOfB = await createNotebook(harness, 'token-b', 'Normas de B');
 
-    const attempt = await harness.app.request(`/knowledge/vaults/${vaultOfB}`, {
+    const attempt = await harness.app.request(`/knowledge/notebooks/${notebookOfB}`, {
       headers: { authorization: 'Bearer token-a' },
     });
 
-    // Indistinguishable from a vault that does not exist (RN-SUB-004): a 403
+    // Indistinguishable from a notebook that does not exist (RN-SUB-004): a 403
     // would confirm the existence of something A must not know about.
     expect(attempt.status).toBe(404);
     expect(attempt.status).not.toBe(403);
@@ -102,7 +102,7 @@ describe('Isolation between subscriptions', () => {
     expect(body.code).toBe('NOT_FOUND');
   });
 
-  it('never lists a vault of another subscription', async () => {
+  it('never lists a notebook of another subscription', async () => {
     await onboard(harness, {
       token: 'token-a',
       sub: 'user-a',
@@ -113,17 +113,17 @@ describe('Isolation between subscriptions', () => {
       sub: 'user-b',
       email: 'b@example.com',
     });
-    await createVault(harness, 'token-b', 'Normas de B');
-    await createVault(harness, 'token-a', 'Normas de A');
+    await createNotebook(harness, 'token-b', 'Normas de B');
+    await createNotebook(harness, 'token-a', 'Normas de A');
 
-    const listed = await harness.app.request('/knowledge/vaults', {
+    const listed = await harness.app.request('/knowledge/notebooks', {
       headers: { authorization: 'Bearer token-a' },
     });
-    const vaults = (await listed.json()) as Array<{ name: string }>;
-    expect(vaults.map((vault) => vault.name)).toEqual(['Normas de A']);
+    const notebooks = (await listed.json()) as Array<{ name: string }>;
+    expect(notebooks.map((notebook) => notebook.name)).toEqual(['Normas de A']);
   });
 
-  it('refuses to write into a vault of another subscription', async () => {
+  it('refuses to write into a notebook of another subscription', async () => {
     await onboard(harness, {
       token: 'token-a',
       sub: 'user-a',
@@ -134,9 +134,9 @@ describe('Isolation between subscriptions', () => {
       sub: 'user-b',
       email: 'b@example.com',
     });
-    const vaultOfB = await createVault(harness, 'token-b', 'Normas de B');
+    const notebookOfB = await createNotebook(harness, 'token-b', 'Normas de B');
 
-    const attempt = await harness.app.request(`/knowledge/vaults/${vaultOfB}/folders`, {
+    const attempt = await harness.app.request(`/knowledge/notebooks/${notebookOfB}/folders`, {
       method: 'POST',
       headers: { authorization: 'Bearer token-a', 'content-type': 'application/json' },
       body: JSON.stringify({ name: 'Injetada', description: 'nao deveria existir' }),
@@ -162,7 +162,7 @@ describe('The platform session reaches no content', () => {
       sub: 'user-a',
       email: 'a@example.com',
     });
-    const vaultOfA = await createVault(harness, 'token-a', 'Normas de A');
+    const notebookOfA = await createNotebook(harness, 'token-a', 'Normas de A');
 
     harness.verifier.issue('platform-token', {
       sub: 'platform-admin',
@@ -170,7 +170,7 @@ describe('The platform session reaches no content', () => {
       groups: ['platform-admin'],
     });
 
-    for (const path of ['/knowledge/vaults', `/knowledge/vaults/${vaultOfA}`]) {
+    for (const path of ['/knowledge/notebooks', `/knowledge/notebooks/${notebookOfA}`]) {
       const attempt = await harness.app.request(path, {
         headers: { authorization: 'Bearer platform-token' },
       });
@@ -229,14 +229,14 @@ describe('Subscription status governs access, never address', () => {
       sub: 'user-a',
       email: 'a@example.com',
     });
-    const vaultId = await createVault(harness, 'token-a', 'Normas de A');
+    const notebookId = await createNotebook(harness, 'token-a', 'Normas de A');
 
     await harness.app.request(`/access/platform/subscriptions/${subscriptionId}/suspend`, {
       method: 'POST',
       headers: { authorization: 'Bearer platform-token' },
     });
 
-    const blocked = await harness.app.request(`/knowledge/vaults/${vaultId}`, {
+    const blocked = await harness.app.request(`/knowledge/notebooks/${notebookId}`, {
       headers: { authorization: 'Bearer token-a' },
     });
     expect(blocked.status).toBe(403);
@@ -249,7 +249,7 @@ describe('Subscription status governs access, never address', () => {
       headers: { authorization: 'Bearer platform-token', 'content-type': 'application/json' },
       body: JSON.stringify({ status: 'active' }),
     });
-    const restored = await harness.app.request(`/knowledge/vaults/${vaultId}`, {
+    const restored = await harness.app.request(`/knowledge/notebooks/${notebookId}`, {
       headers: { authorization: 'Bearer token-a' },
     });
     expect(restored.status).toBe(200);

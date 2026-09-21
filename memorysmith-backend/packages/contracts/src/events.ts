@@ -5,7 +5,7 @@
  *
  * The envelope always carries the subscriptionId and the Authorship, and every
  * content-changing event carries the COMPLETE ContentRef, which is what makes
- * the audit trail a sufficient recovery index (sections 6.5, 9.2, 12.3).
+ * the audit trail a sufficient recovery index (sections 6.6, 9.2, 12.3).
  */
 
 import { z } from 'zod';
@@ -21,16 +21,18 @@ import {
   subscriptionTypeSchema,
   ulidSchema,
   userIdSchema,
-  vaultRoleLimitSchema,
+  notebookRoleLimitSchema,
 } from './common.js';
 
 export const eventSubjectSchema = z.enum([
   'SUBSCRIPTION',
   'WORKSPACE',
   'MEMBER',
-  'VAULT',
+  'NOTEBOOK',
   'FOLDER',
   'NOTE',
+  // What a notebook keeps beside its notes: bytes with a name (#166).
+  'FILE',
 ]);
 
 export const domainEventTypeSchema = z.enum([
@@ -45,18 +47,28 @@ export const domainEventTypeSchema = z.enum([
   'SubscriptionPlanChanged',
   'OwnershipTransferred',
   'WorkspaceCreated',
+  // Retired in 0.6.0 with the invitation of a member; kept so an event already
+  // written stays parseable, like WorkspaceCreated.
   'MemberInvited',
   'MemberJoined',
   'MemberRoleChanged',
   'MemberRemoved',
-  'VaultRoleLimitSet',
-  'VaultRoleLimitCleared',
+  'NotebookRoleLimitSet',
+  'NotebookRoleLimitCleared',
   // Knowledge
-  'VaultCreated',
-  'VaultRenamed',
-  'VaultDeleted',
-  'VaultRestored',
+  'NotebookCreated',
+  'NotebookRenamed',
+  'NotebookDeleted',
+  // Retired in 0.6.0 with restoring, which lost its object when deleting
+  // became definitive; kept so an event already written stays parseable.
+  'NotebookRestored',
+  // What the purge destroyed, one event per unit (RN-KNW-047, RN-AUD-010).
+  'NotebookPurged',
+  'GuidancePurged',
+  'TemplatePurged',
+  'NotePurged',
   'GuidanceUpdated',
+  'GuidanceDeleted',
   'FolderAdded',
   'FolderRenamed',
   'FolderDescribed',
@@ -64,11 +76,17 @@ export const domainEventTypeSchema = z.enum([
   'FolderReordered',
   'FolderRemoved',
   'TemplateUpdated',
+  'TemplateDeleted',
+  // A file of a notebook, kept and deleted. There is no update: bytes are
+  // replaced by keeping them again under the same name (#166).
+  'FileKept',
+  'FileDeleted',
   'NoteCreated',
   'NoteUpdated',
   'NoteReordered',
   'NoteMoved',
   'NoteDeleted',
+  // Retired in 0.6.0 with restoring; kept so the trail stays parseable.
   'NoteRestored',
   // Discovery
   'NoteLinksResolved',
@@ -164,47 +182,57 @@ export const memberRemovedPayload = z.object({
   userId: userIdSchema,
 });
 
-export const vaultRoleLimitPayload = z.object({
-  vaultId: ulidSchema,
+export const notebookRoleLimitPayload = z.object({
+  notebookId: ulidSchema,
   userId: userIdSchema,
-  limit: vaultRoleLimitSchema.optional(),
+  limit: notebookRoleLimitSchema.optional(),
 });
 
-export const vaultCreatedPayload = z.object({
-  vaultId: ulidSchema,
+export const notebookCreatedPayload = z.object({
+  notebookId: ulidSchema,
   name: z.string().min(1),
   slug: slugSchema,
   description: z.string(),
 });
 
-export const vaultRenamedPayload = z.object({
-  vaultId: ulidSchema,
+export const notebookRenamedPayload = z.object({
+  notebookId: ulidSchema,
   name: z.string().min(1),
   slug: slugSchema,
 });
 
 /**
- * Deleting a vault is REVERSIBLE and destroys no byte, exactly as deleting a
- * note is (RN-KNW-033): the vault leaves every listing, its slug goes back to
+ * Deleting a notebook is REVERSIBLE and destroys no byte, exactly as deleting a
+ * note is (RN-KNW-033): the notebook leaves every listing, its slug goes back to
  * being available, and the content it points at is untouched.
  */
-export const vaultDeletedPayload = z.object({
-  vaultId: ulidSchema,
+export const notebookDeletedPayload = z.object({
+  notebookId: ulidSchema,
   slug: slugSchema,
   noteCount: z.number().int().nonnegative(),
 });
 
-export const vaultRestoredPayload = z.object({
-  vaultId: ulidSchema,
+export const notebookRestoredPayload = z.object({
+  notebookId: ulidSchema,
   slug: slugSchema,
 });
 
 export const guidanceUpdatedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
+});
+
+/**
+ * The Guidance of a notebook was deleted, and the notebook stays (RN-KNW-045).
+ * The envelope carries the `ContentRef` that was live and a negative
+ * `storageDelta`: the bytes leave the count of the subscription, and the trail
+ * keeps naming the content nothing points at any more.
+ */
+export const guidanceDeletedPayload = z.object({
+  notebookId: ulidSchema,
 });
 
 export const folderAddedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   folderId: ulidSchema,
   parentFolderId: ulidSchema.nullable(),
   name: z.string().min(1),
@@ -214,20 +242,20 @@ export const folderAddedPayload = z.object({
 });
 
 export const folderRenamedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   folderId: ulidSchema,
   name: z.string().min(1),
   slug: slugSchema,
 });
 
 export const folderDescribedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   folderId: ulidSchema,
   description: z.string().min(1).max(500),
 });
 
 export const folderMovedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   folderId: ulidSchema,
   fromParentFolderId: ulidSchema.nullable(),
   toParentFolderId: ulidSchema.nullable(),
@@ -235,87 +263,158 @@ export const folderMovedPayload = z.object({
 });
 
 export const folderReorderedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   folderId: ulidSchema,
   position: positionSchema,
 });
 
+/**
+ * `noteCount` is what the counters of the removed subtree said at the moment
+ * of the removal (§10.3). It is there because the notebook counter has to drop
+ * by it: nothing under the folder is written, so no note event will say so.
+ * Eventually consistent in, eventually consistent out.
+ */
 export const folderRemovedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   folderId: ulidSchema,
   removedFolderIds: z.array(ulidSchema),
+  noteCount: z.number().int().nonnegative().optional(),
 });
 
 export const templateUpdatedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   folderId: ulidSchema,
 });
 
-export const noteCreatedPayload = z.object({
-  vaultId: ulidSchema,
+/** The Template of a folder was deleted, and the folder stays (RN-KNW-045). */
+export const templateDeletedPayload = z.object({
+  notebookId: ulidSchema,
+  folderId: ulidSchema,
+});
+
+/**
+ * The purge destroyed a unit: every revision of its content in the store, and
+ * its item in the table (RN-KNW-047). The envelope carries the `ContentRef`
+ * that was live, so the trail keeps naming what stopped existing, and a
+ * `storageDelta` that is negative only when those bytes were still counted —
+ * a unit deleted on its own freed them at the deletion, and freeing them
+ * twice would make the counter of the subscription lie.
+ */
+export const notePurgedPayload = z.object({
+  notebookId: ulidSchema,
   noteId: ulidSchema,
   folderId: ulidSchema,
-  title: z.string().min(1),
-  slug: slugSchema,
+});
+
+export const templatePurgedPayload = z.object({
+  notebookId: ulidSchema,
+  folderId: ulidSchema,
+});
+
+export const guidancePurgedPayload = z.object({
+  notebookId: ulidSchema,
+});
+
+/** The last event of a notebook: nothing of it is left in any table. */
+export const notebookPurgedPayload = z.object({
+  notebookId: ulidSchema,
+});
+
+/**
+ * The name is the `name:` the frontmatter of the content states (§5.3), and
+ * it is `null` when the note has none a link could use (RN-KNW-036). It travels
+ * here because a projector has to show a note before it has read its body, and
+ * it carries no slug: a note is addressed by its identifier, and what a link
+ * resolves against is the name itself.
+ */
+/**
+ * The version of the note the write produced, which only grows. Every note
+ * event carries it, because the bus promises delivery and not order: it is what
+ * a projection compares to leave an older event delivered late without effect.
+ * Optional only so an event written before it existed stays parseable.
+ */
+const noteVersionSchema = z.number().int().positive().optional();
+
+/**
+ * A file a notebook keeps, kept and deleted (#166). There is no `FileUpdated`:
+ * bytes are replaced by keeping them again under the same name, which is a
+ * `FileKept` of its own with the content reference of the new bytes.
+ */
+export const fileKeptPayload = z.object({
+  notebookId: ulidSchema,
+  fileId: ulidSchema,
+  name: z.string().min(1),
+  mimeType: z.string().min(1),
+  path: z.string(),
+});
+
+export const fileDeletedPayload = fileKeptPayload;
+
+export const noteCreatedPayload = z.object({
+  notebookId: ulidSchema,
+  noteId: ulidSchema,
+  folderId: ulidSchema,
+  name: z.string().min(1).nullable(),
   position: positionSchema,
+  version: noteVersionSchema,
 });
 
 export const noteUpdatedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   noteId: ulidSchema,
   folderId: ulidSchema,
-  title: z.string().min(1),
-  slug: slugSchema,
+  name: z.string().min(1).nullable(),
+  version: noteVersionSchema,
 });
 
 export const noteReorderedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   noteId: ulidSchema,
   folderId: ulidSchema,
   position: positionSchema,
+  version: noteVersionSchema,
 });
 
-/** Carries BOTH sides, because whoever consumes it needs both (section 6.5). */
+/** Carries BOTH sides, because whoever consumes it needs both (section 6.6). */
 export const noteMovedPayload = z.object({
   noteId: ulidSchema,
-  fromVaultId: ulidSchema,
+  fromNotebookId: ulidSchema,
   fromFolderId: ulidSchema,
-  toVaultId: ulidSchema,
+  toNotebookId: ulidSchema,
   toFolderId: ulidSchema,
-  slug: slugSchema,
   position: positionSchema,
+  version: noteVersionSchema,
 });
 
 export const noteDeletedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   noteId: ulidSchema,
   folderId: ulidSchema,
-  slug: slugSchema,
+  version: noteVersionSchema,
 });
 
 export const noteRestoredPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   noteId: ulidSchema,
   folderId: ulidSchema,
-  slug: slugSchema,
   position: positionSchema,
 });
 
 export const noteLinksResolvedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   noteId: ulidSchema,
   resolved: z.array(z.object({ toNoteId: ulidSchema, slug: slugSchema })),
   pending: z.array(slugSchema),
 });
 
 export const noteIndexedPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   noteId: ulidSchema,
   chunkCount: z.number().int().nonnegative(),
 });
 
 export const linkBrokenPayload = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   fromNoteId: ulidSchema,
   slug: slugSchema,
 });
@@ -336,13 +435,14 @@ export const eventPayloadSchemas = {
   MemberJoined: memberJoinedPayload,
   MemberRoleChanged: memberRoleChangedPayload,
   MemberRemoved: memberRemovedPayload,
-  VaultRoleLimitSet: vaultRoleLimitPayload,
-  VaultRoleLimitCleared: vaultRoleLimitPayload,
-  VaultCreated: vaultCreatedPayload,
-  VaultRenamed: vaultRenamedPayload,
-  VaultDeleted: vaultDeletedPayload,
-  VaultRestored: vaultRestoredPayload,
+  NotebookRoleLimitSet: notebookRoleLimitPayload,
+  NotebookRoleLimitCleared: notebookRoleLimitPayload,
+  NotebookCreated: notebookCreatedPayload,
+  NotebookRenamed: notebookRenamedPayload,
+  NotebookDeleted: notebookDeletedPayload,
+  NotebookRestored: notebookRestoredPayload,
   GuidanceUpdated: guidanceUpdatedPayload,
+  GuidanceDeleted: guidanceDeletedPayload,
   FolderAdded: folderAddedPayload,
   FolderRenamed: folderRenamedPayload,
   FolderDescribed: folderDescribedPayload,
@@ -350,6 +450,13 @@ export const eventPayloadSchemas = {
   FolderReordered: folderReorderedPayload,
   FolderRemoved: folderRemovedPayload,
   TemplateUpdated: templateUpdatedPayload,
+  TemplateDeleted: templateDeletedPayload,
+  NotePurged: notePurgedPayload,
+  TemplatePurged: templatePurgedPayload,
+  GuidancePurged: guidancePurgedPayload,
+  NotebookPurged: notebookPurgedPayload,
+  FileKept: fileKeptPayload,
+  FileDeleted: fileDeletedPayload,
   NoteCreated: noteCreatedPayload,
   NoteUpdated: noteUpdatedPayload,
   NoteReordered: noteReorderedPayload,

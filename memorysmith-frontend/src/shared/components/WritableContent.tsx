@@ -4,15 +4,17 @@ import { useTranslation } from 'react-i18next';
 import { splitEmbeds } from '../api/transclusion';
 import { remoteImageHosts, resolveWikilinks } from '../api/markdown';
 import { taskBoxes, toggleTaskAt } from '../api/tasklist';
-import { resolveNoteUrl } from '../api/source';
+import { wikilinkUrl } from '../api/source';
+import { isAttachmentName } from '../api/attachment';
 import { Markdown } from './Markdown';
 import { Transclusion } from './Transclusion';
 import { useGroupedWrite, type TaskWriter } from './TaskListWriter';
 import { useWriteStatus } from '../store/write-status';
+import type { InterfaceQueryKey } from '../api/query-keys';
 
 /**
  * A reading surface whose task boxes can be ticked, when the effective role in
- * this vault allows writing.
+ * this notebook allows writing.
  *
  * Three surfaces render the same kind of thing, a Content Slot: the note, the
  * guidance and the template of a folder. A box alive in one and dead in the
@@ -20,22 +22,27 @@ import { useWriteStatus } from '../store/write-status';
  *
  * The text written back is the ORIGINAL one, and not what is on screen: the
  * screen shows wikilinks resolved and embeds expanded, and writing that back
- * would hand the vault a document nobody typed.
+ * would hand the notebook a document nobody typed.
  */
 export function WritableContent({
   raw,
-  vaultSlug,
+  notebookId,
   baseRevision,
   writable,
   write,
   invalidates,
 }: {
   raw: string;
-  vaultSlug: string;
+  notebookId: string;
   baseRevision: string | null;
   writable: boolean;
   write: TaskWriter;
-  invalidates: unknown[];
+  /**
+   * What to read again once this write lands. It is typed as a key this
+   * interface actually HOLDS (#170): `unknown[]` accepted a key nobody
+   * registered, and invalidating one of those is a silent no-op.
+   */
+  invalidates: InterfaceQueryKey;
 }) {
   const client = useQueryClient();
   const { t } = useTranslation();
@@ -77,11 +84,17 @@ export function WritableContent({
   const split = text.startsWith('---') ? text.indexOf('\n---', 3) + 4 : 0;
   const body = text.slice(split);
 
-  const segments = splitEmbeds(body).map((segment) =>
+  const segments = splitEmbeds(body, (name) => isAttachmentName(notebookId, name)).map((segment) =>
     segment.kind === 'text'
       ? {
           ...segment,
-          rendered: resolveWikilinks(segment.text, (slug) => resolveNoteUrl(vaultSlug, slug)),
+          // One resolver for every surface: one note is a link, several are
+          // the choice, and none is pending and still asks (RN-DSC-046, #138).
+          rendered: resolveWikilinks(
+            segment.text,
+            (name) => wikilinkUrl(notebookId, name),
+            (name) => isAttachmentName(notebookId, name),
+          ),
         }
       : segment,
   );
@@ -136,7 +149,7 @@ export function WritableContent({
           return (
             <Transclusion
               key={index}
-              vaultSlug={vaultSlug}
+              notebookId={notebookId}
               target={segment.target}
               anchor={segment.anchor}
             />

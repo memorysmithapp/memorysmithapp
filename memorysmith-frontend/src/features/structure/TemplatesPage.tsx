@@ -1,16 +1,21 @@
 import { useEffect } from 'react';
 import { useQueries } from '@tanstack/react-query';
-import { Link, useLocation, useOutletContext, useParams } from 'react-router-dom';
+import { Link, useLocation, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { canWrite, getTemplate, putTemplate } from '../../shared/api/source';
+import { canWrite, deleteTemplate, getTemplate, putTemplate } from '../../shared/api/source';
+import { DeleteContentSlot } from '../../shared/components/DeleteContentSlot';
 import { messageKeyOf } from '../../shared/api/error-mapper';
+import { folderAddress } from '../../shared/api/note-address';
 import { queryState } from '../../shared/api/query-state';
 import { TemplateSkeleton } from '../../shared/components/skeletons';
 import { WritableContent } from '../../shared/components/WritableContent';
+import { useDocumentTitle } from '../../shared/components/document-title';
 import type { FolderNode } from '../../shared/types/api';
 import { templateAnchor } from './StructureOutline';
-import { VaultBreadcrumb } from './VaultBreadcrumb';
-import type { VaultOutletContext } from './VaultLayout';
+import { NotebookBreadcrumb } from './NotebookBreadcrumb';
+import type { NotebookOutletContext } from './NotebookLayout';
+import { useNotebookId } from './route-ids';
+import { queryKeys } from '../../shared/api/query-keys';
 
 interface TemplatedFolder {
   folder: FolderNode;
@@ -25,20 +30,22 @@ function collectTemplated(folders: FolderNode[], trail: string[] = []): Template
   });
 }
 
-// Every Template of the vault, one per folder that declares one, in folder
+// Every Template of the notebook, one per folder that declares one, in folder
 // order. The template is the folder's suggested note layout; the server never
 // validates against it.
 export function TemplatesPage() {
   const { t } = useTranslation();
-  const { vaultSlug = '' } = useParams();
+  const notebookId = useNotebookId();
   const { hash } = useLocation();
-  const { structure } = useOutletContext<VaultOutletContext>();
+  const { structure } = useOutletContext<NotebookOutletContext>();
   const templated = collectTemplated(structure.folders);
+
+  useDocumentTitle(t('structure.templates'), structure.notebook.name);
 
   const queries = useQueries({
     queries: templated.map(({ folder }) => ({
-      queryKey: ['template', vaultSlug, folder.id],
-      queryFn: () => getTemplate(vaultSlug, folder.id),
+      queryKey: queryKeys.template(notebookId, folder.id),
+      queryFn: () => getTemplate(notebookId, folder.id),
     })),
   });
   const allLoaded = queries.every((q) => !q.isPending);
@@ -52,9 +59,9 @@ export function TemplatesPage() {
 
   return (
     <article className="content-pane">
-      <VaultBreadcrumb items={[{ label: t('structure.templates') }]} />
+      <NotebookBreadcrumb items={[{ label: t('structure.templates') }]} />
       <p className="content-kicker">{t('structure.templates')}</p>
-      <h1>{structure.vault.name}</h1>
+      <h1>{structure.notebook.name}</h1>
       <p className="hint">{t('folder.templateHint')}</p>
 
       {templated.length === 0 && <p>{t('structure.noTemplates')}</p>}
@@ -76,26 +83,34 @@ export function TemplatesPage() {
           >
             <summary>
               {path.join(' / ')}
-              <Link
-                to={`/vaults/${vaultSlug}/root/${folder.slugPath}`}
-                className="template-folder-link"
-              >
+              <Link to={folderAddress(notebookId, folder.id)} className="template-folder-link">
                 {t('structure.openFolder')}
               </Link>
             </summary>
             {template ? (
-              <WritableContent
-                raw={template.body}
-                vaultSlug={vaultSlug}
-                baseRevision={template.revision}
-                writable={canWrite(structure.effectiveRole)}
-                write={({ raw, baseRevision, keepalive }) =>
-                  putTemplate(vaultSlug, folder.id, raw, baseRevision, {
-                    keepalive: keepalive ?? false,
-                  })
-                }
-                invalidates={['template', vaultSlug, folder.id]}
-              />
+              <>
+                <WritableContent
+                  raw={template.body}
+                  notebookId={notebookId}
+                  baseRevision={template.revision}
+                  writable={canWrite(structure.effectiveRole)}
+                  write={({ raw, baseRevision, keepalive }) =>
+                    putTemplate(notebookId, folder.id, raw, baseRevision, {
+                      keepalive: keepalive ?? false,
+                    })
+                  }
+                  invalidates={queryKeys.template(notebookId, folder.id)}
+                />
+                {canWrite(structure.effectiveRole) && (
+                  <DeleteContentSlot
+                    confirmation={t('folder.deleteTemplateConfirm')}
+                    remove={() => deleteTemplate(notebookId, folder.id)}
+                    // The list of folders with a Template comes from the
+                    // structure, so the card leaves the page with the slot.
+                    invalidates={queryKeys.notebookStructure(notebookId)}
+                  />
+                )}
+              </>
             ) : failed ? (
               <p className="status">{t(messageKeyOf(query?.error))}</p>
             ) : (

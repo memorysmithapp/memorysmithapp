@@ -2,7 +2,7 @@
  * FolderTreePlacement resolves "put it after X inside Y" into a concrete
  * (parentFolderId, Position), and validates the two structural invariants that
  * a placement can break: maximum depth (I2, RN-KNW-003) and cycles (I3,
- * RN-KNW-004). Architecture-guide.md, section 6.6.
+ * RN-KNW-004). Architecture-guide.md, section 6.7.
  *
  * It is a domain service and not a method of the tree because the decision
  * involves the destination, the anchor and the subtree that travels along,
@@ -10,12 +10,24 @@
  */
 
 import { DomainError, err, ok, Position, type FolderId, type Result } from '@memorysmith/kernel';
-import type { FolderTree } from '../vault/FolderTree.js';
-import { VAULT_LIMITS } from '../values.js';
+import type { FolderTree } from '../notebook/FolderTree.js';
+import { NOTEBOOK_LIMITS } from '../values.js';
 
 export interface Placement {
   readonly parentFolderId: FolderId | null;
   readonly position: Position;
+}
+
+/**
+ * The refusal of an anchor that is not a folder of the level, naming the ones
+ * that are, so the next attempt is informed rather than guessed (RN-AGT-029).
+ */
+function notASibling(tree: FolderTree, parentFolderId: FolderId | null): DomainError {
+  return DomainError.validation('The folder to place it after is not a folder of the same level', {
+    siblings: tree
+      .childrenOf(parentFolderId)
+      .map((folder) => ({ folderId: folder.id.value, name: folder.name.value })),
+  });
 }
 
 export const FolderTreePlacement = {
@@ -26,15 +38,18 @@ export const FolderTreePlacement = {
     afterFolderId: FolderId | null,
   ): Result<Placement, DomainError> {
     if (parentFolderId && !tree.has(parentFolderId)) {
-      return err(DomainError.notFound('The parent folder does not exist in this vault'));
+      return err(DomainError.notFound('The parent folder does not exist in this notebook'));
     }
-    if (tree.depthUnder(parentFolderId) > VAULT_LIMITS.maxDepth) {
+    if (tree.depthUnder(parentFolderId) > NOTEBOOK_LIMITS.maxDepth) {
       return err(
-        DomainError.validation(`The folder tree goes at most ${VAULT_LIMITS.maxDepth} levels deep`),
+        DomainError.validation(
+          `The folder tree goes at most ${NOTEBOOK_LIMITS.maxDepth} levels deep`,
+        ),
       );
     }
     // A new folder with no anchor goes to the END of its level.
     const anchors = tree.positionAfter(parentFolderId, afterFolderId, 'last');
+    if (!anchors) return err(notASibling(tree, parentFolderId));
     return ok({ parentFolderId, position: Position.between(anchors.previous, anchors.next) });
   },
 
@@ -46,23 +61,24 @@ export const FolderTreePlacement = {
     afterFolderId: FolderId | null,
   ): Result<Placement, DomainError> {
     const folder = tree.get(folderId);
-    if (!folder) return err(DomainError.notFound('Folder not found in this vault'));
+    if (!folder) return err(DomainError.notFound('Folder not found in this notebook'));
     if (newParentFolderId && !tree.has(newParentFolderId)) {
-      return err(DomainError.notFound('The destination folder does not exist in this vault'));
+      return err(DomainError.notFound('The destination folder does not exist in this notebook'));
     }
     if (newParentFolderId && tree.isDescendant(newParentFolderId, folderId)) {
       return err(DomainError.validation('A folder cannot be moved into its own subtree'));
     }
     const resultingDepth = tree.depthUnder(newParentFolderId) + tree.heightOf(folderId) - 1;
-    if (resultingDepth > VAULT_LIMITS.maxDepth) {
+    if (resultingDepth > NOTEBOOK_LIMITS.maxDepth) {
       return err(
         DomainError.validation(
-          `The move would push the tree past ${VAULT_LIMITS.maxDepth} levels deep`,
+          `The move would push the tree past ${NOTEBOOK_LIMITS.maxDepth} levels deep`,
         ),
       );
     }
     // A move with no anchor lands at the end of the destination level.
     const anchors = tree.positionAfter(newParentFolderId, afterFolderId, 'last');
+    if (!anchors) return err(notASibling(tree, newParentFolderId));
     return ok({
       parentFolderId: newParentFolderId,
       position: Position.between(anchors.previous, anchors.next),
@@ -80,13 +96,14 @@ export const FolderTreePlacement = {
     afterFolderId: FolderId | null,
   ): Result<Position, DomainError> {
     const folder = tree.get(folderId);
-    if (!folder) return err(DomainError.notFound('Folder not found in this vault'));
+    if (!folder) return err(DomainError.notFound('Folder not found in this notebook'));
     if (afterFolderId?.equals(folderId)) {
       return err(DomainError.validation('A folder cannot be placed after itself'));
     }
     // Reordering with no anchor means "first": that is what dragging an item
     // to the top of the list expresses.
     const anchors = tree.positionAfter(folder.parentFolderId, afterFolderId, 'first');
+    if (!anchors) return err(notASibling(tree, folder.parentFolderId));
     const previous = anchors.previous?.equals(folder.position) ? null : anchors.previous;
     const next = anchors.next?.equals(folder.position) ? null : anchors.next;
     return ok(Position.between(previous, next));

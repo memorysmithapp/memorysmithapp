@@ -5,7 +5,7 @@
  * silently. In a system whose audit trail lives on events, that silence would
  * be a hole in the record.
  *
- * The relay also maintains the folder and vault counters (section 10.3),
+ * The relay also maintains the folder and notebook counters (section 10.3),
  * OUTSIDE the user transaction. To avoid counting twice when the stream
  * reprocesses, the increment travels with a dedup item:
  *
@@ -17,7 +17,11 @@
  * the agent and the UI and takes part in no invariant.
  */
 
-import { type EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
+import {
+  type EventBridgeClient,
+  PutEventsCommand,
+  type PutEventsRequestEntry,
+} from '@aws-sdk/client-eventbridge';
 import { TransactWriteCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { parseEvent } from '@memorysmith/contracts';
 import { Instant } from '@memorysmith/kernel';
@@ -42,16 +46,71 @@ export interface RelayDependencies {
 
 const SEEN_TTL_DAYS = 7;
 
-/** Which events move a counter, and in which direction. */
-function counterDelta(type: string): number {
+/**
+ * What one PutEvents call accepts: ten entries, and a request under its size
+ * limit, kept well below it here. A batch of the stream holds up to 25 events,
+ * and sending it in one call had the bus refuse the whole batch whenever a burst
+ * of writes put more than ten in it: an import, an agent writing a notebook, a
+ * folder removed with its notes.
+ */
+const MAX_ENTRIES_PER_CALL = 10;
+const MAX_BYTES_PER_CALL = 200_000;
+
+function sizeOf(entry: PutEventsRequestEntry): number {
+  return (
+    Buffer.byteLength(entry.Detail ?? '', 'utf8') +
+    Buffer.byteLength(entry.DetailType ?? '', 'utf8') +
+    Buffer.byteLength(entry.Source ?? '', 'utf8')
+  );
+}
+
+export function callsOf(entries: readonly PutEventsRequestEntry[]): PutEventsRequestEntry[][] {
+  const calls: PutEventsRequestEntry[][] = [];
+  let current: PutEventsRequestEntry[] = [];
+  let bytes = 0;
+  for (const entry of entries) {
+    const size = sizeOf(entry);
+    if (
+      current.length === MAX_ENTRIES_PER_CALL ||
+      (current.length > 0 && bytes + size > MAX_BYTES_PER_CALL)
+    ) {
+      calls.push(current);
+      current = [];
+      bytes = 0;
+    }
+    current.push(entry);
+    bytes += size;
+  }
+  if (current.length > 0) calls.push(current);
+  return calls;
+}
+
+/**
+ * Which events move the note counters, by how much, and whether the counter of
+ * ONE FOLDER moves with the counter of the notebook.
+ *
+ * `FolderRemoved` is the one that moves the notebook counter alone: the folder
+ * counters of the removed subtree were deleted by the same write, and
+ * recreating one to decrement it would leave an orphan item holding a negative
+ * number. It carries how many notes the subtree held, because nothing under it
+ * was written and no note event will ever say those notes are gone.
+ */
+function counterDelta(
+  type: string,
+  payload: Record<string, unknown>,
+): {
+  notes: number;
+  folder: boolean;
+} {
   switch (type) {
     case 'NoteCreated':
-    case 'NoteRestored':
-      return 1;
+      return { notes: 1, folder: true };
     case 'NoteDeleted':
-      return -1;
+      return { notes: -1, folder: true };
+    case 'FolderRemoved':
+      return { notes: -Number(payload['noteCount'] ?? 0), folder: false };
     default:
-      return 0;
+      return { notes: 0, folder: false };
   }
 }
 
@@ -91,26 +150,41 @@ export class OutboxRelay {
     // is how a projection starts lying quietly (section 19).
     const envelopes = events.map((item) => parseEvent(envelopeOf(item)));
 
-    await this.deps.bus.send(
-      new PutEventsCommand({
-        Entries: envelopes.map((envelope) => ({
-          EventBusName: this.deps.busName,
-          Source: this.deps.source,
-          DetailType: envelope.type,
-          Detail: JSON.stringify(envelope),
-          Time: new Date(envelope.occurredAt),
-        })),
-      }),
-    );
+    const entries: PutEventsRequestEntry[] = envelopes.map((envelope) => ({
+      EventBusName: this.deps.busName,
+      Source: this.deps.source,
+      DetailType: envelope.type,
+      Detail: JSON.stringify(envelope),
+      Time: new Date(envelope.occurredAt),
+    }));
+
+    for (const call of callsOf(entries)) {
+      const answer = await this.deps.bus.send(new PutEventsCommand({ Entries: call }));
+      // PutEvents answers 200 with the entries it refused counted, not thrown.
+      // An event the bus did not take fails the batch, so the stream delivers
+      // it again. Delivery is at least once, and an event delivered twice
+      // changes nothing (architecture-guide.md, section 10.4).
+      const refused = answer?.FailedEntryCount ?? 0;
+      if (refused > 0) {
+        const reasons = new Set(
+          (answer.Entries ?? [])
+            .filter((entry) => entry.ErrorCode)
+            .map((entry) => `${entry.ErrorCode}: ${entry.ErrorMessage ?? ''}`),
+        );
+        throw new Error(
+          `The event bus refused ${refused} of ${call.length} events: ${[...reasons].join('; ')}`,
+        );
+      }
+    }
 
     for (const [index, envelope] of envelopes.entries()) {
-      const notes = counterDelta(envelope.type);
+      const { notes, folder } = counterDelta(envelope.type, envelope.payload);
       const bytes = envelope.storageDelta;
       // An event that moves neither counter needs no transaction, and needs no
       // SEEN item either: there is nothing to apply twice.
       if (notes === 0 && bytes === 0) continue;
       const item = events[index] as Record<string, unknown>;
-      await this.applyCounters(String(item['PK']), envelope, notes, bytes);
+      await this.applyCounters(String(item['PK']), envelope, notes, bytes, folder);
     }
 
     return { published: envelopes.length };
@@ -118,7 +192,7 @@ export class OutboxRelay {
 
   /**
    * One transaction per event, carrying everything that event moves: the note
-   * counters of the folder and the vault, and the stored bytes of the whole
+   * counters of the folder and the notebook, and the stored bytes of the whole
    * subscription (RN-SUB-021). They travel together because they share one
    * dedup marker: two transactions would mean the second one is refused by the
    * SEEN item the first one wrote.
@@ -133,8 +207,9 @@ export class OutboxRelay {
     },
     notes: number,
     bytes: number,
+    countsFolder: boolean,
   ): Promise<void> {
-    const folderId = String(envelope.payload['folderId'] ?? '');
+    const folderId = countsFolder ? String(envelope.payload['folderId'] ?? '') : '';
 
     const occurredAt = Instant.fromISO(envelope.occurredAt);
     const ttl = occurredAt.ok
@@ -154,34 +229,34 @@ export class OutboxRelay {
     ];
 
     if (notes !== 0 && folderId) {
-      writes.push(
-        {
-          Update: {
-            TableName: this.deps.tableName,
-            Key: { PK: partition, SK: `FSTAT#${folderId}` },
-            UpdateExpression: 'ADD noteCount :delta SET updatedAt = :at',
-            ExpressionAttributeValues: { ':delta': notes, ':at': envelope.occurredAt },
-          },
+      writes.push({
+        Update: {
+          TableName: this.deps.tableName,
+          Key: { PK: partition, SK: `FSTAT#${folderId}` },
+          UpdateExpression: 'ADD noteCount :delta SET updatedAt = :at',
+          ExpressionAttributeValues: { ':delta': notes, ':at': envelope.occurredAt },
         },
-        {
-          Update: {
-            TableName: this.deps.tableName,
-            Key: { PK: partition, SK: 'FSTAT' },
-            UpdateExpression: 'ADD noteCount :delta SET updatedAt = :at',
-            ExpressionAttributeValues: { ':delta': notes, ':at': envelope.occurredAt },
-          },
+      });
+    }
+    if (notes !== 0) {
+      writes.push({
+        Update: {
+          TableName: this.deps.tableName,
+          Key: { PK: partition, SK: 'FSTAT' },
+          UpdateExpression: 'ADD noteCount :delta SET updatedAt = :at',
+          ExpressionAttributeValues: { ':delta': notes, ':at': envelope.occurredAt },
         },
-      );
+      });
     }
 
     if (bytes !== 0) {
       // One item per subscription, in the subscription's own partition rather
-      // than a vault's: what a plan limits is the subscription, and a vault in
-      // the bin is still holding its bytes.
+      // than a notebook's: what a plan limits is the subscription, and a
+      // notebook waiting for the purge is still holding its bytes.
       writes.push({
         Update: {
           TableName: this.deps.tableName,
-          Key: { PK: `S#${envelope.subscriptionId}#VAULTS`, SK: 'USAGE' },
+          Key: { PK: `S#${envelope.subscriptionId}#NOTEBOOKS`, SK: 'USAGE' },
           UpdateExpression: 'ADD storedBytes :delta SET updatedAt = :at',
           ExpressionAttributeValues: { ':delta': bytes, ':at': envelope.occurredAt },
         },

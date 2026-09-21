@@ -1,0 +1,59 @@
+import { useEffect, useRef, type ReactNode } from 'react';
+
+/**
+ * A short question, asked over whatever is behind it (#169).
+ *
+ * Modal or nothing: `open` as an attribute renders a dialog inline, inside
+ * whatever holds it, and `showModal()` puts it in the top layer, which no
+ * ancestor can clip — the same reason the choice of a link is one (#144).
+ *
+ * It is not `TransferDialog`, and the difference is not plumbing. That one is
+ * a room: three rows, one scroll, tuned to a tree of sixty-eight folders and
+ * eight hundred notes. This one is a sentence and two buttons, and sizing it
+ * like a room is how a one-line question ends up in the middle of 80vh of
+ * empty surface.
+ */
+export function Modal({
+  open,
+  title,
+  children,
+  actions,
+  onClose,
+}: {
+  open: boolean;
+  title: string;
+  children: ReactNode;
+  actions: ReactNode;
+  onClose: () => void;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const node = dialog.current;
+    if (!node || !open) return;
+    if (!node.open) node.showModal();
+    document.body.classList.add('has-modal');
+    return () => document.body.classList.remove('has-modal');
+  }, [open]);
+
+  if (!open) return null;
+
+  return (
+    <dialog
+      ref={dialog}
+      className="ask-dialog"
+      aria-labelledby="ask-dialog-heading"
+      onClose={onClose}
+      onClick={(event) => {
+        // The backdrop is the dialog element itself, outside its box.
+        if (event.target === dialog.current) dialog.current?.close();
+      }}
+    >
+      <div className="ask-dialog-box">
+        <h2 id="ask-dialog-heading">{title}</h2>
+        <div className="ask-dialog-body">{children}</div>
+        <div className="ask-dialog-foot">{actions}</div>
+      </div>
+    </dialog>
+  );
+}

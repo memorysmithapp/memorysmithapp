@@ -4,21 +4,22 @@
  *
  *   S#{s}          / META                  subscription
  *   S#{s}          / MEMBER#{userId}       membership (EDITOR | VIEWER)
- *   S#{s}          / INVITE#{token}        pending invite, ttl = expiresAt
  *   USER#{u}       / SUB#{s}               the link, exception 1 of section 8.3
+ *   S#{s}          / CONNECTOR#TOKEN#{jti}      the connector of an access token
+ *   S#{s}          / CONNECTOR#REFRESH#{sha256} the connector a refresh token renews
+ *   S#{s}          / AVATAR#{userId}       the face of that person in this subscription
  *
  *   GSI2: PLATFORM#{st}   -> REQUESTED#{ts}#{s}                   platform queue
  *
  * The subscription and its members share ONE partition, so a single Query
- * brings the whole aggregate back, the way the vault already loads its tree.
+ * brings the whole aggregate back, the way the notebook already loads its tree.
  *
  * The OWNER is not a MEMBER item: ownership is the `ownerId` field of the META
  * item, which is how "exactly one OWNER" becomes the shape of the data.
- * The invite carries a TTL equal to its expiry, so an expired invite vanishes
- * on its own, with no cleanup job and no date check spread across every read.
  */
 
 import {
+  AgentIdentity,
   ConcurrencyError,
   Instant,
   ok,
@@ -40,16 +41,17 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { Subscription } from '../../../domain/subscription/Subscription.js';
 import type { Membership } from '../../../domain/subscription/Subscription.js';
-import { Invite, type InviteStatus } from '../../../domain/invite/Invite.js';
 import {
+  AvatarSource,
   Email,
-  InviteToken,
   RejectionReason,
   StorageQuota,
   SubscriptionType,
 } from '../../../domain/values.js';
 import type {
-  InviteRepository,
+  AvatarRepository,
+  MemberAvatar,
+  ConnectorBindingRepository,
   PlatformSubscriptionAdmin,
   PlatformSubscriptionView,
   SubscriptionLink,
@@ -230,80 +232,6 @@ async function saveSubscription(
   return ok();
 }
 
-export class DynamoInviteRepository implements InviteRepository {
-  constructor(
-    private readonly sub: SubscriptionContext,
-    private readonly db: DynamoDBDocumentClient,
-    private readonly tableName: string,
-    private readonly outbox: OutboxSink,
-  ) {}
-
-  async findByToken(token: InviteToken): Promise<Invite | null> {
-    const response = await this.db.send(
-      new GetCommand({
-        TableName: this.tableName,
-        Key: { PK: `S#${this.sub.subscriptionId.value}`, SK: `INVITE#${token.value}` },
-      }),
-    );
-    return response.Item ? this.parse(response.Item as Item) : null;
-  }
-
-  async listPending(): Promise<Invite[]> {
-    const response = await this.db.send(
-      new QueryCommand({
-        TableName: this.tableName,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-        ExpressionAttributeValues: {
-          ':pk': `S#${this.sub.subscriptionId.value}`,
-          ':prefix': 'INVITE#',
-        },
-      }),
-    );
-    return ((response.Items ?? []) as Item[]).map((item) => this.parse(item));
-  }
-
-  async save(invite: Invite): Promise<Result<void, ConcurrencyError>> {
-    const events = invite.pullEvents();
-    await this.db.send(
-      new PutCommand({
-        TableName: this.tableName,
-        Item: {
-          PK: `S#${this.sub.subscriptionId.value}`,
-          SK: `INVITE#${invite.token.value}`,
-          entity: 'INVITE',
-          inviteId: invite.id,
-          email: invite.email.value,
-          role: invite.role.name,
-          invitedBy: invite.invitedBy.value,
-          status: invite.status,
-          sentAt: invite.sentAt.toISOString(),
-          expiresAt: invite.expiresAt.toISOString(),
-          acceptedAt: invite.acceptedAt?.toISOString() ?? null,
-          // TTL equal to the expiry: an expired invite disappears on its own.
-          ttl: invite.expiresAt.toEpochSeconds(),
-        },
-      }),
-    );
-    await this.outbox.published(events);
-    return ok();
-  }
-
-  private parse(item: Item): Invite {
-    return Invite.rehydrate({
-      id: String(item['inviteId']),
-      subscriptionId: this.sub.subscriptionId,
-      email: need(Email.create(String(item['email']))),
-      role: need(Role.membership(String(item['role']))),
-      invitedBy: need(UserId.create(String(item['invitedBy']))),
-      token: need(InviteToken.create(String(item['SK']).slice('INVITE#'.length))),
-      status: String(item['status']) as InviteStatus,
-      sentAt: need(Instant.fromISO(String(item['sentAt']))),
-      expiresAt: need(Instant.fromISO(String(item['expiresAt']))),
-      acceptedAt: item['acceptedAt'] ? need(Instant.fromISO(String(item['acceptedAt']))) : null,
-    });
-  }
-}
-
 /** Exception 1: identity is global, so this repository holds no context. */
 export class DynamoUserLinkRepository implements UserLinkRepository {
   constructor(
@@ -325,24 +253,47 @@ export class DynamoUserLinkRepository implements UserLinkRepository {
       isOwner: Boolean(item['isOwner']),
       isDefault: Boolean(item['isDefault']),
       joinedAt: String(item['joinedAt']),
+      welcomedAt: item['welcomedAt'] ? String(item['welcomedAt']) : null,
     }));
   }
 
-  async link(link: SubscriptionLink): Promise<void> {
+  /**
+   * An update and not a put, so the fields this repository does not own
+   * survive it. A put here is what would un-welcome somebody the moment
+   * ownership of their subscription changed hands (#167).
+   */
+  async link(link: Omit<SubscriptionLink, 'welcomedAt'>): Promise<void> {
     await this.db.send(
-      new PutCommand({
+      new UpdateCommand({
         TableName: this.tableName,
-        Item: {
-          PK: `USER#${link.userId.value}`,
-          SK: `SUB#${link.subscriptionId.value}`,
-          entity: 'LINK',
-          subscriptionId: link.subscriptionId.value,
-          isOwner: link.isOwner,
-          isDefault: link.isDefault,
-          joinedAt: link.joinedAt,
+        Key: { PK: `USER#${link.userId.value}`, SK: `SUB#${link.subscriptionId.value}` },
+        UpdateExpression:
+          'SET entity = :entity, subscriptionId = :id, isOwner = :owner, ' +
+          'isDefault = :active, joinedAt = :joined',
+        ExpressionAttributeValues: {
+          ':entity': 'LINK',
+          ':id': link.subscriptionId.value,
+          ':owner': link.isOwner,
+          ':active': link.isDefault,
+          ':joined': link.joinedAt,
         },
       }),
     );
+  }
+
+  async markWelcomed(user: UserId, at: string): Promise<void> {
+    // Every link, because being welcomed happens to a PERSON and not to one of
+    // their subscriptions: joining a second one does not make the product new.
+    for (const link of await this.linksOf(user)) {
+      await this.db.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: { PK: `USER#${user.value}`, SK: `SUB#${link.subscriptionId.value}` },
+          UpdateExpression: 'SET welcomedAt = if_not_exists(welcomedAt, :at)',
+          ExpressionAttributeValues: { ':at': at },
+        }),
+      );
+    }
   }
 
   async unlink(user: UserId, subscriptionId: SubscriptionId): Promise<void> {
@@ -481,5 +432,143 @@ export class DynamoOnboarding implements SubscriptionOnboarding {
     input.subscription.markPersisted();
     await this.outbox.published(events);
     return ok();
+  }
+}
+
+/**
+ * The connector of each token of the connector proxy (section 13.3, item 4).
+ *
+ * The access token is bound ONCE, by a conditional put: a token never changes
+ * connector, and a second attempt to bind it is refused rather than obeyed.
+ * Both items carry a TTL equal to their expiry, and the TTL removes an expired
+ * binding eventually rather than on the second, so every read checks the expiry
+ * as well.
+ */
+export class DynamoConnectorBindingRepository implements ConnectorBindingRepository {
+  constructor(
+    private readonly sub: SubscriptionContext,
+    private readonly db: DynamoDBDocumentClient,
+    private readonly tableName: string,
+  ) {}
+
+  async bindAccessToken(
+    tokenId: string,
+    agent: AgentIdentity,
+    expiresAt: Instant,
+  ): Promise<boolean> {
+    try {
+      await this.db.send(
+        new PutCommand({
+          TableName: this.tableName,
+          Item: this.item(`CONNECTOR#TOKEN#${tokenId}`, agent, expiresAt),
+          ConditionExpression: 'attribute_not_exists(PK)',
+        }),
+      );
+      return true;
+    } catch (error) {
+      if ((error as { name?: string })?.name === 'ConditionalCheckFailedException') return false;
+      throw error;
+    }
+  }
+
+  async bindRefreshToken(
+    tokenHash: string,
+    agent: AgentIdentity,
+    expiresAt: Instant,
+  ): Promise<void> {
+    await this.db.send(
+      new PutCommand({
+        TableName: this.tableName,
+        Item: this.item(`CONNECTOR#REFRESH#${tokenHash}`, agent, expiresAt),
+      }),
+    );
+  }
+
+  agentOfAccessToken(tokenId: string, now: Instant): Promise<AgentIdentity | null> {
+    return this.read(`CONNECTOR#TOKEN#${tokenId}`, now);
+  }
+
+  agentOfRefreshToken(tokenHash: string, now: Instant): Promise<AgentIdentity | null> {
+    return this.read(`CONNECTOR#REFRESH#${tokenHash}`, now);
+  }
+
+  private item(sk: string, agent: AgentIdentity, expiresAt: Instant): Item {
+    return {
+      PK: `S#${this.sub.subscriptionId.value}`,
+      SK: sk,
+      entity: 'CONNECTOR_BINDING',
+      clientId: agent.clientId,
+      clientName: agent.clientName,
+      expiresAt: expiresAt.toISOString(),
+      ttl: expiresAt.toEpochSeconds(),
+    };
+  }
+
+  private async read(sk: string, now: Instant): Promise<AgentIdentity | null> {
+    const response = await this.db.send(
+      new GetCommand({
+        TableName: this.tableName,
+        Key: { PK: `S#${this.sub.subscriptionId.value}`, SK: sk },
+      }),
+    );
+    const item = response.Item as Item | undefined;
+    if (!item) return null;
+    if (need(Instant.fromISO(String(item['expiresAt']))).isAtOrBefore(now)) return null;
+    return need(AgentIdentity.create(String(item['clientId']), String(item['clientName'])));
+  }
+}
+
+/**
+ * The face of one person INSIDE this subscription (RN-ACC-022).
+ *
+ * Keyed under the subscription like everything else, so design rule 1 holds
+ * and no third exception of section 8.3 is opened: a picture is data of the
+ * membership. The bytes live on the item, not in the object store, because an
+ * avatar is bounded rather than budgeted — the interface draws it down to
+ * `avatarSide` pixels before sending it and the use case refuses anything over
+ * `avatarMaxBytes`. At that size, replacing a picture OVERWRITES the old one,
+ * and there is nothing left behind for a purge to find.
+ */
+export class DynamoAvatarRepository implements AvatarRepository {
+  constructor(
+    private readonly sub: SubscriptionContext,
+    private readonly db: DynamoDBDocumentClient,
+    private readonly tableName: string,
+  ) {}
+
+  private key(user: UserId): Item {
+    return { PK: `S#${this.sub.subscriptionId.value}`, SK: `AVATAR#${user.value}` };
+  }
+
+  async find(user: UserId): Promise<MemberAvatar | null> {
+    const found = await this.db.send(
+      new GetCommand({ TableName: this.tableName, Key: this.key(user) }),
+    );
+    const item = found.Item as Item | undefined;
+    if (!item) return null;
+    const source = AvatarSource.create(String(item['source'] ?? ''));
+    const picture = item['picture'] as Uint8Array | undefined;
+    return {
+      source: source.ok ? source.value : AvatarSource.DEFAULT,
+      picture: picture ? new Uint8Array(picture) : null,
+      mime: item['mime'] ? String(item['mime']) : null,
+    };
+  }
+
+  async save(user: UserId, avatar: MemberAvatar): Promise<void> {
+    await this.db.send(
+      new PutCommand({
+        TableName: this.tableName,
+        Item: {
+          ...this.key(user),
+          entity: 'AVATAR',
+          userId: user.value,
+          source: avatar.source.name,
+          // Written only when there is one: an item carrying an empty binary
+          // is an item that says a picture exists.
+          ...(avatar.picture && avatar.mime ? { picture: avatar.picture, mime: avatar.mime } : {}),
+        },
+      }),
+    );
   }
 }

@@ -7,7 +7,7 @@
  *    than the templates are.
  *  - A note DTO carries the `revision`, which is the ContentRef the caller must
  *    echo back as `baseRevision` on update (RN-AGT-005). Blind overwrite is not
- *    accepted in a vault that sustains auditing.
+ *    accepted in a notebook that sustains auditing.
  */
 
 import { z } from 'zod';
@@ -18,20 +18,20 @@ import {
   positionSchema,
   removalPolicySchema,
   roleSchema,
-  slugConflictPolicySchema,
+  sha256Schema,
   slugSchema,
   ulidSchema,
 } from '../common.js';
 
-export const vaultSummarySchema = z.object({
-  vaultId: ulidSchema,
+export const notebookSummarySchema = z.object({
+  notebookId: ulidSchema,
   name: z.string(),
   slug: slugSchema,
   description: z.string(),
   noteCount: z.number().int().nonnegative(),
   hasGuidance: z.boolean(),
   updatedAt: instantSchema,
-  /** min(subscription role, vault ceiling), owner above both (RN-ACC-011). */
+  /** min(subscription role, notebook ceiling), owner above both (RN-ACC-011). */
   effectiveRole: roleSchema,
 });
 
@@ -47,17 +47,17 @@ export const folderSchema = z.object({
   noteCount: z.number().int().nonnegative(),
 });
 
-export const vaultDetailSchema = vaultSummarySchema.extend({
+export const notebookDetailSchema = notebookSummarySchema.extend({
   folders: z.array(folderSchema),
   guidance: z.object({ content: z.string(), revision: contentRefSchema }).nullable(),
 });
 
-export const createVaultRequestSchema = z.object({
+export const createNotebookRequestSchema = z.object({
   name: z.string().min(1).max(120),
   description: z.string().max(500).default(''),
 });
 
-export const renameVaultRequestSchema = z.object({
+export const renameNotebookRequestSchema = z.object({
   name: z.string().min(1).max(120),
 });
 
@@ -65,8 +65,8 @@ export const putContentRequestSchema = z.object({
   content: z.string().max(1_048_576),
   /**
    * The revision this write is based on, or null when the slot is still
-   * empty. Blind overwrite is not accepted in a vault that sustains auditing:
-   * the guidance is the most shared document of a vault and the likeliest to
+   * empty. Blind overwrite is not accepted in a notebook that sustains auditing:
+   * the guidance is the most shared document of a notebook and the likeliest to
    * be written by two hands at once, one on the web and one over MCP
    * (RN-KNW-034).
    */
@@ -102,57 +102,160 @@ export const removeFolderRequestSchema = z.object({
 
 export const noteSummarySchema = z.object({
   noteId: ulidSchema,
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   folderId: ulidSchema,
-  title: z.string(),
-  slug: slugSchema,
+  /**
+   * The `name:` the frontmatter states (§5.3), and `null` when the note has
+   * none a link could use (RN-KNW-036). A surface that shows a name has to say
+   * so rather than draw an empty string.
+   */
+  name: z.string().min(1).nullable(),
   position: positionSchema,
   bytes: z.number().int().nonnegative(),
   updatedAt: instantSchema,
   updatedBy: authorshipSchema,
 });
 
+/** The number a folder issued, once and never again (RN-KNW-043). */
+export const folderNumberSchema = z.object({ number: z.number().int().positive() });
+
 export const noteSchema = noteSummarySchema.extend({
   content: z.string(),
   revision: contentRefSchema,
   createdBy: authorshipSchema,
   deletedAt: instantSchema.nullable(),
+  /**
+   * The names of the folders from the root down to the one the note lives in
+   * (RN-AGT-033). Where the note is, never what identifies it. Answered by the
+   * read of one note; a write answers the note without it.
+   */
+  folderTrail: z.array(z.string()).optional(),
 });
 
+/**
+ * A note is created from its content and nothing else: the name is the
+ * `name:` its frontmatter states, and nothing else names it (RN-AGT-024). A
+ * name its folder already holds is refused with ALREADY_EXISTS, naming the note
+ * that holds it (RN-KNW-042).
+ */
 export const createNoteRequestSchema = z.object({
   folderId: ulidSchema,
-  title: z.string().min(1).max(200),
   content: z.string().max(1_048_576),
   afterNoteId: ulidSchema.nullable().default(null),
 });
+
+/**
+ * There is no name here either, and no route that renames a note: a note is
+ * renamed by editing its content (RN-KNW-038).
+ */
+/**
+ * The ceiling of the line an author leaves about a change (RN-AUD-012). It is
+ * a LINE: long enough for a sentence that says what changed and why, short
+ * enough that nobody mistakes it for the place to write the note.
+ */
+export const NOTE_MESSAGE_MAX_LENGTH = 280;
 
 export const updateNoteRequestSchema = z.object({
   content: z.string().max(1_048_576),
   /** The revision the edit was based on; divergence answers CONFLICT. */
   baseRevision: z.string().min(1),
-  title: z.string().min(1).max(200).optional(),
+  /**
+   * A line from the author about this change (RN-AUD-012), recorded in the
+   * trail beside the instant and the authorship. It is OPTIONAL: a write with
+   * no line is recorded without one, which is what every write of an agent
+   * has been until now. A field people are forced to fill is a field that
+   * fills with `.`.
+   */
+  message: z.string().max(NOTE_MESSAGE_MAX_LENGTH).optional(),
 });
 
 export const reorderNoteRequestSchema = z.object({
   afterNoteId: ulidSchema.nullable(),
 });
 
+/**
+ * A move carries no policy (RN-KNW-022, removed): a destination folder that
+ * already holds the name of the note refuses it, and any other accepts it
+ * (RN-KNW-042).
+ */
 export const moveNoteRequestSchema = z.object({
-  toVaultId: ulidSchema.optional(),
+  toNotebookId: ulidSchema.optional(),
   toFolderId: ulidSchema,
-  /** Only a vault change can collide, since the slug is unique per vault. */
-  onSlugConflict: slugConflictPolicySchema.default('REJECT'),
   afterNoteId: ulidSchema.nullable().default(null),
 });
 
-export type VaultSummaryDto = z.infer<typeof vaultSummarySchema>;
+/**
+ * A file a notebook keeps (#166, RN-KNW-048).
+ *
+ * The NAME addresses it — a note reaches it with `![[name]]`, wherever it sits
+ * — and the PATH organises it, written like a path of a filesystem and
+ * created by writing a file into it. Neither the path nor the extension takes
+ * part in identity, and a notebook holds one file of each name (RN-KNW-049).
+ */
+export const notebookFileSchema = z.object({
+  fileId: ulidSchema,
+  name: z.string().min(1).max(512),
+  description: z.string().max(500),
+  mimeType: z.string().min(1).max(255),
+  tags: z.array(z.string().min(1).max(40)).max(20),
+  /** `/pasta/subpasta`, normalised, `/` for a file that sits at the root. */
+  path: z.string().max(1024),
+  bytes: z.number().int().nonnegative(),
+  sha256: sha256Schema,
+  updatedAt: instantSchema,
+  authorship: authorshipSchema,
+});
+
+/**
+ * Keeping a file through the API or the connector: the bytes travel inline,
+ * base64, because an agent that has to perform an HTTP PUT of its own is an
+ * agent that cannot keep a file at all. What is above the ceiling is refused
+ * saying what the ceiling is, and never truncated.
+ */
+export const createFileRequestSchema = z.object({
+  name: z.string().min(1).max(512),
+  description: z.string().max(500).default(''),
+  mimeType: z.string().min(1).max(255),
+  tags: z.array(z.string().min(1).max(40)).max(20).default([]),
+  path: z.string().max(1024).default('/'),
+  contentBase64: z.string().min(1),
+});
+
+export const fileListSchema = z.object({ files: z.array(notebookFileSchema) });
+
+/**
+ * Where the bytes of a file are (#171).
+ *
+ * Two addresses and not one: `url` is how the file is meant to be shown — in
+ * the page when it is drawn, in a tab of its own when a browser displays it,
+ * and as a download when nothing does — while `downloadUrl` always saves it
+ * under its name. `opens` says whether the first of the two shows anything, so
+ * a screen can offer to open a file without knowing the list of types.
+ *
+ * Both are minted at the moment of the read and expire together: a stored link
+ * would be expired by the time somebody came back to it.
+ */
+export const fileLinkSchema = z.object({
+  url: z.string().min(1),
+  downloadUrl: z.string().min(1),
+  opens: z.boolean(),
+  expiresAt: instantSchema,
+});
+
+export type NotebookFileDto = z.infer<typeof notebookFileSchema>;
+export type FileLinkDto = z.infer<typeof fileLinkSchema>;
+export type CreateFileRequest = z.infer<typeof createFileRequestSchema>;
+export type FileListDto = z.infer<typeof fileListSchema>;
+
+export type NotebookSummaryDto = z.infer<typeof notebookSummarySchema>;
 export type FolderDto = z.infer<typeof folderSchema>;
-export type VaultDetailDto = z.infer<typeof vaultDetailSchema>;
+export type NotebookDetailDto = z.infer<typeof notebookDetailSchema>;
 export type ContentDto = z.infer<typeof contentSchema>;
 export type NoteSummaryDto = z.infer<typeof noteSummarySchema>;
 export type NoteDto = z.infer<typeof noteSchema>;
-export type CreateVaultRequest = z.infer<typeof createVaultRequestSchema>;
-export type RenameVaultRequest = z.infer<typeof renameVaultRequestSchema>;
+export type FolderNumberDto = z.infer<typeof folderNumberSchema>;
+export type CreateNotebookRequest = z.infer<typeof createNotebookRequestSchema>;
+export type RenameNotebookRequest = z.infer<typeof renameNotebookRequestSchema>;
 export type PutContentRequest = z.infer<typeof putContentRequestSchema>;
 export type CreateFolderRequest = z.infer<typeof createFolderRequestSchema>;
 export type PatchFolderRequest = z.infer<typeof patchFolderRequestSchema>;

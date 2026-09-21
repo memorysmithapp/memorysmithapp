@@ -5,7 +5,7 @@
  * The codes address a line of `docs/software-vision.md`, a document whoever
  * reads the MCP surface does not have. Inside a served answer `RN-AGT-020` is
  * a symbol that does not resolve: an agent drops it as noise, or reads it as
- * something addressable — a vault, a folder, a rule to cite back — and spends
+ * something addressable — a notebook, a folder, a rule to cite back — and spends
  * a step on it. The sentence around it always stated the whole fact anyway.
  *
  * The traceability is real and it stays where the other ~50 occurrences are:
@@ -17,29 +17,51 @@
 import { describe, expect, it } from 'vitest';
 import { DECLARED_SILENCE, RECOGNISED_NOTATION } from '@memorysmith/contracts';
 import { TOOL_CATALOG } from '../src/mcp/catalog.js';
+import { PRODUCTION_DEFAULT } from '../src/mcp/environment.js';
+import { serverInstructions } from '../src/mcp/instructions.js';
 import { SKILLS, skillNamed } from '../src/mcp/skills.js';
+import { UNNAMED_NOTE_NOTICE } from '../src/mcp/tools.js';
 import { whoAmI } from '../src/mcp/whoami.js';
-import type { AgentCaller, VaultListing } from '../src/mcp/gateway.js';
+import type { AgentCaller, NotebookListing } from '../src/mcp/gateway.js';
 
 const RULE_CODE = /RN-[A-Z]{3}-\d{3}/;
 
 const caller: AgentCaller = {
   userId: 'user-1',
   email: 'someone@example.test',
-  clientId: 'https://claude.ai/mcp',
-  clientName: 'Claude',
   subscriptionId: 'sub-1',
 };
 
-const vaults: readonly VaultListing[] = [
-  { vaultId: 'v-1', name: 'Procurement', description: 'What we decided and why', noteCount: 12 },
+const connector = { clientId: 'https://claude.ai/mcp', clientName: 'Claude' };
+
+const notebooks: readonly NotebookListing[] = [
+  { notebookId: 'v-1', name: 'Procurement', description: 'What we decided and why', noteCount: 12 },
 ];
 
 /** Everything the connector puts in front of an agent, in one list. */
 function servedText(): Array<{ where: string; text: string }> {
   return [
-    { where: 'whoami', text: whoAmI(caller, vaults) },
-    { where: 'whoami, with no vault to reach', text: whoAmI(caller, []) },
+    { where: 'whoami', text: whoAmI(caller, connector, notebooks) },
+    { where: 'whoami, with no notebook to reach', text: whoAmI(caller, connector, []) },
+    { where: 'whoami, with no connector recorded', text: whoAmI(caller, null, notebooks) },
+    {
+      where: 'whoami, in staging',
+      text: whoAmI(caller, connector, notebooks, {
+        environment: 'staging',
+        version: '0.6.0-rc.12+a1b2c3d',
+        commit: 'a1b2c3d',
+      }),
+    },
+    { where: 'the instructions of the handshake', text: serverInstructions(PRODUCTION_DEFAULT) },
+    {
+      where: 'the instructions of the handshake, in staging',
+      text: serverInstructions({
+        environment: 'staging',
+        version: '0.6.0-rc.12+a1b2c3d',
+        commit: 'a1b2c3d',
+      }),
+    },
+    { where: 'the notice of a note written with no name', text: UNNAMED_NOTE_NOTICE },
     ...TOOL_CATALOG.flatMap((tool) => [
       { where: `${tool.name}.title`, text: tool.title },
       { where: `${tool.name}.description`, text: tool.description },
@@ -71,7 +93,7 @@ describe('the MCP surface does not cite the repository at the agent', () => {
   });
 
   it('still says the whole fact the folder-identifier paragraph carried', () => {
-    const text = whoAmI(caller, vaults);
+    const text = whoAmI(caller, connector, notebooks);
 
     expect(text).toContain('the identifier of each folder');
     expect(text).toContain('never have to have');
@@ -84,7 +106,32 @@ describe('the MCP surface does not cite the repository at the agent', () => {
 });
 
 /**
- * The conversion a vault arriving with inline tags is offered (RN-PRT-007).
+ * How a note is named is said once, positively, and a heading is said to be the
+ * structure of the body. The same prohibition stated in eight places taught
+ * agents to distrust headings, and they copied it into the Guidances they
+ * wrote, where a notebook states its own conventions.
+ */
+describe('the MCP surface teaches the name of a note without prohibiting', () => {
+  const PROHIBITION = /never names|names nothing|renames nothing|nothing else names/;
+
+  it.each(servedText())('$where states no prohibition about naming', ({ text }) => {
+    expect(text).not.toMatch(PROHIBITION);
+  });
+
+  it('says what a heading is for, and where the headings of a body start', () => {
+    const body = skillNamed('write-notes')?.body ?? '';
+    expect(body).toContain('its headings are the structure of');
+    expect(body).toContain('starting at `#`');
+    expect(body).toContain('[[Lei 14.133#Article 75]]');
+  });
+
+  it('keeps the notice of a note written with no name as it was', () => {
+    expect(UNNAMED_NOTE_NOTICE).toContain('no link can reach it');
+  });
+});
+
+/**
+ * The conversion a notebook arriving with inline tags is offered (RN-PRT-007).
  *
  * It is a SKILL and not a tool, for a structural reason: reading `#subject`
  * for meaning would make the backend a third sanctioned reader of content,
@@ -98,7 +145,7 @@ describe('the product teaches the conversion instead of performing it', () => {
 
   it('exists, and whoami indexes it, because the index is derived', () => {
     expect(skill).toBeDefined();
-    expect(whoAmI(caller, vaults)).toContain('convert-inline-tags');
+    expect(whoAmI(caller, connector, notebooks)).toContain('convert-inline-tags');
   });
 
   it('teaches what is NOT a tag, which is where the false positives live', () => {

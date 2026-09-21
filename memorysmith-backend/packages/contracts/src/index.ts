@@ -6,6 +6,7 @@
  */
 
 export * from './common.js';
+export * from './files.js';
 export * from './markdown.js';
 export * from './events.js';
 export * from './api/errors.js';
@@ -13,4 +14,6 @@ export * from './api/access.js';
 export * from './api/knowledge.js';
 export * from './api/discovery.js';
 export * from './api/audit.js';
+export * from './api/notebook-document.js';
 export * from './api/portability.js';
+export * from './api/deployment.js';

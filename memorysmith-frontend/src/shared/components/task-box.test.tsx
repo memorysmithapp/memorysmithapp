@@ -1,7 +1,7 @@
 /**
  * The task box, which is the first write the web interface makes.
  *
- * It did not work on any note, in any vault, and the cause was one line:
+ * It did not work on any note, in any notebook, and the cause was one line:
  * `TaskItem` decided with `node.checked`, and react-markdown 9 hands a
  * component the **hast** element, which has no such property. Every item fell
  * through to the plain branch and reached the screen as GFM's own checkbox,
@@ -18,6 +18,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { queryKeys } from '../api/query-keys';
 
 function memoryStorage(): Storage {
   const map = new Map<string, string>();
@@ -42,6 +43,14 @@ vi.stubGlobal('matchMedia', () => ({
 
 let render: (markdown: string, writable?: boolean) => string;
 
+/**
+ * The hook loads the whole i18n bundle and the markdown pipeline before the
+ * first case, which on a cold or busy machine takes longer than the ten
+ * seconds vitest allows a hook by default. The work is the same; what changes
+ * is how long the suite is willing to wait for it.
+ */
+const LOADING_THE_PIPELINE_MS = 30_000;
+
 beforeAll(async () => {
   await import('../../i18n');
   const { WritableContent } = await import('./WritableContent');
@@ -52,16 +61,16 @@ beforeAll(async () => {
         <MemoryRouter>
           <WritableContent
             raw={markdown}
-            vaultSlug="a-vault"
+            notebookId="01J8X2K9QZ3M4N5P6R7S8T9V0A"
             baseRevision="rev-1"
             writable={writable}
             write={() => Promise.resolve('rev-2')}
-            invalidates={[]}
+            invalidates={queryKeys.note('01J8X2K9QZ3M4N5P6R7S8T9V0A', 'unused-by-this-case')}
           />
         </MemoryRouter>
       </QueryClientProvider>,
     );
-});
+}, LOADING_THE_PIPELINE_MS);
 
 const CHECKLIST = '- [ ] Read the act\n- [x] Summarise article 75\n';
 

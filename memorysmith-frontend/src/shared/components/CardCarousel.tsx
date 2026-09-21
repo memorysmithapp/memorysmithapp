@@ -21,7 +21,7 @@ export function CardCarousel({ prevLabel, nextLabel, children }: CardCarouselPro
     setCanNext(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
   }
 
-  // Children arrive asynchronously (the vault list loads), so re-measure on
+  // Children arrive asynchronously (the notebook list loads), so re-measure on
   // every render besides reacting to scroll and resize.
   useEffect(() => {
     update();
@@ -57,7 +57,7 @@ export function CardCarousel({ prevLabel, nextLabel, children }: CardCarouselPro
           ‹
         </button>
       )}
-      <div className="vault-grid" ref={trackRef}>
+      <div className="notebook-grid" ref={trackRef}>
         {children}
       </div>
       {canNext && (

@@ -4,24 +4,29 @@
  * that way (architecture-guide.md, section 5.5).
  */
 
-export { Vault } from './vault/Vault.js';
-export { Folder } from './vault/Folder.js';
-export { FolderTree } from './vault/FolderTree.js';
+export { Notebook } from './notebook/Notebook.js';
+export { Folder } from './notebook/Folder.js';
+export { FolderTree } from './notebook/FolderTree.js';
 export { Note } from './note/Note.js';
+export { ContentSlot, type ContentSlotRole } from './content-slot/ContentSlot.js';
+export { Guidance } from './content-slot/Guidance.js';
+export { Template } from './content-slot/Template.js';
 export {
   FolderDescription,
   FolderName,
-  NoteTitle,
   RemovalPolicy,
   ShortText,
-  SlugConflictPolicy,
-  VaultName,
-  VAULT_LIMITS,
+  NotebookName,
+  NOTEBOOK_LIMITS,
 } from './values.js';
 export { FolderTreePlacement, type Placement } from './services/FolderTreePlacement.js';
 export { NotePlacement, type NoteOrder } from './services/NotePlacement.js';
-export { NoteRelocation, type SlugTaken } from './services/NoteRelocation.js';
-export { composeVaultContext, type VaultContextInput } from './services/VaultContextComposer.js';
+export { NotebookFile } from './file/NotebookFile.js';
+export type { FileTypes } from './ports/index.js';
+export {
+  composeNotebookContext,
+  type NotebookContextInput,
+} from './services/NotebookContextComposer.js';
 export { admitWrite, type StorageBudget, type StorageState } from './services/StorageQuota.js';
 export {
   AuthorizationPolicy,
@@ -29,8 +34,12 @@ export {
   type RequestContext,
 } from './access/AuthorizationPolicy.js';
 export type {
+  ContentSlotRepository,
   ContentStore,
   EventPublisher,
+  FileRepository,
+  FileStore,
+  FolderNumbers,
   NoteRepository,
-  VaultRepository,
+  NotebookRepository,
 } from './ports/index.js';

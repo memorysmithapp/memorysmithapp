@@ -8,11 +8,13 @@ import {
   score,
   type Candidate,
 } from '../src/domain/SearchQuery.js';
-import { RESERVED_KEYS, isReserved } from '../src/domain/FacetExtractor.js';
+import { RESERVED_FRONTMATTER_KEYS, NAME_KEY as SPECIFIED_NAME_KEY } from '@memorysmith/contracts';
+import { NAME_KEY } from '@memorysmith/kernel';
+import { extractFacets } from '../src/domain/FacetExtractor.js';
 
 function note(overrides: Partial<Candidate> = {}): Candidate {
   return {
-    title: normalize('Lei 14.133'),
+    name: normalize('Lei 14.133'),
     folder: normalize('Normas'),
     content: normalize('Art. 75. A contratacao direta observa o prazo de vigencia.'),
     sections: [normalize('Vigência')],
@@ -23,7 +25,7 @@ function note(overrides: Partial<Candidate> = {}): Candidate {
   };
 }
 
-describe('The query language parses what a vault user already types', () => {
+describe('The query language parses what a notebook user already types', () => {
   it('treats several bare terms as all of them having to match', () => {
     const query = parseQuery('lei contratacao');
     expect(matches(query, note())).toBe(true);
@@ -65,9 +67,9 @@ describe('The query language parses what a vault user already types', () => {
 });
 
 describe('Fields restrict where a term is looked for', () => {
-  it('separates title, folder, content and section', () => {
-    expect(matches(parseQuery('title:lei'), note())).toBe(true);
-    expect(matches(parseQuery('title:vigencia'), note())).toBe(false);
+  it('separates name, folder, content and section', () => {
+    expect(matches(parseQuery('name:lei'), note())).toBe(true);
+    expect(matches(parseQuery('name:vigencia'), note())).toBe(false);
 
     expect(matches(parseQuery('folder:normas'), note())).toBe(true);
     expect(matches(parseQuery('folder:lei'), note())).toBe(false);
@@ -85,17 +87,17 @@ describe('Fields restrict where a term is looked for', () => {
   });
 
   it('looks everywhere when no field is given', () => {
-    expect(matches(parseQuery('lei'), note())).toBe(true); // title
+    expect(matches(parseQuery('lei'), note())).toBe(true); // name
     expect(matches(parseQuery('normas'), note())).toBe(true); // folder
     expect(matches(parseQuery('prazo'), note())).toBe(true); // content
     expect(matches(parseQuery('vigencia'), note())).toBe(true); // section
   });
 });
 
-describe('Any attribute of the vault becomes a filter, with no code for it', () => {
+describe('Any attribute of the notebook becomes a filter, with no code for it', () => {
   /**
    * RN-DSC-020: the vocabulary belongs to the guidance. The backend never
-   * holds a list of facet names, so a vault that invents one gets the filter
+   * holds a list of facet names, so a notebook that invents one gets the filter
    * the same day it starts writing it.
    */
   it('filters by the facets the product declares', () => {
@@ -104,7 +106,7 @@ describe('Any attribute of the vault becomes a filter, with no code for it', () 
     expect(matches(parseQuery('reviewed:true'), note())).toBe(true);
   });
 
-  it('filters by a facet the vault invented, unknown to the code', () => {
+  it('filters by a facet the notebook invented, unknown to the code', () => {
     const invented = note({ facets: { norma: ['federal'], instancia: ['segunda'] } });
     expect(matches(parseQuery('norma:federal'), invented)).toBe(true);
     expect(matches(parseQuery('instancia:primeira'), invented)).toBe(false);
@@ -126,10 +128,23 @@ describe('Any attribute of the vault becomes a filter, with no code for it', () 
   });
 });
 
+describe('name: is the field, and a title: prefix is an ordinary facet (RN-DSC-026)', () => {
+  it('filters by the title a notebook writes as an attribute, and never by the name', () => {
+    const titled = note({
+      facets: { title: ['lei-geral'] },
+      facetKinds: { title: 'enum' },
+    });
+    expect(matches(parseQuery('title:lei-geral'), titled)).toBe(true);
+    // The default note is named Lei 14.133 and carries no title attribute.
+    expect(matches(parseQuery('title:lei'), note())).toBe(false);
+    expect(matches(parseQuery('name:lei'), note())).toBe(true);
+  });
+});
+
 describe('A word invented inside one note is findable, which is the point', () => {
   /**
    * The behaviour observed in the vault editors and reproduced here: a term
-   * that is neither a link nor a tag nor part of the title, written once in
+   * that is neither a link nor a tag nor part of the name, written once in
    * the body, comes back pointing at its note.
    */
   const invented = note({
@@ -151,7 +166,7 @@ describe('A word invented inside one note is findable, which is the point', () =
 
   it('combines it with a field filter', () => {
     expect(matches(parseQuery('content:xpto010101 maturity:evergreen'), invented)).toBe(true);
-    expect(matches(parseQuery('title:xpto010101'), invented)).toBe(false);
+    expect(matches(parseQuery('name:xpto010101'), invented)).toBe(false);
   });
 });
 
@@ -165,15 +180,15 @@ describe('Accents and case do not decide whether a note is found', () => {
 });
 
 describe('Ranking is simple enough to explain to whoever asks', () => {
-  it('puts a hit in the title above a hit in the body', () => {
-    const inTitle = note({ title: normalize('Prazo de vigencia'), content: normalize('nada') });
-    const inBody = note({ title: normalize('Outra'), content: normalize('fala de prazo') });
-    expect(score(parseQuery('prazo'), inTitle)).toBeGreaterThan(score(parseQuery('prazo'), inBody));
+  it('puts a hit in the name above a hit in the body', () => {
+    const inName = note({ name: normalize('Prazo de vigencia'), content: normalize('nada') });
+    const inBody = note({ name: normalize('Outra'), content: normalize('fala de prazo') });
+    expect(score(parseQuery('prazo'), inName)).toBeGreaterThan(score(parseQuery('prazo'), inBody));
   });
 
-  it('puts an exact title above a title that merely contains the term', () => {
-    const exact = note({ title: normalize('prazo') });
-    const partial = note({ title: normalize('prazo de vigencia') });
+  it('puts an exact name above a name that merely contains the term', () => {
+    const exact = note({ name: normalize('prazo') });
+    const partial = note({ name: normalize('prazo de vigencia') });
     expect(score(parseQuery('prazo'), exact)).toBeGreaterThan(score(parseQuery('prazo'), partial));
   });
 
@@ -219,20 +234,64 @@ describe('The query has a declared ceiling', () => {
   });
 });
 
-describe('The reserved vocabulary of the profile (RN-DSC-030)', () => {
-  it('reserves four keys, in en-US, and nothing else', () => {
-    expect([...RESERVED_KEYS]).toEqual(['aliases', 'tags', 'created', 'updated']);
-    expect(isReserved('tags')).toBe(true);
-    expect(isReserved('created')).toBe(true);
+describe('The reserved vocabulary of the specification (RN-DSC-030)', () => {
+  it('is read from the specification, and this extractor holds no list of it at all', () => {
+    // The names come from the notations whose section is 6.4. Nothing here
+    // knows them: reserving is declaring, and what classifies a value in this
+    // file is the shape of the value.
+    expect(RESERVED_FRONTMATTER_KEYS).toEqual(['aliases', 'tags', 'name']);
   });
 
-  it('does not reserve title, which is structural and never a key', () => {
-    expect(isReserved('title')).toBe(false);
+  it('agrees with the kernel about which key names a note', () => {
+    // Two constants, because the kernel may not import the contracts package
+    // and the contracts package may not import the kernel. The day the
+    // specification renames the key, one of them fails instead of the two
+    // drifting apart in silence.
+    expect(NAME_KEY).toBe(SPECIFIED_NAME_KEY);
   });
 
-  it('does not reserve a translated spelling: the label may travel, the bytes may not', () => {
-    expect(isReserved('etiquetas')).toBe(false);
-    expect(isReserved('criado')).toBe(false);
+  it('is a guarantee and not a prohibition: an attribute the notebook invented keeps working', () => {
+    expect(extractFacets('---\nautor: Ana\n---')['autor']).toEqual({
+      facet: 'autor',
+      kind: 'enum',
+      values: ['Ana'],
+    });
+    expect(extractFacets('---\netiquetas: [a, b]\n---')['etiquetas']?.kind).toBe('list');
+  });
+
+  it('indexes author, co-author and their dates as the ordinary attributes they are', () => {
+    // None of them is reserved: who wrote a note and when is answered by its
+    // history. The shape of the value decides the kind, as it does for any key,
+    // and two keys are two attributes.
+    const facets = extractFacets(
+      '---\nauthor: Ana\nco-author: [Claude, ChatGPT]\ncreated: 2026-09-03\n---\n\nCorpo.',
+    );
+    expect(facets['created']?.kind).toBe('date');
+    expect(facets['author']).toEqual({ facet: 'author', kind: 'enum', values: ['Ana'] });
+    expect(facets['co-author']).toEqual({
+      facet: 'co-author',
+      kind: 'list',
+      values: ['Claude', 'ChatGPT'],
+    });
+    expect(facets['author']?.values).not.toContain('Claude');
+  });
+
+  it('never makes a facet out of the name, whatever the shape of its value', () => {
+    // RN-DSC-050. Four shapes, and none of them is a category: a note is not a
+    // category of itself, and a facet that appeared only when the value was
+    // the wrong shape would be the surprise the shape rule exists to prevent.
+    const shapes = [
+      '---\nname: Lei 14.133\n---',
+      '---\nname:\n  - Lei 14.133\n  - Lei 14133\n---',
+      '---\nname:\n---',
+      `---\nname: ${'a'.repeat(80)}\n---`,
+    ];
+    for (const markdown of shapes) {
+      expect(extractFacets(markdown)['name']).toBeUndefined();
+    }
+    // And the note that carries one alongside an ordinary attribute keeps the
+    // ordinary one.
+    expect(Object.keys(extractFacets('---\nname: Lei\nmaturity: seed\n---'))).toEqual(['maturity']);
   });
 });
 
@@ -260,7 +319,7 @@ describe('A date facet matches by prefix, never by substring (RN-DSC-031)', () =
   });
 
   it('keeps substring matching for every other kind', () => {
-    // A vault that files `norma: federal-2026` still wants `norma:federal`.
+    // A notebook that files `norma: federal-2026` still wants `norma:federal`.
     const other = note({ facets: { norma: ['federal-2026'] }, facetKinds: { norma: 'enum' } });
     expect(matches(parseQuery('norma:federal'), other)).toBe(true);
   });
@@ -276,7 +335,7 @@ describe('A date facet matches by prefix, never by substring (RN-DSC-031)', () =
 describe('An alias is another name for the note (RN-DSC-032)', () => {
   const acronym = (): Candidate =>
     note({
-      title: normalize('Recovery Time Objective'),
+      name: normalize('Recovery Time Objective'),
       content: normalize('The time a service may stay down.'),
       aliases: [normalize('RTO')],
     });
@@ -285,19 +344,19 @@ describe('An alias is another name for the note (RN-DSC-032)', () => {
     expect(matches(parseQuery('rto'), acronym())).toBe(true);
   });
 
-  it('finds it under title:, because an alias is a name and not a body', () => {
-    expect(matches(parseQuery('title:rto'), acronym())).toBe(true);
+  it('finds it under name:, because an alias is a name and not a body', () => {
+    expect(matches(parseQuery('name:rto'), acronym())).toBe(true);
   });
 
   it('does not find it under content:, which is the body and nothing else', () => {
     expect(matches(parseQuery('content:rto'), acronym())).toBe(false);
   });
 
-  it('ranks an alias hit as a title hit, not as a mention in a paragraph', () => {
+  it('ranks an alias hit as a name hit, not as a mention in a paragraph', () => {
     const byAlias = score(parseQuery('rto'), acronym());
     const mentioned = score(
       parseQuery('rto'),
-      note({ title: normalize('Outra nota'), content: normalize('fala de rto de passagem') }),
+      note({ name: normalize('Outra nota'), content: normalize('fala de rto de passagem') }),
     );
 
     expect(byAlias).toBeGreaterThan(mentioned);
@@ -367,7 +426,7 @@ describe('A date is searchable over an interval, not only at a point (RN-DSC-034
     // An empty result reads as "there is nothing filed under that". This means
     // "you asked something that has no answer", which is a different thing to
     // be told, and the difference decides whether you fix the query or doubt
-    // the vault.
+    // the notebook.
     expect(() => parseQuery('created:2026-03-31..2026-01-01')).toThrow(QuerySyntaxError);
   });
 

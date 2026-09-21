@@ -18,9 +18,9 @@ import { noteSchema, updateNoteRequestSchema } from '@memorysmith/contracts';
 /** What the API answers for a note, as its own schema defines it. */
 const payload = {
   noteId: '01JQ8Z6VZ0000000000000000A',
-  vaultId: '01JQ8Z6VZ0000000000000000B',
+  notebookId: '01JQ8Z6VZ0000000000000000B',
   folderId: '01JQ8Z6VZ0000000000000000C',
-  title: 'Recovery Time Objective',
+  name: 'Recovery Time Objective',
   slug: 'recovery-time-objective',
   position: 'a0',
   bytes: 47,

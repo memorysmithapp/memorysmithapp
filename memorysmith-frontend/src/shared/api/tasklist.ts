@@ -6,7 +6,7 @@
  * document reaches the server as the author wrote it: frontmatter, spacing,
  * line breaks and the rest of the item line included. That is a requirement,
  * not elegance: `splitFrontmatter` is lossy by design, because it flattens
- * lists for display, and rebuilding the document from it would hand the vault
+ * lists for display, and rebuilding the document from it would hand the notebook
  * a file nobody typed.
  */
 

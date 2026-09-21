@@ -7,15 +7,23 @@
  * code-review rule into a compiler rule (PE2, section 8.2).
  *
  * The lexicographic order of the sort keys is CHOSEN, not accidental:
- * FSTAT# and LIMIT# fall between FOLDER# and META, so the whole aggregate, the
- * counters AND the role ceilings come back in a single Query over a single
- * partition. EVENT# sorts before that range; NOTE#, NSLUG#, SEEN# and SLUG#
- * sort after it.
+ * FSTAT#, FTPL#, GUIDANCE and LIMIT# fall between FOLDER# and META, so the
+ * whole aggregate, the counters, the two kinds of Content Slot AND the role
+ * ceilings come back in a single Query over a single partition. EVENT# sorts
+ * before that range; NOTE#, SEEN#, SEQ# and SLUG# sort after it.
  */
 
-import type { FolderId, NoteId, Position, SubscriptionId, VaultId } from '@memorysmith/kernel';
+import {
+  sha256Hex,
+  type FileId,
+  type FolderId,
+  type NoteId,
+  type Position,
+  type SubscriptionId,
+  type NotebookId,
+} from '@memorysmith/kernel';
 
-/** The sort key of the vault item itself. */
+/** The sort key of the notebook item itself. */
 export const META = 'META';
 /** Lower bound of the single-Query range that loads the whole aggregate. */
 export const AGGREGATE_RANGE_START = 'FOLDER#';
@@ -25,9 +33,28 @@ export const AGGREGATE_RANGE_END = META;
 export class KnowledgeKeys {
   constructor(private readonly subscriptionId: SubscriptionId) {}
 
-  /** Every item of a vault lives in this one partition. */
-  vault(vaultId: VaultId): string {
-    return `S#${this.subscriptionId.value}#VAULT#${vaultId.value}`;
+  /** Every item of a notebook lives in this one partition. */
+  notebook(notebookId: NotebookId): string {
+    return `S#${this.subscriptionId.value}#NOTEBOOK#${notebookId.value}`;
+  }
+
+  /**
+   * A file of the notebook (#166). `FILE#` sorts BEFORE `FOLDER#`, which is
+   * the lower bound of the Query that loads the aggregate, so the files of a
+   * notebook are never read by anything that reads its tree.
+   */
+  file(fileId: FileId): string {
+    return `FILE#${fileId.value}`;
+  }
+
+  /**
+   * The name a live file of the notebook holds (RN-KNW-049). It carries the
+   * HASH of the name for the reason the guard of a note name does: a name has
+   * no length limit and a sort key holds 1,024 bytes. `FNAME#` also sorts
+   * before `FOLDER#`.
+   */
+  fileNameGuard(name: string): string {
+    return `FNAME#${sha256Hex(name.normalize('NFC'))}`;
   }
 
   folder(folderId: FolderId): string {
@@ -39,9 +66,25 @@ export class KnowledgeKeys {
     return `FSTAT#${folderId.value}`;
   }
 
-  /** Note counter of the whole vault, projected into GSI1 as VSTAT#. */
-  vaultStat(): string {
+  /** Note counter of the whole notebook, projected into GSI1 as NBSTAT#. */
+  notebookStat(): string {
     return 'FSTAT';
+  }
+
+  /**
+   * The Template of a folder, one item and therefore at most one Template
+   * (RN-KNW-044). It deliberately does NOT start with `FOLDER#`: the tree
+   * loader reads every key that does as a folder, and this is not one. It
+   * still falls inside the aggregate range, so the tree learns which folders
+   * carry a Template without a second query.
+   */
+  template(folderId: FolderId): string {
+    return `FTPL#${folderId.value}`;
+  }
+
+  /** The Guidance of the notebook: one notebook, one key, at most one item. */
+  guidance(): string {
+    return 'GUIDANCE';
   }
 
   limit(userId: string): string {
@@ -52,14 +95,28 @@ export class KnowledgeKeys {
     return `NOTE#${noteId.value}`;
   }
 
+  /**
+   * The name a live note of a folder holds (RN-KNW-037, RN-KNW-042). The key
+   * carries the HASH of the name and not the name: a name has no length limit
+   * (RN-KNW-035) and a sort key holds 1,024 bytes. It sorts after `META`, so
+   * the Query that loads the tree never reads it.
+   */
+  noteNameGuard(folderId: FolderId, name: string): string {
+    return `NAME#${folderId.value}#${sha256Hex(name)}`;
+  }
+
+  /**
+   * The counter of the numbers a folder issues (RN-KNW-043). It sorts after
+   * `META`, outside the range that loads the aggregate, so loading a notebook
+   * reads exactly what it read before the counter existed.
+   */
+  folderNumbers(folderId: FolderId): string {
+    return `SEQ#${folderId.value}`;
+  }
+
   /** I1 in the database: unique among siblings (RN-KNW-002). */
   folderSlugGuard(parentFolderId: FolderId | null, slug: string): string {
     return `SLUG#${parentFolderId?.value ?? 'ROOT'}#${slug}`;
-  }
-
-  /** Unique WITHIN THE VAULT, which is how links resolve (RN-KNW-020). */
-  noteSlugGuard(slug: string): string {
-    return `NSLUG#${slug}`;
   }
 
   /** Outbox item; the ULID orders publication by generation time. */
@@ -72,43 +129,53 @@ export class KnowledgeKeys {
     return `SEEN#${eventId}`;
   }
 
-  // ---- GSI1: vaults of the subscription, already carrying the count --------
+  // ---- GSI1: notebooks of the subscription, already carrying the count --------
 
   /**
-   * One partition per subscription, which is what listing vaults asks for now
-   * that nothing sits between the subscription and the vault. It doubles as
+   * One partition per subscription, which is what listing notebooks asks for now
+   * that nothing sits between the subscription and the notebook. It doubles as
    * the table partition of the slug guard below: same string, different table
    * attribute, and both start with the subscription (rule 1).
    */
-  subscriptionVaults(): string {
-    return `S#${this.subscriptionId.value}#VAULTS`;
+  subscriptionNotebooks(): string {
+    return `S#${this.subscriptionId.value}#NOTEBOOKS`;
   }
 
-  gsi1Vault(vaultId: VaultId): string {
-    return `VAULT#${vaultId.value}`;
+  gsi1Notebook(notebookId: NotebookId): string {
+    return `NOTEBOOK#${notebookId.value}`;
   }
 
-  gsi1VaultStat(vaultId: VaultId): string {
-    return `VSTAT#${vaultId.value}`;
+  gsi1NotebookStat(notebookId: NotebookId): string {
+    return `NBSTAT#${notebookId.value}`;
+  }
+
+  /**
+   * The Guidance item, projected into GSI1 so that LISTING the notebooks
+   * answers which of them have one. The listing reads one partition of the
+   * index and never loads a notebook, so without this entry the flag would be
+   * a guess.
+   */
+  gsi1NotebookGuidance(notebookId: NotebookId): string {
+    return `NBGUID#${notebookId.value}`;
   }
 
   /**
    * Stored bytes of the whole subscription, maintained by the outbox relay
    * (RN-SUB-021). It lives in the subscription's partition and not in a
-   * vault's, because a plan limits the subscription, and a vault in the bin is
-   * still holding what it holds.
+   * notebook's, because a plan limits the subscription, and a notebook waiting
+   * for the purge is still holding what it holds.
    */
   storageUsage(): string {
     return 'USAGE';
   }
 
   /**
-   * Unique WITHIN THE SUBSCRIPTION (RN-KNW-032). It lives in the vaults
+   * Unique WITHIN THE SUBSCRIPTION (RN-KNW-032). It lives in the notebooks
    * partition of the TABLE, not in GSI1, because a transaction cannot condition
    * on an index: the guard has to be an item the write can lock against.
    */
-  vaultSlugGuard(slug: string): string {
-    return `VSLUG#${slug}`;
+  notebookSlugGuard(slug: string): string {
+    return `NBSLUG#${slug}`;
   }
 
   // ---- GSI2: notes of a folder, in the defined order -----------------------

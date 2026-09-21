@@ -3,20 +3,22 @@
  * and the backend cannot drift: both import the same schemas.
  */
 
-import type { Role } from '@memorysmith/kernel';
+import type { ContentRef, Role } from '@memorysmith/kernel';
 import type {
   ContentDto,
   FolderDto,
   NoteDto,
   NoteSummaryDto,
-  VaultDetailDto,
-  VaultSummaryDto,
+  NotebookFileDto,
+  NotebookDetailDto,
+  NotebookSummaryDto,
 } from '@memorysmith/contracts';
 import type { Note } from '../../../domain/note/Note.js';
-import type { Vault } from '../../../domain/vault/Vault.js';
-import type { Folder } from '../../../domain/vault/Folder.js';
+import type { NotebookFile } from '../../../domain/file/NotebookFile.js';
+import type { Notebook } from '../../../domain/notebook/Notebook.js';
+import type { Folder } from '../../../domain/notebook/Folder.js';
 
-export function folderToDto(folder: Folder, vault: Vault): FolderDto {
+export function folderToDto(folder: Folder, notebook: Notebook): FolderDto {
   return {
     folderId: folder.id.value,
     parentFolderId: folder.parentFolderId?.value ?? null,
@@ -24,43 +26,44 @@ export function folderToDto(folder: Folder, vault: Vault): FolderDto {
     slug: folder.slug.value,
     description: folder.description.value,
     position: folder.position.value,
-    hasTemplate: folder.hasTemplate,
-    noteCount: vault.noteCountOf(folder.id),
+    hasTemplate: notebook.hasTemplate(folder.id),
+    noteCount: notebook.noteCountOf(folder.id),
   };
 }
 
-export function vaultToSummary(vault: Vault, role: Role): VaultSummaryDto {
+export function notebookToSummary(notebook: Notebook, role: Role): NotebookSummaryDto {
   return {
-    vaultId: vault.id.value,
-    name: vault.name.value,
-    slug: vault.slug.value,
-    description: vault.description.value,
-    noteCount: vault.noteCount,
-    hasGuidance: vault.hasGuidance,
-    updatedAt: vault.updatedAt.toISOString(),
+    notebookId: notebook.id.value,
+    name: notebook.name.value,
+    slug: notebook.slug.value,
+    description: notebook.description.value,
+    noteCount: notebook.noteCount,
+    hasGuidance: notebook.hasGuidance,
+    updatedAt: notebook.updatedAt.toISOString(),
     effectiveRole: role.name,
   };
 }
 
-export function vaultToDetail(vault: Vault, role: Role, guidance: string | null): VaultDetailDto {
+export function notebookToDetail(
+  notebook: Notebook,
+  role: Role,
+  /** The Guidance as its own aggregate answered it, content and revision. */
+  guidance: { content: string; ref: ContentRef } | null,
+): NotebookDetailDto {
   return {
-    ...vaultToSummary(vault, role),
+    ...notebookToSummary(notebook, role),
     // The tree in the DEFINED order, which is signal and not decoration (PP9).
-    folders: vault.folders.inOrder().map((folder) => folderToDto(folder, vault)),
-    guidance:
-      guidance !== null && vault.guidanceRef
-        ? { content: guidance, revision: vault.guidanceRef.toJSON() }
-        : null,
+    folders: notebook.folders.inOrder().map((folder) => folderToDto(folder, notebook)),
+    guidance: guidance ? { content: guidance.content, revision: guidance.ref.toJSON() } : null,
   };
 }
 
 export function noteToSummary(note: Note): NoteSummaryDto {
   return {
     noteId: note.id.value,
-    vaultId: note.vaultId.value,
+    notebookId: note.notebookId.value,
     folderId: note.folderId.value,
-    title: note.title.value,
-    slug: note.slug.value,
+    name: note.name,
     position: note.position.value,
     bytes: note.bodyRef.bytes,
     updatedAt: note.updatedBy.at.toISOString(),
@@ -81,4 +84,24 @@ export function noteToDto(note: Note, content: string): NoteDto {
 
 export function contentToDto(content: string, revision: NoteDto['revision']): ContentDto {
   return { content, revision };
+}
+
+/**
+ * A file of a notebook as the API answers it (#166). No URL here: a link is
+ * minted when it is asked for, because it expires and a listing that carried
+ * one would age in the hands of whoever read it.
+ */
+export function fileToDto(file: NotebookFile): NotebookFileDto {
+  return {
+    fileId: file.id.value,
+    name: file.name,
+    description: file.description,
+    mimeType: file.mimeType,
+    tags: [...file.tags],
+    path: file.path,
+    bytes: file.contentRef.bytes,
+    sha256: file.contentRef.sha256,
+    updatedAt: file.updatedBy.at.toISOString(),
+    authorship: file.updatedBy.toJSON(),
+  };
 }

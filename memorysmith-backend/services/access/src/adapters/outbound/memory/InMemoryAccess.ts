@@ -6,7 +6,10 @@
 
 import {
   ConcurrencyError,
+  DomainError,
   ok,
+  type AgentIdentity,
+  type Instant,
   type DomainEvent,
   type EventPublisher,
   type Result,
@@ -16,10 +19,12 @@ import {
   type UserId,
 } from '@memorysmith/kernel';
 import type { Subscription } from '../../../domain/subscription/Subscription.js';
-import type { Invite } from '../../../domain/invite/Invite.js';
-import type { InviteToken } from '../../../domain/values.js';
+import type { AccountLocale, Email, PersonName } from '../../../domain/values.js';
 import type {
-  InviteRepository,
+  AccountDirectory,
+  AvatarRepository,
+  MemberAvatar,
+  ConnectorBindingRepository,
   PlatformSubscriptionAdmin,
   PlatformSubscriptionView,
   SubscriptionLink,
@@ -30,13 +35,15 @@ import type {
 
 export class InMemoryAccessDatabase {
   readonly subscriptions = new Map<string, { subscription: Subscription; version: number }>();
-  readonly invites = new Map<string, Invite>();
   readonly links = new Map<string, SubscriptionLink>();
+  readonly connectors = new Map<string, { agent: AgentIdentity; expiresAt: Instant }>();
+  readonly avatars = new Map<string, MemberAvatar>();
 
   clear(): void {
     this.subscriptions.clear();
-    this.invites.clear();
     this.links.clear();
+    this.connectors.clear();
+    this.avatars.clear();
   }
 }
 
@@ -65,33 +72,6 @@ export class InMemorySubscriptionRepository implements SubscriptionRepository {
   }
 }
 
-export class InMemoryInviteRepository implements InviteRepository {
-  constructor(
-    private readonly sub: SubscriptionContext,
-    private readonly db: InMemoryAccessDatabase,
-    private readonly events: EventPublisher,
-  ) {}
-
-  async findByToken(token: InviteToken): Promise<Invite | null> {
-    // The token is the key, and it is scoped to the subscription like
-    // everything else: a token of another subscription simply is not found.
-    return this.db.invites.get(`S#${this.sub.subscriptionId.value}#INVITE#${token.value}`) ?? null;
-  }
-
-  async listPending(): Promise<Invite[]> {
-    const prefix = `S#${this.sub.subscriptionId.value}#INVITE#`;
-    return [...this.db.invites.entries()]
-      .filter(([key]) => key.startsWith(prefix))
-      .map(([, invite]) => invite);
-  }
-
-  async save(invite: Invite): Promise<Result<void, ConcurrencyError>> {
-    this.db.invites.set(`S#${this.sub.subscriptionId.value}#INVITE#${invite.token.value}`, invite);
-    await this.events.publish(invite.pullEvents());
-    return ok();
-  }
-}
-
 /** Exception 1: identity is global, so this one is not subscription-scoped. */
 export class InMemoryUserLinkRepository implements UserLinkRepository {
   constructor(private readonly db: InMemoryAccessDatabase) {}
@@ -107,8 +87,16 @@ export class InMemoryUserLinkRepository implements UserLinkRepository {
       .map(([, link]) => link);
   }
 
-  async link(link: SubscriptionLink): Promise<void> {
-    this.db.links.set(this.key(link.userId, link.subscriptionId), link);
+  async link(link: Omit<SubscriptionLink, 'welcomedAt'>): Promise<void> {
+    const key = this.key(link.userId, link.subscriptionId);
+    this.db.links.set(key, { ...link, welcomedAt: this.db.links.get(key)?.welcomedAt ?? null });
+  }
+
+  async markWelcomed(user: UserId, at: string): Promise<void> {
+    for (const link of await this.linksOf(user)) {
+      if (link.welcomedAt) continue;
+      this.db.links.set(this.key(user, link.subscriptionId), { ...link, welcomedAt: at });
+    }
   }
 
   async unlink(user: UserId, subscriptionId: SubscriptionId): Promise<void> {
@@ -193,5 +181,105 @@ export class InMemoryOnboarding implements SubscriptionOnboarding {
     );
     await this.events.publish(pending);
     return ok();
+  }
+}
+
+export class InMemoryConnectorBindingRepository implements ConnectorBindingRepository {
+  constructor(
+    private readonly sub: SubscriptionContext,
+    private readonly db: InMemoryAccessDatabase,
+  ) {}
+
+  private key(kind: 'TOKEN' | 'REFRESH', id: string): string {
+    return `S#${this.sub.subscriptionId.value}#CONNECTOR#${kind}#${id}`;
+  }
+
+  async bindAccessToken(
+    tokenId: string,
+    agent: AgentIdentity,
+    expiresAt: Instant,
+  ): Promise<boolean> {
+    const key = this.key('TOKEN', tokenId);
+    if (this.db.connectors.has(key)) return false;
+    this.db.connectors.set(key, { agent, expiresAt });
+    return true;
+  }
+
+  async bindRefreshToken(
+    tokenHash: string,
+    agent: AgentIdentity,
+    expiresAt: Instant,
+  ): Promise<void> {
+    this.db.connectors.set(this.key('REFRESH', tokenHash), { agent, expiresAt });
+  }
+
+  async agentOfAccessToken(tokenId: string, now: Instant): Promise<AgentIdentity | null> {
+    return this.read(this.key('TOKEN', tokenId), now);
+  }
+
+  async agentOfRefreshToken(tokenHash: string, now: Instant): Promise<AgentIdentity | null> {
+    return this.read(this.key('REFRESH', tokenHash), now);
+  }
+
+  private read(key: string, now: Instant): AgentIdentity | null {
+    const found = this.db.connectors.get(key);
+    if (!found || found.expiresAt.isAtOrBefore(now)) return null;
+    return found.agent;
+  }
+}
+
+/** The language of each account, kept by e-mail, as the identity provider keeps it. */
+export class InMemoryAccountDirectory implements AccountDirectory {
+  readonly locales = new Map<string, string>();
+  readonly names = new Map<string, string>();
+  readonly passwords = new Map<string, string>();
+
+  async setLocale(account: Email, locale: AccountLocale): Promise<void> {
+    this.locales.set(account.value, locale.name);
+  }
+
+  async setName(account: Email, name: PersonName): Promise<void> {
+    this.names.set(account.value, name.value);
+  }
+
+  async nameOf(account: Email): Promise<string | null> {
+    return this.names.get(account.value) ?? null;
+  }
+
+  /**
+   * The same refusal for both halves, like the real one: which of the two
+   * failed is exactly what an unauthenticated retry must not learn.
+   */
+  async changePassword(
+    account: Email,
+    current: string,
+    next: string,
+  ): Promise<Result<void, DomainError>> {
+    const held = this.passwords.get(account.value);
+    if (held !== undefined && held !== current) {
+      return { ok: false, error: DomainError.validation('The password could not be changed') };
+    }
+    this.passwords.set(account.value, next);
+    return ok();
+  }
+}
+
+/** The same, in memory: one picture per person per subscription. */
+export class InMemoryAvatarRepository implements AvatarRepository {
+  constructor(
+    private readonly sub: SubscriptionContext,
+    private readonly db: InMemoryAccessDatabase,
+  ) {}
+
+  private key(user: UserId): string {
+    return `S#${this.sub.subscriptionId.value}#AVATAR#${user.value}`;
+  }
+
+  async find(user: UserId): Promise<MemberAvatar | null> {
+    return this.db.avatars.get(this.key(user)) ?? null;
+  }
+
+  async save(user: UserId, avatar: MemberAvatar): Promise<void> {
+    this.db.avatars.set(this.key(user), avatar);
   }
 }

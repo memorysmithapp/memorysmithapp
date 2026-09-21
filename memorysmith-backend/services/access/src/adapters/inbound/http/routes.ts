@@ -12,9 +12,13 @@
 
 import { Hono } from 'hono';
 import {
+  AgentIdentity,
   Authorship,
   DomainError,
+  err,
   httpStatusFor,
+  Instant,
+  SubscriptionContext,
   SubscriptionId,
   UserId,
   type Result,
@@ -27,21 +31,39 @@ import type {
 } from '../../../application/onboarding.js';
 import type { ListPlatformQueue, ReviewSubscription } from '../../../application/platform.js';
 import type {
-  AcceptInvite,
   ChangeMemberRole,
   ListMembers,
-  InviteMember,
   RemoveMember,
   TransferOwnership,
 } from '../../../application/members.js';
+import type {
+  BindConnector,
+  ConnectorOfSession,
+  RebindConnector,
+  TokenCredential,
+} from '../../../application/connectors.js';
+import type {
+  ChangePassword,
+  ChooseLanguage,
+  EditProfile,
+  ReadProfile,
+  RecordWelcome,
+  SetProfilePicture,
+} from '../../../application/account.js';
 import type { UserProfile } from '../../../domain/ports/index.js';
-import type { SubscriptionContext } from '@memorysmith/kernel';
-import { sessionSchema } from '@memorysmith/contracts';
+import {
+  connectorBindingRequestSchema,
+  profileSchema,
+  sessionSchema,
+} from '@memorysmith/contracts';
+import type { TokenVerifier } from './authentication.js';
 
 /** What the auth middleware puts on the request. */
 export interface AccessRequest {
   readonly profile: UserProfile;
   readonly context: SubscriptionContext | null;
+  /** The app client and the identifier of the token this request carries. */
+  readonly credential: TokenCredential;
 }
 
 /**
@@ -52,14 +74,19 @@ export interface AccessUseCases {
   readonly requestSubscription: (request: AccessRequest) => RequestSubscription;
   readonly getSession: (request: AccessRequest) => GetSession;
   readonly switchSubscription: (request: AccessRequest) => SwitchActiveSubscription;
+  readonly chooseLanguage: (request: AccessRequest) => ChooseLanguage;
+  readonly recordWelcome: (request: AccessRequest) => RecordWelcome;
+  readonly readProfile: (request: AccessRequest) => ReadProfile;
+  readonly editProfile: (request: AccessRequest) => EditProfile;
+  readonly setProfilePicture: (request: AccessRequest) => SetProfilePicture;
+  readonly changePassword: (request: AccessRequest) => ChangePassword;
   readonly listPlatformQueue: (request: AccessRequest) => ListPlatformQueue;
   readonly reviewSubscription: (request: AccessRequest) => ReviewSubscription;
   readonly listMembers: (request: AccessRequest) => ListMembers;
-  readonly inviteMember: (request: AccessRequest) => InviteMember;
-  readonly acceptInvite: (request: AccessRequest) => AcceptInvite;
   readonly changeMemberRole: (request: AccessRequest) => ChangeMemberRole;
   readonly removeMember: (request: AccessRequest) => RemoveMember;
   readonly transferOwnership: (request: AccessRequest) => TransferOwnership;
+  readonly connectorOfSession: (request: AccessRequest) => ConnectorOfSession;
 }
 
 type Variables = { access: AccessRequest };
@@ -119,8 +146,10 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
       user: {
         userId: view.value.user.userId.value,
         email: view.value.user.email.value,
-        name: view.value.user.name,
+        name: view.value.name,
         isPlatformAdmin: view.value.user.isPlatformAdmin,
+        avatar: view.value.avatar,
+        picture: view.value.picture,
       },
       // The active subscription is the one the TOKEN names, never the one the
       // list happens to start with (RN-SUB-002).
@@ -128,6 +157,7 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
       subscriptions: view.value.links,
       role: view.value.role,
       usedBytes: view.value.usedBytes,
+      welcomeSeen: view.value.welcomeSeen,
     };
     // Parsed, not cast. A cast would let the shape drift from the declared
     // contract in silence, which is exactly how this response came to send
@@ -148,6 +178,123 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
       }),
       204,
     );
+  });
+
+  /**
+   * The language of the account, which every message the product sends it is
+   * written in (RN-ACC-018). The interface records it when the person chooses a
+   * language, and a session with no subscription records it like any other.
+   */
+  app.put('/session/locale', async (c) => {
+    const request = c.get('access');
+    const body = (await c.req.json().catch(() => ({}))) as { locale?: string };
+    return respond(
+      c,
+      await useCases.chooseLanguage(request).execute({
+        profile: request.profile,
+        locale: String(body.locale ?? ''),
+      }),
+      204,
+    );
+  });
+
+  /**
+   * The person has been shown what the product is (#167). Recorded when the
+   * welcome surface opens by itself, and never when it is opened from the user
+   * menu: what this date answers is whether it still has to open on its own.
+   */
+  app.post('/session/welcomed', async (c) => {
+    const request = c.get('access');
+    return respond(
+      c,
+      await useCases.recordWelcome(request).execute({ profile: request.profile }),
+      204,
+    );
+  });
+
+  // ---- The person --------------------------------------------------------
+
+  /**
+   * The profile of whoever is signed in (RN-ACC-021, RN-ACC-022). The name is
+   * read from the ACCOUNT and not from the token, because a token minted
+   * before the last edit still carries what it replaced.
+   */
+  app.get('/profile', async (c) => {
+    const request = c.get('access');
+    const view = await useCases.readProfile(request).execute({ profile: request.profile });
+    if (!view.ok) return respond(c, view);
+    return c.json(profileSchema.parse(view.value), 200);
+  });
+
+  app.put('/profile', async (c) => {
+    const request = c.get('access');
+    const body = (await c.req.json().catch(() => ({}))) as { name?: string; avatar?: string };
+    return respond(
+      c,
+      await useCases.editProfile(request).execute({
+        profile: request.profile,
+        name: String(body.name ?? ''),
+        avatar: String(body.avatar ?? ''),
+      }),
+      204,
+    );
+  });
+
+  /**
+   * The picture itself, base64 in the body: the interface has already drawn it
+   * down to a side that fits in a request, and the type it declares is checked
+   * against the bytes, because what a file is called establishes nothing.
+   */
+  app.put('/profile/picture', async (c) => {
+    const request = c.get('access');
+    const body = (await c.req.json().catch(() => ({}))) as { mime?: string; bytes?: string };
+    let bytes: Uint8Array;
+    try {
+      bytes = new Uint8Array(Buffer.from(String(body.bytes ?? ''), 'base64'));
+    } catch {
+      return respond(c, {
+        ok: false,
+        error: DomainError.validation('The picture is not base64'),
+      });
+    }
+    return respond(
+      c,
+      await useCases
+        .setProfilePicture(request)
+        .execute({ profile: request.profile, mime: String(body.mime ?? ''), bytes }),
+      204,
+    );
+  });
+
+  /**
+   * Changing a password ends the other sessions of the account, which the
+   * screen says before it happens. Nothing here is stored and nothing is
+   * logged: the two passwords cross this handler and end in the pool.
+   */
+  app.post('/password', async (c) => {
+    const request = c.get('access');
+    const body = (await c.req.json().catch(() => ({}))) as { current?: string; next?: string };
+    return respond(
+      c,
+      await useCases.changePassword(request).execute({
+        profile: request.profile,
+        current: String(body.current ?? ''),
+        next: String(body.next ?? ''),
+      }),
+      204,
+    );
+  });
+
+  /**
+   * The connector this session acts through, which `whoami` names. A session
+   * that is not a connector's, or whose connector was never recorded, answers
+   * NOT_FOUND: the connector is then unidentified, and nothing else the token
+   * carries is named in its place.
+   */
+  app.get('/connector', async (c) => {
+    const request = c.get('access');
+    const found = await useCases.connectorOfSession(request).execute(request.credential);
+    return respond(c, found.ok ? { ok: true as const, value: found.value.toJSON() } : found);
   });
 
   // ---- Onboarding ----------------------------------------------------------
@@ -198,25 +345,6 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
             })),
           }
         : listed,
-    );
-  });
-
-  app.post('/members', async (c) => {
-    const request = c.get('access');
-    const context = requireContext(request);
-    if (!context.ok) return respond(c, context);
-
-    const body = (await c.req.json().catch(() => ({}))) as { email?: string; role?: string };
-    const invited = await useCases.inviteMember(request).execute({
-      context: context.value,
-      email: String(body.email ?? ''),
-      role: String(body.role ?? ''),
-      by: Authorship.byHuman(request.profile.userId),
-    });
-    return respond(
-      c,
-      invited.ok ? { ok: true as const, value: { token: invited.value.token.value } } : invited,
-      201,
     );
   });
 
@@ -285,24 +413,6 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
     );
   });
 
-  app.post('/invites/:token/accept', async (c) => {
-    const request = c.get('access');
-    const accepted = await useCases.acceptInvite(request).execute({
-      profile: request.profile,
-      token: c.req.param('token'),
-      by: Authorship.byHuman(request.profile.userId),
-    });
-    return respond(
-      c,
-      accepted.ok
-        ? {
-            ok: true as const,
-            value: { subscriptionId: accepted.value.subscriptionId, role: accepted.value.role },
-          }
-        : accepted,
-    );
-  });
-
   // ---- Platform ------------------------------------------------------------
 
   app.get('/platform/subscriptions', async (c) => {
@@ -336,6 +446,98 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
    */
   app.put('/platform/subscriptions/:s/status', async (c) => platformAction(c, useCases, 'status'));
   app.patch('/platform/subscriptions/:s/plan', async (c) => platformAction(c, useCases, 'plan'));
+
+  return app;
+}
+
+/** What the route the connector proxy binds a token through needs. */
+export interface ConnectorBindingDependencies {
+  readonly verifier: TokenVerifier;
+  /** The app client of the connector proxy: the only one whose tokens are bound. */
+  readonly connectorClientId: string;
+  /**
+   * Whether the gateway authenticated this request with IAM (section 14.1).
+   * The route is authorized by IAM before it reaches the function, and this is
+   * the check that it was: without it, whoever holds a token of the proxy could
+   * bind it to any connector they liked.
+   */
+  readonly signedWithIam: (c: Context) => boolean;
+  readonly bindConnector: (context: SubscriptionContext) => BindConnector;
+  readonly rebindConnector: (context: SubscriptionContext) => RebindConnector;
+}
+
+/**
+ * `POST /access/connector-bindings`: the connector proxy records which connector
+ * a token it has just handed out belongs to (architecture-guide.md, 13.3).
+ *
+ * It is mounted apart from every other route of Access, because no person calls
+ * it: it carries no session, it is signed by the proxy, and the token it binds
+ * travels in the body. The subscription and the identifier are read from that
+ * token's own verified claims and never from the body, so a token can only be
+ * bound under the subscription it names.
+ */
+export function createConnectorBindingRoutes(deps: ConnectorBindingDependencies): Hono {
+  const app = new Hono();
+
+  app.post('/', async (c) => {
+    // To anyone but the proxy, this route does not exist.
+    if (!deps.signedWithIam(c)) return respond(c, err(DomainError.forbidden('Not found')));
+
+    const parsed = connectorBindingRequestSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) {
+      return respond(
+        c,
+        err(DomainError.validation('Not a connector binding', parsed.error.issues)),
+      );
+    }
+    const binding = parsed.data;
+
+    const token = await deps.verifier.verify(binding.accessToken);
+    if (
+      !token ||
+      token.client_id !== deps.connectorClientId ||
+      token.token_use !== 'access' ||
+      !token.jti ||
+      token.exp === undefined
+    ) {
+      return respond(
+        c,
+        err(
+          DomainError.validation('The token to bind is not an access token of the connector proxy'),
+        ),
+      );
+    }
+    const context = SubscriptionContext.fromClaims(token);
+    if (!context.ok) return respond(c, context);
+    const expiresAt = Instant.fromEpochMillis(token.exp * 1000);
+    if (!expiresAt.ok) return respond(c, expiresAt);
+
+    if (binding.grant === 'authorization_code') {
+      const agent = AgentIdentity.create(binding.connector.clientId, binding.connector.clientName);
+      if (!agent.ok) return respond(c, agent);
+      return respond(
+        c,
+        await deps.bindConnector(context.value).execute({
+          tokenId: token.jti,
+          tokenExpiresAt: expiresAt.value,
+          agent: agent.value,
+          refreshTokenHash: binding.refreshTokenHash,
+        }),
+        204,
+      );
+    }
+
+    return respond(
+      c,
+      await deps.rebindConnector(context.value).execute({
+        tokenId: token.jti,
+        tokenExpiresAt: expiresAt.value,
+        refreshTokenHash: binding.refreshTokenHash,
+        rotatedRefreshTokenHash: binding.rotatedRefreshTokenHash,
+      }),
+      204,
+    );
+  });
 
   return app;
 }

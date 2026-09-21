@@ -131,3 +131,23 @@ export function CloseIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** The pencil: you are reading, go and edit (#169). */
+export function PencilIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
+/** The open book: you are editing, go back to reading (#169). */
+export function BookIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M2 4h6a3 3 0 0 1 3 3v13a2.5 2.5 0 0 0-2.5-2.5H2Z" />
+      <path d="M22 4h-6a3 3 0 0 0-3 3v13a2.5 2.5 0 0 1 2.5-2.5H22Z" />
+    </svg>
+  );
+}

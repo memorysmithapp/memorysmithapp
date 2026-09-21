@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LOCALES, setLocale, type Locale } from '../../i18n';
+import { recordAccountLocale } from '../api/backend';
 import { usePreferences, type ThemeChoice } from '../store/preferences';
 import {
   useLiveSession,
@@ -11,9 +13,10 @@ import {
   type SubscriptionType,
 } from '../auth/session';
 import { signOut as endHostedSession } from '../auth/oauth';
+import { loadedRuntimeConfig } from '../config/runtime-config';
 import { gravatarDisplayName } from '../auth/gravatar';
 import { clearHandover } from '../../features/auth/LoginPage';
-import { Avatar } from './Avatar';
+import { Avatar, type AvatarSource } from './Avatar';
 import { StorageBar } from './StorageBar';
 import { MonitorIcon, MoonIcon, SunIcon } from './icons';
 
@@ -33,12 +36,14 @@ interface Identity {
   readonly subscriptionQuotaBytes: number | null;
   readonly usedBytes: number | null;
   readonly subscriptionStatus: SubscriptionStatus | null;
+  readonly avatar: AvatarSource;
+  readonly picture: string | null;
 }
 
 /**
  * The chip shows the role in the subscription, which the API already resolved.
- * A vault ceiling can lower it for a given vault but never raise it
- * (RN-ACC-011), so it belongs on the vault screen and not here.
+ * A notebook ceiling can lower it for a given notebook but never raise it
+ * (RN-ACC-011), so it belongs on the notebook screen and not here.
  */
 function identityOf(live: LiveSession): Identity {
   return {
@@ -50,6 +55,8 @@ function identityOf(live: LiveSession): Identity {
     subscriptionQuotaBytes: live.subscriptionQuotaBytes,
     usedBytes: live.usedBytes,
     subscriptionStatus: live.subscriptionStatus,
+    avatar: live.avatar,
+    picture: live.picture,
   };
 }
 
@@ -123,12 +130,24 @@ export function UserMenu() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        <Avatar email={user.email} size={32} />
+        <Avatar
+          email={user.email}
+          size={32}
+          source={user.avatar}
+          picture={user.picture}
+          name={shownName || user.name}
+        />
       </button>
       {open && (
         <div className="user-menu-panel">
           <div className="user-menu-identity">
-            <Avatar email={user.email} size={48} />
+            <Avatar
+              email={user.email}
+              size={48}
+              source={user.avatar}
+              picture={user.picture}
+              name={shownName || user.name}
+            />
             <div>
               {/*
                 One line per thing. With no name to show, the e-mail is the
@@ -220,12 +239,35 @@ export function UserMenu() {
                   key={locale}
                   type="button"
                   className={i18n.language === locale ? 'active' : ''}
-                  onClick={() => setLocale(locale)}
+                  onClick={() => {
+                    setLocale(locale);
+                    // Recorded on the account too, because every message the product
+                    // sends this person is written in it (RN-ACC-018). The screen has
+                    // already changed language, so a failure here changes nothing on it.
+                    void recordAccountLocale(locale).catch(() => undefined);
+                  }}
                 >
                   {t(`language.${locale}`)}
                 </button>
               ))}
             </div>
+          </div>
+
+          {/*
+            Where the welcome surface lives after it has opened once (#167).
+            It is the only place that says where the connector of this
+            environment answers, which is what an agent is pointed at.
+          */}
+          <div className="user-menu-section">
+            <Link className="user-menu-link" to="/profile" onClick={() => setOpen(false)}>
+              {t('profile.menu')}
+            </Link>
+            <Link className="user-menu-link" to="/profile/password" onClick={() => setOpen(false)}>
+              {t('password.menu')}
+            </Link>
+            <Link className="user-menu-link" to="/about" onClick={() => setOpen(false)}>
+              {t('about.menu')}
+            </Link>
           </div>
 
           <div className="user-menu-section">
@@ -237,10 +279,12 @@ export function UserMenu() {
           {/*
             The version, at the foot of the panel and in the quietest type on
             it. It is the first thing anyone is asked for when something looks
-            wrong, and the last thing anyone needs while reading a vault, so it
+            wrong, and the last thing anyone needs while reading a notebook, so it
             is present and never in the way.
           */}
-          <p className="user-menu-version">{t('app.version', { version: __APP_VERSION__ })}</p>
+          <p className="user-menu-version">
+            {t('app.version', { version: loadedRuntimeConfig()?.version ?? '' })}
+          </p>
         </div>
       )}
     </div>

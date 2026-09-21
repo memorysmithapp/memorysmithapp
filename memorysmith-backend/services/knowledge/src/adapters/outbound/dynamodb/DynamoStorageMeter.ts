@@ -33,7 +33,7 @@ export class DynamoStorageMeter {
     const found = await this.db.send(
       new GetCommand({
         TableName: this.tableName,
-        Key: { PK: this.keys.subscriptionVaults(), SK: this.keys.storageUsage() },
+        Key: { PK: this.keys.subscriptionNotebooks(), SK: this.keys.storageUsage() },
         ProjectionExpression: 'storedBytes',
       }),
     );

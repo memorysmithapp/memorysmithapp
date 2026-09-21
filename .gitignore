@@ -18,6 +18,8 @@ coverage/
 .env
 .env.*
 !.env.example
+# The configuration vite dev serves as /config.json, pointing at a live environment
+memorysmith-frontend/config.local.json
 *.pem
 *.key
 
@@ -32,3 +34,10 @@ tmp/
 .idea/
 .vscode/
 .DS_Store
+
+# The functional suite: its report, and what a run knows while it runs
+memorysmith-infra/functional-report/
+memorysmith-infra/functional/.state/
+
+# The agent evaluation: the transcripts, snapshots and scorecard of every round
+memorysmith-infra/agent-eval/runs/

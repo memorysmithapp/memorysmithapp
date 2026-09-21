@@ -2,7 +2,7 @@
  * DTOs of svc-audit (architecture-guide.md, section 12).
  *
  * The timeline of a note is keyed by NoteId and survives the note changing
- * folder and vault (RN-AUD-004). A revision read is the pair (contentId,
+ * folder and notebook (RN-AUD-004). A revision read is the pair (contentId,
  * versionId) carried by the event, resolved straight against S3: no query to
  * the Knowledge table is involved, because the present lives in mv-knowledge
  * and the past lives in mv-audit.
@@ -20,6 +20,13 @@ export const auditEntrySchema = z.object({
   occurredAt: instantSchema,
   authorship: authorshipSchema,
   contentRef: contentRefSchema.nullable(),
+  /**
+   * The line its author left about the change (RN-AUD-012), or null when the
+   * write carried none. It is drawn out of the payload rather than left in it
+   * because it is the one thing of an entry a PERSON wrote, and a reader of
+   * the history should not have to know which key it sits under.
+   */
+  message: z.string().nullable(),
   payload: z.record(z.string(), z.unknown()),
 });
 
@@ -42,7 +49,7 @@ export const activityQuerySchema = z.object({
 });
 
 export const activitySchema = z.object({
-  vaultId: ulidSchema,
+  notebookId: ulidSchema,
   entries: z.array(auditEntrySchema),
 });
 

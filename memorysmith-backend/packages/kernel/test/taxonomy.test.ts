@@ -1,6 +1,7 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { ConcurrencyError, DomainError, httpStatusFor } from '../src/errors.js';
-import { Role, VaultRoleLimit } from '../src/role.js';
+import { Role, NotebookRoleLimit } from '../src/role.js';
 import { ContentRef } from '../src/content-ref.js';
 import { ContentId, SubscriptionId, UserId } from '../src/ids.js';
 import { AgentIdentity, Authorship } from '../src/authorship.js';
@@ -20,15 +21,15 @@ describe('error taxonomy', () => {
   });
 
   it('answers a forbidden resource with 404, so 403 never leaks its existence', () => {
-    const error = DomainError.forbidden('vault of another subscription');
+    const error = DomainError.forbidden('notebook of another subscription');
     expect(error.code).toBe('FORBIDDEN');
     expect(httpStatusFor(error)).toBe(404);
   });
 
-  it('answers a write refused by a vault ceiling with a real 403', () => {
-    // The member already sees the vault in their list (RN-ACC-012), so hiding
+  it('answers a write refused by a notebook ceiling with a real 403', () => {
+    // The member already sees the notebook in their list (RN-ACC-012), so hiding
     // it here would protect nothing.
-    const error = DomainError.forbiddenVisible('write refused by the vault role limit');
+    const error = DomainError.forbiddenVisible('write refused by the notebook role limit');
     expect(httpStatusFor(error)).toBe(403);
   });
 
@@ -45,7 +46,7 @@ describe('Role', () => {
     expect(Role.NONE.canRead()).toBe(false);
   });
 
-  it('expresses the vault ceiling as a minimum, so it can only demote', () => {
+  it('expresses the notebook ceiling as a minimum, so it can only demote', () => {
     expect(Role.min(Role.EDITOR, Role.VIEWER)).toBe(Role.VIEWER);
     expect(Role.min(Role.VIEWER, Role.EDITOR)).toBe(Role.VIEWER);
     expect(Role.min(Role.EDITOR, Role.EDITOR)).toBe(Role.EDITOR);
@@ -57,10 +58,10 @@ describe('Role', () => {
     expect(Role.membership('OWNER').ok).toBe(false);
   });
 
-  it('admits VIEWER as the only vault role limit', () => {
-    expect(VaultRoleLimit.create('VIEWER').ok).toBe(true);
-    expect(VaultRoleLimit.create('EDITOR').ok).toBe(false);
-    expect(VaultRoleLimit.create('NONE').ok).toBe(false);
+  it('admits VIEWER as the only notebook role limit', () => {
+    expect(NotebookRoleLimit.create('VIEWER').ok).toBe(true);
+    expect(NotebookRoleLimit.create('EDITOR').ok).toBe(false);
+    expect(NotebookRoleLimit.create('NONE').ok).toBe(false);
   });
 });
 
@@ -98,6 +99,16 @@ describe('ContentRef', () => {
     expect(first.value.hasSameContentAs(second.value)).toBe(true);
     expect(first.value.equals(second.value)).toBe(false);
     expect(first.value.pointsAtSameSlotAs(second.value)).toBe(true);
+  });
+
+  it('recognises the content it points at from the bytes alone, before anything is stored', () => {
+    const body = '---\nname: Ação\n---\n\nThe general rule.\n';
+    const hash = createHash('sha256').update(Buffer.from(body, 'utf8')).digest('hex');
+    const ref = ContentRef.create({ contentId, versionId: 'v1', sha256: hash, bytes: 40 });
+    expect(ref.ok).toBe(true);
+    if (!ref.ok) return;
+    expect(ref.value.matchesContent(body)).toBe(true);
+    expect(ref.value.matchesContent(`${body} `)).toBe(false);
   });
 
   it('round-trips through its stored form', () => {
@@ -148,7 +159,7 @@ describe('domain events', () => {
       subject: 'NOTE',
       subjectId: 'note-1',
       authorship: Authorship.byHuman(user.value),
-      payload: { title: 'Lei 14.133' },
+      payload: { name: 'Lei 14.133' },
     });
     expect(event.subscriptionId).toBe(subscriptionId);
     expect(event.authorship.user.value).toBe('user-1');

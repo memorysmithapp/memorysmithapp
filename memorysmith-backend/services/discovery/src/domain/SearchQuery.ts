@@ -6,33 +6,33 @@
  * about where the content came from, which is what lets the whole language be
  * tested without infrastructure.
  *
- * The shape follows what people already know from a Markdown vault:
+ * The shape follows what people already know from a Markdown notebook:
  *
  *   lei 14133            every bare term must match (implicit AND)
  *   "lei 14.133"         a quoted phrase matches as one literal string
  *   -rascunho            a leading dash negates
  *   a OR b               either side
  *   (a OR b) c           parentheses group
- *   title:auditoria      match the note title only
+ *   name:auditoria      match the note name only
  *   folder:normas        match the folder name only
  *   content:prazo        match the body only
  *   section:vigencia     match a heading of the note
- *   maturity:evergreen   match a FACET, whatever the vault happens to call it
+ *   maturity:evergreen   match a FACET, whatever the notebook happens to call it
  *
- * The field list is deliberately NOT closed. `title`, `folder`, `content` and
+ * The field list is deliberately NOT closed. `name`, `folder`, `content` and
  * `section` are the four the backend knows how to answer by itself; anything
- * else is looked up as a facet, so a vault that writes `norma: federal` in its
+ * else is looked up as a facet, so a notebook that writes `norma: federal` in its
  * frontmatter gets `norma:federal` as a filter without a line of code being
- * written for it (PP4, RN-DSC-020). The ubiquitous language of the vault is
+ * written for it (PP4, RN-DSC-020). The ubiquitous language of the notebook is
  * the query language.
  *
  * Matching is by SUBSTRING over a normalized form, not by token. That is what
  * makes a word invented inside one note findable by typing part of it, and it
- * is the behaviour a vault user expects from every other tool they use.
+ * is the behaviour a notebook user expects from every other tool they use.
  */
 
 /** The four fields the backend answers from its own projections. */
-export const STRUCTURAL_FIELDS = ['title', 'folder', 'content', 'section'] as const;
+export const STRUCTURAL_FIELDS = ['name', 'folder', 'content', 'section'] as const;
 export type StructuralField = (typeof STRUCTURAL_FIELDS)[number];
 
 /** The comparison operators, and the whole list of them (RN-DSC-034). */
@@ -54,15 +54,15 @@ export type QueryNode =
 
 /** What a candidate note offers the evaluator. All of it already normalized. */
 export interface Candidate {
-  readonly title: string;
+  readonly name: string;
   readonly folder: string;
   readonly content: string;
   readonly sections: string[];
   /**
-   * The other spellings of the title, from the reserved `aliases`
-   * (RN-DSC-032). They are searched wherever the title is, because that is
-   * what an alias is: a vault of technical terms lives on acronyms, and
-   * requiring the full title in every search is what makes people stop
+   * The other spellings of the name, from the reserved `aliases`
+   * (RN-DSC-032). They are searched wherever the name is, because that is
+   * what an alias is: a notebook of technical terms lives on acronyms, and
+   * requiring the full name in every search is what makes people stop
    * finding things. They do NOT resolve wikilinks — that is a different
    * question, decided in the negative, and it stays that way.
    */
@@ -83,7 +83,7 @@ export class QuerySyntaxError extends Error {}
 /**
  * Normalization is the whole difference between a search that finds and one
  * that almost finds: case folded, diacritics stripped. `Vigência` and
- * `vigencia` are the same word to someone typing in a hurry, and a vault in
+ * `vigencia` are the same word to someone typing in a hurry, and a notebook in
  * Portuguese makes that the common case rather than the exception.
  *
  * It is done character by character, and every character contributes exactly
@@ -165,7 +165,7 @@ function tokenize(raw: string): Token[] {
 
     /**
      * A bare word runs to whitespace or to a parenthesis. A quote inside it
-     * ends it too, so `title:"lei 14.133"` keeps the prefix and reads the
+     * ends it too, so `name:"lei 14.133"` keeps the prefix and reads the
      * phrase as one value.
      */
     let end = index;
@@ -335,8 +335,8 @@ function intervalOf(facet: string, raw: string): QueryNode | null {
 
 /**
  * Every facet an interval is asked over. The caller checks them against what
- * the vault actually holds, because "is this attribute a date" is a question
- * about the vault and not about the query string (RN-DSC-034).
+ * the notebook actually holds, because "is this attribute a date" is a question
+ * about the notebook and not about the query string (RN-DSC-034).
  */
 export function comparedFacets(node: QueryNode): string[] {
   switch (node.kind) {
@@ -357,7 +357,7 @@ export function comparedFacets(node: QueryNode): string[] {
 // ---------------------------------------------------------------------------
 
 /**
- * A bare term looks in the title, the folder, the headings and the body, which
+ * A bare term looks in the name, the folder, the headings and the body, which
  * is what someone means when they type a word and nothing else. A term with a
  * field looks only there.
  */
@@ -384,18 +384,18 @@ export function matches(node: QueryNode, candidate: Candidate): boolean {
     case 'compare': {
       // Only a date is comparable. A note whose attribute is of another kind
       // simply does not match; whether the QUERY made sense at all is decided
-      // once per vault by the caller, against what the vault holds.
+      // once per notebook by the caller, against what the notebook holds.
       if (candidate.facetKinds[node.facet] !== 'date') return false;
       return (candidate.facets[node.facet] ?? []).some((value) => compare(value, node));
     }
     case 'term': {
       // An alias is another name for the note, so it answers wherever the
-      // title does: under `title:` and under a bare term.
+      // name does: under `name:` and under a bare term.
       const named = (needle: string): boolean =>
-        candidate.title.includes(needle) ||
+        candidate.name.includes(needle) ||
         candidate.aliases.some((alias) => alias.includes(needle));
 
-      if (node.field === 'title') return named(node.value);
+      if (node.field === 'name') return named(node.value);
       if (node.field === 'folder') return candidate.folder.includes(node.value);
       if (node.field === 'content') return candidate.content.includes(node.value);
       if (node.field === 'section') {
@@ -439,7 +439,7 @@ function compare(value: string, node: Extract<QueryNode, { kind: 'compare' }>): 
 }
 
 /**
- * Ranking, deliberately simple and explainable: a hit in the title outweighs a
+ * Ranking, deliberately simple and explainable: a hit in the name outweighs a
  * hit in a heading, which outweighs a hit in the body. Nobody has to guess why
  * a note came first, and there is no tuned weight to maintain.
  */
@@ -455,11 +455,11 @@ export function score(node: QueryNode, candidate: Candidate): number {
       total += 2;
       continue;
     }
-    // An alias ranks as the title does, because it is one: a note found by
+    // An alias ranks as the name does, because it is one: a note found by
     // `RTO` should not sort below one that merely mentions it in a paragraph.
-    if (candidate.title === term.value || candidate.aliases.includes(term.value)) total += 10;
+    if (candidate.name === term.value || candidate.aliases.includes(term.value)) total += 10;
     else if (
-      candidate.title.includes(term.value) ||
+      candidate.name.includes(term.value) ||
       candidate.aliases.some((alias) => alias.includes(term.value))
     )
       total += 5;

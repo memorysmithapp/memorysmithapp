@@ -1,7 +1,7 @@
 /**
  * Value objects of the Knowledge context. All immutable, self-validating in
  * the constructor and compared by value. No raw string crosses the boundary of
- * the domain (architecture-guide.md, section 6.4).
+ * the domain (architecture-guide.md, section 6.5).
  */
 
 import { DomainError, err, ok, type Result } from '@memorysmith/kernel';
@@ -22,17 +22,17 @@ function bounded(
   return ok(trimmed);
 }
 
-export class VaultName {
-  private readonly __vaultName!: void;
+export class NotebookName {
+  private readonly __notebookName!: void;
   private constructor(readonly value: string) {}
 
-  static create(raw: string): Result<VaultName, DomainError> {
-    const bounds = bounded(raw, 1, 120, 'The vault name');
-    return bounds.ok ? ok(new VaultName(bounds.value)) : bounds;
+  static create(raw: string): Result<NotebookName, DomainError> {
+    const bounds = bounded(raw, 1, 120, 'The notebook name');
+    return bounds.ok ? ok(new NotebookName(bounds.value)) : bounds;
   }
 
   equals(other: unknown): boolean {
-    return other instanceof VaultName && other.value === this.value;
+    return other instanceof NotebookName && other.value === this.value;
   }
 
   toString(): string {
@@ -40,7 +40,7 @@ export class VaultName {
   }
 }
 
-/** What shows up in the vault catalogue. Optional, unlike a folder description. */
+/** What shows up in the notebook catalogue. Optional, unlike a folder description. */
 export class ShortText {
   private readonly __shortText!: void;
   private constructor(readonly value: string) {}
@@ -107,23 +107,13 @@ export class FolderDescription {
   }
 }
 
-export class NoteTitle {
-  private readonly __noteTitle!: void;
-  private constructor(readonly value: string) {}
-
-  static create(raw: string): Result<NoteTitle, DomainError> {
-    const bounds = bounded(raw, 1, 200, 'The note title');
-    return bounds.ok ? ok(new NoteTitle(bounds.value)) : bounds;
-  }
-
-  equals(other: unknown): boolean {
-    return other instanceof NoteTitle && other.value === this.value;
-  }
-
-  toString(): string {
-    return this.value;
-  }
-}
+/**
+ * There is no NoteName value object, and the absence is the decision: a name
+ * is not given, it is the `name:` the content states, so there is nothing
+ * here to validate or refuse. A note whose
+ * content states no name has none, and it is written all the same
+ * (RN-KNW-035, RN-KNW-036).
+ */
 
 /**
  * Removing a folder that holds folders or notes requires an EXPLICIT policy
@@ -156,40 +146,51 @@ export class RemovalPolicy {
   }
 }
 
-/**
- * Only a vault change can collide, since the slug is unique WITHIN THE VAULT
- * (RN-KNW-020, RN-KNW-022).
- */
-export class SlugConflictPolicy {
-  private readonly __slugConflictPolicy!: void;
-  private constructor(readonly value: 'REJECT' | 'RENAME') {}
-
-  static readonly REJECT = new SlugConflictPolicy('REJECT');
-  static readonly RENAME = new SlugConflictPolicy('RENAME');
-
-  static create(raw: string): Result<SlugConflictPolicy, DomainError> {
-    if (raw === 'REJECT') return ok(SlugConflictPolicy.REJECT);
-    if (raw === 'RENAME') return ok(SlugConflictPolicy.RENAME);
-    return err(
-      DomainError.preconditionFailed(
-        'Moving a note between vaults requires an explicit slug conflict policy: REJECT or RENAME',
-      ),
-    );
-  }
-
-  get renames(): boolean {
-    return this.value === 'RENAME';
-  }
-
-  toString(): string {
-    return this.value;
-  }
-}
-
 /** Product limits, declared so they become tests (software-vision.md, 14). */
-export const VAULT_LIMITS = {
+export const NOTEBOOK_LIMITS = {
   maxFolders: 200,
-  maxNotes: 2000,
   maxDepth: 6,
   maxNoteBytes: 1_048_576,
 } as const;
+
+/**
+ * Where a file sits inside its notebook (#166, RN-KNW-048).
+ *
+ * It is written like a path of a filesystem and it exists because a file was
+ * written into it: there is no folder to create and nothing to delete when the
+ * last file leaves. It organises and it does NOT address — the name does that
+ * — so two files never collide over a path and moving one breaks no note.
+ *
+ * Normalised so that `pasta/sub`, `/pasta/sub/` and `//pasta///sub` are the
+ * one path they obviously are, and `/` is the root.
+ */
+export function filePath(raw: string): Result<string, DomainError> {
+  if (typeof raw !== 'string') return err(DomainError.validation('The path must be text'));
+  const segments = raw
+    .split('/')
+    .map((segment) => segment.normalize('NFC').trim())
+    .filter((segment) => segment.length > 0);
+  if (segments.some((segment) => segment === '.' || segment === '..')) {
+    return err(DomainError.validation('A path of a notebook has no . or .. segment'));
+  }
+  const path = segments.length === 0 ? '/' : `/${segments.join('/')}`;
+  if (path.length > 1024) {
+    return err(DomainError.validation('A path goes up to 1024 characters'));
+  }
+  return ok(path);
+}
+
+/** The subjects of a file, trimmed, deduplicated and bounded like a tag is. */
+export function fileTags(raw: readonly string[]): Result<readonly string[], DomainError> {
+  if (!Array.isArray(raw)) return err(DomainError.validation('The tags must be a list'));
+  const tags: string[] = [];
+  for (const each of raw) {
+    if (typeof each !== 'string') return err(DomainError.validation('A tag must be text'));
+    const tag = each.normalize('NFC').trim();
+    if (tag.length === 0) continue;
+    if (tag.length > 40) return err(DomainError.validation('A tag goes up to 40 characters'));
+    if (!tags.includes(tag)) tags.push(tag);
+  }
+  if (tags.length > 20) return err(DomainError.validation('A file carries up to 20 tags'));
+  return ok(tags);
+}

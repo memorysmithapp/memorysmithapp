@@ -7,8 +7,44 @@
     "@aws-cdk/core:validateSnapshotRemovalPolicy": true,
     "@aws-cdk/aws-apigateway:disableCloudWatchRole": true,
     "@aws-cdk/core:enablePartitionLiterals": true,
-    "hostedZoneName": "memorysmith.app",
-    "hostedZoneId": "Z1003210YHFJUFXNHOVX",
-    "cognitoDomainPrefix": "memorysmith-auth"
+    "environments": {
+      "production": {
+        "account": "364362227104",
+        "region": "us-east-1",
+        "hostedZoneName": "memorysmith.app",
+        "hostedZoneId": "Z1003210YHFJUFXNHOVX",
+        "delegations": [
+          {
+            "recordName": "stg",
+            "nameServers": [
+              "ns-1699.awsdns-20.co.uk",
+              "ns-231.awsdns-28.com",
+              "ns-1028.awsdns-00.org",
+              "ns-995.awsdns-60.net"
+            ]
+          }
+        ],
+        "pipeline": {
+          "connectionArn": "",
+          "repository": "memorysmithapp/memorysmithapp",
+          "release": {
+            "appId": "4933372",
+            "installationId": "161448482",
+            "privateKeySecret": "memorysmith/release-app"
+          }
+        }
+      },
+      "staging": {
+        "account": "364362227104",
+        "region": "us-east-1",
+        "hostedZoneName": "stg.memorysmith.app",
+        "hostedZoneId": "Z07999273FVWE6U5B5811",
+        "delegations": [],
+        "pipeline": {
+          "connectionArn": "",
+          "repository": "memorysmithapp/memorysmithapp"
+        }
+      }
+    }
   }
 }

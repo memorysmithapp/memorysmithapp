@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { isUlid, ulid, ulidTime } from '../src/ulid.js';
-import { ContentId, NoteId, SubscriptionId, UserId, VaultId } from '../src/ids.js';
+import { ContentId, NoteId, SubscriptionId, UserId, NotebookId } from '../src/ids.js';
 import { Slug, slugify } from '../src/slug.js';
 import { SubscriptionContext } from '../src/subscription-context.js';
 import { Instant } from '../src/instant.js';
@@ -33,10 +33,10 @@ describe('ulid', () => {
 
 describe('identifiers', () => {
   it('accepts a well-formed value and rejects everything else', () => {
-    const generated = VaultId.generate();
-    expect(VaultId.create(generated.value).ok).toBe(true);
-    expect(VaultId.create('not-a-ulid').ok).toBe(false);
-    expect(VaultId.create('').ok).toBe(false);
+    const generated = NotebookId.generate();
+    expect(NotebookId.create(generated.value).ok).toBe(true);
+    expect(NotebookId.create('not-a-ulid').ok).toBe(false);
+    expect(NotebookId.create('').ok).toBe(false);
   });
 
   it('compares by value and never across types', () => {
@@ -70,7 +70,7 @@ describe('Slug', () => {
     expect(slugify('Achado #12')).toBe('achado-12');
   });
 
-  it('folds accents so the same title always yields the same slug', () => {
+  it('folds accents so the same name always yields the same slug', () => {
     expect(slugify('Legislacao')).toBe(slugify('Legislação'));
     expect(slugify('Orçamento Anúal')).toBe('orcamento-anual');
   });

@@ -15,17 +15,23 @@
  *     role check (RN-SUB-016).
  */
 
+import {
+  bytesSupport,
+  FILE_MIME_TYPES,
+  PICTURE_MIME_TYPES,
+  fileTypeOf,
+  opensInBrowser,
+  RESERVED_FRONTMATTER_KEYS,
+  NOTEBOOK_DOCUMENT_ENTRY,
+  notebookDocumentSchema,
+} from '@memorysmith/contracts';
+import type { NotebookDocument } from '@memorysmith/svc-portability/domain';
 import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import type { S3Client } from '@aws-sdk/client-s3';
+import { Role, type SubscriptionContext } from '@memorysmith/kernel';
 import {
-  Authorship,
-  AgentIdentity,
-  Role,
-  type SubscriptionContext,
-  type UserId,
-} from '@memorysmith/kernel';
-import {
-  DynamoInviteRepository,
+  DynamoAvatarRepository,
+  DynamoConnectorBindingRepository,
   DynamoOnboarding,
   DynamoPlatformAdmin,
   DynamoSubscriptionRepository,
@@ -38,9 +44,15 @@ import {
   type ResolvedContext,
 } from '@memorysmith/svc-access/application/context';
 import { ACCESS_LIMITS, StorageQuota } from '@memorysmith/svc-access/domain/values';
+import type { PictureTypes } from '@memorysmith/svc-access/domain/ports';
 import { DynamoNoteRepository } from '@memorysmith/svc-knowledge/adapters/notes';
-import { DynamoVaultRepository } from '@memorysmith/svc-knowledge/adapters/vaults';
+import { DynamoContentSlotRepository } from '@memorysmith/svc-knowledge/adapters/slots';
+import { DynamoFolderNumbers } from '@memorysmith/svc-knowledge/adapters/numbers';
+import { DynamoNotebookRepository } from '@memorysmith/svc-knowledge/adapters/notebooks';
 import { S3ContentStore } from '@memorysmith/svc-knowledge/adapters/content';
+import { DynamoFileRepository } from '@memorysmith/svc-knowledge/adapters/files';
+import { S3FileStore } from '@memorysmith/svc-knowledge/adapters/file-store';
+import type { FileTypes } from '@memorysmith/svc-knowledge/domain';
 import { DynamoStorageMeter } from '@memorysmith/svc-knowledge/adapters/storage';
 import type { StorageState } from '@memorysmith/svc-knowledge/domain';
 import { DynamoAuditTrail } from '@memorysmith/svc-audit/adapters/trail';
@@ -51,6 +63,7 @@ import {
   DynamoLinkGraph,
   DynamoStructureProjection,
 } from '@memorysmith/svc-discovery/adapters/aws';
+import { DynamoTransferStore } from '@memorysmith/svc-portability/adapters/dynamo';
 
 export interface Infrastructure {
   readonly db: DynamoDBDocumentClient;
@@ -59,6 +72,8 @@ export interface Infrastructure {
   readonly accessTable: string;
   readonly auditTable: string;
   readonly discoveryTable: string;
+  /** Where the transfers of each person live (RN-PRT-019, RN-PRT-020). */
+  readonly portabilityTable: string;
   readonly contentBucket: string;
 }
 
@@ -77,7 +92,11 @@ export function buildAccess(infra: Infrastructure, context: SubscriptionContext 
           infra.accessTable,
           NULL_OUTBOX_SINK,
         ),
-        invites: new DynamoInviteRepository(context, infra.db, infra.accessTable, NULL_OUTBOX_SINK),
+        connectors: buildConnectorBindings(infra, context),
+        // The face of a person INSIDE this subscription (#168, RN-ACC-022):
+        // keyed under the subscription like everything else, which is what
+        // keeps design rule 1 whole and opens no third exception of §8.3.
+        avatars: new DynamoAvatarRepository(context, infra.db, infra.accessTable),
       }
     : null;
 
@@ -88,20 +107,91 @@ export function buildAccess(infra: Infrastructure, context: SubscriptionContext 
  * Knowledge repositories. The signature is what carries the guarantee: it
  * takes a SubscriptionContext, so a platform session has nothing to pass.
  */
-export function buildKnowledge(infra: Infrastructure, context: SubscriptionContext) {
+/**
+ * The one entry of a `.notebook` archive, validated against the schema the
+ * contracts package publishes before a byte of it is written (RN-PRT-011).
+ *
+ * It lives here because the schema is zod and neither `domain/` nor
+ * `application/` may import it — and because the version of the specification
+ * the build implements is a fact of the composition root, not of the export.
+ */
+export function serializeNotebookDocument(document: unknown): { entry: string; content: string } {
   return {
-    vaults: new DynamoVaultRepository(context, infra.db, infra.knowledgeTable),
-    notes: new DynamoNoteRepository(context, infra.db, infra.knowledgeTable),
-    content: new S3ContentStore(context, infra.s3, infra.contentBucket),
-    storage: { current: () => readStorageBudget(infra, context) },
+    entry: NOTEBOOK_DOCUMENT_ENTRY,
+    content: JSON.stringify(notebookDocumentSchema.parse(document), null, 2),
   };
 }
 
 /**
- * The two halves of the budget, joined HERE and nowhere else: how much is
- * stored is a Knowledge fact and how much is allowed is an Access one, and
- * neither context may read the other's table. Joining them is exactly what a
- * composition root is for.
+ * Reads a notebook document, validated against the published schema. The mirror
+ * of `serializeNotebookDocument`, and here for the same reason: the schema is zod
+ * and neither `domain/` nor `application/` may import it (RN-PRT-014).
+ */
+export function parseNotebookDocument(json: string): NotebookDocument {
+  return notebookDocumentSchema.parse(JSON.parse(json)) as NotebookDocument;
+}
+
+/**
+ * Which types a notebook accepts, from the list the product publishes (#166).
+ *
+ * The same shape the reserved vocabulary takes: the domain and the application
+ * of a context import the kernel and nothing else, so what the product decided
+ * to accept is injected HERE, where knowing it is the job.
+ */
+/**
+ * What a picture somebody uploads is allowed to be (#168). Three types, the
+ * ones a browser draws without executing anything, and the bytes are read to
+ * check the type declared over them, exactly as a file of a notebook is.
+ */
+export const PICTURE_CATALOGUE: PictureTypes = {
+  accepted: PICTURE_MIME_TYPES,
+  supports: (mimeType, bytes) => bytesSupport(mimeType, bytes),
+};
+
+export const FILE_TYPE_CATALOGUE: FileTypes = {
+  accepted: FILE_MIME_TYPES,
+  canonical: (mimeType) => fileTypeOf(mimeType)?.mimeType ?? null,
+  supports: (mimeType, bytes) => bytesSupport(mimeType, bytes),
+  // Whether a browser shows it on its own, which decides whether the file is
+  // served inline and whether a card may offer to open it (#171).
+  opens: (mimeType) => opensInBrowser(mimeType),
+};
+
+export function buildKnowledge(infra: Infrastructure, context: SubscriptionContext) {
+  return {
+    notebooks: new DynamoNotebookRepository(context, infra.db, infra.knowledgeTable),
+    notes: new DynamoNoteRepository(context, infra.db, infra.knowledgeTable),
+    // The Guidance of a notebook and the Template of a folder, each an
+    // aggregate of its own and locked on its own item (RN-KNW-044).
+    slots: new DynamoContentSlotRepository(context, infra.db, infra.knowledgeTable),
+    // The numbers each folder issues, one item per folder (RN-KNW-043).
+    numbers: new DynamoFolderNumbers(context, infra.db, infra.knowledgeTable),
+    content: new S3ContentStore(context, infra.s3, infra.contentBucket),
+    // What a notebook keeps beside its notes: bytes with a name (#166). The
+    // key is opaque like the key of a note, and carries no extension, because
+    // the extension of a name decides nothing anywhere here.
+    files: new DynamoFileRepository(context, infra.db, infra.knowledgeTable),
+    fileStore: new S3FileStore(context, infra.s3, infra.contentBucket),
+    fileTypes: FILE_TYPE_CATALOGUE,
+    storage: { current: () => readStorageBudget(infra, context) },
+    // The one layer allowed to know which version of the specification the
+    // product implements. The Notebook Context declares these names to the agent
+    // (RN-AGT-025), and neither the domain nor the application reads a
+    // specification to find them.
+    reservedVocabulary: RESERVED_FRONTMATTER_KEYS,
+  };
+}
+
+/**
+ * The THREE halves of the budget, joined HERE and nowhere else: how much
+ * content is stored is a Knowledge fact, how much the kept exports occupy is a
+ * Portability one, and how much is allowed is an Access one. No context may
+ * read the table of another, and joining them is exactly what a composition
+ * root is for.
+ *
+ * A kept export counts because it is bytes the subscription asked to keep
+ * (RN-SUB-021). What an import uploads does not: it is discarded the moment the
+ * import ends, whichever way it ended (RN-PRT-014).
  *
  * A subscription that cannot be read falls back to the default quota rather
  * than to zero: a transient read failure must not present itself to the person
@@ -113,11 +203,24 @@ export async function readStorageBudget(
 ): Promise<StorageState> {
   const meter = new DynamoStorageMeter(context, infra.db, infra.knowledgeTable);
   const platform = new DynamoPlatformAdmin(infra.db, infra.accessTable, NULL_OUTBOX_SINK);
-  const [usedBytes, subscription] = await Promise.all([
+  const transfers = buildTransfers(infra, context);
+  const [usedBytes, keptBytes, subscription] = await Promise.all([
     meter.usedBytes(),
+    transfers.keptBytes().catch(() => 0),
     platform.findById(context.subscriptionId).catch(() => null),
   ]);
-  return { usedBytes, limitBytes: (subscription?.quota ?? StorageQuota.DEFAULT).bytes };
+  return {
+    usedBytes: usedBytes + keptBytes,
+    limitBytes: (subscription?.quota ?? StorageQuota.DEFAULT).bytes,
+  };
+}
+
+/** The transfers of one subscription: the exports it keeps and the imports. */
+export function buildTransfers(
+  infra: Infrastructure,
+  context: SubscriptionContext,
+): DynamoTransferStore {
+  return new DynamoTransferStore(infra.db, infra.portabilityTable, context.subscriptionId.value);
 }
 
 /** Audit reads. Writing is the consumer's job, in its own deployable. */
@@ -155,17 +258,15 @@ export function buildAuthorizer(
 }
 
 /**
- * A write through the UI carries no agent. A write through the MCP connector
- * arrives with the CIMD client_id in the token, and that is what becomes the
- * AgentIdentity: the authorship records the agent AND the human, with no side
- * channel to trust (RN-AGT-001, section 12.1).
+ * The connector of each token of the connector proxy, under the subscription of
+ * the token. Access owns it; the core reads it in process, where Access already
+ * runs, and the proxy writes it through a route of Access (section 13.3).
  */
-export function authorshipFor(user: UserId, clientId?: string | undefined): Authorship {
-  const isConnector = Boolean(clientId && /^https?:\/\//i.test(clientId));
-  if (!isConnector || !clientId) return Authorship.byHuman(user);
-
-  const agent = AgentIdentity.create(clientId, clientId);
-  return agent.ok ? Authorship.byAgent(user, agent.value) : Authorship.byHuman(user);
+export function buildConnectorBindings(
+  infra: Infrastructure,
+  context: SubscriptionContext,
+): DynamoConnectorBindingRepository {
+  return new DynamoConnectorBindingRepository(context, infra.db, infra.accessTable);
 }
 
 /** The role the session holds in the subscription, owner above every member. */

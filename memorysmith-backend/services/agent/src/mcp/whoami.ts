@@ -1,9 +1,9 @@
 /**
  * The answer of the `whoami` tool.
  *
- * It exists because of the thesis of the product: a vault carries its own
+ * It exists because of the thesis of the product: a notebook carries its own
  * instructions, and an agent that reads them writes like the person who owns
- * the vault would. That only pays off if the agent knows the instructions are
+ * the notebook would. That only pays off if the agent knows the instructions are
  * there, and nothing in the MCP protocol tells it. So the connector says it,
  * once, in the one call an agent makes when it does not know where it landed.
  *
@@ -15,8 +15,10 @@
  */
 
 import { READING_PATH, TOOL_CATALOG, type ToolDefinition } from './catalog.js';
-import { SKILLS } from './skills.js';
-import type { AgentCaller, VaultListing } from './gateway.js';
+import { DESIGN_NOTEBOOK_SKILL, SKILLS, skillIndex } from './skills.js';
+import type { Deployment } from '@memorysmith/contracts';
+import type { AgentCaller, ConnectorIdentity, NotebookListing } from './gateway.js';
+import { environmentNotice, PRODUCTION_DEFAULT } from './environment.js';
 
 function byName(name: string): ToolDefinition | undefined {
   return TOOL_CATALOG.find((tool) => tool.name === name);
@@ -27,38 +29,64 @@ function writes(tool: ToolDefinition): boolean {
   return tool.annotations.readOnlyHint === false || tool.annotations.destructiveHint === true;
 }
 
-function identity(caller: AgentCaller): string {
+/**
+ * The connector is the one the proxy recorded when it handed this token out, and
+ * when there is none it is said to be unidentified: naming it by anything else
+ * the token carries is how a user identifier used to appear here as a connector.
+ */
+function identity(caller: AgentCaller, connector: ConnectorIdentity | null): string {
   return [
     '## Who is acting',
     '',
     `- **Person**: ${caller.email ?? caller.userId}`,
-    `- **Connector**: ${caller.clientName} (\`${caller.clientId}\`)`,
+    connector
+      ? `- **Connector**: ${connector.clientName} (\`${connector.clientId}\`)`
+      : '- **Connector**: not identified',
     `- **Subscription**: \`${caller.subscriptionId}\``,
     '',
-    'Every note you write records both of them: the person who authorized this',
-    'connection and the connector that executed the write. Neither is a header you',
-    'can set, and the subscription was fixed when consent was given, so no argument',
-    'of any tool can move this connection to another one.',
+    ...(connector
+      ? [
+          'Every note you write records both of them: the person who authorized this',
+          'connection and the connector that executed the write. Neither is a header you',
+          'can set.',
+        ]
+      : [
+          'This connection does not record which connector it is, so every write through',
+          'it is refused: a note records the connector that wrote it, and there is none to',
+          'record. Reading works. Ask the person who connected you to disconnect this',
+          'connector and connect it again.',
+        ]),
+    '',
+    'The subscription was fixed when consent was given, so no argument of any tool',
+    'can move this connection to another one.',
   ].join('\n');
 }
 
-function reach(vaults: readonly VaultListing[]): string {
-  if (vaults.length === 0) {
+/** Outside production, where this is comes before anything else (RN-AGT-026). */
+function where(deployment: Deployment): string {
+  const notice = environmentNotice(deployment);
+  return notice ? ['## Where this is', '', notice].join('\n') : '';
+}
+
+function reach(notebooks: readonly NotebookListing[]): string {
+  if (notebooks.length === 0) {
     return [
       '## What you can reach',
       '',
-      'No vault yet. Whoever authorized this connector has not created one, or has',
-      'not been given access to any. Nothing below will return content until then.',
+      'No notebook yet. When the person asks for one, you can create it with',
+      `\`create_notebook\`: read the skill \`${DESIGN_NOTEBOOK_SKILL}\` first, and confirm with`,
+      'them the structure you propose. Creating a notebook takes the EDITOR role, and a',
+      'connection without it is refused and told so.',
     ].join('\n');
   }
 
   return [
     '## What you can reach',
     '',
-    ...vaults.map(
-      (vault) =>
-        `- **${vault.name}** (\`${vault.vaultId}\`), ${vault.noteCount} note(s)` +
-        (vault.description ? `: ${vault.description}` : ''),
+    ...notebooks.map(
+      (notebook) =>
+        `- **${notebook.name}** (\`${notebook.notebookId}\`), ${notebook.noteCount} note(s)` +
+        (notebook.description ? `: ${notebook.description}` : ''),
     ),
   ].join('\n');
 }
@@ -72,41 +100,47 @@ function path(): string {
   return [
     '## How to write here',
     '',
-    'This vault describes itself. Read it before writing, in this order:',
+    'This notebook describes itself. Read it before writing, in this order:',
     '',
     ...steps.map((tool, index) => `${index + 1}. **\`${tool.name}\`** — ${tool.title}.`),
     '',
-    'The guidance says what this vault is for and the conventions it keeps. The',
+    'The guidance says what this notebook is for and the conventions it keeps. The',
     'folder descriptions say what belongs in each folder, which is how you choose',
     'where a note goes instead of guessing. The template is the shape the notes of',
     'that folder take.',
     '',
-    'The vault context also gives you the identifier of each folder, next to its',
+    'Write the name of each note in `name:`, in the frontmatter that opens it: it is',
+    'the title the page shows and what every link looks for. The skill `write-notes`',
+    'says what the body holds.',
+    '',
+    'The notebook context also gives you the identifier of each folder, next to its',
     'name, and that is the argument every folder tool takes. You never have to have',
     'created a folder to write in it.',
     '',
     'The server does NOT validate what you write against any of them. It stores the',
     'Markdown you send, whatever it is. Following the guidance and the template is',
-    'what keeps a vault coherent, and it is the whole reason they are readable.',
+    'what keeps a notebook coherent, and it is the whole reason they are readable.',
   ].join('\n');
 }
 
 /**
  * The index, derived from the registry (RN-AGT-018). A skill that exists is
  * announced; one that does not exist cannot be, because there is no prose copy
- * of this list anywhere.
+ * of this list anywhere. It is the same index the handshake carries
+ * (RN-AGT-028), and it asks for a skill before its task, because a method read
+ * after the task only explains what went wrong.
  */
 function skills(): string {
   if (SKILLS.length === 0) return '';
 
   return [
-    '## Skills, for the tasks that leave the common path',
+    '## Skills: read one before its task',
     '',
-    'The path above is what almost every session needs. These are written methods',
-    'for the tasks it does not cover. Read one with `get_skill` before you start,',
-    'not after.',
+    'Some tasks have a written method the path above does not teach. Read its skill',
+    'with `get_skill` before you start the task, not after it went wrong. Creating a',
+    `notebook is one of them: \`${DESIGN_NOTEBOOK_SKILL}\`.`,
     '',
-    ...SKILLS.map((skill) => `- \`${skill.name}\` — ${skill.task}`),
+    ...skillIndex(),
   ].join('\n');
 }
 function surface(): string {
@@ -128,8 +162,20 @@ function surface(): string {
   ].join('\n');
 }
 
-export function whoAmI(caller: AgentCaller, vaults: readonly VaultListing[]): string {
-  return [identity(caller), reach(vaults), path(), skills(), surface()]
+export function whoAmI(
+  caller: AgentCaller,
+  connector: ConnectorIdentity | null,
+  notebooks: readonly NotebookListing[],
+  deployment: Deployment = PRODUCTION_DEFAULT,
+): string {
+  return [
+    where(deployment),
+    identity(caller, connector),
+    reach(notebooks),
+    path(),
+    skills(),
+    surface(),
+  ]
     .filter((block) => block.length > 0)
     .join('\n\n');
 }

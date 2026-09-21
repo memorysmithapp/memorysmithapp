@@ -5,5 +5,4 @@ cdk.out/
 coverage/
 pnpm-lock.yaml
 *.md
-deploy-aws/vaults/
-deploy-aws/vault-sources/
+memorysmith-infra/agent-eval/runs/

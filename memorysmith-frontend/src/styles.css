@@ -13,6 +13,8 @@
   --accent: #0f56d7;
   --accent-soft: #e7edfb;
   --signal: #ff8a2b;
+  /* Named at last: five surfaces already fell back to this exact value. */
+  --danger: #b42318;
   --node-green: #16a34a;
   --pending: #a6ab9f;
   --code-bg: #f4f5f2;
@@ -78,11 +80,31 @@ a:hover {
   text-decoration: underline;
 }
 
+/* The window, and nothing taller (#158).
+ *
+ * The root is two rows: what the page fills, and the banner that says which
+ * environment this is. In production there is no banner, so the second row has
+ * nothing in it and no height — better than a strip kept empty, which costs a
+ * line of every window to say nothing.
+ *
+ * Nothing scrolls the DOCUMENT. The shell used to be a viewport tall with a
+ * banner fixed over it and a padding on the body to make room, which is a page
+ * 24 pixels taller than the window: a scrollbar that moved the layout and no
+ * content, while the sidebar and the middle each scrolled on their own.
+ */
+#root {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 1fr auto;
+}
+
 .app-shell {
-  min-height: 100vh;
-  min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
 }
 
 .app-header {
@@ -93,6 +115,30 @@ a:hover {
   padding: 0 1.5rem;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
+}
+
+/*
+ * The environment a page is served from, outside production
+ * (architecture-guide.md, 23.3). Fixed and never dismissable, and out of the
+ * way of every click: it reads, it does not ask for anything.
+ */
+.environment-banner {
+  /* In the flow: it used to be fixed over the page, which covered the end of
+     the folder tree — and was given `pointer-events: none` to make that hurt
+     less, which is what covering something looks like when it is admitted. */
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--signal);
+  color: #0e1526;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+.environment-banner-name {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .brand {
@@ -121,9 +167,12 @@ a:hover {
 }
 
 .app-main {
-  flex: 1;
   display: flex;
   min-height: 0;
+  /* A page that outgrows the window scrolls HERE, where it used to scroll the
+     document. The panes of a notebook scroll inside it, and neither of them
+     ever reaches past the row. */
+  overflow: auto;
 }
 .app-main > * {
   flex: 1;
@@ -140,7 +189,7 @@ a:hover {
   color: var(--text-soft);
 }
 
-/* Vault catalog */
+/* Notebook catalog */
 .card-carousel {
   position: relative;
 }
@@ -175,7 +224,7 @@ a:hover {
   color: var(--accent);
 }
 
-.vault-grid {
+.notebook-grid {
   display: flex;
   gap: 1rem;
   overflow-x: auto;
@@ -183,7 +232,7 @@ a:hover {
   margin-bottom: 1.25rem;
   scroll-snap-type: x proximity;
 }
-.vault-card {
+.notebook-card {
   flex: 1 0 20rem;
   scroll-snap-align: start;
   display: flex;
@@ -195,45 +244,44 @@ a:hover {
   padding: 1.25rem;
   color: var(--text);
 }
-.vault-card:hover {
+.notebook-card:hover {
   border-color: var(--accent);
   text-decoration: none;
 }
-.vault-card h2 {
+.notebook-card h2 {
   margin: 0;
   font-size: 1.05rem;
 }
-.vault-card p {
+.notebook-card p {
   margin: 0;
   color: var(--text-soft);
   font-size: 0.9rem;
   flex: 1;
 }
-.vault-card footer {
+.notebook-card footer {
   display: flex;
   justify-content: space-between;
   font-size: 0.8rem;
   color: var(--text-soft);
 }
-.vault-open {
+.notebook-open {
   color: var(--accent);
 }
 
-/* Vault layout */
-.vault-layout {
+/* Notebook layout */
+.notebook-layout {
   display: flex;
   min-height: 0;
   width: 100%;
 }
-.vault-sidebar {
+.notebook-sidebar {
   width: 22rem;
   min-width: 16rem;
   border-right: 1px solid var(--border);
   background: var(--surface);
   padding: 1rem;
   overflow-y: auto;
-  max-height: calc(100vh - var(--header-h));
-  max-height: calc(100dvh - var(--header-h));
+  max-height: 100%;
   position: sticky;
   top: 0;
 }
@@ -241,10 +289,10 @@ a:hover {
   font-size: 0.8rem;
   color: var(--text-soft);
 }
-.vault-title-link {
+.notebook-title-link {
   color: var(--text);
 }
-.vault-title-link h2 {
+.notebook-title-link h2 {
   margin: 0.35rem 0 0.75rem;
   font-size: 1rem;
 }
@@ -311,12 +359,11 @@ a:hover {
   font-weight: 600;
 }
 
-.vault-content {
+.notebook-content {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  max-height: calc(100vh - var(--header-h));
-  max-height: calc(100dvh - var(--header-h));
+  max-height: 100%;
 }
 .content-kicker {
   text-transform: uppercase;
@@ -353,6 +400,53 @@ a:hover {
   color: var(--text-soft);
 }
 
+/* Deleting a Guidance or a Template. It is quiet until it is asked for: the
+   surface is a reading tool before it is an editing one. */
+.slot-delete {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.25rem 0.7rem;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--danger, #b42318);
+  cursor: pointer;
+}
+.slot-delete:hover:not(:disabled) {
+  border-color: var(--danger, #b42318);
+}
+.slot-delete:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.slot-delete-cancel {
+  background: none;
+  border: none;
+  padding: 0.25rem 0.7rem;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.slot-delete-confirm {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+/* The sentence takes the whole first line: what it says is what survives. */
+.slot-delete-confirm p {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-soft);
+}
+
 .note-list {
   list-style: none;
   padding: 0;
@@ -377,7 +471,7 @@ a:hover {
 
 /* ── The reading surface ────────────────────────────────────────────────────
    A note, a Guidance, a folder page and a template are read here the way the
-   vault that wrote them is read, so the rendered Markdown follows the metrics
+   notebook that wrote them is read, so the rendered Markdown follows the metrics
    of the default theme of the desktop vault editors: its heading scale, its
    paragraph and list spacing, its quiet blockquote, its code and table
    treatment, its callouts and its property rows.
@@ -389,7 +483,7 @@ a:hover {
 
    Inside this surface headings are set in the text face and not in Space
    Grotesk, which is the one place the brand's display face steps aside: what
-   is drawn here is the vault's content, not the product's chrome, and the
+   is drawn here is the notebook's content, not the product's chrome, and the
    modular scale is half of why a note in those editors reads as one. */
 
 .content-pane {
@@ -422,7 +516,7 @@ a:hover {
 
 /* Every heading of the reading surface takes the text face and the modular
    scale, whether it came out of the Markdown or from the page around it: the
-   title of a note, of a folder and of a vault are all the vault talking. No
+   name of a note, of a folder and of a notebook are all the notebook talking. No
    rule under any of them, which is how the default theme draws them. */
 .content-pane :is(h1, h2, h3, h4, h5, h6) {
   font-family: var(--sans);
@@ -552,10 +646,14 @@ a:hover {
   padding: 4px 8px;
   text-align: start;
 }
+/* The header is told apart by the type and by a heavier rule, and not by a
+   fill: white over the paper made the one part of a table that is drawn on
+   another material, and the only tint a table has left is the row under the
+   pointer, which is what makes that tint read as the pointer (#165). */
 .markdown th {
-  background: var(--surface);
   font-weight: 600;
   color: var(--text);
+  border-bottom: 2px solid var(--text-soft);
 }
 .markdown tbody tr:hover {
   background: var(--code-bg);
@@ -592,7 +690,7 @@ a:hover {
 }
 
 /* ── Callouts ───────────────────────────────────────────────────────────────
-   The element the vault meant when it wrote `> [!warning]`, drawn the way the
+   The element the notebook meant when it wrote `> [!warning]`, drawn the way the
    default theme draws it: a tinted field, a coloured title and a line icon.
    The icon is a mask and not an image, so it takes the colour of the callout
    without a second file per hue, which is the reference theme's own technique.
@@ -787,7 +885,7 @@ a:hover {
   overflow-wrap: anywhere;
 }
 
-/* A vault held in one hand has no room for two columns, so the key takes its
+/* A notebook held in one hand has no room for two columns, so the key takes its
    own line and the value follows under it. */
 @media (max-width: 560px) {
   .metadata-container {
@@ -829,23 +927,6 @@ a:hover {
   color: var(--text-soft);
 }
 
-.chart-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
-  gap: 1rem;
-  margin-bottom: 1.75rem;
-}
-.chart-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1rem 1.25rem 1.25rem;
-}
-.chart-card h2 {
-  margin: 0 0 0.75rem;
-  font-size: 0.95rem;
-}
-
 .seq-seed {
   background: var(--seq-seed);
 }
@@ -864,59 +945,10 @@ a:hover {
 .cat-3 {
   background: var(--cat-3);
 }
-.cat-other {
-  background: var(--cat-other);
-}
-
-.hbar-row {
-  display: grid;
-  grid-template-columns: 11rem 1fr 3.2rem;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.3rem 0;
-}
-.hbar-label {
-  font-size: 0.8rem;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.hbar-track {
-  display: flex;
-  gap: 2px;
-  height: 18px;
-}
-.hbar-seg {
-  border-radius: 4px;
-  min-width: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-.hbar-seg-label {
-  font-size: 0.68rem;
-  color: var(--surface);
-  font-weight: 600;
-}
-.seq-seed .hbar-seg-label,
-.hbar-seg.seq-seed .hbar-seg-label {
-  color: var(--text);
-}
-:root[data-theme='dark'] .hbar-seg.seq-evergreen .hbar-seg-label {
-  color: #0b1220;
-}
 .dashboard-footnote {
   font-size: 0.78rem;
   color: var(--text-soft);
   margin: 0.2rem 0 0;
-}
-
-.hbar-total {
-  font-size: 0.76rem;
-  color: var(--text-soft);
-  text-align: right;
 }
 
 .barlist {
@@ -1170,7 +1202,7 @@ a:hover {
   overflow: visible;
 }
 
-/* Vault graph */
+/* Notebook graph */
 .graph-page {
   display: flex;
   flex-direction: column;
@@ -1186,7 +1218,7 @@ a:hover {
   font-size: 1.05rem;
 }
 /* What is said about the drawing as a whole: the gestures it answers to, and
-   the warning that it is not the whole vault. They stack in one centred column
+   the warning that it is not the whole notebook. They stack in one centred column
    instead of being two absolutely positioned lines that have to be kept from
    colliding, and they wrap rather than run off a narrow screen. */
 .graph-footer {
@@ -1246,6 +1278,182 @@ a:hover {
 .wikilink-pending {
   color: var(--pending);
   border-bottom: 1px dashed var(--pending);
+  cursor: pointer;
+}
+
+/* The choice a link opens where it stands (RN-DSC-046). It hangs from the link
+   and never moves the text around it. */
+/*
+ * The choice a link to several notes opens (#144). It was a menu positioned
+ * inside whatever held the link, and a table of a note scrolls on its own, so a
+ * link in a table cell opened its menu inside the scroll box of the table,
+ * clipped by it. A dialog opened with showModal() lives in the top layer, which
+ * no ancestor clips and no stacking context reaches.
+ */
+.link-choice-dialog {
+  border: 0;
+  padding: 0;
+  background: none;
+  max-width: none;
+  max-height: none;
+  width: 100%;
+  height: 100%;
+  color: var(--text);
+}
+.link-choice-dialog::backdrop {
+  background: rgb(14 21 38 / 0.45);
+}
+/* The page behind a modal does not scroll under it. */
+body.has-modal {
+  overflow: hidden;
+}
+.link-choice-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(32rem, calc(100vw - 2rem));
+  max-height: min(85vh, 40rem);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.28);
+}
+.link-choice-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1rem 0.5rem;
+}
+.link-choice-header h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.link-choice-close {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--text-soft);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+.link-choice-close:hover {
+  color: var(--text);
+}
+.link-choice-body {
+  overflow-y: auto;
+  padding: 0 1rem;
+}
+.link-choice-explanation {
+  margin: 0 0 0.75rem;
+  color: var(--text-soft);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.link-choice-options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.link-choice-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  /* A comfortable target on a phone, where this is a sheet under a thumb. */
+  min-height: 2.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+  /* The trail of a deep folder wraps instead of being cut. */
+  overflow-wrap: anywhere;
+}
+.link-choice-option:hover,
+.link-choice-option:focus-visible {
+  background: var(--border);
+  outline: none;
+}
+.link-choice-option.is-placeholder {
+  min-height: 3.25rem;
+  background: var(--border);
+  opacity: 0.45;
+}
+/* What the folder holding this note is for, under the path: the one line on
+   the row that says which of two notes of one name was meant. */
+.link-choice-about {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-soft);
+}
+
+.link-choice-lead {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+.link-choice-under {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+.link-choice-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.75rem 1rem 1rem;
+}
+.link-choice-cancel {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font-family: var(--display);
+  font-size: 0.9rem;
+  min-height: 2.75rem;
+  padding: 0 1.1rem;
+  cursor: pointer;
+}
+.link-choice-cancel:hover {
+  background: var(--border);
+}
+
+/* On a phone it rises from the bottom, within reach of a thumb. */
+@media (max-width: 600px) {
+  .link-choice-card {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    transform: none;
+    width: 100%;
+    max-height: 85vh;
+    border-radius: 14px 14px 0 0;
+    border-bottom: 0;
+  }
+  .link-choice-footer .link-choice-cancel {
+    width: 100%;
+  }
+}
+
+/* A file of the notebook that is not a note. This product stores no attachment,
+   so the reference resolves to nothing — which is not an error, and is said
+   the way a pending link is said, and never drawn as a link to a note nobody
+   will ever write. It reads as a file name, in the monospace the rest of the
+   surface gives to what a file is called. */
+.attachment-missing {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.92em;
+  color: var(--text-soft);
+  border-bottom: 1px dashed var(--text-soft);
   cursor: help;
 }
 
@@ -1261,23 +1469,38 @@ a:hover {
 /* Transclusion: another note, shown in place. The left rule and the source
    line exist for one reason: a passage without provenance is indistinguishable
    from what the author wrote. */
+/*
+ * A passage brought from another note is the SAME passage: same paper, same
+ * spacing, same tints (#165).
+ *
+ * It used to be a white card over the paper, and a card costs twice. Every
+ * tint of this surface is translucent over what is behind it — a callout is
+ * `rgba(…, 0.1)`, and so are a code block, a table row under the pointer and
+ * a property row — so the same callout read as two different callouts
+ * depending on whether it had been embedded. And the card had a rem of room on
+ * the left and none on the right, so a callout and a diagram, which paint
+ * their own box, ran flush into its edge and over its rounded corner.
+ *
+ * What is left is what an embed actually has to say: a rule down the side, in
+ * the blue of structure, and the note it came from named underneath. A
+ * quotation carries the same gesture in the hairline of the surface, so the
+ * two read as what they are — another voice, and another note.
+ */
 .embed {
   margin: 1.2rem 0;
-  padding: 0.1rem 0 0.1rem 1rem;
-  border-left: 3px solid var(--accent-soft);
-  background: var(--surface);
-  border-radius: 0 6px 6px 0;
+  padding-inline-start: 1rem;
+  border-inline-start: 2px solid var(--accent);
 }
 .embed-body > .markdown > :first-child {
-  margin-top: 0.6rem;
+  margin-top: 0;
 }
 .embed-body > .markdown > :last-child {
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.35rem;
 }
 .embed-source {
   font-size: 0.82rem;
   color: var(--text-soft);
-  padding: 0 0 0.5rem;
+  padding: 0;
 }
 .embed-source a {
   color: var(--text-soft);
@@ -1397,8 +1620,9 @@ a:hover {
 
 /* Login */
 .login-screen {
-  min-height: 100vh;
-  min-height: 100dvh;
+  /* The row it sits in is the window minus the banner, so it fills that and
+     does not measure the window again (#158). */
+  min-height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1471,31 +1695,7 @@ a:hover {
   color: var(--text-soft);
   margin: 0;
 }
-.button-primary {
-  border: 0;
-  border-radius: 6px;
-  background: var(--accent);
-  color: #ffffff;
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 0.95rem;
-  padding: 0.6rem;
-  cursor: pointer;
-}
-:root[data-theme='dark'] .button-primary {
-  color: #0b1220;
-}
-.button-primary:hover {
-  filter: brightness(1.08);
-}
-.button-ghost {
-  border: 0;
-  background: none;
-  color: var(--text-soft);
-  font-size: 0.82rem;
-  cursor: pointer;
-  padding: 0.2rem;
-}
+
 .login-demo-note {
   font-size: 0.72rem;
   color: var(--pending);
@@ -1735,7 +1935,7 @@ a:hover {
   background: var(--accent-soft);
   text-decoration: none;
 }
-.search-title {
+.search-name {
   font-size: 0.84rem;
   font-weight: 600;
 }
@@ -1821,6 +2021,104 @@ a:hover {
   white-space: nowrap;
 }
 
+/* ---- The button (#157) --------------------------------------------------
+ *
+ * There was none. `.chip` is a LABEL — the size of a piece of metadata beside
+ * a title, blue on blue — and every action of the product borrowed it, so the
+ * action that commits and the one that cancels were the same tag, and a screen
+ * whose every control is blue spends on buttons the 18% the brand book gives
+ * the blue as STRUCTURE.
+ *
+ * Three intents, because the product has three: the one that commits, the
+ * quiet one beside it, and the one that destroys. The strong colour is spent
+ * on ONE action of a screen, and the others carry the surface.
+ *
+ * `.chip` stays what it always was: a label, on a span.
+ */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  /* A target a thumb reaches, which a control the size of a tag was not. */
+  min-height: 2.25rem;
+  padding: 0 0.95rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.875rem;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+.button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.button:disabled,
+.button[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* The one action of a screen that deserves the blue of the brand. */
+.button.is-primary {
+  background: var(--accent);
+  color: #ffffff;
+}
+.button.is-primary:hover:not(:disabled) {
+  background: #0c46ae;
+}
+
+/* Everything beside it: the surface, with an edge. */
+.button.is-quiet {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+.button.is-quiet:hover:not(:disabled) {
+  background: var(--bg);
+  border-color: var(--text-soft);
+}
+
+/* What destroys says so before it is pressed, and fills only under the hand. */
+.button.is-danger {
+  background: var(--surface);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.button.is-danger:hover:not(:disabled) {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+/* Inside a row of a list, where the row is the subject and the action is not. */
+.button.is-small {
+  min-height: 1.9rem;
+  padding: 0 0.7rem;
+  font-size: 0.8rem;
+}
+
+/* A form whose one action closes it, and which is as wide as its fields. */
+.button.is-wide {
+  width: 100%;
+}
+
+:root[data-theme='dark'] .button.is-primary {
+  /* The accent lightens in the dark theme, so the label darkens with it. */
+  color: #0b1220;
+}
+:root[data-theme='dark'] .button.is-primary:hover:not(:disabled) {
+  background: #9dbcf7;
+}
+
 /* Structure outline */
 .outline-list {
   list-style: none;
@@ -1868,14 +2166,14 @@ a:hover {
   color: var(--text-soft);
 }
 
-/* Vault sidebar navigation */
-.vault-nav {
+/* Notebook sidebar navigation */
+.notebook-nav {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   margin-bottom: 0.9rem;
 }
-.vault-nav-link {
+.notebook-nav-link {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -1887,12 +2185,12 @@ a:hover {
   border-radius: 6px;
   border: 1px solid var(--border);
 }
-.vault-nav-link:hover {
+.notebook-nav-link:hover {
   border-color: var(--accent);
   color: var(--accent);
   text-decoration: none;
 }
-.vault-nav-action {
+.notebook-nav-action {
   background: none;
   font: inherit;
   font-family: var(--display);
@@ -1900,11 +2198,11 @@ a:hover {
   text-align: left;
   cursor: pointer;
 }
-.vault-nav-action:disabled {
+.notebook-nav-action:disabled {
   cursor: progress;
   color: var(--text-soft);
 }
-.vault-nav-link.active {
+.notebook-nav-link.active {
   background: var(--accent-soft);
   color: var(--accent);
   border-color: var(--accent);
@@ -1957,19 +2255,19 @@ a:hover {
   font-weight: 400;
   color: var(--text-soft);
 }
-.vault-breadcrumb {
+.notebook-breadcrumb {
   margin-bottom: 0.75rem;
 }
-.vault-breadcrumb a {
+.notebook-breadcrumb a {
   color: var(--text-soft);
 }
-.vault-breadcrumb a:hover {
+.notebook-breadcrumb a:hover {
   color: var(--accent);
 }
-.vault-breadcrumb [aria-current] {
+.notebook-breadcrumb [aria-current] {
   color: var(--text);
 }
-.note-header .vault-breadcrumb {
+.note-header .notebook-breadcrumb {
   margin-bottom: 0.25rem;
 }
 .graph-title {
@@ -1986,14 +2284,14 @@ a:hover {
   color: #b42318;
   font-size: 0.85rem;
 }
-/* ── Vault navigation drawer ────────────────────────────────────────────────
+/* ── Notebook navigation drawer ────────────────────────────────────────────────
    On a wide screen the sidebar is a permanent column and these three controls
    do not exist. They come into being at the breakpoint below, where the same
    sidebar becomes a drawer. */
-.vault-nav-toggle,
-.vault-nav-close,
-.vault-nav-head,
-.vault-nav-scrim {
+.notebook-nav-toggle,
+.notebook-nav-close,
+.notebook-nav-head,
+.notebook-nav-scrim {
   display: none;
 }
 
@@ -2009,7 +2307,7 @@ a:hover {
            column, which is the layout that screen has room for. */
 
 @media (max-width: 1180px) {
-  .vault-sidebar {
+  .notebook-sidebar {
     width: 18rem;
     min-width: 14rem;
   }
@@ -2055,10 +2353,10 @@ a:hover {
   }
 
   /* The column becomes a drawer. */
-  .vault-layout {
+  .notebook-layout {
     display: block;
   }
-  .vault-nav-toggle {
+  .notebook-nav-toggle {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -2078,17 +2376,17 @@ a:hover {
     padding: 0.6rem 1rem;
     cursor: pointer;
   }
-  .vault-nav-toggle span {
+  .notebook-nav-toggle span {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .vault-nav-toggle svg {
+  .notebook-nav-toggle svg {
     flex-shrink: 0;
     width: 20px;
     height: 20px;
   }
-  .vault-sidebar {
+  .notebook-sidebar {
     position: fixed;
     top: 0;
     left: 0;
@@ -2102,12 +2400,12 @@ a:hover {
     transition: transform 0.18s ease-out;
     box-shadow: 0 0 40px rgba(14, 21, 38, 0.25);
   }
-  .vault-layout.nav-open .vault-sidebar {
+  .notebook-layout.nav-open .notebook-sidebar {
     transform: translateX(0);
   }
   /* `hidden` on the element is what closes it; the rule has to respect that,
      or the scrim would sit over the page with nothing behind it. */
-  .vault-nav-scrim:not([hidden]) {
+  .notebook-nav-scrim:not([hidden]) {
     display: block;
     position: fixed;
     inset: 0;
@@ -2118,7 +2416,7 @@ a:hover {
      opens with a band of its own the same height as that header: the brand on
      the left, where the brand was a moment ago, and the close control on the
      right. Without it the drawer began with an empty strip. */
-  .vault-nav-head {
+  .notebook-nav-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -2135,15 +2433,15 @@ a:hover {
     z-index: 1;
     background: var(--surface);
   }
-  .vault-nav-head .brand {
+  .notebook-nav-head .brand {
     min-width: 0;
     overflow: hidden;
   }
-  .vault-nav-head .brand-word {
+  .notebook-nav-head .brand-word {
     font-size: 1.05rem;
     white-space: nowrap;
   }
-  .vault-nav-close {
+  .notebook-nav-close {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2156,18 +2454,18 @@ a:hover {
     color: var(--text);
     cursor: pointer;
   }
-  .vault-nav-close:hover {
+  .notebook-nav-close:hover {
     background: var(--accent-soft);
     color: var(--accent);
   }
-  .vault-nav-close svg {
+  .notebook-nav-close svg {
     width: 20px;
     height: 20px;
   }
 
   /* With the sidebar gone from the flow, the document scrolls, not a box
      inside it. That is what lets the phone browser hide its own toolbar. */
-  .vault-content {
+  .notebook-content {
     max-height: none;
     overflow: visible;
   }
@@ -2202,24 +2500,16 @@ a:hover {
   .carousel-arrow {
     display: none;
   }
-  .vault-card {
+  .notebook-card {
     flex: 0 0 min(20rem, 86%);
   }
 
   /* The label column of a bar chart cannot keep a desktop width when the
      chart itself is 340px wide. */
-  .hbar-row {
-    grid-template-columns: 6.5rem 1fr 2.6rem;
-    gap: 0.4rem;
-  }
   .barlist-row {
     grid-template-columns: 5.5rem 1fr 2.6rem;
     gap: 0.4rem;
   }
-  .chart-card {
-    padding: 0.9rem 1rem 1rem;
-  }
-
   .login-screen {
     padding: 1rem;
   }
@@ -2247,16 +2537,13 @@ a:hover {
   .page {
     padding: 0.75rem;
   }
-  .hbar-row {
-    grid-template-columns: 5rem 1fr 2.4rem;
-  }
   .barlist-row {
     grid-template-columns: 4.5rem 1fr 2.4rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .vault-sidebar,
+  .notebook-sidebar,
   .graph-switch input,
   .graph-switch input::after {
     transition: none;
@@ -2269,7 +2556,7 @@ a:hover {
 }
 
 /* A task box that can be ticked. Disabled is the default, and it is what a
-   VIEWER, and an EDITOR demoted in this vault, keep seeing. */
+   VIEWER, and an EDITOR demoted in this notebook, keep seeing. */
 .markdown li.task-item {
   list-style: none;
   margin-left: -1.2rem;
@@ -2339,23 +2626,11 @@ a:hover {
   gap: 1rem;
 }
 
-.vault-card-skeleton {
+.notebook-card-skeleton {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   cursor: default;
-}
-
-.chart-row-skeleton {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-  gap: 1rem;
-}
-
-.chart-row-skeleton .chart-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
 }
 
 .tree-skeleton {
@@ -2473,4 +2748,1397 @@ a:hover {
   .write-status-text {
     display: none;
   }
+}
+
+/* The heading of the notebook catalogue, with the one action that belongs beside
+   it rather than inside a notebook: importing a `.notebook` makes a new one. */
+.dashboard-heading-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/*
+ * Transfers: files on their way in and out, in the place a browser puts its
+ * downloads — beside the identity, and never as a notification bell
+ * (RN-PRT-019, RN-PRT-020).
+ */
+.transfers-menu {
+  position: relative;
+}
+.transfers-trigger {
+  position: relative;
+  border: 0;
+  background: none;
+  color: var(--text-soft);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+}
+.transfers-trigger:hover {
+  color: var(--text);
+}
+/* A ring while something runs, filled as far as it got. */
+.transfers-ring {
+  position: absolute;
+  inset: 0.3rem;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent) var(--progress, 0%), transparent 0);
+  opacity: 0.35;
+  pointer-events: none;
+}
+/* A dot while something has finished that the person has not seen. */
+.transfers-dot {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.5rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--signal);
+}
+.transfers-panel {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  width: min(22rem, calc(100vw - 2rem));
+  padding: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
+}
+.transfers-panel h2 {
+  margin: 0 0 0.5rem;
+  font-family: var(--display);
+  font-size: 0.95rem;
+}
+.transfers-recent {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.transfers-line {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.15rem 0.5rem;
+  font-size: 0.84rem;
+}
+.transfers-line-name {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.transfers-line-state {
+  grid-column: 1;
+  color: var(--text-soft);
+  font-size: 0.78rem;
+}
+.transfers-line-bar {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 0.35rem;
+}
+/* Where the action of a line sits. What it LOOKS like is the button (#157). */
+.transfers-line .button,
+.transfers-see-all {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  align-self: center;
+}
+.transfers-see-all {
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-family: var(--display);
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.transfers-see-all {
+  display: block;
+  margin-top: 0.6rem;
+  text-align: right;
+  text-decoration: none;
+}
+
+.transfers-page-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.transfers-kept {
+  color: var(--text-soft);
+  font-size: 0.84rem;
+}
+/* The filter of the page, which is a tab strip: see `.tabs` (#161). */
+.transfers-filters {
+  margin: 0.75rem 0 1rem;
+}
+.transfers-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.transfers-row {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.transfers-row-main {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.transfers-row-file {
+  grid-column: 1 / -1;
+  font-size: 0.75rem;
+  color: var(--pending);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.transfers-row-name {
+  font-family: var(--display);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.transfers-row-when,
+.transfers-row-state,
+.transfers-row-note,
+.transfers-row-confirm {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+.transfers-row-note {
+  margin: 0.4rem 0 0;
+}
+.transfers-row-bar {
+  flex-basis: 100%;
+  height: 0.35rem;
+}
+.transfers-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+.transfers-row-actions .chip {
+  cursor: pointer;
+  /* A comfortable target, here as everywhere a finger reaches. */
+  min-height: 2.5rem;
+  padding: 0 0.75rem;
+}
+.transfers-row-actions .chip.is-danger {
+  background: none;
+  border-color: var(--pending);
+  color: var(--pending);
+}
+
+/* At phone width the rows are cards already; the actions go full width. */
+@media (max-width: 600px) {
+  .transfers-row-actions .chip {
+    flex: 1 1 8rem;
+  }
+}
+
+/* ---- The dialog of a transfer (#160) ------------------------------------
+ *
+ * One shape for both sides, and large enough for what it asks: a tree of
+ * sixty-eight folders was being read through a window of a hundred and eighty
+ * pixels, inside a modal that also scrolled, behind a panel that stayed open.
+ *
+ * Three rows, and ONE scroll: the head says what is being decided, the body
+ * scrolls, the foot carries the actions and neither of them moves.
+ */
+.transfer-dialog {
+  border: 0;
+  padding: 0;
+  background: none;
+  max-width: none;
+  max-height: none;
+  width: 100%;
+  height: 100%;
+  color: var(--text);
+}
+.transfer-dialog::backdrop {
+  background: rgb(14 21 38 / 0.45);
+}
+.transfer-dialog-box {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(46rem, calc(100vw - 2rem));
+  height: min(80vh, 46rem);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.28);
+}
+.transfer-dialog-head {
+  padding: 1.1rem 1.25rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+}
+.transfer-dialog-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.transfer-dialog-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.transfer-dialog-foot {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid var(--border);
+}
+/* What the foot says beside the actions: what will be carried. */
+.transfer-summary {
+  margin: 0 auto 0 0;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  line-height: 1.35;
+}
+
+@media (max-width: 40rem) {
+  .transfer-dialog-box {
+    width: 100vw;
+    height: 100dvh;
+    max-width: none;
+    border-radius: 0;
+    border: 0;
+  }
+  .transfer-dialog-foot {
+    flex-wrap: wrap;
+  }
+}
+
+/*
+ * Where a file is chosen or dropped, inside the dialog of an import (#160). The
+ * page of three steps it used to live on is gone: the decision is a dialog like
+ * the export, and the following is Transfers.
+ */
+.import-drop {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 1.1rem;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+/* Once the document is read, the box that asked for it steps back: what is
+   being decided is below it, and it was taking that room (#161). */
+.import-drop.is-chosen {
+  padding: 0.45rem 0.6rem;
+  border-style: solid;
+  background: none;
+}
+.import-drop-hint {
+  color: var(--text-soft);
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.status.is-conflict {
+  color: var(--signal);
+  padding: 0;
+}
+
+/* A field of the dialog: the label above the control, never around it. */
+.transfer-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+}
+.transfer-field select,
+.transfer-field input {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.transfer-field input[aria-invalid='true'] {
+  border-color: var(--signal);
+}
+
+.transfer-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.transfer-preset {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.transfer-preset span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.transfer-preset small {
+  color: var(--muted, var(--text-soft));
+  line-height: 1.4;
+}
+
+/* ---- A file of the notebook, inside a note (#166) ----------------------
+ *
+ * Two shapes and not three: what a browser draws without executing anything
+ * is drawn, and everything else is a card. A PDF can be framed, and that is
+ * exactly why it is not — half the browsers of a phone ignore the frame and
+ * offer a download, and a surface that works on one machine and comes out a
+ * grey rectangle on another is worse than a card that behaves the same
+ * everywhere.
+ */
+.attachment-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-block: var(--p-spacing);
+  border-radius: 8px;
+}
+.attachment-player {
+  display: block;
+  width: 100%;
+  margin-block: var(--p-spacing);
+}
+.attachment-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block: var(--p-spacing);
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+  border-inline-start: 2px solid var(--accent);
+  border-radius: 8px;
+}
+.attachment-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.attachment-card-name {
+  font-family: var(--display);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.attachment-card-note {
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  overflow-wrap: anywhere;
+}
+.attachment-card-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+.attachment-card-actions a {
+  font-size: 0.85rem;
+}
+/* A name the notebook keeps nothing under: the shape a pending link takes. */
+.attachment-loading {
+  color: var(--text-soft);
+}
+
+/* ---- The tab strip (#161) -----------------------------------------------
+ *
+ * A few things to look at, one at a time. It was drawn inside the chooser of a
+ * transfer and it belongs to the product: the filter of Transfers asked the
+ * same question with three chips, and a chip is a label (#157).
+ *
+ * The tabs WRAP and the strip does not scroll. It used to carry `overflow-x`,
+ * for five tabs on a narrow screen — and `overflow-x` on a box whose `overflow-y`
+ * is visible computes that axis to `auto` as well, so the one pixel by which
+ * the open tab sits over the border of the strip became a vertical scrollbar
+ * beside the tabs, with a single pixel to move. A second row on a phone is
+ * better than a bar that scrolls nothing.
+ */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.35rem 0.35rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  flex-shrink: 0;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  padding: 0.5rem 0.9rem;
+  background: none;
+  color: var(--text-soft);
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+/* A tab that is not open stays legible: it is disabled, not absent (#160). */
+.tab:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.tab.is-selected {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+  /* Over the border of the strip, so the tab and the panel are one sheet. */
+  margin-bottom: -1px;
+  padding-bottom: calc(0.5rem + 1px);
+}
+/* A tab is marked when what is inside it is why the screen cannot go on. */
+.tab.is-marked {
+  color: var(--signal);
+}
+.tab.is-marked:disabled {
+  color: var(--text-soft);
+}
+.tab-count {
+  margin-inline-start: 0.35rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--signal);
+  color: var(--paper, #fff);
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+/* ---- The chooser of a transfer (#156, #161) -----------------------------
+ *
+ * What a transfer carries, on both sides of the door. Four tabs: the scope,
+ * which is five species and how much of each travels, and one tab per species
+ * that has a hierarchy, each showing only what the folders let through.
+ *
+ * The whole block was deleted by 52c87af while the dialog around it was being
+ * rebuilt, and nothing replaced it: the tabs stopped being tabs, the tree lost
+ * the guide down its side, and every row of a `<ul>` came back with a browser
+ * bullet. It is written again here rather than reverted, because the two tabs
+ * it was drawn for are four now and two of them carry a line of their own.
+ */
+/*
+ * ONE scroll, and it is the tree (#160, #161).
+ *
+ * The body of the dialog scrolls, so a tall tree took the tabs and the line
+ * saying what the tab is showing up and out of sight with it: deep in the notes
+ * of a notebook there was no way to tell which tab you were on. The chooser
+ * takes the height the body has left and never more, its tabs and its notice
+ * hold still, and what moves is the list.
+ */
+.chooser {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  /* Never collapsed by what sits above it, and never taller than its share. */
+  min-height: 12rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.chooser-tabs {
+  flex-shrink: 0;
+  background: var(--bg);
+}
+.chooser-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0.75rem;
+  overflow: hidden;
+}
+/* The one part that moves. */
+.chooser-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* The scope: five rows, and the three with a hierarchy carry their reach. */
+/* The whole notebook or part of it, at the head of the first tab (#161). */
+.chooser-scroll > .transfer-presets {
+  /* Side by side: the five rows under them are the point of this tab, and two
+     boxes stacked took a quarter of the height it has. */
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.7rem;
+}
+.chooser-scroll > .transfer-presets .transfer-preset {
+  flex: 1 1 10rem;
+  padding: 0.5rem 0.7rem;
+}
+.chooser-scope {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  /* The tracks the rows borrow, so the reach of every species starts at one
+     x and every count ends at one x (see the row below). */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
+}
+/*
+ * One species of the scope, in THREE COLUMNS and not in a row that wraps.
+ *
+ * It was a flex row — name, then the reach, then the count — so where the
+ * reach of a species began depended on how long its name was: `Orientação do
+ * caderno` pushed its radios far to the right and `Notas` left them near the
+ * left, and the counts, whose width varies with the numbers in them, landed
+ * wherever the radios ended. Six rows of one question read as six questions.
+ *
+ * A grid shares its columns between the rows, which is the whole point: the
+ * reach of every species starts at one x, and the counts end at one x, whatever
+ * is written in either. The count is pinned to the third column so the two
+ * species that have no reach — the Guidance and the history — do not slide
+ * their count into the second.
+ */
+/*
+ * The columns are the LIST's and not each row's.
+ *
+ * A grid per row aligns the three cells of that row and nothing else: the
+ * first column takes what is left, so where the reach of a species began
+ * still moved with the width of the count beside it — `10 de 10` pushed it
+ * ten pixels left of `5 de 5`. Grid shares tracks between siblings only
+ * inside one container, so the list holds the tracks and every row borrows
+ * them with `subgrid`, which is what makes the alignment real.
+ *
+ * Where `subgrid` is not understood the declaration is dropped and the row
+ * keeps the three columns of its own below, which is the behaviour this had
+ * before: aligned within a row, and close enough between them.
+ */
+.chooser-scope-row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: subgrid;
+  align-items: center;
+  column-gap: 0.9rem;
+  row-gap: 0.35rem;
+  min-height: 2.5rem;
+  padding: 0.35rem 0.3rem;
+  border-bottom: 1px solid var(--border);
+}
+.chooser-scope-row .chooser-reach {
+  grid-column: 2;
+}
+.chooser-scope-row /*
+ * The files of a notebook, as the tab that chooses them lists one (#176).
+ *
+ * A list and not a tree, because a file belongs to the notebook and there is
+ * no branch to walk — so the row carries what decides whether somebody wants
+ * this one: the name a note writes, what it is, and, quietly under both, how
+ * it is drawn and how much it weighs.
+ */
+.chooser-files {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.chooser-file > label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  column-gap: 0.55rem;
+  padding: 0.45rem 0.3rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.chooser-file > label:hover {
+  background: var(--border);
+}
+.chooser-file input {
+  /* Aligned with the first line of the name, not with the middle of a row
+     three lines tall. */
+  margin-top: 0.15rem;
+}
+.chooser-file-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.chooser-file-name {
+  font-family: var(--display);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.chooser-file-about {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text-soft);
+  /* Two lines at most: a description is here to tell one file from another,
+     and a paragraph of one would push the next file off the panel. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.chooser-file-note {
+  font-size: 0.72rem;
+  color: var(--pending);
+}
+
+.chooser-note {
+  grid-column: 3;
+  justify-self: end;
+  text-align: right;
+}
+/* On a phone the three columns do not fit: the row becomes two lines, with
+   the reach and the count under the name and still aligned with each other. */
+@media (max-width: 560px) {
+  .chooser-scope-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .chooser-scope-row .chooser-label {
+    grid-column: 1 / -1;
+  }
+  .chooser-scope-row .chooser-reach {
+    grid-column: 1;
+  }
+  .chooser-scope-row .chooser-note {
+    grid-column: 2;
+  }
+}
+.chooser-scope-row:last-child {
+  border-bottom: 0;
+}
+.chooser-scope-row .chooser-name {
+  font-family: var(--display);
+  font-weight: 500;
+}
+.chooser-scope-row.is-missing .chooser-name {
+  color: var(--text-soft);
+}
+/* Under the whole notebook the five rows are no longer a question: they are
+   what the whole notebook means here, ticked and still readable. */
+.chooser-scope-row.is-frozen .chooser-label {
+  cursor: default;
+}
+/* The mark that says this travels, where the box would be. */
+.chooser-mark {
+  display: inline-block;
+  width: 0.95rem;
+  text-align: center;
+  color: var(--node-green, var(--accent));
+  font-weight: 700;
+}
+/*
+ * Everything, or the items somebody picks: the reach of one species.
+ *
+ * On the row and not under it. A second line per species made the scope three
+ * rows taller than the box had, so the tab whose whole job is showing the five
+ * species at once showed three and hid two.
+ */
+.chooser-reach {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.chooser-reach-option {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+
+/* Why this tab shows what it shows, and what to do when it shows nothing. */
+.chooser-scoping,
+.chooser-filter {
+  flex-shrink: 0;
+}
+.chooser-scoping,
+.chooser-empty {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-soft);
+}
+.chooser-empty {
+  margin: 0.5rem 0;
+  padding: 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+/*
+ * The names carried twice, which refuse the import (RN-KNW-042).
+ *
+ * They were a paragraph EACH at the foot of the dialog, then a strip above the
+ * tree of the notes — which is the one place a collision is RESOLVED, so the
+ * statement of the problem sat on top of the room needed to fix it. They have
+ * a tab of their own now, lit and counted, and each row names the whole thing:
+ * the name, the folder that holds it, how many copies, and the way in (#161).
+ */
+.chooser-twins {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+/* The rule one group of refusals comes from, above the group and not repeated
+   on each of its rows. */
+.chooser-conflict-why {
+  margin: 0.8rem 0 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  line-height: 1.4;
+}
+.chooser-twin {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-inline-start: 3px solid var(--signal);
+  border-radius: 8px;
+}
+/* The whole name, wrapped: it is what tells one collision from another, and a
+   name cut at its first space told the reader nothing. */
+.chooser-twin-name {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+.chooser-twin-where {
+  font-size: 0.75rem;
+  color: var(--text-soft);
+}
+/* The way in: from the foot to the tab, and from a row to the tree. */
+.chooser-twins-open {
+  margin-top: 0.15rem;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.78rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.chooser-row.is-twin .chooser-name,
+.chooser-row.is-twin .chooser-note {
+  color: var(--signal);
+}
+.transfer-summary .is-conflict {
+  color: var(--signal);
+}
+
+.chooser-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  margin-bottom: 0.5rem;
+}
+.chooser-filter input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.chooser-tree,
+.chooser-branch {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+/* The guide of a level: what makes a branch read as one. */
+.chooser-branch {
+  margin-left: 0.85rem;
+  padding-left: 0.4rem;
+  border-left: 1px solid var(--border);
+}
+.chooser-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2rem;
+  border-radius: 6px;
+  padding-right: 0.35rem;
+}
+.chooser-row:hover {
+  background: var(--bg);
+}
+.chooser-label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+.chooser-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A folder carries the weight of the level; a note is the leaf of it. */
+.chooser-row.is-folder .chooser-name {
+  font-family: var(--display);
+  font-weight: 500;
+}
+.chooser-row.is-note .chooser-name {
+  color: var(--text-soft);
+}
+/* A folder travelling as a path: drawn so its children hang off something,
+   and not choosable, because it carries nothing of its own (RN-PRT-017). */
+.chooser-row.is-path {
+  color: var(--text-soft);
+}
+.chooser-row.is-path .chooser-label {
+  cursor: default;
+  /* Where the box of a chosen folder would be, so the levels stay aligned. */
+  padding-inline-start: 1.15rem;
+}
+.chooser-row.is-path .chooser-name {
+  font-family: var(--display);
+  font-style: italic;
+}
+.chooser-note {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--pending);
+}
+.chooser-twisty {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+.chooser-twisty:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+/* A leaf keeps the width of a twisty, so its name starts where the others do. */
+.chooser-twisty.is-empty {
+  cursor: default;
+}
+
+@media (max-width: 40rem) {
+  .chooser-row {
+    min-height: 2.4rem;
+  }
+}
+
+/* The welcome surface (#167). It is the one screen of the product that is read
+   end to end rather than consulted, so it is set as a document: one column at
+   a readable measure, centred, with the sections separated by air instead of
+   by rules. */
+.about {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
+.about-hero {
+  text-align: center;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.about-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  color: var(--text);
+}
+.about-brand .brand-symbol {
+  height: 40px;
+}
+.about-brand .brand-word {
+  font-size: 1.5rem;
+}
+.about-hero h1 {
+  margin: 1.25rem 0 0.5rem;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.75rem;
+  letter-spacing: -0.025em;
+}
+.about-lead {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 1rem;
+}
+.about-section {
+  margin-top: 2.25rem;
+}
+.about-section h2 {
+  margin: 0 0 0.75rem;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+.about-section h3 {
+  margin: 1.5rem 0 0.5rem;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--text-soft);
+}
+.about-section p {
+  margin: 0 0 0.75rem;
+  line-height: 1.65;
+}
+/* Term and definition, stacked: the term is what the eye scans for, so it
+   carries the weight and the definition carries none. */
+.about-list {
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.9rem;
+}
+.about-list dt {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+.about-list dd {
+  margin: 0.15rem 0 0;
+  color: var(--text-soft);
+  line-height: 1.6;
+}
+/* The address of the connector: the one string on this page somebody carries
+   somewhere else, so it is set as code and the verb sits beside it. It wraps
+   rather than scrolls, because an address cut in half is not an address. */
+.about-connector {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--code-bg);
+}
+.about-connector code {
+  flex: 1 1 14rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+.about-connector .button {
+  flex-shrink: 0;
+  border-color: var(--border);
+  background: var(--surface);
+}
+.about-connector .button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.about-connector .button svg {
+  width: 1rem;
+  height: 1rem;
+}
+.about-steps,
+.about-asks {
+  margin: 0 0 0.75rem;
+  padding-left: 1.4rem;
+  line-height: 1.7;
+}
+.about-steps li,
+.about-asks li {
+  margin-bottom: 0.3rem;
+}
+.about-asks li {
+  color: var(--text-soft);
+}
+.about-note {
+  color: var(--text-soft);
+  font-size: 0.875rem;
+}
+.about-footer {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+/* The entry that reopens it, in the user menu: a link that reads like the
+   controls around it rather than like a link in a note. */
+.user-menu-link {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.45rem;
+  text-align: center;
+  text-decoration: none;
+  color: var(--text);
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+.user-menu-link:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* The profile and the password (#168): two short documents, set like the
+   welcome surface, because they are read once and left. */
+.profile {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
+.profile h1 {
+  margin: 0 0 1.5rem;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.4rem;
+  letter-spacing: -0.02em;
+}
+.profile-section {
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.profile-section:last-of-type {
+  border-bottom: 0;
+}
+/* The face beside its choices, so the answer to "what will this look like"
+   is the picture itself and never a name for one. */
+.profile-face {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+.profile-caption {
+  margin: 0 0 0.6rem;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+}
+.profile-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.profile-sources label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.profile-sources label.is-selected {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.profile-sources label:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+/* A file input is the one control a browser will not let anybody style, so
+   the label is the button and the input is hidden inside it. */
+.profile-upload {
+  border-color: var(--border);
+  cursor: pointer;
+}
+.profile-upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.profile-note {
+  margin: 1rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--text-soft);
+}
+.profile-failure {
+  margin: 0 0 1rem;
+  color: var(--danger);
+  font-size: 0.875rem;
+}
+.profile-done {
+  margin: 0 0 1.5rem;
+  line-height: 1.6;
+}
+.profile-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+/* The shape a field takes on these screens: the label above, the control
+   below, and whatever has to be said about it under both. */
+.field {
+  display: block;
+  margin-bottom: 1rem;
+}
+.field-label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+.field input {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+}
+.field input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.field input:disabled {
+  background: var(--code-bg);
+  color: var(--text-soft);
+}
+.field-hint {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--text-soft);
+}
+.field-hint.is-wrong {
+  color: var(--danger);
+}
+
+/* The one source that asks nothing of anybody: two letters over the blue of
+   the brand, drawn here, with no request leaving (RN-ACC-022). */
+.avatar-initials {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #ffffff;
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  user-select: none;
+}
+:root[data-theme='dark'] .avatar-initials {
+  /* The accent lightens in the dark theme, so the letters darken with it. */
+  color: #0b1220;
+}
+
+/* Writing a note (#169). The text area is the note: same measure, same type
+   as the reading surface, so what is typed sits where what is read sat. */
+.note-tools {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+.note-editor {
+  margin-top: 1rem;
+}
+.note-editor-area {
+  width: 100%;
+  min-height: 60vh;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  line-height: 1.7;
+  tab-size: 2;
+  resize: vertical;
+}
+.note-editor-area:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.note-editor-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.85rem;
+}
+/* What the write will do, said before it is confirmed. The pending colour is
+   the one a link to nothing already wears, so the two read as one fact. */
+.editor-notice {
+  margin: 0 0 0.9rem;
+  padding: 0.7rem 0.85rem;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 6px 6px 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.editor-notice.is-pending {
+  border-left-color: var(--signal);
+  background: color-mix(in srgb, var(--signal) 12%, transparent);
+}
+.editor-alias {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.editor-refusal {
+  margin: 0.75rem 0 0;
+  padding: 0.7rem 0.85rem;
+  border-left: 3px solid var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  border-radius: 0 6px 6px 0;
+  color: var(--danger);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+/* A short question over whatever is behind it. It is a sentence and two
+   buttons, so it is sized like one. */
+.ask-dialog {
+  border: 0;
+  padding: 0;
+  background: none;
+  max-width: none;
+  max-height: none;
+  width: 100%;
+  height: 100%;
+  color: var(--text);
+}
+.ask-dialog::backdrop {
+  background: rgb(14 21 38 / 0.45);
+}
+.ask-dialog-box {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(30rem, calc(100vw - 2rem));
+  max-height: min(85vh, 40rem);
+  overflow-y: auto;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.28);
+}
+.ask-dialog-box h2 {
+  margin: 0 0 1rem;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.ask-dialog-foot {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+/* The history of a note: closed by default, because it answers a question
+   somebody asks and is never the note itself. */
+.history-box {
+  margin-top: 2rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+.history-box > summary {
+  cursor: pointer;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--text-soft);
+}
+.history-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.9rem;
+}
+.history-list li {
+  padding-left: 0.85rem;
+  border-left: 2px solid var(--border);
+}
+.history-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+.history-kind {
+  font-size: 0.7rem;
+}
+.history-message {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+.history-message.is-empty {
+  color: var(--pending);
+  font-style: italic;
 }

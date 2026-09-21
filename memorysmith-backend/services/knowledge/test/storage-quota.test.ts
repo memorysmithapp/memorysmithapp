@@ -10,15 +10,23 @@
 
 import { describe, expect, it } from 'vitest';
 import { admitWrite } from '../src/domain/services/StorageQuota.js';
-import { FolderId, Slug } from '@memorysmith/kernel';
-import { authorship, contentRef, newNote, newVault, noteTitle, unwrap } from './fixtures.js';
+import { FolderId } from '@memorysmith/kernel';
+import {
+  authorship,
+  contentRef,
+  newGuidance,
+  newNote,
+  newNotebook,
+  noteBody,
+  unwrap,
+} from './fixtures.js';
 
 const folderId = FolderId.generate();
 
 describe('storage: what each mutation declares', () => {
   it('a new note costs its whole body', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId, 'Contratação direta');
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId, 'Contratação direta');
     const [created] = note.pullEvents();
 
     expect(created?.type).toBe('NoteCreated');
@@ -26,12 +34,12 @@ describe('storage: what each mutation declares', () => {
   });
 
   it('a new body costs only the difference between the two revisions', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId, 'Contratação direta');
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId, 'Contratação direta');
     note.pullEvents();
 
     const bigger = contentRef('b'.repeat(64), note.bodyRef.bytes + 300);
-    unwrap(note.replaceBody(bigger, authorship()));
+    unwrap(note.replaceBody(bigger, noteBody('Contratação direta'), authorship()));
     const [updated] = note.pullEvents();
 
     expect(updated?.type).toBe('NoteUpdated');
@@ -39,12 +47,12 @@ describe('storage: what each mutation declares', () => {
   });
 
   it('an edit that shortens the note gives the difference back', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId, 'Contratação direta');
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId, 'Contratação direta');
     note.pullEvents();
 
     const smaller = contentRef('c'.repeat(64), note.bodyRef.bytes - 20);
-    unwrap(note.replaceBody(smaller, authorship()));
+    unwrap(note.replaceBody(smaller, noteBody('Contratação direta'), authorship()));
     const [updated] = note.pullEvents();
 
     expect(updated?.storageDelta).toBe(-20);
@@ -52,50 +60,43 @@ describe('storage: what each mutation declares', () => {
 
   /**
    * The case that makes the delta a declaration rather than something derived
-   * from the event type: a retitle emits NoteUpdated too, and moves nothing.
+   * from the event type: a write of the same length changes the name of the
+   * note and moves no bytes at all.
    */
-  it('a retitle emits NoteUpdated and moves no bytes', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId, 'Contratação direta');
+  it('a rewrite of the same length renames the note and moves no bytes', () => {
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId, 'Contratação direta');
     note.pullEvents();
 
-    const title = noteTitle('Contratação direta por dispensa');
-    unwrap(note.retitle(title, unwrap(Slug.from(title.value)), authorship()));
+    const sameSize = contentRef('d'.repeat(64), note.bodyRef.bytes);
+    unwrap(note.replaceBody(sameSize, noteBody('Contratação direta por dispensa'), authorship()));
     const [updated] = note.pullEvents();
 
+    expect(note.name).toBe('Contratação direta por dispensa');
     expect(updated?.type).toBe('NoteUpdated');
     expect(updated?.storageDelta).toBe(0);
   });
 
-  it('deleting releases the body, and restoring puts it back', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId, 'Contratação direta');
+  it('deleting releases the body, once and for good', () => {
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId, 'Contratação direta');
     const bytes = note.bodyRef.bytes;
     note.pullEvents();
 
     unwrap(note.delete(authorship()));
     const [deleted] = note.pullEvents();
     expect(deleted?.storageDelta).toBe(-bytes);
-
-    unwrap(note.restore(authorship()));
-    const [restored] = note.pullEvents();
-    expect(restored?.storageDelta).toBe(bytes);
   });
 
   it('reordering and moving are storage-neutral', () => {
-    const vault = newVault();
-    const note = newNote(vault, folderId, 'Contratação direta');
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId, 'Contratação direta');
     note.pullEvents();
 
     unwrap(note.reorder(note.position, authorship()));
     unwrap(
       note.moveTo(
-        {
-          vaultId: vault.id,
-          folderId: FolderId.generate(),
-          slug: note.slug,
-          position: note.position,
-        },
+        { notebookId: notebook.id, folderId: FolderId.generate(), position: note.position },
         authorship(),
       ),
     );
@@ -105,15 +106,25 @@ describe('storage: what each mutation declares', () => {
   });
 
   it('a guidance costs the difference against the one it replaces', () => {
-    const vault = newVault();
-    vault.pullEvents(); // VaultCreated, which moves nothing
-    unwrap(vault.setGuidance(contentRef('d'.repeat(64), 1000), authorship()));
-    const [first] = vault.pullEvents();
+    const notebook = newNotebook();
+    const guidance = newGuidance(notebook, contentRef('d'.repeat(64), 1000));
+    const [first] = guidance.pullEvents();
     expect(first?.storageDelta).toBe(1000);
 
-    unwrap(vault.setGuidance(contentRef('e'.repeat(64), 1500), authorship()));
-    const [second] = vault.pullEvents();
+    unwrap(guidance.replace(contentRef('e'.repeat(64), 1500), authorship()));
+    const [second] = guidance.pullEvents();
     expect(second?.storageDelta).toBe(500);
+  });
+
+  it('deleting a guidance gives back every byte it held', () => {
+    const notebook = newNotebook();
+    const guidance = newGuidance(notebook, contentRef('d'.repeat(64), 1000));
+    guidance.pullEvents();
+
+    unwrap(guidance.delete(authorship()));
+    const [event] = guidance.pullEvents();
+    expect(event?.type).toBe('GuidanceDeleted');
+    expect(event?.storageDelta).toBe(-1000);
   });
 });
 

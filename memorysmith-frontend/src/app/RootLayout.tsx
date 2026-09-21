@@ -5,6 +5,7 @@ import { useLiveSession, authConfig, type WithoutSubscription } from '../shared/
 import { readTokens, signOut as endHostedSession } from '../shared/auth/oauth';
 import { markWithoutSubscription } from '../features/auth/LoginPage';
 import { AppSkeleton } from '../shared/components/skeletons';
+import { EnvironmentBanner } from '../shared/components/EnvironmentBanner';
 
 // Applies the effective theme (light/dark/system) to the document root and
 // re-applies it when the OS preference changes while in system mode.
@@ -27,7 +28,14 @@ export function RootLayout() {
     void load();
   }, [load]);
 
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      {/* The last row of the window, and the last thing read: it declares, it
+          asks for nothing (#158). */}
+      <EnvironmentBanner />
+    </>
+  );
 }
 
 /**

@@ -11,16 +11,11 @@ import type { VerifiedAgentToken } from './auth.js';
 import { TOOL_CATALOG } from './mcp/catalog.js';
 import type { McpToolAdapter } from './mcp/tools.js';
 import type { AgentCaller } from './mcp/gateway.js';
-import pkg from '../package.json' with { type: 'json' };
+import type { Deployment } from '@memorysmith/contracts';
+import { PRODUCTION_DEFAULT } from './mcp/environment.js';
+import { serverInstructions } from './mcp/instructions.js';
 
 const PROTOCOL_VERSION = '2025-06-18';
-
-/**
- * The version the handshake announces, derived from the service manifest and
- * never written beside it: a literal here would still say 0.2.0 three releases
- * later. It is the same discipline RN-AGT-013 imposes on the whoami help.
- */
-const SERVER_VERSION = pkg.version;
 
 interface JsonRpcRequest {
   jsonrpc: '2.0';
@@ -56,11 +51,10 @@ export function callerFrom(
   return {
     userId: token.sub,
     ...(typeof email === 'string' ? { email } : {}),
-    clientId: token.clientId,
-    clientName: token.username ?? token.clientId,
     subscriptionId: token.subscriptionId,
-    // Forwarded to the internal API, so the subscription and the agent
-    // identity that reach the core are the ones the token itself carries.
+    // Forwarded to the internal API, so the subscription that reaches the core
+    // is the one the token carries, and the connector is the one the proxy
+    // bound the token to.
     bearerToken,
   };
 }
@@ -70,6 +64,7 @@ export async function handleMcpRequest(
   token: VerifiedAgentToken,
   tools: McpToolAdapter,
   bearerToken = '',
+  deployment: Deployment = PRODUCTION_DEFAULT,
 ): Promise<JsonRpcResponse | null> {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     return rpcError(null, -32600, 'Invalid request');
@@ -78,12 +73,19 @@ export async function handleMcpRequest(
   const id = request.id ?? null;
 
   switch (request.method) {
-    case 'initialize':
+    case 'initialize': {
+      // The version this deployment runs, and outside production the warning
+      // that what is written here is disposable (RN-AGT-026). In every
+      // environment the instructions send the agent to whoami and index the
+      // skills, because they are read before the first tool is chosen
+      // (RN-AGT-028).
       return result(id, {
         protocolVersion: PROTOCOL_VERSION,
         capabilities: { tools: {} },
-        serverInfo: { name: 'memorysmith-mcp', version: SERVER_VERSION },
+        serverInfo: { name: 'memorysmith-mcp', version: deployment.version },
+        instructions: serverInstructions(deployment),
       });
+    }
 
     case 'notifications/initialized':
       return null;
@@ -101,7 +103,7 @@ export async function handleMcpRequest(
       }
       const caller = callerFrom(token, bearerToken);
       if (!caller) {
-        // A token with no subscription claim cannot reach a vault, and the
+        // A token with no subscription claim cannot reach a notebook, and the
         // failure is structural rather than a permission check (RN-SUB-016).
         return result(id, {
           content: [

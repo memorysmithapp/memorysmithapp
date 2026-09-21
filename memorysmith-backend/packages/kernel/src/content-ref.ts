@@ -9,6 +9,7 @@
  */
 
 import { DomainError } from './errors.js';
+import { sha256Hex } from './hash.js';
 import { ContentId } from './ids.js';
 import { err, ok, type Result } from './result.js';
 
@@ -65,6 +66,16 @@ export class ContentRef {
   /** Same slot, same bytes: no new revision, no event, no re-indexing. */
   hasSameContentAs(other: ContentRef): boolean {
     return this.sha256 === other.sha256;
+  }
+
+  /**
+   * Whether `markdown` is the content this ref points at, hashed over the same
+   * UTF-8 bytes the store hashes. A use case asks it BEFORE the store: identical
+   * bytes are not a write, so they must not leave a version behind that nothing
+   * references and nothing may ever remove (RN-KNW-028).
+   */
+  matchesContent(markdown: string): boolean {
+    return this.sha256 === sha256Hex(markdown);
   }
 
   pointsAtSameSlotAs(other: ContentRef): boolean {

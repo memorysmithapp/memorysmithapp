@@ -78,8 +78,9 @@ module.exports = {
     {
       name: 'frontend-imports-contracts-only',
       comment:
-        'The frontend imports @memorysmith/contracts (types only) and nothing else from the ' +
-        'backend: not the kernel, not a service (architecture-guide.md, section 5.1).',
+        'The frontend imports @memorysmith/contracts — its types, and the constants it derives ' +
+        'from the Markdown specification — and nothing else from the backend: not the kernel, ' +
+        'not a service (architecture-guide.md, section 5.1).',
       severity: 'error',
       from: { path: '^memorysmith-frontend/' },
       to: {
@@ -88,15 +89,58 @@ module.exports = {
       },
     },
     {
+      name: 'frontend-reads-the-specification-through-contracts',
+      comment:
+        'The Markdown specification is data the contracts derive from, in the package of the ' +
+        'backend that holds it beside the document it belongs to (#162). The ' +
+        'frontend reads the notation and its cases from @memorysmith/contracts, so the ' +
+        'specification has one door into the interface and not two (architecture-guide.md, ' +
+        'section 11.0).',
+      severity: 'error',
+      from: { path: '^memorysmith-frontend/' },
+      // Both shapes: the package name, which is what an import the frontend does
+      // not declare resolves to, and the real path, which is what a relative import
+      // or a declared dependency resolves to.
+      to: { path: '(^|/)packages/markdown-spec/|(^|/)@memorysmith/markdown-spec(/|$)' },
+    },
+    {
+      name: 'infrastructure-never-loads-what-operates-it',
+      comment:
+        'The stacks, the constructs and the app describe infrastructure. The commands, the ' +
+        'functional suite and the agent evaluation operate and test it ' +
+        'from outside, through its surfaces, and a synth that loaded them would load their ' +
+        'dependencies too (architecture-guide.md, section 5.4).',
+      severity: 'error',
+      from: { path: '^memorysmith-infra/(bin|config|stacks|constructs)/' },
+      to: { path: '^memorysmith-infra/(commands|functional|agent-eval)/' },
+    },
+    {
+      name: 'operations-reach-the-product-through-its-contracts',
+      comment:
+        'The commands, the functional suite and the agent evaluation reach the product the way ' +
+        'anybody outside does, through its surfaces: of ' +
+        'this repository they import @memorysmith/contracts and nothing else, not a service and ' +
+        'not a stack (architecture-guide.md, section 5.4).',
+      severity: 'error',
+      from: { path: '^memorysmith-infra/(commands|functional|agent-eval)/' },
+      to: {
+        path: '^memorysmith-(backend|frontend)/|^memorysmith-infra/(bin|config|stacks|constructs)/',
+        pathNot: CONTRACTS,
+      },
+    },
+    {
       name: 'contracts-stay-standalone',
       comment:
         'The published language depends on nothing of ours: the frontend imports it, so a ' +
-        'dependency here would drag the backend into the browser bundle.',
+        'dependency here would drag the backend into the browser bundle. The one exception ' +
+        'is the specification, which is DATA and no code: the contracts derive the notation ' +
+        'from it rather than transcribing it, and it is the one door the notation has into ' +
+        'the interface (architecture-guide.md, section 11.0, RN-AGT-022).',
       severity: 'error',
       from: { path: CONTRACTS },
       to: {
         path: '^memorysmith-(backend|frontend|infra)/',
-        pathNot: CONTRACTS,
+        pathNot: [CONTRACTS, '(^|/)packages/markdown-spec/'],
       },
     },
     {
@@ -130,9 +174,9 @@ module.exports = {
           '(^|/)[.][^/]+[.](js|cjs|mjs|ts|json)$',
           '[.]d[.]ts$',
           '(^|/)tsconfig[.]json$',
-          '(^|/)(babel|webpack|vite|vitest)[.](config|adapters[.]config)[.](js|cjs|mjs|ts|json)$',
+          '(^|/)(babel|webpack|vite|vitest|playwright)[.](config|adapters[.]config)[.](js|cjs|mjs|ts|json)$',
           '(^|/)[.]dependency-cruiser[.]cjs$',
-          '(^|/)(handler|lambda|relay[.]handler|pre-token-generation)[.]ts$',
+          '(^|/)(handler|lambda|relay[.]handler|pre-token-generation|custom-message)[.]ts$',
           '(^|/)eslint[.]config[.](js|cjs|mjs|ts)$',
         ],
       },
@@ -141,7 +185,13 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: 'node_modules' },
-    exclude: { path: '(^|/)(node_modules|dist|cdk[.]out|coverage)/' },
+    /*
+     * Generated output, never source: the bundles of a synth, the coverage of
+     * a run and the HTML report a functional run leaves behind — which ships
+     * with a copy of the Playwright trace viewer, and cruising a bundled
+     * viewer reports circular imports that are nobody's to fix.
+     */
+    exclude: { path: '(^|/)(node_modules|dist|cdk[.]out|coverage|functional-report)/' },
     tsPreCompilationDeps: true,
     combinedDependencies: true,
     enhancedResolveOptions: {

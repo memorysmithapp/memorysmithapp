@@ -1,4 +1,4 @@
-// The vault search.
+// The notebook search.
 //
 // What it types goes to the source untouched: the whole query language lives
 // in the backend (software-vision.md 10.2), and a box that pre-filtered here
@@ -10,10 +10,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import type { FolderNode, SearchHit, VaultStructure } from '../../shared/types/api';
-import { resolveNoteUrl, searchNotes } from '../../shared/api/source';
+import type { FolderNode, SearchHit, NotebookStructure } from '../../shared/types/api';
+import { searchNotes } from '../../shared/api/source';
+import { noteAddress } from '../../shared/api/note-address';
 import { ApiError } from '../../shared/api/error-mapper';
 import { highlight } from './highlight';
+import { queryKeys } from '../../shared/api/query-keys';
 
 /** Long enough that a typed word is one request, short enough to feel live. */
 const DEBOUNCE_MS = 250;
@@ -21,22 +23,23 @@ const MAX_HITS = 20;
 
 interface FlatNote {
   id: string;
-  slug: string;
-  title: string;
+  /** Where the note lives, built from its identifier (RN-DSC-045). */
+  address: string;
+  name: string | null;
   folderPath: string;
 }
 
-function flatten(folders: FolderNode[], trail: string[] = []): FlatNote[] {
+function flatten(notebookId: string, folders: FolderNode[], trail: string[] = []): FlatNote[] {
   return folders.flatMap((folder) => {
     const path = [...trail, folder.name];
     return [
       ...folder.notes.map((note) => ({
         id: note.id,
-        slug: note.slug,
-        title: note.title,
+        address: noteAddress(notebookId, note.id),
+        name: note.name,
         folderPath: path.join(' / '),
       })),
-      ...flatten(folder.children, path),
+      ...flatten(notebookId, folder.children, path),
     ];
   });
 }
@@ -71,11 +74,11 @@ function readable(excerpt: string): string {
 }
 
 interface SearchBoxProps {
-  vaultSlug: string;
-  structure: VaultStructure;
+  notebookId: string;
+  structure: NotebookStructure;
 }
 
-export function SearchBox({ vaultSlug, structure }: SearchBoxProps) {
+export function SearchBox({ notebookId, structure }: SearchBoxProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -86,15 +89,15 @@ export function SearchBox({ vaultSlug, structure }: SearchBoxProps) {
   }, [query]);
 
   // A hit names a note by identifier; the tree the page is already showing is
-  // what turns it into a title, a path and a link.
+  // what turns it into a name, a path and a link.
   const byId = useMemo(
-    () => new Map(flatten(structure.folders).map((note) => [note.id, note])),
-    [structure],
+    () => new Map(flatten(notebookId, structure.folders).map((note) => [note.id, note])),
+    [structure, notebookId],
   );
 
   const { data, isFetching, error } = useQuery({
-    queryKey: ['vault-search', vaultSlug, debounced],
-    queryFn: () => searchNotes(vaultSlug, debounced, MAX_HITS),
+    queryKey: queryKeys.notebookSearch(notebookId, debounced),
+    queryFn: () => searchNotes(notebookId, debounced, MAX_HITS),
     enabled: debounced !== '',
     // The previous answer stays on screen while the next one is in flight, so
     // the list does not blink empty between two keystrokes.
@@ -106,12 +109,10 @@ export function SearchBox({ vaultSlug, structure }: SearchBoxProps) {
   const results = useMemo(
     () =>
       (data ?? []).flatMap((hit) => {
-        const note = byId.get(hit.noteId);
-        if (!note) return [];
-        const url = resolveNoteUrl(vaultSlug, note.slug);
-        return url ? [{ hit, note, url }] : [];
+        const note = byId.get(hit.note.noteId);
+        return note ? [{ hit, note, url: note.address }] : [];
       }),
-    [data, byId, vaultSlug],
+    [data, byId],
   );
 
   const typed = query.trim();
@@ -142,9 +143,9 @@ export function SearchBox({ vaultSlug, structure }: SearchBoxProps) {
           ) : results.length > 0 ? (
             <ul>
               {results.map(({ hit, note, url }) => (
-                <li key={hit.noteId}>
+                <li key={hit.note.noteId}>
                   <Link to={url} onClick={() => setQuery('')}>
-                    <span className="search-title">{note.title}</span>
+                    <span className="search-name">{note.name ?? t('note.unnamed')}</span>
                     <span className="search-path">
                       {note.folderPath}
                       {hit.section ? ` · ${hit.section}` : ''}

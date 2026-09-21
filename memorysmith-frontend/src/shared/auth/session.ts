@@ -9,11 +9,12 @@
 // token (RN-SUB-013).
 
 import { create } from 'zustand';
-import type { SessionDto } from '@memorysmith/contracts';
+import type { AvatarSourceDto, SessionDto } from '@memorysmith/contracts';
 import { claimsOf, readTokens, type AuthConfig } from './oauth';
 import { ApiError } from '../api/error-mapper';
 import { getSession } from '../api/backend';
 import i18n from '../../i18n';
+import { runtimeConfig } from '../config/runtime-config';
 
 export type SubscriptionState =
   | 'none' // signed in, has not asked for a subscription yet
@@ -51,6 +52,17 @@ export interface LiveSession {
   /** The role in the active subscription, already resolved by the API. */
   readonly role: SessionDto['role'];
   readonly subscriptions: SessionDto['subscriptions'];
+  /**
+   * Whether this person has already been shown what the product is (#167).
+   * The shell opens the welcome surface once when it is false; a session that
+   * could not be described answers true, because guessing wrong here means
+   * throwing somebody who has been here for months at the front door.
+   */
+  readonly welcomeSeen: boolean;
+  /** Where the face beside this person comes from (#168, RN-ACC-022). */
+  readonly avatar: AvatarSourceDto;
+  /** The picture they uploaded, as a data URL, when that is the source. */
+  readonly picture: string | null;
 }
 
 interface SessionStore {
@@ -66,6 +78,19 @@ interface SessionStore {
   loaded: boolean;
   error: string | null;
   load: () => Promise<void>;
+  /** The welcome was shown; the surface never opens by itself again. */
+  markWelcomeSeen: () => void;
+  /**
+   * What the person just saved about themselves, applied to the shell without
+   * asking the API again: the header draws their face on every screen, and a
+   * name that only changes on the next page load reads as an edit that did
+   * not take (#168).
+   */
+  applyProfile: (profile: {
+    name: string;
+    avatar: AvatarSourceDto;
+    picture: string | null;
+  }) => void;
   clear: () => void;
 }
 
@@ -117,6 +142,9 @@ export const useLiveSession = create<SessionStore>((set) => ({
           subscriptionStatus: active?.status ?? null,
           role: dto.role,
           subscriptions: dto.subscriptions,
+          welcomeSeen: dto.welcomeSeen ?? true,
+          avatar: dto.user.avatar ?? 'gravatar',
+          picture: dto.user.picture ?? null,
         },
       });
     } catch (error) {
@@ -146,10 +174,21 @@ export const useLiveSession = create<SessionStore>((set) => ({
                 subscriptionStatus: null,
                 role: 'NONE',
                 subscriptions: [],
+                welcomeSeen: true,
+                avatar: 'gravatar',
+                picture: null,
               }
             : null,
       });
     }
+  },
+
+  applyProfile(profile): void {
+    set((state) => (state.session ? { session: { ...state.session, ...profile } } : {}));
+  },
+
+  markWelcomeSeen(): void {
+    set((state) => (state.session ? { session: { ...state.session, welcomeSeen: true } } : {}));
   },
 
   clear(): void {
@@ -168,10 +207,10 @@ function providerLang(): string {
 }
 
 export function authConfig(): AuthConfig {
-  const env = import.meta.env as Record<string, string | undefined>;
+  const config = runtimeConfig();
   return {
-    domain: (env['VITE_COGNITO_DOMAIN'] ?? '').replace(/\/$/, ''),
-    clientId: env['VITE_COGNITO_CLIENT_ID'] ?? '',
+    domain: config.cognitoDomain,
+    clientId: config.cognitoClientId,
     redirectUri: `${window.location.origin}/auth/callback`,
     scopes: 'openid email profile',
     lang: providerLang(),

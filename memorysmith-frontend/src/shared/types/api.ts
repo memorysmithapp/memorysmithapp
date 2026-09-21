@@ -1,20 +1,22 @@
 // DTO shapes mirror the future internal API (architecture-guide.md §14.1).
 // The seed adapter fills them today; the HTTP client will fill them tomorrow.
 
-export interface VaultSummary {
+import type { SearchHitDto } from '@memorysmith/contracts';
+
+export interface NotebookSummary {
   id: string;
   slug: string;
   name: string;
   description: string;
   noteCount: number;
-  /** ISO instant of the last write in the vault, formatted at the edge. */
+  /** ISO instant of the last write in the notebook, formatted at the edge. */
   updatedAt: string;
 }
 
 export interface NoteSummary {
   id: string;
-  slug: string;
-  title: string;
+  /** `null` when the content of the note states no name a link could name. */
+  name: string | null;
   folderId: string;
 }
 
@@ -23,7 +25,6 @@ export interface FolderNode {
   parentId: string | null;
   name: string;
   slug: string;
-  slugPath: string;
   description: string;
   position: number;
   hasTemplate: boolean;
@@ -32,24 +33,26 @@ export interface FolderNode {
   children: FolderNode[];
 }
 
-export interface VaultStructure {
-  vault: VaultSummary;
+export interface NotebookStructure {
+  notebook: NotebookSummary;
   guidance: string | null;
   /** The revision of the guidance slot, null when nothing is written yet. */
   guidanceRevision: string | null;
-  /** min(papel de assinatura, teto do vault), owner acima dos dois. */
+  /** min(papel de assinatura, teto do caderno), owner acima dos dois. */
   effectiveRole: string;
   folders: FolderNode[];
 }
 
 export interface NoteDetail {
   id: string;
-  vaultSlug: string;
-  slug: string;
-  title: string;
+  notebookId: string;
+  /** The folder the note lives in, which the breadcrumb reads and no address carries. */
+  folderId: string;
+  /** `null` when the frontmatter of the note states no name a link could use. */
+  name: string | null;
   folderNames: string[];
   frontmatter: Record<string, string>;
-  /** Which of those the vault wrote as a list; they are drawn as chips. */
+  /** Which of those the notebook wrote as a list; they are drawn as chips. */
   listProperties: string[];
   body: string;
   raw: string;
@@ -58,17 +61,13 @@ export interface NoteDetail {
 }
 
 /**
- * One hit of a vault search. The identifier is the note's, which the caller
- * resolves against the structure it has already loaded; the excerpt is the
- * passage around the match, cut from the text as the author wrote it, and the
- * section is the heading it fell under when it fell under one.
+ * One hit of a notebook search, exactly as the API publishes it. The note is
+ * resolved by its identifier against the structure the caller has already
+ * loaded; the excerpt is the passage around the match, cut from the text as the
+ * author wrote it, and the section is the heading it fell under when it fell
+ * under one.
  */
-export interface SearchHit {
-  noteId: string;
-  section: string | null;
-  excerpt: string;
-  score: number;
-}
+export type SearchHit = SearchHitDto;
 
 export interface TemplateDetail {
   folderId: string;

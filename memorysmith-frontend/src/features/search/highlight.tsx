@@ -27,7 +27,7 @@ export function fold(raw: string): string {
 /**
  * The terms a query looks for, in the order they were typed. Operators are
  * dropped, a negated term is dropped with them (nothing it excludes can be in
- * the text), and a field or facet prefix keeps only its value: `title:lei`
+ * the text), and a field or facet prefix keeps only its value: `name:lei`
  * marks `lei`, and `maturity:evergreen` marks `evergreen` where it shows.
  */
 export function termsOf(query: string): string[] {

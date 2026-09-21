@@ -1,10 +1,11 @@
 /**
- * Adapter tests against DynamoDB Local and MinIO.
+ * Adapter tests against the real DynamoDB and S3 of a deployed environment
+ * (see harness.ts).
  *
  * The last two cases are the DONE CRITERIA of delivery 4
  * (architecture-guide.md, section 25):
  *   - 20 concurrent reorders: nothing lost, no undefined ordering;
- *   - 50 notes created in parallel in the same vault: no retry from contention.
+ *   - 50 notes created in parallel in the same notebook: no retry from contention.
  *
  * The second one is the one that proves PE8. If a note transaction wrote to
  * the META item, fifty parallel creates would collide on that single item and
@@ -17,67 +18,92 @@ import {
   Instant,
   NoteId,
   Slug,
-  VaultId,
-  VaultRoleLimit,
+  NotebookId,
+  NotebookRoleLimit,
   type SubscriptionContext,
 } from '@memorysmith/kernel';
 import { GetCommand, QueryCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import type { S3Client } from '@aws-sdk/client-s3';
-import { DynamoVaultRepository } from '../../src/adapters/outbound/dynamodb/DynamoVaultRepository.js';
+import { ContentPurge } from '../../src/adapters/inbound/content-purge.js';
+import { DynamoContentSlotRepository } from '../../src/adapters/outbound/dynamodb/DynamoContentSlotRepository.js';
+import { DynamoFolderNumbers } from '../../src/adapters/outbound/dynamodb/DynamoFolderNumbers.js';
+import { S3ContentPurger } from '../../src/adapters/outbound/s3/S3ContentPurger.js';
+import { DynamoNotebookRepository } from '../../src/adapters/outbound/dynamodb/DynamoNotebookRepository.js';
 import { DynamoNoteRepository } from '../../src/adapters/outbound/dynamodb/DynamoNoteRepository.js';
 import { S3ContentStore } from '../../src/adapters/outbound/s3/S3ContentStore.js';
-import { Vault } from '../../src/domain/vault/Vault.js';
+import { Notebook } from '../../src/domain/notebook/Notebook.js';
+import { Guidance } from '../../src/domain/content-slot/Guidance.js';
+import { Template } from '../../src/domain/content-slot/Template.js';
 import { Note } from '../../src/domain/note/Note.js';
-import { NotePlacement } from '../../src/domain/services/NotePlacement.js';
-import { RemovalPolicy, ShortText, VaultName } from '../../src/domain/values.js';
+import { NotePlacement, type NoteOrder } from '../../src/domain/services/NotePlacement.js';
+import { RemovalPolicy, ShortText, NotebookName } from '../../src/domain/values.js';
 import {
   authorshipOf,
   BUCKET_NAME,
   contextFor,
-  createBucket,
-  createTable,
   dynamoClient,
   s3Client,
   TABLE_NAME,
 } from './harness.js';
-import { folderDescription, folderName, noteTitle, unwrap, user } from '../fixtures.js';
+import { folderDescription, folderName, unwrap, user } from '../fixtures.js';
 
 let db: DynamoDBDocumentClient;
 let s3: S3Client;
 
-beforeAll(async () => {
-  await createTable();
-  await createBucket();
+beforeAll(() => {
   db = dynamoClient();
   s3 = s3Client();
-}, 60_000);
+});
 
 function repositories(context: SubscriptionContext) {
   return {
-    vaults: new DynamoVaultRepository(context, db, TABLE_NAME),
+    notebooks: new DynamoNotebookRepository(context, db, TABLE_NAME),
     notes: new DynamoNoteRepository(context, db, TABLE_NAME),
+    slots: new DynamoContentSlotRepository(context, db, TABLE_NAME),
     content: new S3ContentStore(context, s3, BUCKET_NAME),
   };
 }
 
 /**
+ * A read of what the table converges to, within a deadline.
+ *
+ * A global secondary index is eventually consistent and takes no
+ * `ConsistentRead`, and neither does a read of the base table that does not ask
+ * for it. Inside the region of the table such a read can arrive before the
+ * write it follows: the pipeline once saw 19 of 20 notes a moment after writing
+ * them, and once a note still listed a moment after deleting it, where a
+ * workstation across the ocean never had. A case that asserts on one of those
+ * reads polls it until it says what the case expects, and then asserts on the
+ * last answer, so a read that never converges still fails with what it saw.
+ * How fast the index converges is not what any case is about.
+ */
+async function converged<T>(read: () => Promise<T>, settled: (value: T) => boolean): Promise<T> {
+  const deadline = Date.now() + 15_000;
+  for (;;) {
+    const value = await read();
+    if (settled(value) || Date.now() > deadline) return value;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+}
+
+/**
  * The name is a parameter because the slug is unique in the SUBSCRIPTION now
- * (RN-KNW-032): two seeded vaults sharing a name is exactly what the rule
+ * (RN-KNW-032): two seeded notebooks sharing a name is exactly what the rule
  * refuses, and the refusal is the point.
  */
-async function seedVault(context: SubscriptionContext, name = 'Normas e Legislacao') {
-  const { vaults } = repositories(context);
-  const vault = unwrap(
-    Vault.create({
-      id: VaultId.generate(),
+async function seedNotebook(context: SubscriptionContext, name = 'Normas e Legislacao') {
+  const { notebooks } = repositories(context);
+  const notebook = unwrap(
+    Notebook.create({
+      id: NotebookId.generate(),
       subscriptionId: context.subscriptionId,
-      name: unwrap(VaultName.create(name)),
+      name: unwrap(NotebookName.create(name)),
       description: unwrap(ShortText.create('Texto normativo por artigo')),
       by: authorshipOf(context),
     }),
   );
   const folder = unwrap(
-    vault.addFolder(
+    notebook.addFolder(
       null,
       folderName('Normas'),
       folderDescription('Texto normativo por artigo. Uma norma por nota.'),
@@ -85,8 +111,8 @@ async function seedVault(context: SubscriptionContext, name = 'Normas e Legislac
       authorshipOf(context),
     ),
   );
-  expect((await vaults.save(vault)).ok).toBe(true);
-  return { vault, folder };
+  expect((await notebooks.save(notebook)).ok).toBe(true);
+  return { notebook, folder };
 }
 
 describe('S3ContentStore: the key is opaque and every write is a revision', () => {
@@ -125,140 +151,143 @@ describe('S3ContentStore: the key is opaque and every write is a revision', () =
   });
 });
 
-describe('DynamoVaultRepository: the aggregate in one Query', () => {
-  it('writes and reads back the vault, its tree and its ceilings', async () => {
+describe('DynamoNotebookRepository: the aggregate in one Query', () => {
+  it('writes and reads back the notebook, its tree and its ceilings', async () => {
     const context = contextFor();
-    const { vault, folder } = await seedVault(context);
-    const { vaults } = repositories(context);
+    const { notebook, folder } = await seedNotebook(context);
+    const { notebooks } = repositories(context);
 
-    const loaded = await vaults.findById(vault.id);
+    const loaded = await notebooks.findById(notebook.id);
     expect(loaded).not.toBeNull();
     expect(loaded?.name.value).toBe('Normas e Legislacao');
     expect(loaded?.folders.size).toBe(1);
     expect(loaded?.folders.get(folder.id)?.description.value).toContain('Uma norma por nota');
   });
 
-  it('lists the vaults of the subscription through GSI1', async () => {
-    // The listing the vault catalogue is built on. The in-memory adapter
+  it('lists the notebooks of the subscription through GSI1', async () => {
+    // The listing the notebook catalogue is built on. The in-memory adapter
     // answered it by scanning a prefix, which is exactly why it never noticed
     // that the real query needed a partition that actually exists.
     const context = contextFor();
-    const { vaults } = repositories(context);
+    const { notebooks } = repositories(context);
 
     for (const name of ['Normas', 'Achados']) {
-      const vault = unwrap(
-        Vault.create({
-          id: VaultId.generate(),
+      const notebook = unwrap(
+        Notebook.create({
+          id: NotebookId.generate(),
           subscriptionId: context.subscriptionId,
-          name: unwrap(VaultName.create(name)),
+          name: unwrap(NotebookName.create(name)),
           description: unwrap(ShortText.create('')),
           by: authorshipOf(context),
         }),
       );
-      expect((await vaults.save(vault)).ok).toBe(true);
+      expect((await notebooks.save(notebook)).ok).toBe(true);
     }
 
-    const listed = await repositories(context).vaults.listAll();
-    expect(listed.map((vault) => vault.name.value).sort()).toEqual(['Achados', 'Normas']);
-    // And the count travels with them, from the VSTAT projection.
-    expect(listed.every((vault) => vault.noteCount === 0)).toBe(true);
+    const listed = await converged(
+      () => repositories(context).notebooks.listAll(),
+      (notebooks) => notebooks.length === 2,
+    );
+    expect(listed.map((notebook) => notebook.name.value).sort()).toEqual(['Achados', 'Normas']);
+    // And the count travels with them, from the NBSTAT projection.
+    expect(listed.every((notebook) => notebook.noteCount === 0)).toBe(true);
 
     // Another subscription answers empty, rather than answering everything:
     // the partition it builds is its own (RN-SUB-004).
-    expect(await repositories(contextFor()).vaults.listAll()).toEqual([]);
+    expect(await repositories(contextFor()).notebooks.listAll()).toEqual([]);
   });
 
-  it('refuses a second vault whose name yields a slug already taken', async () => {
+  it('refuses a second notebook whose name yields a slug already taken', async () => {
     /**
-     * RN-KNW-032. The slug of the vault is its address in the interface, so
-     * two vaults sharing one makes every URL ambiguous and leaves the second
-     * unreachable. The guard item is what makes this a database rule: without
+     * RN-KNW-032. A notebook is chosen by name, so two sharing one make every
+     * choice between them a guess. The guard item is what makes this a database
+     * rule: without
      * it two concurrent creations both pass a read check and both write.
      */
     const context = contextFor();
-    const { vaults } = repositories(context);
+    const { notebooks } = repositories(context);
 
     const make = (name: string) =>
       unwrap(
-        Vault.create({
-          id: VaultId.generate(),
+        Notebook.create({
+          id: NotebookId.generate(),
           subscriptionId: context.subscriptionId,
-          name: unwrap(VaultName.create(name)),
+          name: unwrap(NotebookName.create(name)),
           description: unwrap(ShortText.create('')),
           by: authorshipOf(context),
         }),
       );
 
     const first = make('Normas e Legislacao');
-    expect((await vaults.save(first)).ok).toBe(true);
+    expect((await notebooks.save(first)).ok).toBe(true);
 
     const twin = make('Normas e Legislacao');
-    expect((await vaults.save(twin)).ok).toBe(false);
+    expect((await notebooks.save(twin)).ok).toBe(false);
 
-    // The guard resolves the slug to the vault that holds it, which is what
-    // lets the caller be told WHICH vault already exists.
-    const found = await vaults.findBySlug(unwrap(Slug.from('Normas e Legislacao')));
+    // The guard resolves the slug to the notebook that holds it, which is what
+    // lets the caller be told WHICH notebook already exists.
+    const found = await notebooks.findBySlug(unwrap(Slug.from('Normas e Legislacao')));
     expect(found?.id.value).toBe(first.id.value);
 
     // Another subscription is a different partition, so the name is free.
     const other = contextFor();
     const elsewhere = unwrap(
-      Vault.create({
-        id: VaultId.generate(),
+      Notebook.create({
+        id: NotebookId.generate(),
         subscriptionId: other.subscriptionId,
-        name: unwrap(VaultName.create('Normas e Legislacao')),
+        name: unwrap(NotebookName.create('Normas e Legislacao')),
         description: unwrap(ShortText.create('')),
         by: authorshipOf(other),
       }),
     );
-    expect((await repositories(other).vaults.save(elsewhere)).ok).toBe(true);
+    expect((await repositories(other).notebooks.save(elsewhere)).ok).toBe(true);
   });
 
-  it('moves the slug guard when a vault is renamed, freeing the old name', async () => {
+  it('moves the slug guard when a notebook is renamed, freeing the old name', async () => {
     const context = contextFor();
-    const { vaults } = repositories(context);
+    const { notebooks } = repositories(context);
 
-    const vault = unwrap(
-      Vault.create({
-        id: VaultId.generate(),
+    const notebook = unwrap(
+      Notebook.create({
+        id: NotebookId.generate(),
         subscriptionId: context.subscriptionId,
-        name: unwrap(VaultName.create('Normas e Legislacao')),
+        name: unwrap(NotebookName.create('Normas e Legislacao')),
         description: unwrap(ShortText.create('')),
         by: authorshipOf(context),
       }),
     );
-    expect((await vaults.save(vault)).ok).toBe(true);
+    expect((await notebooks.save(notebook)).ok).toBe(true);
 
-    const loaded = (await vaults.findById(vault.id)) as Vault;
+    const loaded = (await notebooks.findById(notebook.id)) as Notebook;
     expect(
-      loaded.rename(unwrap(VaultName.create('Jurisprudencia')), authorshipOf(context)).ok,
+      loaded.rename(unwrap(NotebookName.create('Jurisprudencia')), authorshipOf(context)).ok,
     ).toBe(true);
-    expect((await vaults.save(loaded)).ok).toBe(true);
+    expect((await notebooks.save(loaded)).ok).toBe(true);
 
-    expect((await vaults.findBySlug(unwrap(Slug.from('Jurisprudencia'))))?.id.value).toBe(
-      vault.id.value,
+    expect((await notebooks.findBySlug(unwrap(Slug.from('Jurisprudencia'))))?.id.value).toBe(
+      notebook.id.value,
     );
     // The name it left behind is free again, guard and all.
-    expect(await vaults.findBySlug(unwrap(Slug.from('Normas e Legislacao')))).toBeNull();
+    expect(await notebooks.findBySlug(unwrap(Slug.from('Normas e Legislacao')))).toBeNull();
   });
 
-  it('answers null for a vault of another subscription', async () => {
-    // RN-SUB-004: indistinguishable from a vault that does not exist, because
+  it('answers null for a notebook of another subscription', async () => {
+    // RN-SUB-004: indistinguishable from a notebook that does not exist, because
     // the key the repository builds never reaches the other partition.
     const alpha = contextFor();
-    const { vault } = await seedVault(alpha);
+    const { notebook } = await seedNotebook(alpha);
 
     const beta = contextFor();
-    expect(await repositories(beta).vaults.findById(vault.id)).toBeNull();
+    expect(await repositories(beta).notebooks.findById(notebook.id)).toBeNull();
   });
 
   it('refuses a second folder with the same slug among siblings', async () => {
     // The guard item is what puts I1 in the database, not only in memory.
     const context = contextFor();
-    const { vault } = await seedVault(context);
-    const { vaults } = repositories(context);
+    const { notebook } = await seedNotebook(context);
+    const { notebooks } = repositories(context);
 
-    const loaded = (await vaults.findById(vault.id)) as Vault;
+    const loaded = (await notebooks.findById(notebook.id)) as Notebook;
     const first = loaded.addFolder(
       null,
       folderName('Achados'),
@@ -267,10 +296,10 @@ describe('DynamoVaultRepository: the aggregate in one Query', () => {
       authorshipOf(context),
     );
     expect(first.ok).toBe(true);
-    expect((await vaults.save(loaded)).ok).toBe(true);
+    expect((await notebooks.save(loaded)).ok).toBe(true);
 
     // A concurrent writer that never saw the first save tries the same slug.
-    const stale = (await repositories(context).vaults.findById(vault.id)) as Vault;
+    const stale = (await repositories(context).notebooks.findById(notebook.id)) as Notebook;
     const clash = stale.addFolder(
       null,
       folderName('Achados 2'),
@@ -283,15 +312,15 @@ describe('DynamoVaultRepository: the aggregate in one Query', () => {
 
   it('detects a lost optimistic lock as a ConcurrencyError', async () => {
     const context = contextFor();
-    const { vault } = await seedVault(context);
+    const { notebook } = await seedNotebook(context);
 
-    const one = repositories(context).vaults;
-    const two = repositories(context).vaults;
-    const first = (await one.findById(vault.id)) as Vault;
-    const second = (await two.findById(vault.id)) as Vault;
+    const one = repositories(context).notebooks;
+    const two = repositories(context).notebooks;
+    const first = (await one.findById(notebook.id)) as Notebook;
+    const second = (await two.findById(notebook.id)) as Notebook;
 
-    unwrap(first.rename(unwrap(VaultName.create('Primeiro')), authorshipOf(context)));
-    unwrap(second.rename(unwrap(VaultName.create('Segundo')), authorshipOf(context)));
+    unwrap(first.rename(unwrap(NotebookName.create('Primeiro')), authorshipOf(context)));
+    unwrap(second.rename(unwrap(NotebookName.create('Segundo')), authorshipOf(context)));
 
     expect((await one.save(first)).ok).toBe(true);
     const lost = await two.save(second);
@@ -300,20 +329,21 @@ describe('DynamoVaultRepository: the aggregate in one Query', () => {
 
   it('puts the events in the outbox inside the same transaction', async () => {
     const context = contextFor();
-    const { vault } = await seedVault(context);
+    const { notebook } = await seedNotebook(context);
 
     const outbox = await db.send(
       new QueryCommand({
         TableName: TABLE_NAME,
         KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
         ExpressionAttributeValues: {
-          ':pk': `S#${context.subscriptionId.value}#VAULT#${vault.id.value}`,
+          ':pk': `S#${context.subscriptionId.value}#NOTEBOOK#${notebook.id.value}`,
           ':prefix': 'EVENT#',
         },
+        ConsistentRead: true,
       }),
     );
     const types = (outbox.Items ?? []).map((item) => item['type']);
-    expect(types).toContain('VaultCreated');
+    expect(types).toContain('NotebookCreated');
     expect(types).toContain('FolderAdded');
     // Retention is a TTL, not a job (section 18).
     expect(outbox.Items?.[0]?.['ttl']).toBeGreaterThan(Instant.now().toEpochSeconds());
@@ -321,138 +351,248 @@ describe('DynamoVaultRepository: the aggregate in one Query', () => {
 
   it('removes a folder subtree and releases its slug guards', async () => {
     const context = contextFor();
-    const { vault, folder } = await seedVault(context);
-    const { vaults } = repositories(context);
+    const { notebook, folder } = await seedNotebook(context);
+    const { notebooks } = repositories(context);
 
-    const loaded = (await vaults.findById(vault.id)) as Vault;
+    const loaded = (await notebooks.findById(notebook.id)) as Notebook;
     unwrap(loaded.removeFolder(folder.id, RemovalPolicy.CASCADE, authorshipOf(context)));
-    expect((await vaults.save(loaded)).ok).toBe(true);
+    expect((await notebooks.save(loaded)).ok).toBe(true);
 
-    const reloaded = (await repositories(context).vaults.findById(vault.id)) as Vault;
+    const reloaded = (await repositories(context).notebooks.findById(notebook.id)) as Notebook;
     expect(reloaded.folders.size).toBe(0);
 
     const guard = await db.send(
       new GetCommand({
         TableName: TABLE_NAME,
         Key: {
-          PK: `S#${context.subscriptionId.value}#VAULT#${vault.id.value}`,
+          PK: `S#${context.subscriptionId.value}#NOTEBOOK#${notebook.id.value}`,
           SK: `SLUG#ROOT#normas`,
         },
+        ConsistentRead: true,
       }),
     );
     expect(guard.Item).toBeUndefined();
   });
 
-  it('stores and clears a vault role ceiling', async () => {
+  it('stores and clears a notebook role ceiling', async () => {
     const context = contextFor();
-    const { vault } = await seedVault(context);
-    const { vaults } = repositories(context);
+    const { notebook } = await seedNotebook(context);
+    const { notebooks } = repositories(context);
 
-    const loaded = (await vaults.findById(vault.id)) as Vault;
-    unwrap(loaded.setRoleLimit(user, VaultRoleLimit.VIEWER, authorshipOf(context)));
-    expect((await vaults.save(loaded)).ok).toBe(true);
+    const loaded = (await notebooks.findById(notebook.id)) as Notebook;
+    unwrap(loaded.setRoleLimit(user, NotebookRoleLimit.VIEWER, authorshipOf(context)));
+    expect((await notebooks.save(loaded)).ok).toBe(true);
 
-    const withLimit = (await repositories(context).vaults.findById(vault.id)) as Vault;
+    const withLimit = (await repositories(context).notebooks.findById(notebook.id)) as Notebook;
     expect(withLimit.hasLimitFor(user)).toBe(true);
 
-    const forClearing = repositories(context).vaults;
-    const reloaded = (await forClearing.findById(vault.id)) as Vault;
+    const forClearing = repositories(context).notebooks;
+    const reloaded = (await forClearing.findById(notebook.id)) as Notebook;
     unwrap(reloaded.clearRoleLimit(user, authorshipOf(context)));
     expect((await forClearing.save(reloaded)).ok).toBe(true);
-    expect((await repositories(context).vaults.findById(vault.id))?.hasLimitFor(user)).toBe(false);
+    expect((await repositories(context).notebooks.findById(notebook.id))?.hasLimitFor(user)).toBe(
+      false,
+    );
   });
 });
 
 describe('DynamoNoteRepository: form B, and never a write to META', () => {
+  /**
+   * The notes each folder was given by a case, in order. A note is appended
+   * after these and not after what GSI2 lists, because the index may not hold
+   * the note written a moment before, and two notes would share one position.
+   */
+  const placed = new Map<string, NoteOrder[]>();
+
   async function createNote(
     context: SubscriptionContext,
-    vault: Vault,
-    folderId: Parameters<Vault['renameFolder']>[0],
-    title: string,
+    notebook: Notebook,
+    folderId: Parameters<Notebook['renameFolder']>[0],
+    name: string,
   ) {
     const { notes, content } = repositories(context);
-    const body = await content.create(`# ${title}\n\nCorpo.`);
-    const siblings = await notes.siblingOrder(vault.id, folderId);
+    const markdown = `---\nname: ${name}\n---\n\nCorpo.`;
+    const body = await content.create(markdown);
+    const siblings = placed.get(folderId.value) ?? [];
     const note = unwrap(
       Note.create({
         id: NoteId.generate(),
         subscriptionId: context.subscriptionId,
-        vaultId: vault.id,
+        notebookId: notebook.id,
         folderId,
-        title: noteTitle(title),
-        slug: unwrap(Slug.from(title)),
+        body: markdown,
         position: NotePlacement.append(siblings),
         bodyRef: body,
         by: authorshipOf(context),
       }),
     );
     const saved = await notes.save(note);
+    placed.set(folderId.value, [...siblings, { noteId: note.id, position: note.position }]);
     return { note, saved };
   }
 
+  it('reaches no notebook item with the note prefix, because every prefix ends in #', async () => {
+    // `NOTE` is a prefix of `NOTEBOOK`. The trailing `#` is the whole of what
+    // keeps a query for notes from answering with a notebook, so it is asserted
+    // where both kinds of item live: the partition of the notebook, and GSI1.
+    const context = contextFor();
+    const { notebook, folder } = await seedNotebook(context);
+    expect((await createNote(context, notebook, folder.id, 'Lei 14.133')).saved.ok).toBe(true);
+    const subscription = context.subscriptionId.value;
+
+    const inTable = await db.send(
+      new QueryCommand({
+        TableName: TABLE_NAME,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+        ExpressionAttributeValues: {
+          ':pk': `S#${subscription}#NOTEBOOK#${notebook.id.value}`,
+          ':prefix': 'NOTE#',
+        },
+        ConsistentRead: true,
+      }),
+    );
+    expect(inTable.Items?.length).toBeGreaterThan(0);
+    expect(inTable.Items?.filter((item) => item['SK'] === 'META')).toEqual([]);
+
+    const inIndex = async (prefix: string) =>
+      (
+        await db.send(
+          new QueryCommand({
+            TableName: TABLE_NAME,
+            IndexName: 'GSI1',
+            KeyConditionExpression: 'GSI1PK = :pk AND begins_with(GSI1SK, :prefix)',
+            ExpressionAttributeValues: {
+              ':pk': `S#${subscription}#NOTEBOOKS`,
+              ':prefix': prefix,
+            },
+          }),
+        )
+      ).Items ?? [];
+    // The index is awaited until it holds the notebook, so the empty answer
+    // below is the trailing `#` at work, and never an index that has not caught up.
+    expect(
+      await converged(
+        () => inIndex('NOTEBOOK#'),
+        (items) => items.length === 1,
+      ),
+    ).toHaveLength(1);
+    expect(await inIndex('NOTE#')).toEqual([]);
+    // The query that would have gone wrong, had a prefix been written bare.
+    expect((await inIndex('NOTE')).length).toBeGreaterThan(0);
+  });
+
   it('creates, reads back and lists notes in the defined order', async () => {
     const context = contextFor();
-    const { vault, folder } = await seedVault(context);
+    const { notebook, folder } = await seedNotebook(context);
     const { notes } = repositories(context);
 
-    await createNote(context, vault, folder.id, 'Lei 14.133');
-    await createNote(context, vault, folder.id, 'Lei 8.666');
+    await createNote(context, notebook, folder.id, 'Lei 14.133');
+    await createNote(context, notebook, folder.id, 'Lei 8.666');
 
-    const listed = await notes.listByFolder(vault.id, folder.id);
-    expect(listed.map((note) => note.title.value)).toEqual(['Lei 14.133', 'Lei 8.666']);
-  });
-
-  it('refuses a second note with the same slug and points at the existing one', async () => {
-    // RN-AGT-004: the guard makes create_note idempotent, and the server never
-    // invents a suffix.
-    const context = contextFor();
-    const { vault, folder } = await seedVault(context);
-
-    const first = await createNote(context, vault, folder.id, 'Lei 14.133');
-    expect(first.saved.ok).toBe(true);
-
-    const duplicate = await createNote(context, vault, folder.id, 'Lei 14.133');
-    expect(duplicate.saved.ok).toBe(false);
-
-    const existing = await repositories(context).notes.findBySlug(
-      vault.id,
-      unwrap(Slug.from('Lei 14.133')),
+    const listed = await converged(
+      () => notes.listByFolder(notebook.id, folder.id),
+      (notesListed) => notesListed.length === 2,
     );
-    expect(existing?.id.value).toBe(first.note.id.value);
+    expect(listed.map((note) => note.name)).toEqual(['Lei 14.133', 'Lei 8.666']);
   });
 
-  it('refuses a note in a folder that does not exist', async () => {
+  it('refuses a second live note of a name in its folder, and lets another folder hold it', async () => {
+    // RN-KNW-042, in the database: the guard of the name is what refuses.
     const context = contextFor();
-    const { vault } = await seedVault(context);
+    const { notebook, folder } = await seedNotebook(context);
+
+    const first = await createNote(context, notebook, folder.id, 'Lei 14.133');
+    const second = await createNote(context, notebook, folder.id, 'Lei 14.133');
+    const elsewhere = await createNote(context, notebook, FolderId.generate(), 'Lei 14.133');
+
+    expect(first.saved.ok).toBe(true);
+    expect(second.saved.ok).toBe(false);
+    expect(
+      !second.saved.ok && (second.saved.error.details as { code?: string } | undefined)?.code,
+    ).toBe('ALREADY_EXISTS');
+    expect(elsewhere.saved.ok).toBe(true);
+    expect(
+      (await repositories(context).notes.findByName(notebook.id, folder.id, 'Lei 14.133'))?.value,
+    ).toBe(first.note.id.value);
+  });
+
+  it('leaves exactly one note when two creates of one name race for one folder', async () => {
+    const context = contextFor();
+    const { notebook, folder } = await seedNotebook(context);
+
+    const outcomes = await Promise.all([
+      createNote(context, notebook, folder.id, 'Parecer 12'),
+      createNote(context, notebook, folder.id, 'Parecer 12'),
+    ]);
+
+    expect(outcomes.filter((outcome) => outcome.saved.ok)).toHaveLength(1);
+  });
+
+  it('moves the guard with the name: a delete frees it and a rename takes the new one', async () => {
+    const context = contextFor();
+    const { notebook, folder } = await seedNotebook(context);
+    const { notes, content } = repositories(context);
+
+    const held = await createNote(context, notebook, folder.id, 'Lei 8.666');
+    const loaded = (await notes.findById(notebook.id, held.note.id)) as Note;
+    const renamedBody = '---\nname: Lei 14.133\n---\n\nCorpo.';
+    unwrap(
+      loaded.replaceBody(
+        await content.overwrite(loaded.bodyRef.contentId, renamedBody),
+        renamedBody,
+        authorshipOf(context),
+      ),
+    );
+    expect((await notes.save(loaded)).ok).toBe(true);
+
+    // The old name is free, the new one is held.
+    expect((await createNote(context, notebook, folder.id, 'Lei 8.666')).saved.ok).toBe(true);
+    expect((await createNote(context, notebook, folder.id, 'Lei 14.133')).saved.ok).toBe(false);
+
+    unwrap(loaded.delete(authorshipOf(context)));
+    expect((await notes.save(loaded)).ok).toBe(true);
+    expect((await createNote(context, notebook, folder.id, 'Lei 14.133')).saved.ok).toBe(true);
+  });
+
+  it('writes a note without reading its folder, whose existence the use case settles first', async () => {
+    // Architecture-guide.md, section 10.2: a ConditionCheck on the FOLDER item
+    // would make it part of every note transaction in that folder, and fifty
+    // notes written into one folder at once would cancel each other. So the
+    // repository writes what it is given, and CreateNote refuses a folder the
+    // notebook does not hold before anything reaches here.
+    const context = contextFor();
+    const { notebook } = await seedNotebook(context);
     const ghost = FolderId.generate();
-    const attempt = await createNote(context, vault, ghost, 'Orfã');
-    expect(attempt.saved.ok).toBe(false);
+    const attempt = await createNote(context, notebook, ghost, 'Orfã');
+    expect(attempt.saved.ok).toBe(true);
   });
 
-  it('takes a deleted note out of the listings and frees its slug', async () => {
+  it('takes a deleted note out of the listing of its folder', async () => {
     const context = contextFor();
-    const { vault, folder } = await seedVault(context);
+    const { notebook, folder } = await seedNotebook(context);
     const { notes } = repositories(context);
+    const listing = () => repositories(context).notes.listByFolder(notebook.id, folder.id);
 
-    const created = await createNote(context, vault, folder.id, 'Lei 14.133');
-    const loaded = (await notes.findById(vault.id, created.note.id)) as Note;
+    const created = await createNote(context, notebook, folder.id, 'Lei 14.133');
+    // Listed first, so the empty listing below is the delete at work, and never
+    // an index that had not held the note yet.
+    expect(await converged(listing, (listed) => listed.length === 1)).toHaveLength(1);
+
+    const loaded = (await notes.findById(notebook.id, created.note.id)) as Note;
     unwrap(loaded.delete(authorshipOf(context)));
     expect((await notes.save(loaded)).ok).toBe(true);
 
     // GSI2 is sparse, so it vanishes from the listing with no filter anywhere.
-    expect(await repositories(context).notes.listByFolder(vault.id, folder.id)).toHaveLength(0);
-    // The slug is back in the vault (RN-KNW-030).
-    const reused = await createNote(context, vault, folder.id, 'Lei 14.133');
-    expect(reused.saved.ok).toBe(true);
+    expect(await converged(listing, (listed) => listed.length === 0)).toHaveLength(0);
   });
 
   it('keeps the note body readable after the note is deleted', async () => {
     const context = contextFor();
-    const { vault, folder } = await seedVault(context);
+    const { notebook, folder } = await seedNotebook(context);
     const { notes, content } = repositories(context);
 
-    const created = await createNote(context, vault, folder.id, 'Lei 14.133');
-    const loaded = (await notes.findById(vault.id, created.note.id)) as Note;
+    const created = await createNote(context, notebook, folder.id, 'Lei 14.133');
+    const loaded = (await notes.findById(notebook.id, created.note.id)) as Note;
     const bodyRef = loaded.bodyRef;
     unwrap(loaded.delete(authorshipOf(context)));
     await notes.save(loaded);
@@ -461,95 +601,309 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
     expect(await content.read(bodyRef)).toContain('Lei 14.133');
   });
 
-  it('moves a note between vaults preserving its identifier', async () => {
+  it('moves a note between notebooks preserving its identifier', async () => {
     const context = contextFor();
-    const origin = await seedVault(context, 'Normas e Legislacao');
-    const destination = await seedVault(context, 'Jurisprudencia');
+    const origin = await seedNotebook(context, 'Normas e Legislacao');
+    const destination = await seedNotebook(context, 'Jurisprudencia');
     const { notes } = repositories(context);
 
-    const created = await createNote(context, origin.vault, origin.folder.id, 'Lei 14.133');
-    const loaded = (await notes.findById(origin.vault.id, created.note.id)) as Note;
-    const fromSlug = loaded.slug;
+    const created = await createNote(context, origin.notebook, origin.folder.id, 'Lei 14.133');
+    const loaded = (await notes.findById(origin.notebook.id, created.note.id)) as Note;
 
     unwrap(
       loaded.moveTo(
         {
-          vaultId: destination.vault.id,
+          notebookId: destination.notebook.id,
           folderId: destination.folder.id,
-          slug: fromSlug,
           position: NotePlacement.append([]),
         },
         authorshipOf(context),
       ),
     );
-    const moved = await notes.saveMoved(loaded, { vaultId: origin.vault.id, slug: fromSlug });
+    const moved = await notes.saveMoved(loaded, { notebookId: origin.notebook.id });
     expect(moved.ok).toBe(true);
 
     const fresh = repositories(context).notes;
-    expect(await fresh.findById(origin.vault.id, created.note.id)).toBeNull();
-    const arrived = await fresh.findById(destination.vault.id, created.note.id);
+    expect(await fresh.findById(origin.notebook.id, created.note.id)).toBeNull();
+    const arrived = await fresh.findById(destination.notebook.id, created.note.id);
     expect(arrived?.id.value).toBe(created.note.id.value);
-    // The origin slug went with it, instead of staying pinned there forever.
-    expect(await fresh.findBySlug(origin.vault.id, fromSlug)).toBeNull();
+    expect(arrived?.name).toBe('Lei 14.133');
   });
 
   it('writes zero bytes to S3 when a note only moves or is reordered', async () => {
     const context = contextFor();
-    const { vault, folder } = await seedVault(context);
+    const { notebook, folder } = await seedNotebook(context);
     const { notes } = repositories(context);
 
-    const created = await createNote(context, vault, folder.id, 'Lei 14.133');
+    const created = await createNote(context, notebook, folder.id, 'Lei 14.133');
     const before = created.note.bodyRef;
 
-    const loaded = (await notes.findById(vault.id, created.note.id)) as Note;
+    const loaded = (await notes.findById(notebook.id, created.note.id)) as Note;
     unwrap(loaded.reorder(NotePlacement.append([]), authorshipOf(context)));
     await notes.save(loaded);
 
-    const after = (await repositories(context).notes.findById(vault.id, created.note.id)) as Note;
+    const after = (await repositories(context).notes.findById(
+      notebook.id,
+      created.note.id,
+    )) as Note;
     // Same slot, same revision: nothing was written to the bucket.
     expect(after.bodyRef.versionId).toBe(before.versionId);
     expect(after.bodyRef.contentId.value).toBe(before.contentId.value);
   });
 });
 
+/**
+ * RN-KNW-044: each slot is an aggregate of its own, locked on its own item.
+ * These two cases are the done criteria of #139, and the second one is the one
+ * that proves the point: while a Template was a field of the `FOLDER` item,
+ * writing twenty of them locked the `META` item twenty times and a rename in
+ * the middle lost the race.
+ */
+describe('DynamoContentSlotRepository: a Guidance and a Template of their own', () => {
+  it('leaves exactly one Template when two first writes race for the same folder', async () => {
+    const context = contextFor();
+    const { notebook, folder } = await seedNotebook(context);
+    const { content } = repositories(context);
+
+    // Two writers that both read a folder with no Template, as two sessions
+    // starting from the same view would.
+    const [first, second] = await Promise.all([
+      content.create('# First writer\n'),
+      content.create('# Second writer\n'),
+    ]);
+    const outcomes = await Promise.all(
+      [first, second].map((ref) =>
+        // A repository of its own each, because each stands for one request.
+        new DynamoContentSlotRepository(context, db, TABLE_NAME).save(
+          Template.create({
+            subscriptionId: context.subscriptionId,
+            notebookId: notebook.id,
+            folderId: folder.id,
+            ref,
+            by: authorshipOf(context),
+          }),
+        ),
+      ),
+    );
+
+    expect(outcomes.filter((result) => result.ok)).toHaveLength(1);
+    expect(outcomes.filter((result) => !result.ok)).toHaveLength(1);
+
+    const stored = await repositories(context).slots.findTemplate(notebook.id, folder.id);
+    expect(stored).not.toBeNull();
+    expect([first.versionId, second.versionId]).toContain(stored?.revision);
+  });
+
+  it('deletes a Template without touching the folder, and the Guidance without touching META', async () => {
+    const context = contextFor();
+    const { notebook, folder } = await seedNotebook(context);
+    const { content, slots, notebooks } = repositories(context);
+
+    const guidance = Guidance.create({
+      subscriptionId: context.subscriptionId,
+      notebookId: notebook.id,
+      ref: await content.create('# Guidance\n'),
+      by: authorshipOf(context),
+    });
+    const template = Template.create({
+      subscriptionId: context.subscriptionId,
+      notebookId: notebook.id,
+      folderId: folder.id,
+      ref: await content.create('# Template\n'),
+      by: authorshipOf(context),
+    });
+    expect((await slots.save(guidance)).ok).toBe(true);
+    expect((await slots.save(template)).ok).toBe(true);
+    // The tree reports both, from the one Query that loads it.
+    const withSlots = (await notebooks.findById(notebook.id)) as Notebook;
+    expect(withSlots.hasGuidance).toBe(true);
+    expect(withSlots.hasTemplate(folder.id)).toBe(true);
+
+    unwrap(guidance.delete(authorshipOf(context)));
+    unwrap(template.delete(authorshipOf(context)));
+    expect((await slots.save(guidance)).ok).toBe(true);
+    expect((await slots.save(template)).ok).toBe(true);
+
+    const fresh = repositories(context);
+    expect(await fresh.slots.findGuidance(notebook.id)).toBeNull();
+    expect(await fresh.slots.findTemplate(notebook.id, folder.id)).toBeNull();
+    const after = (await fresh.notebooks.findById(notebook.id)) as Notebook;
+    expect(after.hasGuidance).toBe(false);
+    expect(after.hasTemplate(folder.id)).toBe(false);
+    // Neither deletion was a tree mutation: the folder is still there and the
+    // META item was never rewritten by any of the four writes.
+    expect(after.folders.get(folder.id)?.name.value).toBe('Normas');
+    expect(after.version).toBe(1);
+  });
+});
+
+/**
+ * The purge, against the real DynamoDB and S3 (RN-KNW-047). These are the done
+ * criteria of #140: a deleted notebook leaves nothing of itself in either
+ * store, and running the purge twice over the same deletion changes nothing
+ * the second time.
+ */
+describe('ContentPurge: what a deletion invalidated stops existing', () => {
+  /** The worker as its handler builds it, per subscription from the envelope. */
+  function purgeFor(): ContentPurge {
+    return new ContentPurge({
+      db,
+      tableName: TABLE_NAME,
+      purgerFor: (subscriptionId) => new S3ContentPurger(subscriptionId, s3, BUCKET_NAME),
+      // The trail is a table of another context; what this case reads is the
+      // one it purges.
+      closeTrailOf: async () => undefined,
+    });
+  }
+
+  /** Every item of the notebook still in the table, the outbox aside. */
+  async function itemsLeft(
+    context: SubscriptionContext,
+    notebookId: NotebookId,
+  ): Promise<string[]> {
+    const response = await db.send(
+      new QueryCommand({
+        TableName: TABLE_NAME,
+        KeyConditionExpression: 'PK = :pk',
+        ExpressionAttributeValues: {
+          ':pk': `S#${context.subscriptionId.value}#NOTEBOOK#${notebookId.value}`,
+        },
+        ConsistentRead: true,
+      }),
+    );
+    return ((response.Items ?? []) as Array<Record<string, unknown>>)
+      .map((item) => String(item['SK']))
+      .filter((sk) => !sk.startsWith('EVENT#') && !sk.startsWith('SEEN#'));
+  }
+
+  it('leaves nothing of a deleted notebook, in either store, and is safe to run twice', async () => {
+    const context = contextFor();
+    const { notebook, folder } = await seedNotebook(context);
+    const { notes, slots, content } = repositories(context);
+
+    const body = await content.create('---\nname: Lei 14.133\n---\n\nArt. 75.\n');
+    const note = unwrap(
+      Note.create({
+        id: NoteId.generate(),
+        subscriptionId: context.subscriptionId,
+        notebookId: notebook.id,
+        folderId: folder.id,
+        body: '---\nname: Lei 14.133\n---\n\nArt. 75.\n',
+        position: NotePlacement.append([]),
+        bodyRef: body,
+        by: authorshipOf(context),
+      }),
+    );
+    expect((await notes.save(note)).ok).toBe(true);
+    const guidance = Guidance.create({
+      subscriptionId: context.subscriptionId,
+      notebookId: notebook.id,
+      ref: await content.create('# Guidance\n'),
+      by: authorshipOf(context),
+    });
+    expect((await slots.save(guidance)).ok).toBe(true);
+
+    /**
+     * The relay of this environment is listening on the stream of this very
+     * table, and the counters it applies are an `ADD`, which CREATES the item
+     * it addresses. So the case waits for the note it wrote to have been
+     * counted before it deletes anything: a `+1` that lands after the purge
+     * writes a counter back into a partition nothing can reach any more.
+     *
+     * In the product that window is the minute a deletion waits before the
+     * purge walks it, and the relay is ahead of it by seconds. Here there is
+     * no delay at all, so the case waits where the product waits.
+     */
+    await converged(
+      () => repositories(context).notebooks.findById(notebook.id),
+      (found) => (found ? found.noteCountOf(folder.id) : 0) === 1,
+    );
+
+    // The deletion itself, as the route makes it: one repository, because one
+    // repository stands for one request.
+    const tree = new DynamoNotebookRepository(context, db, TABLE_NAME);
+    const loaded = (await tree.findById(notebook.id)) as Notebook;
+    unwrap(loaded.delete(authorshipOf(context)));
+    expect((await tree.save(loaded)).ok).toBe(true);
+
+    const envelope = {
+      type: 'NotebookDeleted',
+      subscriptionId: context.subscriptionId.value,
+      authorship: authorshipOf(context).toJSON(),
+      contentRef: null,
+      payload: { notebookId: notebook.id.value },
+    };
+    const first = await purgeFor().run(envelope);
+
+    expect(first.done).toBe(true);
+    expect(first.purged).toBeGreaterThanOrEqual(2);
+    expect(await itemsLeft(context, notebook.id)).toEqual([]);
+    // Not one version of the content is left in the bucket.
+    for (const ref of [body, guidance.ref]) {
+      await expect(content.read(ref)).rejects.toThrow();
+    }
+
+    // Delivery is at least once: the second pass finds nothing and says so.
+    const again = await purgeFor().run(envelope);
+    expect(again).toEqual({ purged: 0, done: true });
+  }, 120_000);
+});
+
 describe('Delivery 4 done criteria', () => {
+  /** The order GSI2 converges to, read as `converged` reads any index. */
+  function settledOrder(
+    context: SubscriptionContext,
+    notebookId: NotebookId,
+    folderId: FolderId,
+    settled: (order: NoteOrder[]) => boolean,
+  ): Promise<NoteOrder[]> {
+    return converged(() => repositories(context).notes.siblingOrder(notebookId, folderId), settled);
+  }
+
   it('survives 20 concurrent reorders with nothing lost and no undefined order', async () => {
     const context = contextFor();
-    const { vault, folder } = await seedVault(context);
+    const { notebook, folder } = await seedNotebook(context);
     const { notes, content } = repositories(context);
 
-    // Twenty notes in one folder.
+    // Twenty notes in one folder, each appended after the ones this case wrote,
+    // so no position is computed from an index that has not caught up.
     const created: Note[] = [];
+    const placed: NoteOrder[] = [];
     for (let index = 0; index < 20; index++) {
-      const body = await content.create(`# Nota ${index}`);
-      const siblings = await notes.siblingOrder(vault.id, folder.id);
+      const markdown = `# Nota ${index}`;
+      const body = await content.create(markdown);
       const note = unwrap(
         Note.create({
           id: NoteId.generate(),
           subscriptionId: context.subscriptionId,
-          vaultId: vault.id,
+          notebookId: notebook.id,
           folderId: folder.id,
-          title: noteTitle(`Nota ${index}`),
-          slug: unwrap(Slug.from(`Nota ${index}`)),
-          position: NotePlacement.append(siblings),
+          body: markdown,
+          position: NotePlacement.append(placed),
           bodyRef: body,
           by: authorshipOf(context),
         }),
       );
       expect((await notes.save(note)).ok).toBe(true);
       created.push(note);
+      placed.push({ noteId: note.id, position: note.position });
     }
 
-    const order = await notes.siblingOrder(vault.id, folder.id);
+    const order = await settledOrder(
+      context,
+      notebook.id,
+      folder.id,
+      (listed) => listed.length === 20,
+    );
     expect(order).toHaveLength(20);
 
     // Twenty reorders fired at once, each moving one note behind another.
     const results = await Promise.all(
       created.map(async (note, index) => {
         const repository = repositories(context).notes;
-        const loaded = (await repository.findById(vault.id, note.id)) as Note;
+        const loaded = (await repository.findById(notebook.id, note.id)) as Note;
         const anchor = order[(index + 7) % order.length];
-        const siblings = await repository.siblingOrder(vault.id, folder.id);
+        const siblings = await repository.siblingOrder(notebook.id, folder.id);
         const position = NotePlacement.place(
           siblings,
           anchor && !anchor.noteId.equals(note.id) ? anchor.noteId : null,
@@ -564,7 +918,21 @@ describe('Delivery 4 done criteria', () => {
 
     expect(results.every(Boolean)).toBe(true);
 
-    const finalOrder = await repositories(context).notes.siblingOrder(vault.id, folder.id);
+    // What each note says its position is, read from its own item, which is
+    // consistent; the index is awaited until it says the same.
+    const stored = new Map<string, string>();
+    for (const note of created) {
+      const read = (await repositories(context).notes.findById(notebook.id, note.id)) as Note;
+      stored.set(note.id.value, read.position.value);
+    }
+    const finalOrder = await settledOrder(
+      context,
+      notebook.id,
+      folder.id,
+      (listed) =>
+        listed.length === 20 &&
+        listed.every((each) => stored.get(each.noteId.value) === each.position.value),
+    );
     // Nothing lost.
     expect(finalOrder).toHaveLength(20);
     // No undefined ordering: every key is distinct, and GSI2 already hands
@@ -574,24 +942,28 @@ describe('Delivery 4 done criteria', () => {
     expect([...keys].sort()).toEqual(keys);
   }, 120_000);
 
-  it('creates 50 notes in parallel in the same vault with no contention retry', async () => {
-    // This is the case that proves PE8: no note transaction touches META, so
-    // fifty parallel creates never collide on that single item.
+  it('creates 50 notes in parallel in the same notebook with no contention retry', async () => {
+    // This is the case that proves PE8: no note transaction includes an item
+    // another one includes, neither META nor the folder, so fifty parallel
+    // creates into one folder never cancel each other. DynamoDB Local runs
+    // transactions one at a time and cannot fail this; the real table can.
     const context = contextFor();
-    const { vault, folder } = await seedVault(context);
+    const { notebook, folder } = await seedNotebook(context);
 
     const outcomes = await Promise.all(
       Array.from({ length: 50 }, async (_unused, index) => {
         const { notes, content } = repositories(context);
-        const body = await content.create(`# Ingestao ${index}\n\nCorpo.`);
+        // Every one of them named, and every name distinct: fifty guards of one
+        // folder claimed at once, none of which may meet another (RN-KNW-042).
+        const markdown = `---\nname: Ingestao ${index}\n---\n\nCorpo.`;
+        const body = await content.create(markdown);
         const note = unwrap(
           Note.create({
             id: NoteId.generate(),
             subscriptionId: context.subscriptionId,
-            vaultId: vault.id,
+            notebookId: notebook.id,
             folderId: folder.id,
-            title: noteTitle(`Ingestao ${index}`),
-            slug: unwrap(Slug.from(`Ingestao ${index}`)),
+            body: markdown,
             // Position is computed without reading the siblings: appending at
             // the end of a batch would serialize the whole ingestion.
             position: NotePlacement.append([]),
@@ -606,19 +978,154 @@ describe('Delivery 4 done criteria', () => {
     // Not one retry, not one lost write.
     expect(outcomes.filter((result) => !result.ok)).toHaveLength(0);
 
-    const stored = await repositories(context).notes.listByVault(vault.id);
+    // The listing reads the base table without asking for consistency, so it
+    // is awaited like an index.
+    const stored = await converged(
+      () => repositories(context).notes.listByNotebook(notebook.id),
+      (notesListed) => notesListed.length === 50,
+    );
     expect(stored).toHaveLength(50);
 
-    // And the vault META item was never rewritten by any of them.
+    // And the notebook META item was never rewritten by any of them.
     const meta = await db.send(
       new GetCommand({
         TableName: TABLE_NAME,
         Key: {
-          PK: `S#${context.subscriptionId.value}#VAULT#${vault.id.value}`,
+          PK: `S#${context.subscriptionId.value}#NOTEBOOK#${notebook.id.value}`,
           SK: 'META',
         },
+        ConsistentRead: true,
       }),
     );
     expect(meta.Item?.['version']).toBe(1);
   }, 120_000);
+
+  it('writes the Templates of 20 folders in parallel while one of them is renamed', async () => {
+    const context = contextFor();
+    const seeded = await seedNotebook(context);
+    const { notebooks, content } = repositories(context);
+    // Loaded through THIS repository, because the lock it writes under is the
+    // version its own read recorded.
+    const notebook = (await notebooks.findById(seeded.notebook.id)) as Notebook;
+
+    const folders = [];
+    for (let index = 0; index < 20; index++) {
+      folders.push(
+        unwrap(
+          notebook.addFolder(
+            null,
+            folderName(`Pasta ${index}`),
+            folderDescription(`A pasta numero ${index}.`),
+            null,
+            authorshipOf(context),
+          ),
+        ),
+      );
+    }
+    expect((await notebooks.save(notebook)).ok).toBe(true);
+
+    const refs = await Promise.all(
+      folders.map((folder) => content.create(`# Modelo de ${folder.name.value}\n`)),
+    );
+    // Twenty Template writes and a rename of the tree, all at once. Each
+    // Template is locked on its own item, so none of them meets another and
+    // none of them meets the rename (RN-KNW-044).
+    const [renamed, ...outcomes] = await Promise.all([
+      (async () => {
+        // A repository of its own, as a request would have: it reads the tree
+        // and writes it back under the lock its OWN read recorded.
+        const tree = new DynamoNotebookRepository(context, db, TABLE_NAME);
+        const loaded = (await tree.findById(notebook.id)) as Notebook;
+        unwrap(
+          loaded.renameFolder(folders[0]!.id, folderName('Pasta zero'), authorshipOf(context)),
+        );
+        return tree.save(loaded);
+      })(),
+      ...folders.map((folder, index) =>
+        new DynamoContentSlotRepository(context, db, TABLE_NAME).save(
+          Template.create({
+            subscriptionId: context.subscriptionId,
+            notebookId: notebook.id,
+            folderId: folder.id,
+            ref: refs[index]!,
+            by: authorshipOf(context),
+          }),
+        ),
+      ),
+    ]);
+
+    expect(renamed?.ok).toBe(true);
+    expect(outcomes.filter((result) => !result.ok)).toHaveLength(0);
+    const after = (await repositories(context).notebooks.findById(notebook.id)) as Notebook;
+    for (const folder of folders) expect(after.hasTemplate(folder.id)).toBe(true);
+  }, 120_000);
+});
+
+describe('DynamoFolderNumbers: a folder issues each number once (RN-KNW-043)', () => {
+  it('answers twenty distinct numbers, 1 to 20, to twenty requests at once, and none fails', async () => {
+    const context = contextFor();
+    const { notebook, folder } = await seedNotebook(context);
+    const numbers = new DynamoFolderNumbers(context, db, TABLE_NAME);
+
+    const issued = await Promise.all(
+      Array.from({ length: 20 }, () => numbers.next(notebook.id, folder.id, authorshipOf(context))),
+    );
+
+    expect([...issued].sort((a, b) => a - b)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
+    // Another folder of the same notebook starts at 1.
+    const other = FolderId.generate();
+    expect(await numbers.next(notebook.id, other, authorshipOf(context))).toBe(1);
+    expect((await numbers.lastIssued(notebook.id)).get(folder.id.value)).toBe(20);
+  });
+
+  it('restores a counter only upward, and loading the notebook never reads it', async () => {
+    const context = contextFor();
+    const { notebook, folder } = await seedNotebook(context);
+    const numbers = new DynamoFolderNumbers(context, db, TABLE_NAME);
+
+    await numbers.restore(notebook.id, folder.id, 42, authorshipOf(context));
+    await numbers.restore(notebook.id, folder.id, 7, authorshipOf(context));
+    expect(await numbers.next(notebook.id, folder.id, authorshipOf(context))).toBe(43);
+
+    // The counter sorts after META, outside the range that loads the aggregate.
+    const aggregate = await db.send(
+      new QueryCommand({
+        TableName: TABLE_NAME,
+        KeyConditionExpression: 'PK = :pk AND SK BETWEEN :from AND :to',
+        ExpressionAttributeValues: {
+          ':pk': `S#${context.subscriptionId.value}#NOTEBOOK#${notebook.id.value}`,
+          ':from': 'FOLDER#',
+          ':to': 'META',
+        },
+        ConsistentRead: true,
+      }),
+    );
+    expect((aggregate.Items ?? []).some((item) => String(item['SK']).startsWith('SEQ#'))).toBe(
+      false,
+    );
+  });
+
+  it('removes the counter with its folder', async () => {
+    const context = contextFor();
+    const { notebook, folder } = await seedNotebook(context);
+    const numbers = new DynamoFolderNumbers(context, db, TABLE_NAME);
+    await numbers.next(notebook.id, folder.id, authorshipOf(context));
+
+    const tree = new DynamoNotebookRepository(context, db, TABLE_NAME);
+    const loaded = (await tree.findById(notebook.id)) as Notebook;
+    unwrap(loaded.removeFolder(folder.id, RemovalPolicy.CASCADE, authorshipOf(context)));
+    expect((await tree.save(loaded)).ok).toBe(true);
+
+    const counter = await db.send(
+      new GetCommand({
+        TableName: TABLE_NAME,
+        Key: {
+          PK: `S#${context.subscriptionId.value}#NOTEBOOK#${notebook.id.value}`,
+          SK: `SEQ#${folder.id.value}`,
+        },
+        ConsistentRead: true,
+      }),
+    );
+    expect(counter.Item).toBeUndefined();
+  });
 });

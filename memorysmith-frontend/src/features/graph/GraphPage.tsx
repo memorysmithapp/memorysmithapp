@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   forceCenter,
@@ -13,20 +13,41 @@ import {
   type SimulationNodeDatum,
 } from 'd3-force';
 import { usePreferences } from '../../shared/store/preferences';
-import { VaultBreadcrumb } from '../structure/VaultBreadcrumb';
+import { NotebookBreadcrumb } from '../structure/NotebookBreadcrumb';
 import { GraphSkeleton } from '../../shared/components/skeletons';
-import { resolveNoteUrl } from '../../shared/api/source';
-import { getVaultGraph } from '../../shared/api/backend';
+import { noteAddress } from '../../shared/api/note-address';
+import { folderTrailForNote } from '../structure/trail';
+import type { NotebookOutletContext } from '../structure/NotebookLayout';
+import { useNotebookId } from '../structure/route-ids';
+import { useDocumentTitle } from '../../shared/components/document-title';
+import { getNotebookGraph } from '../../shared/api/backend';
 import { CloseIcon, GearIcon } from '../../shared/components/icons';
 
 interface GraphFile {
-  nodes: { id: string; title: string; facets: Record<string, string[]> }[];
+  nodes: {
+    id: string;
+    name: string;
+    folderId: string;
+    facets: Record<string, string[]>;
+  }[];
   edges: [number, number][];
 }
 
+/**
+ * **A node is a NOTE, and it always was.** The identifier is the `NoteId`,
+ * which is the one thing two notes with the same name do not share; the name
+ * is the label, and a label may repeat (RN-DSC-047). That is the honest
+ * picture: a notebook does hold two notes called `Índice`, and collapsing them
+ * into one node would draw one and silently lose the other.
+ *
+ * What the drawing owes them is a way to tell them apart, and it is the folder
+ * trail — which is what a hover writes beside the label.
+ */
 interface GraphNode extends SimulationNodeDatum {
   id: string;
-  title: string;
+  name: string;
+  /** Where the note lives, which is what tells two of one name apart. */
+  folder: string;
   kind: 'note' | 'value';
   /** What this note says about itself; empty on a value node. */
   facets: Record<string, string[]>;
@@ -74,7 +95,7 @@ function cssVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-/** An attribute of the vault, as the graph sees it: its values, by frequency. */
+/** An attribute of the notebook, as the graph sees it: its values, by frequency. */
 interface Attribute {
   readonly name: string;
   /** Distinct values, most frequent first; dates already reduced to months. */
@@ -129,7 +150,7 @@ function slotColor(slot: number): string {
   return slot < VALUE_SLOTS ? `var(--val-${slot + 1})` : 'var(--val-other)';
 }
 
-/** The breakpoint at which the vault sidebar becomes a drawer (styles.css). */
+/** The breakpoint at which the notebook sidebar becomes a drawer (styles.css). */
 function narrowScreen(): boolean {
   return window.matchMedia('(max-width: 860px)').matches;
 }
@@ -154,7 +175,22 @@ export function GraphPage() {
   const { t } = useTranslation();
   const touchOnly = useTouchOnly();
   const navigate = useNavigate();
-  const { vaultSlug = '' } = useParams();
+  const notebookId = useNotebookId();
+  const { structure } = useOutletContext<NotebookOutletContext>();
+  useDocumentTitle(t('graph.navLabel'), structure.notebook.name);
+  /**
+   * The address of a node, which is the identifier the graph draws
+   * (RN-DSC-045). A note the tree the page loaded does not hold is not
+   * somewhere to go: the link projection can still name a note deleted a
+   * moment ago.
+   */
+  const addressOfNote = useCallback(
+    (noteId: string): string | null =>
+      folderTrailForNote(structure.folders, noteId).length > 0
+        ? noteAddress(notebookId, noteId)
+        : null,
+    [structure, notebookId],
+  );
   const theme = usePreferences((s) => s.theme);
   const [truncated, setTruncated] = useState(false);
   /**
@@ -194,7 +230,7 @@ export function GraphPage() {
     pinned: GraphNode | null;
     /**
      * What is on the drawing at all: the held node and its group, or null for
-     * the whole vault. A node outside it is not drawn, and is not under the
+     * the whole notebook. A node outside it is not drawn, and is not under the
      * pointer either, which is the difference between hiding something and
      * merely fading it.
      */
@@ -216,18 +252,21 @@ export function GraphPage() {
    * The graph is the link projection of Discovery, and each node carries the
    * portrait the facet projection keeps of that note. The backend still does
    * not interpret content (PP4): those attributes were classified by the shape
-   * of the value, so the controls below offer whatever THIS vault declares,
-   * and a vault that declares nothing simply shows no control.
+   * of the value, so the controls below offer whatever THIS notebook declares,
+   * and a notebook that declares nothing simply shows no control.
    */
   useEffect(() => {
     let live = true;
-    void getVaultGraph(vaultSlug)
+    void getNotebookGraph(notebookId)
       .then((graph) => {
         if (!live) return;
         setData({
           nodes: graph.nodes.map((note) => ({
-            id: note.slug,
-            title: note.title,
+            // The identifier, because two notes may carry one name and the
+            // graph draws a note and never a name (RN-DSC-047).
+            id: note.noteId,
+            name: note.name,
+            folderId: note.folderId,
             facets: note.facets ?? {},
           })),
           edges: graph.edges,
@@ -235,14 +274,14 @@ export function GraphPage() {
         setTruncated(graph.truncated);
       })
       .catch(() => {
-        // A failure is not an empty vault. Saying so is the difference between
+        // A failure is not an empty notebook. Saying so is the difference between
         // "nobody has written anything" and "we could not read it".
         if (live) setFailed(true);
       });
     return () => {
       live = false;
     };
-  }, [vaultSlug]);
+  }, [notebookId]);
 
   const attributes = useMemo(() => (data ? attributesOf(data.nodes) : []), [data]);
   /**
@@ -266,7 +305,7 @@ export function GraphPage() {
     [attributes],
   );
 
-  // An attribute that stops existing (another vault, a rebuilt projection)
+  // An attribute that stops existing (another notebook, a rebuilt projection)
   // must not leave a switch pointing at nothing.
   useEffect(() => {
     setDrawn((current) => {
@@ -292,9 +331,14 @@ export function GraphPage() {
 
   const filtered = useMemo(() => {
     if (!data) return null;
+    const folderNameOf = (noteId: string): string => {
+      const trail = folderTrailForNote(structure.folders, noteId);
+      return trail[trail.length - 1]?.name ?? '';
+    };
     const nodes: GraphNode[] = data.nodes.map((n) => ({
       id: n.id,
-      title: n.title,
+      name: n.name,
+      folder: folderNameOf(n.id),
       kind: 'note' as const,
       facets: n.facets,
       degree: 0,
@@ -328,7 +372,10 @@ export function GraphPage() {
             indexOfValue.set(key, at);
             nodes.push({
               id: key,
-              title: value,
+              name: value,
+              // A value node lives in no folder: it is what the notebook says
+              // about its notes, not one of them.
+              folder: '',
               kind: 'value',
               facets: {},
               slot,
@@ -430,7 +477,7 @@ export function GraphPage() {
       const focus = pinned ?? hovered;
       const neighborSet = focus ? state.neighbors.get(focus) : null;
       // With a group held there is nothing else on the drawing to fade: the
-      // rest of the vault is not drawn at all.
+      // rest of the notebook is not drawn at all.
       const shown = state.shown;
 
       ctx.globalAlpha = focus ? 0.06 : 0.14;
@@ -513,7 +560,13 @@ export function GraphPage() {
       */
       const written: { x0: number; y0: number; x1: number; y1: number }[] = [];
       for (const node of labelTargets) {
-        const label = node.title;
+        // The focused node names the folder it lives in, which is what makes
+        // two nodes carrying one name distinguishable without clicking
+        // either of them (RN-DSC-047).
+        const label =
+          node === focus && node.kind === 'note' && node.folder
+            ? `${node.name} · ${node.folder}`
+            : node.name;
         const lx = (node.x ?? 0) + node.radius + 3 / k;
         const ly = node.y ?? 0;
         const box = {
@@ -562,7 +615,7 @@ export function GraphPage() {
     state.neighbors = neighbors;
 
     /**
-     * Holding a group takes the rest of the vault OFF the drawing, and lets go
+     * Holding a group takes the rest of the notebook OFF the drawing, and lets go
      * puts it back. Dimming was not enough: a node you cannot see still
      * answered the pointer, so the drawing offered notes it was hiding.
      *
@@ -698,7 +751,7 @@ export function GraphPage() {
       const hit = hitTest(gx, gy);
 
       if (hit?.kind === 'note') {
-        const url = resolveNoteUrl(vaultSlug, hit.id);
+        const url = addressOfNote(hit.id);
         if (url) void navigate(url);
         return;
       }
@@ -780,7 +833,7 @@ export function GraphPage() {
       const hit = hitTest(gx, gy);
 
       if (hit?.kind === 'note') {
-        const url = resolveNoteUrl(vaultSlug, hit.id);
+        const url = addressOfNote(hit.id);
         if (url) void navigate(url);
         return;
       }
@@ -831,7 +884,7 @@ export function GraphPage() {
     };
     // The theme dependency re-runs the effect so the canvas repaints with the
     // active token values.
-  }, [filtered, navigate, vaultSlug, theme]);
+  }, [filtered, navigate, notebookId, theme]);
 
   const hasControls = drawable.length > 0;
 
@@ -840,7 +893,7 @@ export function GraphPage() {
       {/* Two lines, and only two: the trail, then the name of the screen.
           Everything that steers the drawing lives over the drawing. */}
       <div className="graph-toolbar">
-        <VaultBreadcrumb items={[{ label: t('graph.heading') }]} className="graph-breadcrumb" />
+        <NotebookBreadcrumb items={[{ label: t('graph.heading') }]} className="graph-breadcrumb" />
         <h1>{t('graph.heading')}</h1>
       </div>
       <div className="graph-canvas-wrap">
@@ -850,7 +903,7 @@ export function GraphPage() {
         <canvas ref={canvasRef} />
         <div className="graph-overlay">
           {/*
-            Both controls are built from what this vault declares. A vault whose
+            Both controls are built from what this notebook declares. A notebook whose
             notes carry no frontmatter offers neither, because a control that
             steers nothing is worse than no control, and then the panel that
             would hold them has nothing to hold either.
@@ -870,9 +923,9 @@ export function GraphPage() {
                   </button>
                 </header>
                 {/*
-                  Whatever THIS vault declares as discrete, and nothing else.
+                  Whatever THIS notebook declares as discrete, and nothing else.
                   The backend still does not interpret content: these were
-                  classified by the shape of the value, so a vault whose notes
+                  classified by the shape of the value, so a notebook whose notes
                   carry no frontmatter offers no switch, and the panel with it
                   never appears.
                 */}
@@ -914,7 +967,7 @@ export function GraphPage() {
           does not already say: throwing a switch is what gives the attribute
           its colour, and the switch wears that colour while it is on. The one
           thing the legend held that lives nowhere else is the warning that the
-          drawing is not the whole vault, and that moved down here, next to the
+          drawing is not the whole notebook, and that moved down here, next to the
           other thing said about the drawing as a whole.
         */}
         <div className="graph-footer">

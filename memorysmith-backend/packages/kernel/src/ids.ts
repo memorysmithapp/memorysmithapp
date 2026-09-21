@@ -1,7 +1,7 @@
 /**
  * Identifiers. Every one of them is a value object, never a bare string:
  * "no raw string crosses the domain boundary" is what makes PE2 checkable by
- * the compiler instead of by review (architecture-guide.md, sections 6.4, 8.2).
+ * the compiler instead of by review (architecture-guide.md, sections 6.5, 8.2).
  *
  * SubscriptionId is the one that carries a rule: it can only be built from a
  * JWT claim, and it is perpetual, since no status transition ever rewrites it
@@ -62,13 +62,13 @@ export class SubscriptionId extends UlidIdentifier {
   }
 }
 
-export class VaultId extends UlidIdentifier {
-  private readonly __vaultId!: void;
-  static create(raw: string): Result<VaultId, DomainError> {
-    return parseUlid(raw, 'VaultId', (value) => new VaultId(value));
+export class NotebookId extends UlidIdentifier {
+  private readonly __notebookId!: void;
+  static create(raw: string): Result<NotebookId, DomainError> {
+    return parseUlid(raw, 'NotebookId', (value) => new NotebookId(value));
   }
-  static generate(): VaultId {
-    return new VaultId(ulid());
+  static generate(): NotebookId {
+    return new NotebookId(ulid());
   }
 }
 
@@ -89,6 +89,17 @@ export class NoteId extends UlidIdentifier {
   }
   static generate(): NoteId {
     return new NoteId(ulid());
+  }
+}
+
+/** Addresses a file a notebook keeps beside its notes (#166). */
+export class FileId extends UlidIdentifier {
+  private readonly __fileId!: void;
+  static create(raw: string): Result<FileId, DomainError> {
+    return parseUlid(raw, 'FileId', (value) => new FileId(value));
+  }
+  static generate(): FileId {
+    return new FileId(ulid());
   }
 }
 

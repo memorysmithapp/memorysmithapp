@@ -6,7 +6,9 @@
 
 import {
   GRAPH_LIMITS,
-  type BrokenLink,
+  type PendingLink,
+  type ProjectedNote,
+  type ProjectedVersions,
   type FacetIndex,
   type FacetStats,
   type GraphNode,
@@ -16,11 +18,30 @@ import {
   type IndexedNote,
   type NoteCatalog,
   type NoteRef,
-  type VaultGraph,
+  type ResolvedTarget,
+  type NotebookGraph,
+  type OutgoingTarget,
 } from '../domain/ports.js';
 import type { FacetSnapshot } from '../domain/FacetExtractor.js';
+import { resolveTarget, notebookNames, type NotebookNames } from '../domain/LinkResolver.js';
 import { facetDelta, valuesOf } from '../domain/FacetExtractor.js';
-import type { StructureProjection, VaultStructure } from '../application/projections.js';
+import type { StructureProjection, NotebookStructure } from '../application/projections.js';
+
+/** The versions last projected, in memory, with the same conditional claim. */
+export class InMemoryProjectedVersions implements ProjectedVersions {
+  private readonly notes = new Map<string, ProjectedNote>();
+
+  async claim(noteId: string, state: ProjectedNote): Promise<boolean> {
+    const recorded = this.notes.get(noteId);
+    if (recorded && recorded.version >= state.version) return false;
+    this.notes.set(noteId, state);
+    return true;
+  }
+
+  async current(noteId: string): Promise<ProjectedNote | null> {
+    return this.notes.get(noteId) ?? null;
+  }
+}
 
 interface Edge {
   readonly fromNoteId: string;
@@ -29,119 +50,180 @@ interface Edge {
 
 interface Pending {
   readonly fromNoteId: string;
-  readonly slug: string;
+  readonly name: string;
 }
 
+/**
+ * The reference implementation keeps what each note POINTS AT, and derives the
+ * edges from the notebook as it stands.
+ *
+ * That is the shape resolution has since 0.6.0. It stopped being monotonic:
+ * an edge that exists by alias disappears the day somebody writes a note
+ * carrying that name (RN-DSC-053), in a note nobody touched. Materialising
+ * the edges and patching them on every write means an invalidation path per
+ * kind of change and a way to get each one wrong; deriving them means the
+ * graph is always exactly what the notebook says, and the cost is a walk over
+ * notes this adapter already holds in a Map.
+ *
+ * The DynamoDB adapter cannot do this — it may not read a notebook to answer one
+ * backlink — so it materialises, and it is this class it has to agree with.
+ */
 export class InMemoryLinkGraph implements LinkGraph {
   private readonly notes = new Map<string, Map<string, NoteRef>>();
-  private readonly edges = new Map<string, Edge[]>();
-  private readonly pending = new Map<string, Pending[]>();
+  private readonly outgoing = new Map<string, Map<string, LinkTarget[]>>();
+  /** What the notebook keeps beside its notes, by name (#166). */
+  private readonly attachments = new Map<string, Set<string>>();
 
-  private vault(vaultId: string): {
+  private notebook(notebookId: string): {
     notes: Map<string, NoteRef>;
-    edges: Edge[];
-    pending: Pending[];
+    outgoing: Map<string, LinkTarget[]>;
   } {
-    if (!this.notes.has(vaultId)) this.notes.set(vaultId, new Map());
-    if (!this.edges.has(vaultId)) this.edges.set(vaultId, []);
-    if (!this.pending.has(vaultId)) this.pending.set(vaultId, []);
+    if (!this.notes.has(notebookId)) this.notes.set(notebookId, new Map());
+    if (!this.outgoing.has(notebookId)) this.outgoing.set(notebookId, new Map());
     return {
-      notes: this.notes.get(vaultId) as Map<string, NoteRef>,
-      edges: this.edges.get(vaultId) as Edge[],
-      pending: this.pending.get(vaultId) as Pending[],
+      notes: this.notes.get(notebookId) as Map<string, NoteRef>,
+      outgoing: this.outgoing.get(notebookId) as Map<string, LinkTarget[]>,
     };
   }
 
-  async replaceOutgoing(vaultId: string, note: NoteRef, links: LinkTarget[]): Promise<void> {
-    const state = this.vault(vaultId);
-    state.notes.set(note.noteId, note);
-
-    this.edges.set(
-      vaultId,
-      state.edges.filter((edge) => edge.fromNoteId !== note.noteId),
+  /** What the notebook answers to right now: its names and then its aliases. */
+  private names(notebookId: string): NotebookNames {
+    return notebookNames(
+      [...this.notebook(notebookId).notes.values()],
+      [...(this.attachments.get(notebookId) ?? new Set<string>())],
     );
-    this.pending.set(
-      vaultId,
-      state.pending.filter((each) => each.fromNoteId !== note.noteId),
-    );
-
-    const bySlug = new Map([...state.notes.values()].map((each) => [each.slug, each]));
-    for (const link of links) {
-      const target = bySlug.get(link.slug);
-      if (target && target.noteId !== note.noteId) {
-        (this.edges.get(vaultId) as Edge[]).push({
-          fromNoteId: note.noteId,
-          toNoteId: target.noteId,
-        });
-      } else if (!target) {
-        // Not discarded: a link whose target does not exist YET is pending,
-        // and it resolves on its own later (RN-DSC-004).
-        (this.pending.get(vaultId) as Pending[]).push({ fromNoteId: note.noteId, slug: link.slug });
-      }
-    }
   }
 
-  async removeNote(vaultId: string, noteId: string): Promise<void> {
-    const state = this.vault(vaultId);
-    const note = state.notes.get(noteId);
+  async notesOf(notebookId: string): Promise<NoteRef[]> {
+    return [...this.notebook(notebookId).notes.values()];
+  }
+
+  /** The names of the files the notebook keeps (#166). */
+  async attachmentsOf(notebookId: string): Promise<string[]> {
+    return [...(this.attachments.get(notebookId) ?? new Set<string>())];
+  }
+
+  async keepAttachment(notebookId: string, name: string): Promise<void> {
+    const kept = this.attachments.get(notebookId) ?? new Set<string>();
+    kept.add(name);
+    this.attachments.set(notebookId, kept);
+  }
+
+  async forgetAttachment(notebookId: string, name: string): Promise<void> {
+    this.attachments.get(notebookId)?.delete(name);
+  }
+
+  /** Every edge of the notebook, resolved against the notebook as it stands. */
+  private resolved(notebookId: string): { edges: Edge[]; pending: Pending[] } {
+    const state = this.notebook(notebookId);
+    const names = this.names(notebookId);
+    const edges: Edge[] = [];
+    const pending: Pending[] = [];
+
+    for (const [fromNoteId, links] of state.outgoing) {
+      if (!state.notes.has(fromNoteId)) continue;
+      for (const link of links) {
+        const answer = resolveTarget(link.name, names);
+        if (answer.kind === 'note') {
+          // Every note whose name matches becomes an edge (RN-DSC-042): two
+          // notes with one name are two edges, never the first one.
+          for (const toNoteId of answer.noteIds) {
+            if (toNoteId !== fromNoteId) edges.push({ fromNoteId, toNoteId });
+          }
+        } else if (answer.kind === 'pending') {
+          // Not discarded: a link whose target does not exist YET is pending,
+          // and it resolves on its own later (RN-DSC-004).
+          pending.push({ fromNoteId, name: link.name });
+        }
+        // An attachment renders and is never an edge (RN-DSC-044).
+      }
+    }
+    return { edges, pending };
+  }
+
+  async replaceOutgoing(notebookId: string, note: NoteRef, links: LinkTarget[]): Promise<void> {
+    const state = this.notebook(notebookId);
+    state.notes.set(note.noteId, note);
+    state.outgoing.set(note.noteId, [...links]);
+  }
+
+  async removeNote(notebookId: string, noteId: string): Promise<void> {
+    const state = this.notebook(notebookId);
     state.notes.delete(noteId);
-
-    // Backlinks that pointed at it go back to pending (RN-DSC-005).
-    const orphanedBacklinks = state.edges.filter((edge) => edge.toNoteId === noteId);
-    this.edges.set(
-      vaultId,
-      state.edges.filter((edge) => edge.fromNoteId !== noteId && edge.toNoteId !== noteId),
-    );
-    if (note) {
-      for (const edge of orphanedBacklinks) {
-        (this.pending.get(vaultId) as Pending[]).push({
-          fromNoteId: edge.fromNoteId,
-          slug: note.slug,
-        });
-      }
-    }
-    this.pending.set(
-      vaultId,
-      (this.pending.get(vaultId) as Pending[]).filter((each) => each.fromNoteId !== noteId),
-    );
+    state.outgoing.delete(noteId);
+    // Nothing else to undo: the backlinks that pointed here are re-resolved
+    // against a notebook that no longer carries this name, so they become
+    // pending — or land on the alias that was waiting behind it (RN-DSC-005,
+    // RN-DSC-053).
   }
 
-  async resolvePending(vaultId: string, note: NoteRef): Promise<number> {
-    const state = this.vault(vaultId);
-    state.notes.set(note.noteId, note);
-    const waiting = state.pending.filter((each) => each.slug === note.slug);
-    if (waiting.length === 0) return 0;
+  async removeNotebook(notebookId: string): Promise<void> {
+    this.notes.delete(notebookId);
+    this.outgoing.delete(notebookId);
+  }
 
-    this.pending.set(
-      vaultId,
-      state.pending.filter((each) => each.slug !== note.slug),
-    );
-    for (const each of waiting) {
-      if (each.fromNoteId === note.noteId) continue;
-      (this.edges.get(vaultId) as Edge[]).push({
-        fromNoteId: each.fromNoteId,
-        toNoteId: note.noteId,
+  async resolvePending(notebookId: string, note: NoteRef): Promise<number> {
+    const before = this.resolved(notebookId).pending.length;
+    this.notebook(notebookId).notes.set(note.noteId, note);
+    return Math.max(0, before - this.resolved(notebookId).pending.length);
+  }
+
+  async outgoingOf(notebookId: string, noteId: string): Promise<OutgoingTarget[]> {
+    const state = this.notebook(notebookId);
+    if (!state.notes.has(noteId)) return [];
+    const names = this.names(notebookId);
+    const seen = new Set<string>();
+    const targets: OutgoingTarget[] = [];
+    for (const link of state.outgoing.get(noteId) ?? []) {
+      if (seen.has(link.name)) continue;
+      seen.add(link.name);
+      const answer = resolveTarget(link.name, names);
+      targets.push({
+        target: link.name,
+        // A file the notebook keeps is an attachment: it renders, it is no
+        // edge, and it is not a target that reaches nothing (#166).
+        kind:
+          answer.kind === 'note' ? 'note' : answer.kind === 'attachment' ? 'attachment' : 'pending',
+        by: answer.kind === 'note' ? answer.by : null,
+        notes: answer.noteIds
+          .filter((id) => id !== noteId)
+          .map((id) => state.notes.get(id))
+          .filter((note): note is NoteRef => note !== undefined),
       });
     }
-    return waiting.length;
+    return targets;
+  }
+
+  async resolveTarget(notebookId: string, target: string): Promise<ResolvedTarget> {
+    const state = this.notebook(notebookId);
+    const answer = resolveTarget(target, this.names(notebookId));
+    return {
+      target: answer.target,
+      kind: answer.kind,
+      by: answer.by,
+      notes: answer.noteIds
+        .map((noteId) => state.notes.get(noteId))
+        .filter((note): note is NoteRef => note !== undefined),
+    };
   }
 
   async dependencyTree(
-    vaultId: string,
+    notebookId: string,
     rootNoteId: string,
     depth: number,
   ): Promise<GraphNode | null> {
-    const state = this.vault(vaultId);
+    const state = this.notebook(notebookId);
     const root = state.notes.get(rootNoteId);
     if (!root) return null;
 
     const seen = new Set<string>([rootNoteId]);
     let budget = GRAPH_LIMITS.maxNodes;
 
+    const edges = this.resolved(notebookId).edges;
     const walk = (note: NoteRef, level: number): GraphNode => {
       if (level >= depth || budget <= 0) return { note, depth: level, children: [] };
       const children: GraphNode[] = [];
-      for (const edge of state.edges.filter((each) => each.fromNoteId === note.noteId)) {
+      for (const edge of edges.filter((each) => each.fromNoteId === note.noteId)) {
         if (seen.has(edge.toNoteId) || budget <= 0) continue;
         const target = state.notes.get(edge.toNoteId);
         if (!target) continue;
@@ -155,48 +237,52 @@ export class InMemoryLinkGraph implements LinkGraph {
     return walk(root, 0);
   }
 
-  async backlinks(vaultId: string, noteId: string): Promise<NoteRef[]> {
-    const state = this.vault(vaultId);
-    return state.edges
-      .filter((edge) => edge.toNoteId === noteId)
+  async backlinks(notebookId: string, noteId: string): Promise<NoteRef[]> {
+    const state = this.notebook(notebookId);
+    const seen = new Set<string>();
+    return this.resolved(notebookId)
+      .edges.filter((edge) => edge.toNoteId === noteId)
       .map((edge) => state.notes.get(edge.fromNoteId))
-      .filter((note): note is NoteRef => note !== undefined);
+      .filter((note): note is NoteRef => note !== undefined)
+      .filter((note) => (seen.has(note.noteId) ? false : seen.add(note.noteId) !== undefined));
   }
 
-  async broken(vaultId: string): Promise<BrokenLink[]> {
-    const state = this.vault(vaultId);
-    return state.pending
-      .map((each) => {
+  async pending(notebookId: string): Promise<PendingLink[]> {
+    const state = this.notebook(notebookId);
+    return this.resolved(notebookId)
+      .pending.map((each) => {
         const from = state.notes.get(each.fromNoteId);
-        return from ? { fromNote: from, targetSlug: each.slug } : null;
+        return from ? { fromNote: from, targetName: each.name } : null;
       })
-      .filter((link): link is BrokenLink => link !== null);
+      .filter((link): link is PendingLink => link !== null);
   }
 
-  async orphans(vaultId: string, allNotes: NoteRef[]): Promise<NoteRef[]> {
-    const state = this.vault(vaultId);
-    const linked = new Set(state.edges.flatMap((edge) => [edge.fromNoteId, edge.toNoteId]));
+  async orphans(notebookId: string, allNotes: NoteRef[]): Promise<NoteRef[]> {
+    const linked = new Set(
+      this.resolved(notebookId).edges.flatMap((edge) => [edge.fromNoteId, edge.toNoteId]),
+    );
     return allNotes.filter((note) => !linked.has(note.noteId));
   }
 
-  async wholeGraph(vaultId: string): Promise<VaultGraph> {
-    const state = this.vault(vaultId);
+  async wholeGraph(notebookId: string): Promise<NotebookGraph> {
+    const state = this.notebook(notebookId);
+    const resolved = this.resolved(notebookId);
     const all = [...state.notes.values()];
-    const truncated = all.length > GRAPH_LIMITS.maxVaultNodes;
-    const nodes = truncated ? all.slice(0, GRAPH_LIMITS.maxVaultNodes) : all;
+    const truncated = all.length > GRAPH_LIMITS.maxNotebookNodes;
+    const nodes = truncated ? all.slice(0, GRAPH_LIMITS.maxNotebookNodes) : all;
     const indexOf = new Map(nodes.map((note, index) => [note.noteId, index]));
 
     const edges: Array<[number, number]> = [];
-    for (const edge of state.edges) {
+    for (const edge of resolved.edges) {
       const from = indexOf.get(edge.fromNoteId);
       const to = indexOf.get(edge.toNoteId);
       if (from !== undefined && to !== undefined) edges.push([from, to]);
     }
 
-    const pending: Array<{ from: number; targetSlug: string }> = [];
-    for (const link of state.pending) {
+    const pending: Array<{ from: number; targetName: string }> = [];
+    for (const link of resolved.pending) {
       const from = indexOf.get(link.fromNoteId);
-      if (from !== undefined) pending.push({ from, targetSlug: link.slug });
+      if (from !== undefined) pending.push({ from, targetName: link.name });
     }
 
     return { nodes, edges, pending, truncated };
@@ -212,23 +298,23 @@ export class InMemoryFacetIndex implements FacetIndex {
   private readonly kinds = new Map<string, Map<string, string>>();
   private readonly discarded = new Map<string, Set<string>>();
 
-  private vault(vaultId: string): void {
-    if (!this.portraits.has(vaultId)) this.portraits.set(vaultId, new Map());
-    if (!this.counters.has(vaultId)) this.counters.set(vaultId, new Map());
-    if (!this.kinds.has(vaultId)) this.kinds.set(vaultId, new Map());
-    if (!this.discarded.has(vaultId)) this.discarded.set(vaultId, new Set());
+  private notebook(notebookId: string): void {
+    if (!this.portraits.has(notebookId)) this.portraits.set(notebookId, new Map());
+    if (!this.counters.has(notebookId)) this.counters.set(notebookId, new Map());
+    if (!this.kinds.has(notebookId)) this.kinds.set(notebookId, new Map());
+    if (!this.discarded.has(notebookId)) this.discarded.set(notebookId, new Set());
   }
 
   async replaceFacets(
-    vaultId: string,
+    notebookId: string,
     noteId: string,
     facets: FacetSnapshot | null,
   ): Promise<void> {
-    this.vault(vaultId);
-    const portraits = this.portraits.get(vaultId) as Map<string, FacetSnapshot>;
-    const counters = this.counters.get(vaultId) as Map<string, number>;
-    const kinds = this.kinds.get(vaultId) as Map<string, string>;
-    const discarded = this.discarded.get(vaultId) as Set<string>;
+    this.notebook(notebookId);
+    const portraits = this.portraits.get(notebookId) as Map<string, FacetSnapshot>;
+    const counters = this.counters.get(notebookId) as Map<string, number>;
+    const kinds = this.kinds.get(notebookId) as Map<string, string>;
+    const discarded = this.discarded.get(notebookId) as Set<string>;
 
     // The old value is not in the event: it is in the portrait, which is why
     // the portrait per note exists (section 11.3).
@@ -258,17 +344,24 @@ export class InMemoryFacetIndex implements FacetIndex {
     else portraits.set(noteId, facets);
   }
 
-  async vaultNoteFacets(vaultId: string): Promise<Map<string, Record<string, string[]>>> {
-    this.vault(vaultId);
-    const portraits = this.portraits.get(vaultId) as Map<string, FacetSnapshot>;
+  async notebookNoteFacets(notebookId: string): Promise<Map<string, Record<string, string[]>>> {
+    this.notebook(notebookId);
+    const portraits = this.portraits.get(notebookId) as Map<string, FacetSnapshot>;
     return new Map([...portraits].map(([noteId, snapshot]) => [noteId, valuesOf(snapshot)]));
   }
 
-  async vaultFacetStats(vaultId: string): Promise<FacetStats> {
-    this.vault(vaultId);
-    const counters = this.counters.get(vaultId) as Map<string, number>;
-    const kinds = this.kinds.get(vaultId) as Map<string, string>;
-    const discarded = this.discarded.get(vaultId) as Set<string>;
+  async removeNotebook(notebookId: string): Promise<void> {
+    this.portraits.delete(notebookId);
+    this.counters.delete(notebookId);
+    this.kinds.delete(notebookId);
+    this.discarded.delete(notebookId);
+  }
+
+  async notebookFacetStats(notebookId: string): Promise<FacetStats> {
+    this.notebook(notebookId);
+    const counters = this.counters.get(notebookId) as Map<string, number>;
+    const kinds = this.kinds.get(notebookId) as Map<string, string>;
+    const discarded = this.discarded.get(notebookId) as Set<string>;
 
     const grouped = new Map<string, Array<{ value: string; count: number }>>();
     for (const [key, count] of counters) {
@@ -280,7 +373,7 @@ export class InMemoryFacetIndex implements FacetIndex {
     }
 
     return {
-      noteCount: (this.portraits.get(vaultId) as Map<string, FacetSnapshot>).size,
+      noteCount: (this.portraits.get(notebookId) as Map<string, FacetSnapshot>).size,
       facets: [
         ...[...grouped.entries()].map(([facet, values]) => ({
           facet,
@@ -300,70 +393,78 @@ export class InMemoryFacetIndex implements FacetIndex {
 }
 
 export class InMemoryStructureProjection implements StructureProjection {
-  private readonly vaults = new Map<string, VaultStructure>();
+  private readonly notebooks = new Map<string, NotebookStructure>();
 
-  async get(vaultId: string): Promise<VaultStructure | null> {
-    return this.vaults.get(vaultId) ?? null;
+  async get(notebookId: string): Promise<NotebookStructure | null> {
+    return this.notebooks.get(notebookId) ?? null;
   }
 
-  async upsertVault(vaultId: string, name: string): Promise<void> {
-    const current = this.vaults.get(vaultId);
-    this.vaults.set(vaultId, {
-      vaultId,
-      vaultName: name,
+  async upsertNotebook(notebookId: string, name: string): Promise<void> {
+    const current = this.notebooks.get(notebookId);
+    this.notebooks.set(notebookId, {
+      notebookId,
+      notebookName: name,
       folders: current?.folders ?? new Map(),
     });
   }
 
   async upsertFolder(
-    vaultId: string,
+    notebookId: string,
     folder: { folderId: string; name: string; description: string; parentFolderId: string | null },
   ): Promise<void> {
-    await this.upsertVault(vaultId, this.vaults.get(vaultId)?.vaultName ?? '');
-    this.vaults.get(vaultId)?.folders.set(folder.folderId, {
+    await this.upsertNotebook(notebookId, this.notebooks.get(notebookId)?.notebookName ?? '');
+    this.notebooks.get(notebookId)?.folders.set(folder.folderId, {
       name: folder.name,
       description: folder.description,
       parentFolderId: folder.parentFolderId,
     });
   }
 
-  async removeFolders(vaultId: string, folderIds: string[]): Promise<void> {
-    for (const folderId of folderIds) this.vaults.get(vaultId)?.folders.delete(folderId);
+  async removeFolders(notebookId: string, folderIds: string[]): Promise<void> {
+    for (const folderId of folderIds) this.notebooks.get(notebookId)?.folders.delete(folderId);
+  }
+
+  async removeNotebook(notebookId: string): Promise<void> {
+    this.notebooks.delete(notebookId);
   }
 }
 
 /** The note catalogue the health and lexical search read from. */
 export class InMemoryNoteCatalog implements NoteCatalog {
-  private readonly byVault = new Map<string, Array<NoteRef & { folderName: string }>>();
+  private readonly byNotebook = new Map<string, Array<NoteRef & { folderName: string }>>();
 
-  set(vaultId: string, notes: Array<NoteRef & { folderName: string }>): void {
-    this.byVault.set(vaultId, notes);
+  set(notebookId: string, notes: Array<NoteRef & { folderName: string }>): void {
+    this.byNotebook.set(notebookId, notes);
   }
 
-  async listNotes(vaultId: string): Promise<Array<NoteRef & { folderName: string }>> {
-    return this.byVault.get(vaultId) ?? [];
+  async listNotes(notebookId: string): Promise<Array<NoteRef & { folderName: string }>> {
+    return this.byNotebook.get(notebookId) ?? [];
   }
 }
 
 /**
  * The content index in memory. The DynamoDB adapter answers the same port by
- * walking every page of a Query; here the whole vault is already one array,
+ * walking every page of a Query; here the whole notebook is already one array,
  * which is exactly the behaviour the paged version has to reproduce.
  */
 export class InMemoryContentIndex implements ContentIndex {
-  private readonly byVault = new Map<string, Map<string, IndexedNote>>();
+  private readonly byNotebook = new Map<string, Map<string, IndexedNote>>();
 
-  async replaceNote(vaultId: string, note: IndexedNote): Promise<void> {
-    const vault = this.byVault.get(vaultId) ?? new Map<string, IndexedNote>();
-    vault.set(note.noteId, note);
-    this.byVault.set(vaultId, vault);
+  async replaceNote(notebookId: string, note: IndexedNote): Promise<void> {
+    const notebook = this.byNotebook.get(notebookId) ?? new Map<string, IndexedNote>();
+    notebook.set(note.noteId, note);
+    this.byNotebook.set(notebookId, notebook);
   }
 
-  async removeNote(vaultId: string, noteId: string): Promise<void> {
-    this.byVault.get(vaultId)?.delete(noteId);
+  async removeNote(notebookId: string, noteId: string): Promise<void> {
+    this.byNotebook.get(notebookId)?.delete(noteId);
   }
 
-  async scanVault(vaultId: string): Promise<IndexedNote[]> {
-    return [...(this.byVault.get(vaultId)?.values() ?? [])];
+  async removeNotebook(notebookId: string): Promise<void> {
+    this.byNotebook.delete(notebookId);
+  }
+
+  async scanNotebook(notebookId: string): Promise<IndexedNote[]> {
+    return [...(this.byNotebook.get(notebookId)?.values() ?? [])];
   }
 }

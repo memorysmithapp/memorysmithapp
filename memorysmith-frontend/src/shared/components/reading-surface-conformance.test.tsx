@@ -1,7 +1,7 @@
 /**
- * The reading surface, run against the PUBLISHED profile (RN-AGT-023).
+ * The reading surface, run against the specification (RN-AGT-023).
  *
- * The profile declares a set of notations under the `reading-surface` reader,
+ * The specification declares a set of notations under the `reading-surface` reader,
  * and the two sanctioned extractors decide none of them: they are behaviour of
  * this interface and of nothing else. A rendering assertion cannot live in a
  * JSON file — what a callout looks like is not something the suite can state —
@@ -9,8 +9,8 @@
  * once per entry, against the real components.
  *
  * **The entries asked for are those the profile ADDS to what a base parser
- * already does, and that is a decision, not a filter.** Profile v0.3.0
- * restated CommonMark and GFM inside `profile.json`, taking this reader from
+ * already does, and that is a decision, not a filter.** Specification v0.3.0
+ * restated CommonMark and GFM inside `spec.json`, taking this reader from
  * 12 entries to 35. Writing an expectation for each would mean asserting that
  * emphasis renders as `<em>` — asserting that react-markdown works, which is a
  * claim about somebody else's library and not about this surface. What the
@@ -19,7 +19,7 @@
  * one case each and named.
  *
  * Which entries are exempt is `DELEGATED_TO_THE_BASE_PARSER` in the contracts.
- * It was a filter on `entry.ring` until profile v0.4.0 removed the field, and
+ * It was a filter on `entry.ring` until specification v0.4.0 removed the field, and
  * the last case here is what keeps the move from costing anything: an entry in
  * neither list fails, exactly as an unclassified ring never could.
  *
@@ -43,9 +43,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   DECLARED_SILENCE,
   DELEGATED_TO_THE_BASE_PARSER,
-  MARKDOWN_PROFILE_VERSION,
   RECOGNISED_NOTATION,
 } from '@memorysmith/contracts';
+import { queryKeys } from '../api/query-keys';
 
 function memoryStorage(): Storage {
   const map = new Map<string, string>();
@@ -72,6 +72,14 @@ vi.stubGlobal('matchMedia', () => ({
 
 let render: (markdown: string) => string;
 
+/**
+ * The hook loads the whole i18n bundle and the markdown pipeline before the
+ * first case, which on a cold or busy machine takes longer than the ten
+ * seconds vitest allows a hook by default. The work is the same; what changes
+ * is how long the suite is willing to wait for it.
+ */
+const LOADING_THE_PIPELINE_MS = 30_000;
+
 beforeAll(async () => {
   await import('../../i18n');
   const { WritableContent } = await import('./WritableContent');
@@ -82,16 +90,16 @@ beforeAll(async () => {
         <MemoryRouter>
           <WritableContent
             raw={markdown}
-            vaultSlug="a-vault"
+            notebookId="01J8X2K9QZ3M4N5P6R7S8T9V0A"
             baseRevision={null}
             writable={true}
             write={() => Promise.resolve('rev-2')}
-            invalidates={[]}
+            invalidates={queryKeys.note('01J8X2K9QZ3M4N5P6R7S8T9V0A', 'unused-by-this-case')}
           />
         </MemoryRouter>
       </QueryClientProvider>,
     );
-});
+}, LOADING_THE_PIPELINE_MS);
 
 /** What each declared entry has to be true of, once rendered. */
 const EXPECTED: Record<string, (html: string) => void> = {
@@ -117,6 +125,32 @@ const EXPECTED: Record<string, (html: string) => void> = {
     // literal `![[...]]` is what this entry declares.
     expect(html).not.toContain('![[');
     expect(html).toMatch(/embed|status/);
+  },
+  attachment: (html) => {
+    /**
+     * A file of the notebook that is not a note. The notebook of this case
+     * keeps NONE — the extension of the name decides nothing since #166 — so
+     * the reference reaches nothing and is reported the way a pending link is
+     * (§5.8, RN-DSC-049). What it must never be is a link: a reader following
+     * it would land on a note nobody will ever write.
+     *
+     * That a target the notebook DOES keep is drawn by its type is the other
+     * half, and it is asserted where the notebook is real: the resolution in
+     * `image-and-attachment.test.ts`, and the drawing in the functional suite.
+     */
+    expect(html).toContain('engelbart.jpg');
+    expect(html).toMatch(/pending/);
+    expect(html).not.toContain('![[');
+    expect(html).not.toMatch(/<a[^>]*>engelbart/);
+  },
+  'image-dimensions': (html) => {
+    // The pipe carries width and height, and neither it nor the digits reach
+    // the page as text (RN-DSC-048).
+    expect(html).toContain('width="100"');
+    expect(html).toContain('height="145"');
+    expect(html).toContain('alt="Engelbart"');
+    expect(html).not.toContain('100x145');
+    expect(html).not.toContain('Engelbart|');
   },
   'pending-link-display': (html) => {
     expect(html).toContain('wikilink-pending');
@@ -146,7 +180,7 @@ const EXPECTED: Record<string, (html: string) => void> = {
     expect(html).not.toContain('^article-75');
   },
   'math-inline': (html) => {
-    // The example carries both halves since profile v0.4.0: two prices that
+    // The example carries both halves since specification v0.4.0: two prices that
     // must survive as text, and one formula that must render. The old
     // expectation asserted only the second and passed while `100 e o frete R`
     // was being typeset as mathematics between them.
@@ -158,7 +192,7 @@ const EXPECTED: Record<string, (html: string) => void> = {
     expect(html).toContain('katex');
     expect(html).not.toContain('$$');
   },
-  // `sub-sup` was here until profile v0.4.0 stopped declaring it. The
+  // `sub-sup` was here until specification v0.4.0 stopped declaring it. The
   // behaviour is unchanged and the assertion moved to the rejections block
   // below, which now reads `DECLARED_SILENCE` — the form is no longer the
   // profile's to describe, and it is still ours to answer for.
@@ -178,7 +212,7 @@ const EXPECTED: Record<string, (html: string) => void> = {
     expect(html).toContain('Three quotes gathered');
     expect(html).not.toContain('[ ]');
     expect(html).not.toContain('[x]');
-    // The example nests since profile v0.4.0, and a nested item is a task like
+    // The example nests since specification v0.4.0, and a nested item is a task like
     // any other: the box belongs to the item, not to the top level. `[X]` is
     // the capital form, which GFM accepts and which has to leave the page too.
     expect(html).not.toContain('[X]');
@@ -197,7 +231,7 @@ const EXPECTED: Record<string, (html: string) => void> = {
   },
   strikethrough: (html) => {
     // Two tildes and only two. The example carries both halves on one line
-    // since profile v0.4.0, which is the point: `~~revoked~~` is struck and
+    // since specification v0.4.0, which is the point: `~~revoked~~` is struck and
     // `H~2~O` is not. A renderer accepting the single tilde would strike the
     // middle of the second one — a wrong answer where the profile promises
     // none at all, and the reason `singleTilde` is off.
@@ -218,7 +252,7 @@ const surface = RECOGNISED_NOTATION.filter(
   (entry) => entry.reader === 'reading-surface' && !DELEGATED_TO_THE_BASE_PARSER.has(entry.id),
 );
 
-describe(`the reading surface implements profile ${MARKDOWN_PROFILE_VERSION}`, () => {
+describe('the reading surface implements the specification', () => {
   it.each(surface)('renders $id as the profile declares', ({ id, example }) => {
     const expected = EXPECTED[id];
     // A declared notation with no expectation here is a failure of this test,
@@ -242,7 +276,7 @@ describe(`the reading surface implements profile ${MARKDOWN_PROFILE_VERSION}`, (
  * exist (RN-DSC-033), and an affordance without the function it promises is
  * worse than the raw text.
  *
- * These were read off `recognised: false` until profile v0.4.0 stopped
+ * These were read off `recognised: false` until specification v0.4.0 stopped
  * carrying it — a catalogue of the forms a specification declines can never be
  * finished, so §8 became one rule about all of them at once. What this product
  * does with them did not change, so the declaration is ours now, in
@@ -312,7 +346,7 @@ describe('a rejected notation is rendered as what it is: text', () => {
 /**
  * The raw HTML policy is a **security boundary** and not a rendering
  * preference, which is why it is asserted with the payload that would matter
- * rather than with a `<b>` (profile 5.10). A vault is written by several
+ * rather than with a `<b>` (profile 5.10). A notebook is written by several
  * people and by agents; a page that renders arbitrary HTML out of one is a
  * script injection whose trigger is written by whoever wrote the note.
  */
@@ -360,7 +394,7 @@ describe('a dollar sign that is not opening a formula stays a dollar sign', () =
   });
 
   it('leaves two prices alone when nothing separates them from the amount', () => {
-    // The INSIDE edge, added by profile v0.4.0 and the reason it was added.
+    // The INSIDE edge, added by specification v0.4.0 and the reason it was added.
     // Neither `$` here sits next to a space, so the outside edge alone decides
     // nothing and the sentence lost its middle: `100 e o frete R` came out
     // typeset as mathematics, with the `R` and the `200` stranded either side.
@@ -427,7 +461,7 @@ describe('a dollar sign that is not opening a formula stays a dollar sign', () =
  * These are the entries v0.3.0 brought that are worth a test even though the
  * form itself is a restatement of somebody else's specification. Each one is a
  * place where knowing CommonMark is not enough to predict what happens here,
- * and each is stated by `profile.json` in the `effect` of the entry — so the
+ * and each is stated by `spec.json` in the `effect` of the entry — so the
  * profile is what is being read, and not our habits.
  */
 describe('a base notation that means something different here', () => {
@@ -546,7 +580,7 @@ describe('a picture in a note, and the addresses around it', () => {
  * (profile §7.3): where expansion cannot happen the embed becomes a link, and
  * it is never dropped.
  *
- * The table cell was named by profile v0.4.0 and it is the sharpest of the
+ * The table cell was named by specification v0.4.0 and it is the sharpest of the
  * three, because the split that decides expansion runs on the raw string: a
  * cut inside a table row did not merely fail to expand, it ended the run
  * mid-row and left the parser an unterminated table.
@@ -598,7 +632,7 @@ describe('an embed where no block fits', () => {
 });
 
 /**
- * §7.10, the one section of profile v0.4.0 that is about disclosure rather
+ * §7.10, the one section of specification v0.4.0 that is about disclosure rather
  * than rendering.
  *
  * An image whose destination names a host is a request to that host, made when

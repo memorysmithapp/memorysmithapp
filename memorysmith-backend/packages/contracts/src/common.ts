@@ -18,7 +18,7 @@ export const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
 
 export const roleSchema = z.enum(['NONE', 'VIEWER', 'EDITOR', 'OWNER']);
 export const membershipRoleSchema = z.enum(['EDITOR', 'VIEWER']);
-export const vaultRoleLimitSchema = z.literal('VIEWER');
+export const notebookRoleLimitSchema = z.literal('VIEWER');
 
 export const subscriptionStatusSchema = z.enum([
   'pending_approval',
@@ -63,7 +63,6 @@ export const authorshipSchema = z.object({
 export const contentRoleSchema = z.enum(['body', 'guidance', 'template']);
 
 export const removalPolicySchema = z.enum(['CASCADE', 'REJECT_IF_NOT_EMPTY']);
-export const slugConflictPolicySchema = z.enum(['REJECT', 'RENAME']);
 
 export type Role = z.infer<typeof roleSchema>;
 export type MembershipRole = z.infer<typeof membershipRoleSchema>;
@@ -75,4 +74,3 @@ export type AuthorshipDto = z.infer<typeof authorshipSchema>;
 export type AgentIdentityDto = z.infer<typeof agentIdentitySchema>;
 export type ContentRoleName = z.infer<typeof contentRoleSchema>;
 export type RemovalPolicyName = z.infer<typeof removalPolicySchema>;
-export type SlugConflictPolicyName = z.infer<typeof slugConflictPolicySchema>;
