@@ -23,6 +23,8 @@ issues each entry cites.
 
 - **The Templates page says it is the page of every Template.** It showed every Template of a notebook under the header of a single folder: the notebook as the heading and, right below, the hint of a folder page — "suggested layout for notes **in this folder**" — over the Templates of six. It is headed *Templates* now, under the name of the notebook, and its hint says that each folder may declare a layout and how many of this notebook do. (#189)
 
+- **The welcome page stops promising two things the interface does not do.** It said a note shows *what links back to it*, and no screen shows backlinks; and that an export is *Markdown files in folders, and nothing else*, when it is one `.notebook` file. It now says what a note does show — its properties and its text, each link taking you to the note it reaches or saying it reaches none yet — and what an export carries: the notes in Markdown, the folders, the Guidance and the Templates, the history and the files when chosen, in the file an import reads. (#187)
+
 ## [0.6.1] - 2026-09-21
 
 ### Changed

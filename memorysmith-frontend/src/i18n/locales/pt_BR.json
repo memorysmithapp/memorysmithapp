@@ -359,7 +359,7 @@
       },
       "folders": {
         "term": "Pastas e notas",
-        "definition": "O painel lateral é a estrutura do caderno, na ordem que o próprio caderno declara. Uma nota mostra suas propriedades, seus links e o que aponta de volta para ela."
+        "definition": "O painel lateral é a estrutura do caderno, na ordem que o próprio caderno declara. Uma nota mostra suas propriedades e o seu texto, e cada link leva à nota que alcança — ou diz que ainda não alcança nenhuma."
       },
       "guidance": {
         "term": "Orientação e Modelos",
@@ -375,7 +375,7 @@
       },
       "transfers": {
         "term": "Transferências",
-        "definition": "Exportar um caderno, ou importar um, pelo menu ao lado da sua foto. O que sai são arquivos Markdown em pastas, e nada além disso."
+        "definition": "Exportar um caderno, ou importar um, pelo ícone ao lado da sua foto. O que sai é um arquivo .notebook com o caderno — as notas em Markdown, as pastas, a Orientação e os Modelos, e o histórico e os arquivos quando você escolhe — e é esse arquivo que a importação lê."
       }
     },
     "connector": {

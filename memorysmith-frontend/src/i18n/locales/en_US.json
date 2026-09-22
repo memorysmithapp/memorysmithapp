@@ -356,7 +356,7 @@
       },
       "folders": {
         "term": "Folders and notes",
-        "definition": "The side panel is the structure of the notebook, in the order the notebook itself declares. A note shows its properties, its links and what links back to it."
+        "definition": "The side panel is the structure of the notebook, in the order the notebook itself declares. A note shows its properties and its text, and each link takes you to the note it reaches — or says it reaches none yet."
       },
       "guidance": {
         "term": "Guidance and Templates",
@@ -372,7 +372,7 @@
       },
       "transfers": {
         "term": "Transfers",
-        "definition": "Exporting a notebook, or importing one, from the menu beside your picture. What comes out is Markdown files in folders, and nothing else."
+        "definition": "Exporting a notebook, or importing one, from the icon beside your picture. What comes out is a .notebook file holding the notebook — the notes in Markdown, the folders, the Guidance and the Templates, and the history and the files when you choose them — and that file is what an import reads."
       }
     },
     "connector": {
