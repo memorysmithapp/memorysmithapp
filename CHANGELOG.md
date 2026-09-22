@@ -21,6 +21,8 @@ issues each entry cites.
 
 - **Two strings stop skipping the locale.** The notice before a rename put two counts in one sentence and pluralised neither, so renaming a note with one incoming link read "1 links para o nome antigo ficam pendentes"; each clause is now pluralised on its own, "1 link para o nome antigo fica pendente". And a callout written without a title — `> [!note]` — was titled with its type in English whatever the reader spoke; the types the product draws with their own icon are titled in the locale of the reader, *Nota*, *Aviso*, *Dica*, and a type nobody translated still titles itself, as the vocabulary is open (§7.1). (#188)
 
+- **The Templates page says it is the page of every Template.** It showed every Template of a notebook under the header of a single folder: the notebook as the heading and, right below, the hint of a folder page — "suggested layout for notes **in this folder**" — over the Templates of six. It is headed *Templates* now, under the name of the notebook, and its hint says that each folder may declare a layout and how many of this notebook do. (#189)
+
 ## [0.6.1] - 2026-09-21
 
 ### Changed

@@ -108,6 +108,8 @@
     "templatesHint_one": "{{count}} folder with a suggested layout",
     "templatesHint_other": "{{count}} folders with a suggested layout",
     "noTemplates": "No folder in this notebook declares a Template.",
+    "templatesPageHint_one": "Each folder may declare a suggested layout for its notes. {{count}} folder of this notebook declares one, shown below; the server never validates a note against it.",
+    "templatesPageHint_other": "Each folder may declare a suggested layout for its notes. {{count}} folders of this notebook declare one, each shown below; the server never validates a note against them.",
     "templateOf": "Template of folder {{folder}}",
     "openFolder": "Open folder",
     "content": "Content",

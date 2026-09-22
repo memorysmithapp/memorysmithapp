@@ -107,6 +107,8 @@
     "templates": "Modelos",
     "templatesHint_one": "{{count}} pasta com leiaute sugerido",
     "templatesHint_other": "{{count}} pastas com leiaute sugerido",
+    "templatesPageHint_one": "Cada pasta pode declarar um leiaute sugerido para as notas dela. {{count}} pasta deste caderno declara um, mostrado abaixo; o servidor nunca valida uma nota contra ele.",
+    "templatesPageHint_other": "Cada pasta pode declarar um leiaute sugerido para as notas dela. {{count}} pastas deste caderno declaram um, cada um mostrado abaixo; o servidor nunca valida uma nota contra eles.",
     "noTemplates": "Nenhuma pasta deste caderno declara um Modelo.",
     "templateOf": "Modelo da pasta {{folder}}",
     "openFolder": "Abrir pasta",
