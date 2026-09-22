@@ -17,6 +17,8 @@ issues each entry cites.
 
 - **The links of a note say what each one reaches, and `read_note` stops telling an agent its picture is pending.** The contract of `GET …/notes/:n/links` declares a `kind` for every target — a note, a file the notebook keeps, or nothing yet — and the graph computes it, but the route dropped it on the way out, so an embedded file and a pending link answered the same object. The connector read the missing field as *pending*, which is what `read_note` said about every file a note embeds. The response now carries it, and the cases that read it parse the response with the schema the contract publishes (RN-AGT-034). (#186)
 
+- **The notebook tree shows the notes of a folder in the order they were put in.** The order of the notes in a folder is content, and an agent sets it with `reorder_note` — but the listing of a whole notebook answered in the order the notes were created, while the listing of one folder answered the defined order. The sidebar and the export chooser read the first one, so a note moved to the top stayed where it was born. The listing of a notebook now answers each folder in its defined order, like the listing of one folder always did (PP9). (#184)
+
 ## [0.6.1] - 2026-09-21
 
 ### Changed

@@ -178,8 +178,22 @@ export class ListNotes {
     // The notes of a notebook are the notes of its TREE: a note whose folder
     // was removed is invalid and out of every listing, although its item is
     // still there waiting for the purge (RN-KNW-046).
+    //
+    // And in the defined order within each folder (PP9), as the listing of one
+    // folder always was. The repository answers in key order, which is the
+    // order of creation, so a note the agent moved to the top with
+    // `reorder_note` stayed where it was born in every screen that reads the
+    // whole notebook (#184). `Position.compare` is by code unit, which is what
+    // puts `Zz` — the key of a note moved first — before `a0`.
     const notes = await this.deps.notes.listByNotebook(input.notebookId);
-    return ok(notes.filter((note) => notebook.value.folders.has(note.folderId)));
+    return ok(
+      notes
+        .filter((note) => notebook.value.folders.has(note.folderId))
+        .sort(
+          (left, right) =>
+            left.position.compare(right.position) || left.id.value.localeCompare(right.id.value),
+        ),
+    );
   }
 }
 
