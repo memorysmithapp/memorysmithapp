@@ -15,6 +15,7 @@
     "./adapters/aws": "./src/adapters/aws.ts",
     "./adapters/reprojection": "./src/adapters/reprojection.ts",
     "./adapters/http": "./src/adapters/routes.ts",
+    "./adapters/dispatch": "./src/adapters/dispatch.ts",
     "./main": "./src/main/handler.ts"
   },
   "scripts": {

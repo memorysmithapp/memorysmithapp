@@ -8,7 +8,7 @@
 
 import { createZip, readZip } from '@memorysmith/svc-portability/adapters/zip';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { searchResultSchema } from '@memorysmith/contracts';
+import { noteLinksSchema, searchResultSchema } from '@memorysmith/contracts';
 import { buildTestApp } from './wiring.js';
 
 type App = ReturnType<typeof buildTestApp>;
@@ -217,18 +217,17 @@ describe('Discovery answers over the API', () => {
     ).json()) as { folderTrail: string[] };
     expect(note.folderTrail).toEqual(['Normas']);
 
-    const links = (await (
-      await call(`/discovery/notebooks/${notebookId}/notes/${notes['achado']}/links`)
-    ).json()) as {
-      links: Array<{
-        target: string;
-        by: string | null;
-        notes: Array<{ noteId: string; folderTrail: string[] }>;
-      }>;
-    };
+    // Parsed by the schema the contract publishes, so a field the route drops
+    // is a failure here and not a consumer guessing (#186).
+    const links = noteLinksSchema.parse(
+      await (
+        await call(`/discovery/notebooks/${notebookId}/notes/${notes['achado']}/links`)
+      ).json(),
+    );
     expect(links.links).toEqual([
       {
         target: 'Lei 14.133',
+        kind: 'note',
         by: 'name',
         notes: [expect.objectContaining({ noteId: notes['lei'], folderTrail: ['Normas'] })],
       },

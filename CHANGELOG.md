@@ -15,6 +15,8 @@ issues each entry cites.
 
 - **A file a notebook keeps stops counting as a pending link.** In AWS the graph never heard that a file was kept or deleted: the rule feeding the discovery projection did not carry `FileKept` nor `FileDeleted`, so every `![[file]]` of a file that exists was a pending link, and a notebook with one real pending link and 49 embedded pictures showed **50** on its dashboard. Every test passed, because they hand the events straight to the projector. Both events are routed now, and a case compares the rule with the events the projector handles. Routing them alone would not have been enough: the graph decided whether a target was a file at the moment the note was written, so a note written before its picture was kept would have stayed pending for ever. It is decided when the graph is read now, as the in-memory graph always did. **The files kept before this version are learned by `reproject-links`**, which now restates the files of every notebook with its notes, and has to run once on each environment after the delivery (RN-DSC-061). (#185)
 
+- **The links of a note say what each one reaches, and `read_note` stops telling an agent its picture is pending.** The contract of `GET …/notes/:n/links` declares a `kind` for every target — a note, a file the notebook keeps, or nothing yet — and the graph computes it, but the route dropped it on the way out, so an embedded file and a pending link answered the same object. The connector read the missing field as *pending*, which is what `read_note` said about every file a note embeds. The response now carries it, and the cases that read it parse the response with the schema the contract publishes (RN-AGT-034). (#186)
+
 ## [0.6.1] - 2026-09-21
 
 ### Changed
