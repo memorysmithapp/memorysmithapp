@@ -993,7 +993,12 @@ describe('Where the links of a note go (RN-AGT-034)', () => {
       ['n3', ['Rascunhos']],
     ]);
     expect(byTarget.get('D1')).toMatchObject({ by: 'alias', notes: [{ noteId: 'n4' }] });
-    expect(byTarget.get('Portaria 9')).toEqual({ target: 'Portaria 9', by: null, notes: [] });
+    expect(byTarget.get('Portaria 9')).toEqual({
+      target: 'Portaria 9',
+      kind: 'pending',
+      by: null,
+      notes: [],
+    });
   });
 
   it('answers nothing for a note the projection does not hold', async () => {

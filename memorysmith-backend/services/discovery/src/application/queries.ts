@@ -129,6 +129,7 @@ export class NoteLinks {
     Result<
       Array<{
         target: string;
+        kind: 'note' | 'attachment' | 'pending';
         by: 'name' | 'alias' | null;
         notes: Array<NoteRef & { folderTrail: string[] }>;
       }>,
@@ -156,6 +157,11 @@ export class NoteLinks {
     return ok(
       targets.map((each) => ({
         target: each.target,
+        // Declared by the contract and computed by the graph, and it used to be
+        // dropped right here: an embedded file and a pending link answered the
+        // same object, and `read_note` told an agent its picture was pending
+        // (#186).
+        kind: each.kind,
         by: each.by,
         notes: each.notes.map((note) => ({ ...note, folderTrail: trailOf(note.folderId) })),
       })),

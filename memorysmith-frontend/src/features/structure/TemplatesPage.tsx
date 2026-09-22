@@ -60,11 +60,18 @@ export function TemplatesPage() {
   return (
     <article className="content-pane">
       <NotebookBreadcrumb items={[{ label: t('structure.templates') }]} />
-      <p className="content-kicker">{t('structure.templates')}</p>
-      <h1>{structure.notebook.name}</h1>
-      <p className="hint">{t('folder.templateHint')}</p>
+      {/* The page of every Template of the notebook, and it says so. It wore
+          the header of a folder page — the notebook as the heading and the
+          hint of ONE folder, "notes in this folder", over the Templates of
+          six (#189). */}
+      <p className="content-kicker">{structure.notebook.name}</p>
+      <h1>{t('structure.templates')}</h1>
 
-      {templated.length === 0 && <p>{t('structure.noTemplates')}</p>}
+      {templated.length === 0 ? (
+        <p>{t('structure.noTemplates')}</p>
+      ) : (
+        <p className="hint">{t('structure.templatesPageHint', { count: templated.length })}</p>
+      )}
       {templated.map(({ folder, path }, index) => {
         const query = queries[index];
         const template = query?.data;

@@ -6,6 +6,7 @@ import {
   type AnchorHTMLAttributes,
   type HTMLAttributes,
   type ImgHTMLAttributes,
+  type MouseEvent,
   type ReactNode,
 } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -48,13 +49,25 @@ interface MarkdownProps {
 type LiProps = HTMLAttributes<HTMLLIElement> & { node?: unknown };
 
 /**
+ * What react-markdown hands a component beside the attributes: the hast
+ * element it came from. It is not an attribute, and spread onto the element
+ * it reached the page as `node="[object Object]"` on every link, image and
+ * code span (#190).
+ */
+type WithNode<T> = T & { node?: unknown };
+
+/**
  * An image, with the dimensions the specification puts in its alt text
  * (RN-DSC-048). What precedes the pipe is the description and is never
  * dropped; what follows it is width, or width and height, in CSS pixels, and
  * never appears as text. A value that is neither stays part of the
  * description, because deleting an accessibility label is the worse failure.
  */
-function MarkdownImage({ alt, ...rest }: ImgHTMLAttributes<HTMLImageElement>) {
+function MarkdownImage({
+  alt,
+  node: _node,
+  ...rest
+}: WithNode<ImgHTMLAttributes<HTMLImageElement>>) {
   const read = readImageAlt(alt ?? '');
   return (
     <img
@@ -66,7 +79,44 @@ function MarkdownImage({ alt, ...rest }: ImgHTMLAttributes<HTMLImageElement>) {
   );
 }
 
-function MarkdownAnchor({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAnchorElement>) {
+/**
+ * A link to a place in the same note: a footnote and its way back (§7.12),
+ * or an anchor an author wrote.
+ *
+ * It went down the branch of the web, with `target="_blank"`, so following a
+ * footnote opened the whole application in another tab (#190). And a bare
+ * hash would not have been enough either: the note scrolls inside
+ * `.notebook-content`, not in the window, and an embedded note renders the
+ * same identifiers a second time. So the target is looked up inside the note
+ * the link was drawn in, and brought into view in whatever scrolls it; the
+ * address of the page does not change, because nothing was navigated.
+ */
+function InPageAnchor({
+  href,
+  children,
+  ...rest
+}: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) {
+  const follow = (event: MouseEvent<HTMLAnchorElement>): void => {
+    const id = decodeURIComponent(href.slice(1));
+    const note = event.currentTarget.closest('.markdown');
+    const target = note?.querySelector(`[id="${CSS.escape(id)}"]`);
+    if (!(target instanceof HTMLElement)) return;
+    event.preventDefault();
+    target.scrollIntoView({ block: 'center' });
+  };
+  return (
+    <a href={href} onClick={follow} {...rest}>
+      {children}
+    </a>
+  );
+}
+
+function MarkdownAnchor({
+  href,
+  children,
+  node: _node,
+  ...rest
+}: WithNode<AnchorHTMLAttributes<HTMLAnchorElement>>) {
   const { t } = useTranslation();
   const notebookId = useNotebookId();
   // An attachment is a file of the notebook that is not a note, and this product
@@ -137,6 +187,13 @@ function MarkdownAnchor({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAn
       </Link>
     );
   }
+  if (href.startsWith('#')) {
+    return (
+      <InPageAnchor href={href} {...rest}>
+        {children}
+      </InPageAnchor>
+    );
+  }
   return (
     <a href={href} target="_blank" rel="noreferrer" {...rest}>
       {children}
@@ -162,7 +219,12 @@ function MarkdownAnchor({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAn
  * parsed as HTML — the boundary §7.9 draws, held at the one place a
  * highlighter would otherwise breach it.
  */
-function MarkdownCode({ className, children, ...rest }: HTMLAttributes<HTMLElement>) {
+function MarkdownCode({
+  className,
+  children,
+  node: _node,
+  ...rest
+}: WithNode<HTMLAttributes<HTMLElement>>) {
   if (className?.includes('language-mermaid')) {
     return <MermaidDiagram code={String(children).trim()} />;
   }
@@ -274,6 +336,9 @@ function dropBox(children: ReactNode): ReactNode {
 }
 export function Markdown({ children, source, onToggleTask, writable = false }: MarkdownProps) {
   const text = toUnixNewlines(children);
+  const { t, i18n } = useTranslation();
+  const calloutTitle = (kind: string): string | undefined =>
+    i18n.exists(`callout.${kind}`) ? t(`callout.${kind}`) : undefined;
 
   return (
     <div className="markdown">
@@ -291,7 +356,7 @@ export function Markdown({ children, source, onToggleTask, writable = false }: M
            * the profile says they get, which is nothing (profile 5.9).
            */
           [remarkGfm, { singleTilde: false }],
-          remarkCallouts,
+          [remarkCallouts, { titleOf: calloutTitle }],
           remarkHighlight,
           remarkComments,
           remarkBlockIds,
@@ -304,6 +369,16 @@ export function Markdown({ children, source, onToggleTask, writable = false }: M
         // a security boundary rather than a rendering preference, because a
         // notebook is written by several people and by agents (profile 5.10).
         rehypePlugins={[[rehypeKatex, { throwOnError: false }]]}
+        // Footnotes (§7.12): the words around them are the reader's, and the
+        // label heads the notes gathered at the end of the note, where a
+        // reader sees it — GFM hides it, and nothing in this stylesheet was
+        // hiding anything, so it was a visible heading in English (#190).
+        remarkRehypeOptions={{
+          footnoteLabel: t('note.footnotes'),
+          footnoteLabelProperties: { className: ['footnotes-label'] },
+          footnoteBackLabel: (referenceIndex: number) =>
+            t('note.footnoteBack', { number: referenceIndex + 1 }),
+        }}
         // Which addresses this surface will follow, and the reason the stock
         // filter is not doing it, are in `address.ts` (RN-DSC-039).
         urlTransform={followable}

@@ -153,11 +153,13 @@ export function NoteEditor({
             </p>
           ) : (
             <p className="editor-notice">
+              {/* Two counts in one sentence, and a plural takes one: each
+                  clause is pluralised on its own and then placed (#188). */}
               {t('editor.willBeRenamed', {
                 from: currentName,
                 to: nextName,
-                losing,
-                gaining,
+                losing: t('editor.renameLosing', { count: losing }),
+                gaining: t('editor.renameGaining', { count: gaining }),
               })}
             </p>
           )

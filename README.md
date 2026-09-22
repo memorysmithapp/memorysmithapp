@@ -374,7 +374,7 @@ pnpm -C memorysmith-infra recount-storage --environment production
 pnpm -C memorysmith-infra reproject-links --environment production
 ```
 
-`recount-storage` adds up the content each subscription holds and rewrites its storage counter; run it with the accounts idle, because a write that lands during the scan can be counted by it and by the relay. `reproject-links` forgets the link graph of every notebook and resolves every link again, from the notes themselves. Both are the product's own code, both report first and write only with `--apply`, and `reproject-links` exits with `2` when an edge was lost.
+`recount-storage` adds up the content each subscription holds and rewrites its storage counter; run it with the accounts idle, because a write that lands during the scan can be counted by it and by the relay. `reproject-links` forgets the link graph of every notebook and resolves every link again, from the notes themselves and the files each notebook keeps. Both are the product's own code, both report first and write only with `--apply`, and `reproject-links` exits with `2` when an edge was lost.
 
 ## Tearing staging down
 

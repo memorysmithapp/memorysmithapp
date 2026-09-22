@@ -484,6 +484,7 @@ Knowledge:  NotebookCreated · NotebookRenamed · NotebookDeleted · NotebookPur
             FolderAdded · FolderRenamed · FolderDescribed · FolderMoved · FolderReordered
             FolderRemoved · TemplateUpdated · TemplateDeleted · TemplatePurged
             NoteCreated · NoteUpdated · NoteReordered · NoteMoved · NoteDeleted · NotePurged
+            FileKept · FileDeleted
             (retired, kept parseable: NoteRestored · NotebookRestored)
 Discovery:  NoteLinksResolved · NoteIndexed · LinkBroken
 ```
@@ -858,7 +859,7 @@ None of that happens in the aggregate: whoever talks to the `ContentStore` is th
 
 Three projections over the same events. All of them **derived** (PE5): deleting and rebuilding from zero is a supported operation, and it is the recovery plan for all three. The business rules are in `software-vision.md` §10.
 
-**And for the link graph it is a command, not a plan.** `reproject-links` runs `reproject.ts` of the core against an environment: it forgets every edge, backlink, pending link and alias edge of a notebook, restates what the notebook answers to from the notes themselves, and lets the ordinary write path resolve every target again — deliberately the product's own code, because a rebuild taking its own path to the table would be a second implementation of the projection, and the day the two disagreed the rebuild would be the one nobody tested. It reports first and writes only with `--apply`. It exists because 0.6.0 retired the rule the graph in the table had been built by, and it stays because that is what PE5 costs.
+**And for the link graph it is a command, not a plan.** `reproject-links` runs `reproject.ts` of the core against an environment: it forgets every edge, backlink, pending link and alias edge of a notebook, restates what the notebook answers to from the notes themselves and from the files it keeps, and lets the ordinary write path resolve every target again — deliberately the product's own code, because a rebuild taking its own path to the table would be a second implementation of the projection, and the day the two disagreed the rebuild would be the one nobody tested. It reports first and writes only with `--apply`. It exists because 0.6.0 retired the rule the graph in the table had been built by, and it stays because that is what PE5 costs.
 
 **There are three sanctioned readers of content, and the third one is not here.** `noteName`, in `packages/kernel`, reads the name of a note: the `name:` of its frontmatter, and nothing else (RN-KNW-035). It lives in the kernel because **Knowledge needs it synchronously, on the write** — a listing cannot wait for a projection to know what a note is called — and Discovery needs the same answer when it resolves a link. One function, two contexts, and no way for them to disagree.
 
@@ -877,6 +878,8 @@ Both sort **before** `FOLDER#`, which is the lower bound of the Query that loads
 **The bytes are served from the object store**, through a link minted per request and signed, and never proxied by the API: an `<img>` cannot carry a bearer token, and a file somebody uploaded has no business running inside the origin of the product. What is drawn is served `inline` and everything else `attachment`.
 
 **Discovery learns what a notebook keeps from the events**, `FileKept` and `FileDeleted`, and holds one `ATTACH#` item per name. Resolution then answers three things instead of two — a note, an attachment, nothing — and the reading surface draws each one for what it is (RN-DSC-061).
+
+**Whether a target is a file is decided when the graph is read, not when the note is written.** A file is kept and deleted on its own, and neither event rewrites a note, so a target no note answers is stored as pending and every reader of the pending links sets aside the ones a kept file answers. Deciding it at the write froze the answer at that instant: a note written before its picture was kept stayed pending for ever. The rule in front of the projection queue carries both file events, and a case compares it with the events the projector handles, because a rule that forgets one passes every test of the projector and fails only in AWS.
 
 ### 11.0 The notation, declared once as data
 

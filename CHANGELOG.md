@@ -11,6 +11,26 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-09-22
+
+### Added
+
+- **Footnotes are part of the specification, and they work.** `[^label]` in the text and `[^label]: …` on a line of their own were rendered by the parser without anybody having decided it, and half of it was wrong: following a footnote opened the whole application in a new tab, the notes were headed by *Footnotes* in English whatever the reader spoke, and Discovery read each definition as a link reference definition, so `[^1]: Wikipedia. …` made every footnote a pending link named after the first word of its source — the one thing the specification says an undescribed form must never produce. The specification now describes them in §7.12, with the crossing in §3.8 and three conformance cases: a reference is a link to a note gathered at the end of the note, numbered by the order of first reference; following it, and the way back, moves within the note; and a footnote is never an edge nor a reference link, although a wikilink written inside one still is. The skill that teaches writing a note says when to cite with footnotes and why a label is best a word, and the one that designs a notebook lists them among the forms it chooses from. Every link of a note also stops carrying a stray `node="[object Object]"` attribute (RN-DSC-062, RN-DSC-063). (#190)
+
+### Fixed
+
+- **A file a notebook keeps stops counting as a pending link.** In AWS the graph never heard that a file was kept or deleted: the rule feeding the discovery projection did not carry `FileKept` nor `FileDeleted`, so every `![[file]]` of a file that exists was a pending link, and a notebook with one real pending link and 49 embedded pictures showed **50** on its dashboard. Every test passed, because they hand the events straight to the projector. Both events are routed now, and a case compares the rule with the events the projector handles. Routing them alone would not have been enough: the graph decided whether a target was a file at the moment the note was written, so a note written before its picture was kept would have stayed pending for ever. It is decided when the graph is read now, as the in-memory graph always did. **The files kept before this version are learned by `reproject-links`**, which now restates the files of every notebook with its notes, and has to run once on each environment after the delivery (RN-DSC-061). (#185)
+
+- **The links of a note say what each one reaches, and `read_note` stops telling an agent its picture is pending.** The contract of `GET …/notes/:n/links` declares a `kind` for every target — a note, a file the notebook keeps, or nothing yet — and the graph computes it, but the route dropped it on the way out, so an embedded file and a pending link answered the same object. The connector read the missing field as *pending*, which is what `read_note` said about every file a note embeds. The response now carries it, and the cases that read it parse the response with the schema the contract publishes (RN-AGT-034). (#186)
+
+- **The notebook tree shows the notes of a folder in the order they were put in.** The order of the notes in a folder is content, and an agent sets it with `reorder_note` — but the listing of a whole notebook answered in the order the notes were created, while the listing of one folder answered the defined order. The sidebar and the export chooser read the first one, so a note moved to the top stayed where it was born. The listing of a notebook now answers each folder in its defined order, like the listing of one folder always did (PP9). (#184)
+
+- **Two strings stop skipping the locale.** The notice before a rename put two counts in one sentence and pluralised neither, so renaming a note with one incoming link read "1 links para o nome antigo ficam pendentes"; each clause is now pluralised on its own, "1 link para o nome antigo fica pendente". And a callout written without a title — `> [!note]` — was titled with its type in English whatever the reader spoke; the types the product draws with their own icon are titled in the locale of the reader, *Nota*, *Aviso*, *Dica*, and a type nobody translated still titles itself, as the vocabulary is open (§7.1). (#188)
+
+- **The Templates page says it is the page of every Template.** It showed every Template of a notebook under the header of a single folder: the notebook as the heading and, right below, the hint of a folder page — "suggested layout for notes **in this folder**" — over the Templates of six. It is headed *Templates* now, under the name of the notebook, and its hint says that each folder may declare a layout and how many of this notebook do. (#189)
+
+- **The welcome page stops promising two things the interface does not do.** It said a note shows *what links back to it*, and no screen shows backlinks; and that an export is *Markdown files in folders, and nothing else*, when it is one `.notebook` file. It now says what a note does show — its properties and its text, each link taking you to the note it reaches or saying it reaches none yet — and what an export carries: the notes in Markdown, the folders, the Guidance and the Templates, the history and the files when chosen, in the file an import reads. (#187)
+
 ## [0.6.1] - 2026-09-21
 
 ### Changed
@@ -548,7 +568,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.5.7...v0.6.0
 [0.5.7]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.5.6...v0.5.7

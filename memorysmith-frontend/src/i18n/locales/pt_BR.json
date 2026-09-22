@@ -107,6 +107,8 @@
     "templates": "Modelos",
     "templatesHint_one": "{{count}} pasta com leiaute sugerido",
     "templatesHint_other": "{{count}} pastas com leiaute sugerido",
+    "templatesPageHint_one": "Cada pasta pode declarar um leiaute sugerido para as notas dela. {{count}} pasta deste caderno declara um, mostrado abaixo; o servidor nunca valida uma nota contra ele.",
+    "templatesPageHint_other": "Cada pasta pode declarar um leiaute sugerido para as notas dela. {{count}} pastas deste caderno declaram um, cada um mostrado abaixo; o servidor nunca valida uma nota contra eles.",
     "noTemplates": "Nenhuma pasta deste caderno declara um Modelo.",
     "templateOf": "Modelo da pasta {{folder}}",
     "openFolder": "Abrir pasta",
@@ -125,6 +127,8 @@
     "embedSectionMissing": "A seção \"{{section}}\" não existe nesta nota.",
     "writeConflict": "A alteração não foi salva. Alguém escreveu aqui antes, e o conteúdo foi recarregado.",
     "linkChoice": "As notas a que o link “{{target}}” pode levar",
+    "footnotes": "Notas",
+    "footnoteBack": "Voltar à referência {{number}}",
     "pendingLink": "Link pendente: a nota alvo ainda não existe.",
     "remoteImages_one": "Abrir esta nota buscou uma imagem em {{hosts}}, então esse site recebeu seu endereço e o momento em que você leu.",
     "remoteImages_other": "Abrir esta nota buscou imagens em {{count}} outros sites — {{hosts}} —, então cada um deles recebeu seu endereço e o momento em que você leu.",
@@ -357,7 +361,7 @@
       },
       "folders": {
         "term": "Pastas e notas",
-        "definition": "O painel lateral é a estrutura do caderno, na ordem que o próprio caderno declara. Uma nota mostra suas propriedades, seus links e o que aponta de volta para ela."
+        "definition": "O painel lateral é a estrutura do caderno, na ordem que o próprio caderno declara. Uma nota mostra suas propriedades e o seu texto, e cada link leva à nota que alcança — ou diz que ainda não alcança nenhuma."
       },
       "guidance": {
         "term": "Orientação e Modelos",
@@ -373,7 +377,7 @@
       },
       "transfers": {
         "term": "Transferências",
-        "definition": "Exportar um caderno, ou importar um, pelo menu ao lado da sua foto. O que sai são arquivos Markdown em pastas, e nada além disso."
+        "definition": "Exportar um caderno, ou importar um, pelo ícone ao lado da sua foto. O que sai é um arquivo .notebook com o caderno — as notas em Markdown, as pastas, a Orientação e os Modelos, e o histórico e os arquivos quando você escolhe — e é esse arquivo que a importação lê."
       }
     },
     "connector": {
@@ -462,7 +466,13 @@
     "willBeUnnamed_zero": "Esta nota vai ficar SEM NOME. Ela continua aqui, continua sendo exibida e continua apontando para fora — e nenhum link vai conseguir alcançá-la.",
     "willBeUnnamed_one": "Esta nota vai ficar SEM NOME. Ela continua aqui, continua sendo exibida e continua apontando para fora, e {{count}} link que aponta para ela hoje fica pendente.",
     "willBeUnnamed_other": "Esta nota vai ficar SEM NOME. Ela continua aqui, continua sendo exibida e continua apontando para fora, e {{count}} links que apontam para ela hoje ficam pendentes.",
-    "willBeRenamed": "Isto renomeia a nota de “{{from}}” para “{{to}}”. {{losing}} links para o nome antigo ficam pendentes, e {{gaining}} links para o novo passam a resolver. Nada mais é reescrito.",
+    "willBeRenamed": "Isto renomeia a nota de “{{from}}” para “{{to}}”. {{losing}}, e {{gaining}}. Nada mais é reescrito.",
+    "renameLosing_zero": "Nenhum link aponta para o nome antigo",
+    "renameLosing_one": "{{count}} link para o nome antigo fica pendente",
+    "renameLosing_other": "{{count}} links para o nome antigo ficam pendentes",
+    "renameGaining_zero": "nenhum link espera pelo novo",
+    "renameGaining_one": "{{count}} link para o novo passa a resolver",
+    "renameGaining_other": "{{count}} links para o novo passam a resolver",
     "keepAlias": "Manter “{{name}}” como alias, para os links continuarem chegando",
     "conflict": "Outra pessoa gravou esta nota depois que você abriu. Leia de novo e refaça sua mudança.",
     "failed": "Não foi possível gravar.",
@@ -481,5 +491,34 @@
       "NoteReordered": "Reordenada",
       "NoteDeleted": "Excluída"
     }
+  },
+  "callout": {
+    "note": "Nota",
+    "info": "Informação",
+    "todo": "A fazer",
+    "abstract": "Resumo",
+    "summary": "Resumo",
+    "tldr": "Em resumo",
+    "tip": "Dica",
+    "hint": "Sugestão",
+    "important": "Importante",
+    "success": "Sucesso",
+    "check": "Verificado",
+    "done": "Concluído",
+    "question": "Pergunta",
+    "help": "Ajuda",
+    "faq": "Perguntas frequentes",
+    "warning": "Aviso",
+    "caution": "Cuidado",
+    "attention": "Atenção",
+    "failure": "Falha",
+    "fail": "Falhou",
+    "missing": "Ausente",
+    "danger": "Perigo",
+    "error": "Erro",
+    "bug": "Defeito",
+    "example": "Exemplo",
+    "quote": "Citação",
+    "cite": "Citação"
   }
 }

@@ -10,8 +10,15 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import { buildTestApp } from './wiring.js';
-import { fileLinkSchema, fileListSchema, notebookFileSchema } from '@memorysmith/contracts';
+import {
+  fileLinkSchema,
+  fileListSchema,
+  notebookFileSchema,
+  noteLinksSchema,
+} from '@memorysmith/contracts';
 import { MAX_INLINE_BYTES } from '@memorysmith/svc-knowledge/application/files';
+import { ProjectFiles } from '@memorysmith/svc-discovery/application/projections';
+import { dispatch } from '@memorysmith/svc-discovery/adapters/dispatch';
 
 type App = ReturnType<typeof buildTestApp>;
 let harness: App;
@@ -302,5 +309,64 @@ describe('a notebook keeps files', () => {
     });
     // Never 403: a refusal would confirm the notebook exists (rule 9).
     expect(response.status).toBe(404);
+  });
+});
+
+/**
+ * Where the links of a note go, and what each one reaches (#186).
+ *
+ * The contract declares `kind` for every target and the graph computes it,
+ * and the route dropped it on the way out: an embedded file and a pending
+ * link answered the same object, and `read_note` told an agent the picture it
+ * had just embedded was pending.
+ */
+describe('the links of a note that embeds a file', () => {
+  it('say which target is a note, which is a file and which is pending', async () => {
+    const notebookId = await seedNotebook();
+    await keep(notebookId, { name: 'esquema.png', mimeType: 'image/png', contentBase64: PNG });
+    const folder = (await (
+      await call(`/knowledge/notebooks/${notebookId}/folders`, {
+        method: 'POST',
+        body: { name: 'Notas', description: 'Notas que mostram arquivos' },
+      })
+    ).json()) as { folderId: string };
+    const note = (await (
+      await call(`/knowledge/notebooks/${notebookId}/notes`, {
+        method: 'POST',
+        body: {
+          folderId: folder.folderId,
+          content: '---\nname: Capa\n---\n\n![[esquema.png]]\n\nVer [[Ninguem ainda]].\n',
+        },
+      })
+    ).json()) as { noteId: string };
+
+    // Through the dispatch the projector runs, file events included, and not
+    // a copy of it: a copy is how an event nobody routes still passes.
+    const projectors = {
+      note: harness.projectNote,
+      structure: harness.projectStructure,
+      files: new ProjectFiles(harness.discovery.graph),
+    };
+    for (const event of harness.events.published) {
+      await dispatch(projectors, {
+        eventId: event.eventId,
+        type: event.type,
+        occurredAt: event.occurredAt.toISOString(),
+        subscriptionId: event.subscriptionId.value,
+        subject: event.subject,
+        subjectId: event.subjectId,
+        authorship: event.authorship.toJSON(),
+        contentRef: event.contentRef ? event.contentRef.toJSON() : null,
+        payload: event.payload,
+      } as Parameters<typeof dispatch>[1]);
+    }
+
+    const links = noteLinksSchema.parse(
+      await (await call(`/discovery/notebooks/${notebookId}/notes/${note.noteId}/links`)).json(),
+    );
+    expect(links.links.map((link) => [link.target, link.kind, link.by])).toEqual([
+      ['esquema.png', 'attachment', null],
+      ['Ninguem ainda', 'pending', null],
+    ]);
   });
 });

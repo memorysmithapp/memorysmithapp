@@ -399,6 +399,46 @@ describe('Structure operations write nothing they do not have to', () => {
     expect(after.folders[0]?.position).toBe(moved.position);
   });
 
+  it('lists the notes of the whole notebook in the order a reorder left them (#184)', async () => {
+    const { notebookId, folderId } = await seedNotebook();
+    const ids: string[] = [];
+    for (const name of ['Primeira', 'Segunda', 'Terceira']) {
+      const created = (await (
+        await call(`/knowledge/notebooks/${notebookId}/notes`, {
+          method: 'POST',
+          body: { folderId, content: `---\nname: ${name}\n---\n\n${name}.` },
+        })
+      ).json()) as { noteId: string };
+      ids.push(created.noteId);
+    }
+    const last = ids[2] ?? '';
+
+    const reordered = await call(`/knowledge/notebooks/${notebookId}/notes/${last}/reorder`, {
+      method: 'POST',
+      body: { afterNoteId: null },
+    });
+    expect(reordered.status).toBe(200);
+
+    const inFolder = (
+      (await (
+        await call(`/knowledge/notebooks/${notebookId}/notes?folderId=${folderId}`)
+      ).json()) as Array<{ noteId: string }>
+    ).map((note) => note.noteId);
+    const inNotebook = (
+      (await (await call(`/knowledge/notebooks/${notebookId}/notes`)).json()) as Array<{
+        noteId: string;
+        folderId: string;
+      }>
+    )
+      .filter((note) => note.folderId === folderId)
+      .map((note) => note.noteId);
+
+    // The note moved to the top is first whichever way the notes are asked
+    // for, and the two listings agree on everything after it.
+    expect(inFolder[0]).toBe(last);
+    expect(inNotebook).toEqual(inFolder);
+  });
+
   it('moves a note between folders with zero bytes written to storage', async () => {
     const { notebookId, folderId } = await seedNotebook();
     const other = (await (

@@ -51,7 +51,7 @@ Nothing here is invented. Every form this specification declares was taken from 
 |---|---|---|
 | [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/) | Blocks and inlines | §3 |
 | [GFM 0.29-gfm](https://github.github.com/gfm/) | Tables, task list items, strikethrough, extended autolinks, disallowed raw HTML | §4 |
-| [Obsidian](https://help.obsidian.md/syntax) | The wikilink and its alias, anchor, embed and block forms; callouts; marked text; comments; block identifiers | §5, §7 |
+| [Obsidian](https://help.obsidian.md/syntax) | The wikilink and its alias, anchor, embed and block forms; callouts; marked text; comments; block identifiers; footnotes | §5, §7 |
 
 Obsidian is a source and not an authority. It publishes documentation rather than a versioned specification, so it carries no version above, and where it and this document differ **this document governs** — the opposite of the precedence CommonMark and GFM hold in §2.1. This specification is not *Obsidian compatible* and does not undertake to follow it; Obsidian is where a form was established and where its established meaning can be checked.
 
@@ -230,6 +230,8 @@ The rule is in [the act], and stated again in [the act][].
 ```
 
 Labels match case-insensitively and collapse internal whitespace. The definition MUST be in the same document as the reference; a reference with no definition renders as literal text, brackets and all.
+
+A label that begins with `^` is not a label. `[^1]: Wikipedia.` has the shape of a definition and is a **footnote** (§7.12): it binds no destination, and `[^1]` in the text is no reference link. Read as one, its first word became the destination of a link.
 
 ### 3.9 HTML blocks
 
@@ -629,7 +631,7 @@ A **Reader** renders a note for a person. Everything in this section is display:
 
 Every form here is built out of the blocks and inlines of §3 and §4, and stays legible as ordinary Markdown in an editor that does not know the convention: a callout is a block quote, a diagram is a fenced block, an embed is an image whose target happens to be a note. That is deliberate. A note is a plain file first, and a specification that made its files unreadable elsewhere would have taken more than it gave.
 
-Callouts, marked text, comments and block identifiers were established by Obsidian, and math and diagrams by the wider convention both it and GitHub follow (§2). None of them is invented here; what is specified is the effect each one has. §7.9 is the one place the specification narrows a source rather than following it, and it says why.
+Callouts, marked text, comments, block identifiers and footnotes were established by Obsidian, and math and diagrams by the wider convention both it and GitHub follow (§2). None of them is invented here; what is specified is the effect each one has. §7.9 is the one place the specification narrows a source rather than following it, and it says why.
 
 ### 7.1 Callouts
 
@@ -768,6 +770,34 @@ navigation the person initiates rather than a request the page makes.
 
 GFM task list items MAY be interactive. A Reader that lets a person toggle one MUST write back exactly the one character that changed, and MUST NOT rewrite, reformat or re-serialise the rest of the note.
 
+### 7.12 Footnotes
+
+```markdown
+The phases ran in parallel, varying only in intensity[^rup].
+
+[^rup]: Wikipedia. *Rational Unified Process*. <https://en.wikipedia.org/wiki/Rational_unified_process>
+```
+
+`[^label]` in the text is a **footnote reference**, and a line beginning `[^label]:` is its
+**definition**. The label is any run of characters without whitespace or a closing bracket,
+matched case-insensitively. A definition runs to the next blank line, and lines indented under
+it continue it. A reference with no definition is text, brackets and all.
+
+A Reader MUST render each reference as a link to its definition and each definition as a note
+at the **end of the note**, with a link back to the reference, and following either link MUST
+move the reader within the note rather than open anything else. The definitions are gathered
+there in the order of their first reference and **numbered in that order, whatever the label
+says**: `[^14]` cited before `[^2]` is shown as 2. That is what both sources do, and it is why a
+label is best a word — `[^rup]` — rather than a number the page will not show. A heading
+written above the definitions stays where it was written and ends up with nothing under it; a
+note that wants a heading over its sources writes them as a list instead.
+
+A footnote is display only. Neither the reference nor the definition produces an edge, an
+attribute or an index entry, and a definition is never a link reference definition (§3.8).
+What a definition contains is ordinary text and is read as such: a `[[wikilink]]` written in
+one is an edge like any other, since it is the wikilink that makes the edge and not the
+footnote around it.
+
 ---
 
 ## 8. Notation not described here
@@ -887,6 +917,7 @@ Every form this document declares, in one table. The last column is the section 
 | Prose in frontmatter | over 40 characters | Read and discarded | 6.3 |
 | `name:` | in the frontmatter | The name of the note, and the only thing that names it; never an attribute | 5.3, 6.5 |
 | Raw HTML | `<div>`, `<abbr>` | Shown as text, never rendered. A security boundary | 7.9 |
+| Footnote | `[^label]`, `[^label]: text` | A link to a note at the end; never an edge, never a reference link | 7.12 |
 
 ---
 

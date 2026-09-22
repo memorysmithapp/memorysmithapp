@@ -53,6 +53,7 @@ function print(plan: NotebookPlan): void {
   console.log(`    edges before          ${plan.before}`);
   console.log(`    edges after           ${plan.after.length}`);
   console.log(`    links left pending    ${plan.pending}`);
+  console.log(`    files kept            ${plan.files.length}`);
 
   if (plan.gained.length > 0) {
     console.log('    edges the current rule finds and the old projection did not:');

@@ -108,6 +108,8 @@
     "templatesHint_one": "{{count}} folder with a suggested layout",
     "templatesHint_other": "{{count}} folders with a suggested layout",
     "noTemplates": "No folder in this notebook declares a Template.",
+    "templatesPageHint_one": "Each folder may declare a suggested layout for its notes. {{count}} folder of this notebook declares one, shown below; the server never validates a note against it.",
+    "templatesPageHint_other": "Each folder may declare a suggested layout for its notes. {{count}} folders of this notebook declare one, each shown below; the server never validates a note against them.",
     "templateOf": "Template of folder {{folder}}",
     "openFolder": "Open folder",
     "content": "Content",
@@ -125,6 +127,8 @@
     "embedSectionMissing": "The section \"{{section}}\" is not in this note.",
     "writeConflict": "That change was not saved. Someone wrote here first, and the content was reloaded.",
     "linkChoice": "The notes the link “{{target}}” may lead to",
+    "footnotes": "Notes",
+    "footnoteBack": "Back to reference {{number}}",
     "pendingLink": "Pending link: the target note does not exist yet.",
     "remoteImages_one": "Opening this note fetched an image from {{hosts}}, so that site was told your address and the moment you read this.",
     "remoteImages_other": "Opening this note fetched images from {{count}} other sites — {{hosts}} — so each of them was told your address and the moment you read this.",
@@ -354,7 +358,7 @@
       },
       "folders": {
         "term": "Folders and notes",
-        "definition": "The side panel is the structure of the notebook, in the order the notebook itself declares. A note shows its properties, its links and what links back to it."
+        "definition": "The side panel is the structure of the notebook, in the order the notebook itself declares. A note shows its properties and its text, and each link takes you to the note it reaches — or says it reaches none yet."
       },
       "guidance": {
         "term": "Guidance and Templates",
@@ -370,7 +374,7 @@
       },
       "transfers": {
         "term": "Transfers",
-        "definition": "Exporting a notebook, or importing one, from the menu beside your picture. What comes out is Markdown files in folders, and nothing else."
+        "definition": "Exporting a notebook, or importing one, from the icon beside your picture. What comes out is a .notebook file holding the notebook — the notes in Markdown, the folders, the Guidance and the Templates, and the history and the files when you choose them — and that file is what an import reads."
       }
     },
     "connector": {
@@ -459,7 +463,13 @@
     "willBeUnnamed_zero": "This note will have NO NAME. It will still be here, still render and still link outward — and no link will be able to reach it.",
     "willBeUnnamed_one": "This note will have NO NAME. It will still be here, still render and still link outward, and the {{count}} link that points at it today goes pending.",
     "willBeUnnamed_other": "This note will have NO NAME. It will still be here, still render and still link outward, and the {{count}} links that point at it today go pending.",
-    "willBeRenamed": "This renames the note from “{{from}}” to “{{to}}”. {{losing}} links to the old name go pending, and {{gaining}} links to the new one resolve. Nothing else is rewritten.",
+    "willBeRenamed": "This renames the note from “{{from}}” to “{{to}}”. {{losing}}, and {{gaining}}. Nothing else is rewritten.",
+    "renameLosing_zero": "No link points to the old name",
+    "renameLosing_one": "{{count}} link to the old name goes pending",
+    "renameLosing_other": "{{count}} links to the old name go pending",
+    "renameGaining_zero": "no link waits for the new one",
+    "renameGaining_one": "{{count}} link to the new one resolves",
+    "renameGaining_other": "{{count}} links to the new one resolve",
     "keepAlias": "Keep “{{name}}” as an alias, so the links to it keep arriving",
     "conflict": "Somebody else wrote this note since you opened it. Read it again and redo your change.",
     "failed": "That could not be written.",
@@ -478,5 +488,34 @@
       "NoteReordered": "Reordered",
       "NoteDeleted": "Deleted"
     }
+  },
+  "callout": {
+    "note": "Note",
+    "info": "Info",
+    "todo": "To do",
+    "abstract": "Abstract",
+    "summary": "Summary",
+    "tldr": "TL;DR",
+    "tip": "Tip",
+    "hint": "Hint",
+    "important": "Important",
+    "success": "Success",
+    "check": "Check",
+    "done": "Done",
+    "question": "Question",
+    "help": "Help",
+    "faq": "FAQ",
+    "warning": "Warning",
+    "caution": "Caution",
+    "attention": "Attention",
+    "failure": "Failure",
+    "fail": "Fail",
+    "missing": "Missing",
+    "danger": "Danger",
+    "error": "Error",
+    "bug": "Bug",
+    "example": "Example",
+    "quote": "Quote",
+    "cite": "Cite"
   }
 }

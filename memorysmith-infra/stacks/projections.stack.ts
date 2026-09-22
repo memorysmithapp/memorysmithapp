@@ -73,7 +73,7 @@ export class ProjectionsStack extends Stack {
     new Rule(this, 'KnowledgeEventsToDiscovery', {
       eventBus: props.data.eventBus,
       description:
-        'Note, folder and notebook events feed the three discovery projections, ' +
+        'Note, folder, notebook and file events feed the three discovery projections, ' +
         'deletions included.',
       eventPattern: {
         source: ['memorysmith.knowledge'],
@@ -93,6 +93,12 @@ export class ProjectionsStack extends Stack {
           // The purge, which says the same thing the deletion said and is the
           // one that arrives after everything else (RN-DSC-013).
           'NotePurged',
+          // What a notebook keeps beside its notes: the graph learns that the
+          // NAME answers, so an embed of it stops being a pending link. They
+          // were missing from this list, and every kept file of every notebook
+          // was counted as pending in AWS while every test passed (#185).
+          'FileKept',
+          'FileDeleted',
         ],
       },
       targets: [new SqsQueue(projectionQueue)],

@@ -117,3 +117,23 @@ describe('what the report of a rebuild counts', () => {
     expect(edges[0]?.by).toBe('name');
   });
 });
+
+/**
+ * A file the notebook keeps is restated by the rebuild (#185). Until 0.6.2 no
+ * `FileKept` reached the projection in AWS, so the only way the files kept
+ * before it become known is the rebuild reading them where they are kept.
+ */
+describe('rebuilding the graph of a notebook that keeps files', () => {
+  const notebook = [
+    read('capa', '---\nname: Capa\n---\n\n![[simbolo.svg]] e [[Ninguem ainda]].\n'),
+  ];
+
+  it('does not count an embed of a kept file as pending', () => {
+    expect(resolveAll(notebook).pending).toBe(2);
+    expect(resolveAll(notebook, ['simbolo.svg']).pending).toBe(1);
+  });
+
+  it('never makes a kept file an edge', () => {
+    expect(resolveAll(notebook, ['simbolo.svg']).edges).toEqual([]);
+  });
+});
