@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-09-22
+
 ### Added
 
 - **Footnotes are part of the specification, and they work.** `[^label]` in the text and `[^label]: …` on a line of their own were rendered by the parser without anybody having decided it, and half of it was wrong: following a footnote opened the whole application in a new tab, the notes were headed by *Footnotes* in English whatever the reader spoke, and Discovery read each definition as a link reference definition, so `[^1]: Wikipedia. …` made every footnote a pending link named after the first word of its source — the one thing the specification says an undescribed form must never produce. The specification now describes them in §7.12, with the crossing in §3.8 and three conformance cases: a reference is a link to a note gathered at the end of the note, numbered by the order of first reference; following it, and the way back, moves within the note; and a footnote is never an edge nor a reference link, although a wikilink written inside one still is. The skill that teaches writing a note says when to cite with footnotes and why a label is best a word, and the one that designs a notebook lists them among the forms it chooses from. Every link of a note also stops carrying a stray `node="[object Object]"` attribute (RN-DSC-062, RN-DSC-063). (#190)
@@ -566,7 +568,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.5.7...v0.6.0
 [0.5.7]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.5.6...v0.5.7
