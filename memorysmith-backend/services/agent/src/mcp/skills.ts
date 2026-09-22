@@ -71,6 +71,7 @@ export const FORMATTING_USES: Readonly<Record<string, string>> = {
     'A command, a query or a configuration, with its language named so it is highlighted',
   'code-span': 'An identifier, a file name, a value to type, or notation written as an example',
   'link-inline': 'A source outside the notebook, cited where it is used',
+  footnote: 'A source a text of prose cites without breaking the sentence, listed at the end',
   image: 'A figure the text refers to, with a description of what it shows',
   'image-dimensions': 'A figure that has to fit: its width, or its width and height',
 };
@@ -604,6 +605,20 @@ The name is read from one key of the frontmatter, and from nothing else
 ([noteName.ts, lines 12–30](https://github.com/org/repo/blob/4f2a9c1/kernel/noteName.ts#L12-L30)):
 
 > A note is named by the \`name:\` of its frontmatter, and by nothing else.
+\`\`\`
+
+**A text that reads as prose cites with footnotes**, when a link in the middle of
+a sentence would break it: \`[^label]\` where the claim is, and \`[^label]: …\` on a
+line of its own. The page gathers every definition at the **end of the note**,
+numbered in the order they are first cited, whatever the label says — so give
+each a word, \`[^rup]\`, not a number the page will not show, and do not write a
+heading over them: it stays where you wrote it and ends up empty. A footnote is
+never an edge; a \`[[wikilink]]\` inside one still is.
+
+\`\`\`markdown
+The phases ran in parallel, varying only in intensity[^rup].
+
+[^rup]: Wikipedia. *Rational Unified Process*. <https://en.wikipedia.org/wiki/Rational_unified_process>
 \`\`\`
 
 **A source earns a note of its own** when it has no address — the output of a

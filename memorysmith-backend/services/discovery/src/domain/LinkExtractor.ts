@@ -180,8 +180,15 @@ export function extractLinks(markdown: string): ExtractedLink[] {
  * destination decides the edge exactly as it does inline, so reading only the
  * inline one meant a note that keeps its addresses at the bottom - which is
  * how a long note stays readable - produced no edges at all.
+ *
+ * A label that begins with `^` is a footnote and not a label (§3.8, §7.12).
+ * `[^1]: Wikipedia. *Rational…*` has the shape of a definition, and read as
+ * one its first word became a destination — so `[^1]` in the text, a
+ * shortcut reference in shape, made every footnote a pending link named after
+ * the first word of its source (#190). Nothing is defined under such a label,
+ * so no reference to one resolves, in any of the three forms.
  */
-const DEFINITION = /^ {0,3}\[([^\]\n]+)\]:[ \t]*<?([^\s>]+)>?/gm;
+const DEFINITION = /^ {0,3}\[(?!\^)([^\]\n]+)\]:[ \t]*<?([^\s>]+)>?/gm;
 /** `[text][label]` and the collapsed `[label][]`, and again never an image. */
 const REFERENCE = /(?<!!)\[([^\]\n]*)\]\[([^\]\n]*)\]/g;
 /**

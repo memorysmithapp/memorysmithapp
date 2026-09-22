@@ -127,6 +127,8 @@
     "embedSectionMissing": "A seção \"{{section}}\" não existe nesta nota.",
     "writeConflict": "A alteração não foi salva. Alguém escreveu aqui antes, e o conteúdo foi recarregado.",
     "linkChoice": "As notas a que o link “{{target}}” pode levar",
+    "footnotes": "Notas",
+    "footnoteBack": "Voltar à referência {{number}}",
     "pendingLink": "Link pendente: a nota alvo ainda não existe.",
     "remoteImages_one": "Abrir esta nota buscou uma imagem em {{hosts}}, então esse site recebeu seu endereço e o momento em que você leu.",
     "remoteImages_other": "Abrir esta nota buscou imagens em {{count}} outros sites — {{hosts}} —, então cada um deles recebeu seu endereço e o momento em que você leu.",

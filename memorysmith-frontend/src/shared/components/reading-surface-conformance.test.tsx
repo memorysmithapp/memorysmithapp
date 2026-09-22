@@ -240,6 +240,23 @@ const EXPECTED: Record<string, (html: string) => void> = {
     expect(html).toContain('H~2~O');
     expect(html).not.toContain('~~');
   },
+  footnote: (html) => {
+    // A link to a note at the end of the note, and a way back — and neither
+    // leaves the page: following a footnote opened the whole application in a
+    // new tab, because every link that did not start with `/` was treated as
+    // the web (#190).
+    expect(html).toMatch(/<a href="#user-content-fn-rup"[^>]*data-footnote-ref/);
+    expect(html).toContain('<section data-footnotes="true" class="footnotes">');
+    expect(html).toContain('id="user-content-fn-rup"');
+    expect(html).toMatch(/<a href="#user-content-fnref-rup"[^>]*data-footnote-backref/);
+    expect(html).not.toMatch(/href="#[^"]*"[^>]*target="_blank"/);
+    expect(html).not.toContain('[^rup]');
+    // The label is a heading a reader sees, in the reader's words.
+    expect(html).toContain('class="footnotes-label"');
+    expect(html).not.toContain('>Footnotes<');
+    // What react-markdown hands a component is not an attribute of the page.
+    expect(html).not.toContain('node="[object Object]"');
+  },
   'autolink-extended': (html) => {
     // Bare, and still a link. External, so it is a plain anchor and never one
     // of ours: `wikilink` is the class this surface puts on an edge.

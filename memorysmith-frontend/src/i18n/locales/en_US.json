@@ -127,6 +127,8 @@
     "embedSectionMissing": "The section \"{{section}}\" is not in this note.",
     "writeConflict": "That change was not saved. Someone wrote here first, and the content was reloaded.",
     "linkChoice": "The notes the link “{{target}}” may lead to",
+    "footnotes": "Notes",
+    "footnoteBack": "Back to reference {{number}}",
     "pendingLink": "Pending link: the target note does not exist yet.",
     "remoteImages_one": "Opening this note fetched an image from {{hosts}}, so that site was told your address and the moment you read this.",
     "remoteImages_other": "Opening this note fetched images from {{count}} other sites — {{hosts}} — so each of them was told your address and the moment you read this.",

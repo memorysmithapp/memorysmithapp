@@ -962,6 +962,34 @@
           "edges": 2
         }
       ]
+    },
+    {
+      "id": "footnote/is-no-link",
+      "notation": "footnote",
+      "markdown": "The phases ran in parallel[^1], and the model came later[^14].\n\n## Sources\n\n[^1]: Wikipedia. *Rational Unified Process*. <https://en.wikipedia.org/wiki/Rational_unified_process>\n\n[^14]: CMMI Institute, ISACA. *Company*.\n",
+      "links": []
+    },
+    {
+      "id": "footnote/a-definition-is-not-a-reference-definition",
+      "notation": "footnote",
+      "markdown": "The rule is in [the act], cited[^act].\n\n[the act]: Lei%2014.133\n[^act]: Planalto. *Lei 14.133*.\n",
+      "links": [
+        {
+          "name": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "footnote/a-wikilink-inside-one-is-an-edge",
+      "notation": "footnote",
+      "markdown": "Stated before[^prior].\n\n[^prior]: As [[Lei 14.133]] already says.\n",
+      "links": [
+        {
+          "name": "Lei 14.133",
+          "anchor": null
+        }
+      ]
     }
   ]
 }

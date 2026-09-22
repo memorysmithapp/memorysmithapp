@@ -454,6 +454,14 @@
       "example": "$$\nE = mc^2\n$$\n",
       "effect": "Rendered as mathematics, as a block of its own.",
       "spec": "7.8"
+    },
+    {
+      "id": "footnote",
+      "reader": "reading-surface",
+      "syntax": "[^label] in the text, and [^label]: text on a line of its own",
+      "example": "The phases ran in parallel[^rup].\n\n[^rup]: Wikipedia. *Rational Unified Process*.\n",
+      "effect": "The reference is a link to a note gathered at the end of the note, numbered by the order of first reference, with a link back; following either moves within the note. Display only: no edge, no attribute, no index entry, and the definition is never a link reference definition.",
+      "spec": "7.12, 3.8"
     }
   ]
 }

@@ -608,6 +608,40 @@ a:hover {
   color: inherit;
 }
 
+/* Footnotes (§7.12): the reference is a small raised number, and the notes are
+   gathered at the end of the note under a hairline, smaller and softer than the
+   text they serve. The label is a heading a reader sees, in their locale. */
+.markdown sup:has(> a[data-footnote-ref]) {
+  line-height: 0;
+}
+.markdown a[data-footnote-ref] {
+  padding-inline: 0.1em;
+  font-size: 0.8em;
+  text-decoration: none;
+}
+.markdown section.footnotes {
+  margin-top: 2.5em;
+  padding-top: 0.75em;
+  border-top: 1px solid var(--border);
+  font-size: 0.875em;
+  color: var(--text-soft);
+}
+.markdown .footnotes-label {
+  margin: 0 0 0.5em;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+.markdown section.footnotes li p {
+  margin-block: 0.25em;
+}
+.markdown a.data-footnote-backref {
+  margin-inline-start: 0.35em;
+  text-decoration: none;
+}
+
 .markdown code {
   font-family: var(--mono);
   font-size: 0.875em;

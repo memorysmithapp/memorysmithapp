@@ -406,14 +406,7 @@ describe('Structure operations write nothing they do not have to', () => {
       const created = (await (
         await call(`/knowledge/notebooks/${notebookId}/notes`, {
           method: 'POST',
-          body: {
-            folderId,
-            content: `---
-name: ${name}
----
-
-${name}.`,
-          },
+          body: { folderId, content: `---\nname: ${name}\n---\n\n${name}.` },
         })
       ).json()) as { noteId: string };
       ids.push(created.noteId);
