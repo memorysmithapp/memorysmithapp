@@ -29,18 +29,28 @@ interface MdastNode {
 /** `[!type]`, an optional fold marker, and whatever titles it. */
 const MARKER = /^\[!([A-Za-z][\w-]*)\][+-]?[ \t]*(.*)$/;
 
-export function remarkCallouts() {
-  return (tree: MdastNode): void => descend(tree);
+export interface CalloutOptions {
+  /**
+   * The title of a callout written without one, in the language of whoever
+   * reads it (#188). It answers `undefined` for a type it has no word for,
+   * and that type titles itself, capitalised, as the editors do: the
+   * vocabulary is open (§7.1) and a word nobody translated is still a word.
+   */
+  readonly titleOf?: (kind: string) => string | undefined;
 }
 
-function descend(node: MdastNode): void {
+export function remarkCallouts(options: CalloutOptions = {}) {
+  return (tree: MdastNode): void => descend(tree, options);
+}
+
+function descend(node: MdastNode, options: CalloutOptions): void {
   for (const child of node.children ?? []) {
-    if (child.type === 'blockquote') rewrite(child);
-    descend(child);
+    if (child.type === 'blockquote') rewrite(child, options);
+    descend(child, options);
   }
 }
 
-function rewrite(quote: MdastNode): void {
+function rewrite(quote: MdastNode, options: CalloutOptions): void {
   const [head, ...blocks] = quote.children ?? [];
   if (head?.type !== 'paragraph') return;
   const [lead, ...inline] = head.children ?? [];
@@ -65,8 +75,12 @@ function rewrite(quote: MdastNode): void {
     {
       type: 'paragraph',
       data: { hName: 'div', hProperties: { className: ['callout-title'] } },
-      // An untitled callout is titled by its own type, as the editors do.
-      children: title.length > 0 ? title : [{ type: 'text', value: capitalize(kind) }],
+      // An untitled callout is titled by its own type, as the editors do, and
+      // in the locale of the reader rather than always in English.
+      children:
+        title.length > 0
+          ? title
+          : [{ type: 'text', value: options.titleOf?.(kind) ?? capitalize(kind) }],
     },
     ...(body.length > 0 ? [{ type: 'paragraph', children: body }] : []),
     ...blocks,

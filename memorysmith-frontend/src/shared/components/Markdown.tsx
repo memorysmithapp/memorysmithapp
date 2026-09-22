@@ -274,6 +274,9 @@ function dropBox(children: ReactNode): ReactNode {
 }
 export function Markdown({ children, source, onToggleTask, writable = false }: MarkdownProps) {
   const text = toUnixNewlines(children);
+  const { t, i18n } = useTranslation();
+  const calloutTitle = (kind: string): string | undefined =>
+    i18n.exists(`callout.${kind}`) ? t(`callout.${kind}`) : undefined;
 
   return (
     <div className="markdown">
@@ -291,7 +294,7 @@ export function Markdown({ children, source, onToggleTask, writable = false }: M
            * the profile says they get, which is nothing (profile 5.9).
            */
           [remarkGfm, { singleTilde: false }],
-          remarkCallouts,
+          [remarkCallouts, { titleOf: calloutTitle }],
           remarkHighlight,
           remarkComments,
           remarkBlockIds,

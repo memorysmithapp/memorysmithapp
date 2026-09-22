@@ -19,6 +19,8 @@ issues each entry cites.
 
 - **The notebook tree shows the notes of a folder in the order they were put in.** The order of the notes in a folder is content, and an agent sets it with `reorder_note` — but the listing of a whole notebook answered in the order the notes were created, while the listing of one folder answered the defined order. The sidebar and the export chooser read the first one, so a note moved to the top stayed where it was born. The listing of a notebook now answers each folder in its defined order, like the listing of one folder always did (PP9). (#184)
 
+- **Two strings stop skipping the locale.** The notice before a rename put two counts in one sentence and pluralised neither, so renaming a note with one incoming link read "1 links para o nome antigo ficam pendentes"; each clause is now pluralised on its own, "1 link para o nome antigo fica pendente". And a callout written without a title — `> [!note]` — was titled with its type in English whatever the reader spoke; the types the product draws with their own icon are titled in the locale of the reader, *Nota*, *Aviso*, *Dica*, and a type nobody translated still titles itself, as the vocabulary is open (§7.1). (#188)
+
 ## [0.6.1] - 2026-09-21
 
 ### Changed
