@@ -70,6 +70,12 @@ export interface NotebookPlan {
   readonly subscriptionId: string;
   readonly notebookId: string;
   readonly notes: readonly ReadNote[];
+  /**
+   * The names of the files the notebook keeps, read from the table that keeps
+   * them (#185). Until 0.6.2 no `FileKept` reached this projection in AWS, so
+   * every notebook that kept a file before it holds no `ATTACH#` item at all.
+   */
+  readonly files: readonly string[];
   readonly before: number;
   readonly after: readonly PlannedEdge[];
   /** Edges the new rule finds and the old projection did not hold. */
@@ -129,14 +135,14 @@ export class LinkReprojection {
    */
   async plan(): Promise<NotebookPlan[]> {
     const plans: NotebookPlan[] = [];
-    for (const [partition, notes] of await this.liveNotes()) {
+    for (const [partition, { notes, files }] of await this.liveItems()) {
       const match = NOTEBOOK_PARTITION.exec(partition);
       if (!match) continue;
       const subscriptionId = subscriptionOf(match[1] ?? '');
       const notebookId = match[2] ?? '';
 
       const read = await this.readNotes(subscriptionId, notes);
-      const after = resolveAll(read);
+      const after = resolveAll(read, files);
       const before = await this.deps.graphFor(subscriptionId).currentEdges(notebookId);
 
       const edges = distinctEdges(after.edges);
@@ -147,6 +153,7 @@ export class LinkReprojection {
         subscriptionId: subscriptionId.value,
         notebookId,
         notes: read,
+        files,
         before: before.length,
         after: edges,
         gained: edges.filter((edge) => !held.has(edgeKey(edge))),
@@ -178,6 +185,7 @@ export class LinkReprojection {
     }));
     await graph.forgetLinks(plan.notebookId);
     await graph.seedNotes(plan.notebookId, refs);
+    await graph.seedAttachments(plan.notebookId, plan.files);
     for (const note of plan.notes) {
       const { targets, ...ref } = note;
       await graph.replaceOutgoing(
@@ -189,34 +197,44 @@ export class LinkReprojection {
   }
 
   /**
-   * Every live note of every notebook, by the partition it sits in.
+   * Every live note and every kept file of every notebook, by the partition
+   * it sits in. A notebook that keeps files and no note yet is included, since
+   * the note written tomorrow resolves against them.
    *
    * A Scan, deliberately, and for the reason the recount scans: there is no
    * index that lists notebooks, and inventing one to serve a maintenance job would
    * put a cost on every write to save a job that runs by hand. It projects the
-   * four attributes it reads.
+   * attributes it reads.
    */
-  private async liveNotes(): Promise<Map<string, Array<Record<string, unknown>>>> {
-    const byPartition = new Map<string, Array<Record<string, unknown>>>();
+  private async liveItems(): Promise<
+    Map<string, { notes: Array<Record<string, unknown>>; files: string[] }>
+  > {
+    const byPartition = new Map<
+      string,
+      { notes: Array<Record<string, unknown>>; files: string[] }
+    >();
     let startKey: Record<string, unknown> | undefined;
 
     do {
       const page = await this.deps.db.send(
         new ScanCommand({
           TableName: this.deps.knowledgeTable,
-          FilterExpression: '#entity = :note',
-          ExpressionAttributeNames: { '#entity': 'entity' },
-          ExpressionAttributeValues: { ':note': 'NOTE' },
-          ProjectionExpression: 'PK, noteId, folderId, bodyRef, deletedAt',
+          FilterExpression: '#entity IN (:note, :file)',
+          ExpressionAttributeNames: { '#entity': 'entity', '#name': 'name' },
+          ExpressionAttributeValues: { ':note': 'NOTE', ':file': 'FILE' },
+          ProjectionExpression: 'PK, #entity, noteId, folderId, bodyRef, #name, deletedAt',
           ...(startKey ? { ExclusiveStartKey: startKey } : {}),
         }),
       );
       for (const item of page.Items ?? []) {
         // A deleted note takes no part in the graph, exactly as its delete
-        // event took it out (RN-DSC-013).
+        // event took it out (RN-DSC-013), and a deleted file answers nothing.
         if (item['deletedAt']) continue;
         const partition = String(item['PK'] ?? '');
-        byPartition.set(partition, [...(byPartition.get(partition) ?? []), item]);
+        const held = byPartition.get(partition) ?? { notes: [], files: [] };
+        if (item['entity'] === 'FILE') held.files.push(String(item['name']));
+        else held.notes.push(item);
+        byPartition.set(partition, held);
       }
       startKey = page.LastEvaluatedKey;
     } while (startKey);
@@ -254,8 +272,14 @@ export class LinkReprojection {
  * none. It is exported because it is where the whole difference between the
  * two rules lands, and the difference is what the report is about.
  */
-export function resolveAll(notes: readonly ReadNote[]): { edges: PlannedEdge[]; pending: number } {
-  const names = notebookNames(notes.map((note) => ({ ...note, name: note.name || null })));
+export function resolveAll(
+  notes: readonly ReadNote[],
+  files: readonly string[] = [],
+): { edges: PlannedEdge[]; pending: number } {
+  const names = notebookNames(
+    notes.map((note) => ({ ...note, name: note.name || null })),
+    [...files],
+  );
   const edges: PlannedEdge[] = [];
   let pending = 0;
 

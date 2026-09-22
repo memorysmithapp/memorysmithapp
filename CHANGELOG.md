@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A file a notebook keeps stops counting as a pending link.** In AWS the graph never heard that a file was kept or deleted: the rule feeding the discovery projection did not carry `FileKept` nor `FileDeleted`, so every `![[file]]` of a file that exists was a pending link, and a notebook with one real pending link and 49 embedded pictures showed **50** on its dashboard. Every test passed, because they hand the events straight to the projector. Both events are routed now, and a case compares the rule with the events the projector handles. Routing them alone would not have been enough: the graph decided whether a target was a file at the moment the note was written, so a note written before its picture was kept would have stayed pending for ever. It is decided when the graph is read now, as the in-memory graph always did. **The files kept before this version are learned by `reproject-links`**, which now restates the files of every notebook with its notes, and has to run once on each environment after the delivery (RN-DSC-061). (#185)
+
 ## [0.6.1] - 2026-09-21
 
 ### Changed

@@ -237,3 +237,50 @@ describe('DynamoProjectedVersions: the marker of a note that is gone', () => {
     expect(days).toBeLessThan(31);
   });
 });
+
+/**
+ * Whether a target is a file is decided when it is read, never when the note
+ * was written (#185). The in-memory graph resolves on every read, so it could
+ * not show that this one froze the answer at the write: a note written before
+ * its picture was kept stayed pending for ever.
+ */
+describe('DynamoLinkGraph: a file kept or deleted after the note that embeds it', () => {
+  it('stops counting the embed as pending once the file is kept, and counts it again once deleted', async () => {
+    const subscription = SubscriptionId.generate();
+    const notebookId = NotebookId.generate().value;
+    const graph = new DynamoLinkGraph(subscription, db, table);
+    const targets = async (): Promise<string[]> =>
+      (await graph.pending(notebookId)).map((link) => link.targetName).sort();
+
+    await graph.replaceOutgoing(notebookId, note('n1', 'Capa'), [
+      { name: 'simbolo.svg', anchor: null },
+      { name: 'Ninguem ainda', anchor: null },
+    ]);
+    expect(await targets()).toEqual(['Ninguem ainda', 'simbolo.svg']);
+
+    await graph.keepAttachment(notebookId, 'simbolo.svg');
+    expect(await targets()).toEqual(['Ninguem ainda']);
+    expect((await graph.wholeGraph(notebookId)).pending.map((p) => p.targetName)).toEqual([
+      'Ninguem ainda',
+    ]);
+    const kinds = (await graph.outgoingOf(notebookId, 'n1')).map((t) => `${t.target}:${t.kind}`);
+    expect(kinds.sort()).toEqual(['Ninguem ainda:pending', 'simbolo.svg:attachment']);
+
+    await graph.forgetAttachment(notebookId, 'simbolo.svg');
+    expect(await targets()).toEqual(['Ninguem ainda', 'simbolo.svg']);
+
+    await graph.removeNotebook(notebookId);
+  });
+
+  it('is restated by the rebuild, and forgets a file no longer kept', async () => {
+    const subscription = SubscriptionId.generate();
+    const notebookId = NotebookId.generate().value;
+    const graph = new DynamoLinkGraph(subscription, db, table);
+
+    await graph.keepAttachment(notebookId, 'apagado.png');
+    await graph.seedAttachments(notebookId, ['simbolo.svg']);
+    expect((await graph.attachmentsOf(notebookId)).sort()).toEqual(['simbolo.svg']);
+
+    await graph.removeNotebook(notebookId);
+  });
+});

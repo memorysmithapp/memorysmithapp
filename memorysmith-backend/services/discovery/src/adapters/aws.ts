@@ -431,7 +431,19 @@ export class DynamoLinkGraph implements LinkGraph {
             });
           }
         }
-      } else if (answer.kind === 'pending') {
+      } else {
+        /**
+         * A target NO NOTE answers is written as pending whether or not a file
+         * of that name is kept today, and the file is decided when it is read
+         * (#185). An attachment renders and is never an edge (RN-DSC-044), and
+         * which names are files changes on its own: `FileKept` and
+         * `FileDeleted` write only the `ATTACH#` item and rewrite no note. So
+         * deciding it here froze the answer at the instant of the write — a
+         * note written before its picture was kept stayed pending for ever,
+         * and one written after it was never pending again once the picture
+         * was deleted. The in-memory graph resolves on every read, and this is
+         * the same answer.
+         */
         writes.push({
           PK: this.pk(notebookId),
           SK: `PENDING#${link.name}#${note.noteId}`,
@@ -440,7 +452,6 @@ export class DynamoLinkGraph implements LinkGraph {
           name: link.name,
         });
       }
-      // An attachment renders and is never an edge (RN-DSC-044).
     }
 
     /**
@@ -674,6 +685,21 @@ export class DynamoLinkGraph implements LinkGraph {
     );
   }
 
+  /**
+   * The `PENDING#` items whose target no file answers either: what a reader
+   * of the notebook calls a pending link (#185). A `PENDING#` item is a
+   * target no NOTE answers, and whether a file does is asked here, at the
+   * moment of reading, against the files kept now.
+   */
+  private async unanswered(notebookId: string): Promise<Item[]> {
+    const [pending, attachments] = await Promise.all([
+      this.query(notebookId, 'PENDING#'),
+      this.attachmentsOf(notebookId),
+    ]);
+    const kept = new Set(attachments.map((name) => name.normalize('NFC')));
+    return pending.filter((item) => !kept.has(String(item['name']).normalize('NFC')));
+  }
+
   /** The names of the files the notebook keeps (#166). */
   async attachmentsOf(notebookId: string): Promise<string[]> {
     return (await this.query(notebookId, 'ATTACH#')).map((item) => String(item['name']));
@@ -778,7 +804,7 @@ export class DynamoLinkGraph implements LinkGraph {
   }
 
   async pending(notebookId: string): Promise<PendingLink[]> {
-    const pending = await this.query(notebookId, 'PENDING#');
+    const pending = await this.unanswered(notebookId);
     const notes = new Map(
       (await this.query(notebookId, 'NOTE#')).map((item) => [String(item['noteId']), item]),
     );
@@ -836,7 +862,7 @@ export class DynamoLinkGraph implements LinkGraph {
     }
 
     const pending: Array<{ from: number; targetName: string }> = [];
-    for (const item of await this.query(notebookId, 'PENDING#')) {
+    for (const item of await this.unanswered(notebookId)) {
       const from = indexOf.get(String(item['fromNoteId']));
       if (from !== undefined) pending.push({ from, targetName: String(item['name']) });
     }
@@ -887,6 +913,26 @@ export class DynamoLinkGraph implements LinkGraph {
    * the whole notebook rather than against however much of it had been written by
    * the time its turn came.
    */
+  /**
+   * The files the notebook keeps, restated from the table that keeps them,
+   * and the `ATTACH#` items of whatever is no longer kept taken away (#185).
+   */
+  async seedAttachments(notebookId: string, names: readonly string[]): Promise<void> {
+    const live = new Set(names);
+    const stale = (await this.query(notebookId, 'ATTACH#'))
+      .map((item) => String(item['SK']))
+      .filter((sk) => !live.has(sk.slice('ATTACH#'.length)));
+    await this.remove(notebookId, stale);
+    await this.put(
+      names.map((name) => ({
+        PK: this.pk(notebookId),
+        SK: `ATTACH#${name}`,
+        entity: 'ATTACHMENT',
+        name,
+      })),
+    );
+  }
+
   async seedNotes(notebookId: string, notes: readonly NoteRef[]): Promise<void> {
     const live = new Set(notes.map((note) => note.noteId));
     const stale = (await this.query(notebookId, 'NOTE#'))
