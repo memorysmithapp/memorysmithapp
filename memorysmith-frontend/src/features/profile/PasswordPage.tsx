@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDocumentTitle } from '../../shared/components/document-title';
@@ -18,6 +18,14 @@ import { ApiError } from '../../shared/api/error-mapper';
  * GIVING UP has to be free: `Cancel` goes back to where they were, and there
  * is no return journey through a callback to design. Managed login has no
  * change-password page for a signed-in person anyway — only the forced flows.
+ *
+ * But it is DRAWN as the sign-in screen is (#214): the secret of the account
+ * is typed in two places, and a different look in the second one reads as a
+ * warning. So it stands outside the frame of the application, as the sign-in
+ * does, in the card, the lockup, the fields and the buttons of the managed
+ * login. Those are copied from `memorysmith-infra/branding/managed-login.json`
+ * into `.password-screen` in styles.css, because the managed login is Cognito's
+ * and nothing of it can be imported: a change to one has to reach the other.
  */
 export function PasswordPage() {
   const { t } = useTranslation();
@@ -25,6 +33,7 @@ export function PasswordPage() {
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [again, setAgain] = useState('');
+  const [shown, setShown] = useState(false);
   const [working, setWorking] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -33,6 +42,7 @@ export function PasswordPage() {
 
   const mismatched = again.length > 0 && next !== again;
   const ready = current.length > 0 && next.length > 0 && next === again && !working;
+  const type = shown ? 'text' : 'password';
 
   async function submit() {
     setWorking(true);
@@ -56,75 +66,97 @@ export function PasswordPage() {
    */
   if (done) {
     return (
-      <article className="profile">
-        <h1>{t('password.heading')}</h1>
-        <p className="profile-done">{t('password.done')}</p>
-        <div className="profile-actions">
-          <button type="button" className="button is-primary" onClick={() => navigate('/profile')}>
-            {t('password.back')}
-          </button>
-        </div>
-      </article>
+      <PasswordScreen heading={t('password.heading')}>
+        <p className="password-description">{t('password.done')}</p>
+        <button type="button" className="password-primary" onClick={() => navigate('/profile')}>
+          {t('password.back')}
+        </button>
+      </PasswordScreen>
     );
   }
 
   return (
-    <article className="profile">
-      <h1>{t('password.heading')}</h1>
+    <PasswordScreen heading={t('password.heading')}>
       {/* Said before it happens, not after: it is what a person expects a
           password change to mean, and being surprised by it on another
           device reads as a defect. */}
-      <p className="profile-note">{t('password.endsOtherSessions')}</p>
+      <p className="password-description">{t('password.endsOtherSessions')}</p>
 
-      <section className="profile-section">
-        <label className="field">
-          <span className="field-label">{t('password.current')}</span>
+      {failure ? (
+        <p className="password-alert" role="alert">
+          {failure}
+        </p>
+      ) : null}
+
+      <form
+        className="password-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (ready) void submit();
+        }}
+      >
+        <label className="password-field">
+          <span className="password-label">{t('password.current')}</span>
           <input
-            type="password"
+            type={type}
             autoComplete="current-password"
             value={current}
             onChange={(event) => setCurrent(event.target.value)}
           />
         </label>
-        <label className="field">
-          <span className="field-label">{t('password.next')}</span>
+        <label className="password-field">
+          <span className="password-label">{t('password.next')}</span>
           <input
-            type="password"
+            type={type}
             autoComplete="new-password"
             value={next}
             onChange={(event) => setNext(event.target.value)}
           />
-          <span className="field-hint">{t('password.policy')}</span>
+          <span className="password-hint">{t('password.policy')}</span>
         </label>
-        <label className="field">
-          <span className="field-label">{t('password.again')}</span>
+        <label className="password-field">
+          <span className="password-label">{t('password.again')}</span>
           <input
-            type="password"
+            type={type}
             autoComplete="new-password"
             value={again}
+            aria-invalid={mismatched}
             onChange={(event) => setAgain(event.target.value)}
           />
           {mismatched ? (
-            <span className="field-hint is-wrong">{t('password.mismatch')}</span>
+            <span className="password-hint is-wrong">{t('password.mismatch')}</span>
           ) : null}
         </label>
-      </section>
+        <label className="password-show">
+          <input
+            type="checkbox"
+            checked={shown}
+            onChange={(event) => setShown(event.target.checked)}
+          />
+          {t('password.show')}
+        </label>
 
-      {failure ? <p className="profile-failure">{failure}</p> : null}
-
-      <div className="profile-actions">
-        <button
-          type="button"
-          className="button is-primary"
-          disabled={!ready}
-          onClick={() => void submit()}
-        >
+        <button type="submit" className="password-primary" disabled={!ready}>
           {working ? t('password.working') : t('password.confirm')}
         </button>
-        <button type="button" className="button" onClick={() => navigate('/profile')}>
+        {/* Giving up changes nothing, and what was typed goes with the page. */}
+        <button type="button" className="password-secondary" onClick={() => navigate('/profile')}>
           {t('password.cancel')}
         </button>
-      </div>
-    </article>
+      </form>
+    </PasswordScreen>
+  );
+}
+
+/** The frame of the managed login: the page, the card and the lockup in it. */
+function PasswordScreen({ heading, children }: { heading: string; children: ReactNode }) {
+  return (
+    <main className="password-screen">
+      <article className="password-card">
+        <img className="password-logo" src="/lockup-light.svg" alt="MemorySmith.app" />
+        <h1 className="password-heading">{heading}</h1>
+        {children}
+      </article>
+    </main>
   );
 }

@@ -5304,3 +5304,170 @@ input[type='radio'] {
   font-size: 0.84rem;
   color: var(--text);
 }
+
+/*
+ * Changing the password, drawn as the sign-in screen (#214). Every value here
+ * is copied from memorysmith-infra/branding/managed-login.json and from what
+ * the managed login renders with it, and the managed login is always light
+ * (colorSchemeMode LIGHT), so this screen is too, whatever the theme: a change
+ * to one has to reach the other, since nothing of Cognito's can be imported.
+ */
+.password-screen {
+  --ml-page: #edefec;
+  --ml-form: #ffffff;
+  --ml-border: #dce0da;
+  --ml-heading: #0e1526;
+  --ml-body: #545d73;
+  --ml-primary: #0f56d7;
+  --ml-error: #d91515;
+  --ml-error-bg: #fff7f7;
+  color-scheme: light;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: var(--ml-page);
+  font-family: 'Open Sans', 'Helvetica Neue', Roboto, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--ml-body);
+}
+.password-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 40px 24px 24px;
+  background: var(--ml-form);
+  border: 1px solid var(--ml-border);
+  border-radius: 12px;
+}
+.password-logo {
+  display: block;
+  width: 240px;
+  height: 60px;
+  margin: 0 auto 24px;
+}
+.password-heading {
+  margin: 0;
+  padding: 5px 0;
+  font-family: inherit;
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 700;
+  letter-spacing: normal;
+  color: var(--ml-heading);
+}
+.password-description {
+  margin: 4px 0 20px;
+  color: var(--ml-body);
+}
+.password-alert {
+  margin: 0 0 20px;
+  padding: 8px 12px;
+  border: 2px solid var(--ml-error);
+  border-radius: 12px;
+  background: var(--ml-error-bg);
+  color: var(--ml-heading);
+}
+.password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.password-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.password-label {
+  font-weight: 700;
+  color: var(--ml-heading);
+}
+.password-field input {
+  height: 32px;
+  padding: 5px 12px;
+  border: 1px solid var(--ml-border);
+  border-radius: 8px;
+  background: var(--ml-form);
+  font: inherit;
+  color: var(--ml-body);
+}
+.password-field input:focus {
+  outline: none;
+  border: 2px solid var(--ml-primary);
+  padding: 4px 11px;
+}
+.password-field input[aria-invalid='true'] {
+  border-color: var(--ml-error);
+}
+.password-hint {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ml-body);
+}
+.password-hint.is-wrong {
+  color: var(--ml-error);
+}
+.password-show {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: -12px;
+  color: var(--ml-heading);
+}
+.password-show input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--ml-primary);
+}
+.password-primary,
+.password-secondary {
+  width: 100%;
+  min-height: 32px;
+  padding: 4px 20px;
+  border: 2px solid var(--ml-primary);
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.password-primary {
+  background: var(--ml-primary);
+  color: #ffffff;
+}
+.password-primary:disabled {
+  background: var(--ml-border);
+  border-color: var(--ml-border);
+  color: var(--ml-body);
+  cursor: default;
+}
+.password-secondary {
+  margin-top: -8px;
+  background: var(--ml-form);
+  color: var(--ml-primary);
+}
+.password-primary:focus-visible,
+.password-secondary:focus-visible,
+.password-show input:focus-visible {
+  outline: 2px solid var(--ml-primary);
+  outline-offset: 2px;
+}
+.password-card > .password-primary {
+  margin-top: 4px;
+}
+/* A phone: the managed login drops the card and fills the screen in white. */
+@media (max-width: 40rem) {
+  .password-screen {
+    align-items: flex-start;
+    padding: 0;
+    background: var(--ml-form);
+  }
+  .password-card {
+    max-width: none;
+    border: 0;
+    border-radius: 0;
+    padding: 40px 24px 24px;
+  }
+}

@@ -256,6 +256,10 @@ test.describe('the pages of an account', () => {
 
     await app.getByRole('link', { name: words.passwordMenu }).click();
     await app.waitForURL(`${state.surfaces.site}/profile/password`);
+    // Drawn as the sign-in screen: the card and the lockup of the managed
+    // login, outside the frame of the application (#214).
+    await expect(app.locator('.password-card img.password-logo')).toBeVisible();
+    await expect(app.locator('button.user-menu-trigger')).toHaveCount(0);
     // It says what it will do to the other sessions BEFORE it happens.
     await expect(app.getByText(words.endsOtherSessions)).toBeVisible();
     // And giving up is free: nothing about the account was touched.

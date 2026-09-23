@@ -528,7 +528,8 @@
     "cancel": "Cancel",
     "done": "Your password was changed. Every other session of this account will be asked to sign in again.",
     "back": "Back to your profile",
-    "failed": "The password could not be changed."
+    "failed": "The password could not be changed.",
+    "show": "Show passwords"
   },
   "editor": {
     "edit": "Edit this note",

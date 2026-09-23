@@ -531,7 +531,8 @@
     "cancel": "Cancelar",
     "done": "Sua senha foi trocada. Todas as outras sessões desta conta vão precisar entrar de novo.",
     "back": "Voltar ao seu perfil",
-    "failed": "Não foi possível trocar a senha."
+    "failed": "Não foi possível trocar a senha.",
+    "show": "Mostrar senhas"
   },
   "editor": {
     "edit": "Editar esta nota",
