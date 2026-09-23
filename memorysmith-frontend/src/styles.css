@@ -3089,17 +3089,6 @@ input[type='radio'] {
   .brand-symbol {
     height: 24px;
   }
-  /* The panel is placed against the window, not against its trigger (#195).
-     Anchored to the trigger it assumed its right edge sat at the gutter of the
-     header, where the avatar sits; one avatar and one gap further left, a
-     panel as wide as the window less two gutters began off the screen. */
-  .transfers-panel {
-    position: fixed;
-    top: calc(var(--header-h) + 0.4rem);
-    left: 1rem;
-    right: 1rem;
-    width: auto;
-  }
   .brand {
     min-width: 0;
   }
@@ -3552,6 +3541,20 @@ input[type='radio'] {
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
+}
+/* The panel is placed against the window on a phone, not against its trigger
+   (#195). Anchored to the trigger it assumed its right edge sat at the gutter
+   of the header, where the avatar sits; one avatar and one gap further left, a
+   panel as wide as the window less two gutters began off the screen. It comes
+   after the rule above on purpose: before it, that rule won. */
+@media (max-width: 860px) {
+  .transfers-panel {
+    position: fixed;
+    top: calc(var(--header-h) + 0.4rem);
+    left: 1rem;
+    right: 1rem;
+    width: auto;
+  }
 }
 .transfers-panel h2 {
   margin: 0 0 0.5rem;
