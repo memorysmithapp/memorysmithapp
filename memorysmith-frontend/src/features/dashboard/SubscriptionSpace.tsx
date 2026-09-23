@@ -72,7 +72,9 @@ export function SubscriptionSpace() {
       {query.isPending ? (
         <SpaceSkeleton />
       ) : used === null || quota === null ? null : (
-        <>
+        /* The card and the counts side by side on a computer, so Home fits one
+           screen; stacked on a phone. */
+        <div className="home-space-body">
           <div className="home-space-card">
             <div className="home-space-total">
               <p className="home-space-used">
@@ -180,7 +182,7 @@ export function SubscriptionSpace() {
               </div>
             </dl>
           ) : null}
-        </>
+        </div>
       )}
     </section>
   );

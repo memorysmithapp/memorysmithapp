@@ -244,20 +244,19 @@ a:hover {
   height: fit-content;
   min-height: 100%;
   margin: 0;
-  padding: 34px 28px 32px;
+  padding: 24px 28px 24px;
   /* The last card bleeds off the right edge to say there are more. */
   padding-right: 0;
 }
-/* Everything but the row of cards shares one measure, so the rule of the
-   title, its arrows and the space below end on the same line; the cards run
-   past it to the edge of the window. */
+/* Everything but the row of cards runs to the same right margin as the
+   window, so the rule of the title, its arrows and the space below all end on
+   one line at the edge; the cards bleed past it to say there are more. */
 .home > :not(.card-carousel),
 .carousel-head {
   margin-right: 28px;
-  max-width: calc(72rem - 28px);
 }
 .card-carousel {
-  margin-bottom: 36px;
+  margin-bottom: 26px;
 }
 .carousel-head,
 .home-space-head {
@@ -266,7 +265,7 @@ a:hover {
   gap: 16px;
 }
 .carousel-head {
-  margin-bottom: 22px;
+  margin-bottom: 16px;
 }
 .home-heading {
   margin: 0;
@@ -310,7 +309,7 @@ a:hover {
 .notebook-card {
   position: relative;
   flex: 0 0 400px;
-  min-height: 228px;
+  min-height: 0;
   scroll-snap-align: start;
   display: flex;
   flex-direction: column;
@@ -406,7 +405,7 @@ a:hover {
   font-size: 0.78rem;
   line-height: 1.55;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -446,7 +445,14 @@ a:hover {
 
 /* The space of the subscription. */
 .home-space-head {
-  margin: 0 0 18px;
+  margin: 0 0 14px;
+}
+/* The card and the counts side by side, so Home fits one screen of a
+   computer; the counts become a column of three tiles as tall as the card. */
+.home-space-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 13rem;
+  gap: 14px;
 }
 .home-space-head h2 {
   margin: 0;
@@ -469,7 +475,7 @@ a:hover {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
   gap: 36px;
-  padding: 22px 24px;
+  padding: 18px 24px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -477,7 +483,7 @@ a:hover {
 .home-space-total {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   min-width: 0;
 }
 .home-space-used {
@@ -490,7 +496,7 @@ a:hover {
 .home-space-used strong {
   font-family: var(--display);
   font-weight: 700;
-  font-size: 2.625rem;
+  font-size: 2.25rem;
   line-height: 1;
   letter-spacing: -0.03em;
 }
@@ -542,7 +548,7 @@ a:hover {
   text-align: start;
 }
 .space-table td {
-  padding: 7px 0;
+  padding: 5px 0;
   border-top: 1px solid var(--track);
 }
 .space-table :is(th, td):first-child {
@@ -633,9 +639,10 @@ a:hover {
   color: var(--text-soft);
 }
 .home-counts {
-  margin: 14px 0 0;
+  margin: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: 1fr;
   gap: 1px;
   background: var(--border);
   border: 1px solid var(--border);
@@ -646,7 +653,8 @@ a:hover {
   display: flex;
   flex-direction: column-reverse;
   gap: 7px;
-  padding: 15px 18px;
+  justify-content: center;
+  padding: 12px 18px;
   background: var(--surface);
 }
 .home-counts dt {
@@ -793,6 +801,13 @@ a:hover {
     padding: 14px 0 0;
     border-left: 0;
     border-top: 1px solid var(--border);
+  }
+  .home-space-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .home-counts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-rows: auto;
   }
   .home-counts > div {
     padding: 12px 14px;
