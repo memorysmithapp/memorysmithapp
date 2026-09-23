@@ -529,7 +529,11 @@
     "done": "Your password was changed. Every other session of this account will be asked to sign in again.",
     "back": "Back to your profile",
     "failed": "The password could not be changed.",
-    "show": "Show passwords"
+    "show": "Show passwords",
+    "required": "Fill in this field.",
+    "currentPlaceholder": "Enter your current password",
+    "nextPlaceholder": "Enter the new password",
+    "againPlaceholder": "Enter the new password again"
   },
   "editor": {
     "edit": "Edit this note",

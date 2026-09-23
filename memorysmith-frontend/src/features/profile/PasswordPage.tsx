@@ -37,11 +37,14 @@ export function PasswordPage() {
   const [working, setWorking] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  /** Whether a submit was tried: what is missing is said then, as the sign-in does. */
+  const [tried, setTried] = useState(false);
 
   useDocumentTitle(t('password.heading'), null);
 
   const mismatched = again.length > 0 && next !== again;
-  const ready = current.length > 0 && next.length > 0 && next === again && !working;
+  const ready = current.length > 0 && next.length > 0 && next === again;
+  const missing = (value: string) => tried && value.length === 0;
   const type = shown ? 'text' : 'password';
 
   async function submit() {
@@ -92,7 +95,10 @@ export function PasswordPage() {
         className="password-form"
         onSubmit={(event) => {
           event.preventDefault();
-          if (ready) void submit();
+          // The button is always the blue one of the sign-in, which says what
+          // is missing when it is pressed rather than greying out until then.
+          setTried(true);
+          if (ready && !working) void submit();
         }}
       >
         <label className="password-field">
@@ -100,18 +106,28 @@ export function PasswordPage() {
           <input
             type={type}
             autoComplete="current-password"
+            placeholder={t('password.currentPlaceholder')}
             value={current}
+            aria-invalid={missing(current)}
             onChange={(event) => setCurrent(event.target.value)}
           />
+          {missing(current) ? (
+            <span className="password-hint is-wrong">{t('password.required')}</span>
+          ) : null}
         </label>
         <label className="password-field">
           <span className="password-label">{t('password.next')}</span>
           <input
             type={type}
             autoComplete="new-password"
+            placeholder={t('password.nextPlaceholder')}
             value={next}
+            aria-invalid={missing(next)}
             onChange={(event) => setNext(event.target.value)}
           />
+          {missing(next) ? (
+            <span className="password-hint is-wrong">{t('password.required')}</span>
+          ) : null}
           <span className="password-hint">{t('password.policy')}</span>
         </label>
         <label className="password-field">
@@ -119,12 +135,15 @@ export function PasswordPage() {
           <input
             type={type}
             autoComplete="new-password"
+            placeholder={t('password.againPlaceholder')}
             value={again}
-            aria-invalid={mismatched}
+            aria-invalid={mismatched || missing(again)}
             onChange={(event) => setAgain(event.target.value)}
           />
           {mismatched ? (
             <span className="password-hint is-wrong">{t('password.mismatch')}</span>
+          ) : missing(again) ? (
+            <span className="password-hint is-wrong">{t('password.required')}</span>
           ) : null}
         </label>
         <label className="password-show">
@@ -136,7 +155,7 @@ export function PasswordPage() {
           {t('password.show')}
         </label>
 
-        <button type="submit" className="password-primary" disabled={!ready}>
+        <button type="submit" className="password-primary" disabled={working}>
           {working ? t('password.working') : t('password.confirm')}
         </button>
         {/* Giving up changes nothing, and what was typed goes with the page. */}

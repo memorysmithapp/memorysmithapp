@@ -5463,11 +5463,13 @@ input[type='radio'] {
   --ml-error: #d91515;
   --ml-error-bg: #fff7f7;
   color-scheme: light;
-  min-height: 100vh;
-  min-height: 100dvh;
+  /* The row of the page above the banner of the environment, so the screen
+     scrolls only when the card does not fit, as the sign-in does. */
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  box-sizing: border-box;
   display: flex;
-  align-items: center;
-  justify-content: center;
   padding: 24px 16px;
   background: var(--ml-page);
   font-family: 'Open Sans', 'Helvetica Neue', Roboto, Arial, sans-serif;
@@ -5478,7 +5480,8 @@ input[type='radio'] {
 .password-card {
   width: 100%;
   max-width: 400px;
-  padding: 40px 24px 24px;
+  margin: auto;
+  padding: 24px;
   background: var(--ml-form);
   border: 1px solid var(--ml-border);
   border-radius: 12px;
@@ -5533,6 +5536,11 @@ input[type='radio'] {
   background: var(--ml-form);
   font: inherit;
   color: var(--ml-body);
+}
+.password-field input::placeholder {
+  font-style: italic;
+  color: var(--ml-body);
+  opacity: 1;
 }
 .password-field input:focus {
   outline: none;
@@ -5607,8 +5615,9 @@ input[type='radio'] {
   }
   .password-card {
     max-width: none;
+    margin: 0;
     border: 0;
     border-radius: 0;
-    padding: 40px 24px 24px;
+    padding: 24px;
   }
 }

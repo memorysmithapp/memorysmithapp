@@ -532,7 +532,11 @@
     "done": "Sua senha foi trocada. Todas as outras sessões desta conta vão precisar entrar de novo.",
     "back": "Voltar ao seu perfil",
     "failed": "Não foi possível trocar a senha.",
-    "show": "Mostrar senhas"
+    "show": "Mostrar senhas",
+    "required": "Preencha este campo.",
+    "currentPlaceholder": "Digitar a senha atual",
+    "nextPlaceholder": "Digitar a nova senha",
+    "againPlaceholder": "Digitar a nova senha de novo"
   },
   "editor": {
     "edit": "Editar esta nota",
