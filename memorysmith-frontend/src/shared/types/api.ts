@@ -59,7 +59,7 @@ export interface NoteDetail {
   body: string;
   raw: string;
   /** The revision a write has to echo back (RN-AGT-005). */
-  revision: string;  /** When it last changed, which the history of the note reaches a moment later. */
+  revision: string; /** When it last changed, which the history of the note reaches a moment later. */
   updatedAt: string;
 }
 
