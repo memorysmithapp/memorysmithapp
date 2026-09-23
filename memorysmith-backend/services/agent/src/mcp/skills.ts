@@ -304,6 +304,10 @@ ${formattingTable()}
    filled from real material, the template is what changes.
 9. The maps of content the guidance declares exist.
 10. \`get_notebook_context\` reads the way the next agent needs it to.
+11. \`check_notebook\` has run after the last write. Every link it says
+    \`likelyMeant\` is fixed to the name it meant; every other pending link is a
+    note you either write now or leave, and the person hears which ones are
+    left to write.
 
 ## When to stop asking
 
@@ -648,6 +652,18 @@ In every note that relies on it:
 
 ![[Load test of 2026-09-15#^p95]]
 \`\`\`
+
+## Before you hand the notes over
+
+While notes are being written a link points at a note that does not exist yet,
+and that is how it should be: write the note that links first, and the note it
+links to next. When the work is done, run \`check_notebook\` on the notebook.
+A pending link with \`likelyMeant\` almost reaches a note or a file the
+notebook has, as \`[[M42]]\` beside *M42 Orion Nebula*: change the link to
+that name, or add the spelling as an alias of the note. A pending link without
+it is a note still to write: write it, or tell the person it is left to write.
+The index follows a write within seconds, so right after the last write, run it
+again.
 
 ## Searching what you wrote
 

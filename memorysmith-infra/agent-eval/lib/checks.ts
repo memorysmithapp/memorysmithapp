@@ -30,6 +30,8 @@ export interface NotebookSnapshot {
   readonly folders: readonly FolderSnapshot[];
   readonly notes: readonly NoteSnapshot[];
   readonly pendingLinks: number;
+  /** Pending links that almost reach a note or a file, each with what it meant (#217). */
+  readonly brokenLinks: readonly string[];
 }
 
 export interface CheckInput {
@@ -258,13 +260,35 @@ const CHECKS: Record<CheckName, (input: CheckInput) => CheckOutcome> = {
     return outcome('frontmatter-follows-templates', strays.length === 0, strays.join(', '));
   },
 
+  /**
+   * No link left that looks broken. A pending link on purpose is a note still
+   * to write, which the skill asks for (#217); one that almost reaches a note
+   * or a file of the notebook is the mistake, and only a new one counts.
+   */
   'links-land': (input) => {
     const problems = touched(input).flatMap((notebook) => {
       const before = input.before.find((each) => each.notebookId === notebook.notebookId);
-      const pending = notebook.pendingLinks - (before?.pendingLinks ?? 0);
-      return pending > 0 ? [`${notebook.name}: ${pending} pending link(s) more`] : [];
+      const earlier = new Set(before?.brokenLinks ?? []);
+      const broken = notebook.brokenLinks.filter((link) => !earlier.has(link));
+      return broken.length > 0 ? [`${notebook.name}: ${broken.join(', ')}`] : [];
     });
     return outcome('links-land', problems.length === 0, problems.join('; '));
+  },
+
+  /** The sweep ran after the last write, which is when it says anything (#217). */
+  'checked-before-done': (input) => {
+    const uses = input.transcript.toolUses;
+    let last = -1;
+    uses.forEach((use, index) => {
+      if (WRITES.has(use.tool)) last = index;
+    });
+    if (last < 0) return outcome('checked-before-done', null, 'nothing was written');
+    const swept = uses.some((use, index) => index > last && use.tool === 'check_notebook');
+    return outcome(
+      'checked-before-done',
+      swept,
+      swept ? '' : 'check_notebook did not run after the last write',
+    );
   },
 
   'template-links-name-notes': (input) => {

@@ -85,7 +85,7 @@ A **remote MCP server** with OAuth 2.1, added as a native connector in the AI pl
 | Read the notebook | `list_notebooks`, **`get_notebook_context`**, `get_template`, `list_notes`, `read_note` |
 | Write content | `create_note`, `update_note` (with conflict detection), `delete_note` |
 | Write the structure | `create_notebook`, `delete_notebook`, `set_guidance`, `create_folder`, `delete_folder`, `set_template` |
-| Discover | `search_notes`, `related_notes`, `backlinks`, `note_history` |
+| Discover | `search_notes`, `related_notes`, `backlinks`, `check_notebook`, `note_history` |
 
 The central call is **`get_notebook_context`**, which returns the full Guidance plus the tree annotated with the identifier of each folder, its description, the order, the note count and which folders carry a Template. It is the exact equivalent of reading the guidance document and running `ls -R` on the local folder, in a single call. The tree part looks like this:
 

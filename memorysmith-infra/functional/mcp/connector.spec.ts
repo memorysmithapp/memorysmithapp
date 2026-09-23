@@ -539,6 +539,40 @@ test.describe('the tools', () => {
     );
   });
 
+  test('[tool:check_notebook] tells a pending link left on purpose from one that almost reaches a note (#217)', async ({
+    agent,
+    notebook,
+  }) => {
+    const tag = randomBytes(3).toString('hex');
+    const write = async (content: string) =>
+      parsed<{ noteId: string }>(
+        await callTool(agent, 'create_note', {
+          notebook: notebook.notebookId,
+          folder: notebook.folderId,
+          content,
+        }),
+      );
+    const meant = await write(`---\nname: Nebula${tag} Orion\n---\n\nThe target.\n`);
+    // One link cut short of a name the notebook has, one to a note still to write.
+    await write(`---\nname: Session ${tag}\n---\n\nSaw [[Nebula${tag}]] and [[Galaxy${tag}]].\n`);
+
+    type Check = {
+      pending: { target: string; likelyMeant: { noteId: string | null } | null }[];
+    };
+    const answer = await eventually(
+      'both links of the session pending',
+      async () =>
+        parsed<Check>(await callTool(agent, 'check_notebook', { notebook: notebook.notebookId })),
+      (check) =>
+        [`Nebula${tag}`, `Galaxy${tag}`].every((target) =>
+          check.pending.some((p) => p.target === target),
+        ),
+    );
+    const find = (target: string) => answer.pending.find((pending) => pending.target === target);
+    expect(find(`Nebula${tag}`)?.likelyMeant?.noteId).toBe(meant.noteId);
+    expect(find(`Galaxy${tag}`)?.likelyMeant).toBeNull();
+  });
+
   test('[tool:note_history] [tool:read_note] records the connector of every write, and reads a note as it was', async ({
     agent,
     notebook,

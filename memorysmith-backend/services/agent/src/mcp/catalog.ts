@@ -645,6 +645,20 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     annotations: { readOnlyHint: true },
   },
   {
+    name: 'check_notebook',
+    title: 'Check what a notebook left pending',
+    description:
+      'The sweep to run before saying a piece of work is done. Returns `pending`, every name ' +
+      'the notebook links to that no note carries yet, each with the notes that link to it, and ' +
+      '`orphans`, the notes nothing links to. A pending link is fine on purpose: it is a note ' +
+      'still to write. One with `likelyMeant` looks broken instead — it almost reaches a note ' +
+      'or a file the notebook has, in another case, without its accents or as the start of a ' +
+      'longer name — and the link is what to fix. It is as recent as the link index, which ' +
+      'follows a write within seconds, so right after the last write, run it again.',
+    inputSchema: object({ notebook: notebookArgument }, ['notebook']),
+    annotations: { readOnlyHint: true },
+  },
+  {
     name: 'note_history',
     title: 'Read the history of a note',
     description:
