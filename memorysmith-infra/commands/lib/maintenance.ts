@@ -18,7 +18,8 @@ export interface MaintenanceJob {
 export const MAINTENANCE_JOBS = {
   'recount-storage': {
     entry: 'memorysmith-backend/apps/core-monolith/src/recount.ts',
-    rebuilds: 'the storage counter of every subscription',
+    rebuilds:
+      'the storage counters of every subscription: what fills it, by kind and by notebook, and its kept exports',
   },
   'reproject-links': {
     entry: 'memorysmith-backend/apps/core-monolith/src/reproject.ts',
@@ -48,6 +49,10 @@ export function jobVariables(input: {
   return {
     KNOWLEDGE_TABLE: `mv-knowledge-${input.environment}`,
     DISCOVERY_TABLE: `mv-discovery-${input.environment}`,
+    // The recount of the storage reads the revisions off the trail and the
+    // kept exports off their own table (RN-SUB-024).
+    AUDIT_TABLE: `mv-audit-${input.environment}`,
+    PORTABILITY_TABLE: `mv-portability-${input.environment}`,
     CONTENT_BUCKET: input.contentBucket,
   };
 }

@@ -133,6 +133,11 @@ describe('running an export', () => {
     expect(ended?.versionId).toBe('v1');
     // The kept export occupies storage from the moment the bytes exist.
     expect(await transfers.keptBytes()).toBe(4_096);
+    // And it is counted as one export, of the notebook it was made of
+    // (RN-SUB-024).
+    const kept = await transfers.keptUsage();
+    expect(kept).toMatchObject({ count: 1, bytes: 4_096 });
+    expect(kept.byNotebook.get(NOTEBOOK)).toEqual({ count: 1, bytes: 4_096 });
   });
 
   it('writes one archive when the same message is delivered twice', async () => {
@@ -184,7 +189,7 @@ describe('deleting a transfer', () => {
       key: 's/x/exports/a.notebook',
       versionId: 'v7',
     });
-    await transfers.addKeptBytes(2_048);
+    await transfers.addKeptBytes(2_048, NOTEBOOK);
 
     const destroyed: Array<[string, string]> = [];
     const archives = {
@@ -199,6 +204,10 @@ describe('deleting a transfer', () => {
     expect(deleted.ok).toBe(true);
     expect(destroyed).toEqual([['s/x/exports/a.notebook', 'v7']]);
     expect(await transfers.keptBytes()).toBe(0);
+    // It leaves the count of its notebook with its bytes (RN-SUB-024).
+    const kept = await transfers.keptUsage();
+    expect(kept).toMatchObject({ count: 0, bytes: 0 });
+    expect(kept.byNotebook.get(NOTEBOOK)).toEqual({ count: 0, bytes: 0 });
     expect((await new ListTransfers(transfers, USER).execute()).ok).toBe(true);
     expect(await transfers.get(USER, started.value.transferId)).toBeNull();
   });

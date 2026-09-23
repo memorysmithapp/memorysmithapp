@@ -13,6 +13,7 @@
   "GET /access/platform/subscriptions",
   "GET /access/profile",
   "GET /access/session",
+  "GET /access/usage",
   "GET /audit/notebooks/:v/activity",
   "GET /audit/notebooks/:v/notes/:n/history",
   "GET /audit/notebooks/:v/notes/:n/revisions",

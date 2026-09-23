@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Added
+
+- **The space of a subscription says what fills it and which notebook holds it.** `GET /access/usage` answers, beside the total and the quota the session already reports, the total split by kind — notes, files, kept exports, and the Guidance and Templates together — with how many of each; how many notebooks, folders and revisions the subscription holds; and a line per notebook, largest first, with its bytes and its notes, folders, files and kept exports. Every number comes from counters kept with the total, so answering it reads no note and no file. The totals are the same for every role; the lines are the notebooks the requester can read, and a deleted notebook stays on them until its purge gives its space back. `recount-storage` rebuilds all of it, and counts the files it used to leave out of the total (RN-SUB-024). (#197)
+
 ### Changed
 
 - **The controls speak one vocabulary, and what is chosen stops being drawn in the colour of an action.** Blue is spent on the main action of a screen, on a link and on focus; everything chosen — the open note and folder of the tree, the open page of a notebook, the open tab, a theme or a language, a switch, a box — is Tinta, and Papel in the dark theme. A role, a plan or a tag is a neutral chip instead of a blue one that read as a link. Fields and buttons share the 8 px radius, fields are 38 px high, every control shows the same focus ring, tabs are underlined and scroll sideways on a phone instead of wrapping, and a modal has its ×, its actions on the right with the main one last, and the whole screen on a phone. **The user menu is rebuilt out of these controls**: the theme and the language as segmented choices with their names, *Your profile* and *Change your password* as items, *Sign out* under a divider, and the version with *About* at its foot; it closes on Esc and on a click outside, moves with the arrows, and on a phone it rises from the bottom as a sheet with rows a thumb reaches. (#201)

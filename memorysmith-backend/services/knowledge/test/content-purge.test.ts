@@ -259,6 +259,41 @@ describe('the purge of a deleted notebook', () => {
      */
     expect(closed).toEqual([NOTEBOOK]);
   });
+
+  it('says what each unit took off the counters of the space (RN-SUB-024)', async () => {
+    const { purge, events } = tableOf([
+      noteItem('deleted first', 'notes', 100, true),
+      noteItem('still live', 'notes', 200),
+      templateItem('notes', 50),
+      { PK: PARTITION, SK: `FOLDER#${folder('notes')}`, entity: 'FOLDER' },
+      { PK: PARTITION, SK: `FOLDER#${folder('other')}`, entity: 'FOLDER' },
+      { PK: PARTITION, SK: 'META', entity: 'NOTEBOOK', notebookId: NOTEBOOK },
+    ]);
+
+    await purge.run(envelope('NotebookDeleted', { notebookId: NOTEBOOK }));
+
+    const payloads = events.map((event) => ({
+      type: event['type'],
+      ...(event['payload'] as Record<string, unknown>),
+    }));
+    // A note deleted on its own left the count at its deletion; one the
+    // notebook took with it leaves it here. Both take their revisions along.
+    expect(payloads.filter((each) => each.type === 'NotePurged')).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ noteId: noteId('deleted first'), live: false, revisions: 1 }),
+        expect.objectContaining({ noteId: noteId('still live'), live: true, revisions: 1 }),
+      ]),
+    );
+    expect(payloads.find((each) => each.type === 'TemplatePurged')).toMatchObject({
+      live: true,
+      revisions: 1,
+    });
+    // The folders the tree still held, which no FolderRemoved will ever say
+    // are gone.
+    expect(payloads.find((each) => each.type === 'NotebookPurged')).toMatchObject({
+      folderCount: 2,
+    });
+  });
 });
 
 describe('the purge of a Content Slot deleted on its own', () => {
@@ -278,5 +313,8 @@ describe('the purge of a Content Slot deleted on its own', () => {
     expect(named(purged)).toEqual(['the template that went']);
     expect(events[0]?.['type']).toBe('TemplatePurged');
     expect(events[0]?.['storageDelta']).toBe(0);
+    // Its place in the count left with its bytes; what goes here is its
+    // revisions (RN-SUB-024).
+    expect(events[0]?.['payload']).toMatchObject({ live: false, revisions: 1 });
   });
 });

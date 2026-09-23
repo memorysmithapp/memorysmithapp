@@ -136,6 +136,7 @@ import {
   buildAudit,
   buildDiscovery,
   buildKnowledge,
+  buildSubscriptionUsage,
   buildTransfers,
   PICTURE_CATALOGUE,
   readStorageBudget,
@@ -254,6 +255,8 @@ const accessUseCases: AccessUseCases = {
       buildAccess(infra, request.context).scoped?.connectors ?? null,
       connectorClientId,
     ),
+  // Knowledge, Portability and Access joined where the budget is (#197).
+  subscriptionUsage: (request) => buildSubscriptionUsage(infra, request.context),
 };
 
 function scopedOrThrow(request: AccessRequest) {

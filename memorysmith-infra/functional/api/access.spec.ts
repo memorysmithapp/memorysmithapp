@@ -7,7 +7,9 @@
  * needs a member, or a subscription to approve, creates an account of its own.
  */
 
+import { subscriptionUsageSchema } from '@memorysmith/contracts';
 import { apiToken, localeOf } from '../support/accounts.js';
+import { eventually } from '../support/eventually.js';
 import type { Api } from '../support/api.js';
 import { expect, test, unknownId } from './fixtures.js';
 
@@ -16,6 +18,7 @@ interface Session {
   activeSubscription: { subscriptionId: string; status: string; quota: string } | null;
   subscriptions: Array<{ subscriptionId: string; status: string; quota: string; isOwner: boolean }>;
   role: string;
+  usedBytes: number;
   welcomeSeen: boolean;
 }
 
@@ -30,6 +33,27 @@ test.describe('the session', () => {
     expect(session.user.isPlatformAdmin).toBe(false);
     expect(session.activeSubscription?.subscriptionId).toBe(state.accounts.owner.subscriptionId);
     expect(session.role).toBe('OWNER');
+  });
+
+  test('[route:GET /access/usage] says what fills the space, from the same total the session says', async ({
+    owner,
+  }) => {
+    // One budget, joined in one place: the panel and the session never disagree.
+    // Another case may write between the two reads, so the pair is read again
+    // until it is read at one moment; it is never accepted apart.
+    const { usage } = await eventually(
+      'the usage and the session reading the same total',
+      async () => ({
+        usage: subscriptionUsageSchema.parse(await owner.ok('GET', '/access/usage')),
+        session: await owner.ok<Session>('GET', '/access/session'),
+      }),
+      ({ usage: read, session }) => read.usedBytes === session.usedBytes,
+    );
+
+    expect(usage.quotaBytes).toBeGreaterThan(0);
+    // Largest first, which is the order the screen draws them in.
+    const bytes = usage.notebooks.map((line) => line.bytes);
+    expect(bytes).toEqual([...bytes].sort((left, right) => right - left));
   });
 
   test('[route:POST /access/session/subscription] switches to a subscription the account holds, and to no other', async ({

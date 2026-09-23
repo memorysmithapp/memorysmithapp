@@ -9,6 +9,7 @@
     "./application": "./src/application/index.ts",
     "./adapters/trail": "./src/adapters/outbound/DynamoAuditTrail.ts",
     "./adapters/closer": "./src/adapters/outbound/DynamoTrailCloser.ts",
+    "./adapters/census": "./src/adapters/outbound/DynamoRevisionCensus.ts",
     "./adapters/content": "./src/adapters/outbound/S3RevisionReader.ts",
     "./adapters/http": "./src/adapters/inbound/routes.ts",
     "./adapters/consumer": "./src/adapters/inbound/event-consumer.ts",

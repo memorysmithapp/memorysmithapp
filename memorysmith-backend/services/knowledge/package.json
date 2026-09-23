@@ -40,6 +40,7 @@
     "./application/folders": "./src/application/folders.ts",
     "./application/notes": "./src/application/notes.ts",
     "./application/files": "./src/application/files.ts",
+    "./application/usage": "./src/application/usage.ts",
     "./domain": "./src/domain/index.ts"
   }
 }

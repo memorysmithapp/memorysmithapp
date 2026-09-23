@@ -712,7 +712,8 @@ Moving between notebooks is the **only operation in the system that writes to tw
 | Folder counter | `S#{s}#NOTEBOOK#{v}` | `FSTAT#{folderId}` | noteCount, updatedAt (asynchronous projection, §10.3) |
 | Template of a folder | `S#{s}#NOTEBOOK#{v}` | `FTPL#{folderId}` | notebookId, folderId, **contentRef**, version (§6.3) |
 | Guidance of the notebook | `S#{s}#NOTEBOOK#{v}` | `GUIDANCE` | notebookId, **contentRef**, version; indexed in `GSI1` as `NBGUID#{v}` |
-| Subscription usage | `S#{s}#NOTEBOOKS` | `USAGE` | storedBytes, updatedAt (asynchronous projection, §10.3, RN-SUB-021) |
+| Subscription usage | `S#{s}#NOTEBOOKS` | `USAGE` | storedBytes, and what fills it: noteCount, noteBytes, fileCount, fileBytes, otherCount, otherBytes, notebooks, folders, revisions; updatedAt (asynchronous projection, §10.3, RN-SUB-021, RN-SUB-024) |
+| What a notebook holds | `S#{s}#NOTEBOOKS` | `NBUSAGE#{v}` | notebookId, bytes, notes, folders, files, updatedAt (asynchronous projection, §10.3, RN-SUB-024); removed when the purge of the notebook ends |
 | Notebook counter | `S#{s}#NOTEBOOK#{v}` | `FSTAT` | noteCount, updatedAt; indexed in `GSI1` as `NBSTAT#{v}` |
 | Role ceiling in the notebook | `S#{s}#NOTEBOOK#{v}` | `LIMIT#{userId}` | limit (`VIEWER`), setBy, setAt: the demotion of §5.3 of the product |
 | Note | `S#{s}#NOTEBOOK#{v}` | `NOTE#{noteId}` | folderId, name, position, **bodyRef**, createdBy, updatedBy, version, `deletedAt?`, `deletedBy?` |
@@ -824,9 +825,20 @@ The two counters travel in the **same** transaction because they share the dedup
 
 **The delta is declared by the aggregate, not derived from the event type.** `NoteUpdated` is emitted both by a rename, which moves no byte, and by a new body, which moves the difference between two revisions; only the aggregate knows which of the two happened. Deriving it from the type would make the counter grow on every rename, and the error would be silent: nothing would break, the number would merely stop being true.
 
+**What fills the total is kept the same way, by the same relay, from the same events and in the same transaction** (RN-SUB-024). The `USAGE` item carries the split beside `storedBytes` — the count and the bytes of the notes, of the files and of the `Guidance` and `Template`s together, and how many notebooks, folders and revisions — so the split costs no write the total did not already make; and each notebook has an `NBUSAGE#{v}` line beside it, which a note that moves between notebooks moves from one line to the other:
+
+```
+TransactWriteItems
+  Put     PK = S#{s}#NOTEBOOK#{v}   SK = SEEN#{eventUlid}   attribute_not_exists(SK)   (TTL 7d)
+  Update  PK = S#{s}#NOTEBOOKS      SK = USAGE              ADD storedBytes :bytes, noteCount :one, noteBytes :bytes, revisions :one
+  Update  PK = S#{s}#NOTEBOOKS      SK = NBUSAGE#{v}        ADD bytes :bytes, notes :one
+```
+
+Which event moves which counter is one pure function of the envelope (`domain/services/StorageUsage.ts`), which the relay applies to the table and the in-memory harness to a map. Two rules decide most of it. **A count leaves with its bytes**: a unit its parent took with it is counted until the purge frees its bytes, so the purge events say whether the unit was still counted (`live`) and how many revisions of it they destroyed (`revisions`), and the `NotebookPurged` that ends a notebook says how many folders its tree still held (`folderCount`) and deletes its `NBUSAGE#` line. **A revision is counted and never charged**: every write of Markdown content adds one, and the purge takes away what it destroyed. The lines live in the partition of the subscription and not in the notebook's, so the answer that lists every notebook reads them with one `Query`, and so no note transaction ever contends with them (rule 10). The kept exports stay in `mv-portability` (§16), counted there per notebook too, and the route that answers the whole of it, `GET /access/usage`, is assembled by the composition root from the three contexts, with its `usedBytes` read through the very `StorageBudget` the session reads.
+
 **Why the counter does not live in the user transaction.** A single item per subscription touched by every note write is exactly the contention PE8 forbids for the `META` of the notebook, and worse, because it is one item for the whole account. That is why it sits in the relay, and that is why quota enforcement is slightly delayed: a burst of writes may cross the line before the counter catches up. The trade-off is deliberate and the drift is bounded by what is in flight, since the check runs on every write.
 
-**The counter is derived, and it is rebuildable.** Every projection of this system owes an answer to the same question, which is how it remakes itself when it is wrong (PE5), and the counter's answer is `recount-storage`, a command that runs `recount.ts` of the core against the tables of an environment: it scans `mv-knowledge`, adds up the current content of each subscription and writes the `USAGE` item. It reports first and only writes with `--apply`. It had to exist at least once for real, because the counter came into existence after the notebooks, and every subscription older than it started at zero while holding a notebook full of notes. A write happening during the scan may be counted by it **and** applied by the relay, and the write then discards the relay delta; the error is bounded by what was written while the job ran and disappears in the next recount, so it runs with the accounts idle.
+**The counter is derived, and it is rebuildable.** Every projection of this system owes an answer to the same question, which is how it remakes itself when it is wrong (PE5), and the counter's answer is `recount-storage`, a command that runs `recount.ts` of the core against the tables of an environment: it scans `mv-knowledge`, adds up the current content of each subscription — its notes, its files, its `Guidance` and `Template`s, its folders and notebooks — and writes the `USAGE` item and an `NBUSAGE#` line per notebook, removing the lines of notebooks that are gone. The revisions are counted off `mv-audit`, which names every revision a write produced and every content a purge destroyed, because listing the versions of an object belongs to the purge alone (rule 8); and the kept exports off the transfers of `mv-portability`. The entrypoint is where the three meet, as the composition root is for a request. It reports first and only writes with `--apply`. It had to exist at least once for real, because the counter came into existence after the notebooks, and every subscription older than it started at zero while holding a notebook full of notes. A write happening during the scan may be counted by it **and** applied by the relay, and the write then discards the relay delta; the error is bounded by what was written while the job ran and disappears in the next recount, so it runs with the accounts idle.
 
 **Whoever reads the counter does not know the limit.** The stored bytes are a fact of Knowledge and the ceiling is a fact of Access, and no context reads the table of the other: the one that joins the two halves at the `StorageBudget` port is the composition root (§24).
 
@@ -1220,6 +1232,8 @@ svc-access       GET  /session   (the user, the links and the active subscriptio
                  GET  /members
                  PATCH /members/:u  { role } · DELETE /members/:u
                  GET  /connector   (the connector this session acts through, which whoami names)
+                 GET  /usage   (what fills the space of the subscription: by kind, by notebook
+                                and in counts, from counters only, RN-SUB-024)
 svc-access       POST /connector-bindings   ─ signed with IAM by svc-agent, never called by a
  (connector proxy)                            session: binds a token it issued to its connector (§13.3)
 svc-access       GET  /platform/subscriptions?status=      ─┐  platform session:
@@ -1368,8 +1382,9 @@ The domain returns `Result<T, DomainError>`; **exceptions exist only at the edge
 |---|---|---|
 | A transfer | `S#{s}#USER#{userId}` | `TRANSFER#{transferId}` |
 | What the kept exports occupy | `S#{s}` | `KEPT` |
+| What the kept exports of one notebook occupy | `S#{s}` | `KEPT#{notebookId}` |
 
-**The partition carries the person, and that IS the rule** (RN-PRT-020): a transfer of somebody else is a key that does not exist under the caller, so asking for one answers as missing rather than as refused, and no listing can reveal a notebook its reader may not see (§15). The counter is of the subscription, because the quota is (RN-SUB-021), and the composition root is where the three halves of the budget meet: the content from Knowledge, the kept exports from here, and the ceiling from Access.
+**The partition carries the person, and that IS the rule** (RN-PRT-020): a transfer of somebody else is a key that does not exist under the caller, so asking for one answers as missing rather than as refused, and no listing can reveal a notebook its reader may not see (§15). The counter is of the subscription, because the quota is (RN-SUB-021), and the composition root is where the three halves of the budget meet: the content from Knowledge, the kept exports from here, and the ceiling from Access. It counts the kept exports beside their bytes, and keeps a `KEPT#{notebookId}` line per notebook an export was made of, which is how the space of the subscription says which notebook its exports are of (RN-SUB-024); the line outlives the notebook, as the export does.
 
 **Deleting a kept export destroys its bytes, and the role that does it may not touch a note.** The worker records the `versionId` S3 answered when it wrote the archive, so the deletion names the exact revision and needs no listing: an export is written once and never overwritten, so that version is the whole object, and destroying it leaves no delete marker and no noncurrent version. The policy of the API is scoped to `s/*/exports/*`, which no `ContentId` can match, so rule 8 still holds — exactly one principal may destroy a revision of a Content Slot, and it is the purge worker of §12.4.
 
@@ -1555,7 +1570,7 @@ staging:start     starts staging on a pipeline, and says the pipeline is off whi
 staging:status    whether the head of a branch ran on staging, on a pipeline
 staging:destroy   starts the teardown on a pipeline, and names destroy-staging while it is off
 onboard           an account and its subscription, through the API
-recount-storage   rebuilds the storage counter of every subscription (§10.3)
+recount-storage   rebuilds the storage counters of every subscription, and what fills them (§10.3)
 reproject-links   rebuilds the link graph of every notebook (§11)
 agent-eval        a round of the blind agent evaluation against staging (§19)
 ```

@@ -318,7 +318,7 @@ export class DeleteTransfer {
     }
     await this.transfers.remove(this.userId, transferId);
     if (found.status === 'ready' && found.bytes > 0) {
-      await this.transfers.addKeptBytes(-found.bytes);
+      await this.transfers.addKeptBytes(-found.bytes, found.notebookId);
     }
     return ok(undefined);
   }
@@ -406,7 +406,7 @@ export class RunExport {
       // The kept export occupies storage of the subscription from here on
       // (RN-SUB-021), and the counter moves when the bytes exist and not when
       // somebody clicked.
-      await this.transfers.addKeptBytes(built.value.bytes);
+      await this.transfers.addKeptBytes(built.value.bytes, work.notebookId ?? null);
     } catch (error) {
       reportUnexpected('export', work, error);
       await this.transfers.patch(work.userId, work.transferId, {

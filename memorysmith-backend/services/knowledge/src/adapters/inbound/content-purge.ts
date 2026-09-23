@@ -211,16 +211,18 @@ export class ContentPurge {
   private async purgeOrphanContent(context: Context, envelope: DeletionEnvelope): Promise<void> {
     const ref = parseContentRef(envelope.contentRef);
     if (!ref) return;
-    await context.purger.purge(ref.contentId);
+    const revisions = await context.purger.purge(ref.contentId);
     const folderId = String(envelope.payload['folderId'] ?? '');
     await this.record(context, {
       type: envelope.type === 'GuidanceDeleted' ? 'GuidancePurged' : 'TemplatePurged',
       subject: envelope.type === 'GuidanceDeleted' ? 'NOTEBOOK' : 'FOLDER',
       subjectId: envelope.type === 'GuidanceDeleted' ? context.notebookId : folderId,
+      // Its bytes and its place in the count left at the deletion; what the
+      // purge takes is the revisions it destroyed (RN-SUB-024).
       payload:
         envelope.type === 'GuidanceDeleted'
-          ? { notebookId: context.notebookId }
-          : { notebookId: context.notebookId, folderId },
+          ? { notebookId: context.notebookId, live: false, revisions }
+          : { notebookId: context.notebookId, folderId, live: false, revisions },
       contentRef: ref,
       storageDelta: 0,
       deletes: [],
@@ -248,12 +250,20 @@ export class ContentPurge {
     const noteId = String(item['noteId'] ?? '');
     const folderId = String(item['folderId'] ?? '');
     const ref = parseContentRef(item['bodyRef']);
-    if (ref) await context.purger.purge(ref.contentId);
+    const revisions = ref ? await context.purger.purge(ref.contentId) : 0;
     await this.record(context, {
       type: 'NotePurged',
       subject: 'NOTE',
       subjectId: noteId,
-      payload: { notebookId: context.notebookId, noteId, folderId },
+      // Whether the note was still counted, and how many revisions went: what
+      // the counters of the space of the subscription move by (RN-SUB-024).
+      payload: {
+        notebookId: context.notebookId,
+        noteId,
+        folderId,
+        live: !item['deletedAt'],
+        revisions,
+      },
       contentRef: ref,
       // A note deleted on its own freed its bytes at the deletion, and freeing
       // them again would make the counter of the subscription lie. A note
@@ -284,12 +294,12 @@ export class ContentPurge {
       if (!wanted(folderId)) return false;
 
       const ref = parseContentRef(item['contentRef']);
-      if (ref) await context.purger.purge(ref.contentId);
+      const revisions = ref ? await context.purger.purge(ref.contentId) : 0;
       await this.record(context, {
         type: 'TemplatePurged',
         subject: 'FOLDER',
         subjectId: folderId,
-        payload: { notebookId: context.notebookId, folderId },
+        payload: { notebookId: context.notebookId, folderId, live: true, revisions },
         contentRef: ref,
         storageDelta: -(ref?.bytes ?? 0),
         deletes: [String(item['SK'])],
@@ -301,12 +311,12 @@ export class ContentPurge {
   private async purgeGuidance(context: Context): Promise<void> {
     await this.walk(context, 'GUIDANCE', async (item) => {
       const ref = parseContentRef(item['contentRef']);
-      if (ref) await context.purger.purge(ref.contentId);
+      const revisions = ref ? await context.purger.purge(ref.contentId) : 0;
       await this.record(context, {
         type: 'GuidancePurged',
         subject: 'NOTEBOOK',
         subjectId: context.notebookId,
-        payload: { notebookId: context.notebookId },
+        payload: { notebookId: context.notebookId, live: true, revisions },
         contentRef: ref,
         storageDelta: -(ref?.bytes ?? 0),
         deletes: [String(item['SK'])],
@@ -332,12 +342,15 @@ export class ContentPurge {
         return false; // counted as tree, not as a unit of its own
       });
     }
+    // The folders the tree still held leave the count of the subscription with
+    // it: no `FolderRemoved` will ever say they are gone (RN-SUB-024).
+    const folderCount = keys.filter((key) => key.startsWith('FOLDER#')).length;
 
     await this.record(context, {
       type: 'NotebookPurged',
       subject: 'NOTEBOOK',
       subjectId: context.notebookId,
-      payload: { notebookId: context.notebookId },
+      payload: { notebookId: context.notebookId, folderCount },
       contentRef: null,
       storageDelta: 0,
       deletes: keys,

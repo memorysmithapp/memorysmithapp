@@ -30,6 +30,8 @@ describe('a maintenance job', () => {
     expect(jobVariables({ environment: 'production', contentBucket: 'the-bucket' })).toEqual({
       KNOWLEDGE_TABLE: physicalName({ name: 'production' }, 'mv-knowledge'),
       DISCOVERY_TABLE: physicalName({ name: 'production' }, 'mv-discovery'),
+      AUDIT_TABLE: physicalName({ name: 'production' }, 'mv-audit'),
+      PORTABILITY_TABLE: physicalName({ name: 'production' }, 'mv-portability'),
       CONTENT_BUCKET: 'the-bucket',
     });
   });

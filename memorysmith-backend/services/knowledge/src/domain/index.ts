@@ -29,6 +29,16 @@ export {
 } from './services/NotebookContextComposer.js';
 export { admitWrite, type StorageBudget, type StorageState } from './services/StorageQuota.js';
 export {
+  EMPTY_NOTEBOOK_USAGE,
+  EMPTY_SUBSCRIPTION_USAGE,
+  usageChangeOf,
+  type NotebookUsageCounters,
+  type StorageUsageReader,
+  type StorageUsageSnapshot,
+  type SubscriptionUsageCounters,
+  type UsageChange,
+} from './services/StorageUsage.js';
+export {
   AuthorizationPolicy,
   type Action,
   type RequestContext,

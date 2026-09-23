@@ -55,6 +55,8 @@ import {
   connectorBindingRequestSchema,
   profileSchema,
   sessionSchema,
+  subscriptionUsageSchema,
+  type SubscriptionUsageDto,
 } from '@memorysmith/contracts';
 import type { TokenVerifier } from './authentication.js';
 
@@ -64,6 +66,16 @@ export interface AccessRequest {
   readonly context: SubscriptionContext | null;
   /** The app client and the identifier of the token this request carries. */
   readonly credential: TokenCredential;
+}
+
+/**
+ * What fills the space of the active subscription (#197, RN-SUB-024). Access
+ * owns the route and none of the answer: the content is Knowledge's, the kept
+ * exports are Portability's and the quota is this context's, and the three are
+ * joined by the composition root, which is what hands this in.
+ */
+export interface SubscriptionUsageQuery {
+  execute(): Promise<Result<SubscriptionUsageDto, DomainError>>;
 }
 
 /**
@@ -87,6 +99,7 @@ export interface AccessUseCases {
   readonly removeMember: (request: AccessRequest) => RemoveMember;
   readonly transferOwnership: (request: AccessRequest) => TransferOwnership;
   readonly connectorOfSession: (request: AccessRequest) => ConnectorOfSession;
+  readonly subscriptionUsage: (request: AccessRequest) => SubscriptionUsageQuery;
 }
 
 type Variables = { access: AccessRequest };
@@ -163,6 +176,21 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
     // contract in silence, which is exactly how this response came to send
     // `links` where the contract says `subscriptions`.
     return c.json(sessionSchema.parse(dto), 200);
+  });
+
+  /**
+   * What fills the space of the subscription the token names (RN-SUB-024):
+   * by kind, by notebook and in counts, from counters and never from content.
+   * Any role reads it; the lines per notebook are the ones the requester sees.
+   */
+  app.get('/usage', async (c) => {
+    const request = c.get('access');
+    const context = requireContext(request);
+    if (!context.ok) return respond(c, context);
+    const usage = await useCases.subscriptionUsage(request).execute();
+    if (!usage.ok) return respond(c, usage);
+    // Parsed, not cast, for the reason the session is.
+    return c.json(subscriptionUsageSchema.parse(usage.value), 200);
   });
 
   app.post('/session/subscription', async (c) => {

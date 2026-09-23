@@ -25,6 +25,13 @@ import {
 import { TransactWriteCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { parseEvent } from '@memorysmith/contracts';
 import { Instant } from '@memorysmith/kernel';
+import {
+  isEmptyChange,
+  usageChangeOf,
+  withoutZeros,
+  type UsageChange,
+} from '../../domain/services/StorageUsage.js';
+import { NOTEBOOK_USAGE_PREFIX } from '../outbound/dynamodb/keys.js';
 
 /** The shape a stream record arrives in, narrowed to what the relay reads. */
 export interface StreamRecord {
@@ -180,11 +187,14 @@ export class OutboxRelay {
     for (const [index, envelope] of envelopes.entries()) {
       const { notes, folder } = counterDelta(envelope.type, envelope.payload);
       const bytes = envelope.storageDelta;
-      // An event that moves neither counter needs no transaction, and needs no
-      // SEEN item either: there is nothing to apply twice.
-      if (notes === 0 && bytes === 0) continue;
+      // What fills the space, by kind and by notebook (#197, RN-SUB-024),
+      // moved from the same event and in the same transaction as the total.
+      const usage = withoutZeros(usageChangeOf(envelope));
+      // An event that moves no counter needs no transaction, and needs no SEEN
+      // item either: there is nothing to apply twice.
+      if (notes === 0 && bytes === 0 && isEmptyChange(usage)) continue;
       const item = events[index] as Record<string, unknown>;
-      await this.applyCounters(String(item['PK']), envelope, notes, bytes, folder);
+      await this.applyCounters(String(item['PK']), envelope, notes, bytes, folder, usage);
     }
 
     return { published: envelopes.length };
@@ -192,8 +202,9 @@ export class OutboxRelay {
 
   /**
    * One transaction per event, carrying everything that event moves: the note
-   * counters of the folder and the notebook, and the stored bytes of the whole
-   * subscription (RN-SUB-021). They travel together because they share one
+   * counters of the folder and the notebook, the stored bytes of the whole
+   * subscription (RN-SUB-021), and what fills them by kind and by notebook
+   * (RN-SUB-024). They travel together because they share one
    * dedup marker: two transactions would mean the second one is refused by the
    * SEEN item the first one wrote.
    */
@@ -208,6 +219,7 @@ export class OutboxRelay {
     notes: number,
     bytes: number,
     countsFolder: boolean,
+    usage: UsageChange,
   ): Promise<void> {
     const folderId = countsFolder ? String(envelope.payload['folderId'] ?? '') : '';
 
@@ -249,16 +261,68 @@ export class OutboxRelay {
       });
     }
 
-    if (bytes !== 0) {
+    const usagePartition = `S#${envelope.subscriptionId}#NOTEBOOKS`;
+    const totals = Object.entries(usage.subscription);
+    if (bytes !== 0 || totals.length > 0) {
       // One item per subscription, in the subscription's own partition rather
       // than a notebook's: what a plan limits is the subscription, and a
-      // notebook waiting for the purge is still holding its bytes.
+      // notebook waiting for the purge is still holding its bytes. What fills
+      // it, by kind, is on the same item (#197), so the split costs no write
+      // the total did not already make.
+      const added = [...(bytes !== 0 ? [['storedBytes', bytes] as const] : []), ...totals];
       writes.push({
         Update: {
           TableName: this.deps.tableName,
-          Key: { PK: `S#${envelope.subscriptionId}#NOTEBOOKS`, SK: 'USAGE' },
-          UpdateExpression: 'ADD storedBytes :delta SET updatedAt = :at',
-          ExpressionAttributeValues: { ':delta': bytes, ':at': envelope.occurredAt },
+          Key: { PK: usagePartition, SK: 'USAGE' },
+          UpdateExpression: `ADD ${added.map((_, at) => `#a${at} :a${at}`).join(', ')} SET updatedAt = :at`,
+          ExpressionAttributeNames: Object.fromEntries(
+            added.map(([name], at) => [`#a${at}`, name]),
+          ),
+          ExpressionAttributeValues: {
+            ...Object.fromEntries(added.map(([, value], at) => [`:a${at}`, value])),
+            ':at': envelope.occurredAt,
+          },
+        },
+      });
+    }
+
+    // The counters of each notebook the event touched: one, or two for a note
+    // that moved between notebooks.
+    for (const { notebookId, delta } of usage.notebooks) {
+      if (notebookId === usage.forget) continue;
+      const added = Object.entries(delta);
+      writes.push({
+        Update: {
+          TableName: this.deps.tableName,
+          Key: { PK: usagePartition, SK: `${NOTEBOOK_USAGE_PREFIX}${notebookId}` },
+          UpdateExpression:
+            `ADD ${added.map((_, at) => `#n${at} :n${at}`).join(', ')} ` +
+            'SET #updatedAt = :at, #entity = :entity, #notebookId = :notebookId',
+          // Every name behind a placeholder: `bytes` is a reserved word of
+          // DynamoDB, and a name that is not one today is not promised to stay so.
+          ExpressionAttributeNames: {
+            ...Object.fromEntries(added.map(([name], at) => [`#n${at}`, name])),
+            '#updatedAt': 'updatedAt',
+            '#entity': 'entity',
+            '#notebookId': 'notebookId',
+          },
+          ExpressionAttributeValues: {
+            ...Object.fromEntries(added.map(([, value], at) => [`:n${at}`, value])),
+            ':at': envelope.occurredAt,
+            ':entity': 'NBUSAGE',
+            ':notebookId': notebookId,
+          },
+        },
+      });
+    }
+
+    // The purge of a notebook ended: what it held is gone, and so is the line
+    // that said what it held.
+    if (usage.forget) {
+      writes.push({
+        Delete: {
+          TableName: this.deps.tableName,
+          Key: { PK: usagePartition, SK: `${NOTEBOOK_USAGE_PREFIX}${usage.forget}` },
         },
       });
     }
