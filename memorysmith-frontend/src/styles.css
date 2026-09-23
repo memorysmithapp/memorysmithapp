@@ -1210,6 +1210,10 @@ a:hover {
   /* Room for the button, so the first line is never under it. */
   padding-right: 6.5rem;
 }
+/* A button does not inherit the colour of its text, so the verb says its own. */
+.copy-action {
+  color: var(--text);
+}
 .markdown .code-copy {
   position: absolute;
   top: 0.4rem;
