@@ -85,7 +85,7 @@ export function TransfersMenu() {
     <div className="transfers-menu" ref={root}>
       <button
         type="button"
-        className="transfers-trigger"
+        className="icon-button transfers-trigger"
         onClick={toggle}
         aria-expanded={open}
         aria-label={t('transfers.heading')}

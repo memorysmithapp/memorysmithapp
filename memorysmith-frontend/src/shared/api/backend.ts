@@ -23,13 +23,13 @@ import type {
   FacetStatsDto,
   NotebookDetailDto,
   NotebookGraphDto,
-  NotebookHealthDto,
   NotebookNamesDto,
   NotebookFileDto,
   FileLinkDto,
   FileListDto,
   NoteRefDto,
   NotebookSummaryDto,
+  SubscriptionUsageDto,
 } from '@memorysmith/contracts';
 import type {
   FolderNode,
@@ -94,7 +94,16 @@ function toSummary(notebook: NotebookSummaryDto): NotebookSummary {
     description: notebook.description,
     noteCount: notebook.noteCount,
     updatedAt: notebook.updatedAt,
+    effectiveRole: notebook.effectiveRole,
   };
+}
+
+/**
+ * What fills the space of the subscription (#197, RN-SUB-024): the split by
+ * kind, the counts, and a line per notebook the requester reads.
+ */
+export async function readUsage(): Promise<SubscriptionUsageDto> {
+  return request<SubscriptionUsageDto>('/access/usage');
 }
 
 export async function listNotebooks(): Promise<NotebookSummary[]> {
@@ -262,10 +271,6 @@ export async function getTemplate(
 /** The two Discovery reads the dashboard aggregates. */
 export async function getFacetsById(notebookId: string): Promise<FacetStatsDto> {
   return request<FacetStatsDto>(`/discovery/notebooks/${notebookId}/facets`);
-}
-
-export async function getHealthById(notebookId: string): Promise<NotebookHealthDto> {
-  return request<NotebookHealthDto>(`/discovery/notebooks/${notebookId}/health`);
 }
 
 /**

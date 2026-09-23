@@ -63,7 +63,20 @@ test.describe('the pages of an account', () => {
     await app.goto(`${state.surfaces.site}/`);
 
     await expect(app.getByRole('heading', { name: words.openNotebook })).toBeVisible();
-    await expect(app.locator('a.notebook-card', { hasText: notebook.name })).toBeVisible();
+    const card = app.locator('article.notebook-card', { hasText: notebook.name });
+    await expect(card).toBeVisible();
+    // The card is drawn with its graph, which is decoration and says so (#198).
+    await expect(card.locator('svg.card-graph')).toHaveAttribute('aria-hidden', 'true');
+
+    /**
+     * The notebooks by name in the reader's language, and the space of the
+     * subscription where the four counts about links used to be (#198).
+     */
+    const names = await app.locator('article.notebook-card h2').allTextContents();
+    const collator = new Intl.Collator(words.locale, { sensitivity: 'base', numeric: true });
+    expect(names).toEqual([...names].sort((a, b) => collator.compare(a, b)));
+    await expect(app.getByRole('heading', { name: words.space })).toBeVisible();
+    await expect(app.locator('.home-counts')).toBeVisible();
     await expect(app).toHaveTitle(`[${state.environment}] MemorySmith`);
     await expect(app.locator('.environment-banner')).toContainText(
       state.version ? `Staging · ${state.version}` : 'Staging',

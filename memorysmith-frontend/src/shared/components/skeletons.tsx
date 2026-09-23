@@ -35,20 +35,21 @@ export function NotebookCatalogueSkeleton({ cards = 3 }: { cards?: number }) {
 }
 
 /**
- * The four tiles of the overview, and nothing under them: a skeleton promises
- * the shape of what is coming, so one that drew charts the screen no longer
- * has would be a promise the page then breaks.
+ * The space of the subscription while its answer is on the way (#198): the
+ * total, the bar and the four rows of the table, in the card they will fill,
+ * so nothing below moves when the numbers arrive.
  */
-export function DashboardSkeleton() {
+export function SpaceSkeleton() {
   return (
     <SkeletonRegion>
-      <div className="stat-row">
-        {Array.from({ length: 4 }, (_, index) => (
-          <div className="stat-tile" key={index}>
-            <SkeletonBar width="3.5rem" height="2rem" />
-            <SkeletonBar width="5rem" height="0.8rem" />
-          </div>
-        ))}
+      <div className="home-space-card">
+        <div className="home-space-total">
+          <SkeletonBar width="9rem" height="2.4rem" />
+          <SkeletonBar width="100%" height="14px" />
+          {Array.from({ length: 4 }, (_, index) => (
+            <SkeletonBar key={index} width="100%" height="1rem" />
+          ))}
+        </div>
       </div>
     </SkeletonRegion>
   );

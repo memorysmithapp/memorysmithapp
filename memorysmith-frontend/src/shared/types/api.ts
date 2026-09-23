@@ -11,6 +11,8 @@ export interface NotebookSummary {
   noteCount: number;
   /** ISO instant of the last write in the notebook, formatted at the edge. */
   updatedAt: string;
+  /** min(subscription role, notebook ceiling), owner above both (RN-ACC-011). */
+  effectiveRole: string;
 }
 
 export interface NoteSummary {

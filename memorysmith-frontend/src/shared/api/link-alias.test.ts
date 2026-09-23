@@ -48,6 +48,7 @@ const structure: NotebookStructure = {
     description: '',
     noteCount: 3,
     updatedAt: '2026-09-20T00:00:00.000Z',
+    effectiveRole: 'OWNER',
   },
   guidance: null,
   guidanceRevision: null,

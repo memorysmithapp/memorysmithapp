@@ -1,24 +1,49 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Children, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface CardCarouselProps {
+  /** The title of the row, drawn on the same line as the rule and the arrows. */
+  heading: ReactNode;
   prevLabel: string;
   nextLabel: string;
   children: ReactNode;
 }
 
-// A horizontally scrolling card row with paging arrows. The arrows only show
-// when there is content on that side, and disappear entirely when every card
-// fits; the row itself stays scrollable by wheel, trackpad and drag.
-export function CardCarousel({ prevLabel, nextLabel, children }: CardCarouselProps) {
+/**
+ * A row of cards that scrolls sideways (#198). On the desktop the title, a
+ * rule and the ‹ › arrows share one line, and an arrow with nowhere to go is
+ * disabled rather than gone; the last card bleeds off the right edge to say
+ * there are more. On a phone the row snaps card by card, the next one showing
+ * at the edge, with dots under it and no arrows.
+ *
+ * The row stays scrollable by wheel, trackpad, touch and keyboard whatever
+ * the arrows say.
+ */
+export function CardCarousel({ heading, prevLabel, nextLabel, children }: CardCarouselProps) {
+  const { t } = useTranslation();
   const trackRef = useRef<HTMLDivElement>(null);
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(false);
+  const [active, setActive] = useState(0);
+  const count = Children.count(children);
 
   function update() {
     const el = trackRef.current;
     if (!el) return;
     setCanPrev(el.scrollLeft > 4);
     setCanNext(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+    // The card whose start is nearest the start of the row is the one shown.
+    const cards = [...el.children] as HTMLElement[];
+    let nearest = 0;
+    let distance = Infinity;
+    cards.forEach((card, index) => {
+      const off = Math.abs(card.offsetLeft - el.offsetLeft - el.scrollLeft);
+      if (off < distance) {
+        distance = off;
+        nearest = index;
+      }
+    });
+    setActive(nearest);
   }
 
   // Children arrive asynchronously (the notebook list loads), so re-measure on
@@ -45,31 +70,56 @@ export function CardCarousel({ prevLabel, nextLabel, children }: CardCarouselPro
     el.scrollBy({ left: direction * Math.max(el.clientWidth - 120, 240), behavior: 'smooth' });
   }
 
+  function goTo(index: number) {
+    const el = trackRef.current;
+    const card = el?.children[index] as HTMLElement | undefined;
+    if (!el || !card) return;
+    el.scrollTo({ left: card.offsetLeft - el.offsetLeft, behavior: 'smooth' });
+  }
+
   return (
     <div className="card-carousel">
-      {canPrev && (
-        <button
-          type="button"
-          className="carousel-arrow left"
-          aria-label={prevLabel}
-          onClick={() => page(-1)}
-        >
-          ‹
-        </button>
-      )}
+      <div className="carousel-head">
+        {heading}
+        <span className="carousel-rule" aria-hidden="true" />
+        <div className="carousel-arrows">
+          <button
+            type="button"
+            className="icon-button"
+            aria-label={prevLabel}
+            disabled={!canPrev}
+            onClick={() => page(-1)}
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label={nextLabel}
+            disabled={!canNext}
+            onClick={() => page(1)}
+          >
+            ›
+          </button>
+        </div>
+      </div>
       <div className="notebook-grid" ref={trackRef}>
         {children}
       </div>
-      {canNext && (
-        <button
-          type="button"
-          className="carousel-arrow right"
-          aria-label={nextLabel}
-          onClick={() => page(1)}
-        >
-          ›
-        </button>
-      )}
+      {count > 1 ? (
+        <div className="carousel-dots">
+          {Array.from({ length: count }, (_, index) => (
+            <button
+              key={index}
+              type="button"
+              className={index === active ? 'is-active' : undefined}
+              aria-label={t('dashboard.goToNotebook', { number: index + 1 })}
+              aria-current={index === active ? 'true' : undefined}
+              onClick={() => goTo(index)}
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

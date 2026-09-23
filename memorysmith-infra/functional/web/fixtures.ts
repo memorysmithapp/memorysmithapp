@@ -21,6 +21,10 @@ export type AppLocale = 'en_US' | 'pt_BR';
 export interface Words {
   /** The heading over the notebooks of the dashboard. */
   readonly openNotebook: string;
+  /** The BCP 47 tag the case compares names in. */
+  readonly locale: string;
+  /** The heading of the space of the subscription on Home (#198). */
+  readonly space: string;
   /** The link the row of a finished import carries, which is another text. */
   readonly openImported: string;
   readonly context: string;
@@ -95,6 +99,8 @@ export interface Words {
 export const WORDS: Record<AppLocale, Words> = {
   en_US: {
     openNotebook: 'Open a notebook',
+    locale: 'en-US',
+    space: 'Subscription space',
     openImported: 'Open notebook',
     context: 'Notebook Context',
     guidance: 'Guidance',
@@ -149,6 +155,8 @@ export const WORDS: Record<AppLocale, Words> = {
   },
   pt_BR: {
     openNotebook: 'Abrir um caderno',
+    locale: 'pt-BR',
+    space: 'Espaço da assinatura',
     openImported: 'Abrir o caderno',
     context: 'Contexto do caderno',
     guidance: 'Orientação',

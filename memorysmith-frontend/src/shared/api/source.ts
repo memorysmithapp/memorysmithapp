@@ -14,6 +14,7 @@ import type {
   DownloadLinkDto,
   FileLinkDto,
   NotebookFileDto,
+  SubscriptionUsageDto,
   TransferSelection,
   TransferDto,
   TransferListDto,
@@ -99,6 +100,10 @@ export function notesReaching(notebookId: string, target: string): string[] {
   const named = noteIdsNamed(notebookId, wanted);
   if (named.length > 0) return named;
   return spellings.get(notebookId)?.get(wanted) ?? [];
+}
+
+export function readUsage(): Promise<SubscriptionUsageDto> {
+  return backend.readUsage();
 }
 
 export function listNotebooks(): Promise<NotebookSummary[]> {

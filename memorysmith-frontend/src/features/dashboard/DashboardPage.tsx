@@ -1,65 +1,54 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { intlLocale } from '../../i18n';
+import { intlLocale } from '../../i18n/intl-locale';
 import { listNotebooks } from '../../shared/api/source';
-import { notebookAddress } from '../../shared/api/note-address';
-import { LiveDashboard } from './LiveDashboard';
 import { CardCarousel } from '../../shared/components/CardCarousel';
 import { NotebookCatalogueSkeleton } from '../../shared/components/skeletons';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryState } from '../../shared/api/query-state';
 import { queryKeys } from '../../shared/api/query-keys';
+import { NotebookCard } from './NotebookCard';
+import { SubscriptionSpace } from './SubscriptionSpace';
+import { byName } from './catalogue';
 
 /**
- * The locale drives the format, never a literal in the code: the same instant
- * reads 3 Sep 2026 for one reader and 3 de set. de 2026 for another.
- */
-function formatDate(iso: string, locale: string): string {
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(iso));
-}
-
-/**
- * The notebook catalogue, and under it what the notebooks themselves declare. There
- * used to be a second overview here, charting a fixed set of frontmatter
- * attributes that only the bundled seed guaranteed; the product never imposed
- * that convention, and the seed is gone (live-stats.ts).
+ * Home (#198): the notebooks to open, and under them the space of the
+ * subscription. The four numbers about links that were here — pending links
+ * and orphans across every notebook — left the door: they cost a read of
+ * every notebook to draw, and they answer a question asked inside a notebook,
+ * where its pending links still are.
  */
 export function DashboardPage() {
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const query = useQuery({ queryKey: queryKeys.notebooks(), queryFn: listNotebooks });
-  const notebooks = query.data;
   const state = queryState(query);
+  const notebooks = useMemo(
+    () => (query.data ? byName(query.data, locale) : undefined),
+    [query.data, locale],
+  );
 
   return (
-    <section className="page dashboard">
-      <div className="dashboard-heading-row">
-        <h2 className="dashboard-section-heading">{t('dashboard.selectNotebook')}</h2>
-      </div>
-      {state === 'error' && <p className="status">{t(messageKeyOf(query.error))}</p>}
-      {state === 'pending' && <NotebookCatalogueSkeleton />}
+    <section className="page home">
       <CardCarousel
+        heading={<h1 className="home-heading">{t('dashboard.selectNotebook')}</h1>}
         prevLabel={t('dashboard.prevNotebooks')}
         nextLabel={t('dashboard.nextNotebooks')}
       >
-        {notebooks?.map((notebook) => (
-          <Link key={notebook.id} to={notebookAddress(notebook.id)} className="notebook-card">
-            <h2>{notebook.name}</h2>
-            <p>{notebook.description}</p>
-            <footer>
-              <span>
-                {t('notebooks.noteCount', { count: notebook.noteCount })}
-                {' · '}
-                {t('notebooks.updatedAt', { date: formatDate(notebook.updatedAt, locale) })}
-              </span>
-              <span className="notebook-open">{t('notebooks.open')} →</span>
-            </footer>
-          </Link>
+        {notebooks?.map((notebook, index) => (
+          <NotebookCard
+            key={notebook.id}
+            notebook={notebook}
+            strip={index % 2 === 0 ? 'blue' : 'orange'}
+          />
         ))}
       </CardCarousel>
+      {state === 'error' && <p className="status">{t(messageKeyOf(query.error))}</p>}
+      {state === 'pending' && <NotebookCatalogueSkeleton />}
+      {notebooks?.length === 0 && <p className="hint home-empty">{t('dashboard.noNotebooks')}</p>}
 
-      <LiveDashboard />
+      <SubscriptionSpace />
     </section>
   );
 }
