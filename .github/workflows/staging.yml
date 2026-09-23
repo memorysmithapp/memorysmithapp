@@ -1,0 +1,115 @@
+# Delivers staging from the branch chosen when it is started, by hand
+# (architecture-guide.md, section 20; development-process.md, section 8.1).
+# It runs `deliver` exactly as a workstation did, and then, as chosen, the
+# adapter tests against the tables and the bucket of staging, the functional
+# suite, and the maintenance jobs a version may need.
+name: Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      adapters:
+        description: Run the adapter tests against staging
+        type: boolean
+        default: true
+      functional:
+        description: Run the functional suite against staging
+        type: boolean
+        default: true
+      maintenance:
+        description: A maintenance job to apply after the delivery
+        type: choice
+        default: none
+        options: [none, recount-storage, reproject-links, both]
+
+permissions:
+  contents: read
+  id-token: write
+
+# One delivery of staging at a time, and a second one waits instead of racing it.
+concurrency:
+  group: deliver-staging
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  deliver:
+    name: Deliver staging
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 120
+    steps:
+      # The whole history: the version staging serves counts the commits ahead of main.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_STAGING_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: staging-${{ github.run_id }}
+          role-duration-seconds: 7200
+
+      - name: The version staging will serve
+        id: version
+        run: echo "version=$(pnpm -s -C memorysmith-infra served-version --environment staging --branch "$GITHUB_REF_NAME")" >> "$GITHUB_OUTPUT"
+
+      - name: Deliver
+        run: pnpm -C memorysmith-infra deliver --environment staging
+
+      - name: Maintenance
+        if: inputs.maintenance != 'none'
+        run: |
+          if [ "${{ inputs.maintenance }}" != reproject-links ]; then
+            pnpm -C memorysmith-infra recount-storage --environment staging --apply
+          fi
+          if [ "${{ inputs.maintenance }}" != recount-storage ]; then
+            pnpm -C memorysmith-infra reproject-links --environment staging --apply
+          fi
+
+      - name: Adapter tests
+        if: inputs.adapters
+        run: |
+          export CONTENT_BUCKET=$(aws cloudformation describe-stacks --stack-name MemorysmithStagingData --query "Stacks[0].Outputs[?OutputKey=='ContentBucketName'].OutputValue" --output text)
+          export KNOWLEDGE_TABLE=mv-knowledge-staging ACCESS_TABLE=mv-access-staging DISCOVERY_TABLE=mv-discovery-staging
+          pnpm -r --workspace-concurrency=1 --if-present test:adapters
+
+      - name: Install the browser of the functional suite
+        if: inputs.functional
+        run: pnpm -C memorysmith-infra exec playwright install --with-deps chromium
+
+      - name: Functional suite
+        if: inputs.functional
+        env:
+          CI: 'true'
+          FUNCTIONAL_ENVIRONMENT: staging
+          FUNCTIONAL_VERSION: ${{ steps.version.outputs.version }}
+        run: pnpm -C memorysmith-infra functional
+
+      # A failed suite is when somebody reads the report, so it is kept either way.
+      - uses: actions/upload-artifact@v4
+        if: always() && inputs.functional
+        with:
+          name: functional-report
+          path: memorysmith-infra/functional-report
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Staging"
+            echo ""
+            echo "- Branch: \`$GITHUB_REF_NAME\` at \`${GITHUB_SHA::7}\`"
+            echo "- Version: \`${{ steps.version.outputs.version }}\`"
+            echo "- Adapter tests: ${{ inputs.adapters }} · Functional suite: ${{ inputs.functional }} · Maintenance: ${{ inputs.maintenance }}"
+          } >> "$GITHUB_STEP_SUMMARY"
