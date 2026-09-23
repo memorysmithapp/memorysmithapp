@@ -2305,13 +2305,6 @@ body.has-modal {
   font-size: 0.72rem;
   color: var(--text-soft);
 }
-.user-menu-about {
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 0.75rem;
-  color: var(--accent);
-  border-radius: 4px;
-}
 /* In the sheet the blocks run edge to edge, and the rows are a thumb high. */
 .sheet.user-menu-panel .user-menu-top,
 .sheet.user-menu-panel .user-menu-settings,
@@ -2550,7 +2543,6 @@ body.has-modal {
   .segmented > button,
   .tab,
   .user-menu-trigger,
-  .user-menu-about,
   .filter-chip
 ):focus-visible {
   outline: none;

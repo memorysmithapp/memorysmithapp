@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LOCALES, setLocale, type Locale } from '../../i18n';
 import { recordAccountLocale } from '../api/backend';
@@ -283,6 +283,15 @@ export function UserMenu() {
           >
             {t('password.menu')}
           </MenuItem>
+          {/* Where the connector of this environment is published, which is
+              what an agent is pointed at: an item like the others, and not a
+              footnote beside the version (#210). */}
+          <MenuItem
+            onSelect={() => go('/about')}
+            trailing={<ChevronRightIcon width={12} height={12} />}
+          >
+            {t('about.menu')}
+          </MenuItem>
           <MenuDivider />
           <MenuItem onSelect={handleSignOut} icon={<SignOutIcon width={14} height={14} />}>
             {t('auth.signOut')}
@@ -295,15 +304,12 @@ export function UserMenu() {
           The version, at the foot of the menu and in the quietest type on it.
           It is the first thing anyone is asked for when something looks wrong,
           and the last thing anyone needs while reading a notebook, so it is
-          present and never in the way. What the product is sits beside it.
+          present and never in the way.
         */}
         <div className="user-menu-foot" role="none">
           <p className="user-menu-version">
             {t('app.version', { version: loadedRuntimeConfig()?.version ?? '' })}
           </p>
-          <Link className="user-menu-about" role="menuitem" to="/about" onClick={close}>
-            {t('about.link')}
-          </Link>
         </div>
       </Menu>
     </div>
