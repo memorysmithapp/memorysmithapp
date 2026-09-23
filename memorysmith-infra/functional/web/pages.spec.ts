@@ -228,6 +228,21 @@ test.describe('the pages of an account', () => {
     // a page that shows the wrong one sends every agent somewhere else.
     // The endpoint, not the host: a client pointed at the host finds no server (#180).
     await expect(app.locator('.about-connector code')).toHaveText(`${state.surfaces.mcp}/mcp`);
+
+    // One client at a time: the steps of the other are a tab away (#216).
+    const panel = app.locator('#about-clients-panel');
+    await expect(panel.locator('li')).toHaveCount(5);
+    const first = await panel.locator('li').first().textContent();
+    await app.locator('#about-clients-tab-chatgpt').click();
+    await expect(app.locator('#about-clients-tab-chatgpt')).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await expect(panel.locator('li').first()).not.toHaveText(first ?? '');
+    // And the foot says which version this is, beside the way in.
+    if (state.version) {
+      await expect(app.locator('.about-version')).toContainText(state.version);
+    }
   });
 
   test('[page:/profile] [page:/profile/password] draws the initials nobody is asked for, and asks for the current password before changing it', async ({

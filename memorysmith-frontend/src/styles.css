@@ -4627,138 +4627,254 @@ input[type='radio'] {
    end to end rather than consulted, so it is set as a document: one column at
    a readable measure, centred, with the sections separated by air instead of
    by rules. */
+/* About, a reading column of 680 px with its sections set apart by a
+   hairline (#216). */
 .about {
-  max-width: 44rem;
+  max-width: calc(680px + 56px);
   margin: 0 auto;
-  padding: 2rem 1rem 3rem;
+  padding: 40px 28px 56px;
 }
 .about-hero {
-  text-align: center;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--border);
-}
-.about-brand {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  color: var(--text);
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 28px;
 }
-.about-brand .brand-symbol {
-  height: 40px;
-}
-.about-brand .brand-word {
-  font-size: 1.5rem;
+.about-symbol {
+  height: 48px;
+  width: auto;
+  align-self: flex-start;
 }
 .about-hero h1 {
-  margin: 1.25rem 0 0.5rem;
+  margin: 0;
   font-family: var(--display);
   font-weight: 700;
-  font-size: 1.75rem;
+  font-size: 34px;
+  line-height: 1.1;
   letter-spacing: -0.025em;
+  text-wrap: balance;
 }
 .about-lead {
   margin: 0;
+  font-size: 18px;
+  line-height: 1.5;
   color: var(--text-soft);
-  font-size: 1rem;
+  text-wrap: pretty;
 }
 .about-section {
-  margin-top: 2.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 28px 0;
+  border-top: 1px solid var(--border);
 }
 .about-section h2 {
-  margin: 0 0 0.75rem;
+  margin: 0;
   font-family: var(--display);
   font-weight: 700;
-  font-size: 1.15rem;
-}
-.about-section h3 {
-  margin: 1.5rem 0 0.5rem;
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 0.95rem;
-  color: var(--text-soft);
+  font-size: 19px;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
 }
 .about-section p {
-  margin: 0 0 0.75rem;
-  line-height: 1.65;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  text-wrap: pretty;
 }
-/* Term and definition, stacked: the term is what the eye scans for, so it
-   carries the weight and the definition carries none. */
+/* The screens of the interface, one row each in a card. */
 .about-list {
-  margin: 1rem 0 0;
-  padding: 0;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.about-list > div {
   display: grid;
-  gap: 0.9rem;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: 16px;
+  padding: 13px 18px;
+}
+.about-list > div + div {
+  border-top: 1px solid var(--border);
 }
 .about-list dt {
   font-family: var(--display);
-  font-weight: 500;
-  font-size: 0.9rem;
+  font-weight: 700;
+  font-size: 13.5px;
+  line-height: 1.4;
 }
 .about-list dd {
-  margin: 0.15rem 0 0;
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
   color: var(--text-soft);
-  line-height: 1.6;
+  text-wrap: pretty;
 }
-/* The address of the connector: the one string on this page somebody carries
-   somewhere else, so it is set as code and the verb sits beside it. It wraps
-   rather than scrolls, because an address cut in half is not an address. */
+/* The address of the connector: the block of code of the reading surface,
+   with the verb inside it. It scrolls like every block of code instead of
+   wrapping (#194). */
 .about-connector {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin: 0.5rem 0 1rem;
-  padding: 0.75rem 0.9rem;
+  gap: 12px;
+  padding: 10px 10px 10px 16px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--code-bg);
 }
-/* It scrolls like every block of code instead of wrapping (#194): the button
-   beside it is what carries the address somewhere else, and one rule for code
-   is simpler to read than two. */
 .about-connector code {
   flex: 1 1 0;
   min-width: 0;
   overflow-x: auto;
   white-space: nowrap;
-  font-size: 0.9rem;
+  font-size: 14px;
+  line-height: 1.45;
   color: var(--text);
 }
 .about-connector .button {
-  flex-shrink: 0;
+  flex: none;
+  min-height: 36px;
   border-color: var(--border);
   background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
 }
 .about-connector .button:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--text-soft);
 }
 .about-connector .button svg {
-  width: 1rem;
-  height: 1rem;
+  width: 16px;
+  height: 16px;
 }
-.about-steps,
+.about-clients {
+  margin-top: 6px;
+}
+/* The steps of the client whose tab is open, each with its number. */
+.about-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.about-steps li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.about-steps li > span:last-child {
+  padding-top: 2px;
+  text-wrap: pretty;
+}
+.about-steps strong {
+  font-weight: 600;
+}
+.about-step-number {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 12px;
+}
+.about-section p.about-note {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-soft);
+}
+/* The requests an agent can be given first, each in a card of its own. */
 .about-asks {
-  margin: 0 0 0.75rem;
-  padding-left: 1.4rem;
-  line-height: 1.7;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-.about-steps li,
 .about-asks li {
-  margin-bottom: 0.3rem;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  text-wrap: pretty;
 }
-.about-asks li {
-  color: var(--text-soft);
-}
-.about-note {
-  color: var(--text-soft);
-  font-size: 0.875rem;
-}
+/* The foot: which version this is, and the way into the product. */
 .about-footer {
-  margin-top: 2.5rem;
-  padding-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 28px;
   border-top: 1px solid var(--border);
-  text-align: center;
+}
+.about-version {
+  font-size: 12px;
+  color: var(--text-soft);
+}
+@media (max-width: 40rem) {
+  .about {
+    padding: 22px 16px 28px;
+  }
+  .about-hero {
+    padding-bottom: 22px;
+  }
+  .about-symbol {
+    height: 40px;
+  }
+  .about-hero h1 {
+    font-size: 26px;
+  }
+  .about-lead {
+    font-size: 16px;
+  }
+  .about-section {
+    padding: 22px 0;
+  }
+  .about-section h2 {
+    font-size: 17px;
+  }
+  .about-section p {
+    font-size: 14px;
+  }
+  .about-list > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+    padding: 12px 14px;
+  }
+  /* The copy is its icon alone, a thumb's width. */
+  .about-connector {
+    padding: 6px 6px 6px 12px;
+  }
+  .about-connector .button {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+  }
+  .about-connector .copy-action-label {
+    display: none;
+  }
+  .about-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    text-align: center;
+  }
+  .about-footer .button {
+    height: 44px;
+  }
 }
 
 /* The profile and the password (#168): two short documents, set like the

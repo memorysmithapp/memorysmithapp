@@ -1,8 +1,8 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
-import { BrandMark } from '../../shared/components/BrandMark';
 import { CopyButton } from '../../shared/components/CopyButton';
+import { Tabs } from '../../shared/components/Tabs';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { connectorEndpoint, loadedRuntimeConfig } from '../../shared/config/runtime-config';
 import { recordWelcomeSeen } from '../../shared/api/backend';
@@ -31,6 +31,10 @@ export function WelcomeGate({ children }: { children: ReactNode }) {
  */
 const STEPS = ['one', 'two', 'three', 'four', 'five'] as const;
 
+/** The two clients whose steps the page gives, one at a time (#216). */
+const CLIENTS = ['claude', 'chatgpt'] as const;
+type Client = (typeof CLIENTS)[number];
+
 /**
  * What this product is, said once, to whoever just arrived (#167, RN-ACC-019).
  *
@@ -51,6 +55,7 @@ export function AboutPage() {
   const connector = config ? connectorEndpoint(config) : '';
   const welcomed = useLiveSession((s) => s.session?.welcomeSeen ?? true);
   const markWelcomeSeen = useLiveSession((s) => s.markWelcomeSeen);
+  const [client, setClient] = useState<Client>('claude');
 
   useDocumentTitle(t('about.title'), null);
 
@@ -68,10 +73,10 @@ export function AboutPage() {
 
   return (
     <article className="about">
+      {/* A reading column, the sections set apart by a hairline (#216). */}
       <header className="about-hero">
-        <div className="about-brand">
-          <BrandMark />
-        </div>
+        <img className="about-symbol symbol-light" src="/symbol.svg" alt="" />
+        <img className="about-symbol symbol-dark" src="/symbol-dark.svg" alt="" />
         <h1>{t('about.heading')}</h1>
         <p className="about-lead">{t('about.lead')}</p>
       </header>
@@ -85,6 +90,8 @@ export function AboutPage() {
       <section className="about-section">
         <h2>{t('about.interface.heading')}</h2>
         <p>{t('about.interface.body')}</p>
+        {/* Term and definition in one card, a row each: the term is what the
+            eye scans for, so it carries the weight and the definition none. */}
         <dl className="about-list">
           {(['notebooks', 'folders', 'guidance', 'graph', 'search', 'transfers'] as const).map(
             (key) => (
@@ -101,27 +108,39 @@ export function AboutPage() {
         <h2>{t('about.connector.heading')}</h2>
         <p>{t('about.connector.body')}</p>
 
-        {/* The address, in the type a thing that gets copied is written in,
-            with the verb beside it. Nothing here asks the person to read it. */}
+        {/* The address, as a block of code of the reading surface with the
+            verb inside it. Nothing here asks the person to read it. */}
         <div className="about-connector">
           <code>{connector}</code>
           <CopyButton text={() => connector} disabled={!connector} />
         </div>
 
-        <h3>{t('about.connector.claude.heading')}</h3>
-        <ol className="about-steps">
-          {STEPS.map((step) => (
+        {/* One client at a time: the steps of the other are a tab away. */}
+        <Tabs
+          id="about-clients"
+          label={t('about.connector.heading')}
+          className="about-clients"
+          tabs={CLIENTS.map((key) => ({ key, label: t(`about.connector.${key}.heading`) }))}
+          active={client}
+          onSelect={setClient}
+        />
+        <ol
+          className="about-steps"
+          id="about-clients-panel"
+          role="tabpanel"
+          aria-labelledby={`about-clients-tab-${client}`}
+        >
+          {STEPS.map((step, index) => (
             <li key={step}>
-              <Trans i18nKey={`about.connector.claude.${step}`} components={{ b: <strong /> }} />
-            </li>
-          ))}
-        </ol>
-
-        <h3>{t('about.connector.chatgpt.heading')}</h3>
-        <ol className="about-steps">
-          {STEPS.map((step) => (
-            <li key={step}>
-              <Trans i18nKey={`about.connector.chatgpt.${step}`} components={{ b: <strong /> }} />
+              <span className="about-step-number" aria-hidden="true">
+                {index + 1}
+              </span>
+              <span>
+                <Trans
+                  i18nKey={`about.connector.${client}.${step}`}
+                  components={{ b: <strong /> }}
+                />
+              </span>
             </li>
           ))}
         </ol>
@@ -140,6 +159,9 @@ export function AboutPage() {
       </section>
 
       <footer className="about-footer">
+        <span className="about-version">
+          {t('app.version', { version: config?.version ?? '' })}
+        </span>
         <Link className="button is-primary" to="/">
           {t('about.start')}
         </Link>
