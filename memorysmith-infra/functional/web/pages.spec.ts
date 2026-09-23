@@ -5,6 +5,7 @@
  * fails the Quality stage.
  */
 
+import { randomBytes } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { apiToken } from '../support/accounts.js';
@@ -135,6 +136,44 @@ test.describe('the pages of an account', () => {
     await app.keyboard.press('Escape');
     await expect(menu).toBeHidden();
     await expect(trigger).toBeFocused();
+  });
+
+  test('exports a notebook from its card, and its owner deletes it there after saying so (#199)', async ({
+    app,
+    owner,
+    state,
+    words,
+  }) => {
+    const name = `Delete ${randomBytes(4).toString('hex')}`;
+    const { notebookId } = await owner.ok<{ notebookId: string }>('POST', '/knowledge/notebooks', {
+      name,
+      description: 'A notebook a web case deletes.',
+    });
+    await app.goto(`${state.surfaces.site}/`);
+    const card = app.locator('article.notebook-card', { hasText: name });
+    const more = card.getByRole('button', { name: words.moreActions });
+
+    // Export lands in the dialog with this notebook already chosen.
+    await more.click();
+    await app.getByRole('menuitem', { name: words.exportNotebook }).click();
+    await expect(
+      app.locator('.transfer-dialog').getByLabel(words.notebookField, { exact: true }),
+    ).toHaveValue(notebookId);
+    await app.keyboard.press('Escape');
+
+    // Deleting asks on the card, and keeping it puts the card back as it was.
+    await more.click();
+    await app.getByRole('menuitem', { name: words.deleteNotebook }).click();
+    await expect(card.getByRole('heading', { name: new RegExp(name) })).toBeVisible();
+    await card.getByRole('button', { name: words.keep }).click();
+    await expect(card.getByRole('button', { name: words.moreActions })).toBeVisible();
+
+    await more.click();
+    await app.getByRole('menuitem', { name: words.deleteNotebook }).click();
+    await card.getByRole('button', { name: words.deleteForGood }).click();
+    await expect(app.locator('article.notebook-card', { hasText: name })).toHaveCount(0);
+    const gone = await owner.call('GET', `/knowledge/notebooks/${notebookId}`);
+    expect(gone.status).toBe(404);
   });
 
   test('[page:/about] says what the product is, and where an agent is pointed at it', async ({

@@ -306,21 +306,70 @@ a:hover {
   flex-direction: column;
   gap: 14px;
   padding: 20px;
-  overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
   color: var(--text);
 }
+/* Drawn inside the rounded border, rather than clipped by it: a card clips
+   nothing, so the menu of its corner is never cut off. */
 .notebook-card::before {
   content: '';
   position: absolute;
   inset: 0 0 auto;
   height: 4px;
+  border-radius: 13px 13px 0 0;
   background: var(--accent);
 }
 .notebook-card[data-strip='orange']::before {
   background: var(--signal);
+}
+.notebook-card[data-strip='danger']::before {
+  height: 3px;
+  background: var(--danger);
+}
+/* The actions of the card (#199), over the link stretched across it. */
+.notebook-card-corner {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  right: 12px;
+}
+.notebook-card-more {
+  color: var(--text);
+}
+.menu.notebook-card-menu {
+  top: calc(100% + 4px);
+  right: 0;
+  width: 220px;
+}
+.notebook-card-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+}
+.notebook-card-confirm h2 {
+  margin: 0;
+  padding: 0;
+  font-size: 1.0625rem;
+  line-height: 1.25;
+}
+.notebook-card-confirm p {
+  flex: 1;
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--text-soft);
+}
+.notebook-card-confirm strong {
+  font-weight: 600;
+  color: var(--text);
+}
+.notebook-card-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 .notebook-card:hover {
   border-color: var(--text-soft);
@@ -648,6 +697,15 @@ a:hover {
     width: 108px;
     height: 36px;
     margin-bottom: 12px;
+  }
+  .notebook-card-corner {
+    top: 8px;
+    right: 6px;
+  }
+  /* A thumb's target, with the same three dots in it. */
+  .notebook-card-more {
+    width: 44px;
+    height: 44px;
   }
   .notebook-card h2 {
     margin-bottom: 6px;
@@ -2682,6 +2740,9 @@ input[type='radio'] {
 .sheet .sheet-close {
   min-height: 44px;
 }
+.sheet .menu-divider {
+  margin: 0;
+}
 
 /* A touch screen gets targets a thumb reaches. */
 @media (pointer: coarse) {
@@ -2765,6 +2826,30 @@ input[type='radio'] {
 .button.is-danger:hover:not(:disabled) {
   background: var(--danger);
   color: var(--on-danger);
+}
+
+/* In a confirmation the red is filled: the question has already been asked. */
+.button.is-danger.is-filled {
+  background: var(--danger);
+  color: var(--on-danger);
+}
+/* A link that does something on the page rather than going somewhere. */
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.link-button:hover {
+  text-decoration: underline;
+}
+.link-button:focus-visible {
+  outline: none;
+  border-radius: 2px;
+  box-shadow: var(--focus-ring);
 }
 
 /* Inside a row of a list, where the row is the subject and the action is not. */

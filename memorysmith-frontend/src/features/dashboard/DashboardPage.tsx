@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { intlLocale } from '../../i18n/intl-locale';
@@ -8,7 +8,8 @@ import { NotebookCatalogueSkeleton } from '../../shared/components/skeletons';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryState } from '../../shared/api/query-state';
 import { queryKeys } from '../../shared/api/query-keys';
-import { NotebookCard } from './NotebookCard';
+import { TransferDialogs } from '../portability/StartTransfer';
+import { NotebookActions } from './NotebookActions';
 import { SubscriptionSpace } from './SubscriptionSpace';
 import { byName } from './catalogue';
 
@@ -24,6 +25,8 @@ export function DashboardPage() {
   const locale = intlLocale(i18n.language);
   const query = useQuery({ queryKey: queryKeys.notebooks(), queryFn: listNotebooks });
   const state = queryState(query);
+  // The export a card started, with its notebook already chosen (#199).
+  const [exporting, setExporting] = useState<string | null>(null);
   const notebooks = useMemo(
     () => (query.data ? byName(query.data, locale) : undefined),
     [query.data, locale],
@@ -37,10 +40,11 @@ export function DashboardPage() {
         nextLabel={t('dashboard.nextNotebooks')}
       >
         {notebooks?.map((notebook, index) => (
-          <NotebookCard
+          <NotebookActions
             key={notebook.id}
             notebook={notebook}
             strip={index % 2 === 0 ? 'blue' : 'orange'}
+            onExport={setExporting}
           />
         ))}
       </CardCarousel>
@@ -49,6 +53,11 @@ export function DashboardPage() {
       {notebooks?.length === 0 && <p className="hint home-empty">{t('dashboard.noNotebooks')}</p>}
 
       <SubscriptionSpace />
+      <TransferDialogs
+        starting={exporting === null ? null : 'export'}
+        notebookId={exporting ?? undefined}
+        onClose={() => setExporting(null)}
+      />
     </section>
   );
 }

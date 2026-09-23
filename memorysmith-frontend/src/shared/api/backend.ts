@@ -106,6 +106,15 @@ export async function readUsage(): Promise<SubscriptionUsageDto> {
   return request<SubscriptionUsageDto>('/access/usage');
 }
 
+/**
+ * Deleting a notebook, which is definitive: one write on the notebook, and a
+ * purge in the background destroys what it held (RN-KNW-033). The owner alone
+ * may; anybody else is refused by the API whatever the screen shows.
+ */
+export async function deleteNotebook(notebookId: string): Promise<void> {
+  await request<void>(`/knowledge/notebooks/${notebookId}`, { method: 'DELETE' });
+}
+
 export async function listNotebooks(): Promise<NotebookSummary[]> {
   const notebooks = await request<NotebookSummaryDto[]>('/knowledge/notebooks');
   return notebooks.map(toSummary);

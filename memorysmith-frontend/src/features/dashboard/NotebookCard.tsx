@@ -31,7 +31,8 @@ export function NotebookCard({
   children,
 }: {
   notebook: NotebookSummary;
-  strip: 'blue' | 'orange';
+  /** The strip on top: the brand, or the red of a card that is asking. */
+  strip: 'blue' | 'orange' | 'danger';
   /** What sits in the top-right corner: the actions of the card. */
   corner?: ReactNode;
   /** What replaces the body, when the card is asking something. */

@@ -106,6 +106,10 @@ export function readUsage(): Promise<SubscriptionUsageDto> {
   return backend.readUsage();
 }
 
+export function deleteNotebook(notebookId: string): Promise<void> {
+  return backend.deleteNotebook(notebookId);
+}
+
 export function listNotebooks(): Promise<NotebookSummary[]> {
   return backend.listNotebooks();
 }

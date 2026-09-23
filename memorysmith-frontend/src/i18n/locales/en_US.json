@@ -167,7 +167,9 @@
     "noNotebooks": "No notebook yet. An agent creates one through the connector, and an export comes back in through Transfers.",
     "space": "Subscription space",
     "planChip": "{{plan}} · {{quota}}",
-    "plan": { "individual": "Individual plan" },
+    "plan": {
+      "individual": "Individual plan"
+    },
     "of": "of {{quota}}",
     "free": "{{free}} free",
     "full": "full",
@@ -195,7 +197,19 @@
     "countNotebooks": "Notebooks",
     "countFolders": "Folders",
     "countRevisions": "Revisions",
-    "usageUnavailable": "The split of the space could not be read now; the total is the one your session knows."
+    "usageUnavailable": "The split of the space could not be read now; the total is the one your session knows.",
+    "card": {
+      "more": "More actions",
+      "export": "Export notebook",
+      "delete": "Delete notebook…",
+      "confirmTitle": "Delete “{{name}}”?",
+      "confirmBody": "<b>Everything in it will be deleted, and this cannot be undone.</b> Consider <export>Export notebook</export> before deleting.",
+      "keep": "Keep",
+      "deleteForGood": "Delete for good",
+      "deleting": "Deleting…"
+    },
+    "purging_one": "A deleted notebook still holds {{bytes}} until its cleanup ends.",
+    "purging_other": "{{count}} deleted notebooks still hold {{bytes}} until their cleanup ends."
   },
   "portability": {
     "download": "Download notebook (.notebook)",

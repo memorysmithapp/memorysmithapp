@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { intlLocale } from '../../i18n/intl-locale';
-import { readUsage } from '../../shared/api/source';
+import { listNotebooks, readUsage } from '../../shared/api/source';
 import { queryKeys } from '../../shared/api/query-keys';
 import { useLiveSession } from '../../shared/auth/session';
 import { formatBytes } from '../../shared/components/StorageBar';
@@ -33,6 +33,19 @@ export function SubscriptionSpace() {
   const session = useLiveSession((s) => s.session);
   const query = useQuery({ queryKey: queryKeys.subscriptionUsage(), queryFn: readUsage });
   const usage = query.data;
+  const notebooks = useQuery({ queryKey: queryKeys.notebooks(), queryFn: listNotebooks }).data;
+  /**
+   * A notebook deleted and still being purged holds its bytes until the purge
+   * ends, and the usage keeps its line until then (#199). It is not a notebook
+   * anybody can open any more, so it leaves the list and is said instead,
+   * rather than the old number shown as if nothing had happened.
+   */
+  const live = notebooks ? new Set(notebooks.map((each) => each.id)) : null;
+  const purging = usage && live ? usage.notebooks.filter((each) => !live.has(each.notebookId)) : [];
+  const shown =
+    usage && live
+      ? { ...usage, notebooks: usage.notebooks.filter((each) => live.has(each.notebookId)) }
+      : usage;
 
   const bytes = (value: number) => formatBytes(value, locale);
   const number = new Intl.NumberFormat(locale);
@@ -134,11 +147,19 @@ export function SubscriptionSpace() {
             {usage ? (
               <div className="home-space-notebooks">
                 <h3>{t('dashboard.byNotebook')}</h3>
-                {usage.notebooks.length === 0 ? (
-                  <p className="hint">{t('dashboard.noVisibleNotebooks')}</p>
+                {shown && shown.notebooks.length > 0 ? (
+                  <NotebookLines lines={notebookLines(shown)} format={bytes} />
                 ) : (
-                  <NotebookLines lines={notebookLines(usage)} format={bytes} />
+                  <p className="hint">{t('dashboard.noVisibleNotebooks')}</p>
                 )}
+                {purging.length > 0 ? (
+                  <p className="hint space-purging">
+                    {t('dashboard.purging', {
+                      count: purging.length,
+                      bytes: bytes(purging.reduce((total, each) => total + each.bytes, 0)),
+                    })}
+                  </p>
+                ) : null}
               </div>
             ) : null}
           </div>

@@ -25,6 +25,12 @@ export interface Words {
   readonly locale: string;
   /** The heading of the space of the subscription on Home (#198). */
   readonly space: string;
+  /** The ⋯ of a notebook card and what it holds (#199). */
+  readonly moreActions: string;
+  readonly exportNotebook: string;
+  readonly deleteNotebook: string;
+  readonly keep: string;
+  readonly deleteForGood: string;
   /** The link the row of a finished import carries, which is another text. */
   readonly openImported: string;
   readonly context: string;
@@ -101,6 +107,11 @@ export const WORDS: Record<AppLocale, Words> = {
     openNotebook: 'Open a notebook',
     locale: 'en-US',
     space: 'Subscription space',
+    moreActions: 'More actions',
+    exportNotebook: 'Export notebook',
+    deleteNotebook: 'Delete notebook…',
+    keep: 'Keep',
+    deleteForGood: 'Delete for good',
     openImported: 'Open notebook',
     context: 'Notebook Context',
     guidance: 'Guidance',
@@ -157,6 +168,11 @@ export const WORDS: Record<AppLocale, Words> = {
     openNotebook: 'Abrir um caderno',
     locale: 'pt-BR',
     space: 'Espaço da assinatura',
+    moreActions: 'Mais ações',
+    exportNotebook: 'Exportar caderno',
+    deleteNotebook: 'Apagar caderno…',
+    keep: 'Manter',
+    deleteForGood: 'Apagar de vez',
     openImported: 'Abrir o caderno',
     context: 'Contexto do caderno',
     guidance: 'Orientação',
