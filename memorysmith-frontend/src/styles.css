@@ -2620,7 +2620,11 @@ input[type='radio'] {
 .segmented > button:first-child {
   border-left: 0;
 }
-.segmented > button:hover:not([aria-checked='true']) {
+.segmented > button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.segmented > button:hover:not([aria-checked='true']):not(:disabled) {
   background: var(--hover);
   color: var(--text);
 }
@@ -4760,71 +4764,70 @@ input[type='radio'] {
 /* The profile and the password (#168): two short documents, set like the
    welcome surface, because they are read once and left. */
 .profile {
-  max-width: 34rem;
+  max-width: calc(560px + 56px);
   margin: 0 auto;
-  padding: 2rem 1rem 3rem;
+  padding: 40px 28px 56px;
 }
 .profile h1 {
-  margin: 0 0 1.5rem;
+  margin: 0 0 20px;
   font-family: var(--display);
   font-weight: 700;
-  font-size: 1.4rem;
+  font-size: 26px;
+  line-height: 1.15;
   letter-spacing: -0.02em;
 }
-.profile-section {
-  margin-bottom: 1.75rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--border);
+/* The profile in one card (#215): the picture above, the fields below. */
+.profile-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
 }
-.profile-section:last-of-type {
-  border-bottom: 0;
+.profile-card .field {
+  margin-bottom: 0;
+}
+.profile-rule {
+  height: 1px;
+  margin: 4px -22px;
+  border: 0;
+  background: var(--border);
 }
 /* The face beside its choices, so the answer to "what will this look like"
    is the picture itself and never a name for one. */
 .profile-face {
   display: flex;
   align-items: flex-start;
-  gap: 1.25rem;
-  flex-wrap: wrap;
+  gap: 18px;
+}
+.profile-picture {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .profile-caption {
-  margin: 0 0 0.6rem;
   font-family: var(--display);
   font-weight: 500;
-  font-size: 0.85rem;
-  color: var(--text-soft);
-}
-.profile-sources {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-.profile-sources label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.7rem;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-.profile-sources label.is-selected {
-  border-color: var(--chosen);
+  font-size: 13px;
   color: var(--text);
-  font-weight: 600;
 }
-.profile-sources label:has(input:disabled) {
-  opacity: 0.5;
-  cursor: not-allowed;
+.profile-sources .segmented > button {
+  height: auto;
+  min-height: 34px;
+  padding: 4px 8px;
+  text-align: center;
+  line-height: 1.15;
+}
+.profile-upload {
+  align-self: flex-start;
+  cursor: pointer;
 }
 /* A file input is the one control a browser will not let anybody style, so
    the label is the button and the input is hidden inside it. */
-.profile-upload {
-  border-color: var(--border);
-  cursor: pointer;
-}
 .profile-upload input {
   position: absolute;
   width: 1px;
@@ -4833,13 +4836,14 @@ input[type='radio'] {
   pointer-events: none;
 }
 .profile-note {
-  margin: 1rem 0 0;
-  font-size: 0.8rem;
+  margin: 0;
+  font-size: 12.5px;
   line-height: 1.55;
   color: var(--text-soft);
+  text-wrap: pretty;
 }
 .profile-failure {
-  margin: 0 0 1rem;
+  margin: 16px 0 0;
   color: var(--danger);
   font-size: 0.875rem;
 }
@@ -4849,8 +4853,29 @@ input[type='radio'] {
 }
 .profile-actions {
   display: flex;
-  gap: 0.6rem;
+  gap: 10px;
   flex-wrap: wrap;
+  margin-top: 20px;
+}
+/* A phone: the picture above its choices, and the actions across the width. */
+@media (max-width: 40rem) {
+  .profile {
+    padding: 24px 15px 40px;
+  }
+  .profile-face {
+    flex-direction: column;
+  }
+  .profile-picture {
+    align-self: stretch;
+  }
+  .profile-actions {
+    flex-direction: column;
+  }
+  .profile-actions .button {
+    width: 100%;
+    height: 44px;
+    justify-content: center;
+  }
 }
 
 /* The shape a field takes on these screens: the label above, the control

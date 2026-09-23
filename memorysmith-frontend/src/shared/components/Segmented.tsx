@@ -16,7 +16,8 @@ export function Segmented<V extends string>({
   inMenu = false,
 }: {
   label: string;
-  options: ReadonlyArray<{ value: V; label: string; icon?: ReactNode }>;
+  /** `disabled` offers an option that cannot be chosen yet, as a picture before there is one (#215). */
+  options: ReadonlyArray<{ value: V; label: string; icon?: ReactNode; disabled?: boolean }>;
   value: V;
   onChange: (value: V) => void;
   inMenu?: boolean;
@@ -29,6 +30,7 @@ export function Segmented<V extends string>({
           type="button"
           role={inMenu ? 'menuitemradio' : 'radio'}
           aria-checked={option.value === value}
+          disabled={option.disabled}
           onClick={() => onChange(option.value)}
         >
           {option.icon}

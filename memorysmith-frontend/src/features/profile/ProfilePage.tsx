@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Avatar, type AvatarSource } from '../../shared/components/Avatar';
+import { Segmented } from '../../shared/components/Segmented';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { editProfile, setProfilePicture } from '../../shared/api/backend';
 import { useLiveSession } from '../../shared/auth/session';
@@ -90,27 +91,31 @@ export function ProfilePage() {
     <article className="profile">
       <h1>{t('profile.heading')}</h1>
 
-      <section className="profile-section">
+      {/* One card, as the design draws it (#215): the picture above, the
+          fields below, a hairline between them. */}
+      <section className="profile-card">
         <div className="profile-face">
           <Avatar email={email} size={72} source={source} picture={picture} name={name} />
-          <div>
-            <p className="profile-caption">{t('profile.pictureHeading')}</p>
+          <div className="profile-picture">
+            <span className="profile-caption" id="profile-picture-label">
+              {t('profile.pictureHeading')}
+            </span>
+            {/* The source is a choice among three, drawn as every choice is
+                since the Controles (#201); a picture of their own is offered
+                and waits until there is one. */}
             <div className="profile-sources">
-              {SOURCES.map((option) => (
-                <label key={option} className={source === option ? 'is-selected' : undefined}>
-                  <input
-                    type="radio"
-                    name="avatar"
-                    value={option}
-                    checked={source === option}
-                    disabled={option === 'upload' && !picture}
-                    onChange={() => setSource(option)}
-                  />
-                  <span>{t(`profile.source.${option}`)}</span>
-                </label>
-              ))}
+              <Segmented
+                label={t('profile.pictureHeading')}
+                value={source}
+                onChange={setSource}
+                options={SOURCES.map((option) => ({
+                  value: option,
+                  label: t(`profile.source.${option}`),
+                  disabled: option === 'upload' && !picture,
+                }))}
+              />
             </div>
-            <label className="button is-small profile-upload">
+            <label className="button is-quiet is-small profile-upload">
               <input
                 type="file"
                 accept="image/*"
@@ -130,9 +135,7 @@ export function ProfilePage() {
           hash of an e-mail and the address of whoever is reading (RN-DSC-040).
         */}
         <p className="profile-note">{t('profile.gravatarDiscloses')}</p>
-      </section>
-
-      <section className="profile-section">
+        <hr className="profile-rule" />
         <label className="field">
           <span className="field-label">{t('profile.name')}</span>
           <input
@@ -160,7 +163,7 @@ export function ProfilePage() {
         >
           {saved ? t('profile.saved') : t('profile.save')}
         </button>
-        <Link className="button" to="/profile/password">
+        <Link className="button is-quiet" to="/profile/password">
           {t('password.heading')}
         </Link>
       </div>
