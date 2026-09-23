@@ -31,6 +31,14 @@
  * not at the click (RN-KNW-047). Its folders and the notebook itself are
  * counted until then too, exactly as the relay counts them.
  *
+ * WHAT IT DOES NOT COUNT, besides, is a file whose notebook is gone. Until
+ * 0.7.0 the purge of a notebook left its files behind (#202): the item, the
+ * guard of its name and the bytes, still counted against the quota by a
+ * notebook that no longer exists. Nobody can reach such a file, so it is not
+ * live content, and the recount leaves it out of every number and REPORTS it
+ * instead (`orphanFiles`), without destroying anything: destroying content is
+ * the purge's alone (rule 8), and nothing here holds a port that could.
+ *
  * WHAT IT DOES NOT COUNT is the revisions: a revision is a version of an
  * object in the store, and listing those belongs to the purge alone (rule 8).
  * How many there are is a question for the trail, which names every one of
@@ -84,6 +92,19 @@ export interface SubscriptionUsage {
   readonly byNotebook: ReadonlyMap<string, NotebookUsageCounters>;
   /** Lines the table holds for a notebook that no longer exists. */
   readonly stale: readonly string[];
+  /**
+   * Files left behind by the deletion of their notebook before the purge took
+   * files with it (#202), by notebook: counted in nothing above, reported so
+   * somebody can see what the store still holds for nobody.
+   */
+  readonly orphanFiles: ReadonlyArray<OrphanFiles>;
+}
+
+/** The files a notebook that no longer exists left behind. */
+export interface OrphanFiles {
+  readonly notebookId: string;
+  readonly files: number;
+  readonly bytes: number;
 }
 
 /** `S#{subscriptionId}#NOTEBOOK#{notebookId}` and `S#{subscriptionId}#NOTEBOOKS`. */
@@ -109,6 +130,11 @@ interface Tally {
   notebooks: Set<string>;
   byNotebook: Map<string, { bytes: number; notes: number; folders: number; files: number }>;
   lines: Set<string>;
+  /**
+   * The live files of each notebook, apart: whether their notebook still
+   * exists is known only once the whole table was read.
+   */
+  filesByNotebook: Map<string, { files: number; bytes: number }>;
   /** What the counter held before, which is kept when nobody counts them. */
   revisions: number | null;
 }
@@ -126,6 +152,7 @@ function emptyTally(): Tally {
     notebooks: new Set(),
     byNotebook: new Map(),
     lines: new Set(),
+    filesByNotebook: new Map(),
     revisions: null,
   };
 }
@@ -199,12 +226,10 @@ export class StorageRecount {
           case 'FILE': {
             if (item['deletedAt']) break;
             const bytes = bytesOf(item['contentRef']);
-            current.fileBytes += bytes;
-            current.files += 1;
-            if (notebookId) {
-              line().bytes += bytes;
-              line().files += 1;
-            }
+            const files = current.filesByNotebook.get(notebookId) ?? { files: 0, bytes: 0 };
+            files.files += 1;
+            files.bytes += bytes;
+            current.filesByNotebook.set(notebookId, files);
             break;
           }
           // A Guidance and a Template are items of their own since
@@ -244,6 +269,23 @@ export class StorageRecount {
 
     return [...totals.entries()]
       .map(([subscriptionId, t]) => {
+        // The files are added only now, when it is known which notebooks
+        // exist: the Scan reads items in no order, so a file may come before
+        // the `META` of its notebook, or with no `META` at all to come.
+        const orphanFiles: OrphanFiles[] = [];
+        for (const [notebookId, files] of t.filesByNotebook) {
+          if (notebookId && !t.notebooks.has(notebookId)) {
+            orphanFiles.push({ notebookId, ...files });
+            continue;
+          }
+          t.fileBytes += files.bytes;
+          t.files += files.files;
+          const line = t.byNotebook.get(notebookId);
+          if (line) {
+            line.bytes += files.bytes;
+            line.files += files.files;
+          }
+        }
         // A line for a notebook whose items are all gone is left over, and a
         // line that exists only because of an item outside any notebook is
         // not a notebook at all.
@@ -265,6 +307,9 @@ export class StorageRecount {
           revisions: revisions ? (revisions.get(subscriptionId) ?? 0) : t.revisions,
           byNotebook,
           stale: [...t.lines].filter((notebookId) => !byNotebook.has(notebookId)).sort(),
+          orphanFiles: orphanFiles.sort((left, right) =>
+            left.notebookId.localeCompare(right.notebookId),
+          ),
         };
       })
       .sort((left, right) => right.storedBytes - left.storedBytes);

@@ -114,6 +114,7 @@ describe('storage recount', () => {
 
   it('counts the files it used to leave out, which are content since they exist', async () => {
     const { db } = tableOf([
+      { PK: `S#${A}#NOTEBOOK#1`, entity: 'NOTEBOOK' },
       { PK: `S#${A}#NOTEBOOK#1`, entity: 'NOTE', bodyRef: ref(100) },
       { PK: `S#${A}#NOTEBOOK#1`, entity: 'FILE', contentRef: ref(5000) },
       // Deleted and waiting for its purge: the deletion released its bytes.
@@ -131,6 +132,36 @@ describe('storage recount', () => {
     // count it handed its bytes back as a bonus.
     expect(usage?.storedBytes).toBe(5100);
     expect(usage).toMatchObject({ files: 1, fileBytes: 5000, noteBytes: 100 });
+  });
+
+  it('reports the files a notebook that is gone left behind, and counts none of them (#202)', async () => {
+    const { db, written, deleted } = tableOf([
+      { PK: `S#${A}#NOTEBOOK#1`, entity: 'NOTEBOOK' },
+      { PK: `S#${A}#NOTEBOOK#1`, entity: 'FILE', contentRef: ref(5000) },
+      // Its notebook was deleted and purged before the purge took files with
+      // it: the items are still there, and nobody can reach them.
+      { PK: `S#${A}#NOTEBOOK#GONE`, entity: 'FILE', contentRef: ref(3000) },
+      { PK: `S#${A}#NOTEBOOK#GONE`, entity: 'FILE', contentRef: ref(2000) },
+      {
+        PK: `S#${A}#NOTEBOOK#GONE`,
+        entity: 'FILE',
+        contentRef: ref(700),
+        deletedAt: '2026-09-20T00:00:00Z',
+      },
+    ]);
+    const recount = new StorageRecount({ db: db as never, tableName: 't' });
+
+    const [usage] = await recount.measure();
+
+    expect(usage).toMatchObject({ storedBytes: 5000, files: 1, fileBytes: 5000 });
+    expect(usage?.orphanFiles).toEqual([{ notebookId: 'GONE', files: 2, bytes: 5000 }]);
+    expect(usage?.byNotebook.has('GONE')).toBe(false);
+
+    // Reported, never destroyed: applying writes the counters and nothing of
+    // the files, whose bytes only the purge may take (rule 8).
+    await recount.apply(usage ? [usage] : []);
+    expect(deleted).toEqual([]);
+    expect(written.every((item) => String(item['PK']) === `S#${A}#NOTEBOOKS`)).toBe(true);
   });
 });
 

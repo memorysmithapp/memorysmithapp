@@ -67,6 +67,24 @@ export async function main(argv: readonly string[]): Promise<number> {
         `${each.revisions ?? 'uncounted'} revisions)`,
     );
   }
+  /**
+   * Files a deleted notebook left behind before its purge took files with it
+   * (#202). They are counted in nothing above, and nothing here destroys them:
+   * destroying content is the purge's alone (rule 8), so this says what the
+   * store still holds for nobody, and a person decides.
+   */
+  const orphans = usage.flatMap((each) =>
+    each.orphanFiles.map((orphan) => ({ subscriptionId: each.subscriptionId, ...orphan })),
+  );
+  if (orphans.length > 0) {
+    console.log('\nFiles of notebooks that no longer exist (not counted, not destroyed):');
+    for (const orphan of orphans) {
+      console.log(
+        `  ${orphan.subscriptionId}  notebook ${orphan.notebookId}  ` +
+          `${human(orphan.bytes).padStart(10)}  (${orphan.files} files)`,
+      );
+    }
+  }
   for (const each of exports) {
     console.log(
       `  ${each.subscriptionId}  ${human(each.bytes).padStart(10)}  (${each.count} kept exports)`,

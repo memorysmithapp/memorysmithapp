@@ -75,7 +75,7 @@ export const UNITS_PER_RUN = 200;
 
 /** What the worker answers, so the handler knows whether to continue. */
 export interface PurgeOutcome {
-  /** Units destroyed in this pass: notes, Templates, Guidances. */
+  /** Units destroyed in this pass: notes, Templates, Guidances, files. */
   readonly purged: number;
   /** False when a new message has to carry on where this one stopped. */
   readonly done: boolean;
@@ -143,6 +143,8 @@ export class ContentPurge {
         await this.purgeNotes(context, () => true);
         await this.purgeTemplates(context, () => true);
         await this.purgeGuidance(context);
+        // Its files, which no `FileDeleted` will ever name otherwise (#202).
+        await this.purgeFiles(context);
         // The tree itself goes last, and only once nothing under it is left:
         // what is above a unit is what says the unit is invalid, so taking it
         // away first would leave a live note nothing marked.
@@ -184,7 +186,6 @@ export class ContentPurge {
     context.budget -= 1;
   }
 
-  /** The content of a slot whose item is already gone. */
   /** The bytes of one file, and then the item that named them. */
   private async purgeOneFile(context: Context, envelope: DeletionEnvelope): Promise<void> {
     const ref = parseContentRef(envelope.contentRef);
@@ -206,6 +207,65 @@ export class ContentPurge {
         ],
       }),
     );
+  }
+
+  /**
+   * Every file of a deleted notebook (#202, RN-KNW-051), each the way
+   * `purgeOneFile` takes one: its bytes first and its item second.
+   *
+   * A file deleted on its own already said so: its `FileDeleted` released its
+   * bytes and its name, and is what put its item here as a tombstone, so only
+   * the bytes and the item are left to go. A file that was live when its
+   * notebook went never said anything, so its item leaves in the same
+   * transaction as the `FileDeleted` a deletion of that one file would have
+   * written — the same event, with the same negative `storageDelta`, so the
+   * stored bytes and the counters of the space (RN-SUB-021, RN-SUB-024) fall
+   * through the relay exactly as they do for a single file, and nothing new
+   * has to be taught to anything that listens. The purge hears that event
+   * again and finds nothing left to destroy.
+   */
+  private async purgeFiles(context: Context): Promise<void> {
+    await this.walk(context, 'FILE#', async (item) => {
+      const ref = parseContentRef(item['contentRef']);
+      if (ref) await context.purger.purge(ref.contentId, 'file');
+
+      if (item['deletedAt']) {
+        await this.deps.db.send(
+          new TransactWriteCommand({
+            TransactItems: [
+              {
+                Delete: {
+                  TableName: this.deps.tableName,
+                  Key: { PK: this.partitionOf(context), SK: String(item['SK']) },
+                },
+              },
+            ],
+          }),
+        );
+        return true;
+      }
+
+      const fileId = String(item['fileId'] ?? '');
+      const name = String(item['name'] ?? '');
+      await this.record(context, {
+        type: 'FileDeleted',
+        subject: 'FILE',
+        subjectId: fileId,
+        payload: {
+          notebookId: context.notebookId,
+          fileId,
+          name,
+          mimeType: String(item['mimeType'] ?? ''),
+          path: String(item['path'] ?? '/'),
+        },
+        contentRef: ref,
+        storageDelta: -(ref?.bytes ?? 0),
+        // The guard of its name goes with it, as it does at the deletion of
+        // one file: a live file is the one that holds it.
+        deletes: [String(item['SK']), `FNAME#${sha256Hex(name.normalize('NFC'))}`],
+      });
+      return true;
+    });
   }
 
   private async purgeOrphanContent(context: Context, envelope: DeletionEnvelope): Promise<void> {
@@ -327,7 +387,8 @@ export class ContentPurge {
 
   /**
    * Everything else of the partition: the folders, the counters, the ceilings,
-   * the slug guards and the `META` item itself. None of them points at
+   * the guards of names, note and file, the slug guards and the `META` item
+   * itself. None of them points at
    * content, so they go in batches with one event at the end.
    *
    * The outbox items are NOT deleted, and neither are the dedup markers: both
@@ -336,7 +397,16 @@ export class ContentPurge {
    */
   private async purgeTree(context: Context): Promise<void> {
     const keys: string[] = [];
-    for (const prefix of ['FOLDER#', 'FSTAT', 'LIMIT#', 'NAME#', 'SEQ#', 'SLUG#', 'META']) {
+    for (const prefix of [
+      'FNAME#',
+      'FOLDER#',
+      'FSTAT',
+      'LIMIT#',
+      'NAME#',
+      'SEQ#',
+      'SLUG#',
+      'META',
+    ]) {
       await this.walk(context, prefix, async (item) => {
         keys.push(String(item['SK']));
         return false; // counted as tree, not as a unit of its own
