@@ -251,15 +251,6 @@ a:hover {
   max-width: none;
   margin: 0;
   padding: 24px 28px 24px;
-  /* The last card bleeds off the right edge to say there are more. */
-  padding-right: 0;
-}
-/* Everything but the row of cards runs to the same right margin as the
-   window, so the rule of the title, its arrows and the space below all end on
-   one line at the edge; the cards bleed past it to say there are more. */
-.home > :not(.card-carousel),
-.carousel-head {
-  margin-right: 28px;
 }
 .card-carousel {
   margin-bottom: 26px;
@@ -299,9 +290,13 @@ a:hover {
   overflow-x: auto;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
-  /* Room for the focus ring of a card, which the scroll box would clip. */
-  padding: 4px 28px 4px 4px;
+  /* Room for the focus ring of a card, which the scroll box would clip. The
+     row ends on the right margin of the page, with the rule and the space
+     below, and a card that does not fit is cut there, not at the edge of the
+     window (#213). */
+  padding: 4px 0 4px 4px;
   margin: -4px 0 -4px -4px;
+  scroll-padding-left: 4px;
 }
 .notebook-grid::-webkit-scrollbar {
   display: none;
@@ -681,12 +676,7 @@ a:hover {
 /* A phone: the row snaps card by card, with dots and no arrows. */
 @media (max-width: 40rem) {
   .page.home {
-    padding: 24px 0 24px 15px;
-  }
-  .home > :not(.card-carousel),
-  .carousel-head,
-  .home-space-head {
-    margin-right: 15px;
+    padding: 24px 15px;
   }
   .carousel-head {
     margin-bottom: 14px;
@@ -702,14 +692,17 @@ a:hover {
   .card-carousel {
     margin-bottom: 24px;
   }
-  /* One card at a time, held at the centre with its neighbours showing on both
-     sides; the row is padded so the first and the last reach the centre too
-     (#204). */
+  /* One card at a time, from edge to edge of the screen so the neighbours
+     peek past the margins. The first card rests on the left margin with the
+     next one showing, the last on the right margin with the previous one
+     showing, and every card between them at the centre with both showing
+     (#212). */
   .notebook-grid {
     gap: 10px;
     scroll-snap-type: x mandatory;
-    padding-inline: calc((100vw - min(262px, 85vw)) / 2);
-    margin-left: -15px;
+    padding: 4px 15px;
+    margin: -4px -15px;
+    scroll-padding-inline: 15px;
   }
   .notebook-card {
     scroll-snap-align: center;
@@ -717,6 +710,12 @@ a:hover {
     min-height: 0;
     gap: 0;
     padding: 16px;
+  }
+  .notebook-card:first-child {
+    scroll-snap-align: start;
+  }
+  .notebook-card:last-child:not(:first-child) {
+    scroll-snap-align: end;
   }
   .card-graph {
     width: 108px;

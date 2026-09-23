@@ -108,6 +108,36 @@ test.describe('the pages of an account', () => {
     }
   });
 
+  test('ends the row of notebooks on the margins of Home, on a computer and on a phone (#212, #213)', async ({
+    app,
+    notebook,
+    state,
+    words,
+  }) => {
+    const edges = async (selector: string) => {
+      const box = await app.locator(selector).first().boundingBox();
+      expect(box, selector).not.toBeNull();
+      return { left: box!.x, right: box!.x + box!.width };
+    };
+
+    // A computer: the row is cut on the right margin, with the rule of its title.
+    await app.setViewportSize({ width: 1280, height: 800 });
+    await app.goto(`${state.surfaces.site}/`);
+    await expect(app.locator('article.notebook-card', { hasText: notebook.name })).toBeVisible();
+    await expect(app.getByRole('heading', { name: words.openNotebook })).toBeVisible();
+    const head = await edges('.carousel-head');
+    const row = await edges('.notebook-grid');
+    expect(Math.abs(row.right - head.right)).toBeLessThanOrEqual(1);
+
+    // A phone: the first card rests on the left margin, where the title starts.
+    await app.setViewportSize({ width: 390, height: 800 });
+    await app.goto(`${state.surfaces.site}/`);
+    await expect(app.locator('article.notebook-card').first()).toBeVisible();
+    const title = await edges('.carousel-head');
+    const first = await edges('article.notebook-card');
+    expect(Math.abs(first.left - title.left)).toBeLessThanOrEqual(1);
+  });
+
   test('opens the user menu as a menu: arrows move, the theme changes at once, Esc closes it (#201)', async ({
     app,
     state,

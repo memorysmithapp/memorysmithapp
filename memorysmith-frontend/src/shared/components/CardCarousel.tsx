@@ -12,9 +12,10 @@ interface CardCarouselProps {
 /**
  * A row of cards that scrolls sideways (#198). On the desktop the title, a
  * rule and the ‹ › arrows share one line, and an arrow with nowhere to go is
- * disabled rather than gone; the last card bleeds off the right edge to say
- * there are more. On a phone the row snaps card by card, the next one showing
- * at the edge, with dots under it and no arrows.
+ * disabled rather than gone; the row ends on the right margin of the page, a
+ * card that does not fit cut there (#213). On a phone the row snaps card by
+ * card, with dots under it and no arrows: the first on the left margin, the
+ * last on the right one, and those between at the centre (#212).
  *
  * The row stays scrollable by wheel, trackpad, touch and keyboard whatever
  * the arrows say.
@@ -32,9 +33,14 @@ export function CardCarousel({ heading, prevLabel, nextLabel, children }: CardCa
     if (!el) return;
     setCanPrev(el.scrollLeft > 4);
     setCanNext(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
-    // The card nearest the centre of the row is the one in focus (#204): on a
-    // phone the row snaps each card to the centre.
+    // The card nearest the centre of the row is the one in focus (#204), except
+    // at the two ends, where the first and the last rest on the margins and a
+    // neighbour may sit nearer the centre (#212).
     const cards = [...el.children] as HTMLElement[];
+    if (el.scrollLeft <= 4 || el.scrollLeft + el.clientWidth >= el.scrollWidth - 4) {
+      setActive(el.scrollLeft <= 4 ? 0 : Math.max(cards.length - 1, 0));
+      return;
+    }
     const middle = el.scrollLeft + el.clientWidth / 2;
     let nearest = 0;
     let distance = Infinity;
@@ -76,10 +82,15 @@ export function CardCarousel({ heading, prevLabel, nextLabel, children }: CardCa
     const el = trackRef.current;
     const card = el?.children[index] as HTMLElement | undefined;
     if (!el || !card) return;
-    el.scrollTo({
-      left: card.offsetLeft - el.offsetLeft + card.offsetWidth / 2 - el.clientWidth / 2,
-      behavior: 'smooth',
-    });
+    // Where the row snaps that card: the ends to the margins, the rest centred.
+    const last = el.children.length - 1;
+    const left =
+      index === 0
+        ? 0
+        : index === last
+          ? el.scrollWidth - el.clientWidth
+          : card.offsetLeft - el.offsetLeft + card.offsetWidth / 2 - el.clientWidth / 2;
+    el.scrollTo({ left, behavior: 'smooth' });
   }
 
   return (
