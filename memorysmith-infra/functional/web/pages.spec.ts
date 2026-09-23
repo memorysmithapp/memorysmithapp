@@ -793,7 +793,11 @@ test.describe('a notebook out and back in, through the browser', () => {
     await dialog.getByRole('radio', { name: words.partOfIt, exact: true }).check();
     await dialog.getByRole('checkbox', { name: words.tabNotes, exact: true }).uncheck();
     await expect(dialog.getByRole('tab', { name: words.tabNotes, exact: true })).toBeDisabled();
-    await expect(dialog.locator('.transfer-summary')).toContainText(words.willCreateNoNotes);
+    // The summary names what goes and leaves out what does not: a species
+    // nobody chose is not written as a zero (#205).
+    const summary = dialog.locator('.transfer-summary');
+    await expect(summary).toContainText(words.willCreateFolders);
+    await expect(summary).not.toContainText(words.willCreateNotes);
 
     /**
      * Starting it closes the dialog: the decision is over and the job is

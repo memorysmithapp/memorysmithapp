@@ -5,6 +5,10 @@ import { noteHistory } from '../../shared/api/backend';
 import { intlLocale } from '../../i18n';
 import { queryKeys } from '../../shared/api/query-keys';
 
+/** How often, and for how long, the trail is read while it has not caught up with the note. */
+const CATCH_UP_MS = 2_000;
+const CATCH_UP_WINDOW_MS = 60_000;
+
 /**
  * What happened to this note, and what its authors said about it (#169,
  * RN-AUD-012).
@@ -18,12 +22,37 @@ import { queryKeys } from '../../shared/api/query-keys';
  * and the line they left. Putting an old body back is another delivery, with
  * its own rule about what that write is.
  */
-export function NoteHistory({ notebookId, noteId }: { notebookId: string; noteId: string }) {
+export function NoteHistory({
+  notebookId,
+  noteId,
+  updatedAt,
+}: {
+  notebookId: string;
+  noteId: string;
+  /** When the note last changed, which the trail reaches a moment later. */
+  updatedAt?: string | undefined;
+}) {
   const { t, i18n } = useTranslation();
+  const live = useLiveInterval();
   const { data, isPending, isError } = useQuery({
     queryKey: queryKeys.noteHistory(notebookId, noteId),
-    refetchInterval: useLiveInterval(),
     queryFn: () => noteHistory(notebookId, noteId),
+    /**
+     * The trail is written by the audit consumer after the note, so a read
+     * right after a write can come back without it — and it is the read a
+     * write of this page makes, since the write invalidates the history. While
+     * the note is newer than the newest entry, and only for the minute after
+     * it changed, the trail is read again every two seconds instead of waiting
+     * for the next half minute (#206).
+     */
+    refetchInterval: (query) => {
+      if (live === false || !updatedAt) return live;
+      const changed = Date.parse(updatedAt);
+      const entries = query.state.data ?? [];
+      const newest = Math.max(0, ...entries.map((entry) => Date.parse(entry.occurredAt)));
+      const behind = newest < changed && Date.now() - changed < CATCH_UP_WINDOW_MS;
+      return behind ? CATCH_UP_MS : live;
+    },
   });
 
   if (isPending) return <p className="status">{t('history.loading')}</p>;

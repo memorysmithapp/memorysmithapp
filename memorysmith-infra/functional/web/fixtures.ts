@@ -77,7 +77,9 @@ export interface Words {
   readonly tabNotes: string;
   readonly newExport: string;
   readonly startExport: string;
-  readonly willCreateNoNotes: string;
+  /** The folders and the notes as the summary of an import counts them. */
+  readonly willCreateFolders: string;
+  readonly willCreateNotes: RegExp;
   readonly pending: (target: string) => string;
   /** The entry of the user menu that reopens the welcome surface (#167). */
   readonly aboutMenu: string;
@@ -148,7 +150,8 @@ export const WORDS: Record<AppLocale, Words> = {
     tabNotes: 'Notes',
     newExport: 'New export',
     startExport: 'Export',
-    willCreateNoNotes: '0 notes',
+    willCreateFolders: 'folders',
+    willCreateNotes: /\bnotes?\b/,
     pending: (target) => `No note carries the name “${target}” yet.`,
     aboutMenu: 'About MemorySmith.app',
     accountMenu: 'Account menu',
@@ -210,7 +213,8 @@ export const WORDS: Record<AppLocale, Words> = {
     tabNotes: 'Notas',
     newExport: 'Nova exportação',
     startExport: 'Exportar',
-    willCreateNoNotes: '0 notas',
+    willCreateFolders: 'pastas',
+    willCreateNotes: /\bnotas?\b/,
     pending: (target) => `Nenhuma nota se chama “${target}” ainda.`,
     aboutMenu: 'Sobre o MemorySmith.app',
     accountMenu: 'Menu da conta',

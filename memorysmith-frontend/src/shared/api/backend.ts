@@ -255,6 +255,7 @@ export async function getNote(notebookId: string, noteId: string): Promise<NoteD
     raw: note.content,
     // The version, which is what a write echoes back (RN-AGT-005).
     revision: note.revision.versionId,
+    updatedAt: note.updatedAt,
   };
 }
 

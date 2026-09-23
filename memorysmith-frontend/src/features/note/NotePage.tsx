@@ -298,7 +298,9 @@ export function NotePage({ noteId }: { noteId: string }) {
         onToggle={(event) => setHistoryOpen(event.currentTarget.open)}
       >
         <summary>{t('history.heading')}</summary>
-        {historyOpen ? <NoteHistory notebookId={notebookId} noteId={noteId} /> : null}
+        {historyOpen ? (
+          <NoteHistory notebookId={notebookId} noteId={noteId} updatedAt={data.updatedAt} />
+        ) : null}
       </details>
     </article>
   );
