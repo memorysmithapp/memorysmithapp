@@ -274,27 +274,39 @@ export function ImportDialog({
       }}
       actions={
         <>
-          {counts && (
+          {refusal ? (
+            /* An archive that could not be read is said in the same line of the
+               foot as every other refusal, never in the body of the dialog: the
+               body is what is being chosen, and the foot is what stops it
+               (#161, #207). */
             <p className="transfer-summary">
-              {taken || twins.length > 0 ? (
-                /* The one line saying the import is refused, and it does not
+              <span className="transfer-refused" id="transfer-refusal" role="alert">
+                {t(`portability.refusal.${refusal}`)}
+              </span>
+            </p>
+          ) : (
+            counts && (
+              <p className="transfer-summary">
+                {taken || twins.length > 0 ? (
+                  /* The one line saying the import is refused, and it does not
                    grow with the number of refusals: what each one is, and the
                    way out of it, is in the tab of the inconsistencies (#205). */
-                <span className="transfer-refused" id="transfer-refusal">
-                  {t('portability.refusals', { count: twins.length + (taken ? 1 : 0) })}
-                </span>
-              ) : (
-                <>
-                  {t('portability.creates')}{' '}
-                  {/* The files the import will keep, which is what was CHOSEN
+                  <span className="transfer-refused" id="transfer-refusal">
+                    {t('portability.refusals', { count: twins.length + (taken ? 1 : 0) })}
+                  </span>
+                ) : (
+                  <>
+                    {t('portability.creates')}{' '}
+                    {/* The files the import will keep, which is what was CHOSEN
                       and no longer what the archive happens to hold (#176). */}
-                  <strong>
-                    {[t('portability.oneNotebook'), ...carriedParts(counts, t)].join(' · ')}
-                  </strong>
-                  {dangling > 0 && ` · ${t('portability.danglingLinks', { count: dangling })}`}
-                </>
-              )}
-            </p>
+                    <strong>
+                      {[t('portability.oneNotebook'), ...carriedParts(counts, t)].join(' · ')}
+                    </strong>
+                    {dangling > 0 && ` · ${t('portability.danglingLinks', { count: dangling })}`}
+                  </>
+                )}
+              </p>
+            )
           )}
           <button
             type="button"
@@ -429,8 +441,6 @@ export function ImportDialog({
         </div>
       )}
 
-      {refusal && <p className="status">{t(`portability.refusal.${refusal}`)}</p>}
-
       {document && tree && (
         <>
           <div className="transfer-field">
@@ -445,14 +455,8 @@ export function ImportDialog({
               value={name}
               onChange={(event) => setName(event.target.value)}
               aria-invalid={taken}
-              aria-describedby={taken ? 'import-name-error' : undefined}
+              aria-describedby={taken ? 'transfer-refusal' : undefined}
             />
-            {/* The field error of the Controles (#205). Its line is always
-                there, so a name that becomes taken while it is typed does not
-                push the choosing below it down under the hand (#161). */}
-            <span className="field-hint is-wrong" id="import-name-error" aria-live="polite">
-              {taken ? t('portability.refusal.ALREADY_EXISTS') : ''}
-            </span>
           </div>
 
           {chosen && (

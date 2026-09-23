@@ -752,12 +752,13 @@ test.describe('a notebook out and back in, through the browser', () => {
     ).toBeDisabled();
 
     /**
-     * And it says so where a refusal is said: under the field, as the field
-     * error of the Controles, whose line is always there so typing never moves
-     * the chooser (#161, #205); in the foot, in one line that counts and does
-     * not grow; and in the tab of the inconsistencies, in full with the way out.
+     * And it says so where a refusal is said, and nowhere else: in the foot,
+     * in one line that counts and does not grow, which the field points at;
+     * and in the tab of the inconsistencies, in full with the way out. Never a
+     * line under the field or in the body of the dialog (#161).
      */
-    await expect(dialog.locator('#import-name-error')).not.toBeEmpty();
+    await expect(name).toHaveAttribute('aria-describedby', 'transfer-refusal');
+    await expect(dialog.locator('.field-hint.is-wrong, p.status')).toHaveCount(0);
     await expect(dialog.locator('#transfer-refusal')).toContainText(words.inconsistency);
     await dialog.getByRole('tab', { name: new RegExp(words.tabConflicts) }).click();
     await expect(dialog.getByRole('tab', { name: new RegExp(words.tabConflicts) })).toHaveAttribute(
