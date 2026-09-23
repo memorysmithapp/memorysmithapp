@@ -20,6 +20,7 @@ issues each entry cites.
 
 ### Changed
 
+- **The sidebar of a notebook speaks the Controles**, and its main area is untouched. The search is a field on the surface with its edge, as every other field is; *Grafo do caderno* is a quiet button of 36 px with a radius of 8 px whose cursor darkens it rather than turning it blue; and the open folder and note are marked by a rule of Tinta at their left edge, Papel in the dark theme, where they wore the grey the cursor wears, so what is open and what is under the pointer are two things again. (#219)
 - **The properties of a note label `tags` and `aliases` as they are written**, in lowercase, as every other key: they read *Tags/Etiquetas* and *Aliases/Apelidos*, the only two labels capitalised and, in Portuguese, another word than the one a person types to search. (#218)
 - **The graph opens on the drawing, with its panel closed behind the gear**, on a computer as on a phone; the settings are one click away. (#220)
 - **About is drawn to the approved design.** A reading column with its sections set apart by a hairline, under the symbol and the welcome; the screens of the interface are a card of term and definition; the address of the connector is a block of code with *Copiar* inside it, its icon alone on a phone; the steps of Claude and of ChatGPT are two tabs, so one client is read at a time, each step with its number; the requests to start with are cards; and the foot says which version this is beside *Começar*. (#216)

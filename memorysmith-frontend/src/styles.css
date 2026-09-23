@@ -882,7 +882,7 @@ a:hover {
   /* Room for the fill of the open one, without moving the others. */
   margin-inline: -0.35rem;
   padding: 0.1rem 0.35rem;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 .tree-folder a {
   color: var(--text);
@@ -890,9 +890,17 @@ a:hover {
   font-size: 0.88rem;
 }
 /* The open folder and the open note are chosen: Tinta, with the weight of
-   the choice, and never the blue of a link (#201). */
-.tree-folder.active {
+   the choice, and never the blue of a link (#201). They are marked by a rule
+   of Tinta at their left edge — the open tab of a strip, turned on its side —
+   and never by the fill of the cursor, so what is open and what is under the
+   pointer are two things that can both be true (#219). */
+.tree-folder:hover,
+.tree-note:hover {
   background: var(--hover);
+}
+.tree-folder.active,
+.tree-note.active {
+  box-shadow: inset 2px 0 0 var(--chosen);
 }
 .tree-folder.active a {
   color: var(--chosen);
@@ -917,13 +925,12 @@ a:hover {
   color: var(--text-soft);
   margin-inline: -0.35rem;
   padding: 0.08rem 0.35rem;
-  border-radius: 6px;
+  border-radius: 0 8px 8px 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .tree-note.active {
-  background: var(--hover);
   color: var(--chosen);
   font-weight: 600;
 }
@@ -2380,15 +2387,17 @@ body.has-modal {
   position: relative;
   margin-bottom: 0.9rem;
 }
+/* The field of the Controles (#219): the surface with its edge, never the
+   page, which is what the other fields of the product are drawn on. */
 .search-box input {
   width: 100%;
   min-height: 38px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--bg);
+  background: var(--surface);
   color: var(--text);
   padding: 0 12px;
-  font-size: 0.85rem;
+  font-size: 14px;
   font-family: var(--sans);
 }
 .search-box input:focus {
@@ -2961,21 +2970,27 @@ input[type='radio'] {
   gap: 0.35rem;
   margin-bottom: 0.9rem;
 }
+/* A quiet button of the Controles (#219): 36 px, radius 8, the surface with
+   its edge, and a cursor that darkens both. Blue is for the one primary
+   action, links and focus, and this is none of them. */
 .notebook-nav-link {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  font-size: 0.85rem;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 14px;
   font-family: var(--display);
   font-weight: 500;
   color: var(--text);
-  padding: 0.35rem 0.5rem;
-  border-radius: 6px;
+  background: var(--surface);
+  border-radius: 8px;
   border: 1px solid var(--border);
 }
 .notebook-nav-link:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--bg);
+  border-color: var(--text-soft);
+  color: var(--text);
   text-decoration: none;
 }
 .notebook-nav-action {
@@ -3245,7 +3260,7 @@ input[type='radio'] {
     width: 44px;
     height: 44px;
     border: 0;
-    border-radius: 6px;
+    border-radius: 8px;
     background: none;
     color: var(--text);
     cursor: pointer;
@@ -3278,12 +3293,16 @@ input[type='radio'] {
 
   /* A finger is not a mouse pointer: the rows in the tree grow to a tappable
      height and the toggle stops being a 16px target. */
+  /* Taller rows for a thumb, keeping the inline room the rule of the open
+     one is drawn in (#219). */
   .tree-folder {
-    padding: 0.25rem 0;
+    padding: 0.25rem 0.35rem;
   }
-  .tree-folder a,
-  .tree-note {
+  .tree-folder a {
     padding: 0.3rem 0;
+  }
+  .tree-note {
+    padding: 0.3rem 0.35rem;
   }
   .tree-toggle {
     width: 1.75rem;
