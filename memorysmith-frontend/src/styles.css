@@ -3524,7 +3524,8 @@ input[type='radio'] {
 .transfers-menu {
   position: relative;
 }
-/* An icon button of the Controles (#198), with the glyph in the soft text. */
+/* The icon button of the Controles (#198, #205), with the glyph in the soft
+   text, and the ring and the dot in its top corner. */
 .transfers-trigger {
   position: relative;
   color: var(--text-soft);
@@ -3534,201 +3535,396 @@ input[type='radio'] {
 .transfers-trigger:hover {
   color: var(--text);
 }
-/* A ring while something runs, filled as far as it got. */
+.transfers-trigger[aria-expanded='true'] {
+  box-shadow: var(--focus-ring);
+}
+/* A ring while something runs, filled as far as the first one got, with an
+   outline of the surface so it separates from the button (#205). */
 .transfers-ring {
   position: absolute;
-  inset: 0.3rem;
+  top: -5px;
+  right: -5px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: conic-gradient(var(--accent) var(--progress, 0%), transparent 0);
-  opacity: 0.35;
+  background:
+    radial-gradient(circle, var(--surface) 0 3px, transparent 3.5px),
+    conic-gradient(var(--accent) var(--progress, 0%), var(--track) 0);
+  box-shadow: 0 0 0 2px var(--surface);
   pointer-events: none;
 }
 /* A dot while something has finished that the person has not seen. */
 .transfers-dot {
   position: absolute;
-  top: 0.45rem;
-  right: 0.5rem;
-  width: 0.45rem;
-  height: 0.45rem;
+  top: -3px;
+  right: -3px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: var(--signal);
+  box-shadow: 0 0 0 2px var(--surface);
 }
-.transfers-panel {
-  position: absolute;
-  z-index: 30;
-  top: calc(100% + 0.4rem);
+
+/* The panel: a menu of 380 px, and a sheet on a phone (#205). */
+.menu.transfers-panel {
+  top: calc(100% + 8px);
   right: 0;
-  width: min(22rem, calc(100vw - 2rem));
-  padding: 0.75rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
+  width: 380px;
+  padding: 0;
 }
-/* The panel is placed against the window on a phone, not against its trigger
-   (#195). Anchored to the trigger it assumed its right edge sat at the gutter
-   of the header, where the avatar sits; one avatar and one gap further left, a
-   panel as wide as the window less two gutters began off the screen. It comes
-   after the rule above on purpose: before it, that rule won. */
+/* Between a phone and a desktop the menu is placed against the window, not
+   against its trigger (#195): anchored to the trigger it assumed its right
+   edge sat at the gutter of the header, where the avatar sits, and one avatar
+   further left it began off the screen. */
 @media (max-width: 860px) {
-  .transfers-panel {
+  .menu.transfers-panel {
     position: fixed;
     top: calc(var(--header-h) + 0.4rem);
-    left: 1rem;
+    left: auto;
     right: 1rem;
-    width: auto;
+    width: min(380px, calc(100vw - 2rem));
   }
 }
-.transfers-panel h2 {
-  margin: 0 0 0.5rem;
+.transfers-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 14px 0;
+}
+.transfers-panel-head h2 {
+  margin: 0;
   font-family: var(--display);
-  font-size: 0.95rem;
+  font-size: 0.94rem;
+}
+.transfers-panel-kept {
+  font-size: 0.75rem;
+  color: var(--text-soft);
+}
+.transfers-panel-kept strong {
+  font-family: var(--display);
+  font-weight: 700;
+  color: var(--text);
+}
+.transfers-panel .transfers-start {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 12px 14px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.transfers-panel .transfers-start .button {
+  min-width: 0;
+  padding: 0 8px;
+  font-size: 0.8125rem;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
+}
+.transfers-panel-empty {
+  margin: 0;
+  padding: 16px 14px;
+  color: var(--text-soft);
+  font-size: 0.84rem;
 }
 .transfers-recent {
   list-style: none;
   margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  padding: 0 14px;
+}
+.transfers-recent li + li {
+  border-top: 1px solid var(--track);
 }
 .transfers-line {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.15rem 0.5rem;
-  font-size: 0.84rem;
-}
-.transfers-line-name {
-  font-weight: 500;
-  overflow-wrap: anywhere;
-}
-.transfers-line-state {
-  grid-column: 1;
-  color: var(--text-soft);
-  font-size: 0.78rem;
-}
-.transfers-line-bar {
-  grid-column: 1 / -1;
-  width: 100%;
-  height: 0.35rem;
-}
-/* Where the action of a line sits. What it LOOKS like is the button (#157). */
-.transfers-line .button,
-.transfers-see-all {
-  grid-row: 1 / span 2;
-  grid-column: 2;
-  align-self: center;
-}
-.transfers-see-all {
-  border: 0;
-  background: none;
-  color: var(--accent);
-  font-family: var(--display);
-  font-size: 0.82rem;
-  cursor: pointer;
-}
-.transfers-see-all {
-  display: block;
-  margin-top: 0.6rem;
-  text-align: right;
-  text-decoration: none;
-}
-
-.transfers-page-heading {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
 }
-.transfers-kept {
-  color: var(--text-soft);
-  font-size: 0.84rem;
-}
-/* The filter of the page, which is a tab strip: see `.tabs` (#161). */
-.transfers-filters {
-  margin: 0.75rem 0 1rem;
-}
-.transfers-rows {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.transfers-line-what {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 5px;
 }
-.transfers-row {
-  padding: 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-.transfers-row-main {
-  display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-.transfers-row-file {
-  grid-column: 1 / -1;
-  font-size: 0.75rem;
-  color: var(--pending);
+.transfers-line .transfer-title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.transfers-row-name {
+.transfers-panel-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--border);
+}
+.transfers-see-all {
   font-family: var(--display);
   font-weight: 500;
+  font-size: 0.8125rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+/* In the sheet the blocks run edge to edge, and every target is a thumb high. */
+.sheet.transfers-panel .transfers-panel-head,
+.sheet.transfers-panel .transfers-start,
+.sheet.transfers-panel .transfers-recent,
+.sheet.transfers-panel .transfers-panel-foot {
+  padding-inline: 0;
+}
+.sheet.transfers-panel .transfers-start .button,
+.sheet.transfers-panel .transfers-line .button {
+  min-height: 44px;
+}
+
+/* ---- The pieces of a transfer (#205) ------------------------------------ */
+.transfer-kind {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: var(--track);
+  color: var(--text);
+  font-size: 0.875rem;
+  line-height: 1;
+}
+.transfer-title {
+  font-size: 0.8125rem;
+  color: var(--text-soft);
   overflow-wrap: anywhere;
 }
-.transfers-row-when,
-.transfers-row-state,
-.transfers-row-note,
-.transfers-row-confirm {
+.transfer-title strong {
+  font-family: var(--display);
+  font-weight: 500;
+  color: var(--text);
+}
+.transfer-file {
+  font-size: 0.75rem;
   color: var(--text-soft);
-  font-size: 0.82rem;
+  overflow-wrap: anywhere;
 }
-.transfers-row-note {
-  margin: 0.4rem 0 0;
+.transfer-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
 }
-.transfers-row-bar {
-  flex-basis: 100%;
-  height: 0.35rem;
+.transfer-state.is-running {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 7px;
+}
+.transfer-state-text {
+  font-size: 0.75rem;
+  color: var(--text-soft);
+}
+.transfer-bar {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track);
+  overflow: hidden;
+}
+.transfer-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+}
+.transfer-outcome {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.8125rem;
+}
+/* The state chip of the Controles: a dot in the colour of what it means,
+   always with the word. */
+.state-chip {
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.72rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+.state-chip::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.state-chip[data-state='ready']::before {
+  background: var(--node-green);
+}
+.state-chip[data-state='failed']::before {
+  background: var(--danger);
+}
+.state-chip[data-state='cancelled']::before {
+  background: var(--text-soft);
+}
+
+/* ---- The page (#205) ---------------------------------------------------- */
+.transfers-page {
+  max-width: 64rem;
+}
+.transfers-page-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.transfers-page-heading h1 {
+  margin: 0 0 6px;
+}
+.transfers-kept {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.84rem;
+}
+.transfers-kept strong {
+  font-family: var(--display);
+  font-weight: 700;
+  color: var(--text);
+}
+.transfers-start {
+  display: flex;
+  gap: 8px;
+}
+.tab-total {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.72rem;
+  color: var(--text-soft);
+}
+.tab.is-selected .tab-total {
+  color: var(--text);
+}
+.transfers-filters {
+  margin-bottom: 20px;
+}
+.transfers-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+/* The same four tracks on every row, so the states and the actions of one row
+   line up with those of the next. */
+.transfers-row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 14rem 11rem;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 16px 0;
+}
+.transfers-row + .transfers-row {
+  border-top: 1px solid var(--track);
+}
+.transfers-row .transfer-kind {
+  align-self: start;
+}
+.transfers-row-what {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.transfers-row-what .transfer-title {
+  font-size: 0.875rem;
 }
 .transfers-row-actions {
   display: flex;
+  justify-content: flex-end;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
   flex-wrap: wrap;
-  margin-top: 0.6rem;
 }
-.transfers-row-actions .chip {
-  cursor: pointer;
-  /* A comfortable target, here as everywhere a finger reaches. */
-  min-height: 2.5rem;
-  padding: 0 0.75rem;
+.transfers-row-note {
+  grid-column: 2 / -1;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-soft);
 }
-.transfers-row-actions .chip.is-danger {
-  background: none;
-  border-color: var(--pending);
-  color: var(--pending);
+.transfers-row-note.is-failure {
+  color: var(--danger);
+}
+/* Deleting asks in place, in a box under the row with the red on its top. */
+.transfers-confirm {
+  grid-column: 2 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--danger);
+  border-radius: 10px;
+}
+.transfers-confirm p {
+  flex: 1 1 18rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+.transfers-confirm strong {
+  color: var(--text);
+}
+.transfers-confirm-actions {
+  display: flex;
+  gap: 8px;
 }
 
-/* At phone width the rows are cards already; the actions go full width. */
-@media (max-width: 600px) {
-  .transfers-row-actions .chip {
-    flex: 1 1 8rem;
+/* A phone: the columns stack, and the actions come last, a thumb high. */
+@media (max-width: 40rem) {
+  .transfers-page-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .transfers-start {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .transfers-rows {
+    padding: 0 14px;
+  }
+  .transfers-row {
+    grid-template-columns: 32px minmax(0, 1fr);
+  }
+  .transfers-row-state,
+  .transfers-row-actions,
+  .transfers-row-note,
+  .transfers-confirm {
+    grid-column: 1 / -1;
+  }
+  .transfers-row-actions {
+    justify-content: flex-start;
+  }
+  .transfers-row-actions .button,
+  .transfers-confirm .button {
+    min-height: 44px;
   }
 }
 
-/* ---- The dialog of a transfer (#160) ------------------------------------
+/* ---- The dialog of a transfer (#160, #205) -------------------------------
  *
- * One shape for both sides, and large enough for what it asks: a tree of
- * sixty-eight folders was being read through a window of a hundred and eighty
- * pixels, inside a modal that also scrolled, behind a panel that stayed open.
- *
- * Three rows, and ONE scroll: the head says what is being decided, the body
- * scrolls, the foot carries the actions and neither of them moves.
+ * The modal of the Controles: a title with its ×, a body that scrolls and a
+ * fixed foot with the main action last. One scroll, in the body.
  */
 .transfer-dialog {
   border: 0;
@@ -3741,15 +3937,15 @@ input[type='radio'] {
   color: var(--text);
 }
 .transfer-dialog::backdrop {
-  background: rgb(14 21 38 / 0.45);
+  background: var(--scrim);
 }
 .transfer-dialog-box {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: min(46rem, calc(100vw - 2rem));
-  height: min(80vh, 46rem);
+  width: min(40rem, calc(100vw - 2rem));
+  height: min(86vh, 50rem);
   display: grid;
   grid-template-rows: auto 1fr auto;
   min-height: 0;
@@ -3759,35 +3955,62 @@ input[type='radio'] {
   box-shadow: 0 18px 48px rgb(0 0 0 / 0.28);
 }
 .transfer-dialog-head {
-  padding: 1.1rem 1.25rem 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 14px 20px;
   border-bottom: 1px solid var(--border);
 }
 .transfer-dialog-head h2 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 1.0625rem;
 }
 .transfer-dialog-body {
   min-height: 0;
   overflow-y: auto;
-  padding: 1rem 1.25rem;
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 16px;
 }
 .transfer-dialog-foot {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.85rem 1.25rem;
+  gap: 8px;
+  padding: 14px 20px;
   border-top: 1px solid var(--border);
 }
 /* What the foot says beside the actions: what will be carried. */
 .transfer-summary {
   margin: 0 auto 0 0;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   color: var(--text-soft);
-  line-height: 1.35;
+  line-height: 1.45;
+}
+.transfer-summary strong {
+  font-weight: 600;
+  color: var(--text);
+}
+/* What refuses, said in the colour of attention with its dot. */
+.transfer-refused {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--signal);
+}
+.transfer-refused::before {
+  content: '';
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--signal);
+}
+:root:not([data-theme='dark']) .transfer-refused {
+  /* The orange as text needs the deeper tone of attention to read on white. */
+  color: #b45309;
 }
 
 @media (max-width: 40rem) {
@@ -3801,84 +4024,143 @@ input[type='radio'] {
   .transfer-dialog-foot {
     flex-wrap: wrap;
   }
+  .transfer-summary {
+    flex-basis: 100%;
+  }
+  .transfer-dialog-foot .button {
+    flex: 1;
+    min-height: 44px;
+  }
 }
 
 /*
- * Where a file is chosen or dropped, inside the dialog of an import (#160). The
- * page of three steps it used to live on is gone: the decision is a dialog like
- * the export, and the following is Transfers.
+ * Where a file is chosen or dropped, inside the dialog of an import (#160),
+ * and, once read, the card of the file (#205).
  */
 .import-drop {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: center;
+  gap: 12px;
   flex-wrap: wrap;
-  padding: 1.1rem;
-  border: 1px dashed var(--border);
+  min-height: 100px;
+  padding: 16px;
+  border: 1.5px dashed var(--box-edge);
   border-radius: 10px;
-  background: var(--bg);
+  background: var(--surface);
+  text-align: center;
 }
-/* Once the document is read, the box that asked for it steps back: what is
-   being decided is below it, and it was taking that room (#161). */
 .import-drop.is-chosen {
-  padding: 0.45rem 0.6rem;
-  border-style: solid;
-  background: none;
+  justify-content: flex-start;
+  min-height: 0;
+  padding: 12px 14px;
+  border: 0;
+  background: var(--track);
+  text-align: start;
 }
 .import-drop-hint {
   color: var(--text-soft);
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.import-file-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.import-file-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.import-file-body strong {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+.import-file-body span {
+  font-size: 0.75rem;
+  color: var(--text-soft);
 }
 .status.is-conflict {
   color: var(--signal);
   padding: 0;
 }
 
-/* A field of the dialog: the label above the control, never around it. */
+/* A field of the dialog, the field of the Controles: the label above in
+   Space Grotesk, 38 px, and the error under it. */
 .transfer-field {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  font-size: 0.85rem;
-  color: var(--text-soft);
+  gap: 6px;
+}
+.transfer-field > label {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.8125rem;
+  color: var(--text);
 }
 .transfer-field select,
 .transfer-field input {
-  padding: 0.55rem 0.65rem;
+  min-height: 38px;
+  padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
   color: var(--text);
   font: inherit;
+  font-size: 0.875rem;
+}
+.transfer-field select:focus-visible,
+.transfer-field input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 .transfer-field input[aria-invalid='true'] {
-  border-color: var(--signal);
+  border-color: var(--danger);
+}
+.transfer-field .field-hint {
+  min-height: 1.1em;
+  margin: 0;
 }
 
+/* The two presets as radios in a list, each saying what it means (#205). */
 .transfer-presets {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 10px;
 }
 .transfer-preset {
   display: flex;
-  gap: 0.6rem;
+  gap: 10px;
   align-items: flex-start;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
   cursor: pointer;
 }
 .transfer-preset span {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 3px;
+}
+.transfer-preset strong {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.875rem;
 }
 .transfer-preset small {
-  color: var(--muted, var(--text-soft));
-  line-height: 1.4;
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  line-height: 1.45;
 }
 
 /* ---- A file of the notebook, inside a note (#166) ----------------------
@@ -4045,21 +4327,18 @@ input[type='radio'] {
   flex: 1 1 auto;
   /* Never collapsed by what sits above it, and never taller than its share. */
   min-height: 12rem;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  overflow: hidden;
 }
+/* The tabs sit on the dialog itself, as the Controles draw them (#205): the
+   box and the tinted strip they used to sit in were a frame inside a frame. */
 .chooser-tabs {
   flex-shrink: 0;
-  background: var(--bg);
 }
 .chooser-panel {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
-  padding: 0.75rem;
+  padding: 16px 0 0;
   overflow: hidden;
 }
 /* The one part that moves. */
@@ -4121,22 +4400,7 @@ input[type='radio'] {
  * keeps the three columns of its own below, which is the behaviour this had
  * before: aligned within a row, and close enough between them.
  */
-.chooser-scope-row {
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  grid-template-columns: subgrid;
-  align-items: center;
-  column-gap: 0.9rem;
-  row-gap: 0.35rem;
-  min-height: 2.5rem;
-  padding: 0.35rem 0.3rem;
-  border-bottom: 1px solid var(--border);
-}
-.chooser-scope-row .chooser-reach {
-  grid-column: 2;
-}
-.chooser-scope-row /*
+/*
  * The files of a notebook, as the tab that chooses them lists one (#176).
  *
  * A list and not a tree, because a file belongs to the notebook and there is
@@ -4201,22 +4465,6 @@ input[type='radio'] {
   justify-self: end;
   text-align: right;
 }
-/* On a phone the three columns do not fit: the row becomes two lines, with
-   the reach and the count under the name and still aligned with each other. */
-@media (max-width: 560px) {
-  .chooser-scope-row {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-  .chooser-scope-row .chooser-label {
-    grid-column: 1 / -1;
-  }
-  .chooser-scope-row .chooser-reach {
-    grid-column: 1;
-  }
-  .chooser-scope-row .chooser-note {
-    grid-column: 2;
-  }
-}
 .chooser-scope-row:last-child {
   border-bottom: 0;
 }
@@ -4227,40 +4475,6 @@ input[type='radio'] {
 .chooser-scope-row.is-missing .chooser-name {
   color: var(--text-soft);
 }
-/* Under the whole notebook the five rows are no longer a question: they are
-   what the whole notebook means here, ticked and still readable. */
-.chooser-scope-row.is-frozen .chooser-label {
-  cursor: default;
-}
-/* The mark that says this travels, where the box would be. */
-.chooser-mark {
-  display: inline-block;
-  width: 0.95rem;
-  text-align: center;
-  color: var(--node-green, var(--accent));
-  font-weight: 700;
-}
-/*
- * Everything, or the items somebody picks: the reach of one species.
- *
- * On the row and not under it. A second line per species made the scope three
- * rows taller than the box had, so the tab whose whole job is showing the five
- * species at once showed three and hid two.
- */
-.chooser-reach {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-.chooser-reach-option {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.8rem;
-  color: var(--text-soft);
-  cursor: pointer;
-}
-
 /* Why this tab shows what it shows, and what to do when it shows nothing. */
 .chooser-scoping,
 .chooser-filter {
@@ -4279,73 +4493,10 @@ input[type='radio'] {
   border: 1px dashed var(--border);
   border-radius: 8px;
 }
-/*
- * The names carried twice, which refuse the import (RN-KNW-042).
- *
- * They were a paragraph EACH at the foot of the dialog, then a strip above the
- * tree of the notes — which is the one place a collision is RESOLVED, so the
- * statement of the problem sat on top of the room needed to fix it. They have
- * a tab of their own now, lit and counted, and each row names the whole thing:
- * the name, the folder that holds it, how many copies, and the way in (#161).
- */
-.chooser-twins {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-/* The rule one group of refusals comes from, above the group and not repeated
-   on each of its rows. */
-.chooser-conflict-why {
-  margin: 0.8rem 0 0.4rem;
-  font-size: 0.8rem;
-  color: var(--text-soft);
-  line-height: 1.4;
-}
-.chooser-twin {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.2rem;
-  padding: 0.6rem;
-  border: 1px solid var(--border);
-  border-inline-start: 3px solid var(--signal);
-  border-radius: 8px;
-}
-/* The whole name, wrapped: it is what tells one collision from another, and a
-   name cut at its first space told the reader nothing. */
-.chooser-twin-name {
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 0.85rem;
-  overflow-wrap: anywhere;
-}
-.chooser-twin-where {
-  font-size: 0.75rem;
-  color: var(--text-soft);
-}
-/* The way in: from the foot to the tab, and from a row to the tree. */
-.chooser-twins-open {
-  margin-top: 0.15rem;
-  border: 0;
-  padding: 0;
-  background: none;
-  color: var(--accent);
-  font: inherit;
-  font-size: 0.78rem;
-  text-decoration: underline;
-  cursor: pointer;
-}
 .chooser-row.is-twin .chooser-name,
 .chooser-row.is-twin .chooser-note {
   color: var(--signal);
 }
-.transfer-summary .is-conflict {
-  color: var(--signal);
-}
-
 .chooser-filter {
   display: flex;
   align-items: center;
@@ -4931,4 +5082,195 @@ input[type='radio'] {
 .history-message.is-empty {
   color: var(--pending);
   font-style: italic;
+}
+
+/* ---- The box and the radio of the Controles, in a transfer (#205) --------
+ *
+ * Chosen is Tinta (Papel in the dark theme), like everything chosen. A box a
+ * whole notebook ticks is disabled and still drawn at full strength: it is
+ * the answer to what the whole notebook means here, not a control that failed.
+ */
+.transfer-dialog input[type='checkbox'],
+.transfer-dialog input[type='radio'] {
+  appearance: none;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  display: inline-grid;
+  place-content: center;
+  border: 1.5px solid var(--box-edge);
+  border-radius: 5px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.transfer-dialog input[type='radio'] {
+  border-radius: 50%;
+}
+.transfer-dialog input[type='checkbox']:checked,
+.transfer-dialog input[type='checkbox']:indeterminate {
+  border-color: var(--chosen);
+  background: var(--chosen);
+}
+.transfer-dialog input[type='checkbox']:checked::after {
+  content: '';
+  width: 9px;
+  height: 5px;
+  margin-top: -2px;
+  border-left: 2px solid var(--on-chosen);
+  border-bottom: 2px solid var(--on-chosen);
+  transform: rotate(-45deg);
+}
+.transfer-dialog input[type='checkbox']:indeterminate::after {
+  content: '';
+  width: 8px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--on-chosen);
+}
+.transfer-dialog input[type='radio']:checked {
+  border: 5px solid var(--chosen);
+}
+.transfer-dialog :is(input[type='checkbox'], input[type='radio']):focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.transfer-dialog :is(input[type='checkbox'], input[type='radio']):disabled {
+  cursor: default;
+}
+.transfer-dialog input[type='checkbox']:disabled:not(:checked) {
+  opacity: 0.5;
+}
+
+/* The scope: one row per kind, the box and its name, how much of it travels
+   as a small segmented control, and how many on the right (#205). */
+/* The rows borrow the tracks of the list with subgrid, so every segmented
+   control starts at one x and every count ends at one x. */
+.chooser-scope-row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: subgrid;
+  align-items: center;
+  column-gap: 14px;
+  min-height: 52px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--track);
+}
+.chooser-scope-row .chooser-reach {
+  grid-column: 2;
+}
+.chooser-scope-row .chooser-note {
+  grid-column: 3;
+}
+.chooser-scope-row .chooser-label {
+  grid-column: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.chooser-scope-row .chooser-name {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--text);
+}
+.chooser-scope-row.is-missing .chooser-name {
+  color: var(--text-soft);
+}
+.chooser-reach .segmented {
+  display: inline-grid;
+  grid-auto-columns: auto;
+}
+.chooser-reach .segmented > button {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 0.75rem;
+}
+.chooser-scope-row .chooser-note {
+  min-width: 5.5rem;
+  text-align: end;
+  font-size: 0.75rem;
+  color: var(--text-soft);
+}
+/* What refuses, one row each: a dot, what and why, and the way out. */
+.chooser-twins {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.chooser-twin {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px 14px 34px;
+  position: relative;
+}
+.chooser-twin + .chooser-twin {
+  border-top: 1px solid var(--border);
+}
+.chooser-twin::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  top: 21px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--signal);
+}
+.chooser-twin-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8125rem;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+.chooser-twin-text strong {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--text);
+}
+/* The two presets stacked, as radios in a list (#205). */
+.chooser-scroll > .transfer-presets {
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.chooser-scroll > .transfer-presets .transfer-preset {
+  flex: none;
+  padding: 0;
+}
+@media (max-width: 40rem) {
+  .chooser-scope-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .chooser-scope-row .chooser-label {
+    grid-column: 1 / -1;
+  }
+  .chooser-scope-row .chooser-reach {
+    grid-column: 1;
+  }
+  .chooser-scope-row .chooser-note {
+    grid-column: 2;
+  }
+  .chooser-reach .segmented > button {
+    height: 36px;
+  }
+  .chooser-twin {
+    flex-direction: column;
+  }
+}
+.chooser-history-hint {
+  margin: 14px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text-soft);
 }

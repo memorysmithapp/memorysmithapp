@@ -352,6 +352,11 @@ export async function downloadTransfer(transferId: string): Promise<DownloadLink
   });
 }
 
+/** Stops a running transfer; an import that stops is taken back down whole (RN-PRT-018). */
+export async function cancelTransfer(transferId: string): Promise<void> {
+  await request<void>(`/portability/transfers/${transferId}/cancel`, { method: 'POST' });
+}
+
 export async function deleteTransfer(transferId: string): Promise<void> {
   await request<void>(`/portability/transfers/${transferId}`, { method: 'DELETE' });
 }

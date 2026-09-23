@@ -6,6 +6,10 @@ import { applyImport, listNotebooks, prepareImport } from '../../shared/api/sour
 import { ArchiveError, readNotebookArchive } from './notebook-archive';
 import { TransferChooser, type ChooserTab, type Preset } from './TransferChooser';
 import { TransferDialog } from './TransferDialog';
+import { carriedParts } from './ExportChoice';
+import { formatBytes } from '../../shared/components/StorageBar';
+import { intlLocale } from '../../i18n/intl-locale';
+import { FileIcon } from '../../shared/components/icons';
 import {
   countsOf,
   danglingLinks,
@@ -38,7 +42,7 @@ import { queryKeys } from '../../shared/api/query-keys';
  * subscription holds each notebook name once (RN-KNW-032).
  */
 export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const input = useRef<HTMLInputElement>(null);
   /** The field the name is typed in, which a refusal sends the person back to. */
   const nameField = useRef<HTMLInputElement>(null);
@@ -142,11 +146,6 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
     }
   }
 
-  /** From the refusal to the tab that explains it, in one click (#161). */
-  function showRefusals(): void {
-    setTab('conflicts');
-  }
-
   /** And from there back to the field that names the notebook. */
   function fixName(): void {
     nameField.current?.focus();
@@ -201,37 +200,22 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
         <>
           {counts && (
             <p className="transfer-summary">
-              {t('portability.willCreate', {
-                folders: t('portability.countFolders', { count: counts.folders }),
-                templates: t('portability.countTemplates', { count: counts.templates }),
-                notes: t('portability.noteCount', { count: counts.notes }),
-              })}
-              {/* The files the import will keep, which is what was CHOSEN and
-                  no longer what the archive happens to hold (#176). */}
-              {counts.files > 0 && ` · ${t('portability.countFiles', { count: counts.files })}`}
-              {dangling > 0 && ` · ${t('portability.danglingLinks', { count: dangling })}`}
-              {(taken || twins.length > 0) && (
+              {taken || twins.length > 0 ? (
+                /* The one line saying the import is refused, and it does not
+                   grow with the number of refusals: what each one is, and the
+                   way out of it, is in the tab of the inconsistencies (#205). */
+                <span className="transfer-refused" id="transfer-refusal">
+                  {t('portability.refusals', { count: twins.length + (taken ? 1 : 0) })}
+                </span>
+              ) : (
                 <>
-                  <br />
-                  {/* The one line saying the import is refused, and it does not
-                      grow with the number of refusals: what each one is, and
-                      the way out of it, is in the tab this opens. It is also
-                      what the name field points at, because the sentence that
-                      used to sit under the field is in that tab now. */}
-                  <span className="is-conflict" id="transfer-refusal">
-                    {[
-                      taken ? t('portability.nameTakenBlock') : null,
-                      twins.length > 0
-                        ? t('portability.twinsBlock', { count: twins.length })
-                        : null,
-                      t('portability.nothingImported'),
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                  </span>{' '}
-                  <button type="button" className="chooser-twins-open" onClick={showRefusals}>
-                    {t('portability.showTwins')}
-                  </button>
+                  {t('portability.creates')}{' '}
+                  {/* The files the import will keep, which is what was CHOSEN
+                      and no longer what the archive happens to hold (#176). */}
+                  <strong>
+                    {[t('portability.oneNotebook'), ...carriedParts(counts, t)].join(' · ')}
+                  </strong>
+                  {dangling > 0 && ` · ${t('portability.danglingLinks', { count: dangling })}`}
                 </>
               )}
             </p>
@@ -258,7 +242,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
       }
     >
       <div
-        className={document ? 'import-drop is-chosen' : 'import-drop'}
+        className={document && file ? 'import-drop is-chosen' : 'import-drop'}
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
           event.preventDefault();
@@ -277,10 +261,47 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
             if (picked) void choose(picked);
           }}
         />
-        <button type="button" className="button is-quiet" onClick={() => input.current?.click()}>
-          {t('portability.chooseFile')}
-        </button>
-        <span className="import-drop-hint">{file ? file.name : t('portability.dropHint')}</span>
+        {document && file ? (
+          /* The file already read, as a card: what it is, what it holds, and
+             the way to choose another (#205). */
+          <>
+            <span className="import-file-icon" aria-hidden="true">
+              <FileIcon />
+            </span>
+            <span className="import-file-body">
+              <strong>{file.name}</strong>
+              <span>
+                {[
+                  formatBytes(file.size, intlLocale(i18n.language)),
+                  t('portability.readInBrowser'),
+                  t('portability.countFolders', { count: document.folders.length }),
+                  t('portability.noteCount', { count: document.notes.length }),
+                  ...((document.files?.length ?? 0) > 0
+                    ? [t('portability.countFiles', { count: document.files?.length ?? 0 })]
+                    : []),
+                ].join(' · ')}
+              </span>
+            </span>
+            <button
+              type="button"
+              className="button is-quiet is-small"
+              onClick={() => input.current?.click()}
+            >
+              {t('portability.changeFile')}
+            </button>
+          </>
+        ) : (
+          <>
+            <span className="import-drop-hint">{file ? file.name : t('portability.dropHint')}</span>
+            <button
+              type="button"
+              className="button is-quiet"
+              onClick={() => input.current?.click()}
+            >
+              {t('portability.chooseFile')}
+            </button>
+          </>
+        )}
       </div>
 
       {refusal && <p className="status">{t(`portability.refusal.${refusal}`)}</p>}
@@ -299,8 +320,14 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
               value={name}
               onChange={(event) => setName(event.target.value)}
               aria-invalid={taken}
-              aria-describedby={taken ? 'transfer-refusal' : undefined}
+              aria-describedby={taken ? 'import-name-error' : undefined}
             />
+            {/* The field error of the Controles (#205). Its line is always
+                there, so a name that becomes taken while it is typed does not
+                push the choosing below it down under the hand (#161). */}
+            <span className="field-hint is-wrong" id="import-name-error" aria-live="polite">
+              {taken ? t('portability.refusal.ALREADY_EXISTS') : ''}
+            </span>
           </div>
 
           {chosen && (

@@ -722,14 +722,14 @@ test.describe('a notebook out and back in, through the browser', () => {
     ).toBeDisabled();
 
     /**
-     * And it says so in the two places a refusal is said, neither of which is
-     * under the field: **the foot**, in one line that does not grow, and the
-     * **tab of the refusals**, where it is said in full with the way out. A
-     * sentence appearing under the field moved the chooser down and back up
-     * as the name was typed, which is what it is for (#161).
+     * And it says so where a refusal is said: under the field, as the field
+     * error of the Controles, whose line is always there so typing never moves
+     * the chooser (#161, #205); in the foot, in one line that counts and does
+     * not grow; and in the tab of the inconsistencies, in full with the way out.
      */
-    await expect(dialog.locator('#transfer-refusal')).toContainText(words.nameTakenBlock);
-    await dialog.getByRole('button', { name: words.showTwins, exact: true }).click();
+    await expect(dialog.locator('#import-name-error')).not.toBeEmpty();
+    await expect(dialog.locator('#transfer-refusal')).toContainText(words.inconsistency);
+    await dialog.getByRole('tab', { name: new RegExp(words.tabConflicts) }).click();
     await expect(dialog.getByRole('tab', { name: new RegExp(words.tabConflicts) })).toHaveAttribute(
       'aria-selected',
       'true',
@@ -828,7 +828,7 @@ test.describe('the transfers of a person', () => {
      * for: nothing saves itself any more (#160). The export is kept until it
      * is deleted, and it counts towards the space of the plan.
      */
-    await expect(app.locator('.transfers-kept')).toContainText(words.spaceUsed);
+    await expect(app.locator('.transfers-kept')).toContainText(words.ofYourPlan);
 
     /**
      * What is shown is chosen in a TAB STRIP and no longer in three chips: one
@@ -836,11 +836,11 @@ test.describe('the transfers of a person', () => {
      * tab is — and a chip is a label (#157, #161). The export just made is an
      * export, so it survives that filter and would not survive the other.
      */
-    await app.getByRole('tab', { name: words.filterExports, exact: true }).click();
+    await app.getByRole('tab', { name: new RegExp(`^${words.filterExports}`) }).click();
     await expect(row).toBeVisible();
-    await app.getByRole('tab', { name: words.filterImports, exact: true }).click();
+    await app.getByRole('tab', { name: new RegExp(`^${words.filterImports}`) }).click();
     await expect(app.locator('.transfers-row', { hasText: notebook.name })).toHaveCount(0);
-    await app.getByRole('tab', { name: words.filterAll, exact: true }).click();
+    await app.getByRole('tab', { name: new RegExp(`^${words.filterAll}`) }).click();
 
     const download = row.getByRole('button', { name: words.download, exact: true });
     await expect(download).toBeVisible({ timeout: 120_000 });

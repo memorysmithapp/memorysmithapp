@@ -320,7 +320,17 @@
     "countFiles_one": "{{count}} arquivo",
     "countFiles_other": "{{count}} arquivos",
     "countFiles_zero": "{{count}} arquivos",
-    "filesBelongToTheNotebook": "Um arquivo pertence ao caderno e não a uma pasta: deixar um de fora nunca deixa uma nota de fora junto, e qualquer nota que viaja pode referenciar qualquer um deles. O custo é um embed que cai pendente."
+    "filesBelongToTheNotebook": "Um arquivo pertence ao caderno e não a uma pasta: deixar um de fora nunca deixa uma nota de fora junto, e qualquer nota que viaja pode referenciar qualquer um deles. O custo é um embed que cai pendente.",
+    "carries": "Vai no arquivo:",
+    "creates": "Vai criar:",
+    "oneNotebook": "1 caderno",
+    "refusals_one": "1 inconsistência · nada é importado até resolver",
+    "refusals_other": "{{count}} inconsistências · nada é importado até resolver",
+    "readInBrowser": "lido no navegador",
+    "changeFile": "Trocar",
+    "partHint": "Marque o que vai no arquivo. Pastas, Modelos e Notas podem ir inteiros ou item por item, cada um na sua aba.",
+    "twinTitle": "“{{name}}” vem duas vezes",
+    "twinWhy": "Uma pasta guarda uma nota de cada nome: deixe uma delas de fora."
   },
   "graph": {
     "heading": "Grafo do caderno",
@@ -386,7 +396,24 @@
     "wrote_one": "{{count}} nota escrita",
     "wrote_other": "{{count}} notas escritas",
     "wroteNothing": "o desenho, sem nota nenhuma",
-    "fromFile": "de {{file}}"
+    "fromFile": "de {{file}}",
+    "kind": {
+      "export": "Exportação",
+      "import": "Importação"
+    },
+    "state": {
+      "ready": "Pronta",
+      "failed": "Falhou",
+      "cancelled": "Cancelada",
+      "running": "Em andamento"
+    },
+    "keptSentence": "As exportações ficam guardadas até você apagar e ocupam <b>{{size}}</b> do seu plano.",
+    "keptShort": "Espaço usado: <b>{{size}}</b>",
+    "deleteAsk": "Apagar esta exportação?",
+    "deleteFrees": "Isto é definitivo e libera {{size}} do seu plano. O caderno, se ainda existir, não é tocado.",
+    "keep": "Manter",
+    "cancelImport": "Cancelar",
+    "open": "Abrir"
   },
   "about": {
     "link": "Sobre",

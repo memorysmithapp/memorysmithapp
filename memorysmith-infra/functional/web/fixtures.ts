@@ -65,7 +65,10 @@ export interface Words {
   /** The tab every refusal is in, which opens only when there is one. */
   readonly tabConflicts: string;
   /** The button of the foot that opens it. */
-  readonly showTwins: string;
+  /** The foot of an import that refuses, which counts what refuses (#205). */
+  readonly inconsistency: string;
+  /** The space the kept exports take, as the page says it (#205). */
+  readonly ofYourPlan: string;
   /** What the import dialog commits with, which is the verb alone (#160). */
   readonly importAction: string;
   /** The whole notebook, or part of it: the head of the first tab (#161). */
@@ -138,7 +141,8 @@ export const WORDS: Record<AppLocale, Words> = {
     nameTakenBlock: 'The name is already a notebook of yours',
     nameTakenTitle: 'is already in use',
     tabConflicts: 'Conflicts',
-    showTwins: 'See why',
+    inconsistency: 'inconsistenc',
+    ofYourPlan: 'of your plan',
     importAction: 'Import',
     partOfIt: 'Part of it',
     tabNotes: 'Notes',
@@ -199,7 +203,8 @@ export const WORDS: Record<AppLocale, Words> = {
     nameTakenBlock: 'O nome já é de um caderno seu',
     nameTakenTitle: 'já está em uso',
     tabConflicts: 'Inconsistências',
-    showTwins: 'Ver o motivo',
+    inconsistency: 'inconsistência',
+    ofYourPlan: 'do seu plano',
     importAction: 'Importar',
     partOfIt: 'Parte dele',
     tabNotes: 'Notas',

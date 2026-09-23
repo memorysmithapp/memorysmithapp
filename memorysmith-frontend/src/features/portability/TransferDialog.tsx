@@ -1,4 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { CloseIcon } from '../../shared/components/icons';
 
 /**
  * The one shape a transfer is asked for (#160).
@@ -31,6 +33,7 @@ export function TransferDialog({
   actions: ReactNode;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const dialog = useRef<HTMLDialogElement>(null);
 
   /**
@@ -62,6 +65,15 @@ export function TransferDialog({
       <div className="transfer-dialog-box">
         <header className="transfer-dialog-head">
           <h2 id="transfer-dialog-heading">{title}</h2>
+          {/* The × of the modal of the Controles (#205); Esc and Cancelar close it too. */}
+          <button
+            type="button"
+            className="icon-button is-bare"
+            aria-label={t('common.close')}
+            onClick={() => dialog.current?.close()}
+          >
+            <CloseIcon />
+          </button>
         </header>
         <div className="transfer-dialog-body">{children}</div>
         <footer className="transfer-dialog-foot">{actions}</footer>

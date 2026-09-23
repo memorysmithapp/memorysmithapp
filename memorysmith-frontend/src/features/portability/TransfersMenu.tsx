@@ -1,8 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { notebookAddress } from '../../shared/api/note-address';
+import { Trans, useTranslation } from 'react-i18next';
 import type { TransferDto } from '@memorysmith/contracts';
-import { lineOf, progressOf, saveArchive, useTransfers } from './transfers';
+import { progressOf, saveArchive, useTransfers } from './transfers';
+import { Menu } from '../../shared/components/Menu';
+import { formatBytes } from '../../shared/components/StorageBar';
+import { intlLocale } from '../../i18n/intl-locale';
+import { KindMark, TransferState, TransferTitle } from './TransferParts';
 import { TransferActions, TransferDialogs, type Starting } from './StartTransfer';
 
 /**
@@ -14,6 +19,11 @@ import { TransferActions, TransferDialogs, type Starting } from './StartTransfer
  *
  * A ring while something runs, a dot while something has finished that the
  * person has not seen. Opening the panel clears the dot.
+ *
+ * Drawn to the approved design (#205): the icon button of the Controles with
+ * the ring and the dot in its top corner, and a menu of 380 px — a sheet on a
+ * phone — with the space used, the two actions as equals, the four most
+ * recent and the way to all of them.
  */
 const SEEN_KEY = 'memorysmith.transfersSeen';
 
@@ -36,27 +46,19 @@ function markSeen(at: string): void {
 }
 
 export function TransfersMenu() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const [starting, setStarting] = useState<Starting>(null);
   const [seen, setSeen] = useState(seenAt);
-  const root = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
   const { data } = useTransfers();
+  const close = useCallback(() => setOpen(false), []);
 
   const transfers = data?.transfers ?? [];
   const running = transfers.filter((transfer) => transfer.status === 'running');
   const finished = transfers.filter(
     (transfer) => transfer.finishedAt !== null && transfer.finishedAt > seen,
   );
-
-  useEffect(() => {
-    if (!open) return;
-    const outside = (event: MouseEvent) => {
-      if (!root.current?.contains(event.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', outside);
-    return () => document.removeEventListener('mousedown', outside);
-  }, [open]);
 
   function toggle(): void {
     setOpen((current) => {
@@ -82,12 +84,14 @@ export function TransfersMenu() {
   const ring = running.length > 0 ? progressOf(running[0] as TransferDto) : null;
 
   return (
-    <div className="transfers-menu" ref={root}>
+    <div className="transfers-menu">
       <button
+        ref={trigger}
         type="button"
         className="icon-button transfers-trigger"
         onClick={toggle}
         aria-expanded={open}
+        aria-haspopup="menu"
         aria-label={t('transfers.heading')}
       >
         <span aria-hidden="true">⇅</span>
@@ -99,58 +103,68 @@ export function TransfersMenu() {
         )}
         {running.length === 0 && finished.length > 0 && <span className="transfers-dot" />}
       </button>
-      {open && (
-        <div className="transfers-panel">
+      <Menu
+        open={open}
+        onClose={close}
+        trigger={trigger}
+        label={t('transfers.heading')}
+        className="transfers-panel"
+        closeLabel={t('common.close')}
+      >
+        <div className="transfers-panel-head">
           <h2>{t('transfers.heading')}</h2>
-          <TransferActions
-            onStart={(kind) => {
-              // One surface at a time: the panel used to stay open behind the
-              // dialog it had opened (#160). The dialog itself is mounted
-              // outside the panel, so closing it here does not take it away.
-              setOpen(false);
-              setStarting(kind);
-            }}
-          />
-          {transfers.length === 0 && <p className="status">{t('transfers.empty')}</p>}
+          <span className="transfers-panel-kept">
+            <Trans
+              i18nKey="transfers.keptShort"
+              values={{ size: formatBytes(data?.keptBytes ?? 0, intlLocale(i18n.language)) }}
+              components={{ b: <strong /> }}
+            />
+          </span>
+        </div>
+        <TransferActions
+          onStart={(kind) => {
+            // One surface at a time: the panel used to stay open behind the
+            // dialog it had opened (#160). The dialog itself is mounted
+            // outside the panel, so closing it here does not take it away.
+            setOpen(false);
+            setStarting(kind);
+          }}
+        />
+        {transfers.length === 0 ? (
+          <p className="transfers-panel-empty">{t('transfers.empty')}</p>
+        ) : (
           <ul className="transfers-recent">
             {transfers.slice(0, 4).map((transfer) => (
               <li key={transfer.transferId}>
-                <TransferLine transfer={transfer} onClose={() => setOpen(false)} />
+                <TransferLine transfer={transfer} onClose={close} />
               </li>
             ))}
           </ul>
-          {transfers.length > 0 && (
-            <Link to="/transfers" className="transfers-see-all" onClick={() => setOpen(false)}>
+        )}
+        {transfers.length > 0 && (
+          <div className="transfers-panel-foot">
+            <Link to="/transfers" className="transfers-see-all" onClick={close}>
               {t('transfers.seeAll')} →
             </Link>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </Menu>
       <TransferDialogs starting={starting} onClose={() => setStarting(null)} />
     </div>
   );
 }
 
+/** One recent transfer: its kind, what it is, its state, and the one thing to do. */
 function TransferLine({ transfer, onClose }: { transfer: TransferDto; onClose: () => void }) {
   const { t } = useTranslation();
-  const progress = progressOf(transfer);
 
   return (
     <div className="transfers-line">
-      <span className="transfers-line-name">{lineOf(transfer, t)}</span>
-      <span className="transfers-line-state">
-        {transfer.status === 'running'
-          ? t(`transfers.running.${transfer.kind}`, {
-              done: transfer.done,
-              total: transfer.total,
-            })
-          : t(`transfers.ended.${transfer.status}`)}
-      </span>
-      {progress !== null && (
-        <progress className="transfers-line-bar" value={progress} max={1}>
-          {Math.round(progress * 100)}%
-        </progress>
-      )}
+      <KindMark kind={transfer.kind} />
+      <div className="transfers-line-what">
+        <TransferTitle transfer={transfer} />
+        <TransferState transfer={transfer} />
+      </div>
       {transfer.status === 'ready' && transfer.kind === 'export' && (
         <button
           type="button"
@@ -163,6 +177,17 @@ function TransferLine({ transfer, onClose }: { transfer: TransferDto; onClose: (
           {t('transfers.download')}
         </button>
       )}
+      {transfer.status === 'ready' &&
+        transfer.kind === 'import' &&
+        transfer.notebookId !== null && (
+          <Link
+            className="button is-quiet is-small"
+            to={notebookAddress(transfer.notebookId)}
+            onClick={onClose}
+          >
+            {t('transfers.open')}
+          </Link>
+        )}
     </div>
   );
 }

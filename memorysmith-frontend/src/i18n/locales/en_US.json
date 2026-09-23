@@ -317,7 +317,17 @@
     "countFiles_one": "{{count}} file",
     "countFiles_other": "{{count}} files",
     "countFiles_zero": "{{count}} files",
-    "filesBelongToTheNotebook": "A file belongs to the notebook and not to a folder: leaving one out never leaves a note out with it, and any note that travels may reference any of them. What it costs is an embed that lands pending."
+    "filesBelongToTheNotebook": "A file belongs to the notebook and not to a folder: leaving one out never leaves a note out with it, and any note that travels may reference any of them. What it costs is an embed that lands pending.",
+    "carries": "Goes in the file:",
+    "creates": "Will create:",
+    "oneNotebook": "1 notebook",
+    "refusals_one": "1 inconsistency · nothing is imported until it is resolved",
+    "refusals_other": "{{count}} inconsistencies · nothing is imported until they are resolved",
+    "readInBrowser": "read in the browser",
+    "changeFile": "Change",
+    "partHint": "Tick what goes in the file. Folders, Templates and Notes can go whole or item by item, each in its own tab.",
+    "twinTitle": "“{{name}}” comes twice",
+    "twinWhy": "A folder keeps one note of each name: leave one of them out."
   },
   "graph": {
     "heading": "Notebook graph",
@@ -383,7 +393,24 @@
     "wrote_one": "{{count}} note written",
     "wrote_other": "{{count}} notes written",
     "wroteNothing": "the design, with no note",
-    "fromFile": "from {{file}}"
+    "fromFile": "from {{file}}",
+    "kind": {
+      "export": "Export",
+      "import": "Import"
+    },
+    "state": {
+      "ready": "Ready",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "running": "Running"
+    },
+    "keptSentence": "Exports are kept until you delete them, and take <b>{{size}}</b> of your plan.",
+    "keptShort": "Space used: <b>{{size}}</b>",
+    "deleteAsk": "Delete this export?",
+    "deleteFrees": "This is for good and frees {{size}} of your plan. The notebook, if it still exists, is not touched.",
+    "keep": "Keep",
+    "cancelImport": "Cancel",
+    "open": "Open"
   },
   "about": {
     "link": "About",
