@@ -1,12 +1,12 @@
 /**
- * Tears staging down, leaving nothing of it but its hosted zone and its
- * pipeline (architecture-guide.md, section 20).
+ * Tears staging down, leaving nothing of it but its hosted zone
+ * (architecture-guide.md, section 20).
  *
  *   pnpm -C memorysmith-infra destroy-staging [--preview]
  *
- * It runs in the DestroyStaging project of staging, started by
- * `pnpm staging:destroy`, because a teardown outlasts any workstation that
- * should stay awake for it. It refuses production before it looks at a
+ * It runs from a workstation, with the credentials of whoever tears staging
+ * down: it only calls AWS, so it asks nothing of the machine but to stay awake,
+ * and no role GitHub assumes may delete anything. It refuses production before it looks at a
  * credential, and any account but the one cdk.json names for staging after.
  * Production lives in that same account, which is why it deletes only what the
  * stacks of staging list, and why its role may delete a user pool only when the
@@ -23,8 +23,8 @@
  *    log groups of functions that are gone.
  *
  * The hosted zone is never touched: its name servers were drawn when it was
- * created, and the delegation in production names them. The pipeline stack is
- * never touched either: it is what runs this.
+ * created, and the delegation in production names them. The roles GitHub
+ * delivers with are never touched either: they belong to the account.
  */
 
 import {
@@ -183,7 +183,7 @@ say('\nPurged after the stacks are gone');
 for (const each of retained) say(`  ${describeRetained(each)}`);
 if (retained.length === 0) say('  nothing any stack retains');
 say('  the log groups of functions that no longer exist');
-say('\nKept: the hosted zone and the pipeline stack.');
+say('\nKept: the hosted zone and the roles GitHub delivers with.');
 
 if (values.preview) {
   say('\nPreview: nothing was deleted.');
@@ -331,4 +331,4 @@ for (const group of orphanLogGroups({ environment, groups, functions })) {
 if (failures > 0) {
   refuse(`\nThe stacks are gone, and ${failures} resource(s) above are still standing.`);
 }
-say(`\n${environment} is gone. Its hosted zone and its pipeline stay, and the next run raises it.`);
+say(`\n${environment} is gone. Its hosted zone stays, and the next delivery raises it.`);

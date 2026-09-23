@@ -23,23 +23,16 @@
               "ns-995.awsdns-60.net"
             ]
           }
-        ],
-        "pipeline": {
-          "connectionArn": "",
-          "repository": "memorysmithapp/memorysmithapp"
-        }
+        ]
       },
       "staging": {
         "account": "364362227104",
         "region": "us-east-1",
         "hostedZoneName": "stg.memorysmith.app",
         "hostedZoneId": "Z07999273FVWE6U5B5811",
-        "delegations": [],
-        "pipeline": {
-          "connectionArn": "",
-          "repository": "memorysmithapp/memorysmithapp"
-        }
+        "delegations": []
       }
-    }
+    },
+    "repository": "memorysmithapp/memorysmithapp"
   }
 }

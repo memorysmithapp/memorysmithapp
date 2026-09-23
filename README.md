@@ -182,7 +182,7 @@ The exit lever is worth recording: the proxy exists because Cognito does not spe
 
 This is **one of the two paths** of using the product, and not the only one: whoever prefers not to operate infrastructure uses the hosted service, which runs exactly this code. What follows is for whoever wants the whole backend in their own account.
 
-All the infrastructure lives in [`memorysmith-infra/`](memorysmith-infra/), in AWS CDK with TypeScript, and **an environment is delivered by one command**, `pnpm -C memorysmith-infra deliver`, which builds, deploys the stacks in the order the environment imposes and proves with a smoke which version each surface serves. The repository also declares a CodePipeline per environment, for an installation that wants delivery to run inside the account instead; it is instantiated only when `cdk.json` names a connection, and this one names none ([`docs/architecture-guide.md`](docs/architecture-guide.md) §17 and §20). One app describes two environments, production and staging, which live in one account and are told apart by the name of everything they create. Staging is optional: an installation that wants only production leaves its entry out.
+All the infrastructure lives in [`memorysmith-infra/`](memorysmith-infra/), in AWS CDK with TypeScript, and **an environment is delivered by one command**, `pnpm -C memorysmith-infra deliver`, which builds, deploys the stacks in the order the environment imposes and proves with a smoke which version each surface serves. GitHub Actions runs it: staging when somebody starts it on a branch, production on every merge to `main` that touches what is deployed, with no AWS key stored anywhere ([`docs/architecture-guide.md`](docs/architecture-guide.md) §17 and §20). One app describes two environments, production and staging, which live in one account and are told apart by the name of everything they create. Staging is optional: an installation that wants only production leaves its entry out.
 
 ### What goes up
 
@@ -198,7 +198,7 @@ All the infrastructure lives in [`memorysmith-infra/`](memorysmith-infra/), in A
 | `Projections` | The audit consumer, whose role carries the explicit `Deny` that makes the log immutable, and the Discovery projector behind a queue with a DLQ |
 | `Agent` | The MCP server and the CIMD proxy at `mcp.<domain>` |
 | `FrontendRelease` | The bundle of the interface and the `/config.json` it reads at runtime: the origin of the API, the sign-in domain, the app client, the environment and the version |
-| `Pipeline` | The pipeline of the account, and in staging the project that tears the environment down. Instantiated only when `cdk.json` names a connection to GitHub |
+| `MemorysmithGithubDelivery` | Not an environment's: the OIDC provider of GitHub and one role per environment, which the workflows assume. Declared only by a synth of production, deployed by hand once, and never by a delivery |
 
 The interface is built once and configured at runtime, so one bundle serves either environment. The order carries one constraint the CDK cannot infer: Cognito accepts the sign-in domain only once the site resolves an A record, so a delivery deploys the network and the hosting, waits for DNS, and only then deploys the rest.
 
@@ -220,26 +220,20 @@ What differs between the two environments is written once, in [`memorysmith-infr
         "recordName": "stg",
         "nameServers": ["ns-1.awsdns-01.org", "ns-2.awsdns-02.co.uk", "ns-3.awsdns-03.com", "ns-4.awsdns-04.net"]
       }
-    ],
-    "pipeline": {
-      "connectionArn": "arn:aws:codeconnections:us-east-1:111111111111:connection/<id>",
-      "repository": "your-organization/your-repository",
-      "release": { "tokenSecret": "memorysmith/release-token" }
-    }
+    ]
   },
   "staging": {
     "account": "111111111111",
     "region": "us-east-1",
     "hostedZoneName": "stg.yourdomain.app",
     "hostedZoneId": "Z9876543ABCDEFGHIJKL",
-    "delegations": [],
-    "pipeline": {
-      "connectionArn": "arn:aws:codeconnections:us-east-1:111111111111:connection/<id>",
-      "repository": "your-organization/your-repository"
-    }
+    "delegations": []
   }
-}
+},
+"repository": "your-organization/your-repository"
 ```
+
+`repository` is the one repository whose workflows may assume the roles.
 
 **The account is never taken from the credentials.** Named in the environment of every stack, it makes the CDK refuse to deploy into any account but the one written here. Production and staging name the same account, and then the environment named on each command is what tells them apart; [`docs/architecture-guide.md`](docs/architecture-guide.md) §20.1 says what one account costs.
 
@@ -251,8 +245,8 @@ What differs between the two environments is written once, in [`memorysmith-infr
    npm install -g pnpm@11.22.0
    ```
 3. **An AWS account**, with your domain delegated to a public hosted zone in Route 53 (see [Delegating the domain to Route 53](#delegating-the-domain-to-route-53)). Production and staging both live in it.
-4. **AWS CLI v2 and the credentials of the account**, as a named profile (`aws configure sso`, or `aws configure --profile <name>`). A workstation uses them a handful of times — to bring the account up, to start and tear down staging, and for the commands below — and no credential goes into a file of the repository.
-5. **A GitHub repository holding this code**, which the account reads through a connection that can only read.
+4. **AWS CLI v2 and the credentials of the account**, as a named profile (`aws configure sso`, or `aws configure --profile <name>`). A workstation uses them a handful of times — to bring the account up, to tear staging down, and for the commands below — and no credential goes into a file of the repository.
+5. **A GitHub repository holding this code**, whose workflows deliver.
 
 ### Delegating the domain to Route 53
 
@@ -303,22 +297,27 @@ What follows happens once, and from then on a delivery is one command.
    pnpm install
    pnpm -C memorysmith-infra exec cdk bootstrap aws://<account>/us-east-1 --profile <profile>
    ```
-2. **Nothing to create for the release.** The tag and the GitHub Release of a version are written by `publish-release`, signed by whoever runs it: `GITHUB_TOKEN` when the environment sets one, and otherwise the token of the `gh` CLI that person is already signed in to. A GitHub App is only needed to deliver from a pipeline, where there is no person to sign as, and that case is at the end of this section.
-3. **In GitHub, protect `main`**: a pull request is required, and a force push and a deletion are refused, because `main` is what a delivery of production is taken from. A second ruleset over `v*` tags is worth it as soon as more than one person can push: what it buys is that a version tag can only be written by the identity that publishes releases, and what refuses a wrong tag until then is `publish-release`, which annotates it, takes the notes from the section of that version and refuses a tag already pointing at another commit.
-4. **Ask for room.** A new account usually comes with 10 concurrent Lambda executions, which the product exhausts on its first calls, and production and staging share them, so request the increase. A budget alert costs nothing and says when something runs that should not.
-
-**To deliver inside the account instead**, from a pipeline rather than a workstation, two more steps: create a GitHub connection in **Developer Tools** → **Settings** → **Connections**, authorise it on the repository and write its ARN in `pipeline.connectionArn` of the environments that want one; put a GitHub token with `contents: write` in Secrets Manager and name that secret in `pipeline.release.tokenSecret` of production, which is what the Release stage signs the tag with, since a pipeline has no person to sign as; then deploy their pipeline stacks by hand, once. From there each pipeline updates itself, production starts on a merge to `main` that touches what is deployed, and staging starts when somebody asks. Until an ARN is written, the app does not instantiate the pipeline at all, and `pnpm staging:start`, `pnpm staging:status` and `pnpm staging:destroy` say so and name the command to run instead.
+2. **Deploy the roles GitHub delivers with**, from a synth of production:
+   ```
+   pnpm -C memorysmith-infra exec cdk deploy MemorysmithGithubDelivery -c environment=production --profile <profile>
+   ```
+   It creates the OIDC provider of GitHub in the account — an account holds one per issuer, so if one exists already, delete it first or the deploy fails on it — and the roles `memorysmith-github-production` and `memorysmith-github-staging`.
+3. **In GitHub, tell the workflows where to go.** In **Settings → Secrets and variables → Actions → Variables**, the repository variables `AWS_PRODUCTION_ROLE_ARN` and `AWS_STAGING_ROLE_ARN`, with the ARNs of the two roles; they are not secrets, because knowing one grants nothing. In **Settings → Environments**, the environments `staging` and `production`, with `production` limited to the branch `main`: a role trusts only a run in the environment of its own name. Nothing to create for the release: the tag and the GitHub Release are written by the token GitHub issues to the run.
+4. **In GitHub, protect `main`**: a pull request is required, the check `Quality` of the CI must pass, and a force push and a deletion are refused, because `main` is what a delivery of production is taken from. A second ruleset over `v*` tags is worth it as soon as more than one person can push: what it buys is that a version tag can only be written by the identity that publishes releases, and what refuses a wrong tag until then is `publish-release`, which annotates it, takes the notes from the section of that version and refuses a tag already pointing at another commit.
+5. **Ask for room.** A new account usually comes with 10 concurrent Lambda executions, which the product exhausts on its first calls, and production and staging share them, so request the increase. A budget alert costs nothing and says when something runs that should not.
 
 ### Delivering
+
+**Staging**: in the **Actions** tab, the workflow **Staging** → **Run workflow**, on the branch to deliver, choosing whether the adapter tests, the functional suite and a maintenance job run after it. **Production**: merging a pull request into `main` that touches what is deployed. The same command runs from a workstation, with credentials of the account, when a person has a reason to:
 
 ```
 pnpm -C memorysmith-infra deliver                            # staging
 pnpm -C memorysmith-infra deliver --environment production
 ```
 
-It refuses any account but the one `cdk.json` names for the environment. It builds the interface once, synthesises, deploys the network and the hosting, waits for DNS and for the sending identity, deploys every other stack, and closes with a read-only smoke asking each surface which version it serves. On a `release/vX.Y.Z` branch staging serves `X.Y.Z-rc.N+sha7`, and production serves the version of the packages. After a delivery of staging, the adapter tests run against its own tables and bucket, and the functional suite runs against it.
+It refuses any account but the one `cdk.json` names for the environment. It builds the interface once, synthesises, deploys the network and the hosting, waits for DNS and for the sending identity, deploys every other stack, and closes with a read-only smoke asking each surface which version it serves. On a `release/vX.Y.Z` branch staging serves `X.Y.Z-rc.N+sha7`, and production serves the version of the packages. After a delivery of staging, the workflow runs the adapter tests against its own tables and bucket and the functional suite against it, unless whoever starts it unticks them; its report is an artifact of the run. A delivery from a workstation ends at the smoke, and the two suites are then run by hand, with the commands in [Running it on your machine](#running-it-on-your-machine).
 
-A release is three commands in this order: `release-checks`, which refuses a version that disagrees across `CLAUDE.md`, the manifests and `CHANGELOG.md` or whose tag exists already; the delivery of production; and `publish-release`, which writes the annotated tag and the GitHub Release of what production now serves. A pull request states what was exercised on staging, and nothing blocks a merge on it.
+A release is the production workflow, three steps in this order: `release-checks`, which refuses a version that disagrees across `CLAUDE.md`, the manifests and `CHANGELOG.md` or whose tag exists already; the delivery of production; and `publish-release`, which writes the annotated tag and the GitHub Release of what production now serves. A pull request states what was exercised on staging, and nothing blocks a merge on it.
 
 The first delivery into an empty account is the one that waits: the certificates validate by DNS in the zone, and the sign-in domain is accepted only once the site resolves.
 
@@ -382,7 +381,7 @@ pnpm -C memorysmith-infra reproject-links --environment production
 pnpm -C memorysmith-infra destroy-staging      # with credentials of the account
 ```
 
-It deletes every stack of staging, in the reverse of a delivery, and then what no removal policy deletes: the five tables, the audit trail included, the content bucket with every version, the user pool and the log groups of functions that are gone. It refuses every environment but staging before it looks at a credential, and any account but the one `cdk.json` names for staging after. Production lives in the same account, so it deletes only what the stacks of staging list. It holds the terminal until it ends, and deleting the sign-in domain alone takes over half an hour; where a pipeline is on, `pnpm staging:destroy` starts the same command as a project inside the account instead. It leaves the hosted zone, so the next delivery raises staging from zero. To see what it would delete, and delete nothing:
+It deletes every stack of staging, in the reverse of a delivery, and then what no removal policy deletes: the five tables, the audit trail included, the content bucket with every version, the user pool and the log groups of functions that are gone. It refuses every environment but staging before it looks at a credential, and any account but the one `cdk.json` names for staging after. Production lives in the same account, so it deletes only what the stacks of staging list. It holds the terminal until it ends, and deleting the sign-in domain alone takes over half an hour. It runs from a workstation on purpose: no role a workflow assumes may delete anything. It leaves the hosted zone, so the next delivery raises staging from zero. To see what it would delete, and delete nothing:
 
 ```
 pnpm -C memorysmith-infra destroy-staging --preview
@@ -405,7 +404,7 @@ pnpm depcruise      # the dependency rule: it breaks if domain/ imports an AWS S
 pnpm test           # the domain, use cases, contracts and the vertical slice
 ```
 
-The adapter tests, including the concurrency criteria (20 simultaneous reorderings, 50 notes created in parallel), run against the real DynamoDB and S3 of staging, after a delivery of it, and never against an emulator. Every case writes under a subscription of its own. With credentials of the account they run from a workstation too:
+The adapter tests, including the concurrency criteria (20 simultaneous reorderings, 50 notes created in parallel), run against the real DynamoDB and S3 of staging, after a delivery of it, and never against an emulator: the staging workflow runs them when asked. Every case writes under a subscription of its own. With credentials of the account they run from a workstation too:
 
 ```
 KNOWLEDGE_TABLE=mv-knowledge-staging ACCESS_TABLE=mv-access-staging CONTENT_BUCKET=<the content bucket> \
@@ -448,12 +447,12 @@ Without that file the application refuses to start and says which field it is mi
 
 | Symptom | Likely cause |
 | --- | --- |
-| No pipeline appears after deploying the pipeline stack | The environment has no `connectionArn` in `cdk.json`, and without one the app instantiates no pipeline |
+| A workflow fails on `Could not assume role with OIDC` | The repository variable of the role is missing or wrong, the run is not in the GitHub environment of the same name, or `repository` in `cdk.json` names another repository than the one running it |
+| `cdk deploy MemorysmithGithubDelivery` fails on the OIDC provider | The account already holds a provider for `token.actions.githubusercontent.com`, and an account holds one per issuer |
 | `Need to perform AWS calls for account …, but the current credentials are for …` | The credentials are those of the other account. The CDK refuses it by design: use the profile of the account the environment names |
 | The network stack stuck in `CREATE_IN_PROGRESS` on a first delivery | Certificate issuance awaiting DNS validation. Past 30 minutes, check whether the hosted zone of `hostedZoneId` is the one that actually answers for the domain, and, for staging, whether production already delegates it |
 | A delivery fails on the sign-in domain | Cognito refuses a custom domain while the site does not resolve an A record. The delivery waits for DNS before deploying identity; when propagation outlasts the wait, run it again |
 | `release-checks` refuses the release | The version disagrees between `CLAUDE.md`, a manifest and `CHANGELOG.md`, or its tag already exists. It names each reason |
-| `staging:start` says the pipeline is switched off | No environment names a connection in `cdk.json`, which is what switches delivery back to `pnpm -C memorysmith-infra deliver` |
 | An intermittent `503 Service Unavailable` on the first calls | A new account usually comes with 10 concurrent Lambda executions. Ask AWS for a quota increase |
 | `This CDK CLI is not compatible...` | Some old global `cdk` on the PATH. Run the CLI pinned in the project, `pnpm -C memorysmith-infra exec cdk` |
 
@@ -477,7 +476,7 @@ What happens to your issue after it is opened, including how it is triaged and w
 core/
 ├── memorysmith-backend/     # the six bounded contexts, the shared kernel and the event contracts
 ├── memorysmith-frontend/    # the web interface in React
-├── memorysmith-infra/       # all the CDK: stacks, constructs, IAM policies, the pipelines and the commands
+├── memorysmith-infra/       # all the CDK: stacks, constructs, IAM policies, the roles GitHub delivers with and the commands
 └── docs/                    # the canonical documentation, and the Markdown specification
 ```
 

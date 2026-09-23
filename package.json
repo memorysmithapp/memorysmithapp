@@ -10,10 +10,7 @@
     "lint": "eslint .",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
-    "depcruise": "depcruise memorysmith-backend memorysmith-frontend memorysmith-infra",
-    "staging:status": "pnpm -s -C memorysmith-infra staging:status",
-    "staging:start": "pnpm -s -C memorysmith-infra staging:start",
-    "staging:destroy": "pnpm -s -C memorysmith-infra staging:destroy"
+    "depcruise": "depcruise memorysmith-backend memorysmith-frontend memorysmith-infra"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

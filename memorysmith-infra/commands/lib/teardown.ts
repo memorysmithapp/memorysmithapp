@@ -7,8 +7,8 @@
  */
 
 /**
- * The stacks of the product, in the order a delivery deploys them. The pipeline
- * stack declares the same list, and a test holds the two together, because a
+ * The stacks of the product, in the order a delivery deploys them. `bin/app.ts`
+ * declares the same stacks, and a test holds the two together, because a
  * command never imports a stack.
  */
 export const DELIVERY_ORDER = [
@@ -57,7 +57,8 @@ export function refusalOf(input: {
 
 /**
  * The reverse of a delivery, an order every dependency between the stacks
- * already agrees with. The pipeline is not in it: it is what runs this.
+ * already agrees with. The roles GitHub delivers with are not in it: they belong
+ * to the account, and a teardown of staging never names them.
  */
 export function teardownOrder(environment: string): string[] {
   return [...DELIVERY_ORDER].reverse().map((name) => stackIdOf(environment, name));
@@ -123,13 +124,9 @@ export function orphanLogGroups(input: {
   readonly functions: readonly string[];
 }): string[] {
   const prefix = `/aws/lambda/${stackIdOf(input.environment, '')}`;
-  const pipeline = `/aws/lambda/${stackIdOf(input.environment, 'Pipeline')}`;
   const alive = new Set(input.functions);
   return input.groups.filter(
-    (group) =>
-      group.startsWith(prefix) &&
-      !group.startsWith(pipeline) &&
-      !alive.has(group.slice('/aws/lambda/'.length)),
+    (group) => group.startsWith(prefix) && !alive.has(group.slice('/aws/lambda/'.length)),
   );
 }
 

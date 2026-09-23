@@ -1,0 +1,117 @@
+# Delivers production on every merge to main that touches what is deployed
+# (architecture-guide.md, section 20; development-process.md, section 9.1),
+# and writes the tag and the GitHub Release of the version once production
+# serves it. A merge of documentation or governance starts nothing.
+name: Production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'memorysmith-backend/**'
+      - 'memorysmith-frontend/**'
+      - 'memorysmith-infra/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  # To run a delivery of main again, after a failure that was not the code's.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Two merges deliver in order, never together, and never cancel each other.
+concurrency:
+  group: deliver-production
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  release-checks:
+    name: Release checks
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # The whole history and the tags: a version already tagged is not released twice.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -C memorysmith-infra release-checks
+
+  quality:
+    name: Quality
+    needs: release-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm format
+      - run: pnpm typecheck
+      - run: pnpm depcruise
+      - run: pnpm -r --if-present test
+
+  deliver:
+    name: Deliver production
+    needs: quality
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_PRODUCTION_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: production-${{ github.run_id }}
+          role-duration-seconds: 7200
+      - name: Deliver
+        run: pnpm -C memorysmith-infra deliver --environment production
+
+  release:
+    name: Tag and release
+    needs: deliver
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Publish the release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT: ${{ github.sha }}
+        run: pnpm -s -C memorysmith-infra publish-release
