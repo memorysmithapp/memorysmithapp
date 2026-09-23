@@ -282,6 +282,19 @@ test.describe('the pages of an account', () => {
     await app.waitForURL(`${state.surfaces.site}/profile`);
   });
 
+  test('gives up a change of password back on the page it was asked from', async ({
+    app,
+    state,
+    words,
+  }) => {
+    await app.goto(`${state.surfaces.site}/transfers`);
+    await app.locator('button.user-menu-trigger').click();
+    await app.getByRole('menuitem', { name: words.passwordMenu }).click();
+    await app.waitForURL(`${state.surfaces.site}/profile/password`);
+    await app.getByRole('button', { name: words.cancel }).click();
+    await app.waitForURL(`${state.surfaces.site}/transfers`);
+  });
+
   test('[page:/notebooks/:notebookId] opens a notebook on its context: its name, its folders and their Templates', async ({
     app,
     notebook,

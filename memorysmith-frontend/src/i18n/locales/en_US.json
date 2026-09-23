@@ -527,7 +527,7 @@
     "working": "Changing…",
     "cancel": "Cancel",
     "done": "Your password was changed. Every other session of this account will be asked to sign in again.",
-    "back": "Back to your profile",
+    "back": "Back",
     "failed": "The password could not be changed.",
     "show": "Show passwords",
     "required": "Fill in this field.",

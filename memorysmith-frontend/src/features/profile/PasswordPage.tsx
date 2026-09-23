@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { changePassword } from '../../shared/api/backend';
@@ -30,6 +30,13 @@ import { ApiError } from '../../shared/api/error-mapper';
 export function PasswordPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  /**
+   * Where the change was asked from: the user menu opens it over any page, and
+   * giving up or finishing goes back there, never to a profile the person did
+   * not open. An address typed by hand has no origin, and goes to the profile.
+   */
+  const origin = (useLocation().state as { from?: string } | null)?.from;
+  const back = () => navigate(origin?.startsWith('/') ? origin : '/profile');
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [again, setAgain] = useState('');
@@ -71,7 +78,7 @@ export function PasswordPage() {
     return (
       <PasswordScreen heading={t('password.heading')}>
         <p className="password-description">{t('password.done')}</p>
-        <button type="button" className="password-primary" onClick={() => navigate('/profile')}>
+        <button type="button" className="password-primary" onClick={back}>
           {t('password.back')}
         </button>
       </PasswordScreen>
@@ -159,7 +166,7 @@ export function PasswordPage() {
           {working ? t('password.working') : t('password.confirm')}
         </button>
         {/* Giving up changes nothing, and what was typed goes with the page. */}
-        <button type="button" className="password-secondary" onClick={() => navigate('/profile')}>
+        <button type="button" className="password-secondary" onClick={back}>
           {t('password.cancel')}
         </button>
       </form>

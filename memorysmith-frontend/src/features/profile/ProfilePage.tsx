@@ -163,7 +163,7 @@ export function ProfilePage() {
         >
           {saved ? t('profile.saved') : t('profile.save')}
         </button>
-        <Link className="button is-quiet" to="/profile/password">
+        <Link className="button is-quiet" to="/profile/password" state={{ from: '/profile' }}>
           {t('password.heading')}
         </Link>
       </div>

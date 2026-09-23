@@ -530,7 +530,7 @@
     "working": "Trocando…",
     "cancel": "Cancelar",
     "done": "Sua senha foi trocada. Todas as outras sessões desta conta vão precisar entrar de novo.",
-    "back": "Voltar ao seu perfil",
+    "back": "Voltar",
     "failed": "Não foi possível trocar a senha.",
     "show": "Mostrar senhas",
     "required": "Preencha este campo.",

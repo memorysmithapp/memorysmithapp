@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LOCALES, setLocale, type Locale } from '../../i18n';
 import { recordAccountLocale } from '../api/backend';
@@ -119,6 +119,7 @@ export function UserMenu() {
     endHostedSession(authConfig());
   }
 
+  const location = useLocation();
   function go(to: string) {
     setOpen(false);
     navigate(to);
@@ -278,7 +279,13 @@ export function UserMenu() {
             {t('profile.menu')}
           </MenuItem>
           <MenuItem
-            onSelect={() => go('/profile/password')}
+            onSelect={() => {
+              // The change of password goes back where it was asked from.
+              setOpen(false);
+              navigate('/profile/password', {
+                state: { from: `${location.pathname}${location.search}` },
+              });
+            }}
             trailing={<ChevronRightIcon width={12} height={12} />}
           >
             {t('password.menu')}
