@@ -708,6 +708,19 @@ test.describe('a notebook out and back in, through the browser', () => {
  * listed, and the bucket threw the file away the next day.
  */
 test.describe('the transfers of a person', () => {
+  test('opens the Transfers panel inside a phone screen (#195)', async ({ app, state, words }) => {
+    await app.setViewportSize({ width: 320, height: 640 });
+    await app.goto(`${state.surfaces.site}/`);
+    await app.getByRole('button', { name: words.transfers }).click();
+
+    const panel = app.locator('.transfers-panel');
+    await expect(panel).toBeVisible();
+    const box = await panel.boundingBox();
+    expect(box, 'the panel has a box').not.toBeNull();
+    expect(box!.x, 'the panel starts on the screen').toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width, 'and ends on it').toBeLessThanOrEqual(320);
+  });
+
   test('[page:/transfers] exports a notebook from its page, keeps it, downloads it again and deletes it', async ({
     app,
     notebook,
