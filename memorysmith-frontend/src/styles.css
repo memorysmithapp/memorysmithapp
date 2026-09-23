@@ -18,10 +18,10 @@
   --node-green: #16a34a;
   --pending: #a6ab9f;
   --code-bg: #f4f5f2;
-  /* Muted, as the default theme sets inline code, but only as muted as it can
-     be: inside a callout the code sits on the callout's tint over the code
-     tint, and --text-soft loses the 4.5:1 there by a hair. */
-  --code-color: #4e566b;
+  /* Muted, as the default theme sets inline code: the soft text of the
+     surface. Inline code has no fill (#194), so it sits on the paper or on the
+     tint of a callout, and --text-soft holds 4.86:1 on the palest of those. */
+  --code-color: var(--text-soft);
   /* Syntax tokens, drawn from the brand palette rather than from a theme
      somebody else shipped: the blue of structure for what a language reserves,
      the green of connection for a literal value, and the orange of capture for
@@ -31,7 +31,7 @@
   --token-keyword: #0f56d7;
   --token-string: #b4541a;
   --token-number: #157a3a;
-  --token-comment: #6b7386;
+  --token-comment: #646c7f;
   --token-punctuation: #4e566b;
   --seq-seed: #bfd2f6;
   --seq-growing: #6b96ea;
@@ -646,23 +646,42 @@ a:hover {
   text-decoration: none;
 }
 
+/* Inline code is told apart by its face and its colour, and nothing else: in
+   a sentence a fill only spots the paragraph (#194). */
 .markdown code {
   font-family: var(--mono);
   font-size: 0.875em;
-  background: var(--code-bg);
   color: var(--code-color);
-  padding: 0.15em 0.3em;
-  border-radius: 4px;
+}
+/* A fenced block needs an edge, because the face alone does not say where it
+   starts and ends: the frame of the connector box, around a `pre` that
+   scrolls and never wraps, and the Copy button in its corner, which stays put
+   while the content scrolls under it (#194). */
+.markdown .code-block {
+  position: relative;
+  margin-block: var(--p-spacing);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--code-bg);
 }
 .markdown pre {
   margin-block: var(--p-spacing);
-  background: var(--code-bg);
-  border: 0;
-  border-radius: 6px;
   padding: 0.75rem 1rem;
   overflow-x: auto;
   font-size: 0.875em;
   line-height: 1.45;
+}
+.markdown .code-block > pre {
+  margin: 0;
+  /* Room for the button, so the first line is never under it. */
+  padding-right: 6.5rem;
+}
+.markdown .code-copy {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  border-color: var(--border);
+  background: var(--surface);
 }
 .markdown pre code {
   background: none;
@@ -800,8 +819,11 @@ a:hover {
 .markdown .callout blockquote {
   border-inline-start-color: rgba(var(--callout-color), 0.4);
 }
-.markdown .callout :is(code, pre) {
+/* Inline code shows the callout's tint through; a block keeps a tint of the
+   callout's colour and takes its edge in the tone of a quotation there. */
+.markdown .callout .code-block {
   background: rgba(var(--callout-color), 0.1);
+  border-color: rgba(var(--callout-color), 0.4);
 }
 
 .markdown .callout:is([data-callout='note']) {
@@ -1627,11 +1649,11 @@ body.has-modal {
   --signal: #ff8a2b;
   --pending: #5d6880;
   --code-bg: #0e1728;
-  --code-color: #93a0ba;
+  --code-color: var(--text-soft);
   --token-keyword: #7aa4f2;
   --token-string: #f0a05a;
   --token-number: #4fc07f;
-  --token-comment: #6f7c96;
+  --token-comment: #7c89a3;
   --token-punctuation: #93a0ba;
   --seq-seed: #33507f;
   --seq-growing: #6b96ea;
@@ -2799,6 +2821,13 @@ body.has-modal {
   .write-status-text {
     display: none;
   }
+  /* The same move for Copy: the icon stays, the word is in its label. */
+  .copy-action-label {
+    display: none;
+  }
+  .markdown .code-block > pre {
+    padding-right: 3rem;
+  }
 }
 
 /* The heading of the notebook catalogue, with the one action that belongs beside
@@ -3812,17 +3841,20 @@ body.has-modal {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  flex-wrap: wrap;
   margin: 0.5rem 0 1rem;
   padding: 0.75rem 0.9rem;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--code-bg);
 }
+/* It scrolls like every block of code instead of wrapping (#194): the button
+   beside it is what carries the address somewhere else, and one rule for code
+   is simpler to read than two. */
 .about-connector code {
-  flex: 1 1 14rem;
+  flex: 1 1 0;
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-x: auto;
+  white-space: nowrap;
   font-size: 0.9rem;
   color: var(--text);
 }

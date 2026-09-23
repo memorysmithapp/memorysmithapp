@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Changed
+
+- **A block of code has a frame and a Copy button, and inline code loses its fill.** A fenced block takes the look of the connector box of the welcome page — a border, the code tint, and *Copy* in its top-right corner, which stays put while a long line scrolls under it and copies the block as it was typed, highlighted or not. Inline code is told apart by its face and its colour alone, so it no longer spots a paragraph, and inside a callout it shows the callout's tint through. The connector box scrolls instead of wrapping, like every block, and at phone width both buttons keep the icon and drop the word, which a screen reader still hears. The comment colour of the highlighted code is darkened in both themes to 4.5:1, which it had missed. (#194)
+
 ### Removed
 
 - **The Root of the folders.** A node above the folder tree, a crumb between the notebook and its first folder, and a page behind both that listed the top-level folders — which the page of the notebook already lists, with every subfolder. The tree opens on the folders themselves, the trail of a folder or a note goes *Notebook / folder / …*, and `/notebooks/:notebookId/folders` answers not found instead of being redirected (RN-DSC-045, RN-DSC-058). A notebook with no folders says so in the sidebar. And the foot of the sidebar gets room, so the last folder of a long tree scrolls clear of the address a desktop browser draws in that corner. (#196)

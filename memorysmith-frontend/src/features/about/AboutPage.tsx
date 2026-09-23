@@ -1,11 +1,10 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import { BrandMark } from '../../shared/components/BrandMark';
-import { CheckIcon, CopyIcon } from '../../shared/components/icons';
+import { CopyButton } from '../../shared/components/CopyButton';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { connectorEndpoint, loadedRuntimeConfig } from '../../shared/config/runtime-config';
-import { copyText } from '../../shared/lib/clipboard';
 import { recordWelcomeSeen } from '../../shared/api/backend';
 import { useLiveSession } from '../../shared/auth/session';
 
@@ -48,7 +47,6 @@ const STEPS = ['one', 'two', 'three', 'four', 'five'] as const;
  */
 export function AboutPage() {
   const { t } = useTranslation();
-  const [copied, setCopied] = useState(false);
   const config = loadedRuntimeConfig();
   const connector = config ? connectorEndpoint(config) : '';
   const welcomed = useLiveSession((s) => s.session?.welcomeSeen ?? true);
@@ -67,12 +65,6 @@ export function AboutPage() {
     markWelcomeSeen();
     void recordWelcomeSeen().catch(() => undefined);
   }, [welcomed, markWelcomeSeen]);
-
-  async function copyConnector() {
-    await copyText(connector);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
 
   return (
     <article className="about">
@@ -113,15 +105,7 @@ export function AboutPage() {
             with the verb beside it. Nothing here asks the person to read it. */}
         <div className="about-connector">
           <code>{connector}</code>
-          <button
-            type="button"
-            className="button is-small"
-            onClick={() => void copyConnector()}
-            disabled={!connector}
-          >
-            {copied ? <CheckIcon /> : <CopyIcon />}
-            <span>{copied ? t('note.copied') : t('note.copy')}</span>
-          </button>
+          <CopyButton text={() => connector} disabled={!connector} />
         </div>
 
         <h3>{t('about.connector.claude.heading')}</h3>
