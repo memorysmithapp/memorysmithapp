@@ -103,7 +103,24 @@ export const downloadLinkSchema = z.object({
   expiresAt: instantSchema,
 });
 
+/**
+ * Importing from a kept export instead of a file on the machine (#207): the
+ * kept object is copied server-side to a fresh upload key, and the answer is
+ * the same key `POST /portability/imports` answers, which `apply` takes as
+ * it takes an uploaded file. Only the requester's own ready exports qualify
+ * (RN-PRT-020); anything else answers 404.
+ */
+export const importFromExportRequestSchema = z.object({
+  transferId: ulidSchema,
+});
+
+export const importUploadSchema = z.object({
+  uploadKey: z.string().min(1),
+});
+
 export type ExportRequest = z.infer<typeof exportRequestSchema>;
+export type ImportFromExportRequest = z.infer<typeof importFromExportRequestSchema>;
+export type ImportUploadDto = z.infer<typeof importUploadSchema>;
 export type TransferDto = z.infer<typeof transferSchema>;
 export type TransferListDto = z.infer<typeof transferListSchema>;
 export type DownloadLinkDto = z.infer<typeof downloadLinkSchema>;
