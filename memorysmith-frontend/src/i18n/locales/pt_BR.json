@@ -123,6 +123,8 @@
     "empty": "Ainda não há notas nesta pasta."
   },
   "note": {
+    "propertyTrue": "Sim",
+    "propertyFalse": "Não",
     "properties": "Propriedades",
     "embedSectionMissing": "A seção \"{{section}}\" não existe nesta nota.",
     "writeConflict": "A alteração não foi salva. Alguém escreveu aqui antes, e o conteúdo foi recarregado.",

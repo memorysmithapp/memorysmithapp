@@ -41,3 +41,6 @@ memorysmith-infra/functional/.state/
 
 # The agent evaluation: the transcripts, snapshots and scorecard of every round
 memorysmith-infra/agent-eval/runs/
+
+# Worktrees of the agents of a Claude Code session
+.claude/worktrees/

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { DRAWN_RESERVED_KEYS, NAME_KEY } from '@memorysmith/contracts';
 import { wikilinkUrl } from '../api/source';
+import { intlLocale } from '../../i18n/intl-locale';
 
 // Frontmatter values are notebook content, so they may carry [[wikilinks]],
 // markdown links and raw URLs. This renderer makes them navigable without
@@ -84,6 +85,45 @@ export function propertyType(value: string, list: boolean): 'list' | 'date' | 'c
   return 'text';
 }
 
+/**
+ * A boolean or a date as the reader reads it (#193). The shape that picks the
+ * icon also picks the words: `true` is *Sim* in pt-BR and a date is written
+ * the way every other date of the interface is. Only the text on screen
+ * changes; the bytes of the note, the export and the search keep what was
+ * typed, which is why the typed value stays in the title of the element.
+ *
+ * A date carries no zone in a note, so it is read and written in UTC: read
+ * in the zone of the browser, `2026-09-21` is the evening of the 20th west
+ * of Greenwich.
+ */
+export function readableValue(
+  value: string,
+  type: ReturnType<typeof propertyType>,
+  locale: string,
+  t: (key: string) => string,
+): string | null {
+  const typed = value.trim();
+  if (type === 'checkbox') {
+    return /^(true|yes)$/i.test(typed) ? t('note.propertyTrue') : t('note.propertyFalse');
+  }
+  if (type === 'date') {
+    const [day, time] = typed.split(/[T ]/);
+    const [year, month, date] = (day ?? '').split('-').map(Number);
+    const [hours, minutes] = (time ?? '').split(':').map(Number);
+    const when = new Date(
+      Date.UTC(year ?? 0, (month ?? 1) - 1, date ?? 1, hours ?? 0, minutes ?? 0),
+    );
+    // A date that does not exist, 2026-02-31, is left as it was typed.
+    if (when.getUTCDate() !== date || when.getUTCMonth() !== (month ?? 1) - 1) return null;
+    return new Intl.DateTimeFormat(locale, {
+      dateStyle: 'medium',
+      ...(time ? { timeStyle: 'short' } : {}),
+      timeZone: 'UTC',
+    }).format(when);
+  }
+  return null;
+}
+
 function renderRich(value: string, notebookId: string, pendingHint: string): ReactNode[] {
   const parts: ReactNode[] = [];
   let cursor = 0;
@@ -128,7 +168,7 @@ function renderRich(value: string, notebookId: string, pendingHint: string): Rea
 }
 
 export function PropertyValue({ value, list, notebookId }: PropertyValueProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   if (list) {
     return (
@@ -142,6 +182,18 @@ export function PropertyValue({ value, list, notebookId }: PropertyValueProps) {
             </span>
           ))}
       </span>
+    );
+  }
+
+  const type = propertyType(value, list);
+  const readable = readableValue(value, type, intlLocale(i18n.language), t);
+  if (readable !== null) {
+    return type === 'date' ? (
+      <time dateTime={value.trim()} title={value.trim()}>
+        {readable}
+      </time>
+    ) : (
+      <span title={value.trim()}>{readable}</span>
     );
   }
 

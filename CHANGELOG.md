@@ -14,6 +14,7 @@ issues each entry cites.
 ### Fixed
 
 - **Esc closes the results of the search wherever the focus is.** It closed them only while the search box had the focus, so after clicking the note or the tree the list stayed open over the sidebar and only the × of the box took it away. (#192)
+- **A boolean or a date in the Properties of a note is written in the language of the reader.** The box recognised both, and chose the icon by it, and then drew the value as typed: `true` and `2026-09-21` in every locale. It reads *Sim* and *21 de set. de 2026* in pt-BR, *Yes* and *Sep 21, 2026* in en-US; the note, its export and the search keep what was typed, which the value still shows on hover. (#193)
 
 ## [0.6.2] - 2026-09-22
 
