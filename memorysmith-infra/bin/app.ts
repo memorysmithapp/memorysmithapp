@@ -135,6 +135,7 @@ if (environment.name === 'production') {
   const github = new GithubDeliveryStack(app, 'MemorysmithGithubDelivery', {
     env,
     repository: environment.repository,
+    subject: environment.repositorySubject,
     production: named('production'),
     staging: named('staging'),
   });

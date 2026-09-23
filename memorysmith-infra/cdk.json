@@ -33,6 +33,7 @@
         "delegations": []
       }
     },
-    "repository": "memorysmithapp/memorysmithapp"
+    "repository": "memorysmithapp/memorysmithapp",
+    "repositorySubject": "repo:memorysmithapp@311768902/memorysmithapp@1319284044"
   }
 }

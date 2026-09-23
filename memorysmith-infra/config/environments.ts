@@ -34,6 +34,13 @@ export interface EnvironmentConfig {
   readonly delegations: readonly Delegation[];
   /** `owner/name`: the repository GitHub Actions delivers from (section 20). */
   readonly repository: string;
+  /**
+   * What the `sub` of a token GitHub signs for that repository starts with.
+   * A repository with immutable subjects names its owner and itself with their
+   * ids, `repo:owner@123/name@456`, so a repository deleted and created again
+   * under the same name is another repository; `repo:owner/name` otherwise.
+   */
+  readonly repositorySubject: string;
 }
 
 interface ContextReader {
@@ -84,6 +91,10 @@ export function environmentOf(node: ContextReader): EnvironmentConfig {
     );
   }
   const delegations = Array.isArray(raw['delegations']) ? raw['delegations'] : [];
+  const repository =
+    typeof node.tryGetContext('repository') === 'string'
+      ? String(node.tryGetContext('repository'))
+      : 'memorysmithapp/memorysmithapp';
 
   return {
     name: requested as EnvironmentName,
@@ -92,10 +103,11 @@ export function environmentOf(node: ContextReader): EnvironmentConfig {
     hostedZoneName: text('hostedZoneName'),
     hostedZoneId: text('hostedZoneId'),
     delegations: delegations.map((entry) => delegationOf(entry, requested)),
-    repository:
-      typeof node.tryGetContext('repository') === 'string'
-        ? String(node.tryGetContext('repository'))
-        : 'memorysmithapp/memorysmithapp',
+    repository,
+    repositorySubject:
+      typeof node.tryGetContext('repositorySubject') === 'string'
+        ? String(node.tryGetContext('repositorySubject'))
+        : `repo:${repository}`,
   };
 }
 

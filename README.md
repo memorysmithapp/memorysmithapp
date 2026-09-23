@@ -230,10 +230,11 @@ What differs between the two environments is written once, in [`memorysmith-infr
     "delegations": []
   }
 },
-"repository": "your-organization/your-repository"
+"repository": "your-organization/your-repository",
+"repositorySubject": "repo:your-organization@111/your-repository@222"
 ```
 
-`repository` is the one repository whose workflows may assume the roles.
+`repository` is the one repository whose workflows may assume the roles, and `repositorySubject` is what the `sub` of the tokens GitHub signs for it starts with. A repository with immutable subjects names its owner and itself with their ids, so one deleted and created again under the same name is another repository; `gh api repos/<owner>/<name>/actions/oidc/customization/sub` answers the prefix as `sub_claim_prefix`. Left out, it is `repo:<repository>`.
 
 **The account is never taken from the credentials.** Named in the environment of every stack, it makes the CDK refuse to deploy into any account but the one written here. Production and staging name the same account, and then the environment named on each command is what tells them apart; [`docs/architecture-guide.md`](docs/architecture-guide.md) §20.1 says what one account costs.
 
@@ -447,7 +448,7 @@ Without that file the application refuses to start and says which field it is mi
 
 | Symptom | Likely cause |
 | --- | --- |
-| A workflow fails on `Could not assume role with OIDC` | The repository variable of the role is missing or wrong, the run is not in the GitHub environment of the same name, or `repository` in `cdk.json` names another repository than the one running it |
+| A workflow fails on `Could not assume role with OIDC` | The repository variable of the role is missing or wrong, the run is not in the GitHub environment of the same name, or `repositorySubject` in `cdk.json` is not the `sub_claim_prefix` GitHub answers for the repository — which uses the ids of the owner and the repository once immutable subjects are on |
 | `cdk deploy MemorysmithGithubDelivery` fails on the OIDC provider | The account already holds a provider for `token.actions.githubusercontent.com`, and an account holds one per issuer |
 | `Need to perform AWS calls for account …, but the current credentials are for …` | The credentials are those of the other account. The CDK refuses it by design: use the profile of the account the environment names |
 | The network stack stuck in `CREATE_IN_PROGRESS` on a first delivery | Certificate issuance awaiting DNS validation. Past 30 minutes, check whether the hosted zone of `hostedZoneId` is the one that actually answers for the domain, and, for staging, whether production already delegates it |

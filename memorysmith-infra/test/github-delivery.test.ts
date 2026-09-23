@@ -38,6 +38,7 @@ function synth(): Template {
   const stack = new GithubDeliveryStack(app, 'MemorysmithGithubDelivery', {
     env: { account: '111111111111', region: 'us-east-1' },
     repository: 'memorysmithapp/memorysmithapp',
+    subject: 'repo:memorysmithapp@311768902/memorysmithapp@1319284044',
     production: named('production'),
     staging: named('staging'),
   });
@@ -85,7 +86,7 @@ describe('who may assume a role', () => {
       expect(trust?.Condition).toEqual({
         StringEquals: {
           [`${GITHUB_ISSUER}:aud`]: 'sts.amazonaws.com',
-          [`${GITHUB_ISSUER}:sub`]: `repo:memorysmithapp/memorysmithapp:environment:${environment}`,
+          [`${GITHUB_ISSUER}:sub`]: `repo:memorysmithapp@311768902/memorysmithapp@1319284044:environment:${environment}`,
         },
       });
     }

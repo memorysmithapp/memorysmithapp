@@ -35,6 +35,8 @@ export const GITHUB_ISSUER = 'token.actions.githubusercontent.com';
 export interface GithubDeliveryStackProps extends StackProps {
   /** `owner/name`: the one repository whose runs may assume the roles. */
   readonly repository: string;
+  /** What the `sub` of its tokens starts with, ids included when GitHub signs them so. */
+  readonly subject: string;
   readonly production: EnvironmentConfig;
   readonly staging: EnvironmentConfig;
 }
@@ -66,7 +68,7 @@ export class GithubDeliveryStack extends Stack {
               [`${GITHUB_ISSUER}:aud`]: 'sts.amazonaws.com',
               // The repository AND the GitHub environment: a branch, a pull
               // request or a tag alone never matches.
-              [`${GITHUB_ISSUER}:sub`]: `repo:${props.repository}:environment:${environment.name}`,
+              [`${GITHUB_ISSUER}:sub`]: `${props.subject}:environment:${environment.name}`,
             },
           }),
         },
