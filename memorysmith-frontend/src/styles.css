@@ -150,6 +150,8 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* The spaces around the dot are trimmed in a flex row; the gap says them. */
+  gap: 5px;
   background: var(--signal);
   color: #0e1526;
   font-family: var(--display);
@@ -236,12 +238,21 @@ a:hover {
  */
 .page.home {
   max-width: none;
+  /* As tall as what it holds, not as the row it scrolls in: stretched to the
+     row, the foot of the page overflowed its own padding and the counts sat
+     against the bottom of the window. */
+  height: fit-content;
+  min-height: 100%;
   margin: 0;
   padding: 34px 28px 32px;
   /* The last card bleeds off the right edge to say there are more. */
   padding-right: 0;
 }
-.home > :not(.card-carousel) {
+/* Everything but the row of cards shares one measure, so the rule of the
+   title, its arrows and the space below end on the same line; the cards run
+   past it to the edge of the window. */
+.home > :not(.card-carousel),
+.carousel-head {
   margin-right: 28px;
   max-width: calc(72rem - 28px);
 }
@@ -253,7 +264,6 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-right: 28px;
 }
 .carousel-head {
   margin-bottom: 22px;
@@ -2496,6 +2506,14 @@ body.has-modal {
   font-family: var(--display);
   font-weight: 500;
   white-space: nowrap;
+}
+/* The reading pane sits on the paper, where the fill of a chip everywhere
+   else — the paper itself — would not show: there it takes the border. */
+.content-pane :is(.chip, .prop-tag) {
+  background: var(--border);
+}
+:root[data-theme='dark'] .content-pane :is(.chip, .prop-tag) {
+  background: var(--track);
 }
 
 /* ---- The Controles (#201) ------------------------------------------------
