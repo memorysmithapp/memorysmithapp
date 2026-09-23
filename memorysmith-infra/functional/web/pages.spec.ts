@@ -161,6 +161,25 @@ test.describe('the pages of an account', () => {
     await expect(app).toHaveTitle(`[${state.environment}] ${notebook.name} · MemorySmith`);
   });
 
+  test('closes the results of the search with Esc wherever the focus went (#192)', async ({
+    app,
+    notebook,
+  }) => {
+    await app.goto(notebook.page());
+
+    const box = app.locator('.search-box input[type="search"]');
+    await box.fill('Checklist');
+    const results = app.locator('.search-results');
+    await expect(results).toBeVisible();
+
+    // The focus leaves the box, which is where the only handler used to be.
+    await app.getByRole('heading', { level: 1, name: notebook.name }).click();
+    await app.keyboard.press('Escape');
+
+    await expect(results).toBeHidden();
+    await expect(box).toHaveValue('');
+  });
+
   test('[page:/notebooks/:notebookId/guidance] reads the Guidance of a notebook, rendered', async ({
     app,
     notebook,

@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Esc closes the results of the search wherever the focus is.** It closed them only while the search box had the focus, so after clicking the note or the tree the list stayed open over the sidebar and only the × of the box took it away. (#192)
+
 ## [0.6.2] - 2026-09-22
 
 ### Added
