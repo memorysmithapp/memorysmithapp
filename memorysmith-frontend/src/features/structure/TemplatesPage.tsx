@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useLiveInterval } from '../../shared/api/live';
 import { useQueries } from '@tanstack/react-query';
 import { Link, useLocation, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -42,9 +43,11 @@ export function TemplatesPage() {
 
   useDocumentTitle(t('structure.templates'), structure.notebook.name);
 
+  const live = useLiveInterval();
   const queries = useQueries({
     queries: templated.map(({ folder }) => ({
       queryKey: queryKeys.template(notebookId, folder.id),
+      refetchInterval: live,
       queryFn: () => getTemplate(notebookId, folder.id),
     })),
   });

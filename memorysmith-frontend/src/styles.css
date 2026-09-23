@@ -5287,3 +5287,20 @@ input[type='radio'] {
   line-height: 1.5;
   color: var(--text-soft);
 }
+
+/* The note changed under the reader, by another hand (#206): said, not swapped
+   in silence. */
+.note-changed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 0.84rem;
+  color: var(--text);
+}

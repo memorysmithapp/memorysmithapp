@@ -151,7 +151,9 @@
     "targetAliased_one": "Nenhuma nota se chama “{{target}}”. Uma nota carrega esse apelido.",
     "targetAliased_other": "Nenhuma nota se chama “{{target}}”, então ele casou com {{count}} notas que o carregam como apelido — e uma delas devolve o link no dia em que alguém escrever uma nota com este nome.",
     "attachmentOpen": "Abrir",
-    "attachmentDownload": "Baixar"
+    "attachmentDownload": "Baixar",
+    "changedElsewhere": "Esta nota mudou desde que você a abriu, e o que está na tela é a versão atual.",
+    "changedElsewhereDismiss": "Entendi"
   },
   "common": {
     "loading": "Carregando…",

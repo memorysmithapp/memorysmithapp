@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useLiveInterval } from '../../shared/api/live';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { canWrite, deleteTemplate, getTemplate, putTemplate } from '../../shared/api/source';
@@ -31,6 +32,7 @@ export function FolderPage() {
 
   const { data: template } = useQuery({
     queryKey: queryKeys.template(notebookId, folder?.id),
+    refetchInterval: useLiveInterval(),
     queryFn: () => getTemplate(notebookId, folder?.id ?? ''),
     enabled: Boolean(folder?.hasTemplate),
   });

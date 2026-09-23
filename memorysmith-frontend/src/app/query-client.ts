@@ -1,31 +1,34 @@
 import { QueryClient } from '@tanstack/react-query';
+import { mayRefetch } from '../shared/api/live';
 
 /**
- * A query is never refetched on its own, and what the application writes is
- * invalidated by whoever wrote it.
+ * What the screen holds, and when it asks again (#206).
  *
- * The comment here used to say the seed was static and that the real HTTP
- * client would bring a staleness policy of its own. It arrived in 0.2.0 and
- * brought none, which left the cache permanently holding content the
- * application itself had just overwritten: leaving a note after ticking a box
- * and coming back showed the state from before the edit, and only a reload
- * fixed it, because a reload drops the cache with the page.
+ * A write of the interface still invalidates what it wrote, at once, on
+ * success and on conflict alike — that half of the policy stays. What changed
+ * is the premise of the other half. It said nothing in a notebook changes
+ * without somebody writing it HERE, so a query was never refetched on its own
+ * (`staleTime: Infinity`); an agent writing through the connector and an import
+ * running in the background both write elsewhere, and their writes reached the
+ * screen only on a reload.
  *
- * The policy is the one written here, and it is deliberate rather than
- * inherited. Nothing in a notebook changes without somebody writing it, so time
- * is the wrong trigger for a refetch: a write is. `WritableContent`
- * invalidates what it wrote, on success and on conflict alike, and that is
- * the whole of the policy.
+ * So a read is fresh for half a minute, the window coming back and the network
+ * coming back read again what went stale, and the queries a screen shows are
+ * read again on an interval of their own (`useLiveInterval` in
+ * `shared/api/live.ts`). None of it while a write of this page is waiting or
+ * in flight.
  *
- * `retry: false` belongs to the same decision. A failed read is information —
- * a session that ended, a note that is gone — and retrying it silently turns
- * a message into a wait.
+ * `retry: false` belongs to the older decision and stays: a failed read is
+ * information — a session that ended, a note that is gone — and retrying it
+ * silently turns a message into a wait.
  */
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: Infinity,
+      staleTime: 30_000,
       retry: false,
+      refetchOnWindowFocus: () => mayRefetch(),
+      refetchOnReconnect: () => mayRefetch(),
     },
   },
 });

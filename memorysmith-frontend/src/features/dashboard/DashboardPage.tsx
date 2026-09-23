@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useLiveInterval } from '../../shared/api/live';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { intlLocale } from '../../i18n/intl-locale';
@@ -23,7 +24,11 @@ import { byName } from './catalogue';
 export function DashboardPage() {
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
-  const query = useQuery({ queryKey: queryKeys.notebooks(), queryFn: listNotebooks });
+  const query = useQuery({
+    queryKey: queryKeys.notebooks(),
+    queryFn: listNotebooks,
+    refetchInterval: useLiveInterval(),
+  });
   const state = queryState(query);
   // The export a card started, with its notebook already chosen (#199).
   const [exporting, setExporting] = useState<string | null>(null);

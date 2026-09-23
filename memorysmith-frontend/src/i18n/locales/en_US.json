@@ -151,7 +151,9 @@
     "targetAliased_one": "No note is named “{{target}}”. One note carries it as an alias.",
     "targetAliased_other": "No note is named “{{target}}”, so it matched {{count}} notes that carry it as an alias — and one of them gives the link up the day somebody writes a note under this name.",
     "attachmentOpen": "Open",
-    "attachmentDownload": "Download"
+    "attachmentDownload": "Download",
+    "changedElsewhere": "This note changed since you opened it, and what you see is the current version.",
+    "changedElsewhereDismiss": "Got it"
   },
   "common": {
     "loading": "Loading…",

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { TransferDto, TransferListDto } from '@memorysmith/contracts';
 import { downloadTransfer, listTransfers } from '../../shared/api/source';
@@ -17,7 +18,8 @@ const POLL_MS = 2_000;
 export const TRANSFERS_KEY = queryKeys.transfers();
 
 export function useTransfers(enabled = true) {
-  return useQuery({
+  const client = useQueryClient();
+  const query = useQuery({
     queryKey: TRANSFERS_KEY,
     queryFn: listTransfers,
     enabled,
@@ -28,6 +30,28 @@ export function useTransfers(enabled = true) {
         ? POLL_MS
         : false,
   });
+
+  /**
+   * A transfer that ends changes what other screens show (#206): an import
+   * that finished is a notebook Home does not list yet, and both kinds move
+   * the space of the subscription. Nothing else would tell them, since the
+   * write was made by a job and not by this page.
+   */
+  const running = useRef<ReadonlySet<string>>(new Set());
+  const transfers = query.data?.transfers;
+  useEffect(() => {
+    if (!transfers) return;
+    const now = new Set(
+      transfers.filter((transfer) => transfer.status === 'running').map((t) => t.transferId),
+    );
+    const ended = [...running.current].some((id) => !now.has(id));
+    running.current = now;
+    if (!ended) return;
+    void client.invalidateQueries({ queryKey: queryKeys.notebooks() });
+    void client.invalidateQueries({ queryKey: queryKeys.subscriptionUsage() });
+  }, [transfers, client]);
+
+  return query;
 }
 
 /** Asks the list again at once, which is what a start or a deletion changes. */

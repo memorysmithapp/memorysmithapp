@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useLiveInterval } from '../../shared/api/live';
 import { useTranslation } from 'react-i18next';
 import { noteHistory } from '../../shared/api/backend';
 import { intlLocale } from '../../i18n';
@@ -21,6 +22,7 @@ export function NoteHistory({ notebookId, noteId }: { notebookId: string; noteId
   const { t, i18n } = useTranslation();
   const { data, isPending, isError } = useQuery({
     queryKey: queryKeys.noteHistory(notebookId, noteId),
+    refetchInterval: useLiveInterval(),
     queryFn: () => noteHistory(notebookId, noteId),
   });
 

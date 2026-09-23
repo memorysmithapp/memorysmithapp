@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useLiveInterval } from '../../shared/api/live';
 import { useTranslation } from 'react-i18next';
 import { intlLocale } from '../../i18n/intl-locale';
 import { listNotebooks, readUsage } from '../../shared/api/source';
@@ -31,7 +32,11 @@ export function SubscriptionSpace() {
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const session = useLiveSession((s) => s.session);
-  const query = useQuery({ queryKey: queryKeys.subscriptionUsage(), queryFn: readUsage });
+  const query = useQuery({
+    queryKey: queryKeys.subscriptionUsage(),
+    queryFn: readUsage,
+    refetchInterval: useLiveInterval(),
+  });
   const usage = query.data;
   const notebooks = useQuery({ queryKey: queryKeys.notebooks(), queryFn: listNotebooks }).data;
   /**

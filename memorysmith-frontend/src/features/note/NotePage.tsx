@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useLiveInterval } from '../../shared/api/live';
+import { useWriteStatus } from '../../shared/store/write-status';
 import { useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getNote } from '../../shared/api/source';
@@ -66,10 +68,40 @@ export function NotePage({ noteId }: { noteId: string }) {
     if (window.confirm(t('editor.leaveWarning'))) blocker.proceed();
     else blocker.reset();
   }, [blocker, t]);
+  /**
+   * The note follows what somebody else writes (#206) — an agent through the
+   * connector, most of the time — except while it is being edited here: the
+   * editor holds the text it opened with, and a read landing under it would
+   * swap the page the person is typing over.
+   */
   const { data, isPending, isError } = useQuery({
     queryKey: queryKeys.note(notebookId, noteId),
     queryFn: () => getNote(notebookId, noteId),
+    refetchInterval: useLiveInterval(editing || dirty),
   });
+
+  /**
+   * And when it does change under the reader, the page says so instead of
+   * swapping the text silently. A revision this page wrote itself — the editor
+   * or a ticked box — is not news: the editor marks its own write, and a box
+   * leaves the write status saying it saved.
+   */
+  const seenRevision = useRef<string | null>(null);
+  const ownWrite = useRef(false);
+  const [changedElsewhere, setChangedElsewhere] = useState(false);
+  useEffect(() => {
+    seenRevision.current = null;
+    setChangedElsewhere(false);
+  }, [noteId]);
+  useEffect(() => {
+    if (!data) return;
+    const before = seenRevision.current;
+    seenRevision.current = data.revision;
+    if (before === null || before === data.revision) return;
+    const state = useWriteStatus.getState().state;
+    if (!ownWrite.current && state === 'idle') setChangedElsewhere(true);
+    ownWrite.current = false;
+  }, [data]);
 
   // The tab names the note, with the same unnamed label the listing shows when
   // the note states no name (RN-DSC-058, RN-KNW-036).
@@ -103,6 +135,7 @@ export function NotePage({ noteId }: { noteId: string }) {
         baseRevision: data.revision,
         message: outcome.message.trim(),
       });
+      ownWrite.current = true;
       setEditing(false);
       await client.invalidateQueries({ queryKey: queryKeys.note(notebookId, noteId) });
       await client.invalidateQueries({ queryKey: queryKeys.noteHistory(notebookId, noteId) });
@@ -194,6 +227,15 @@ export function NotePage({ noteId }: { noteId: string }) {
       </div>
 
       {refusal ? <p className="editor-refusal">{refusal}</p> : null}
+
+      {changedElsewhere && !editing && (
+        <p className="note-changed" role="status">
+          <span>{t('note.changedElsewhere')}</span>
+          <button type="button" className="link-button" onClick={() => setChangedElsewhere(false)}>
+            {t('note.changedElsewhereDismiss')}
+          </button>
+        </p>
+      )}
 
       {editing ? (
         <NoteEditor
