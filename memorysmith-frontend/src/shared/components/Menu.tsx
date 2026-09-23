@@ -126,10 +126,14 @@ export function Menu({
     };
   }, [open, onClose, trigger]);
 
-  // The keyboard lands on the first item, so the arrows have somewhere to start.
+  /**
+   * The focus goes to the menu itself, which draws no ring, and the first
+   * arrow key takes it to the first item (#204). Focusing the first item
+   * straight away drew the blue ring of a keyboard on a menu opened by a tap.
+   */
   useEffect(() => {
     if (!open) return;
-    box.current?.querySelector<HTMLElement>(ITEMS)?.focus({ preventScroll: true });
+    box.current?.focus({ preventScroll: true });
   }, [open, sheet]);
 
   if (!open) return null;
@@ -143,6 +147,7 @@ export function Menu({
           className={`sheet ${className}`.trim()}
           role="menu"
           aria-label={label}
+          tabIndex={-1}
           onKeyDown={moveWithArrows}
         >
           <span className="sheet-handle" aria-hidden="true" />
@@ -162,6 +167,7 @@ export function Menu({
       className={`menu ${className}`.trim()}
       role="menu"
       aria-label={label}
+      tabIndex={-1}
       onKeyDown={moveWithArrows}
     >
       {children}

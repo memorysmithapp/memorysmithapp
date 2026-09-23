@@ -32,12 +32,14 @@ export function CardCarousel({ heading, prevLabel, nextLabel, children }: CardCa
     if (!el) return;
     setCanPrev(el.scrollLeft > 4);
     setCanNext(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
-    // The card whose start is nearest the start of the row is the one shown.
+    // The card nearest the centre of the row is the one in focus (#204): on a
+    // phone the row snaps each card to the centre.
     const cards = [...el.children] as HTMLElement[];
+    const middle = el.scrollLeft + el.clientWidth / 2;
     let nearest = 0;
     let distance = Infinity;
     cards.forEach((card, index) => {
-      const off = Math.abs(card.offsetLeft - el.offsetLeft - el.scrollLeft);
+      const off = Math.abs(card.offsetLeft - el.offsetLeft + card.offsetWidth / 2 - middle);
       if (off < distance) {
         distance = off;
         nearest = index;
@@ -74,7 +76,10 @@ export function CardCarousel({ heading, prevLabel, nextLabel, children }: CardCa
     const el = trackRef.current;
     const card = el?.children[index] as HTMLElement | undefined;
     if (!el || !card) return;
-    el.scrollTo({ left: card.offsetLeft - el.offsetLeft, behavior: 'smooth' });
+    el.scrollTo({
+      left: card.offsetLeft - el.offsetLeft + card.offsetWidth / 2 - el.clientWidth / 2,
+      behavior: 'smooth',
+    });
   }
 
   return (

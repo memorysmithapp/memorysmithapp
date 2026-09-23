@@ -316,27 +316,23 @@ a:hover {
   flex-direction: column;
   gap: 14px;
   padding: 20px;
-  background: var(--surface);
+  /* The strip is the top of the background, which the radius of the card
+     clips, so its ends are the card's own corners (#204). A strip drawn as an
+     element of its own either missed them or needed the card to clip, and a
+     card that clips cuts off the menu of its corner. */
+  --strip: var(--accent);
+  --strip-height: 4px;
+  background: linear-gradient(var(--strip) 0 var(--strip-height), var(--surface) 0) padding-box;
   border: 1px solid var(--border);
   border-radius: 14px;
   color: var(--text);
 }
-/* Drawn inside the rounded border, rather than clipped by it: a card clips
-   nothing, so the menu of its corner is never cut off. */
-.notebook-card::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 4px;
-  border-radius: 13px 13px 0 0;
-  background: var(--accent);
+.notebook-card[data-strip='orange'] {
+  --strip: var(--signal);
 }
-.notebook-card[data-strip='orange']::before {
-  background: var(--signal);
-}
-.notebook-card[data-strip='danger']::before {
-  height: 3px;
-  background: var(--danger);
+.notebook-card[data-strip='danger'] {
+  --strip: var(--danger);
+  --strip-height: 3px;
 }
 /* The actions of the card (#199), over the link stretched across it. */
 .notebook-card-corner {
@@ -692,13 +688,18 @@ a:hover {
   .card-carousel {
     margin-bottom: 24px;
   }
+  /* One card at a time, held at the centre with its neighbours showing on both
+     sides; the row is padded so the first and the last reach the centre too
+     (#204). */
   .notebook-grid {
     gap: 10px;
     scroll-snap-type: x mandatory;
-    padding-right: 15px;
+    padding-inline: calc((100vw - min(262px, 85vw)) / 2);
+    margin-left: -15px;
   }
   .notebook-card {
-    flex-basis: min(262px, 85%);
+    scroll-snap-align: center;
+    flex-basis: min(262px, 85vw);
     min-height: 0;
     gap: 0;
     padding: 16px;
@@ -2660,6 +2661,10 @@ input[type='radio'] {
   border-radius: 10px;
   box-shadow: var(--menu-shadow);
   text-align: start;
+}
+:is(.menu, .sheet):focus {
+  /* The focus sits on the menu itself until an arrow moves it (#204). */
+  outline: none;
 }
 .menu-item {
   width: 100%;

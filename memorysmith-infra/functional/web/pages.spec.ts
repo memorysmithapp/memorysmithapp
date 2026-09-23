@@ -119,8 +119,11 @@ test.describe('the pages of an account', () => {
     const menu = app.getByRole('menu', { name: words.accountMenu });
     await expect(menu).toBeVisible();
 
-    // The keyboard starts on the first item and moves with the arrows.
+    // Opened by a click, no item wears the ring of a keyboard; the first arrow
+    // key takes the focus to the first item, and the next one moves on (#204).
     const first = menu.getByRole('menuitemradio').first();
+    await expect(first).not.toBeFocused();
+    await app.keyboard.press('ArrowDown');
     await expect(first).toBeFocused();
     await app.keyboard.press('ArrowDown');
     await expect(first).not.toBeFocused();

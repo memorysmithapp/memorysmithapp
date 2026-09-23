@@ -29,6 +29,7 @@ issues each entry cites.
 
 ### Fixed
 
+- **On a phone, Home holds the card in focus at the centre, its strip follows its corners, and the user menu opens without a focus ring.** The row snapped each card to its left edge, so the one in focus sat against the edge with the next cut on the right; it snaps to the centre now, with a neighbour showing on each side, and the dots follow. The coloured strip of a card was an element of its own whose round ends missed the card's corners; it is the top of the card's background now. And a menu opened by a tap drew the blue ring of a keyboard on its first item; the focus goes to the menu itself, and the arrow keys still reach every item. (#204)
 - **One note is one note.** The count of a card read *1 notas*; it is pluralised now, in both languages. (#198)
 - **Esc closes the results of the search wherever the focus is.** It closed them only while the search box had the focus, so after clicking the note or the tree the list stayed open over the sidebar and only the × of the box took it away. (#192)
 - **A boolean or a date in the Properties of a note is written in the language of the reader.** The box recognised both, and chose the icon by it, and then drew the value as typed: `true` and `2026-09-21` in every locale. It reads *Sim* and *21 de set. de 2026* in pt-BR, *Yes* and *Sep 21, 2026* in en-US; the note, its export and the search keep what was typed, which the value still shows on hover. (#193)
