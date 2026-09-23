@@ -381,6 +381,13 @@ test.describe('the pages of an account', () => {
     expect((await graph).status()).toBe(200);
     await expect(app.getByRole('heading', { level: 1, name: words.graph })).toBeVisible();
     await expect(app.locator('.graph-canvas-wrap canvas')).toBeAttached();
+
+    // The panel opens behind the gear, and only when it is asked for (#220).
+    const gear = app.getByRole('button', { name: words.openGraphControls });
+    await expect(gear).toBeVisible();
+    await expect(app.getByRole('button', { name: words.closeGraphControls })).toHaveCount(0);
+    await gear.click();
+    await expect(app.getByRole('button', { name: words.closeGraphControls })).toBeVisible();
   });
 
   test('opens the tree on the top-level folders, with no Root above them (#196)', async ({

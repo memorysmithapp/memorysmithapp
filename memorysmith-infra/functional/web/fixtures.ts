@@ -79,6 +79,9 @@ export interface Words {
   readonly startExport: string;
   /** The folders and the notes as the summary of an import counts them. */
   readonly willCreateFolders: string;
+  /** The gear of the graph, and the × of its panel (#220). */
+  readonly openGraphControls: string;
+  readonly closeGraphControls: string;
   readonly willCreateNotes: RegExp;
   readonly pending: (target: string) => string;
   /** The entry of the user menu that reopens the welcome surface (#167). */
@@ -151,6 +154,8 @@ export const WORDS: Record<AppLocale, Words> = {
     newExport: 'New export',
     startExport: 'Export',
     willCreateFolders: 'folders',
+    openGraphControls: 'Open controls',
+    closeGraphControls: 'Close controls',
     willCreateNotes: /\bnotes?\b/,
     pending: (target) => `No note carries the name “${target}” yet.`,
     aboutMenu: 'About MemorySmith.app',
@@ -214,6 +219,8 @@ export const WORDS: Record<AppLocale, Words> = {
     newExport: 'Nova exportação',
     startExport: 'Exportar',
     willCreateFolders: 'pastas',
+    openGraphControls: 'Abrir controles',
+    closeGraphControls: 'Fechar controles',
     willCreateNotes: /\bnotas?\b/,
     pending: (target) => `Nenhuma nota se chama “${target}” ainda.`,
     aboutMenu: 'Sobre o MemorySmith.app',
