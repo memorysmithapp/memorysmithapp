@@ -197,6 +197,6 @@ export function MenuItem({
   );
 }
 
-export function MenuDivider() {
-  return <div className="menu-divider" role="separator" />;
+export function MenuDivider({ className = '' }: { className?: string }) {
+  return <div className={`menu-divider ${className}`.trim()} role="separator" />;
 }

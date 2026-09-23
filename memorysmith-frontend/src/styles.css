@@ -2234,6 +2234,13 @@ body.has-modal {
 .sheet.user-menu-panel .menu-divider {
   margin: 0 -16px;
 }
+/* In the sheet the foot comes after Fechar, as the last line of it. */
+.sheet.user-menu-panel .user-menu-foot {
+  order: 1;
+}
+.sheet.user-menu-panel .user-menu-foot-divider {
+  display: none;
+}
 /*
   How much of the plan is used, as the progress bar of the Controles: the
   numbers above a 6 px track, blue, orange from 80 % and red when full. It

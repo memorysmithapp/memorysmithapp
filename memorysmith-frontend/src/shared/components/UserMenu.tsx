@@ -192,7 +192,7 @@ export function UserMenu() {
           <div className="user-menu-chips">
             <span className="chip">{t(`roles.${user.role}`)}</span>
             {user.subscriptionType ? (
-              <span className="chip">{t(`subscriptionType.${user.subscriptionType}`)}</span>
+              <span className="chip">{t(`dashboard.plan.${user.subscriptionType}`)}</span>
             ) : null}
             {user.subscriptionStatus === 'trial' ? (
               <span className="chip">{t('subscriptionStatus.trial')}</span>
@@ -254,7 +254,8 @@ export function UserMenu() {
                 // already changed language, so a failure here changes nothing on it.
                 void recordAccountLocale(locale).catch(() => undefined);
               }}
-              options={SUPPORTED_LOCALES.map((locale: Locale) => ({
+              // The language of the product first, then the other one.
+              options={[...SUPPORTED_LOCALES].reverse().map((locale: Locale) => ({
                 value: locale,
                 label: t(`language.${locale}`),
               }))}
@@ -288,7 +289,7 @@ export function UserMenu() {
           </MenuItem>
         </div>
 
-        <MenuDivider />
+        <MenuDivider className="user-menu-foot-divider" />
 
         {/*
           The version, at the foot of the menu and in the quietest type on it.
