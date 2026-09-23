@@ -235,15 +235,24 @@ test.describe('the pages of an account', () => {
     await expect(app.locator('.graph-canvas-wrap canvas')).toBeAttached();
   });
 
-  test('[page:/notebooks/:notebookId/folders] lists the folders at the root of a notebook', async ({
+  test('opens the tree on the top-level folders, with no Root above them (#196)', async ({
     app,
     notebook,
     words,
   }) => {
-    await app.goto(notebook.page('/folders'));
+    await app.goto(notebook.page(`/folders/${notebook.folderId.toLowerCase()}`));
 
-    await expect(app.getByRole('heading', { level: 1, name: words.root })).toBeVisible();
-    await expect(app.locator('a.note-list-folder', { hasText: 'Findings/' })).toBeVisible();
+    const tree = app.locator('aside#notebook-sidebar ul.tree-root');
+    await expect(
+      tree.locator(':scope > li > .tree-folder a', { hasText: 'Findings' }),
+    ).toBeVisible();
+    // The trail starts at the notebook and goes straight to the folder.
+    const crumbs = app.locator('.notebook-breadcrumb a');
+    await expect(crumbs.first()).toHaveText(notebook.name);
+
+    // The address of the page that is gone answers not found, and is not redirected.
+    await app.goto(notebook.page('/folders'));
+    await expect(app.getByText(words.notFound, { exact: true })).toBeVisible();
   });
 
   test('[page:/notebooks/:notebookId/folders/:folderId] lists the notes of a folder', async ({

@@ -279,7 +279,11 @@ a:hover {
   min-width: 16rem;
   border-right: 1px solid var(--border);
   background: var(--surface);
-  padding: 1rem;
+  /* The foot is deeper than the other sides (#196): a desktop browser draws
+     the address of the link under the pointer in the bottom-left corner,
+     which is where the last folder of a scrolled tree sits, so the tree has to
+     be able to scroll its last row clear of that bubble. */
+  padding: 1rem 1rem 3rem;
   overflow-y: auto;
   max-height: 100%;
   position: sticky;
@@ -2440,6 +2444,8 @@ body.has-modal {
     width: min(20rem, 86vw);
     min-width: 0;
     max-height: none;
+    /* A drawer has no pointer and no bubble; it has the edge of the screen. */
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
     border-right: 1px solid var(--border);
     transform: translateX(-100%);
     transition: transform 0.18s ease-out;

@@ -27,7 +27,6 @@ export interface Words {
   readonly guidance: string;
   readonly templates: string;
   readonly graph: string;
-  readonly root: string;
   readonly notesInFolder: string;
   readonly notFound: string;
   readonly version: string;
@@ -97,7 +96,6 @@ export const WORDS: Record<AppLocale, Words> = {
     guidance: 'Guidance',
     templates: 'Templates',
     graph: 'Notebook graph',
-    root: 'Root',
     notesInFolder: 'Notes in this folder',
     notFound: 'Not found.',
     version: 'Version',
@@ -149,7 +147,6 @@ export const WORDS: Record<AppLocale, Words> = {
     guidance: 'Orientação',
     templates: 'Modelos',
     graph: 'Grafo do caderno',
-    root: 'Raiz',
     notesInFolder: 'Notas nesta pasta',
     notFound: 'Não encontrado.',
     version: 'Versão',

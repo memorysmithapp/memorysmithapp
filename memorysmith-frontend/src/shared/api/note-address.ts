@@ -47,13 +47,13 @@ export function notebookAddress(notebookId: string): string {
   return `/notebooks/${written(notebookId)}`;
 }
 
-/** The listing of the top-level folders of a notebook. */
-export function foldersAddress(notebookId: string): string {
-  return `${notebookAddress(notebookId)}/folders`;
-}
-
+/**
+ * A folder is addressed under `folders/`, and `folders` alone is no address:
+ * the page it named repeated the page of the notebook (#196), and an address
+ * of an earlier form answers not-found rather than a redirect (RN-DSC-045).
+ */
 export function folderAddress(notebookId: string, folderId: string): string {
-  return `${foldersAddress(notebookId)}/${written(folderId)}`;
+  return `${notebookAddress(notebookId)}/folders/${written(folderId)}`;
 }
 
 /** The address of a note, which every surface that links to one builds. */

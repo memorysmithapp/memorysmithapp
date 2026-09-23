@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getNote } from '../../shared/api/source';
-import { foldersAddress } from '../../shared/api/note-address';
 import { copyText } from '../../shared/lib/clipboard';
 import { WritableContent } from '../../shared/components/WritableContent';
 import { NoteSkeleton } from '../../shared/components/skeletons';
@@ -152,7 +151,6 @@ export function NotePage({ noteId }: { noteId: string }) {
         <div>
           <NotebookBreadcrumb
             items={[
-              { label: t('structure.root'), to: foldersAddress(notebookId) },
               ...folderCrumbs(notebookId, folderTrailForNote(structure.folders, noteId)),
               { label: data.name ?? t('note.unnamed') },
             ]}

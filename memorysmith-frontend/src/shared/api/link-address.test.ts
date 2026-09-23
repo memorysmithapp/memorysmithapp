@@ -13,7 +13,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   folderAddress,
-  foldersAddress,
   identifierOf,
   linkTargetAddress,
   noteAddress,
@@ -36,9 +35,8 @@ describe('an address carries identifiers and nothing else', () => {
     expect(noteAddress(NOTEBOOK, NOTE).split('/')).toHaveLength(5);
   });
 
-  it('addresses a folder and the folder root by identifier', () => {
+  it('addresses a folder by identifier', () => {
     expect(notebookAddress(NOTEBOOK)).toBe('/notebooks/01j8x2k9qz3m4n5p6r7s8t9v0a');
-    expect(foldersAddress(NOTEBOOK)).toBe('/notebooks/01j8x2k9qz3m4n5p6r7s8t9v0a/folders');
     expect(folderAddress(NOTEBOOK, FOLDER)).toBe(
       '/notebooks/01j8x2k9qz3m4n5p6r7s8t9v0a/folders/01j8x2k9qz3m4n5p6r7s8t9v0f',
     );

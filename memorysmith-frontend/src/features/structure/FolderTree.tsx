@@ -1,14 +1,9 @@
 import { FolderCount } from './FolderCount';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { FolderNode } from '../../shared/types/api';
-import {
-  folderAddress,
-  foldersAddress,
-  identifierOf,
-  noteAddress,
-} from '../../shared/api/note-address';
+import { folderAddress, identifierOf, noteAddress } from '../../shared/api/note-address';
 import { folderTrailForNote, folderTrailOf } from './trail';
 
 interface FolderTreeProps {
@@ -111,12 +106,12 @@ function FolderItem({
   );
 }
 
-// The tree opens at the root of the folders of the notebook, the page the Root
-// crumb of the trail leads to.
+// The tree opens on the top-level folders themselves (#196). A node above them
+// led to a page listing them, which the page of the notebook already does with
+// every subfolder, and the notebook crumb is the way back to it.
 export function FolderTree({ notebookId, folders }: FolderTreeProps) {
   const { t } = useTranslation();
   const params = useParams();
-  const { pathname } = useLocation();
   const folderId = identifierOf(params['folderId']);
   const noteId = identifierOf(params['noteId']);
   const trail = folderId
@@ -125,20 +120,14 @@ export function FolderTree({ notebookId, folders }: FolderTreeProps) {
       ? folderTrailForNote(folders, noteId)
       : [];
   const active: Active = { folderId, noteId, path: new Set(trail.map((each) => each.id)) };
-  const atRoot = pathname.replace(/\/+$/, '').toLowerCase() === foldersAddress(notebookId);
+
+  if (folders.length === 0) return <p className="hint tree-empty">{t('structure.noFolders')}</p>;
 
   return (
     <ul className="tree-root">
-      <li>
-        <div className={`tree-folder${atRoot ? ' active' : ''}`}>
-          <Link to={foldersAddress(notebookId)}>{t('structure.root')}</Link>
-        </div>
-        <ul className="tree-children">
-          {folders.map((folder) => (
-            <FolderItem key={folder.id} notebookId={notebookId} folder={folder} active={active} />
-          ))}
-        </ul>
-      </li>
+      {folders.map((folder) => (
+        <FolderItem key={folder.id} notebookId={notebookId} folder={folder} active={active} />
+      ))}
     </ul>
   );
 }

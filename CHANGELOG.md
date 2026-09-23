@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Removed
+
+- **The Root of the folders.** A node above the folder tree, a crumb between the notebook and its first folder, and a page behind both that listed the top-level folders — which the page of the notebook already lists, with every subfolder. The tree opens on the folders themselves, the trail of a folder or a note goes *Notebook / folder / …*, and `/notebooks/:notebookId/folders` answers not found instead of being redirected (RN-DSC-045, RN-DSC-058). A notebook with no folders says so in the sidebar. And the foot of the sidebar gets room, so the last folder of a long tree scrolls clear of the address a desktop browser draws in that corner. (#196)
+
 ### Fixed
 
 - **Esc closes the results of the search wherever the focus is.** It closed them only while the search box had the focus, so after clicking the note or the tree the list stayed open over the sidebar and only the × of the box took it away. (#192)

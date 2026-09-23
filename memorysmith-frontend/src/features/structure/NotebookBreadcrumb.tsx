@@ -19,7 +19,7 @@ interface NotebookBreadcrumbProps {
 
 // Every page inside a notebook starts its trail at the notebook name, which
 // links to the Notebook Context. The second level is a page of the notebook,
-// never a folder of it: Guidance, Templates, Root or the graph. The trail of
+// never a folder of it: Guidance, Templates or the graph. The trail of
 // folders is read here, from the structure already loaded, and never from the
 // address, which carries identifiers alone (RN-DSC-045).
 export function NotebookBreadcrumb({ items, className = '' }: NotebookBreadcrumbProps) {
