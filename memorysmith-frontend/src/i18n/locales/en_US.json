@@ -256,7 +256,8 @@
       "UPLOAD": "The file could not be uploaded. Try again.",
       "VALIDATION": "That document was refused.",
       "NOT_FOUND": "The upload was not found. Choose the file again.",
-      "INTERNAL": "Something went wrong on our side. Try again."
+      "INTERNAL": "Something went wrong on our side. Try again.",
+      "KEPT_UNREADABLE": "That export could not be read. Try again, or download it and import the file."
     },
     "exportHeading": "Export notebook",
     "withHistory": "Include the history",
@@ -329,7 +330,16 @@
     "changeFile": "Change",
     "partHint": "Tick what goes in the file. Folders, Templates and Notes can go whole or item by item, each in its own tab.",
     "twinTitle": "“{{name}}” comes twice",
-    "twinWhy": "A folder keeps one note of each name: leave one of them out."
+    "twinWhy": "A folder keeps one note of each name: leave one of them out.",
+    "source": {
+      "label": "Where the archive comes from",
+      "file": "From this device",
+      "kept": "From kept exports",
+      "which": "Kept export",
+      "pick": "Choose an export",
+      "none": "No export is kept yet. An export kept in Transfers can be imported from here.",
+      "reading": "Reading the archive…"
+    }
   },
   "graph": {
     "heading": "Notebook graph",
@@ -412,7 +422,8 @@
     "deleteFrees": "This is for good and frees {{size}} of your plan. The notebook, if it still exists, is not touched.",
     "keep": "Keep",
     "cancelImport": "Cancel",
-    "open": "Open"
+    "open": "Open",
+    "importKept": "Import"
   },
   "about": {
     "menu": "About MemorySmith.app",

@@ -1,8 +1,15 @@
-import { useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { NotebookDocument, TransferDto } from '@memorysmith/contracts';
-import { applyImport, listNotebooks, prepareImport } from '../../shared/api/source';
+import {
+  applyImport,
+  downloadTransfer,
+  importFromExport,
+  listNotebooks,
+  prepareImport,
+} from '../../shared/api/source';
+import { Segmented } from '../../shared/components/Segmented';
 import { ArchiveError, readNotebookArchive } from './notebook-archive';
 import { TransferChooser, type ChooserTab, type Preset } from './TransferChooser';
 import { TransferDialog } from './TransferDialog';
@@ -24,7 +31,7 @@ import {
   type Picked,
   type Scope,
 } from './import-selection';
-import { useRefreshTransfers } from './transfers';
+import { useRefreshTransfers, useTransfers } from './transfers';
 import { queryKeys } from '../../shared/api/query-keys';
 
 /**
@@ -41,7 +48,19 @@ import { queryKeys } from '../../shared/api/query-keys';
  * machine. The name comes from the document and not from the file, because a
  * subscription holds each notebook name once (RN-KNW-032).
  */
-export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+/** Where the archive comes from: the machine, or the exports the subscription keeps (#207). */
+type Source = 'file' | 'kept';
+
+export function ImportDialog({
+  open,
+  onClose,
+  exportId,
+}: {
+  open: boolean;
+  onClose: () => void;
+  /** A kept export to import, when the dialog was opened from its row (#207). */
+  exportId?: string | undefined;
+}) {
   const { t, i18n } = useTranslation();
   const input = useRef<HTMLInputElement>(null);
   /** The field the name is typed in, which a refusal sends the person back to. */
@@ -56,6 +75,15 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
   const [filter, setFilter] = useState('');
   const [tab, setTab] = useState<ChooserTab>('context');
   const [starting, setStarting] = useState(false);
+  const [source, setSource] = useState<Source>('file');
+  /** The kept export the document was read from, which the import copies server-side. */
+  const [keptId, setKeptId] = useState<string | null>(null);
+  const [loadingKept, setLoadingKept] = useState(false);
+  const transfers = useTransfers(open);
+  /** The requester's own ready exports: nobody else's is offered (RN-PRT-020). */
+  const kept = (transfers.data?.transfers ?? []).filter(
+    (transfer) => transfer.kind === 'export' && transfer.status === 'ready',
+  );
 
   const notebooks = useQuery({
     queryKey: queryKeys.notebooks(),
@@ -91,6 +119,45 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
     }
   }
 
+  /**
+   * A kept export is read in the browser exactly as a file on the machine is,
+   * from the link its download mints, so the name, the chooser and the
+   * inconsistencies work the same (RN-PRT-017). Its bytes are NOT sent back
+   * up: the import asks the server to copy them (#207).
+   */
+  async function chooseKept(transferId: string): Promise<void> {
+    const transfer = kept.find((each) => each.transferId === transferId);
+    if (!transfer) return;
+    // The choice stays on the list whatever the reading answers, so a failure
+    // says which export it was about.
+    setKeptId(transferId);
+    setLoadingKept(true);
+    setRefusal(null);
+    try {
+      const link = await downloadTransfer(transferId);
+      const answer = await fetch(link.downloadUrl);
+      if (!answer.ok) throw new Error('download');
+      const blob = await answer.blob();
+      const named = transfer.fileName ?? `${transfer.notebookName}.notebook`;
+      await choose(new File([blob], named, { type: 'application/zip' }));
+    } catch {
+      setFile(null);
+      setDocument(null);
+      setRefusal('KEPT_UNREADABLE');
+    } finally {
+      setLoadingKept(false);
+    }
+  }
+
+  // Opened from the row of a kept export, the dialog starts on it.
+  useEffect(() => {
+    if (!open || !exportId || keptId === exportId || loadingKept) return;
+    if (!kept.some((each) => each.transferId === exportId)) return;
+    setSource('kept');
+    void chooseKept(exportId);
+    // Once per opening, when the list has it.
+  }, [open, exportId, kept.length]);
+
   const taken = (notebooks.data ?? []).some(
     (notebook) => notebook.name.trim().toLowerCase() === name.trim().toLowerCase(),
   );
@@ -105,16 +172,23 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
     setStarting(true);
     setRefusal(null);
     try {
-      const prepared = await prepareImport();
-      const uploaded = await fetch(prepared.uploadUrl, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': 'application/zip' },
-      });
-      if (!uploaded.ok) throw new Error('upload');
+      let uploadKey: string;
+      if (source === 'kept' && keptId) {
+        // Copied where it is kept, so nothing leaves the device (#207).
+        uploadKey = (await importFromExport(keptId)).uploadKey;
+      } else {
+        const prepared = await prepareImport();
+        const uploaded = await fetch(prepared.uploadUrl, {
+          method: 'PUT',
+          body: file,
+          headers: { 'Content-Type': 'application/zip' },
+        });
+        if (!uploaded.ok) throw new Error('upload');
+        uploadKey = prepared.uploadKey;
+      }
 
       const transfer: TransferDto = await applyImport(
-        prepared.uploadKey,
+        uploadKey,
         name.trim(),
         preset === 'choose' && chosen ? selectionOf(chosen) : null,
         // What the person calls this file: the upload is addressed by an
@@ -177,6 +251,8 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
   }
 
   function reset(): void {
+    setSource('file');
+    setKeptId(null);
     setFile(null);
     setDocument(null);
     setRefusal(null);
@@ -241,68 +317,117 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
         </>
       }
     >
-      <div
-        className={document && file ? 'import-drop is-chosen' : 'import-drop'}
-        onDragOver={(event) => event.preventDefault()}
-        onDrop={(event) => {
-          event.preventDefault();
-          const dropped = event.dataTransfer.files[0];
-          if (dropped) void choose(dropped);
+      <Segmented
+        label={t('portability.source.label')}
+        value={source}
+        onChange={(next: Source) => {
+          if (next === source) return;
+          setSource(next);
+          setKeptId(null);
+          setFile(null);
+          setDocument(null);
+          setRefusal(null);
         }}
-      >
-        <input
-          ref={input}
-          type="file"
-          accept=".notebook,application/zip"
-          hidden
-          onChange={(event) => {
-            const picked = event.target.files?.[0];
-            event.target.value = '';
-            if (picked) void choose(picked);
+        options={(['file', 'kept'] as const).map((each) => ({
+          value: each,
+          label: t(`portability.source.${each}`),
+        }))}
+      />
+
+      {source === 'kept' && (
+        <div className="transfer-field">
+          <label htmlFor="import-kept">{t('portability.source.which')}</label>
+          {kept.length === 0 ? (
+            <p className="hint">{t('portability.source.none')}</p>
+          ) : (
+            <select
+              id="import-kept"
+              value={keptId ?? ''}
+              disabled={loadingKept}
+              onChange={(event) => void chooseKept(event.target.value)}
+            >
+              <option value="" disabled>
+                {t('portability.source.pick')}
+              </option>
+              {kept.map((each) => (
+                <option key={each.transferId} value={each.transferId}>
+                  {each.notebookName} · {new Date(each.requestedAt).toLocaleDateString()}
+                </option>
+              ))}
+            </select>
+          )}
+          {loadingKept && <span className="field-hint">{t('portability.source.reading')}</span>}
+        </div>
+      )}
+
+      {(source === 'file' || (document && file)) && (
+        <div
+          className={document && file ? 'import-drop is-chosen' : 'import-drop'}
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={(event) => {
+            event.preventDefault();
+            const dropped = event.dataTransfer.files[0];
+            if (dropped) void choose(dropped);
           }}
-        />
-        {document && file ? (
-          /* The file already read, as a card: what it is, what it holds, and
+        >
+          <input
+            ref={input}
+            type="file"
+            accept=".notebook,application/zip"
+            hidden
+            onChange={(event) => {
+              const picked = event.target.files?.[0];
+              event.target.value = '';
+              if (picked) void choose(picked);
+            }}
+          />
+          {document && file ? (
+            /* The file already read, as a card: what it is, what it holds, and
              the way to choose another (#205). */
-          <>
-            <span className="import-file-icon" aria-hidden="true">
-              <FileIcon />
-            </span>
-            <span className="import-file-body">
-              <strong>{file.name}</strong>
-              <span>
-                {[
-                  formatBytes(file.size, intlLocale(i18n.language)),
-                  t('portability.readInBrowser'),
-                  t('portability.countFolders', { count: document.folders.length }),
-                  t('portability.noteCount', { count: document.notes.length }),
-                  ...((document.files?.length ?? 0) > 0
-                    ? [t('portability.countFiles', { count: document.files?.length ?? 0 })]
-                    : []),
-                ].join(' · ')}
+            <>
+              <span className="import-file-icon" aria-hidden="true">
+                <FileIcon />
               </span>
-            </span>
-            <button
-              type="button"
-              className="button is-quiet is-small"
-              onClick={() => input.current?.click()}
-            >
-              {t('portability.changeFile')}
-            </button>
-          </>
-        ) : (
-          <>
-            <span className="import-drop-hint">{file ? file.name : t('portability.dropHint')}</span>
-            <button
-              type="button"
-              className="button is-quiet"
-              onClick={() => input.current?.click()}
-            >
-              {t('portability.chooseFile')}
-            </button>
-          </>
-        )}
-      </div>
+              <span className="import-file-body">
+                <strong>{file.name}</strong>
+                <span>
+                  {[
+                    formatBytes(file.size, intlLocale(i18n.language)),
+                    t('portability.readInBrowser'),
+                    t('portability.countFolders', { count: document.folders.length }),
+                    t('portability.noteCount', { count: document.notes.length }),
+                    ...((document.files?.length ?? 0) > 0
+                      ? [t('portability.countFiles', { count: document.files?.length ?? 0 })]
+                      : []),
+                  ].join(' · ')}
+                </span>
+              </span>
+              {source === 'file' && (
+                <button
+                  type="button"
+                  className="button is-quiet is-small"
+                  onClick={() => input.current?.click()}
+                >
+                  {t('portability.changeFile')}
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="import-drop-hint">
+                {file ? file.name : t('portability.dropHint')}
+              </span>
+              <button
+                type="button"
+                className="button is-quiet"
+                onClick={() => input.current?.click()}
+              >
+                {t('portability.chooseFile')}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {refusal && <p className="status">{t(`portability.refusal.${refusal}`)}</p>}
 

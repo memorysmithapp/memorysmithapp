@@ -71,6 +71,7 @@ export function TransferDialogs({
   starting,
   onClose,
   notebookId: preset,
+  exportId,
 }: {
   starting: Starting;
   onClose: () => void;
@@ -79,6 +80,8 @@ export function TransferDialogs({
    * — the card of Home (#199). The picker still offers the others.
    */
   notebookId?: string;
+  /** The kept export an import opens on, when started from its row (#207). */
+  exportId?: string | undefined;
 }) {
   const [notebookId, setNotebookId] = useState('');
 
@@ -120,7 +123,7 @@ export function TransferDialogs({
         onConfirm={(carrying) => void begin(carrying)}
         onClose={onClose}
       />
-      <ImportDialog open={starting === 'import'} onClose={onClose} />
+      <ImportDialog open={starting === 'import'} onClose={onClose} exportId={exportId} />
     </>
   );
 }

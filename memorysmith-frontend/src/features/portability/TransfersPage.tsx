@@ -39,6 +39,8 @@ export function TransfersPage() {
   const locale = intlLocale(i18n.language);
   const [filter, setFilter] = useState<Filter>('all');
   const [starting, setStarting] = useState<Starting>(null);
+  /** The kept export an import was started from, by its row (#207). */
+  const [importFrom, setImportFrom] = useState<string | undefined>(undefined);
   const transfers = useTransfers();
   // What still exists, so a row can say that the notebook of an export is gone.
   const notebooks = useQuery({ queryKey: queryKeys.notebooks(), queryFn: listNotebooks });
@@ -66,7 +68,14 @@ export function TransfersPage() {
         </div>
         <TransferActions onStart={setStarting} />
       </div>
-      <TransferDialogs starting={starting} onClose={() => setStarting(null)} />
+      <TransferDialogs
+        starting={starting}
+        exportId={importFrom}
+        onClose={() => {
+          setStarting(null);
+          setImportFrom(undefined);
+        }}
+      />
 
       {/* One of three, one at a time, each saying how many it holds (#205). */}
       <Tabs
@@ -108,6 +117,10 @@ export function TransfersPage() {
                 !alive.has(transfer.notebookId)
               }
               size={size}
+              onImport={() => {
+                setImportFrom(transfer.transferId);
+                setStarting('import');
+              }}
             />
           ))}
         </ul>
@@ -120,10 +133,13 @@ function TransferRow({
   transfer,
   notebookGone,
   size,
+  onImport,
 }: {
   transfer: TransferDto;
   notebookGone: boolean;
   size: (bytes: number) => string;
+  /** Imports this kept export as a new notebook, without the round trip through the disk (#207). */
+  onImport: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const refresh = useRefreshTransfers();
@@ -192,6 +208,11 @@ function TransferRow({
             onClick={() => void saveArchive(transfer.transferId)}
           >
             {t('transfers.download')}
+          </button>
+        )}
+        {readyExport && (
+          <button type="button" className="button is-quiet is-small" onClick={onImport}>
+            {t('transfers.importKept')}
           </button>
         )}
         {readyExport && !asking && (

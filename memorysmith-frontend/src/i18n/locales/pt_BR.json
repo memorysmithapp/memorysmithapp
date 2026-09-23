@@ -257,7 +257,8 @@
       "UPLOAD": "Não foi possível enviar o arquivo. Tente de novo.",
       "VALIDATION": "Esse documento foi recusado.",
       "NOT_FOUND": "O envio não foi encontrado. Escolha o arquivo de novo.",
-      "INTERNAL": "Algo deu errado do nosso lado. Tente de novo."
+      "INTERNAL": "Algo deu errado do nosso lado. Tente de novo.",
+      "KEPT_UNREADABLE": "Não foi possível ler essa exportação. Tente de novo, ou baixe e importe o arquivo."
     },
     "exportHeading": "Exportar caderno",
     "withHistory": "Incluir a história",
@@ -332,7 +333,16 @@
     "changeFile": "Trocar",
     "partHint": "Marque o que vai no arquivo. Pastas, Modelos e Notas podem ir inteiros ou item por item, cada um na sua aba.",
     "twinTitle": "“{{name}}” vem duas vezes",
-    "twinWhy": "Uma pasta guarda uma nota de cada nome: deixe uma delas de fora."
+    "twinWhy": "Uma pasta guarda uma nota de cada nome: deixe uma delas de fora.",
+    "source": {
+      "label": "De onde vem o arquivo",
+      "file": "Do computador",
+      "kept": "Das exportações guardadas",
+      "which": "Exportação guardada",
+      "pick": "Escolha uma exportação",
+      "none": "Nenhuma exportação guardada ainda. Uma exportação guardada em Transferências pode ser importada daqui.",
+      "reading": "Lendo o arquivo…"
+    }
   },
   "graph": {
     "heading": "Grafo do caderno",
@@ -415,7 +425,8 @@
     "deleteFrees": "Isto é definitivo e libera {{size}} do seu plano. O caderno, se ainda existir, não é tocado.",
     "keep": "Manter",
     "cancelImport": "Cancelar",
-    "open": "Abrir"
+    "open": "Abrir",
+    "importKept": "Importar"
   },
   "about": {
     "menu": "Sobre o MemorySmith.app",

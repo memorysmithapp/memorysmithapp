@@ -264,6 +264,10 @@ export function downloadTransfer(transferId: string): Promise<DownloadLinkDto> {
   return backend.downloadTransfer(transferId);
 }
 
+export function importFromExport(transferId: string): Promise<{ uploadKey: string }> {
+  return backend.importFromExport(transferId);
+}
+
 export function cancelTransfer(transferId: string): Promise<void> {
   return backend.cancelTransfer(transferId);
 }

@@ -352,6 +352,17 @@ export async function downloadTransfer(transferId: string): Promise<DownloadLink
   });
 }
 
+/**
+ * An upload key made from a kept export, copied server-side (#207): the same
+ * key the upload of a file ends in, which `applyImport` takes unchanged.
+ */
+export async function importFromExport(transferId: string): Promise<{ uploadKey: string }> {
+  return request<{ uploadKey: string }>('/portability/imports/from-export', {
+    method: 'POST',
+    body: { transferId },
+  });
+}
+
 /** Stops a running transfer; an import that stops is taken back down whole (RN-PRT-018). */
 export async function cancelTransfer(transferId: string): Promise<void> {
   await request<void>(`/portability/transfers/${transferId}/cancel`, { method: 'POST' });
