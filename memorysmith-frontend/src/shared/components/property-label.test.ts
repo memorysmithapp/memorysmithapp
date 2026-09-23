@@ -23,6 +23,17 @@ import pt from '../../i18n/locales/pt_BR.json' with { type: 'json' };
 /** A translator that makes the lookup visible. */
 const t = (key: string): string => `<${key}>`;
 
+describe('a reserved key is labelled as it is written (#218)', () => {
+  it('reads tags and aliases in lowercase in both locales, as every other key', () => {
+    // Every agent and every Template writes the frontmatter in lowercase, and
+    // the panel showed two keys capitalised, in pt_BR in another word.
+    for (const key of ['tags', 'aliases']) {
+      expect((en.reserved as Record<string, string>)[key]).toBe(key);
+      expect((pt.reserved as Record<string, string>)[key]).toBe(key);
+    }
+  });
+});
+
 describe('a reserved key may be shown translated', () => {
   it.each([...DRAWN_RESERVED_KEYS])('translates %s', (key) => {
     expect(propertyLabel(key, t)).toBe(`<reserved.${key}>`);

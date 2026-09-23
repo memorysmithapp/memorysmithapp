@@ -20,6 +20,7 @@ issues each entry cites.
 
 ### Changed
 
+- **The properties of a note label `tags` and `aliases` as they are written**, in lowercase, as every other key: they read *Tags/Etiquetas* and *Aliases/Apelidos*, the only two labels capitalised and, in Portuguese, another word than the one a person types to search. (#218)
 - **The graph opens on the drawing, with its panel closed behind the gear**, on a computer as on a phone; the settings are one click away. (#220)
 - **About is drawn to the approved design.** A reading column with its sections set apart by a hairline, under the symbol and the welcome; the screens of the interface are a card of term and definition; the address of the connector is a block of code with *Copiar* inside it, its icon alone on a phone; the steps of Claude and of ChatGPT are two tabs, so one client is read at a time, each step with its number; the requests to start with are cards; and the foot says which version this is beside *Começar*. (#216)
 - **The profile is drawn to the approved design.** One card holds it: the picture and what Gravatar is told above, the name and the e-mail below, with a hairline between them. The source of the picture is a segmented choice, chosen in Tinta, with *Uma foto sua* offered and disabled until there is a picture; *Escolher uma foto…* and *Trocar a senha* are quiet buttons with an edge, and on a phone *Salvar* and *Trocar a senha* take the width of the screen. (#215)

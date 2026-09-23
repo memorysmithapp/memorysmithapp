@@ -11,8 +11,8 @@
     "saved": "Saved"
   },
   "reserved": {
-    "aliases": "Aliases",
-    "tags": "Tags"
+    "aliases": "aliases",
+    "tags": "tags"
   },
   "app": {
     "title": "MemorySmith",

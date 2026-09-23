@@ -11,8 +11,8 @@
     "saved": "Salvo"
   },
   "reserved": {
-    "aliases": "Apelidos",
-    "tags": "Etiquetas"
+    "aliases": "aliases",
+    "tags": "tags"
   },
   "app": {
     "title": "MemorySmith",
