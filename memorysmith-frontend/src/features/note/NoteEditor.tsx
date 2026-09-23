@@ -118,19 +118,19 @@ export function NoteEditor({
           <>
             <button
               type="button"
+              className="button is-quiet"
+              disabled={busy}
+              onClick={() => setAsking(false)}
+            >
+              {t('editor.back')}
+            </button>
+            <button
+              type="button"
               className="button is-primary"
               disabled={busy}
               onClick={() => onConfirm({ content: text, message, keepAlias })}
             >
               {busy ? t('editor.writing') : t('editor.write')}
-            </button>
-            <button
-              type="button"
-              className="button"
-              disabled={busy}
-              onClick={() => setAsking(false)}
-            >
-              {t('editor.back')}
             </button>
           </>
         }

@@ -20,8 +20,18 @@
      reach 4.5:1. */
   --on-accent: #ffffff;
   --on-danger: #ffffff;
-  /* The track of a bar, under what is filled. */
+  /* The track of a bar, under what is filled; and the fill of a data chip. */
   --track: var(--bg);
+  /* What is chosen (#201): Tinta, and Papel in the dark theme. */
+  --chosen: #0e1526;
+  --on-chosen: #ffffff;
+  /* The fill under the pointer, and of an open trigger. */
+  --hover: var(--bg);
+  /* The edge of an empty box, and the handle of a sheet. */
+  --box-edge: #c9cec4;
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  --menu-shadow: 0 12px 32px rgba(14, 21, 38, 0.16);
+  --scrim: rgba(14, 21, 38, 0.4);
   --signal: #ff8a2b;
   /* Named at last: five surfaces already fell back to this exact value. */
   --danger: #b42318;
@@ -343,15 +353,23 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  padding: 0.1rem 0;
+  /* Room for the fill of the open one, without moving the others. */
+  margin-inline: -0.35rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 6px;
 }
 .tree-folder a {
   color: var(--text);
   font-weight: 600;
   font-size: 0.88rem;
 }
+/* The open folder and the open note are chosen: Tinta, with the weight of
+   the choice, and never the blue of a link (#201). */
+.tree-folder.active {
+  background: var(--hover);
+}
 .tree-folder.active a {
-  color: var(--accent);
+  color: var(--chosen);
 }
 .tree-toggle {
   border: 0;
@@ -371,13 +389,16 @@ a:hover {
   display: block;
   font-size: 0.84rem;
   color: var(--text-soft);
-  padding: 0.08rem 0;
+  margin-inline: -0.35rem;
+  padding: 0.08rem 0.35rem;
+  border-radius: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .tree-note.active {
-  color: var(--accent);
+  background: var(--hover);
+  color: var(--chosen);
   font-weight: 600;
 }
 
@@ -427,7 +448,7 @@ a:hover {
 .slot-delete {
   background: none;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 0.25rem 0.7rem;
   font: inherit;
   font-size: 0.8rem;
@@ -1149,8 +1170,8 @@ a:hover {
   cursor: pointer;
 }
 .graph-panel-close:hover {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--hover);
+  color: var(--text);
 }
 /* One switch per attribute: each is turned on by itself, and turning a second
    one on does not take the first off the drawing. The track uses --pending,
@@ -1213,7 +1234,7 @@ a:hover {
   transition: transform 0.15s ease-out;
 }
 .graph-switch input:checked {
-  background: var(--accent);
+  background: var(--chosen);
 }
 .graph-switch input:checked::after {
   transform: translateX(12px);
@@ -1492,7 +1513,7 @@ body.has-modal {
 }
 .link-choice-cancel {
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   background: none;
   color: var(--text);
   font-family: var(--display);
@@ -1673,6 +1694,12 @@ body.has-modal {
   --on-danger: #0b1220;
   --node-green: #34c97a;
   --track: #1c2640;
+  --chosen: #edefec;
+  --on-chosen: #0b1220;
+  --hover: #1c2640;
+  --box-edge: #2e3b58;
+  --menu-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --scrim: rgba(5, 9, 18, 0.62);
   --signal: #ff9a45;
   --pending: #5d6880;
   --code-bg: #0e1728;
@@ -1721,7 +1748,7 @@ body.has-modal {
   max-width: 24rem;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 2.5rem 2.25rem;
   display: flex;
   flex-direction: column;
@@ -1758,8 +1785,9 @@ body.has-modal {
   color: var(--text-soft);
 }
 .login-form input {
+  min-height: 38px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--bg);
   color: var(--text);
   padding: 0.55rem 0.7rem;
@@ -1767,9 +1795,9 @@ body.has-modal {
   font-family: var(--sans);
 }
 .login-form input:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 0;
+  outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 .mfa-input {
   letter-spacing: 0.6em;
@@ -1789,7 +1817,8 @@ body.has-modal {
   margin-top: 1.25rem;
 }
 
-/* User menu */
+/* User menu (#201): a menu of the Controles on the desktop, a sheet on a
+   phone, the same content in both. */
 .user-menu {
   position: relative;
 }
@@ -1797,96 +1826,172 @@ body.has-modal {
   border: 0;
   background: none;
   padding: 0;
+  border-radius: 50%;
   cursor: pointer;
   display: flex;
+}
+/* The avatar carries the focus ring while its menu is open. */
+.user-menu-trigger[aria-expanded='true'] {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--accent);
 }
 .avatar {
   border-radius: 50%;
   display: block;
 }
 .avatar-fallback {
-  background: var(--accent-soft);
+  background: var(--track);
   display: inline-block;
   border-radius: 50%;
 }
-.user-menu-panel {
-  position: absolute;
+.menu.user-menu-panel {
   right: 0;
-  top: calc(100% + 10px);
-  width: min(19rem, calc(100vw - 1.5rem));
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(14, 21, 38, 0.18);
-  padding: 1rem;
-  z-index: 30;
+  top: calc(100% + 8px);
+  width: 300px;
+  padding: 0;
+}
+.user-menu-top {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 14px 4px;
 }
 .user-menu-identity {
   display: flex;
-  gap: 0.75rem;
+  gap: 12px;
   align-items: center;
 }
-.user-menu-identity strong {
-  font-family: var(--display);
-  font-size: 0.95rem;
-}
-.user-menu-email {
-  font-size: 0.8rem;
-  color: var(--text-soft);
-}
-.user-menu-fields {
+.user-menu-who {
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  margin-top: 0.9rem;
+  gap: 4px;
 }
-.user-menu-field {
+.user-menu-who strong {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 0.94rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.user-menu-email {
+  font-size: 0.75rem;
+  color: var(--text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.user-menu-email.is-alone {
+  font-size: 0.875rem;
+  color: var(--text);
+}
+.user-menu-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.user-menu-panel .chip {
+  background: var(--track);
+}
+.user-menu-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 10px 14px;
+}
+.user-menu-setting {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.user-menu-caption {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.66rem;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+.user-menu-items {
+  display: flex;
+  flex-direction: column;
+  padding: 0 5px;
+}
+.user-menu-items .menu-item svg {
+  flex-shrink: 0;
+}
+.user-menu-items .menu-item > svg:last-child {
+  color: var(--text-soft);
+}
+.user-menu-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px 8px;
 }
-/*
-  Sentence case, not uppercase. These are words the person reads, not tags:
-  uppercase with letter spacing shouts a label that only needs to name the
-  value beside it, and it reads worse in the two locales the product ships.
-*/
-.user-menu-field-label {
-  font-size: 0.78rem;
+/* The version: present for whoever needs to report a problem, quiet enough to
+   be ignored by everyone else. */
+.user-menu-version {
+  margin: 0;
+  font-size: 0.72rem;
   color: var(--text-soft);
+}
+.user-menu-about {
   font-family: var(--display);
   font-weight: 500;
+  font-size: 0.75rem;
+  color: var(--accent);
+  border-radius: 4px;
+}
+/* In the sheet the blocks run edge to edge, and the rows are a thumb high. */
+.sheet.user-menu-panel .user-menu-top,
+.sheet.user-menu-panel .user-menu-settings,
+.sheet.user-menu-panel .user-menu-items,
+.sheet.user-menu-panel .user-menu-foot {
+  padding: 0;
+}
+.sheet.user-menu-panel .menu-divider {
+  margin: 0 -16px;
 }
 /*
-  How much of the plan is used. It replaces the quota chip rather than sitting
-  beside it: "312 MB / 500 MB" already contains the ceiling, and printing the
-  ceiling twice says less, not more.
-
-  It goes green to amber to red only at the end, because a bar that is coloured
-  the whole way teaches the reader to ignore it exactly when it starts to matter.
+  How much of the plan is used, as the progress bar of the Controles: the
+  numbers above a 6 px track, blue, orange from 80 % and red when full. It
+  replaces the quota chip rather than sitting beside it: "312 MB de 500 MB"
+  already contains the ceiling.
 */
 .storage-bar {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 0.25rem;
-  min-width: 9rem;
+  gap: 7px;
+}
+.storage-bar-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--text-soft);
 }
 .storage-bar-numbers {
-  font-size: 0.78rem;
+  font-family: var(--display);
+  font-weight: 500;
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 .storage-bar-track {
   width: 100%;
-  height: 4px;
-  border-radius: 999px;
-  background: var(--border);
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track);
   overflow: hidden;
 }
 .storage-bar-fill {
   display: block;
   height: 100%;
-  border-radius: 999px;
+  border-radius: 3px;
   background: var(--accent);
   transition: width 0.2s ease-out;
 }
@@ -1894,76 +1999,10 @@ body.has-modal {
   background: var(--signal);
 }
 .storage-bar[data-level='full'] .storage-bar-fill {
-  background: #d92d20;
+  background: var(--danger);
 }
 .storage-bar[data-level='full'] .storage-bar-numbers {
-  color: #d92d20;
-}
-
-.user-menu-section {
-  border-top: 1px solid var(--border);
-  margin-top: 0.9rem;
-  padding-top: 0.9rem;
-}
-.user-menu-caption {
-  margin: 0 0 0.4rem;
-  font-size: 0.78rem;
-  color: var(--text-soft);
-  font-family: var(--display);
-  font-weight: 500;
-}
-.theme-options,
-.locale-options {
-  display: flex;
-  gap: 0.35rem;
-}
-.theme-options button,
-.locale-options button {
-  flex: 1;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-soft);
-  border-radius: 6px;
-  padding: 0.4rem 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-.locale-options button {
-  font-size: 0.82rem;
-  font-family: var(--display);
-  font-weight: 500;
-}
-.theme-options button.active,
-.locale-options button.active {
-  background: var(--accent-soft);
-  color: var(--accent);
-  border-color: var(--accent);
-}
-.user-menu-signout {
-  width: 100%;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  border-radius: 6px;
-  padding: 0.45rem;
-  font-size: 0.85rem;
-  font-family: var(--display);
-  font-weight: 500;
-  cursor: pointer;
-}
-.user-menu-signout:hover {
-  border-color: var(--signal);
-  color: var(--signal);
-}
-/* The version: present for whoever needs to report a problem, quiet enough to
-   be ignored by everyone else. */
-.user-menu-version {
-  margin: 0.6rem 0 0;
-  text-align: center;
-  font-size: 0.7rem;
-  color: var(--pending);
+  color: var(--danger);
 }
 
 /* Search */
@@ -1973,18 +2012,19 @@ body.has-modal {
 }
 .search-box input {
   width: 100%;
+  min-height: 38px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--bg);
   color: var(--text);
-  padding: 0.45rem 0.6rem;
+  padding: 0 12px;
   font-size: 0.85rem;
   font-family: var(--sans);
 }
 .search-box input:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 0;
+  outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 .search-results {
   position: absolute;
@@ -2019,7 +2059,7 @@ body.has-modal {
   color: var(--text);
 }
 .search-results li a:hover {
-  background: var(--accent-soft);
+  background: var(--hover);
   text-decoration: none;
 }
 .search-name {
@@ -2071,7 +2111,7 @@ body.has-modal {
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-soft);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 0.45rem;
   display: inline-flex;
   align-items: center;
@@ -2095,17 +2135,278 @@ body.has-modal {
   flex-wrap: wrap;
   gap: 0.3rem;
 }
+/* The data chip (#201): a value, neutral and with no action — never blue,
+   which would read as a link. */
 .prop-tag,
 .chip {
-  background: var(--accent-soft);
-  color: var(--accent);
-  border: 1px solid transparent;
-  border-radius: 4px;
-  padding: 0.02rem 0.5rem;
-  font-size: 0.76rem;
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 5px;
+  background: var(--track);
+  color: var(--text);
+  font-size: 0.72rem;
   font-family: var(--display);
   font-weight: 500;
   white-space: nowrap;
+}
+
+/* ---- The Controles (#201) ------------------------------------------------
+ *
+ * One vocabulary for every screen. Blue is spent on the main action (one per
+ * screen), on a link and on focus. Everything CHOSEN — a segmented option, a
+ * radio, a box, a switch, a filter, the open tab, the active item of the tree
+ * and of the navigation — is Tinta, and Papel in the dark theme, so "chosen"
+ * never reads as "clickable". Orange is attention, green is done (always with
+ * words), red is destroying.
+ */
+
+/* Focus: a ring of the accent with room around it, on every control. */
+:where(
+  .button,
+  .icon-button,
+  .menu-item,
+  .segmented > button,
+  .tab,
+  .user-menu-trigger,
+  .user-menu-about,
+  .filter-chip
+):focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+/* A box, a radio and a switch are chosen in Tinta too. */
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--chosen);
+}
+
+/* The icon button: 36 px square, 8 px radius, with an edge or without. */
+.icon-button {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.icon-button.is-bare {
+  border-color: transparent;
+  background: none;
+}
+.icon-button:hover:not(:disabled),
+.icon-button[aria-expanded='true'] {
+  background: var(--hover);
+}
+.icon-button[aria-expanded='true'] {
+  border-color: transparent;
+}
+.icon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* The segmented control: two or three short options, one filled. */
+.segmented {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.segmented > button {
+  height: 34px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 6px;
+  border: 0;
+  border-left: 1px solid var(--border);
+  background: none;
+  color: var(--text-soft);
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.segmented > button:first-child {
+  border-left: 0;
+}
+.segmented > button:hover:not([aria-checked='true']) {
+  background: var(--hover);
+  color: var(--text);
+}
+.segmented > button[aria-checked='true'] {
+  background: var(--chosen);
+  color: var(--on-chosen);
+  font-weight: 600;
+}
+.segmented > button[aria-checked='true'],
+.segmented > button[aria-checked='true'] + button {
+  border-left-color: var(--chosen);
+}
+/* Inside the clipped box a ring outside would be cut; it goes inside. */
+.segmented > button:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+/* The filter: clickable, and chosen in Tinta like everything chosen. */
+.filter-chip {
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: var(--surface);
+  color: var(--text-soft);
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.filter-chip[aria-pressed='true'] {
+  background: var(--chosen);
+  border-color: var(--chosen);
+  color: var(--on-chosen);
+  font-weight: 600;
+}
+
+/* The menu: opened from a ⋯ or the avatar, the destructive item last. */
+.menu {
+  position: absolute;
+  z-index: 30;
+  min-width: 220px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--menu-shadow);
+  text-align: start;
+}
+.menu-item {
+  width: 100%;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 0.8125rem;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+.menu-item-label {
+  flex: 1;
+  min-width: 0;
+}
+.menu-item:hover,
+.menu-item:focus-visible {
+  background: var(--hover);
+  text-decoration: none;
+}
+.menu-item:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.menu-item.is-danger {
+  color: var(--danger);
+}
+.menu-divider {
+  flex-shrink: 0;
+  height: 1px;
+  margin: 5px 0;
+  background: var(--border);
+}
+
+/* On a phone the menu is a sheet that rises from the bottom. */
+.sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--scrim);
+}
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 61;
+  max-height: 90dvh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-radius: 16px 16px 0 0;
+  text-align: start;
+}
+.sheet-handle {
+  flex-shrink: 0;
+  width: 36px;
+  height: 4px;
+  margin: 0 auto -2px;
+  border-radius: 2px;
+  background: var(--box-edge);
+}
+.sheet-title {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sheet .menu-item {
+  min-height: 44px;
+  padding: 0;
+  border-radius: 0;
+  font-size: 0.875rem;
+}
+.sheet .menu-item:hover {
+  background: none;
+}
+.sheet .menu-item + .menu-item {
+  border-top: 1px solid var(--track);
+}
+.sheet .segmented > button {
+  height: 44px;
+}
+.sheet .sheet-close {
+  min-height: 44px;
+}
+
+/* A touch screen gets targets a thumb reaches. */
+@media (pointer: coarse) {
+  .button:not(.is-small) {
+    min-height: 44px;
+  }
+  .segmented > button {
+    height: 44px;
+  }
 }
 
 /* ---- The button (#157) --------------------------------------------------
@@ -2144,10 +2445,6 @@ body.has-modal {
     background-color 120ms ease,
     border-color 120ms ease,
     color 120ms ease;
-}
-.button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 .button:disabled,
 .button[aria-disabled='true'] {
@@ -2188,9 +2485,9 @@ body.has-modal {
 
 /* Inside a row of a list, where the row is the subject and the action is not. */
 .button.is-small {
-  min-height: 1.9rem;
-  padding: 0 0.7rem;
-  font-size: 0.8rem;
+  min-height: 32px;
+  padding: 0 11px;
+  font-size: 0.78rem;
 }
 
 /* A form whose one action closes it, and which is as wide as its fields. */
@@ -2282,9 +2579,9 @@ body.has-modal {
   color: var(--text-soft);
 }
 .notebook-nav-link.active {
-  background: var(--accent-soft);
-  color: var(--accent);
-  border-color: var(--accent);
+  background: var(--chosen);
+  color: var(--on-chosen);
+  border-color: var(--chosen);
 }
 
 /* Structure page */
@@ -2300,7 +2597,7 @@ body.has-modal {
   gap: 0.75rem;
   padding: 0.8rem 1rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 14px;
   background: var(--surface);
   color: var(--text);
 }
@@ -2547,8 +2844,8 @@ body.has-modal {
     cursor: pointer;
   }
   .notebook-nav-close:hover {
-    background: var(--accent-soft);
-    color: var(--accent);
+    background: var(--hover);
+    color: var(--text);
   }
   .notebook-nav-close svg {
     width: 20px;
@@ -3088,7 +3385,7 @@ body.has-modal {
   min-height: 0;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   box-shadow: 0 18px 48px rgb(0 0 0 / 0.28);
 }
 .transfer-dialog-head {
@@ -3282,32 +3579,38 @@ body.has-modal {
  * transfer and it belongs to the product: the filter of Transfers asked the
  * same question with three chips, and a chip is a label (#157).
  *
- * The tabs WRAP and the strip does not scroll. It used to carry `overflow-x`,
- * for five tabs on a narrow screen — and `overflow-x` on a box whose `overflow-y`
- * is visible computes that axis to `auto` as well, so the one pixel by which
- * the open tab sits over the border of the strip became a vertical scrollbar
- * beside the tabs, with a single pixel to move. A second row on a phone is
- * better than a bar that scrolls nothing.
+ * The open tab is Tinta with a 2 px rule under it, as the Controles draw it
+ * (#201). The rule is drawn INSIDE the tab, over the border of the strip,
+ * rather than by a tab one pixel taller than its row: nothing sticks out, so
+ * on a phone the strip scrolls sideways and never wraps — the pixel that
+ * stuck out is what once turned `overflow-x` into a vertical scrollbar.
  */
 .tabs {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  padding: 0.35rem 0.35rem 0;
-  border-bottom: 1px solid var(--border);
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  box-shadow: inset 0 -1px 0 var(--border);
 }
 .tab {
   flex-shrink: 0;
-  border: 1px solid transparent;
-  border-bottom: 0;
-  border-radius: 8px 8px 0 0;
-  padding: 0.5rem 0.9rem;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 6px 6px 0 0;
+  padding: 0 12px;
   background: none;
   color: var(--text-soft);
   font-family: var(--display);
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
+  white-space: nowrap;
   cursor: pointer;
+}
+.tab:hover:not(:disabled):not(.is-selected) {
+  color: var(--text);
 }
 /* A tab that is not open stays legible: it is disabled, not absent (#160). */
 .tab:disabled {
@@ -3315,12 +3618,14 @@ body.has-modal {
   cursor: default;
 }
 .tab.is-selected {
-  background: var(--surface);
-  border-color: var(--border);
-  color: var(--text);
-  /* Over the border of the strip, so the tab and the panel are one sheet. */
-  margin-bottom: -1px;
-  padding-bottom: calc(0.5rem + 1px);
+  color: var(--chosen);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--chosen);
+}
+.tab.is-selected:focus-visible {
+  box-shadow:
+    inset 0 -2px 0 var(--chosen),
+    var(--focus-ring);
 }
 /* A tab is marked when what is inside it is why the screen cannot go on. */
 .tab.is-marked {
@@ -3330,14 +3635,17 @@ body.has-modal {
   color: var(--text-soft);
 }
 .tab-count {
-  margin-inline-start: 0.35rem;
-  padding: 0 0.35rem;
-  border-radius: 999px;
+  min-width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  border-radius: 9px;
   background: var(--signal);
   /* Tinta on the orange, in both themes: white on it does not reach 4.5:1. */
   color: #0e1526;
   font-size: 0.7rem;
-  line-height: 1.5;
 }
 
 /* ---- The chooser of a transfer (#156, #161) -----------------------------
@@ -3480,7 +3788,7 @@ body.has-modal {
   align-items: start;
   column-gap: 0.55rem;
   padding: 0.45rem 0.3rem;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
 }
 .chooser-file > label:hover {
@@ -3763,8 +4071,8 @@ body.has-modal {
   cursor: pointer;
 }
 .chooser-twisty:hover {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--hover);
+  color: var(--text);
 }
 /* A leaf keeps the width of a twisty, so its name starts where the others do. */
 .chooser-twisty.is-empty {
@@ -3915,26 +4223,6 @@ body.has-modal {
   text-align: center;
 }
 
-/* The entry that reopens it, in the user menu: a link that reads like the
-   controls around it rather than like a link in a note. */
-.user-menu-link {
-  display: block;
-  width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.45rem;
-  text-align: center;
-  text-decoration: none;
-  color: var(--text);
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 0.85rem;
-}
-.user-menu-link:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
 /* The profile and the password (#168): two short documents, set like the
    welcome surface, because they are read once and left. */
 .profile {
@@ -3989,9 +4277,9 @@ body.has-modal {
   cursor: pointer;
 }
 .profile-sources label.is-selected {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-soft);
+  border-color: var(--chosen);
+  color: var(--text);
+  font-weight: 600;
 }
 .profile-sources label:has(input:disabled) {
   opacity: 0.5;
@@ -4039,24 +4327,31 @@ body.has-modal {
 }
 .field-label {
   display: block;
-  margin-bottom: 0.3rem;
+  margin-bottom: 6px;
   font-family: var(--display);
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
 }
+/* The field of the Controles (#201): 38 px, the 8 px radius of the buttons,
+   and focus as the blue edge. */
 .field input {
   width: 100%;
-  padding: 0.5rem 0.65rem;
+  min-height: 38px;
+  padding: 0 12px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 .field input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.field input[aria-invalid='true'] {
+  border-color: var(--danger);
 }
 .field input:disabled {
   background: var(--code-bg);
@@ -4064,8 +4359,8 @@ body.has-modal {
 }
 .field-hint {
   display: block;
-  margin-top: 0.3rem;
-  font-size: 0.78rem;
+  margin-top: 6px;
+  font-size: 0.75rem;
   color: var(--text-soft);
 }
 .field-hint.is-wrong {
@@ -4182,19 +4477,44 @@ body.has-modal {
   padding: 1.25rem;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   box-shadow: 0 18px 48px rgb(0 0 0 / 0.28);
 }
+.ask-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: -0.4rem -0.4rem 0.6rem 0;
+}
 .ask-dialog-box h2 {
-  margin: 0 0 1rem;
+  margin: 0.4rem 0 0;
   font-family: var(--display);
   font-weight: 700;
   font-size: 1.05rem;
 }
 .ask-dialog-foot {
   display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 0.6rem;
   margin-top: 1rem;
+}
+/* On a phone a modal is the whole screen, and its actions sit at the foot. */
+@media (max-width: 40rem) {
+  .ask-dialog-box {
+    inset: 0;
+    transform: none;
+    width: 100%;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .ask-dialog-body {
+    flex: 1;
+  }
 }
 
 /* The history of a note: closed by default, because it answers a question

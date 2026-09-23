@@ -17,9 +17,10 @@
   "app": {
     "title": "MemorySmith",
     "tagline": "Conhecimento estruturado, que humanos e agentes leem e escrevem nativamente.",
-    "version": "Versão {{version}}"
+    "version": "MemorySmith.app {{version}}"
   },
   "auth": {
+    "menu": "Menu da conta",
     "email": "E-mail",
     "password": "Senha",
     "continue": "Continuar",
@@ -345,6 +346,7 @@
     "fromFile": "de {{file}}"
   },
   "about": {
+    "link": "Sobre",
     "menu": "Sobre o MemorySmith.app",
     "title": "Sobre o MemorySmith.app",
     "heading": "Bem-vindo ao MemorySmith.app",

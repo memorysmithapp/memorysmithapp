@@ -1,4 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { CloseIcon } from './icons';
 
 /**
  * A short question, asked over whatever is behind it (#169).
@@ -12,6 +14,11 @@ import { useEffect, useRef, type ReactNode } from 'react';
  * eight hundred notes. This one is a sentence and two buttons, and sizing it
  * like a room is how a one-line question ends up in the middle of 80vh of
  * empty surface.
+ *
+ * The modal of the Controles (#201): a title, a sentence, at most two fields,
+ * and the actions at the foot on the right with the main one LAST. It closes
+ * by its ×, by Esc (which the dialog element already does) and by the quiet
+ * action beside the main one. On a phone it takes the whole screen.
  */
 export function Modal({
   open,
@@ -26,6 +33,7 @@ export function Modal({
   actions: ReactNode;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const dialog = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -50,7 +58,17 @@ export function Modal({
       }}
     >
       <div className="ask-dialog-box">
-        <h2 id="ask-dialog-heading">{title}</h2>
+        <div className="ask-dialog-head">
+          <h2 id="ask-dialog-heading">{title}</h2>
+          <button
+            type="button"
+            className="icon-button is-bare"
+            aria-label={t('common.close')}
+            onClick={() => dialog.current?.close()}
+          >
+            <CloseIcon />
+          </button>
+        </div>
         <div className="ask-dialog-body">{children}</div>
         <div className="ask-dialog-foot">{actions}</div>
       </div>

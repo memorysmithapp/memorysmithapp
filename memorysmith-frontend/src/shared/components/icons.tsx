@@ -151,3 +151,32 @@ export function BookIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** The way forward, at the end of a row of a menu that opens a page (#201). */
+export function ChevronRightIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="m9 6 6 6-6 6" />
+    </svg>
+  );
+}
+
+/** Leaving the session. */
+export function SignOutIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+    </svg>
+  );
+}
+
+/** More actions, behind a `⋯` (#199). */
+export function MoreIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base({ fill: 'currentColor', stroke: 'none', ...props })}>
+      <circle cx="5" cy="12" r="1.75" />
+      <circle cx="12" cy="12" r="1.75" />
+      <circle cx="19" cy="12" r="1.75" />
+    </svg>
+  );
+}

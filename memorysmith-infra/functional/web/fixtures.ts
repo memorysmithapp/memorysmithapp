@@ -68,6 +68,10 @@ export interface Words {
   readonly pending: (target: string) => string;
   /** The entry of the user menu that reopens the welcome surface (#167). */
   readonly aboutMenu: string;
+  /** The user menu, as a menu is named (#201). */
+  readonly accountMenu: string;
+  readonly themeDark: string;
+  readonly themeLight: string;
   /** Its heading, and the section that carries the address of the connector. */
   readonly aboutHeading: string;
   readonly aboutConnector: string;
@@ -98,7 +102,7 @@ export const WORDS: Record<AppLocale, Words> = {
     graph: 'Notebook graph',
     notesInFolder: 'Notes in this folder',
     notFound: 'Not found.',
-    version: 'Version',
+    version: 'MemorySmith.app',
     tryAgain: 'Try again',
     deleteSlot: 'Delete',
     deleteSlotForGood: 'Delete for good',
@@ -125,7 +129,10 @@ export const WORDS: Record<AppLocale, Words> = {
     startExport: 'Export',
     willCreateNoNotes: '0 notes',
     pending: (target) => `No note carries the name “${target}” yet.`,
-    aboutMenu: 'About MemorySmith.app',
+    aboutMenu: 'About',
+    accountMenu: 'Account menu',
+    themeDark: 'Dark',
+    themeLight: 'Light',
     aboutHeading: 'Welcome to MemorySmith.app',
     aboutConnector: 'Connecting your AI assistant',
     profileMenu: 'Your profile',
@@ -149,7 +156,7 @@ export const WORDS: Record<AppLocale, Words> = {
     graph: 'Grafo do caderno',
     notesInFolder: 'Notas nesta pasta',
     notFound: 'Não encontrado.',
-    version: 'Versão',
+    version: 'MemorySmith.app',
     tryAgain: 'Tentar de novo',
     deleteSlot: 'Apagar',
     deleteSlotForGood: 'Apagar de vez',
@@ -176,7 +183,10 @@ export const WORDS: Record<AppLocale, Words> = {
     startExport: 'Exportar',
     willCreateNoNotes: '0 notas',
     pending: (target) => `Nenhuma nota se chama “${target}” ainda.`,
-    aboutMenu: 'Sobre o MemorySmith.app',
+    aboutMenu: 'Sobre',
+    accountMenu: 'Menu da conta',
+    themeDark: 'Escuro',
+    themeLight: 'Claro',
     aboutHeading: 'Bem-vindo ao MemorySmith.app',
     aboutConnector: 'Conectando seu assistente de IA',
     profileMenu: 'Seu perfil',

@@ -51,11 +51,14 @@ export function StorageBar({ usedBytes, quotaBytes }: { usedBytes: number; quota
 
   return (
     <div className="storage-bar" data-level={level}>
-      <span className="storage-bar-numbers">
-        {t('auth.storageUsed', {
-          used: formatBytes(usedBytes, locale),
-          quota: formatBytes(quotaBytes, locale),
-        })}
+      <span className="storage-bar-head">
+        <span>{t('auth.storage')}</span>
+        <span className="storage-bar-numbers">
+          {t('auth.storageUsed', {
+            used: formatBytes(usedBytes, locale),
+            quota: formatBytes(quotaBytes, locale),
+          })}
+        </span>
       </span>
       {/*
         The track is decoration; the numbers above are the accessible answer,

@@ -94,6 +94,36 @@ test.describe('the pages of an account', () => {
     }
   });
 
+  test('opens the user menu as a menu: arrows move, the theme changes at once, Esc closes it (#201)', async ({
+    app,
+    state,
+    words,
+  }) => {
+    await app.goto(`${state.surfaces.site}/`);
+    const trigger = app.locator('button.user-menu-trigger');
+    await trigger.click();
+    const menu = app.getByRole('menu', { name: words.accountMenu });
+    await expect(menu).toBeVisible();
+
+    // The keyboard starts on the first item and moves with the arrows.
+    const first = menu.getByRole('menuitemradio').first();
+    await expect(first).toBeFocused();
+    await app.keyboard.press('ArrowDown');
+    await expect(first).not.toBeFocused();
+
+    // What is chosen is filled; choosing takes effect with nothing to save.
+    const dark = menu.getByRole('menuitemradio', { name: words.themeDark });
+    await dark.click();
+    await expect(dark).toHaveAttribute('aria-checked', 'true');
+    await expect(app.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await menu.getByRole('menuitemradio', { name: words.themeLight }).click();
+    await expect(app.locator('html')).toHaveAttribute('data-theme', 'light');
+
+    await app.keyboard.press('Escape');
+    await expect(menu).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+
   test('[page:/about] says what the product is, and where an agent is pointed at it', async ({
     app,
     state,
@@ -104,7 +134,7 @@ test.describe('the pages of an account', () => {
     // From the user menu, which is where it lives once it has opened by
     // itself: the fixture account has been here before (#167).
     await app.locator('button.user-menu-trigger').click();
-    await app.getByRole('link', { name: words.aboutMenu }).click();
+    await app.getByRole('menuitem', { name: words.aboutMenu, exact: true }).click();
     await app.waitForURL(`${state.surfaces.site}/about`);
 
     await expect(app.getByRole('heading', { name: words.aboutHeading })).toBeVisible();
@@ -121,7 +151,7 @@ test.describe('the pages of an account', () => {
   }) => {
     await app.goto(`${state.surfaces.site}/`);
     await app.locator('button.user-menu-trigger').click();
-    await app.getByRole('link', { name: words.profileMenu }).click();
+    await app.getByRole('menuitem', { name: words.profileMenu }).click();
     await app.waitForURL(`${state.surfaces.site}/profile`);
 
     // The e-mail is shown and cannot be typed: changing it is another

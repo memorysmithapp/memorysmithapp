@@ -17,9 +17,10 @@
   "app": {
     "title": "MemorySmith",
     "tagline": "Structured knowledge, natively readable and writable by humans and agents.",
-    "version": "Version {{version}}"
+    "version": "MemorySmith.app {{version}}"
   },
   "auth": {
+    "menu": "Account menu",
     "email": "Email",
     "password": "Password",
     "continue": "Continue",
@@ -342,6 +343,7 @@
     "fromFile": "from {{file}}"
   },
   "about": {
+    "link": "About",
     "menu": "About MemorySmith.app",
     "title": "About MemorySmith.app",
     "heading": "Welcome to MemorySmith.app",
