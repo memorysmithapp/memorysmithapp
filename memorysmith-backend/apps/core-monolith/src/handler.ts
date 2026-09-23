@@ -124,6 +124,7 @@ import {
 import { SqsTransferQueue } from '@memorysmith/svc-portability/adapters/sqs';
 import { SQSClient } from '@aws-sdk/client-sqs';
 import {
+  ImportFromExport,
   PrepareImport,
   type NotebookWriter,
 } from '@memorysmith/svc-portability/application/import';
@@ -406,6 +407,14 @@ const portabilityUseCases: PortabilityUseCases = {
     new PrepareImport(
       new S3UploadStore(infra.s3, infra.contentBucket),
       request.subscription.subscriptionId.value,
+    ),
+  /** A kept export copied to an upload, inside the bucket (#207, RN-PRT-020). */
+  importFromExport: (request) =>
+    new ImportFromExport(
+      buildTransfers(infra, request.subscription),
+      new S3UploadStore(infra.s3, infra.contentBucket),
+      request.subscription.subscriptionId.value,
+      request.subscription.userId.value,
     ),
   /** Two writes and no work, as the export: the worker writes the notebook. */
   startImport: (request) =>

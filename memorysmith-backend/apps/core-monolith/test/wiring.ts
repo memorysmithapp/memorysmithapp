@@ -134,7 +134,11 @@ import {
 import { InMemoryTransferStore } from '@memorysmith/svc-portability/adapters/dynamo';
 import { ExportNotebook } from '@memorysmith/svc-portability/application';
 import { createZip, readZip } from '@memorysmith/svc-portability/adapters/zip';
-import { ImportNotebook, PrepareImport } from '@memorysmith/svc-portability/application/import';
+import {
+  ImportFromExport,
+  ImportNotebook,
+  PrepareImport,
+} from '@memorysmith/svc-portability/application/import';
 import { KnowledgeNotebookWriter } from '../src/import-writer.js';
 import { parseNotebookDocument } from '../src/composition-root.js';
 import { KnowledgeExportSource } from '../src/export-source.js';
@@ -510,6 +514,13 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       if (refusals.discard) throw refusals.discard;
       uploads.delete(key);
     },
+    // A kept export becomes an upload without leaving the store (#207).
+    copyFrom: async (source: string, key: string) => {
+      const archive = archives.get(source);
+      if (!archive) return false;
+      uploads.set(key, archive);
+      return true;
+    },
   };
   const archiveStore = {
     put: async (key: string, archive: Buffer) => {
@@ -571,6 +582,13 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     cancelTransfer: (request) => new CancelTransfer(transfers, request.subscription.userId.value),
     prepareImport: (request) =>
       new PrepareImport(uploadStore, request.subscription.subscriptionId.value),
+    importFromExport: (request) =>
+      new ImportFromExport(
+        transfers,
+        uploadStore,
+        request.subscription.subscriptionId.value,
+        request.subscription.userId.value,
+      ),
     startImport: (request) =>
       new StartImport(
         transfers,

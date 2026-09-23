@@ -63,6 +63,7 @@
   "POST /knowledge/notebooks/:v/notes/:n/reorder",
   "POST /portability/imports",
   "POST /portability/imports/apply",
+  "POST /portability/imports/from-export",
   "POST /portability/notebooks/:v/export",
   "POST /portability/transfers/:t/cancel",
   "POST /portability/transfers/:t/download",

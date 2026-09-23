@@ -237,6 +237,9 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: ^3.1117.0
         version: 3.1117.0
+      '@memorysmith/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@memorysmith/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel

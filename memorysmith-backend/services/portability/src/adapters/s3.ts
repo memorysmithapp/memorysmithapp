@@ -21,6 +21,7 @@
  */
 
 import {
+  CopyObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
@@ -136,5 +137,39 @@ export class S3UploadStore implements UploadStore {
 
   async discard(key: string): Promise<void> {
     await this.s3.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
+  }
+
+  /**
+   * A kept export copied to an upload key, inside the bucket (#207). The bytes
+   * never leave it: a single CopyObject reads the current revision of the
+   * archive and writes a new object, so the export is untouched and stays
+   * kept. The copy does NOT inherit the tags of its source — an export wears
+   * none, on purpose (RN-PRT-020) — it is given the tag of an upload, so the
+   * rule of the bucket discards it like any other (RN-PRT-014).
+   */
+  async copyFrom(source: string, key: string): Promise<boolean> {
+    try {
+      await this.s3.send(
+        new CopyObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+          // The source is `bucket/key`, URL-encoded; the keys of this product
+          // are identifiers, and encoding each segment keeps it so if not.
+          CopySource: `${this.bucket}/${source.split('/').map(encodeURIComponent).join('/')}`,
+          ContentType: 'application/zip',
+          MetadataDirective: 'REPLACE',
+          TaggingDirective: 'REPLACE',
+          Tagging: `${UPLOAD_LIFECYCLE_TAG.key}=${UPLOAD_LIFECYCLE_TAG.value}`,
+        }),
+      );
+      return true;
+    } catch (error) {
+      // An archive that is not there is the one answer this owes the caller;
+      // anything else is a failure of the store, and saying "not found" for
+      // it would hide a refusal of IAM behind a 404.
+      const name = (error as { name?: string } | null)?.name ?? '';
+      if (name === 'NoSuchKey' || name === 'NotFound') return false;
+      throw error;
+    }
   }
 }

@@ -7,6 +7,7 @@
  *   POST   /transfers/:t/download      ->  a link issued at this moment
  *   DELETE /transfers/:t               ->  destroys the archive and its bytes
  *   POST   /imports                    ->  a short-lived address to upload to
+ *   POST   /imports/from-export        ->  an upload made of a kept export
  *   POST   /imports/apply              ->  starts the import, answers the transfer
  *   POST   /transfers/:t/cancel        ->  takes a running import back down
  *
@@ -26,6 +27,7 @@
  */
 
 import { Hono, type Context } from 'hono';
+import { importFromExportRequestSchema, importUploadSchema } from '@memorysmith/contracts';
 import { archiveNameOf } from '../domain/NotebookDocumentBuilder.js';
 import {
   type Authorship,
@@ -46,7 +48,11 @@ import type {
 } from '../application/Transfers.js';
 import type { ImportSelection } from '../application/ImportNotebook.js';
 import type { Transfer } from '../domain/Transfer.js';
-import type { PrepareImport, NotebookWriter } from '../application/ImportNotebook.js';
+import type {
+  ImportFromExport,
+  PrepareImport,
+  NotebookWriter,
+} from '../application/ImportNotebook.js';
 
 export interface PortabilityRequest {
   readonly subscription: SubscriptionContext;
@@ -74,6 +80,7 @@ export interface PortabilityUseCases {
   readonly deleteTransfer: (request: PortabilityRequest) => DeleteTransfer;
   readonly cancelTransfer: (request: PortabilityRequest) => CancelTransfer;
   readonly prepareImport: (request: PortabilityRequest) => PrepareImport;
+  readonly importFromExport: (request: PortabilityRequest) => ImportFromExport;
   readonly startImport: (request: PortabilityRequest) => StartImport;
 }
 
@@ -189,6 +196,23 @@ export function createPortabilityRoutes(
       uploadUrl: value.uploadUrl,
       expiresAt: Instant.now().toISOString(),
     }));
+  });
+
+  /**
+   * The other way an upload arrives: made of a kept export, copied where the
+   * product keeps it, so the bytes do not travel down to the device and back
+   * up again (#207, RN-PRT-020). It answers the key `POST /imports` answers,
+   * and `POST /imports/apply` takes it unchanged. Only the requester's own
+   * ready export qualifies, and anything else is `404` (rule 9).
+   */
+  app.post('/imports/from-export', async (c) => {
+    const request = c.get('portability');
+    const parsed = importFromExportRequestSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) {
+      return fail(c, DomainError.validation('An import from an export names its transfer'));
+    }
+    const copied = await useCases.importFromExport(request).execute(parsed.data.transferId);
+    return present(c, copied, (value) => importUploadSchema.parse({ uploadKey: value.uploadKey }));
   });
 
   /**

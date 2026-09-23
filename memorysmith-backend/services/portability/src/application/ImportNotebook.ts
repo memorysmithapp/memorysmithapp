@@ -47,6 +47,7 @@ import {
   type Result,
 } from '@memorysmith/kernel';
 import type { DocumentHistory, NotebookDocument } from '../domain/NotebookDocumentBuilder.js';
+import type { TransferStore } from '../domain/Transfer.js';
 
 /**
  * The versions of the document format this build reads. `1.1` added the
@@ -86,6 +87,13 @@ export interface UploadStore {
   read(key: string): Promise<Buffer | null>;
   /** The upload is discarded once the import ends, whichever way it ended. */
   discard(key: string): Promise<void>;
+  /**
+   * Makes an upload out of an object the store already holds, without the
+   * bytes leaving it: the copy is written at `key` and worn exactly as an
+   * upload is, so it is discarded like one (RN-PRT-014). Answers false when
+   * there is nothing at `source`.
+   */
+  copyFrom(source: string, key: string): Promise<boolean>;
 }
 
 /**
@@ -239,6 +247,15 @@ export interface ImportProgress {
 
 const UPLOAD_TTL_SECONDS = 900;
 
+/**
+ * A fresh upload key: under the subscription prefix, like everything else this
+ * product stores (non-negotiable rule 1), and under `imports/`, which is the
+ * one prefix an import reads from and the one its worker may discard.
+ */
+function freshUploadKey(subscriptionId: string): string {
+  return `s/${subscriptionId}/imports/${ulid()}.notebook`;
+}
+
 /** The address a client uploads a document to, before asking for it. */
 export class PrepareImport {
   constructor(
@@ -247,13 +264,61 @@ export class PrepareImport {
   ) {}
 
   async execute(): Promise<Result<{ uploadKey: string; uploadUrl: string }, DomainError>> {
-    // Under the subscription prefix, like everything else this product stores
-    // (non-negotiable rule 1).
-    const uploadKey = `s/${this.subscriptionId}/imports/${ulid()}.notebook`;
+    const uploadKey = freshUploadKey(this.subscriptionId);
     return ok({
       uploadKey,
       uploadUrl: await this.uploads.presignUpload(uploadKey, UPLOAD_TTL_SECONDS),
     });
+  }
+}
+
+/**
+ * An upload made of a kept export, without its bytes passing through the
+ * person's device (#207, RN-PRT-020).
+ *
+ * A kept export is the way back from a deletion by mistake, and the way back
+ * used to go through the disk of whoever made it: download the archive, then
+ * choose that file to import it — which on a phone is often impossible, and
+ * which sends up again exactly what was just brought down. The archive is
+ * already where the product keeps it, so it is copied there, to a fresh upload
+ * key, and answered the way `PrepareImport` answers: what applies it is the
+ * same `POST /imports/apply`, unchanged.
+ *
+ * Only the requester's own ready export qualifies, because a kept export is
+ * seen by whoever generated it and by nobody else (RN-PRT-020): anything else —
+ * somebody else's, one still running or failed, an import, one gone — answers
+ * `404` alike, since telling them apart would say what exists (rule 9). The
+ * export is read and never consumed: it stays kept, with its space, and may be
+ * imported again.
+ */
+export class ImportFromExport {
+  constructor(
+    private readonly transfers: TransferStore,
+    private readonly uploads: UploadStore,
+    private readonly subscriptionId: string,
+    private readonly userId: string,
+  ) {}
+
+  async execute(transferId: string): Promise<Result<{ uploadKey: string }, DomainError>> {
+    // The store answers only the transfers of this person in this
+    // subscription, so somebody else's is a key that does not exist here.
+    const found = await this.transfers.get(this.userId, transferId);
+    if (
+      !found ||
+      found.kind !== 'export' ||
+      found.status !== 'ready' ||
+      !found.key ||
+      // A key the worker wrote is always under this prefix; one that is not
+      // is not copied, whatever the record says (rule 1).
+      !found.key.startsWith(`s/${this.subscriptionId}/exports/`)
+    ) {
+      return err(DomainError.notFound('Export not found'));
+    }
+
+    const uploadKey = freshUploadKey(this.subscriptionId);
+    const copied = await this.uploads.copyFrom(found.key, uploadKey);
+    if (!copied) return err(DomainError.notFound('Export not found'));
+    return ok({ uploadKey });
   }
 }
 

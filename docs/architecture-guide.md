@@ -1296,7 +1296,17 @@ svc-audit        GET  /notebooks/:v/notes/:n/history
                  GET  /notebooks/:v/activity?from=&to=   answers for a notebook
                     somebody DELETED as well, the deletion included: that is
                     what a trail is for, and the subscription bounds the read
-svc-portability  POST /notebooks/:v/export   → the pre-signed URL comes back in the same answer
+svc-portability  POST /notebooks/:v/export   starts the job and answers the transfer (§16)
+                 GET  /transfers · GET|DELETE /transfers/:t   the transfers of whoever
+                    asks, and nobody else's (RN-PRT-020)
+                 POST /transfers/:t/download   a link minted at this moment
+                 POST /transfers/:t/cancel   takes a running import back down
+                 POST /imports   a short-lived address to upload a .notebook to
+                 POST /imports/from-export   { transferId } → { uploadKey }: the
+                    requester's own ready export copied to an upload, inside the
+                    bucket (#207, RN-PRT-020); anything else is 404
+                 POST /imports/apply   { uploadKey, name, selection? } starts the
+                    import, whichever way the upload arrived
 ```
 
 The authorizer of `svc-access` does not appear here because **it is not a route**: it is a
@@ -1394,7 +1404,7 @@ The domain returns `Result<T, DomainError>`; **exceptions exist only at the edge
 
 **This is where file names used to come back into existence, and they do not any more.** `GUIDANCE.md`, `TEMPLATE.md`, `STRUCTURE.md`, the numeric prefix, the reserved-name renaming and the link rewriting were all **derivations**, and a derivation on the way out is a second source of truth for what the notebook says (RN-PRT-010). What is written is what is held.
 
-**The import is the same door, from the other side, and it is a job too** (RN-PRT-018). `POST /imports` answers a short-lived address under `s/{subscriptionId}/imports/`, the client uploads the file there, and `POST /imports/apply` **starts** the import and answers a transfer of kind `import`: writing a notebook of several hundred notes does not fit in 29 seconds either, and the gateway answers a timeout with no CORS headers, so the browser used to say only `Failed to fetch`. The same worker runs it, and the same record carries its progress.
+**The import is the same door, from the other side, and it is a job too** (RN-PRT-018). `POST /imports` answers a short-lived address under `s/{subscriptionId}/imports/`, the client uploads the file there, and `POST /imports/apply` **starts** the import and answers a transfer of kind `import`: writing a notebook of several hundred notes does not fit in 29 seconds either, and the gateway answers a timeout with no CORS headers, so the browser used to say only `Failed to fetch`. The same worker runs it, and the same record carries its progress. **An upload may also be made of a kept export**, which is the way back from a deletion without the archive passing through the device of whoever kept it: `POST /imports/from-export` takes the `transferId` of the requester's own ready export and copies its object, with one `CopyObject` inside the bucket, to a fresh key under `imports/` — the key `POST /imports` would have answered — wearing the tag of an upload, so the lifecycle rule discards it like any other (RN-PRT-014). It answers that `uploadKey`, and `apply` takes it unchanged. The copy is made by the API through the `copyFrom` of the upload store, with the read and put the API already holds on the bucket; the export is read and never consumed, and anything but the requester's own ready export answers `404` (rule 9).
 
 **Writing belongs to the Knowledge context**, which Portability may not import, so a `NotebookWriter` is built over the ordinary use cases: an import goes through the same quota, the same limits and the same events as any other write. In the API that writer is built per request; in the worker it is built from the message, which carries the person and the connector the token was bound to, so an import asked for through a connector is recorded as that connector wrote it (rule 7, RN-AGT-001). The role the person holds is resolved there as the API resolves it, from the Access table.
 
