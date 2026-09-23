@@ -1,7 +1,9 @@
 /* Brand tokens from the MemorySmith.app brand book (Figma, 'Livro da marca v1').
    Palette: Azul cofre #0F56D7 (structure) · Laranja sinal #FF8A2B (capture) ·
    Verde nó #16A34A (connection, never leading) · Tinta #0E1526 (text) ·
-   Fundo escuro #0B1220 (dark mode, unused yet) · Papel #EDEFEC (background).
+   Fundo escuro #0B1220 (dark mode) · Papel #EDEFEC (background). The dark theme
+   draws in the light tones of the version "Cor escuro": blue #4C8DFF, orange
+   #FF9A45, green #34C97A (#200).
    Usage proportion: background 70% · blue 18% · orange 8% · green 4%. */
 
 :root {
@@ -12,6 +14,14 @@
   --text-soft: #545d73;
   --accent: #0f56d7;
   --accent-soft: #e7edfb;
+  --accent-hover: #0c46ae;
+  /* What is written ON the accent and on the red: white over the deep tones,
+     Fundo escuro over the light tones of the dark theme, where white would not
+     reach 4.5:1. */
+  --on-accent: #ffffff;
+  --on-danger: #ffffff;
+  /* The track of a bar, under what is filled. */
+  --track: var(--bg);
   --signal: #ff8a2b;
   /* Named at last: five surfaces already fell back to this exact value. */
   --danger: #b42318;
@@ -119,8 +129,8 @@ a:hover {
 
 /*
  * The environment a page is served from, outside production
- * (architecture-guide.md, 23.3). Fixed and never dismissable, and out of the
- * way of every click: it reads, it does not ask for anything.
+ * (architecture-guide.md, 23.3). The last row of the window, never
+ * dismissable: it reads, it does not ask for anything.
  */
 .environment-banner {
   /* In the flow: it used to be fixed over the page, which covered the end of
@@ -135,6 +145,13 @@ a:hover {
   font-family: var(--display);
   font-weight: 500;
   font-size: 0.75rem;
+}
+/* A full orange strip glares on the dark background: the surface, a rule of
+   the orange on top, and the words in it (#200). */
+:root[data-theme='dark'] .environment-banner {
+  background: var(--surface);
+  border-top: 2px solid var(--signal);
+  color: var(--signal);
 }
 .environment-banner-name {
   text-transform: uppercase;
@@ -158,7 +175,8 @@ a:hover {
   letter-spacing: -0.025em;
 }
 .brand-suffix {
-  color: var(--signal);
+  /* Always Laranja sinal, in both themes: it is the wordmark, not the palette. */
+  color: #ff8a2b;
 }
 .tagline {
   color: var(--text-soft);
@@ -770,7 +788,7 @@ a:hover {
   --callout-quote: 84, 93, 115;
 }
 :root[data-theme='dark'] {
-  --callout-info: 122, 164, 242;
+  --callout-info: 76, 141, 255;
   --callout-idea: 45, 212, 191;
   --callout-done: 74, 222, 128;
   --callout-warn: 251, 191, 36;
@@ -1644,13 +1662,22 @@ body.has-modal {
   --border: #24304a;
   --text: #edefec;
   --text-soft: #93a0ba;
-  --accent: #7aa4f2;
-  --accent-soft: #17233d;
-  --signal: #ff8a2b;
+  --accent: #4c8dff;
+  /* Re-derived from the new blue: the blue over it still holds 4.5:1. */
+  --accent-soft: #172641;
+  --accent-hover: #6ea3ff;
+  --on-accent: #0b1220;
+  /* Not a colour of the brand book, which has no red: #B42318 holds 2.64:1 on
+     the dark surface, and this one 6.24:1. */
+  --danger: #f97066;
+  --on-danger: #0b1220;
+  --node-green: #34c97a;
+  --track: #1c2640;
+  --signal: #ff9a45;
   --pending: #5d6880;
   --code-bg: #0e1728;
   --code-color: var(--text-soft);
-  --token-keyword: #7aa4f2;
+  --token-keyword: #4c8dff;
   --token-string: #f0a05a;
   --token-number: #4fc07f;
   --token-comment: #7c89a3;
@@ -2131,10 +2158,10 @@ body.has-modal {
 /* The one action of a screen that deserves the blue of the brand. */
 .button.is-primary {
   background: var(--accent);
-  color: #ffffff;
+  color: var(--on-accent);
 }
 .button.is-primary:hover:not(:disabled) {
-  background: #0c46ae;
+  background: var(--accent-hover);
 }
 
 /* Everything beside it: the surface, with an edge. */
@@ -2156,7 +2183,7 @@ body.has-modal {
 }
 .button.is-danger:hover:not(:disabled) {
   background: var(--danger);
-  color: #ffffff;
+  color: var(--on-danger);
 }
 
 /* Inside a row of a list, where the row is the subject and the action is not. */
@@ -2169,14 +2196,6 @@ body.has-modal {
 /* A form whose one action closes it, and which is as wide as its fields. */
 .button.is-wide {
   width: 100%;
-}
-
-:root[data-theme='dark'] .button.is-primary {
-  /* The accent lightens in the dark theme, so the label darkens with it. */
-  color: #0b1220;
-}
-:root[data-theme='dark'] .button.is-primary:hover:not(:disabled) {
-  background: #9dbcf7;
 }
 
 /* Structure outline */
@@ -3315,7 +3334,8 @@ body.has-modal {
   padding: 0 0.35rem;
   border-radius: 999px;
   background: var(--signal);
-  color: var(--paper, #fff);
+  /* Tinta on the orange, in both themes: white on it does not reach 4.5:1. */
+  color: #0e1526;
   font-size: 0.7rem;
   line-height: 1.5;
 }
@@ -4060,15 +4080,12 @@ body.has-modal {
   justify-content: center;
   border-radius: 50%;
   background: var(--accent);
-  color: #ffffff;
+  /* The accent lightens in the dark theme, so the letters darken with it. */
+  color: var(--on-accent);
   font-family: var(--display);
   font-weight: 700;
   letter-spacing: -0.02em;
   user-select: none;
-}
-:root[data-theme='dark'] .avatar-initials {
-  /* The accent lightens in the dark theme, so the letters darken with it. */
-  color: #0b1220;
 }
 
 /* Writing a note (#169). The text area is the note: same measure, same type
