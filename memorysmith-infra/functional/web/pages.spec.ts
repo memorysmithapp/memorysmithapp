@@ -193,7 +193,8 @@ test.describe('the pages of an account', () => {
     await expect(app.getByRole('heading', { name: words.aboutConnector })).toBeVisible();
     // The address of THIS environment, published by its own configuration:
     // a page that shows the wrong one sends every agent somewhere else.
-    await expect(app.locator('.about-connector code')).toHaveText(state.surfaces.mcp);
+    // The endpoint, not the host: a client pointed at the host finds no server (#180).
+    await expect(app.locator('.about-connector code')).toHaveText(`${state.surfaces.mcp}/mcp`);
   });
 
   test('[page:/profile] [page:/profile/password] draws the initials nobody is asked for, and asks for the current password before changing it', async ({
@@ -733,23 +734,15 @@ test.describe('a notebook out and back in, through the browser', () => {
     await expect(dialog.getByText(words.nameTakenTitle, { exact: false })).toBeVisible();
 
     /**
-     * The strip of tabs is not a scroll box. It carried `overflow-x` for a
-     * narrow screen, and `overflow-x` on a box whose other axis is visible
-     * makes that axis scrollable too — so the pixel by which the open tab sits
-     * over the border of the strip drew a vertical scrollbar beside the tabs,
-     * with one pixel to move (#161).
-     *
-     * What is asserted is the computed overflow and not the geometry: that
-     * pixel is still THERE, by design, and `scrollHeight` reports it on a box
-     * that overflows visibly. A scrollbar belongs to a scroll container, so
-     * what says there is none is that the box is not one.
+     * The strip of tabs never draws a vertical scrollbar beside the tabs
+     * (#161). It scrolls sideways on a narrow screen now (#201), which is
+     * safe only because nothing of a tab sticks out of its row any more: the
+     * rule under the open tab is drawn inside it. So what is asserted is that
+     * the strip has nothing to scroll vertically.
      */
     const strip = dialog.locator('.chooser-tabs');
-    const overflow = await strip.evaluate((el) => {
-      const style = el.ownerDocument.defaultView?.getComputedStyle(el);
-      return `${style?.overflowX}/${style?.overflowY}`;
-    });
-    expect(overflow).toBe('visible/visible');
+    const vertical = await strip.evaluate((el) => el.scrollHeight - el.clientHeight);
+    expect(vertical).toBeLessThanOrEqual(0);
 
     const free = `${notebook.name} again`;
     await name.fill(free);

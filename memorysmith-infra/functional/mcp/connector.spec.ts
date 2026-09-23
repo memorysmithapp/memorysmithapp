@@ -319,6 +319,43 @@ test.describe('the tools', () => {
     expect((await callTool(agent, 'delete_template', folder)).isError).toBe(true);
   });
 
+  test('[tool:keep_file] [tool:list_files] [tool:delete_file] keeps a file a note shows by name, lists it, and deletes it', async ({
+    agent,
+    notebook,
+  }) => {
+    // The smallest real PNG, kept under a name with no extension (RN-KNW-050).
+    const png =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const name = `picture ${Date.now()}`;
+    const kept = parsed<{ fileId: string; name: string; bytes: number; reference: string }>(
+      await callTool(agent, 'keep_file', {
+        notebook: notebook.notebookId,
+        name,
+        mimeType: 'image/png',
+        path: '/evidence',
+        contentBase64: png,
+      }),
+    );
+    expect(kept.name).toBe(name);
+    expect(kept.bytes).toBeGreaterThan(0);
+    // What the agent is told to write in a note is the name, never the id.
+    expect(kept.reference).toBe(`![[${name}]]`);
+
+    const listed = parsed<{ files: Array<{ fileId: string; name: string }> }>(
+      await callTool(agent, 'list_files', { notebook: notebook.notebookId }),
+    );
+    expect(listed.files.map((file) => file.name)).toContain(name);
+
+    expect(
+      (await callTool(agent, 'delete_file', { notebook: notebook.notebookId, file: kept.fileId }))
+        .isError,
+    ).toBe(false);
+    const after = parsed<{ files: Array<{ name: string }> }>(
+      await callTool(agent, 'list_files', { notebook: notebook.notebookId }),
+    );
+    expect(after.files.map((file) => file.name)).not.toContain(name);
+  });
+
   test('[tool:next_number] issues the next number of a folder', async ({ agent, notebook }) => {
     const folder = { notebook: notebook.notebookId, folder: notebook.folderId };
     const first = parsed<{ number: number }>(await callTool(agent, 'next_number', folder));

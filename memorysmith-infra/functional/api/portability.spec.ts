@@ -137,7 +137,7 @@ test.describe('a notebook out and back in', () => {
       mimeType: 'image/png',
       tags: ['portable'],
       path: '/evidence',
-      bytes: png,
+      contentBase64: png,
     });
     // And a note that shows it, so what the round trip has to preserve is the
     // reference as much as the bytes.
@@ -166,9 +166,9 @@ test.describe('a notebook out and back in', () => {
     const imported = await importedFrom(owner, upload.uploadKey, unique('With files'));
     expect(imported.status).toBe('ready');
 
-    const files = await owner.ok<
-      Array<{ name: string; mimeType: string; path: string; tags: string[]; bytes: number }>
-    >('GET', `/knowledge/notebooks/${imported.notebookId ?? ''}/files`);
+    const { files } = await owner.ok<{
+      files: Array<{ name: string; mimeType: string; path: string; tags: string[]; bytes: number }>;
+    }>('GET', `/knowledge/notebooks/${imported.notebookId ?? ''}/files`);
     const brought = files.find((file) => file.name === name);
     expect(brought, 'the file came back under its name').toBeDefined();
     expect(brought?.mimeType).toBe('image/png');

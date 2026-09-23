@@ -103,6 +103,7 @@ test.describe('the graph of a notebook', () => {
           links: Array<{
             target: string;
             by: string | null;
+            kind?: string;
             notes: Array<NoteRef & { folderTrail: string[] }>;
           }>;
         }>('GET', `${discovery(notebook)}/notes/${alpha}/links`),
@@ -111,9 +112,11 @@ test.describe('the graph of a notebook', () => {
     const toBeta = found.links.find((link) => link.target === 'Beta');
     expect(toBeta?.by).toBe('name');
     expect(toBeta?.notes[0]?.folderTrail.length).toBeGreaterThan(0);
+    // A target nothing reaches says so, and names no note (#186).
     expect(found.links.find((link) => link.target === 'Gamma')).toEqual({
       target: 'Gamma',
       by: null,
+      kind: 'pending',
       notes: [],
     });
   });
