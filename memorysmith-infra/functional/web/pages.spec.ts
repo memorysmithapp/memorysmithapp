@@ -795,6 +795,39 @@ test.describe('a notebook out and back in, through the browser', () => {
  * listed, and the bucket threw the file away the next day.
  */
 test.describe('the transfers of a person', () => {
+  test('ends a page that scrolls with its padding below the last line (#209)', async ({
+    app,
+    state,
+  }) => {
+    // Short enough that the list of transfers scrolls.
+    await app.setViewportSize({ width: 1280, height: 480 });
+    await app.goto(`${state.surfaces.site}/transfers`);
+    await expect(app.locator('.transfers-page h1')).toBeVisible();
+
+    const gap = await app.evaluate(() => {
+      const page = globalThis as unknown as {
+        document: {
+          querySelector: (selector: string) => {
+            scrollTop: number;
+            scrollHeight: number;
+            lastElementChild: { getBoundingClientRect: () => { bottom: number } } | null;
+            firstElementChild: {
+              lastElementChild: { getBoundingClientRect: () => { bottom: number } } | null;
+            } | null;
+            getBoundingClientRect: () => { bottom: number };
+          } | null;
+        };
+      };
+      const main = page.document.querySelector('.app-main');
+      if (!main) return -1;
+      main.scrollTop = main.scrollHeight;
+      const last = main.firstElementChild?.lastElementChild;
+      if (!last) return -1;
+      return main.getBoundingClientRect().bottom - last.getBoundingClientRect().bottom;
+    });
+    expect(gap, 'room between the last line and the foot of the window').toBeGreaterThanOrEqual(24);
+  });
+
   test('opens the Transfers panel inside a phone screen (#195)', async ({ app, state, words }) => {
     await app.setViewportSize({ width: 320, height: 640 });
     await app.goto(`${state.surfaces.site}/`);

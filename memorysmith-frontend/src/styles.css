@@ -219,6 +219,17 @@ a:hover {
   flex: 1;
   min-width: 0;
 }
+/* A page that scrolls with the window is as tall as what it holds, and never
+   shorter than the row it scrolls in (#209). Stretched to the row, what did not
+   fit overflowed the page, and the padding at its foot stayed above the
+   overflow: the last line of every long page ended against the staging strip,
+   or the bottom of the window. The layout of a notebook is the exception: it
+   fills the row, and its sidebar and its middle scroll on their own. */
+.app-main > :not(.notebook-layout) {
+  height: fit-content;
+  min-height: 100%;
+  padding-bottom: calc(2.5rem + env(safe-area-inset-bottom));
+}
 
 .page {
   padding: 2rem;
@@ -238,11 +249,6 @@ a:hover {
  */
 .page.home {
   max-width: none;
-  /* As tall as what it holds, not as the row it scrolls in: stretched to the
-     row, the foot of the page overflowed its own padding and the counts sat
-     against the bottom of the window. */
-  height: fit-content;
-  min-height: 100%;
   margin: 0;
   padding: 24px 28px 24px;
   /* The last card bleeds off the right edge to say there are more. */
