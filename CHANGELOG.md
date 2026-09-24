@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-24
+
 ### Added
 
 - **An import that ended can be deleted from Transfers**, as an export can: imported, failed or cancelled, its row offers *Apagar*, asks in place and removes the record alone — an import keeps no bytes, and the notebook it created stays. A transfer still running is cancelled before it is deleted, and the API refuses deleting one with a conflict (RN-PRT-026). (#221)
@@ -613,7 +615,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.5.7...v0.6.0
