@@ -212,6 +212,48 @@ describe('deleting a transfer', () => {
     expect(await transfers.get(USER, started.value.transferId)).toBeNull();
   });
 
+  it('deletes an import that ended with its record alone, and refuses one still running (#221)', async () => {
+    const transfers = new InMemoryTransferStore();
+    const user = UserId.create(USER);
+    if (!user.ok) throw new Error('the test seeded an unusable author');
+    const started = await new StartImport(
+      transfers,
+      { send: async () => undefined },
+      SUBSCRIPTION,
+      USER,
+    ).execute({
+      uploadKey: `s/${SUBSCRIPTION}/imports/01JBQ2X000000000000000000C.notebook`,
+      name: 'Normas importadas',
+      selection: null,
+      by: Authorship.byHuman(user.value, Clock.now()),
+    });
+    if (!started.ok) throw new Error('the import did not start');
+    await transfers.addKeptBytes(4_096, NOTEBOOK);
+    const destroyed: string[] = [];
+    const archives = {
+      put: async () => ({ versionId: null }),
+      presign: async () => 'memory://link',
+      destroy: async (key: string) => void destroyed.push(key),
+    };
+    const remove = () =>
+      new DeleteTransfer(transfers, archives, USER).execute(started.value.transferId);
+
+    // Running, it is cancelled first: its worker would write into nothing.
+    const early = await remove();
+    expect(early.ok).toBe(false);
+    if (!early.ok) expect(early.error.code).toBe('CONFLICT');
+
+    await transfers.patch(USER, started.value.transferId, {
+      status: 'ready',
+      notebookId: '01JBQ2X000000000000000000D',
+    });
+    expect((await remove()).ok).toBe(true);
+    expect(await transfers.get(USER, started.value.transferId)).toBeNull();
+    // Nothing of an import was ever counted, so nothing is given back.
+    expect(destroyed).toEqual([]);
+    expect(await transfers.keptBytes()).toBe(4_096);
+  });
+
   it('answers not found for the transfer of somebody else', async () => {
     const transfers = new InMemoryTransferStore();
     const started = await starter(transfers, { send: async () => undefined }).execute({

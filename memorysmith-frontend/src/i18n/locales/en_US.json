@@ -423,7 +423,10 @@
     "keep": "Keep",
     "cancelImport": "Cancel",
     "open": "Open",
-    "importKept": "Import"
+    "importKept": "Import",
+    "deleteImportAsk": "Delete this import?",
+    "deleteImportKeeps": "Only this entry leaves the list. The notebook it created, if it created one, stays.",
+    "deleteRecordOnly": "Only this entry leaves the list; there is no file to free."
   },
   "about": {
     "menu": "About MemorySmith.app",

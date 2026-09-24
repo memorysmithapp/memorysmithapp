@@ -294,7 +294,11 @@ export class DownloadTransfer {
   }
 }
 
-/** Destroys the bytes of one export, and its place in the quota with them. */
+/**
+ * Deletes a transfer that ended: an export with its bytes and its place in the
+ * quota, and an import with nothing but its record — it keeps no bytes, and the
+ * notebook it created is a notebook like any other (RN-PRT-020, RN-PRT-026).
+ */
 export class DeleteTransfer {
   constructor(
     private readonly transfers: TransferStore,
@@ -305,6 +309,14 @@ export class DeleteTransfer {
   async execute(transferId: string): Promise<Result<void, DomainError>> {
     const found = await this.transfers.get(this.userId, transferId);
     if (!found) return err(DomainError.notFound('Transfer not found'));
+    /**
+     * Nothing with a worker behind it loses its record under the worker: a
+     * running import is cancelled, which takes it back down whole (RN-PRT-018),
+     * and its row goes once it has ended (RN-PRT-026).
+     */
+    if (found.status === 'running') {
+      return err(DomainError.conflict('A running transfer is cancelled before it is deleted'));
+    }
 
     /**
      * The bytes go first, and by the EXACT revision the worker wrote. An
@@ -317,7 +329,7 @@ export class DeleteTransfer {
       await this.archives.destroy(found.key, found.versionId);
     }
     await this.transfers.remove(this.userId, transferId);
-    if (found.status === 'ready' && found.bytes > 0) {
+    if (found.kind === 'export' && found.status === 'ready' && found.bytes > 0) {
       await this.transfers.addKeptBytes(-found.bytes, found.notebookId);
     }
     return ok(undefined);

@@ -885,6 +885,18 @@ test.describe('a notebook out and back in, through the browser', () => {
     // Structure only: the folders arrived and the notes did not.
     await app.goto(app.url().replace(/\/?$/, '/folders'));
     await expect(app.locator('ul.note-list a')).toHaveCount(0);
+
+    /**
+     * And its row leaves Transfers when it is asked to, with its record alone:
+     * the notebook it created stays (#221, RN-PRT-026).
+     */
+    await app.goto(`${state.surfaces.site}/transfers`);
+    const row = app.locator('.transfers-row', { hasText: free });
+    await row.getByRole('button', { name: words.deleteSlot, exact: true }).click();
+    await row.getByRole('button', { name: words.deleteForGood, exact: true }).click();
+    await expect(row).toHaveCount(0);
+    await app.goto(`${state.surfaces.site}/`);
+    await expect(app.locator('article.notebook-card', { hasText: free })).toBeVisible();
   });
 });
 

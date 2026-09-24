@@ -169,6 +169,13 @@ function TransferRow({
   }
 
   const readyExport = transfer.status === 'ready' && transfer.kind === 'export';
+  /**
+   * Every transfer that ended can leave the list (#221): an export with its
+   * bytes, and an import with its record alone, since it keeps no bytes and the
+   * notebook it created stays. A running one is cancelled first (RN-PRT-026).
+   */
+  const ended = transfer.status !== 'running';
+  const ask = transfer.kind === 'import' ? 'transfers.deleteImportAsk' : 'transfers.deleteAsk';
 
   return (
     <li className="transfers-row">
@@ -215,7 +222,7 @@ function TransferRow({
             {t('transfers.importKept')}
           </button>
         )}
-        {readyExport && !asking && (
+        {ended && !asking && (
           <button
             type="button"
             className="button is-danger is-small"
@@ -232,10 +239,16 @@ function TransferRow({
       {/* Deleting asks in place, saying what goes and what does not: the space
           it frees, and that the notebook, if it still exists, is untouched. */}
       {asking && (
-        <div className="transfers-confirm" role="group" aria-label={t('transfers.deleteAsk')}>
+        <div className="transfers-confirm" role="group" aria-label={t(ask)}>
           <p>
-            <strong>{t('transfers.deleteAsk')}</strong>{' '}
-            {t('transfers.deleteFrees', { size: size(transfer.bytes) })}
+            <strong>{t(ask)}</strong>{' '}
+            {readyExport
+              ? t('transfers.deleteFrees', { size: size(transfer.bytes) })
+              : t(
+                  transfer.kind === 'import'
+                    ? 'transfers.deleteImportKeeps'
+                    : 'transfers.deleteRecordOnly',
+                )}
           </p>
           <div className="transfers-confirm-actions">
             <button

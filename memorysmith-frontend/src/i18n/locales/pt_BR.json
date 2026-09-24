@@ -426,7 +426,10 @@
     "keep": "Manter",
     "cancelImport": "Cancelar",
     "open": "Abrir",
-    "importKept": "Importar"
+    "importKept": "Importar",
+    "deleteImportAsk": "Apagar esta importação?",
+    "deleteImportKeeps": "Só este registro sai da lista. O caderno que ela criou, se criou, continua.",
+    "deleteRecordOnly": "Só este registro sai da lista; não há arquivo para liberar."
   },
   "about": {
     "menu": "Sobre o MemorySmith.app",
