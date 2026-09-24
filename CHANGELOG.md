@@ -21,6 +21,7 @@ issues each entry cites.
 
 ### Changed
 
+- **The import dialog makes room once it has an archive.** The choice of source and the list of kept exports leave the dialog when a file or an export has been read, and what stays is its card with *Trocar*, which goes back to the choice on the same source; the name and the chooser get the height they need. (#222)
 - **The sidebar of a notebook speaks the Controles**, and its main area is untouched. The search is a field on the surface with its edge, as every other field is; *Grafo do caderno* is a quiet button of 36 px with a radius of 8 px whose cursor darkens it rather than turning it blue; the open folder is marked by a rule of Tinta at its left edge and the open note by its colour alone, Tinta among notes in the soft text at their own weight, Papel in the dark theme — where both wore the grey the cursor wears, and bold made the open note read as a folder. (#219)
 - **The properties of a note label `tags` and `aliases` as they are written**, in lowercase, as every other key: they read *Tags/Etiquetas* and *Aliases/Apelidos*, the only two labels capitalised and, in Portuguese, another word than the one a person types to search. (#218)
 - **The graph opens on the drawing, with its panel closed behind the gear**, on a computer as on a phone; the settings are one click away. (#220)

@@ -158,6 +158,9 @@ export function ImportDialog({
     // Once per opening, when the list has it.
   }, [open, exportId, kept.length]);
 
+  /** An archive read and in hand, whichever way it came (#222). */
+  const inHand = document !== null && file !== null;
+
   const taken = (notebooks.data ?? []).some(
     (notebook) => notebook.name.trim().toLowerCase() === name.trim().toLowerCase(),
   );
@@ -250,6 +253,14 @@ export function ImportDialog({
     setTab('notes');
   }
 
+  /** Back to the choice of an archive, on the same source, with nothing read. */
+  function startOver(): void {
+    setFile(null);
+    setDocument(null);
+    setKeptId(null);
+    setRefusal(null);
+  }
+
   function reset(): void {
     setSource('file');
     setKeptId(null);
@@ -329,24 +340,28 @@ export function ImportDialog({
         </>
       }
     >
-      <Segmented
-        label={t('portability.source.label')}
-        value={source}
-        onChange={(next: Source) => {
-          if (next === source) return;
-          setSource(next);
-          setKeptId(null);
-          setFile(null);
-          setDocument(null);
-          setRefusal(null);
-        }}
-        options={(['file', 'kept'] as const).map((each) => ({
-          value: each,
-          label: t(`portability.source.${each}`),
-        }))}
-      />
+      {/* Where the archive comes from is asked until there is one; then the
+          dialog holds the archive read and the way to choose another (#222). */}
+      {!inHand && (
+        <Segmented
+          label={t('portability.source.label')}
+          value={source}
+          onChange={(next: Source) => {
+            if (next === source) return;
+            setSource(next);
+            setKeptId(null);
+            setFile(null);
+            setDocument(null);
+            setRefusal(null);
+          }}
+          options={(['file', 'kept'] as const).map((each) => ({
+            value: each,
+            label: t(`portability.source.${each}`),
+          }))}
+        />
+      )}
 
-      {source === 'kept' && (
+      {!inHand && source === 'kept' && (
         <div className="transfer-field">
           <label htmlFor="import-kept">{t('portability.source.which')}</label>
           {kept.length === 0 ? (
@@ -372,7 +387,7 @@ export function ImportDialog({
         </div>
       )}
 
-      {(source === 'file' || (document && file)) && (
+      {(source === 'file' || inHand) && (
         <div
           className={document && file ? 'import-drop is-chosen' : 'import-drop'}
           onDragOver={(event) => event.preventDefault()}
@@ -414,15 +429,11 @@ export function ImportDialog({
                   ].join(' · ')}
                 </span>
               </span>
-              {source === 'file' && (
-                <button
-                  type="button"
-                  className="button is-quiet is-small"
-                  onClick={() => input.current?.click()}
-                >
-                  {t('portability.changeFile')}
-                </button>
-              )}
+              {/* Choosing another goes back to where the choice is made,
+                  from the device or from the kept exports alike. */}
+              <button type="button" className="button is-quiet is-small" onClick={startOver}>
+                {t('portability.changeFile')}
+              </button>
             </>
           ) : (
             <>
