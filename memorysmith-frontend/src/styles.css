@@ -898,8 +898,7 @@ a:hover {
 .tree-note:hover {
   background: var(--hover);
 }
-.tree-folder.active,
-.tree-note.active {
+.tree-folder.active {
   box-shadow: inset 2px 0 0 var(--chosen);
 }
 .tree-folder.active a {
@@ -930,9 +929,11 @@ a:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* The open note is told by its colour alone: Tinta among notes in the soft
+   text, at the weight of the others. Bold is what a folder wears, and a rule
+   beside the guide line of the tree was a second line (#219). */
 .tree-note.active {
   color: var(--chosen);
-  font-weight: 600;
 }
 
 .notebook-content {
