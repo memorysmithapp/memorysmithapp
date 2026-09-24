@@ -4088,6 +4088,10 @@ input[type='radio'] {
   text-align: center;
 }
 .import-drop.is-chosen {
+  /* The body of the dialog is a column of fixed height, and the chooser under
+     the card is taller than what is left: without this the card is what gave
+     way, and its two lines spilled over its bottom edge. */
+  flex-shrink: 0;
   justify-content: flex-start;
   min-height: 0;
   padding: 12px 14px;
@@ -5441,12 +5445,6 @@ input[type='radio'] {
   .chooser-twin {
     flex-direction: column;
   }
-}
-.chooser-history-hint {
-  margin: 14px 0 0;
-  font-size: 0.78rem;
-  line-height: 1.5;
-  color: var(--text-soft);
 }
 
 /* The note changed under the reader, by another hand (#206): said, not swapped

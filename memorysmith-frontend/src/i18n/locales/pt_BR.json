@@ -262,7 +262,6 @@
     },
     "exportHeading": "Exportar caderno",
     "withHistory": "Incluir a história",
-    "withHistoryHint": "Quem escreveu o quê e quando, e o conteúdo de cada versão anterior. O arquivo fica maior, e uma exportação guardada ocupa o armazenamento do seu plano. Apagar um caderno leva a história junto, então é isto que a preserva.",
     "startExport": "Exportar",
     "cancel": "Cancelar",
     "history": "História do caderno",

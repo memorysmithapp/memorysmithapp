@@ -261,7 +261,6 @@
     },
     "exportHeading": "Export notebook",
     "withHistory": "Include the history",
-    "withHistoryHint": "Who wrote what and when, and the content of every earlier revision. The archive is larger, and a kept export counts towards the storage of your plan. Deleting a notebook takes its history with it, so this is what keeps it.",
     "startExport": "Export",
     "cancel": "Cancel",
     "history": "History of the notebook",

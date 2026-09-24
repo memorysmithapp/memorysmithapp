@@ -360,8 +360,6 @@ function ScopePanel({
           );
         })}
       </ul>
-      {/* What the history is, and why an archive is where it survives (#205). */}
-      {hasHistory && <p className="chooser-history-hint">{t('portability.withHistoryHint')}</p>}
     </div>
   );
 }
