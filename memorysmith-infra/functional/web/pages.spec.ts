@@ -369,8 +369,33 @@ test.describe('the pages of an account', () => {
   test('[page:/notebooks/:notebookId/graph] draws the graph of a notebook from its projection', async ({
     app,
     notebook,
+    state,
     words,
   }) => {
+    /**
+     * The panel holds what the frontmatter declares, and a notebook that
+     * declares nothing offers no panel at all. So the case writes a note with
+     * a property first, and opens the graph once the projection has it.
+     */
+    const api = new Api(state.surfaces.api, await apiToken(state, state.accounts.owner));
+    const tagged = await api.ok<{ noteId: string }>(
+      'POST',
+      `/knowledge/notebooks/${notebook.notebookId}/notes`,
+      {
+        folderId: notebook.folderId,
+        content: `---\nname: Graph ${Date.now()}\nstatus: draft\n---\n\nA note with a property.\n`,
+      },
+    );
+    await eventually(
+      'the note with a property in the graph',
+      () =>
+        api.ok<{ nodes: { id?: string; noteId?: string }[] }>(
+          'GET',
+          `/discovery/notebooks/${notebook.notebookId}/graph`,
+        ),
+      (graph) => JSON.stringify(graph).includes(tagged.noteId),
+    );
+
     const graph = app.waitForResponse((response) =>
       new URL(response.url()).pathname.endsWith(
         `/discovery/notebooks/${notebook.notebookId}/graph`,
