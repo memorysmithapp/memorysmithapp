@@ -5,7 +5,6 @@ import { LoginPage } from '../features/auth/LoginPage';
 import { AuthCallbackPage } from '../features/auth/AuthCallbackPage';
 import { GuidancePanel } from '../features/guidance/GuidancePanel';
 import { FolderPage } from '../features/structure/FolderPage';
-import { FoldersIndexPage } from '../features/structure/FoldersIndexPage';
 import { NoteRoute } from '../features/structure/NoteRoute';
 import { ResumeReading } from '../features/structure/ResumeReading';
 import { TemplatesPage } from '../features/structure/TemplatesPage';
@@ -43,6 +42,9 @@ export const router = createBrowserRouter([
       {
         element: <RequireSession />,
         children: [
+          // Drawn as the sign-in screen, outside the frame of the application,
+          // because the secret of the account is typed there too (#214).
+          { path: '/profile/password', element: <PasswordPage /> },
           {
             element: <AppShell />,
             children: [
@@ -60,7 +62,6 @@ export const router = createBrowserRouter([
               // What a person is called, the face beside it, and the password
               // they sign in with (#168).
               { path: '/profile', element: <ProfilePage /> },
-              { path: '/profile/password', element: <PasswordPage /> },
               { path: '/transfers', element: <TransfersPage /> },
               {
                 path: '/notebooks/:notebookId',
@@ -70,7 +71,6 @@ export const router = createBrowserRouter([
                   { path: 'guidance', element: <GuidancePanel /> },
                   { path: 'templates', element: <TemplatesPage /> },
                   { path: 'graph', element: <GraphPage /> },
-                  { path: 'folders', element: <FoldersIndexPage /> },
                   { path: 'folders/:folderId', element: <FolderPage /> },
                   { path: 'notes/:noteId', element: <NoteRoute /> },
                   { path: 'links/:target', element: <LinkTargetPage /> },

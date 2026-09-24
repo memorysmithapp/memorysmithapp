@@ -1,14 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
+import { useLiveInterval } from '../../shared/api/live';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { canWrite, deleteTemplate, getTemplate, putTemplate } from '../../shared/api/source';
 import { DeleteContentSlot } from '../../shared/components/DeleteContentSlot';
-import {
-  folderAddress,
-  foldersAddress,
-  identifierOf,
-  noteAddress,
-} from '../../shared/api/note-address';
+import { folderAddress, identifierOf, noteAddress } from '../../shared/api/note-address';
 import { WritableContent } from '../../shared/components/WritableContent';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import type { NotebookOutletContext } from './NotebookLayout';
@@ -36,6 +32,7 @@ export function FolderPage() {
 
   const { data: template } = useQuery({
     queryKey: queryKeys.template(notebookId, folder?.id),
+    refetchInterval: useLiveInterval(),
     queryFn: () => getTemplate(notebookId, folder?.id ?? ''),
     enabled: Boolean(folder?.hasTemplate),
   });
@@ -44,12 +41,7 @@ export function FolderPage() {
 
   return (
     <article className="content-pane">
-      <NotebookBreadcrumb
-        items={[
-          { label: t('structure.root'), to: foldersAddress(notebookId) },
-          ...folderCrumbs(notebookId, chain),
-        ]}
-      />
+      <NotebookBreadcrumb items={[...folderCrumbs(notebookId, chain)]} />
       <h1>{folder.name}</h1>
       <p className="folder-description">{folder.description}</p>
 

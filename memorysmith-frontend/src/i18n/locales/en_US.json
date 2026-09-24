@@ -11,15 +11,16 @@
     "saved": "Saved"
   },
   "reserved": {
-    "aliases": "Aliases",
-    "tags": "Tags"
+    "aliases": "aliases",
+    "tags": "tags"
   },
   "app": {
     "title": "MemorySmith",
     "tagline": "Structured knowledge, natively readable and writable by humans and agents.",
-    "version": "Version {{version}}"
+    "version": "MemorySmith.app {{version}}"
   },
   "auth": {
+    "menu": "Account menu",
     "email": "Email",
     "password": "Password",
     "continue": "Continue",
@@ -86,14 +87,16 @@
   },
   "notebooks": {
     "heading": "Notebooks",
-    "noteCount": "{{count}} notes",
+    "noteCount_one": "{{count}} note",
+    "noteCount_other": "{{count}} notes",
     "updatedAt": "updated {{date}}",
-    "open": "Open notebook"
+    "open": "Open notebook",
+    "openShort": "Open"
   },
   "structure": {
     "guidance": "Guidance",
     "folders": "Folders",
-    "root": "Root",
+    "noFolders": "This notebook has no folders yet.",
     "noteCountSplit": "{{here}} here, {{below}} in subfolders",
     "hasTemplate": "template",
     "outlineHint": "The folder tree with each folder's description. It is what tells the agent where each note goes.",
@@ -123,6 +126,8 @@
     "empty": "No notes in this folder yet."
   },
   "note": {
+    "propertyTrue": "Yes",
+    "propertyFalse": "No",
     "properties": "Properties",
     "embedSectionMissing": "The section \"{{section}}\" is not in this note.",
     "writeConflict": "That change was not saved. Someone wrote here first, and the content was reloaded.",
@@ -146,7 +151,9 @@
     "targetAliased_one": "No note is named “{{target}}”. One note carries it as an alias.",
     "targetAliased_other": "No note is named “{{target}}”, so it matched {{count}} notes that carry it as an alias — and one of them gives the link up the day somebody writes a note under this name.",
     "attachmentOpen": "Open",
-    "attachmentDownload": "Download"
+    "attachmentDownload": "Download",
+    "changedElsewhere": "This note changed since you opened it, and what you see is the current version.",
+    "changedElsewhereDismiss": "Got it"
   },
   "common": {
     "loading": "Loading…",
@@ -155,15 +162,56 @@
     "close": "Close"
   },
   "dashboard": {
-    "heading": "Overview",
-    "kpiNotebooks": "Notebooks",
-    "kpiNotes": "Notes",
-    "kpiPending": "Pending links",
     "selectNotebook": "Open a notebook",
     "prevNotebooks": "Previous notebooks",
     "nextNotebooks": "Next notebooks",
-    "kpiOrphans": "Orphan notes",
-    "unavailableNotebooks": "{{count}} notebook(s) did not answer, so these totals are short."
+    "goToNotebook": "Go to notebook {{number}}",
+    "noNotebooks": "No notebook yet. An agent creates one through the connector, and an export comes back in through Transfers.",
+    "space": "Subscription space",
+    "planChip": "{{plan}} · {{quota}}",
+    "plan": {
+      "individual": "Individual plan"
+    },
+    "of": "of {{quota}}",
+    "free": "{{free}} free",
+    "full": "full",
+    "kind": "Kind",
+    "quantity": "Qty",
+    "bytes": "Space",
+    "kindFiles": "Files",
+    "kindNotes": "Notes",
+    "kindExports": "Kept exports",
+    "kindOthers": "Others",
+    "kindOthersHint": "Guidance and Templates",
+    "byNotebook": "By notebook",
+    "moreNotebooks_one": "{{count}} more notebook",
+    "moreNotebooks_other": "{{count}} more notebooks",
+    "notebookNotes_one": "{{count}} note",
+    "notebookNotes_other": "{{count}} notes",
+    "notebookFolders_one": "{{count}} folder",
+    "notebookFolders_other": "{{count}} folders",
+    "notebookFiles_one": "{{count}} file",
+    "notebookFiles_other": "{{count}} files",
+    "notebookExports_one": "{{count}} export",
+    "notebookExports_other": "{{count}} exports",
+    "notebookEmpty": "nothing yet",
+    "noVisibleNotebooks": "No notebook you can read holds anything yet.",
+    "countNotebooks": "Notebooks",
+    "countFolders": "Folders",
+    "countRevisions": "Revisions",
+    "usageUnavailable": "The split of the space could not be read now; the total is the one your session knows.",
+    "card": {
+      "more": "More actions",
+      "export": "Export notebook",
+      "delete": "Delete notebook…",
+      "confirmTitle": "Delete “{{name}}”?",
+      "confirmBody": "<b>Everything in it will be deleted, and this cannot be undone.</b> Consider <export>Export notebook</export> before deleting.",
+      "keep": "Keep",
+      "deleteForGood": "Delete for good",
+      "deleting": "Deleting…"
+    },
+    "purging_one": "A deleted notebook still holds {{bytes}} until its cleanup ends.",
+    "purging_other": "{{count}} deleted notebooks still hold {{bytes}} until their cleanup ends."
   },
   "portability": {
     "download": "Download notebook (.notebook)",
@@ -208,11 +256,11 @@
       "UPLOAD": "The file could not be uploaded. Try again.",
       "VALIDATION": "That document was refused.",
       "NOT_FOUND": "The upload was not found. Choose the file again.",
-      "INTERNAL": "Something went wrong on our side. Try again."
+      "INTERNAL": "Something went wrong on our side. Try again.",
+      "KEPT_UNREADABLE": "That export could not be read. Try again, or download it and import the file."
     },
     "exportHeading": "Export notebook",
     "withHistory": "Include the history",
-    "withHistoryHint": "Who wrote what and when, and the content of every earlier revision. The archive is larger, and a kept export counts towards the storage of your plan. Deleting a notebook takes its history with it, so this is what keeps it.",
     "startExport": "Export",
     "cancel": "Cancel",
     "history": "History of the notebook",
@@ -230,7 +278,6 @@
     },
     "noTemplate": "no Template",
     "wholeNotebook": "The whole notebook",
-    "wholeNotebookHint": "The Guidance, the Template of each folder, every note and the whole history — the record of what was deleted included.",
     "whatToCarry": {
       "export": "What goes in the archive",
       "import": "What to import"
@@ -271,7 +318,25 @@
     "countFiles_one": "{{count}} file",
     "countFiles_other": "{{count}} files",
     "countFiles_zero": "{{count}} files",
-    "filesBelongToTheNotebook": "A file belongs to the notebook and not to a folder: leaving one out never leaves a note out with it, and any note that travels may reference any of them. What it costs is an embed that lands pending."
+    "filesBelongToTheNotebook": "A file belongs to the notebook and not to a folder: leaving one out never leaves a note out with it, and any note that travels may reference any of them. What it costs is an embed that lands pending.",
+    "carries": "Goes in the file:",
+    "creates": "Will create:",
+    "oneNotebook": "1 notebook",
+    "refusals_one": "1 inconsistency · nothing is imported until it is resolved",
+    "refusals_other": "{{count}} inconsistencies · nothing is imported until they are resolved",
+    "readInBrowser": "read in the browser",
+    "changeFile": "Change",
+    "twinTitle": "“{{name}}” comes twice",
+    "twinWhy": "A folder keeps one note of each name: leave one of them out.",
+    "source": {
+      "label": "Where the archive comes from",
+      "file": "From this device",
+      "kept": "From kept exports",
+      "which": "Kept export",
+      "pick": "Choose an export",
+      "none": "No export is kept yet. An export kept in Transfers can be imported from here.",
+      "reading": "Reading the archive…"
+    }
   },
   "graph": {
     "heading": "Notebook graph",
@@ -337,7 +402,28 @@
     "wrote_one": "{{count}} note written",
     "wrote_other": "{{count}} notes written",
     "wroteNothing": "the design, with no note",
-    "fromFile": "from {{file}}"
+    "fromFile": "from {{file}}",
+    "kind": {
+      "export": "Export",
+      "import": "Import"
+    },
+    "state": {
+      "ready": "Ready",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "running": "Running"
+    },
+    "keptSentence": "Exports are kept until you delete them, and take <b>{{size}}</b> of your plan.",
+    "keptShort": "Space used: <b>{{size}}</b>",
+    "deleteAsk": "Delete this export?",
+    "deleteFrees": "This is for good and frees {{size}} of your plan. The notebook, if it still exists, is not touched.",
+    "keep": "Keep",
+    "cancelImport": "Cancel",
+    "open": "Open",
+    "importKept": "Import",
+    "deleteImportAsk": "Delete this import?",
+    "deleteImportKeeps": "Only this entry leaves the list. The notebook it created, if it created one, stays.",
+    "deleteRecordOnly": "Only this entry leaves the list; there is no file to free."
   },
   "about": {
     "menu": "About MemorySmith.app",
@@ -441,8 +527,13 @@
     "working": "Changing…",
     "cancel": "Cancel",
     "done": "Your password was changed. Every other session of this account will be asked to sign in again.",
-    "back": "Back to your profile",
-    "failed": "The password could not be changed."
+    "back": "Back",
+    "failed": "The password could not be changed.",
+    "show": "Show passwords",
+    "required": "Fill in this field.",
+    "currentPlaceholder": "Enter your current password",
+    "nextPlaceholder": "Enter the new password",
+    "againPlaceholder": "Enter the new password again"
   },
   "editor": {
     "edit": "Edit this note",

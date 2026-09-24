@@ -13,8 +13,20 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { ContentId, FolderId, NoteId, NotebookId, SubscriptionId } from '@memorysmith/kernel';
-import { ContentPurge, type DeletionEnvelope } from '../src/adapters/inbound/content-purge.js';
+import {
+  ContentId,
+  FileId,
+  FolderId,
+  NoteId,
+  NotebookId,
+  sha256Hex,
+  SubscriptionId,
+} from '@memorysmith/kernel';
+import {
+  ContentPurge,
+  type DeletionEnvelope,
+  UNITS_PER_RUN,
+} from '../src/adapters/inbound/content-purge.js';
 
 const SUBSCRIPTION = SubscriptionId.generate().value;
 const NOTEBOOK = NotebookId.generate().value;
@@ -32,6 +44,7 @@ function idOf(name: string, mint: () => string): string {
 const slot = (name: string) => idOf(name, () => ContentId.generate().value);
 const folder = (name: string) => idOf(name, () => FolderId.generate().value);
 const noteId = (name: string) => idOf(name, () => NoteId.generate().value);
+const fileId = (name: string) => idOf(name, () => FileId.generate().value);
 /** Reads a list of identifiers back as the names the case gave them. */
 const named = (values: readonly string[]) =>
   values.map((value) => [...identifiers].find(([, id]) => id === value)?.[0] ?? value);
@@ -57,6 +70,8 @@ function envelope(
 function tableOf(items: Record<string, unknown>[]) {
   const rows = new Map(items.map((item) => [String(item['SK']), item]));
   const purged: string[] = [];
+  /** Which key shape each destroyed slot was asked for: a file lives under `f/`. */
+  const kinds = new Map<string, string>();
   const events: Array<Record<string, unknown>> = [];
 
   const db = {
@@ -95,8 +110,9 @@ function tableOf(items: Record<string, unknown>[]) {
     db: db as never,
     tableName: 'mv-knowledge-test',
     purgerFor: () => ({
-      purge: async (destroyed: ContentId) => {
+      purge: async (destroyed: ContentId, kind: 'note' | 'file' = 'note') => {
         purged.push(destroyed.value);
+        kinds.set(destroyed.value, kind);
         return 1;
       },
     }),
@@ -105,7 +121,7 @@ function tableOf(items: Record<string, unknown>[]) {
     },
   });
 
-  return { purge, rows, purged, events, closed };
+  return { purge, rows, purged, kinds, events, closed };
 }
 
 function noteItem(name: string, inFolder: string, bytes: number, deleted = false) {
@@ -118,6 +134,32 @@ function noteItem(name: string, inFolder: string, bytes: number, deleted = false
     folderId: folder(inFolder),
     bodyRef: ref(slot(`content of ${name}`), bytes),
     ...(deleted ? { deletedAt: '2026-09-16T00:00:00.000Z' } : {}),
+  };
+}
+
+function fileItem(name: string, bytes: number, deleted = false) {
+  return {
+    PK: PARTITION,
+    SK: `FILE#${fileId(name)}`,
+    entity: 'FILE',
+    fileId: fileId(name),
+    notebookId: NOTEBOOK,
+    name,
+    mimeType: 'image/png',
+    path: '/',
+    contentRef: ref(slot(`bytes of ${name}`), bytes),
+    ...(deleted ? { deletedAt: '2026-09-16T00:00:00.000Z' } : {}),
+  };
+}
+
+/** The guard a live file holds on its name (RN-KNW-049). */
+function fileNameItem(name: string) {
+  return {
+    PK: PARTITION,
+    SK: `FNAME#${sha256Hex(name.normalize('NFC'))}`,
+    entity: 'FILE_NAME',
+    fileId: fileId(name),
+    name,
   };
 }
 
@@ -259,6 +301,121 @@ describe('the purge of a deleted notebook', () => {
      */
     expect(closed).toEqual([NOTEBOOK]);
   });
+
+  it('says what each unit took off the counters of the space (RN-SUB-024)', async () => {
+    const { purge, events } = tableOf([
+      noteItem('deleted first', 'notes', 100, true),
+      noteItem('still live', 'notes', 200),
+      templateItem('notes', 50),
+      { PK: PARTITION, SK: `FOLDER#${folder('notes')}`, entity: 'FOLDER' },
+      { PK: PARTITION, SK: `FOLDER#${folder('other')}`, entity: 'FOLDER' },
+      { PK: PARTITION, SK: 'META', entity: 'NOTEBOOK', notebookId: NOTEBOOK },
+    ]);
+
+    await purge.run(envelope('NotebookDeleted', { notebookId: NOTEBOOK }));
+
+    const payloads = events.map((event) => ({
+      type: event['type'],
+      ...(event['payload'] as Record<string, unknown>),
+    }));
+    // A note deleted on its own left the count at its deletion; one the
+    // notebook took with it leaves it here. Both take their revisions along.
+    expect(payloads.filter((each) => each.type === 'NotePurged')).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ noteId: noteId('deleted first'), live: false, revisions: 1 }),
+        expect.objectContaining({ noteId: noteId('still live'), live: true, revisions: 1 }),
+      ]),
+    );
+    expect(payloads.find((each) => each.type === 'TemplatePurged')).toMatchObject({
+      live: true,
+      revisions: 1,
+    });
+    // The folders the tree still held, which no FolderRemoved will ever say
+    // are gone.
+    expect(payloads.find((each) => each.type === 'NotebookPurged')).toMatchObject({
+      folderCount: 2,
+    });
+  });
+});
+
+describe('the purge of the files of a deleted notebook (#202)', () => {
+  it('destroys the bytes of every file, takes their items and frees what was still counted', async () => {
+    const { purge, rows, purged, kinds, events, closed } = tableOf([
+      noteItem('a note', 'notes', 100),
+      fileItem('picture.png', 3000),
+      fileNameItem('picture.png'),
+      fileItem('diagram.png', 2000),
+      fileNameItem('diagram.png'),
+      // Deleted on its own before the notebook went: its name and its bytes
+      // were released then, and its item waits here as a tombstone.
+      fileItem('old.png', 500, true),
+      { PK: PARTITION, SK: `FOLDER#${folder('notes')}`, entity: 'FOLDER' },
+      { PK: PARTITION, SK: 'META', entity: 'NOTEBOOK', notebookId: NOTEBOOK },
+    ]);
+
+    const outcome = await purge.run(envelope('NotebookDeleted', { notebookId: NOTEBOOK }));
+
+    expect(outcome.done).toBe(true);
+    expect(named(purged).sort()).toEqual([
+      'bytes of diagram.png',
+      'bytes of old.png',
+      'bytes of picture.png',
+      'content of a note',
+    ]);
+    // The bytes of a file are under the key of a file, not of a slot.
+    expect(kinds.get(slot('bytes of picture.png'))).toBe('file');
+    expect(kinds.get(slot('bytes of old.png'))).toBe('file');
+    // Nothing of any file is left: not its item, not the guard of its name.
+    expect([...rows.keys()].filter((key) => !key.startsWith('EVENT#'))).toEqual([]);
+
+    // A live file leaves as a deletion of that one file would have left: the
+    // same event, with its bytes off the count, filed under whoever deleted
+    // the notebook. The tombstone already said so, and says nothing twice.
+    const files = events.filter((event) => event['type'] === 'FileDeleted');
+    expect(files.map((event) => event['subjectId']).sort()).toEqual(
+      [fileId('picture.png'), fileId('diagram.png')].sort(),
+    );
+    expect(files.map((event) => Number(event['storageDelta'])).sort((a, b) => a - b)).toEqual([
+      -3000, -2000,
+    ]);
+    expect(files[0]?.['subject']).toBe('FILE');
+    expect(files[0]?.['payload']).toMatchObject({ notebookId: NOTEBOOK, mimeType: 'image/png' });
+    expect((files[0]?.['authorship'] as { userId: string }).userId).toBe('user-owner');
+
+    // The files go before the tree, and the trail closes after both.
+    const order = events.map((event) => event['type']);
+    expect(order.lastIndexOf('FileDeleted')).toBeLessThan(order.indexOf('NotebookPurged'));
+    const freed = events.reduce((total, event) => total + Number(event['storageDelta'] ?? 0), 0);
+    expect(freed).toBe(-(100 + 3000 + 2000));
+    expect(closed).toEqual([NOTEBOOK]);
+  });
+
+  it('carries on in the next message when the files outlast the budget of a run', async () => {
+    const count = UNITS_PER_RUN + 5;
+    const names = Array.from({ length: count }, (_, at) => `picture ${at}.png`);
+    const { purge, rows, purged, events, closed } = tableOf([
+      ...names.flatMap((name) => [fileItem(name, 10), fileNameItem(name)]),
+      { PK: PARTITION, SK: 'META', entity: 'NOTEBOOK', notebookId: NOTEBOOK },
+    ]);
+    const deletion = envelope('NotebookDeleted', { notebookId: NOTEBOOK });
+
+    const first = await purge.run(deletion);
+
+    // The run stopped on its budget: the tree and the trail are still there,
+    // because what is above a file is what says the file is invalid.
+    expect(first).toEqual({ purged: UNITS_PER_RUN, done: false });
+    expect(rows.has('META')).toBe(true);
+    expect(closed).toEqual([]);
+    expect(events.filter((event) => event['type'] === 'NotebookPurged')).toHaveLength(0);
+
+    const second = await purge.run(deletion);
+
+    expect(second.done).toBe(true);
+    expect(purged).toHaveLength(count);
+    expect(events.filter((event) => event['type'] === 'FileDeleted')).toHaveLength(count);
+    expect([...rows.keys()].filter((key) => !key.startsWith('EVENT#'))).toEqual([]);
+    expect(closed).toEqual([NOTEBOOK]);
+  });
 });
 
 describe('the purge of a Content Slot deleted on its own', () => {
@@ -278,5 +435,8 @@ describe('the purge of a Content Slot deleted on its own', () => {
     expect(named(purged)).toEqual(['the template that went']);
     expect(events[0]?.['type']).toBe('TemplatePurged');
     expect(events[0]?.['storageDelta']).toBe(0);
+    // Its place in the count left with its bytes; what goes here is its
+    // revisions (RN-SUB-024).
+    expect(events[0]?.['payload']).toMatchObject({ live: false, revisions: 1 });
   });
 });

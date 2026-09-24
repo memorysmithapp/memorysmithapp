@@ -29,6 +29,8 @@ export const META = 'META';
 export const AGGREGATE_RANGE_START = 'FOLDER#';
 /** Upper bound: META itself, inclusive. */
 export const AGGREGATE_RANGE_END = META;
+/** The sort key prefix of the counters of one notebook, in `S#{s}#NOTEBOOKS`. */
+export const NOTEBOOK_USAGE_PREFIX = 'NBUSAGE#';
 
 export class KnowledgeKeys {
   constructor(private readonly subscriptionId: SubscriptionId) {}
@@ -167,6 +169,18 @@ export class KnowledgeKeys {
    */
   storageUsage(): string {
     return 'USAGE';
+  }
+
+  /**
+   * What one notebook holds, as counters (#197, RN-SUB-024): bytes, notes,
+   * folders and files, kept by the relay beside `USAGE`. It lives in the
+   * subscription's partition and not in the notebook's, for two reasons: the
+   * answer that lists every notebook reads them with ONE Query, and a counter
+   * in the notebook's partition would be what a note transaction contends with
+   * (rule 10). It goes when the purge of its notebook ends.
+   */
+  notebookUsage(notebookId: NotebookId | string): string {
+    return `${NOTEBOOK_USAGE_PREFIX}${typeof notebookId === 'string' ? notebookId : notebookId.value}`;
   }
 
   /**

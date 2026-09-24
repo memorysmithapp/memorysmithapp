@@ -36,7 +36,9 @@ export class Guidance extends ContentSlot {
       input.by,
       0,
     );
-    guidance.record('GuidanceUpdated', input.by, input.ref, input.ref.bytes);
+    guidance.record('GuidanceUpdated', input.by, input.ref, input.ref.bytes, {
+      created: true,
+    });
     return guidance;
   }
 

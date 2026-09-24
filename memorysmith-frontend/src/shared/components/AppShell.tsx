@@ -14,7 +14,11 @@ export function AppShell() {
         <Link to="/" className="brand">
           <BrandMark />
         </Link>
+        {/* The slogan, after a hairline, on a surface with no band of colour
+            behind it (#198): the blue is spent on actions, not on a header. */}
+        <span className="header-divider" aria-hidden="true" />
         <span className="tagline">{t('app.tagline')}</span>
+        <span className="header-spacer" />
         {/* What happened to the write, where it can be seen from any scroll
             position and without covering a line of the note. */}
         <WriteStatus />

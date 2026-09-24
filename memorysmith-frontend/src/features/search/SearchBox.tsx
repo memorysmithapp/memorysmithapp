@@ -116,6 +116,21 @@ export function SearchBox({ notebookId, structure }: SearchBoxProps) {
   );
 
   const typed = query.trim();
+  const open = typed !== '';
+
+  // The list is open over the sidebar wherever the focus went, so Esc closes it
+  // wherever the focus is (#192): a handler on the input alone answered only
+  // while the reader was still typing. A key some other surface already took —
+  // a dialog closing on the same Esc — is left to that surface.
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape' && !event.defaultPrevented) setQuery('');
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [open]);
+
   const busy = isFetching || typed !== debounced;
 
   const failure =
@@ -132,11 +147,8 @@ export function SearchBox({ notebookId, structure }: SearchBoxProps) {
         value={query}
         placeholder={t('search.placeholder')}
         onChange={(e) => setQuery(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') setQuery('');
-        }}
       />
-      {typed !== '' && (
+      {open && (
         <div className="search-results">
           {failure ? (
             <p className="search-empty">{failure}</p>

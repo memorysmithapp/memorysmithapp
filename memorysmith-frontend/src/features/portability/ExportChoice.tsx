@@ -29,6 +29,19 @@ import { queryKeys } from '../../shared/api/query-keys';
  * notebook is one click and carries everything; choosing opens the chooser
  * (RN-PRT-024).
  */
+/** What an archive carries, in words, leaving out what is zero. */
+export function carriedParts(
+  counts: { folders: number; templates: number; notes: number; files: number },
+  t: (key: string, values?: Record<string, unknown>) => string,
+): string[] {
+  return [
+    counts.folders > 0 ? t('portability.countFolders', { count: counts.folders }) : null,
+    counts.templates > 0 ? t('portability.countTemplates', { count: counts.templates }) : null,
+    counts.notes > 0 ? t('portability.noteCount', { count: counts.notes }) : null,
+    counts.files > 0 ? t('portability.countFiles', { count: counts.files }) : null,
+  ].filter((part): part is string => part !== null);
+}
+
 export function ExportChoice({
   open,
   notebooks,
@@ -112,14 +125,11 @@ export function ExportChoice({
         <>
           {counts && (
             <p className="transfer-summary">
-              {t('portability.willCarry', {
-                folders: t('portability.countFolders', { count: counts.folders }),
-                templates: t('portability.countTemplates', { count: counts.templates }),
-                notes: t('portability.noteCount', { count: counts.notes }),
-              })}
-              {/* And the files, which are most of what an archive weighs: the
-                  summary that never named them is the whole of #176. */}
-              {counts.files > 0 && ` · ${t('portability.countFiles', { count: counts.files })}`}
+              {t('portability.carries')}{' '}
+              {/* What goes, in numbers, and nothing that is zero (#205). The
+                  files are named because they are most of what an archive
+                  weighs: the summary that never named them is the whole of #176. */}
+              <strong>{carriedParts(counts, t).join(' · ')}</strong>
             </p>
           )}
           <button type="button" className="button is-quiet" onClick={onClose}>

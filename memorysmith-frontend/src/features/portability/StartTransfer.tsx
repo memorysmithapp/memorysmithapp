@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { listNotebooks, startExport } from '../../shared/api/source';
@@ -70,11 +70,25 @@ export function TransferActions({ onStart }: { onStart: (starting: Starting) => 
 export function TransferDialogs({
   starting,
   onClose,
+  notebookId: preset,
+  exportId,
 }: {
   starting: Starting;
   onClose: () => void;
+  /**
+   * The notebook the export opens on, when it was started from that notebook
+   * — the card of Home (#199). The picker still offers the others.
+   */
+  notebookId?: string;
+  /** The kept export an import opens on, when started from its row (#207). */
+  exportId?: string | undefined;
 }) {
   const [notebookId, setNotebookId] = useState('');
+
+  // Each opening starts from what it was opened for, not from the last choice.
+  useEffect(() => {
+    if (starting === 'export') setNotebookId(preset ?? '');
+  }, [starting, preset]);
   const refresh = useRefreshTransfers();
   const notebooks = useQuery({
     queryKey: queryKeys.notebooks(),
@@ -109,7 +123,7 @@ export function TransferDialogs({
         onConfirm={(carrying) => void begin(carrying)}
         onClose={onClose}
       />
-      <ImportDialog open={starting === 'import'} onClose={onClose} />
+      <ImportDialog open={starting === 'import'} onClose={onClose} exportId={exportId} />
     </>
   );
 }

@@ -9,6 +9,8 @@ import {
   backlinksSchema,
   graphNodeSchema,
   noteLinksSchema,
+  notebookHealthSchema,
+  notebookNamesSchema,
   searchResultSchema,
 } from '@memorysmith/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -176,5 +178,54 @@ describe('the connector reads Discovery as the contracts publish it', () => {
       { target: 'Portaria 9', resolvedBy: 'pending', notes: [] },
       { target: 'esquema de blocos', resolvedBy: 'attachment', notes: [] },
     ]);
+  });
+});
+
+describe('the sweep of a notebook reads its pending links beside its names (#217)', () => {
+  it('flags the pending link that almost reaches a note, and leaves the one on purpose', async () => {
+    const SESSION = '01JBQ2X000000000000000N010';
+    const ORION = '01JBQ2X000000000000000N011';
+    const health = notebookHealthSchema.parse({
+      orphans: [ref(ORION, 'M42 Orion Nebula')],
+      pendingLinks: [
+        { fromNote: ref(SESSION, 'Session 1'), targetName: 'M42' },
+        { fromNote: ref(SESSION, 'Session 1'), targetName: 'M81 Bodes Galaxy' },
+        // One target linked twice from one note is one note that links to it.
+        { fromNote: ref(SESSION, 'Session 1'), targetName: 'M81 Bodes Galaxy' },
+      ],
+    });
+    const names = notebookNamesSchema.parse({
+      notes: [ref(SESSION, 'Session 1'), ref(ORION, 'M42 Orion Nebula')],
+      attachments: [],
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async (url: string) =>
+          new Response(JSON.stringify(String(url).endsWith('/health') ? health : names), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          }),
+      ),
+    );
+
+    const check = await new HttpDiscoveryGateway('https://api.example.com').checkNotebook(
+      caller,
+      'notebook',
+    );
+
+    expect(check.pending).toEqual([
+      {
+        target: 'M42',
+        from: [{ noteId: SESSION, name: 'Session 1', folderId: FOLDER }],
+        likelyMeant: { name: 'M42 Orion Nebula', kind: 'note', noteId: ORION },
+      },
+      {
+        target: 'M81 Bodes Galaxy',
+        from: [{ noteId: SESSION, name: 'Session 1', folderId: FOLDER }],
+        likelyMeant: null,
+      },
+    ]);
+    expect(check.orphans).toEqual([{ noteId: ORION, name: 'M42 Orion Nebula', folderId: FOLDER }]);
   });
 });

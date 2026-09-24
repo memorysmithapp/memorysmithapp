@@ -72,6 +72,7 @@ import {
   InMemoryFileRepository,
   InMemoryFileStore,
   InMemoryStorageBudget,
+  InMemoryStorageUsage,
   InMemoryDatabase,
   InMemoryNoteRepository,
   InMemoryNotebookRepository,
@@ -133,7 +134,11 @@ import {
 import { InMemoryTransferStore } from '@memorysmith/svc-portability/adapters/dynamo';
 import { ExportNotebook } from '@memorysmith/svc-portability/application';
 import { createZip, readZip } from '@memorysmith/svc-portability/adapters/zip';
-import { ImportNotebook, PrepareImport } from '@memorysmith/svc-portability/application/import';
+import {
+  ImportFromExport,
+  ImportNotebook,
+  PrepareImport,
+} from '@memorysmith/svc-portability/application/import';
 import { KnowledgeNotebookWriter } from '../src/import-writer.js';
 import { parseNotebookDocument } from '../src/composition-root.js';
 import { KnowledgeExportSource } from '../src/export-source.js';
@@ -169,6 +174,9 @@ import {
 import type { DiscoveryUseCases } from '@memorysmith/svc-discovery/adapters/http';
 import { ProjectNote, ProjectStructure } from '@memorysmith/svc-discovery/application/projections';
 import { createApp } from '../src/app.js';
+import { ReadStorageUsage } from '@memorysmith/svc-knowledge/application/usage';
+import { StorageQuota } from '@memorysmith/svc-access/domain/values';
+import { noSubscription, SubscriptionUsageReport } from '../src/usage.js';
 
 export class RecordingEventPublisher implements EventPublisher {
   readonly published: DomainEvent[] = [];
@@ -241,6 +249,12 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
    */
   /** Shared by every use case of this app, exactly as the counter is in production. */
   const storage = new InMemoryStorageBudget();
+  /**
+   * Events no use case of the harness writes, because the worker that writes
+   * them is not here: what a purge would have recorded, which a test adds to
+   * say the purge ran (#197).
+   */
+  const relayed: DomainEvent[] = [];
 
   /**
    * One repository per subscription and kept between calls: a use case is
@@ -331,6 +345,39 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     },
     connectorOfSession: (request) =>
       new ConnectorOfSession(scopedAccess(request)?.connectors ?? null, CONNECTOR_CLIENT_ID),
+    /**
+     * What fills the space (#197). The counters are what the relay would have
+     * made of every event this subscription recorded — the same arithmetic,
+     * applied to a map — and the budget is the one the session reads.
+     */
+    subscriptionUsage: (request) => {
+      const context = request.context;
+      const scoped = scopedAccess(request);
+      if (!context || !scoped) return { execute: async () => noSubscription() };
+      return new SubscriptionUsageReport({
+        resolve: () => new ResolveRequestContext(scoped.subscriptions).execute(context),
+        knowledge: (ctx) => {
+          const usage = new InMemoryStorageUsage();
+          usage.record(
+            [...events.published, ...relayed].filter(
+              (event) => event.subscriptionId.value === context.subscriptionId.value,
+            ),
+          );
+          return new ReadStorageUsage({
+            notebooks: knowledgeRepos(context).notebooks,
+            usage,
+          }).execute({ ctx });
+        },
+        kept: () => transfers.keptUsage(),
+        budget: async () => ({
+          usedBytes: storage.usedBytes,
+          limitBytes: (
+            accessDb.subscriptions.get(`S#${context.subscriptionId.value}`)?.subscription.quota ??
+            StorageQuota.DEFAULT
+          ).bytes,
+        }),
+      });
+    },
   };
 
   const knowledgeUseCases: KnowledgeUseCases = {
@@ -467,6 +514,13 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       if (refusals.discard) throw refusals.discard;
       uploads.delete(key);
     },
+    // A kept export becomes an upload without leaving the store (#207).
+    copyFrom: async (source: string, key: string) => {
+      const archive = archives.get(source);
+      if (!archive) return false;
+      uploads.set(key, archive);
+      return true;
+    },
   };
   const archiveStore = {
     put: async (key: string, archive: Buffer) => {
@@ -528,6 +582,13 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     cancelTransfer: (request) => new CancelTransfer(transfers, request.subscription.userId.value),
     prepareImport: (request) =>
       new PrepareImport(uploadStore, request.subscription.subscriptionId.value),
+    importFromExport: (request) =>
+      new ImportFromExport(
+        transfers,
+        uploadStore,
+        request.subscription.subscriptionId.value,
+        request.subscription.userId.value,
+      ),
     startImport: (request) =>
       new StartImport(
         transfers,
@@ -658,6 +719,8 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     projectStructure,
     archives,
     uploads,
+    /** What the purge worker would have recorded, for the counters to read (#197). */
+    relayed,
     /** Makes the discard of an upload fail, or stop failing when given null. */
     refuseDiscard: (error: Error | null): void => {
       refusals.discard = error;

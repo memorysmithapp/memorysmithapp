@@ -21,7 +21,7 @@ import { ProjectionsStack } from '../stacks/projections.stack.js';
 import { AgentStack } from '../stacks/agent.stack.js';
 import { FrontendHostingStack } from '../stacks/frontend-hosting.stack.js';
 import { FrontendReleaseStack } from '../stacks/frontend-release.stack.js';
-import { PipelineStack } from '../stacks/pipeline.stack.js';
+import { GithubDeliveryStack } from '../stacks/github-delivery.stack.js';
 import { deploymentOf, tagDelivery } from '../constructs/deployment.js';
 import { environmentOf, stackId } from '../config/environments.js';
 
@@ -118,17 +118,36 @@ const release = new FrontendReleaseStack(app, id('FrontendRelease'), {
 });
 
 /**
- * The pipeline of this environment, once its connection to GitHub exists. It
- * is deployed by hand once, after `cdk bootstrap`, and deploys itself from
- * then on (section 20).
+ * What lets GitHub Actions deliver both environments: one OIDC provider and a
+ * role per environment (section 20). It belongs to the account, not to an
+ * environment, so only a synth of production, which owns the account, declares
+ * it, and it is deployed by hand once, after `cdk bootstrap`:
+ *
+ *   cdk deploy MemorysmithGithubDelivery -c environment=production
+ *
+ * A delivery never names it, so no run can change what it may do.
  */
-if (environment.pipeline.connectionArn) {
-  new PipelineStack(app, id('Pipeline'), { env, environment });
+if (environment.name === 'production') {
+  const named = (name: string) =>
+    environmentOf({
+      tryGetContext: (key) => (key === 'environment' ? name : app.node.tryGetContext(key)),
+    });
+  const github = new GithubDeliveryStack(app, 'MemorysmithGithubDelivery', {
+    env,
+    repository: environment.repository,
+    subject: environment.repositorySubject,
+    production: named('production'),
+    staging: named('staging'),
+  });
+  Tags.of(github).add('app:project', 'memorysmith');
 }
 
-Tags.of(app).add('app:project', 'memorysmith');
-Tags.of(app).add('app:environment', environment.name);
+for (const stack of [network, data, identity, api, projections, agent, hosting, release]) {
+  Tags.of(stack).add('app:project', 'memorysmith');
+  Tags.of(stack).add('app:environment', environment.name);
+}
 // Derived, never written literally: a version repeated by hand is a version that
 // drifts, and this tag had been asserting 0.2.0 through two releases. It goes on
-// what a deploy delivers, and never on the pipeline, which delivers every version.
+// what a deploy delivers, and never on the roles of GitHub, which deliver every
+// version.
 tagDelivery([network, data, identity, api, projections, agent, hosting, release], deployment);

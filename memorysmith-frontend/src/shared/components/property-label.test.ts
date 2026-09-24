@@ -16,12 +16,23 @@
 
 import { describe, expect, it } from 'vitest';
 import { DRAWN_RESERVED_KEYS } from '@memorysmith/contracts';
-import { orderedProperties, propertyLabel } from './PropertyValue';
+import { orderedProperties, propertyLabel, propertyType, readableValue } from './PropertyValue';
 import en from '../../i18n/locales/en_US.json' with { type: 'json' };
 import pt from '../../i18n/locales/pt_BR.json' with { type: 'json' };
 
 /** A translator that makes the lookup visible. */
 const t = (key: string): string => `<${key}>`;
+
+describe('a reserved key is labelled as it is written (#218)', () => {
+  it('reads tags and aliases in lowercase in both locales, as every other key', () => {
+    // Every agent and every Template writes the frontmatter in lowercase, and
+    // the panel showed two keys capitalised, in pt_BR in another word.
+    for (const key of ['tags', 'aliases']) {
+      expect((en.reserved as Record<string, string>)[key]).toBe(key);
+      expect((pt.reserved as Record<string, string>)[key]).toBe(key);
+    }
+  });
+});
 
 describe('a reserved key may be shown translated', () => {
   it.each([...DRAWN_RESERVED_KEYS])('translates %s', (key) => {
@@ -106,5 +117,37 @@ describe('the properties are drawn in a declared order (RN-DSC-051)', () => {
         ['title', 'Lei geral de licitações'],
       ]),
     ).toEqual(['title']);
+  });
+});
+
+/**
+ * A boolean and a date are drawn in the locale of the reader, and the typed
+ * value stays what it was (#193).
+ */
+describe('a boolean or a date is drawn as the reader reads it', () => {
+  const words = (key: string): string =>
+    ({ 'note.propertyTrue': 'Sim', 'note.propertyFalse': 'Não' })[key] ?? key;
+
+  it.each([
+    ['true', 'Sim'],
+    ['yes', 'Sim'],
+    ['False', 'Não'],
+    ['no', 'Não'],
+  ])('%s is %s', (typed, drawn) => {
+    expect(readableValue(typed, propertyType(typed, false), 'pt-BR', words)).toBe(drawn);
+  });
+
+  it('writes a date the way the locale does, on the day that was typed whatever the zone', () => {
+    expect(readableValue('2026-09-21', 'date', 'pt-BR', words)).toBe('21 de set. de 2026');
+    expect(readableValue('2026-09-21', 'date', 'en-US', words)).toBe('Sep 21, 2026');
+  });
+
+  it('carries the time when the note wrote one', () => {
+    expect(readableValue('2026-09-21T14:30', 'date', 'en-US', words)).toMatch(/Sep 21, 2026.*2:30/);
+  });
+
+  it('leaves a date that does not exist as it was typed, and text as text', () => {
+    expect(readableValue('2026-02-31', 'date', 'pt-BR', words)).toBeNull();
+    expect(readableValue('draft', 'text', 'pt-BR', words)).toBeNull();
   });
 });

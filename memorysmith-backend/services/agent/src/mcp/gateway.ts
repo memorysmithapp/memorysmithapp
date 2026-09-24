@@ -64,6 +64,30 @@ export interface NoteReference {
   readonly folderId: string;
 }
 
+/**
+ * What a notebook left pending, and what looks broken in it (#217): the answer
+ * of `check_notebook`, the sweep an agent runs before it says it is done.
+ */
+export interface NotebookCheck {
+  /** Every name linked to that no note carries yet, with the notes that link to it. */
+  readonly pending: ReadonlyArray<{
+    readonly target: string;
+    readonly from: readonly NoteReference[];
+    /**
+     * What the link most likely meant, when it almost reaches a note or a file
+     * the notebook has: then it looks broken, and the link is what to fix.
+     * Null for a link left on purpose, to a note not written yet.
+     */
+    readonly likelyMeant: {
+      readonly name: string;
+      readonly kind: 'note' | 'file';
+      readonly noteId: string | null;
+    } | null;
+  }>;
+  /** Notes nothing links to. */
+  readonly orphans: readonly NoteReference[];
+}
+
 export interface NoteContent {
   readonly noteId: string;
   readonly name: string | null;
@@ -289,6 +313,7 @@ export interface DiscoveryGateway {
     input: { notebookId: string; noteId: string; depth?: number },
   ): Promise<RelatedNode>;
   backlinks(caller: AgentCaller, notebookId: string, noteId: string): Promise<NoteReference[]>;
+  checkNotebook(caller: AgentCaller, notebookId: string): Promise<NotebookCheck>;
 }
 
 export interface AuditGateway {

@@ -21,13 +21,22 @@ export type AppLocale = 'en_US' | 'pt_BR';
 export interface Words {
   /** The heading over the notebooks of the dashboard. */
   readonly openNotebook: string;
+  /** The BCP 47 tag the case compares names in. */
+  readonly locale: string;
+  /** The heading of the space of the subscription on Home (#198). */
+  readonly space: string;
+  /** The ⋯ of a notebook card and what it holds (#199). */
+  readonly moreActions: string;
+  readonly exportNotebook: string;
+  readonly deleteNotebook: string;
+  readonly keep: string;
+  readonly deleteForGood: string;
   /** The link the row of a finished import carries, which is another text. */
   readonly openImported: string;
   readonly context: string;
   readonly guidance: string;
   readonly templates: string;
   readonly graph: string;
-  readonly root: string;
   readonly notesInFolder: string;
   readonly notFound: string;
   readonly version: string;
@@ -56,7 +65,10 @@ export interface Words {
   /** The tab every refusal is in, which opens only when there is one. */
   readonly tabConflicts: string;
   /** The button of the foot that opens it. */
-  readonly showTwins: string;
+  /** The foot of an import that refuses, which counts what refuses (#205). */
+  readonly inconsistency: string;
+  /** The space the kept exports take, as the page says it (#205). */
+  readonly ofYourPlan: string;
   /** What the import dialog commits with, which is the verb alone (#160). */
   readonly importAction: string;
   /** The whole notebook, or part of it: the head of the first tab (#161). */
@@ -65,10 +77,19 @@ export interface Words {
   readonly tabNotes: string;
   readonly newExport: string;
   readonly startExport: string;
-  readonly willCreateNoNotes: string;
+  /** The folders and the notes as the summary of an import counts them. */
+  readonly willCreateFolders: string;
+  /** The gear of the graph, and the × of its panel (#220). */
+  readonly openGraphControls: string;
+  readonly closeGraphControls: string;
+  readonly willCreateNotes: RegExp;
   readonly pending: (target: string) => string;
   /** The entry of the user menu that reopens the welcome surface (#167). */
   readonly aboutMenu: string;
+  /** The user menu, as a menu is named (#201). */
+  readonly accountMenu: string;
+  readonly themeDark: string;
+  readonly themeLight: string;
   /** Its heading, and the section that carries the address of the connector. */
   readonly aboutHeading: string;
   readonly aboutConnector: string;
@@ -92,15 +113,21 @@ export interface Words {
 export const WORDS: Record<AppLocale, Words> = {
   en_US: {
     openNotebook: 'Open a notebook',
+    locale: 'en-US',
+    space: 'Subscription space',
+    moreActions: 'More actions',
+    exportNotebook: 'Export notebook',
+    deleteNotebook: 'Delete notebook…',
+    keep: 'Keep',
+    deleteForGood: 'Delete for good',
     openImported: 'Open notebook',
     context: 'Notebook Context',
     guidance: 'Guidance',
     templates: 'Templates',
     graph: 'Notebook graph',
-    root: 'Root',
     notesInFolder: 'Notes in this folder',
     notFound: 'Not found.',
-    version: 'Version',
+    version: 'MemorySmith.app',
     tryAgain: 'Try again',
     deleteSlot: 'Delete',
     deleteSlotForGood: 'Delete for good',
@@ -119,15 +146,22 @@ export const WORDS: Record<AppLocale, Words> = {
     nameTakenBlock: 'The name is already a notebook of yours',
     nameTakenTitle: 'is already in use',
     tabConflicts: 'Conflicts',
-    showTwins: 'See why',
+    inconsistency: 'inconsistenc',
+    ofYourPlan: 'of your plan',
     importAction: 'Import',
     partOfIt: 'Part of it',
     tabNotes: 'Notes',
     newExport: 'New export',
     startExport: 'Export',
-    willCreateNoNotes: '0 notes',
+    willCreateFolders: 'folders',
+    openGraphControls: 'Open controls',
+    closeGraphControls: 'Close controls',
+    willCreateNotes: /\bnotes?\b/,
     pending: (target) => `No note carries the name “${target}” yet.`,
     aboutMenu: 'About MemorySmith.app',
+    accountMenu: 'Account menu',
+    themeDark: 'Dark',
+    themeLight: 'Light',
     aboutHeading: 'Welcome to MemorySmith.app',
     aboutConnector: 'Connecting your AI assistant',
     profileMenu: 'Your profile',
@@ -144,15 +178,21 @@ export const WORDS: Record<AppLocale, Words> = {
   },
   pt_BR: {
     openNotebook: 'Abrir um caderno',
+    locale: 'pt-BR',
+    space: 'Espaço da assinatura',
+    moreActions: 'Mais ações',
+    exportNotebook: 'Exportar caderno',
+    deleteNotebook: 'Apagar caderno…',
+    keep: 'Manter',
+    deleteForGood: 'Apagar de vez',
     openImported: 'Abrir o caderno',
     context: 'Contexto do caderno',
     guidance: 'Orientação',
     templates: 'Modelos',
     graph: 'Grafo do caderno',
-    root: 'Raiz',
     notesInFolder: 'Notas nesta pasta',
     notFound: 'Não encontrado.',
-    version: 'Versão',
+    version: 'MemorySmith.app',
     tryAgain: 'Tentar de novo',
     deleteSlot: 'Apagar',
     deleteSlotForGood: 'Apagar de vez',
@@ -171,15 +211,22 @@ export const WORDS: Record<AppLocale, Words> = {
     nameTakenBlock: 'O nome já é de um caderno seu',
     nameTakenTitle: 'já está em uso',
     tabConflicts: 'Inconsistências',
-    showTwins: 'Ver o motivo',
+    inconsistency: 'inconsistência',
+    ofYourPlan: 'do seu plano',
     importAction: 'Importar',
     partOfIt: 'Parte dele',
     tabNotes: 'Notas',
     newExport: 'Nova exportação',
     startExport: 'Exportar',
-    willCreateNoNotes: '0 notas',
+    willCreateFolders: 'pastas',
+    openGraphControls: 'Abrir controles',
+    closeGraphControls: 'Fechar controles',
+    willCreateNotes: /\bnotas?\b/,
     pending: (target) => `Nenhuma nota se chama “${target}” ainda.`,
     aboutMenu: 'Sobre o MemorySmith.app',
+    accountMenu: 'Menu da conta',
+    themeDark: 'Escuro',
+    themeLight: 'Claro',
     aboutHeading: 'Bem-vindo ao MemorySmith.app',
     aboutConnector: 'Conectando seu assistente de IA',
     profileMenu: 'Seu perfil',

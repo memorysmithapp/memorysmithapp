@@ -21,8 +21,11 @@ export const queryKeys = {
   /** The catalogue of the account. */
   notebooks: () => ['notebooks'] as const,
 
-  /** Four numbers about everything the account holds. */
-  liveStats: () => ['live-stats'] as const,
+  /**
+   * What fills the space of the subscription (#197). Deleting a notebook, a
+   * note, a file or an export moves it, so each of those invalidates it.
+   */
+  subscriptionUsage: () => ['subscription-usage'] as const,
 
   /**
    * The tree of a notebook: its folders, its notes and their names. It is also

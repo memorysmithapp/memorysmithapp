@@ -15,7 +15,7 @@ import {
   teardownOrder,
 } from '../commands/lib/teardown.js';
 import { stackId } from '../config/environments.js';
-import { PRODUCT_STACKS } from '../stacks/pipeline.stack.js';
+import { readFileSync } from 'node:fs';
 
 const PRODUCTION = '111111111111';
 const STAGING = '222222222222';
@@ -56,12 +56,19 @@ describe('what a teardown refuses', () => {
 });
 
 describe('the order of a teardown', () => {
-  it('is the reverse of a delivery, and never names the pipeline that runs it', () => {
-    expect(DELIVERY_ORDER).toEqual(PRODUCT_STACKS);
+  it('is the reverse of a delivery, and never names the roles GitHub delivers with', () => {
     expect(teardownOrder('staging')).toEqual(
-      [...PRODUCT_STACKS].reverse().map((name) => stackId({ name: 'staging' }, name)),
+      [...DELIVERY_ORDER].reverse().map((name) => stackId({ name: 'staging' }, name)),
     );
-    expect(teardownOrder('staging').join(' ')).not.toContain('Pipeline');
+    expect(teardownOrder('staging').join(' ')).not.toContain('Github');
+  });
+
+  it('names every stack of the product the app declares, and only those', () => {
+    const app = readFileSync(new URL('../bin/app.ts', import.meta.url), 'utf8');
+    const declared = [...app.matchAll(/new \w+Stack\(app, id\('(\w+)'\)/g)].map(
+      (match) => match[1],
+    );
+    expect([...declared].sort()).toEqual([...DELIVERY_ORDER].sort());
   });
 
   it('names a stack the way the app does', () => {
@@ -98,7 +105,6 @@ describe('what the stacks leave behind', () => {
           '/aws/lambda/MemorysmithStagingApi-Handler',
           '/aws/lambda/MemorysmithStagingFrontendRelease-Deploy',
           '/aws/lambda/MemorysmithProductionApi-Handler',
-          '/aws/lambda/MemorysmithStagingPipeline-Anything',
         ],
         functions: ['MemorysmithStagingFrontendRelease-Deploy'],
       }),

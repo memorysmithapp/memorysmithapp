@@ -3,6 +3,7 @@ import { useNotebookId } from './notebook-id';
 import { LinkChoice, linkTargetOf } from './LinkChoice';
 import {
   isValidElement,
+  useRef,
   type AnchorHTMLAttributes,
   type HTMLAttributes,
   type ImgHTMLAttributes,
@@ -31,6 +32,7 @@ import { Fragment, jsx, jsxs } from 'react/jsx-runtime';
 import { highlightLanguage, highlightTree } from '../api/highlight';
 import 'katex/dist/katex.min.css';
 import { MermaidDiagram } from './MermaidDiagram';
+import { CopyButton } from './CopyButton';
 
 interface MarkdownProps {
   children: string;
@@ -249,6 +251,44 @@ function MarkdownCode({
   );
 }
 
+/**
+ * A fenced block in a frame of its own, with the verb that carries it
+ * somewhere else (#194): the look of the connector box of the welcome page,
+ * which is where the product already drew code. The frame is not the `pre`:
+ * the `pre` scrolls and never wraps, since a wrapped line breaks indentation
+ * that carries meaning, and the button has to stay in its corner while the
+ * content scrolls under it.
+ *
+ * What is copied is the `textContent` of the code, which is the bytes as
+ * typed because the highlighter's tokens arrive as elements, less the newline
+ * before the closing fence.
+ *
+ * A diagram is not code on the page: its fence is left bare, with no frame and
+ * nothing to copy.
+ */
+function MarkdownPre({ children, node, ...rest }: WithNode<HTMLAttributes<HTMLPreElement>>) {
+  const ref = useRef<HTMLPreElement>(null);
+  const code = (node as HastElement | undefined)?.children?.find(
+    (child) => child.tagName === 'code',
+  );
+  const classes = code?.properties?.['className'];
+  if (Array.isArray(classes) && classes.includes('language-mermaid')) {
+    return <pre {...rest}>{children}</pre>;
+  }
+
+  return (
+    <div className="code-block">
+      <pre ref={ref} {...rest}>
+        {children}
+      </pre>
+      <CopyButton
+        className="code-copy"
+        text={() => (ref.current?.querySelector('code')?.textContent ?? '').replace(/\n$/, '')}
+      />
+    </div>
+  );
+}
+
 /** The hast element react-markdown hands a component, as much as is used. */
 interface HastElement {
   readonly tagName?: string;
@@ -385,6 +425,7 @@ export function Markdown({ children, source, onToggleTask, writable = false }: M
         components={{
           a: MarkdownAnchor,
           code: MarkdownCode,
+          pre: MarkdownPre,
           img: MarkdownImage,
           li: (props: LiProps) => (
             <TaskItem

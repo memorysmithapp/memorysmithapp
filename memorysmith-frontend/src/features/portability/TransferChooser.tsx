@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { intlLocale } from '../../i18n';
 import { Tabs } from '../../shared/components/Tabs';
+import { Segmented } from '../../shared/components/Segmented';
 import {
   offeredFolders,
   pickBranch,
@@ -242,8 +243,8 @@ export function TransferChooser({
  *
  * Under **the whole notebook** the five rows are still drawn, ticked and
  * frozen: they are no longer a question, and they are the answer to *what does
- * the whole notebook mean here* — which the sentence beside the choice says in
- * words and these rows say in numbers.
+ * the whole notebook mean here* — in numbers, and for this notebook, where a
+ * sentence beside the choice promised a history some notebooks do not have.
  */
 function ScopePanel({
   tree,
@@ -288,9 +289,6 @@ function ScopePanel({
             />
             <span>
               <strong>{t(`portability.preset.${each}`)}</strong>
-              {each === 'everything' && preset === 'everything' && (
-                <small>{t('portability.wholeNotebookHint')}</small>
-              )}
             </span>
           </label>
         ))}
@@ -395,38 +393,30 @@ function ScopeRow({
           nothing, and a disabled one draws its tick so faintly that five of
           them read as five empty squares under a choice saying everything
           goes. */}
-      {frozen ? (
-        <span className="chooser-label">
-          <span className="chooser-mark" aria-hidden="true">
-            {checked ? '✓' : ''}
-          </span>
-          <span className="chooser-name">{label}</span>
-        </span>
-      ) : (
-        <label className="chooser-label">
-          <input
-            type="checkbox"
-            checked={checked}
-            disabled={missing}
-            onChange={(event) => onToggle(event.target.checked)}
-          />
-          <span className="chooser-name">{label}</span>
-        </label>
-      )}
+      <label className="chooser-label">
+        <input
+          type="checkbox"
+          className="box"
+          checked={checked}
+          disabled={missing || frozen}
+          onChange={(event) => onToggle(event.target.checked)}
+        />
+        <span className="chooser-name">{label}</span>
+      </label>
       {reach && onReach && (
-        <div className="chooser-reach" role="radiogroup" aria-label={label}>
-          {(['all', 'choose'] as const).map((each) => (
-            <label key={each} className="chooser-reach-option">
-              <input
-                type="radio"
-                name={`reach-${kind}`}
-                checked={reach === each}
-                onChange={() => onReach(each)}
-              />
-              <span>{t(`portability.reach.${each}`)}</span>
-            </label>
-          ))}
-        </div>
+        /* Everything, or item by item, as the small segmented control of the
+           Controles (#205): two short options, one of them chosen. */
+        <span className="chooser-reach">
+          <Segmented
+            label={label}
+            value={reach}
+            onChange={onReach}
+            options={(['all', 'choose'] as const).map((each) => ({
+              value: each,
+              label: t(`portability.reach.${each}`),
+            }))}
+          />
+        </span>
       )}
       {note !== undefined && <span className="chooser-note">{note}</span>}
     </li>
@@ -623,45 +613,41 @@ function ConflictsPanel({
     <>
       <p className="chooser-scoping">{t('portability.conflictsWhy')}</p>
       <div className="chooser-scroll">
-        {nameTaken !== null && (
-          <ul className="chooser-twins">
+        <ul className="chooser-twins">
+          {nameTaken !== null && (
             <li className="chooser-twin">
-              <span className="chooser-twin-name">
-                {t('portability.nameTakenTitle', { name: nameTaken })}
+              <span className="chooser-twin-text">
+                <strong>{t('portability.nameTakenTitle', { name: nameTaken })}</strong>
+                <span>{t('portability.nameTakenWhy')}</span>
               </span>
-              <span className="chooser-twin-where">{t('portability.nameTakenWhy')}</span>
               {onFixName && (
-                <button type="button" className="chooser-twins-open" onClick={onFixName}>
+                <button type="button" className="button is-quiet is-small" onClick={onFixName}>
                   {t('portability.changeName')}
                 </button>
               )}
             </li>
-          </ul>
-        )}
-        {twins.length > 0 && (
-          <>
-            <p className="chooser-conflict-why">{t('portability.twinsWhy')}</p>
-            <ul className="chooser-twins">
-              {twins.map((twin) => (
-                <li key={`${twin.folderId}-${twin.name}`} className="chooser-twin">
-                  <span className="chooser-twin-name">{twin.name}</span>
-                  <span className="chooser-twin-where">
-                    {t('portability.twinWhere', { count: twin.count, folder: twin.folderName })}
-                  </span>
-                  {onFindNote && (
-                    <button
-                      type="button"
-                      className="chooser-twins-open"
-                      onClick={() => onFindNote(twin.name)}
-                    >
-                      {t('portability.findTwin')}
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
+          )}
+          {twins.map((twin) => (
+            <li key={`${twin.folderId}-${twin.name}`} className="chooser-twin">
+              <span className="chooser-twin-text">
+                <strong>{t('portability.twinTitle', { name: twin.name })}</strong>
+                <span>
+                  {t('portability.twinWhere', { count: twin.count, folder: twin.folderName })}.{' '}
+                  {t('portability.twinWhy')}
+                </span>
+              </span>
+              {onFindNote && (
+                <button
+                  type="button"
+                  className="button is-quiet is-small"
+                  onClick={() => onFindNote(twin.name)}
+                >
+                  {t('portability.findTwin')}
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
       </div>
     </>
   );

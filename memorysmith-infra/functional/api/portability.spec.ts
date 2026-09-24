@@ -137,7 +137,7 @@ test.describe('a notebook out and back in', () => {
       mimeType: 'image/png',
       tags: ['portable'],
       path: '/evidence',
-      bytes: png,
+      contentBase64: png,
     });
     // And a note that shows it, so what the round trip has to preserve is the
     // reference as much as the bytes.
@@ -166,9 +166,9 @@ test.describe('a notebook out and back in', () => {
     const imported = await importedFrom(owner, upload.uploadKey, unique('With files'));
     expect(imported.status).toBe('ready');
 
-    const files = await owner.ok<
-      Array<{ name: string; mimeType: string; path: string; tags: string[]; bytes: number }>
-    >('GET', `/knowledge/notebooks/${imported.notebookId ?? ''}/files`);
+    const { files } = await owner.ok<{
+      files: Array<{ name: string; mimeType: string; path: string; tags: string[]; bytes: number }>;
+    }>('GET', `/knowledge/notebooks/${imported.notebookId ?? ''}/files`);
     const brought = files.find((file) => file.name === name);
     expect(brought, 'the file came back under its name').toBeDefined();
     expect(brought?.mimeType).toBe('image/png');
@@ -253,6 +253,57 @@ test.describe('the transfers of a person', () => {
     const imported = await importedFrom(owner, upload.uploadKey, unique('Back from the dead'));
     expect(imported.status).toBe('ready');
     expect(imported.done).toBe(transfer.total);
+
+    await owner.call('DELETE', `/portability/transfers/${transfer.transferId}`);
+  });
+
+  /**
+   * The way back from a deletion without the archive passing through the
+   * device: the kept export is copied to an upload where it is kept, and
+   * applied like any upload (#207, RN-PRT-020).
+   */
+  test('[route:POST /portability/imports/from-export] imports a kept export from where it is kept, and it stays kept', async ({
+    owner,
+    other,
+    notebook,
+  }) => {
+    const transfer = await exported(owner, notebook.notebookId);
+    expect((await owner.call('DELETE', `/knowledge/notebooks/${notebook.notebookId}`)).status).toBe(
+      204,
+    );
+
+    // Somebody else's export is a key that does not exist (rule 9), and so
+    // is one that never existed.
+    expect(
+      (
+        await other.call('POST', '/portability/imports/from-export', {
+          transferId: transfer.transferId,
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (await owner.call('POST', '/portability/imports/from-export', { transferId: unknownId() }))
+        .status,
+    ).toBe(404);
+
+    const upload = await owner.ok<{ uploadKey: string }>(
+      'POST',
+      '/portability/imports/from-export',
+      { transferId: transfer.transferId },
+    );
+    const imported = await importedFrom(owner, upload.uploadKey, unique('From where it is kept'));
+    expect(imported.status).toBe('ready');
+    expect(imported.done).toBe(transfer.total);
+
+    // Read and never consumed: the export is still kept, and still ready.
+    const kept = await owner.ok<TransferDto>(
+      'GET',
+      `/portability/transfers/${transfer.transferId}`,
+    );
+    expect(kept.status).toBe('ready');
+    expect(
+      (await owner.call('POST', `/portability/transfers/${transfer.transferId}/download`)).status,
+    ).toBe(200);
 
     await owner.call('DELETE', `/portability/transfers/${transfer.transferId}`);
   });

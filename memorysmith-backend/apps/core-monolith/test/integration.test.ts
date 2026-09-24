@@ -705,6 +705,70 @@ describe('Portability answers over the API', () => {
     ).toBe(200);
   });
 
+  it('is imported from where it is kept, and stays kept (#207)', async () => {
+    const { notebookId } = await seed();
+    const started = await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
+    const { transferId } = (await started.json()) as { transferId: string };
+    await call(`/knowledge/notebooks/${notebookId}`, { method: 'DELETE' });
+
+    // The archive is copied to an upload where it is kept: nothing travels
+    // down to the device and back up (RN-PRT-020).
+    const copied = await call('/portability/imports/from-export', {
+      method: 'POST',
+      body: { transferId },
+    });
+    expect(copied.status).toBe(200);
+    const { uploadKey } = (await copied.json()) as { uploadKey: string };
+    // The key an ordinary upload gets, which `apply` takes unchanged.
+    expect(uploadKey).toMatch(
+      /^s\/[0-9A-HJKMNP-TV-Z]{26}\/imports\/[0-9A-HJKMNP-TV-Z]{26}\.notebook$/,
+    );
+
+    // The name is free again: the notebook that held it was deleted.
+    const job = await imported_(uploadKey, 'Normas e Legislacao');
+    expect(job.status).toBe('ready');
+    expect(job.notebookId).not.toBe(notebookId);
+
+    // The export is read, never consumed: still listed, still downloadable.
+    expect(harness.archives.size).toBe(1);
+    expect(
+      (await call(`/portability/transfers/${transferId}/download`, { method: 'POST' })).status,
+    ).toBe(200);
+  });
+
+  it('refuses to import an export the requester did not generate, as missing (#207)', async () => {
+    const { notebookId } = await seed();
+    const started = await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
+    const { transferId } = (await started.json()) as { transferId: string };
+    harness.verifier.issue('token-b', { sub: 'user-b', email: 'b@example.com' });
+    const other = await call('/access/subscriptions', {
+      method: 'POST',
+      body: {},
+      token: 'token-b',
+    });
+    const { subscriptionId } = (await other.json()) as { subscriptionId: string };
+    await call(`/access/platform/subscriptions/${subscriptionId}/approve`, {
+      method: 'POST',
+      body: { status: 'active' },
+      token: 'platform-token',
+    });
+    harness.verifier.issue('token-b', {
+      sub: 'user-b',
+      email: 'b@example.com',
+      subscription_id: subscriptionId,
+      subscription_status: 'active',
+    });
+
+    const attempt = await call('/portability/imports/from-export', {
+      method: 'POST',
+      body: { transferId },
+      token: 'token-b',
+    });
+    // Rule 9: what the requester may not see answers as what does not exist.
+    expect(attempt.status).toBe(404);
+    expect(harness.uploads.size).toBe(0);
+  });
+
   it('takes a .notebook back and writes the notebook it describes', async () => {
     // The round trip is the test (RN-PRT-012): a notebook exported and imported
     // comes back the same in everything the document carries.

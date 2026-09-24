@@ -150,11 +150,6 @@ function slotColor(slot: number): string {
   return slot < VALUE_SLOTS ? `var(--val-${slot + 1})` : 'var(--val-other)';
 }
 
-/** The breakpoint at which the notebook sidebar becomes a drawer (styles.css). */
-function narrowScreen(): boolean {
-  return window.matchMedia('(max-width: 860px)').matches;
-}
-
 /**
  * Whether this device answers with a finger and not a pointer. It decides which
  * gestures the hint names: telling someone to scroll a wheel they do not have
@@ -203,11 +198,12 @@ export function GraphPage() {
    */
   const [drawn, setDrawn] = useState<readonly { name: string; slot: number }[]>([]);
   /**
-   * The panel floats over the drawing, so on a narrow screen it starts closed:
-   * there the graph is the whole screen, and a panel that opens on top of it
-   * uncalled hides the thing the person came to look at.
+   * The panel floats over the drawing, so it starts closed, behind the gear,
+   * on every screen (#220): the graph is what the page is for, and a panel
+   * that opens on top of it uncalled hides the thing the person came to look
+   * at. The settings are one click away.
    */
-  const [controlsOpen, setControlsOpen] = useState(() => !narrowScreen());
+  const [controlsOpen, setControlsOpen] = useState(false);
   const [data, setData] = useState<GraphFile | null>(null);
   const [failed, setFailed] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);

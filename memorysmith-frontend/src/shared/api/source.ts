@@ -14,6 +14,7 @@ import type {
   DownloadLinkDto,
   FileLinkDto,
   NotebookFileDto,
+  SubscriptionUsageDto,
   TransferSelection,
   TransferDto,
   TransferListDto,
@@ -99,6 +100,14 @@ export function notesReaching(notebookId: string, target: string): string[] {
   const named = noteIdsNamed(notebookId, wanted);
   if (named.length > 0) return named;
   return spellings.get(notebookId)?.get(wanted) ?? [];
+}
+
+export function readUsage(): Promise<SubscriptionUsageDto> {
+  return backend.readUsage();
+}
+
+export function deleteNotebook(notebookId: string): Promise<void> {
+  return backend.deleteNotebook(notebookId);
 }
 
 export function listNotebooks(): Promise<NotebookSummary[]> {
@@ -253,6 +262,14 @@ export function getTransfer(transferId: string): Promise<TransferDto> {
 
 export function downloadTransfer(transferId: string): Promise<DownloadLinkDto> {
   return backend.downloadTransfer(transferId);
+}
+
+export function importFromExport(transferId: string): Promise<{ uploadKey: string }> {
+  return backend.importFromExport(transferId);
+}
+
+export function cancelTransfer(transferId: string): Promise<void> {
+  return backend.cancelTransfer(transferId);
 }
 
 export function deleteTransfer(transferId: string): Promise<void> {

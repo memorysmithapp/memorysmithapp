@@ -64,6 +64,9 @@ import {
   DynamoStructureProjection,
 } from '@memorysmith/svc-discovery/adapters/aws';
 import { DynamoTransferStore } from '@memorysmith/svc-portability/adapters/dynamo';
+import type { SubscriptionUsageQuery } from '@memorysmith/svc-access/adapters/http';
+import { ReadStorageUsage } from '@memorysmith/svc-knowledge/application/usage';
+import { noSubscription, SubscriptionUsageReport } from './usage.js';
 
 export interface Infrastructure {
   readonly db: DynamoDBDocumentClient;
@@ -213,6 +216,34 @@ export async function readStorageBudget(
     usedBytes: usedBytes + keptBytes,
     limitBytes: (subscription?.quota ?? StorageQuota.DEFAULT).bytes,
   };
+}
+
+/**
+ * What fills the space of the subscription the token names (#197, RN-SUB-024),
+ * assembled where the budget is and from the same halves: the content from
+ * Knowledge, the kept exports from Portability and the quota from Access —
+ * with `usedBytes` read through `readStorageBudget` itself, so the panel and
+ * the session can never say two different numbers.
+ */
+export function buildSubscriptionUsage(
+  infra: Infrastructure,
+  context: SubscriptionContext | null,
+): SubscriptionUsageQuery {
+  if (!context) return { execute: async () => noSubscription() };
+  return new SubscriptionUsageReport({
+    resolve: async () => {
+      const { scoped } = buildAccess(infra, context);
+      if (!scoped) return noSubscription();
+      return new ResolveRequestContext(scoped.subscriptions).execute(context);
+    },
+    knowledge: (ctx) =>
+      new ReadStorageUsage({
+        notebooks: new DynamoNotebookRepository(context, infra.db, infra.knowledgeTable),
+        usage: new DynamoStorageMeter(context, infra.db, infra.knowledgeTable),
+      }).execute({ ctx }),
+    kept: () => buildTransfers(infra, context).keptUsage(),
+    budget: () => readStorageBudget(infra, context),
+  });
 }
 
 /** The transfers of one subscription: the exports it keeps and the imports. */

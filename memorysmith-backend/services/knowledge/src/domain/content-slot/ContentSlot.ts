@@ -139,6 +139,13 @@ export abstract class ContentSlot {
     by: Authorship,
     contentRef: ContentRef | null,
     storageDelta: number,
+    /**
+     * What a write says beyond the slot it is about: `created` on the first
+     * one, which is what the count of the space a subscription holds moves by
+     * (#197), since a write that creates and one that replaces are both
+     * recorded as the same event.
+     */
+    extra: Record<string, unknown> = {},
   ): void {
     this.events.push(
       createEvent({
@@ -147,7 +154,7 @@ export abstract class ContentSlot {
         subject: this.subject,
         subjectId: this.subjectId,
         authorship: by,
-        payload: this.payload,
+        payload: { ...this.payload, ...extra },
         contentRef,
         storageDelta,
       }),

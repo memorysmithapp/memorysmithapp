@@ -11,6 +11,8 @@ export interface NotebookSummary {
   noteCount: number;
   /** ISO instant of the last write in the notebook, formatted at the edge. */
   updatedAt: string;
+  /** min(subscription role, notebook ceiling), owner above both (RN-ACC-011). */
+  effectiveRole: string;
 }
 
 export interface NoteSummary {
@@ -57,7 +59,8 @@ export interface NoteDetail {
   body: string;
   raw: string;
   /** The revision a write has to echo back (RN-AGT-005). */
-  revision: string;
+  revision: string; /** When it last changed, which the history of the note reaches a moment later. */
+  updatedAt: string;
 }
 
 /**

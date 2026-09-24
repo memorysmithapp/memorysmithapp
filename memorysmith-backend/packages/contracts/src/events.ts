@@ -217,8 +217,16 @@ export const notebookRestoredPayload = z.object({
   slug: slugSchema,
 });
 
+/**
+ * `created` says the write brought the slot into existence rather than
+ * replacing it, which is what the count of the space a subscription holds
+ * moves by (#197). Optional so an event written before it stays parseable.
+ */
+const slotCreatedSchema = z.boolean().optional();
+
 export const guidanceUpdatedPayload = z.object({
   notebookId: ulidSchema,
+  created: slotCreatedSchema,
 });
 
 /**
@@ -284,6 +292,7 @@ export const folderRemovedPayload = z.object({
 export const templateUpdatedPayload = z.object({
   notebookId: ulidSchema,
   folderId: ulidSchema,
+  created: slotCreatedSchema,
 });
 
 /** The Template of a folder was deleted, and the folder stays (RN-KNW-045). */
@@ -300,24 +309,44 @@ export const templateDeletedPayload = z.object({
  * a unit deleted on its own freed them at the deletion, and freeing them
  * twice would make the counter of the subscription lie.
  */
+/**
+ * What the counters of the space of a subscription move by when a unit is
+ * purged (#197): `live` says the unit was still counted when the purge found
+ * it — invalidated by its parent rather than deleted on its own — and
+ * `revisions` how many revisions of its content the purge destroyed. Both are
+ * optional so an event written before them stays parseable.
+ */
+const purgedUnitShape = {
+  live: z.boolean().optional(),
+  revisions: z.number().int().nonnegative().optional(),
+};
+
 export const notePurgedPayload = z.object({
   notebookId: ulidSchema,
   noteId: ulidSchema,
   folderId: ulidSchema,
+  ...purgedUnitShape,
 });
 
 export const templatePurgedPayload = z.object({
   notebookId: ulidSchema,
   folderId: ulidSchema,
+  ...purgedUnitShape,
 });
 
 export const guidancePurgedPayload = z.object({
   notebookId: ulidSchema,
+  ...purgedUnitShape,
 });
 
-/** The last event of a notebook: nothing of it is left in any table. */
+/**
+ * The last event of a notebook: nothing of it is left in any table.
+ * `folderCount` is how many folders the tree still held, which no
+ * `FolderRemoved` will ever say are gone (#197).
+ */
 export const notebookPurgedPayload = z.object({
   notebookId: ulidSchema,
+  folderCount: z.number().int().nonnegative().optional(),
 });
 
 /**

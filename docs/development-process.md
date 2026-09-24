@@ -319,10 +319,10 @@ months later, to answer why a rule exists by pointing at the sentence of a real 
 
 ### 8.1 Staging validation
 
-Delivery is a command a person runs (`architecture-guide.md` §20.1), so nothing in an account
-knows whether a branch was exercised: the author says it, and says what was exercised. **Nothing
-blocks the merge**: merging without a staging run is a decision that belongs to the author, and
-this section is what makes it one taken knowingly.
+Staging is delivered when a person starts its workflow on a branch (`architecture-guide.md`
+§20.1), so a branch may reach its pull request without ever running there: the author says whether
+it did, and what was exercised. **Nothing blocks the merge**: merging without a staging run is a
+decision that belongs to the author, and this section is what makes it one taken knowingly.
 
 ```
 ## Staging validation
@@ -331,9 +331,9 @@ this section is what makes it one taken knowingly.
 {or: nothing of this branch ran on staging, and the merge is the author's decision}
 ```
 
-A delivery of staging prints the version it served, which names the commit it was built from,
-and that sentence is what belongs here. What was exercised is the part no command can print: the
-screens opened, the tools called, the suites run against the environment.
+The run of the staging workflow states the version it served, which names the commit it was built
+from, and which suites it ran; its link and that sentence are what belong here. What was exercised
+by hand is the part no run can print: the screens opened and the tools called.
 
 ### 8.2 AI productivity analysis
 
@@ -431,24 +431,22 @@ Run in this exact order:
                                                              the compare links at the bottom of the file
 6. Commit on a release branch  "chore(release): bump version to vX.Y.Z"
 7. Push the branch, open a PR, and merge it into main (never push the bump directly to main)
-8. On main, run  pnpm -C memorysmith-infra release-checks    ← a version that disagrees anywhere,
-                                                               or whose tag exists, stops here
-9. Deliver it       pnpm -C memorysmith-infra deliver --environment production
-10. Publish it      pnpm -C memorysmith-infra publish-release ← the annotated tag vX.Y.Z on the
-                                                                merged commit, and the GitHub
-                                                                Release with that version's notes
+8. The merge starts the production workflow, which runs, in order:
+     release-checks   ← a version that disagrees anywhere, or whose tag exists, stops here
+9.   deliver --environment production
+10.  publish-release  ← the annotated tag vX.Y.Z on the merged commit, and the GitHub
+                        Release with that version's notes
 ```
 
 The three projects share a single product version, because they are deployed together and a
 divergence between them never means anything to the user.
 
 Steps 1 to 5 have to land in the same commit on the release branch. The version bump
-reaches `main` only through the PR of step 7, and never through a direct push. Steps 8 to 10 run
-from a checkout of the merged `main`, and their order is the guarantee: nobody tags by hand, and
-step 10 runs only once production serves the version step 9 delivered (`architecture-guide.md`
-§20.1). A tag ruleset used to make the first half of that sentence impossible to break, by letting
-only a GitHub App write a `v*` tag; the App existed because the pipeline wrote the tag, and when
-delivery came back to a workstation both were removed. What refuses a wrong tag now is
+reaches `main` only through the PR of step 7, and never through a direct push. Steps 8 to 10 are
+the production workflow, run on the merged commit, and their order is the guarantee: nobody tags
+by hand, and step 10 runs only once production serves the version step 9 delivered
+(`architecture-guide.md` §20.1). A step that fails stops the ones after it, and the workflow
+is run again from the Actions tab once the cause is fixed. What refuses a wrong tag is
 `publish-release` itself: it annotates in two steps, takes the notes from the section of that
 version, and refuses a tag that already points at another commit, because **a version names one
 commit**.

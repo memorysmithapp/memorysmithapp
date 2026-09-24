@@ -25,31 +25,6 @@ export interface Delegation {
   readonly nameServers: readonly string[];
 }
 
-/**
- * How the pipeline authenticates to write the tag and the GitHub Release of a
- * version: production only, and only while a pipeline exists.
- *
- * It used to be a GitHub App of the organisation, with its private key in
- * Secrets Manager. The App was removed when delivery came back to a
- * workstation, and what a pipeline needs now is a **token** with
- * `contents: write`, which CodeBuild reads from Secrets Manager into
- * `GITHUB_TOKEN`. A person running the release needs none of this: the
- * command falls back to the token of their `gh`.
- */
-export interface ReleaseConfig {
-  /** The name of the secret holding the token. */
-  readonly tokenSecret: string;
-}
-
-/** The pipeline of an environment (architecture-guide.md, section 20). */
-export interface PipelineConfig {
-  /** The CodeConnection to GitHub of this account, empty until it is authorised. */
-  readonly connectionArn: string;
-  /** `owner/name`. */
-  readonly repository: string;
-  readonly release: ReleaseConfig | null;
-}
-
 export interface EnvironmentConfig {
   readonly name: EnvironmentName;
   readonly account: string;
@@ -57,7 +32,15 @@ export interface EnvironmentConfig {
   readonly hostedZoneName: string;
   readonly hostedZoneId: string;
   readonly delegations: readonly Delegation[];
-  readonly pipeline: PipelineConfig;
+  /** `owner/name`: the repository GitHub Actions delivers from (section 20). */
+  readonly repository: string;
+  /**
+   * What the `sub` of a token GitHub signs for that repository starts with.
+   * A repository with immutable subjects names its owner and itself with their
+   * ids, `repo:owner@123/name@456`, so a repository deleted and created again
+   * under the same name is another repository; `repo:owner/name` otherwise.
+   */
+  readonly repositorySubject: string;
 }
 
 interface ContextReader {
@@ -108,9 +91,10 @@ export function environmentOf(node: ContextReader): EnvironmentConfig {
     );
   }
   const delegations = Array.isArray(raw['delegations']) ? raw['delegations'] : [];
-  const pipeline = (raw['pipeline'] ?? {}) as Record<string, unknown>;
-  const release = pipeline['release'] as Record<string, unknown> | undefined;
-  const optional = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
+  const repository =
+    typeof node.tryGetContext('repository') === 'string'
+      ? String(node.tryGetContext('repository'))
+      : 'memorysmithapp/memorysmithapp';
 
   return {
     name: requested as EnvironmentName,
@@ -119,11 +103,11 @@ export function environmentOf(node: ContextReader): EnvironmentConfig {
     hostedZoneName: text('hostedZoneName'),
     hostedZoneId: text('hostedZoneId'),
     delegations: delegations.map((entry) => delegationOf(entry, requested)),
-    pipeline: {
-      connectionArn: optional(pipeline['connectionArn']),
-      repository: optional(pipeline['repository']) || 'memorysmithapp/memorysmithapp',
-      release: release ? { tokenSecret: optional(release['tokenSecret']) } : null,
-    },
+    repository,
+    repositorySubject:
+      typeof node.tryGetContext('repositorySubject') === 'string'
+        ? String(node.tryGetContext('repositorySubject'))
+        : `repo:${repository}`,
   };
 }
 

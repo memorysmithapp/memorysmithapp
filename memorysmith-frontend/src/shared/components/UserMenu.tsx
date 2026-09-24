@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LOCALES, setLocale, type Locale } from '../../i18n';
 import { recordAccountLocale } from '../api/backend';
@@ -18,7 +18,9 @@ import { gravatarDisplayName } from '../auth/gravatar';
 import { clearHandover } from '../../features/auth/LoginPage';
 import { Avatar, type AvatarSource } from './Avatar';
 import { StorageBar } from './StorageBar';
-import { MonitorIcon, MoonIcon, SunIcon } from './icons';
+import { ChevronRightIcon, MonitorIcon, MoonIcon, SignOutIcon, SunIcon } from './icons';
+import { Menu, MenuDivider, MenuItem } from './Menu';
+import { Segmented } from './Segmented';
 
 const THEME_OPTIONS: { value: ThemeChoice; Icon: typeof SunIcon }[] = [
   { value: 'light', Icon: SunIcon },
@@ -70,7 +72,8 @@ export function UserMenu() {
   const setTheme = usePreferences((s) => s.setTheme);
   const [open, setOpen] = useState(false);
   const [borrowedName, setBorrowedName] = useState<string | null>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const navigate = useNavigate();
 
   /**
    * The identity provider has no name for everyone, and when it has none the
@@ -92,13 +95,7 @@ export function UserMenu() {
 
   const shownName = user === null ? '' : nameIsMissing ? (borrowedName ?? '') : user.name;
 
-  useEffect(() => {
-    function onClickOutside(event: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false);
-    }
-    document.addEventListener('mousedown', onClickOutside);
-    return () => document.removeEventListener('mousedown', onClickOutside);
-  }, []);
+  const close = useCallback(() => setOpen(false), []);
 
   if (!user) return null;
 
@@ -122,13 +119,22 @@ export function UserMenu() {
     endHostedSession(authConfig());
   }
 
+  const location = useLocation();
+  function go(to: string) {
+    setOpen(false);
+    navigate(to);
+  }
+
   return (
-    <div className="user-menu" ref={rootRef}>
+    <div className="user-menu">
       <button
+        ref={trigger}
         type="button"
         className="user-menu-trigger"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label={t('auth.menu')}
       >
         <Avatar
           email={user.email}
@@ -138,23 +144,36 @@ export function UserMenu() {
           name={shownName || user.name}
         />
       </button>
-      {open && (
-        <div className="user-menu-panel">
+      {/*
+        A menu of the Controles, and a sheet on a phone (#201): the same content
+        and the same routes as before, built only out of the common controls.
+      */}
+      <Menu
+        open={open}
+        onClose={close}
+        trigger={trigger}
+        label={t('auth.menu')}
+        className="user-menu-panel"
+        closeLabel={t('common.close')}
+      >
+        <div className="user-menu-top" role="none">
           <div className="user-menu-identity">
             <Avatar
               email={user.email}
-              size={48}
+              size={44}
               source={user.avatar}
               picture={user.picture}
               name={shownName || user.name}
             />
-            <div>
+            <div className="user-menu-who">
               {/*
                 One line per thing. With no name to show, the e-mail is the
                 identity and stands alone, instead of being printed twice.
               */}
               {shownName ? <strong>{shownName}</strong> : null}
-              <div className={shownName ? 'user-menu-email' : undefined}>{user.email}</div>
+              <span className={shownName ? 'user-menu-email' : 'user-menu-email is-alone'}>
+                {user.email}
+              </span>
             </div>
           </div>
 
@@ -167,126 +186,139 @@ export function UserMenu() {
             it is the perpetual id, and who holds it is the person reading this
             menu. What is worth saying about it is the plan and the quota.
 
-            The status is shown only for `trial`, which is a fact worth saying.
-            `active` adds nothing, and no other status reaches this menu: a
-            session without operational access never gets past the sign-in
-            screen (RN-SUB-007).
+            They are data, so they are neutral chips, never blue. The status is
+            shown only for `trial`, which is a fact worth saying; `active` adds
+            nothing, and no other status reaches this menu (RN-SUB-007).
           */}
-          <div className="user-menu-fields">
-            <div className="user-menu-field">
-              <span className="user-menu-field-label">{t('auth.role')}</span>
-              <span className="chip">{t(`roles.${user.role}`)}</span>
-            </div>
+          <div className="user-menu-chips">
+            <span className="chip">{t(`roles.${user.role}`)}</span>
             {user.subscriptionType ? (
-              <div className="user-menu-field">
-                <span className="user-menu-field-label">{t('auth.plan')}</span>
-                <span className="chip">{t(`subscriptionType.${user.subscriptionType}`)}</span>
-              </div>
-            ) : null}
-            {/*
-              The plan's ceiling alone answers a question nobody asks. What is
-              worth knowing is how much of it is left, so when the API says how
-              much is stored the chip becomes a bar; the plain chip stays as the
-              fallback for a session answering from the token alone.
-            */}
-            {user.subscriptionQuota ? (
-              <div className="user-menu-field">
-                <span className="user-menu-field-label">{t('auth.storage')}</span>
-                {user.usedBytes !== null && user.subscriptionQuotaBytes ? (
-                  <StorageBar usedBytes={user.usedBytes} quotaBytes={user.subscriptionQuotaBytes} />
-                ) : (
-                  <span className="chip">{t(`storageQuota.${user.subscriptionQuota}`)}</span>
-                )}
-              </div>
+              <span className="chip">{t(`dashboard.plan.${user.subscriptionType}`)}</span>
             ) : null}
             {user.subscriptionStatus === 'trial' ? (
-              <div className="user-menu-field">
-                <span className="user-menu-field-label">{t('auth.status')}</span>
-                <span className="chip">{t('subscriptionStatus.trial')}</span>
-              </div>
+              <span className="chip">{t('subscriptionStatus.trial')}</span>
+            ) : null}
+            {user.subscriptionQuota && (user.usedBytes === null || !user.subscriptionQuotaBytes) ? (
+              <span className="chip">{t(`storageQuota.${user.subscriptionQuota}`)}</span>
             ) : null}
           </div>
 
-          <div className="user-menu-section">
+          {/*
+            The plan's ceiling alone answers a question nobody asks. What is
+            worth knowing is how much of it is left, so when the API says how
+            much is stored the chip becomes a bar; the plain chip above stays as
+            the fallback for a session answering from the token alone.
+          */}
+          {user.subscriptionQuota && user.usedBytes !== null && user.subscriptionQuotaBytes ? (
+            <StorageBar usedBytes={user.usedBytes} quotaBytes={user.subscriptionQuotaBytes} />
+          ) : null}
+        </div>
+
+        <MenuDivider />
+
+        {/*
+          The language belongs beside the theme, because both are the same kind
+          of thing: how this person wants to be shown the product. Each language
+          is named in itself, so the option a person is looking for reads the
+          same whichever locale is active when they open the menu. Both take
+          effect at once, with nothing to save.
+        */}
+        <div className="user-menu-settings" role="none">
+          <div className="user-menu-setting">
             <p className="user-menu-caption">{t('theme.heading')}</p>
-            <div className="theme-options">
-              {THEME_OPTIONS.map(({ value, Icon }) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={theme === value ? 'active' : ''}
-                  onClick={() => setTheme(value)}
-                  title={t(`theme.${value}`)}
-                  aria-label={t(`theme.${value}`)}
-                >
-                  <Icon />
-                </button>
-              ))}
-            </div>
+            <Segmented
+              inMenu
+              label={t('theme.heading')}
+              value={theme}
+              onChange={setTheme}
+              options={THEME_OPTIONS.map(({ value, Icon }) => ({
+                value,
+                label: t(`theme.${value}`),
+                icon: <Icon width={14} height={14} />,
+              }))}
+            />
           </div>
-
-          {/*
-            The language belongs beside the theme, because both are the same
-            kind of thing: how this person wants to be shown the product. Each
-            language is named in itself, so the option a person is looking for
-            reads the same whichever locale is active when they open the menu.
-          */}
-          <div className="user-menu-section">
+          <div className="user-menu-setting">
             <p className="user-menu-caption">{t('language.heading')}</p>
-            <div className="locale-options">
-              {SUPPORTED_LOCALES.map((locale: Locale) => (
-                <button
-                  key={locale}
-                  type="button"
-                  className={i18n.language === locale ? 'active' : ''}
-                  onClick={() => {
-                    setLocale(locale);
-                    // Recorded on the account too, because every message the product
-                    // sends this person is written in it (RN-ACC-018). The screen has
-                    // already changed language, so a failure here changes nothing on it.
-                    void recordAccountLocale(locale).catch(() => undefined);
-                  }}
-                >
-                  {t(`language.${locale}`)}
-                </button>
-              ))}
-            </div>
+            <Segmented
+              inMenu
+              label={t('language.heading')}
+              value={
+                (SUPPORTED_LOCALES as readonly string[]).includes(i18n.language)
+                  ? (i18n.language as Locale)
+                  : 'en_US'
+              }
+              onChange={(locale: Locale) => {
+                setLocale(locale);
+                // Recorded on the account too, because every message the product
+                // sends this person is written in it (RN-ACC-018). The screen has
+                // already changed language, so a failure here changes nothing on it.
+                void recordAccountLocale(locale).catch(() => undefined);
+              }}
+              // The language of the product first, then the other one.
+              options={[...SUPPORTED_LOCALES].reverse().map((locale: Locale) => ({
+                value: locale,
+                label: t(`language.${locale}`),
+              }))}
+            />
           </div>
+        </div>
 
-          {/*
-            Where the welcome surface lives after it has opened once (#167).
-            It is the only place that says where the connector of this
-            environment answers, which is what an agent is pointed at.
-          */}
-          <div className="user-menu-section">
-            <Link className="user-menu-link" to="/profile" onClick={() => setOpen(false)}>
-              {t('profile.menu')}
-            </Link>
-            <Link className="user-menu-link" to="/profile/password" onClick={() => setOpen(false)}>
-              {t('password.menu')}
-            </Link>
-            <Link className="user-menu-link" to="/about" onClick={() => setOpen(false)}>
-              {t('about.menu')}
-            </Link>
-          </div>
+        <MenuDivider />
 
-          <div className="user-menu-section">
-            <button type="button" className="user-menu-signout" onClick={handleSignOut}>
-              {t('auth.signOut')}
-            </button>
-          </div>
+        {/*
+          The profile holds where the welcome surface lives after it has opened
+          once (#167), which is the only place that says where the connector of
+          this environment answers.
+        */}
+        <div className="user-menu-items" role="none">
+          <MenuItem
+            onSelect={() => go('/profile')}
+            trailing={<ChevronRightIcon width={12} height={12} />}
+          >
+            {t('profile.menu')}
+          </MenuItem>
+          <MenuItem
+            onSelect={() => {
+              // The change of password goes back where it was asked from.
+              setOpen(false);
+              navigate('/profile/password', {
+                state: { from: `${location.pathname}${location.search}` },
+              });
+            }}
+            trailing={<ChevronRightIcon width={12} height={12} />}
+          >
+            {t('password.menu')}
+          </MenuItem>
+          {/* Where the connector of this environment is published, which is
+              what an agent is pointed at: an item like the others, and not a
+              footnote beside the version (#210). */}
+          <MenuItem
+            onSelect={() => go('/about')}
+            trailing={<ChevronRightIcon width={12} height={12} />}
+          >
+            {t('about.menu')}
+          </MenuItem>
+          <MenuDivider />
+          <MenuItem onSelect={handleSignOut} icon={<SignOutIcon width={14} height={14} />}>
+            {t('auth.signOut')}
+          </MenuItem>
+        </div>
 
-          {/*
-            The version, at the foot of the panel and in the quietest type on
-            it. It is the first thing anyone is asked for when something looks
-            wrong, and the last thing anyone needs while reading a notebook, so it
-            is present and never in the way.
-          */}
+        <MenuDivider className="user-menu-foot-divider" />
+
+        {/*
+          The version, at the foot of the menu and in the quietest type on it.
+          It is the first thing anyone is asked for when something looks wrong,
+          and the last thing anyone needs while reading a notebook, so it is
+          present and never in the way.
+        */}
+        <div className="user-menu-foot" role="none">
           <p className="user-menu-version">
             {t('app.version', { version: loadedRuntimeConfig()?.version ?? '' })}
           </p>
         </div>
-      )}
+      </Menu>
     </div>
   );
 }

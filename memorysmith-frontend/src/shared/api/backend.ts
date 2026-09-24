@@ -23,13 +23,13 @@ import type {
   FacetStatsDto,
   NotebookDetailDto,
   NotebookGraphDto,
-  NotebookHealthDto,
   NotebookNamesDto,
   NotebookFileDto,
   FileLinkDto,
   FileListDto,
   NoteRefDto,
   NotebookSummaryDto,
+  SubscriptionUsageDto,
 } from '@memorysmith/contracts';
 import type {
   FolderNode,
@@ -94,7 +94,25 @@ function toSummary(notebook: NotebookSummaryDto): NotebookSummary {
     description: notebook.description,
     noteCount: notebook.noteCount,
     updatedAt: notebook.updatedAt,
+    effectiveRole: notebook.effectiveRole,
   };
+}
+
+/**
+ * What fills the space of the subscription (#197, RN-SUB-024): the split by
+ * kind, the counts, and a line per notebook the requester reads.
+ */
+export async function readUsage(): Promise<SubscriptionUsageDto> {
+  return request<SubscriptionUsageDto>('/access/usage');
+}
+
+/**
+ * Deleting a notebook, which is definitive: one write on the notebook, and a
+ * purge in the background destroys what it held (RN-KNW-033). The owner alone
+ * may; anybody else is refused by the API whatever the screen shows.
+ */
+export async function deleteNotebook(notebookId: string): Promise<void> {
+  await request<void>(`/knowledge/notebooks/${notebookId}`, { method: 'DELETE' });
 }
 
 export async function listNotebooks(): Promise<NotebookSummary[]> {
@@ -237,6 +255,7 @@ export async function getNote(notebookId: string, noteId: string): Promise<NoteD
     raw: note.content,
     // The version, which is what a write echoes back (RN-AGT-005).
     revision: note.revision.versionId,
+    updatedAt: note.updatedAt,
   };
 }
 
@@ -262,10 +281,6 @@ export async function getTemplate(
 /** The two Discovery reads the dashboard aggregates. */
 export async function getFacetsById(notebookId: string): Promise<FacetStatsDto> {
   return request<FacetStatsDto>(`/discovery/notebooks/${notebookId}/facets`);
-}
-
-export async function getHealthById(notebookId: string): Promise<NotebookHealthDto> {
-  return request<NotebookHealthDto>(`/discovery/notebooks/${notebookId}/health`);
 }
 
 /**
@@ -336,6 +351,22 @@ export async function downloadTransfer(transferId: string): Promise<DownloadLink
   return request<DownloadLinkDto>(`/portability/transfers/${transferId}/download`, {
     method: 'POST',
   });
+}
+
+/**
+ * An upload key made from a kept export, copied server-side (#207): the same
+ * key the upload of a file ends in, which `applyImport` takes unchanged.
+ */
+export async function importFromExport(transferId: string): Promise<{ uploadKey: string }> {
+  return request<{ uploadKey: string }>('/portability/imports/from-export', {
+    method: 'POST',
+    body: { transferId },
+  });
+}
+
+/** Stops a running transfer; an import that stops is taken back down whole (RN-PRT-018). */
+export async function cancelTransfer(transferId: string): Promise<void> {
+  await request<void>(`/portability/transfers/${transferId}/cancel`, { method: 'POST' });
 }
 
 export async function deleteTransfer(transferId: string): Promise<void> {

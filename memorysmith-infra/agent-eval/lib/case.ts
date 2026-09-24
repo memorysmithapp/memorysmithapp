@@ -26,6 +26,7 @@ export const CHECK_NAMES = [
   'notes-state-a-name',
   'frontmatter-follows-templates',
   'links-land',
+  'checked-before-done',
   'template-links-name-notes',
   'no-duplicate-writes',
   'embeds-and-ticks',

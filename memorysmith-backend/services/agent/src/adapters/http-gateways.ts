@@ -21,12 +21,16 @@ import type {
   FolderNumberDto,
   GraphNodeDto,
   NoteLinksDto,
+  LinkCandidate,
   NoteRefDto,
   NoteSummaryDto,
   NotebookDetailDto,
   NotebookFileDto,
+  NotebookHealthDto,
+  NotebookNamesDto,
   SearchResultDto,
 } from '@memorysmith/contracts';
+import { likelyMeant } from '@memorysmith/contracts';
 import {
   GatewayError,
   type AccessGateway,
@@ -40,6 +44,7 @@ import {
   type NoteContent,
   type NoteListing,
   type NotePage,
+  type NotebookCheck,
   type NoteReference,
   type RelatedNode,
   type SearchHit,
@@ -627,6 +632,49 @@ export class HttpDiscoveryGateway implements DiscoveryGateway {
       `/discovery/notebooks/${notebookId}/notes/${noteId}/backlinks`,
     );
     return found.backlinks.map(referenceOf);
+  }
+
+  /**
+   * The pending links of the notebook and the names it answers to, read side
+   * by side: a target that almost reaches one of those names looks broken,
+   * and the rule of "almost" is the one the contracts publish (#217).
+   */
+  async checkNotebook(caller: AgentCaller, notebookId: string): Promise<NotebookCheck> {
+    const [health, names] = await Promise.all([
+      callApi<NotebookHealthDto>(this.origin, caller, `/discovery/notebooks/${notebookId}/health`),
+      callApi<NotebookNamesDto>(this.origin, caller, `/discovery/notebooks/${notebookId}/names`),
+    ]);
+    const candidates: LinkCandidate[] = [
+      ...names.notes.flatMap((note) =>
+        [note.name, ...note.aliases].map((name) => ({
+          name,
+          kind: 'note' as const,
+          noteId: note.noteId,
+        })),
+      ),
+      ...names.attachments.map((name) => ({ name, kind: 'file' as const })),
+    ];
+    const byTarget = new Map<string, NoteReference[]>();
+    for (const link of health.pendingLinks) {
+      const from = byTarget.get(link.targetName) ?? [];
+      if (!from.some((note) => note.noteId === link.fromNote.noteId)) {
+        from.push(referenceOf(link.fromNote));
+      }
+      byTarget.set(link.targetName, from);
+    }
+    return {
+      pending: [...byTarget].map(([target, from]) => {
+        const meant = likelyMeant(target, candidates);
+        return {
+          target,
+          from,
+          likelyMeant: meant
+            ? { name: meant.name, kind: meant.kind, noteId: meant.noteId ?? null }
+            : null,
+        };
+      }),
+      orphans: health.orphans.map(referenceOf),
+    };
   }
 }
 

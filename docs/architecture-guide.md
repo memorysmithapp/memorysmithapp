@@ -165,11 +165,11 @@ The repository is a pnpm monorepo with **three first-level projects**, named aft
 |---|---|---|
 | **`memorysmith-backend/`** | The six bounded contexts, the shared kernel and the event contracts. All the domain, application and adapter code | Not a line of CDK, no stack name, no reference to an account or a region |
 | **`memorysmith-frontend/`** | The React SPA: screens, state, i18n, HTTP client | Business rules; no decision that belongs to the domain |
-| **`memorysmith-infra/`** | All the CDK: stacks, constructs, IAM policies, pipeline | No business rule, no handler |
+| **`memorysmith-infra/`** | All the CDK: stacks, constructs, IAM policies, the roles GitHub delivers with | No business rule, no handler |
 
 > **Why infrastructure is a project of its own, and not a folder inside the backend.** Three reasons, in the order they show up in practice:
 >
-> 1. **Infra describes the three projects**, not one. It creates the bucket that serves the frontend, the user pool that authenticates both, and the pipeline that deploys everything. Living inside the backend puts it in a place that owns only part of what it declares.
+> 1. **Infra describes the three projects**, not one. It creates the bucket that serves the frontend, the user pool that authenticates both, and the roles that deploy everything. Living inside the backend puts it in a place that owns only part of what it declares.
 > 2. **Deploy permission is not code permission.** Whoever writes domain code does not need the credentials that create the account; whoever operates the account does not need to read business rules. Separate projects make that split trivial in CI, in repository access and in review.
 > 3. **The life cycles diverge.** An aggregate refactor does not republish a stack; an IAM policy change does not recompile the domain. Mixing them makes each one trigger the build of the other.
 
@@ -256,7 +256,7 @@ memorysmith-frontend/
 └── .env.example
 ```
 
-**A query is never refetched on its own, and a write invalidates what it wrote.** `staleTime: Infinity` is the policy and it is deliberate: nothing in a notebook changes without somebody writing it, so time is the wrong trigger for a read. The trigger is the write, and `WritableContent` invalidates its own query on success and on conflict alike. Leaving that half out is what made the screen keep showing content the application itself had just overwritten — a reload fixed it, because a reload drops the cache with the page. `retry: false` belongs to the same decision: a failed read is information, and retrying it silently turns a message into a wait.
+**A write invalidates what it wrote, and what somebody else wrote reaches the screen on its own.** A write of the interface invalidates its own queries at once, on success and on conflict alike (`WritableContent`, the editor, the card of a notebook). But the interface is not the only writer: an agent writes through the connector and an import writes in the background, and the earlier policy — `staleTime: Infinity`, on the premise that nothing changes without somebody writing it here — left their writes invisible until a reload. So a read is fresh for 30 seconds; the window regaining focus and the network coming back read again what went stale; the queries a screen shows (the list of notebooks, the space of the subscription, the structure, names and files of the open notebook, the open note, its history, the Templates) are read again every 30 seconds while the tab is visible (`shared/api/live.ts`); and a transfer that ends invalidates the list of notebooks and the space. **Never while a write of the page is waiting or in flight**, and never the note being edited: a read landing between a tick and its write would take the tick off the screen and base the next write on a revision nobody saw. A note that changes under its reader says so rather than swapping the text in silence. A push from the server over the events already on EventBridge is the next step if half a minute proves too slow. `retry: false` stays: a failed read is information, and retrying it silently turns a message into a wait.
 
 **Every reading surface resolves its wikilinks before rendering.** `NoteContent`, `WritableContent` and `Transclusion` all do, and the third one did not: a `[[link]]` inside transcluded content reached the page with its brackets. It matters most for the link the one-level rule creates itself, since an embed found inside embedded content is demoted to a wikilink and §13.2 says it is drawn as a link to its target.
 
@@ -283,7 +283,7 @@ memorysmith-infra/
 │   ├── agent.stack.ts               # MCP server + OAuth resource server + CIMD proxy (§13.3)
 │   ├── portability.stack.ts
 │   ├── frontend-hosting.stack.ts    # S3 + CloudFront OAC for memorysmith-frontend
-│   └── pipeline.stack.ts            # CI/CD (§20)
+│   └── github-delivery.stack.ts     # the roles GitHub Actions delivers with (§20)
 ├── constructs/
 │   ├── service-lambda.ts            # Lambda + Powertools + mandatory alarms (§17)
 │   ├── subscription-table.ts        # a DynamoDB table with PITR and streams
@@ -295,7 +295,7 @@ memorysmith-infra/
 Beside `stacks/` and `constructs/`, two folders that are not infrastructure themselves:
 
 - **`config/environments.ts`**, which reads the two environments from `cdk.json` (§17).
-- **`commands/`**, what operates the product from outside: the version a deploy serves, the checks a release passes and its notes (§20, §23.3). They are `pnpm` scripts of this package, so a workstation and a pipeline run the same thing.
+- **`commands/`**, what operates the product from outside: the version a deploy serves, the checks a release passes and its notes (§20, §23.3). They are `pnpm` scripts of this package, so a workstation and a workflow run the same thing.
 - **`functional/`**, the functional suite, in Playwright Test, which tests a deployed environment from outside (§19).
 - **`agent-eval/`**, the blind agent evaluation: its cases, the clean room an agent runs them in, and the checks and the scorecard of a round (§19).
 
@@ -712,7 +712,8 @@ Moving between notebooks is the **only operation in the system that writes to tw
 | Folder counter | `S#{s}#NOTEBOOK#{v}` | `FSTAT#{folderId}` | noteCount, updatedAt (asynchronous projection, §10.3) |
 | Template of a folder | `S#{s}#NOTEBOOK#{v}` | `FTPL#{folderId}` | notebookId, folderId, **contentRef**, version (§6.3) |
 | Guidance of the notebook | `S#{s}#NOTEBOOK#{v}` | `GUIDANCE` | notebookId, **contentRef**, version; indexed in `GSI1` as `NBGUID#{v}` |
-| Subscription usage | `S#{s}#NOTEBOOKS` | `USAGE` | storedBytes, updatedAt (asynchronous projection, §10.3, RN-SUB-021) |
+| Subscription usage | `S#{s}#NOTEBOOKS` | `USAGE` | storedBytes, and what fills it: noteCount, noteBytes, fileCount, fileBytes, otherCount, otherBytes, notebooks, folders, revisions; updatedAt (asynchronous projection, §10.3, RN-SUB-021, RN-SUB-024) |
+| What a notebook holds | `S#{s}#NOTEBOOKS` | `NBUSAGE#{v}` | notebookId, bytes, notes, folders, files, updatedAt (asynchronous projection, §10.3, RN-SUB-024); removed when the purge of the notebook ends |
 | Notebook counter | `S#{s}#NOTEBOOK#{v}` | `FSTAT` | noteCount, updatedAt; indexed in `GSI1` as `NBSTAT#{v}` |
 | Role ceiling in the notebook | `S#{s}#NOTEBOOK#{v}` | `LIMIT#{userId}` | limit (`VIEWER`), setBy, setAt: the demotion of §5.3 of the product |
 | Note | `S#{s}#NOTEBOOK#{v}` | `NOTE#{noteId}` | folderId, name, position, **bodyRef**, createdBy, updatedBy, version, `deletedAt?`, `deletedBy?` |
@@ -824,9 +825,20 @@ The two counters travel in the **same** transaction because they share the dedup
 
 **The delta is declared by the aggregate, not derived from the event type.** `NoteUpdated` is emitted both by a rename, which moves no byte, and by a new body, which moves the difference between two revisions; only the aggregate knows which of the two happened. Deriving it from the type would make the counter grow on every rename, and the error would be silent: nothing would break, the number would merely stop being true.
 
+**What fills the total is kept the same way, by the same relay, from the same events and in the same transaction** (RN-SUB-024). The `USAGE` item carries the split beside `storedBytes` — the count and the bytes of the notes, of the files and of the `Guidance` and `Template`s together, and how many notebooks, folders and revisions — so the split costs no write the total did not already make; and each notebook has an `NBUSAGE#{v}` line beside it, which a note that moves between notebooks moves from one line to the other:
+
+```
+TransactWriteItems
+  Put     PK = S#{s}#NOTEBOOK#{v}   SK = SEEN#{eventUlid}   attribute_not_exists(SK)   (TTL 7d)
+  Update  PK = S#{s}#NOTEBOOKS      SK = USAGE              ADD storedBytes :bytes, noteCount :one, noteBytes :bytes, revisions :one
+  Update  PK = S#{s}#NOTEBOOKS      SK = NBUSAGE#{v}        ADD bytes :bytes, notes :one
+```
+
+Which event moves which counter is one pure function of the envelope (`domain/services/StorageUsage.ts`), which the relay applies to the table and the in-memory harness to a map. Two rules decide most of it. **A count leaves with its bytes**: a unit its parent took with it is counted until the purge frees its bytes, so the purge events say whether the unit was still counted (`live`) and how many revisions of it they destroyed (`revisions`), and the `NotebookPurged` that ends a notebook says how many folders its tree still held (`folderCount`) and deletes its `NBUSAGE#` line. **A revision is counted and never charged**: every write of Markdown content adds one, and the purge takes away what it destroyed. The lines live in the partition of the subscription and not in the notebook's, so the answer that lists every notebook reads them with one `Query`, and so no note transaction ever contends with them (rule 10). The kept exports stay in `mv-portability` (§16), counted there per notebook too, and the route that answers the whole of it, `GET /access/usage`, is assembled by the composition root from the three contexts, with its `usedBytes` read through the very `StorageBudget` the session reads.
+
 **Why the counter does not live in the user transaction.** A single item per subscription touched by every note write is exactly the contention PE8 forbids for the `META` of the notebook, and worse, because it is one item for the whole account. That is why it sits in the relay, and that is why quota enforcement is slightly delayed: a burst of writes may cross the line before the counter catches up. The trade-off is deliberate and the drift is bounded by what is in flight, since the check runs on every write.
 
-**The counter is derived, and it is rebuildable.** Every projection of this system owes an answer to the same question, which is how it remakes itself when it is wrong (PE5), and the counter's answer is `recount-storage`, a command that runs `recount.ts` of the core against the tables of an environment: it scans `mv-knowledge`, adds up the current content of each subscription and writes the `USAGE` item. It reports first and only writes with `--apply`. It had to exist at least once for real, because the counter came into existence after the notebooks, and every subscription older than it started at zero while holding a notebook full of notes. A write happening during the scan may be counted by it **and** applied by the relay, and the write then discards the relay delta; the error is bounded by what was written while the job ran and disappears in the next recount, so it runs with the accounts idle.
+**The counter is derived, and it is rebuildable.** Every projection of this system owes an answer to the same question, which is how it remakes itself when it is wrong (PE5), and the counter's answer is `recount-storage`, a command that runs `recount.ts` of the core against the tables of an environment: it scans `mv-knowledge`, adds up the current content of each subscription — its notes, its files, its `Guidance` and `Template`s, its folders and notebooks — and writes the `USAGE` item and an `NBUSAGE#` line per notebook, removing the lines of notebooks that are gone. A `FILE#` item whose notebook has no `META` any more is not live content — it is what a notebook deleted before its purge took files left behind — so it is counted in nothing and **reported** instead, by subscription and notebook; the recount destroys nothing, because destroying content is the purge's alone (rule 8). The revisions are counted off `mv-audit`, which names every revision a write produced and every content a purge destroyed, because listing the versions of an object belongs to the purge alone (rule 8); and the kept exports off the transfers of `mv-portability`. The entrypoint is where the three meet, as the composition root is for a request. It reports first and only writes with `--apply`. It had to exist at least once for real, because the counter came into existence after the notebooks, and every subscription older than it started at zero while holding a notebook full of notes. A write happening during the scan may be counted by it **and** applied by the relay, and the write then discards the relay delta; the error is bounded by what was written while the job ran and disappears in the next recount, so it runs with the accounts idle.
 
 **Whoever reads the counter does not know the limit.** The stored bytes are a fact of Knowledge and the ceiling is a fact of Access, and no context reads the table of the other: the one that joins the two halves at the `StorageBudget` port is the composition root (§24).
 
@@ -1141,7 +1153,7 @@ No query to Knowledge is needed: **the present lives in `mv-knowledge`, the past
 
 **Invalidity is inherited, and it costs nothing to declare** (RN-KNW-046). Deleting a notebook writes `deletedAt` on its `META` item; removing a folder writes the tree. Not one item under either is touched, and every one of them is out of reach from that instant, because what makes a note reachable is the tree and the tree no longer shows it. Every use case that reaches a note checks the chain against the tree it has already loaded, which costs no read: the tree came back in the same `Query` that authorised the request (§9.3).
 
-**What a deletion invalidated stops existing** (RN-KNW-047). A queue fed by the deletion events themselves feeds a worker in Knowledge, and for each unit it destroys **every revision of its content first and its item second**, with the purge event in the same transaction as the item.
+**What a deletion invalidated stops existing** (RN-KNW-047). A queue fed by the deletion events themselves feeds a worker in Knowledge, and for each unit it destroys **every revision of its content first and its item second**, with the purge event in the same transaction as the item. A deleted notebook takes its files the same way, before its tree: the bytes under `f/`, then the `FILE#` item and the `FNAME#` guard of its name. A file still live when its notebook went leaves with the very `FileDeleted` a deletion of that one file writes, carrying its negative `storageDelta`, so the stored bytes and the counters of §10.3 fall through the relay exactly as for a single file; a file deleted on its own already released its bytes and its name, and only its bytes and its tombstone are left to go.
 
 **That order is chosen, and it is the opposite of §10.5 for the opposite reason.** A retry after a failure between the two finds the item and does the work again; the reverse order would leave bytes nothing in any table can name, which is the one outcome nothing later could repair. An item whose content is already gone is an item that was already invalid, so the window between the two writes shows nobody anything.
 
@@ -1220,6 +1232,8 @@ svc-access       GET  /session   (the user, the links and the active subscriptio
                  GET  /members
                  PATCH /members/:u  { role } · DELETE /members/:u
                  GET  /connector   (the connector this session acts through, which whoami names)
+                 GET  /usage   (what fills the space of the subscription: by kind, by notebook
+                                and in counts, from counters only, RN-SUB-024)
 svc-access       POST /connector-bindings   ─ signed with IAM by svc-agent, never called by a
  (connector proxy)                            session: binds a token it issued to its connector (§13.3)
 svc-access       GET  /platform/subscriptions?status=      ─┐  platform session:
@@ -1282,7 +1296,17 @@ svc-audit        GET  /notebooks/:v/notes/:n/history
                  GET  /notebooks/:v/activity?from=&to=   answers for a notebook
                     somebody DELETED as well, the deletion included: that is
                     what a trail is for, and the subscription bounds the read
-svc-portability  POST /notebooks/:v/export   → the pre-signed URL comes back in the same answer
+svc-portability  POST /notebooks/:v/export   starts the job and answers the transfer (§16)
+                 GET  /transfers · GET|DELETE /transfers/:t   the transfers of whoever
+                    asks, and nobody else's (RN-PRT-020)
+                 POST /transfers/:t/download   a link minted at this moment
+                 POST /transfers/:t/cancel   takes a running import back down
+                 POST /imports   a short-lived address to upload a .notebook to
+                 POST /imports/from-export   { transferId } → { uploadKey }: the
+                    requester's own ready export copied to an upload, inside the
+                    bucket (#207, RN-PRT-020); anything else is 404
+                 POST /imports/apply   { uploadKey, name, selection? } starts the
+                    import, whichever way the upload arrived
 ```
 
 The authorizer of `svc-access` does not appear here because **it is not a route**: it is a
@@ -1368,8 +1392,9 @@ The domain returns `Result<T, DomainError>`; **exceptions exist only at the edge
 |---|---|---|
 | A transfer | `S#{s}#USER#{userId}` | `TRANSFER#{transferId}` |
 | What the kept exports occupy | `S#{s}` | `KEPT` |
+| What the kept exports of one notebook occupy | `S#{s}` | `KEPT#{notebookId}` |
 
-**The partition carries the person, and that IS the rule** (RN-PRT-020): a transfer of somebody else is a key that does not exist under the caller, so asking for one answers as missing rather than as refused, and no listing can reveal a notebook its reader may not see (§15). The counter is of the subscription, because the quota is (RN-SUB-021), and the composition root is where the three halves of the budget meet: the content from Knowledge, the kept exports from here, and the ceiling from Access.
+**The partition carries the person, and that IS the rule** (RN-PRT-020): a transfer of somebody else is a key that does not exist under the caller, so asking for one answers as missing rather than as refused, and no listing can reveal a notebook its reader may not see (§15). The counter is of the subscription, because the quota is (RN-SUB-021), and the composition root is where the three halves of the budget meet: the content from Knowledge, the kept exports from here, and the ceiling from Access. It counts the kept exports beside their bytes, and keeps a `KEPT#{notebookId}` line per notebook an export was made of, which is how the space of the subscription says which notebook its exports are of (RN-SUB-024); the line outlives the notebook, as the export does.
 
 **Deleting a kept export destroys its bytes, and the role that does it may not touch a note.** The worker records the `versionId` S3 answered when it wrote the archive, so the deletion names the exact revision and needs no listing: an export is written once and never overwritten, so that version is the whole object, and destroying it leaves no delete marker and no noncurrent version. The policy of the API is scoped to `s/*/exports/*`, which no `ContentId` can match, so rule 8 still holds — exactly one principal may destroy a revision of a Content Slot, and it is the purge worker of §12.4.
 
@@ -1379,7 +1404,7 @@ The domain returns `Result<T, DomainError>`; **exceptions exist only at the edge
 
 **This is where file names used to come back into existence, and they do not any more.** `GUIDANCE.md`, `TEMPLATE.md`, `STRUCTURE.md`, the numeric prefix, the reserved-name renaming and the link rewriting were all **derivations**, and a derivation on the way out is a second source of truth for what the notebook says (RN-PRT-010). What is written is what is held.
 
-**The import is the same door, from the other side, and it is a job too** (RN-PRT-018). `POST /imports` answers a short-lived address under `s/{subscriptionId}/imports/`, the client uploads the file there, and `POST /imports/apply` **starts** the import and answers a transfer of kind `import`: writing a notebook of several hundred notes does not fit in 29 seconds either, and the gateway answers a timeout with no CORS headers, so the browser used to say only `Failed to fetch`. The same worker runs it, and the same record carries its progress.
+**The import is the same door, from the other side, and it is a job too** (RN-PRT-018). `POST /imports` answers a short-lived address under `s/{subscriptionId}/imports/`, the client uploads the file there, and `POST /imports/apply` **starts** the import and answers a transfer of kind `import`: writing a notebook of several hundred notes does not fit in 29 seconds either, and the gateway answers a timeout with no CORS headers, so the browser used to say only `Failed to fetch`. The same worker runs it, and the same record carries its progress. **An upload may also be made of a kept export**, which is the way back from a deletion without the archive passing through the device of whoever kept it: `POST /imports/from-export` takes the `transferId` of the requester's own ready export and copies its object, with one `CopyObject` inside the bucket, to a fresh key under `imports/` — the key `POST /imports` would have answered — wearing the tag of an upload, so the lifecycle rule discards it like any other (RN-PRT-014). It answers that `uploadKey`, and `apply` takes it unchanged. The copy is made by the API through the `copyFrom` of the upload store, with the read and put the API already holds on the bucket; the export is read and never consumed, and anything but the requester's own ready export answers `404` (rule 9).
 
 **Writing belongs to the Knowledge context**, which Portability may not import, so a `NotebookWriter` is built over the ordinary use cases: an import goes through the same quota, the same limits and the same events as any other write. In the API that writer is built per request; in the worker it is built from the message, which carries the person and the connector the token was bound to, so an import asked for through a connector is recorded as that connector wrote it (rule 7, RN-AGT-001). The role the person holds is resolved there as the API resolves it, from the Access table.
 
@@ -1493,7 +1518,7 @@ Initial numbers, so they become tests and not folklore. The thesis of the produc
 | Adapters | Against the real DynamoDB and S3 of staging, after a delivery of it, every case under a subscription of its own |
 | Event contracts | Zod schemas validated on both sides (producer and consumer) |
 | End to end | Per vertical slice, in process |
-| Functional | Against the deployed staging, in Playwright Test, after its adapter tests: a case for every route of the core, checked in the Quality stage against `routes.json`, the manifest a test of the core keeps equal to the routes its app mounts; and a case for every tool of the connector, checked against its live `tools/list` and called through the official MCP SDK with a token the run obtains through the whole OAuth flow of the connector, in Chromium, as a client whose Client ID Metadata Document it publishes on the site of the environment; and a case for every page of the interface, in `en_US` and in `pt_BR`, checked in the Quality stage against the router, beside journeys that cross the surfaces: an agent that writes by the Guidance and the Template, a person who ticks its box on the web, and the history of the note naming both. A run creates accounts of its own through the Cognito admin API, asks for their subscriptions and approves them through the product, and deletes the accounts at the end. A projection is awaited by polling up to the target of §18, never by sleeping, and the latency of every route is recorded in the report and never gated |
+| Functional | Against the deployed staging, in Playwright Test, after its adapter tests: a case for every route of the core, checked by the CI against `routes.json`, the manifest a test of the core keeps equal to the routes its app mounts; and a case for every tool of the connector, checked against its live `tools/list` and called through the official MCP SDK with a token the run obtains through the whole OAuth flow of the connector, in Chromium, as a client whose Client ID Metadata Document it publishes on the site of the environment; and a case for every page of the interface, in `en_US` and in `pt_BR`, checked by the CI against the router, beside journeys that cross the surfaces: an agent that writes by the Guidance and the Template, a person who ticks its box on the web, and the history of the note naming both. A run creates accounts of its own through the Cognito admin API, asks for their subscriptions and approves them through the product, and deletes the accounts at the end. A projection is awaited by polling up to the target of §18, never by sleeping, and the latency of every route is recorded in the report and never gated |
 | Agent evaluation | Against the connector of the deployed staging, from a workstation, before the pull request of a release is merged: whether an agent that knows nothing but what the connector serves leaves a notebook the method describes. A catalogue of cases under `agent-eval/cases`, each a request in a person's words, the sheet of the person a simulated user plays, the setup it starts from, its mechanical checks and the rubric a judge reads it against. Every run gets an account of its own and a token obtained through the whole OAuth flow, and the executor is a separate headless Claude Code process in an empty directory outside any git repository, loading no setting source, no skill and no built-in tool, with the connector as its only MCP server; the simulated user is another such process with no server at all. A round plays every case three times per model, reads the notebooks before and after each run through the API, and ends in a scorecard of passes per check. It refuses to start when a skill `whoami` announces has no case; AE-00 asks what only this repository answers, so an open room is caught; and a run whose executor used a term the server never sent is discarded rather than scored |
 
 **Three tests that are not optional and exist from the first delivery that makes them possible:**
@@ -1506,9 +1531,9 @@ Initial numbers, so they become tests and not folklore. The thesis of the produc
 
 ## 20. CI/CD
 
-### 20.1 Delivery runs from a workstation
+### 20.1 Delivery runs on GitHub Actions
 
-**Delivery is a command.** `pnpm -C memorysmith-infra deliver` raises an environment from the checkout it runs in: it refuses any account but the one `cdk.json` names for the environment, computes the version that environment serves (§23.3), and then does what the order of the environment demands rather than what is convenient.
+**Delivery is a command, and GitHub Actions is where it runs.** `pnpm -C memorysmith-infra deliver` raises an environment from the checkout it runs in: it refuses any account but the one `cdk.json` names for the environment, computes the version that environment serves (§23.3), and then does what the order of the environment demands rather than what is convenient.
 
 ```
 deliver   the SPA and the bundles built once · synth · the network and the hosting ·
@@ -1518,28 +1543,34 @@ deliver   the SPA and the bundles built once · synth · the network and the hos
 
 That order is not a preference (§17): Cognito refuses a sign-in domain whose parent resolves no A record, and the pool sends only from a verified identity, so the hosting and the network go first and the two waits stand between them and everything else. A step that fails stops the ones after it, and the version a delivery records on `deploy:sha` is the commit checked out, which is why a working tree holding changes that commit does not is said out loud before anything is deployed.
 
-**What runs before a delivery is what a workstation always ran:** `pnpm lint`, `pnpm format`, `pnpm typecheck`, `pnpm depcruise` and `pnpm -r test`. The adapter tests, which need the real DynamoDB and S3 of an environment, run after a delivery of staging, and the functional suite runs against the environment it names (§19).
+Three workflows under `.github/workflows/` call it, on the standard runners of a public repository, which cost nothing and give each job more memory than a workstation had to spare:
 
-**A release is three commands, and their order is the guarantee.** `release-checks` first, which refuses a version that disagrees across `CLAUDE.md`, the manifests and `CHANGELOG.md`, or whose tag exists already; then the delivery of production; then `publish-release`, which writes the annotated tag and the GitHub Release of what production now serves. The tag is still written by the release App of the organisation, whose private key never leaves Secrets Manager and whose single permission is `Contents: write`, and a tag ruleset still lets only that App create a `v*` tag. What changed is where the command runs, never who signs it, so a version tag still means "this is in production" by construction.
+| Workflow | Starts | Runs |
+|---|---|---|
+| `ci.yml` | On every pull request, and on every push to a `release/*` branch | `pnpm lint`, `pnpm format`, `pnpm typecheck`, `pnpm depcruise`, `pnpm -r test` and the build of the SPA. It is the required status check of `main` |
+| `staging.yml` | By a person, from the Actions tab, on the branch they choose | `deliver --environment staging`, and then, as chosen, `recount-storage` or `reproject-links` with `--apply`, the adapter tests against the tables and the bucket of staging, and the functional suite with the version the delivery serves; its report is an artifact of the run for thirty days |
+| `production.yml` | On every merge to `main` that touches what is deployed, and by a person to run a delivery of `main` again | `release-checks`, the quality sequence, `deliver --environment production` and `publish-release` |
 
-**What delivery by command costs is that nothing happens unasked.** No merge starts a deploy, so `main` holding a version and production serving it are two facts now, and only a delivery joins them. Nothing but the run of whoever asked says a branch was exercised on staging either: the pull request states what was validated in a sentence written by the person who ran it (`development-process.md` §8), where it used to quote an account. A ruleset on `main` still requires a pull request and refuses a force push and a deletion, because `main` is what a delivery of production is taken from.
+One delivery of an environment runs at a time: a second one waits for the first rather than racing it, and none cancels another. A merge of documentation or governance starts nothing, which is what a change that alters nothing deployable is (`development-process.md` §9).
 
-**Two environments in one account is a trade, and what it costs is written here.** The Lambda concurrency quota is the account's, so staging can throttle production until it is raised, and the commands that refuse any account but their environment's cannot tell the two apart by credentials: the environment named on the command does. What stays separate is the name of everything each environment creates, and a condition on the `app:environment` tag wherever a permission would otherwise reach both.
+**A release is three steps, and their order is the guarantee.** `release-checks` first, which refuses a version that disagrees across `CLAUDE.md`, the manifests and `CHANGELOG.md`, or whose tag exists already; then the delivery of production; then `publish-release`, which writes the annotated tag and the GitHub Release of what production now serves, with the token GitHub issues to that run and nothing stored. A version tag therefore means "this is in production" by construction, and nobody tags by hand.
 
-### 20.2 The pipeline, declared and switched off
+**No AWS key is stored anywhere.** A run asks GitHub for a token signed by its OIDC provider, which says which repository and which GitHub environment the run belongs to, and exchanges it for credentials of a role valid for the run. `stacks/github-delivery.stack.ts` declares the provider and one role per environment, and a role trusts only a run of this repository in the GitHub environment of the same name — so a fork, a pull request from one, another repository, or a run outside the environment `production` cannot assume the role of production. The account and the role ARNs are repository variables, not secrets, because none of them grants anything by being known. The stack belongs to the account rather than to an environment, so only a synth of production declares it; it is deployed by hand once, after `cdk bootstrap`, and no delivery names it, so no run can change what a run may do.
 
-`stacks/pipeline.stack.ts` declares a CodePipeline V2 per environment, and its cases hold it to the account it deploys through and to the order of its stages. **No pipeline is deployed.** The app instantiates one only when `cdk.json` names a connection for the environment (`bin/app.ts`), and neither environment names one: that empty `connectionArn` is the switch, and it is what makes the declaration cost nothing while it is off.
+**What a role may do is what a delivery does.** Both assume the roles `cdk bootstrap` created in the account, which deploy, and read whether the sending identity of their zone is verified. The role of staging may also do what its suites do after the deploy — the adapter tests and the maintenance jobs over the tables and the content bucket of staging, and the accounts of a functional run in a user pool tagged staging — and every one of those permissions names staging. Neither may delete a stack, a table, a bucket or a pool.
 
-What it delivered, when it was on, was the same thing `deliver` does, from a clone instead of a checkout: Source, SelfUpdate, ReleaseChecks in production, Quality, Deliver, Smoke, and Adapters and Functional in staging, with Release writing the tag at the end. Production started on a merge to `main` that touched what is deployed, and staging started when a person asked, because a run costs money.
+**Two environments in one account is a trade, and what it costs is written here.** Both roles deploy through the same bootstrap roles, which can change anything in the account, so what keeps a branch away from production is who may assume which role, not what a role may do once assumed. The Lambda concurrency quota is the account's, so staging can throttle production until it is raised, and the commands that refuse any account but their environment's cannot tell the two apart by credentials: the environment named on the command does. What stays separate is the name of everything each environment creates, and a condition on the `app:environment` tag wherever a permission would otherwise reach both.
 
-**Switching it back on is what raising it the first time was, minus what outlives a stack.** The CodeConnection to GitHub stays authorised in the account and the bootstrap of the account stays, so the ARN goes back into `cdk.json` and one `cdk deploy` of the pipeline stack of that environment raises it, and the stage after the source keeps it up to date from then on. While it is off, `pnpm staging:start`, `pnpm staging:status` and `pnpm staging:destroy` say so and name the command to run instead of failing against an account that has nothing to answer.
+### 20.2 What still runs from a workstation
 
-**Staging is torn down from a workstation, and production cannot be.** `pnpm -C memorysmith-infra destroy-staging` refuses any account but the one `cdk.json` names for staging, and because production lives in that same account it deletes only what the stacks of staging list. It lists what the stacks retain before they go, deletes them one at a time in the reverse of a delivery, joining an operation already running instead of racing it, and then purges what no removal policy deletes: the five tables, the audit trail included, the content bucket with every version, the user pool and the log groups of functions that are gone. It holds a terminal for as long as it takes, and the sign-in domain alone takes over half an hour. Nothing deletes the hosted zone of staging, whose name servers the delegation in production names (§17).
+**Staging is torn down from a workstation, and production cannot be.** `pnpm -C memorysmith-infra destroy-staging` refuses any account but the one `cdk.json` names for staging, and because production lives in that same account it deletes only what the stacks of staging list. It lists what the stacks retain before they go, deletes them one at a time in the reverse of a delivery, joining an operation already running instead of racing it, and then purges what no removal policy deletes: the five tables, the audit trail included, the content bucket with every version, the user pool and the log groups of functions that are gone. It only calls AWS, so it asks nothing of the machine but to stay awake, and the sign-in domain alone takes over half an hour. Nothing deletes the hosted zone of staging, whose name servers the delegation in production names (§17), nor the roles GitHub delivers with. It runs from a workstation on purpose: a role a workflow could assume and that could delete staging would be one condition away from deleting production.
+
+**So do the bootstrap and the one-time steps**: `cdk bootstrap`, the deploy of the GitHub roles, the maintenance jobs against production, and the blind agent evaluation (§19). `deliver` still runs from a workstation as well, with the same result, when a person has a reason to.
 
 ### 20.3 The commands of the infrastructure
 
 
-A delivery is made of commands: scripts of `memorysmith-infra`, written in TypeScript under `commands/`, which reach the product only through its surfaces and its contracts (§5.4). A pipeline, when one is on, calls these same scripts, which is what lets delivery move between an account and a workstation without changing what is run.
+A delivery is made of commands: scripts of `memorysmith-infra`, written in TypeScript under `commands/`, which reach the product only through its surfaces and its contracts (§5.4). The workflows call these same scripts, which is what lets delivery move between GitHub and a workstation without changing what is run.
 
 ```
 deliver           raises an environment: build, synth, the stacks in order, the waits, the smoke
@@ -1549,13 +1580,10 @@ release-notes     the section of CHANGELOG.md of a version
 wait-for-dns      waits until a name resolves, before the sign-in domain is deployed
 wait-for-email-identity  waits until the sending identity is verified, before the pool is deployed
 smoke             every surface serves the version and the environment of the deploy
-publish-release   the annotated tag and the GitHub Release of a version, signed by whoever runs it
+publish-release   the annotated tag and the GitHub Release of a version, signed by the token of the run
 destroy-staging   tears staging down, and refuses every other environment
-staging:start     starts staging on a pipeline, and says the pipeline is off while it is
-staging:status    whether the head of a branch ran on staging, on a pipeline
-staging:destroy   starts the teardown on a pipeline, and names destroy-staging while it is off
 onboard           an account and its subscription, through the API
-recount-storage   rebuilds the storage counter of every subscription (§10.3)
+recount-storage   rebuilds the storage counters of every subscription, and what fills them (§10.3)
 reproject-links   rebuilds the link graph of every notebook (§11)
 agent-eval        a round of the blind agent evaluation against staging (§19)
 ```
@@ -1660,7 +1688,7 @@ Adding a tool, adding an optional argument or widening a return is **minor** in 
 
 ### 23.3 Layer 3: the deployment version
 
-Every CDK stack carries the tag `app:environment`, and every stack of the product carries `app:version` with the version it serves and `deploy:sha` with the commit it was built from. The pipeline stack carries neither of the two, because it delivers every version and a version written on it would be false. That is what makes it possible to answer "what was in production when this happened" from the environment itself.
+Every stack of the product carries the tag `app:environment`, `app:version` with the version it serves and `deploy:sha` with the commit it was built from. The stack of the roles GitHub delivers with carries none of the three, because it belongs to the account and delivers every version, and a version or an environment written on it would be false. That is what makes it possible to answer "what was in production when this happened" from the environment itself.
 
 **The environment and the version are configuration, never a constant of the build.** A deploy declares them as CDK context (`environment`, `version`, `commit`), and a deploy that declares nothing is production serving the version of the packages. Every function receives the three as `APP_ENVIRONMENT`, `APP_VERSION` and `APP_COMMIT`, through `ServiceLambda`, and the interface reads them from `/config.json`, which `frontend-release.stack` publishes beside the bundle together with the origin of the API, the sign-in domain and the app client. The artefact built from a commit therefore does not depend on the environment it goes to. `memorysmith-frontend/.env.local` does not exist: for `vite dev`, the dev server answers `/config.json` from an untracked `config.local.json`.
 
@@ -1672,7 +1700,7 @@ What each surface says about itself:
 |---|---|
 | API | `GET /health` answers `{status, environment, version, commit}`, and every response, a refusal included, carries `x-memorysmith-environment` and `x-memorysmith-version`, exposed through CORS |
 | MCP | `serverInfo.version` is the version the function runs; outside production, the `instructions` of the handshake and the opening of `whoami` name the environment and warn that what is written there is disposable (RN-AGT-026) |
-| Web | Outside production, a fixed banner that cannot be dismissed with the environment and the version, and `[staging]` before the title of every tab; the version in the user menu, always |
+| Web | Outside production, a strip at the foot of the window that cannot be dismissed, with the environment and the version, and `[staging]` before the title of every tab; the version in the user menu, always |
 
 ---
 

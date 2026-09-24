@@ -182,6 +182,8 @@ describe('The tool catalog is the public contract', () => {
       'search_notes',
       'related_notes',
       'backlinks',
+      // The sweep before the work is handed over (#217).
+      'check_notebook',
       'note_history',
     ]);
   });
@@ -533,6 +535,23 @@ describe('The tool adapter translates in both directions', () => {
     expect(result.content[0]?.text).toBe(
       '- Achado 12 (n1, folder f1)\n  - Lei 14.133 (n2, folder f2)',
     );
+  });
+
+  it('answers what a notebook left pending, and what looks broken in it (#217)', async () => {
+    const answer = {
+      pending: [
+        {
+          target: 'M42',
+          from: [{ noteId: 'n2', name: 'Session 1', folderId: 'f1' }],
+          likelyMeant: { name: 'M42 Orion Nebula', kind: 'note', noteId: 'n1' },
+        },
+      ],
+      orphans: [],
+    };
+    const adapter = gateways({ discovery: { checkNotebook: async () => answer } });
+    const result = await adapter.call('check_notebook', { notebook: 'v1' }, caller);
+    expect(result.isError).toBe(false);
+    expect(JSON.parse(result.content[0]?.text ?? '')).toEqual(answer);
   });
 
   it('says something useful when the connector reaches no notebook', async () => {

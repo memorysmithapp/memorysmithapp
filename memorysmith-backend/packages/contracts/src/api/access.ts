@@ -130,6 +130,51 @@ export const sessionSchema = z.object({
   welcomeSeen: z.boolean(),
 });
 
+/** Bytes and how many, for one kind of what a subscription stores (#197). */
+export const usageShareSchema = z.object({
+  count: z.number().int().nonnegative(),
+  bytes: z.number().int().nonnegative(),
+});
+
+/**
+ * What fills the space of the active subscription (#197), read from counters
+ * and never from content. `byType` is about the subscription, which is what
+ * the quota is about, and adds up to `usedBytes`: the current revision of each
+ * note, the files, the kept exports, and the Guidance and Templates together
+ * as `others`. A revision that is no longer current costs nothing and is only
+ * counted, in `counts.revisions`.
+ *
+ * `notebooks` lists only the notebooks the requester sees (a hidden one would
+ * answer 404), largest first, so for anyone but the owner it may add up to
+ * less than the total — which is the rule, not a defect.
+ */
+export const subscriptionUsageSchema = z.object({
+  usedBytes: z.number().int().nonnegative(),
+  quotaBytes: z.number().int().positive(),
+  byType: z.object({
+    notes: usageShareSchema,
+    files: usageShareSchema,
+    exports: usageShareSchema,
+    others: usageShareSchema,
+  }),
+  counts: z.object({
+    notebooks: z.number().int().nonnegative(),
+    folders: z.number().int().nonnegative(),
+    revisions: z.number().int().nonnegative(),
+  }),
+  notebooks: z.array(
+    z.object({
+      notebookId: ulidSchema,
+      name: z.string(),
+      bytes: z.number().int().nonnegative(),
+      notes: z.number().int().nonnegative(),
+      folders: z.number().int().nonnegative(),
+      files: z.number().int().nonnegative(),
+      exports: z.number().int().nonnegative(),
+    }),
+  ),
+});
+
 export const switchSubscriptionRequestSchema = z.object({
   subscriptionId: ulidSchema,
 });
@@ -278,3 +323,5 @@ export type SetSubscriptionStatusRequest = z.infer<typeof setSubscriptionStatusR
 export type ChangeSubscriptionPlanRequest = z.infer<typeof changeSubscriptionPlanRequestSchema>;
 export type ConnectorBindingRequest = z.infer<typeof connectorBindingRequestSchema>;
 export type ConnectorDto = z.infer<typeof connectorSchema>;
+export type UsageShareDto = z.infer<typeof usageShareSchema>;
+export type SubscriptionUsageDto = z.infer<typeof subscriptionUsageSchema>;

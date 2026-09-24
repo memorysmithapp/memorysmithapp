@@ -45,6 +45,15 @@ import type {
   NotebookRepository,
 } from '../../../domain/ports/index.js';
 import type { StorageBudget, StorageState } from '../../../domain/services/StorageQuota.js';
+import {
+  EMPTY_NOTEBOOK_USAGE,
+  EMPTY_SUBSCRIPTION_USAGE,
+  usageChangeOf,
+  type NotebookUsageCounters,
+  type StorageUsageReader,
+  type StorageUsageSnapshot,
+  type SubscriptionUsageCounters,
+} from '../../../domain/services/StorageUsage.js';
 import { Notebook } from '../../../domain/notebook/Notebook.js';
 import { NotebookRoleLimit } from '@memorysmith/kernel';
 
@@ -87,6 +96,66 @@ export class InMemoryStorageBudget implements StorageBudget {
   record(events: readonly DomainEvent[]): void {
     for (const event of events) this.usedBytes += event.storageDelta;
     if (this.usedBytes < 0) this.usedBytes = 0;
+  }
+}
+
+/**
+ * The counters of what fills the space (RN-SUB-024), in memory. They are moved
+ * by the same arithmetic the relay applies to the table, so a test that feeds
+ * this the events a use case recorded reads what production would answer.
+ */
+export class InMemoryStorageUsage implements StorageUsageReader {
+  subscription: SubscriptionUsageCounters = { ...EMPTY_SUBSCRIPTION_USAGE };
+  readonly notebooks = new Map<string, NotebookUsageCounters>();
+
+  async read(): Promise<StorageUsageSnapshot> {
+    const floor = (value: number): number => (value > 0 ? value : 0);
+    return {
+      subscription: Object.fromEntries(
+        Object.entries(this.subscription).map(([name, value]) => [name, floor(value)]),
+      ) as unknown as SubscriptionUsageCounters,
+      notebooks: new Map(
+        [...this.notebooks].map(([id, line]) => [
+          id,
+          {
+            bytes: floor(line.bytes),
+            notes: floor(line.notes),
+            folders: floor(line.folders),
+            files: floor(line.files),
+          },
+        ]),
+      ),
+    };
+  }
+
+  /** What the relay would have applied for these events. */
+  record(
+    events: ReadonlyArray<Pick<DomainEvent, 'type' | 'storageDelta' | 'contentRef' | 'payload'>>,
+  ): void {
+    for (const event of events) {
+      const change = usageChangeOf({
+        type: event.type,
+        storageDelta: event.storageDelta,
+        contentRef: event.contentRef ? { bytes: event.contentRef.bytes } : null,
+        payload: event.payload,
+      });
+      const totals = { ...this.subscription } as Record<string, number>;
+      for (const [name, delta] of Object.entries(change.subscription)) {
+        totals[name] = (totals[name] ?? 0) + (delta ?? 0);
+      }
+      this.subscription = totals as unknown as SubscriptionUsageCounters;
+      for (const { notebookId, delta } of change.notebooks) {
+        const line = { ...(this.notebooks.get(notebookId) ?? EMPTY_NOTEBOOK_USAGE) } as Record<
+          string,
+          number
+        >;
+        for (const [name, value] of Object.entries(delta)) {
+          line[name] = (line[name] ?? 0) + (value ?? 0);
+        }
+        this.notebooks.set(notebookId, line as unknown as NotebookUsageCounters);
+      }
+      if (change.forget) this.notebooks.delete(change.forget);
+    }
   }
 }
 

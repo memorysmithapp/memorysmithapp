@@ -24,6 +24,11 @@ export interface TabOf<K extends string> {
    * screen cannot go on, which is the one case that earns the accent (#161).
    */
   readonly count?: number;
+  /**
+   * How many things the tab holds, in a neutral count that marks nothing:
+   * *Todas 7 · Exportações 3* (#205). `count` is the lit one, for what blocks.
+   */
+  readonly total?: number;
 }
 
 export function Tabs<K extends string>({
@@ -66,6 +71,9 @@ export function Tabs<K extends string>({
         >
           {tab.label}
           {tab.count ? <span className="tab-count">{tab.count}</span> : null}
+          {tab.total !== undefined && !tab.count ? (
+            <span className="tab-total">{tab.total}</span>
+          ) : null}
         </button>
       ))}
     </div>

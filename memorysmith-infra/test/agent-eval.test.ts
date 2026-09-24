@@ -101,6 +101,7 @@ const notebook = (overrides: Partial<NotebookSnapshot> = {}): NotebookSnapshot =
   ],
   notes: [],
   pendingLinks: 0,
+  brokenLinks: [],
   ...overrides,
 });
 
@@ -112,6 +113,7 @@ describe('the mechanical checks', () => {
       { tool: 'whoami', input: {}, turn: 0 },
       { tool: 'get_skill', input: { name: 'design-notebook' }, turn: 0 },
       { tool: 'create_notebook', input: {}, turn: 1 },
+      { tool: 'check_notebook', input: {}, turn: 2 },
     );
     const after = [
       notebook({
@@ -139,12 +141,33 @@ describe('the mechanical checks', () => {
         'notes-state-a-name',
         'frontmatter-follows-templates',
         'links-land',
+        'checked-before-done',
         'template-links-name-notes',
         'no-duplicate-writes',
       ],
       { transcript, before: [], after, finalText: 'Pronto.', absent: [], leaks: [] },
     );
     expect(outcomes.filter((outcome) => outcome.passed === false)).toEqual([]);
+  });
+
+  it('pass a pending link left on purpose, and fail one that almost reaches a note (#217)', () => {
+    const transcript = emptyTranscript();
+    transcript.toolUses.push({ tool: 'create_note', input: {}, turn: 0 });
+    const onPurpose = notebook({ pendingLinks: 2, brokenLinks: [] });
+    const broken = notebook({ pendingLinks: 2, brokenLinks: ['[[M42]] → M42 Orion Nebula'] });
+    const run = (after: NotebookSnapshot) =>
+      runChecks(['links-land', 'checked-before-done'], {
+        transcript,
+        before: [],
+        after: [after],
+        finalText: '',
+        absent: [],
+        leaks: [],
+      });
+    expect(run(onPurpose).map((outcome) => outcome.passed)).toEqual([true, false]);
+    const [land] = run(broken);
+    expect(land?.passed).toBe(false);
+    expect(land?.detail).toContain('M42 Orion Nebula');
   });
 
   it('fail a Guidance that opens with a heading, a folder described by its name and a property nobody declared', () => {

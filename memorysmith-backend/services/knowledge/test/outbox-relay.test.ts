@@ -172,4 +172,158 @@ describe('OutboxRelay', () => {
     expect(envelope['ttl']).toBeUndefined();
     expect(envelope['subscriptionId']).toBe(SUBSCRIPTION);
   });
+
+  describe('what fills the space (RN-SUB-024)', () => {
+    type Write = Record<string, Record<string, unknown>>;
+    const writesOf = (dbCalls: unknown[]): Write[] =>
+      (dbCalls[0] as { input: { TransactItems: Write[] } }).input.TransactItems;
+    /** An Update of the transaction, read back as the counters it adds. */
+    const added = (write: Write | undefined): Record<string, unknown> => {
+      const update = write?.['Update'] ?? {};
+      const names = (update['ExpressionAttributeNames'] ?? {}) as Record<string, string>;
+      const values = (update['ExpressionAttributeValues'] ?? {}) as Record<string, unknown>;
+      const expression = String(update['UpdateExpression'] ?? '');
+      const adds = /ADD (.*?)( SET|$)/.exec(expression)?.[1] ?? '';
+      return Object.fromEntries(
+        adds.split(', ').map((pair) => {
+          const [name = '', value = ''] = pair.split(' ');
+          return [names[name] ?? name, values[value]];
+        }),
+      );
+    };
+    const updateOf = (writes: Write[], sk: string): Write | undefined =>
+      writes.find((write) => (write['Update']?.['Key'] as { SK?: string } | undefined)?.SK === sk);
+
+    it('adds a note to its kind, its notebook and the revisions, beside the total', async () => {
+      const { relay, dbCalls } = fakes();
+      await relay.process([{ ...outboxItem, storageDelta: 12 }]);
+      const writes = writesOf(dbCalls);
+
+      const usage = updateOf(writes, 'USAGE');
+      expect((usage?.['Update']?.['Key'] as { PK: string }).PK).toBe(`S#${SUBSCRIPTION}#NOTEBOOKS`);
+      expect(added(usage)).toEqual({ storedBytes: 12, noteCount: 1, noteBytes: 12, revisions: 1 });
+      expect(added(updateOf(writes, `NBUSAGE#${NOTEBOOK}`))).toEqual({ notes: 1, bytes: 12 });
+      // Nothing of it touches the notebook's own partition beyond the counters
+      // that were already there, and never its META item (rule 10).
+      expect(
+        writes.some((write) => (write['Update']?.['Key'] as { SK?: string })?.SK === 'META'),
+      ).toBe(false);
+    });
+
+    it('moves a note and its bytes between notebooks, and nothing in the subscription', async () => {
+      const OTHER = '01JBQ2X0000000000000000009';
+      const { relay, dbCalls } = fakes();
+      await relay.process([
+        {
+          ...outboxItem,
+          type: 'NoteMoved',
+          payload: {
+            noteId: NOTE,
+            fromNotebookId: NOTEBOOK,
+            fromFolderId: FOLDER,
+            toNotebookId: OTHER,
+            toFolderId: FOLDER,
+            position: 'a0',
+          },
+        },
+      ]);
+      const writes = writesOf(dbCalls);
+
+      expect(updateOf(writes, 'USAGE')).toBeUndefined();
+      expect(added(updateOf(writes, `NBUSAGE#${NOTEBOOK}`))).toEqual({ notes: -1, bytes: -12 });
+      expect(added(updateOf(writes, `NBUSAGE#${OTHER}`))).toEqual({ notes: 1, bytes: 12 });
+    });
+
+    it('counts a file as a file', async () => {
+      const { relay, dbCalls } = fakes();
+      await relay.process([
+        {
+          ...outboxItem,
+          type: 'FileKept',
+          subject: 'FILE',
+          storageDelta: 4096,
+          payload: {
+            notebookId: NOTEBOOK,
+            fileId: NOTE,
+            name: 'picture.png',
+            mimeType: 'image/png',
+            path: '',
+          },
+        },
+      ]);
+      const writes = writesOf(dbCalls);
+      expect(added(updateOf(writes, 'USAGE'))).toEqual({
+        storedBytes: 4096,
+        fileCount: 1,
+        fileBytes: 4096,
+      });
+      expect(added(updateOf(writes, `NBUSAGE#${NOTEBOOK}`))).toEqual({ files: 1, bytes: 4096 });
+    });
+
+    it('takes a purged notebook off the list, with the folders its tree still held', async () => {
+      const { relay, dbCalls } = fakes();
+      await relay.process([
+        {
+          ...outboxItem,
+          type: 'NotebookPurged',
+          subject: 'NOTEBOOK',
+          subjectId: NOTEBOOK,
+          contentRef: null,
+          payload: { notebookId: NOTEBOOK, folderCount: 3 },
+        },
+      ]);
+      const writes = writesOf(dbCalls);
+      expect(added(updateOf(writes, 'USAGE'))).toEqual({ notebooks: -1, folders: -3 });
+      expect(writes.find((write) => write['Delete'])?.['Delete']?.['Key']).toEqual({
+        PK: `S#${SUBSCRIPTION}#NOTEBOOKS`,
+        SK: `NBUSAGE#${NOTEBOOK}`,
+      });
+    });
+
+    it('takes a note invalidated by its folder off the count when the purge frees it', async () => {
+      const { relay, dbCalls } = fakes();
+      await relay.process([
+        {
+          ...outboxItem,
+          type: 'NotePurged',
+          storageDelta: -12,
+          payload: {
+            notebookId: NOTEBOOK,
+            noteId: NOTE,
+            folderId: FOLDER,
+            live: true,
+            revisions: 3,
+          },
+        },
+      ]);
+      const writes = writesOf(dbCalls);
+      expect(added(updateOf(writes, 'USAGE'))).toEqual({
+        storedBytes: -12,
+        noteCount: -1,
+        noteBytes: -12,
+        revisions: -3,
+      });
+    });
+
+    it('takes only the revisions of a note deleted on its own, which left the count before', async () => {
+      const { relay, dbCalls } = fakes();
+      await relay.process([
+        {
+          ...outboxItem,
+          type: 'NotePurged',
+          storageDelta: 0,
+          payload: {
+            notebookId: NOTEBOOK,
+            noteId: NOTE,
+            folderId: FOLDER,
+            live: false,
+            revisions: 2,
+          },
+        },
+      ]);
+      const writes = writesOf(dbCalls);
+      expect(added(updateOf(writes, 'USAGE'))).toEqual({ revisions: -2 });
+      expect(updateOf(writes, `NBUSAGE#${NOTEBOOK}`)).toBeUndefined();
+    });
+  });
 });

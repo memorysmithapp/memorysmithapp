@@ -190,6 +190,48 @@ describe('the upload an import discards', () => {
 });
 
 /**
+ * Importing a kept export copies its archive to an upload key inside the
+ * bucket (#207, RN-PRT-020). A CopyObject is two permissions at once: reading
+ * the source, under `exports/`, and writing the destination with the tag an
+ * upload wears, under `imports/`. Neither is a new grant — the API already
+ * reads the bucket and puts into it — and this holds that, because a copy the
+ * role cannot make fails only once somebody tries it on staging.
+ */
+describe('the copy of a kept export into an upload', () => {
+  const API = 'MemorySmith core API: access, knowledge, discovery and audit reads.';
+  const template = SYNTHESISED.api;
+  const allowed = allowedOf(template, rolesByDescription(template).get(API) ?? '');
+  /** Whether a statement reaches every object of the content bucket. */
+  const onEveryObject = (each: Allowed): boolean =>
+    each.resource.includes('ContentBucket') && each.resource.includes('/*');
+
+  it('may read the archive of an export', () => {
+    expect(
+      allowed.some(
+        (each) =>
+          onEveryObject(each) &&
+          each.actions.some((action) => action === 's3:GetObject' || action === 's3:GetObject*'),
+      ),
+    ).toBe(true);
+  });
+
+  it('may write the upload and tag it as one, so it expires like one (RN-PRT-014)', () => {
+    const puts = allowed.filter(onEveryObject).flatMap((each) => each.actions);
+    expect(puts).toContain('s3:PutObject');
+    expect(puts).toContain('s3:PutObjectTagging');
+  });
+
+  it('never destroys what it copied from, beyond what deleting an export already does', () => {
+    // The API deletes a version under `exports/` and nowhere else (RN-PRT-020):
+    // the copy adds no delete of any kind.
+    const deletes = allowed.filter((each) =>
+      each.actions.some((action) => action.startsWith('s3:Delete')),
+    );
+    expect(deletes.every((each) => each.resource.includes('s/*/exports/*'))).toBe(true);
+  });
+});
+
+/**
  * Who may remove an entry of the trail (rule 6, RN-AUD-011).
  *
  * The trail stopped being "nothing is ever removed" and became "nothing is

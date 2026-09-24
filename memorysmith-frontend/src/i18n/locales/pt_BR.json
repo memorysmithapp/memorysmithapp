@@ -11,15 +11,16 @@
     "saved": "Salvo"
   },
   "reserved": {
-    "aliases": "Apelidos",
-    "tags": "Etiquetas"
+    "aliases": "aliases",
+    "tags": "tags"
   },
   "app": {
     "title": "MemorySmith",
     "tagline": "Conhecimento estruturado, que humanos e agentes leem e escrevem nativamente.",
-    "version": "Versão {{version}}"
+    "version": "MemorySmith.app {{version}}"
   },
   "auth": {
+    "menu": "Menu da conta",
     "email": "E-mail",
     "password": "Senha",
     "continue": "Continuar",
@@ -86,14 +87,16 @@
   },
   "notebooks": {
     "heading": "Cadernos",
-    "noteCount": "{{count}} notas",
+    "noteCount_one": "{{count}} nota",
+    "noteCount_other": "{{count}} notas",
     "updatedAt": "atualizado em {{date}}",
-    "open": "Abrir caderno"
+    "open": "Abrir caderno",
+    "openShort": "Abrir"
   },
   "structure": {
     "guidance": "Orientação",
     "folders": "Pastas",
-    "root": "Raiz",
+    "noFolders": "Este caderno ainda não tem pastas.",
     "noteCountSplit": "{{here}} aqui, {{below}} nas subpastas",
     "hasTemplate": "modelo",
     "outlineHint": "A árvore de pastas com a descrição de cada uma. É ela que diz ao agente onde cada nota entra.",
@@ -123,6 +126,8 @@
     "empty": "Ainda não há notas nesta pasta."
   },
   "note": {
+    "propertyTrue": "Sim",
+    "propertyFalse": "Não",
     "properties": "Propriedades",
     "embedSectionMissing": "A seção \"{{section}}\" não existe nesta nota.",
     "writeConflict": "A alteração não foi salva. Alguém escreveu aqui antes, e o conteúdo foi recarregado.",
@@ -146,7 +151,9 @@
     "targetAliased_one": "Nenhuma nota se chama “{{target}}”. Uma nota carrega esse apelido.",
     "targetAliased_other": "Nenhuma nota se chama “{{target}}”, então ele casou com {{count}} notas que o carregam como apelido — e uma delas devolve o link no dia em que alguém escrever uma nota com este nome.",
     "attachmentOpen": "Abrir",
-    "attachmentDownload": "Baixar"
+    "attachmentDownload": "Baixar",
+    "changedElsewhere": "Esta nota mudou desde que você a abriu, e o que está na tela é a versão atual.",
+    "changedElsewhereDismiss": "Entendi"
   },
   "common": {
     "loading": "Carregando…",
@@ -155,15 +162,56 @@
     "close": "Fechar"
   },
   "dashboard": {
-    "heading": "Visão geral",
-    "kpiNotebooks": "Cadernos",
-    "kpiNotes": "Notas",
-    "kpiPending": "Links pendentes",
     "selectNotebook": "Abrir um caderno",
     "prevNotebooks": "Cadernos anteriores",
     "nextNotebooks": "Próximos cadernos",
-    "kpiOrphans": "Notas órfãs",
-    "unavailableNotebooks": "{{count}} caderno(s) não responderam, então estes totais estão incompletos."
+    "goToNotebook": "Ir para o caderno {{number}}",
+    "noNotebooks": "Nenhum caderno ainda. Um agente cria um pelo conector, e uma exportação volta a entrar por Transferências.",
+    "space": "Espaço da assinatura",
+    "planChip": "{{plan}} · {{quota}}",
+    "plan": {
+      "individual": "Plano individual"
+    },
+    "of": "de {{quota}}",
+    "free": "{{free}} livres",
+    "full": "cheio",
+    "kind": "Tipo",
+    "quantity": "Qtd.",
+    "bytes": "Espaço",
+    "kindFiles": "Anexos",
+    "kindNotes": "Notas",
+    "kindExports": "Exportações guardadas",
+    "kindOthers": "Outros",
+    "kindOthersHint": "Orientações e Modelos",
+    "byNotebook": "Por caderno",
+    "moreNotebooks_one": "Mais {{count}} caderno",
+    "moreNotebooks_other": "Mais {{count}} cadernos",
+    "notebookNotes_one": "{{count}} nota",
+    "notebookNotes_other": "{{count}} notas",
+    "notebookFolders_one": "{{count}} pasta",
+    "notebookFolders_other": "{{count}} pastas",
+    "notebookFiles_one": "{{count}} anexo",
+    "notebookFiles_other": "{{count}} anexos",
+    "notebookExports_one": "{{count}} exportação",
+    "notebookExports_other": "{{count}} exportações",
+    "notebookEmpty": "nada ainda",
+    "noVisibleNotebooks": "Nenhum caderno que você lê guarda algo ainda.",
+    "countNotebooks": "Cadernos",
+    "countFolders": "Pastas",
+    "countRevisions": "Revisões",
+    "usageUnavailable": "Não foi possível ler agora a divisão do espaço; o total é o que a sua sessão conhece.",
+    "card": {
+      "more": "Mais ações",
+      "export": "Exportar caderno",
+      "delete": "Apagar caderno…",
+      "confirmTitle": "Apagar “{{name}}”?",
+      "confirmBody": "<b>Todo o conteúdo será apagado e essa ação é irreversível.</b> Avalie <export>Exportar caderno</export> antes de apagar.",
+      "keep": "Manter",
+      "deleteForGood": "Apagar de vez",
+      "deleting": "Apagando…"
+    },
+    "purging_one": "Um caderno apagado ainda ocupa {{bytes}} até a limpeza terminar.",
+    "purging_other": "{{count}} cadernos apagados ainda ocupam {{bytes}} até a limpeza terminar."
   },
   "portability": {
     "download": "Baixar o caderno (.notebook)",
@@ -209,11 +257,11 @@
       "UPLOAD": "Não foi possível enviar o arquivo. Tente de novo.",
       "VALIDATION": "Esse documento foi recusado.",
       "NOT_FOUND": "O envio não foi encontrado. Escolha o arquivo de novo.",
-      "INTERNAL": "Algo deu errado do nosso lado. Tente de novo."
+      "INTERNAL": "Algo deu errado do nosso lado. Tente de novo.",
+      "KEPT_UNREADABLE": "Não foi possível ler essa exportação. Tente de novo, ou baixe e importe o arquivo."
     },
     "exportHeading": "Exportar caderno",
     "withHistory": "Incluir a história",
-    "withHistoryHint": "Quem escreveu o quê e quando, e o conteúdo de cada versão anterior. O arquivo fica maior, e uma exportação guardada ocupa o armazenamento do seu plano. Apagar um caderno leva a história junto, então é isto que a preserva.",
     "startExport": "Exportar",
     "cancel": "Cancelar",
     "history": "História do caderno",
@@ -231,7 +279,6 @@
     },
     "noTemplate": "sem Modelo",
     "wholeNotebook": "O caderno todo",
-    "wholeNotebookHint": "A Orientação, o Modelo de cada pasta, todas as notas e a história inteira — inclusive o registro do que foi apagado.",
     "whatToCarry": {
       "export": "O que vai no arquivo",
       "import": "O que importar"
@@ -274,7 +321,25 @@
     "countFiles_one": "{{count}} arquivo",
     "countFiles_other": "{{count}} arquivos",
     "countFiles_zero": "{{count}} arquivos",
-    "filesBelongToTheNotebook": "Um arquivo pertence ao caderno e não a uma pasta: deixar um de fora nunca deixa uma nota de fora junto, e qualquer nota que viaja pode referenciar qualquer um deles. O custo é um embed que cai pendente."
+    "filesBelongToTheNotebook": "Um arquivo pertence ao caderno e não a uma pasta: deixar um de fora nunca deixa uma nota de fora junto, e qualquer nota que viaja pode referenciar qualquer um deles. O custo é um embed que cai pendente.",
+    "carries": "Vai no arquivo:",
+    "creates": "Vai criar:",
+    "oneNotebook": "1 caderno",
+    "refusals_one": "1 inconsistência · nada é importado até resolver",
+    "refusals_other": "{{count}} inconsistências · nada é importado até resolver",
+    "readInBrowser": "lido no navegador",
+    "changeFile": "Trocar",
+    "twinTitle": "“{{name}}” vem duas vezes",
+    "twinWhy": "Uma pasta guarda uma nota de cada nome: deixe uma delas de fora.",
+    "source": {
+      "label": "De onde vem o arquivo",
+      "file": "Do computador",
+      "kept": "Das exportações guardadas",
+      "which": "Exportação guardada",
+      "pick": "Escolha uma exportação",
+      "none": "Nenhuma exportação guardada ainda. Uma exportação guardada em Transferências pode ser importada daqui.",
+      "reading": "Lendo o arquivo…"
+    }
   },
   "graph": {
     "heading": "Grafo do caderno",
@@ -340,7 +405,28 @@
     "wrote_one": "{{count}} nota escrita",
     "wrote_other": "{{count}} notas escritas",
     "wroteNothing": "o desenho, sem nota nenhuma",
-    "fromFile": "de {{file}}"
+    "fromFile": "de {{file}}",
+    "kind": {
+      "export": "Exportação",
+      "import": "Importação"
+    },
+    "state": {
+      "ready": "Pronta",
+      "failed": "Falhou",
+      "cancelled": "Cancelada",
+      "running": "Em andamento"
+    },
+    "keptSentence": "As exportações ficam guardadas até você apagar e ocupam <b>{{size}}</b> do seu plano.",
+    "keptShort": "Espaço usado: <b>{{size}}</b>",
+    "deleteAsk": "Apagar esta exportação?",
+    "deleteFrees": "Isto é definitivo e libera {{size}} do seu plano. O caderno, se ainda existir, não é tocado.",
+    "keep": "Manter",
+    "cancelImport": "Cancelar",
+    "open": "Abrir",
+    "importKept": "Importar",
+    "deleteImportAsk": "Apagar esta importação?",
+    "deleteImportKeeps": "Só este registro sai da lista. O caderno que ela criou, se criou, continua.",
+    "deleteRecordOnly": "Só este registro sai da lista; não há arquivo para liberar."
   },
   "about": {
     "menu": "Sobre o MemorySmith.app",
@@ -444,8 +530,13 @@
     "working": "Trocando…",
     "cancel": "Cancelar",
     "done": "Sua senha foi trocada. Todas as outras sessões desta conta vão precisar entrar de novo.",
-    "back": "Voltar ao seu perfil",
-    "failed": "Não foi possível trocar a senha."
+    "back": "Voltar",
+    "failed": "Não foi possível trocar a senha.",
+    "show": "Mostrar senhas",
+    "required": "Preencha este campo.",
+    "currentPlaceholder": "Digitar a senha atual",
+    "nextPlaceholder": "Digitar a nova senha",
+    "againPlaceholder": "Digitar a nova senha de novo"
   },
   "editor": {
     "edit": "Editar esta nota",

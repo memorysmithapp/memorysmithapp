@@ -1,6 +1,6 @@
 {
   "name": "@memorysmith/svc-knowledge",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "description": "Knowledge bounded context, the core domain: notebooks, guidance, folders, order, templates and notes.",
@@ -40,6 +40,7 @@
     "./application/folders": "./src/application/folders.ts",
     "./application/notes": "./src/application/notes.ts",
     "./application/files": "./src/application/files.ts",
+    "./application/usage": "./src/application/usage.ts",
     "./domain": "./src/domain/index.ts"
   }
 }

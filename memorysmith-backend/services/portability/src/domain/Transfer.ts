@@ -98,5 +98,21 @@ export interface TransferStore {
   remove(userId: string, transferId: string): Promise<void>;
   /** What the kept exports of the SUBSCRIPTION occupy (RN-SUB-021). */
   keptBytes(): Promise<number>;
-  addKeptBytes(delta: number): Promise<void>;
+  /**
+   * Moves what the kept exports occupy by one export: its bytes, positive
+   * when it is kept and negative when it is deleted, and the notebook it was
+   * made of, so the space of the subscription can say which notebook its
+   * exports are of (RN-SUB-024). The count moves by one with the sign.
+   */
+  addKeptBytes(delta: number, notebookId?: string | null): Promise<void>;
+  /** How many exports are kept and what they occupy, whole and per notebook. */
+  keptUsage(): Promise<KeptUsage>;
+}
+
+/** What the kept exports of a subscription add up to (RN-SUB-024). */
+export interface KeptUsage {
+  readonly count: number;
+  readonly bytes: number;
+  /** Per notebook the exports were made of; a notebook long gone included. */
+  readonly byNotebook: ReadonlyMap<string, { readonly count: number; readonly bytes: number }>;
 }

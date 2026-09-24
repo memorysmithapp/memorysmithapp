@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLiveInterval } from '../../shared/api/live';
 import { useQuery } from '@tanstack/react-query';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -61,6 +62,7 @@ export function NotebookLayout() {
 
   const query = useQuery({
     queryKey: queryKeys.notebookStructure(notebookId),
+    refetchInterval: useLiveInterval(),
     queryFn: () => getNotebookStructure(notebookId),
     enabled: notebookId !== '',
   });
@@ -77,6 +79,7 @@ export function NotebookLayout() {
    */
   useQuery({
     queryKey: queryKeys.notebookNames(notebookId),
+    refetchInterval: useLiveInterval(),
     queryFn: () => getNotebookNames(notebookId),
     enabled: notebookId !== '',
   });
@@ -89,6 +92,7 @@ export function NotebookLayout() {
    */
   useQuery({
     queryKey: queryKeys.notebookFiles(notebookId),
+    refetchInterval: useLiveInterval(),
     queryFn: () => getNotebookFiles(notebookId),
     enabled: notebookId !== '',
   });

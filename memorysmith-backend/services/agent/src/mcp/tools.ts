@@ -519,6 +519,11 @@ export class McpToolAdapter {
           ),
         );
 
+      case 'check_notebook':
+        return json(
+          await discovery.checkNotebook(caller, requireString(args, 'notebook', 'check_notebook')),
+        );
+
       case 'note_history':
         return json(
           await audit.noteHistory(

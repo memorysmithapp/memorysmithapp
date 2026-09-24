@@ -786,3 +786,31 @@ describe('a fenced block that names its language', () => {
     expect(html).not.toContain('class="token');
   });
 });
+
+/**
+ * Code is told apart once for each case (#194): inline code by its face, a
+ * block by a frame with the verb that copies it, and a diagram by neither.
+ */
+describe('a block of code has a frame and a Copy button, and inline code has neither', () => {
+  it('frames a fenced block, highlighted or not, with the button inside the frame', () => {
+    for (const fence of ['```ts\nconst a = 1;\n```\n', '```\nplain\n```\n']) {
+      const html = render(fence);
+      expect(html).toMatch(/<div class="code-block"><pre>[\s\S]*<\/pre><button[^>]*code-copy/);
+      expect(html).toMatch(/aria-label="(Copy|Copiar)"/);
+    }
+  });
+
+  it('leaves inline code in the sentence, with no frame and nothing to copy', () => {
+    const html = render('Run `pnpm test` first.\n');
+    expect(html).toContain('<code>pnpm test</code>');
+    expect(html).not.toContain('code-block');
+    expect(html).not.toContain('code-copy');
+  });
+
+  it('leaves a diagram unframed, with nothing to copy', () => {
+    const html = render('```mermaid\ngraph TD\n  A --> B\n```\n');
+    expect(html).toContain('mermaid-diagram');
+    expect(html).not.toContain('code-block');
+    expect(html).not.toContain('code-copy');
+  });
+});

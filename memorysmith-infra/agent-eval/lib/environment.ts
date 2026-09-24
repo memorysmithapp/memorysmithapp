@@ -9,6 +9,7 @@
  * Guidance already there copies it.
  */
 
+import { likelyMeant, type LinkCandidate } from '@memorysmith/contracts';
 import { CloudFormationClient, DescribeStacksCommand } from '@aws-sdk/client-cloudformation';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
@@ -245,11 +246,26 @@ export async function snapshot(
       });
     }
 
-    const health = await api.call<{ pendingLinks: unknown[] }>(
+    const health = await api.call<{ pendingLinks: { targetName: string }[] }>(
       'GET',
       `/discovery/notebooks/${notebookId}/health`,
       token,
     );
+    const names = await api.call<{
+      notes: { noteId: string; name: string; aliases: string[] }[];
+      attachments: string[];
+    }>('GET', `/discovery/notebooks/${notebookId}/names`, token);
+    const candidates: LinkCandidate[] = [
+      ...names.notes.flatMap((note) =>
+        [note.name, ...note.aliases].map((name) => ({
+          name,
+          kind: 'note' as const,
+          noteId: note.noteId,
+        })),
+      ),
+      ...names.attachments.map((name) => ({ name, kind: 'file' as const })),
+    ];
+    const targets = [...new Set(health.pendingLinks.map((link) => link.targetName))];
     notebooks.push({
       notebookId,
       name: detail.name,
@@ -257,6 +273,11 @@ export async function snapshot(
       folders,
       notes,
       pendingLinks: health.pendingLinks.length,
+      // What looks broken, by the rule the connector shows the agent (#217).
+      brokenLinks: targets.flatMap((target) => {
+        const meant = likelyMeant(target, candidates);
+        return meant ? [`[[${target}]] → ${meant.name}`] : [];
+      }),
     });
   }
   return notebooks;

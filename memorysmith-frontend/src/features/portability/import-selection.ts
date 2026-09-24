@@ -635,20 +635,27 @@ export function countsOf(
  * The links a selection leaves pointing at notes left out. A pending link is
  * not an error — it resolves the day somebody writes the note — but importing
  * half a notebook and being surprised by it is avoidable, so it is said.
+ *
+ * **Only a link the selection made pending is counted.** A link already
+ * pending in the archive points at a note that is in no part of it, and the
+ * sentence this feeds says the note was left out: a whole notebook with six
+ * such links was told six of its notes stayed behind (#222).
  */
 export function danglingLinks(document: NotebookDocument, chosen: Chosen): number {
-  const names = new Set<string>();
+  const held = new Set<string>();
+  const kept = new Set<string>();
   for (const note of document.notes) {
-    if (!chosen.notes.has(note.noteId)) continue;
     const name = nameOf(note.body);
-    if (name !== null) names.add(name);
+    if (name === null) continue;
+    held.add(name);
+    if (chosen.notes.has(note.noteId)) kept.add(name);
   }
 
   let dangling = 0;
   for (const note of document.notes) {
     if (!chosen.notes.has(note.noteId)) continue;
     for (const target of targetsOf(note.body)) {
-      if (!names.has(target)) dangling += 1;
+      if (held.has(target) && !kept.has(target)) dangling += 1;
     }
   }
   return dangling;

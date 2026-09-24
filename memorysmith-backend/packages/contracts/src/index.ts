@@ -8,6 +8,7 @@
 export * from './common.js';
 export * from './files.js';
 export * from './markdown.js';
+export * from './link-check.js';
 export * from './events.js';
 export * from './api/errors.js';
 export * from './api/access.js';

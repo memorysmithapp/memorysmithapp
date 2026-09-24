@@ -50,7 +50,9 @@ export class Template extends ContentSlot {
       input.by,
       0,
     );
-    template.record('TemplateUpdated', input.by, input.ref, input.ref.bytes);
+    template.record('TemplateUpdated', input.by, input.ref, input.ref.bytes, {
+      created: true,
+    });
     return template;
   }
 
