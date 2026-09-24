@@ -279,7 +279,6 @@
     },
     "noTemplate": "sem Modelo",
     "wholeNotebook": "O caderno todo",
-    "wholeNotebookHint": "A Orientação, o Modelo de cada pasta, todas as notas e a história inteira — inclusive o registro do que foi apagado.",
     "whatToCarry": {
       "export": "O que vai no arquivo",
       "import": "O que importar"
@@ -330,7 +329,6 @@
     "refusals_other": "{{count}} inconsistências · nada é importado até resolver",
     "readInBrowser": "lido no navegador",
     "changeFile": "Trocar",
-    "partHint": "Marque o que vai no arquivo. Pastas, Modelos e Notas podem ir inteiros ou item por item, cada um na sua aba.",
     "twinTitle": "“{{name}}” vem duas vezes",
     "twinWhy": "Uma pasta guarda uma nota de cada nome: deixe uma delas de fora.",
     "source": {

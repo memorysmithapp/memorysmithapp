@@ -243,8 +243,8 @@ export function TransferChooser({
  *
  * Under **the whole notebook** the five rows are still drawn, ticked and
  * frozen: they are no longer a question, and they are the answer to *what does
- * the whole notebook mean here* — which the sentence beside the choice says in
- * words and these rows say in numbers.
+ * the whole notebook mean here* — in numbers, and for this notebook, where a
+ * sentence beside the choice promised a history some notebooks do not have.
  */
 function ScopePanel({
   tree,
@@ -289,15 +289,6 @@ function ScopePanel({
             />
             <span>
               <strong>{t(`portability.preset.${each}`)}</strong>
-              {preset === each && (
-                <small>
-                  {t(
-                    each === 'everything'
-                      ? 'portability.wholeNotebookHint'
-                      : 'portability.partHint',
-                  )}
-                </small>
-              )}
             </span>
           </label>
         ))}

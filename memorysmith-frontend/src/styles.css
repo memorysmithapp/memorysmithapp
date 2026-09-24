@@ -4176,7 +4176,8 @@ input[type='radio'] {
   margin: 0;
 }
 
-/* The two presets as radios in a list, each saying what it means (#205). */
+/* The two presets as radios in a list (#205). What each one means is said by
+   the rows under them, in numbers, and no longer by a sentence (#222). */
 .transfer-presets {
   display: flex;
   flex-direction: column;
@@ -4185,7 +4186,7 @@ input[type='radio'] {
 .transfer-preset {
   display: flex;
   gap: 10px;
-  align-items: flex-start;
+  align-items: center;
   cursor: pointer;
 }
 .transfer-preset span {
@@ -4197,11 +4198,6 @@ input[type='radio'] {
   font-family: var(--display);
   font-weight: 500;
   font-size: 0.875rem;
-}
-.transfer-preset small {
-  color: var(--text-soft);
-  font-size: 0.78rem;
-  line-height: 1.45;
 }
 
 /* ---- A file of the notebook, inside a note (#166) ----------------------

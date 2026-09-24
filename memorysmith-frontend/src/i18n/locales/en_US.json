@@ -278,7 +278,6 @@
     },
     "noTemplate": "no Template",
     "wholeNotebook": "The whole notebook",
-    "wholeNotebookHint": "The Guidance, the Template of each folder, every note and the whole history — the record of what was deleted included.",
     "whatToCarry": {
       "export": "What goes in the archive",
       "import": "What to import"
@@ -327,7 +326,6 @@
     "refusals_other": "{{count}} inconsistencies · nothing is imported until they are resolved",
     "readInBrowser": "read in the browser",
     "changeFile": "Change",
-    "partHint": "Tick what goes in the file. Folders, Templates and Notes can go whole or item by item, each in its own tab.",
     "twinTitle": "“{{name}}” comes twice",
     "twinWhy": "A folder keeps one note of each name: leave one of them out.",
     "source": {

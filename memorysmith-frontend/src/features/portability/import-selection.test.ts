@@ -367,6 +367,26 @@ describe('what the summary states', () => {
     expect(danglingLinks(DOCUMENT, everything(tree))).toBe(0);
   });
 
+  it('does not count a link already pending in the archive as one left out', () => {
+    // [[Nobody]] names no note of the archive, so no selection left it out:
+    // the whole notebook still leaves nothing behind (#222).
+    const pending: NotebookDocument = {
+      ...DOCUMENT,
+      notes: DOCUMENT.notes.map((note) =>
+        note.noteId === N1
+          ? { ...note, body: body('Actors', 'It points at [[ADR-002]] and [[Nobody]].') }
+          : note,
+      ),
+    };
+    const onlyN1 = effectiveOf(
+      tree,
+      scopeOf({ reach: { folders: 'choose', notes: 'choose' } }),
+      pick({ folders: [ROOT], notes: [N1] }),
+    );
+    expect(danglingLinks(pending, everything(tree))).toBe(0);
+    expect(danglingLinks(pending, onlyN1)).toBe(1);
+  });
+
   it('names a pair of notes that share a name in one folder, when both are selected', () => {
     // A folder holds one note of each name (RN-KNW-042), and the conflict is
     // resolved by leaving one out rather than by editing the file.
