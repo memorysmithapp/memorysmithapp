@@ -141,7 +141,12 @@ export function NotebookSheet({
             </nav>
             <div className="notebook-sheet-body">
               {searching && structure ? (
-                <SearchBox notebookId={notebookId} structure={structure} autoFocus />
+                <SearchBox
+                  notebookId={notebookId}
+                  structure={structure}
+                  autoFocus
+                  floating={false}
+                />
               ) : null}
               <div className="sidebar-head">
                 <Link to="/" className="back-link">

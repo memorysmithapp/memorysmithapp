@@ -6,15 +6,16 @@
 // to debounce, to show the passage the match came from and to resolve the note
 // identifier of a hit into the URL the reader clicks.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import type { FolderNode, SearchHit, NotebookStructure } from '../../shared/types/api';
 import { searchNotes } from '../../shared/api/source';
 import { noteAddress } from '../../shared/api/note-address';
 import { ApiError } from '../../shared/api/error-mapper';
 import { highlight } from './highlight';
+import { SearchIcon } from '../../shared/components/icons';
 import { queryKeys } from '../../shared/api/query-keys';
 
 /** Long enough that a typed word is one request, short enough to feel live. */
@@ -78,9 +79,26 @@ interface SearchBoxProps {
   structure: NotebookStructure;
   /** Take the focus on arrival, as the search of the phone sheet does (#229). */
   autoFocus?: boolean;
+  /**
+   * Whether the results float over the reading, as a menu of 460 px anchored to
+   * the field (#232). In the phone sheet they sit under the field instead.
+   */
+  floating?: boolean;
 }
 
-export function SearchBox({ notebookId, structure, autoFocus = false }: SearchBoxProps) {
+/** Where a floating list is drawn: against the window, since the sidebar clips. */
+interface Anchor {
+  top: number;
+  left: number;
+  maxHeight: number;
+}
+
+export function SearchBox({
+  notebookId,
+  structure,
+  autoFocus = false,
+  floating = true,
+}: SearchBoxProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -118,7 +136,48 @@ export function SearchBox({ notebookId, structure, autoFocus = false }: SearchBo
   );
 
   const typed = query.trim();
-  const open = typed !== '';
+  /**
+   * A click outside puts the list away without throwing the query out; the
+   * field brings it back when it is focused or typed in again.
+   */
+  const [dismissed, setDismissed] = useState(false);
+  const open = typed !== '' && !dismissed;
+  const box = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: MouseEvent) {
+      const target = event.target as Node;
+      if (box.current?.contains(target) || panel.current?.contains(target)) return;
+      setDismissed(true);
+    }
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, [open]);
+
+  /**
+   * The list is wider than the sidebar and passes over the reading, so it is
+   * placed against the window from where the field is: anchored inside the
+   * sidebar it would be cut at its edge, which scrolls and therefore clips.
+   */
+  const [anchor, setAnchor] = useState<Anchor | null>(null);
+  useLayoutEffect(() => {
+    if (!open || !floating) return;
+    function place() {
+      const rect = box.current?.getBoundingClientRect();
+      if (!rect) return;
+      const top = rect.bottom + 6;
+      setAnchor({ top, left: rect.left, maxHeight: Math.max(160, window.innerHeight - top - 16) });
+    }
+    place();
+    window.addEventListener('resize', place);
+    document.addEventListener('scroll', place, true);
+    return () => {
+      window.removeEventListener('resize', place);
+      document.removeEventListener('scroll', place, true);
+    };
+  }, [open, floating]);
 
   // The list is open over the sidebar wherever the focus went, so Esc closes it
   // wherever the focus is (#192): a handler on the input alone answered only
@@ -143,16 +202,29 @@ export function SearchBox({ notebookId, structure, autoFocus = false }: SearchBo
         : null;
 
   return (
-    <div className="search-box">
+    <div className="search-box" ref={box}>
+      <SearchIcon className="search-box-icon" width={15} height={15} />
       <input
         type="search"
         value={query}
         placeholder={t('search.placeholder')}
         autoFocus={autoFocus}
-        onChange={(e) => setQuery(e.target.value)}
+        onFocus={() => setDismissed(false)}
+        onChange={(e) => {
+          setDismissed(false);
+          setQuery(e.target.value);
+        }}
       />
       {open && (
-        <div className="search-results">
+        <div
+          ref={panel}
+          className={`search-results${floating ? ' is-floating' : ''}`}
+          style={
+            floating && anchor
+              ? { top: anchor.top, left: anchor.left, maxHeight: anchor.maxHeight }
+              : undefined
+          }
+        >
           {failure ? (
             <p className="search-empty">{failure}</p>
           ) : results.length > 0 ? (
@@ -177,7 +249,9 @@ export function SearchBox({ notebookId, structure, autoFocus = false }: SearchBo
           ) : (
             <p className="search-empty">{busy ? t('search.searching') : t('search.empty')}</p>
           )}
-          <p className="search-hint">{t('search.syntaxHint')}</p>
+          <p className="search-hint">
+            <Trans i18nKey="search.syntaxHint" components={{ c: <code /> }} />
+          </p>
         </div>
       )}
     </div>
