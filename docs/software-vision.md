@@ -969,7 +969,7 @@ Zero lock-in is a requirement, not a courtesy: it is what makes the product safe
 | Notebook → Notebook Context | The notebook as the agent receives it in `get_notebook_context` (§9.2), as its three parts of the same weight: the Guidance, the Templates and the folders, each an entry to a page of its own |
 | Notebook → Folders | The folder tree with the description of each folder, whether it declares a Template and how many notes it holds, every row opening its folder. Reading of the structure, with no reordering and no moving |
 | Notebook → Guidance | Reading of the Guidance of the notebook, with the task list clickable for whoever may write, who may also delete it: the deletion asks in the page, saying what stays (RN-KNW-045) |
-| Folder | Reading: the description of the folder, its Template and the notes in the declared order (PP9) |
+| Folder | Reading: the description of the folder, its Template, and its subfolders and its notes as two groups, each in the declared order (PP9) |
 | Folder → Template | Reading of the Template of the folder, with the task list clickable for whoever may write, who may also delete it. Two screens write the same Template, the folder and the page of Templates, and both offer the deletion the same way (RN-KNW-045) |
 | Note | Reading: the frontmatter properties and the body in Markdown, with wikilinks navigable, the pending ones marked as such (RN-DSC-004), embeds expanded one level, and the task list clickable for whoever may write |
 | Notebook → Graph | The link graph of the whole notebook, navigable, with the note opened from it |

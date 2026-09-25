@@ -122,9 +122,10 @@
     "breadcrumb": "Trilha do contexto do caderno"
   },
   "folder": {
+    "subfolders": "Subpastas",
     "notesHeading": "Notas nesta pasta",
     "template": "Modelo",
-    "templateHint": "Leiaute sugerido para as notas desta pasta. O servidor nunca valida contra ele.",
+    "templateCardHint": "Leiaute sugerido para as notas desta pasta",
     "deleteTemplate": "Apagar o Modelo",
     "deleteTemplateConfirm": "Apagar o Modelo desta pasta? A pasta, a descrição dela e as notas continuam, e as notas já escritas mantêm a forma que têm. Não há como desfazer.",
     "empty": "Ainda não há notas nesta pasta."

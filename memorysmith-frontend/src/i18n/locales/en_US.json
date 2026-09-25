@@ -122,9 +122,10 @@
     "breadcrumb": "Notebook context trail"
   },
   "folder": {
+    "subfolders": "Subfolders",
     "notesHeading": "Notes in this folder",
     "template": "Template",
-    "templateHint": "Suggested layout for notes in this folder. The server never validates against it.",
+    "templateCardHint": "The suggested layout for the notes of this folder",
     "deleteTemplate": "Delete the Template",
     "deleteTemplateConfirm": "Delete the template of this folder? The folder, its description and its notes stay, and the notes already written keep the shape they have. This cannot be undone.",
     "empty": "No notes in this folder yet."
