@@ -34,6 +34,7 @@ export function GuidancePanel() {
             />
             {canWrite(structure.effectiveRole) && (
               <DeleteContentSlot
+                label={t('structure.deleteGuidance')}
                 confirmation={t('structure.deleteGuidanceConfirm')}
                 remove={() => deleteGuidance(notebookId)}
                 invalidates={queryKeys.notebookStructure(notebookId)}

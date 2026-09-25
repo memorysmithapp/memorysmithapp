@@ -108,6 +108,7 @@
     "contextParts": "Guidance, Templates and Folders",
     "intro": "How this notebook describes itself, and what the agent receives from get_notebook_context: the Guidance says what the notebook is, each folder says what belongs in it, and the folder Template says how a note is laid out.",
     "guidanceHint": "What this notebook is and how to write in it",
+    "deleteGuidance": "Delete the Guidance",
     "deleteGuidanceConfirm": "Delete the guidance of this notebook? Its folders, its templates and every note stay; the notebook simply stops saying how it wants to be written. This cannot be undone.",
     "templates": "Templates",
     "templatesHint_one": "{{count}} folder with a suggested layout",
@@ -124,6 +125,7 @@
     "notesHeading": "Notes in this folder",
     "template": "Template",
     "templateHint": "Suggested layout for notes in this folder. The server never validates against it.",
+    "deleteTemplate": "Delete the Template",
     "deleteTemplateConfirm": "Delete the template of this folder? The folder, its description and its notes stay, and the notes already written keep the shape they have. This cannot be undone.",
     "empty": "No notes in this folder yet."
   },

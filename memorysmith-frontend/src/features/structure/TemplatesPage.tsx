@@ -10,6 +10,7 @@ import { folderAddress } from '../../shared/api/note-address';
 import { queryState } from '../../shared/api/query-state';
 import { TemplateSkeleton } from '../../shared/components/skeletons';
 import { WritableContent } from '../../shared/components/WritableContent';
+import { ChevronRightIcon } from '../../shared/components/icons';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import type { FolderNode } from '../../shared/types/api';
 import { templateAnchor } from './FolderRows';
@@ -67,7 +68,9 @@ export function TemplatesPage() {
         {templated.length === 0 ? (
           <p>{t('structure.noTemplates')}</p>
         ) : (
-          <p className="hint">{t('structure.templatesPageHint', { count: templated.length })}</p>
+          <p className="page-intro">
+            {t('structure.templatesPageHint', { count: templated.length })}
+          </p>
         )}
         {templated.map(({ folder, path }, index) => {
           const query = queries[index];
@@ -82,17 +85,18 @@ export function TemplatesPage() {
             <details
               key={folder.id}
               id={anchor}
-              className="template-box"
+              className="template-card"
               open={hash === `#${anchor}`}
             >
               <summary>
-                {path.join(' / ')}
-                <Link to={folderAddress(notebookId, folder.id)} className="template-folder-link">
+                <ChevronRightIcon className="template-card-chevron" />
+                <span className="template-card-title">{path.join(' / ')}</span>
+                <Link to={folderAddress(notebookId, folder.id)} className="template-card-link">
                   {t('structure.openFolder')}
                 </Link>
               </summary>
               {template ? (
-                <>
+                <div className="template-card-body">
                   <WritableContent
                     raw={template.body}
                     notebookId={notebookId}
@@ -107,6 +111,7 @@ export function TemplatesPage() {
                   />
                   {canWrite(structure.effectiveRole) && (
                     <DeleteContentSlot
+                      label={t('folder.deleteTemplate')}
                       confirmation={t('folder.deleteTemplateConfirm')}
                       remove={() => deleteTemplate(notebookId, folder.id)}
                       // The list of folders with a Template comes from the
@@ -114,11 +119,13 @@ export function TemplatesPage() {
                       invalidates={queryKeys.notebookStructure(notebookId)}
                     />
                   )}
-                </>
+                </div>
               ) : failed ? (
                 <p className="status">{t(messageKeyOf(query?.error))}</p>
               ) : (
-                <TemplateSkeleton />
+                <div className="template-card-body">
+                  <TemplateSkeleton />
+                </div>
               )}
             </details>
           );

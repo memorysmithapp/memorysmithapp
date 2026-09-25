@@ -19,10 +19,13 @@ type Phase = 'idle' | 'confirming' | 'deleting' | 'failed';
  * There is no undo, and the copy does not promise one.
  */
 export function DeleteContentSlot({
+  label,
   confirmation,
   remove,
   invalidates,
 }: {
+  /** What the button deletes, named: *Apagar a Orientação*, *Apagar o Modelo* (#230). */
+  label: string;
   /** The sentence that says what goes and what stays, in the active locale. */
   confirmation: string;
   remove: () => Promise<void>;
@@ -54,26 +57,52 @@ export function DeleteContentSlot({
 
   if (phase === 'idle') {
     return (
-      <button type="button" className="slot-delete" onClick={() => setPhase('confirming')}>
-        {t('slot.delete')}
-      </button>
+      <div className="slot-delete">
+        <button
+          type="button"
+          className="button is-quiet is-small slot-delete-button"
+          onClick={() => setPhase('confirming')}
+        >
+          {label}
+        </button>
+      </div>
     );
   }
 
+  // The question in bold, and what survives after it, as the card of Home asks
+  // before deleting a notebook (#199).
+  const sentence = phase === 'failed' ? t(messageKey) : confirmation;
+  const cut = phase === 'failed' ? -1 : sentence.indexOf('?');
   return (
-    <div className="slot-delete-confirm">
-      <p>{phase === 'failed' ? t(messageKey) : confirmation}</p>
-      <button
-        type="button"
-        className="slot-delete"
-        onClick={() => void confirmed()}
-        disabled={phase === 'deleting'}
-      >
-        {phase === 'deleting' ? t('slot.deleting') : t('slot.confirm')}
-      </button>
-      <button type="button" className="slot-delete-cancel" onClick={() => setPhase('idle')}>
-        {t('slot.cancel')}
-      </button>
+    <div className="slot-delete is-confirming" role="group" aria-label={label}>
+      <p>
+        {cut > 0 ? (
+          <>
+            <strong>{sentence.slice(0, cut + 1)}</strong>
+            {sentence.slice(cut + 1)}
+          </>
+        ) : (
+          sentence
+        )}
+      </p>
+      <div className="slot-delete-actions">
+        <button
+          type="button"
+          className="button is-quiet is-small"
+          disabled={phase === 'deleting'}
+          onClick={() => setPhase('idle')}
+        >
+          {t('slot.cancel')}
+        </button>
+        <button
+          type="button"
+          className="button is-danger is-filled is-small"
+          onClick={() => void confirmed()}
+          disabled={phase === 'deleting'}
+        >
+          {phase === 'deleting' ? t('slot.deleting') : t('slot.confirm')}
+        </button>
+      </div>
     </div>
   );
 }

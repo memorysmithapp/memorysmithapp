@@ -108,6 +108,7 @@
     "contextParts": "Orientação, Modelos e Pastas",
     "intro": "Como este caderno se descreve, e o que o agente recebe em get_notebook_context: a Orientação diz o que ele é, cada pasta diz o que se guarda nela e o Modelo da pasta diz como a nota se estrutura.",
     "guidanceHint": "O que este caderno é e como se escreve nele",
+    "deleteGuidance": "Apagar a Orientação",
     "deleteGuidanceConfirm": "Apagar a Orientação deste caderno? As pastas, os Modelos e todas as notas continuam; o caderno apenas deixa de dizer como quer ser escrito. Não há como desfazer.",
     "templates": "Modelos",
     "templatesHint_one": "{{count}} pasta com leiaute sugerido",
@@ -124,6 +125,7 @@
     "notesHeading": "Notas nesta pasta",
     "template": "Modelo",
     "templateHint": "Leiaute sugerido para as notas desta pasta. O servidor nunca valida contra ele.",
+    "deleteTemplate": "Apagar o Modelo",
     "deleteTemplateConfirm": "Apagar o Modelo desta pasta? A pasta, a descrição dela e as notas continuam, e as notas já escritas mantêm a forma que têm. Não há como desfazer.",
     "empty": "Ainda não há notas nesta pasta."
   },

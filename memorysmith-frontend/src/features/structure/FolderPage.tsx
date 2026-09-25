@@ -65,6 +65,7 @@ export function FolderPage() {
             />
             {canWrite(structure.effectiveRole) && (
               <DeleteContentSlot
+                label={t('folder.deleteTemplate')}
                 confirmation={t('folder.deleteTemplateConfirm')}
                 remove={() => deleteTemplate(notebookId, folder.id)}
                 // The tree carries which folders have a Template, so the
