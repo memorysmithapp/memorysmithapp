@@ -30,6 +30,7 @@ issues each entry cites.
 ### Fixed
 
 - **The space of the subscription names a fourth notebook instead of grouping it.** The panel names the three largest notebooks and adds the rest up in one line; with four, that line stood for one notebook — *Mais 1 caderno* — taking the room of the line that would name it. A group now stands for two notebooks or more, so four notebooks draw four named lines and five draw three and *Mais 2 cadernos*, as before. (#224)
+- **A diagram that cannot be read no longer leaves its error under the page.** A Mermaid block Mermaid cannot parse — a Template with placeholders such as `{{origem}}`, most often — already showed its code where the diagram would be, but left behind the scratch element Mermaid had drawn into: a bomb and *Syntax error in text* at the foot of the document, under the whole application, one per diagram, and a window that scrolled for them. Such a block is now recognised before anything is drawn, and anything a failed drawing leaves is removed. A valid diagram is drawn exactly as before. (#234)
 
 ## [0.7.0] - 2026-09-24
 

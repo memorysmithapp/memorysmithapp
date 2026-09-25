@@ -15,6 +15,7 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
 
   useEffect(() => {
     let alive = true;
+    let renderId: string | null = null;
     setSvg(null);
     setFailed(false);
     void (async () => {
@@ -32,9 +33,22 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
           htmlLabels: false,
           flowchart: { htmlLabels: false },
         });
-        const rendered = await mermaid.render(`mmd-${id}-${Date.now()}`, code);
+        /**
+         * A diagram Mermaid cannot read is shown as its code without drawing
+         * it (#234). Drawing it anyway failed in the right place, the code,
+         * and left the scratch container Mermaid draws into — its error
+         * bomb included — at the end of <body>, under the whole application.
+         */
+        if ((await mermaid.parse(code, { suppressErrors: true })) === false) {
+          if (alive) setFailed(true);
+          return;
+        }
+        renderId = `mmd-${id}-${Date.now()}`;
+        const rendered = await mermaid.render(renderId, code);
         if (alive) setSvg(rendered.svg);
       } catch {
+        // And should drawing still fail, what it left behind goes with it.
+        if (renderId) document.getElementById(`d${renderId}`)?.remove();
         if (alive) setFailed(true);
       }
     })();
