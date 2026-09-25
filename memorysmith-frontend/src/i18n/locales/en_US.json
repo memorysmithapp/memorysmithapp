@@ -83,7 +83,8 @@
     "empty": "No notes match.",
     "invalid": "Invalid query. Check the quotes, parentheses and operators.",
     "failed": "The search failed. Try again.",
-    "syntaxHint": "Searches the whole text. Accepts \"exact phrase\", -exclude, OR, name:, folder:, section:, content: and frontmatter attributes, such as maturity:evergreen."
+    "syntaxHint": "Searches the whole text. Accepts \"exact phrase\", -exclude, OR, name:, folder:, section:, content: and frontmatter attributes, such as maturity:evergreen.",
+    "open": "Search"
   },
   "notebooks": {
     "heading": "Notebooks",
@@ -103,7 +104,6 @@
     "outlineHint": "The folder tree with each folder's description. It is what tells the agent where each note goes.",
     "backToNotebooks": "All notebooks",
     "openNavigation": "Notebook navigation",
-    "closeNavigation": "Close navigation",
     "heading": "Notebook Context",
     "contextParts": "Guidance, Templates and Folders",
     "intro": "How this notebook describes itself, and what the agent receives from get_notebook_context: the Guidance says what the notebook is, each folder says what belongs in it, and the folder Template says how a note is laid out.",

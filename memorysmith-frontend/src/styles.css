@@ -3298,15 +3298,132 @@ input[type='radio'] {
   color: #b42318;
   font-size: 0.85rem;
 }
-/* ── Notebook navigation drawer ────────────────────────────────────────────────
-   On a wide screen the sidebar is a permanent column and these three controls
-   do not exist. They come into being at the breakpoint below, where the same
-   sidebar becomes a drawer. */
-.notebook-nav-toggle,
-.notebook-nav-close,
-.notebook-nav-head,
-.notebook-nav-scrim {
-  display: none;
+/* ── The navigation sheet of a phone (#229) ──────────────────────────────────
+   Below the breakpoint the sidebar is not mounted: its navigation is a sheet
+   whose start is always showing at the foot of the screen. */
+.sheet-peek {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  /* A 28 px strip drawn, and a target a thumb reaches above it. */
+  height: calc(44px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  touch-action: none;
+}
+.sheet-peek::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(28px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -4px 16px rgb(14 21 38 / 0.08);
+}
+.sheet-peek .sheet-handle {
+  position: absolute;
+  bottom: calc(15px + env(safe-area-inset-bottom));
+}
+.sheet-peek:focus-visible {
+  outline: none;
+}
+.sheet-peek:focus-visible::before {
+  box-shadow: var(--focus-ring);
+}
+.notebook-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 61;
+  height: 88dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
+}
+.notebook-sheet:focus {
+  outline: none;
+}
+.notebook-sheet .sheet-grip {
+  margin: 0;
+  height: 18px;
+}
+/* The bar of icons that stays while the rest scrolls. */
+.sheet-tabs {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 12px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.sheet-tab {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+.sheet-tab svg {
+  width: 18px;
+  height: 18px;
+}
+.sheet-tab:hover {
+  background: var(--hover);
+}
+/* The open page, and the search while it is open: filled in Tinta. */
+.sheet-tab.active,
+.sheet-tab[aria-pressed='true'] {
+  background: var(--chosen);
+  color: var(--on-chosen);
+}
+.notebook-sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 16px calc(20px + env(safe-area-inset-bottom));
+}
+.notebook-sheet-body > * {
+  flex-shrink: 0;
+}
+.notebook-sheet-body .search-box {
+  margin: 0;
+}
+/* In the sheet the results open under the field at its full width, and push
+   the tree down instead of floating over it. */
+.notebook-sheet-body .search-results {
+  position: static;
+  margin-top: 6px;
+  max-height: none;
+  box-shadow: none;
+}
+.notebook-sheet-body .back-link {
+  height: 44px;
+}
+body.has-sheet .app-main {
+  overflow: hidden;
 }
 
 /* ── Responsive ─────────────────────────────────────────────────────────────
@@ -3368,117 +3485,11 @@ input[type='radio'] {
     padding: 1.25rem 1rem 3rem;
   }
 
-  /* The column becomes a drawer. */
+  /* There is no column: the content takes the width, and keeps room at its
+     foot for the start of the navigation sheet (#229). */
   .notebook-layout {
     display: block;
-  }
-  .notebook-nav-toggle {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
-    min-height: 44px;
-    position: sticky;
-    top: 0;
-    z-index: 15;
-    border: 0;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text);
-    font-family: var(--display);
-    font-weight: 500;
-    font-size: 0.95rem;
-    text-align: left;
-    padding: 0.6rem 1rem;
-    cursor: pointer;
-  }
-  .notebook-nav-toggle span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .notebook-nav-toggle svg {
-    flex-shrink: 0;
-    width: 20px;
-    height: 20px;
-  }
-  .notebook-sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    z-index: 40;
-    width: min(20rem, 86vw);
-    min-width: 0;
-    max-height: none;
-    /* A drawer has no pointer and no bubble; it has the edge of the screen. */
-    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
-    border-right: 1px solid var(--border);
-    transform: translateX(-100%);
-    transition: transform 0.18s ease-out;
-    box-shadow: 0 0 40px rgba(14, 21, 38, 0.25);
-  }
-  .notebook-layout.nav-open .notebook-sidebar {
-    transform: translateX(0);
-  }
-  /* `hidden` on the element is what closes it; the rule has to respect that,
-     or the scrim would sit over the page with nothing behind it. */
-  .notebook-nav-scrim:not([hidden]) {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 35;
-    background: rgba(14, 21, 38, 0.45);
-  }
-  /* The drawer starts at the top of the viewport, over the app header, so it
-     opens with a band of its own the same height as that header: the brand on
-     the left, where the brand was a moment ago, and the close control on the
-     right. Without it the drawer began with an empty strip. */
-  .notebook-nav-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    height: var(--header-h);
-    margin: -1rem -1rem 0.6rem;
-    padding: 0 0.6rem 0 1rem;
-    border-bottom: 1px solid var(--border);
-    /* The tree below can be long, and a close control that scrolls out of
-       reach is not a close control. `-1rem` is where the band already sits,
-       one padding above the scrollport edge, so it sticks without moving. */
-    position: sticky;
-    top: -1rem;
-    z-index: 1;
-    background: var(--surface);
-  }
-  .notebook-nav-head .brand {
-    min-width: 0;
-    overflow: hidden;
-  }
-  .notebook-nav-head .brand-word {
-    font-size: 1.05rem;
-    white-space: nowrap;
-  }
-  .notebook-nav-close {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    border: 0;
-    border-radius: 8px;
-    background: none;
-    color: var(--text);
-    cursor: pointer;
-  }
-  .notebook-nav-close:hover {
-    background: var(--hover);
-    color: var(--text);
-  }
-  .notebook-nav-close svg {
-    width: 20px;
-    height: 20px;
+    padding-bottom: calc(28px + env(safe-area-inset-bottom));
   }
 
   /* With the sidebar gone from the flow, the document scrolls, not a box
@@ -3491,7 +3502,7 @@ input[type='radio'] {
      with a height to draw into. */
   .graph-page {
     height: auto;
-    min-height: calc(100dvh - var(--header-h) - 44px);
+    min-height: calc(100dvh - var(--header-h) - 28px);
   }
   /* A finger is not a mouse pointer: the rows grow to a height a thumb hits,
      and the toggle stops being a 16 px target. */

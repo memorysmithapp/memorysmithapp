@@ -97,24 +97,6 @@ export function TemplateIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-export function MenuIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...base(props)}>
-      <path d="M4 6h16M4 12h16M4 18h16" />
-    </svg>
-  );
-}
-
-/** Collapse the drawer back to the edge it came from. */
-export function PanelLeftCloseIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...base(props)}>
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <path d="M9 3v18M16 15l-3-3 3-3" />
-    </svg>
-  );
-}
-
 export function GearIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base(props)}>
@@ -224,6 +206,16 @@ export function ContextIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base(props)}>
       <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+    </svg>
+  );
+}
+
+/** Searching the notebook. */
+export function SearchIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" />
     </svg>
   );
 }

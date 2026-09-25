@@ -83,7 +83,8 @@
     "empty": "Nenhuma nota encontrada.",
     "invalid": "Consulta inválida. Verifique as aspas, os parênteses e os operadores.",
     "failed": "A busca falhou. Tente de novo.",
-    "syntaxHint": "Busca no texto inteiro. Aceita \"frase exata\", -excluir, OR, name:, folder:, section:, content: e atributos do frontmatter, como maturity:evergreen."
+    "syntaxHint": "Busca no texto inteiro. Aceita \"frase exata\", -excluir, OR, name:, folder:, section:, content: e atributos do frontmatter, como maturity:evergreen.",
+    "open": "Buscar"
   },
   "notebooks": {
     "heading": "Cadernos",
@@ -103,7 +104,6 @@
     "outlineHint": "A árvore de pastas com a descrição de cada uma. É ela que diz ao agente onde cada nota entra.",
     "backToNotebooks": "Todos os cadernos",
     "openNavigation": "Navegação do caderno",
-    "closeNavigation": "Fechar navegação",
     "heading": "Contexto do caderno",
     "contextParts": "Orientação, Modelos e Pastas",
     "intro": "Como este caderno se descreve, e o que o agente recebe em get_notebook_context: a Orientação diz o que ele é, cada pasta diz o que se guarda nela e o Modelo da pasta diz como a nota se estrutura.",

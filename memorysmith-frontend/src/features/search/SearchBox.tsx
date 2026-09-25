@@ -76,9 +76,11 @@ function readable(excerpt: string): string {
 interface SearchBoxProps {
   notebookId: string;
   structure: NotebookStructure;
+  /** Take the focus on arrival, as the search of the phone sheet does (#229). */
+  autoFocus?: boolean;
 }
 
-export function SearchBox({ notebookId, structure }: SearchBoxProps) {
+export function SearchBox({ notebookId, structure, autoFocus = false }: SearchBoxProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -146,6 +148,7 @@ export function SearchBox({ notebookId, structure }: SearchBoxProps) {
         type="search"
         value={query}
         placeholder={t('search.placeholder')}
+        autoFocus={autoFocus}
         onChange={(e) => setQuery(e.target.value)}
       />
       {open && (
