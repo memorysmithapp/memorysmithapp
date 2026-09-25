@@ -1127,15 +1127,52 @@ a:hover {
   flex: none;
   color: var(--text-soft);
 }
-/* Only the notebook gives up width, and it says so with an ellipsis. */
+/* The notebook gives up width first, and says so with an ellipsis: its
+   shrink outweighs the last crumb's, so the last one waits until the notebook
+   is at its minimum (#235). */
 .notebook-breadcrumb .crumb.is-notebook {
-  flex: 0 1 auto;
+  flex: 0 1000 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .notebook-breadcrumb .crumb.is-last {
   color: var(--text);
+}
+/* The last crumb shortens only when it alone does not fit (#235): the middle
+   has collapsed into `…` before it. The notebook keeps a minimum, set from
+   its own width, so the trail never loses where it starts. */
+.notebook-breadcrumb .crumb.is-last:not(.is-notebook) {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.crumb-more {
+  flex: none;
+  height: 24px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-soft);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+.crumb-more:hover,
+.crumb-more[aria-expanded='true'] {
+  background: var(--hover);
+  color: var(--text);
+}
+.crumb-more:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+/* The hidden levels, under the start of the trail. */
+.notebook-bar > .menu.crumb-menu {
+  top: calc(100% - 4px);
+  left: 24px;
 }
 .notebook-breadcrumb a.crumb:hover {
   color: var(--text);
