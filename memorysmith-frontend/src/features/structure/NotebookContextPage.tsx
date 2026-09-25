@@ -5,7 +5,7 @@ import { guidanceAddress, templatesAddress } from '../../shared/api/note-address
 import { useDocumentTitle } from '../../shared/components/document-title';
 import type { FolderNode } from '../../shared/types/api';
 import { StructureOutline } from './StructureOutline';
-import { NotebookBreadcrumb } from './NotebookBreadcrumb';
+import { NotebookBar } from './NotebookBreadcrumb';
 import type { NotebookOutletContext } from './NotebookLayout';
 import { useNotebookId } from './route-ids';
 
@@ -28,32 +28,32 @@ export function NotebookContextPage() {
   useDocumentTitle(structure.notebook.name);
 
   return (
-    <article className="content-pane">
-      <NotebookBreadcrumb items={[]} />
-      <p className="content-kicker">{t('structure.heading')}</p>
-      <h1>{structure.notebook.name}</h1>
-      <p className="hint">{t('structure.intro')}</p>
+    <>
+      <NotebookBar crumbs={[{ label: t('structure.heading') }]} />
+      <article className="content-pane">
+        <p className="hint">{t('structure.intro')}</p>
 
-      <div className="structure-actions">
-        <Link to={guidanceAddress(notebookId)} className="structure-action">
-          <GuidanceIcon />
-          <span>
-            <strong>{t('structure.guidance')}</strong>
-            <small>{t('structure.guidanceHint')}</small>
-          </span>
-        </Link>
-        <Link to={templatesAddress(notebookId)} className="structure-action">
-          <TemplateIcon />
-          <span>
-            <strong>{t('structure.templates')}</strong>
-            <small>{t('structure.templatesHint', { count: templateCount })}</small>
-          </span>
-        </Link>
-      </div>
+        <div className="structure-actions">
+          <Link to={guidanceAddress(notebookId)} className="structure-action">
+            <GuidanceIcon />
+            <span>
+              <strong>{t('structure.guidance')}</strong>
+              <small>{t('structure.guidanceHint')}</small>
+            </span>
+          </Link>
+          <Link to={templatesAddress(notebookId)} className="structure-action">
+            <TemplateIcon />
+            <span>
+              <strong>{t('structure.templates')}</strong>
+              <small>{t('structure.templatesHint', { count: templateCount })}</small>
+            </span>
+          </Link>
+        </div>
 
-      <h2>{t('structure.folders')}</h2>
-      <p className="hint">{t('structure.outlineHint')}</p>
-      <StructureOutline notebookId={notebookId} folders={structure.folders} />
-    </article>
+        <h2>{t('structure.folders')}</h2>
+        <p className="hint">{t('structure.outlineHint')}</p>
+        <StructureOutline notebookId={notebookId} folders={structure.folders} />
+      </article>
+    </>
   );
 }

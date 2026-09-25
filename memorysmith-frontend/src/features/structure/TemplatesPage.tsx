@@ -13,7 +13,7 @@ import { WritableContent } from '../../shared/components/WritableContent';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import type { FolderNode } from '../../shared/types/api';
 import { templateAnchor } from './StructureOutline';
-import { NotebookBreadcrumb } from './NotebookBreadcrumb';
+import { NotebookBar, contextCrumbs } from './NotebookBreadcrumb';
 import type { NotebookOutletContext } from './NotebookLayout';
 import { useNotebookId } from './route-ids';
 import { queryKeys } from '../../shared/api/query-keys';
@@ -61,74 +61,69 @@ export function TemplatesPage() {
   }, [hash, allLoaded]);
 
   return (
-    <article className="content-pane">
-      <NotebookBreadcrumb items={[{ label: t('structure.templates') }]} />
-      {/* The page of every Template of the notebook, and it says so. It wore
-          the header of a folder page — the notebook as the heading and the
-          hint of ONE folder, "notes in this folder", over the Templates of
-          six (#189). */}
-      <p className="content-kicker">{structure.notebook.name}</p>
-      <h1>{t('structure.templates')}</h1>
-
-      {templated.length === 0 ? (
-        <p>{t('structure.noTemplates')}</p>
-      ) : (
-        <p className="hint">{t('structure.templatesPageHint', { count: templated.length })}</p>
-      )}
-      {templated.map(({ folder, path }, index) => {
-        const query = queries[index];
-        const template = query?.data;
-        // A card whose template failed to load says so. Falling through to
-        // "Loading…" would leave one box of the page waiting forever, and the
-        // others answering, which reads as a slow template rather than a
-        // failed one.
-        const failed = query ? queryState(query) === 'error' : false;
-        const anchor = templateAnchor(folder);
-        return (
-          <details
-            key={folder.id}
-            id={anchor}
-            className="template-box"
-            open={hash === `#${anchor}`}
-          >
-            <summary>
-              {path.join(' / ')}
-              <Link to={folderAddress(notebookId, folder.id)} className="template-folder-link">
-                {t('structure.openFolder')}
-              </Link>
-            </summary>
-            {template ? (
-              <>
-                <WritableContent
-                  raw={template.body}
-                  notebookId={notebookId}
-                  baseRevision={template.revision}
-                  writable={canWrite(structure.effectiveRole)}
-                  write={({ raw, baseRevision, keepalive }) =>
-                    putTemplate(notebookId, folder.id, raw, baseRevision, {
-                      keepalive: keepalive ?? false,
-                    })
-                  }
-                  invalidates={queryKeys.template(notebookId, folder.id)}
-                />
-                {canWrite(structure.effectiveRole) && (
-                  <DeleteContentSlot
-                    confirmation={t('folder.deleteTemplateConfirm')}
-                    remove={() => deleteTemplate(notebookId, folder.id)}
-                    // The list of folders with a Template comes from the
-                    // structure, so the card leaves the page with the slot.
-                    invalidates={queryKeys.notebookStructure(notebookId)}
+    <>
+      <NotebookBar crumbs={contextCrumbs(notebookId, t, t('structure.templates'))} />
+      <article className="content-pane">
+        {templated.length === 0 ? (
+          <p>{t('structure.noTemplates')}</p>
+        ) : (
+          <p className="hint">{t('structure.templatesPageHint', { count: templated.length })}</p>
+        )}
+        {templated.map(({ folder, path }, index) => {
+          const query = queries[index];
+          const template = query?.data;
+          // A card whose template failed to load says so. Falling through to
+          // "Loading…" would leave one box of the page waiting forever, and the
+          // others answering, which reads as a slow template rather than a
+          // failed one.
+          const failed = query ? queryState(query) === 'error' : false;
+          const anchor = templateAnchor(folder);
+          return (
+            <details
+              key={folder.id}
+              id={anchor}
+              className="template-box"
+              open={hash === `#${anchor}`}
+            >
+              <summary>
+                {path.join(' / ')}
+                <Link to={folderAddress(notebookId, folder.id)} className="template-folder-link">
+                  {t('structure.openFolder')}
+                </Link>
+              </summary>
+              {template ? (
+                <>
+                  <WritableContent
+                    raw={template.body}
+                    notebookId={notebookId}
+                    baseRevision={template.revision}
+                    writable={canWrite(structure.effectiveRole)}
+                    write={({ raw, baseRevision, keepalive }) =>
+                      putTemplate(notebookId, folder.id, raw, baseRevision, {
+                        keepalive: keepalive ?? false,
+                      })
+                    }
+                    invalidates={queryKeys.template(notebookId, folder.id)}
                   />
-                )}
-              </>
-            ) : failed ? (
-              <p className="status">{t(messageKeyOf(query?.error))}</p>
-            ) : (
-              <TemplateSkeleton />
-            )}
-          </details>
-        );
-      })}
-    </article>
+                  {canWrite(structure.effectiveRole) && (
+                    <DeleteContentSlot
+                      confirmation={t('folder.deleteTemplateConfirm')}
+                      remove={() => deleteTemplate(notebookId, folder.id)}
+                      // The list of folders with a Template comes from the
+                      // structure, so the card leaves the page with the slot.
+                      invalidates={queryKeys.notebookStructure(notebookId)}
+                    />
+                  )}
+                </>
+              ) : failed ? (
+                <p className="status">{t(messageKeyOf(query?.error))}</p>
+              ) : (
+                <TemplateSkeleton />
+              )}
+            </details>
+          );
+        })}
+      </article>
+    </>
   );
 }

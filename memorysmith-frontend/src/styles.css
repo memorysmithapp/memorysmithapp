@@ -941,20 +941,137 @@ a:hover {
   min-width: 0;
   overflow-y: auto;
   max-height: 100%;
+  /* Whatever is scrolled to lands below the bar, not under it. */
+  scroll-padding-top: var(--bar-h);
 }
-.content-kicker {
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.72rem;
-  color: var(--signal);
-  margin-bottom: 0;
+
+/* ── The bar of a notebook (#225) ─────────────────────────────────────────────
+   Fixed above the content of every screen of a notebook: the trail on the
+   left and, on a note only, its actions on the right. It sticks inside the
+   element that scrolls, which is the content column on a computer and the
+   main row on a phone, so it never needs to know how tall the header is. */
+:root {
+  --bar-h: 56px;
+}
+.notebook-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: var(--bar-h);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px 0 32px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.notebook-breadcrumb {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  line-height: 1;
+  color: var(--text-soft);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.notebook-breadcrumb .crumb {
+  flex: none;
+  color: var(--text-soft);
+}
+/* Only the notebook gives up width, and it says so with an ellipsis. */
+.notebook-breadcrumb .crumb.is-notebook {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notebook-breadcrumb .crumb.is-last {
+  color: var(--text);
+}
+.notebook-breadcrumb a.crumb:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+.crumb-separator {
+  flex: none;
+  color: var(--pending);
+}
+.notebook-bar-actions {
+  flex: none;
+  display: flex;
+  gap: 8px;
+}
+/* A quiet button of the Controles: icon and label on a computer. */
+.bar-button {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
   font-family: var(--display);
   font-weight: 500;
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
 }
-.breadcrumb {
-  font-size: 0.8rem;
-  color: var(--text-soft);
-  margin-bottom: 0.25rem;
+.bar-button:hover {
+  background: var(--bg);
+  border-color: var(--text-soft);
+}
+.bar-button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.bar-button svg {
+  flex: none;
+}
+/* On a phone: 48 px, and the actions become 44 px icons whose label stays as
+   the accessible name. Below the drawer breakpoint the main row is what
+   scrolls, so that is where the room for the bar is kept. */
+@media (max-width: 860px) {
+  :root {
+    --bar-h: 48px;
+  }
+  .app-main:has(.notebook-layout) {
+    scroll-padding-top: var(--bar-h);
+  }
+  .notebook-bar {
+    gap: 0;
+    padding: 0 2px 0 16px;
+  }
+  .notebook-bar-actions {
+    gap: 0;
+  }
+  .bar-button {
+    width: 44px;
+    height: 44px;
+    justify-content: center;
+    padding: 0;
+    border-color: transparent;
+    background: none;
+  }
+  .bar-button svg {
+    width: 18px;
+    height: 18px;
+  }
+  .bar-button-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 .folder-description {
   color: var(--text-soft);
@@ -1133,8 +1250,7 @@ a:hover {
 .markdown > :first-child {
   margin-block-start: 0;
 }
-.content-pane > h1,
-.note-header h1 {
+.content-pane > h1 {
   margin-block: 0 0.6rem;
 }
 .content-pane > h2 {
@@ -1684,15 +1800,6 @@ a:hover {
   display: flex;
   flex-direction: column;
   height: 100%;
-}
-.graph-toolbar {
-  padding: 0.9rem 1.5rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-}
-.graph-toolbar h1 {
-  margin: 0;
-  font-size: 1.05rem;
 }
 /* What is said about the drawing as a whole: the gestures it answers to, and
    the warning that it is not the whole notebook. They stack in one centred column
@@ -2480,35 +2587,6 @@ body.has-modal {
   padding: 0.4rem 0.5rem 0.1rem;
 }
 
-/* Note header with copy action */
-.note-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-}
-.copy-button {
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-soft);
-  border-radius: 8px;
-  padding: 0.45rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  margin-top: 1.4rem;
-  flex-shrink: 0;
-}
-.copy-button:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.copy-button.copied {
-  border-color: var(--node-green);
-  color: var(--node-green);
-}
-
 /* Chips: property tags, user-menu fields and other short labeled values */
 .prop-tags {
   display: flex;
@@ -3059,30 +3137,6 @@ input[type='radio'] {
   font-weight: 400;
   color: var(--text-soft);
 }
-.notebook-breadcrumb {
-  margin-bottom: 0.75rem;
-}
-.notebook-breadcrumb a {
-  color: var(--text-soft);
-}
-.notebook-breadcrumb a:hover {
-  color: var(--accent);
-}
-.notebook-breadcrumb [aria-current] {
-  color: var(--text);
-}
-.note-header .notebook-breadcrumb {
-  margin-bottom: 0.25rem;
-}
-.graph-title {
-  display: flex;
-  flex-direction: column;
-}
-.graph-breadcrumb {
-  margin: 0;
-  font-size: 0.74rem;
-}
-
 .form-error {
   margin-top: 0.75rem;
   color: #b42318;
@@ -3287,11 +3341,6 @@ input[type='radio'] {
     height: auto;
     min-height: calc(100dvh - var(--header-h) - 44px);
   }
-  .graph-toolbar {
-    padding: 0.75rem 1rem;
-    gap: 0.75rem;
-  }
-
   /* A finger is not a mouse pointer: the rows in the tree grow to a tappable
      height and the toggle stops being a 16px target. */
   /* Taller rows for a thumb, keeping the inline room the rule of the open

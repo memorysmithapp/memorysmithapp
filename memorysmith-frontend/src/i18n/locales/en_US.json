@@ -538,6 +538,8 @@
   "editor": {
     "edit": "Edit this note",
     "read": "Back to reading",
+    "editShort": "Edit",
+    "readShort": "Read",
     "area": "The Markdown of this note",
     "confirm": "Confirm",
     "cancel": "Cancel",

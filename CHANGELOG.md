@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Changed
+
+- **Every screen of a notebook opens with one bar, fixed above the content.** It holds the trail on the left — starting at the notebook, whose name alone shortens with an ellipsis, and ending at the page that is open — and it stays put while the page scrolls. No heading repeats the trail any more: the Notebook Context, the Guidance, the Templates, a folder and the graph lose the title and the small-caps label that said again what the trail says, and the Guidance and the Templates are shown under the Context in it. The note is the exception, whose trail stops at its folder so that its name stays the title. **The actions of a note move into the bar**: *Copiar* and *Editar* — *Ler* while editing — with their labels on a computer and as 44 px icons on a phone, where they used to float beside the name and scroll away with it. The note itself is drawn exactly as before. (#225)
+
 ## [0.7.0] - 2026-09-24
 
 ### Added

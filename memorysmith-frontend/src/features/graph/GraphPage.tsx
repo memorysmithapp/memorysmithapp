@@ -13,7 +13,7 @@ import {
   type SimulationNodeDatum,
 } from 'd3-force';
 import { usePreferences } from '../../shared/store/preferences';
-import { NotebookBreadcrumb } from '../structure/NotebookBreadcrumb';
+import { NotebookBar } from '../structure/NotebookBreadcrumb';
 import { GraphSkeleton } from '../../shared/components/skeletons';
 import { noteAddress } from '../../shared/api/note-address';
 import { folderTrailForNote } from '../structure/trail';
@@ -886,12 +886,9 @@ export function GraphPage() {
 
   return (
     <div className="graph-page">
-      {/* Two lines, and only two: the trail, then the name of the screen.
-          Everything that steers the drawing lives over the drawing. */}
-      <div className="graph-toolbar">
-        <NotebookBreadcrumb items={[{ label: t('graph.heading') }]} className="graph-breadcrumb" />
-        <h1>{t('graph.heading')}</h1>
-      </div>
+      {/* The trail names the screen (#225). Everything that steers the
+          drawing lives over the drawing. */}
+      <NotebookBar crumbs={[{ label: t('graph.heading') }]} />
       <div className="graph-canvas-wrap">
         {failed && <p className="status">{t('errors.unexpected')}</p>}
         {!failed && !filtered && <GraphSkeleton />}

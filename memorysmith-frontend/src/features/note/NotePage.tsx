@@ -26,7 +26,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../shared/api/query-keys';
 import { useBlocker } from 'react-router-dom';
 import { folderTrailForNote } from '../structure/trail';
-import { NotebookBreadcrumb, folderCrumbs } from '../structure/NotebookBreadcrumb';
+import { BarButton, NotebookBar, folderCrumbs } from '../structure/NotebookBreadcrumb';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
 import { useNotebookId } from '../structure/route-ids';
 
@@ -166,8 +166,26 @@ export function NotePage({ noteId }: { noteId: string }) {
     }
   }
 
-  if (isPending) return <NoteSkeleton />;
-  if (isError || !data) return <p className="status">{t('common.notFound')}</p>;
+  // The trail of a note stops at the folder that holds it: the name of the
+  // note is the title of the page, and the bar never repeats it (#225).
+  const crumbs = folderCrumbs(notebookId, folderTrailForNote(structure.folders, noteId));
+
+  if (isPending) {
+    return (
+      <>
+        <NotebookBar crumbs={crumbs} />
+        <NoteSkeleton />
+      </>
+    );
+  }
+  if (isError || !data) {
+    return (
+      <>
+        <NotebookBar crumbs={crumbs} />
+        <p className="status">{t('common.notFound')}</p>
+      </>
+    );
+  }
 
   // The reserved keys first, in the order of the specification, then what the
   // notebook invented, in the order the note wrote it (RN-DSC-051). `name` is
@@ -179,129 +197,121 @@ export function NotePage({ noteId }: { noteId: string }) {
   const lists = new Set(data.listProperties);
 
   return (
-    <article className="content-pane">
-      <div className="note-header">
-        <div>
-          <NotebookBreadcrumb
-            items={[
-              ...folderCrumbs(notebookId, folderTrailForNote(structure.folders, noteId)),
-              { label: data.name ?? t('note.unnamed') },
-            ]}
+    <>
+      <NotebookBar crumbs={crumbs}>
+        <BarButton
+          icon={copied ? <CheckIcon /> : <CopyIcon />}
+          label={copied ? t('note.copied') : t('note.copy')}
+          title={copied ? t('note.copied') : t('note.copyHint')}
+          onClick={() => void copyNote()}
+        />
+        {/* Only a role that writes ever sees it: a reader gets the copy button
+            alone, never a pencil that would refuse them. */}
+        {writable ? (
+          <BarButton
+            icon={editing ? <BookIcon /> : <PencilIcon />}
+            label={editing ? t('editor.readShort') : t('editor.editShort')}
+            title={editing ? t('editor.read') : t('editor.edit')}
+            onClick={() => {
+              setRefusal(null);
+              setEditing((on) => !on);
+            }}
           />
-          {/**
-           * The frame draws the name of the note, ALWAYS, and every heading of
-           * the body is an ordinary heading of the note, always (RN-DSC-054).
-           * A heading never names a note, so there is nothing to decide here:
-           * when the frontmatter states no name, the frame says so where the
-           * name would be (RN-KNW-036).
-           */}
-          <h1 className={data.name === null ? 'note-unnamed' : undefined}>
-            {data.name ?? t('note.unnamed')}
-          </h1>
-        </div>
-        <div className="note-tools">
-          <button
-            type="button"
-            className={`copy-button${copied ? ' copied' : ''}`}
-            onClick={() => void copyNote()}
-            title={copied ? t('note.copied') : t('note.copyHint')}
-            aria-label={t('note.copy')}
-          >
-            {copied ? <CheckIcon /> : <CopyIcon />}
-          </button>
-          {writable ? (
+        ) : null}
+      </NotebookBar>
+      <article className="content-pane">
+        {/**
+         * The frame draws the name of the note, ALWAYS, and every heading of
+         * the body is an ordinary heading of the note, always (RN-DSC-054).
+         * A heading never names a note, so there is nothing to decide here:
+         * when the frontmatter states no name, the frame says so where the
+         * name would be (RN-KNW-036).
+         */}
+        <h1 className={data.name === null ? 'note-unnamed' : undefined}>
+          {data.name ?? t('note.unnamed')}
+        </h1>
+
+        {refusal ? <p className="editor-refusal">{refusal}</p> : null}
+
+        {changedElsewhere && !editing && (
+          <p className="note-changed" role="status">
+            <span>{t('note.changedElsewhere')}</span>
             <button
               type="button"
-              className="copy-button"
-              onClick={() => {
-                setRefusal(null);
-                setEditing((on) => !on);
-              }}
-              title={editing ? t('editor.read') : t('editor.edit')}
-              aria-label={editing ? t('editor.read') : t('editor.edit')}
+              className="link-button"
+              onClick={() => setChangedElsewhere(false)}
             >
-              {editing ? <BookIcon /> : <PencilIcon />}
+              {t('note.changedElsewhereDismiss')}
             </button>
-          ) : null}
-        </div>
-      </div>
+          </p>
+        )}
 
-      {refusal ? <p className="editor-refusal">{refusal}</p> : null}
-
-      {changedElsewhere && !editing && (
-        <p className="note-changed" role="status">
-          <span>{t('note.changedElsewhere')}</span>
-          <button type="button" className="link-button" onClick={() => setChangedElsewhere(false)}>
-            {t('note.changedElsewhereDismiss')}
-          </button>
-        </p>
-      )}
-
-      {editing ? (
-        <NoteEditor
-          initial={data.raw}
-          currentName={data.name}
-          notebookId={notebookId}
-          busy={writing}
-          onCancel={() => setEditing(false)}
-          onConfirm={(outcome) => void writeNote(outcome)}
-          onDirty={setDirty}
-        />
-      ) : null}
-
-      {!editing && properties.length > 0 && (
-        <details className="properties-box" open>
-          <summary>{t('note.properties')}</summary>
-          <div className="metadata-container">
-            {properties.map(([key, value]) => (
-              <div
-                className="metadata-property"
-                data-property-type={propertyType(value, lists.has(key))}
-                key={key}
-              >
-                <span className="metadata-property-key">{propertyLabel(key, t)}</span>
-                <span className="metadata-property-value">
-                  <PropertyValue value={value} list={lists.has(key)} notebookId={notebookId} />
-                </span>
-              </div>
-            ))}
-          </div>
-        </details>
-      )}
-
-      {editing ? null : (
-        <WritableContent
-          raw={data.raw}
-          notebookId={notebookId}
-          baseRevision={data.revision}
-          writable={writable}
-          write={({ raw, baseRevision, keepalive }) =>
-            updateNote(
-              notebookId,
-              data.id,
-              { content: raw, baseRevision: baseRevision ?? '' },
-              { keepalive: keepalive ?? false },
-            )
-          }
-          invalidates={queryKeys.note(notebookId, noteId)}
-        />
-      )}
-
-      {/*
-        What happened to this note, and the line each author left about it
-        (RN-AUD-012). Closed by default: it is the answer to a question
-        somebody asks, never the note itself.
-      */}
-      <details
-        className="history-box"
-        open={historyOpen}
-        onToggle={(event) => setHistoryOpen(event.currentTarget.open)}
-      >
-        <summary>{t('history.heading')}</summary>
-        {historyOpen ? (
-          <NoteHistory notebookId={notebookId} noteId={noteId} updatedAt={data.updatedAt} />
+        {editing ? (
+          <NoteEditor
+            initial={data.raw}
+            currentName={data.name}
+            notebookId={notebookId}
+            busy={writing}
+            onCancel={() => setEditing(false)}
+            onConfirm={(outcome) => void writeNote(outcome)}
+            onDirty={setDirty}
+          />
         ) : null}
-      </details>
-    </article>
+
+        {!editing && properties.length > 0 && (
+          <details className="properties-box" open>
+            <summary>{t('note.properties')}</summary>
+            <div className="metadata-container">
+              {properties.map(([key, value]) => (
+                <div
+                  className="metadata-property"
+                  data-property-type={propertyType(value, lists.has(key))}
+                  key={key}
+                >
+                  <span className="metadata-property-key">{propertyLabel(key, t)}</span>
+                  <span className="metadata-property-value">
+                    <PropertyValue value={value} list={lists.has(key)} notebookId={notebookId} />
+                  </span>
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
+
+        {editing ? null : (
+          <WritableContent
+            raw={data.raw}
+            notebookId={notebookId}
+            baseRevision={data.revision}
+            writable={writable}
+            write={({ raw, baseRevision, keepalive }) =>
+              updateNote(
+                notebookId,
+                data.id,
+                { content: raw, baseRevision: baseRevision ?? '' },
+                { keepalive: keepalive ?? false },
+              )
+            }
+            invalidates={queryKeys.note(notebookId, noteId)}
+          />
+        )}
+
+        {/*
+          What happened to this note, and the line each author left about it
+          (RN-AUD-012). Closed by default: it is the answer to a question
+          somebody asks, never the note itself.
+        */}
+        <details
+          className="history-box"
+          open={historyOpen}
+          onToggle={(event) => setHistoryOpen(event.currentTarget.open)}
+        >
+          <summary>{t('history.heading')}</summary>
+          {historyOpen ? (
+            <NoteHistory notebookId={notebookId} noteId={noteId} updatedAt={data.updatedAt} />
+          ) : null}
+        </details>
+      </article>
+    </>
   );
 }

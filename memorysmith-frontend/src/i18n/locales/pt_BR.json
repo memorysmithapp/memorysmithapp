@@ -541,6 +541,8 @@
   "editor": {
     "edit": "Editar esta nota",
     "read": "Voltar à leitura",
+    "editShort": "Editar",
+    "readShort": "Ler",
     "area": "O Markdown desta nota",
     "confirm": "Confirmar",
     "cancel": "Cancelar",
