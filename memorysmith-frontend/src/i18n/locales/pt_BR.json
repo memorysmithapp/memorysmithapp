@@ -96,6 +96,7 @@
   "structure": {
     "guidance": "Orientação",
     "folders": "Pastas",
+    "foldersHint": "A árvore com a descrição de cada pasta",
     "noFolders": "Este caderno ainda não tem pastas.",
     "noteCountSplit": "{{here}} aqui, {{below}} nas subpastas",
     "hasTemplate": "modelo",

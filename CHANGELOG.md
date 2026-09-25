@@ -11,10 +11,15 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Added
+
+- **The folders of a notebook have a page of their own**, at `/notebooks/:notebookId/folders`, under the Notebook Context in the trail. Every folder is a row of one card — its name, *modelo* when it declares a Template, how many notes it holds and what it is for — with subfolders indented beneath it, and the whole row opens the folder. The address answered not found since 0.7.0, when the list lived on the page of the Context. (#227)
+
 ### Changed
 
 - **Every screen of a notebook opens with one bar, fixed above the content.** It holds the trail on the left — starting at the notebook, whose name alone shortens with an ellipsis, and ending at the page that is open — and it stays put while the page scrolls. No heading repeats the trail any more: the Notebook Context, the Guidance, the Templates, a folder and the graph lose the title and the small-caps label that said again what the trail says, and the Guidance and the Templates are shown under the Context in it. The note is the exception, whose trail stops at its folder so that its name stays the title. **The actions of a note move into the bar**: *Copiar* and *Editar* — *Ler* while editing — with their labels on a computer and as 44 px icons on a phone, where they used to float beside the name and scroll away with it. The note itself is drawn exactly as before. (#225)
 - **The history of a note opens from the bar.** It was a fold after the last line of the note, which a reader of a long note never reached; *Histórico* now sits between *Copiar* and *Editar*, for every role, and opens the modal of the Controles on a computer — named after the note, newest first, the list scrolling under a head that stays — and a sheet on a phone, which closes by *Fechar*, a tap outside or dragging its handle down. Each entry says when, who wrote it — the connector when an agent did, *Pela interface* otherwise — what kind of change it was, and the line left about it. The trail is still read only when the history is opened. (#226)
+- **The Notebook Context is three cards of the same weight**: *Orientação*, *Modelos* and *Pastas*, each with its icon, what it holds and a way in. The outline of the folders that closed the page moved to the page of the folders, and the label that stood above the name of the page, in an orange that does not reach 3:1 on the paper, went with the heading it labelled (#225). (#227)
 
 ## [0.7.0] - 2026-09-24
 

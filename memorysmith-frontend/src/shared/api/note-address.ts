@@ -48,9 +48,9 @@ export function notebookAddress(notebookId: string): string {
 }
 
 /**
- * A folder is addressed under `folders/`, and `folders` alone is no address:
- * the page it named repeated the page of the notebook (#196), and an address
- * of an earlier form answers not-found rather than a redirect (RN-DSC-045).
+ * A folder is addressed under `folders/` (RN-DSC-045). `folders` alone is the
+ * page of the folders, a part of the Notebook Context (#227): it answered
+ * not-found while the Context itself listed them (#196).
  */
 export function folderAddress(notebookId: string, folderId: string): string {
   return `${notebookAddress(notebookId)}/folders/${written(folderId)}`;
@@ -59,6 +59,10 @@ export function folderAddress(notebookId: string, folderId: string): string {
 /** The address of a note, which every surface that links to one builds. */
 export function noteAddress(notebookId: string, noteId: string): string {
   return `${notebookAddress(notebookId)}/notes/${written(noteId)}`;
+}
+
+export function foldersAddress(notebookId: string): string {
+  return `${notebookAddress(notebookId)}/folders`;
 }
 
 export function guidanceAddress(notebookId: string): string {

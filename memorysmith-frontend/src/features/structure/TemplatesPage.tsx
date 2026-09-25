@@ -12,7 +12,7 @@ import { TemplateSkeleton } from '../../shared/components/skeletons';
 import { WritableContent } from '../../shared/components/WritableContent';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import type { FolderNode } from '../../shared/types/api';
-import { templateAnchor } from './StructureOutline';
+import { templateAnchor } from './FolderRows';
 import { NotebookBar, contextCrumbs } from './NotebookBreadcrumb';
 import type { NotebookOutletContext } from './NotebookLayout';
 import { useNotebookId } from './route-ids';
