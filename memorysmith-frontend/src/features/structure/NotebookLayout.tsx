@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLiveInterval } from '../../shared/api/live';
 import { useQuery } from '@tanstack/react-query';
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getNotebookFiles, getNotebookNames, getNotebookStructure } from '../../shared/api/source';
-import { graphAddress, notebookAddress } from '../../shared/api/note-address';
 import type { NotebookStructure } from '../../shared/types/api';
 import { BrandMark } from '../../shared/components/BrandMark';
 import { NotebookIdProvider } from '../../shared/components/notebook-id';
-import { GraphIcon, MenuIcon, PanelLeftCloseIcon } from '../../shared/components/icons';
+import { ArrowLeftIcon, MenuIcon, PanelLeftCloseIcon } from '../../shared/components/icons';
+import { NotebookNav } from './NotebookNav';
 import { SearchBox } from '../search/SearchBox';
 import { FolderTree } from './FolderTree';
 import { FolderTreeSkeleton, NoteSkeleton } from '../../shared/components/skeletons';
@@ -149,26 +149,24 @@ export function NotebookLayout() {
               <PanelLeftCloseIcon />
             </button>
           </div>
-          <Link to="/" className="back-link">
-            ← {t('structure.backToNotebooks')}
-          </Link>
-          <Link
-            to={notebookAddress(notebookId)}
-            className="notebook-title-link"
-            title={t('structure.heading')}
-          >
-            <h2>{data ? data.notebook.name : <SkeletonBar width="10rem" height="1.4rem" />}</h2>
-          </Link>
+          <div className="sidebar-head">
+            <Link to="/" className="back-link">
+              <ArrowLeftIcon width={14} height={14} />
+              {t('structure.backToNotebooks')}
+            </Link>
+            {/* The way to the Context is its own entry below and the first
+                crumb of the bar, so the name is only the name (#228). */}
+            <h2 className="sidebar-notebook">
+              {data ? data.notebook.name : <SkeletonBar width="10rem" height="1.4rem" />}
+            </h2>
+          </div>
           {data ? (
             <SearchBox notebookId={notebookId} structure={data} />
           ) : (
             <SkeletonBar height="2.2rem" />
           )}
-          <nav className="notebook-nav">
-            <NavLink to={graphAddress(notebookId)} className="notebook-nav-link">
-              <GraphIcon /> {t('graph.navLabel')}
-            </NavLink>
-          </nav>
+          <NotebookNav notebookId={notebookId} />
+          <hr className="sidebar-rule" />
           <p className="sidebar-caption">{t('structure.content')}</p>
           {data ? (
             <FolderTree notebookId={notebookId} folders={data.folders} />

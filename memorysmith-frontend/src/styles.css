@@ -829,41 +829,168 @@ a:hover {
   width: 100%;
 }
 .notebook-sidebar {
-  width: 22rem;
-  min-width: 16rem;
+  width: 272px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   border-right: 1px solid var(--border);
   background: var(--surface);
   /* The foot is deeper than the other sides (#196): a desktop browser draws
      the address of the link under the pointer in the bottom-left corner,
      which is where the last folder of a scrolled tree sits, so the tree has to
      be able to scroll its last row clear of that bubble. */
-  padding: 1rem 1rem 3rem;
+  padding: 20px 20px 3rem;
   overflow-y: auto;
   max-height: 100%;
   position: sticky;
   top: 0;
 }
+/* A long tree scrolls the column; nothing in it is squeezed to fit. */
+.notebook-sidebar > * {
+  flex-shrink: 0;
+}
+.notebook-sidebar .search-box {
+  margin-bottom: 0;
+}
+.sidebar-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 .back-link {
-  font-size: 0.8rem;
+  align-self: flex-start;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  font-size: 12.5px;
   color: var(--text-soft);
 }
-.notebook-title-link {
+.back-link:hover {
   color: var(--text);
+  text-decoration: none;
 }
-.notebook-title-link h2 {
-  margin: 0.35rem 0 0.75rem;
-  font-size: 1rem;
+.sidebar-notebook {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.sidebar-rule {
+  width: 100%;
+  height: 1px;
+  margin: 0;
+  border: 0;
+  background: var(--border);
 }
 .sidebar-caption {
+  margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 0.7rem;
+  font-size: 10.5px;
+  line-height: 1;
   color: var(--text-soft);
-  margin: 0 0 0.35rem;
   font-family: var(--display);
   font-weight: 500;
 }
 
+/* ── The navigation of a notebook (#228) ─────────────────────────────────────
+   Everything at 400; only what is open goes to 600, its icon in a thicker
+   stroke. Never a rule and never blue: the fill is the cursor alone. */
+.notebook-nav {
+  display: flex;
+  flex-direction: column;
+}
+.nav-row-wrap {
+  position: relative;
+  display: flex;
+}
+.nav-row {
+  flex: none;
+  min-width: 0;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 -8px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--text);
+}
+.nav-row.is-child {
+  height: 32px;
+}
+.nav-row svg {
+  flex: none;
+  color: var(--text-soft);
+}
+.nav-row:hover {
+  background: var(--hover);
+  text-decoration: none;
+}
+.nav-row.active {
+  font-weight: 600;
+  color: var(--chosen);
+}
+.nav-row.active svg {
+  color: var(--chosen);
+  stroke-width: 2.4;
+}
+.nav-row-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The Context row leaves room at its end for the chevron that folds it. */
+.nav-row-wrap .nav-row {
+  flex: 1;
+  padding-right: 32px;
+}
+.nav-fold {
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+.nav-fold:hover {
+  background: var(--hover);
+}
+.nav-fold svg {
+  transition: transform 120ms ease;
+}
+.nav-fold.is-open svg {
+  transform: rotate(90deg);
+}
+.nav-children {
+  display: flex;
+  flex-direction: column;
+  margin-left: 7px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
+
+/* ── The tree ─────────────────────────────────────────────────────────────────
+   Folders and notes at 400; the open one at 600 in Tinta, with no rule and no
+   fill (#228), so the cursor and the choice stay two things. */
 .tree-root,
 .tree-children {
   list-style: none;
@@ -871,68 +998,82 @@ a:hover {
   padding: 0;
 }
 .tree-children {
-  padding-left: 1.1rem;
+  margin-left: 7px;
+  padding-left: 12px;
   border-left: 1px solid var(--border);
-  margin-left: 0.45rem;
 }
 .tree-folder {
+  height: 30px;
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  /* Room for the fill of the open one, without moving the others. */
-  margin-inline: -0.35rem;
-  padding: 0.1rem 0.35rem;
-  border-radius: 8px;
+  gap: 6px;
+  margin: 0 -8px;
+  padding: 0 8px;
+  border-radius: 0 6px 6px 0;
 }
 .tree-folder a {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1;
   color: var(--text);
-  font-weight: 600;
-  font-size: 0.88rem;
 }
-/* The open folder and the open note are chosen: Tinta, with the weight of
-   the choice, and never the blue of a link (#201). They are marked by a rule
-   of Tinta at their left edge — the open tab of a strip, turned on its side —
-   and never by the fill of the cursor, so what is open and what is under the
-   pointer are two things that can both be true (#219). */
+.tree-folder a:hover {
+  text-decoration: none;
+}
 .tree-folder:hover,
 .tree-note:hover {
   background: var(--hover);
-}
-.tree-folder.active {
-  box-shadow: inset 2px 0 0 var(--chosen);
+  text-decoration: none;
 }
 .tree-folder.active a {
+  font-weight: 600;
   color: var(--chosen);
 }
 .tree-toggle {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   border: 0;
   background: none;
-  cursor: pointer;
-  padding: 0;
-  width: 1rem;
   color: var(--text-soft);
-  font-size: 0.8rem;
+  cursor: pointer;
+}
+.tree-toggle svg {
+  transition: transform 120ms ease;
+}
+.tree-toggle.is-open svg {
+  transform: rotate(90deg);
 }
 .tree-count {
-  margin-left: auto;
-  font-size: 0.72rem;
+  flex: none;
+  font-size: 11px;
+  line-height: 1;
   color: var(--text-soft);
 }
 .tree-note {
-  display: block;
-  font-size: 0.84rem;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  margin: 0 -8px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1;
   color: var(--text-soft);
-  margin-inline: -0.35rem;
-  padding: 0.08rem 0.35rem;
-  border-radius: 0 8px 8px 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* The open note is told by its colour alone: Tinta among notes in the soft
-   text, at the weight of the others. Bold is what a folder wears, and a rule
-   beside the guide line of the tree was a second line (#219). */
 .tree-note.active {
+  font-weight: 600;
   color: var(--chosen);
 }
 
@@ -3014,54 +3155,6 @@ input[type='radio'] {
   width: 100%;
 }
 
-/* Notebook sidebar navigation */
-.notebook-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  margin-bottom: 0.9rem;
-}
-/* A quiet button of the Controles (#219): 36 px, radius 8, the surface with
-   its edge, and a cursor that darkens both. Blue is for the one primary
-   action, links and focus, and this is none of them. */
-.notebook-nav-link {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 36px;
-  padding: 0 12px;
-  font-size: 14px;
-  font-family: var(--display);
-  font-weight: 500;
-  color: var(--text);
-  background: var(--surface);
-  border-radius: 8px;
-  border: 1px solid var(--border);
-}
-.notebook-nav-link:hover {
-  background: var(--bg);
-  border-color: var(--text-soft);
-  color: var(--text);
-  text-decoration: none;
-}
-.notebook-nav-action {
-  background: none;
-  font: inherit;
-  font-family: var(--display);
-  font-weight: 500;
-  text-align: left;
-  cursor: pointer;
-}
-.notebook-nav-action:disabled {
-  cursor: progress;
-  color: var(--text-soft);
-}
-.notebook-nav-link.active {
-  background: var(--chosen);
-  color: var(--on-chosen);
-  border-color: var(--chosen);
-}
-
 /* ── The Notebook Context and its parts (#227) ───────────────────────────────
    The line under the bar that says what the page is. */
 .page-intro {
@@ -3228,10 +3321,6 @@ input[type='radio'] {
            column, which is the layout that screen has room for. */
 
 @media (max-width: 1180px) {
-  .notebook-sidebar {
-    width: 18rem;
-    min-width: 14rem;
-  }
   .content-pane {
     padding: 1.75rem 1.75rem 3rem;
   }
@@ -3404,23 +3493,20 @@ input[type='radio'] {
     height: auto;
     min-height: calc(100dvh - var(--header-h) - 44px);
   }
-  /* A finger is not a mouse pointer: the rows in the tree grow to a tappable
-     height and the toggle stops being a 16px target. */
-  /* Taller rows for a thumb, keeping the inline room the rule of the open
-     one is drawn in (#219). */
-  .tree-folder {
-    padding: 0.25rem 0.35rem;
-  }
-  .tree-folder a {
-    padding: 0.3rem 0;
-  }
+  /* A finger is not a mouse pointer: the rows grow to a height a thumb hits,
+     and the toggle stops being a 16 px target. */
+  .tree-folder,
   .tree-note {
-    padding: 0.3rem 0.35rem;
+    height: 40px;
   }
   .tree-toggle {
-    width: 1.75rem;
-    height: 1.75rem;
-    margin-left: -0.35rem;
+    width: 28px;
+    height: 28px;
+    margin-left: -6px;
+  }
+  .nav-row,
+  .nav-row.is-child {
+    height: 44px;
   }
 
   .login-screen {

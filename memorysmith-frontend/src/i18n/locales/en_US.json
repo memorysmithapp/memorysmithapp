@@ -105,6 +105,7 @@
     "openNavigation": "Notebook navigation",
     "closeNavigation": "Close navigation",
     "heading": "Notebook Context",
+    "contextParts": "Guidance, Templates and Folders",
     "intro": "How this notebook describes itself, and what the agent receives from get_notebook_context: the Guidance says what the notebook is, each folder says what belongs in it, and the folder Template says how a note is laid out.",
     "guidanceHint": "What this notebook is and how to write in it",
     "deleteGuidanceConfirm": "Delete the guidance of this notebook? Its folders, its templates and every note stay; the notebook simply stops saying how it wants to be written. This cannot be undone.",

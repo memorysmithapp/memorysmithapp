@@ -105,6 +105,7 @@
     "openNavigation": "Navegação do caderno",
     "closeNavigation": "Fechar navegação",
     "heading": "Contexto do caderno",
+    "contextParts": "Orientação, Modelos e Pastas",
     "intro": "Como este caderno se descreve, e o que o agente recebe em get_notebook_context: a Orientação diz o que ele é, cada pasta diz o que se guarda nela e o Modelo da pasta diz como a nota se estrutura.",
     "guidanceHint": "O que este caderno é e como se escreve nele",
     "deleteGuidanceConfirm": "Apagar a Orientação deste caderno? As pastas, os Modelos e todas as notas continuam; o caderno apenas deixa de dizer como quer ser escrito. Não há como desfazer.",
