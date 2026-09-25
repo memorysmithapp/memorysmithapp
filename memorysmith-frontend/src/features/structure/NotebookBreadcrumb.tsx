@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, type ReactNode, type Ref } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -104,14 +104,16 @@ export function BarButton({
   label,
   title,
   onClick,
+  ref,
 }: {
   icon: ReactNode;
   label: string;
   title?: string;
   onClick: () => void;
+  ref?: Ref<HTMLButtonElement>;
 }) {
   return (
-    <button type="button" className="bar-button" onClick={onClick} title={title ?? label}>
+    <button ref={ref} type="button" className="bar-button" onClick={onClick} title={title ?? label}>
       {icon}
       <span className="bar-button-label">{label}</span>
     </button>

@@ -190,3 +190,13 @@ export function FileIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** What happened to a note (#226). */
+export function HistoryIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6l4 2" />
+    </svg>
+  );
+}

@@ -17,9 +17,15 @@ import {
   propertyLabel,
   propertyType,
 } from '../../shared/components/PropertyValue';
-import { BookIcon, CheckIcon, CopyIcon, PencilIcon } from '../../shared/components/icons';
+import {
+  BookIcon,
+  CheckIcon,
+  CopyIcon,
+  HistoryIcon,
+  PencilIcon,
+} from '../../shared/components/icons';
 import { NoteEditor, type EditOutcome } from './NoteEditor';
-import { NoteHistory } from './NoteHistory';
+import { NoteHistoryDialog } from './NoteHistory';
 import { withAlias } from '../../shared/api/markdown';
 import { ApiError } from '../../shared/api/error-mapper';
 import { useQueryClient } from '@tanstack/react-query';
@@ -46,13 +52,13 @@ export function NotePage({ noteId }: { noteId: string }) {
   const [refusal, setRefusal] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   /**
-   * Whether the history is open. It is state and not just an attribute of the
-   * `<details>` because React renders the children of a closed one anyway:
-   * mounted eagerly, the history asked the trail for every note anybody
-   * opened, which is a request nobody wanted and, for the length of one
-   * defect, the render that took the page down.
+   * Whether the history is open (#226). The history is mounted only while it
+   * is: mounted eagerly, it asked the trail for every note anybody opened,
+   * which is a request nobody wanted and, for the length of one defect, the
+   * render that took the page down.
    */
   const [historyOpen, setHistoryOpen] = useState(false);
+  const historyButton = useRef<HTMLButtonElement>(null);
   const client = useQueryClient();
 
   /**
@@ -205,6 +211,15 @@ export function NotePage({ noteId }: { noteId: string }) {
           title={copied ? t('note.copied') : t('note.copyHint')}
           onClick={() => void copyNote()}
         />
+        {/* What happened to this note, and the line each author left about
+            it (RN-AUD-012): a question somebody asks, so it opens on demand. */}
+        <BarButton
+          ref={historyButton}
+          icon={<HistoryIcon />}
+          label={t('history.short')}
+          title={t('history.heading')}
+          onClick={() => setHistoryOpen(true)}
+        />
         {/* Only a role that writes ever sees it: a reader gets the copy button
             alone, never a pencil that would refuse them. */}
         {writable ? (
@@ -295,23 +310,16 @@ export function NotePage({ noteId }: { noteId: string }) {
             invalidates={queryKeys.note(notebookId, noteId)}
           />
         )}
-
-        {/*
-          What happened to this note, and the line each author left about it
-          (RN-AUD-012). Closed by default: it is the answer to a question
-          somebody asks, never the note itself.
-        */}
-        <details
-          className="history-box"
-          open={historyOpen}
-          onToggle={(event) => setHistoryOpen(event.currentTarget.open)}
-        >
-          <summary>{t('history.heading')}</summary>
-          {historyOpen ? (
-            <NoteHistory notebookId={notebookId} noteId={noteId} updatedAt={data.updatedAt} />
-          ) : null}
-        </details>
       </article>
+      <NoteHistoryDialog
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        noteName={data.name ?? t('note.unnamed')}
+        notebookId={notebookId}
+        noteId={noteId}
+        updatedAt={data.updatedAt}
+        returnFocus={historyButton}
+      />
     </>
   );
 }

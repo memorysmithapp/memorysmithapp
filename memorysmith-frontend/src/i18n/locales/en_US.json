@@ -570,6 +570,7 @@
   },
   "history": {
     "heading": "History of this note",
+    "short": "History",
     "loading": "Reading the history…",
     "failed": "The history could not be read.",
     "aPerson": "From the interface",
