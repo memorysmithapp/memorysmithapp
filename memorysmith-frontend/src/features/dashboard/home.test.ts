@@ -100,4 +100,12 @@ describe('the space of the subscription', () => {
     const lines = notebookLines(usage([line('A', 3), line('B', 2)]));
     expect(lines.every((each) => each.grouped === 1)).toBe(true);
   });
+
+  it('names a fourth notebook rather than grouping one (#224)', () => {
+    const lines = notebookLines(
+      usage([line('C', 10), line('A', 300), line('D', 5), line('B', 100)]),
+    );
+    expect(lines.map((each) => each.name)).toEqual(['A', 'B', 'C', 'D']);
+    expect(lines.every((each) => each.grouped === 1)).toBe(true);
+  });
 });

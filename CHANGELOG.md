@@ -27,6 +27,10 @@ issues each entry cites.
 - **The results of the search open over the reading.** They were a panel as narrow as the sidebar; they are now a menu of 460 px anchored to the field and passing over the note, each result with its name, its folder and section, and the passage in the ink of the text with the term marked in light orange — it was blue, which is spent on actions and links. The foot, set apart, writes each operator it accepts in monospace. A click outside puts the list away without losing what was typed, and focusing the field brings it back; Esc and opening a result close it as before. The field carries a magnifier and the focus ring of the Controles. On a phone the results sit under the field, in the navigation sheet. (#232)
 - **The graph says which value it is holding.** Pinning a value used to fade the rest and ring the node in Tinta without a word; the foot now reads *Fixado: tags: cota* before the gestures, and goes back to the gestures when the pin is let go. The foot is a label over the drawing at its lower left, the gear a quiet button that no longer turns blue under the cursor, and the panel *Adicionar* the menu of the Controles: a row of 34 px per attribute — 44 px on a phone, where it takes the width — with a round dot in the colour the attribute got, and its switch on in Tinta. The drawing runs edge to edge under the bar. (#233)
 
+### Fixed
+
+- **The space of the subscription names a fourth notebook instead of grouping it.** The panel names the three largest notebooks and adds the rest up in one line; with four, that line stood for one notebook — *Mais 1 caderno* — taking the room of the line that would name it. A group now stands for two notebooks or more, so four notebooks draw four named lines and five draw three and *Mais 2 cadernos*, as before. (#224)
+
 ## [0.7.0] - 2026-09-24
 
 ### Added

@@ -40,13 +40,17 @@ export interface NotebookLine {
  * line, "Mais N cadernos", with their numbers added up. The list arrives
  * ordered by the API, and is ordered again here, because a screen that trusts
  * an order it did not ask for draws the wrong line on top the day it changes.
+ *
+ * A group stands for two notebooks or more (#224): a line grouping one takes
+ * the room of the line that would name it, and only hides which one it is.
  */
 export function notebookLines(usage: SubscriptionUsageDto, shown = 3): NotebookLine[] {
   const sorted = [...usage.notebooks].sort((a, b) => b.bytes - a.bytes);
+  const named = sorted.length - shown < 2 ? sorted.length : shown;
   const head: NotebookLine[] = sorted
-    .slice(0, shown)
+    .slice(0, named)
     .map((each) => ({ ...each, notebookId: each.notebookId, name: each.name, grouped: 1 }));
-  const tail = sorted.slice(shown);
+  const tail = sorted.slice(named);
   if (tail.length === 0) return head;
   const sum = (pick: (each: (typeof tail)[number]) => number) =>
     tail.reduce((total, each) => total + pick(each), 0);
