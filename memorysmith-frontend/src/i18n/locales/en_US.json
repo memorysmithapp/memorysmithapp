@@ -352,6 +352,8 @@
     "attributeNodes": "Add",
     "hint": "Scroll to zoom · drag to pan · click a note to open it, an attribute to hold its notes",
     "hintTouch": "Pinch to zoom · drag to pan · tap a note to open it, an attribute to hold its notes",
+    "pinned": "Held: <b>{{value}}</b> · click a note to open it, an attribute to hold its notes",
+    "pinnedTouch": "Held: <b>{{value}}</b> · tap a note to open it, an attribute to hold its notes",
     "empty": "This notebook has no notes to draw yet.",
     "truncated": "Showing the first 2000 notes of this notebook."
   },

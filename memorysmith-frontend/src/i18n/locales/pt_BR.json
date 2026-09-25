@@ -355,6 +355,8 @@
     "attributeNodes": "Adicionar",
     "hint": "Role para ampliar · arraste para mover · clique numa nota para abri-la, num atributo para fixar suas notas",
     "hintTouch": "Pince para ampliar · arraste para mover · toque numa nota para abri-la, num atributo para fixar suas notas",
+    "pinned": "Fixado: <b>{{value}}</b> · clique numa nota para abri-la, num atributo para fixar suas notas",
+    "pinnedTouch": "Fixado: <b>{{value}}</b> · toque numa nota para abri-la, num atributo para fixar suas notas",
     "empty": "Este caderno ainda não tem notas para desenhar.",
     "truncated": "Mostrando as primeiras 2000 notas deste caderno."
   },

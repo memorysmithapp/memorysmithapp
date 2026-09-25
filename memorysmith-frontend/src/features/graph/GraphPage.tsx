@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import {
   forceCenter,
   forceLink,
@@ -58,6 +58,12 @@ interface GraphNode extends SimulationNodeDatum {
 }
 
 type GraphLink = SimulationLinkDatum<GraphNode>;
+
+/** A value node is keyed `attribute:value`; the foot writes it `attribute: value`. */
+function pinnedLabel(id: string): string {
+  const at = id.indexOf(':');
+  return at < 0 ? id : `${id.slice(0, at)}: ${id.slice(at + 1)}`;
+}
 
 /**
  * How many distinct values an attribute may have and still count as discrete:
@@ -204,6 +210,12 @@ export function GraphPage() {
    * at. The settings are one click away.
    */
   const [controlsOpen, setControlsOpen] = useState(false);
+  /**
+   * The value held on the drawing, as `attribute:value`, which the foot says
+   * (#233). The drawing keeps the node itself; this is only its name, told to
+   * React when the pin changes and never on a frame.
+   */
+  const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [data, setData] = useState<GraphFile | null>(null);
   const [failed, setFailed] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -432,6 +444,7 @@ export function GraphPage() {
     // The nodes were just rebuilt, so a pin from the previous drawing points
     // at an object that is no longer on it.
     state.pinned = null;
+    setPinnedId(null);
     state.shown = null;
 
     const ctx = canvas.getContext('2d');
@@ -755,6 +768,7 @@ export function GraphPage() {
       const next = hit?.kind === 'value' && hit !== state.pinned ? hit : null;
       if (next === state.pinned) return;
       state.pinned = next;
+      setPinnedId(next?.id ?? null);
       rescope();
     }
     /** The pointer leaving takes the hover with it, and never the pin: the
@@ -840,6 +854,7 @@ export function GraphPage() {
       const next = hit?.kind === 'value' && hit !== state.pinned ? hit : null;
       if (next === state.pinned) return;
       state.pinned = next;
+      setPinnedId(next?.id ?? null);
       rescope();
     }
 
@@ -928,8 +943,8 @@ export function GraphPage() {
                     return (
                       <label key={attribute.name} className="graph-switch">
                         <span
-                          className="graph-switch-dot"
-                          style={{ background: on ? slotColor(on.slot) : 'transparent' }}
+                          className={`graph-switch-dot${on ? ' is-on' : ''}`}
+                          style={on ? { background: slotColor(on.slot) } : undefined}
                         />
                         <span className="graph-switch-name">{attribute.name}</span>
                         <input
@@ -964,8 +979,23 @@ export function GraphPage() {
           other thing said about the drawing as a whole.
         */}
         <div className="graph-footer">
-          {truncated && <span>{t('graph.truncated')}</span>}
-          <span>{t(touchOnly ? 'graph.hintTouch' : 'graph.hint')}</span>
+          <p>
+            {truncated && (
+              <>
+                {t('graph.truncated')}
+                <br />
+              </>
+            )}
+            {pinnedId ? (
+              <Trans
+                i18nKey={touchOnly ? 'graph.pinnedTouch' : 'graph.pinned'}
+                values={{ value: pinnedLabel(pinnedId) }}
+                components={{ b: <b /> }}
+              />
+            ) : (
+              t(touchOnly ? 'graph.hintTouch' : 'graph.hint')
+            )}
+          </p>
         </div>
       </div>
     </div>
