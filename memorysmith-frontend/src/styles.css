@@ -829,41 +829,172 @@ a:hover {
   width: 100%;
 }
 .notebook-sidebar {
-  width: 22rem;
-  min-width: 16rem;
+  width: 272px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   border-right: 1px solid var(--border);
   background: var(--surface);
   /* The foot is deeper than the other sides (#196): a desktop browser draws
      the address of the link under the pointer in the bottom-left corner,
      which is where the last folder of a scrolled tree sits, so the tree has to
      be able to scroll its last row clear of that bubble. */
-  padding: 1rem 1rem 3rem;
+  padding: 20px 20px 3rem;
   overflow-y: auto;
   max-height: 100%;
   position: sticky;
   top: 0;
+  /* Sticky makes the column a stacking context, so what floats out of it —
+     the results of the search, over the reading (#232) — is only above the
+     reading if the column is. */
+  z-index: 20;
+}
+/* A long tree scrolls the column; nothing in it is squeezed to fit. */
+.notebook-sidebar > * {
+  flex-shrink: 0;
+}
+.notebook-sidebar .search-box {
+  margin-bottom: 0;
+}
+.sidebar-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .back-link {
-  font-size: 0.8rem;
+  align-self: flex-start;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  font-size: 12.5px;
   color: var(--text-soft);
 }
-.notebook-title-link {
+.back-link:hover {
   color: var(--text);
+  text-decoration: none;
 }
-.notebook-title-link h2 {
-  margin: 0.35rem 0 0.75rem;
-  font-size: 1rem;
+.sidebar-notebook {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.sidebar-rule {
+  width: 100%;
+  height: 1px;
+  margin: 0;
+  border: 0;
+  background: var(--border);
 }
 .sidebar-caption {
+  margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 0.7rem;
+  font-size: 10.5px;
+  line-height: 1;
   color: var(--text-soft);
-  margin: 0 0 0.35rem;
   font-family: var(--display);
   font-weight: 500;
 }
 
+/* ── The navigation of a notebook (#228) ─────────────────────────────────────
+   Everything at 400; only what is open goes to 600, its icon in a thicker
+   stroke. Never a rule and never blue: the fill is the cursor alone. */
+.notebook-nav {
+  display: flex;
+  flex-direction: column;
+}
+.nav-row-wrap {
+  position: relative;
+  display: flex;
+}
+.nav-row {
+  flex: none;
+  min-width: 0;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 -8px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--text);
+}
+.nav-row.is-child {
+  height: 32px;
+}
+.nav-row svg {
+  flex: none;
+  color: var(--text-soft);
+}
+.nav-row:hover {
+  background: var(--hover);
+  text-decoration: none;
+}
+.nav-row.active {
+  font-weight: 600;
+  color: var(--chosen);
+}
+.nav-row.active svg {
+  color: var(--chosen);
+  stroke-width: 2.4;
+}
+.nav-row-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The Context row leaves room at its end for the chevron that folds it. */
+.nav-row-wrap .nav-row {
+  flex: 1;
+  padding-right: 32px;
+}
+.nav-fold {
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+.nav-fold:hover {
+  background: var(--hover);
+}
+.nav-fold svg {
+  transition: transform 120ms ease;
+}
+.nav-fold.is-open svg {
+  transform: rotate(90deg);
+}
+.nav-children {
+  display: flex;
+  flex-direction: column;
+  margin-left: 7px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
+
+/* ── The tree ─────────────────────────────────────────────────────────────────
+   Folders and notes at 400; the open one at 600 in Tinta, with no rule and no
+   fill (#228), so the cursor and the choice stay two things. */
 .tree-root,
 .tree-children {
   list-style: none;
@@ -871,68 +1002,82 @@ a:hover {
   padding: 0;
 }
 .tree-children {
-  padding-left: 1.1rem;
+  margin-left: 7px;
+  padding-left: 12px;
   border-left: 1px solid var(--border);
-  margin-left: 0.45rem;
 }
 .tree-folder {
+  height: 30px;
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  /* Room for the fill of the open one, without moving the others. */
-  margin-inline: -0.35rem;
-  padding: 0.1rem 0.35rem;
-  border-radius: 8px;
+  gap: 6px;
+  margin: 0 -8px;
+  padding: 0 8px;
+  border-radius: 0 6px 6px 0;
 }
 .tree-folder a {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1;
   color: var(--text);
-  font-weight: 600;
-  font-size: 0.88rem;
 }
-/* The open folder and the open note are chosen: Tinta, with the weight of
-   the choice, and never the blue of a link (#201). They are marked by a rule
-   of Tinta at their left edge — the open tab of a strip, turned on its side —
-   and never by the fill of the cursor, so what is open and what is under the
-   pointer are two things that can both be true (#219). */
+.tree-folder a:hover {
+  text-decoration: none;
+}
 .tree-folder:hover,
 .tree-note:hover {
   background: var(--hover);
-}
-.tree-folder.active {
-  box-shadow: inset 2px 0 0 var(--chosen);
+  text-decoration: none;
 }
 .tree-folder.active a {
+  font-weight: 600;
   color: var(--chosen);
 }
 .tree-toggle {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   border: 0;
   background: none;
-  cursor: pointer;
-  padding: 0;
-  width: 1rem;
   color: var(--text-soft);
-  font-size: 0.8rem;
+  cursor: pointer;
+}
+.tree-toggle svg {
+  transition: transform 120ms ease;
+}
+.tree-toggle.is-open svg {
+  transform: rotate(90deg);
 }
 .tree-count {
-  margin-left: auto;
-  font-size: 0.72rem;
+  flex: none;
+  font-size: 11px;
+  line-height: 1;
   color: var(--text-soft);
 }
 .tree-note {
-  display: block;
-  font-size: 0.84rem;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  margin: 0 -8px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1;
   color: var(--text-soft);
-  margin-inline: -0.35rem;
-  padding: 0.08rem 0.35rem;
-  border-radius: 0 8px 8px 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* The open note is told by its colour alone: Tinta among notes in the soft
-   text, at the weight of the others. Bold is what a folder wears, and a rule
-   beside the guide line of the tree was a second line (#219). */
 .tree-note.active {
+  font-weight: 600;
   color: var(--chosen);
 }
 
@@ -941,109 +1086,360 @@ a:hover {
   min-width: 0;
   overflow-y: auto;
   max-height: 100%;
-}
-.content-kicker {
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.72rem;
-  color: var(--signal);
-  margin-bottom: 0;
-  font-family: var(--display);
-  font-weight: 500;
-}
-.breadcrumb {
-  font-size: 0.8rem;
-  color: var(--text-soft);
-  margin-bottom: 0.25rem;
-}
-.folder-description {
-  color: var(--text-soft);
+  /* Whatever is scrolled to lands below the bar, not under it. */
+  scroll-padding-top: var(--bar-h);
 }
 
-.template-box {
-  background: var(--surface);
+/* ── The bar of a notebook (#225) ─────────────────────────────────────────────
+   Fixed above the content of every screen of a notebook: the trail on the
+   left and, on a note only, its actions on the right. It sticks inside the
+   element that scrolls, which is the content column on a computer and the
+   main row on a phone, so it never needs to know how tall the header is. */
+:root {
+  --bar-h: 56px;
+}
+.notebook-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: var(--bar-h);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px 0 32px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.notebook-breadcrumb {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  line-height: 1;
+  color: var(--text-soft);
+  white-space: nowrap;
+  overflow: hidden;
+}
+/* No crumb shrinks by itself (#235): how the trail gives up space is decided
+   by `fitTrail`, and the notebook and the last crumb get the width decided
+   for them, shortening with an ellipsis inside it. */
+.notebook-breadcrumb .crumb {
+  flex: none;
+  color: var(--text-soft);
+}
+.notebook-breadcrumb .crumb.is-notebook,
+.notebook-breadcrumb .crumb.is-last {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notebook-breadcrumb .crumb.is-last {
+  color: var(--text);
+}
+/* The crumbs the trail had no room for, as one link to the deepest of them. */
+.notebook-breadcrumb .crumb.crumb-more {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 6px;
+  color: var(--text-soft);
+}
+.notebook-breadcrumb .crumb.crumb-more:hover {
+  background: var(--hover);
+  color: var(--text);
+  text-decoration: none;
+}
+.crumb-more:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.notebook-breadcrumb a.crumb:not(.crumb-more):hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+.crumb-separator {
+  flex: none;
+  color: var(--pending);
+}
+/* The trail drawn whole where nobody sees it, for measuring. */
+.notebook-breadcrumb-ruler {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  width: max-content;
+  visibility: hidden;
+  pointer-events: none;
+}
+/* Its parts carry no class of a crumb, so nothing that looks for a crumb
+   finds them; the `…` takes the padding the real one has. */
+.notebook-breadcrumb-ruler [data-part='more'] {
+  padding: 0 6px;
+}
+.notebook-bar-actions {
+  flex: none;
+  display: flex;
+  gap: 8px;
+}
+/* A quiet button of the Controles: icon and label on a computer. */
+.bar-button {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.6rem 1rem;
-  margin: 1rem 0;
-}
-.template-box summary {
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
-  font-weight: 600;
-  font-size: 0.9rem;
+}
+.bar-button:hover {
+  background: var(--bg);
+  border-color: var(--text-soft);
+}
+.bar-button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.bar-button svg {
+  flex: none;
+}
+/* On a phone: 48 px, and the actions become 44 px icons whose label stays as
+   the accessible name. Below the drawer breakpoint the main row is what
+   scrolls, so that is where the room for the bar is kept. */
+@media (max-width: 860px) {
+  :root {
+    --bar-h: 48px;
+  }
+  .app-main:has(.notebook-layout) {
+    scroll-padding-top: var(--bar-h);
+  }
+  .notebook-bar {
+    gap: 0;
+    padding: 0 2px 0 16px;
+  }
+  /* Without actions the trail ends on the margin, not against the edge. */
+  .notebook-bar:not(:has(.notebook-bar-actions)) {
+    padding-right: 16px;
+  }
+  .notebook-bar-actions {
+    gap: 0;
+  }
+  .bar-button {
+    width: 44px;
+    height: 44px;
+    justify-content: center;
+    padding: 0;
+    border-color: transparent;
+    background: none;
+  }
+  .bar-button svg {
+    width: 18px;
+    height: 18px;
+  }
+  .bar-button-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+/* The page of a folder (#231): what it keeps, then its Template, then its
+   subfolders and its notes as two groups with a count each. */
+.folder-description {
+  margin: 0 0 14px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-soft);
+}
+.folder-page .template-card > summary {
+  min-height: 48px;
+  padding: 0 16px;
+}
+.template-card-title.is-inline {
+  flex: none;
+}
+.template-card-hint {
+  min-width: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text-soft);
+}
+.folder-empty {
+  margin: 14px 0 0;
+  color: var(--text-soft);
+}
+.folder-group {
+  margin-top: 26px;
+}
+.folder-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.folder-page .folder-group-head h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+.folder-group-head span {
+  font-size: 12.5px;
+  line-height: 1;
+  color: var(--text-soft);
+}
+.note-row {
+  display: flex;
+  align-items: center;
+  padding: 13px 18px;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--text);
+}
+.note-row:hover {
+  background: var(--hover);
+  text-decoration: none;
+}
+.note-row:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+@media (max-width: 860px) {
+  .note-row {
+    padding: 12px 14px;
+  }
 }
 .hint {
   font-size: 0.8rem;
   color: var(--text-soft);
 }
 
-/* Deleting a Guidance or a Template. It is quiet until it is asked for: the
-   surface is a reading tool before it is an editing one. */
+/* Deleting a Guidance or a Template (#230). It is quiet until it is asked
+   for — the surface is a reading tool before it is an editing one — and then
+   it asks in place, as the card of Home asks before deleting a notebook. */
 .slot-delete {
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.25rem 0.7rem;
-  font: inherit;
-  font-size: 0.8rem;
-  color: var(--danger, #b42318);
-  cursor: pointer;
-}
-.slot-delete:hover:not(:disabled) {
-  border-color: var(--danger, #b42318);
-}
-.slot-delete:disabled {
-  cursor: default;
-  opacity: 0.6;
-}
-.slot-delete-cancel {
-  background: none;
-  border: none;
-  padding: 0.25rem 0.7rem;
-  font: inherit;
-  font-size: 0.8rem;
-  color: var(--text-soft);
-  text-decoration: underline;
-  cursor: pointer;
-}
-.slot-delete-confirm {
-  margin-top: 1rem;
-  padding-top: 0.75rem;
+  margin-top: 16px;
+  padding-top: 16px;
   border-top: 1px solid var(--border);
+}
+/* A quiet button whose words are red: the edge stays neutral. */
+.button.slot-delete-button {
+  color: var(--danger);
+  font-size: 12.5px;
+}
+.slot-delete.is-confirming {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
+  flex-direction: column;
+  gap: 12px;
 }
-/* The sentence takes the whole first line: what it says is what survives. */
-.slot-delete-confirm p {
-  flex-basis: 100%;
+.slot-delete.is-confirming p {
   margin: 0;
-  font-size: 0.85rem;
-  line-height: 1.5;
-  color: var(--text-soft);
-}
-
-.note-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.note-list li {
-  padding: 0.3rem 0;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  gap: 0.75rem;
-  align-items: baseline;
-}
-.note-list-folder {
-  font-weight: 600;
+  font-size: 13.5px;
+  line-height: 1.55;
   color: var(--text);
 }
-.note-list-desc {
-  font-size: 0.8rem;
+.slot-delete.is-confirming strong {
+  font-weight: 600;
+}
+.slot-delete-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@media (max-width: 860px) {
+  .slot-delete-actions .button {
+    flex: 1;
+    min-height: 44px;
+  }
+}
+
+/* The Templates of a notebook, one card per folder that declares one. */
+.template-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.template-card + .template-card {
+  margin-top: 10px;
+}
+.template-card > summary {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px 0 16px;
+  cursor: pointer;
+  list-style: none;
+}
+.template-card > summary::-webkit-details-marker {
+  display: none;
+}
+.template-card > summary:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--accent);
+  border-radius: 14px;
+}
+.template-card-chevron {
+  flex: none;
   color: var(--text-soft);
+  transition: transform 120ms ease;
+}
+.template-card[open] .template-card-chevron {
+  transform: rotate(90deg);
+}
+.template-card-title {
   flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--text);
+}
+.template-card-link {
+  flex: none;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.template-card-body {
+  padding: 20px 22px;
+  border-top: 1px solid var(--border);
+}
+@media (max-width: 860px) {
+  .template-card > summary {
+    min-height: 52px;
+    padding: 0 6px 0 14px;
+  }
+  .template-card-link {
+    height: 44px;
+  }
+  .template-card-body {
+    padding: 16px 14px;
+  }
 }
 
 /* ── The reading surface ────────────────────────────────────────────────────
@@ -1133,8 +1529,7 @@ a:hover {
 .markdown > :first-child {
   margin-block-start: 0;
 }
-.content-pane > h1,
-.note-header h1 {
+.content-pane > h1 {
   margin-block: 0 0.6rem;
 }
 .content-pane > h2 {
@@ -1557,30 +1952,32 @@ a:hover {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
-  color: var(--text-soft);
+  color: var(--text);
   cursor: pointer;
-  box-shadow: 0 2px 10px rgba(14, 21, 38, 0.12);
 }
+/* A quiet button of the Controles (#233): the cursor darkens it, never blue. */
 .graph-overlay-button:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--bg);
+  border-color: var(--text-soft);
 }
+/* The panel is the menu of the Controles. */
 .graph-panel {
-  width: min(15rem, calc(100vw - 2rem));
+  width: min(232px, calc(100vw - 2rem));
   min-height: 0;
   display: flex;
   flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(14, 21, 38, 0.16);
-  padding: 0.4rem 0.75rem 0.7rem;
+  box-shadow: var(--menu-shadow);
+  padding: 5px;
 }
 .graph-panel-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  padding: 4px 4px 4px 10px;
 }
 .graph-panel-head h2 {
   margin: 0;
@@ -1592,9 +1989,8 @@ a:hover {
   color: var(--text-soft);
 }
 .graph-panel-close {
-  width: 28px;
-  height: 28px;
-  margin-right: -0.45rem;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1614,18 +2010,24 @@ a:hover {
 .graph-switches {
   display: flex;
   flex-direction: column;
-  margin-top: 0.25rem;
-  max-height: 11rem;
+  max-height: 14rem;
   overflow-y: auto;
 }
 .graph-switch {
+  height: 34px;
+  flex: none;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0;
-  font-size: 0.8rem;
+  gap: 10px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 13px;
   color: var(--text);
   cursor: pointer;
+}
+.graph-switch:hover {
+  background: var(--hover);
 }
 .graph-switch-name {
   flex: 1;
@@ -1639,10 +2041,13 @@ a:hover {
    is drawn large enough to be read as a colour and not as a bullet. */
 .graph-switch-dot {
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  border-radius: 5px;
-  border: 1px solid var(--border);
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+}
+.graph-switch-dot.is-on {
+  border: 0;
 }
 .graph-switch input {
   appearance: none;
@@ -1653,7 +2058,7 @@ a:hover {
   margin: 0;
   border: 0;
   border-radius: 999px;
-  background: var(--pending);
+  background: var(--border);
   cursor: pointer;
   transition: background 0.15s ease-out;
 }
@@ -1685,35 +2090,53 @@ a:hover {
   flex-direction: column;
   height: 100%;
 }
-.graph-toolbar {
-  padding: 0.9rem 1.5rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-}
-.graph-toolbar h1 {
-  margin: 0;
-  font-size: 1.05rem;
-}
-/* What is said about the drawing as a whole: the gestures it answers to, and
-   the warning that it is not the whole notebook. They stack in one centred column
-   instead of being two absolutely positioned lines that have to be kept from
-   colliding, and they wrap rather than run off a narrow screen. */
+/* What is said about the drawing as a whole — the gestures it answers to, the
+   value held on it, and the warning that it is not the whole notebook — in a
+   label over the drawing, at its foot on the left (#233). */
 .graph-footer {
   position: absolute;
-  bottom: 0.75rem;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.15rem;
-  max-width: calc(100% - 1.5rem);
-  font-size: 0.74rem;
-  line-height: 1.35;
-  color: var(--pending);
-  text-align: center;
-  text-wrap: balance;
   pointer-events: none;
+}
+.graph-footer p {
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-soft);
+  text-wrap: pretty;
+}
+.graph-footer b {
+  font-weight: 600;
+  color: var(--text);
+}
+@media (max-width: 860px) {
+  .graph-footer {
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+  }
+  .graph-overlay {
+    top: 8px;
+    right: 8px;
+  }
+  .graph-overlay-button,
+  .graph-panel-close {
+    width: 44px;
+    height: 44px;
+  }
+  .graph-switch {
+    height: 44px;
+  }
+  .graph-panel {
+    width: calc(100vw - 16px);
+  }
 }
 .graph-canvas-wrap {
   flex: 1;
@@ -2388,6 +2811,13 @@ body.has-modal {
   position: relative;
   margin-bottom: 0.9rem;
 }
+.search-box-icon {
+  position: absolute;
+  left: 11px;
+  top: 11.5px;
+  color: var(--text-soft);
+  pointer-events: none;
+}
 /* The field of the Controles (#219): the surface with its edge, never the
    page, which is what the other fields of the product are drawn on. */
 .search-box input {
@@ -2397,31 +2827,37 @@ body.has-modal {
   border-radius: 8px;
   background: var(--surface);
   color: var(--text);
-  padding: 0 12px;
-  font-size: 14px;
+  padding: 0 12px 0 34px;
+  font-size: 13px;
   font-family: var(--sans);
 }
 .search-box input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
+  box-shadow: var(--focus-ring);
 }
+/* The results (#232): a menu of the Controles, 460 px, passing over the
+   reading rather than squeezed into the sidebar. */
 .search-results {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
   right: 0;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(14, 21, 38, 0.18);
-  z-index: 20;
+  z-index: 40;
   max-height: 26rem;
-  padding: 0.5rem;
-  /* The hits scroll; the hint below them does not leave the panel. */
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  padding: 5px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--menu-shadow);
+}
+.search-results.is-floating {
+  position: fixed;
+  right: auto;
+  width: min(460px, calc(100vw - 32px));
 }
 .search-results ul {
   list-style: none;
@@ -2434,79 +2870,60 @@ body.has-modal {
 .search-results li a {
   display: flex;
   flex-direction: column;
-  padding: 0.35rem 0.5rem;
+  gap: 3px;
+  padding: 9px 12px;
   border-radius: 6px;
   color: var(--text);
 }
-.search-results li a:hover {
+.search-results li a:hover,
+.search-results li a:focus-visible {
+  outline: none;
   background: var(--hover);
   text-decoration: none;
 }
 .search-name {
-  font-size: 0.84rem;
+  font-size: 13.5px;
   font-weight: 600;
+  line-height: 1.3;
 }
 .search-path {
-  font-size: 0.72rem;
-  color: var(--text-soft);
-}
-.search-results li a {
-  gap: 0.1rem;
-}
-.search-excerpt {
-  font-size: 0.74rem;
+  font-size: 11.5px;
   line-height: 1.35;
   color: var(--text-soft);
 }
+.search-excerpt {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+/* The term in light orange with the text in Tinta: blue is spent on actions
+   and links, and a result is neither. */
 .search-excerpt mark {
-  background: var(--accent-soft);
-  color: var(--accent);
-  padding: 0 0.1rem;
-  border-radius: 3px;
+  background: rgb(255 138 43 / 0.26);
+  color: var(--text);
+  padding: 0 1px;
+  border-radius: 2px;
 }
 .search-empty {
-  font-size: 0.8rem;
+  font-size: 13px;
   color: var(--text-soft);
-  padding: 0.35rem 0.5rem;
+  padding: 9px 12px;
   margin: 0;
 }
 .search-hint {
   flex: 0 0 auto;
-  font-size: 0.68rem;
-  line-height: 1.35;
+  margin: 5px -5px -5px;
+  padding: 10px 12px;
+  font-size: 11.5px;
+  line-height: 1.55;
   color: var(--text-soft);
+  background: var(--code-bg);
   border-top: 1px solid var(--border);
-  margin: 0.4rem 0 0;
-  padding: 0.4rem 0.5rem 0.1rem;
 }
-
-/* Note header with copy action */
-.note-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-}
-.copy-button {
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-soft);
-  border-radius: 8px;
-  padding: 0.45rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  margin-top: 1.4rem;
-  flex-shrink: 0;
-}
-.copy-button:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.copy-button.copied {
-  border-color: var(--node-green);
-  color: var(--node-green);
+.search-hint code {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text);
 }
 
 /* Chips: property tags, user-menu fields and other short labeled values */
@@ -2763,6 +3180,21 @@ input[type='radio'] {
   border-radius: 2px;
   background: var(--box-edge);
 }
+/* The area a thumb drags the handle by: the handle centred in 44 px. */
+.sheet-grip {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  height: 22px;
+  margin: -8px -16px -12px;
+  padding-top: 8px;
+  touch-action: none;
+  cursor: grab;
+}
+.sheet-grip .sheet-handle {
+  margin: 0;
+}
 .sheet-title {
   margin: 0;
   font-family: var(--display);
@@ -2917,186 +3349,269 @@ input[type='radio'] {
   width: 100%;
 }
 
-/* Structure outline */
-.outline-list {
-  list-style: none;
-  margin: 0.5rem 0 0;
-  padding: 0;
-}
-.outline-list .outline-list {
-  padding-left: 1.1rem;
-  border-left: 1px solid var(--border);
-  margin-left: 0.45rem;
-}
-.outline-item {
-  padding: 0.35rem 0;
-}
-.outline-head {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-}
-.outline-name {
-  font-weight: 600;
-  color: var(--text);
-  font-size: 0.92rem;
-}
-.outline-badge {
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--signal);
-  border: 1px solid currentColor;
-  border-radius: 999px;
-  padding: 0 0.4rem;
-  font-family: var(--display);
-  font-weight: 500;
-}
-.outline-count {
-  margin-left: auto;
-  font-size: 0.75rem;
-  color: var(--text-soft);
-  white-space: nowrap;
-}
-.outline-desc {
-  margin: 0.1rem 0 0;
-  font-size: 0.86rem;
+/* ── The Notebook Context and its parts (#227) ───────────────────────────────
+   The line under the bar that says what the page is. */
+.page-intro {
+  margin: 0 0 18px;
+  font-size: 14px;
+  line-height: 1.6;
   color: var(--text-soft);
 }
-
-/* Notebook sidebar navigation */
-.notebook-nav {
+.page-intro code {
+  font-family: var(--mono);
+  font-size: 0.875em;
+}
+/* Three parts of the same weight: the Guidance, the Templates, the folders. */
+.context-cards {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  margin-bottom: 0.9rem;
+  gap: 10px;
 }
-/* A quiet button of the Controles (#219): 36 px, radius 8, the surface with
-   its edge, and a cursor that darkens both. Blue is for the one primary
-   action, links and focus, and this is none of them. */
-.notebook-nav-link {
+.context-card {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 36px;
-  padding: 0 12px;
-  font-size: 14px;
-  font-family: var(--display);
-  font-weight: 500;
-  color: var(--text);
-  background: var(--surface);
-  border-radius: 8px;
-  border: 1px solid var(--border);
-}
-.notebook-nav-link:hover {
-  background: var(--bg);
-  border-color: var(--text-soft);
-  color: var(--text);
-  text-decoration: none;
-}
-.notebook-nav-action {
-  background: none;
-  font: inherit;
-  font-family: var(--display);
-  font-weight: 500;
-  text-align: left;
-  cursor: pointer;
-}
-.notebook-nav-action:disabled {
-  cursor: progress;
-  color: var(--text-soft);
-}
-.notebook-nav-link.active {
-  background: var(--chosen);
-  color: var(--on-chosen);
-  border-color: var(--chosen);
-}
-
-/* Structure page */
-.structure-actions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
-  gap: 0.75rem;
-  margin: 1.25rem 0 2rem;
-}
-.structure-action {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.8rem 1rem;
+  gap: 14px;
+  padding: 18px;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--surface);
   color: var(--text);
 }
-.structure-action svg {
-  width: 22px;
-  height: 22px;
-  color: var(--accent);
-  flex-shrink: 0;
-}
-.structure-action span {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-.structure-action strong {
-  font-family: var(--display);
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-.structure-action small {
-  font-size: 0.78rem;
-  color: var(--text-soft);
-}
-.structure-action:hover {
-  border-color: var(--accent);
+.context-card:hover {
+  border-color: var(--text-soft);
   text-decoration: none;
 }
-.template-folder-link {
-  margin-left: 0.75rem;
-  font-size: 0.78rem;
-  font-weight: 400;
-  color: var(--text-soft);
+.context-card:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
-.notebook-breadcrumb {
-  margin-bottom: 0.75rem;
-}
-.notebook-breadcrumb a {
-  color: var(--text-soft);
-}
-.notebook-breadcrumb a:hover {
-  color: var(--accent);
-}
-.notebook-breadcrumb [aria-current] {
+.context-card-icon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--track);
   color: var(--text);
 }
-.note-header .notebook-breadcrumb {
-  margin-bottom: 0.25rem;
-}
-.graph-title {
+.context-card-text {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  gap: 4px;
 }
-.graph-breadcrumb {
-  margin: 0;
-  font-size: 0.74rem;
+.context-card-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.2;
+}
+.context-card-hint {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-soft);
+}
+.context-card-chevron {
+  flex: none;
+  color: var(--text-soft);
 }
 
+/* Rows of one card: the folders of a notebook, and later the children and the
+   notes of a folder. The whole row is the link. */
+.row-card {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.row-card > li + li {
+  border-top: 1px solid var(--border);
+}
+.folder-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 13px 18px;
+  padding-left: calc(18px + var(--depth, 0) * 22px);
+  color: var(--text);
+}
+.folder-row:hover {
+  background: var(--hover);
+  text-decoration: none;
+}
+.folder-row:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.folder-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.folder-row-name {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.3;
+}
+.folder-row-chip.chip {
+  height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
+}
+.folder-row-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+.folder-row-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-soft);
+}
+@media (max-width: 860px) {
+  .folder-row {
+    padding: 12px 14px;
+    padding-left: calc(14px + var(--depth, 0) * 14px);
+  }
+}
 .form-error {
   margin-top: 0.75rem;
   color: #b42318;
   font-size: 0.85rem;
 }
-/* ── Notebook navigation drawer ────────────────────────────────────────────────
-   On a wide screen the sidebar is a permanent column and these three controls
-   do not exist. They come into being at the breakpoint below, where the same
-   sidebar becomes a drawer. */
-.notebook-nav-toggle,
-.notebook-nav-close,
-.notebook-nav-head,
-.notebook-nav-scrim {
-  display: none;
+/* ── The navigation sheet of a phone (#229) ──────────────────────────────────
+   Below the breakpoint the sidebar is not mounted: its navigation is a sheet
+   whose start is always showing at the foot of the screen. */
+.sheet-peek {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  /* A 28 px strip drawn, and a target a thumb reaches above it. */
+  height: calc(44px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  touch-action: none;
+}
+.sheet-peek::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(28px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -4px 16px rgb(14 21 38 / 0.08);
+}
+.sheet-peek .sheet-handle {
+  position: absolute;
+  bottom: calc(15px + env(safe-area-inset-bottom));
+}
+.sheet-peek:focus-visible {
+  outline: none;
+}
+.sheet-peek:focus-visible::before {
+  box-shadow: var(--focus-ring);
+}
+.notebook-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 61;
+  height: 88dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
+}
+.notebook-sheet:focus {
+  outline: none;
+}
+.notebook-sheet .sheet-grip {
+  margin: 0;
+  height: 18px;
+}
+/* The bar of icons that stays while the rest scrolls. */
+.sheet-tabs {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 12px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.sheet-tab {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+.sheet-tab svg {
+  width: 18px;
+  height: 18px;
+}
+.sheet-tab:hover {
+  background: var(--hover);
+}
+/* The open page, and the search while it is open: filled in Tinta. */
+.sheet-tab.active,
+.sheet-tab[aria-pressed='true'] {
+  background: var(--chosen);
+  color: var(--on-chosen);
+}
+.notebook-sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 16px calc(20px + env(safe-area-inset-bottom));
+}
+.notebook-sheet-body > * {
+  flex-shrink: 0;
+}
+.notebook-sheet-body .search-box {
+  margin: 0;
+}
+/* In the sheet the results open under the field at its full width, and push
+   the tree down instead of floating over it. */
+.notebook-sheet-body .search-results {
+  position: static;
+  margin-top: 6px;
+  max-height: none;
+  box-shadow: none;
+}
+.notebook-sheet-body .back-link {
+  height: 44px;
+}
+body.has-sheet .app-main {
+  overflow: hidden;
 }
 
 /* ── Responsive ─────────────────────────────────────────────────────────────
@@ -3111,10 +3626,6 @@ input[type='radio'] {
            column, which is the layout that screen has room for. */
 
 @media (max-width: 1180px) {
-  .notebook-sidebar {
-    width: 18rem;
-    min-width: 14rem;
-  }
   .content-pane {
     padding: 1.75rem 1.75rem 3rem;
   }
@@ -3162,117 +3673,11 @@ input[type='radio'] {
     padding: 1.25rem 1rem 3rem;
   }
 
-  /* The column becomes a drawer. */
+  /* There is no column: the content takes the width, and keeps room at its
+     foot for the start of the navigation sheet (#229). */
   .notebook-layout {
     display: block;
-  }
-  .notebook-nav-toggle {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
-    min-height: 44px;
-    position: sticky;
-    top: 0;
-    z-index: 15;
-    border: 0;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text);
-    font-family: var(--display);
-    font-weight: 500;
-    font-size: 0.95rem;
-    text-align: left;
-    padding: 0.6rem 1rem;
-    cursor: pointer;
-  }
-  .notebook-nav-toggle span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .notebook-nav-toggle svg {
-    flex-shrink: 0;
-    width: 20px;
-    height: 20px;
-  }
-  .notebook-sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    z-index: 40;
-    width: min(20rem, 86vw);
-    min-width: 0;
-    max-height: none;
-    /* A drawer has no pointer and no bubble; it has the edge of the screen. */
-    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
-    border-right: 1px solid var(--border);
-    transform: translateX(-100%);
-    transition: transform 0.18s ease-out;
-    box-shadow: 0 0 40px rgba(14, 21, 38, 0.25);
-  }
-  .notebook-layout.nav-open .notebook-sidebar {
-    transform: translateX(0);
-  }
-  /* `hidden` on the element is what closes it; the rule has to respect that,
-     or the scrim would sit over the page with nothing behind it. */
-  .notebook-nav-scrim:not([hidden]) {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 35;
-    background: rgba(14, 21, 38, 0.45);
-  }
-  /* The drawer starts at the top of the viewport, over the app header, so it
-     opens with a band of its own the same height as that header: the brand on
-     the left, where the brand was a moment ago, and the close control on the
-     right. Without it the drawer began with an empty strip. */
-  .notebook-nav-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    height: var(--header-h);
-    margin: -1rem -1rem 0.6rem;
-    padding: 0 0.6rem 0 1rem;
-    border-bottom: 1px solid var(--border);
-    /* The tree below can be long, and a close control that scrolls out of
-       reach is not a close control. `-1rem` is where the band already sits,
-       one padding above the scrollport edge, so it sticks without moving. */
-    position: sticky;
-    top: -1rem;
-    z-index: 1;
-    background: var(--surface);
-  }
-  .notebook-nav-head .brand {
-    min-width: 0;
-    overflow: hidden;
-  }
-  .notebook-nav-head .brand-word {
-    font-size: 1.05rem;
-    white-space: nowrap;
-  }
-  .notebook-nav-close {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    border: 0;
-    border-radius: 8px;
-    background: none;
-    color: var(--text);
-    cursor: pointer;
-  }
-  .notebook-nav-close:hover {
-    background: var(--hover);
-    color: var(--text);
-  }
-  .notebook-nav-close svg {
-    width: 20px;
-    height: 20px;
+    padding-bottom: calc(28px + env(safe-area-inset-bottom));
   }
 
   /* With the sidebar gone from the flow, the document scrolls, not a box
@@ -3285,30 +3690,22 @@ input[type='radio'] {
      with a height to draw into. */
   .graph-page {
     height: auto;
-    min-height: calc(100dvh - var(--header-h) - 44px);
+    min-height: calc(100dvh - var(--header-h) - 28px);
   }
-  .graph-toolbar {
-    padding: 0.75rem 1rem;
-    gap: 0.75rem;
-  }
-
-  /* A finger is not a mouse pointer: the rows in the tree grow to a tappable
-     height and the toggle stops being a 16px target. */
-  /* Taller rows for a thumb, keeping the inline room the rule of the open
-     one is drawn in (#219). */
-  .tree-folder {
-    padding: 0.25rem 0.35rem;
-  }
-  .tree-folder a {
-    padding: 0.3rem 0;
-  }
+  /* A finger is not a mouse pointer: the rows grow to a height a thumb hits,
+     and the toggle stops being a 16 px target. */
+  .tree-folder,
   .tree-note {
-    padding: 0.3rem 0.35rem;
+    height: 40px;
   }
   .tree-toggle {
-    width: 1.75rem;
-    height: 1.75rem;
-    margin-left: -0.35rem;
+    width: 28px;
+    height: 28px;
+    margin-left: -6px;
+  }
+  .nav-row,
+  .nav-row.is-child {
+    height: 44px;
   }
 
   .login-screen {
@@ -5212,50 +5609,97 @@ input[type='radio'] {
   }
 }
 
-/* The history of a note: closed by default, because it answers a question
-   somebody asks and is never the note itself. */
-.history-box {
-  margin-top: 2rem;
-  border-top: 1px solid var(--border);
-  padding-top: 1rem;
-}
-.history-box > summary {
-  cursor: pointer;
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 0.9rem;
-  color: var(--text-soft);
-}
+/* The history of a note (#226): opened from the bar, as the modal of the
+   Controles on a computer and a sheet on a phone. Newest first, one entry
+   under the other with a hairline between them. */
 .history-list {
   list-style: none;
-  margin: 1rem 0 0;
+  margin: 0;
   padding: 0;
-  display: grid;
-  gap: 0.9rem;
 }
 .history-list li {
-  padding-left: 0.85rem;
-  border-left: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 0;
+}
+.history-list li + li {
+  border-top: 1px solid var(--border);
 }
 .history-head {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 8px;
   flex-wrap: wrap;
-  font-size: 0.8rem;
+}
+.history-head time {
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--text);
+}
+.history-author {
+  font-size: 12.5px;
+  line-height: 1.3;
   color: var(--text-soft);
 }
 .history-kind {
-  font-size: 0.7rem;
+  margin-left: auto;
+  font-size: 11.5px;
+  padding: 0 7px;
 }
 .history-message {
-  margin: 0.25rem 0 0;
-  font-size: 0.9rem;
-  line-height: 1.55;
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text);
 }
 .history-message.is-empty {
-  color: var(--pending);
+  color: var(--text-soft);
   font-style: italic;
+}
+/* The modal: 560 px, its head set apart by a rule, and the list scrolling
+   under a head that stays. */
+.history-dialog .ask-dialog-box {
+  width: min(560px, calc(100vw - 2rem));
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.history-dialog .ask-dialog-head {
+  margin: 0;
+  padding: 18px 14px 14px 22px;
+  border-bottom: 1px solid var(--border);
+}
+.history-dialog .ask-dialog-body {
+  overflow-y: auto;
+  padding: 4px 22px 10px;
+}
+.ask-dialog-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.ask-dialog-box .ask-dialog-titles h2 {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+.ask-dialog-subtitle {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.3;
+  color: var(--text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.history-sheet .history-list li {
+  padding: 12px 0;
 }
 
 /* ---- The box and the radio of the Controles, in a transfer (#205) --------

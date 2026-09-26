@@ -34,6 +34,8 @@ export interface Words {
   /** The link the row of a finished import carries, which is another text. */
   readonly openImported: string;
   readonly context: string;
+  /** The page of the folders, a part of the Context (#227). */
+  readonly folders: string;
   readonly guidance: string;
   readonly templates: string;
   readonly graph: string;
@@ -42,6 +44,8 @@ export interface Words {
   readonly version: string;
   readonly tryAgain: string;
   readonly deleteSlot: string;
+  /** The delete control of a Template, which names what it deletes (#230). */
+  readonly deleteTemplate: string;
   readonly deleteSlotForGood: string;
   /** The notebook a new export names, in the dialog that starts one. */
   readonly notebookField: string;
@@ -107,6 +111,8 @@ export interface Words {
   readonly messageLabel: string;
   readonly writeIt: string;
   readonly historyHeading: string;
+  /** The button of the bar that opens the history (#226). */
+  readonly historyButton: string;
   readonly conflict: string;
 }
 
@@ -122,6 +128,7 @@ export const WORDS: Record<AppLocale, Words> = {
     deleteForGood: 'Delete for good',
     openImported: 'Open notebook',
     context: 'Notebook Context',
+    folders: 'Folders',
     guidance: 'Guidance',
     templates: 'Templates',
     graph: 'Notebook graph',
@@ -130,6 +137,7 @@ export const WORDS: Record<AppLocale, Words> = {
     version: 'MemorySmith.app',
     tryAgain: 'Try again',
     deleteSlot: 'Delete',
+    deleteTemplate: 'Delete the Template',
     deleteSlotForGood: 'Delete for good',
     notebookField: 'Notebook',
     importNotebook: 'Import a notebook',
@@ -169,11 +177,12 @@ export const WORDS: Record<AppLocale, Words> = {
     initials: 'Your initials',
     endsOtherSessions: 'Changing your password ends every other session',
     cancel: 'Cancel',
-    editNote: 'Edit this note',
+    editNote: 'Edit',
     confirmEdit: 'Confirm',
     messageLabel: 'A line about this change',
     writeIt: 'Write it',
     historyHeading: 'History of this note',
+    historyButton: 'History',
     conflict: 'Somebody else wrote this note',
   },
   pt_BR: {
@@ -187,6 +196,7 @@ export const WORDS: Record<AppLocale, Words> = {
     deleteForGood: 'Apagar de vez',
     openImported: 'Abrir o caderno',
     context: 'Contexto do caderno',
+    folders: 'Pastas',
     guidance: 'Orientação',
     templates: 'Modelos',
     graph: 'Grafo do caderno',
@@ -195,6 +205,7 @@ export const WORDS: Record<AppLocale, Words> = {
     version: 'MemorySmith.app',
     tryAgain: 'Tentar de novo',
     deleteSlot: 'Apagar',
+    deleteTemplate: 'Apagar o Modelo',
     deleteSlotForGood: 'Apagar de vez',
     notebookField: 'Caderno',
     importNotebook: 'Importar um caderno',
@@ -234,11 +245,12 @@ export const WORDS: Record<AppLocale, Words> = {
     initials: 'Suas iniciais',
     endsOtherSessions: 'Trocar a senha encerra todas as outras sessões',
     cancel: 'Cancelar',
-    editNote: 'Editar esta nota',
+    editNote: 'Editar',
     confirmEdit: 'Confirmar',
     messageLabel: 'Uma linha sobre esta mudança',
     writeIt: 'Gravar',
     historyHeading: 'Histórico desta nota',
+    historyButton: 'Histórico',
     conflict: 'Outra pessoa gravou esta nota',
   },
 };

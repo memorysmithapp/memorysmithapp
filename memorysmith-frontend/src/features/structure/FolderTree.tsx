@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { FolderNode } from '../../shared/types/api';
 import { folderAddress, identifierOf, noteAddress } from '../../shared/api/note-address';
 import { folderTrailForNote, folderTrailOf } from './trail';
+import { ChevronRightIcon } from '../../shared/components/icons';
 
 interface FolderTreeProps {
   notebookId: string;
@@ -81,11 +82,12 @@ function FolderItem({
       <div className={`tree-folder${isActive ? ' active' : ''}`}>
         <button
           type="button"
-          className="tree-toggle"
+          className={`tree-toggle${open ? ' is-open' : ''}`}
           aria-expanded={open}
+          aria-label={folder.name}
           onClick={() => setOpen((v) => !v)}
         >
-          {open ? '▾' : '▸'}
+          <ChevronRightIcon width={13} height={13} strokeWidth={2.2} />
         </button>
         <Link ref={linkRef} to={folderAddress(notebookId, folder.id)} title={folder.description}>
           {folder.name}

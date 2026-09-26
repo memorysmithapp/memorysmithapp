@@ -1,3 +1,4 @@
+import { NotebookBar } from '../structure/NotebookBreadcrumb';
 import { useQuery } from '@tanstack/react-query';
 import { Navigate, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { resolveLinkTarget } from '../../shared/api/source';
@@ -65,15 +66,18 @@ export function LinkTargetPage() {
   if (only) return <Navigate to={only.address} replace />;
 
   return (
-    <article className="content-pane link-target">
-      <h1>{decoded}</h1>
-      <LinkChoiceContent
-        target={decoded}
-        by={data?.by ?? null}
-        options={candidates}
-        state={isPending ? 'loading' : isError || !data ? 'error' : 'ready'}
-        onPick={(address) => void navigate(address)}
-      />
-    </article>
+    <>
+      <NotebookBar crumbs={[]} />
+      <article className="content-pane link-target">
+        <h1>{decoded}</h1>
+        <LinkChoiceContent
+          target={decoded}
+          by={data?.by ?? null}
+          options={candidates}
+          state={isPending ? 'loading' : isError || !data ? 'error' : 'ready'}
+          onPick={(address) => void navigate(address)}
+        />
+      </article>
+    </>
   );
 }

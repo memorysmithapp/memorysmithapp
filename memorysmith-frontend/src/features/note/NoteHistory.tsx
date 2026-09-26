@@ -4,6 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { noteHistory } from '../../shared/api/backend';
 import { intlLocale } from '../../i18n';
 import { queryKeys } from '../../shared/api/query-keys';
+import type { RefObject } from 'react';
+import { Modal } from '../../shared/components/Modal';
+import { Sheet } from '../../shared/components/Sheet';
+import { useSheetLayout } from '../../shared/components/Menu';
 
 /** How often, and for how long, the trail is read while it has not caught up with the note. */
 const CATCH_UP_MS = 2_000;
@@ -94,5 +98,57 @@ export function NoteHistory({
         </li>
       ))}
     </ol>
+  );
+}
+
+/**
+ * Where the history is read (#226): the modal of the Controles on a computer,
+ * named after the note, and a sheet on a phone. It is opened from the bar of
+ * the note and mounted only while open, which is what keeps opening a note
+ * from asking for its trail.
+ */
+export function NoteHistoryDialog({
+  open,
+  onClose,
+  noteName,
+  notebookId,
+  noteId,
+  updatedAt,
+  returnFocus,
+}: {
+  open: boolean;
+  onClose: () => void;
+  noteName: string;
+  notebookId: string;
+  noteId: string;
+  updatedAt?: string | undefined;
+  returnFocus: RefObject<HTMLElement | null>;
+}) {
+  const { t } = useTranslation();
+  const sheet = useSheetLayout();
+  if (!open) return null;
+  const list = <NoteHistory notebookId={notebookId} noteId={noteId} updatedAt={updatedAt} />;
+  return sheet ? (
+    <Sheet
+      open
+      onClose={onClose}
+      label={t('history.heading')}
+      title={t('history.heading')}
+      closeLabel={t('common.close')}
+      className="history-sheet"
+      returnFocus={returnFocus}
+    >
+      {list}
+    </Sheet>
+  ) : (
+    <Modal
+      open
+      title={t('history.heading')}
+      subtitle={noteName}
+      onClose={onClose}
+      className="history-dialog"
+    >
+      {list}
+    </Modal>
   );
 }

@@ -83,7 +83,8 @@
     "empty": "No notes match.",
     "invalid": "Invalid query. Check the quotes, parentheses and operators.",
     "failed": "The search failed. Try again.",
-    "syntaxHint": "Searches the whole text. Accepts \"exact phrase\", -exclude, OR, name:, folder:, section:, content: and frontmatter attributes, such as maturity:evergreen."
+    "syntaxHint": "Searches the whole text. Accepts <c>\"exact phrase\"</c>, <c>-exclude</c>, <c>OR</c>, <c>name:</c>, <c>folder:</c>, <c>section:</c>, <c>content:</c> and frontmatter attributes, such as <c>maturity:evergreen</c>.",
+    "open": "Search"
   },
   "notebooks": {
     "heading": "Notebooks",
@@ -96,16 +97,18 @@
   "structure": {
     "guidance": "Guidance",
     "folders": "Folders",
+    "foldersHint": "The tree, with the description of each folder",
     "noFolders": "This notebook has no folders yet.",
     "noteCountSplit": "{{here}} here, {{below}} in subfolders",
     "hasTemplate": "template",
     "outlineHint": "The folder tree with each folder's description. It is what tells the agent where each note goes.",
     "backToNotebooks": "All notebooks",
     "openNavigation": "Notebook navigation",
-    "closeNavigation": "Close navigation",
     "heading": "Notebook Context",
+    "contextParts": "Guidance, Templates and Folders",
     "intro": "How this notebook describes itself, and what the agent receives from get_notebook_context: the Guidance says what the notebook is, each folder says what belongs in it, and the folder Template says how a note is laid out.",
     "guidanceHint": "What this notebook is and how to write in it",
+    "deleteGuidance": "Delete the Guidance",
     "deleteGuidanceConfirm": "Delete the guidance of this notebook? Its folders, its templates and every note stay; the notebook simply stops saying how it wants to be written. This cannot be undone.",
     "templates": "Templates",
     "templatesHint_one": "{{count}} folder with a suggested layout",
@@ -119,9 +122,11 @@
     "breadcrumb": "Notebook context trail"
   },
   "folder": {
+    "subfolders": "Subfolders",
     "notesHeading": "Notes in this folder",
     "template": "Template",
-    "templateHint": "Suggested layout for notes in this folder. The server never validates against it.",
+    "templateCardHint": "The suggested layout for the notes of this folder",
+    "deleteTemplate": "Delete the Template",
     "deleteTemplateConfirm": "Delete the template of this folder? The folder, its description and its notes stay, and the notes already written keep the shape they have. This cannot be undone.",
     "empty": "No notes in this folder yet."
   },
@@ -347,6 +352,8 @@
     "attributeNodes": "Add",
     "hint": "Scroll to zoom · drag to pan · click a note to open it, an attribute to hold its notes",
     "hintTouch": "Pinch to zoom · drag to pan · tap a note to open it, an attribute to hold its notes",
+    "pinned": "Held: <b>{{value}}</b> · click a note to open it, an attribute to hold its notes",
+    "pinnedTouch": "Held: <b>{{value}}</b> · tap a note to open it, an attribute to hold its notes",
     "empty": "This notebook has no notes to draw yet.",
     "truncated": "Showing the first 2000 notes of this notebook."
   },
@@ -538,6 +545,8 @@
   "editor": {
     "edit": "Edit this note",
     "read": "Back to reading",
+    "editShort": "Edit",
+    "readShort": "Read",
     "area": "The Markdown of this note",
     "confirm": "Confirm",
     "cancel": "Cancel",
@@ -568,6 +577,7 @@
   },
   "history": {
     "heading": "History of this note",
+    "short": "History",
     "loading": "Reading the history…",
     "failed": "The history could not be read.",
     "aPerson": "From the interface",

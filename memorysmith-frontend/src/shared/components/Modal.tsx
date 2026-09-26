@@ -23,15 +23,21 @@ import { CloseIcon } from './icons';
 export function Modal({
   open,
   title,
+  subtitle,
   children,
   actions,
   onClose,
+  className = '',
 }: {
   open: boolean;
   title: string;
+  /** A line under the title: what the modal is about, as the name of a note. */
+  subtitle?: string;
   children: ReactNode;
-  actions: ReactNode;
+  /** The foot. A modal that only shows something closes by its × alone. */
+  actions?: ReactNode;
   onClose: () => void;
+  className?: string;
 }) {
   const { t } = useTranslation();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -49,7 +55,7 @@ export function Modal({
   return (
     <dialog
       ref={dialog}
-      className="ask-dialog"
+      className={`ask-dialog ${className}`.trim()}
       aria-labelledby="ask-dialog-heading"
       onClose={onClose}
       onClick={(event) => {
@@ -59,7 +65,10 @@ export function Modal({
     >
       <div className="ask-dialog-box">
         <div className="ask-dialog-head">
-          <h2 id="ask-dialog-heading">{title}</h2>
+          <div className="ask-dialog-titles">
+            <h2 id="ask-dialog-heading">{title}</h2>
+            {subtitle ? <p className="ask-dialog-subtitle">{subtitle}</p> : null}
+          </div>
           <button
             type="button"
             className="icon-button is-bare"
@@ -70,7 +79,7 @@ export function Modal({
           </button>
         </div>
         <div className="ask-dialog-body">{children}</div>
-        <div className="ask-dialog-foot">{actions}</div>
+        {actions ? <div className="ask-dialog-foot">{actions}</div> : null}
       </div>
     </dialog>
   );

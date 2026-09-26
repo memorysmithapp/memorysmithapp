@@ -295,7 +295,7 @@ test.describe('the pages of an account', () => {
     await app.waitForURL(`${state.surfaces.site}/transfers`);
   });
 
-  test('[page:/notebooks/:notebookId] opens a notebook on its context: its name, its folders and their Templates', async ({
+  test('[page:/notebooks/:notebookId] opens a notebook on its context: the trail and its three parts', async ({
     app,
     notebook,
     state,
@@ -303,10 +303,39 @@ test.describe('the pages of an account', () => {
   }) => {
     await app.goto(notebook.page());
 
-    await expect(app.getByText(words.context, { exact: true })).toBeVisible();
-    await expect(app.getByRole('heading', { level: 1, name: notebook.name })).toBeVisible();
-    await expect(app.locator('a.outline-name', { hasText: 'Findings' })).toBeVisible();
+    // The trail names the page and no heading repeats it (#225).
+    const trail = app.locator('.notebook-bar .notebook-breadcrumb');
+    await expect(trail.locator('.crumb.is-notebook')).toHaveText(notebook.name);
+    await expect(trail.locator('.crumb.is-last')).toHaveText(words.context);
+    await expect(app.getByRole('heading', { level: 1 })).toHaveCount(0);
+    // Three parts of the same weight, each a way into a page of its own (#227).
+    const cards = app.locator('a.context-card');
+    await expect(cards).toHaveCount(3);
+    await expect(cards.filter({ hasText: words.guidance })).toBeVisible();
+    await expect(cards.filter({ hasText: words.folders })).toBeVisible();
     await expect(app).toHaveTitle(`[${state.environment}] ${notebook.name} · MemorySmith`);
+  });
+
+  test('[page:/notebooks/:notebookId/folders] lists the folders of a notebook with what each keeps, under the Context', async ({
+    app,
+    notebook,
+    state,
+    words,
+  }) => {
+    await app.goto(notebook.page('/folders'));
+
+    const trail = app.locator('.notebook-bar .notebook-breadcrumb');
+    await expect(trail.getByRole('link', { name: words.context })).toBeVisible();
+    await expect(trail.locator('.crumb.is-last')).toHaveText(words.folders);
+    const row = app.locator('a.folder-row', { hasText: 'Findings' });
+    await expect(row).toBeVisible();
+    await expect(app).toHaveTitle(
+      `[${state.environment}] ${words.folders} · ${notebook.name} · MemorySmith`,
+    );
+
+    // The whole row opens the folder.
+    await row.click();
+    await expect(app).toHaveURL(notebook.page(`/folders/${notebook.folderId.toLowerCase()}`));
   });
 
   test('closes the results of the search with Esc wherever the focus went (#192)', async ({
@@ -321,7 +350,14 @@ test.describe('the pages of an account', () => {
     await expect(results).toBeVisible();
 
     // The focus leaves the box, which is where the only handler used to be.
-    await app.getByRole('heading', { level: 1, name: notebook.name }).click();
+    await app.locator('aside#notebook-sidebar .sidebar-notebook').click();
+    // A click outside puts the list away and keeps the query (#232); the
+    // field brings it back.
+    await expect(results).toBeHidden();
+    await expect(box).toHaveValue('Checklist');
+    await box.focus();
+    await expect(results).toBeVisible();
+    await app.locator('aside#notebook-sidebar .back-link').focus();
     await app.keyboard.press('Escape');
 
     await expect(results).toBeHidden();
@@ -351,19 +387,20 @@ test.describe('the pages of an account', () => {
   }) => {
     await app.goto(notebook.page('/templates'));
 
-    const box = app.locator('details.template-box', { hasText: 'Findings' });
+    const box = app.locator('details.template-card', { hasText: 'Findings' });
     await box.locator('summary').click();
     await expect(box.getByRole('heading', { name: 'Verification' })).toBeVisible();
 
     // The Template is an object of its own and is deleted on its own: the
     // card goes and the folder stays (RN-KNW-045). It asks first, in the page,
-    // because what a person needs in order to answer is what survives.
-    await box.getByRole('button', { name: words.deleteSlot }).click();
+    // because what a person needs in order to answer is what survives; and
+    // its button says what it deletes (#230).
+    await box.getByRole('button', { name: words.deleteTemplate, exact: true }).click();
     await box.getByRole('button', { name: words.deleteSlotForGood }).click();
-    await expect(app.locator('details.template-box', { hasText: 'Findings' })).toHaveCount(0);
+    await expect(app.locator('details.template-card', { hasText: 'Findings' })).toHaveCount(0);
 
     await app.goto(notebook.page(`/folders/${notebook.folderId.toLowerCase()}`));
-    await expect(app.getByRole('heading', { level: 1, name: 'Findings' })).toBeVisible();
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Findings');
   });
 
   test('[page:/notebooks/:notebookId/graph] draws the graph of a notebook from its projection', async ({
@@ -404,7 +441,7 @@ test.describe('the pages of an account', () => {
     await app.goto(notebook.page('/graph'));
 
     expect((await graph).status()).toBe(200);
-    await expect(app.getByRole('heading', { level: 1, name: words.graph })).toBeVisible();
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText(words.graph);
     await expect(app.locator('.graph-canvas-wrap canvas')).toBeAttached();
 
     // The panel opens behind the gear, and only when it is asked for (#220).
@@ -418,7 +455,6 @@ test.describe('the pages of an account', () => {
   test('opens the tree on the top-level folders, with no Root above them (#196)', async ({
     app,
     notebook,
-    words,
   }) => {
     await app.goto(notebook.page(`/folders/${notebook.folderId.toLowerCase()}`));
 
@@ -429,10 +465,6 @@ test.describe('the pages of an account', () => {
     // The trail starts at the notebook and goes straight to the folder.
     const crumbs = app.locator('.notebook-breadcrumb a');
     await expect(crumbs.first()).toHaveText(notebook.name);
-
-    // The address of the page that is gone answers not found, and is not redirected.
-    await app.goto(notebook.page('/folders'));
-    await expect(app.getByText(words.notFound, { exact: true })).toBeVisible();
   });
 
   test('[page:/notebooks/:notebookId/folders/:folderId] lists the notes of a folder', async ({
@@ -442,9 +474,11 @@ test.describe('the pages of an account', () => {
   }) => {
     await app.goto(notebook.page(`/folders/${notebook.folderId.toLowerCase()}`));
 
-    await expect(app.getByRole('heading', { level: 1, name: 'Findings' })).toBeVisible();
+    // The folder is named by the trail alone (#225, #231).
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Findings');
+    await expect(app.getByRole('heading', { level: 1 })).toHaveCount(0);
     await expect(app.getByRole('heading', { name: words.notesInFolder })).toBeVisible();
-    await expect(app.locator('ul.note-list a', { hasText: 'Checklist' })).toBeVisible();
+    await expect(app.locator('a.note-row', { hasText: 'Checklist' })).toBeVisible();
   });
 
   test('[page:/notebooks/:notebookId/notes/:noteId] ticks two boxes whose writes chain, and shows them ticked on coming back', async ({
@@ -478,8 +512,8 @@ test.describe('the pages of an account', () => {
     // leaves through the folder: the title of the notebook resumes the note
     // last read, which is this one, so it would never leave at all.
     await app.locator('aside#notebook-sidebar .tree-folder a', { hasText: 'Findings' }).click();
-    await expect(app.getByRole('heading', { level: 1, name: 'Findings' })).toBeVisible();
-    await app.locator('ul.note-list a', { hasText: 'Checklist' }).click();
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Findings');
+    await app.locator('a.note-row', { hasText: 'Checklist' }).click();
     await expect(box('first')).toBeChecked();
     await expect(box('second')).toBeChecked();
   });
@@ -495,7 +529,7 @@ test.describe('the pages of an account', () => {
     );
 
     // The toggle is there because this account writes in this notebook.
-    await app.getByRole('button', { name: words.editNote }).click();
+    await app.getByRole('button', { name: words.editNote, exact: true }).click();
     const area = app.locator('textarea.note-editor-area');
     // What is typed is WHAT WAS TYPED: the frontmatter is in the box, not the
     // properties the reading surface drew out of it (RN-KNW-052).
@@ -512,8 +546,12 @@ test.describe('the pages of an account', () => {
 
     // And the line is in the history, which is the whole reason the field
     // exists: a message written into a drawer nobody opens is a form.
-    await app.getByText(words.historyHeading).click();
-    await expect(app.getByText(line)).toBeVisible();
+    // It opens from the bar of the note, as the modal of the Controles (#226).
+    await app.getByRole('button', { name: words.historyButton, exact: true }).click();
+    const history = app.getByRole('dialog', { name: words.historyHeading });
+    await expect(history.getByText(line)).toBeVisible();
+    await app.keyboard.press('Escape');
+    await expect(history).toHaveCount(0);
 
     /**
      * A write the screen did not see: the API writes the same note directly,
@@ -531,7 +569,7 @@ test.describe('the pages of an account', () => {
       message: 'A write the screen never saw',
     });
 
-    await app.getByRole('button', { name: words.editNote }).click();
+    await app.getByRole('button', { name: words.editNote, exact: true }).click();
     await app.locator('textarea.note-editor-area').fill(`${read.raw}\n\nAnd one more.\n`);
     await app.getByRole('button', { name: words.confirmEdit }).click();
     await app.getByRole('button', { name: words.writeIt }).click();
@@ -569,7 +607,7 @@ A note to rename.
     await app.goto(`${state.surfaces.site}/notebooks/${notebook.notebookId}/notes/${made.noteId}`);
     await expect(app.locator('.tree-note', { hasText: before })).toBeVisible();
 
-    await app.getByRole('button', { name: words.editNote }).click();
+    await app.getByRole('button', { name: words.editNote, exact: true }).click();
     const area = app.locator('textarea.note-editor-area');
     await area.fill((await area.inputValue()).replace(`name: ${before}`, `name: ${after}`));
     await app.getByRole('button', { name: words.confirmEdit }).click();
@@ -580,7 +618,7 @@ A note to rename.
      * is also what every `[[…]]` resolves against, so a rename that does not
      * reach it leaves the whole notebook painting by the old name.
      */
-    await expect(app.locator('.note-header h1')).toHaveText(after);
+    await expect(app.locator('article.content-pane > h1')).toHaveText(after);
     await expect(app.locator('.tree-note', { hasText: after })).toBeVisible();
     await expect(app.locator('.tree-note', { hasText: before })).toHaveCount(0);
   });
@@ -880,11 +918,13 @@ test.describe('a notebook out and back in, through the browser', () => {
     await expect(imported).toBeVisible({ timeout: 120_000 });
     await imported.click();
 
-    await expect(app.getByRole('heading', { level: 1, name: free })).toBeVisible();
-    await expect(app.locator('a.outline-name', { hasText: 'Findings' })).toBeVisible();
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-notebook')).toHaveText(free);
     // Structure only: the folders arrived and the notes did not.
     await app.goto(app.url().replace(/\/?$/, '/folders'));
-    await expect(app.locator('ul.note-list a')).toHaveCount(0);
+    const findings = app.locator('a.folder-row', { hasText: 'Findings' });
+    await expect(findings).toBeVisible();
+    await findings.click();
+    await expect(app.locator('a.note-row')).toHaveCount(0);
 
     /**
      * And its row leaves Transfers when it is asked to, with its record alone:

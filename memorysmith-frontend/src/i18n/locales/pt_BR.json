@@ -83,7 +83,8 @@
     "empty": "Nenhuma nota encontrada.",
     "invalid": "Consulta inválida. Verifique as aspas, os parênteses e os operadores.",
     "failed": "A busca falhou. Tente de novo.",
-    "syntaxHint": "Busca no texto inteiro. Aceita \"frase exata\", -excluir, OR, name:, folder:, section:, content: e atributos do frontmatter, como maturity:evergreen."
+    "syntaxHint": "Busca no texto inteiro. Aceita <c>\"frase exata\"</c>, <c>-excluir</c>, <c>OR</c>, <c>name:</c>, <c>folder:</c>, <c>section:</c>, <c>content:</c> e atributos do frontmatter, como <c>maturity:evergreen</c>.",
+    "open": "Buscar"
   },
   "notebooks": {
     "heading": "Cadernos",
@@ -96,16 +97,18 @@
   "structure": {
     "guidance": "Orientação",
     "folders": "Pastas",
+    "foldersHint": "A árvore com a descrição de cada pasta",
     "noFolders": "Este caderno ainda não tem pastas.",
     "noteCountSplit": "{{here}} aqui, {{below}} nas subpastas",
     "hasTemplate": "modelo",
     "outlineHint": "A árvore de pastas com a descrição de cada uma. É ela que diz ao agente onde cada nota entra.",
     "backToNotebooks": "Todos os cadernos",
     "openNavigation": "Navegação do caderno",
-    "closeNavigation": "Fechar navegação",
     "heading": "Contexto do caderno",
+    "contextParts": "Orientação, Modelos e Pastas",
     "intro": "Como este caderno se descreve, e o que o agente recebe em get_notebook_context: a Orientação diz o que ele é, cada pasta diz o que se guarda nela e o Modelo da pasta diz como a nota se estrutura.",
     "guidanceHint": "O que este caderno é e como se escreve nele",
+    "deleteGuidance": "Apagar a Orientação",
     "deleteGuidanceConfirm": "Apagar a Orientação deste caderno? As pastas, os Modelos e todas as notas continuam; o caderno apenas deixa de dizer como quer ser escrito. Não há como desfazer.",
     "templates": "Modelos",
     "templatesHint_one": "{{count}} pasta com leiaute sugerido",
@@ -119,9 +122,11 @@
     "breadcrumb": "Trilha do contexto do caderno"
   },
   "folder": {
+    "subfolders": "Subpastas",
     "notesHeading": "Notas nesta pasta",
     "template": "Modelo",
-    "templateHint": "Leiaute sugerido para as notas desta pasta. O servidor nunca valida contra ele.",
+    "templateCardHint": "Leiaute sugerido para as notas desta pasta",
+    "deleteTemplate": "Apagar o Modelo",
     "deleteTemplateConfirm": "Apagar o Modelo desta pasta? A pasta, a descrição dela e as notas continuam, e as notas já escritas mantêm a forma que têm. Não há como desfazer.",
     "empty": "Ainda não há notas nesta pasta."
   },
@@ -350,6 +355,8 @@
     "attributeNodes": "Adicionar",
     "hint": "Role para ampliar · arraste para mover · clique numa nota para abri-la, num atributo para fixar suas notas",
     "hintTouch": "Pince para ampliar · arraste para mover · toque numa nota para abri-la, num atributo para fixar suas notas",
+    "pinned": "Fixado: <b>{{value}}</b> · clique numa nota para abri-la, num atributo para fixar suas notas",
+    "pinnedTouch": "Fixado: <b>{{value}}</b> · toque numa nota para abri-la, num atributo para fixar suas notas",
     "empty": "Este caderno ainda não tem notas para desenhar.",
     "truncated": "Mostrando as primeiras 2000 notas deste caderno."
   },
@@ -541,6 +548,8 @@
   "editor": {
     "edit": "Editar esta nota",
     "read": "Voltar à leitura",
+    "editShort": "Editar",
+    "readShort": "Ler",
     "area": "O Markdown desta nota",
     "confirm": "Confirmar",
     "cancel": "Cancelar",
@@ -571,6 +580,7 @@
   },
   "history": {
     "heading": "Histórico desta nota",
+    "short": "Histórico",
     "loading": "Lendo o histórico…",
     "failed": "Não foi possível ler o histórico.",
     "aPerson": "Pela interface",
