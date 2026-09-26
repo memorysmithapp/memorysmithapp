@@ -119,8 +119,7 @@
     "templateOf": "Template of folder {{folder}}",
     "openFolder": "Open folder",
     "content": "Content",
-    "breadcrumb": "Notebook context trail",
-    "wholeTrail": "Show the whole trail"
+    "breadcrumb": "Notebook context trail"
   },
   "folder": {
     "subfolders": "Subfolders",

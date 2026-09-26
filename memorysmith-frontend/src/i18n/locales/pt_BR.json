@@ -119,8 +119,7 @@
     "templateOf": "Modelo da pasta {{folder}}",
     "openFolder": "Abrir pasta",
     "content": "Conteúdo",
-    "breadcrumb": "Trilha do contexto do caderno",
-    "wholeTrail": "Mostrar a trilha inteira"
+    "breadcrumb": "Trilha do contexto do caderno"
   },
   "folder": {
     "subfolders": "Subpastas",

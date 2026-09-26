@@ -1111,6 +1111,7 @@ a:hover {
   border-bottom: 1px solid var(--border);
 }
 .notebook-breadcrumb {
+  position: relative;
   flex: 1;
   min-width: 0;
   display: flex;
@@ -1123,64 +1124,61 @@ a:hover {
   white-space: nowrap;
   overflow: hidden;
 }
+/* No crumb shrinks by itself (#235): how the trail gives up space is decided
+   by `fitTrail`, and the notebook and the last crumb get the width decided
+   for them, shortening with an ellipsis inside it. */
 .notebook-breadcrumb .crumb {
   flex: none;
   color: var(--text-soft);
 }
-/* The notebook gives up width first, and says so with an ellipsis: its
-   shrink outweighs the last crumb's, so the last one waits until the notebook
-   is at its minimum (#235). */
-.notebook-breadcrumb .crumb.is-notebook {
-  flex: 0 1000 auto;
-  min-width: 0;
+.notebook-breadcrumb .crumb.is-notebook,
+.notebook-breadcrumb .crumb.is-last {
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .notebook-breadcrumb .crumb.is-last {
   color: var(--text);
 }
-/* The last crumb shortens only when it alone does not fit (#235): the middle
-   has collapsed into `…` before it. The notebook keeps a minimum, set from
-   its own width, so the trail never loses where it starts. */
-.notebook-breadcrumb .crumb.is-last:not(.is-notebook) {
-  flex: 0 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.crumb-more {
-  flex: none;
+/* The crumbs the trail had no room for, as one link to the deepest of them. */
+.notebook-breadcrumb .crumb.crumb-more {
+  display: inline-flex;
+  align-items: center;
   height: 24px;
   padding: 0 6px;
-  border: 0;
   border-radius: 6px;
-  background: none;
   color: var(--text-soft);
-  font: inherit;
-  line-height: 1;
-  cursor: pointer;
 }
-.crumb-more:hover,
-.crumb-more[aria-expanded='true'] {
+.notebook-breadcrumb .crumb.crumb-more:hover {
   background: var(--hover);
   color: var(--text);
+  text-decoration: none;
 }
 .crumb-more:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
 }
-/* The hidden levels, under the start of the trail. */
-.notebook-bar > .menu.crumb-menu {
-  top: calc(100% - 4px);
-  left: 24px;
-}
-.notebook-breadcrumb a.crumb:hover {
+.notebook-breadcrumb a.crumb:not(.crumb-more):hover {
   color: var(--text);
   text-decoration: underline;
 }
 .crumb-separator {
   flex: none;
   color: var(--pending);
+}
+/* The trail drawn whole where nobody sees it, for measuring. */
+.notebook-breadcrumb-ruler {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  width: max-content;
+  visibility: hidden;
+  pointer-events: none;
+}
+/* Its parts carry no class of a crumb, so nothing that looks for a crumb
+   finds them; the `…` takes the padding the real one has. */
+.notebook-breadcrumb-ruler [data-part='more'] {
+  padding: 0 6px;
 }
 .notebook-bar-actions {
   flex: none;
