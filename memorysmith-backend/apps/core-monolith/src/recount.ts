@@ -87,7 +87,8 @@ export async function main(argv: readonly string[]): Promise<number> {
   }
   for (const each of exports) {
     console.log(
-      `  ${each.subscriptionId}  ${human(each.bytes).padStart(10)}  (${each.count} kept exports)`,
+      `  ${each.subscriptionId}  ${human(each.bytes).padStart(10)}  (${each.count} kept exports; ` +
+        `${human(each.transit.bytes)} reserved by ${each.transit.count} open uploads)`,
     );
   }
 
@@ -100,7 +101,7 @@ export async function main(argv: readonly string[]): Promise<number> {
   await kept.apply(exports);
   console.log(
     `\nWrote the counters of ${usage.length} subscription(s), ` +
-      `and the kept exports of ${exports.length}.`,
+      `and the kept exports and open uploads of ${exports.length}.`,
   );
   return 0;
 }

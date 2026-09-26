@@ -64,13 +64,45 @@ export const exportRequestSchema = z.object({
 });
 
 /**
- * A transfer: a notebook on its way out or a document on its way in, as a job
- * with a status (RN-PRT-018, RN-PRT-019). Both used to run inside the request
- * that asked for them, and the function behind the API stops at 29 seconds.
+ * How the parts of an upload travel (RN-PRT-027). `url` is a signed address per
+ * part, which a script PUTs from the disk, so the bytes never pass through the
+ * model; `inline` is base64 in the call, for an agent with no network, whose
+ * every byte the model types — and whose every part therefore carries a hash.
+ */
+export const uploadTransportSchema = z.enum(['url', 'inline']);
+
+const sha256Schema = z.string().regex(/^[0-9a-f]{64}$/, 'a SHA-256 in lowercase hex');
+
+/**
+ * What an upload of an agent says about itself (RN-PRT-027, RN-PRT-028). The
+ * platform is not declared by the agent: it is the connector the token was
+ * handed to, as every write of a connector records it (RN-AGT-001).
+ */
+export const transferUploadSchema = z.object({
+  mimeType: z.string(),
+  /** What the file is for, in the words of the agent, which becomes its description. */
+  purpose: z.string(),
+  /** The connector that started it, or `null` when a person did. */
+  platform: z.string().nullable(),
+  transport: uploadTransportSchema,
+  sha256: sha256Schema,
+  partSize: z.number().int().positive(),
+  partCount: z.number().int().positive(),
+  /** The parts the store holds, by number, from 1. */
+  received: z.array(z.number().int().positive()),
+  /** When the last part arrived, or `null` while none has. */
+  lastPartAt: instantSchema.nullable(),
+});
+
+/**
+ * A transfer: a notebook on its way out, a document on its way in, or a file
+ * an agent is sending in parts, as a job with a status (RN-PRT-018,
+ * RN-PRT-019, RN-PRT-028). The first two used to run inside the request that
+ * asked for them, and the function behind the API stops at 29 seconds.
  */
 export const transferSchema = z.object({
   transferId: ulidSchema,
-  kind: z.enum(['export', 'import']),
+  kind: z.enum(['export', 'import', 'agent']),
   status: z.enum(['running', 'ready', 'failed', 'cancelled']),
   notebookId: ulidSchema.nullable(),
   /** The name of the notebook AS IT WAS: an export survives its notebook. */
@@ -89,12 +121,70 @@ export const transferSchema = z.object({
    * `null` on an import recorded before a file name was kept (#155).
    */
   fileName: z.string().nullable(),
+  /** What an upload of an agent is and how far it got; absent on the other two kinds. */
+  upload: transferUploadSchema.optional(),
 });
 
 export const transferListSchema = z.object({
   transfers: z.array(transferSchema),
   /** What the kept exports of the subscription occupy (RN-SUB-021). */
   keptBytes: z.number().int().nonnegative(),
+  /** What the open uploads reserve, as in transit (RN-SUB-025). */
+  transitBytes: z.number().int().nonnegative(),
+});
+
+/**
+ * Starts an upload in parts (RN-PRT-027). The size and the hash of the whole
+ * are declared before a byte travels: the size reserves the room (RN-SUB-025)
+ * and the hash is what the finish holds the bytes to.
+ */
+export const beginUploadRequestSchema = z.object({
+  notebookId: ulidSchema,
+  name: z.string().min(1).max(512),
+  description: z.string().max(500).optional(),
+  mimeType: z.string().min(1),
+  tags: z.array(z.string()).optional(),
+  path: z.string().optional(),
+  purpose: z.string().min(1).max(500),
+  size: z.number().int().positive(),
+  sha256: sha256Schema,
+  transport: uploadTransportSchema,
+  /** Inline only: the bytes of every part but the last. */
+  partSize: z.number().int().positive().optional(),
+});
+
+/** Where the parts that are missing go, on an upload by URL. */
+export const uploadPartTargetSchema = z.object({
+  part: z.number().int().positive(),
+  url: z.string().url(),
+});
+
+/** An upload and what is left of it, with an address for every missing part by URL. */
+export const uploadStatusSchema = z.object({
+  transfer: transferSchema,
+  missing: z.array(z.number().int().positive()),
+  /** Empty on an inline upload, whose parts travel in the call. */
+  targets: z.array(uploadPartTargetSchema),
+  expiresAt: instantSchema.nullable(),
+});
+
+/** One inline part, with the hash of its own bytes (RN-PRT-027). */
+export const uploadPartRequestSchema = z.object({
+  sha256: sha256Schema,
+  contentBase64: z.string().min(1),
+});
+
+/** A transfer of an agent pointed at another notebook, when its own is unavailable (RN-PRT-029). */
+export const linkUploadRequestSchema = z.object({
+  notebookId: ulidSchema,
+});
+
+/** What a finished upload became: a file of the notebook, by the name a note addresses. */
+export const finishedUploadSchema = z.object({
+  fileId: ulidSchema,
+  notebookId: ulidSchema,
+  name: z.string(),
+  bytes: z.number().int().nonnegative(),
 });
 
 /** Issued at the moment of each download, and never stored (RN-PRT-019). */
@@ -124,3 +214,10 @@ export type ImportUploadDto = z.infer<typeof importUploadSchema>;
 export type TransferDto = z.infer<typeof transferSchema>;
 export type TransferListDto = z.infer<typeof transferListSchema>;
 export type DownloadLinkDto = z.infer<typeof downloadLinkSchema>;
+export type TransferUploadDto = z.infer<typeof transferUploadSchema>;
+export type UploadTransport = z.infer<typeof uploadTransportSchema>;
+export type BeginUploadRequest = z.infer<typeof beginUploadRequestSchema>;
+export type UploadStatusDto = z.infer<typeof uploadStatusSchema>;
+export type UploadPartRequest = z.infer<typeof uploadPartRequestSchema>;
+export type LinkUploadRequest = z.infer<typeof linkUploadRequestSchema>;
+export type FinishedUploadDto = z.infer<typeof finishedUploadSchema>;

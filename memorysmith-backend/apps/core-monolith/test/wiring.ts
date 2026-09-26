@@ -110,7 +110,9 @@ import {
   UpdateNote,
 } from '@memorysmith/svc-knowledge/application/notes';
 import {
+  CheckFileDestination,
   DeleteFile,
+  KeepAssembledFile,
   KeepFile,
   LinkToFile,
   ListFiles,
@@ -132,6 +134,18 @@ import {
   StartImport,
 } from '@memorysmith/svc-portability/application/transfers';
 import { InMemoryTransferStore } from '@memorysmith/svc-portability/adapters/dynamo';
+import { InMemoryPartStore } from '@memorysmith/svc-portability/adapters/memory';
+import {
+  BeginUpload,
+  discardUpload,
+  FinishUpload,
+  GetUploadStatus,
+  LinkUpload,
+  ListUploads,
+  ObserveUpload,
+  PutUploadPart,
+} from '@memorysmith/svc-portability/application/uploads';
+import { KnowledgeFileKeeper } from '../src/file-keeper.js';
 import { ExportNotebook } from '@memorysmith/svc-portability/application';
 import { createZip, readZip } from '@memorysmith/svc-portability/adapters/zip';
 import {
@@ -369,6 +383,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
           }).execute({ ctx });
         },
         kept: () => transfers.keptUsage(),
+        transit: () => transfers.transitUsage(),
         budget: async () => ({
           usedBytes: storage.usedBytes,
           limitBytes: (
@@ -539,6 +554,16 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
    * queue would be a test of the queue (RN-PRT-019).
    */
   const transfers = new InMemoryTransferStore();
+  /**
+   * The parts of the uploads (RN-PRT-027). The whole they are joined into is
+   * handed to the store of files of its subscription, which is where the
+   * bucket would have it for the copy that makes it a file.
+   */
+  const parts = new InMemoryPartStore((key, versionId, bytes) => {
+    const subscriptionId = /^s\/([^/]+)\/uploads\//.exec(key)?.[1];
+    const store = subscriptionId ? fileStores.get(subscriptionId) : undefined;
+    store?.assembled.set(`${key}@${versionId}`, bytes);
+  });
   const exporterFor = (request: PortabilityRequest) =>
     new ExportNotebook(
       new KnowledgeExportSource(knowledgeRepos(request.subscription)),
@@ -573,12 +598,17 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
         request.subscription.subscriptionId.value,
         request.subscription.userId.value,
       ),
-    listTransfers: (request) => new ListTransfers(transfers, request.subscription.userId.value),
+    listTransfers: (request) =>
+      new ListTransfers(transfers, request.subscription.userId.value, (transfer) =>
+        new ObserveUpload(parts, request.subscription.subscriptionId.value).execute(transfer),
+      ),
     getTransfer: (request) => new GetTransfer(transfers, request.subscription.userId.value),
     downloadTransfer: (request) =>
       new DownloadTransfer(transfers, archiveStore, request.subscription.userId.value),
     deleteTransfer: (request) =>
-      new DeleteTransfer(transfers, archiveStore, request.subscription.userId.value),
+      new DeleteTransfer(transfers, archiveStore, request.subscription.userId.value, (transfer) =>
+        discardUpload(parts, request.subscription.subscriptionId.value, transfer),
+      ),
     cancelTransfer: (request) => new CancelTransfer(transfers, request.subscription.userId.value),
     prepareImport: (request) =>
       new PrepareImport(uploadStore, request.subscription.subscriptionId.value),
@@ -618,6 +648,55 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
         request.subscription.subscriptionId.value,
         request.subscription.userId.value,
       ),
+    beginUpload: (request) =>
+      new BeginUpload(
+        transfers,
+        parts,
+        request.files,
+        {
+          // What the session reads: the content and what the open uploads reserve.
+          current: async () => {
+            const [held, transit] = await Promise.all([
+              storage.current(),
+              transfers.transitUsage(),
+            ]);
+            return { usedBytes: held.usedBytes + transit.bytes, limitBytes: held.limitBytes };
+          },
+        },
+        request.subscription.subscriptionId.value,
+        request.subscription.userId.value,
+      ),
+    listUploads: (request) =>
+      new ListUploads(
+        transfers,
+        parts,
+        request.subscription.subscriptionId.value,
+        request.subscription.userId.value,
+      ),
+    uploadStatus: (request) =>
+      new GetUploadStatus(
+        transfers,
+        parts,
+        request.subscription.subscriptionId.value,
+        request.subscription.userId.value,
+      ),
+    putUploadPart: (request) =>
+      new PutUploadPart(
+        transfers,
+        parts,
+        request.subscription.subscriptionId.value,
+        request.subscription.userId.value,
+      ),
+    finishUpload: (request) =>
+      new FinishUpload(
+        transfers,
+        parts,
+        request.files,
+        request.subscription.subscriptionId.value,
+        request.subscription.userId.value,
+      ),
+    linkUpload: (request) =>
+      new LinkUpload(transfers, request.files, request.subscription.userId.value),
   };
 
   const app = createApp({
@@ -648,6 +727,15 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
         request.ctx,
         request.subscription.subscriptionId,
         knowledgeRepos(request.subscription).content,
+      ),
+    /** What an upload in parts becomes a file with, over the same use cases (RN-PRT-027). */
+    fileKeeperFor: (request) =>
+      new KnowledgeFileKeeper(
+        {
+          destination: new CheckFileDestination(knowledgeRepos(request.subscription)),
+          keep: new KeepAssembledFile(knowledgeRepos(request.subscription)),
+        },
+        request.ctx,
       ),
     accessUseCases,
     knowledgeUseCases,
@@ -719,6 +807,8 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     projectStructure,
     archives,
     uploads,
+    transfers,
+    parts,
     /** What the purge worker would have recorded, for the counters to read (#197). */
     relayed,
     /** Makes the discard of an upload fail, or stop failing when given null. */

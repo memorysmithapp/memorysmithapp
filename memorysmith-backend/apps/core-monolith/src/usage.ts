@@ -25,6 +25,8 @@ export interface UsageSources {
   readonly knowledge: (ctx: RequestContext) => Promise<Result<KnowledgeUsage, DomainError>>;
   /** What the kept exports occupy, from Portability. */
   readonly kept: () => Promise<KeptUsage>;
+  /** What the open uploads reserve, from Portability (RN-SUB-025). */
+  readonly transit: () => Promise<KeptUsage>;
   /** The budget the session reports: the used bytes and the quota. */
   readonly budget: () => Promise<StorageState>;
 }
@@ -38,11 +40,12 @@ export class SubscriptionUsageReport implements SubscriptionUsageQuery {
     const ctx = await this.sources.resolve();
     if (!ctx.ok) return ctx;
 
-    const [knowledge, kept, budget] = await Promise.all([
+    const [knowledge, kept, transit, budget] = await Promise.all([
       this.sources.knowledge(ctx.value),
       // A transient failure of the other table must not fail the panel: the
       // session reads the kept bytes the same forgiving way.
       this.sources.kept().catch(() => NOTHING_KEPT),
+      this.sources.transit().catch(() => NOTHING_KEPT),
       this.sources.budget(),
     ]);
     if (!knowledge.ok) return knowledge;
@@ -51,12 +54,15 @@ export class SubscriptionUsageReport implements SubscriptionUsageQuery {
     const notebooks = knowledge.value.notebooks
       .map((line) => {
         const exports = kept.byNotebook.get(line.notebookId);
+        const uploads = transit.byNotebook.get(line.notebookId);
         return {
           notebookId: line.notebookId,
           name: line.name,
-          // What the notebook occupies includes the exports made of it, so for
-          // the owner the lines add up to the total the quota is about.
-          bytes: line.bytes + (exports?.bytes ?? 0),
+          // What the notebook occupies includes the exports made of it and the
+          // room its open uploads reserve, so for the owner the lines add up to
+          // the total the quota is about — but for what outlived its notebook,
+          // which the interface draws as a line of its own (RN-PRT-029).
+          bytes: line.bytes + (exports?.bytes ?? 0) + (uploads?.bytes ?? 0),
           notes: line.notes,
           folders: line.folders,
           files: line.files,
@@ -72,6 +78,7 @@ export class SubscriptionUsageReport implements SubscriptionUsageQuery {
         notes: { count: totals.noteCount, bytes: totals.noteBytes },
         files: { count: totals.fileCount, bytes: totals.fileBytes },
         exports: { count: kept.count, bytes: kept.bytes },
+        transit: { count: transit.count, bytes: transit.bytes },
         others: { count: totals.otherCount, bytes: totals.otherBytes },
       },
       counts: {

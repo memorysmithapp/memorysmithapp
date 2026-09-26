@@ -43,6 +43,7 @@ import {
   type PortabilityUseCases,
 } from '@memorysmith/svc-portability/adapters/http';
 import type { NotebookWriter } from '@memorysmith/svc-portability/application/import';
+import type { FileKeeper } from '@memorysmith/svc-portability/application/uploads';
 
 export interface AppDependencies {
   /** The environment, the version and the commit this function was deployed as (23.3). */
@@ -79,6 +80,8 @@ export interface AppDependencies {
    * it joins two contexts that may not import each other.
    */
   readonly notebookWriterFor: (request: KnowledgeRequest) => NotebookWriter;
+  /** What an upload in parts becomes a file with, built per request as well (RN-PRT-027). */
+  readonly fileKeeperFor: (request: KnowledgeRequest) => FileKeeper;
   /** Where the connector proxy records the connector of a token (section 13.3). */
   readonly connectorBindings: ConnectorBindingDependencies;
 }
@@ -191,6 +194,7 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
         canRead,
         authorship: resolved.value.authorship,
         write: deps.notebookWriterFor(resolved.value),
+        files: deps.fileKeeperFor(resolved.value),
       });
       await next();
     },

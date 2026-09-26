@@ -12,7 +12,7 @@
  * caller needs to try again (RN-AGT-003).
  */
 
-import type { Deployment } from '@memorysmith/contracts';
+import type { Deployment, UploadStatusDto } from '@memorysmith/contracts';
 import { TOOL_CATALOG } from './catalog.js';
 import { PRODUCTION_DEFAULT } from './environment.js';
 import { whoAmI } from './whoami.js';
@@ -99,6 +99,40 @@ function anchorArgument(args: Record<string, unknown>, tool: string): string | n
 }
 
 /** On a creation the anchor is optional, and without one the item goes last. */
+/** A whole number the tool cannot do without, such as the size of a file. */
+function requireInteger(args: Record<string, unknown>, name: string, tool: string): number {
+  const value = args[name];
+  if (typeof value !== 'number' || !Number.isInteger(value)) {
+    const definition = TOOL_CATALOG.find((each) => each.name === tool);
+    throw new GatewayError('VALIDATION', `${tool} requires "${name}" as a whole number.`, {
+      expected: definition?.inputSchema,
+    });
+  }
+  return value;
+}
+
+/**
+ * What an upload answers, in the words the agent acts on (RN-PRT-027): what
+ * is missing, and where each missing part goes when it goes by URL.
+ */
+function uploadAnswer(status: UploadStatusDto, next: string): ToolResult {
+  const upload = status.transfer.upload;
+  return json({
+    upload: status.transfer.transferId,
+    name: status.transfer.fileName,
+    notebook: status.transfer.notebookId,
+    transport: upload?.transport,
+    partSize: upload?.partSize,
+    partCount: upload?.partCount,
+    received: upload?.received ?? [],
+    missing: status.missing,
+    ...(status.targets.length > 0
+      ? { targets: status.targets, targetsExpireAt: status.expiresAt }
+      : {}),
+    next,
+  });
+}
+
 /** An argument that may be left out, which is most of what a file carries. */
 function optionalString(args: Record<string, unknown>, name: string): string | undefined {
   const value = args[name];
@@ -396,6 +430,113 @@ export class McpToolAdapter {
           ...kept,
           reference: `![[${kept.name}]]`,
           note: 'Write that reference in a note and the page draws this file.',
+        });
+      }
+
+      /**
+       * An upload in parts (#240, RN-PRT-027, RN-AGT-041): a file kept whole,
+       * its bytes sent by URL from the disk or inline part by part, each part
+       * held to its hash and the whole to the hash declared at the start.
+       */
+      case 'begin_file_upload': {
+        const transport = requireString(args, 'transport', 'begin_file_upload');
+        const partSize = args['partSize'];
+        const status = await knowledge.beginFileUpload(caller, {
+          notebookId: requireString(args, 'notebook', 'begin_file_upload'),
+          name: requireString(args, 'name', 'begin_file_upload'),
+          mimeType: requireString(args, 'mimeType', 'begin_file_upload'),
+          size: requireInteger(args, 'size', 'begin_file_upload'),
+          sha256: requireString(args, 'sha256', 'begin_file_upload').toLowerCase(),
+          purpose: requireString(args, 'purpose', 'begin_file_upload'),
+          transport: transport === 'inline' ? 'inline' : 'url',
+          ...(typeof partSize === 'number' ? { partSize } : {}),
+          ...(optionalString(args, 'description') === undefined
+            ? {}
+            : { description: optionalString(args, 'description') }),
+          ...(optionalStrings(args, 'tags') === undefined
+            ? {}
+            : { tags: optionalStrings(args, 'tags') }),
+          ...(optionalString(args, 'path') === undefined
+            ? {}
+            : { path: optionalString(args, 'path') }),
+        });
+        return uploadAnswer(
+          status,
+          status.targets.length > 0
+            ? 'PUT the bytes of each part to its url, with nothing else in the request: part n is ' +
+                'the bytes from (n - 1) * partSize, partSize long. Then call finish_file_upload.'
+            : 'Send each part with send_file_part, its SHA-256 beside its base64. Then call ' +
+                'finish_file_upload.',
+        );
+      }
+
+      case 'send_file_part': {
+        const status = await knowledge.sendFilePart(
+          caller,
+          requireString(args, 'upload', 'send_file_part'),
+          requireInteger(args, 'part', 'send_file_part'),
+          {
+            sha256: requireString(args, 'sha256', 'send_file_part').toLowerCase(),
+            contentBase64: requireString(args, 'contentBase64', 'send_file_part'),
+          },
+        );
+        return uploadAnswer(
+          status,
+          status.missing.length === 0
+            ? 'Every part arrived: call finish_file_upload.'
+            : `Send the parts still missing: ${status.missing.join(', ')}.`,
+        );
+      }
+
+      case 'file_upload_status': {
+        const status = await knowledge.fileUploadStatus(
+          caller,
+          requireString(args, 'upload', 'file_upload_status'),
+        );
+        return uploadAnswer(
+          status,
+          status.transfer.status === 'failed'
+            ? `This upload failed (${status.transfer.failure ?? 'unknown'}): start a new one from the file.`
+            : status.missing.length === 0
+              ? 'Every part arrived: call finish_file_upload.'
+              : `Send the parts still missing: ${status.missing.join(', ')}.`,
+        );
+      }
+
+      case 'finish_file_upload': {
+        const kept = await knowledge.finishFileUpload(
+          caller,
+          requireString(args, 'upload', 'finish_file_upload'),
+        );
+        return json({
+          ...kept,
+          reference: `![[${kept.name}]]`,
+          note: 'The file is kept. Write that reference in a note and the page draws it.',
+        });
+      }
+
+      case 'list_file_uploads': {
+        const uploads = await knowledge.listFileUploads(
+          caller,
+          optionalString(args, 'notebook') ?? null,
+        );
+        return json({
+          uploads: uploads.map((each) => ({
+            upload: each.transferId,
+            name: each.fileName,
+            notebook: each.notebookId,
+            notebookName: each.notebookName,
+            status: each.status,
+            failure: each.failure,
+            size: each.bytes,
+            sha256: each.upload?.sha256,
+            purpose: each.upload?.purpose,
+            transport: each.upload?.transport,
+            partCount: each.upload?.partCount,
+            received: each.upload?.received ?? [],
+            startedAt: each.requestedAt,
+            lastPartAt: each.upload?.lastPartAt ?? null,
+          })),
         });
       }
 

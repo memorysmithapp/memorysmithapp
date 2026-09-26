@@ -15,7 +15,7 @@
  *    stays that way as the surface grows.
  */
 
-import { DESIGN_NOTEBOOK_SKILL } from './skills.js';
+import { DESIGN_NOTEBOOK_SKILL, KEEP_FILES_SKILL } from './skills.js';
 
 export interface ToolDefinition {
   readonly name: string;
@@ -465,8 +465,11 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       '\u2014 an extension is yours to write or to leave out, and it decides nothing. What decides ' +
       'how the file is drawn, and whether it may be kept at all, is mimeType: an image, an ' +
       'audio and a video are drawn on the page, and everything else is a card with a download. ' +
-      'The bytes travel inline, base64, up to 4 MB. The type is checked against the bytes, so a ' +
-      'declaration they do not support is refused naming both. A notebook keeps one file of ' +
+      'The bytes travel inline, base64, in this one call, so it suits a file small enough to ' +
+      'write out whole without a slip \u2014 a few kilobytes. A photo, a recording or a document ' +
+      'of any real size is sent with begin_file_upload instead, whole and at its own ' +
+      `resolution, as the skill \`${KEEP_FILES_SKILL}\` describes. The type is checked against the bytes, so ` +
+      'a declaration they do not support is refused naming both. A notebook keeps one file of ' +
       'each name; the path only organises, so moving a file never breaks a note.',
     inputSchema: object(
       {
@@ -504,6 +507,146 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       ['notebook', 'name', 'mimeType', 'contentBase64'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
+    name: 'begin_file_upload',
+    title: 'Start sending a file in parts',
+    description:
+      'Starts keeping a file whole, at its own size and resolution: a photo, a recording, a PDF. ' +
+      'Declare the file first \u2014 its name, type, size in bytes and the SHA-256 of the whole ' +
+      'file \u2014 and then send it in parts. With transport "url" every part has an address, and ' +
+      'a script PUTs the bytes from the disk to it, so they never pass through what you write: ' +
+      'use it whenever you can run a command with network access. The parts are 8 MiB each, the ' +
+      'last one shorter. With transport "inline" you send each part yourself with ' +
+      'send_file_part, and choose its size with partSize. The file is kept by ' +
+      'finish_file_upload once every part arrived, and only if the whole hashes to what you ' +
+      'declared here. Up to 100 MB by URL, 4 MB inline. The room is reserved now, and the ' +
+      'person sees the upload in Transfers until it becomes a file. Read the skill ' +
+      `\`${KEEP_FILES_SKILL}\` first.`,
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        name: {
+          type: 'string',
+          description: 'What a note addresses with `![[name]]`. An extension is optional.',
+        },
+        mimeType: {
+          type: 'string',
+          description: 'The type of the content, from the list keep_file accepts.',
+        },
+        size: { type: 'integer', description: 'The size of the whole file, in bytes.' },
+        sha256: {
+          type: 'string',
+          description: 'The SHA-256 of the whole file, in lowercase hex.',
+        },
+        purpose: {
+          type: 'string',
+          description:
+            'What the file is for, in a sentence the person recognises in Transfers, such as ' +
+            '"photo of the whiteboard of the meeting, for the note of its minutes". It becomes ' +
+            'the description of the file when you give none.',
+        },
+        transport: {
+          type: 'string',
+          enum: ['url', 'inline'],
+          description:
+            '"url": a signed address per part, which a script PUTs to. "inline": the parts ' +
+            'travel in send_file_part.',
+        },
+        partSize: {
+          type: 'integer',
+          description:
+            'Inline only: the bytes of every part but the last, from 1024 to 1048576, at most ' +
+            '256 parts. Choose what you write out without a slip; 24576 is a good start.',
+        },
+        description: {
+          type: 'string',
+          description: 'Optional: what this file is, for whoever reads the notebook.',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional: the subjects of this file.',
+        },
+        path: {
+          type: 'string',
+          description:
+            'Optional: where it sits, written like a path. It organises and never addresses.',
+        },
+      },
+      ['notebook', 'name', 'mimeType', 'size', 'sha256', 'purpose', 'transport'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
+    name: 'send_file_part',
+    title: 'Send one part of a file',
+    description:
+      'Sends one part of an upload whose transport is "inline": its bytes in base64 and the ' +
+      'SHA-256 of those bytes. A part whose bytes do not match its hash is refused and nothing ' +
+      'of it is kept, so send it again. A part sent twice replaces itself. Parts count from 1, ' +
+      'each exactly partSize bytes but the last.',
+    inputSchema: object(
+      {
+        upload: { type: 'string', description: 'The upload, as begin_file_upload answered it.' },
+        part: { type: 'integer', description: 'The number of the part, from 1.' },
+        sha256: {
+          type: 'string',
+          description: 'The SHA-256 of the bytes of this part, in lowercase hex.',
+        },
+        contentBase64: { type: 'string', description: 'The bytes of this part, base64.' },
+      },
+      ['upload', 'part', 'sha256', 'contentBase64'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+  },
+  {
+    name: 'file_upload_status',
+    title: 'See what an upload is missing',
+    description:
+      'Which parts of an upload arrived and which are missing, and, for an upload by URL, a ' +
+      'fresh address for every missing part. Addresses last an hour: ask here again for new ' +
+      'ones. This is also how an upload stopped halfway is resumed.',
+    inputSchema: object(
+      { upload: { type: 'string', description: 'The upload, as begin_file_upload answered it.' } },
+      ['upload'],
+    ),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'finish_file_upload',
+    title: 'Finish an upload and keep the file',
+    description:
+      'Joins the parts and keeps the file, when every part arrived, the whole hashes to the ' +
+      'SHA-256 declared at the start and the bytes support the declared type. The upload then ' +
+      'leaves Transfers, and the answer is the reference to write in a note. Bytes that do not ' +
+      'hash to what was declared end the upload as failed, with nothing kept: start again ' +
+      'from the file. Any other refusal \u2014 a part missing, a name taken meanwhile, the ' +
+      'notebook no longer reachable \u2014 leaves the upload open, to finish again.',
+    inputSchema: object(
+      { upload: { type: 'string', description: 'The upload, as begin_file_upload answered it.' } },
+      ['upload'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
+    name: 'list_file_uploads',
+    title: 'List the open uploads',
+    description:
+      'The uploads of the person that have not become files yet, newest first, each with the ' +
+      'name, the SHA-256 of its whole file, the parts that arrived and when the last one did. ' +
+      'Read it before starting an upload: an upload of the same file, found by its SHA-256, is ' +
+      'resumed with file_upload_status instead of sent again.',
+    inputSchema: object(
+      {
+        notebook: {
+          type: 'string',
+          description: 'Optional: only the uploads going to this notebook.',
+        },
+      },
+      [],
+    ),
+    annotations: { readOnlyHint: true },
   },
   {
     name: 'list_files',

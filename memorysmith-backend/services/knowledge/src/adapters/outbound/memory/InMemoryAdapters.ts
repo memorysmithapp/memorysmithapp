@@ -573,6 +573,8 @@ export class InMemoryFileRepository implements FileRepository {
 /** The bytes of a file, in memory, keyed the way the object store keys them. */
 export class InMemoryFileStore implements FileStore {
   private readonly bytes = new Map<string, Uint8Array>();
+  /** What an upload in parts assembled, by key and version, which a case stages. */
+  readonly assembled = new Map<string, Uint8Array>();
 
   constructor(private readonly sub: SubscriptionContext) {}
 
@@ -596,6 +598,22 @@ export class InMemoryFileStore implements FileStore {
 
   async read(ref: ContentRef): Promise<Uint8Array> {
     return this.bytes.get(this.keyOf(ref.contentId, ref.versionId)) ?? new Uint8Array();
+  }
+
+  async peekAssembled(key: string, versionId: string, bytes: number): Promise<Uint8Array | null> {
+    return this.assembled.get(`${key}@${versionId}`)?.slice(0, bytes) ?? null;
+  }
+
+  async adoptAssembled(input: {
+    key: string;
+    versionId: string;
+    mimeType: string;
+    sha256: string;
+  }): Promise<ContentRef | 'mismatch' | null> {
+    const whole = this.assembled.get(`${input.key}@${input.versionId}`);
+    if (!whole) return null;
+    if (createHash('sha256').update(whole).digest('hex') !== input.sha256) return 'mismatch';
+    return this.put(whole, input.mimeType);
   }
 
   async signedUrl(

@@ -174,6 +174,12 @@ describe('The tool catalog is the public contract', () => {
       'create_note',
       // What a notebook keeps beside its notes (#166).
       'keep_file',
+      // A file kept whole, sent in parts (#240).
+      'begin_file_upload',
+      'send_file_part',
+      'file_upload_status',
+      'finish_file_upload',
+      'list_file_uploads',
       'list_files',
       'delete_file',
       'update_note',
@@ -223,6 +229,9 @@ describe('The tool catalog is the public contract', () => {
       'next_number',
       'create_note',
       'keep_file',
+      'begin_file_upload',
+      'send_file_part',
+      'finish_file_upload',
       'delete_file',
       'update_note',
       'reorder_note',
@@ -1302,5 +1311,131 @@ describe('the connector orders what it writes (RN-AGT-029)', () => {
       const tool = TOOL_CATALOG.find((each) => each.name === name);
       expect(tool?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
     }
+  });
+});
+
+describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', () => {
+  const transfer = (upload: Record<string, unknown>) => ({
+    transferId: '01JBQ2X0000000000000000UP1',
+    kind: 'agent',
+    status: 'running',
+    notebookId: 'v1',
+    notebookName: 'Atas',
+    requestedAt: '2026-09-26T12:00:00.000Z',
+    finishedAt: null,
+    done: 0,
+    total: 3,
+    bytes: 20_000_000,
+    failure: null,
+    fileName: 'quadro.jpg',
+    upload: {
+      mimeType: 'image/jpeg',
+      purpose: 'A foto do quadro, para a ata',
+      platform: 'Claude',
+      transport: 'url',
+      sha256: 'a'.repeat(64),
+      partSize: 8_388_608,
+      partCount: 3,
+      received: [],
+      lastPartAt: null,
+      ...upload,
+    },
+  });
+
+  it('answers an address per part by URL, and what to do with them', async () => {
+    let sent: Record<string, unknown> | null = null;
+    const answer = await gateways({
+      knowledge: {
+        beginFileUpload: async (_caller: unknown, input: Record<string, unknown>) => {
+          sent = input;
+          return {
+            transfer: transfer({}),
+            missing: [1, 2, 3],
+            targets: [1, 2, 3].map((part) => ({ part, url: `https://store/p${part}` })),
+            expiresAt: '2026-09-26T13:00:00.000Z',
+          };
+        },
+      },
+    }).call(
+      'begin_file_upload',
+      {
+        notebook: 'v1',
+        name: 'quadro.jpg',
+        mimeType: 'image/jpeg',
+        size: 20_000_000,
+        sha256: 'A'.repeat(64),
+        purpose: 'A foto do quadro, para a ata',
+        transport: 'url',
+      },
+      caller,
+    );
+
+    expect(answer.isError).toBe(false);
+    // The hash travels as the API reads it, whatever case the agent typed.
+    expect(sent).toMatchObject({ notebookId: 'v1', sha256: 'a'.repeat(64), transport: 'url' });
+    const body = JSON.parse(answer.content[0]?.text ?? '') as Record<string, unknown>;
+    expect(body['targets']).toHaveLength(3);
+    expect(body['missing']).toEqual([1, 2, 3]);
+    expect(String(body['next'])).toContain('PUT');
+  });
+
+  it('says which parts are still missing, and when to finish', async () => {
+    const answer = await gateways({
+      knowledge: {
+        sendFilePart: async () => ({
+          transfer: transfer({ transport: 'inline', received: [1] }),
+          missing: [2, 3],
+          targets: [],
+          expiresAt: null,
+        }),
+      },
+    }).call(
+      'send_file_part',
+      { upload: 'u1', part: 1, sha256: 'b'.repeat(64), contentBase64: 'AAAA' },
+      caller,
+    );
+    const body = JSON.parse(answer.content[0]?.text ?? '') as Record<string, unknown>;
+    expect(body['missing']).toEqual([2, 3]);
+    expect(body['next']).toBe('Send the parts still missing: 2, 3.');
+  });
+
+  it('answers the reference to write once the file is kept', async () => {
+    const answer = await gateways({
+      knowledge: {
+        finishFileUpload: async () => ({
+          fileId: '01JBQ2X0000000000000000F01',
+          notebookId: 'v1',
+          name: 'quadro.jpg',
+          bytes: 20_000_000,
+        }),
+      },
+    }).call('finish_file_upload', { upload: 'u1' }, caller);
+    expect(JSON.parse(answer.content[0]?.text ?? '')).toMatchObject({
+      reference: '![[quadro.jpg]]',
+    });
+  });
+
+  it('lists the open uploads with the hash an agent resumes one by', async () => {
+    const answer = await gateways({
+      knowledge: { listFileUploads: async () => [transfer({ received: [1, 2] })] },
+    }).call('list_file_uploads', {}, caller);
+    const body = JSON.parse(answer.content[0]?.text ?? '') as {
+      uploads: Array<Record<string, unknown>>;
+    };
+    expect(body.uploads[0]).toMatchObject({
+      upload: '01JBQ2X0000000000000000UP1',
+      sha256: 'a'.repeat(64),
+      received: [1, 2],
+      purpose: 'A foto do quadro, para a ata',
+    });
+  });
+
+  it('teaches the way in a skill the handshake lists, and keep_file points to it', () => {
+    const skill = SKILLS.find((each) => each.name === 'keep-files');
+    expect(skill?.body).toContain('begin_file_upload');
+    expect(skill?.body).toContain('transport: "url"');
+    const keep = TOOL_CATALOG.find((each) => each.name === 'keep_file');
+    expect(keep?.description).toContain('begin_file_upload');
+    expect(keep?.description).toContain('keep-files');
   });
 });

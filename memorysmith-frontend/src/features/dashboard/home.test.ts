@@ -62,6 +62,7 @@ const usage = (notebooks: SubscriptionUsageDto['notebooks']): SubscriptionUsageD
     notes: { count: 192, bytes: 148 },
     files: { count: 86, bytes: 402 },
     exports: { count: 3, bytes: 52 },
+    transit: { count: 0, bytes: 0 },
     others: { count: 15, bytes: 10 },
   },
   counts: { notebooks: notebooks.length, folders: 31, revisions: 1284 },

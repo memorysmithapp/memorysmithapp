@@ -9,6 +9,13 @@
  * auth. Either way this file is unchanged (architecture-guide.md, section 24).
  */
 
+import type {
+  BeginUploadRequest,
+  FinishedUploadDto,
+  TransferDto,
+  UploadStatusDto,
+} from '@memorysmith/contracts';
+
 export interface AgentCaller {
   /** The human who authorized the connector; always present. */
   readonly userId: string;
@@ -268,6 +275,22 @@ export interface KnowledgeGateway {
     },
   ): Promise<NotebookFileRef>;
   listFiles(caller: AgentCaller, notebookId: string): Promise<NotebookFileRef[]>;
+  /**
+   * An upload in parts (#240, RN-PRT-027): the file declared with the size and
+   * the hash of the whole, sent in parts by URL or inline, and kept only when
+   * the whole hashes to what was declared. It is a transfer of the person, so
+   * it reaches Portability rather than Knowledge, and Transfers shows it.
+   */
+  beginFileUpload(caller: AgentCaller, input: BeginUploadRequest): Promise<UploadStatusDto>;
+  fileUploadStatus(caller: AgentCaller, uploadId: string): Promise<UploadStatusDto>;
+  sendFilePart(
+    caller: AgentCaller,
+    uploadId: string,
+    part: number,
+    input: { sha256: string; contentBase64: string },
+  ): Promise<UploadStatusDto>;
+  finishFileUpload(caller: AgentCaller, uploadId: string): Promise<FinishedUploadDto>;
+  listFileUploads(caller: AgentCaller, notebookId: string | null): Promise<TransferDto[]>;
   deleteFile(caller: AgentCaller, notebookId: string, fileId: string): Promise<void>;
   notebookContext(caller: AgentCaller, notebookId: string): Promise<string>;
   template(

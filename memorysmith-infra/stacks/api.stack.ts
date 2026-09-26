@@ -159,6 +159,18 @@ export class ApiStack extends Stack {
         resources: [props.data.contentBucket.arnForObjects('s/*/exports/*')],
       }),
     );
+    /**
+     * An upload in parts is thrown away by deleting its row, and a finish
+     * destroys the parts it joined (RN-PRT-027, RN-PRT-028): the same delete of
+     * a version, scoped to `uploads/` and to nothing else — an upload is not a
+     * file yet, and no revision of a file or a note is within its reach.
+     */
+    api.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['s3:DeleteObject', 's3:DeleteObjectVersion'],
+        resources: [props.data.contentBucket.arnForObjects('s/*/uploads/*')],
+      }),
+    );
     // The API READS the trail and can never write it: the Deny travels with
     // the grant (PE4).
     props.data.auditTable.grantRead(api.function);

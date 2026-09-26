@@ -202,6 +202,24 @@ export type FileDisposition = 'inline' | 'attachment';
 export interface FileStore {
   put(bytes: Uint8Array, mimeType: string): Promise<ContentRef>;
   read(ref: ContentRef): Promise<Uint8Array>;
+  /**
+   * The first bytes of a whole an upload in parts assembled (RN-PRT-027), which
+   * is all the check of a type reads; `null` when nothing is there. The key is
+   * one of the subscription's own uploads and nothing else.
+   */
+  peekAssembled(key: string, versionId: string, bytes: number): Promise<Uint8Array | null>;
+  /**
+   * Makes a file out of that whole, if and only if its bytes hash to `sha256`:
+   * reading it hashes it, and a copy inside the store writes it where a file
+   * lives, so the bytes never pass through the function a second time. It
+   * answers `mismatch` rather than keeping what merely looks like the file.
+   */
+  adoptAssembled(input: {
+    key: string;
+    versionId: string;
+    mimeType: string;
+    sha256: string;
+  }): Promise<ContentRef | 'mismatch' | null>;
   signedUrl(
     ref: ContentRef,
     downloadName: string,

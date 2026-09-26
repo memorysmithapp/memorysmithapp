@@ -16,6 +16,10 @@
 import { pageOf } from '../mcp/note-pages.js';
 import type {
   BacklinksDto,
+  BeginUploadRequest,
+  FinishedUploadDto,
+  TransferDto,
+  UploadStatusDto,
   FileListDto,
   FolderDto,
   FolderNumberDto,
@@ -360,6 +364,50 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       { method: 'POST', body: file },
     );
     return fileRefOf(kept);
+  }
+
+  async beginFileUpload(caller: AgentCaller, input: BeginUploadRequest): Promise<UploadStatusDto> {
+    return callApi<UploadStatusDto>(this.origin, caller, '/portability/uploads', {
+      method: 'POST',
+      body: input,
+    });
+  }
+
+  async fileUploadStatus(caller: AgentCaller, uploadId: string): Promise<UploadStatusDto> {
+    return callApi<UploadStatusDto>(this.origin, caller, `/portability/uploads/${uploadId}`);
+  }
+
+  async sendFilePart(
+    caller: AgentCaller,
+    uploadId: string,
+    part: number,
+    input: { sha256: string; contentBase64: string },
+  ): Promise<UploadStatusDto> {
+    return callApi<UploadStatusDto>(
+      this.origin,
+      caller,
+      `/portability/uploads/${uploadId}/parts/${part}`,
+      { method: 'PUT', body: input },
+    );
+  }
+
+  async finishFileUpload(caller: AgentCaller, uploadId: string): Promise<FinishedUploadDto> {
+    return callApi<FinishedUploadDto>(
+      this.origin,
+      caller,
+      `/portability/uploads/${uploadId}/finish`,
+      { method: 'POST' },
+    );
+  }
+
+  async listFileUploads(caller: AgentCaller, notebookId: string | null): Promise<TransferDto[]> {
+    const query = notebookId ? `?notebookId=${encodeURIComponent(notebookId)}` : '';
+    const listed = await callApi<{ transfers: TransferDto[] }>(
+      this.origin,
+      caller,
+      `/portability/uploads${query}`,
+    );
+    return listed.transfers;
   }
 
   async listFiles(caller: AgentCaller, notebookId: string): Promise<NotebookFileRef[]> {

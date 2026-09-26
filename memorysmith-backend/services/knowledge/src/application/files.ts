@@ -171,6 +171,168 @@ export class KeepFile {
   }
 }
 
+/**
+ * What one file may be when an upload in parts assembled it (RN-PRT-027). Its
+ * bytes never travel in a request, so the ceiling is not the transport's: it is
+ * what the finish can hash and copy inside the time a request lives.
+ */
+export const MAX_ASSEMBLED_BYTES = 100 * 1024 * 1024;
+
+/** What the check of a type reads of a file: its signature, at its start. */
+const SIGNATURE_BYTES = 512;
+
+/**
+ * Whether a file may be kept in a notebook, asked before its bytes travel
+ * (RN-PRT-027): the notebook is there, the caller writes in it, the type is on
+ * the list and the name is free. The same checks run again when the file is
+ * kept, because a name free at the start may be taken by the end.
+ */
+export class CheckFileDestination {
+  constructor(private readonly deps: FileDependencies) {}
+
+  async execute(input: {
+    ctx: RequestContext;
+    notebookId: NotebookId;
+    name: string;
+    mimeType: string;
+  }): Promise<Result<{ notebookName: string; mimeType: string }, DomainError>> {
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    if (!notebook.ok) return notebook;
+    const type = this.deps.fileTypes.canonical(input.mimeType);
+    if (!type) {
+      return err(
+        DomainError.validation(
+          `This notebook keeps ${this.deps.fileTypes.accepted.join(', ')}, and nothing else`,
+        ),
+      );
+    }
+    const held = await this.deps.files.findByName(
+      input.notebookId,
+      input.name.normalize('NFC').trim(),
+    );
+    if (held) {
+      return err(
+        DomainError.conflict(
+          `This notebook already keeps a file called "${held.name}"`,
+          held.id.value,
+        ),
+      );
+    }
+    return ok({ notebookName: notebook.value.name.value, mimeType: type });
+  }
+}
+
+/**
+ * Keeps, as a file, the whole an upload in parts assembled (RN-PRT-027). It is
+ * the door `KeepFile` is, with the same rules in the same order, and one more:
+ * the bytes hash to what was declared before the first of them travelled, or
+ * nothing is kept. That is what a file typed part by part needs — a mistyped
+ * part used to be kept as if it were the file, because the check of the type
+ * reads only its start.
+ */
+export class KeepAssembledFile {
+  constructor(private readonly deps: FileDependencies) {}
+
+  async execute(input: {
+    ctx: RequestContext;
+    notebookId: NotebookId;
+    name: string;
+    description: string;
+    mimeType: string;
+    tags: readonly string[];
+    path: string;
+    assembled: { key: string; versionId: string; size: number; sha256: string };
+    by: Authorship;
+  }): Promise<Result<NotebookFile, DomainError>> {
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    if (!notebook.ok) return notebook;
+
+    const type = this.deps.fileTypes.canonical(input.mimeType);
+    if (!type) {
+      return err(
+        DomainError.validation(
+          `This notebook keeps ${this.deps.fileTypes.accepted.join(', ')}, and nothing else`,
+        ),
+      );
+    }
+    if (input.assembled.size <= 0) {
+      return err(DomainError.validation('A file with no bytes is not a file'));
+    }
+    if (input.assembled.size > MAX_ASSEMBLED_BYTES) {
+      return err(
+        DomainError.limitExceeded(
+          `A file sent in parts goes up to ${MAX_ASSEMBLED_BYTES / (1024 * 1024)} MB`,
+        ),
+      );
+    }
+    const start = await this.deps.fileStore.peekAssembled(
+      input.assembled.key,
+      input.assembled.versionId,
+      SIGNATURE_BYTES,
+    );
+    if (!start) return err(DomainError.notFound('The parts of this upload are not there'));
+    if (!this.deps.fileTypes.supports(type, start)) {
+      return err(
+        DomainError.validation(
+          `These bytes are not ${type}: what is served is the type that was declared, so a type the bytes contradict is refused`,
+          { reason: 'TYPE_MISMATCH' },
+        ),
+      );
+    }
+
+    const admitted = admitWrite(await this.deps.storage.current(), input.assembled.size);
+    if (!admitted.ok) return admitted;
+
+    const held = await this.deps.files.findByName(
+      input.notebookId,
+      input.name.normalize('NFC').trim(),
+    );
+    if (held) {
+      return err(
+        DomainError.conflict(
+          `This notebook already keeps a file called "${held.name}"`,
+          held.id.value,
+        ),
+      );
+    }
+
+    // Bytes first, pointer second (section 10.5), as a file kept inline.
+    const ref = await this.deps.fileStore.adoptAssembled({
+      key: input.assembled.key,
+      versionId: input.assembled.versionId,
+      mimeType: type,
+      sha256: input.assembled.sha256,
+    });
+    if (ref === null) return err(DomainError.notFound('The parts of this upload are not there'));
+    if (ref === 'mismatch') {
+      return err(
+        DomainError.validation(
+          'The bytes that arrived do not hash to the SHA-256 declared for the file, so nothing was kept',
+          { reason: 'HASH_MISMATCH' },
+        ),
+      );
+    }
+
+    const file = NotebookFile.create({
+      id: FileId.generate(),
+      subscriptionId: notebook.value.subscriptionId,
+      notebookId: input.notebookId,
+      name: input.name,
+      description: input.description,
+      mimeType: type,
+      tags: input.tags,
+      path: input.path,
+      contentRef: ref,
+      by: input.by,
+    });
+    if (!file.ok) return file;
+
+    const saved = await this.deps.files.save(file.value);
+    if (!saved.ok) return saved;
+    return ok(file.value);
+  }
+}
+
 export class ListFiles {
   constructor(private readonly deps: FileDependencies) {}
 

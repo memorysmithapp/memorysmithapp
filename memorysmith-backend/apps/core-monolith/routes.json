@@ -37,6 +37,8 @@
   "GET /knowledge/notebooks/:v/notes/:n",
   "GET /portability/transfers",
   "GET /portability/transfers/:t",
+  "GET /portability/uploads",
+  "GET /portability/uploads/:t",
   "OPTIONS /*",
   "PATCH /access/members/:user",
   "PATCH /access/platform/subscriptions/:s/plan",
@@ -67,6 +69,9 @@
   "POST /portability/notebooks/:v/export",
   "POST /portability/transfers/:t/cancel",
   "POST /portability/transfers/:t/download",
+  "POST /portability/uploads",
+  "POST /portability/uploads/:t/finish",
+  "POST /portability/uploads/:t/link",
   "PUT /access/platform/subscriptions/:s/status",
   "PUT /access/profile",
   "PUT /access/profile/picture",
@@ -74,5 +79,6 @@
   "PUT /knowledge/notebooks/:v/folders/:f/template",
   "PUT /knowledge/notebooks/:v/guidance",
   "PUT /knowledge/notebooks/:v/limits/:user",
-  "PUT /knowledge/notebooks/:v/notes/:n"
+  "PUT /knowledge/notebooks/:v/notes/:n",
+  "PUT /portability/uploads/:t/parts/:n"
 ]

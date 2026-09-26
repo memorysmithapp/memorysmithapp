@@ -13,8 +13,10 @@
     "./application/import": "./src/application/ImportNotebook.ts",
     "./adapters/dynamo": "./src/adapters/dynamo.ts",
     "./application/transfers": "./src/application/Transfers.ts",
+    "./application/uploads": "./src/application/Uploads.ts",
     "./domain/transfer": "./src/domain/Transfer.ts",
-    "./adapters/sqs": "./src/adapters/sqs.ts"
+    "./adapters/sqs": "./src/adapters/sqs.ts",
+    "./adapters/memory": "./src/adapters/memory.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

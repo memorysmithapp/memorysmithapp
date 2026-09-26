@@ -7,6 +7,7 @@
  * reading a link out of the answer.
  */
 
+import { createHash } from 'node:crypto';
 import { eventually } from '../support/eventually.js';
 import type { Api } from '../support/api.js';
 import { expect, test, unique, unknownId } from './fixtures.js';
@@ -393,5 +394,171 @@ test.describe('the transfers of a person', () => {
     }
 
     await owner.call('DELETE', `/portability/transfers/${transfer.transferId}`);
+  });
+});
+
+/**
+ * A file kept whole, sent in parts (#240, RN-PRT-027). The case that matters
+ * most is the first: a plain PUT to the address the product signed, which is
+ * what an agent's script does, and which the SDK's default checksum would
+ * have made the store refuse.
+ */
+test.describe('a file sent in parts', () => {
+  const sha = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex');
+
+  /** A PNG signature followed by bytes enough to need more than one part. */
+  function picture(size: number): Buffer {
+    const bytes = Buffer.alloc(size);
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(bytes);
+    for (let index = 8; index < size; index += 1) bytes[index] = (index * 31) % 251;
+    return bytes;
+  }
+
+  interface Status {
+    transfer: TransferDto & { fileName: string | null; upload?: { received: number[] } };
+    missing: number[];
+    targets: Array<{ part: number; url: string }>;
+  }
+
+  test('[route:POST /portability/uploads] [route:GET /portability/uploads/:t] [route:POST /portability/uploads/:t/finish] keeps a file whose parts were PUT to their addresses, byte for byte', async ({
+    owner,
+    notebook,
+  }) => {
+    const whole = picture(9 * 1024 * 1024);
+    const name = unique('whole picture');
+    const started = await owner.ok<Status>('POST', '/portability/uploads', {
+      notebookId: notebook.notebookId,
+      name,
+      mimeType: 'image/png',
+      purpose: 'A picture kept whole by a functional case',
+      size: whole.length,
+      sha256: sha(whole),
+      transport: 'url',
+    });
+    expect(started.transfer.kind).toBe('agent');
+    expect(started.targets.map((each) => each.part)).toEqual([1, 2]);
+
+    const partSize = 8 * 1024 * 1024;
+    for (const target of started.targets) {
+      const put = await fetch(target.url, {
+        method: 'PUT',
+        body: whole.subarray((target.part - 1) * partSize, target.part * partSize),
+      });
+      expect(put.status, await put.text()).toBe(200);
+    }
+    const status = await owner.ok<Status>(
+      'GET',
+      `/portability/uploads/${started.transfer.transferId}`,
+    );
+    expect(status.missing).toEqual([]);
+
+    const kept = await owner.ok<{ fileId: string; name: string; bytes: number }>(
+      'POST',
+      `/portability/uploads/${started.transfer.transferId}/finish`,
+    );
+    expect(kept).toMatchObject({ name, bytes: whole.length });
+
+    // What the notebook serves is what was sent, byte for byte.
+    const link = await owner.ok<{ downloadUrl: string }>(
+      'GET',
+      `/knowledge/notebooks/${notebook.notebookId}/files/${kept.fileId}/link`,
+    );
+    const served = new Uint8Array(await (await fetch(link.downloadUrl)).arrayBuffer());
+    expect(sha(served)).toBe(sha(whole));
+
+    // Ready means gone from Transfers: the file is what it was for (RN-PRT-028).
+    const listed = await owner.ok<{ transfers: TransferDto[] }>('GET', '/portability/transfers');
+    expect(listed.transfers.map((each) => each.transferId)).not.toContain(
+      started.transfer.transferId,
+    );
+  });
+
+  test('[route:PUT /portability/uploads/:t/parts/:n] [route:GET /portability/uploads] refuses an inline part its hash does not match, and keeps the file once every part arrived', async ({
+    owner,
+    other,
+    notebook,
+  }) => {
+    const whole = picture(3000);
+    const partSize = 2048;
+    const started = await owner.ok<Status>('POST', '/portability/uploads', {
+      notebookId: notebook.notebookId,
+      name: unique('inline picture'),
+      mimeType: 'image/png',
+      purpose: 'A picture sent inline by a functional case',
+      size: whole.length,
+      sha256: sha(whole),
+      transport: 'inline',
+      partSize,
+    });
+    const id = started.transfer.transferId;
+
+    const first = whole.subarray(0, partSize);
+    const typo = Buffer.from(first);
+    typo[99] = (typo[99] ?? 0) ^ 0xff;
+    const refused = await owner.call('PUT', `/portability/uploads/${id}/parts/1`, {
+      sha256: sha(first),
+      contentBase64: typo.toString('base64'),
+    });
+    expect(refused.status).toBe(400);
+
+    // The open uploads list it, with the hash it is found again by, and only
+    // for whoever started it (RN-PRT-020).
+    const open = await owner.ok<{ transfers: Array<{ transferId: string }> }>(
+      'GET',
+      `/portability/uploads?notebookId=${notebook.notebookId}`,
+    );
+    expect(open.transfers.map((each) => each.transferId)).toContain(id);
+    expect((await other.call('GET', `/portability/uploads/${id}`)).status).toBe(404);
+
+    for (const part of [1, 2]) {
+      const bytes = whole.subarray((part - 1) * partSize, part * partSize);
+      await owner.ok('PUT', `/portability/uploads/${id}/parts/${part}`, {
+        sha256: sha(bytes),
+        contentBase64: bytes.toString('base64'),
+      });
+    }
+    const kept = await owner.ok<{ bytes: number }>('POST', `/portability/uploads/${id}/finish`);
+    expect(kept.bytes).toBe(whole.length);
+  });
+
+  test('[route:POST /portability/uploads/:t/link] outlives its notebook, and finishes in the one it is linked to', async ({
+    owner,
+    notebook,
+  }) => {
+    const whole = picture(1500);
+    const started = await owner.ok<Status>('POST', '/portability/uploads', {
+      notebookId: notebook.notebookId,
+      name: unique('orphan picture'),
+      mimeType: 'image/png',
+      purpose: 'A picture whose notebook goes away',
+      size: whole.length,
+      sha256: sha(whole),
+      transport: 'inline',
+      partSize: 1024,
+    });
+    const id = started.transfer.transferId;
+    for (const part of [1, 2]) {
+      const bytes = whole.subarray((part - 1) * 1024, part * 1024);
+      await owner.ok('PUT', `/portability/uploads/${id}/parts/${part}`, {
+        sha256: sha(bytes),
+        contentBase64: bytes.toString('base64'),
+      });
+    }
+    expect((await owner.call('DELETE', `/knowledge/notebooks/${notebook.notebookId}`)).status).toBe(
+      204,
+    );
+    expect((await owner.call('POST', `/portability/uploads/${id}/finish`)).status).toBe(404);
+
+    const other = await owner.ok<{ notebookId: string }>('POST', '/knowledge/notebooks', {
+      name: unique('Where it lands'),
+      description: 'The notebook an upload is linked to.',
+    });
+    await owner.ok('POST', `/portability/uploads/${id}/link`, { notebookId: other.notebookId });
+    const kept = await owner.ok<{ notebookId: string }>(
+      'POST',
+      `/portability/uploads/${id}/finish`,
+    );
+    expect(kept.notebookId).toBe(other.notebookId);
+    await owner.call('DELETE', `/knowledge/notebooks/${other.notebookId}`);
   });
 });

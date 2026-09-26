@@ -220,6 +220,9 @@ export class CancelTransfer {
      * notebook it had started back down. An export writes nothing anybody can
      * see until it ends, so there is nothing to undo and nothing to stop.
      */
+    if (found.kind === 'agent') {
+      return err(DomainError.conflict('An upload is not cancelled: deleting it throws it away'));
+    }
     if (found.kind !== 'import') {
       return err(
         DomainError.conflict('An export cannot be cancelled: nothing of it is written yet'),
@@ -237,14 +240,23 @@ export class ListTransfers {
   constructor(
     private readonly transfers: TransferStore,
     private readonly userId: string,
+    /** Reads, from the store, how far an upload by URL got (RN-PRT-027). */
+    private readonly observe: (transfer: Transfer) => Promise<Transfer> = async (t) => t,
   ) {}
 
-  async execute(): Promise<Result<{ transfers: Transfer[]; keptBytes: number }, DomainError>> {
-    const [transfers, keptBytes] = await Promise.all([
+  async execute(): Promise<
+    Result<{ transfers: Transfer[]; keptBytes: number; transitBytes: number }, DomainError>
+  > {
+    const [transfers, keptBytes, transit] = await Promise.all([
       this.transfers.list(this.userId),
       this.transfers.keptBytes(),
+      this.transfers.transitUsage(),
     ]);
-    return ok({ transfers, keptBytes });
+    return ok({
+      transfers: await Promise.all(transfers.map((transfer) => this.observe(transfer))),
+      keptBytes,
+      transitBytes: transit.bytes,
+    });
   }
 }
 
@@ -298,17 +310,32 @@ export class DownloadTransfer {
  * Deletes a transfer that ended: an export with its bytes and its place in the
  * quota, and an import with nothing but its record — it keeps no bytes, and the
  * notebook it created is a notebook like any other (RN-PRT-020, RN-PRT-026).
+ *
+ * An upload of an agent is deleted whether it ended or not, because deleting
+ * it is the only thing that ends one: it has no deadline, and its parts and the
+ * room it reserves go with its row (RN-PRT-028, RN-SUB-025).
  */
 export class DeleteTransfer {
   constructor(
     private readonly transfers: TransferStore,
     private readonly archives: ArchiveStore,
     private readonly userId: string,
+    /** Throws the bytes of an upload away, whatever it held. */
+    private readonly discard: (transfer: Transfer) => Promise<void> = async () => undefined,
   ) {}
 
   async execute(transferId: string): Promise<Result<void, DomainError>> {
     const found = await this.transfers.get(this.userId, transferId);
     if (!found) return err(DomainError.notFound('Transfer not found'));
+    if (found.kind === 'agent') {
+      await this.discard(found);
+      await this.transfers.remove(this.userId, transferId);
+      // A failed upload gave its room back when its finish failed.
+      if (found.status === 'running') {
+        await this.transfers.addTransitBytes(-found.bytes, found.notebookId);
+      }
+      return ok(undefined);
+    }
     /**
      * Nothing with a worker behind it loses its record under the worker: a
      * running import is cancelled, which takes it back down whole (RN-PRT-018),
