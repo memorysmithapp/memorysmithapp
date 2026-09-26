@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-25
+
 ### Added
 
 - **The folders of a notebook have a page of their own**, at `/notebooks/:notebookId/folders`, under the Notebook Context in the trail. Every folder is a row of one card — its name, *modelo* when it declares a Template, how many notes it holds and what it is for — with subfolders indented beneath it, and the whole row opens the folder. The address answered not found since 0.7.0, when the list lived on the page of the Context. (#227)
@@ -637,7 +639,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.0...v0.6.1

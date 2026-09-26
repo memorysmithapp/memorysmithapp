@@ -1,6 +1,6 @@
 {
   "name": "@memorysmith/svc-knowledge",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "type": "module",
   "description": "Knowledge bounded context, the core domain: notebooks, guidance, folders, order, templates and notes.",
