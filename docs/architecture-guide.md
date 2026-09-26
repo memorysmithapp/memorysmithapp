@@ -1699,7 +1699,7 @@ What each surface says about itself:
 | Surface | What it declares |
 |---|---|
 | API | `GET /health` answers `{status, environment, version, commit}`, and every response, a refusal included, carries `x-memorysmith-environment` and `x-memorysmith-version`, exposed through CORS |
-| MCP | `serverInfo.version` is the version the function runs; outside production, the `instructions` of the handshake and the opening of `whoami` name the environment and warn that what is written there is disposable (RN-AGT-026) |
+| MCP | `serverInfo.version` is the version the function runs; outside production, the `serverInfo.title` names the environment, and the `instructions` of the handshake and the opening of `whoami` name the environment and warn that what is written there is disposable (RN-AGT-026) |
 | Web | Outside production, a strip at the foot of the window that cannot be dismissed, with the environment and the version, and `[staging]` before the title of every tab; the version in the user menu, always |
 
 ---

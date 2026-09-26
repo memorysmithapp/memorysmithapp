@@ -7,6 +7,7 @@ import { encodeState } from '../src/state.js';
 
 const config: AgentConfig = {
   publicOrigin: 'https://mcp.memorysmith.app',
+  siteOrigin: 'https://memorysmith.app',
   cognitoIssuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_TEST',
   cognitoDomain: 'https://memorysmith-auth.auth.us-east-1.amazoncognito.com',
   proxyClientId: 'proxy-client-id',

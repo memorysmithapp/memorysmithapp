@@ -316,7 +316,14 @@ export function createApp(
         400,
       );
     }
-    const response = await handleMcpRequest(body, token, tools, bearerToken, deployment);
+    const response = await handleMcpRequest(
+      body,
+      token,
+      tools,
+      bearerToken,
+      deployment,
+      config.siteOrigin,
+    );
     if (response === null) return c.newResponse(null, 202);
     return c.json(response);
   });

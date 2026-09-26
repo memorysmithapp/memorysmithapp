@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Added
+
+- **The connector says who it is.** A client used to list it with an icon it made up — Claude the symbol on a white plate, ChatGPT a placeholder of its own — because the handshake declared nothing but a name and a version. It now declares a title, *MemorySmith.app*, the slogan as its description, the site as its website and the symbol as icons, transparent PNG served by the site of the same environment, under revision 2025-11-25 of the protocol, which is the one that defines them; a client that still asks for 2025-06-18 is answered in it. Outside production the title names the environment, *MemorySmith.app (staging)*, so the two connectors are told apart in a client's list. The site declares the same PNG as its icon, so a service that takes the favicon of the domain finds one with no plate behind it. (#237, RN-AGT-026, RN-AGT-040)
+
 ## [0.8.0] - 2026-09-25
 
 ### Added

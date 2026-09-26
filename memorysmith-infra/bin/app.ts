@@ -93,6 +93,7 @@ const agent = new AgentStack(app, id('Agent'), {
   proxyClient: identity.proxyClient,
   internalApiOrigin: api.apiOrigin,
   coreApi: api.httpApi,
+  siteOrigin: `https://${network.siteDomainName}`,
 });
 
 const hosting = new FrontendHostingStack(app, id('Frontend'), {

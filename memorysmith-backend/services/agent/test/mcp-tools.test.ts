@@ -610,6 +610,85 @@ describe('The MCP transport', () => {
     expect(serverInfo.version).toBe(pkg.version);
   });
 
+  async function initialize(
+    params: Record<string, unknown> = {},
+    deployment?: Deployment,
+    siteOrigin?: string,
+  ) {
+    const response = await handleMcpRequest(
+      { jsonrpc: '2.0', id: 1, method: 'initialize', params },
+      token,
+      gateways(),
+      '',
+      deployment,
+      siteOrigin,
+    );
+    return (
+      response as {
+        result: {
+          protocolVersion: string;
+          serverInfo: {
+            name: string;
+            title: string;
+            version: string;
+            description: string;
+            icons?: Array<{ src: string; mimeType: string; sizes: string[] }>;
+            websiteUrl?: string;
+          };
+        };
+      }
+    ).result;
+  }
+
+  it('says who it is: a title, a description, PNG icons and the website of its site', async () => {
+    const { serverInfo } = await initialize({}, undefined, 'https://memorysmith.app');
+    expect(serverInfo.title).toBe('MemorySmith.app');
+    expect(serverInfo.description).toBe(
+      'Structured knowledge, natively readable and writable by humans and agents.',
+    );
+    expect(serverInfo.websiteUrl).toBe('https://memorysmith.app');
+    // PNG is what a client that renders icons must accept, served by the site.
+    expect(serverInfo.icons).toEqual([
+      { src: 'https://memorysmith.app/symbol-48.png', mimeType: 'image/png', sizes: ['48x48'] },
+      { src: 'https://memorysmith.app/symbol-192.png', mimeType: 'image/png', sizes: ['192x192'] },
+    ]);
+  });
+
+  it('names the environment in the title outside production, and its icons come from its own site', async () => {
+    const staging: Deployment = {
+      environment: 'staging',
+      version: '0.9.0-rc.1+a1b2c3d',
+      commit: 'a1b2c3d',
+    };
+    const { serverInfo } = await initialize({}, staging, 'https://stg.memorysmith.app');
+    expect(serverInfo.title).toBe('MemorySmith.app (staging)');
+    expect(serverInfo.version).toBe('0.9.0-rc.1+a1b2c3d');
+    expect(
+      serverInfo.icons?.every((icon) => icon.src.startsWith('https://stg.memorysmith.app/')),
+    ).toBe(true);
+  });
+
+  it('declares no icon and no website when it does not know its site', async () => {
+    const { serverInfo } = await initialize();
+    expect(serverInfo).not.toHaveProperty('icons');
+    expect(serverInfo).not.toHaveProperty('websiteUrl');
+  });
+
+  it('answers in the revision a client asks for when it speaks it, and in the newest otherwise', async () => {
+    expect((await initialize({ protocolVersion: '2025-11-25' })).protocolVersion).toBe(
+      '2025-11-25',
+    );
+    // A client that still asks for the older revision is not told a newer one
+    // it may disconnect from.
+    expect((await initialize({ protocolVersion: '2025-06-18' })).protocolVersion).toBe(
+      '2025-06-18',
+    );
+    expect((await initialize({ protocolVersion: '2024-11-05' })).protocolVersion).toBe(
+      '2025-11-25',
+    );
+    expect((await initialize()).protocolVersion).toBe('2025-11-25');
+  });
+
   it('answers notifications with no body', async () => {
     const response = await handleMcpRequest(
       { jsonrpc: '2.0', method: 'notifications/initialized' },
