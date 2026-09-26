@@ -60,8 +60,9 @@ export function NotebookBreadcrumb({ items }: NotebookBreadcrumbProps) {
   const nav = useRef<HTMLElement>(null);
   const ruler = useRef<HTMLDivElement>(null);
   const [fit, setFit] = useState<TrailFit | null>(null);
-  const [tick, setTick] = useState(0);
-  const key = trail.map((crumb) => crumb.label).join('\u0000');
+  // A render is all the observer and the fonts ask for: the fit is measured
+  // again after every one.
+  const [, setTick] = useState(0);
 
   // The width of the bar, and the webfont arriving after the first paint,
   // both change what fits.
@@ -94,19 +95,29 @@ export function NotebookBreadcrumb({ items }: NotebookBreadcrumbProps) {
     const [separator = 0] = width('separator');
     const [more = 0] = width('more');
     const [last = null] = width('last');
-    setFit(
-      fitTrail({
-        notebook,
-        middle: width('middle'),
-        last,
-        separator,
-        gap: GAP_PX,
-        more,
-        available: node.clientWidth - SLACK_PX,
-        notebookMin: NOTEBOOK_MIN_PX,
-      }),
+    const next = fitTrail({
+      notebook,
+      middle: width('middle'),
+      last,
+      separator,
+      gap: GAP_PX,
+      more,
+      available: node.clientWidth - SLACK_PX,
+      notebookMin: NOTEBOOK_MIN_PX,
+    });
+    setFit((current) =>
+      current &&
+      current.hidden === next.hidden &&
+      current.notebook === next.notebook &&
+      current.last === next.last
+        ? current
+        : next,
     );
-  }, [key, tick]);
+    // On every render and not only when the observer calls: the actions of a
+    // note arrive in a render of the bar, and in a tab that is not visible
+    // the observer waits until the tab is shown again. The state only changes
+    // when the fit does, so this settles in one pass.
+  });
 
   const hidden = fit?.hidden ?? 0;
   // The `…` leads where the collapsed crumbs end: the deepest of them, the one
