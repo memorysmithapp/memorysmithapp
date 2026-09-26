@@ -6079,3 +6079,28 @@ body.has-sheet .app-main {
     padding: 24px;
   }
 }
+
+/* ── A phone never zooms, and the reading never slides (#238) ──────────────────
+   Safari on iOS enlarges the page whenever a field with text under 16 px takes
+   the focus, and leaves it enlarged afterwards: the search of the sheet zoomed
+   in and the note it opened stayed that way, panning in every direction with
+   its bar. On a narrow or touch screen every field that takes text is set at
+   16 px, so there is nothing to zoom for; the computer keeps the sizes of the
+   Controles. The zoom is not switched off in the viewport, which would take
+   pinch-to-zoom from whoever reads with it. Last in the sheet, so it wins over
+   every field rule of the same weight above it. */
+@media (max-width: 860px), (pointer: coarse) {
+  input:not([type='checkbox'], [type='radio'], [type='range'], [type='file']),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* The note scrolls up and down and never sideways: a block wider than the
+   column scrolls inside itself, as code and tables do, and never drags the
+   reading and its bar with it. */
+.notebook-content,
+.app-main:has(> .notebook-layout) {
+  overflow-x: hidden;
+}

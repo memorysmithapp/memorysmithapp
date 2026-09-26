@@ -15,6 +15,10 @@ issues each entry cites.
 
 - **The connector says who it is.** A client used to list it with an icon it made up — Claude the symbol on a white plate, ChatGPT a placeholder of its own — because the handshake declared nothing but a name and a version. It now declares a title, *MemorySmith.app*, the slogan as its description, the site as its website and the symbol as icons, transparent PNG served by the site of the same environment, under revision 2025-11-25 of the protocol, which is the one that defines them; a client that still asks for 2025-06-18 is answered in it. Outside production the title names the environment, *MemorySmith.app (staging)*, so the two connectors are told apart in a client's list. The site declares the same PNG as its icon, so a service that takes the favicon of the domain finds one with no plate behind it. (#237, RN-AGT-026, RN-AGT-040)
 
+### Fixed
+
+- **On a phone, the search no longer zooms the page in.** Safari enlarges the page whenever a field with text under 16 px takes the focus, and nearly every field of the product was under it — the search at 13 px, forms and the note editor at about 14 — so tapping the search in the navigation sheet zoomed in, and the note it opened stayed zoomed. On a narrow or touch screen every field is now set at 16 px; on a computer they keep their sizes, and pinch-to-zoom still works. **The note no longer slides sideways**: it scrolls only up and down, bar included, and a block wider than the column scrolls inside itself. (#238)
+
 ## [0.8.0] - 2026-09-25
 
 ### Added
