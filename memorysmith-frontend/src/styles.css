@@ -533,6 +533,13 @@ a:hover {
 .space-dot {
   background: var(--kind);
 }
+/* What is in transit is capture not yet kept (RN-SUB-025): the orange of the
+   files it will become, hatched, so it reads as on its way rather than held. */
+.home-space .space-bar-part[data-kind='transit'],
+.home-space .space-dot[data-kind='transit'] {
+  background: repeating-linear-gradient(135deg, var(--signal) 0 3px, transparent 3px 6px);
+  box-shadow: inset 0 0 0 1px var(--signal);
+}
 .space-table {
   width: 100%;
   border-collapse: collapse;
@@ -4140,6 +4147,14 @@ body.has-sheet .app-main {
   color: var(--text-soft);
   overflow-wrap: anywhere;
 }
+/* What an upload of an agent is for, in its words (RN-PRT-028). */
+.transfer-purpose {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-soft);
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
 .transfer-state {
   display: flex;
   align-items: center;
@@ -4168,6 +4183,11 @@ body.has-sheet .app-main {
   height: 100%;
   border-radius: 3px;
   background: var(--accent);
+}
+/* An upload that stopped keeps its bar, in the soft ink: nothing is wrong,
+   nothing is moving. */
+.transfer-state.is-stalled .transfer-bar > span {
+  background: var(--text-soft);
 }
 .transfer-outcome {
   font-family: var(--display);
@@ -4322,6 +4342,28 @@ body.has-sheet .app-main {
 .transfers-confirm-actions {
   display: flex;
   gap: 8px;
+}
+/* Pointing an upload at another notebook asks in place, as deleting does, and
+   in the colour of an action rather than of a danger (RN-PRT-029). */
+.transfers-link {
+  grid-column: 2 / -1;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--accent);
+  border-radius: 10px;
+}
+.transfers-link p {
+  flex: 1 1 18rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-soft);
+}
+.transfers-link .transfer-field {
+  flex: 1 1 16rem;
 }
 
 /* A phone: the columns stack, and the actions come last, a thumb high. */

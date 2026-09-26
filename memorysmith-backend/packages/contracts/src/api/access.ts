@@ -176,6 +176,8 @@ export const subscriptionUsageSchema = z.object({
       folders: z.number().int().nonnegative(),
       files: z.number().int().nonnegative(),
       exports: z.number().int().nonnegative(),
+      /** Open uploads going to this notebook, whose room its bytes include (RN-SUB-025). */
+      uploads: z.number().int().nonnegative(),
     }),
   ),
 });

@@ -15,6 +15,50 @@ import { queryKeys } from '../../shared/api/query-keys';
  */
 const POLL_MS = 2_000;
 
+/**
+ * An upload of an agent may stay open for days, so it is not a job worth a
+ * request every two seconds: it is asked about every half minute, which is
+ * enough to see the parts arrive while somebody watches (RN-PRT-028).
+ */
+const UPLOAD_POLL_MS = 30_000;
+
+/** How long without a part before an open upload reads as stopped. */
+export const STALLED_AFTER_MS = 15 * 60_000;
+
+/** An export or an import that a worker is running, which ends by itself. */
+export function isWorking(transfer: TransferDto): boolean {
+  return transfer.status === 'running' && transfer.kind !== 'agent';
+}
+
+/** An upload of an agent still waiting for parts or for its finish. */
+export function isOpenUpload(transfer: TransferDto): boolean {
+  return transfer.status === 'running' && transfer.kind === 'agent';
+}
+
+/**
+ * Whether an open upload has stopped: no part for a quarter of an hour, or
+ * none at all since it started that long ago. It is information and nothing
+ * else — an upload has no deadline (RN-PRT-028).
+ */
+export function isStalled(transfer: TransferDto, now: number): boolean {
+  if (!isOpenUpload(transfer)) return false;
+  const since = transfer.upload?.lastPartAt ?? transfer.requestedAt;
+  return now - new Date(since).getTime() > STALLED_AFTER_MS;
+}
+
+/**
+ * Whether the notebook of a transfer is one the person sees now (RN-PRT-029).
+ * The list of notebooks is what they can open: a notebook missing from it is
+ * deleted or out of their reach, and the row says unavailable either way,
+ * never which. While the list is not known, nothing is said.
+ */
+export function notebookUnavailable(
+  transfer: TransferDto,
+  visible: ReadonlySet<string> | null,
+): boolean {
+  return visible !== null && transfer.notebookId !== null && !visible.has(transfer.notebookId);
+}
+
 export const TRANSFERS_KEY = queryKeys.transfers();
 
 export function useTransfers(enabled = true) {
@@ -24,11 +68,11 @@ export function useTransfers(enabled = true) {
     queryFn: listTransfers,
     enabled,
     refetchInterval: (query) =>
-      (query.state.data as TransferListDto | undefined)?.transfers.some(
-        (transfer) => transfer.status === 'running',
-      )
+      (query.state.data as TransferListDto | undefined)?.transfers.some(isWorking)
         ? POLL_MS
-        : false,
+        : (query.state.data as TransferListDto | undefined)?.transfers.some(isOpenUpload)
+          ? UPLOAD_POLL_MS
+          : false,
   });
 
   /**

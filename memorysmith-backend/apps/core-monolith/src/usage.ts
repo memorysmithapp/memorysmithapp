@@ -67,6 +67,7 @@ export class SubscriptionUsageReport implements SubscriptionUsageQuery {
           folders: line.folders,
           files: line.files,
           exports: exports?.count ?? 0,
+          uploads: uploads?.count ?? 0,
         };
       })
       .sort((left, right) => right.bytes - left.bytes || left.name.localeCompare(right.name, 'en'));

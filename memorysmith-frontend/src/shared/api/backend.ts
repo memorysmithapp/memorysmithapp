@@ -373,6 +373,17 @@ export async function deleteTransfer(transferId: string): Promise<void> {
   await request<void>(`/portability/transfers/${transferId}`, { method: 'DELETE' });
 }
 
+/**
+ * Points an open upload of an agent at another notebook, when its own is no
+ * longer available (RN-PRT-029). No byte moves: the parts name no notebook.
+ */
+export async function linkUpload(transferId: string, notebookId: string): Promise<TransferDto> {
+  return request<TransferDto>(`/portability/uploads/${transferId}/link`, {
+    method: 'POST',
+    body: { notebookId },
+  });
+}
+
 // ---- Writes ----------------------------------------------------------------
 
 export async function createNotebook(input: {

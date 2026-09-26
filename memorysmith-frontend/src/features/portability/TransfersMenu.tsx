@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { notebookAddress } from '../../shared/api/note-address';
 import { Trans, useTranslation } from 'react-i18next';
 import type { TransferDto } from '@memorysmith/contracts';
-import { progressOf, saveArchive, useTransfers } from './transfers';
+import { isWorking, progressOf, saveArchive, useTransfers } from './transfers';
 import { Menu } from '../../shared/components/Menu';
 import { formatBytes } from '../../shared/components/StorageBar';
 import { intlLocale } from '../../i18n/intl-locale';
@@ -55,7 +55,12 @@ export function TransfersMenu() {
   const close = useCallback(() => setOpen(false), []);
 
   const transfers = data?.transfers ?? [];
-  const running = transfers.filter((transfer) => transfer.status === 'running');
+  /**
+   * The ring is for a job that ends by itself. An upload of an agent may wait
+   * for its parts for days, and a ring turning for days says nothing: it is on
+   * the list, and on the page, instead (RN-PRT-028).
+   */
+  const running = transfers.filter(isWorking);
   const finished = transfers.filter(
     (transfer) => transfer.finishedAt !== null && transfer.finishedAt > seen,
   );

@@ -8,6 +8,7 @@ import { Menu, MenuDivider, MenuItem } from '../../shared/components/Menu';
 import { MoreIcon } from '../../shared/components/icons';
 import type { NotebookSummary } from '../../shared/types/api';
 import { NotebookCard } from './NotebookCard';
+import { isOpenUpload, useTransfers } from '../portability/transfers';
 
 type Phase = 'idle' | 'confirming' | 'deleting' | 'failed';
 
@@ -38,6 +39,15 @@ export function NotebookActions({
   const [phase, setPhase] = useState<Phase>('idle');
   const [messageKey, setMessageKey] = useState('errors.unexpected');
   const owner = notebook.effectiveRole === 'OWNER';
+  /**
+   * The uploads an agent has open for this notebook outlive it, and the
+   * deletion says so where it is confirmed, as it says an export stays
+   * (RN-PRT-021, RN-PRT-029). The list is read only once somebody asks.
+   */
+  const transfers = useTransfers(phase !== 'idle');
+  const openUploads = (transfers.data?.transfers ?? []).filter(
+    (transfer) => isOpenUpload(transfer) && transfer.notebookId === notebook.id,
+  ).length;
 
   function exportIt() {
     setOpen(false);
@@ -127,6 +137,9 @@ export function NotebookActions({
                 }}
               />
             )}
+            {phase !== 'failed' && openUploads > 0 ? (
+              <> {t('dashboard.card.confirmUploads', { count: openUploads })}</>
+            ) : null}
           </p>
           <div className="notebook-card-confirm-actions">
             <button

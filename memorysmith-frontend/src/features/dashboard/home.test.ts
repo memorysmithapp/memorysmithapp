@@ -9,7 +9,7 @@ import type { SubscriptionUsageDto } from '@memorysmith/contracts';
 import type { NotebookSummary } from '../../shared/types/api';
 import { byName } from './catalogue';
 import { graphIndexOf } from './card-graphs';
-import { kindsBySpace, notebookLines } from './space';
+import { elsewhereOf, kindsBySpace, notebookLines } from './space';
 
 const notebook = (id: string, name: string): NotebookSummary => ({
   id,
@@ -77,6 +77,7 @@ const line = (notebookId: string, bytes: number) => ({
   folders: 2,
   files: 0,
   exports: 1,
+  uploads: 0,
 });
 
 describe('the space of the subscription', () => {
@@ -86,6 +87,8 @@ describe('the space of the subscription', () => {
       'notes',
       'exports',
       'others',
+      // Nothing is in transit here, so it goes last, with its zero.
+      'transit',
     ]);
   });
 
@@ -108,5 +111,13 @@ describe('the space of the subscription', () => {
     );
     expect(lines.map((each) => each.name)).toEqual(['A', 'B', 'C', 'D']);
     expect(lines.every((each) => each.grouped === 1)).toBe(true);
+  });
+
+  it('says what no line of a notebook holds, and nothing when the lines add up (RN-PRT-029)', () => {
+    // 641 used, 300 + 100 in the lines: 241 is in exports and uploads whose
+    // notebook the reader does not see, and one line says so, naming none.
+    expect(elsewhereOf(usage([line('A', 300), line('B', 100)]))).toBe(241);
+    expect(elsewhereOf(usage([line('A', 641)]))).toBe(0);
+    expect(elsewhereOf(usage([line('A', 700)]))).toBe(0);
   });
 });

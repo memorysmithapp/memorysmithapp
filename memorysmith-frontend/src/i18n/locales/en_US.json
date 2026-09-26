@@ -213,10 +213,17 @@
       "confirmBody": "<b>Everything in it will be deleted, and this cannot be undone.</b> Consider <export>Export notebook</export> before deleting.",
       "keep": "Keep",
       "deleteForGood": "Delete for good",
-      "deleting": "Deleting…"
+      "deleting": "Deleting…",
+      "confirmUploads_one": "1 open upload of an agent stays in Transfers, with no notebook.",
+      "confirmUploads_other": "{{count}} open uploads of an agent stay in Transfers, with no notebook."
     },
     "purging_one": "A deleted notebook still holds {{bytes}} until its cleanup ends.",
-    "purging_other": "{{count}} deleted notebooks still hold {{bytes}} until their cleanup ends."
+    "purging_other": "{{count}} deleted notebooks still hold {{bytes}} until their cleanup ends.",
+    "kindTransit": "In transit",
+    "kindTransitHint": "The room the agent's open uploads reserve",
+    "elsewhere": "Outside your notebooks: {{bytes}}, in exports and uploads whose notebook is not available to you.",
+    "notebookUploads_one": "{{count}} open upload",
+    "notebookUploads_other": "{{count}} open uploads"
   },
   "portability": {
     "download": "Download notebook (.notebook)",
@@ -262,7 +269,9 @@
       "VALIDATION": "That document was refused.",
       "NOT_FOUND": "The upload was not found. Choose the file again.",
       "INTERNAL": "Something went wrong on our side. Try again.",
-      "KEPT_UNREADABLE": "That export could not be read. Try again, or download it and import the file."
+      "KEPT_UNREADABLE": "That export could not be read. Try again, or download it and import the file.",
+      "HASH_MISMATCH": "The bytes that arrived do not match the hash that was declared, so nothing was kept. Ask the agent to send the file again.",
+      "TYPE_MISMATCH": "The bytes that arrived are not of the declared type, so nothing was kept."
     },
     "exportHeading": "Export notebook",
     "withHistory": "Include the history",
@@ -380,7 +389,8 @@
     "filters": {
       "all": "All",
       "export": "Exports",
-      "import": "Imports"
+      "import": "Imports",
+      "agent": "From agents"
     },
     "empty": "Nothing has been transferred yet.",
     "keptBytes": "Space used: {{size}}",
@@ -388,10 +398,11 @@
     "delete": "Delete",
     "deleteForGood": "Delete for good",
     "deleteWarning": "This is definitive. The notebook, if it still exists, is not touched.",
-    "notebookGone": "The notebook was deleted after this export. Importing it creates a new one.",
+    "notebookGone": "This export's notebook is not available. Importing it creates a new one.",
     "running": {
       "export": "exporting · {{done}} of {{total}} notes",
-      "import": "importing · {{done}} of {{total}} notes"
+      "import": "importing · {{done}} of {{total}} notes",
+      "agent": "sending · {{done}} of {{total}} parts"
     },
     "ended": {
       "ready": "ready",
@@ -404,7 +415,8 @@
     "noNotebooks": "There is no notebook to export yet.",
     "line": {
       "export": "Export · {{notebook}}",
-      "import": "Import · {{notebook}}"
+      "import": "Import · {{notebook}}",
+      "agent": "Agent · {{notebook}}"
     },
     "wrote_one": "{{count}} note written",
     "wrote_other": "{{count}} notes written",
@@ -412,13 +424,15 @@
     "fromFile": "from {{file}}",
     "kind": {
       "export": "Export",
-      "import": "Import"
+      "import": "Import",
+      "agent": "Agent"
     },
     "state": {
       "ready": "Ready",
       "failed": "Failed",
       "cancelled": "Cancelled",
-      "running": "Running"
+      "running": "Running",
+      "stalled": "Stopped"
     },
     "keptSentence": "Exports are kept until you delete them, and take <b>{{size}}</b> of your plan.",
     "keptShort": "Space used: <b>{{size}}</b>",
@@ -430,7 +444,22 @@
     "importKept": "Import",
     "deleteImportAsk": "Delete this import?",
     "deleteImportKeeps": "Only this entry leaves the list. The notebook it created, if it created one, stays.",
-    "deleteRecordOnly": "Only this entry leaves the list; there is no file to free."
+    "deleteRecordOnly": "Only this entry leaves the list; there is no file to free.",
+    "stalled": "stopped · {{done}} of {{total}} parts",
+    "platform": "through {{platform}}",
+    "lastPart": "last part {{when}}",
+    "noPartYet": "no part yet",
+    "transitSentence": "The agent's open uploads reserve <b>{{size}}</b>.",
+    "importUnavailable": "Notebook unavailable.",
+    "uploadUnavailable": "No notebook: this upload's notebook is not available. Link it to a notebook to finish it.",
+    "link": "Link to a notebook",
+    "linkLabel": "Destination notebook",
+    "linkPick": "Choose a notebook",
+    "linkConfirm": "Link",
+    "linkNone": "There is no notebook you can write in.",
+    "deleteUploadAsk": "Delete this upload?",
+    "deleteUploadFrees": "The parts that arrived are thrown away and the {{size}} reserved go back to your plan. This is for good.",
+    "deleteFailedUpload": "Only this notice leaves the list; its parts were already thrown away."
   },
   "about": {
     "menu": "About MemorySmith.app",

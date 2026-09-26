@@ -276,6 +276,10 @@ export function deleteTransfer(transferId: string): Promise<void> {
   return backend.deleteTransfer(transferId);
 }
 
+export function linkUpload(transferId: string, notebookId: string): Promise<TransferDto> {
+  return backend.linkUpload(transferId, notebookId);
+}
+
 export function resolveLinkTarget(notebookId: string, target: string) {
   return backend.resolveLinkTarget(notebookId, target);
 }
