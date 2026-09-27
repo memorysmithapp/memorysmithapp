@@ -677,5 +677,23 @@
     "example": "Exemplo",
     "quote": "Citação",
     "cite": "Citação"
+  },
+  "fileKind": {
+    "image_png": "Imagem PNG",
+    "image_jpeg": "Imagem JPEG",
+    "image_webp": "Imagem WebP",
+    "image_gif": "Imagem GIF",
+    "image_svg_xml": "Imagem SVG",
+    "application_pdf": "Documento PDF",
+    "audio_mpeg": "Áudio MP3",
+    "audio_wav": "Áudio WAV",
+    "audio_ogg": "Áudio Ogg",
+    "audio_webm": "Áudio WebM",
+    "video_mp4": "Vídeo MP4",
+    "video_webm": "Vídeo WebM",
+    "video_quicktime": "Vídeo QuickTime",
+    "application_vnd_openxmlformats_officedocument_wordprocessingml_document": "Documento do Word",
+    "application_vnd_openxmlformats_officedocument_spreadsheetml_sheet": "Planilha do Excel",
+    "application_vnd_openxmlformats_officedocument_presentationml_presentation": "Apresentação do PowerPoint"
   }
 }

@@ -11,7 +11,13 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Changed
+
+- **The card of a file says what it is in words.** It printed the media type as stored, and for a Word document, a spreadsheet or a presentation that was the longest line of the card — `application/vnd.openxmlformats-officedocument.wordprocessingml.document` — saying nothing a person recognises and wrapping over several lines on a phone. The card, and the list of files where an export or an import is chosen, now name the kind of the file in the language of the interface, *Documento do Word*, *Planilha do Excel*, *Vídeo MP4*, for each of the sixteen types a notebook keeps; the media type stays as the title of that line. (#251)
+
 ### Fixed
+
+- **A file's size reads in the language of the interface.** The card of a file and the list of files where an export or an import is chosen wrote `870.9 KB` in Portuguese, with a formatter of their own, while Home and Transfers already wrote the same size as the locale does. Every size on the screen is now formatted one way. (#250)
 
 - **An agent reads a notebook from the address of its page.** The web writes identifiers in lower case, and a person points an agent at a note by pasting that address; the connector refused the identifiers in it as not valid, so the agent failed on its first call. Every tool now reads an identifier in either case, and so do the routes of Discovery. (#247, RN-AGT-043)
 - **A value that is not an identifier gets the same answer from every tool.** `check_notebook` answered one as a notebook the caller could not see, while the other tools called it what it is — and *not found* is what an agent reads as its work having vanished, on the sweep it runs before saying it is done. Every tool now refuses it with `VALIDATION`, naming the argument, before asking anything. (#248, RN-AGT-043)

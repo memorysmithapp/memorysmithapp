@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { rendersAs, type FileLinkDto, type NotebookFileDto } from '@memorysmith/contracts';
 import { fileKept, linkToFile } from '../api/source';
 import { queryKeys } from '../api/query-keys';
+import { intlLocale } from '../../i18n';
+import { formatBytes } from './StorageBar';
+import { fileKind } from './file-kind';
 
 /**
  * A file of the notebook, shown where a note referenced it (#166).
@@ -110,14 +113,14 @@ export function Attachment({
  * is shown and where it is saved, and says which of the two shows anything; a
  * card that shows nothing offers the one verb it can keep.
  */
-function AttachmentCard({ file, link }: { file: NotebookFileDto; link: FileLinkDto }) {
-  const { t } = useTranslation();
+export function AttachmentCard({ file, link }: { file: NotebookFileDto; link: FileLinkDto }) {
+  const { t, i18n } = useTranslation();
   return (
     <span className="attachment-card">
       <span className="attachment-card-body">
         <span className="attachment-card-name">{file.name}</span>
-        <span className="attachment-card-note">
-          {file.mimeType} · {readableBytes(file.bytes)}
+        <span className="attachment-card-note" title={file.mimeType}>
+          {fileKind(t, file.mimeType)} · {formatBytes(file.bytes, intlLocale(i18n.language))}
         </span>
         {file.description.length > 0 && (
           <span className="attachment-card-note">{file.description}</span>
@@ -135,16 +138,4 @@ function AttachmentCard({ file, link }: { file: NotebookFileDto; link: FileLinkD
       </span>
     </span>
   );
-}
-
-/** A size a person reads, in the units a person uses. */
-function readableBytes(bytes: number): string {
-  const units = ['B', 'KB', 'MB', 'GB'];
-  let value = bytes;
-  let unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit += 1;
-  }
-  return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
 }

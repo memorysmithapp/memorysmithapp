@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { intlLocale } from '../../i18n';
+import { formatBytes } from '../../shared/components/StorageBar';
+import { fileKind } from '../../shared/components/file-kind';
 import { Tabs } from '../../shared/components/Tabs';
 import { Segmented } from '../../shared/components/Segmented';
 import {
@@ -515,7 +517,7 @@ function FilesPanel({
   picked: Picked;
   onPicked: (next: Picked) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const toggle = (name: string, on: boolean): void => {
     const next = new Set(picked.files);
@@ -550,8 +552,9 @@ function FilesPanel({
                     {file.description.length > 0 && (
                       <span className="chooser-file-about">{file.description}</span>
                     )}
-                    <span className="chooser-file-note">
-                      {file.mimeType} · {readableBytes(file.bytes)}
+                    <span className="chooser-file-note" title={file.mimeType}>
+                      {fileKind(t, file.mimeType)} ·{' '}
+                      {formatBytes(file.bytes, intlLocale(i18n.language))}
                     </span>
                   </span>
                 </label>
@@ -562,18 +565,6 @@ function FilesPanel({
       </div>
     </>
   );
-}
-
-/** A size a person reads, in the units a person uses. */
-function readableBytes(bytes: number): string {
-  const units = ['B', 'KB', 'MB', 'GB'];
-  let value = bytes;
-  let unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit += 1;
-  }
-  return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
 }
 
 /**

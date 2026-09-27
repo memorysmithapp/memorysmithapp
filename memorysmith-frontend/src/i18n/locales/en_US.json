@@ -674,5 +674,23 @@
     "example": "Example",
     "quote": "Quote",
     "cite": "Cite"
+  },
+  "fileKind": {
+    "image_png": "PNG image",
+    "image_jpeg": "JPEG image",
+    "image_webp": "WebP image",
+    "image_gif": "GIF image",
+    "image_svg_xml": "SVG image",
+    "application_pdf": "PDF document",
+    "audio_mpeg": "MP3 audio",
+    "audio_wav": "WAV audio",
+    "audio_ogg": "Ogg audio",
+    "audio_webm": "WebM audio",
+    "video_mp4": "MP4 video",
+    "video_webm": "WebM video",
+    "video_quicktime": "QuickTime video",
+    "application_vnd_openxmlformats_officedocument_wordprocessingml_document": "Word document",
+    "application_vnd_openxmlformats_officedocument_spreadsheetml_sheet": "Excel spreadsheet",
+    "application_vnd_openxmlformats_officedocument_presentationml_presentation": "PowerPoint presentation"
   }
 }
