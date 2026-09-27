@@ -141,6 +141,7 @@ import {
   FinishUpload,
   GetUploadStatus,
   LinkUpload,
+  RequestFile,
   ListUploads,
   ObserveUpload,
   PutUploadPart,
@@ -697,6 +698,14 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       ),
     linkUpload: (request) =>
       new LinkUpload(transfers, request.files, request.subscription.userId.value),
+    requestFile: (request) =>
+      new RequestFile(
+        transfers,
+        parts,
+        request.files,
+        request.subscription.subscriptionId.value,
+        request.subscription.userId.value,
+      ),
   };
 
   const app = createApp({

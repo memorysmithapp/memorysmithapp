@@ -16,6 +16,7 @@
  *   PUT    /uploads/:t/parts/:n        ->  one inline part, with its hash
  *   POST   /uploads/:t/finish          ->  the whole becomes a file, or is refused
  *   POST   /uploads/:t/link            ->  points it at another notebook (RN-PRT-029)
+ *   POST   /requests                   ->  asks the person for a file (RN-PRT-030)
  *
  * **An export is a job and not a request** (RN-PRT-019). Building the archive
  * means reading every note of the notebook, and the function behind this API
@@ -39,6 +40,7 @@ import {
   importFromExportRequestSchema,
   importUploadSchema,
   linkUploadRequestSchema,
+  requestFileRequestSchema,
   uploadPartRequestSchema,
 } from '@memorysmith/contracts';
 import { archiveNameOf } from '../domain/NotebookDocumentBuilder.js';
@@ -68,6 +70,7 @@ import {
   type FinishUpload,
   type GetUploadStatus,
   type LinkUpload,
+  type RequestFile,
   type ListUploads,
   type PutUploadPart,
   type UploadStatus,
@@ -114,6 +117,7 @@ export interface PortabilityUseCases {
   readonly putUploadPart: (request: PortabilityRequest) => PutUploadPart;
   readonly finishUpload: (request: PortabilityRequest) => FinishUpload;
   readonly linkUpload: (request: PortabilityRequest) => LinkUpload;
+  readonly requestFile: (request: PortabilityRequest) => RequestFile;
 }
 
 /** What a transfer looks like on the wire, which is what it is (§16). */
@@ -150,6 +154,9 @@ function transferToDto(transfer: Transfer): Record<string, unknown> {
             lastPartAt: transfer.upload.lastPartAt,
           },
         }
+      : {}),
+    ...(transfer.request
+      ? { request: { ...transfer.request, tags: [...transfer.request.tags] } }
       : {}),
   };
 }
@@ -385,6 +392,30 @@ export function createPortabilityRoutes(
       .linkUpload(request)
       .execute(c.req.param('t') ?? '', parsed.data.notebookId);
     return present(c, linked, transferToDto);
+  });
+
+  /**
+   * An agent asks the person for a file instead of sending it (RN-PRT-030),
+   * from nothing or from an upload it could not finish. It is a write, of a
+   * record the person acts on, so an unbound connector is refused (rule 7).
+   */
+  app.post('/requests', async (c) => {
+    const request = c.get('portability');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
+    const parsed = requestFileRequestSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) {
+      return fail(
+        c,
+        DomainError.validation(
+          parsed.error.issues
+            .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+            .join('; '),
+        ),
+      );
+    }
+    const asked = await useCases.requestFile(request).execute({ ...parsed.data, by: author.value });
+    return asked.ok ? c.json(transferToDto(asked.value), 201) : fail(c, asked.error);
   });
 
   return app;

@@ -561,4 +561,65 @@ test.describe('a file sent in parts', () => {
     expect(kept.notebookId).toBe(other.notebookId);
     await owner.call('DELETE', `/knowledge/notebooks/${other.notebookId}`);
   });
+
+  /**
+   * A file an agent asks the person for (#253, RN-PRT-030): made of the upload
+   * the agent could not finish, and kept by the person under its name.
+   */
+  test('[route:POST /portability/requests] turns an upload nobody could finish into a request, which the person fulfils under its name', async ({
+    owner,
+    notebook,
+  }) => {
+    const whole = picture(3000);
+    const name = unique('requested picture');
+    const started = await owner.ok<Status>('POST', '/portability/uploads', {
+      notebookId: notebook.notebookId,
+      name,
+      mimeType: 'image/png',
+      purpose: 'A picture an agent could not send',
+      size: whole.length,
+      sha256: sha(whole),
+      transport: 'url',
+    });
+    const request = await owner.ok<TransferDto & { fileName: string | null }>(
+      'POST',
+      '/portability/requests',
+      { fromUpload: started.transfer.transferId },
+    );
+    expect(request).toMatchObject({ kind: 'request', fileName: name });
+    const listed = await owner.ok<{ transfers: TransferDto[] }>('GET', '/portability/transfers');
+    expect(listed.transfers.map((each) => each.transferId)).not.toContain(
+      started.transfer.transferId,
+    );
+
+    const fulfilling = await owner.ok<Status>('POST', '/portability/uploads', {
+      request: request.transferId,
+      notebookId: notebook.notebookId,
+      name: 'what the disk calls it.png',
+      mimeType: 'image/png',
+      purpose: 'Kept by the person',
+      size: whole.length,
+      sha256: sha(whole),
+      transport: 'inline',
+      partSize: 2048,
+    });
+    for (const part of [1, 2]) {
+      const bytes = whole.subarray((part - 1) * 2048, part * 2048);
+      await owner.ok(
+        'PUT',
+        `/portability/uploads/${fulfilling.transfer.transferId}/parts/${part}`,
+        {
+          sha256: sha(bytes),
+          contentBase64: bytes.toString('base64'),
+        },
+      );
+    }
+    const kept = await owner.ok<{ name: string }>(
+      'POST',
+      `/portability/uploads/${fulfilling.transfer.transferId}/finish`,
+    );
+    expect(kept.name).toBe(name);
+    const after = await owner.ok<{ transfers: TransferDto[] }>('GET', '/portability/transfers');
+    expect(after.transfers.map((each) => each.transferId)).not.toContain(request.transferId);
+  });
 });

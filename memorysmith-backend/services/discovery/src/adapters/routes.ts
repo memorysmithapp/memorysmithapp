@@ -192,6 +192,7 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
     return present(c, health, (value) => ({
       orphans: value.orphans,
       pendingLinks: value.pending,
+      unshownFiles: value.unshownFiles,
     }));
   });
 

@@ -95,6 +95,43 @@ export const transferUploadSchema = z.object({
 });
 
 /**
+ * A file an agent asked the person for instead of sending it (#253,
+ * RN-PRT-030). Its name is the `fileName` of the transfer. The size and hash
+ * are what the agent knows of the file, shown as a reference and never
+ * enforced: what an agent knows may be a copy its client reduced.
+ */
+export const transferRequestSchema = z.object({
+  mimeType: z.string(),
+  description: z.string(),
+  purpose: z.string(),
+  tags: z.array(z.string()),
+  path: z.string(),
+  /** The connector that asked. */
+  platform: z.string().nullable(),
+  expectedSize: z.number().int().nonnegative().nullable(),
+  expectedSha256: z.string().nullable(),
+});
+
+/**
+ * Asking the person for a file (RN-PRT-030), from nothing — the notebook, the
+ * name, the type and what it is for — or from an upload the agent could not
+ * finish, which the request replaces: its parts are thrown away and the room it
+ * reserved given back.
+ */
+export const requestFileRequestSchema = z.object({
+  notebookId: ulidSchema.optional(),
+  name: z.string().min(1).max(512).optional(),
+  description: z.string().max(500).optional(),
+  mimeType: z.string().min(1).optional(),
+  tags: z.array(z.string()).optional(),
+  path: z.string().optional(),
+  purpose: z.string().min(1).max(500).optional(),
+  size: z.number().int().positive().optional(),
+  sha256: sha256Schema.optional(),
+  fromUpload: ulidSchema.optional(),
+});
+
+/**
  * A transfer: a notebook on its way out, a document on its way in, or a file
  * an agent is sending in parts, as a job with a status (RN-PRT-018,
  * RN-PRT-019, RN-PRT-028). The first two used to run inside the request that
@@ -102,7 +139,7 @@ export const transferUploadSchema = z.object({
  */
 export const transferSchema = z.object({
   transferId: ulidSchema,
-  kind: z.enum(['export', 'import', 'agent']),
+  kind: z.enum(['export', 'import', 'agent', 'request']),
   status: z.enum(['running', 'ready', 'failed', 'cancelled']),
   notebookId: ulidSchema.nullable(),
   /** The name of the notebook AS IT WAS: an export survives its notebook. */
@@ -121,8 +158,10 @@ export const transferSchema = z.object({
    * `null` on an import recorded before a file name was kept (#155).
    */
   fileName: z.string().nullable(),
-  /** What an upload of an agent is and how far it got; absent on the other two kinds. */
+  /** What an upload of an agent is and how far it got; absent on the other kinds. */
   upload: transferUploadSchema.optional(),
+  /** The file an agent asked the person for; only on a request (RN-PRT-030). */
+  request: transferRequestSchema.optional(),
 });
 
 export const transferListSchema = z.object({
@@ -151,6 +190,11 @@ export const beginUploadRequestSchema = z.object({
   transport: uploadTransportSchema,
   /** Inline only: the bytes of every part but the last. */
   partSize: z.number().int().positive().optional(),
+  /**
+   * The request of the person this upload fulfils (RN-PRT-030): the file is
+   * kept under the name and in the notebook the request names.
+   */
+  request: ulidSchema.optional(),
 });
 
 /** Where the parts that are missing go, on an upload by URL. */
@@ -221,3 +265,5 @@ export type UploadStatusDto = z.infer<typeof uploadStatusSchema>;
 export type UploadPartRequest = z.infer<typeof uploadPartRequestSchema>;
 export type LinkUploadRequest = z.infer<typeof linkUploadRequestSchema>;
 export type FinishedUploadDto = z.infer<typeof finishedUploadSchema>;
+export type TransferRequestDto = z.infer<typeof transferRequestSchema>;
+export type RequestFileRequest = z.infer<typeof requestFileRequestSchema>;

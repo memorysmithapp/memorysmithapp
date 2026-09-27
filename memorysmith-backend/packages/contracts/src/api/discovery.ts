@@ -131,6 +131,11 @@ export const pendingLinkSchema = z.object({
 export const notebookHealthSchema = z.object({
   orphans: z.array(noteRefSchema),
   pendingLinks: z.array(pendingLinkSchema),
+  /**
+   * The files the notebook keeps that no note names (#253, RN-DSC-064). Absent
+   * from an answer of a server older than it.
+   */
+  unshownFiles: z.array(z.string()).optional(),
 });
 
 export const searchRequestSchema = z.object({

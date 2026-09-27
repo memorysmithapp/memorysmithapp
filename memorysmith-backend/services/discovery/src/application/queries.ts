@@ -212,11 +212,14 @@ export class NotebookHealth {
 
   async execute(input: {
     notebookId: string;
-  }): Promise<Result<{ pending: PendingLink[]; orphans: NoteRef[] }, DomainError>> {
+  }): Promise<
+    Result<{ pending: PendingLink[]; orphans: NoteRef[]; unshownFiles: string[] }, DomainError>
+  > {
     const notes = await this.deps.catalog.listNotes(input.notebookId);
     return ok({
       pending: await this.deps.graph.pending(input.notebookId),
       orphans: await this.deps.graph.orphans(input.notebookId, notes),
+      unshownFiles: await this.deps.graph.unshownAttachments(input.notebookId),
     });
   }
 }

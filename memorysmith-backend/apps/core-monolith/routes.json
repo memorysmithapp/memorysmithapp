@@ -67,6 +67,7 @@
   "POST /portability/imports/apply",
   "POST /portability/imports/from-export",
   "POST /portability/notebooks/:v/export",
+  "POST /portability/requests",
   "POST /portability/transfers/:t/cancel",
   "POST /portability/transfers/:t/download",
   "POST /portability/uploads",

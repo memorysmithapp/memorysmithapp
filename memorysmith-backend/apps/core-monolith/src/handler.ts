@@ -143,6 +143,7 @@ import {
   FinishUpload,
   GetUploadStatus,
   LinkUpload,
+  RequestFile,
   ListUploads,
   ObserveUpload,
   PutUploadPart,
@@ -513,6 +514,15 @@ const portabilityUseCases: PortabilityUseCases = {
     new LinkUpload(
       buildTransfers(infra, request.subscription),
       request.files,
+      request.subscription.userId.value,
+    ),
+  // A file the agent asks the person for (#253, RN-PRT-030).
+  requestFile: (request) =>
+    new RequestFile(
+      buildTransfers(infra, request.subscription),
+      partsOf(),
+      request.files,
+      request.subscription.subscriptionId.value,
       request.subscription.userId.value,
     ),
 };

@@ -29,7 +29,13 @@ import {
   UpdateCommand,
   type DynamoDBDocumentClient,
 } from '@aws-sdk/lib-dynamodb';
-import type { KeptUsage, Transfer, TransferStore, TransferUpload } from '../domain/Transfer.js';
+import type {
+  KeptUsage,
+  Transfer,
+  TransferRequest,
+  TransferStore,
+  TransferUpload,
+} from '../domain/Transfer.js';
 
 type Item = Record<string, unknown>;
 
@@ -467,7 +473,10 @@ function counter(value: unknown): number {
 function transferOf(item: Item): Transfer {
   return {
     transferId: String(item['transferId']),
-    kind: item['kind'] === 'import' || item['kind'] === 'agent' ? item['kind'] : 'export',
+    kind:
+      item['kind'] === 'import' || item['kind'] === 'agent' || item['kind'] === 'request'
+        ? item['kind']
+        : 'export',
     status: item['status'] as Transfer['status'],
     userId: String(item['userId']),
     notebookId: item['notebookId'] ? String(item['notebookId']) : null,
@@ -482,6 +491,23 @@ function transferOf(item: Item): Transfer {
     failure: item['failure'] ? String(item['failure']) : null,
     fileName: item['fileName'] ? String(item['fileName']) : null,
     ...(item['upload'] ? { upload: uploadOf(item['upload'] as Item) } : {}),
+    ...(item['request'] ? { request: requestOf(item['request'] as Item) } : {}),
+  };
+}
+
+function requestOf(item: Item): TransferRequest {
+  return {
+    mimeType: String(item['mimeType'] ?? ''),
+    description: String(item['description'] ?? ''),
+    tags: Array.isArray(item['tags']) ? (item['tags'] as unknown[]).map(String) : [],
+    path: String(item['path'] ?? ''),
+    purpose: String(item['purpose'] ?? ''),
+    platform: item['platform'] ? String(item['platform']) : null,
+    expectedSize:
+      item['expectedSize'] === null || item['expectedSize'] === undefined
+        ? null
+        : Number(item['expectedSize']),
+    expectedSha256: item['expectedSha256'] ? String(item['expectedSha256']) : null,
   };
 }
 
@@ -505,6 +531,7 @@ function uploadOf(item: Item): TransferUpload {
     parts,
     assembled: item['assembled'] ? String(item['assembled']) : null,
     lastPartAt: item['lastPartAt'] ? String(item['lastPartAt']) : null,
+    fulfils: item['fulfils'] ? String(item['fulfils']) : null,
   };
 }
 

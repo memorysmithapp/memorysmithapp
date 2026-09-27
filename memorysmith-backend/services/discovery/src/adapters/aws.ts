@@ -826,6 +826,19 @@ export class DynamoLinkGraph implements LinkGraph {
       .filter((link) => link !== null) as PendingLink[];
   }
 
+  /**
+   * A file a note names is a `PENDING#` item under that name, answered by the
+   * file when it is read (#185); a file no such item names is shown nowhere.
+   */
+  async unshownAttachments(notebookId: string): Promise<string[]> {
+    const [pending, attachments] = await Promise.all([
+      this.query(notebookId, 'PENDING#'),
+      this.attachmentsOf(notebookId),
+    ]);
+    const named = new Set(pending.map((item) => String(item['name']).normalize('NFC')));
+    return attachments.filter((name) => !named.has(name.normalize('NFC')));
+  }
+
   async orphans(notebookId: string, allNotes: NoteRef[]): Promise<NoteRef[]> {
     const edges = await this.query(notebookId, 'OUT#');
     const linked = new Set(

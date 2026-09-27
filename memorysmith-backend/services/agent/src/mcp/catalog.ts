@@ -639,7 +639,8 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     title: 'List the open uploads',
     description:
       'The uploads of the person that have not become files yet, newest first, each with the ' +
-      'name, the SHA-256 of its whole file, the parts that arrived and when the last one did. ' +
+      'name, the SHA-256 of its whole file, the parts that arrived and when the last one did, ' +
+      'and the files requested from the person and still waiting for them, as `kind: "request"`. ' +
       'Read it before starting an upload: an upload of the same file, found by its SHA-256, is ' +
       'resumed with file_upload_status instead of sent again.',
     inputSchema: object(
@@ -652,6 +653,80 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       [],
     ),
     annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'request_file',
+    title: 'Ask the person for a file',
+    description:
+      'Asks the person for a file instead of sending it, when you cannot send its bytes: a ' +
+      'sandbox with no network, where no part of an upload by URL ever arrives, or a copy of an ' +
+      'attachment your client reduced. Write `![[name]]` where the file belongs first; the person ' +
+      'keeps the file from Transfers, under this name, and that reference draws it. Name an ' +
+      '`upload` you could not finish and the request is made of it — its name, type, description, ' +
+      'tags, path and purpose — and replaces it, its parts thrown away and its room given back; ' +
+      'otherwise declare the file as begin_file_upload does. A size and SHA-256 you know are shown ' +
+      'to the person as a reference, never enforced. Asking again for a name the notebook already ' +
+      'waits for answers the same request. `list_files` says when the file is kept.',
+    inputSchema: object(
+      {
+        upload: {
+          type: 'string',
+          description:
+            'Optional: an upload you could not finish, as begin_file_upload answered it. The ' +
+            'request takes everything from it and replaces it.',
+        },
+        notebook: {
+          ...notebookArgument,
+          description: 'The notebook the file goes to, when no upload is named.',
+        },
+        name: {
+          type: 'string',
+          description:
+            'The name a note addresses the file by, `![[name]]`: the one the person gave it.',
+        },
+        mimeType: { type: 'string', description: 'The type of the file, such as image/jpeg.' },
+        purpose: {
+          type: 'string',
+          description:
+            'What the file is for, in a sentence the person recognises in Transfers, such as ' +
+            '*the photo of the whiteboard of the planning meeting, for its minutes*.',
+        },
+        description: { type: 'string', description: 'Optional: what the file is.' },
+        tags: { type: 'array', items: { type: 'string' }, description: 'Optional: its tags.' },
+        path: { type: 'string', description: 'Optional: where it sits, such as /atas.' },
+        size: {
+          type: 'integer',
+          description: 'Optional: the size in bytes you know of the file.',
+        },
+        sha256: {
+          type: 'string',
+          description: 'Optional: the SHA-256 you know of the file, in lowercase hex.',
+        },
+      },
+      [],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+  },
+  {
+    name: 'discard_file_upload',
+    title: 'Throw an upload away',
+    description:
+      'Throws away an upload that is not going to become a file — its parts, and the room it ' +
+      'reserved — or dismisses a request the person has not fulfilled. Use it on an attempt you ' +
+      'are giving up, so none is left open in Transfers; to hand an upload to the person instead, ' +
+      'use request_file with that upload. Any upload open on a notebook may be thrown away, ' +
+      "another agent's included: `list_file_uploads` says who opened each, what for and when its " +
+      'last part arrived, which is what to decide on.',
+    inputSchema: object(
+      {
+        upload: {
+          type: 'string',
+          description: 'The upload or request, as list_file_uploads answers it.',
+        },
+      },
+      ['upload'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
   },
   {
     name: 'list_files',
@@ -799,12 +874,17 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     title: 'Check what a notebook left pending',
     description:
       'The sweep to run before saying a piece of work is done. Returns `pending`, every name ' +
-      'the notebook links to that no note carries yet, each with the notes that link to it, and ' +
-      '`orphans`, the notes nothing links to. A pending link is fine on purpose: it is a note ' +
-      'still to write. One with `likelyMeant` looks broken instead — it almost reaches a note ' +
-      'or a file the notebook has, in another case, without its accents or as the start of a ' +
-      'longer name — and the link is what to fix. It is as recent as the link index, which ' +
-      'follows a write within seconds, so right after the last write, run it again.',
+      'the notebook links to that no note or file carries yet, each with the notes that link to ' +
+      'it; `orphans`, the notes nothing links to; `unshownFiles`, the files kept that no note ' +
+      'names; and `openUploads`, the uploads not finished and the files requested from the ' +
+      'person. A pending link is fine on purpose: a note still to write, or a file the person ' +
+      'was asked for, which it says as `waitingFor`. One with `likelyMeant` looks broken instead ' +
+      '— it almost reaches a note or a file the notebook has, in another case, without its ' +
+      'accents or as the start of a longer name — and the link is what to fix. A file no note ' +
+      'shows may be kept on purpose: tell the person which. An upload left open is finished, ' +
+      'handed to the person with request_file, or thrown away with discard_file_upload. It is as ' +
+      'recent as the link index, which follows a write within seconds, so right after the last ' +
+      'write, run it again.',
     inputSchema: object({ notebook: notebookArgument }, ['notebook']),
     annotations: { readOnlyHint: true },
   },

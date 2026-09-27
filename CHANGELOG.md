@@ -11,6 +11,11 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Added
+
+- **An agent that cannot send a file asks the person for it.** An agent often learns it cannot send a file only by trying: ChatGPT Plus, whose sandbox has no network, opened four uploads it could not finish in two tasks, spent up to fourteen minutes on inline parts it could not type, and ended telling the person to attach the file from the editor under a name the editor cannot give it. `request_file` asks the person for the file instead — from nothing, or made of the upload the agent could not finish, which it replaces, its parts thrown away and its room given back. The request carries the name, type, description, tags, path and purpose of the file, reserves nothing and has no deadline; the file is kept under that name, so the `![[name]]` the agent wrote draws it untouched. `discard_file_upload` throws away an attempt the agent gives up on, or dismisses a request, over any upload open on the notebook. The skill `keep-files` teaches the sequence — try, look at what arrived, hand it to the person — and `list_file_uploads` lists the requests beside the uploads. The API answers `POST /portability/requests`, and an upload that names a request keeps the file it asks for. (#253, RN-PRT-030, RN-AGT-045)
+- **The sweep before the work is handed over sees files.** `check_notebook` now lists the files kept that no note names, and the uploads and requests still open on the notebook with who opened each and when its last part arrived; a pending link whose name a request or an upload carries says it waits for the person or for that upload. (#253, RN-DSC-064)
+
 ### Changed
 
 - **The card of a file says what it is in words.** It printed the media type as stored, and for a Word document, a spreadsheet or a presentation that was the longest line of the card — `application/vnd.openxmlformats-officedocument.wordprocessingml.document` — saying nothing a person recognises and wrapping over several lines on a phone. The card, and the list of files where an export or an import is chosen, now name the kind of the file in the language of the interface, *Documento do Word*, *Planilha do Excel*, *Vídeo MP4*, for each of the sixteen types a notebook keeps; the media type stays as the title of that line. (#251)

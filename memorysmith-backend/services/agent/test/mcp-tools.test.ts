@@ -123,6 +123,7 @@ function gateways(overrides: Record<string, unknown> = {}) {
         position: 'a0',
       },
     ],
+    listFileUploads: async () => [],
     reorderNote: async () => [
       {
         noteId: '01JBQ2X00000000000000000N2',
@@ -221,6 +222,9 @@ describe('The tool catalog is the public contract', () => {
       'file_upload_status',
       'finish_file_upload',
       'list_file_uploads',
+      // A file asked of the person, and an attempt thrown away (#253).
+      'request_file',
+      'discard_file_upload',
       'list_files',
       'delete_file',
       'update_note',
@@ -273,6 +277,8 @@ describe('The tool catalog is the public contract', () => {
       'begin_file_upload',
       'send_file_part',
       'finish_file_upload',
+      'request_file',
+      'discard_file_upload',
       'delete_file',
       'update_note',
       'reorder_note',
@@ -671,6 +677,7 @@ describe('The tool adapter translates in both directions', () => {
         },
       ],
       orphans: [],
+      unshownFiles: [],
     };
     const adapter = gateways({ discovery: { checkNotebook: async () => answer } });
     const result = await adapter.call(
@@ -679,7 +686,167 @@ describe('The tool adapter translates in both directions', () => {
       caller,
     );
     expect(result.isError).toBe(false);
-    expect(JSON.parse(result.content[0]?.text ?? '')).toEqual(answer);
+    expect(JSON.parse(result.content[0]?.text ?? '')).toEqual({
+      pending: answer.pending.map((each) => ({ ...each, waitingFor: null })),
+      orphans: [],
+      unshownFiles: [],
+      openUploads: [],
+    });
+  });
+
+  it('says what is still on its way: a file asked of the person, an upload left open, a file shown nowhere (#253)', async () => {
+    const note = {
+      noteId: '01JBQ2X00000000000000000N2',
+      name: 'Ata',
+      folderId: '01JBQ2X00000000000000000F1',
+    };
+    const adapter = gateways({
+      discovery: {
+        checkNotebook: async () => ({
+          pending: [
+            { target: 'quadro.jpg', from: [note], likelyMeant: null },
+            { target: 'foto.png', from: [note], likelyMeant: null },
+            { target: 'Próxima reunião', from: [note], likelyMeant: null },
+          ],
+          orphans: [],
+          unshownFiles: ['figura-original.jpg'],
+        }),
+      },
+      knowledge: {
+        listFileUploads: async () => [
+          {
+            transferId: '01JBQ2X00000000000000000R1',
+            kind: 'request',
+            status: 'running',
+            notebookId: '01JBQ2X00000000000000000V1',
+            notebookName: 'Atas',
+            requestedAt: '2026-09-27T10:00:00.000Z',
+            finishedAt: null,
+            done: 0,
+            total: 0,
+            bytes: 0,
+            failure: null,
+            fileName: 'quadro.jpg',
+            request: {
+              mimeType: 'image/jpeg',
+              description: '',
+              purpose: 'O quadro da reunião',
+              tags: [],
+              path: '',
+              platform: 'ChatGPT',
+              expectedSize: null,
+              expectedSha256: null,
+            },
+          },
+          {
+            transferId: '01JBQ2X00000000000000000P1',
+            kind: 'agent',
+            status: 'running',
+            notebookId: '01JBQ2X00000000000000000V1',
+            notebookName: 'Atas',
+            requestedAt: '2026-09-27T10:00:00.000Z',
+            finishedAt: null,
+            done: 0,
+            total: 1,
+            bytes: 5000,
+            failure: null,
+            fileName: 'foto.png',
+            upload: {
+              mimeType: 'image/png',
+              purpose: 'A foto',
+              platform: 'Claude',
+              transport: 'url',
+              sha256: 'a'.repeat(64),
+              partSize: 8388608,
+              partCount: 1,
+              received: [],
+              lastPartAt: null,
+            },
+          },
+        ],
+      },
+    });
+    const result = await adapter.call(
+      'check_notebook',
+      { notebook: '01JBQ2X00000000000000000V1' },
+      caller,
+    );
+    const answer = JSON.parse(result.content[0]?.text ?? '') as {
+      pending: Array<{ target: string; waitingFor: string | null }>;
+      unshownFiles: string[];
+      openUploads: Array<{ kind: string; name: string; openedBy: string | null }>;
+    };
+    expect(answer.pending.map((each) => [each.target, each.waitingFor])).toEqual([
+      ['quadro.jpg', 'person'],
+      ['foto.png', 'upload'],
+      ['Próxima reunião', null],
+    ]);
+    expect(answer.unshownFiles).toEqual(['figura-original.jpg']);
+    expect(answer.openUploads.map((each) => [each.kind, each.name, each.openedBy])).toEqual([
+      ['request', 'quadro.jpg', 'ChatGPT'],
+      ['upload', 'foto.png', 'Claude'],
+    ]);
+  });
+
+  it('asks the person for a file, from nothing or from an upload it could not finish (#253)', async () => {
+    const asked: unknown[] = [];
+    const adapter = gateways({
+      knowledge: {
+        requestFile: async (_caller: unknown, input: unknown) => {
+          asked.push(input);
+          return {
+            transferId: '01JBQ2X00000000000000000R1',
+            kind: 'request',
+            notebookId: '01JBQ2X00000000000000000V1',
+            fileName: 'quadro.jpg',
+          };
+        },
+      },
+    });
+    const fromNothing = await adapter.call(
+      'request_file',
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        name: 'quadro.jpg',
+        mimeType: 'image/jpeg',
+        purpose: 'O quadro da reunião',
+        size: 1935884,
+      },
+      caller,
+    );
+    expect(JSON.parse(fromNothing.content[0]?.text ?? '')).toMatchObject({
+      request: '01JBQ2X00000000000000000R1',
+      reference: '![[quadro.jpg]]',
+    });
+    await adapter.call('request_file', { upload: '01jbq2x00000000000000000p1' }, caller);
+    expect(asked).toEqual([
+      {
+        notebookId: '01JBQ2X00000000000000000V1',
+        name: 'quadro.jpg',
+        mimeType: 'image/jpeg',
+        purpose: 'O quadro da reunião',
+        size: 1935884,
+      },
+      { fromUpload: '01JBQ2X00000000000000000P1' },
+    ]);
+  });
+
+  it('throws an upload away when asked to (#253)', async () => {
+    const discarded: string[] = [];
+    const adapter = gateways({
+      knowledge: {
+        discardFileUpload: async (_caller: unknown, upload: string) => {
+          discarded.push(upload);
+        },
+      },
+    });
+    const result = await adapter.call(
+      'discard_file_upload',
+      { upload: '01JBQ2X00000000000000000P1' },
+      caller,
+    );
+    expect(result.isError).toBe(false);
+    expect(discarded).toEqual(['01JBQ2X00000000000000000P1']);
   });
 
   it('reads an identifier in either case, and passes it on in its canonical form (#247)', async () => {
@@ -1706,7 +1873,9 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
     // What was seen on 2026-09-26: a chat that recompresses the attachment,
     // and an agent that kept the small copy in silence (#243, RN-AGT-042).
     expect(keep?.description).toContain('tell them both sizes');
-    expect(skill?.body).toContain('Anexar arquivo');
+    expect(skill?.body).toContain('request_file');
+    expect(skill?.body).toContain('Aguardando você');
+    expect(skill?.body).not.toContain('Anexar arquivo');
     expect(skill?.body).toContain('host_not_allowed');
   });
 

@@ -711,10 +711,33 @@ that fits your situation is the one to use.
 3. **The file is a few kilobytes** — an icon, a small diagram. \`keep_file\`
    takes it in one call.
 
-Anything larger that you cannot send by URL is kept by the person: in the
-note, **Editar** and then **Anexar arquivo** keeps the file whole and writes its
-reference where the cursor is. Say so, and write the note with the reference
-already in it: it draws the file the moment it is kept.
+Anything larger that you cannot send by URL, **ask the person for**: see *When
+you cannot send it* below.
+
+## When you cannot send it
+
+You often learn you cannot send a file only by trying, so try, and look:
+
+1. **Try.** Start the upload by URL and send the first part.
+2. **Look.** Call \`file_upload_status\`: when the part you sent is not in
+   \`received\`, your code has no way to the parts host, and more attempts will
+   not change that. Stop there — typing megabytes inline is not a way around
+   it.
+3. **Hand it to the person.** Call \`request_file\` with that \`upload\`: the
+   upload becomes a request, with its name, type, description, tags and purpose,
+   and its parts and the room it held are thrown away. Without an upload, call
+   \`request_file\` with the notebook, the name, the type and the purpose.
+4. **Write the reference** \`![[name]]\` where the file belongs, with the name
+   of the request, and tell the person the file waits for them in Transfers,
+   **Aguardando você**: they keep it there, under that name, and the note draws
+   it the moment it is kept. \`list_files\` says when it is.
+
+The request is also the way when what you hold is a copy the client reduced and
+the person wants the original kept. Give it a size or SHA-256 only when you know
+it of the file the person has, not of your copy.
+
+An attempt you give up on is thrown away with \`discard_file_upload\`, so none is
+left open in Transfers reserving room.
 
 ## Keep what the person gave you, or say what you have
 
@@ -832,6 +855,16 @@ Write the reference the finish answered where the note needs the file,
 everything else is a card with a download. \`list_files\` says what the notebook
 keeps already, so a note points at the file that is there instead of a second
 copy of it.
+
+## Before you say it is done
+
+Run \`check_notebook\`. Besides the links, it lists \`openUploads\` — uploads not
+finished and requests the person has not fulfilled — and \`unshownFiles\`, the
+files kept that no note names. Finish an upload, hand it to the person with
+\`request_file\`, or throw it away with \`discard_file_upload\`: leave none open
+without telling the person why. A file no note shows may be kept on purpose,
+such as the source of a figure: say which ones to the person. A pending link
+with \`waitingFor: "person"\` is a file they were asked for.
 `;
 /**
  * The skill a text names outside the registry, as a constant of it: a

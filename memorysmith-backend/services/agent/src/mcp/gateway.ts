@@ -12,6 +12,7 @@
 import type {
   BeginUploadRequest,
   FinishedUploadDto,
+  RequestFileRequest,
   TransferDto,
   UploadStatusDto,
 } from '@memorysmith/contracts';
@@ -93,6 +94,11 @@ export interface NotebookCheck {
   }>;
   /** Notes nothing links to. */
   readonly orphans: readonly NoteReference[];
+  /**
+   * The files the notebook keeps that no note names (RN-DSC-064): some kept on
+   * purpose, and the agent says which to the person.
+   */
+  readonly unshownFiles: readonly string[];
 }
 
 export interface NoteContent {
@@ -291,6 +297,16 @@ export interface KnowledgeGateway {
   ): Promise<UploadStatusDto>;
   finishFileUpload(caller: AgentCaller, uploadId: string): Promise<FinishedUploadDto>;
   listFileUploads(caller: AgentCaller, notebookId: string | null): Promise<TransferDto[]>;
+  /**
+   * Asks the person for a file instead of sending it (#253, RN-PRT-030), from
+   * nothing or from an upload the agent could not finish, which it replaces.
+   */
+  requestFile(caller: AgentCaller, input: RequestFileRequest): Promise<TransferDto>;
+  /**
+   * Throws an open upload away, its parts and the room it reserved, or
+   * dismisses a request (RN-PRT-028, RN-PRT-030).
+   */
+  discardFileUpload(caller: AgentCaller, uploadId: string): Promise<void>;
   deleteFile(caller: AgentCaller, notebookId: string, fileId: string): Promise<void>;
   notebookContext(caller: AgentCaller, notebookId: string): Promise<string>;
   template(

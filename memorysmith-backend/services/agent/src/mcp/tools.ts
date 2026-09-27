@@ -12,7 +12,12 @@
  * caller needs to try again (RN-AGT-003).
  */
 
-import { ulidSchema, type Deployment, type UploadStatusDto } from '@memorysmith/contracts';
+import {
+  ulidSchema,
+  type Deployment,
+  type TransferDto,
+  type UploadStatusDto,
+} from '@memorysmith/contracts';
 import { TOOL_CATALOG } from './catalog.js';
 import { PRODUCTION_DEFAULT } from './environment.js';
 import { whoAmI } from './whoami.js';
@@ -176,6 +181,47 @@ function uploadAnswer(status: UploadStatusDto, next: string): ToolResult {
       : {}),
     next,
   });
+}
+
+/**
+ * An upload or a request as the connector lists it: who opened it, what for and
+ * how far it got — what deciding to finish, hand over or throw it away takes.
+ */
+function openUploadOf(each: TransferDto): Record<string, unknown> {
+  if (each.kind === 'request') {
+    return {
+      upload: each.transferId,
+      kind: 'request',
+      name: each.fileName,
+      notebook: each.notebookId,
+      notebookName: each.notebookName,
+      status: each.status,
+      waitingFor: 'person',
+      purpose: each.request?.purpose,
+      mimeType: each.request?.mimeType,
+      openedBy: each.request?.platform ?? null,
+      expectedSize: each.request?.expectedSize ?? null,
+      startedAt: each.requestedAt,
+    };
+  }
+  return {
+    upload: each.transferId,
+    kind: 'upload',
+    name: each.fileName,
+    notebook: each.notebookId,
+    notebookName: each.notebookName,
+    status: each.status,
+    failure: each.failure,
+    size: each.bytes,
+    sha256: each.upload?.sha256,
+    purpose: each.upload?.purpose,
+    openedBy: each.upload?.platform ?? null,
+    transport: each.upload?.transport,
+    partCount: each.upload?.partCount,
+    received: each.upload?.received ?? [],
+    startedAt: each.requestedAt,
+    lastPartAt: each.upload?.lastPartAt ?? null,
+  };
 }
 
 /** An argument that may be left out, which is most of what a file carries. */
@@ -566,24 +612,59 @@ export class McpToolAdapter {
           caller,
           optionalString(args, 'notebook') ?? null,
         );
+        return json({ uploads: uploads.map(openUploadOf) });
+      }
+
+      /**
+       * A file asked of the person instead of sent (#253, RN-PRT-030, RN-AGT-045):
+       * from nothing, or made of an upload the agent could not finish.
+       */
+      case 'request_file': {
+        const upload = optionalString(args, 'upload');
+        const size = args['size'];
+        const sha256 = optionalString(args, 'sha256');
+        const request = await knowledge.requestFile(
+          caller,
+          upload !== undefined
+            ? { fromUpload: upload }
+            : {
+                notebookId: requireString(args, 'notebook', 'request_file'),
+                name: requireString(args, 'name', 'request_file'),
+                mimeType: requireString(args, 'mimeType', 'request_file'),
+                purpose: requireString(args, 'purpose', 'request_file'),
+                ...(optionalString(args, 'description') === undefined
+                  ? {}
+                  : { description: optionalString(args, 'description') }),
+                ...(optionalStrings(args, 'tags') === undefined
+                  ? {}
+                  : { tags: optionalStrings(args, 'tags') }),
+                ...(optionalString(args, 'path') === undefined
+                  ? {}
+                  : { path: optionalString(args, 'path') }),
+                ...(typeof size === 'number' && Number.isInteger(size) && size > 0 ? { size } : {}),
+                ...(sha256 === undefined ? {} : { sha256: sha256.toLowerCase() }),
+              },
+        );
         return json({
-          uploads: uploads.map((each) => ({
-            upload: each.transferId,
-            name: each.fileName,
-            notebook: each.notebookId,
-            notebookName: each.notebookName,
-            status: each.status,
-            failure: each.failure,
-            size: each.bytes,
-            sha256: each.upload?.sha256,
-            purpose: each.upload?.purpose,
-            transport: each.upload?.transport,
-            partCount: each.upload?.partCount,
-            received: each.upload?.received ?? [],
-            startedAt: each.requestedAt,
-            lastPartAt: each.upload?.lastPartAt ?? null,
-          })),
+          request: request.transferId,
+          name: request.fileName,
+          notebook: request.notebookId,
+          reference: `![[${request.fileName ?? ''}]]`,
+          next:
+            'The person keeps the file from Transfers, under this name. Write the reference ' +
+            'where the file belongs, if it is not written yet, and tell them the file is ' +
+            'waiting for them there: the note draws it the moment it is kept, which list_files ' +
+            'will say.',
         });
+      }
+
+      case 'discard_file_upload': {
+        const upload = requireString(args, 'upload', 'discard_file_upload');
+        await knowledge.discardFileUpload(caller, upload);
+        return text(
+          `The upload ${upload} is gone: its parts are thrown away and the room it held is ` +
+            'given back. A request is dismissed the same way.',
+        );
       }
 
       case 'list_files':
@@ -706,10 +787,32 @@ export class McpToolAdapter {
           ),
         );
 
-      case 'check_notebook':
-        return json(
-          await discovery.checkNotebook(caller, requireString(args, 'notebook', 'check_notebook')),
-        );
+      case 'check_notebook': {
+        // The sweep reads the links from Discovery and what is still on its way
+        // from Portability (RN-DSC-064): a name the person was asked for is a
+        // pending link that waits for them, not a note still to write.
+        const notebook = requireString(args, 'notebook', 'check_notebook');
+        const [check, open] = await Promise.all([
+          discovery.checkNotebook(caller, notebook),
+          knowledge.listFileUploads(caller, notebook),
+        ]);
+        const waiting = new Map<string, 'person' | 'upload'>();
+        for (const each of open) {
+          if (each.status !== 'running' || !each.fileName) continue;
+          const name = each.fileName.normalize('NFC');
+          if (each.kind === 'request') waiting.set(name, 'person');
+          else if (!waiting.has(name)) waiting.set(name, 'upload');
+        }
+        return json({
+          pending: check.pending.map((each) => ({
+            ...each,
+            waitingFor: waiting.get(each.target.normalize('NFC')) ?? null,
+          })),
+          orphans: check.orphans,
+          unshownFiles: check.unshownFiles,
+          openUploads: open.filter((each) => each.status === 'running').map(openUploadOf),
+        });
+      }
 
       case 'note_history':
         return json(

@@ -18,6 +18,7 @@ import type {
   BacklinksDto,
   BeginUploadRequest,
   FinishedUploadDto,
+  RequestFileRequest,
   TransferDto,
   UploadStatusDto,
   FileListDto,
@@ -410,6 +411,19 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     return listed.transfers;
   }
 
+  async requestFile(caller: AgentCaller, input: RequestFileRequest): Promise<TransferDto> {
+    return callApi<TransferDto>(this.origin, caller, '/portability/requests', {
+      method: 'POST',
+      body: input,
+    });
+  }
+
+  async discardFileUpload(caller: AgentCaller, uploadId: string): Promise<void> {
+    await callApi<unknown>(this.origin, caller, `/portability/transfers/${uploadId}`, {
+      method: 'DELETE',
+    });
+  }
+
   async listFiles(caller: AgentCaller, notebookId: string): Promise<NotebookFileRef[]> {
     const listed = await callApi<FileListDto>(
       this.origin,
@@ -722,6 +736,7 @@ export class HttpDiscoveryGateway implements DiscoveryGateway {
         };
       }),
       orphans: health.orphans.map(referenceOf),
+      unshownFiles: health.unshownFiles ?? [],
     };
   }
 }
