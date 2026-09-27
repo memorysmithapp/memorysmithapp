@@ -203,6 +203,14 @@ export class S3PartStore implements PartStore {
      */
     private readonly signer: S3Client,
     private readonly bucket: string,
+    /**
+     * The host a signed part is answered on, `https://uploads.{zone}` (#241),
+     * or nothing to answer it on the bucket's own. A signature of S3 covers the
+     * host it was signed for and the path, and the distribution on that host
+     * forwards the request to the bucket with its own Host, so S3 checks the
+     * very request it signed: only the name the client sees changes.
+     */
+    private readonly publicOrigin: string | null = null,
   ) {}
 
   async startMultipart(key: string, mimeType: string): Promise<string> {
@@ -214,7 +222,7 @@ export class S3PartStore implements PartStore {
   }
 
   async signPart(key: string, multipartId: string, part: number, seconds: number): Promise<string> {
-    return getSignedUrl(
+    const signed = await getSignedUrl(
       this.signer,
       new UploadPartCommand({
         Bucket: this.bucket,
@@ -224,6 +232,12 @@ export class S3PartStore implements PartStore {
       }),
       { expiresIn: seconds },
     );
+    if (!this.publicOrigin) return signed;
+    const url = new URL(signed);
+    const origin = new URL(this.publicOrigin);
+    url.protocol = origin.protocol;
+    url.host = origin.host;
+    return url.toString();
   }
 
   async listParts(

@@ -72,6 +72,8 @@ function templates(): { api: Template; projections: Template } {
     hostedZone: network.hostedZone,
     certificate: network.apiCertificate,
     apiDomainName: network.apiDomainName,
+    uploadsDomainName: network.uploadsDomainName,
+    uploadsCertificate: network.uploadsCertificate,
     userPool: identity.userPool,
     cognitoIssuer: identity.issuer,
     connectorClientId: identity.proxyClient.userPoolClientId,

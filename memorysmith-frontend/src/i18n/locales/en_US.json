@@ -459,7 +459,8 @@
     "linkNone": "There is no notebook you can write in.",
     "deleteUploadAsk": "Delete this upload?",
     "deleteUploadFrees": "The parts that arrived are thrown away and the {{size}} reserved go back to your plan. This is for good.",
-    "deleteFailedUpload": "Only this notice leaves the list; its parts were already thrown away."
+    "deleteFailedUpload": "Only this notice leaves the list; its parts were already thrown away.",
+    "platformInterface": "from the interface"
   },
   "about": {
     "menu": "About MemorySmith.app",
@@ -528,7 +529,22 @@
       "three": "“Write a note about what we just discussed, in the right folder.”",
       "skills": "The connector carries written methods for the tasks that go wrong most often — designing a notebook from scratch, writing a note this product can read — and a good assistant reads them before it starts. You will see it do so."
     },
-    "start": "Get started"
+    "start": "Get started",
+    "files": {
+      "heading": "Sending files through your assistant",
+      "body": "An assistant keeps a photo, a PDF or a recording whole, at the size it arrived, by sending the parts of the file straight to the address below. For that, the app it runs in has to allow it — and the settings that decide it do not say when they are in the way.",
+      "editor": "Without any of it, this way always works: open the note, click Edit and then Attach file. The file is kept whole, and its reference goes where the cursor is.",
+      "claude": {
+        "one": "After an update of MemorySmith, open <b>Customize</b>, then <b>Connectors</b>, and reconnect <b>MemorySmith.app</b>: that is how new tools reach Claude.",
+        "two": "In <b>Settings</b>, then <b>Capabilities</b>, turn on <b>Allow network egress</b>. If you allow domains one by one, allow the address above, or <b>*.memorysmith.app</b> at once.",
+        "three": "These changes reach <b>new conversations</b>: start one, attach the file and ask for it to be kept. An upload left halfway is resumed there, without starting over."
+      },
+      "chatgpt": {
+        "one": "After an update of MemorySmith, open the <b>MemorySmith.app</b> plugin in the <b>Plugins</b> settings and click <b>Refresh</b>, so the new tools appear.",
+        "two": "ChatGPT hands the assistant a <b>reduced copy</b> of an attached photo, and its code cannot reach the network: the assistant has no original to keep, and should say so rather than keep the copy.",
+        "three": "To keep the photo whole, attach it to the note yourself, through <b>Edit</b> and <b>Attach file</b>, and ask the assistant for the rest of the work."
+      }
+    }
   },
   "profile": {
     "menu": "Your profile",
@@ -602,7 +618,18 @@
     "keepAlias": "Keep “{{name}}” as an alias, so the links to it keep arriving",
     "conflict": "Somebody else wrote this note since you opened it. Read it again and redo your change.",
     "failed": "That could not be written.",
-    "leaveWarning": "You have changes you have not written. Leave and lose them?"
+    "leaveWarning": "You have changes you have not written. Leave and lose them?",
+    "attach": "Attach file",
+    "attachHashing": "Preparing the file…",
+    "attachSending": "Sending · {{sent}} of {{total}} parts",
+    "attachDone": "“{{name}}” was kept whole in the notebook, and its reference went where the cursor was. The file stays in the notebook even if you cancel this edit.",
+    "attachPurpose": "Attached from the interface to the note “{{note}}”",
+    "attachPurposeUnnamed": "Attached from the interface to a note",
+    "attachRefusal": {
+      "TOO_LARGE": "An attached file goes up to 100 MB.",
+      "EMPTY": "This file is empty.",
+      "NO_TYPE": "The browser did not say what type this file is, so it cannot be kept."
+    }
   },
   "history": {
     "heading": "History of this note",

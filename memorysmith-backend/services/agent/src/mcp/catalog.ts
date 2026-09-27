@@ -468,7 +468,9 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'The bytes travel inline, base64, in this one call, so it suits a file small enough to ' +
       'write out whole without a slip \u2014 a few kilobytes. A photo, a recording or a document ' +
       'of any real size is sent with begin_file_upload instead, whole and at its own ' +
-      `resolution, as the skill \`${KEEP_FILES_SKILL}\` describes. The type is checked against the bytes, so ` +
+      `resolution, as the skill \`${KEEP_FILES_SKILL}\` describes. Keep what the person gave you: ` +
+      'when the bytes you hold are fewer than what they sent — a chat that recompresses ' +
+      'attachments — tell them both sizes before keeping anything. The type is checked against the bytes, so ' +
       'a declaration they do not support is refused naming both. A notebook keeps one file of ' +
       'each name; the path only organises, so moving a file never breaks a note.',
     inputSchema: object(
@@ -520,7 +522,8 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'last one shorter. With transport "inline" you send each part yourself with ' +
       'send_file_part, and choose its size with partSize. The file is kept by ' +
       'finish_file_upload once every part arrived, and only if the whole hashes to what you ' +
-      'declared here. Up to 100 MB by URL, 4 MB inline. The room is reserved now, and the ' +
+      'declared here. Up to 100 MB by URL; inline suits what you write out whole, a few tens of ' +
+      'kilobytes. The answer names partsHost, the host every part goes to. The room is reserved now, and the ' +
       'person sees the upload in Transfers until it becomes a file. Read the skill ' +
       `\`${KEEP_FILES_SKILL}\` first.`,
     inputSchema: object(

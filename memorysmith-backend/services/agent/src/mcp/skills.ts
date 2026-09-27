@@ -699,15 +699,27 @@ that fits your situation is the one to use.
    \`transport: "url"\`. Every part gets an address, and a script sends the
    bytes from the disk straight to it: they never pass through what you write,
    so a file of 50 MB costs you what one of 50 KB does. Up to 100 MB.
-2. **You can run code, without network.** Use \`begin_file_upload\` with
-   \`transport: "inline"\`, let the code cut the file and hash each part, and
-   send each part with \`send_file_part\`. Every byte passes through what you
-   write, so this suits files up to 4 MB, in parts of about 24 KB.
+2. **You write the bytes yourself** — a sandbox without network, or no sandbox
+   at all. Use \`begin_file_upload\` with \`transport: "inline"\`, let code cut
+   the file and hash each part when you have it, and send each part with
+   \`send_file_part\`. Every byte passes through what you write, so this suits
+   what you write out whole without a slip: a few tens of kilobytes.
 3. **The file is a few kilobytes** — an icon, a small diagram. \`keep_file\`
    takes it in one call.
 
-When you see a picture in the conversation but have no file of it, you have
-its appearance and not its bytes: ask the person for the file itself.
+Anything larger that you cannot send by URL is kept by the person: in the
+note, **Editar** and then **Anexar arquivo** keeps the file whole and writes its
+reference where the cursor is. Say so, and write the note with the reference
+already in it: it draws the file the moment it is kept.
+
+## Keep what the person gave you, or say what you have
+
+When you see a picture in the conversation but have no file of it, you have its
+appearance and not its bytes: ask the person for the file itself. And a chat
+often hands an agent a **copy** of an attachment, recompressed on the way in —
+a photo of 1.9 MB arriving as 280 KB. Compare what you hold with what the person
+sent; when it is less, tell them both sizes before keeping anything, and let
+them choose between that copy and attaching the original themselves.
 
 ## Sending a file by URL
 
@@ -760,6 +772,23 @@ Send each one with \`send_file_part\`: the upload, the number, the hash and the
 base64. A part whose bytes do not match its hash is refused and nothing of it is
 kept, so a slip costs you that one part: send it again. Then call
 \`finish_file_upload\`.
+
+## When your client stands in the way
+
+Three things of the client an agent runs in decide whether the bytes can go at
+all, and none of them announces itself:
+
+- **A tool \`whoami\` lists and your client does not show**: the client kept
+  the list it read when the connector was added. Ask the person to reconnect
+  the connector, and continue in the same conversation.
+- **A PUT refused by your own environment** — a proxy answering
+  \`host_not_allowed\`, a connection refused — means your code has no network,
+  or not to that host. The answer of \`begin_file_upload\` names the host the
+  parts go to, \`partsHost\`: ask the person to turn on network access for code
+  and allow that host, or every host of the product at once, \`*.memorysmith.app\`.
+- **Such a change reaches a new conversation**, not the one already open. The
+  upload waits: in the new conversation, \`list_file_uploads\` finds it by the
+  SHA-256 of the file and \`file_upload_status\` signs fresh addresses.
 
 ## Following an upload, and resuming one
 

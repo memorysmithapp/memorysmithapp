@@ -19,7 +19,17 @@ import { DynamoEventSource, SqsDlq, SqsEventSource } from 'aws-cdk-lib/aws-lambd
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Alarm, ComparisonOperator, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
 import { ARecord, RecordTarget, type IHostedZone } from 'aws-cdk-lib/aws-route53';
-import { ApiGatewayv2DomainProperties } from 'aws-cdk-lib/aws-route53-targets';
+import { ApiGatewayv2DomainProperties, CloudFrontTarget } from 'aws-cdk-lib/aws-route53-targets';
+import {
+  AllowedMethods,
+  CachePolicy,
+  Distribution,
+  OriginProtocolPolicy,
+  OriginRequestPolicy,
+  PriceClass,
+  ViewerProtocolPolicy,
+} from 'aws-cdk-lib/aws-cloudfront';
+import { HttpOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
 import type { ICertificate } from 'aws-cdk-lib/aws-certificatemanager';
 import type { IUserPool } from 'aws-cdk-lib/aws-cognito';
 import type { Construct } from 'constructs';
@@ -54,6 +64,9 @@ export interface ApiStackProps extends StackProps {
   readonly hostedZone: IHostedZone;
   readonly certificate: ICertificate;
   readonly apiDomainName: string;
+  /** The host the parts of an upload are sent to, and its certificate (#241). */
+  readonly uploadsDomainName: string;
+  readonly uploadsCertificate: ICertificate;
   readonly cognitoIssuer: string;
   /** The app client of the connector proxy, whose tokens write as a connector. */
   readonly connectorClientId: string;
@@ -71,6 +84,8 @@ export interface ApiStackProps extends StackProps {
 
 export class ApiStack extends Stack {
   readonly apiOrigin: string;
+  /** Where the parts of an upload are sent (#241). */
+  readonly uploadsOrigin: string;
   readonly httpApi: HttpApi;
 
   constructor(scope: Construct, id: string, props: ApiStackProps) {
@@ -107,6 +122,8 @@ export class ApiStack extends Stack {
       CONNECTOR_CLIENT_ID: props.connectorClientId,
       USER_POOL_ID: props.userPool.userPoolId,
       WEB_CLIENT_ID: props.webClientId,
+      // Where a signed part is answered, instead of the bucket's own name (#241).
+      UPLOADS_ORIGIN: `https://${props.uploadsDomainName}`,
     };
 
     const api = new ServiceLambda(this, 'CoreApi', {
@@ -436,5 +453,41 @@ export class ApiStack extends Stack {
     });
 
     this.apiOrigin = `https://${props.apiDomainName}`;
+
+    /**
+     * The host the parts of an upload are sent to (#241, RN-PRT-027). A part is
+     * signed by S3 exactly as before, for the bucket's own host, and answered on
+     * this one: CloudFront forwards every query string and every header but
+     * Host, so S3 receives the very request that was signed — same path, same
+     * query, its own host — and checks the signature itself. Nothing re-signs,
+     * nothing authorises in between, and no function sees the bytes, so the
+     * 6 MB of a request stays out of the way.
+     *
+     * Caching is off and every method is allowed: what reaches the bucket is
+     * only what a signature of S3 already allows, and the bucket keeps blocking
+     * public access. The Origin header travels too, so the CORS of the bucket
+     * answers the site as it does on the bucket's own host.
+     */
+    const uploads = new Distribution(this, 'UploadsDistribution', {
+      comment: `MemorySmith uploads (${props.environment.name})`,
+      domainNames: [props.uploadsDomainName],
+      certificate: props.uploadsCertificate,
+      priceClass: PriceClass.PRICE_CLASS_100,
+      defaultBehavior: {
+        origin: new HttpOrigin(props.data.contentBucket.bucketRegionalDomainName, {
+          protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
+        }),
+        allowedMethods: AllowedMethods.ALLOW_ALL,
+        cachePolicy: CachePolicy.CACHING_DISABLED,
+        originRequestPolicy: OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+        viewerProtocolPolicy: ViewerProtocolPolicy.HTTPS_ONLY,
+      },
+    });
+    new ARecord(this, 'UploadsRecord', {
+      zone: props.hostedZone,
+      recordName: props.uploadsDomainName,
+      target: RecordTarget.fromAlias(new CloudFrontTarget(uploads)),
+    });
+    this.uploadsOrigin = `https://${props.uploadsDomainName}`;
   }
 }

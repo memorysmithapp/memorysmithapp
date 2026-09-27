@@ -191,8 +191,11 @@ const infra: Infrastructure = {
  */
 const signer = new S3Client({ requestChecksumCalculation: 'WHEN_REQUIRED' });
 
+/** Where a signed part is answered: a host of the product, not the bucket's name (#241). */
+const uploadsOrigin = required('UPLOADS_ORIGIN');
+
 function partsOf(): S3PartStore {
-  return new S3PartStore(infra.s3, signer, infra.contentBucket);
+  return new S3PartStore(infra.s3, signer, infra.contentBucket, uploadsOrigin);
 }
 
 const sqs = new SQSClient({});

@@ -1375,6 +1375,9 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
     expect(sent).toMatchObject({ notebookId: 'v1', sha256: 'a'.repeat(64), transport: 'url' });
     const body = JSON.parse(answer.content[0]?.text ?? '') as Record<string, unknown>;
     expect(body['targets']).toHaveLength(3);
+    // The host the parts go to, which a client that allows hosts one by one
+    // has to be told about (#241, #243).
+    expect(body['partsHost']).toBe('store');
     expect(body['missing']).toEqual([1, 2, 3]);
     expect(String(body['next'])).toContain('PUT');
   });
@@ -1437,5 +1440,10 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
     const keep = TOOL_CATALOG.find((each) => each.name === 'keep_file');
     expect(keep?.description).toContain('begin_file_upload');
     expect(keep?.description).toContain('keep-files');
+    // What was seen on 2026-09-26: a chat that recompresses the attachment,
+    // and an agent that kept the small copy in silence (#243, RN-AGT-042).
+    expect(keep?.description).toContain('tell them both sizes');
+    expect(skill?.body).toContain('Anexar arquivo');
+    expect(skill?.body).toContain('host_not_allowed');
   });
 });

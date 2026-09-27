@@ -462,7 +462,8 @@
     "linkNone": "Nenhum caderno em que você possa escrever.",
     "deleteUploadAsk": "Apagar este envio?",
     "deleteUploadFrees": "As partes que chegaram são descartadas e os {{size}} reservados voltam para o seu plano. Isto é definitivo.",
-    "deleteFailedUpload": "Só este aviso sai da lista; as partes já foram descartadas."
+    "deleteFailedUpload": "Só este aviso sai da lista; as partes já foram descartadas.",
+    "platformInterface": "pela interface"
   },
   "about": {
     "menu": "Sobre o MemorySmith.app",
@@ -531,7 +532,22 @@
       "three": "“Escreva uma nota sobre o que acabamos de conversar, na pasta certa.”",
       "skills": "O conector carrega métodos escritos para as tarefas que mais dão errado — desenhar um caderno do zero, escrever uma nota que este produto consegue ler — e um bom assistente os lê antes de começar. Você vai vê-lo fazer isso."
     },
-    "start": "Começar"
+    "start": "Começar",
+    "files": {
+      "heading": "Enviando arquivos pelo assistente",
+      "body": "Um assistente guarda uma foto, um PDF ou uma gravação inteiros, no tamanho em que chegaram, enviando as partes do arquivo direto para o endereço abaixo. Para isso, o aplicativo em que ele roda precisa deixar: as configurações que decidem isso não avisam quando estão no caminho.",
+      "editor": "Sem nada disso, o caminho é sempre este: abra a nota, clique em Editar e depois em Anexar arquivo. O arquivo é guardado inteiro, e a referência entra onde está o cursor.",
+      "claude": {
+        "one": "Depois de uma atualização do MemorySmith, abra <b>Personalizar</b>, depois <b>Conectores</b>, e reconecte o <b>MemorySmith.app</b>: é assim que as ferramentas novas aparecem para o Claude.",
+        "two": "Em <b>Configurações</b>, depois <b>Recursos</b>, ligue <b>Permitir acesso de rede externo</b>. Se você libera domínios um a um, libere o endereço acima, ou <b>*.memorysmith.app</b> de uma vez.",
+        "three": "Essas mudanças valem para <b>conversas novas</b>: comece uma, anexe o arquivo e peça para guardá-lo. Um envio que ficou pela metade é retomado ali, sem começar de novo."
+      },
+      "chatgpt": {
+        "one": "Depois de uma atualização do MemorySmith, abra o plugin <b>MemorySmith.app</b> nas configurações de <b>Plugins</b> e clique em <b>Atualizar</b>, para as ferramentas novas aparecerem.",
+        "two": "O ChatGPT entrega ao assistente uma <b>cópia reduzida</b> da foto anexada, e o código dele não alcança a rede: o assistente não tem o original para guardar, e deve dizer isso em vez de guardar a cópia.",
+        "three": "Para guardar a foto inteira, anexe-a você mesmo na nota, por <b>Editar</b> e <b>Anexar arquivo</b>, e peça ao assistente o resto do trabalho."
+      }
+    }
   },
   "profile": {
     "menu": "Seu perfil",
@@ -605,7 +621,18 @@
     "keepAlias": "Manter “{{name}}” como alias, para os links continuarem chegando",
     "conflict": "Outra pessoa gravou esta nota depois que você abriu. Leia de novo e refaça sua mudança.",
     "failed": "Não foi possível gravar.",
-    "leaveWarning": "Você tem mudanças que ainda não gravou. Sair e perdê-las?"
+    "leaveWarning": "Você tem mudanças que ainda não gravou. Sair e perdê-las?",
+    "attach": "Anexar arquivo",
+    "attachHashing": "Preparando o arquivo…",
+    "attachSending": "Enviando · {{sent}} de {{total}} partes",
+    "attachDone": "“{{name}}” foi guardado inteiro no caderno, e a referência entrou onde estava o cursor. O arquivo fica no caderno mesmo que você cancele esta edição.",
+    "attachPurpose": "Anexado pela interface à nota “{{note}}”",
+    "attachPurposeUnnamed": "Anexado pela interface a uma nota",
+    "attachRefusal": {
+      "TOO_LARGE": "Um arquivo anexado vai até 100 MB.",
+      "EMPTY": "Esse arquivo está vazio.",
+      "NO_TYPE": "O navegador não disse de que tipo é esse arquivo, então ele não pode ser guardado."
+    }
   },
   "history": {
     "heading": "Histórico desta nota",

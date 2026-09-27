@@ -74,6 +74,8 @@ const api = new ApiStack(app, id('Api'), {
   hostedZone: network.hostedZone,
   certificate: network.apiCertificate,
   apiDomainName: network.apiDomainName,
+  uploadsDomainName: network.uploadsDomainName,
+  uploadsCertificate: network.uploadsCertificate,
   userPool: identity.userPool,
   cognitoIssuer: identity.issuer,
   connectorClientId: identity.proxyClient.userPoolClientId,
@@ -111,6 +113,7 @@ const release = new FrontendReleaseStack(app, id('FrontendRelease'), {
   config: {
     apiOrigin: api.apiOrigin,
     connectorOrigin: `https://${network.mcpDomainName}`,
+    uploadsOrigin: api.uploadsOrigin,
     cognitoDomain: identity.hostedUiOrigin,
     cognitoClientId: identity.webClient.userPoolClientId,
     environment: deployment.environment,

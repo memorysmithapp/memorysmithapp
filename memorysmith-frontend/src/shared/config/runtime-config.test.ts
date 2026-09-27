@@ -16,6 +16,7 @@ import {
 const STAGING = {
   apiOrigin: 'https://api.stg.memorysmith.app/',
   connectorOrigin: 'https://mcp.stg.memorysmith.app/',
+  uploadsOrigin: 'https://uploads.stg.memorysmith.app/',
   cognitoDomain: 'https://auth.stg.memorysmith.app',
   cognitoClientId: 'client-id',
   environment: 'staging',
@@ -28,7 +29,13 @@ describe('the runtime configuration', () => {
       ...STAGING,
       apiOrigin: 'https://api.stg.memorysmith.app',
       connectorOrigin: 'https://mcp.stg.memorysmith.app',
+      uploadsOrigin: 'https://uploads.stg.memorysmith.app',
     });
+  });
+
+  it('reads a configuration published before the uploads host existed (#241)', () => {
+    const { uploadsOrigin: _absent, ...older } = STAGING;
+    expect(parseRuntimeConfig(older).uploadsOrigin).toBeNull();
   });
 
   it('points a client at the path the connector answers on, not at its host (#180)', () => {

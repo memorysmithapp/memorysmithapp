@@ -5547,8 +5547,22 @@ body.has-sheet .app-main {
 }
 .note-editor-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.6rem;
   margin-top: 0.85rem;
+}
+/* Keeping a file is not one of the two verbs of the edit: it sits apart,
+   at the far end of the row (#242). */
+.note-editor-attach {
+  margin-left: auto;
+}
+.note-editor-attaching {
+  margin: 0.6rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-soft);
+}
+.note-editor-attaching.is-failure {
+  color: var(--danger);
 }
 /* What the write will do, said before it is confirmed. The pending colour is
    the one a link to nothing already wears, so the two read as one fact. */

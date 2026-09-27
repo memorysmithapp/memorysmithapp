@@ -51,9 +51,13 @@ export function TransferFile({ transfer }: { transfer: TransferDto }) {
       ? t('transfers.fromFile', { file: transfer.fileName })
       : transfer.fileName
     : null;
-  const platform = transfer.upload?.platform
-    ? t('transfers.platform', { platform: transfer.upload.platform })
-    : null;
+  // A connector names itself; an upload with none was started from the
+  // interface, by the note editor (#242).
+  const platform = !transfer.upload
+    ? null
+    : transfer.upload.platform
+      ? t('transfers.platform', { platform: transfer.upload.platform })
+      : t('transfers.platformInterface');
   return (
     <span className="transfer-file">
       {[file, platform, when].filter((part): part is string => part !== null).join(' · ')}

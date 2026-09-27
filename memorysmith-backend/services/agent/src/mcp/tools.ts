@@ -111,6 +111,14 @@ function requireInteger(args: Record<string, unknown>, name: string, tool: strin
   return value;
 }
 
+function hostOf(url: string): string | null {
+  try {
+    return new URL(url).host;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * What an upload answers, in the words the agent acts on (RN-PRT-027): what
  * is missing, and where each missing part goes when it goes by URL.
@@ -127,7 +135,13 @@ function uploadAnswer(status: UploadStatusDto, next: string): ToolResult {
     received: upload?.received ?? [],
     missing: status.missing,
     ...(status.targets.length > 0
-      ? { targets: status.targets, targetsExpireAt: status.expiresAt }
+      ? {
+          // The host every part goes to, which a client that allows hosts one
+          // by one has to be told about (#241, #243).
+          partsHost: hostOf(status.targets[0]?.url ?? ''),
+          targets: status.targets,
+          targetsExpireAt: status.expiresAt,
+        }
       : {}),
     next,
   });

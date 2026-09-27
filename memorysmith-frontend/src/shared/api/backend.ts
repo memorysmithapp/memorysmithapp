@@ -11,6 +11,9 @@ import type {
   AccountLocaleDto,
   AvatarSourceDto,
   TransferSelection,
+  BeginUploadRequest,
+  FinishedUploadDto,
+  UploadStatusDto,
   TransferDto,
   TransferListDto,
   DownloadLinkDto,
@@ -371,6 +374,21 @@ export async function cancelTransfer(transferId: string): Promise<void> {
 
 export async function deleteTransfer(transferId: string): Promise<void> {
   await request<void>(`/portability/transfers/${transferId}`, { method: 'DELETE' });
+}
+
+/**
+ * An upload in parts, started from the interface (#242, RN-PRT-027): the same
+ * door an agent uses, answering where each part goes.
+ */
+export async function beginUpload(input: BeginUploadRequest): Promise<UploadStatusDto> {
+  return request<UploadStatusDto>('/portability/uploads', { method: 'POST', body: input });
+}
+
+/** Joins the parts and keeps the file, or answers why not. */
+export async function finishUpload(transferId: string): Promise<FinishedUploadDto> {
+  return request<FinishedUploadDto>(`/portability/uploads/${transferId}/finish`, {
+    method: 'POST',
+  });
 }
 
 /**

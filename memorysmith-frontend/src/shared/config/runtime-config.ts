@@ -20,6 +20,11 @@ export interface RuntimeConfig {
    * {@link connectorEndpoint}.
    */
   readonly connectorOrigin: string;
+  /**
+   * Where an assistant sends the parts of a file (#241, #244), with no
+   * trailing slash, or `null` for a configuration published before it existed.
+   */
+  readonly uploadsOrigin: string | null;
   /** Where the sign-in page answers, with no trailing slash. */
   readonly cognitoDomain: string;
   /** The app client of the interface. */
@@ -53,6 +58,10 @@ export function parseRuntimeConfig(raw: unknown): RuntimeConfig {
   return {
     apiOrigin: text(fields, 'apiOrigin').replace(/\/$/, ''),
     connectorOrigin: text(fields, 'connectorOrigin').replace(/\/$/, ''),
+    uploadsOrigin:
+      typeof fields['uploadsOrigin'] === 'string' && fields['uploadsOrigin'].trim()
+        ? fields['uploadsOrigin'].trim().replace(/\/$/, '')
+        : null,
     cognitoDomain: text(fields, 'cognitoDomain').replace(/\/$/, ''),
     cognitoClientId: text(fields, 'cognitoClientId'),
     environment: environment as DeploymentEnvironment,
