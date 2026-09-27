@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-27
+
 ### Added
 
 - **An agent keeps a file whole, sent in parts it can follow.** `keep_file` takes a file in one call, and every byte of a call is typed by the model, so an agent seen keeping photos shrank, cropped and re-encoded them until they fitted what it could type — and a slip in the middle was kept as if it were the file, because the check of a type reads only its start. The connector now sends a file in parts: `begin_file_upload` declares it with its size and the SHA-256 of the whole, the parts travel **by a signed address each**, which a script PUTs from the disk so the bytes never pass through the model, or **inline** with `send_file_part`, each with the hash of its own bytes and refused when they do not match; `file_upload_status` says what is missing and signs fresh addresses, `finish_file_upload` keeps the file only when the whole hashes to what was declared and the bytes are of the declared type, and `list_file_uploads` finds an open upload again by its hash, from another conversation too. Up to 100 MB by address and 4 MB inline. A new skill, `keep-files`, teaches it, the handshake lists it, and `keep_file` and `write-notes` point to it. The API answers the same under `/portability/uploads`. An open upload **reserves its size** against the plan from its start, as *in transit* on the space of the subscription; it has **no deadline**, and once it is a file its record goes. (#240, RN-PRT-027, RN-PRT-028, RN-PRT-029, RN-SUB-025, RN-AGT-041)
@@ -656,7 +658,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.1...v0.6.2
