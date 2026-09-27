@@ -131,10 +131,12 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     description:
       'Creates a notebook in this subscription: a notebook of Markdown notes, organised in folders ' +
       'and described by a guidance and by the templates of its folders — not a Jupyter notebook. ' +
-      `BEFORE calling it, read the skill \`${DESIGN_NOTEBOOK_SKILL}\` with get_skill and confirm ` +
-      'with the person the structure you propose: its guidance, folders and templates follow ' +
-      'from what the notebook will hold, and a notebook created before that gets a structure ' +
-      'nobody chose. Then write its guidance with set_guidance: a notebook without guidance ' +
+      `BEFORE calling it, read the skill \`${DESIGN_NOTEBOOK_SKILL}\` with get_skill: its ` +
+      'guidance, folders and templates follow from what the notebook will hold. Build it from ' +
+      'the material the person brought to the conversation when there is some, and say what ' +
+      'you built; propose a structure and confirm it first when there is none, since a notebook ' +
+      'created before either gets a structure nobody chose. Then write its guidance with ' +
+      'set_guidance: a notebook without guidance ' +
       'tells the next agent nothing about how it wants to be written. ' +
       'If a notebook with the same name already exists, this fails with ALREADY_EXISTS and returns ' +
       'the identifier of the existing one: no second notebook is created and no suffix is invented, ' +
@@ -656,8 +658,10 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     title: 'List the files of a notebook',
     description:
       'Every file the notebook keeps, with the name a note addresses it by, what it is, its ' +
-      'type, its tags and where it sits. Read it before keeping one, so a note points at what ' +
-      'is already there instead of a second copy of it.',
+      'type, its size in bytes, its tags and where it sits. Read it before keeping one, so a note ' +
+      'points at what is already there instead of a second copy of it. The size is what tells a ' +
+      'file apart from another of a similar name: one already kept stands for the file the person ' +
+      'sent only when its bytes match.',
     inputSchema: object({ notebook: notebookArgument }, ['notebook']),
     annotations: { readOnlyHint: true },
   },

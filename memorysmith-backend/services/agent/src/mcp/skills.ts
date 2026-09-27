@@ -131,10 +131,12 @@ can read and curate.
 
 **Start from what the notebook is for.** Material the person already has — a
 note they keep, a document, the record of a piece of work — shapes a notebook
-best, so use it when it is in the conversation. When there is none, propose a
-small structure from what they said they need, built with the practices below,
-and confirm it before creating anything. One proposal the person can accept or
-adjust is worth more than a questionnaire.
+best. **When it is in the conversation, build the notebook from it without
+asking first**, and when you are done say what you created and offer to adjust
+it: the material already answers what a proposal would ask. **When there is
+none**, propose a small structure from what they said they need, built with the
+practices below, and confirm it before creating anything. One proposal the
+person can accept or adjust is worth more than a questionnaire.
 
 ## The order of the work
 
@@ -311,9 +313,11 @@ ${formattingTable()}
 
 ## When to stop asking
 
-When you can propose the whole structure in one message — the guidance in a
-paragraph, the folders with their descriptions, the properties, the maps and the
-templates — and the person can accept it or adjust it. Then build it.
+With material in the conversation, there is nothing to ask: build from it, and
+say what you built. Without it, when you can propose the whole structure in one
+message — the guidance in a paragraph, the folders with their descriptions, the
+properties, the maps and the templates — and the person can accept it or adjust
+it. Then build it.
 `;
 
 /**
@@ -717,9 +721,23 @@ already in it: it draws the file the moment it is kept.
 When you see a picture in the conversation but have no file of it, you have its
 appearance and not its bytes: ask the person for the file itself. And a chat
 often hands an agent a **copy** of an attachment, recompressed on the way in —
-a photo of 1.9 MB arriving as 280 KB. Compare what you hold with what the person
-sent; when it is less, tell them both sizes before keeping anything, and let
-them choose between that copy and attaching the original themselves.
+a photo of 1.9 MB arriving as 280 KB, or reduced to 2048 pixels on its longest
+side. Compare what you hold with what the person sent; when it is less, tell
+them both sizes before keeping anything, and let them choose between that copy
+and attaching the original themselves. What you hold is **the file you
+received**: call it that, and not *the original*, because a client may have
+reduced it without saying so.
+
+**A file the notebook already keeps is the one the person sent only when its
+size matches** — and its SHA-256, when you can compute it. \`list_files\`
+answers the bytes of every file, which is what tells a file apart from another
+of a similar name, and the check costs one call. When they do not match, say
+so with both sizes, and point the note at the file the person is going to
+keep rather than at the one that is there.
+
+**Keep a file under the name the person gave it**, spaces and accents
+included: a name is found by the person who gave it. Change it only when the
+guidance of the notebook declares a pattern for the names of its files.
 
 ## Sending a file by URL
 

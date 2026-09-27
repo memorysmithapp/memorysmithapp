@@ -936,8 +936,11 @@ describe('skills: the method, indexed by whoami', () => {
     expect(body).toContain('Add the line of a map with the note it points at');
     expect(body).toContain('`next_number`');
     expect(body).toContain('`[[EV-00042|reads only the name key]]`');
-    // And no interview: the agent proposes, and the person confirms.
+    // And no interview. With material in the conversation the agent builds
+    // from it and says so; without it, it proposes and the person confirms
+    // (#252): Claude and ChatGPT read the old sentence in opposite ways.
     expect(body).not.toContain('samples');
+    expect(body).toContain('build the notebook from it without\nasking first');
     expect(body).toContain('confirm it before creating anything');
   });
 
@@ -1298,10 +1301,11 @@ describe('the path an agent takes passes through the method of its task', () => 
     expect(description('whoami')).toContain('before any other tool');
   });
 
-  it('asks for the method, and for the person to confirm the structure, before a notebook is created', () => {
+  it('asks for the method before a notebook is created, and says when to confirm the structure (#252)', () => {
     const create = description('create_notebook');
     expect(create).toContain(`\`${DESIGN_NOTEBOOK_SKILL}\``);
-    expect(create).toContain('confirm with the person the structure you propose');
+    expect(create).toContain('Build it from the material the person brought');
+    expect(create).toContain('propose a structure and confirm it first when there is none');
     expect(create).not.toContain('samples');
     expect(create.indexOf('BEFORE calling it')).toBeLessThan(create.indexOf('set_guidance'));
   });
@@ -1331,7 +1335,7 @@ describe('the path an agent takes passes through the method of its task', () => 
       expect(answer).not.toMatch(/ask the owner/i);
       expect(answer).not.toContain('Nothing below will return content');
       expect(answer).not.toContain('samples');
-      expect(answer).toContain('the structure you propose');
+      expect(answer).toContain('build from what they brought');
     }
   });
 
@@ -1704,5 +1708,16 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
     expect(keep?.description).toContain('tell them both sizes');
     expect(skill?.body).toContain('Anexar arquivo');
     expect(skill?.body).toContain('host_not_allowed');
+  });
+
+  it('holds a kept file to the one the person sent by its bytes, and keeps its name (#246)', () => {
+    const skill = SKILLS.find((each) => each.name === 'keep-files')?.body ?? '';
+    // ChatGPT pointed a note at a thumbnail of 7,500 bytes kept earlier under
+    // a similar name, and called a copy reduced to 2048 px the original.
+    expect(skill).toContain('is the one the person sent only when its\nsize matches');
+    expect(skill).toContain('the file you\nreceived');
+    expect(skill).toContain('Keep a file under the name the person gave it');
+    const list = TOOL_CATALOG.find((each) => each.name === 'list_files');
+    expect(list?.description).toContain('only when its bytes match');
   });
 });
