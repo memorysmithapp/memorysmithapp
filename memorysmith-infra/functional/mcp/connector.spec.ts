@@ -428,6 +428,49 @@ test.describe('the tools', () => {
     );
   });
 
+  test('[tool:request_file] [tool:discard_file_upload] hands an upload no part reached to the person, and throws an attempt away (#253)', async ({
+    agent,
+    notebook,
+  }) => {
+    const sha = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex');
+    const whole = Buffer.alloc(3000, 9);
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(whole);
+    const name = `requested ${Date.now()}`;
+
+    // An agent with no network opens an upload by URL and no part arrives.
+    const begun = parsed<{ upload: string }>(
+      await callTool(agent, 'begin_file_upload', {
+        notebook: notebook.notebookId,
+        name,
+        mimeType: 'image/png',
+        size: whole.length,
+        sha256: sha(whole),
+        purpose: 'A picture an agent could not send',
+        transport: 'url',
+      }),
+    );
+    const request = parsed<{ request: string; name: string; reference: string }>(
+      await callTool(agent, 'request_file', { upload: begun.upload }),
+    );
+    expect(request).toMatchObject({ name, reference: `![[${name}]]` });
+
+    // The upload became the request: the sweep sees it waiting for the person.
+    const check = parsed<{ openUploads: Array<{ upload: string; kind: string }> }>(
+      await callTool(agent, 'check_notebook', { notebook: notebook.notebookId }),
+    );
+    const open = check.openUploads.map((each) => [each.upload, each.kind]);
+    expect(open).toContainEqual([request.request, 'request']);
+    expect(open.map(([upload]) => upload)).not.toContain(begun.upload);
+
+    expect(
+      (await callTool(agent, 'discard_file_upload', { upload: request.request })).isError,
+    ).toBe(false);
+    const after = parsed<{ uploads: Array<{ upload: string }> }>(
+      await callTool(agent, 'list_file_uploads', { notebook: notebook.notebookId }),
+    );
+    expect(after.uploads.map((each) => each.upload)).not.toContain(request.request);
+  });
+
   test('[tool:next_number] issues the next number of a folder', async ({ agent, notebook }) => {
     const folder = { notebook: notebook.notebookId, folder: notebook.folderId };
     const first = parsed<{ number: number }>(await callTool(agent, 'next_number', folder));
