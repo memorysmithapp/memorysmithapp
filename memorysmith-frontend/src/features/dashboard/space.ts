@@ -7,7 +7,7 @@ import type { SubscriptionUsageDto } from '@memorysmith/contracts';
  * notebooks is grouped.
  */
 
-export type KindKey = 'files' | 'notes' | 'exports' | 'others';
+export type KindKey = 'files' | 'notes' | 'exports' | 'transit' | 'others';
 
 export interface KindLine {
   readonly key: KindKey;
@@ -17,7 +17,7 @@ export interface KindLine {
 
 /** The kinds largest first, which is the order the table and the bar read. */
 export function kindsBySpace(usage: SubscriptionUsageDto): KindLine[] {
-  const keys: KindKey[] = ['files', 'notes', 'exports', 'others'];
+  const keys: KindKey[] = ['files', 'notes', 'exports', 'transit', 'others'];
   return keys
     .map((key) => ({ key, count: usage.byType[key].count, bytes: usage.byType[key].bytes }))
     .sort((a, b) => b.bytes - a.bytes);
@@ -33,6 +33,7 @@ export interface NotebookLine {
   readonly folders: number;
   readonly files: number;
   readonly exports: number;
+  readonly uploads: number;
 }
 
 /**
@@ -65,6 +66,7 @@ export function notebookLines(usage: SubscriptionUsageDto, shown = 3): NotebookL
       folders: sum((each) => each.folders),
       files: sum((each) => each.files),
       exports: sum((each) => each.exports),
+      uploads: sum((each) => each.uploads),
     },
   ];
 }
@@ -72,4 +74,16 @@ export function notebookLines(usage: SubscriptionUsageDto, shown = 3): NotebookL
 /** The share of the bar a segment takes, never below what can be seen. */
 export function shareOf(bytes: number, total: number): number {
   return total > 0 ? (bytes / total) * 100 : 0;
+}
+
+/**
+ * What the total holds that no line of a notebook does (RN-PRT-029): an
+ * export or an upload that outlived its notebook, and, for anybody but the
+ * owner, what sits in notebooks they do not see. It is one number, drawn as a
+ * line that names no notebook — the total is already on the screen, so the
+ * difference reveals nothing the reader could not subtract.
+ */
+export function elsewhereOf(usage: SubscriptionUsageDto): number {
+  const lined = usage.notebooks.reduce((total, each) => total + each.bytes, 0);
+  return Math.max(0, usage.usedBytes - lined);
 }

@@ -5,6 +5,11 @@
 export interface AgentConfig {
   /** Public origin of this service, e.g. https://mcp.memorysmith.app */
   publicOrigin: string;
+  /**
+   * Origin of the site of the same environment, e.g. https://memorysmith.app,
+   * which serves the icons the handshake declares and is its website.
+   */
+  siteOrigin: string;
   /** Cognito user pool issuer, e.g. https://cognito-idp.us-east-1.amazonaws.com/us-east-1_XXXX */
   cognitoIssuer: string;
   /** Cognito hosted-UI domain origin, e.g. https://memorysmith-auth.auth.us-east-1.amazoncognito.com */
@@ -27,6 +32,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AgentConfig {
   };
   return {
     publicOrigin: required('PUBLIC_ORIGIN').replace(/\/$/, ''),
+    siteOrigin: required('SITE_ORIGIN').replace(/\/$/, ''),
     cognitoIssuer: required('COGNITO_ISSUER').replace(/\/$/, ''),
     cognitoDomain: required('COGNITO_DOMAIN').replace(/\/$/, ''),
     proxyClientId: required('PROXY_CLIENT_ID'),

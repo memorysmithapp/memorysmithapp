@@ -199,7 +199,13 @@ test.describe('the graph of a notebook', () => {
         owner.ok<{
           links: Array<{ target: string; by: string | null; notes: NoteRef[] }>;
         }>('GET', `${discovery(notebook)}/notes/${citing.noteId}/links`),
-      (answer) => answer.links.length >= 2,
+      // What the case asserts is that both notes are reached, and the name of
+      // each is projected on its own: waiting for two links answered the
+      // moment one target had resolved and the other was still pending.
+      (answer) =>
+        [source.noteId, other.noteId].every((noteId) =>
+          answer.links.some((link) => link.notes.some((note) => note.noteId === noteId)),
+        ),
     );
 
     // One edge per pair, and the pair a NAME reaches is not the alias's to

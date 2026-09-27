@@ -87,7 +87,9 @@ import {
   UpdateNote,
 } from '@memorysmith/svc-knowledge/application/notes';
 import {
+  CheckFileDestination,
   DeleteFile,
+  KeepAssembledFile,
   KeepFile,
   LinkToFile,
   ListFiles,
@@ -129,7 +131,23 @@ import {
   type NotebookWriter,
 } from '@memorysmith/svc-portability/application/import';
 import { KnowledgeNotebookWriter } from './import-writer.js';
-import { S3ArchiveStore, S3UploadStore } from '@memorysmith/svc-portability/adapters/s3';
+import { KnowledgeFileKeeper } from './file-keeper.js';
+import {
+  S3ArchiveStore,
+  S3PartStore,
+  S3UploadStore,
+} from '@memorysmith/svc-portability/adapters/s3';
+import {
+  BeginUpload,
+  discardUpload,
+  FinishUpload,
+  GetUploadStatus,
+  LinkUpload,
+  ListUploads,
+  ObserveUpload,
+  PutUploadPart,
+  type FileKeeper,
+} from '@memorysmith/svc-portability/application/uploads';
 import { createApp } from './app.js';
 import {
   buildAccess,
@@ -164,6 +182,21 @@ const infra: Infrastructure = {
   portabilityTable: required('PORTABILITY_TABLE'),
   contentBucket: required('CONTENT_BUCKET'),
 };
+
+/**
+ * The client that signs the address of a part of an upload (RN-PRT-027). The
+ * SDK adds a checksum to what it signs by default, and for a URL signed before
+ * the bytes exist that is the CRC32 of an empty body: a plain PUT of the real
+ * part would be refused. This one signs only what a PUT needs.
+ */
+const signer = new S3Client({ requestChecksumCalculation: 'WHEN_REQUIRED' });
+
+/** Where a signed part is answered: a host of the product, not the bucket's name (#241). */
+const uploadsOrigin = required('UPLOADS_ORIGIN');
+
+function partsOf(): S3PartStore {
+  return new S3PartStore(infra.s3, signer, infra.contentBucket, uploadsOrigin);
+}
 
 const sqs = new SQSClient({});
 const transferQueueUrl = required('TRANSFER_QUEUE_URL');
@@ -355,6 +388,15 @@ function notebookWriterFor(request: KnowledgeRequest): NotebookWriter {
   );
 }
 
+/** What an upload in parts becomes a file with, over the Knowledge use cases (RN-PRT-027). */
+function fileKeeperFor(request: KnowledgeRequest): FileKeeper {
+  const knowledge = buildKnowledge(infra, request.subscription);
+  return new KnowledgeFileKeeper(
+    { destination: new CheckFileDestination(knowledge), keep: new KeepAssembledFile(knowledge) },
+    request.ctx,
+  );
+}
+
 const portabilityUseCases: PortabilityUseCases = {
   /**
    * Two writes and no work: the record and the message. Reading every note of
@@ -383,6 +425,8 @@ const portabilityUseCases: PortabilityUseCases = {
     new ListTransfers(
       buildTransfers(infra, request.subscription),
       request.subscription.userId.value,
+      (transfer) =>
+        new ObserveUpload(partsOf(), request.subscription.subscriptionId.value).execute(transfer),
     ),
   getTransfer: (request) =>
     new GetTransfer(buildTransfers(infra, request.subscription), request.subscription.userId.value),
@@ -397,6 +441,7 @@ const portabilityUseCases: PortabilityUseCases = {
       buildTransfers(infra, request.subscription),
       new S3ArchiveStore(infra.s3, infra.contentBucket),
       request.subscription.userId.value,
+      (transfer) => discardUpload(partsOf(), request.subscription.subscriptionId.value, transfer),
     ),
   cancelTransfer: (request) =>
     new CancelTransfer(
@@ -422,6 +467,52 @@ const portabilityUseCases: PortabilityUseCases = {
       buildTransfers(infra, request.subscription),
       new SqsTransferQueue(sqs, transferQueueUrl),
       request.subscription.subscriptionId.value,
+      request.subscription.userId.value,
+    ),
+  // An upload in parts (#240, RN-PRT-027): its parts under the upload, its
+  // file kept through Knowledge, its room reserved against the plan.
+  beginUpload: (request) =>
+    new BeginUpload(
+      buildTransfers(infra, request.subscription),
+      partsOf(),
+      request.files,
+      { current: () => readStorageBudget(infra, request.subscription) },
+      request.subscription.subscriptionId.value,
+      request.subscription.userId.value,
+    ),
+  listUploads: (request) =>
+    new ListUploads(
+      buildTransfers(infra, request.subscription),
+      partsOf(),
+      request.subscription.subscriptionId.value,
+      request.subscription.userId.value,
+    ),
+  uploadStatus: (request) =>
+    new GetUploadStatus(
+      buildTransfers(infra, request.subscription),
+      partsOf(),
+      request.subscription.subscriptionId.value,
+      request.subscription.userId.value,
+    ),
+  putUploadPart: (request) =>
+    new PutUploadPart(
+      buildTransfers(infra, request.subscription),
+      partsOf(),
+      request.subscription.subscriptionId.value,
+      request.subscription.userId.value,
+    ),
+  finishUpload: (request) =>
+    new FinishUpload(
+      buildTransfers(infra, request.subscription),
+      partsOf(),
+      request.files,
+      request.subscription.subscriptionId.value,
+      request.subscription.userId.value,
+    ),
+  linkUpload: (request) =>
+    new LinkUpload(
+      buildTransfers(infra, request.subscription),
+      request.files,
       request.subscription.userId.value,
     ),
 };
@@ -466,6 +557,7 @@ const app = createApp({
     rebindConnector: (context) => new RebindConnector(buildConnectorBindings(infra, context)),
   },
   notebookWriterFor,
+  fileKeeperFor,
   accessUseCases,
   knowledgeUseCases,
   auditUseCases,

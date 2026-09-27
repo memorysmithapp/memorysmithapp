@@ -86,7 +86,36 @@ describe('the recount of the kept exports', () => {
         bytes: 100,
         count: 1,
       },
+      // Nothing is in transit, and the counter says so rather than keeping
+      // whatever a lost delta left in it (RN-SUB-025).
+      { PK: `S#${A}`, SK: 'TRANSIT', entity: 'TRANSIT', bytes: 0, count: 0 },
     ]);
     expect(deleted).toEqual([{ PK: `S#${A}`, SK: 'KEPT#nb-gone' }]);
+  });
+
+  it('counts what the open uploads reserve, and nothing that ended', async () => {
+    const { recount, written, deleted } = tableOf([
+      transfer(A, { kind: 'agent', status: 'running', notebookId: 'nb1', bytes: 5000 }),
+      transfer(A, { kind: 'agent', status: 'running', notebookId: 'nb2', bytes: 700 }),
+      // A failed upload gave its room back when its finish failed.
+      transfer(A, { kind: 'agent', status: 'failed', notebookId: 'nb1', bytes: 999 }),
+      { PK: `S#${A}`, SK: 'TRANSIT#nb-gone', entity: 'TRANSIT_NOTEBOOK', notebookId: 'nb-gone' },
+    ]);
+
+    const measured = await recount.measure();
+    const a = measured.find((each) => each.subscriptionId === A);
+    expect(a?.transit).toMatchObject({ count: 2, bytes: 5700, stale: ['nb-gone'] });
+    expect(a?.transit.byNotebook.get('nb1')).toEqual({ count: 1, bytes: 5000 });
+    expect(a).toMatchObject({ count: 0, bytes: 0 });
+
+    await recount.apply(measured);
+    expect(written).toContainEqual({
+      PK: `S#${A}`,
+      SK: 'TRANSIT',
+      entity: 'TRANSIT',
+      bytes: 5700,
+      count: 2,
+    });
+    expect(deleted).toEqual([{ PK: `S#${A}`, SK: 'TRANSIT#nb-gone' }]);
   });
 });

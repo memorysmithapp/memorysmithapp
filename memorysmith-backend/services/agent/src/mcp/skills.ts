@@ -653,6 +653,13 @@ In every note that relies on it:
 ![[Load test of 2026-09-15#^p95]]
 \`\`\`
 
+## Showing a file
+
+A note shows a file the notebook keeps by writing \`![[name]]\`, the way it
+embeds a note. How the file gets there — whole, at the size the person gave it,
+by URL when you can run a command with network — is the skill
+\`keep-files\`.
+
 ## Before you hand the notes over
 
 While notes are being written a link points at a note that does not exist yet,
@@ -674,12 +681,147 @@ prefix is read as a frontmatter attribute, which is what makes
 \`maturity:evergreen\` a valid filter without a line of code about it. The
 vocabulary of the notebook becomes the query language of the notebook.
 `;
+const KEEP_FILES = `# Keeping a file in a notebook
+
+A notebook keeps files beside its notes, and a note shows one by writing
+\`![[name]]\`. **Keep the file the person gave you as it is**: its size, its
+resolution and its format are what they chose to keep, and a photo of a
+whiteboard is kept to be read later, at the size it was taken. Reduce, crop or
+convert it when the person asks for that.
+
+## Which way the bytes go
+
+The bytes of a file reach the notebook in one of three ways, and the first one
+that fits your situation is the one to use.
+
+1. **You can run a command that reaches the network** — a terminal, Claude
+   Code, a sandbox with internet access. Use \`begin_file_upload\` with
+   \`transport: "url"\`. Every part gets an address, and a script sends the
+   bytes from the disk straight to it: they never pass through what you write,
+   so a file of 50 MB costs you what one of 50 KB does. Up to 100 MB.
+2. **You write the bytes yourself** — a sandbox without network, or no sandbox
+   at all. Use \`begin_file_upload\` with \`transport: "inline"\`, let code cut
+   the file and hash each part when you have it, and send each part with
+   \`send_file_part\`. Every byte passes through what you write, so this suits
+   what you write out whole without a slip: a few tens of kilobytes.
+3. **The file is a few kilobytes** — an icon, a small diagram. \`keep_file\`
+   takes it in one call.
+
+Anything larger that you cannot send by URL is kept by the person: in the
+note, **Editar** and then **Anexar arquivo** keeps the file whole and writes its
+reference where the cursor is. Say so, and write the note with the reference
+already in it: it draws the file the moment it is kept.
+
+## Keep what the person gave you, or say what you have
+
+When you see a picture in the conversation but have no file of it, you have its
+appearance and not its bytes: ask the person for the file itself. And a chat
+often hands an agent a **copy** of an attachment, recompressed on the way in —
+a photo of 1.9 MB arriving as 280 KB. Compare what you hold with what the person
+sent; when it is less, tell them both sizes before keeping anything, and let
+them choose between that copy and attaching the original themselves.
+
+## Sending a file by URL
+
+Measure the file and hash it:
+
+\`\`\`python
+import hashlib
+data = open("whiteboard.jpg", "rb").read()
+print(len(data), hashlib.sha256(data).hexdigest())
+\`\`\`
+
+Call \`begin_file_upload\` with the notebook, the name a note will address, the
+type, that size, that hash, \`transport: "url"\` and a **purpose** — a sentence
+the person recognises in Transfers, such as *photo of the whiteboard of the
+planning meeting, for its minutes*. The answer carries \`targets\`: one address
+per part, each part 8 MiB, the last one shorter. Send every part with a plain
+PUT of its bytes and nothing else:
+
+\`\`\`python
+import urllib.request
+PART = 8 * 1024 * 1024
+targets = [...]  # the targets begin_file_upload answered, as they came
+for target in targets:
+    n = target["part"]
+    chunk = data[(n - 1) * PART : n * PART]
+    request = urllib.request.Request(target["url"], data=chunk, method="PUT")
+    urllib.request.urlopen(request).read()
+\`\`\`
+
+Then call \`finish_file_upload\`. It joins the parts, and keeps the file when the
+whole hashes to what you declared and its bytes are of the type you declared;
+its answer is the reference to write in a note.
+
+## Sending a file inline
+
+Choose a part size you write out without a slip — 24576 bytes is a good start —
+and declare it as \`partSize\` in \`begin_file_upload\` with
+\`transport: "inline"\`. Let the code give you each part and its hash:
+
+\`\`\`python
+import base64, hashlib
+PART = 24576
+data = open("diagram.png", "rb").read()
+for n in range(1, (len(data) + PART - 1) // PART + 1):
+    chunk = data[(n - 1) * PART : n * PART]
+    print(n, hashlib.sha256(chunk).hexdigest(), base64.b64encode(chunk).decode())
+\`\`\`
+
+Send each one with \`send_file_part\`: the upload, the number, the hash and the
+base64. A part whose bytes do not match its hash is refused and nothing of it is
+kept, so a slip costs you that one part: send it again. Then call
+\`finish_file_upload\`.
+
+## When your client stands in the way
+
+Three things of the client an agent runs in decide whether the bytes can go at
+all, and none of them announces itself:
+
+- **A tool \`whoami\` lists and your client does not show**: the client kept
+  the list it read when the connector was added. Ask the person to reconnect
+  the connector, and continue in the same conversation.
+- **A PUT refused by your own environment** — a proxy answering
+  \`host_not_allowed\`, a connection refused — means your code has no network,
+  or not to that host. The answer of \`begin_file_upload\` names the host the
+  parts go to, \`partsHost\`: ask the person to turn on network access for code
+  and allow that host, or every host of the product at once, \`*.memorysmith.app\`.
+- **Such a change reaches a new conversation**, not the one already open. The
+  upload waits: in the new conversation, \`list_file_uploads\` finds it by the
+  SHA-256 of the file and \`file_upload_status\` signs fresh addresses.
+
+## Following an upload, and resuming one
+
+\`file_upload_status\` says which parts arrived and which are missing, and signs
+a fresh address for every missing part of an upload by URL — addresses last an
+hour. An upload has no deadline: the person sees it in Transfers, with what it
+is for, until it becomes a file. Before starting one, read
+\`list_file_uploads\`: an upload of the same file, found by the SHA-256 of the
+whole, is resumed with \`file_upload_status\` rather than sent again, from this
+conversation or another.
+
+\`finish_file_upload\` answers why when it cannot keep the file. Parts missing,
+a name the notebook already keeps, a notebook you no longer reach: the upload
+stays open, so send the parts, or tell the person what stands in the way, and
+finish again. Bytes that do not hash to what you declared end the upload: hash
+the file again, start a new upload, and tell the person the failed one is in
+Transfers to delete.
+
+## Showing it
+
+Write the reference the finish answered where the note needs the file,
+\`![[whiteboard.jpg]]\`. An image, an audio and a video are drawn in the page;
+everything else is a card with a download. \`list_files\` says what the notebook
+keeps already, so a note points at the file that is there instead of a second
+copy of it.
+`;
 /**
  * The skill a text names outside the registry, as a constant of it: a
  * description that cites a skill by a literal would still cite it the day it is
  * renamed, and send the agent to a `NOT_FOUND`.
  */
 export const DESIGN_NOTEBOOK_SKILL = 'design-notebook';
+export const KEEP_FILES_SKILL = 'keep-files';
 
 /**
  * One skill per task, and only tasks the reading path does not teach. The path
@@ -699,6 +841,11 @@ export const SKILLS: readonly Skill[] = [
     name: 'write-notes',
     task: 'Write a note this product can read: the notation it interprets, and the notation it does not',
     body: WRITE_NOTES,
+  },
+  {
+    name: KEEP_FILES_SKILL,
+    task: 'Keep a file in a notebook — a photo, a recording, a document — whole, at its own size',
+    body: KEEP_FILES,
   },
   {
     name: 'convert-inline-tags',

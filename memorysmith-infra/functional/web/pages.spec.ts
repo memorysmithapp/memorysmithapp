@@ -239,6 +239,13 @@ test.describe('the pages of an account', () => {
       'true',
     );
     await expect(panel.locator('li').first()).not.toHaveText(first ?? '');
+
+    // What sending a file through an assistant needs, and the host its parts
+    // go to, the one a client that allows hosts one by one is asked for (#244).
+    await expect(app.locator('.about-uploads code')).toHaveText(
+      `uploads.${new URL(state.surfaces.site).host}`,
+    );
+    await expect(app.locator('#about-files-panel li')).toHaveCount(3);
     // And the foot says which version this is, beside the way in.
     if (state.version) {
       await expect(app.locator('.about-version')).toContainText(state.version);
@@ -706,6 +713,36 @@ A note to rename.
     // And choosing one opens that note.
     await app.locator('.link-choice-option').first().click();
     await expect(app).toHaveURL(notebook.page(`/notes/${notebook.facetNoteIds[0].toLowerCase()}`));
+  });
+
+  /**
+   * On a phone nothing moves the note but a scroll up or down (#238). Safari
+   * enlarges the page when a field under 16 px takes the focus, and the page
+   * left enlarged panned in every direction with its bar; a block wider than
+   * the column would have done the same without any zoom.
+   */
+  test('[page:/notebooks/:notebookId/notes/:noteId] at phone width sets every field at 16 px and never scrolls the note sideways', async ({
+    app,
+    notebook,
+  }) => {
+    await app.setViewportSize({ width: 390, height: 780 });
+    await app.goto(notebook.page(`/notes/${notebook.tableNoteId.toLowerCase()}`));
+    await expect(app.locator('table a.wikilink', { hasText: 'Facet' })).toBeVisible();
+
+    // Measured with the overflow counted, hidden or not, and before the sheet
+    // opens: whatever is wider than the column shows up here instead of being
+    // guessed.
+    const main = await app
+      .locator('.app-main')
+      .evaluate((row) => ({ scroll: row.scrollWidth, client: row.clientWidth }));
+    expect(main.scroll).toBeLessThanOrEqual(main.client);
+
+    // The search the person opened from the sheet, where the zoom was seen.
+    await app.locator('.sheet-peek').click();
+    await app.locator('.notebook-sheet button.sheet-tab').first().click();
+    const search = app.locator('.notebook-sheet .search-box input');
+    await expect(search).toBeVisible();
+    await expect(search).toHaveCSS('font-size', '16px');
   });
 
   test('[page:/notebooks/:notebookId/*] answers an address no page names inside a notebook with not found', async ({

@@ -213,10 +213,17 @@
       "confirmBody": "<b>Todo o conteúdo será apagado e essa ação é irreversível.</b> Avalie <export>Exportar caderno</export> antes de apagar.",
       "keep": "Manter",
       "deleteForGood": "Apagar de vez",
-      "deleting": "Apagando…"
+      "deleting": "Apagando…",
+      "confirmUploads_one": "1 envio do agente em andamento fica em Transferências, sem caderno.",
+      "confirmUploads_other": "{{count}} envios do agente em andamento ficam em Transferências, sem caderno."
     },
     "purging_one": "Um caderno apagado ainda ocupa {{bytes}} até a limpeza terminar.",
-    "purging_other": "{{count}} cadernos apagados ainda ocupam {{bytes}} até a limpeza terminar."
+    "purging_other": "{{count}} cadernos apagados ainda ocupam {{bytes}} até a limpeza terminar.",
+    "kindTransit": "Em trânsito",
+    "kindTransitHint": "O espaço que os envios do agente em andamento reservam",
+    "elsewhere": "Fora dos seus cadernos: {{bytes}}, em exportações e envios cujo caderno não está disponível para você.",
+    "notebookUploads_one": "{{count}} envio em andamento",
+    "notebookUploads_other": "{{count}} envios em andamento"
   },
   "portability": {
     "download": "Baixar o caderno (.notebook)",
@@ -263,7 +270,9 @@
       "VALIDATION": "Esse documento foi recusado.",
       "NOT_FOUND": "O envio não foi encontrado. Escolha o arquivo de novo.",
       "INTERNAL": "Algo deu errado do nosso lado. Tente de novo.",
-      "KEPT_UNREADABLE": "Não foi possível ler essa exportação. Tente de novo, ou baixe e importe o arquivo."
+      "KEPT_UNREADABLE": "Não foi possível ler essa exportação. Tente de novo, ou baixe e importe o arquivo.",
+      "HASH_MISMATCH": "Os bytes que chegaram não conferem com o hash declarado, então nada foi guardado. Peça ao agente que envie o arquivo de novo.",
+      "TYPE_MISMATCH": "Os bytes que chegaram não são do tipo declarado, então nada foi guardado."
     },
     "exportHeading": "Exportar caderno",
     "withHistory": "Incluir a história",
@@ -383,7 +392,8 @@
     "filters": {
       "all": "Todas",
       "export": "Exportações",
-      "import": "Importações"
+      "import": "Importações",
+      "agent": "Do agente"
     },
     "empty": "Nada foi transferido ainda.",
     "keptBytes": "Espaço usado: {{size}}",
@@ -391,10 +401,11 @@
     "delete": "Apagar",
     "deleteForGood": "Apagar de vez",
     "deleteWarning": "Isto é definitivo. O caderno, se ainda existir, não é tocado.",
-    "notebookGone": "O caderno foi apagado depois desta exportação. Importá-la cria um caderno novo.",
+    "notebookGone": "O caderno desta exportação não está disponível. Importá-la cria um caderno novo.",
     "running": {
       "export": "exportando · {{done}} de {{total}} notas",
-      "import": "importando · {{done}} de {{total}} notas"
+      "import": "importando · {{done}} de {{total}} notas",
+      "agent": "enviando · {{done}} de {{total}} partes"
     },
     "ended": {
       "ready": "pronta",
@@ -407,7 +418,8 @@
     "noNotebooks": "Ainda não há caderno para exportar.",
     "line": {
       "export": "Exportação · {{notebook}}",
-      "import": "Importação · {{notebook}}"
+      "import": "Importação · {{notebook}}",
+      "agent": "Agente · {{notebook}}"
     },
     "wrote_one": "{{count}} nota escrita",
     "wrote_other": "{{count}} notas escritas",
@@ -415,13 +427,15 @@
     "fromFile": "de {{file}}",
     "kind": {
       "export": "Exportação",
-      "import": "Importação"
+      "import": "Importação",
+      "agent": "Agente"
     },
     "state": {
       "ready": "Pronta",
       "failed": "Falhou",
       "cancelled": "Cancelada",
-      "running": "Em andamento"
+      "running": "Em andamento",
+      "stalled": "Parada"
     },
     "keptSentence": "As exportações ficam guardadas até você apagar e ocupam <b>{{size}}</b> do seu plano.",
     "keptShort": "Espaço usado: <b>{{size}}</b>",
@@ -433,7 +447,23 @@
     "importKept": "Importar",
     "deleteImportAsk": "Apagar esta importação?",
     "deleteImportKeeps": "Só este registro sai da lista. O caderno que ela criou, se criou, continua.",
-    "deleteRecordOnly": "Só este registro sai da lista; não há arquivo para liberar."
+    "deleteRecordOnly": "Só este registro sai da lista; não há arquivo para liberar.",
+    "stalled": "parada · {{done}} de {{total}} partes",
+    "platform": "pelo {{platform}}",
+    "lastPart": "último pacote {{when}}",
+    "noPartYet": "nenhum pacote ainda",
+    "transitSentence": "Os envios do agente em andamento reservam <b>{{size}}</b>.",
+    "importUnavailable": "Caderno indisponível.",
+    "uploadUnavailable": "Sem caderno: o caderno deste envio não está disponível. Vincule-o a um caderno para concluir.",
+    "link": "Vincular a um caderno",
+    "linkLabel": "Caderno de destino",
+    "linkPick": "Escolha um caderno",
+    "linkConfirm": "Vincular",
+    "linkNone": "Nenhum caderno em que você possa escrever.",
+    "deleteUploadAsk": "Apagar este envio?",
+    "deleteUploadFrees": "As partes que chegaram são descartadas e os {{size}} reservados voltam para o seu plano. Isto é definitivo.",
+    "deleteFailedUpload": "Só este aviso sai da lista; as partes já foram descartadas.",
+    "platformInterface": "pela interface"
   },
   "about": {
     "menu": "Sobre o MemorySmith.app",
@@ -502,7 +532,22 @@
       "three": "“Escreva uma nota sobre o que acabamos de conversar, na pasta certa.”",
       "skills": "O conector carrega métodos escritos para as tarefas que mais dão errado — desenhar um caderno do zero, escrever uma nota que este produto consegue ler — e um bom assistente os lê antes de começar. Você vai vê-lo fazer isso."
     },
-    "start": "Começar"
+    "start": "Começar",
+    "files": {
+      "heading": "Enviando arquivos pelo assistente",
+      "body": "Um assistente guarda uma foto, um PDF ou uma gravação inteiros, no tamanho em que chegaram, enviando as partes do arquivo direto para o endereço abaixo. Para isso, o aplicativo em que ele roda precisa deixar: as configurações que decidem isso não avisam quando estão no caminho.",
+      "editor": "Sem nada disso, o caminho é sempre este: abra a nota, clique em Editar e depois em Anexar arquivo. O arquivo é guardado inteiro, e a referência entra onde está o cursor.",
+      "claude": {
+        "one": "Depois de uma atualização do MemorySmith, abra <b>Personalizar</b>, depois <b>Conectores</b>, e reconecte o <b>MemorySmith.app</b>: é assim que as ferramentas novas aparecem para o Claude.",
+        "two": "Em <b>Configurações</b>, depois <b>Recursos</b>, ligue <b>Permitir acesso de rede externo</b>. Se você libera domínios um a um, libere o endereço acima, ou <b>*.memorysmith.app</b> de uma vez.",
+        "three": "Essas mudanças valem para <b>conversas novas</b>: comece uma, anexe o arquivo e peça para guardá-lo. Um envio que ficou pela metade é retomado ali, sem começar de novo."
+      },
+      "chatgpt": {
+        "one": "Depois de uma atualização do MemorySmith, abra o plugin <b>MemorySmith.app</b> nas configurações de <b>Plugins</b> e clique em <b>Atualizar</b>, para as ferramentas novas aparecerem.",
+        "two": "O ChatGPT entrega ao assistente uma <b>cópia reduzida</b> da foto anexada, e o código dele não alcança a rede: o assistente não tem o original para guardar, e deve dizer isso em vez de guardar a cópia.",
+        "three": "Para guardar a foto inteira, anexe-a você mesmo na nota, por <b>Editar</b> e <b>Anexar arquivo</b>, e peça ao assistente o resto do trabalho."
+      }
+    }
   },
   "profile": {
     "menu": "Seu perfil",
@@ -576,7 +621,18 @@
     "keepAlias": "Manter “{{name}}” como alias, para os links continuarem chegando",
     "conflict": "Outra pessoa gravou esta nota depois que você abriu. Leia de novo e refaça sua mudança.",
     "failed": "Não foi possível gravar.",
-    "leaveWarning": "Você tem mudanças que ainda não gravou. Sair e perdê-las?"
+    "leaveWarning": "Você tem mudanças que ainda não gravou. Sair e perdê-las?",
+    "attach": "Anexar arquivo",
+    "attachHashing": "Preparando o arquivo…",
+    "attachSending": "Enviando · {{sent}} de {{total}} partes",
+    "attachDone": "“{{name}}” foi guardado inteiro no caderno, e a referência entrou onde estava o cursor. O arquivo fica no caderno mesmo que você cancele esta edição.",
+    "attachPurpose": "Anexado pela interface à nota “{{note}}”",
+    "attachPurposeUnnamed": "Anexado pela interface a uma nota",
+    "attachRefusal": {
+      "TOO_LARGE": "Um arquivo anexado vai até 100 MB.",
+      "EMPTY": "Esse arquivo está vazio.",
+      "NO_TYPE": "O navegador não disse de que tipo é esse arquivo, então ele não pode ser guardado."
+    }
   },
   "history": {
     "heading": "Histórico desta nota",

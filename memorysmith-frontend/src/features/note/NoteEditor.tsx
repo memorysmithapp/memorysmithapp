@@ -1,9 +1,35 @@
 import { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { NOTE_MESSAGE_MAX_LENGTH } from '@memorysmith/contracts';
 import { noteNameOf } from '../../shared/api/markdown';
-import { notesReaching } from '../../shared/api/source';
+import { beginUpload, deleteTransfer, finishUpload, notesReaching } from '../../shared/api/source';
+import { messageKeyOf } from '../../shared/api/error-mapper';
+import { queryKeys } from '../../shared/api/query-keys';
 import { Modal } from '../../shared/components/Modal';
+import {
+  AttachRefusal,
+  attachFile,
+  hexOf,
+  insertAt,
+  referenceOf,
+  type AttachPorts,
+} from './attach';
+
+/**
+ * What the attachment talks to: the API for the upload, and the address each
+ * part was signed for, which answers a plain PUT (#241, #242).
+ */
+const ATTACH_PORTS: AttachPorts = {
+  begin: beginUpload,
+  finish: finishUpload,
+  discard: deleteTransfer,
+  put: async (url, bytes) => {
+    const response = await fetch(url, { method: 'PUT', body: bytes });
+    if (!response.ok) throw new Error(`The store refused a part (${response.status})`);
+  },
+  sha256: async (bytes) => hexOf(await crypto.subtle.digest('SHA-256', bytes)),
+};
 
 export interface EditOutcome {
   readonly content: string;
@@ -23,6 +49,11 @@ export interface EditOutcome {
  * There is no toolbar and no split preview. The notation of this product is a
  * published specification, and a toolbar teaches a second one beside it;
  * confirming and reading is the preview, and it costs one click.
+ *
+ * *Anexar arquivo* is not a toolbar: it teaches no notation, it keeps a file
+ * and writes the one reference the specification already has, `![[name]]`,
+ * where the cursor is (#242, RN-KNW-054). The file is kept at once, whole, and
+ * stays in the notebook whether or not this edit is written.
  */
 export function NoteEditor({
   initial,
@@ -48,6 +79,54 @@ export function NoteEditor({
   const [message, setMessage] = useState('');
   const [keepAlias, setKeepAlias] = useState(false);
   const area = useRef<HTMLTextAreaElement>(null);
+  const picker = useRef<HTMLInputElement>(null);
+  const client = useQueryClient();
+  /** Where an attachment is: sending its parts, done, or what went wrong. */
+  const [attaching, setAttaching] = useState<
+    | { phase: 'hashing' }
+    | { phase: 'sending'; sent: number; total: number }
+    | { phase: 'done'; name: string }
+    | { phase: 'failed'; message: string }
+    | null
+  >(null);
+  const sending = attaching?.phase === 'hashing' || attaching?.phase === 'sending';
+
+  async function attach(file: File): Promise<void> {
+    const at = area.current?.selectionStart ?? text.length;
+    setAttaching({ phase: 'hashing' });
+    try {
+      const kept = await attachFile(
+        ATTACH_PORTS,
+        {
+          notebookId,
+          file,
+          purpose: currentName
+            ? t('editor.attachPurpose', { note: currentName })
+            : t('editor.attachPurposeUnnamed'),
+        },
+        (sent, total) => setAttaching({ phase: 'sending', sent, total }),
+      );
+      const next = insertAt(text, at, referenceOf(kept.name));
+      setText(next.text);
+      setAttaching({ phase: 'done', name: kept.name });
+      // The note reaches the file by name: the list it resolves names from is
+      // read again, so the embed draws on the first read after the write.
+      void client.invalidateQueries({ queryKey: queryKeys.notebookFiles(notebookId) });
+      void client.invalidateQueries({ queryKey: queryKeys.subscriptionUsage() });
+      requestAnimationFrame(() => {
+        area.current?.focus();
+        area.current?.setSelectionRange(next.cursor, next.cursor);
+      });
+    } catch (error) {
+      setAttaching({
+        phase: 'failed',
+        message:
+          error instanceof AttachRefusal
+            ? t(`editor.attachRefusal.${error.reason}`)
+            : t(messageKeyOf(error)),
+      });
+    }
+  }
 
   const dirty = text !== initial;
 
@@ -108,7 +187,39 @@ export function NoteEditor({
         <button type="button" className="button" disabled={busy} onClick={onCancel}>
           {t('editor.cancel')}
         </button>
+        <button
+          type="button"
+          className="button is-quiet note-editor-attach"
+          disabled={busy || sending}
+          onClick={() => picker.current?.click()}
+        >
+          {t('editor.attach')}
+        </button>
+        <input
+          ref={picker}
+          type="file"
+          hidden
+          onChange={(event) => {
+            const chosen = event.target.files?.[0];
+            event.target.value = '';
+            if (chosen) void attach(chosen);
+          }}
+        />
       </div>
+      {attaching ? (
+        <p
+          className={`note-editor-attaching${attaching.phase === 'failed' ? ' is-failure' : ''}`}
+          role="status"
+        >
+          {attaching.phase === 'hashing'
+            ? t('editor.attachHashing')
+            : attaching.phase === 'sending'
+              ? t('editor.attachSending', { sent: attaching.sent, total: attaching.total })
+              : attaching.phase === 'done'
+                ? t('editor.attachDone', { name: attaching.name })
+                : attaching.message}
+        </p>
+      ) : null}
 
       <Modal
         open={asking}

@@ -10,7 +10,7 @@
 
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { test as base, expect } from '@playwright/test';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -354,6 +354,78 @@ test.describe('the tools', () => {
       await callTool(agent, 'list_files', { notebook: notebook.notebookId }),
     );
     expect(after.files.map((file) => file.name)).not.toContain(name);
+  });
+
+  test('[tool:begin_file_upload] [tool:send_file_part] [tool:file_upload_status] [tool:finish_file_upload] [tool:list_file_uploads] keeps a file whole, by URL and inline, as the skill keep-files teaches', async ({
+    agent,
+    notebook,
+  }) => {
+    const sha = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex');
+    const picture = (size: number): Buffer => {
+      const bytes = Buffer.alloc(size, 7);
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(bytes);
+      return bytes;
+    };
+
+    // By URL: the bytes go where the answer says, with a plain PUT, as a
+    // script of the agent would send them.
+    const big = picture(600 * 1024);
+    const byUrl = parsed<{ upload: string; targets: Array<{ part: number; url: string }> }>(
+      await callTool(agent, 'begin_file_upload', {
+        notebook: notebook.notebookId,
+        name: `whole ${Date.now()}`,
+        mimeType: 'image/png',
+        size: big.length,
+        sha256: sha(big),
+        purpose: 'A picture an agent case kept whole',
+        transport: 'url',
+      }),
+    );
+    expect(byUrl.targets).toHaveLength(1);
+    const put = await fetch(byUrl.targets[0]?.url ?? '', { method: 'PUT', body: big });
+    expect(put.status).toBe(200);
+    const status = parsed<{ missing: number[] }>(
+      await callTool(agent, 'file_upload_status', { upload: byUrl.upload }),
+    );
+    expect(status.missing).toEqual([]);
+    const kept = parsed<{ reference: string; bytes: number }>(
+      await callTool(agent, 'finish_file_upload', { upload: byUrl.upload }),
+    );
+    expect(kept.bytes).toBe(big.length);
+    expect(kept.reference).toMatch(/^!\[\[whole \d+\]\]$/);
+
+    // Inline: each part with its own hash; the open upload is found again by
+    // the hash of the whole.
+    const small = picture(1500);
+    const inline = parsed<{ upload: string }>(
+      await callTool(agent, 'begin_file_upload', {
+        notebook: notebook.notebookId,
+        name: `inline ${Date.now()}`,
+        mimeType: 'image/png',
+        size: small.length,
+        sha256: sha(small),
+        purpose: 'A picture an agent case sent inline',
+        transport: 'inline',
+        partSize: 1024,
+      }),
+    );
+    const open = parsed<{ uploads: Array<{ upload: string; sha256: string }> }>(
+      await callTool(agent, 'list_file_uploads', { notebook: notebook.notebookId }),
+    );
+    expect(open.uploads.find((each) => each.sha256 === sha(small))?.upload).toBe(inline.upload);
+    for (const part of [1, 2]) {
+      const bytes = small.subarray((part - 1) * 1024, part * 1024);
+      const sent = await callTool(agent, 'send_file_part', {
+        upload: inline.upload,
+        part,
+        sha256: sha(bytes),
+        contentBase64: bytes.toString('base64'),
+      });
+      expect(sent.isError).toBe(false);
+    }
+    expect((await callTool(agent, 'finish_file_upload', { upload: inline.upload })).isError).toBe(
+      false,
+    );
   });
 
   test('[tool:next_number] issues the next number of a folder', async ({ agent, notebook }) => {

@@ -2,18 +2,21 @@ import type { TransferDto } from '@memorysmith/contracts';
 import { useTranslation } from 'react-i18next';
 import { intlLocale } from '../../i18n/intl-locale';
 import { formatBytes } from '../../shared/components/StorageBar';
-import { progressOf } from './transfers';
+import { isStalled, progressOf } from './transfers';
 
 /**
  * The pieces a transfer is drawn with, on the menu and on the page alike
  * (#205): what kind it is, what it is about, and what state it is in.
  */
 
-/** A square with ↑ for an export and ↓ for an import. */
+/**
+ * A square with ↑ for an export, ↓ for an import, and ⇣ for what an agent is
+ * sending: it arrives too, and in parts.
+ */
 export function KindMark({ kind }: { kind: TransferDto['kind'] }) {
   return (
-    <span className="transfer-kind" aria-hidden="true">
-      {kind === 'export' ? '↑' : '↓'}
+    <span className="transfer-kind" data-kind={kind} aria-hidden="true">
+      {kind === 'export' ? '↑' : kind === 'import' ? '↓' : '⇣'}
     </span>
   );
 }
@@ -29,8 +32,10 @@ export function TransferTitle({ transfer }: { transfer: TransferDto }) {
 }
 
 /**
- * The file and when: an export saves as a file named after its notebook, and
- * an import came *from* a file the person chose.
+ * The file and when: an export saves as a file named after its notebook, an
+ * import came *from* a file the person chose, and an upload of an agent is the
+ * file it will become, sent through a connector the product names — never one
+ * the agent declared (RN-PRT-028).
  */
 export function TransferFile({ transfer }: { transfer: TransferDto }) {
   const { t, i18n } = useTranslation();
@@ -46,7 +51,44 @@ export function TransferFile({ transfer }: { transfer: TransferDto }) {
       ? t('transfers.fromFile', { file: transfer.fileName })
       : transfer.fileName
     : null;
-  return <span className="transfer-file">{file ? `${file} · ${when}` : when}</span>;
+  // A connector names itself; an upload with none was started from the
+  // interface, by the note editor (#242).
+  const platform = !transfer.upload
+    ? null
+    : transfer.upload.platform
+      ? t('transfers.platform', { platform: transfer.upload.platform })
+      : t('transfers.platformInterface');
+  return (
+    <span className="transfer-file">
+      {[file, platform, when].filter((part): part is string => part !== null).join(' · ')}
+    </span>
+  );
+}
+
+/**
+ * What an upload of an agent is for, in its words, and when its last part
+ * arrived: the two things a person reads to recognise one stopped days ago.
+ */
+export function UploadPurpose({ transfer }: { transfer: TransferDto }) {
+  const { t, i18n } = useTranslation();
+  const upload = transfer.upload;
+  if (!upload) return null;
+  const last = upload.lastPartAt
+    ? t('transfers.lastPart', {
+        when: new Intl.DateTimeFormat(intlLocale(i18n.language), {
+          day: '2-digit',
+          month: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        }).format(new Date(upload.lastPartAt)),
+      })
+    : t('transfers.noPartYet');
+  return (
+    <span className="transfer-purpose">
+      {upload.purpose}
+      {transfer.status === 'running' ? ` · ${last}` : ''}
+    </span>
+  );
 }
 
 /** What a transfer that ended produced: the size of an export, the notes of an import. */
@@ -72,10 +114,16 @@ export function TransferState({ transfer }: { transfer: TransferDto }) {
   const progress = progressOf(transfer);
 
   if (transfer.status === 'running') {
+    // An upload that stopped says so, and still shows how far it got.
+    const stalled = isStalled(transfer, Date.now());
     return (
-      <span className="transfer-state is-running">
+      <span className={`transfer-state is-running${stalled ? ' is-stalled' : ''}`}>
         <span className="transfer-state-text">
-          {t(`transfers.running.${transfer.kind}`, { done: transfer.done, total: transfer.total })}
+          {t(stalled ? 'transfers.stalled' : `transfers.running.${transfer.kind}`, {
+            done: transfer.done,
+            total: transfer.total,
+          })}
+          {transfer.kind === 'agent' ? ` · ${formatBytes(transfer.bytes, locale)}` : ''}
         </span>
         <span className="transfer-bar" aria-hidden="true">
           <span style={{ width: `${Math.round((progress ?? 0) * 100)}%` }} />

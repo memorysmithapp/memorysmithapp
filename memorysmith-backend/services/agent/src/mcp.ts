@@ -14,8 +14,28 @@ import type { AgentCaller } from './mcp/gateway.js';
 import type { Deployment } from '@memorysmith/contracts';
 import { PRODUCTION_DEFAULT } from './mcp/environment.js';
 import { serverInstructions } from './mcp/instructions.js';
+import { serverInfo } from './mcp/server-info.js';
 
-const PROTOCOL_VERSION = '2025-06-18';
+/**
+ * The revisions this server speaks, newest first. 2025-11-25 is the one that
+ * gives the `Implementation` its title, description, icons and website; the
+ * one before it, which this server spoke alone until then, differs from it in
+ * nothing a server offering only tools does.
+ */
+const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18'] as const;
+
+/**
+ * The revision a client asked for when this server speaks it, and otherwise
+ * the newest: the specification lets a client disconnect from an answer it does
+ * not support, so a client that still asks for an older revision is answered
+ * in it rather than told a newer one.
+ */
+function negotiatedVersion(requested: unknown): string {
+  return typeof requested === 'string' &&
+    (PROTOCOL_VERSIONS as readonly string[]).includes(requested)
+    ? requested
+    : PROTOCOL_VERSIONS[0];
+}
 
 interface JsonRpcRequest {
   jsonrpc: '2.0';
@@ -65,6 +85,7 @@ export async function handleMcpRequest(
   tools: McpToolAdapter,
   bearerToken = '',
   deployment: Deployment = PRODUCTION_DEFAULT,
+  siteOrigin?: string,
 ): Promise<JsonRpcResponse | null> {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     return rpcError(null, -32600, 'Invalid request');
@@ -74,15 +95,17 @@ export async function handleMcpRequest(
 
   switch (request.method) {
     case 'initialize': {
-      // The version this deployment runs, and outside production the warning
-      // that what is written here is disposable (RN-AGT-026). In every
-      // environment the instructions send the agent to whoami and index the
-      // skills, because they are read before the first tool is chosen
-      // (RN-AGT-028).
+      // Who this is and the version this deployment runs, and outside
+      // production the environment in the title and the warning that what is
+      // written here is disposable (RN-AGT-026, RN-AGT-040). In every environment the
+      // instructions send the agent to whoami and index the skills, because
+      // they are read before the first tool is chosen (RN-AGT-028). The whole
+      // Implementation goes in any revision: a field a client's revision does
+      // not name is one it ignores.
       return result(id, {
-        protocolVersion: PROTOCOL_VERSION,
+        protocolVersion: negotiatedVersion(request.params?.['protocolVersion']),
         capabilities: { tools: {} },
-        serverInfo: { name: 'memorysmith-mcp', version: deployment.version },
+        serverInfo: serverInfo(deployment, siteOrigin),
         instructions: serverInstructions(deployment),
       });
     }

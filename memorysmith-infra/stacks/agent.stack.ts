@@ -41,6 +41,11 @@ export interface AgentStackProps extends StackProps {
   internalApiOrigin: string;
   /** The API of the core, whose connector binding route this function alone may invoke. */
   coreApi: apigwv2.HttpApi;
+  /**
+   * The site of the same environment, which serves the icons the handshake
+   * declares and is the website it names (RN-AGT-026).
+   */
+  siteOrigin: string;
 }
 
 export class AgentStack extends Stack {
@@ -72,6 +77,7 @@ export class AgentStack extends Stack {
       timeout: Duration.seconds(15),
       environment: {
         PUBLIC_ORIGIN: publicOrigin,
+        SITE_ORIGIN: props.siteOrigin,
         COGNITO_ISSUER: cognitoIssuer,
         COGNITO_DOMAIN: cognitoDomain,
         PROXY_CLIENT_ID: props.proxyClient.userPoolClientId,

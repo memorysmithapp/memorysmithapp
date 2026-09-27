@@ -17,11 +17,16 @@
  * the notebook.
  */
 
-export type TransferKind = 'export' | 'import';
+export type TransferKind = 'export' | 'import' | 'agent';
 
 /**
  * `running` is the only state a worker moves out of, and it moves out of it
  * once: a transfer ends as `ready`, `failed` or `cancelled` and stays there.
+ *
+ * An upload of an agent never reaches `ready` on the record: the moment it is
+ * ready it is a file of the notebook, and the record goes (RN-PRT-028). It is
+ * `running` while parts may still arrive — for days, if nobody sends them —
+ * and `failed` when its finish found the bytes wrong.
  */
 export type TransferStatus = 'running' | 'ready' | 'failed' | 'cancelled';
 
@@ -55,6 +60,78 @@ export interface Transfer {
   readonly versionId: string | null;
   /** A code the interface turns into words in the language of the person. */
   readonly failure: string | null;
+  /** What an upload of an agent is and where its parts are (RN-PRT-027); only on that kind. */
+  readonly upload?: TransferUpload | undefined;
+}
+
+/**
+ * An upload in parts (RN-PRT-027). The file it becomes is declared up front —
+ * name, type, description, tags and path, as `keep_file` takes them — with the
+ * size and the hash of the whole, which the finish holds the bytes to.
+ *
+ * Its parts live under the transfer, `s/{subscriptionId}/uploads/{transferId}/`,
+ * and never under the notebook: the key names no notebook (rule 4), so the
+ * purge of a deleted notebook does not reach them, and pointing the upload at
+ * another notebook moves no byte (RN-PRT-029).
+ */
+export interface TransferUpload {
+  readonly mimeType: string;
+  readonly description: string;
+  readonly tags: readonly string[];
+  readonly path: string;
+  /** What the file is for, in the words of the agent. */
+  readonly purpose: string;
+  /** The connector that started it, as the token names it, or `null` for a person. */
+  readonly platform: string | null;
+  readonly transport: 'url' | 'inline';
+  readonly sha256: string;
+  readonly partSize: number;
+  readonly partCount: number;
+  /**
+   * The multipart upload of the store, on an upload by URL: its parts reach the
+   * store without passing through the API, so the store is what says which
+   * arrived.
+   */
+  readonly multipartId: string | null;
+  /**
+   * The inline parts that arrived, by number, each with the exact revision it
+   * was written as — so discarding destroys the bytes rather than hiding them
+   * behind a delete marker.
+   */
+  readonly parts: Readonly<Record<string, string>>;
+  /**
+   * The revision of the whole, once the parts were joined. A finish refused for
+   * a reason that leaves the upload open — a name taken meanwhile, no room, the
+   * notebook unavailable — keeps it, so asking again joins nothing twice.
+   */
+  readonly assembled: string | null;
+  readonly lastPartAt: string | null;
+}
+
+/** The part size of an upload by URL: S3 asks at least 5 MiB of every part but the last. */
+export const UPLOAD_URL_PART_BYTES = 8 * 1024 * 1024;
+/** What one file may be through an upload in parts, whichever way it travels. */
+export const UPLOAD_MAX_BYTES = 100 * 1024 * 1024;
+/** What an inline upload may be in all: the door a call already had (RN-KNW-053). */
+export const UPLOAD_INLINE_MAX_BYTES = 4 * 1024 * 1024;
+/** The bounds of an inline part, and how many an inline upload may have. */
+export const UPLOAD_INLINE_PART_MIN = 1024;
+export const UPLOAD_INLINE_PART_MAX = 1024 * 1024;
+export const UPLOAD_INLINE_MAX_PARTS = 256;
+
+/** The prefix every part of one upload lives under. */
+export function uploadPrefixOf(subscriptionId: string, transferId: string): string {
+  return `s/${subscriptionId}/uploads/${transferId}/`;
+}
+
+/** Where the whole of an upload is assembled before it becomes a file. */
+export function uploadAssemblyKeyOf(subscriptionId: string, transferId: string): string {
+  return `${uploadPrefixOf(subscriptionId, transferId)}whole`;
+}
+
+/** Where one inline part of an upload is kept. */
+export function uploadPartKeyOf(subscriptionId: string, transferId: string, part: number): string {
+  return `${uploadPrefixOf(subscriptionId, transferId)}part-${part}`;
 }
 
 /** What a transfer is when it starts, before a worker has touched it. */
@@ -107,6 +184,26 @@ export interface TransferStore {
   addKeptBytes(delta: number, notebookId?: string | null): Promise<void>;
   /** How many exports are kept and what they occupy, whole and per notebook. */
   keptUsage(): Promise<KeptUsage>;
+  /**
+   * Records that one inline part arrived, as the revision it was written as.
+   * Only that entry of the record is written, so two parts arriving together
+   * do not overwrite each other (RN-PRT-027).
+   */
+  recordPart(
+    userId: string,
+    transferId: string,
+    part: number,
+    versionId: string,
+    at: string,
+  ): Promise<void>;
+  /**
+   * Moves what the open uploads reserve, by one upload: its declared size,
+   * positive when it starts and negative when it ends either way, under the
+   * notebook it is for (RN-SUB-025). The count moves by one with the sign.
+   */
+  addTransitBytes(delta: number, notebookId: string | null): Promise<void>;
+  /** What the open uploads of the SUBSCRIPTION reserve, whole and per notebook. */
+  transitUsage(): Promise<KeptUsage>;
 }
 
 /** What the kept exports of a subscription add up to (RN-SUB-024). */

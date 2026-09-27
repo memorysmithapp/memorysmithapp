@@ -74,6 +74,8 @@ const api = new ApiStack(app, id('Api'), {
   hostedZone: network.hostedZone,
   certificate: network.apiCertificate,
   apiDomainName: network.apiDomainName,
+  uploadsDomainName: network.uploadsDomainName,
+  uploadsCertificate: network.uploadsCertificate,
   userPool: identity.userPool,
   cognitoIssuer: identity.issuer,
   connectorClientId: identity.proxyClient.userPoolClientId,
@@ -93,6 +95,7 @@ const agent = new AgentStack(app, id('Agent'), {
   proxyClient: identity.proxyClient,
   internalApiOrigin: api.apiOrigin,
   coreApi: api.httpApi,
+  siteOrigin: `https://${network.siteDomainName}`,
 });
 
 const hosting = new FrontendHostingStack(app, id('Frontend'), {
@@ -110,6 +113,7 @@ const release = new FrontendReleaseStack(app, id('FrontendRelease'), {
   config: {
     apiOrigin: api.apiOrigin,
     connectorOrigin: `https://${network.mcpDomainName}`,
+    uploadsOrigin: api.uploadsOrigin,
     cognitoDomain: identity.hostedUiOrigin,
     cognitoClientId: identity.webClient.userPoolClientId,
     environment: deployment.environment,

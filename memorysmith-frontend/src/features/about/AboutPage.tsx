@@ -31,6 +31,9 @@ export function WelcomeGate({ children }: { children: ReactNode }) {
  */
 const STEPS = ['one', 'two', 'three', 'four', 'five'] as const;
 
+/** What sending a file through each client needs, in the order it is met (#244). */
+const FILE_STEPS = ['one', 'two', 'three'] as const;
+
 /** The two clients whose steps the page gives, one at a time (#216). */
 const CLIENTS = ['claude', 'chatgpt'] as const;
 type Client = (typeof CLIENTS)[number];
@@ -56,6 +59,9 @@ export function AboutPage() {
   const welcomed = useLiveSession((s) => s.session?.welcomeSeen ?? true);
   const markWelcomeSeen = useLiveSession((s) => s.markWelcomeSeen);
   const [client, setClient] = useState<Client>('claude');
+  const [filesClient, setFilesClient] = useState<Client>('claude');
+  /** The host the parts of a file go to, which a client may ask to allow (#241). */
+  const uploadsHost = config?.uploadsOrigin ? new URL(config.uploadsOrigin).host : '';
 
   useDocumentTitle(t('about.title'), null);
 
@@ -145,6 +151,50 @@ export function AboutPage() {
           ))}
         </ol>
         <p className="about-note">{t('about.connector.sameAccount')}</p>
+      </section>
+
+      {/* What the test of #240 found out the hard way: a client decides, by
+          settings nobody announces, whether a file can travel at all (#244). */}
+      <section className="about-section">
+        <h2>{t('about.files.heading')}</h2>
+        <p>{t('about.files.body')}</p>
+        {uploadsHost ? (
+          // Drawn as the connector's address is, and named apart from it: the
+          // page states two addresses, and each is found by what it is.
+          <div className="about-uploads">
+            <code>{uploadsHost}</code>
+            <CopyButton text={() => uploadsHost} />
+          </div>
+        ) : null}
+        <Tabs
+          id="about-files"
+          label={t('about.files.heading')}
+          className="about-clients"
+          tabs={CLIENTS.map((key) => ({ key, label: t(`about.connector.${key}.heading`) }))}
+          active={filesClient}
+          onSelect={setFilesClient}
+        />
+        <ol
+          className="about-steps"
+          id="about-files-panel"
+          role="tabpanel"
+          aria-labelledby={`about-files-tab-${filesClient}`}
+        >
+          {FILE_STEPS.map((step, index) => (
+            <li key={step}>
+              <span className="about-step-number" aria-hidden="true">
+                {index + 1}
+              </span>
+              <span>
+                <Trans
+                  i18nKey={`about.files.${filesClient}.${step}`}
+                  components={{ b: <strong /> }}
+                />
+              </span>
+            </li>
+          ))}
+        </ol>
+        <p className="about-note">{t('about.files.editor')}</p>
       </section>
 
       <section className="about-section">

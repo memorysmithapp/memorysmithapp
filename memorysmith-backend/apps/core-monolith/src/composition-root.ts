@@ -207,13 +207,18 @@ export async function readStorageBudget(
   const meter = new DynamoStorageMeter(context, infra.db, infra.knowledgeTable);
   const platform = new DynamoPlatformAdmin(infra.db, infra.accessTable, NULL_OUTBOX_SINK);
   const transfers = buildTransfers(infra, context);
-  const [usedBytes, keptBytes, subscription] = await Promise.all([
+  const [usedBytes, keptBytes, transitBytes, subscription] = await Promise.all([
     meter.usedBytes(),
     transfers.keptBytes().catch(() => 0),
+    // What the open uploads reserve counts from the moment one starts (RN-SUB-025).
+    transfers
+      .transitUsage()
+      .then((usage) => usage.bytes)
+      .catch(() => 0),
     platform.findById(context.subscriptionId).catch(() => null),
   ]);
   return {
-    usedBytes: usedBytes + keptBytes,
+    usedBytes: usedBytes + keptBytes + transitBytes,
     limitBytes: (subscription?.quota ?? StorageQuota.DEFAULT).bytes,
   };
 }
@@ -242,6 +247,7 @@ export function buildSubscriptionUsage(
         usage: new DynamoStorageMeter(context, infra.db, infra.knowledgeTable),
       }).execute({ ctx }),
     kept: () => buildTransfers(infra, context).keptUsage(),
+    transit: () => buildTransfers(infra, context).transitUsage(),
     budget: () => readStorageBudget(infra, context),
   });
 }

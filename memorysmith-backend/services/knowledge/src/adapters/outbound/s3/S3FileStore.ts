@@ -15,7 +15,12 @@
  */
 
 import { ContentId, ContentRef, Instant, type SubscriptionContext } from '@memorysmith/kernel';
-import { GetObjectCommand, PutObjectCommand, type S3Client } from '@aws-sdk/client-s3';
+import {
+  CopyObjectCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+  type S3Client,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createHash } from 'node:crypto';
 import { rendersAs } from '@memorysmith/contracts';
@@ -108,7 +113,94 @@ export class S3FileStore implements FileStore {
     return { url, expiresAt: expiresAt.value };
   }
 
+  async peekAssembled(key: string, versionId: string, bytes: number): Promise<Uint8Array | null> {
+    if (!this.isUpload(key)) return null;
+    try {
+      const found = await this.s3.send(
+        new GetObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+          VersionId: versionId,
+          Range: `bytes=0-${Math.max(0, bytes - 1)}`,
+        }),
+      );
+      return (await found.Body?.transformToByteArray()) ?? null;
+    } catch (error) {
+      if (missing(error)) return null;
+      throw error;
+    }
+  }
+
+  /**
+   * One read to hash the whole and one copy inside the store to write it where
+   * a file lives (RN-PRT-027). The copy is what keeps a file of a hundred
+   * megabytes out of the memory of the function: the bytes are streamed through
+   * the hash and never held, and never sent back up.
+   */
+  async adoptAssembled(input: {
+    key: string;
+    versionId: string;
+    mimeType: string;
+    sha256: string;
+  }): Promise<ContentRef | 'mismatch' | null> {
+    if (!this.isUpload(input.key)) return null;
+    let body: AsyncIterable<Uint8Array> | undefined;
+    try {
+      const found = await this.s3.send(
+        new GetObjectCommand({ Bucket: this.bucket, Key: input.key, VersionId: input.versionId }),
+      );
+      body = found.Body as AsyncIterable<Uint8Array> | undefined;
+    } catch (error) {
+      if (missing(error)) return null;
+      throw error;
+    }
+    if (!body) return null;
+
+    const hash = createHash('sha256');
+    let size = 0;
+    for await (const chunk of body) {
+      hash.update(chunk);
+      size += chunk.byteLength;
+    }
+    const sha256 = hash.digest('hex');
+    if (sha256 !== input.sha256) return 'mismatch';
+
+    const contentId = ContentId.generate();
+    const copied = await this.s3.send(
+      new CopyObjectCommand({
+        Bucket: this.bucket,
+        Key: this.keyOf(contentId),
+        CopySource: `${this.bucket}/${input.key
+          .split('/')
+          .map(encodeURIComponent)
+          .join('/')}?versionId=${encodeURIComponent(input.versionId)}`,
+        MetadataDirective: 'REPLACE',
+        ContentType: input.mimeType,
+        ContentDisposition: rendersAs(input.mimeType) === 'card' ? 'attachment' : 'inline',
+      }),
+    );
+    const versionId = copied.VersionId;
+    if (!versionId) {
+      throw new Error(
+        `Bucket ${this.bucket} returned no VersionId: object versioning must be enabled`,
+      );
+    }
+    const ref = ContentRef.create({ contentId, versionId, sha256, bytes: size });
+    if (!ref.ok) throw new Error(ref.error.message);
+    return ref.value;
+  }
+
+  /** Only an upload of this subscription may become one of its files (rule 1). */
+  private isUpload(key: string): boolean {
+    return key.startsWith(`s/${this.sub.subscriptionId.value}/uploads/`);
+  }
+
   private keyOf(contentId: ContentId): string {
     return `s/${this.sub.subscriptionId.value}/f/${contentId.value}`;
   }
+}
+
+function missing(error: unknown): boolean {
+  const name = (error as { name?: string } | null)?.name ?? '';
+  return name === 'NoSuchKey' || name === 'NotFound' || name === 'NoSuchVersion';
 }

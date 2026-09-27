@@ -7,12 +7,20 @@ import { queryKeys } from '../../shared/api/query-keys';
 import { useLiveSession } from '../../shared/auth/session';
 import { formatBytes } from '../../shared/components/StorageBar';
 import { SpaceSkeleton } from '../../shared/components/skeletons';
-import { kindsBySpace, notebookLines, shareOf, type KindKey, type NotebookLine } from './space';
+import {
+  elsewhereOf,
+  kindsBySpace,
+  notebookLines,
+  shareOf,
+  type KindKey,
+  type NotebookLine,
+} from './space';
 
 const KIND_LABEL: Record<KindKey, string> = {
   files: 'dashboard.kindFiles',
   notes: 'dashboard.kindNotes',
   exports: 'dashboard.kindExports',
+  transit: 'dashboard.kindTransit',
   others: 'dashboard.kindOthers',
 };
 
@@ -118,22 +126,30 @@ export function SubscriptionSpace() {
                       </tr>
                     </thead>
                     <tbody>
-                      {kindsBySpace(usage).map((kind) => (
-                        <tr key={kind.key}>
-                          <td>
-                            <span className="space-dot" data-kind={kind.key} />
-                          </td>
-                          <td
-                            title={
-                              kind.key === 'others' ? t('dashboard.kindOthersHint') : undefined
-                            }
-                          >
-                            {t(KIND_LABEL[kind.key])}
-                          </td>
-                          <td>{number.format(kind.count)}</td>
-                          <td>{bytes(kind.bytes)}</td>
-                        </tr>
-                      ))}
+                      {/* In transit is a row only while something is: an
+                          upload is rare, and a row of zeros every day is noise. */}
+                      {kindsBySpace(usage)
+                        .filter((kind) => kind.key !== 'transit' || kind.count > 0)
+                        .map((kind) => (
+                          <tr key={kind.key}>
+                            <td>
+                              <span className="space-dot" data-kind={kind.key} />
+                            </td>
+                            <td
+                              title={
+                                kind.key === 'others'
+                                  ? t('dashboard.kindOthersHint')
+                                  : kind.key === 'transit'
+                                    ? t('dashboard.kindTransitHint')
+                                    : undefined
+                              }
+                            >
+                              {t(KIND_LABEL[kind.key])}
+                            </td>
+                            <td>{number.format(kind.count)}</td>
+                            <td>{bytes(kind.bytes)}</td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
                 </>
@@ -159,6 +175,11 @@ export function SubscriptionSpace() {
                 ) : (
                   <p className="hint">{t('dashboard.noVisibleNotebooks')}</p>
                 )}
+                {elsewhereOf(usage) > 0 ? (
+                  <p className="hint space-elsewhere">
+                    {t('dashboard.elsewhere', { bytes: bytes(elsewhereOf(usage)) })}
+                  </p>
+                ) : null}
                 {purging.length > 0 ? (
                   <p className="hint space-purging">
                     {t('dashboard.purging', {
@@ -212,6 +233,7 @@ function NotebookLines({
           line.folders ? t('dashboard.notebookFolders', { count: line.folders }) : null,
           line.files ? t('dashboard.notebookFiles', { count: line.files }) : null,
           line.exports ? t('dashboard.notebookExports', { count: line.exports }) : null,
+          line.uploads ? t('dashboard.notebookUploads', { count: line.uploads }) : null,
         ].filter((part): part is string => part !== null);
         return (
           <li key={line.notebookId ?? 'more'}>

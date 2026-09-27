@@ -16,6 +16,9 @@ import type {
   NotebookFileDto,
   SubscriptionUsageDto,
   TransferSelection,
+  BeginUploadRequest,
+  FinishedUploadDto,
+  UploadStatusDto,
   TransferDto,
   TransferListDto,
 } from '@memorysmith/contracts';
@@ -274,6 +277,18 @@ export function cancelTransfer(transferId: string): Promise<void> {
 
 export function deleteTransfer(transferId: string): Promise<void> {
   return backend.deleteTransfer(transferId);
+}
+
+export function beginUpload(input: BeginUploadRequest): Promise<UploadStatusDto> {
+  return backend.beginUpload(input);
+}
+
+export function finishUpload(transferId: string): Promise<FinishedUploadDto> {
+  return backend.finishUpload(transferId);
+}
+
+export function linkUpload(transferId: string, notebookId: string): Promise<TransferDto> {
+  return backend.linkUpload(transferId, notebookId);
 }
 
 export function resolveLinkTarget(notebookId: string, target: string) {

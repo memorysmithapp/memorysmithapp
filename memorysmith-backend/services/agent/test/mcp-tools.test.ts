@@ -174,6 +174,12 @@ describe('The tool catalog is the public contract', () => {
       'create_note',
       // What a notebook keeps beside its notes (#166).
       'keep_file',
+      // A file kept whole, sent in parts (#240).
+      'begin_file_upload',
+      'send_file_part',
+      'file_upload_status',
+      'finish_file_upload',
+      'list_file_uploads',
       'list_files',
       'delete_file',
       'update_note',
@@ -223,6 +229,9 @@ describe('The tool catalog is the public contract', () => {
       'next_number',
       'create_note',
       'keep_file',
+      'begin_file_upload',
+      'send_file_part',
+      'finish_file_upload',
       'delete_file',
       'update_note',
       'reorder_note',
@@ -608,6 +617,85 @@ describe('The MCP transport', () => {
     // literal in the test would have to be edited on every release, which is
     // the very failure this fixes.
     expect(serverInfo.version).toBe(pkg.version);
+  });
+
+  async function initialize(
+    params: Record<string, unknown> = {},
+    deployment?: Deployment,
+    siteOrigin?: string,
+  ) {
+    const response = await handleMcpRequest(
+      { jsonrpc: '2.0', id: 1, method: 'initialize', params },
+      token,
+      gateways(),
+      '',
+      deployment,
+      siteOrigin,
+    );
+    return (
+      response as {
+        result: {
+          protocolVersion: string;
+          serverInfo: {
+            name: string;
+            title: string;
+            version: string;
+            description: string;
+            icons?: Array<{ src: string; mimeType: string; sizes: string[] }>;
+            websiteUrl?: string;
+          };
+        };
+      }
+    ).result;
+  }
+
+  it('says who it is: a title, a description, PNG icons and the website of its site', async () => {
+    const { serverInfo } = await initialize({}, undefined, 'https://memorysmith.app');
+    expect(serverInfo.title).toBe('MemorySmith.app');
+    expect(serverInfo.description).toBe(
+      'Structured knowledge, natively readable and writable by humans and agents.',
+    );
+    expect(serverInfo.websiteUrl).toBe('https://memorysmith.app');
+    // PNG is what a client that renders icons must accept, served by the site.
+    expect(serverInfo.icons).toEqual([
+      { src: 'https://memorysmith.app/symbol-48.png', mimeType: 'image/png', sizes: ['48x48'] },
+      { src: 'https://memorysmith.app/symbol-192.png', mimeType: 'image/png', sizes: ['192x192'] },
+    ]);
+  });
+
+  it('names the environment in the title outside production, and its icons come from its own site', async () => {
+    const staging: Deployment = {
+      environment: 'staging',
+      version: '0.9.0-rc.1+a1b2c3d',
+      commit: 'a1b2c3d',
+    };
+    const { serverInfo } = await initialize({}, staging, 'https://stg.memorysmith.app');
+    expect(serverInfo.title).toBe('MemorySmith.app (staging)');
+    expect(serverInfo.version).toBe('0.9.0-rc.1+a1b2c3d');
+    expect(
+      serverInfo.icons?.every((icon) => icon.src.startsWith('https://stg.memorysmith.app/')),
+    ).toBe(true);
+  });
+
+  it('declares no icon and no website when it does not know its site', async () => {
+    const { serverInfo } = await initialize();
+    expect(serverInfo).not.toHaveProperty('icons');
+    expect(serverInfo).not.toHaveProperty('websiteUrl');
+  });
+
+  it('answers in the revision a client asks for when it speaks it, and in the newest otherwise', async () => {
+    expect((await initialize({ protocolVersion: '2025-11-25' })).protocolVersion).toBe(
+      '2025-11-25',
+    );
+    // A client that still asks for the older revision is not told a newer one
+    // it may disconnect from.
+    expect((await initialize({ protocolVersion: '2025-06-18' })).protocolVersion).toBe(
+      '2025-06-18',
+    );
+    expect((await initialize({ protocolVersion: '2024-11-05' })).protocolVersion).toBe(
+      '2025-11-25',
+    );
+    expect((await initialize()).protocolVersion).toBe('2025-11-25');
   });
 
   it('answers notifications with no body', async () => {
@@ -1223,5 +1311,139 @@ describe('the connector orders what it writes (RN-AGT-029)', () => {
       const tool = TOOL_CATALOG.find((each) => each.name === name);
       expect(tool?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
     }
+  });
+});
+
+describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', () => {
+  const transfer = (upload: Record<string, unknown>) => ({
+    transferId: '01JBQ2X0000000000000000UP1',
+    kind: 'agent',
+    status: 'running',
+    notebookId: 'v1',
+    notebookName: 'Atas',
+    requestedAt: '2026-09-26T12:00:00.000Z',
+    finishedAt: null,
+    done: 0,
+    total: 3,
+    bytes: 20_000_000,
+    failure: null,
+    fileName: 'quadro.jpg',
+    upload: {
+      mimeType: 'image/jpeg',
+      purpose: 'A foto do quadro, para a ata',
+      platform: 'Claude',
+      transport: 'url',
+      sha256: 'a'.repeat(64),
+      partSize: 8_388_608,
+      partCount: 3,
+      received: [],
+      lastPartAt: null,
+      ...upload,
+    },
+  });
+
+  it('answers an address per part by URL, and what to do with them', async () => {
+    let sent: Record<string, unknown> | null = null;
+    const answer = await gateways({
+      knowledge: {
+        beginFileUpload: async (_caller: unknown, input: Record<string, unknown>) => {
+          sent = input;
+          return {
+            transfer: transfer({}),
+            missing: [1, 2, 3],
+            targets: [1, 2, 3].map((part) => ({ part, url: `https://store/p${part}` })),
+            expiresAt: '2026-09-26T13:00:00.000Z',
+          };
+        },
+      },
+    }).call(
+      'begin_file_upload',
+      {
+        notebook: 'v1',
+        name: 'quadro.jpg',
+        mimeType: 'image/jpeg',
+        size: 20_000_000,
+        sha256: 'A'.repeat(64),
+        purpose: 'A foto do quadro, para a ata',
+        transport: 'url',
+      },
+      caller,
+    );
+
+    expect(answer.isError).toBe(false);
+    // The hash travels as the API reads it, whatever case the agent typed.
+    expect(sent).toMatchObject({ notebookId: 'v1', sha256: 'a'.repeat(64), transport: 'url' });
+    const body = JSON.parse(answer.content[0]?.text ?? '') as Record<string, unknown>;
+    expect(body['targets']).toHaveLength(3);
+    // The host the parts go to, which a client that allows hosts one by one
+    // has to be told about (#241, #243).
+    expect(body['partsHost']).toBe('store');
+    expect(body['missing']).toEqual([1, 2, 3]);
+    expect(String(body['next'])).toContain('PUT');
+  });
+
+  it('says which parts are still missing, and when to finish', async () => {
+    const answer = await gateways({
+      knowledge: {
+        sendFilePart: async () => ({
+          transfer: transfer({ transport: 'inline', received: [1] }),
+          missing: [2, 3],
+          targets: [],
+          expiresAt: null,
+        }),
+      },
+    }).call(
+      'send_file_part',
+      { upload: 'u1', part: 1, sha256: 'b'.repeat(64), contentBase64: 'AAAA' },
+      caller,
+    );
+    const body = JSON.parse(answer.content[0]?.text ?? '') as Record<string, unknown>;
+    expect(body['missing']).toEqual([2, 3]);
+    expect(body['next']).toBe('Send the parts still missing: 2, 3.');
+  });
+
+  it('answers the reference to write once the file is kept', async () => {
+    const answer = await gateways({
+      knowledge: {
+        finishFileUpload: async () => ({
+          fileId: '01JBQ2X0000000000000000F01',
+          notebookId: 'v1',
+          name: 'quadro.jpg',
+          bytes: 20_000_000,
+        }),
+      },
+    }).call('finish_file_upload', { upload: 'u1' }, caller);
+    expect(JSON.parse(answer.content[0]?.text ?? '')).toMatchObject({
+      reference: '![[quadro.jpg]]',
+    });
+  });
+
+  it('lists the open uploads with the hash an agent resumes one by', async () => {
+    const answer = await gateways({
+      knowledge: { listFileUploads: async () => [transfer({ received: [1, 2] })] },
+    }).call('list_file_uploads', {}, caller);
+    const body = JSON.parse(answer.content[0]?.text ?? '') as {
+      uploads: Array<Record<string, unknown>>;
+    };
+    expect(body.uploads[0]).toMatchObject({
+      upload: '01JBQ2X0000000000000000UP1',
+      sha256: 'a'.repeat(64),
+      received: [1, 2],
+      purpose: 'A foto do quadro, para a ata',
+    });
+  });
+
+  it('teaches the way in a skill the handshake lists, and keep_file points to it', () => {
+    const skill = SKILLS.find((each) => each.name === 'keep-files');
+    expect(skill?.body).toContain('begin_file_upload');
+    expect(skill?.body).toContain('transport: "url"');
+    const keep = TOOL_CATALOG.find((each) => each.name === 'keep_file');
+    expect(keep?.description).toContain('begin_file_upload');
+    expect(keep?.description).toContain('keep-files');
+    // What was seen on 2026-09-26: a chat that recompresses the attachment,
+    // and an agent that kept the small copy in silence (#243, RN-AGT-042).
+    expect(keep?.description).toContain('tell them both sizes');
+    expect(skill?.body).toContain('Anexar arquivo');
+    expect(skill?.body).toContain('host_not_allowed');
   });
 });

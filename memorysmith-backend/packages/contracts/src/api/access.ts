@@ -140,13 +140,16 @@ export const usageShareSchema = z.object({
  * What fills the space of the active subscription (#197), read from counters
  * and never from content. `byType` is about the subscription, which is what
  * the quota is about, and adds up to `usedBytes`: the current revision of each
- * note, the files, the kept exports, and the Guidance and Templates together
- * as `others`. A revision that is no longer current costs nothing and is only
- * counted, in `counts.revisions`.
+ * note, the files, the kept exports, the room open uploads reserve as
+ * `transit`, and the Guidance and Templates together as `others`. A revision
+ * that is no longer current costs nothing and is only counted, in
+ * `counts.revisions`.
  *
  * `notebooks` lists only the notebooks the requester sees (a hidden one would
- * answer 404), largest first, so for anyone but the owner it may add up to
- * less than the total — which is the rule, not a defect.
+ * answer 404), largest first, so they may add up to less than the total: for
+ * anyone but the owner, and for the owner too when an export or an upload
+ * outlived its notebook. What they leave is drawn as one line that names no
+ * notebook (RN-PRT-029), which is the rule, not a defect.
  */
 export const subscriptionUsageSchema = z.object({
   usedBytes: z.number().int().nonnegative(),
@@ -155,6 +158,8 @@ export const subscriptionUsageSchema = z.object({
     notes: usageShareSchema,
     files: usageShareSchema,
     exports: usageShareSchema,
+    /** The room open uploads reserve, by their declared size (RN-SUB-025). */
+    transit: usageShareSchema,
     others: usageShareSchema,
   }),
   counts: z.object({
@@ -171,6 +176,8 @@ export const subscriptionUsageSchema = z.object({
       folders: z.number().int().nonnegative(),
       files: z.number().int().nonnegative(),
       exports: z.number().int().nonnegative(),
+      /** Open uploads going to this notebook, whose room its bytes include (RN-SUB-025). */
+      uploads: z.number().int().nonnegative(),
     }),
   ),
 });

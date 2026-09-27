@@ -21,15 +21,21 @@
  */
 
 import {
+  AbortMultipartUploadCommand,
+  CompleteMultipartUploadCommand,
   CopyObjectCommand,
+  CreateMultipartUploadCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  ListPartsCommand,
   PutObjectCommand,
+  UploadPartCommand,
   type S3Client,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { ArchiveStore } from '../application/ExportNotebook.js';
 import type { UploadStore } from '../application/ImportNotebook.js';
+import type { PartStore } from '../application/Uploads.js';
 
 /**
  * What the bucket rule expires on. It is worn by the upload of an IMPORT and by
@@ -171,5 +177,166 @@ export class S3UploadStore implements UploadStore {
       if (name === 'NoSuchKey' || name === 'NotFound') return false;
       throw error;
     }
+  }
+}
+
+/**
+ * S3PartStore: where the parts of an upload of an agent are kept (RN-PRT-027),
+ * under `s/{subscriptionId}/uploads/{transferId}/` — the subscription first,
+ * as every key of this system, and no notebook anywhere in it (rule 4).
+ *
+ * **Nothing here wears the lifecycle tag, and no rule of the bucket reaches
+ * this prefix** (RN-PRT-028): an upload has no deadline, the person sees what
+ * it holds and decides, and the bucket must not decide behind the record.
+ *
+ * Every write answers its revision and every discard destroys by revision, as
+ * an export does: the bucket is versioned, and a delete without a version only
+ * hides the bytes behind a marker while they stay billed.
+ */
+export class S3PartStore implements PartStore {
+  constructor(
+    private readonly s3: S3Client,
+    /**
+     * The client that signs the address of a part. It is built without the
+     * checksum the SDK adds by default: version 3.1117 signs a part with the
+     * CRC32 of an EMPTY body, so a plain PUT of the real bytes is refused.
+     */
+    private readonly signer: S3Client,
+    private readonly bucket: string,
+    /**
+     * The host a signed part is answered on, `https://uploads.{zone}` (#241),
+     * or nothing to answer it on the bucket's own. A signature of S3 covers the
+     * host it was signed for and the path, and the distribution on that host
+     * forwards the request to the bucket with its own Host, so S3 checks the
+     * very request it signed: only the name the client sees changes.
+     */
+    private readonly publicOrigin: string | null = null,
+  ) {}
+
+  async startMultipart(key: string, mimeType: string): Promise<string> {
+    const started = await this.s3.send(
+      new CreateMultipartUploadCommand({ Bucket: this.bucket, Key: key, ContentType: mimeType }),
+    );
+    if (!started.UploadId) throw new Error('The store opened no multipart upload');
+    return started.UploadId;
+  }
+
+  async signPart(key: string, multipartId: string, part: number, seconds: number): Promise<string> {
+    const signed = await getSignedUrl(
+      this.signer,
+      new UploadPartCommand({
+        Bucket: this.bucket,
+        Key: key,
+        UploadId: multipartId,
+        PartNumber: part,
+      }),
+      { expiresIn: seconds },
+    );
+    if (!this.publicOrigin) return signed;
+    const url = new URL(signed);
+    const origin = new URL(this.publicOrigin);
+    url.protocol = origin.protocol;
+    url.host = origin.host;
+    return url.toString();
+  }
+
+  async listParts(
+    key: string,
+    multipartId: string,
+  ): Promise<Array<{ part: number; lastModified: string | null }> | null> {
+    const listed: Array<{ part: number; lastModified: string | null }> = [];
+    let marker: string | undefined;
+    try {
+      do {
+        const page = await this.s3.send(
+          new ListPartsCommand({
+            Bucket: this.bucket,
+            Key: key,
+            UploadId: multipartId,
+            ...(marker ? { PartNumberMarker: marker } : {}),
+          }),
+        );
+        for (const part of page.Parts ?? []) {
+          if (part.PartNumber === undefined) continue;
+          listed.push({
+            part: part.PartNumber,
+            lastModified: part.LastModified ? part.LastModified.toISOString() : null,
+          });
+        }
+        marker = page.IsTruncated ? page.NextPartNumberMarker : undefined;
+      } while (marker);
+    } catch (error) {
+      if ((error as { name?: string } | null)?.name === 'NoSuchUpload') return null;
+      throw error;
+    }
+    return listed;
+  }
+
+  async completeMultipart(key: string, multipartId: string): Promise<string> {
+    const parts: Array<{ PartNumber: number; ETag: string }> = [];
+    let marker: string | undefined;
+    do {
+      const page = await this.s3.send(
+        new ListPartsCommand({
+          Bucket: this.bucket,
+          Key: key,
+          UploadId: multipartId,
+          ...(marker ? { PartNumberMarker: marker } : {}),
+        }),
+      );
+      for (const part of page.Parts ?? []) {
+        if (part.PartNumber !== undefined && part.ETag) {
+          parts.push({ PartNumber: part.PartNumber, ETag: part.ETag });
+        }
+      }
+      marker = page.IsTruncated ? page.NextPartNumberMarker : undefined;
+    } while (marker);
+    const completed = await this.s3.send(
+      new CompleteMultipartUploadCommand({
+        Bucket: this.bucket,
+        Key: key,
+        UploadId: multipartId,
+        MultipartUpload: { Parts: parts.sort((a, b) => a.PartNumber - b.PartNumber) },
+      }),
+    );
+    if (!completed.VersionId) {
+      throw new Error(`Bucket ${this.bucket} returned no VersionId: versioning must be enabled`);
+    }
+    return completed.VersionId;
+  }
+
+  async abortMultipart(key: string, multipartId: string): Promise<void> {
+    await this.s3.send(
+      new AbortMultipartUploadCommand({ Bucket: this.bucket, Key: key, UploadId: multipartId }),
+    );
+  }
+
+  async putObject(key: string, bytes: Uint8Array): Promise<string> {
+    const written = await this.s3.send(
+      new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: bytes }),
+    );
+    if (!written.VersionId) {
+      throw new Error(`Bucket ${this.bucket} returned no VersionId: versioning must be enabled`);
+    }
+    return written.VersionId;
+  }
+
+  async readObject(key: string, versionId: string): Promise<Uint8Array | null> {
+    try {
+      const found = await this.s3.send(
+        new GetObjectCommand({ Bucket: this.bucket, Key: key, VersionId: versionId }),
+      );
+      return (await found.Body?.transformToByteArray()) ?? null;
+    } catch (error) {
+      const name = (error as { name?: string } | null)?.name ?? '';
+      if (name === 'NoSuchKey' || name === 'NoSuchVersion' || name === 'NotFound') return null;
+      throw error;
+    }
+  }
+
+  async destroy(key: string, versionId: string): Promise<void> {
+    await this.s3.send(
+      new DeleteObjectCommand({ Bucket: this.bucket, Key: key, VersionId: versionId }),
+    );
   }
 }

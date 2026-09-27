@@ -32,6 +32,12 @@ export interface InterfaceConfig {
    * said where to point one.
    */
   readonly connectorOrigin: string;
+  /**
+   * Where an assistant sends the parts of a file (#241, #244): the About page
+   * names it, as it names the connector, for a person who allows hosts one by
+   * one in their client.
+   */
+  readonly uploadsOrigin: string;
   readonly cognitoDomain: string;
   readonly cognitoClientId: string;
   readonly environment: string;

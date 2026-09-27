@@ -34,10 +34,17 @@ export class NetworkStack extends Stack {
   readonly siteCertificate: acm.ICertificate;
   /** The sign-in page lives on our own domain, not on the provider's. */
   readonly authCertificate: acm.ICertificate;
+  /**
+   * Where the parts of an upload are sent (#241, RN-PRT-027): a host of the
+   * product, so a client that allows domains one by one is asked for one it
+   * can recognise. CloudFront fronts it, hence us-east-1 like the site's.
+   */
+  readonly uploadsCertificate: acm.ICertificate;
   readonly mcpDomainName: string;
   readonly apiDomainName: string;
   readonly siteDomainName: string;
   readonly authDomainName: string;
+  readonly uploadsDomainName: string;
 
   constructor(scope: Construct, id: string, props: NetworkStackProps) {
     super(scope, id, props);
@@ -47,6 +54,7 @@ export class NetworkStack extends Stack {
     this.apiDomainName = `api.${zoneName}`;
     this.siteDomainName = zoneName;
     this.authDomainName = `auth.${zoneName}`;
+    this.uploadsDomainName = `uploads.${zoneName}`;
 
     this.hostedZone = route53.PublicHostedZone.fromPublicHostedZoneAttributes(this, 'HostedZone', {
       hostedZoneId: props.environment.hostedZoneId,
@@ -112,6 +120,11 @@ export class NetworkStack extends Stack {
 
     this.apiCertificate = new acm.Certificate(this, 'ApiCertificate', {
       domainName: this.apiDomainName,
+      validation: acm.CertificateValidation.fromDns(this.hostedZone),
+    });
+
+    this.uploadsCertificate = new acm.Certificate(this, 'UploadsCertificate', {
+      domainName: this.uploadsDomainName,
       validation: acm.CertificateValidation.fromDns(this.hostedZone),
     });
 
