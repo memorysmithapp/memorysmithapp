@@ -3,33 +3,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { NOTE_MESSAGE_MAX_LENGTH } from '@memorysmith/contracts';
 import { noteNameOf } from '../../shared/api/markdown';
-import { beginUpload, deleteTransfer, finishUpload, notesReaching } from '../../shared/api/source';
+import { notesReaching } from '../../shared/api/source';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryKeys } from '../../shared/api/query-keys';
 import { Modal } from '../../shared/components/Modal';
-import {
-  AttachRefusal,
-  attachFile,
-  hexOf,
-  insertAt,
-  referenceOf,
-  type AttachPorts,
-} from './attach';
-
-/**
- * What the attachment talks to: the API for the upload, and the address each
- * part was signed for, which answers a plain PUT (#241, #242).
- */
-const ATTACH_PORTS: AttachPorts = {
-  begin: beginUpload,
-  finish: finishUpload,
-  discard: deleteTransfer,
-  put: async (url, bytes) => {
-    const response = await fetch(url, { method: 'PUT', body: bytes });
-    if (!response.ok) throw new Error(`The store refused a part (${response.status})`);
-  },
-  sha256: async (bytes) => hexOf(await crypto.subtle.digest('SHA-256', bytes)),
-};
+import { AttachRefusal, attachFile, insertAt, referenceOf } from './attach';
+import { ATTACH_PORTS } from './attach-ports';
 
 export interface EditOutcome {
   readonly content: string;
@@ -53,7 +32,9 @@ export interface EditOutcome {
  * *Anexar arquivo* is not a toolbar: it teaches no notation, it keeps a file
  * and writes the one reference the specification already has, `![[name]]`,
  * where the cursor is (#242, RN-KNW-054). The file is kept at once, whole, and
- * stays in the notebook whether or not this edit is written.
+ * stays in the notebook whether or not this edit is written. It is chosen from
+ * the disk, dragged onto the text, or pasted into it — a screenshot has no file
+ * to choose (#253, RN-KNW-055).
  */
 export function NoteEditor({
   initial,
@@ -173,6 +154,23 @@ export function NoteEditor({
         spellCheck={false}
         onChange={(event) => setText(event.target.value)}
         aria-label={t('editor.area')}
+        // A file pasted or dropped on the text is attached where it lands;
+        // text pasted or dropped is left to the text area, as it always was.
+        onPaste={(event) => {
+          const pasted = event.clipboardData.files[0];
+          if (!pasted || busy || sending) return;
+          event.preventDefault();
+          void attach(pasted);
+        }}
+        onDragOver={(event) => {
+          if (event.dataTransfer.types.includes('Files')) event.preventDefault();
+        }}
+        onDrop={(event) => {
+          const dropped = event.dataTransfer.files[0];
+          if (!dropped || busy || sending) return;
+          event.preventDefault();
+          void attach(dropped);
+        }}
       />
 
       <div className="note-editor-actions">

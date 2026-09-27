@@ -152,6 +152,7 @@ function transferToDto(transfer: Transfer): Record<string, unknown> {
             partCount: transfer.upload.partCount,
             received: receivedOf(transfer.upload),
             lastPartAt: transfer.upload.lastPartAt,
+            fulfils: transfer.upload.fulfils ?? null,
           },
         }
       : {}),

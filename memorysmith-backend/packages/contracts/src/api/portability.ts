@@ -92,6 +92,8 @@ export const transferUploadSchema = z.object({
   received: z.array(z.number().int().positive()),
   /** When the last part arrived, or `null` while none has. */
   lastPartAt: instantSchema.nullable(),
+  /** The request of the person this upload fulfils, when it does (RN-PRT-030). */
+  fulfils: ulidSchema.nullable().optional(),
 });
 
 /**

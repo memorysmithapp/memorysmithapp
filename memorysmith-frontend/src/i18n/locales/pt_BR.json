@@ -393,7 +393,8 @@
       "all": "Todas",
       "export": "Exportações",
       "import": "Importações",
-      "agent": "Do agente"
+      "agent": "Do agente",
+      "request": "Aguardando você"
     },
     "empty": "Nada foi transferido ainda.",
     "keptBytes": "Espaço usado: {{size}}",
@@ -405,7 +406,8 @@
     "running": {
       "export": "exportando · {{done}} de {{total}} notas",
       "import": "importando · {{done}} de {{total}} notas",
-      "agent": "enviando · {{done}} de {{total}} partes"
+      "agent": "enviando · {{done}} de {{total}} partes",
+      "request": "aguardando você"
     },
     "ended": {
       "ready": "pronta",
@@ -419,7 +421,8 @@
     "line": {
       "export": "Exportação · {{notebook}}",
       "import": "Importação · {{notebook}}",
-      "agent": "Agente · {{notebook}}"
+      "agent": "Agente · {{notebook}}",
+      "request": "Pedido · {{notebook}}"
     },
     "wrote_one": "{{count}} nota escrita",
     "wrote_other": "{{count}} notas escritas",
@@ -428,7 +431,8 @@
     "kind": {
       "export": "Exportação",
       "import": "Importação",
-      "agent": "Agente"
+      "agent": "Agente",
+      "request": "Pedido"
     },
     "state": {
       "ready": "Pronta",
@@ -463,7 +467,19 @@
     "deleteUploadAsk": "Apagar este envio?",
     "deleteUploadFrees": "As partes que chegaram são descartadas e os {{size}} reservados voltam para o seu plano. Isto é definitivo.",
     "deleteFailedUpload": "Só este aviso sai da lista; as partes já foram descartadas.",
-    "platformInterface": "pela interface"
+    "platformInterface": "pela interface",
+    "requestKnown": "o agente conhece {{size}}",
+    "fulfil": "Enviar o arquivo",
+    "dismiss": "Dispensar",
+    "deleteRequestAsk": "Dispensar este pedido?",
+    "deleteRequestKeeps": "A nota continua com a referência a {{name}}, pendente, até um arquivo com esse nome ser guardado; o agente vê o pedido dispensado na próxima verificação do caderno.",
+    "requestUnavailable": "Sem caderno: o caderno deste pedido não está disponível. Vincule-o a um caderno para enviar o arquivo.",
+    "requestKeptAs": "O arquivo é guardado como {{name}}, seja qual for o nome dele no seu computador, e a nota que o pediu passa a mostrá-lo.",
+    "requestHashing": "lendo o arquivo · {{percent}}",
+    "requestDone": "Guardado como {{name}}.",
+    "requestWrongType": "Este pedido é de um arquivo do tipo {{kind}}: escolha um arquivo desse tipo.",
+    "waitingCount_one": "{{count}} arquivo aguardando você",
+    "waitingCount_other": "{{count}} arquivos aguardando você"
   },
   "about": {
     "menu": "Sobre o MemorySmith.app",
@@ -536,7 +552,7 @@
     "files": {
       "heading": "Enviando arquivos pelo assistente",
       "body": "Um assistente guarda uma foto, um PDF ou uma gravação inteiros, no tamanho em que chegaram, enviando as partes do arquivo direto para o endereço abaixo. Para isso, o aplicativo em que ele roda precisa deixar: as configurações que decidem isso não avisam quando estão no caminho.",
-      "editor": "Sem nada disso, o caminho é sempre este: abra a nota, clique em Editar e depois em Anexar arquivo. O arquivo é guardado inteiro, e a referência entra onde está o cursor.",
+      "editor": "Quando o aplicativo não deixa, o assistente pede o arquivo a você: ele aparece em <b>Transferências</b>, na aba <b>Aguardando você</b>, com o nome que a nota espera. Escolha, arraste ou cole o arquivo ali, e ele é guardado inteiro, já aparecendo na nota. Para anexar algo por conta própria, abra a nota, clique em Editar e depois em Anexar arquivo, ou cole e arraste o arquivo no texto.",
       "claude": {
         "one": "Depois de uma atualização do MemorySmith, abra <b>Personalizar</b>, depois <b>Conectores</b>, e reconecte o <b>MemorySmith.app</b>: é assim que as ferramentas novas aparecem para o Claude.",
         "two": "Em <b>Configurações</b>, depois <b>Recursos</b>, ligue <b>Permitir acesso de rede externo</b>. Se você libera domínios um a um, libere o endereço acima, ou <b>*.memorysmith.app</b> de uma vez.",
@@ -545,7 +561,7 @@
       "chatgpt": {
         "one": "Depois de uma atualização do MemorySmith, abra o plugin <b>MemorySmith.app</b> nas configurações de <b>Plugins</b> e clique em <b>Atualizar</b>, para as ferramentas novas aparecerem.",
         "two": "O ChatGPT entrega ao assistente uma <b>cópia reduzida</b> da foto anexada, e o código dele não alcança a rede: o assistente não tem o original para guardar, e deve dizer isso em vez de guardar a cópia.",
-        "three": "Para guardar a foto inteira, anexe-a você mesmo na nota, por <b>Editar</b> e <b>Anexar arquivo</b>, e peça ao assistente o resto do trabalho."
+        "three": "Para guardar a foto inteira, o assistente pede o arquivo a você: envie-o em <b>Transferências</b>, na aba <b>Aguardando você</b>, e ele aparece na nota que o pediu."
       }
     }
   },
@@ -695,5 +711,10 @@
     "application_vnd_openxmlformats_officedocument_wordprocessingml_document": "Documento do Word",
     "application_vnd_openxmlformats_officedocument_spreadsheetml_sheet": "Planilha do Excel",
     "application_vnd_openxmlformats_officedocument_presentationml_presentation": "Apresentação do PowerPoint"
+  },
+  "fileDrop": {
+    "label": "Dar um arquivo",
+    "hint": "Arraste o arquivo para cá, cole com Ctrl+V, ou",
+    "choose": "Escolher arquivo"
   }
 }

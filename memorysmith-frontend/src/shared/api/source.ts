@@ -287,6 +287,14 @@ export function finishUpload(transferId: string): Promise<FinishedUploadDto> {
   return backend.finishUpload(transferId);
 }
 
+export function listUploads(): Promise<TransferDto[]> {
+  return backend.listUploads();
+}
+
+export function uploadStatus(transferId: string): Promise<UploadStatusDto> {
+  return backend.uploadStatus(transferId);
+}
+
 export function linkUpload(transferId: string, notebookId: string): Promise<TransferDto> {
   return backend.linkUpload(transferId, notebookId);
 }

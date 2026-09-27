@@ -390,7 +390,8 @@
       "all": "All",
       "export": "Exports",
       "import": "Imports",
-      "agent": "From agents"
+      "agent": "From agents",
+      "request": "Waiting for you"
     },
     "empty": "Nothing has been transferred yet.",
     "keptBytes": "Space used: {{size}}",
@@ -402,7 +403,8 @@
     "running": {
       "export": "exporting · {{done}} of {{total}} notes",
       "import": "importing · {{done}} of {{total}} notes",
-      "agent": "sending · {{done}} of {{total}} parts"
+      "agent": "sending · {{done}} of {{total}} parts",
+      "request": "waiting for you"
     },
     "ended": {
       "ready": "ready",
@@ -416,7 +418,8 @@
     "line": {
       "export": "Export · {{notebook}}",
       "import": "Import · {{notebook}}",
-      "agent": "Agent · {{notebook}}"
+      "agent": "Agent · {{notebook}}",
+      "request": "Request · {{notebook}}"
     },
     "wrote_one": "{{count}} note written",
     "wrote_other": "{{count}} notes written",
@@ -425,7 +428,8 @@
     "kind": {
       "export": "Export",
       "import": "Import",
-      "agent": "Agent"
+      "agent": "Agent",
+      "request": "Request"
     },
     "state": {
       "ready": "Ready",
@@ -460,7 +464,19 @@
     "deleteUploadAsk": "Delete this upload?",
     "deleteUploadFrees": "The parts that arrived are thrown away and the {{size}} reserved go back to your plan. This is for good.",
     "deleteFailedUpload": "Only this notice leaves the list; its parts were already thrown away.",
-    "platformInterface": "from the interface"
+    "platformInterface": "from the interface",
+    "requestKnown": "the agent knows it as {{size}}",
+    "fulfil": "Send the file",
+    "dismiss": "Dismiss",
+    "deleteRequestAsk": "Dismiss this request?",
+    "deleteRequestKeeps": "The note keeps its reference to {{name}}, pending, until a file of that name is kept; the agent sees it dismissed the next time it checks the notebook.",
+    "requestUnavailable": "No notebook: the notebook of this request is not available. Link it to a notebook to send the file.",
+    "requestKeptAs": "The file is kept as {{name}}, whatever it is called on your disk, and the note that asked for it shows it.",
+    "requestHashing": "reading the file · {{percent}}",
+    "requestDone": "Kept as {{name}}.",
+    "requestWrongType": "This request asks for a file of the kind {{kind}}: choose a file of that kind.",
+    "waitingCount_one": "{{count}} file waiting for you",
+    "waitingCount_other": "{{count}} files waiting for you"
   },
   "about": {
     "menu": "About MemorySmith.app",
@@ -533,7 +549,7 @@
     "files": {
       "heading": "Sending files through your assistant",
       "body": "An assistant keeps a photo, a PDF or a recording whole, at the size it arrived, by sending the parts of the file straight to the address below. For that, the app it runs in has to allow it — and the settings that decide it do not say when they are in the way.",
-      "editor": "Without any of it, this way always works: open the note, click Edit and then Attach file. The file is kept whole, and its reference goes where the cursor is.",
+      "editor": "When the app does not allow it, the assistant asks you for the file: it appears in <b>Transfers</b>, on the <b>Waiting for you</b> tab, under the name the note expects. Choose, drag or paste the file there, and it is kept whole and shows in the note. To attach something yourself, open the note, click Edit and then Attach file, or paste or drag the file into the text.",
       "claude": {
         "one": "After an update of MemorySmith, open <b>Customize</b>, then <b>Connectors</b>, and reconnect <b>MemorySmith.app</b>: that is how new tools reach Claude.",
         "two": "In <b>Settings</b>, then <b>Capabilities</b>, turn on <b>Allow network egress</b>. If you allow domains one by one, allow the address above, or <b>*.memorysmith.app</b> at once.",
@@ -542,7 +558,7 @@
       "chatgpt": {
         "one": "After an update of MemorySmith, open the <b>MemorySmith.app</b> plugin in the <b>Plugins</b> settings and click <b>Refresh</b>, so the new tools appear.",
         "two": "ChatGPT hands the assistant a <b>reduced copy</b> of an attached photo, and its code cannot reach the network: the assistant has no original to keep, and should say so rather than keep the copy.",
-        "three": "To keep the photo whole, attach it to the note yourself, through <b>Edit</b> and <b>Attach file</b>, and ask the assistant for the rest of the work."
+        "three": "To keep the photo whole, the assistant asks you for the file: send it in <b>Transfers</b>, on the <b>Waiting for you</b> tab, and it shows in the note that asked for it."
       }
     }
   },
@@ -692,5 +708,10 @@
     "application_vnd_openxmlformats_officedocument_wordprocessingml_document": "Word document",
     "application_vnd_openxmlformats_officedocument_spreadsheetml_sheet": "Excel spreadsheet",
     "application_vnd_openxmlformats_officedocument_presentationml_presentation": "PowerPoint presentation"
+  },
+  "fileDrop": {
+    "label": "Give a file",
+    "hint": "Drag the file here, paste it with Ctrl+V, or",
+    "choose": "Choose a file"
   }
 }

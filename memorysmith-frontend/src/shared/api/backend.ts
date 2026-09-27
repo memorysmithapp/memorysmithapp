@@ -384,6 +384,20 @@ export async function beginUpload(input: BeginUploadRequest): Promise<UploadStat
   return request<UploadStatusDto>('/portability/uploads', { method: 'POST', body: input });
 }
 
+/**
+ * The open uploads of the person, and the files requested of them (RN-PRT-030):
+ * where an interrupted upload is found again by the hash of its file (#253).
+ */
+export async function listUploads(): Promise<TransferDto[]> {
+  const listed = await request<{ transfers: TransferDto[] }>('/portability/uploads');
+  return listed.transfers;
+}
+
+/** What an upload is missing, with a fresh address for every missing part. */
+export async function uploadStatus(transferId: string): Promise<UploadStatusDto> {
+  return request<UploadStatusDto>(`/portability/uploads/${transferId}`);
+}
+
 /** Joins the parts and keeps the file, or answers why not. */
 export async function finishUpload(transferId: string): Promise<FinishedUploadDto> {
   return request<FinishedUploadDto>(`/portability/uploads/${transferId}/finish`, {

@@ -4366,6 +4366,86 @@ body.has-sheet .app-main {
   flex: 1 1 16rem;
 }
 
+/* A file an agent asked for waits on the person (#253, RN-PRT-030). Its mark,
+   its chip and the count on the button wear the orange of capture: the one
+   colour here that asks for a hand, and never the red of something wrong. */
+.transfer-kind[data-kind='request'] {
+  background: var(--signal);
+  color: #0e1526;
+}
+.state-chip[data-state='waiting']::before {
+  background: var(--signal);
+}
+.transfers-count {
+  position: absolute;
+  top: -7px;
+  right: -9px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: var(--signal);
+  color: #0e1526;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 0.6875rem;
+  line-height: 1;
+  box-shadow: 0 0 0 2px var(--surface);
+  pointer-events: none;
+}
+/* Giving the file asks in place, as linking does, in the colour of an action. */
+.request-fulfil {
+  grid-column: 2 / -1;
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--accent);
+  border-radius: 10px;
+}
+.request-fulfil-lead,
+.request-fulfil-status {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-soft);
+}
+.request-fulfil-status.is-failure {
+  color: var(--danger);
+}
+
+/* Where a file is given: chosen, dragged onto it, or pasted while it has the
+   focus (RN-KNW-055). */
+.file-drop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 18px;
+  border: 1.5px dashed var(--box-edge);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.file-drop:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.file-drop.is-over {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.file-drop.is-disabled {
+  opacity: 0.6;
+}
+.file-drop-hint {
+  flex: 1 1 14rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-soft);
+}
+
 /* A phone: the columns stack, and the actions come last, a thumb high. */
 @media (max-width: 40rem) {
   .transfers-page-heading {
