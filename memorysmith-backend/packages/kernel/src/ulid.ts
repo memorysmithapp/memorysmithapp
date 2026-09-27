@@ -67,6 +67,18 @@ export function isUlid(candidate: string): boolean {
   return ULID_PATTERN.test(candidate);
 }
 
+/**
+ * The canonical form of an identifier written in either case, or null when it
+ * is not one. Crockford base32 is case-insensitive, and the web writes every
+ * identifier in lower case in its addresses (#247): an agent handed the
+ * address of a page carries that form, and it names the same thing.
+ */
+export function canonicalUlid(candidate: string): string | null {
+  if (typeof candidate !== 'string') return null;
+  const upper = candidate.toUpperCase();
+  return ULID_PATTERN.test(upper) ? upper : null;
+}
+
 /** The generation instant encoded in the identifier, in epoch milliseconds. */
 export function ulidTime(value: string): number {
   return value

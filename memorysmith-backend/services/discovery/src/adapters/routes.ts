@@ -17,6 +17,7 @@
 
 import { Hono, type Context } from 'hono';
 import {
+  canonicalUlid,
   DomainError,
   httpStatusFor,
   type Result,
@@ -66,8 +67,25 @@ function present<T, U>(c: Context, result: Result<T, DomainError>, map: (value: 
   return result.ok ? c.json(map(result.value) as object, 200) : fail(c, result.error);
 }
 
-/** A notebook the caller cannot read is indistinguishable from a missing one. */
+/**
+ * An identifier of the path in its canonical form: the web writes identifiers
+ * in lower case, and both cases name the same thing (#247). A segment that is
+ * not an identifier is left as written, for the guard to refuse.
+ */
+function idParam(c: Context, name: string): string {
+  const raw = c.req.param(name) ?? '';
+  return canonicalUlid(raw) ?? raw;
+}
+
+/**
+ * A notebook the caller cannot read is indistinguishable from a missing one.
+ * A segment that is not an identifier names no notebook at all, and says so
+ * rather than answering it as one the caller cannot see (#248).
+ */
 async function guard(request: DiscoveryRequest, notebookId: string): Promise<DomainError | null> {
+  if (canonicalUlid(notebookId) === null) {
+    return DomainError.validation(`Not a valid NotebookId: ${notebookId}`);
+  }
   return (await request.canRead(notebookId)) ? null : DomainError.forbidden('Notebook not found');
 }
 
@@ -81,7 +99,7 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
    */
   app.get('/notebooks/:v/graph', async (c) => {
     const request = c.get('discovery');
-    const notebookId = c.req.param('v') ?? '';
+    const notebookId = idParam(c, 'v');
     const denied = await guard(request, notebookId);
     if (denied) return fail(c, denied);
 
@@ -91,14 +109,14 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
 
   app.get('/notebooks/:v/notes/:n/graph', async (c) => {
     const request = c.get('discovery');
-    const notebookId = c.req.param('v') ?? '';
+    const notebookId = idParam(c, 'v');
     const denied = await guard(request, notebookId);
     if (denied) return fail(c, denied);
 
     const depth = Number(c.req.query('depth') ?? '2');
     const tree = await useCases.related(request).execute({
       notebookId,
-      noteId: c.req.param('n') ?? '',
+      noteId: idParam(c, 'n'),
       ...(Number.isFinite(depth) ? { depth } : {}),
     });
     return present(c, tree, (node) => node);
@@ -107,25 +125,25 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
   /** Every target a note writes and what each reaches (RN-AGT-034). */
   app.get('/notebooks/:v/notes/:n/links', async (c) => {
     const request = c.get('discovery');
-    const notebookId = c.req.param('v') ?? '';
+    const notebookId = idParam(c, 'v');
     const denied = await guard(request, notebookId);
     if (denied) return fail(c, denied);
 
     const found = await useCases
       .noteLinks(request)
-      .execute({ notebookId, noteId: c.req.param('n') ?? '' });
+      .execute({ notebookId, noteId: idParam(c, 'n') });
     return present(c, found, (links) => ({ links }));
   });
 
   app.get('/notebooks/:v/notes/:n/backlinks', async (c) => {
     const request = c.get('discovery');
-    const notebookId = c.req.param('v') ?? '';
+    const notebookId = idParam(c, 'v');
     const denied = await guard(request, notebookId);
     if (denied) return fail(c, denied);
 
     const found = await useCases
       .backlinks(request)
-      .execute({ notebookId, noteId: c.req.param('n') ?? '' });
+      .execute({ notebookId, noteId: idParam(c, 'n') });
     return present(c, found, (backlinks) => ({ backlinks }));
   });
 
@@ -137,7 +155,7 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
    */
   app.get('/notebooks/:v/links/:target', async (c) => {
     const request = c.get('discovery');
-    const notebookId = c.req.param('v') ?? '';
+    const notebookId = idParam(c, 'v');
     const denied = await guard(request, notebookId);
     if (denied) return fail(c, denied);
 
@@ -154,7 +172,7 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
    */
   app.get('/notebooks/:v/names', async (c) => {
     const request = c.get('discovery');
-    const notebookId = c.req.param('v') ?? '';
+    const notebookId = idParam(c, 'v');
     const denied = await guard(request, notebookId);
     if (denied) return fail(c, denied);
 
@@ -164,7 +182,7 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
 
   app.get('/notebooks/:v/health', async (c) => {
     const request = c.get('discovery');
-    const notebookId = c.req.param('v') ?? '';
+    const notebookId = idParam(c, 'v');
     const denied = await guard(request, notebookId);
     if (denied) return fail(c, denied);
 
@@ -179,7 +197,7 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
 
   app.get('/notebooks/:v/facets', async (c) => {
     const request = c.get('discovery');
-    const notebookId = c.req.param('v') ?? '';
+    const notebookId = idParam(c, 'v');
     const denied = await guard(request, notebookId);
     if (denied) return fail(c, denied);
 
@@ -189,7 +207,7 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
 
   app.post('/notebooks/:v/search', async (c) => {
     const request = c.get('discovery');
-    const notebookId = c.req.param('v') ?? '';
+    const notebookId = idParam(c, 'v');
     const denied = await guard(request, notebookId);
     if (denied) return fail(c, denied);
 

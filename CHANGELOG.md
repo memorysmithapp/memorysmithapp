@@ -11,6 +11,11 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Fixed
+
+- **An agent reads a notebook from the address of its page.** The web writes identifiers in lower case, and a person points an agent at a note by pasting that address; the connector refused the identifiers in it as not valid, so the agent failed on its first call. Every tool now reads an identifier in either case, and so do the routes of Discovery. (#247, RN-AGT-043)
+- **A value that is not an identifier gets the same answer from every tool.** `check_notebook` answered one as a notebook the caller could not see, while the other tools called it what it is — and *not found* is what an agent reads as its work having vanished, on the sweep it runs before saying it is done. Every tool now refuses it with `VALIDATION`, naming the argument, before asking anything. (#248, RN-AGT-043)
+
 ## [0.9.0] - 2026-09-27
 
 ### Added

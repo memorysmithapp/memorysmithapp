@@ -39,6 +39,16 @@ describe('identifiers', () => {
     expect(NotebookId.create('').ok).toBe(false);
   });
 
+  it('reads an identifier in either case, as the address of a page writes it (#247)', () => {
+    const generated = NotebookId.generate();
+    const lower = NotebookId.create(generated.value.toLowerCase());
+    expect(lower.ok).toBe(true);
+    if (lower.ok) {
+      expect(lower.value.value).toBe(generated.value);
+      expect(lower.value.equals(generated)).toBe(true);
+    }
+  });
+
   it('compares by value and never across types', () => {
     const raw = ulid();
     const asNote = NoteId.create(raw);

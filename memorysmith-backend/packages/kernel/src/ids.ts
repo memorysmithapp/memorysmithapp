@@ -10,7 +10,7 @@
 
 import { DomainError } from './errors.js';
 import { err, ok, type Result } from './result.js';
-import { isUlid, ulid } from './ulid.js';
+import { canonicalUlid, ulid } from './ulid.js';
 
 abstract class UlidIdentifier {
   protected constructor(readonly value: string) {}
@@ -33,10 +33,11 @@ function parseUlid<T>(
   label: string,
   build: (value: string) => T,
 ): Result<T, DomainError> {
-  if (typeof raw !== 'string' || !isUlid(raw)) {
+  const canonical = canonicalUlid(raw);
+  if (canonical === null) {
     return err(DomainError.validation(`Not a valid ${label}: ${String(raw)}`));
   }
-  return ok(build(raw));
+  return ok(build(canonical));
 }
 
 /**

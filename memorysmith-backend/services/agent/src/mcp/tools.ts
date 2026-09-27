@@ -12,7 +12,7 @@
  * caller needs to try again (RN-AGT-003).
  */
 
-import type { Deployment, UploadStatusDto } from '@memorysmith/contracts';
+import { ulidSchema, type Deployment, type UploadStatusDto } from '@memorysmith/contracts';
 import { TOOL_CATALOG } from './catalog.js';
 import { PRODUCTION_DEFAULT } from './environment.js';
 import { whoAmI } from './whoami.js';
@@ -46,6 +46,37 @@ function text(value: string, isError = false): ToolResult {
 
 function json(value: unknown): ToolResult {
   return text(JSON.stringify(value, null, 2));
+}
+
+/**
+ * The arguments that carry an identifier, in every tool that takes one. Each
+ * is read in either case and passed on in its canonical form (#247), and a
+ * value that is not an identifier is refused the same way by every tool,
+ * before any service is asked (#248): one tool answering "not found" where the
+ * others answer "not an identifier" sent an agent after a notebook it had.
+ */
+const IDENTIFIER_ARGUMENTS = ['notebook', 'folder', 'note', 'file', 'upload', 'parent', 'after'];
+
+function canonicalIdentifiers(
+  args: Record<string, unknown>,
+  tool: string,
+): Record<string, unknown> {
+  const canonical = { ...args };
+  for (const name of IDENTIFIER_ARGUMENTS) {
+    const value = args[name];
+    if (typeof value !== 'string' || value.length === 0) continue;
+    const parsed = ulidSchema.safeParse(value);
+    if (!parsed.success) {
+      throw new GatewayError(
+        'VALIDATION',
+        `${tool}: "${name}" is not an identifier: "${value}". An identifier is the 26 ` +
+          'characters list_notebooks, get_notebook_context, list_notes, list_files and ' +
+          'list_file_uploads answer, in either case.',
+      );
+    }
+    canonical[name] = parsed.data;
+  }
+  return canonical;
 }
 
 function requireString(args: Record<string, unknown>, name: string, tool: string): string {
@@ -221,7 +252,7 @@ export class McpToolAdapter {
     caller: AgentCaller,
   ): Promise<ToolResult> {
     try {
-      return await this.dispatch(name, args, caller);
+      return await this.dispatch(name, canonicalIdentifiers(args, name), caller);
     } catch (error) {
       if (error instanceof GatewayError) {
         const taken = nameTakenAnswer(error);

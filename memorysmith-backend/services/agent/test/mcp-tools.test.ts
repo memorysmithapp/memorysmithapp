@@ -32,7 +32,12 @@ function gateways(overrides: Record<string, unknown> = {}) {
   };
   const knowledge = {
     listNotebooks: async () => [
-      { notebookId: 'v1', name: 'Normas', description: 'Texto normativo', noteCount: 48 },
+      {
+        notebookId: '01JBQ2X00000000000000000V1',
+        name: 'Normas',
+        description: 'Texto normativo',
+        noteCount: 48,
+      },
     ],
     notebookContext: async () => '# Notebook: Normas\n\n## Structure\n1. **Normas**: (48 notes)\n',
     template: async () => ({
@@ -41,56 +46,68 @@ function gateways(overrides: Record<string, unknown> = {}) {
       revision: 'v5',
     }),
     listNotes: async () => [
-      { noteId: 'n1', name: 'Lei 14.133', slug: 'lei-14133', folderId: 'f1', position: 'a0' },
+      {
+        noteId: '01JBQ2X00000000000000000N1',
+        name: 'Lei 14.133',
+        slug: 'lei-14133',
+        folderId: '01JBQ2X00000000000000000F1',
+        position: 'a0',
+      },
     ],
     nextNumber: async () => 42,
     readNote: async () => ({
-      noteId: 'n1',
+      noteId: '01JBQ2X00000000000000000N1',
       name: 'Lei 14.133',
       content: '# Lei 14.133',
       revision: 'v3',
       updatedAt: '2026-03-20T10:00:00.000Z',
     }),
     createNote: async () => ({
-      noteId: 'n2',
+      noteId: '01JBQ2X00000000000000000N2',
       name: 'Nova',
       content: '# Nova',
-      revision: 'v1',
+      revision: '01JBQ2X00000000000000000V1',
       updatedAt: '2026-03-21T10:00:00.000Z',
     }),
     updateNote: async () => ({
-      noteId: 'n1',
+      noteId: '01JBQ2X00000000000000000N1',
       name: 'Lei 14.133',
       content: '# Atualizada',
       revision: 'v4',
       updatedAt: '2026-03-22T10:00:00.000Z',
     }),
     searchNotes: async () => [
-      { noteId: 'n1', name: 'Lei 14.133', section: null, excerpt: 'Lei 14.133', score: 1 },
+      {
+        noteId: '01JBQ2X00000000000000000N1',
+        name: 'Lei 14.133',
+        section: null,
+        excerpt: 'Lei 14.133',
+        score: 1,
+      },
     ],
     createNotebook: async () => ({
-      notebookId: 'v2',
+      notebookId: '01JBQ2X00000000000000000V2',
       name: 'Achados',
       description: 'Achados de auditoria',
       noteCount: 0,
     }),
     deleteNotebook: async () => undefined,
     keptExportsOf: async () => 0,
-    setGuidance: async () => 'v2',
-    guidance: async () => ({ content: '# Proposito', revision: 'v1' }),
+    setGuidance: async () => '01JBQ2X00000000000000000V2',
+    guidance: async () => ({ content: '# Proposito', revision: '01JBQ2X00000000000000000V1' }),
     createFolder: async () => ({
-      folderId: 'f2',
+      folderId: '01JBQ2X00000000000000000F2',
       parentFolderId: null,
       name: 'Achados',
       slug: 'achados',
       description: 'Achados de auditoria.',
     }),
-    deleteFolder: async () => ({ removedFolderIds: ['f2'] }),
+    deleteFolder: async () => ({ removedFolderIds: ['01JBQ2X00000000000000000F2'] }),
     setTemplate: async () => 'v6',
     deleteNote: async () => undefined,
     reorderFolder: async () => [
       {
-        folderId: 'f2',
+        folderId: '01JBQ2X00000000000000000F2',
         parentFolderId: null,
         name: 'Achados',
         slug: 'achados',
@@ -98,7 +115,7 @@ function gateways(overrides: Record<string, unknown> = {}) {
         position: 'Zz',
       },
       {
-        folderId: 'f1',
+        folderId: '01JBQ2X00000000000000000F1',
         parentFolderId: null,
         name: 'Normas',
         slug: 'normas',
@@ -107,21 +124,45 @@ function gateways(overrides: Record<string, unknown> = {}) {
       },
     ],
     reorderNote: async () => [
-      { noteId: 'n2', name: 'Nova', folderId: 'f1', position: 'Zz' },
-      { noteId: 'n1', name: 'Lei 14.133', folderId: 'f1', position: 'a0' },
+      {
+        noteId: '01JBQ2X00000000000000000N2',
+        name: 'Nova',
+        folderId: '01JBQ2X00000000000000000F1',
+        position: 'Zz',
+      },
+      {
+        noteId: '01JBQ2X00000000000000000N1',
+        name: 'Lei 14.133',
+        folderId: '01JBQ2X00000000000000000F1',
+        position: 'a0',
+      },
     ],
     ...((overrides['knowledge'] as object) ?? {}),
   };
   const discovery = {
     relatedNotes: async () => ({
-      noteId: 'n1',
+      noteId: '01JBQ2X00000000000000000N1',
       name: 'Achado 12',
-      folderId: 'f1',
+      folderId: '01JBQ2X00000000000000000F1',
       depth: 0,
-      children: [{ noteId: 'n2', name: 'Lei 14.133', folderId: 'f2', depth: 1, children: [] }],
+      children: [
+        {
+          noteId: '01JBQ2X00000000000000000N2',
+          name: 'Lei 14.133',
+          folderId: '01JBQ2X00000000000000000F2',
+          depth: 1,
+          children: [],
+        },
+      ],
     }),
     backlinks: async () => [
-      { noteId: 'n3', name: 'Achado 12', slug: 'achado-12', folderId: 'f2', position: 'a0' },
+      {
+        noteId: 'n3',
+        name: 'Achado 12',
+        slug: 'achado-12',
+        folderId: '01JBQ2X00000000000000000F2',
+        position: 'a0',
+      },
     ],
     ...((overrides['discovery'] as object) ?? {}),
   };
@@ -137,10 +178,10 @@ function gateways(overrides: Record<string, unknown> = {}) {
       },
     ],
     revisionAt: async () => ({
-      noteId: 'n1',
+      noteId: '01JBQ2X00000000000000000N1',
       name: null,
       content: '# Como estava em marco',
-      revision: 'v2',
+      revision: '01JBQ2X00000000000000000V2',
       updatedAt: '2026-03-10T10:00:00.000Z',
     }),
     ...((overrides['audit'] as object) ?? {}),
@@ -352,7 +393,12 @@ describe('The connector authors the notebook, and not only its notes', () => {
       knowledge: {
         createNotebook: async (_caller: unknown, input: { name: string }) => {
           calls.push(`createNotebook:${input.name}`);
-          return { notebookId: 'v2', name: input.name, description: '', noteCount: 0 };
+          return {
+            notebookId: '01JBQ2X00000000000000000V2',
+            name: input.name,
+            description: '',
+            noteCount: 0,
+          };
         },
         deleteNotebook: async (_caller: unknown, notebookId: string) => {
           calls.push(`deleteNotebook:${notebookId}`);
@@ -369,7 +415,7 @@ describe('The connector authors the notebook, and not only its notes', () => {
         ) => {
           calls.push(`createFolder:${input.name}:${input.parentFolderId ?? 'root'}`);
           return {
-            folderId: 'f9',
+            folderId: '01JBQ2X00000000000000000F9',
             parentFolderId: input.parentFolderId ?? null,
             name: input.name,
             slug: 'x',
@@ -396,45 +442,71 @@ describe('The connector authors the notebook, and not only its notes', () => {
     await adapter.call('create_notebook', { name: 'Achados', description: 'De auditoria' }, caller);
     await adapter.call(
       'set_guidance',
-      { notebook: 'v2', content: '# Proposito', baseRevision: null },
+      { notebook: '01JBQ2X00000000000000000V2', content: '# Proposito', baseRevision: null },
       caller,
     );
     await adapter.call(
       'create_folder',
-      { notebook: 'v2', name: '2026', description: 'Deste exercicio.', parent: 'f1' },
+      {
+        notebook: '01JBQ2X00000000000000000V2',
+        name: '2026',
+        description: 'Deste exercicio.',
+        parent: '01JBQ2X00000000000000000F1',
+      },
       caller,
     );
     await adapter.call(
       'set_template',
-      { notebook: 'v2', folder: 'f9', content: '# {{t}}', baseRevision: null },
+      {
+        notebook: '01JBQ2X00000000000000000V2',
+        folder: '01JBQ2X00000000000000000F9',
+        content: '# {{t}}',
+        baseRevision: null,
+      },
       caller,
     );
 
     expect(calls).toEqual([
       'createNotebook:Achados',
-      'setGuidance:v2:# Proposito',
-      'createFolder:2026:f1',
-      'setTemplate:f9',
+      'setGuidance:01JBQ2X00000000000000000V2:# Proposito',
+      'createFolder:2026:01JBQ2X00000000000000000F1',
+      'setTemplate:01JBQ2X00000000000000000F9',
     ]);
   });
 
   it('deletes a note, a folder and a notebook, each through its own tool', async () => {
     const { calls, adapter } = spy();
-    await adapter.call('delete_note', { notebook: 'v1', note: 'n1' }, caller);
     await adapter.call(
-      'delete_folder',
-      { notebook: 'v1', folder: 'f2', policy: 'CASCADE' },
+      'delete_note',
+      { notebook: '01JBQ2X00000000000000000V1', note: '01JBQ2X00000000000000000N1' },
       caller,
     );
-    await adapter.call('delete_notebook', { notebook: 'v1' }, caller);
+    await adapter.call(
+      'delete_folder',
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        folder: '01JBQ2X00000000000000000F2',
+        policy: 'CASCADE',
+      },
+      caller,
+    );
+    await adapter.call('delete_notebook', { notebook: '01JBQ2X00000000000000000V1' }, caller);
 
-    expect(calls).toEqual(['deleteNote:v1:n1', 'deleteFolder:f2:CASCADE', 'deleteNotebook:v1']);
+    expect(calls).toEqual([
+      'deleteNote:01JBQ2X00000000000000000V1:01JBQ2X00000000000000000N1',
+      'deleteFolder:01JBQ2X00000000000000000F2:CASCADE',
+      'deleteNotebook:01JBQ2X00000000000000000V1',
+    ]);
   });
 
   it('refuses to remove a folder without an explicit policy', async () => {
     // RN-KNW-007: there is no implicit default, so the tool asks rather than
     // guessing between refusing and cascading over a subtree.
-    const result = await gateways().call('delete_folder', { notebook: 'v1', folder: 'f2' }, caller);
+    const result = await gateways().call(
+      'delete_folder',
+      { notebook: '01JBQ2X00000000000000000V1', folder: '01JBQ2X00000000000000000F2' },
+      caller,
+    );
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain('delete_folder requires the argument "policy"');
   });
@@ -444,8 +516,16 @@ describe('The connector authors the notebook, and not only its notes', () => {
     // What the answer says is what an agent repeats to the person, so it says
     // what went and that nothing brings it back.
     const { adapter } = spy();
-    const note = await adapter.call('delete_note', { notebook: 'v1', note: 'n1' }, caller);
-    const notebook = await adapter.call('delete_notebook', { notebook: 'v1' }, caller);
+    const note = await adapter.call(
+      'delete_note',
+      { notebook: '01JBQ2X00000000000000000V1', note: '01JBQ2X00000000000000000N1' },
+      caller,
+    );
+    const notebook = await adapter.call(
+      'delete_notebook',
+      { notebook: '01JBQ2X00000000000000000V1' },
+      caller,
+    );
     expect(note.content[0]?.text).toContain('Nothing brings it back');
     expect(notebook.content[0]?.text).toContain('Nothing brings it back');
     // And what does NOT go with it: the exports of that notebook stay, which
@@ -468,7 +548,11 @@ describe('The connector authors the notebook, and not only its notes', () => {
     });
     const result = await adapter.call(
       'create_note',
-      { notebook: 'v1', folder: 'f1', content: 'A body the gateway refuses.' },
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        folder: '01JBQ2X00000000000000000F1',
+        content: 'A body the gateway refuses.',
+      },
       caller,
     );
     expect(result.isError).toBe(true);
@@ -496,7 +580,11 @@ describe('The connector authors the notebook, and not only its notes', () => {
 
 describe('The tool adapter translates in both directions', () => {
   it('returns the notebook context as Markdown, not as JSON', async () => {
-    const result = await gateways().call('get_notebook_context', { notebook: 'v1' }, caller);
+    const result = await gateways().call(
+      'get_notebook_context',
+      { notebook: '01JBQ2X00000000000000000V1' },
+      caller,
+    );
     expect(result.isError).toBe(false);
     expect(result.content[0]?.text).toContain('# Notebook: Normas');
     expect(result.content[0]?.text).toContain('## Structure');
@@ -504,7 +592,11 @@ describe('The tool adapter translates in both directions', () => {
 
   it('answers a missing argument with the schema of the tool', async () => {
     // RN-AGT-003: the error carries what the next attempt needs.
-    const result = await gateways().call('create_note', { notebook: 'v1' }, caller);
+    const result = await gateways().call(
+      'create_note',
+      { notebook: '01JBQ2X00000000000000000V1' },
+      caller,
+    );
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain('create_note requires the argument "folder"');
     expect(result.content[0]?.text).toContain('content');
@@ -523,7 +615,12 @@ describe('The tool adapter translates in both directions', () => {
     });
     const result = await adapter.call(
       'update_note',
-      { notebook: 'v1', note: 'n1', content: '# Nova', baseRevision: 'v3' },
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        note: '01JBQ2X00000000000000000N1',
+        content: '# Nova',
+        baseRevision: 'v3',
+      },
       caller,
     );
     expect(result.content[0]?.text).toContain('Conteudo atual');
@@ -532,17 +629,25 @@ describe('The tool adapter translates in both directions', () => {
   it('reads a past revision through the audit trail when asOf is given', async () => {
     const result = await gateways().call(
       'read_note',
-      { notebook: 'v1', note: 'n1', asOf: '2026-03-15T00:00:00.000Z' },
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        note: '01JBQ2X00000000000000000N1',
+        asOf: '2026-03-15T00:00:00.000Z',
+      },
       caller,
     );
     expect(result.content[0]?.text).toContain('Como estava em marco');
   });
 
   it('renders the dependency tree as an indented outline', async () => {
-    const result = await gateways().call('related_notes', { notebook: 'v1', note: 'n1' }, caller);
+    const result = await gateways().call(
+      'related_notes',
+      { notebook: '01JBQ2X00000000000000000V1', note: '01JBQ2X00000000000000000N1' },
+      caller,
+    );
     // The folder tells apart two notes of one name (#128).
     expect(result.content[0]?.text).toBe(
-      '- Achado 12 (n1, folder f1)\n  - Lei 14.133 (n2, folder f2)',
+      '- Achado 12 (01JBQ2X00000000000000000N1, folder 01JBQ2X00000000000000000F1)\n  - Lei 14.133 (01JBQ2X00000000000000000N2, folder 01JBQ2X00000000000000000F2)',
     );
   });
 
@@ -551,16 +656,82 @@ describe('The tool adapter translates in both directions', () => {
       pending: [
         {
           target: 'M42',
-          from: [{ noteId: 'n2', name: 'Session 1', folderId: 'f1' }],
-          likelyMeant: { name: 'M42 Orion Nebula', kind: 'note', noteId: 'n1' },
+          from: [
+            {
+              noteId: '01JBQ2X00000000000000000N2',
+              name: 'Session 1',
+              folderId: '01JBQ2X00000000000000000F1',
+            },
+          ],
+          likelyMeant: {
+            name: 'M42 Orion Nebula',
+            kind: 'note',
+            noteId: '01JBQ2X00000000000000000N1',
+          },
         },
       ],
       orphans: [],
     };
     const adapter = gateways({ discovery: { checkNotebook: async () => answer } });
-    const result = await adapter.call('check_notebook', { notebook: 'v1' }, caller);
+    const result = await adapter.call(
+      'check_notebook',
+      { notebook: '01JBQ2X00000000000000000V1' },
+      caller,
+    );
     expect(result.isError).toBe(false);
     expect(JSON.parse(result.content[0]?.text ?? '')).toEqual(answer);
+  });
+
+  it('reads an identifier in either case, and passes it on in its canonical form (#247)', async () => {
+    const asked: string[] = [];
+    const adapter = gateways({
+      knowledge: {
+        readNote: async (_caller: unknown, notebookId: string, noteId: string) => {
+          asked.push(notebookId, noteId);
+          return { noteId, name: 'Nota', content: '', revision: 'r1', updatedAt: '' };
+        },
+      },
+      discovery: {
+        checkNotebook: async (_caller: unknown, notebookId: string) => {
+          asked.push(notebookId);
+          return { pending: [], orphans: [] };
+        },
+        noteLinks: async () => [],
+      },
+    });
+    const notebook = '01jbq2x00000000000000000v1';
+    const note = '01jbq2x00000000000000000n1';
+    await adapter.call('read_note', { notebook, note }, caller);
+    await adapter.call('check_notebook', { notebook }, caller);
+    expect(asked).toEqual([
+      '01JBQ2X00000000000000000V1',
+      '01JBQ2X00000000000000000N1',
+      '01JBQ2X00000000000000000V1',
+    ]);
+  });
+
+  it('refuses an argument that is not an identifier the same way in every tool (#248)', async () => {
+    let reached = false;
+    const adapter = gateways({
+      discovery: {
+        checkNotebook: async () => {
+          reached = true;
+          return { pending: [], orphans: [] };
+        },
+      },
+    });
+    for (const [tool, args] of [
+      ['check_notebook', { notebook: 'abc' }],
+      ['get_notebook_context', { notebook: 'abc' }],
+      ['list_files', { notebook: 'abc' }],
+      ['read_note', { notebook: '01JBQ2X00000000000000000V1', note: 'abc' }],
+      ['file_upload_status', { upload: 'abc' }],
+    ] as const) {
+      const result = await adapter.call(tool, args, caller);
+      expect(result.isError).toBe(true);
+      expect(result.content[0]?.text).toMatch(/^VALIDATION: .* is not an identifier: "abc"/);
+    }
+    expect(reached).toBe(false);
   });
 
   it('says something useful when the connector reaches no notebook', async () => {
@@ -874,7 +1045,7 @@ describe('the connector hands over the Markdown the author wrote (RN-AGT-015)', 
     const adapter = gateways({
       knowledge: {
         readNote: async () => ({
-          noteId: 'n1',
+          noteId: '01JBQ2X00000000000000000N1',
           name: 'Direct contracting',
           content: body,
           revision: 'v3',
@@ -883,7 +1054,11 @@ describe('the connector hands over the Markdown the author wrote (RN-AGT-015)', 
       },
     });
 
-    const result = await adapter.call('read_note', { notebook: 'v1', note: 'n1' }, caller);
+    const result = await adapter.call(
+      'read_note',
+      { notebook: '01JBQ2X00000000000000000V1', note: '01JBQ2X00000000000000000N1' },
+      caller,
+    );
     const text = result.content[0]?.text ?? '';
 
     // The agent that wants the target reads the target. Expanding here would
@@ -896,7 +1071,7 @@ describe('writing guidance and template carries the revision (RN-AGT-016)', () =
   it('refuses set_guidance with no baseRevision, and says what is missing', async () => {
     const result = await gateways().call(
       'set_guidance',
-      { notebook: 'v1', content: '# New' },
+      { notebook: '01JBQ2X00000000000000000V1', content: '# New' },
       caller,
     );
 
@@ -907,7 +1082,7 @@ describe('writing guidance and template carries the revision (RN-AGT-016)', () =
   it('accepts an explicit null, which is what an empty slot asserts', async () => {
     const result = await gateways().call(
       'set_guidance',
-      { notebook: 'v1', content: '# New', baseRevision: null },
+      { notebook: '01JBQ2X00000000000000000V1', content: '# New', baseRevision: null },
       caller,
     );
 
@@ -919,7 +1094,11 @@ describe('writing guidance and template carries the revision (RN-AGT-016)', () =
   it('refuses set_template with no baseRevision', async () => {
     const result = await gateways().call(
       'set_template',
-      { notebook: 'v1', folder: 'f1', content: '# T' },
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        folder: '01JBQ2X00000000000000000F1',
+        content: '# T',
+      },
       caller,
     );
 
@@ -932,14 +1111,18 @@ describe('writing guidance and template carries the revision (RN-AGT-016)', () =
       knowledge: {
         guidance: async () => ({ content: '# Proposito', revision: 'v7' }),
       },
-    }).call('get_guidance', { notebook: 'v1' }, caller);
+    }).call('get_guidance', { notebook: '01JBQ2X00000000000000000V1' }, caller);
 
     expect(result.isError).toBe(false);
     expect(result.content[0]?.text).toContain('v7');
   });
 
   it('reads the template with the revision a write has to echo back', async () => {
-    const result = await gateways().call('get_template', { notebook: 'v1', folder: 'f1' }, caller);
+    const result = await gateways().call(
+      'get_template',
+      { notebook: '01JBQ2X00000000000000000V1', folder: '01JBQ2X00000000000000000F1' },
+      caller,
+    );
 
     // The same shape get_guidance answers: without the revision, replacing a
     // Template that exists had no path that succeeded.
@@ -953,23 +1136,30 @@ describe('writing guidance and template carries the revision (RN-AGT-016)', () =
   it('answers the revision each write produced, so the next one needs no read', async () => {
     const guidance = await gateways().call(
       'set_guidance',
-      { notebook: 'v1', content: '# New', baseRevision: null },
+      { notebook: '01JBQ2X00000000000000000V1', content: '# New', baseRevision: null },
       caller,
     );
     const template = await gateways().call(
       'set_template',
-      { notebook: 'v1', folder: 'f1', content: '# T', baseRevision: null },
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        folder: '01JBQ2X00000000000000000F1',
+        content: '# T',
+        baseRevision: null,
+      },
       caller,
     );
 
-    expect(JSON.parse(guidance.content[0]?.text ?? '')).toEqual({ revision: 'v2' });
+    expect(JSON.parse(guidance.content[0]?.text ?? '')).toEqual({
+      revision: '01JBQ2X00000000000000000V2',
+    });
     expect(JSON.parse(template.content[0]?.text ?? '')).toEqual({ revision: 'v6' });
   });
 
   it('says what to do when the notebook has no guidance yet', async () => {
     const result = await gateways({ knowledge: { guidance: async () => null } }).call(
       'get_guidance',
-      { notebook: 'v1' },
+      { notebook: '01JBQ2X00000000000000000V1' },
       caller,
     );
 
@@ -1158,10 +1348,10 @@ describe('the path an agent takes passes through the method of its task', () => 
 
   it('answers a write that leaves a note with no name with a notice beside the null', async () => {
     const unnamed = {
-      noteId: 'n2',
+      noteId: '01JBQ2X00000000000000000N2',
       name: null,
       content: 'name: Nova\n\nNo block opens this note.',
-      revision: 'v1',
+      revision: '01JBQ2X00000000000000000V1',
       updatedAt: '2026-03-21T10:00:00.000Z',
     };
     const adapter = gateways({
@@ -1171,12 +1361,21 @@ describe('the path an agent takes passes through the method of its task', () => 
     const answers = [
       await adapter.call(
         'create_note',
-        { notebook: 'v1', folder: 'f1', content: unnamed.content },
+        {
+          notebook: '01JBQ2X00000000000000000V1',
+          folder: '01JBQ2X00000000000000000F1',
+          content: unnamed.content,
+        },
         caller,
       ),
       await adapter.call(
         'update_note',
-        { notebook: 'v1', note: 'n2', content: unnamed.content, baseRevision: 'v0' },
+        {
+          notebook: '01JBQ2X00000000000000000V1',
+          note: '01JBQ2X00000000000000000N2',
+          content: unnamed.content,
+          baseRevision: 'v0',
+        },
         caller,
       ),
     ];
@@ -1189,14 +1388,18 @@ describe('the path an agent takes passes through the method of its task', () => 
       expect(Object.keys(parsed)[0]).toBe('notice');
       expect(parsed['notice']).toBe(UNNAMED_NOTE_NOTICE);
       expect(parsed['name']).toBeNull();
-      expect(parsed['revision']).toBe('v1');
+      expect(parsed['revision']).toBe('01JBQ2X00000000000000000V1');
     }
   });
 
   it('says nothing more about a note that has a name', async () => {
     const answer = await gateways().call(
       'create_note',
-      { notebook: 'v1', folder: 'f1', content: '---\nname: Nova\n---' },
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        folder: '01JBQ2X00000000000000000F1',
+        content: '---\nname: Nova\n---',
+      },
       caller,
     );
     expect(JSON.parse(answer.content[0]?.text ?? '')).not.toHaveProperty('notice');
@@ -1223,10 +1426,10 @@ describe('the connector orders what it writes (RN-AGT-029)', () => {
           position: 'a0V',
         }),
         createNote: record({
-          noteId: 'n2',
+          noteId: '01JBQ2X00000000000000000N2',
           name: 'Nova',
           content: '---\nname: Nova\n---',
-          revision: 'v1',
+          revision: '01JBQ2X00000000000000000V1',
           updatedAt: '2026-03-21T10:00:00.000Z',
         }),
       },
@@ -1234,23 +1437,33 @@ describe('the connector orders what it writes (RN-AGT-029)', () => {
 
     await adapter.call(
       'create_folder',
-      { notebook: 'v1', name: 'Glossário', description: 'Termos.', after: 'f1' },
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        name: 'Glossário',
+        description: 'Termos.',
+        after: '01JBQ2X00000000000000000F1',
+      },
       caller,
     );
     await adapter.call(
       'create_folder',
-      { notebook: 'v1', name: 'Fontes', description: 'De onde vem.' },
+      { notebook: '01JBQ2X00000000000000000V1', name: 'Fontes', description: 'De onde vem.' },
       caller,
     );
     await adapter.call(
       'create_note',
-      { notebook: 'v1', folder: 'f1', content: '---\nname: Nova\n---', after: 'n1' },
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        folder: '01JBQ2X00000000000000000F1',
+        content: '---\nname: Nova\n---',
+        after: '01JBQ2X00000000000000000N1',
+      },
       caller,
     );
 
-    expect(seen[0]).toMatchObject({ afterFolderId: 'f1' });
+    expect(seen[0]).toMatchObject({ afterFolderId: '01JBQ2X00000000000000000F1' });
     expect(seen[1]).not.toHaveProperty('afterFolderId');
-    expect(seen[2]).toMatchObject({ afterNoteId: 'n1' });
+    expect(seen[2]).toMatchObject({ afterNoteId: '01JBQ2X00000000000000000N1' });
   });
 
   it('asks a reorder where the item goes, and reads null as first', async () => {
@@ -1261,28 +1474,52 @@ describe('the connector orders what it writes (RN-AGT-029)', () => {
     };
     const adapter = gateways({ knowledge: { reorderFolder: record, reorderNote: record } });
 
-    const missing = await adapter.call('reorder_folder', { notebook: 'v1', folder: 'f2' }, caller);
-    await adapter.call('reorder_folder', { notebook: 'v1', folder: 'f2', after: null }, caller);
-    await adapter.call('reorder_note', { notebook: 'v1', note: 'n2', after: 'n1' }, caller);
+    const missing = await adapter.call(
+      'reorder_folder',
+      { notebook: '01JBQ2X00000000000000000V1', folder: '01JBQ2X00000000000000000F2' },
+      caller,
+    );
+    await adapter.call(
+      'reorder_folder',
+      { notebook: '01JBQ2X00000000000000000V1', folder: '01JBQ2X00000000000000000F2', after: null },
+      caller,
+    );
+    await adapter.call(
+      'reorder_note',
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        note: '01JBQ2X00000000000000000N2',
+        after: '01JBQ2X00000000000000000N1',
+      },
+      caller,
+    );
 
     // A missing anchor is a mistake worth an error, never a default.
     expect(missing.isError).toBe(true);
     expect(missing.content[0]?.text).toContain('"after"');
     expect(seen).toEqual([
-      { notebookId: 'v1', folderId: 'f2', afterFolderId: null },
-      { notebookId: 'v1', noteId: 'n2', afterNoteId: 'n1' },
+      {
+        notebookId: '01JBQ2X00000000000000000V1',
+        folderId: '01JBQ2X00000000000000000F2',
+        afterFolderId: null,
+      },
+      {
+        notebookId: '01JBQ2X00000000000000000V1',
+        noteId: '01JBQ2X00000000000000000N2',
+        afterNoteId: '01JBQ2X00000000000000000N1',
+      },
     ]);
   });
 
   it('answers the siblings in their new order', async () => {
     const folders = await gateways().call(
       'reorder_folder',
-      { notebook: 'v1', folder: 'f2', after: null },
+      { notebook: '01JBQ2X00000000000000000V1', folder: '01JBQ2X00000000000000000F2', after: null },
       caller,
     );
     const notes = await gateways().call(
       'reorder_note',
-      { notebook: 'v1', note: 'n2', after: null },
+      { notebook: '01JBQ2X00000000000000000V1', note: '01JBQ2X00000000000000000N2', after: null },
       caller,
     );
 
@@ -1290,8 +1527,14 @@ describe('the connector orders what it writes (RN-AGT-029)', () => {
       (JSON.parse(answer.content[0]?.text ?? '') as Array<Record<string, string>>).map(
         (each) => each[key],
       );
-    expect(ids(folders, 'folderId')).toEqual(['f2', 'f1']);
-    expect(ids(notes, 'noteId')).toEqual(['n2', 'n1']);
+    expect(ids(folders, 'folderId')).toEqual([
+      '01JBQ2X00000000000000000F2',
+      '01JBQ2X00000000000000000F1',
+    ]);
+    expect(ids(notes, 'noteId')).toEqual([
+      '01JBQ2X00000000000000000N2',
+      '01JBQ2X00000000000000000N1',
+    ]);
   });
 
   it('issues the next number of a folder as a write that is not idempotent', async () => {
@@ -1302,8 +1545,15 @@ describe('the connector orders what it writes (RN-AGT-029)', () => {
       destructiveHint: false,
       idempotentHint: false,
     });
-    const answer = await gateways().call('next_number', { notebook: 'v1', folder: 'f1' }, caller);
-    expect(JSON.parse(answer.content[0]?.text ?? '')).toEqual({ folder: 'f1', number: 42 });
+    const answer = await gateways().call(
+      'next_number',
+      { notebook: '01JBQ2X00000000000000000V1', folder: '01JBQ2X00000000000000000F1' },
+      caller,
+    );
+    expect(JSON.parse(answer.content[0]?.text ?? '')).toEqual({
+      folder: '01JBQ2X00000000000000000F1',
+      number: 42,
+    });
   });
 
   it('declares both reorders as writes that destroy nothing', () => {
@@ -1316,10 +1566,10 @@ describe('the connector orders what it writes (RN-AGT-029)', () => {
 
 describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', () => {
   const transfer = (upload: Record<string, unknown>) => ({
-    transferId: '01JBQ2X0000000000000000UP1',
+    transferId: '01JBQ2X0000000000000000VP1',
     kind: 'agent',
     status: 'running',
-    notebookId: 'v1',
+    notebookId: '01JBQ2X00000000000000000V1',
     notebookName: 'Atas',
     requestedAt: '2026-09-26T12:00:00.000Z',
     finishedAt: null,
@@ -1359,7 +1609,7 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
     }).call(
       'begin_file_upload',
       {
-        notebook: 'v1',
+        notebook: '01JBQ2X00000000000000000V1',
         name: 'quadro.jpg',
         mimeType: 'image/jpeg',
         size: 20_000_000,
@@ -1372,7 +1622,11 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
 
     expect(answer.isError).toBe(false);
     // The hash travels as the API reads it, whatever case the agent typed.
-    expect(sent).toMatchObject({ notebookId: 'v1', sha256: 'a'.repeat(64), transport: 'url' });
+    expect(sent).toMatchObject({
+      notebookId: '01JBQ2X00000000000000000V1',
+      sha256: 'a'.repeat(64),
+      transport: 'url',
+    });
     const body = JSON.parse(answer.content[0]?.text ?? '') as Record<string, unknown>;
     expect(body['targets']).toHaveLength(3);
     // The host the parts go to, which a client that allows hosts one by one
@@ -1394,7 +1648,12 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
       },
     }).call(
       'send_file_part',
-      { upload: 'u1', part: 1, sha256: 'b'.repeat(64), contentBase64: 'AAAA' },
+      {
+        upload: '01JBQ2X00000000000000000P1',
+        part: 1,
+        sha256: 'b'.repeat(64),
+        contentBase64: 'AAAA',
+      },
       caller,
     );
     const body = JSON.parse(answer.content[0]?.text ?? '') as Record<string, unknown>;
@@ -1407,12 +1666,12 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
       knowledge: {
         finishFileUpload: async () => ({
           fileId: '01JBQ2X0000000000000000F01',
-          notebookId: 'v1',
+          notebookId: '01JBQ2X00000000000000000V1',
           name: 'quadro.jpg',
           bytes: 20_000_000,
         }),
       },
-    }).call('finish_file_upload', { upload: 'u1' }, caller);
+    }).call('finish_file_upload', { upload: '01JBQ2X00000000000000000P1' }, caller);
     expect(JSON.parse(answer.content[0]?.text ?? '')).toMatchObject({
       reference: '![[quadro.jpg]]',
     });
@@ -1426,7 +1685,7 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
       uploads: Array<Record<string, unknown>>;
     };
     expect(body.uploads[0]).toMatchObject({
-      upload: '01JBQ2X0000000000000000UP1',
+      upload: '01JBQ2X0000000000000000VP1',
       sha256: 'a'.repeat(64),
       received: [1, 2],
       purpose: 'A foto do quadro, para a ata',
