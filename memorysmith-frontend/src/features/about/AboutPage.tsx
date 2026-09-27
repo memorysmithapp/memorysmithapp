@@ -159,7 +159,9 @@ export function AboutPage() {
         <h2>{t('about.files.heading')}</h2>
         <p>{t('about.files.body')}</p>
         {uploadsHost ? (
-          <div className="about-connector">
+          // Drawn as the connector's address is, and named apart from it: the
+          // page states two addresses, and each is found by what it is.
+          <div className="about-uploads">
             <code>{uploadsHost}</code>
             <CopyButton text={() => uploadsHost} />
           </div>

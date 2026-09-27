@@ -239,6 +239,13 @@ test.describe('the pages of an account', () => {
       'true',
     );
     await expect(panel.locator('li').first()).not.toHaveText(first ?? '');
+
+    // What sending a file through an assistant needs, and the host its parts
+    // go to, the one a client that allows hosts one by one is asked for (#244).
+    await expect(app.locator('.about-uploads code')).toHaveText(
+      `uploads.${new URL(state.surfaces.site).host}`,
+    );
+    await expect(app.locator('#about-files-panel li')).toHaveCount(3);
     // And the foot says which version this is, beside the way in.
     if (state.version) {
       await expect(app.locator('.about-version')).toContainText(state.version);

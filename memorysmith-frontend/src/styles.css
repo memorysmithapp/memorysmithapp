@@ -5174,7 +5174,8 @@ body.has-sheet .app-main {
 /* The address of the connector: the block of code of the reading surface,
    with the verb inside it. It scrolls like every block of code instead of
    wrapping (#194). */
-.about-connector {
+.about-connector,
+.about-uploads {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -5183,7 +5184,8 @@ body.has-sheet .app-main {
   border-radius: 8px;
   background: var(--code-bg);
 }
-.about-connector code {
+.about-connector code,
+.about-uploads code {
   flex: 1 1 0;
   min-width: 0;
   overflow-x: auto;
@@ -5192,7 +5194,8 @@ body.has-sheet .app-main {
   line-height: 1.45;
   color: var(--text);
 }
-.about-connector .button {
+.about-connector .button,
+.about-uploads .button {
   flex: none;
   min-height: 36px;
   border-color: var(--border);
@@ -5200,10 +5203,12 @@ body.has-sheet .app-main {
   color: var(--text);
   font-size: 14px;
 }
-.about-connector .button:hover:not(:disabled) {
+.about-connector .button:hover:not(:disabled),
+.about-uploads .button:hover:not(:disabled) {
   border-color: var(--text-soft);
 }
-.about-connector .button svg {
+.about-connector .button svg,
+.about-uploads .button svg {
   width: 16px;
   height: 16px;
 }
@@ -5315,15 +5320,18 @@ body.has-sheet .app-main {
     padding: 12px 14px;
   }
   /* The copy is its icon alone, a thumb's width. */
-  .about-connector {
+  .about-connector,
+  .about-uploads {
     padding: 6px 6px 6px 12px;
   }
-  .about-connector .button {
+  .about-connector .button,
+  .about-uploads .button {
     width: 44px;
     height: 44px;
     padding: 0;
   }
-  .about-connector .copy-action-label {
+  .about-connector .copy-action-label,
+  .about-uploads .copy-action-label {
     display: none;
   }
   .about-footer {
