@@ -27,6 +27,7 @@ import {
   OriginProtocolPolicy,
   OriginRequestPolicy,
   PriceClass,
+  ResponseHeadersPolicy,
   ViewerProtocolPolicy,
 } from 'aws-cdk-lib/aws-cloudfront';
 import { HttpOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
@@ -67,6 +68,9 @@ export interface ApiStackProps extends StackProps {
   /** The host the parts of an upload are sent to, and its certificate (#241). */
   readonly uploadsDomainName: string;
   readonly uploadsCertificate: ICertificate;
+  /** The host a kept file and an export are read from, and its certificate (#255). */
+  readonly filesDomainName: string;
+  readonly filesCertificate: ICertificate;
   readonly cognitoIssuer: string;
   /** The app client of the connector proxy, whose tokens write as a connector. */
   readonly connectorClientId: string;
@@ -124,6 +128,8 @@ export class ApiStack extends Stack {
       WEB_CLIENT_ID: props.webClientId,
       // Where a signed part is answered, instead of the bucket's own name (#241).
       UPLOADS_ORIGIN: `https://${props.uploadsDomainName}`,
+      // Where a link to a kept file or an export is answered (#255).
+      FILES_ORIGIN: `https://${props.filesDomainName}`,
     };
 
     const api = new ServiceLambda(this, 'CoreApi', {
@@ -489,5 +495,54 @@ export class ApiStack extends Stack {
       target: RecordTarget.fromAlias(new CloudFrontTarget(uploads)),
     });
     this.uploadsOrigin = `https://${props.uploadsDomainName}`;
+
+    /**
+     * The host a kept file and an export are read from (#255, RN-KNW-050).
+     * The same arrangement as the uploads host, in the other direction: the
+     * API signs the GET for the bucket's own host and answers it on this one,
+     * and CloudFront hands S3 the very request it signed, so the link expires
+     * when it always did and an altered one is refused by S3 itself.
+     *
+     * It is a distribution of its own, with a certificate of its own, rather
+     * than a second name on the uploads one: a read allows only a read, and the
+     * headers it adds are for what a browser renders. `files.{zone}` is an
+     * origin apart from the product's, which is what keeps something somebody
+     * uploaded from ever running as the application; `nosniff` and a policy
+     * that sandboxes the document and allows no script make that hold by
+     * header too — an SVG opened in its own tab runs nothing, while a picture,
+     * a PDF and a recording still show where they are opened.
+     */
+    const filesHeaders = new ResponseHeadersPolicy(this, 'FilesHeaders', {
+      comment: `MemorySmith files (${props.environment.name})`,
+      securityHeadersBehavior: {
+        contentTypeOptions: { override: true },
+        contentSecurityPolicy: {
+          contentSecurityPolicy:
+            "default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'; sandbox",
+          override: true,
+        },
+      },
+    });
+    const files = new Distribution(this, 'FilesDistribution', {
+      comment: `MemorySmith files (${props.environment.name})`,
+      domainNames: [props.filesDomainName],
+      certificate: props.filesCertificate,
+      priceClass: PriceClass.PRICE_CLASS_100,
+      defaultBehavior: {
+        origin: new HttpOrigin(props.data.contentBucket.bucketRegionalDomainName, {
+          protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
+        }),
+        allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+        cachePolicy: CachePolicy.CACHING_DISABLED,
+        originRequestPolicy: OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+        responseHeadersPolicy: filesHeaders,
+        viewerProtocolPolicy: ViewerProtocolPolicy.HTTPS_ONLY,
+      },
+    });
+    new ARecord(this, 'FilesRecord', {
+      zone: props.hostedZone,
+      recordName: props.filesDomainName,
+      target: RecordTarget.fromAlias(new CloudFrontTarget(files)),
+    });
   }
 }

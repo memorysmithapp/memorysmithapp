@@ -182,6 +182,9 @@ const infra: Infrastructure = {
   discoveryTable: required('DISCOVERY_TABLE'),
   portabilityTable: required('PORTABILITY_TABLE'),
   contentBucket: required('CONTENT_BUCKET'),
+  // Where a link to a kept file or an export is answered: a host of the
+  // product, not the bucket's name (#255).
+  filesOrigin: required('FILES_ORIGIN'),
 };
 
 /**
@@ -434,13 +437,13 @@ const portabilityUseCases: PortabilityUseCases = {
   downloadTransfer: (request) =>
     new DownloadTransfer(
       buildTransfers(infra, request.subscription),
-      new S3ArchiveStore(infra.s3, infra.contentBucket),
+      new S3ArchiveStore(infra.s3, infra.contentBucket, infra.filesOrigin ?? null),
       request.subscription.userId.value,
     ),
   deleteTransfer: (request) =>
     new DeleteTransfer(
       buildTransfers(infra, request.subscription),
-      new S3ArchiveStore(infra.s3, infra.contentBucket),
+      new S3ArchiveStore(infra.s3, infra.contentBucket, infra.filesOrigin ?? null),
       request.subscription.userId.value,
       (transfer) => discardUpload(partsOf(), request.subscription.subscriptionId.value, transfer),
     ),

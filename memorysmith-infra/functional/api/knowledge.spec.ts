@@ -483,6 +483,7 @@ test.describe('the files of a notebook', () => {
   test('[route:GET /knowledge/notebooks/:v/files/:f/link] [route:DELETE /knowledge/notebooks/:v/files/:f] answers a link a browser follows, and deleting is definitive', async ({
     owner,
     notebook,
+    state,
   }) => {
     const name = unique('relatorio');
     const kept = await owner.ok<NotebookFile>('POST', `${notebookPath(notebook)}/files`, {
@@ -491,19 +492,37 @@ test.describe('the files of a notebook', () => {
       contentBase64: PDF,
     });
 
-    const link = await owner.ok<{ url: string; expiresAt: string }>(
+    const link = await owner.ok<{ url: string; downloadUrl: string; expiresAt: string }>(
       'GET',
       `${notebookPath(notebook)}/files/${kept.fileId}/link`,
     );
-    // It points at the object store and not at the API, which is what lets an
-    // <img> follow it and what keeps a file somebody uploaded out of the
-    // origin the product runs in.
-    expect(link.url).toContain('http');
+    // It points at a host of the product that is not the product's own
+    // origin, which is what lets an <img> follow it and what keeps a file
+    // somebody uploaded out of the origin the product runs in (#255).
+    const filesHost = `files.${new URL(state.surfaces.site).host}`;
+    expect(new URL(link.url).host).toBe(filesHost);
+    expect(new URL(link.downloadUrl).host).toBe(filesHost);
     expect(Date.parse(link.expiresAt)).toBeGreaterThan(Date.now());
 
+    // A PDF opens where it is opened, and the second address saves it.
     const fetched = await fetch(link.url);
     expect(fetched.status).toBe(200);
     expect(fetched.headers.get('content-type')).toContain('application/pdf');
+    expect(fetched.headers.get('content-disposition')).toBe('inline');
+    expect(fetched.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(fetched.headers.get('content-security-policy')).toMatch(/(^|; )sandbox($|;)/);
+    const saved = await fetch(link.downloadUrl);
+    expect(saved.status).toBe(200);
+    expect(saved.headers.get('content-disposition')).toBe(`attachment; filename="${name}"`);
+
+    // S3 still checks the signature it made: an altered one is refused.
+    const altered = new URL(link.url);
+    const signature = altered.searchParams.get('X-Amz-Signature') ?? '';
+    altered.searchParams.set(
+      'X-Amz-Signature',
+      `${signature.startsWith('0') ? '1' : '0'}${signature.slice(1)}`,
+    );
+    expect((await fetch(altered)).status).toBe(403);
 
     const deleted = await owner.call('DELETE', `${notebookPath(notebook)}/files/${kept.fileId}`);
     expect(deleted.status).toBe(204);

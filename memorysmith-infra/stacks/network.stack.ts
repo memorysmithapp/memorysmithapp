@@ -40,11 +40,18 @@ export class NetworkStack extends Stack {
    * can recognise. CloudFront fronts it, hence us-east-1 like the site's.
    */
   readonly uploadsCertificate: acm.ICertificate;
+  /**
+   * Where a kept file and an export are read from (#255): a host of the
+   * product a person sees in the tab and in the downloads, and still an origin
+   * apart from the product's own.
+   */
+  readonly filesCertificate: acm.ICertificate;
   readonly mcpDomainName: string;
   readonly apiDomainName: string;
   readonly siteDomainName: string;
   readonly authDomainName: string;
   readonly uploadsDomainName: string;
+  readonly filesDomainName: string;
 
   constructor(scope: Construct, id: string, props: NetworkStackProps) {
     super(scope, id, props);
@@ -55,6 +62,7 @@ export class NetworkStack extends Stack {
     this.siteDomainName = zoneName;
     this.authDomainName = `auth.${zoneName}`;
     this.uploadsDomainName = `uploads.${zoneName}`;
+    this.filesDomainName = `files.${zoneName}`;
 
     this.hostedZone = route53.PublicHostedZone.fromPublicHostedZoneAttributes(this, 'HostedZone', {
       hostedZoneId: props.environment.hostedZoneId,
@@ -125,6 +133,11 @@ export class NetworkStack extends Stack {
 
     this.uploadsCertificate = new acm.Certificate(this, 'UploadsCertificate', {
       domainName: this.uploadsDomainName,
+      validation: acm.CertificateValidation.fromDns(this.hostedZone),
+    });
+
+    this.filesCertificate = new acm.Certificate(this, 'FilesCertificate', {
+      domainName: this.filesDomainName,
       validation: acm.CertificateValidation.fromDns(this.hostedZone),
     });
 

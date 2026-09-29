@@ -9,7 +9,8 @@
  * The bucket blocks public access, so the download is a pre-signed URL,
  * short-lived and issued for that one object. Nothing else about the export is
  * reachable, and a link that leaks stops working within the quarter of an hour
- * the use case declares.
+ * the use case declares. It is answered on `files.{zone}`, a host of the
+ * product, and not on the name of the bucket (#255).
  *
  * **The archive carries no lifecycle tag any more.** It used to, and the bucket
  * rule threw it away a day later, on the reasoning that an export is derived
@@ -50,6 +51,12 @@ export class S3ArchiveStore implements ArchiveStore {
   constructor(
     private readonly s3: S3Client,
     private readonly bucket: string,
+    /**
+     * The host a download is answered on, `https://files.{zone}` (#255), or
+     * nothing to answer it on the bucket's own — the worker that builds an
+     * export signs nothing.
+     */
+    private readonly publicOrigin: string | null = null,
   ) {}
 
   async put(key: string, archive: Buffer): Promise<{ versionId: string | null }> {
@@ -80,7 +87,7 @@ export class S3ArchiveStore implements ArchiveStore {
   }
 
   async presign(key: string, expiresInSeconds: number): Promise<string> {
-    return getSignedUrl(
+    const signed = await getSignedUrl(
       this.s3,
       new GetObjectCommand({
         Bucket: this.bucket,
@@ -92,7 +99,24 @@ export class S3ArchiveStore implements ArchiveStore {
       }),
       { expiresIn: expiresInSeconds },
     );
+    return answeredOn(signed, this.publicOrigin);
   }
+}
+
+/**
+ * A URL signed for the bucket, answered on a host of the product (#241, #255).
+ * A signature of S3 covers the host it was signed for and the path, and the
+ * distribution on the public host forwards the request to the bucket with its
+ * own Host, so S3 checks the very request it signed: only the name the client
+ * sees changes.
+ */
+function answeredOn(signed: string, publicOrigin: string | null): string {
+  if (!publicOrigin) return signed;
+  const url = new URL(signed);
+  const origin = new URL(publicOrigin);
+  url.protocol = origin.protocol;
+  url.host = origin.host;
+  return url.toString();
 }
 
 function filenameOf(key: string): string {
@@ -205,10 +229,7 @@ export class S3PartStore implements PartStore {
     private readonly bucket: string,
     /**
      * The host a signed part is answered on, `https://uploads.{zone}` (#241),
-     * or nothing to answer it on the bucket's own. A signature of S3 covers the
-     * host it was signed for and the path, and the distribution on that host
-     * forwards the request to the bucket with its own Host, so S3 checks the
-     * very request it signed: only the name the client sees changes.
+     * or nothing to answer it on the bucket's own.
      */
     private readonly publicOrigin: string | null = null,
   ) {}
@@ -232,12 +253,7 @@ export class S3PartStore implements PartStore {
       }),
       { expiresIn: seconds },
     );
-    if (!this.publicOrigin) return signed;
-    const url = new URL(signed);
-    const origin = new URL(this.publicOrigin);
-    url.protocol = origin.protocol;
-    url.host = origin.host;
-    return url.toString();
+    return answeredOn(signed, this.publicOrigin);
   }
 
   async listParts(

@@ -70,6 +70,7 @@ test.describe('a notebook out and back in', () => {
   test('[route:POST /portability/notebooks/:v/export] [route:GET /portability/transfers/:t] [route:POST /portability/transfers/:t/download] [route:POST /portability/imports] [route:POST /portability/imports/apply] exports a notebook as a job and imports it back as the same notebook', async ({
     owner,
     notebook,
+    state,
   }) => {
     await owner.ok('POST', `/knowledge/notebooks/${notebook.notebookId}/notes`, {
       folderId: notebook.folderId,
@@ -88,7 +89,11 @@ test.describe('a notebook out and back in', () => {
       'POST',
       `/portability/transfers/${transfer.transferId}/download`,
     );
-    const archive = new Uint8Array(await (await fetch(link.downloadUrl)).arrayBuffer());
+    // Answered on a host of the product, not on the name of the bucket (#255).
+    expect(new URL(link.downloadUrl).host).toBe(`files.${new URL(state.surfaces.site).host}`);
+    const downloaded = await fetch(link.downloadUrl);
+    expect(downloaded.headers.get('content-disposition')).toMatch(/^attachment; filename="/);
+    const archive = new Uint8Array(await downloaded.arrayBuffer());
     expect(Buffer.from(archive.subarray(0, 2)).toString('latin1')).toBe('PK');
 
     const upload = await owner.ok<{ uploadKey: string; uploadUrl: string }>(

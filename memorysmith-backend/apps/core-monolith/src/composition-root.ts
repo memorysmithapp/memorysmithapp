@@ -78,6 +78,12 @@ export interface Infrastructure {
   /** Where the transfers of each person live (RN-PRT-019, RN-PRT-020). */
   readonly portabilityTable: string;
   readonly contentBucket: string;
+  /**
+   * The host a link to a kept file or an export is answered on,
+   * `https://files.{zone}` (#255). Only the API signs one; a worker that
+   * signs nothing leaves it out.
+   */
+  readonly filesOrigin?: string;
 }
 
 /** Everything the Access routes need, for one request. */
@@ -174,7 +180,7 @@ export function buildKnowledge(infra: Infrastructure, context: SubscriptionConte
     // key is opaque like the key of a note, and carries no extension, because
     // the extension of a name decides nothing anywhere here.
     files: new DynamoFileRepository(context, infra.db, infra.knowledgeTable),
-    fileStore: new S3FileStore(context, infra.s3, infra.contentBucket),
+    fileStore: new S3FileStore(context, infra.s3, infra.contentBucket, infra.filesOrigin ?? null),
     fileTypes: FILE_TYPE_CATALOGUE,
     storage: { current: () => readStorageBudget(infra, context) },
     // The one layer allowed to know which version of the specification the

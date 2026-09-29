@@ -887,7 +887,7 @@ Both sort **before** `FOLDER#`, which is the lower bound of the Query that loads
 
 **Which types are accepted is injected, not transcribed.** The list is published in `@memorysmith/contracts` and the composition root hands it to the use case as a port, the way the reserved vocabulary already is: the domain and the application of a context import the kernel and nothing else, and what the product decided to accept is a decision, not a rule of the domain.
 
-**The bytes are served from the object store**, through a link minted per request and signed, and never proxied by the API: an `<img>` cannot carry a bearer token, and a file somebody uploaded has no business running inside the origin of the product. What is drawn is served `inline` and everything else `attachment`.
+**The bytes are served from the object store**, through a link minted per request and signed, and never proxied by the API: an `<img>` cannot carry a bearer token, and a file somebody uploaded has no business running inside the origin of the product. What is drawn is served `inline` and everything else `attachment`. **The link is answered on `files.{zone}`, not on the name of the bucket** (#255), the way the parts of an upload are answered on `uploads.{zone}` (§16): the API signs the `GET` for the bucket's own host and rewrites only the host, and a CloudFront distribution that forwards everything but Host hands S3 the very request it signed, so the link expires when it always did and an altered one is refused by S3. The tab, the download bar and a copied link show a host of the product, and nothing of the bucket, the region or the credential that signed it. That host is still an origin apart from the product's, and it says so by header too: the distribution allows only `GET`, `HEAD` and `OPTIONS`, and answers with `X-Content-Type-Options: nosniff` and a `Content-Security-Policy` that sandboxes the document and allows no script, so an SVG opened in a tab of its own runs nothing while a picture, a PDF and a recording still show where they are opened. It is a distribution of its own, with a certificate of its own, rather than a second name on the uploads one: a read allows only a read, and the headers belong to what a browser renders. The link of a kept export is signed and answered the same way.
 
 **Discovery learns what a notebook keeps from the events**, `FileKept` and `FileDeleted`, and holds one `ATTACH#` item per name. Resolution then answers three things instead of two — a note, an attachment, nothing — and the reading surface draws each one for what it is (RN-DSC-061).
 
@@ -1462,6 +1462,7 @@ The domain returns `Result<T, DomainError>`; **exceptions exist only at the edge
 | `api.memorysmith.app` | The internal API, routed by path on CloudFront (§14.1) | `network.stack` |
 | `mcp.memorysmith.app` | The MCP server and the OAuth endpoints of the CIMD proxy (§13) | `agent.stack` |
 | `uploads.memorysmith.app` | The parts of an upload, forwarded to the content bucket (§16) | `api.stack` |
+| `files.memorysmith.app` | A kept file and a kept export, read from the content bucket (§10.9) | `api.stack` |
 
 **One app, two environments.** `bin/app.ts` describes production or staging, chosen with `-c environment=`, and what differs between them lives under `environments` in `cdk.json` and is read by `config/environments.ts`: the account, the region, the hosted zone and the zones it delegates. **The account is explicit in the environment of every stack**, so the CDK refuses to deploy into any account but the one `cdk.json` names. **Production and staging name the same account**, so credentials never tell one environment from the other: `-c environment` does. Every physical name ends with the environment — the stacks (`MemorysmithProductionData`, `MemorysmithStagingData`), the five tables (`mv-access-production`), the bus, the queues and the user pool — so the two never collide and nothing read from a console, a log line or a bill passes for the other environment, and every stack carries `app:environment`, `app:version` and `deploy:sha` (§23.3). Where a permission would otherwise reach both environments, it is conditioned on that tag: the functional suite manages accounts, and the teardown deletes a user pool, only in a pool tagged `staging`. Outside production the subjects of the messages the pool sends start with the environment, `[staging]`.
 
@@ -1475,6 +1476,7 @@ The domain returns `Result<T, DomainError>`; **exceptions exist only at the edge
 | MCP | `mcp.memorysmith.app/mcp` | `mcp.stg.memorysmith.app/mcp` |
 | Sign-in | `auth.memorysmith.app` | `auth.stg.memorysmith.app` |
 | Uploads | `uploads.memorysmith.app` | `uploads.stg.memorysmith.app` |
+| Files | `files.memorysmith.app` | `files.stg.memorysmith.app` |
 
 Two cautions that belong to the instruction, not to the execution:
 
