@@ -78,6 +78,7 @@ interface DistributionConfig {
   DefaultCacheBehavior: {
     AllowedMethods: string[];
     OriginRequestPolicyId?: string;
+    CachePolicyId?: string | { Ref?: string };
     ResponseHeadersPolicyId?: { Ref?: string };
   };
 }
@@ -109,6 +110,42 @@ describe('the files host', () => {
 
     expect(behaviour.OriginRequestPolicyId).toBe(ALL_VIEWER_EXCEPT_HOST_HEADER);
     expect([...behaviour.AllowedMethods].sort()).toEqual(['GET', 'HEAD', 'OPTIONS']);
+  });
+
+  it('lets the disposition and the type it was signed for reach S3, and keeps nothing', () => {
+    // Under CachingDisabled, CloudFront drops response-content-type and
+    // response-content-disposition from the query, and S3 refuses a request
+    // it never signed. Seen on staging: a plain GET passed, a PDF did not.
+    const behaviour = distributionOn(api, 'files.stg.memorysmith.app').DefaultCacheBehavior;
+    const ref =
+      typeof behaviour.CachePolicyId === 'object' ? behaviour.CachePolicyId.Ref : undefined;
+    expect(ref).toBeDefined();
+
+    const policy = api.toJSON().Resources[ref as string] as {
+      Properties: {
+        CachePolicyConfig: {
+          DefaultTTL: number;
+          MinTTL: number;
+          ParametersInCacheKeyAndForwardedToOrigin: {
+            QueryStringsConfig: { QueryStringBehavior: string };
+            HeadersConfig: { HeaderBehavior: string };
+            CookiesConfig: { CookieBehavior: string };
+          };
+        };
+      };
+    };
+    const config = policy.Properties.CachePolicyConfig;
+    expect(
+      config.ParametersInCacheKeyAndForwardedToOrigin.QueryStringsConfig.QueryStringBehavior,
+    ).toBe('all');
+    expect(config.ParametersInCacheKeyAndForwardedToOrigin.HeadersConfig.HeaderBehavior).toBe(
+      'none',
+    );
+    expect(config.ParametersInCacheKeyAndForwardedToOrigin.CookiesConfig.CookieBehavior).toBe(
+      'none',
+    );
+    expect(config.DefaultTTL).toBe(0);
+    expect(config.MinTTL).toBe(0);
   });
 
   it('serves what it reads with nosniff and in a sandbox that runs no script', () => {

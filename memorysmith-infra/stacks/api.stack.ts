@@ -22,7 +22,10 @@ import { ARecord, RecordTarget, type IHostedZone } from 'aws-cdk-lib/aws-route53
 import { ApiGatewayv2DomainProperties, CloudFrontTarget } from 'aws-cdk-lib/aws-route53-targets';
 import {
   AllowedMethods,
+  CacheCookieBehavior,
+  CacheHeaderBehavior,
   CachePolicy,
+  CacheQueryStringBehavior,
   Distribution,
   OriginProtocolPolicy,
   OriginRequestPolicy,
@@ -523,6 +526,28 @@ export class ApiStack extends Stack {
         },
       },
     });
+    /**
+     * Why not `CachingDisabled`, as on the uploads host: under it CloudFront
+     * drops the `response-content-type` and `response-content-disposition`
+     * of the query before it reaches S3, while forwarding every other
+     * parameter, so S3 sees a request it never signed and answers
+     * `SignatureDoesNotMatch` — found on staging, where a plain signed GET
+     * passed and one naming its disposition did not. Those two are what make
+     * a PDF open where it is opened and save under its name where it is
+     * saved (RN-KNW-050), so they have to arrive. A query string travels
+     * whole when the cache policy names it, and naming it needs a TTL above
+     * zero; the default stays at zero and S3 sends no Cache-Control, so
+     * nothing is kept, and a link is its own key anyway.
+     */
+    const filesCache = new CachePolicy(this, 'FilesCache', {
+      comment: `MemorySmith files (${props.environment.name}): the whole signed query reaches S3`,
+      defaultTtl: Duration.seconds(0),
+      minTtl: Duration.seconds(0),
+      maxTtl: Duration.seconds(1),
+      queryStringBehavior: CacheQueryStringBehavior.all(),
+      headerBehavior: CacheHeaderBehavior.none(),
+      cookieBehavior: CacheCookieBehavior.none(),
+    });
     const files = new Distribution(this, 'FilesDistribution', {
       comment: `MemorySmith files (${props.environment.name})`,
       domainNames: [props.filesDomainName],
@@ -533,7 +558,7 @@ export class ApiStack extends Stack {
           protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
         }),
         allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
-        cachePolicy: CachePolicy.CACHING_DISABLED,
+        cachePolicy: filesCache,
         originRequestPolicy: OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
         responseHeadersPolicy: filesHeaders,
         viewerProtocolPolicy: ViewerProtocolPolicy.HTTPS_ONLY,
