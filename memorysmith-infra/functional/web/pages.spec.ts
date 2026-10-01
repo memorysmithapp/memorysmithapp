@@ -706,8 +706,16 @@ test.describe('the pages of an account', () => {
           breakBefore: sheet ? scope.getComputedStyle(sheet).breakBefore : '',
         };
       });
+    // The PDF is laid out in the media the page emulates, so it is made in
+    // print media, and what the sheet looks like is attached beside it.
     const pdfOf = async (name: string) => {
+      await testInfo.attach(`${name}.png`, {
+        body: await paper.screenshot({ fullPage: true }),
+        contentType: 'image/png',
+      });
+      await paper.emulateMedia({ media: 'print' });
       const bytes = await paper.pdf({ preferCSSPageSize: true });
+      await paper.emulateMedia({ media: 'screen' });
       await testInfo.attach(`${name}.pdf`, { body: bytes, contentType: 'application/pdf' });
       const text = bytes.toString('latin1');
       const box = /\/MediaBox\s*\[\s*0 0 ([\d.]+) ([\d.]+)\s*\]/.exec(text);
@@ -734,7 +742,9 @@ test.describe('the pages of an account', () => {
     const upright = await pdfOf('portrait-cover-wrap');
     expect(upright.width).toBeCloseTo(595.28, 0);
     expect(upright.height).toBeCloseTo(841.89, 0);
-    expect(upright.pages).toBeGreaterThanOrEqual(2);
+    // The cover and the text, and nothing else: the bar and the banner of the
+    // environment are not printed.
+    expect(upright.pages).toBe(2);
 
     // Or it keeps its lines and shrinks its type until it fits.
     const wrapped = (await measure()).size;
@@ -758,7 +768,7 @@ test.describe('the pages of an account', () => {
     await expect(cover).toHaveCount(0);
     await expect(end.locator(status)).toBeVisible();
     await expect(body.getByRole('heading', { level: 1 })).toHaveText('On paper');
-    await pdfOf('landscape-end-shrink');
+    expect((await pdfOf('landscape-end-shrink')).pages).toBe(2);
     await properties.getByRole('radio').nth(2).click();
     await expect(status).toHaveCount(0);
 
