@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-01
+
 ### Added
 
 - **An agent that cannot send a file asks the person for it.** An agent often learns it cannot send a file only by trying: ChatGPT Plus, whose sandbox has no network, opened four uploads it could not finish in two tasks, spent up to fourteen minutes on inline parts it could not type, and ended telling the person to attach the file from the editor under a name the editor cannot give it. `request_file` asks the person for the file instead — from nothing, or made of the upload the agent could not finish, which it replaces, its parts thrown away and its room given back. The request carries the name, type, description, tags, path and purpose of the file, reserves nothing and has no deadline; the file is kept under that name, so the `![[name]]` the agent wrote draws it untouched. `discard_file_upload` throws away an attempt the agent gives up on, or dismisses a request, over any upload open on the notebook. The skill `keep-files` teaches the sequence — try, look at what arrived, hand it to the person — and `list_file_uploads` lists the requests beside the uploads. The API answers `POST /portability/requests`, and an upload that names a request keeps the file it asks for. (#253, RN-PRT-030, RN-AGT-045)
@@ -692,7 +694,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.6.2...v0.7.0
