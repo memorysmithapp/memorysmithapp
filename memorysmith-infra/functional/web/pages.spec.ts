@@ -724,9 +724,12 @@ test.describe('the pages of an account', () => {
     expect(colours.title).not.toBe('rgb(14, 21, 38)');
     expect(colours.adjust).toBe('exact');
 
-    // And the page the browser lays it on is A4: 595 by 842 points.
+    // And the page the browser lays it on is A4, 595.28 by 841.89 points,
+    // which Chromium rounds to its own units (594.96 by 841.92).
     const pdf = (await paper.pdf({ preferCSSPageSize: true })).toString('latin1');
-    expect(pdf).toMatch(/\/MediaBox\s*\[\s*0 0 595\.\d+ 841\.\d+\s*\]/);
+    const box = /\/MediaBox\s*\[\s*0 0 ([\d.]+) ([\d.]+)\s*\]/.exec(pdf);
+    expect(Number(box?.[1])).toBeCloseTo(595.28, 0);
+    expect(Number(box?.[2])).toBeCloseTo(841.89, 0);
   });
 
   test('[page:/notebooks/:notebookId/notes/:noteId] draws the rules of a table inside a callout in the colour of the callout (#259)', async ({
