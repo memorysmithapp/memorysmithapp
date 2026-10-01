@@ -170,6 +170,8 @@
     "selectNotebook": "Open a notebook",
     "prevNotebooks": "Previous notebooks",
     "nextNotebooks": "Next notebooks",
+    "expandNotebooks": "Show all notebooks",
+    "collapseNotebooks": "Back to one row",
     "goToNotebook": "Go to notebook {{number}}",
     "noNotebooks": "No notebook yet. An agent creates one through the connector, and an export comes back in through Transfers.",
     "space": "Subscription space",

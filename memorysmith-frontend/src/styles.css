@@ -304,6 +304,47 @@ a:hover {
 .carousel-dots {
   display: none;
 }
+.carousel-glyph {
+  display: inline-block;
+}
+
+/* Expanded, on the desktop (#257): the notebooks fill the page, which stops
+   growing with what it holds and is exactly the row it scrolls in, so the
+   cards wrap into rows that scroll inside the track and the arrows page them
+   up and down. The space of the subscription is not drawn meanwhile. Only the
+   desktop ever gets the class, so the phone needs nothing here. */
+.app-main > .page.home.is-expanded {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.card-carousel.is-expanded {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+.card-carousel.is-expanded .notebook-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  /* A row is as tall as its tallest card: the card declares no minimum height,
+     and in a track of fixed height the rows would otherwise squeeze it. */
+  grid-auto-rows: max-content;
+  align-content: start;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-snap-type: y proximity;
+  padding: 4px;
+  margin: -4px;
+  scroll-padding: 4px;
+}
+/* The same ‹ › turned a quarter, so they point up and down. */
+.card-carousel.is-expanded .carousel-glyph {
+  transform: rotate(90deg);
+}
 
 /* The card. The link of its footer is stretched over all of it, so the whole
    card opens the notebook and the ⋯ in its corner stays a control of its own. */

@@ -170,6 +170,8 @@
     "selectNotebook": "Abrir um caderno",
     "prevNotebooks": "Cadernos anteriores",
     "nextNotebooks": "Próximos cadernos",
+    "expandNotebooks": "Mostrar todos os cadernos",
+    "collapseNotebooks": "Voltar a uma linha",
     "goToNotebook": "Ir para o caderno {{number}}",
     "noNotebooks": "Nenhum caderno ainda. Um agente cria um pelo conector, e uma exportação volta a entrar por Transferências.",
     "space": "Espaço da assinatura",
