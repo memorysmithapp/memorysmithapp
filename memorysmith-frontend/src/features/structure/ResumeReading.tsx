@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Navigate, useOutletContext } from 'react-router-dom';
 import { lastNoteOf, forgetNote } from '../../shared/store/last-note';
 import { noteAddress } from '../../shared/api/note-address';
+import { useLiveSession } from '../../shared/auth/session';
 import { folderTrailForNote } from './trail';
 import { useNotebookId } from './route-ids';
 import { NotebookContextPage } from './NotebookContextPage';
@@ -25,6 +26,7 @@ const arrived = new Set<string>();
 
 export function ResumeReading() {
   const notebookId = useNotebookId();
+  const personId = useLiveSession((s) => s.session?.userId ?? '');
   const { structure } = useOutletContext<NotebookOutletContext>();
 
   // Decided once per mount, in a ref rather than in state: it must survive a
@@ -32,7 +34,7 @@ export function ResumeReading() {
   // the effect below has marked this notebook as arrived at.
   const target = useRef<string | null | undefined>(undefined);
   if (target.current === undefined) {
-    target.current = arrived.has(notebookId) ? null : resumable(structure, notebookId);
+    target.current = arrived.has(notebookId) ? null : resumable(structure, personId, notebookId);
   }
 
   useEffect(() => {
@@ -48,7 +50,7 @@ export function ResumeReading() {
 }
 
 /**
- * The remembered note, if it is still a note of this notebook.
+ * The note this person had open, if it is still a note of this notebook.
  *
  * The structure is already in hand, so this costs no request and cannot
  * flash. What is remembered is an identifier, so a rename and a move change
@@ -58,11 +60,12 @@ export function ResumeReading() {
  */
 function resumable(
   structure: NotebookOutletContext['structure'],
+  personId: string,
   notebookId: string,
 ): string | null {
-  const noteId = lastNoteOf(notebookId);
+  const noteId = lastNoteOf(personId, notebookId);
   if (!noteId) return null;
   if (folderTrailForNote(structure.folders, noteId).length) return noteId;
-  forgetNote(notebookId);
+  forgetNote(personId, notebookId);
   return null;
 }

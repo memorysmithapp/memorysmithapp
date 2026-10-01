@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { NotePage } from '../note/NotePage';
 import { identifierOf } from '../../shared/api/note-address';
 import { rememberNote } from '../../shared/store/last-note';
+import { useLiveSession } from '../../shared/auth/session';
 import { folderTrailForNote } from './trail';
 import { useNotebookId } from './route-ids';
 import type { NotebookOutletContext } from './NotebookLayout';
@@ -24,13 +25,14 @@ export function NoteRoute() {
   const { t } = useTranslation();
   const { noteId: segment } = useParams();
   const notebookId = useNotebookId();
+  const personId = useLiveSession((s) => s.session?.userId ?? '');
   const { structure } = useOutletContext<NotebookOutletContext>();
   const noteId = identifierOf(segment);
   const inTree = noteId !== null && folderTrailForNote(structure.folders, noteId).length > 0;
 
   useEffect(() => {
-    if (noteId && inTree) rememberNote(notebookId, noteId);
-  }, [notebookId, noteId, inTree]);
+    if (noteId && inTree) rememberNote(personId, notebookId, noteId);
+  }, [personId, notebookId, noteId, inTree]);
 
   if (!noteId) return <p className="status">{t('common.notFound')}</p>;
   return <NotePage noteId={noteId} />;
