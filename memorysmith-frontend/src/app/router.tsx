@@ -16,6 +16,7 @@ import { PasswordPage } from '../features/profile/PasswordPage';
 import { TransfersPage } from '../features/portability/TransfersPage';
 import { GraphPage } from '../features/graph/GraphPage';
 import { LinkTargetPage } from '../features/note/LinkTargetPage';
+import { PrintNotePage } from '../features/note/PrintNotePage';
 import { NotebookLayout } from '../features/structure/NotebookLayout';
 import { RequireSession, RootLayout } from './RootLayout';
 
@@ -46,6 +47,9 @@ export const router = createBrowserRouter([
           // Drawn as the sign-in screen, outside the frame of the application,
           // because the secret of the account is typed there too (#214).
           { path: '/profile/password', element: <PasswordPage /> },
+          // A note alone, drawn for paper, in a tab of its own (#258): outside
+          // the frame of the application, because nothing of it is printed.
+          { path: '/notebooks/:notebookId/notes/:noteId/print', element: <PrintNotePage /> },
           {
             element: <AppShell />,
             children: [

@@ -618,6 +618,117 @@ test.describe('the pages of an account', () => {
     await expect(app.locator('.editor-refusal')).toContainText(words.conflict);
   });
 
+  test('[page:/notebooks/:notebookId/notes/:noteId/print] prints a note alone on an A4 page, white whatever the theme, with colour on its callouts only and its properties where the person chose (#258)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }) => {
+    const { noteId } = await owner.ok<{ noteId: string }>(
+      'POST',
+      `/knowledge/notebooks/${notebook.notebookId}/notes`,
+      {
+        folderId: notebook.folderId,
+        content:
+          '---\nname: On paper\nstatus: draft\n---\n\nA line with a [link](https://example.org).\n\n> [!warning] Mind this\n> A callout keeps its colour.\n\n```ts\nconst answer = 42;\n```\n',
+      },
+    );
+    // The reader chose the dark theme, and the dialog of the browser is
+    // counted rather than opened.
+    await app.addInitScript(() => {
+      localStorage.setItem(
+        'memorysmith.preferences',
+        JSON.stringify({ state: { theme: 'dark' }, version: 0 }),
+      );
+    });
+    await app.context().addInitScript(() => {
+      const scope = globalThis as unknown as { printed: number; print: () => void };
+      scope.printed = 0;
+      scope.print = () => {
+        scope.printed += 1;
+      };
+    });
+    await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+    await expect(app.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+    const opening = app.context().waitForEvent('page');
+    await app.getByRole('link', { name: words.printNote, exact: true }).click();
+    const paper = await opening;
+
+    // The note alone, in a tab of its own, which waits for the person to print.
+    await expect(paper).toHaveURL(new RegExp(`/notes/${noteId}/print$`, 'i'));
+    const sheet = paper.locator('article.print-sheet[data-placement]');
+    await expect(sheet.getByRole('heading', { level: 1 })).toHaveText('On paper');
+    await expect(paper.locator('#notebook-sidebar, .notebook-bar')).toHaveCount(0);
+    await expect(sheet).toHaveAttribute('data-ready', 'true');
+    await expect(paper).toHaveTitle('On paper');
+    const printed = () =>
+      paper.evaluate(() => (globalThis as unknown as { printed: number }).printed);
+    expect(await printed()).toBe(0);
+    await paper.getByRole('button', { name: words.printNote, exact: true }).click();
+    expect(await printed()).toBe(1);
+
+    // The properties go where the bar says, beside the text by default, and the
+    // choice is remembered by this browser.
+    const placements = paper.getByRole('radiogroup');
+    const status = paper.locator('.metadata-property-value', { hasText: 'draft' });
+    await expect(sheet).toHaveAttribute('data-placement', 'side');
+    await expect(paper.locator('aside.print-side').locator(status)).toBeVisible();
+    await placements.getByRole('radio').nth(1).click();
+    await expect(sheet).toHaveAttribute('data-placement', 'cover');
+    await expect(
+      paper.locator('article.print-cover').getByRole('heading', { level: 1 }),
+    ).toHaveText('On paper');
+    await expect(paper.locator('article.print-cover').locator(status)).toBeVisible();
+    await placements.getByRole('radio').nth(2).click();
+    await expect(paper.locator('section.print-end').locator(status)).toBeVisible();
+    await placements.getByRole('radio').nth(3).click();
+    await expect(status).toHaveCount(0);
+    await paper.reload();
+    await expect(sheet).toHaveAttribute('data-placement', 'none');
+    await placements.getByRole('radio').nth(0).click();
+    await expect(sheet).toHaveAttribute('data-placement', 'side');
+
+    // Light while it is open, and the choice of the reader is left as it was.
+    await expect(paper.locator('html')).toHaveAttribute('data-theme', 'light');
+    expect(await paper.evaluate(() => localStorage.getItem('memorysmith.preferences'))).toContain(
+      '"dark"',
+    );
+
+    // On paper: white, nothing but the sheet, a link in ink and the callout in colour.
+    await paper.emulateMedia({ media: 'print' });
+    await expect(paper.locator('.print-toolbar')).toBeHidden();
+    const colours = await paper.evaluate(() => {
+      type Style = {
+        backgroundColor: string;
+        color: string;
+        getPropertyValue(name: string): string;
+      };
+      const scope = globalThis as unknown as {
+        document: { querySelector(selector: string): object | null };
+        getComputedStyle(element: object): Style;
+      };
+      const of = (selector: string) => {
+        const element = scope.document.querySelector(selector);
+        return element ? scope.getComputedStyle(element) : null;
+      };
+      return {
+        body: of('body')?.backgroundColor,
+        link: of('.print-sheet .markdown a')?.color,
+        title: of('.print-sheet .callout-title')?.color,
+        adjust: of('.print-sheet .callout')?.getPropertyValue('print-color-adjust'),
+      };
+    });
+    expect(colours.body).toBe('rgb(255, 255, 255)');
+    expect(colours.link).toBe('rgb(14, 21, 38)');
+    expect(colours.title).not.toBe('rgb(14, 21, 38)');
+    expect(colours.adjust).toBe('exact');
+
+    // And the page the browser lays it on is A4: 595 by 842 points.
+    const pdf = (await paper.pdf({ preferCSSPageSize: true })).toString('latin1');
+    expect(pdf).toMatch(/\/MediaBox\s*\[\s*0 0 595\.\d+ 841\.\d+\s*\]/);
+  });
+
   test('renames a note from the editor, and the tree follows without a reload', async ({
     app,
     notebook,

@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { usePreferences, resolveTheme } from '../store/preferences';
+import { usePreferences, effectiveTheme } from '../store/preferences';
 
 interface MermaidDiagramProps {
   code: string;
@@ -10,6 +10,7 @@ interface MermaidDiagramProps {
 export function MermaidDiagram({ code }: MermaidDiagramProps) {
   const id = useId().replace(/[^a-zA-Z0-9]/g, '');
   const theme = usePreferences((s) => s.theme);
+  const paper = usePreferences((s) => s.paper);
   const [svg, setSvg] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -26,7 +27,7 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
         await document.fonts.ready;
         mermaid.initialize({
           startOnLoad: false,
-          theme: resolveTheme(theme) === 'dark' ? 'dark' : 'neutral',
+          theme: effectiveTheme(theme, paper) === 'dark' ? 'dark' : 'neutral',
           fontFamily: 'Inter, sans-serif',
           // SVG text labels measure reliably; HTML labels clip inside nodes
           // when the webfont metrics differ from the fallback.
@@ -55,7 +56,7 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
     return () => {
       alive = false;
     };
-  }, [code, id, theme]);
+  }, [code, id, theme, paper]);
 
   if (failed) {
     return (

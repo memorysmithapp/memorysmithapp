@@ -44,6 +44,7 @@ describe('the pages of the interface', () => {
       '/auth/callback',
       // Outside the frame of the application, drawn as the sign-in (#214).
       '/profile/password',
+      '/notebooks/:notebookId/notes/:noteId/print',
       '/',
       '/about',
       '/profile',

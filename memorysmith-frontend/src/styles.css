@@ -6480,3 +6480,178 @@ body.has-sheet .app-main {
     flex: 1;
   }
 }
+
+/* ── Paper (#258) ─────────────────────────────────────────────────────────────
+   A note alone, drawn for an A4 page and printed by the browser, which also
+   saves it as a PDF. On the screen it is the sheet itself, white on Papel, so
+   what the tab shows is what the printer gets; on paper only the sheet goes.
+
+   Colour is spent where it carries meaning and nowhere else: a callout says
+   what kind of thing it is by its hue, and a picture is its colours. Every
+   other colour of the reading surface — a link, a token of code, a pending
+   link — is taken back to Tinta for the page, by the tokens it is drawn with
+   rather than by chasing each element, so a new one inherits the rule. */
+@page {
+  size: A4;
+  margin: 18mm 16mm 20mm;
+}
+
+.print-page {
+  min-height: 100vh;
+  padding: 0 1rem 3rem;
+  background: var(--bg);
+}
+
+.print-toolbar {
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: 0.75rem 0;
+  background: var(--bg);
+}
+.print-hint {
+  margin: 0 auto 0 0;
+  color: var(--text-soft);
+  font-size: 0.875rem;
+}
+
+/* The width of A4 less its margins, the page the text is laid on. */
+.print-sheet.content-pane {
+  max-width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 18mm 16mm 20mm;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(14, 21, 38, 0.12);
+}
+
+.print-sheet {
+  --accent: var(--text);
+  --pending: var(--text-soft);
+  --code-color: var(--text);
+  --token-keyword: var(--text);
+  --token-string: var(--text);
+  --token-number: var(--text);
+  --token-comment: var(--text-soft);
+  --token-punctuation: var(--text);
+}
+.print-sheet a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}
+/* Where the properties go, as the bar of the page chose. Beside: a box in the
+   top-right corner of the first page, the name and the text running beside
+   it. A cover: a sheet of its own. The end: after the text, under a heading. */
+.print-side {
+  float: right;
+  width: 38%;
+  margin: 0 0 1rem 1.5rem;
+}
+.print-side .properties-box,
+.print-cover .properties-box,
+.print-end .properties-box {
+  margin: 0;
+}
+.print-side .properties-box {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.print-side .metadata-container {
+  grid-template-columns: minmax(4.5rem, max-content) 1fr;
+  margin-top: 0;
+  font-size: 0.8rem;
+}
+.print-cover {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+}
+.print-end {
+  clear: both;
+  margin-top: 2.5rem;
+}
+
+/* What is there for the screen and says nothing on paper. */
+.print-sheet :is(.remote-notice, .copy-button, .attachment-card-actions) {
+  display: none;
+}
+
+@media print {
+  body,
+  .print-page {
+    background: #ffffff;
+  }
+  .print-page {
+    min-height: 0;
+    padding: 0;
+  }
+  .print-toolbar,
+  .environment-banner {
+    display: none !important;
+  }
+  /* The page already has its margins from @page. */
+  .print-sheet.content-pane {
+    max-width: none;
+    min-height: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+  .print-sheet {
+    font-size: 11pt;
+  }
+  /* The cover fills its sheet and the text starts on the next one. */
+  .print-cover {
+    min-height: 240mm;
+    margin: 0;
+    break-after: page;
+  }
+  .print-end {
+    break-inside: avoid;
+  }
+  .print-sheet .properties-box,
+  .print-sheet .markdown pre {
+    background: none;
+    border: 1px solid var(--border);
+  }
+  /* A block is read whole, never half on one page and half on the next, and a
+     heading is never the last line of a page. */
+  .print-sheet
+    :is(
+      pre,
+      table,
+      figure,
+      img,
+      blockquote,
+      .callout,
+      .embed,
+      .mermaid-diagram,
+      .katex-display,
+      .properties-box,
+      .attachment-card
+    ) {
+    break-inside: avoid;
+  }
+  .print-sheet :is(h1, h2, h3, h4, h5, h6) {
+    break-after: avoid;
+  }
+  .print-sheet :is(p, li) {
+    orphans: 3;
+    widows: 3;
+  }
+  /* The two things printed in colour, which a browser leaves out by default. */
+  .print-sheet :is(.callout, .callout *, img, .mermaid-diagram svg) {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

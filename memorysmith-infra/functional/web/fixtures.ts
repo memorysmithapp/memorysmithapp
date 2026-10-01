@@ -113,6 +113,8 @@ export interface Words {
   readonly historyHeading: string;
   /** The button of the bar that opens the history (#226). */
   readonly historyButton: string;
+  /** The action of the bar of a note that opens it on paper (#258). */
+  readonly printNote: string;
   readonly conflict: string;
 }
 
@@ -183,6 +185,7 @@ export const WORDS: Record<AppLocale, Words> = {
     writeIt: 'Write it',
     historyHeading: 'History of this note',
     historyButton: 'History',
+    printNote: 'Print',
     conflict: 'Somebody else wrote this note',
   },
   pt_BR: {
@@ -251,6 +254,7 @@ export const WORDS: Record<AppLocale, Words> = {
     writeIt: 'Gravar',
     historyHeading: 'Histórico desta nota',
     historyButton: 'Histórico',
+    printNote: 'Imprimir',
     conflict: 'Outra pessoa gravou esta nota',
   },
 };

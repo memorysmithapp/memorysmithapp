@@ -160,6 +160,20 @@
     "changedElsewhere": "Esta nota mudou desde que você a abriu, e o que está na tela é a versão atual.",
     "changedElsewhereDismiss": "Entendi"
   },
+  "print": {
+    "short": "Imprimir",
+    "open": "Imprimir a nota ou salvá-la como PDF, numa folha A4",
+    "print": "Imprimir",
+    "toolbar": "Impressão",
+    "hint": "Para um PDF, escolha “Salvar como PDF” como destino da impressão.",
+    "properties": "Propriedades na impressão",
+    "placement": {
+      "side": "Ao lado",
+      "cover": "Folha de rosto",
+      "end": "No final",
+      "none": "Nenhuma"
+    }
+  },
   "common": {
     "loading": "Carregando…",
     "notFound": "Não encontrado.",

@@ -23,6 +23,7 @@ import {
   CopyIcon,
   HistoryIcon,
   PencilIcon,
+  PrinterIcon,
 } from '../../shared/components/icons';
 import { NoteEditor, type EditOutcome } from './NoteEditor';
 import { NoteHistoryDialog } from './NoteHistory';
@@ -32,7 +33,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../shared/api/query-keys';
 import { useBlocker } from 'react-router-dom';
 import { folderTrailForNote } from '../structure/trail';
-import { BarButton, NotebookBar, folderCrumbs } from '../structure/NotebookBreadcrumb';
+import { BarButton, BarLink, NotebookBar, folderCrumbs } from '../structure/NotebookBreadcrumb';
+import { printAddress } from '../../shared/api/note-address';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
 import { useNotebookId } from '../structure/route-ids';
 
@@ -219,6 +221,14 @@ export function NotePage({ noteId }: { noteId: string }) {
           label={t('history.short')}
           title={t('history.heading')}
           onClick={() => setHistoryOpen(true)}
+        />
+        {/* The note alone, on paper, in a tab of its own (#258): every role
+            that reads it prints it. */}
+        <BarLink
+          icon={<PrinterIcon />}
+          label={t('print.short')}
+          title={t('print.open')}
+          to={printAddress(notebookId, noteId)}
         />
         {/* Only a role that writes ever sees it: a reader gets the copy button
             alone, never a pencil that would refuse them. */}

@@ -160,6 +160,20 @@
     "changedElsewhere": "This note changed since you opened it, and what you see is the current version.",
     "changedElsewhereDismiss": "Got it"
   },
+  "print": {
+    "short": "Print",
+    "open": "Print the note or save it as a PDF, on an A4 page",
+    "print": "Print",
+    "toolbar": "Printing",
+    "hint": "For a PDF, choose “Save as PDF” as the destination of the print.",
+    "properties": "Properties on paper",
+    "placement": {
+      "side": "Beside",
+      "cover": "Cover page",
+      "end": "At the end",
+      "none": "None"
+    }
+  },
   "common": {
     "loading": "Loading…",
     "notFound": "Not found.",
