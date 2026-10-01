@@ -852,7 +852,7 @@ test.describe('the pages of an account', () => {
     // At the end the properties take the last page; with none they are not printed.
     await properties.getByRole('radio').nth(1).click();
     await expect(cover).toHaveCount(0);
-    await expect(end.locator(status)).toHaveCount(1);
+    await expect(end.locator('.metadata-property-value', { hasText: 'draft' })).toHaveCount(1);
     await expect(body.locator('h1')).toHaveText('On paper');
     expect(await laid()).toBe(2);
     await expect(pages.nth(1)).toContainText('draft');
