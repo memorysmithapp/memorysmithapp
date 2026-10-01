@@ -80,7 +80,7 @@ function object(
   return { type: 'object', properties, required, additionalProperties: false };
 }
 
-export const TOOL_CATALOG: readonly ToolDefinition[] = [
+const DEFINITIONS: readonly ToolDefinition[] = [
   {
     name: 'whoami',
     title: 'Who you are, and how to write here',
@@ -119,7 +119,10 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     title: 'List notebooks',
     description:
       'Lists the notebooks this connector can reach, with their description and note count, ' +
-      'and every notebook tool takes its identifier from this list. Call whoami before it: ' +
+      'and every notebook tool takes its identifier from this list. Each says its ownership: ' +
+      '`own`, of this subscription, or `shared`, shared with this person from another one, ' +
+      'which also names its owner and the access the share grants — with `read`, every write ' +
+      'in it is refused. Call whoami before it: ' +
       'whoami lists the same notebooks, together with how to write in them and the skills to ' +
       'read before a task.',
     inputSchema: object({}),
@@ -904,6 +907,27 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     annotations: { readOnlyHint: true },
   },
 ];
+
+/**
+ * What every tool that writes in a notebook says of a shared one (RN-AGT-046):
+ * said once here and appended, so no write tool can be added without it.
+ */
+const SHARED_REFUSAL =
+  ' A notebook shared with this person from another subscription with `read` access refuses ' +
+  'this with FORBIDDEN, naming its owner: list_notebooks says which notebooks are shared and ' +
+  'with which access.';
+
+function writesInANotebook(tool: ToolDefinition): boolean {
+  const writes =
+    tool.annotations.readOnlyHint === false || tool.annotations.destructiveHint === true;
+  const properties =
+    (tool.inputSchema as { properties?: Record<string, unknown> }).properties ?? {};
+  return writes && 'notebook' in properties;
+}
+
+export const TOOL_CATALOG: readonly ToolDefinition[] = DEFINITIONS.map((tool) =>
+  writesInANotebook(tool) ? { ...tool, description: tool.description + SHARED_REFUSAL } : tool,
+);
 
 /**
  * The reading path this product is built around, as tool names.

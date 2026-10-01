@@ -122,6 +122,18 @@ function formattingTable(): string {
   ].join('\n');
 }
 
+/**
+ * What every skill that writes says of a notebook shared from another
+ * subscription (RN-AGT-046), once, so the four cannot disagree.
+ */
+const SHARED_NOTEBOOKS = `**Check whose notebook it is before writing in it.** whoami and
+list_notebooks say of each notebook whether it is \`own\` — of this
+subscription — or \`shared\` with this person from another one, and for a
+shared one who owns it and the access the share grants. A notebook shared with
+\`read\` access is read whole and written not at all: every write is refused.
+When the person asks you to write in one, say whose notebook it is and that the
+share is read-only, instead of trying.`;
+
 const DESIGN_NOTEBOOK = `# Designing a notebook
 
 A notebook is a guidance, a tree of folders that each say what they hold, a
@@ -137,6 +149,10 @@ it: the material already answers what a proposal would ask. **When there is
 none**, propose a small structure from what they said they need, built with the
 practices below, and confirm it before creating anything. One proposal the
 person can accept or adjust is worth more than a questionnaire.
+
+${SHARED_NOTEBOOKS} A new notebook is always created in this subscription, so
+designing one never needs a shared notebook's permission; changing the guidance,
+folders or templates of a shared one does.
 
 ## The order of the work
 
@@ -440,6 +456,9 @@ looks the same and answers nothing.
 That is the declared cost of a decision, and it is paid at the door by whoever
 is arriving. This is how you offer to pay it for them.
 
+${SHARED_NOTEBOOKS} Converting rewrites notes, so a notebook shared with
+\`read\` access is one you can only propose the conversion for, to its owner.
+
 ## Why the product does not do this itself
 
 You are reading a method and not calling a tool, and that is deliberate.
@@ -523,6 +542,8 @@ convention means belongs to the notebook, not to the server.
 There are exactly two places where the product DOES read your content, and
 this is the whole list: **the frontmatter and the links**. The name of a note is
 one key of the frontmatter. Everything else you write is text, and nothing more.
+
+${SHARED_NOTEBOOKS}
 
 ## A note, from top to bottom
 
@@ -692,6 +713,8 @@ A notebook keeps files beside its notes, and a note shows one by writing
 resolution and its format are what they chose to keep, and a photo of a
 whiteboard is kept to be read later, at the size it was taken. Reduce, crop or
 convert it when the person asks for that.
+
+${SHARED_NOTEBOOKS} A file is kept in a notebook like a note is written there.
 
 ## Which way the bytes go
 

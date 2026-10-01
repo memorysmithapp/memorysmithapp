@@ -35,7 +35,22 @@ const caller: AgentCaller = {
 const connector = { clientId: 'https://claude.ai/mcp', clientName: 'Claude' };
 
 const notebooks: readonly NotebookListing[] = [
-  { notebookId: 'v-1', name: 'Procurement', description: 'What we decided and why', noteCount: 12 },
+  {
+    notebookId: 'v-1',
+    name: 'Procurement',
+    description: 'What we decided and why',
+    noteCount: 12,
+    ownership: 'own',
+  },
+  {
+    notebookId: 'v-2',
+    name: 'Research',
+    description: 'What another subscription learned',
+    noteCount: 3,
+    ownership: 'shared',
+    owner: 'owner@example.test',
+    access: 'read',
+  },
 ];
 
 /** Everything the connector puts in front of an agent, in one list. */

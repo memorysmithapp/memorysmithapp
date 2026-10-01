@@ -682,15 +682,32 @@ export class McpToolAdapter {
         );
       }
 
-      case 'get_notebook_context':
+      case 'get_notebook_context': {
         // Markdown, not JSON: this document IS the product, and it is meant to
         // be read (software-vision.md, section 9.2).
-        return text(
-          await knowledge.notebookContext(
-            caller,
-            requireString(args, 'notebook', 'get_notebook_context'),
-          ),
+        const notebook = requireString(args, 'notebook', 'get_notebook_context');
+        const [context, reach] = await Promise.all([
+          knowledge.notebookContext(caller, notebook),
+          knowledge.listNotebooks(caller),
+        ]);
+        // A notebook shared from another subscription says so before anything
+        // else, because the guidance it opens with asks to be written in, and
+        // with read access it cannot be (RN-AGT-046).
+        const shared = reach.find(
+          (each) => each.ownership === 'shared' && each.notebookId === notebook,
         );
+        return text(
+          shared
+            ? `> **Shared with this person by ${shared.owner ?? 'its owner'}, with ` +
+                `\`${shared.access ?? 'read'}\` access.** ` +
+                (shared.access === 'read-write'
+                  ? 'It is written as any notebook is.'
+                  : 'Read it whole; every write here is refused, so do not follow the ' +
+                    'guidance below into writing — say whose notebook it is instead.') +
+                `\n\n${context}`
+            : context,
+        );
+      }
 
       case 'get_template': {
         const template = await knowledge.template(

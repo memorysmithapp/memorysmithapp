@@ -37,6 +37,7 @@ function gateways(overrides: Record<string, unknown> = {}) {
         name: 'Normas',
         description: 'Texto normativo',
         noteCount: 48,
+        ownership: 'own',
       },
     ],
     notebookContext: async () => '# Notebook: Normas\n\n## Structure\n1. **Normas**: (48 notes)\n',
@@ -322,6 +323,61 @@ describe('The tool catalog is the public contract', () => {
     // description is what carries the instruction.
     const create = TOOL_CATALOG.find((tool) => tool.name === 'create_note');
     expect(create?.description).toContain('get_template');
+  });
+});
+
+describe('a notebook shared from another subscription', () => {
+  const shared = {
+    notebookId: '01JBQ2X00000000000000000S1',
+    name: 'Pesquisa',
+    description: 'O que outra assinatura aprendeu',
+    noteCount: 7,
+    ownership: 'shared',
+    owner: 'dona@example.com',
+    access: 'read',
+  };
+  const withShared = () =>
+    gateways({
+      knowledge: {
+        listNotebooks: async () => [
+          {
+            notebookId: '01JBQ2X00000000000000000V1',
+            name: 'Normas',
+            description: 'Texto normativo',
+            noteCount: 48,
+            ownership: 'own',
+          },
+          shared,
+        ],
+        notebookContext: async () => '# Notebook: Pesquisa\n',
+      },
+    });
+
+  it('is listed by whoami apart, with its owner and its access (RN-AGT-046)', async () => {
+    const answer = (await withShared().call('whoami', {}, caller)).content[0]?.text ?? '';
+    expect(answer).toContain('**Normas**');
+    expect(answer).toContain('Shared with this person from another subscription');
+    expect(answer).toContain('shared by dona@example.com, access `read`');
+  });
+
+  it('opens its context saying it is shared and read-only, before the guidance', async () => {
+    const answer =
+      (await withShared().call('get_notebook_context', { notebook: shared.notebookId }, caller))
+        .content[0]?.text ?? '';
+    expect(answer.startsWith('> **Shared with this person by dona@example.com')).toBe(true);
+    expect(answer).toContain('every write here is refused');
+    expect(answer).toContain('# Notebook: Pesquisa');
+  });
+
+  it('is named in the description of every tool that writes in a notebook', async () => {
+    const { TOOL_CATALOG } = await import('../src/mcp/catalog.js');
+    const writing = TOOL_CATALOG.filter(
+      (tool) =>
+        (tool.annotations.readOnlyHint === false || tool.annotations.destructiveHint === true) &&
+        'notebook' in ((tool.inputSchema as { properties?: object }).properties ?? {}),
+    );
+    expect(writing.length).toBeGreaterThan(5);
+    for (const tool of writing) expect(tool.description).toContain('shared with this person');
   });
 });
 

@@ -40,6 +40,16 @@ export interface NotebookListing {
   readonly name: string;
   readonly description: string;
   readonly noteCount: number;
+  /**
+   * Whether the notebook is of the subscription of this connection or shared
+   * with its person from another one (RN-AGT-046). A shared one names its
+   * owner and the access the share grants, which is `read` for every share
+   * today; `read-write` is in the contract so the day it is offered changes no
+   * shape (RN-ACC-024).
+   */
+  readonly ownership: 'own' | 'shared';
+  readonly owner?: string;
+  readonly access?: 'read' | 'read-write';
 }
 
 /**

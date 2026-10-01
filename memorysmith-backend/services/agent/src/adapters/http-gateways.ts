@@ -162,16 +162,50 @@ export class HttpAccessGateway implements AccessGateway {
 export class HttpKnowledgeGateway implements KnowledgeGateway {
   constructor(private readonly origin: string) {}
 
+  /**
+   * The notebooks of this subscription, then the ones shared with its person
+   * and accepted (RN-AGT-046). A share still waiting for an answer is not
+   * listed: accepting is the person's, on their Home (RN-ACC-026).
+   */
   async listNotebooks(caller: AgentCaller): Promise<NotebookListing[]> {
-    const notebooks = await callApi<
-      Array<{ notebookId: string; name: string; description: string; noteCount: number }>
-    >(this.origin, caller, '/knowledge/notebooks');
-    return notebooks.map((notebook) => ({
-      notebookId: notebook.notebookId,
-      name: notebook.name,
-      description: notebook.description,
-      noteCount: notebook.noteCount,
-    }));
+    const [notebooks, shared] = await Promise.all([
+      callApi<Array<{ notebookId: string; name: string; description: string; noteCount: number }>>(
+        this.origin,
+        caller,
+        '/knowledge/notebooks',
+      ),
+      callApi<
+        Array<{
+          notebookId: string;
+          name: string;
+          description: string;
+          ownerEmail: string;
+          access: 'read' | 'read-write';
+          state: string;
+          noteCount: number | null;
+        }>
+      >(this.origin, caller, '/access/shared'),
+    ]);
+    return [
+      ...notebooks.map((notebook) => ({
+        notebookId: notebook.notebookId,
+        name: notebook.name,
+        description: notebook.description,
+        noteCount: notebook.noteCount,
+        ownership: 'own' as const,
+      })),
+      ...shared
+        .filter((notebook) => notebook.state === 'accepted')
+        .map((notebook) => ({
+          notebookId: notebook.notebookId,
+          name: notebook.name,
+          description: notebook.description,
+          noteCount: notebook.noteCount ?? 0,
+          ownership: 'shared' as const,
+          owner: notebook.ownerEmail,
+          access: notebook.access,
+        })),
+    ];
   }
 
   async createNotebook(
@@ -189,6 +223,7 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       name: created.name,
       description: created.description,
       noteCount: 0,
+      ownership: 'own',
     };
   }
 

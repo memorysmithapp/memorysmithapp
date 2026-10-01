@@ -80,14 +80,31 @@ function reach(notebooks: readonly NotebookListing[]): string {
     ].join('\n');
   }
 
+  const line = (notebook: NotebookListing): string =>
+    `- **${notebook.name}** (\`${notebook.notebookId}\`), ${notebook.noteCount} note(s)` +
+    (notebook.description ? `: ${notebook.description}` : '');
+  const own = notebooks.filter((notebook) => notebook.ownership === 'own');
+  const shared = notebooks.filter((notebook) => notebook.ownership === 'shared');
+
   return [
     '## What you can reach',
     '',
-    ...notebooks.map(
-      (notebook) =>
-        `- **${notebook.name}** (\`${notebook.notebookId}\`), ${notebook.noteCount} note(s)` +
-        (notebook.description ? `: ${notebook.description}` : ''),
-    ),
+    ...own.map(line),
+    ...(shared.length > 0
+      ? [
+          ...(own.length > 0 ? [''] : []),
+          '**Shared with this person from another subscription.** Each is read whole, as a',
+          'reader, and written only when its access says `read-write`; with',
+          '`read`, every write is refused. When the person asks you to write in one, say whose',
+          'notebook it is and that the share is read-only, instead of trying:',
+          '',
+          ...shared.map(
+            (notebook) =>
+              `${line(notebook)} — shared by ${notebook.owner ?? 'its owner'}, access ` +
+              `\`${notebook.access ?? 'read'}\``,
+          ),
+        ]
+      : []),
   ].join('\n');
 }
 
