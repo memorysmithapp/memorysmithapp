@@ -696,13 +696,17 @@ test.describe('the pages of an account', () => {
     await app.getByRole('link', { name: words.printNote, exact: true }).click();
     const paper = await opening;
 
-    // The note alone, in a tab of its own, which waits for the person to print.
+    // The note alone, in a tab of its own, which previews its pages and waits
+    // for the person to print.
     await expect(paper).toHaveURL(new RegExp(`/notes/${noteId}/print$`, 'i'));
-    const body = paper.locator('article.print-sheet[data-placement]');
-    const cover = paper.locator('article.print-cover');
-    const end = paper.locator('article.print-end');
+    // The note as drawn, off screen, carries the choices; the preview, its pages.
+    const body = paper.locator('.print-source article[data-placement]');
+    const cover = paper.locator('.print-source article.print-cover');
+    const end = paper.locator('.print-source article.print-end');
+    const preview = paper.locator('.print-preview');
+    const pages = preview.locator('.pagedjs_page');
     await expect(paper.locator('#notebook-sidebar, .notebook-bar')).toHaveCount(0);
-    await expect(body).toHaveAttribute('data-ready', 'true');
+    await expect(preview).toHaveAttribute('data-ready', 'true');
     await expect(paper).toHaveTitle('On paper');
     const printed = () =>
       paper.evaluate(() => (globalThis as unknown as { printed: number }).printed);
@@ -718,38 +722,37 @@ test.describe('the pages of an account', () => {
 
     const groups = paper.getByRole('radiogroup');
     const [properties, tables, orientation] = [groups.nth(0), groups.nth(1), groups.nth(2)];
-    const status = paper.locator('.metadata-property-value', { hasText: 'draft' });
-    // A table is measured on the sheet as the screen draws it — the width of
-    // the paper less its margins — since in print media the sheet would take
-    // the width of the window and every table would fit.
-    type Measured = { fits: boolean; size: string; breakBefore: string };
+    const status = paper.locator('.print-source .metadata-property-value', { hasText: 'draft' });
+    // A choice lays the pages again; the preview says when they are laid.
+    const laid = async () => {
+      await expect(preview).toHaveAttribute('data-ready', 'true');
+      return pages.count();
+    };
+    // A table is measured on the note as drawn, at the width of the paper less
+    // its margins, which is the width a page gives it.
+    type Measured = { fits: boolean; size: string };
     const measure = () =>
       paper.evaluate((): Measured => {
         type Box = { scrollWidth: number; parentElement: { clientWidth: number } | null };
         const scope = globalThis as unknown as {
           document: { querySelector(selector: string): object | null };
-          getComputedStyle(element: object): { fontSize: string; breakBefore: string };
+          getComputedStyle(element: object): { fontSize: string };
         };
-        const table = scope.document.querySelector('.print-sheet[data-placement] table');
-        const sheet = scope.document.querySelector('.print-sheet[data-placement]');
+        const table = scope.document.querySelector('.print-source article[data-placement] table');
         const box = table as Box | null;
         return {
           fits: box !== null && box.scrollWidth <= (box.parentElement?.clientWidth ?? 0) + 1,
           size: table ? scope.getComputedStyle(table).fontSize : '',
-          breakBefore: sheet ? scope.getComputedStyle(sheet).breakBefore : '',
         };
       });
-    // The PDF is laid out in the media the page emulates, so it is made in
-    // print media, and what the sheet looks like is attached beside it.
+    // Each page of the preview is pictured, and the PDF is made in print media,
+    // which is the media it is laid out in.
     const pdfOf = async (name: string) => {
-      // Each sheet alone, in a window taller than a sheet, without the bar and
-      // the banner that stand over the page while it scrolls.
       const viewport = paper.viewportSize();
       await paper.setViewportSize({ width: 1400, height: 1400 });
-      const sheets = paper.locator('article.print-sheet');
-      for (let index = 0; index < (await sheets.count()); index++) {
+      for (let index = 0; index < (await pages.count()); index++) {
         await testInfo.attach(`${name}-${index + 1}.png`, {
-          body: await sheets.nth(index).screenshot({
+          body: await pages.nth(index).screenshot({
             style: '.print-toolbar, .environment-banner { visibility: hidden !important; }',
           }),
           contentType: 'image/png',
@@ -769,14 +772,18 @@ test.describe('the pages of an account', () => {
       };
     };
 
-    // By default the properties take a cover of their own, under the name of
-    // the note, and the text starts on the next page.
-    await expect(cover.getByRole('heading', { level: 1 })).toHaveText('On paper');
-    await expect(cover.locator(status)).toBeVisible();
-    // The cover opens with the properties, and the name comes after them.
+    // By default the properties take a cover of their own, opening with them
+    // and the name of the note below, and the text starts on the next page.
     await expect(cover.locator('> :first-child')).toHaveClass(/properties-box/);
+    await expect(cover.getByRole('heading', { level: 1 })).toHaveText('On paper');
+    await expect(body.getByRole('heading', { level: 1 })).toHaveCount(0);
+    expect(await laid()).toBe(2);
+    await expect(pages.nth(0)).toContainText('draft');
+    await expect(pages.nth(0)).toContainText('On paper');
+    await expect(pages.nth(0)).not.toContainText('A line with');
+    await expect(pages.nth(1)).toContainText('A line with');
     // The page scrolls inside itself, so the banner of the environment keeps
-    // the last row of the window and never runs over a sheet.
+    // the last row of the window and never runs over a page.
     expect(
       await paper.evaluate(() => {
         const scope = globalThis as unknown as {
@@ -786,17 +793,15 @@ test.describe('the pages of an account', () => {
         return scope.document.documentElement.scrollHeight <= scope.innerHeight;
       }),
     ).toBe(true);
-    await expect(body.getByRole('heading', { level: 1 })).toHaveCount(0);
     await paper.emulateMedia({ media: 'print' });
     await expect(paper.locator('.print-toolbar')).toBeHidden();
-    expect((await measure()).breakBefore).toBe('page');
     await paper.emulateMedia({ media: 'screen' });
 
-    // A wide table wraps inside the margins, and the paper is upright A4,
-    // 595.28 by 841.89 points as Chromium rounds them (594.96 by 841.92).
+    // A wide table wraps inside the margins, a short word whole and only what
+    // has no place to break broken, and the Copy button of a block is not on
+    // the paper. The paper is upright A4, 595.28 by 841.89 points as Chromium
+    // rounds them (594.96 by 841.92), and it is the pages of the preview.
     expect((await measure()).fits).toBe(true);
-    // A short word is never split to narrow its column: only what has no place
-    // to break does. And the button that copies a block is not on the paper.
     const lines = await paper.evaluate(() => {
       type Range = { selectNodeContents(node: object): void; getClientRects(): { length: number } };
       const scope = globalThis as unknown as {
@@ -805,7 +810,7 @@ test.describe('the pages of an account', () => {
           createRange(): Range;
         };
       };
-      const kind = [...scope.document.querySelectorAll('.print-sheet[data-placement] th')].find(
+      const kind = [...scope.document.querySelectorAll('.print-preview th')].find(
         (cell) => cell.textContent?.trim() === 'Kind',
       );
       if (!kind) return -1;
@@ -814,26 +819,28 @@ test.describe('the pages of an account', () => {
       return range.getClientRects().length;
     });
     expect(lines).toBe(1);
-    await expect(body.locator('.copy-action')).toBeHidden();
+    await expect(preview.locator('.copy-action').first()).toBeHidden();
     const upright = await pdfOf('portrait-cover-wrap');
     expect(upright.width).toBeCloseTo(595.28, 0);
     expect(upright.height).toBeCloseTo(841.89, 0);
-    // The cover and the text, and nothing else: the bar and the banner of the
-    // environment are not printed.
-    expect(upright.pages).toBe(2);
+    expect(upright.pages).toBe(await pages.count());
 
     // Or it keeps its lines and shrinks its type until it fits.
     const wrapped = (await measure()).size;
     await tables.getByRole('radio').nth(1).click();
     await expect(body).toHaveAttribute('data-tables', 'shrink');
+    await laid();
     const shrunk = await measure();
     expect(shrunk.fits).toBe(true);
     expect(parseFloat(shrunk.size)).toBeLessThan(parseFloat(wrapped));
     await pdfOf('portrait-cover-shrink');
 
-    // The sheet lies sideways, on A4 just the same.
+    // The page lies sideways, on A4 just the same, in the preview and on paper.
     await orientation.getByRole('radio').nth(1).click();
     await expect(paper.locator('.print-page')).toHaveAttribute('data-orientation', 'landscape');
+    await laid();
+    const page = await pages.nth(0).boundingBox();
+    expect((page?.width ?? 0) / (page?.height ?? 1)).toBeCloseTo(297 / 210, 1);
     expect((await measure()).fits).toBe(true);
     const sideways = await pdfOf('landscape-cover-shrink');
     expect(sideways.width).toBeCloseTo(841.89, 0);
@@ -844,9 +851,12 @@ test.describe('the pages of an account', () => {
     await expect(cover).toHaveCount(0);
     await expect(end.locator(status)).toBeVisible();
     await expect(body.getByRole('heading', { level: 1 })).toHaveText('On paper');
+    expect(await laid()).toBe(2);
+    await expect(pages.nth(1)).toContainText('draft');
     expect((await pdfOf('landscape-end-shrink')).pages).toBe(2);
     await properties.getByRole('radio').nth(2).click();
     await expect(status).toHaveCount(0);
+    expect(await laid()).toBe(1);
 
     // And this browser remembers all three.
     await paper.reload();
@@ -854,7 +864,28 @@ test.describe('the pages of an account', () => {
     await expect(body).toHaveAttribute('data-tables', 'shrink');
     await expect(paper.locator('.print-page')).toHaveAttribute('data-orientation', 'landscape');
 
-    // On paper: white, nothing but the sheet, a link in ink and the callout in colour.
+    // On a phone the pages keep the proportions of A4, scaled to the width of
+    // the screen, and the bar shows its choices as icons, each still named.
+    await orientation.getByRole('radio').nth(0).click();
+    await paper.setViewportSize({ width: 390, height: 844 });
+    await laid();
+    const small = await pages.nth(0).boundingBox();
+    expect(small?.width ?? 0).toBeLessThanOrEqual(390);
+    expect((small?.height ?? 0) / (small?.width ?? 1)).toBeCloseTo(297 / 210, 1);
+    const label = await paper.locator('.print-toolbar .segmented-label').first().boundingBox();
+    expect(label?.width ?? 0).toBeLessThanOrEqual(1);
+    await expect(
+      properties.getByRole('radio', {
+        name: words.locale === 'pt-BR' ? 'Folha de rosto' : 'Cover page',
+      }),
+    ).toBeVisible();
+    await testInfo.attach('phone.png', {
+      body: await paper.screenshot(),
+      contentType: 'image/png',
+    });
+    await paper.setViewportSize({ width: 1280, height: 720 });
+
+    // On paper: white, nothing but the pages, a link in ink and the callout in colour.
     await paper.emulateMedia({ media: 'print' });
     const colours = await paper.evaluate(() => {
       type Style = {
@@ -872,9 +903,9 @@ test.describe('the pages of an account', () => {
       };
       return {
         body: of('body')?.backgroundColor,
-        link: of('.print-sheet .markdown a')?.color,
-        title: of('.print-sheet .callout-title')?.color,
-        adjust: of('.print-sheet .callout')?.getPropertyValue('print-color-adjust'),
+        link: of('.print-preview .markdown a')?.color,
+        title: of('.print-preview .callout-title')?.color,
+        adjust: of('.print-preview .callout')?.getPropertyValue('print-color-adjust'),
       };
     });
     expect(colours.body).toBe('rgb(255, 255, 255)');

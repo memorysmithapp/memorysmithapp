@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
@@ -33,6 +33,18 @@ import {
   type TableFit,
 } from '../../shared/store/print-layout';
 import { useNotebookId } from '../structure/route-ids';
+import {
+  CloseIcon,
+  CoverPageIcon,
+  EndPageIcon,
+  LandscapeIcon,
+  NoPropertiesIcon,
+  PortraitIcon,
+  PrinterIcon,
+  ShrinkIcon,
+  WrapTextIcon,
+} from '../../shared/components/icons';
+import { paginate, unpaginate } from './paginate';
 
 /**
  * A note alone, drawn for paper (#258).
@@ -50,6 +62,12 @@ import { useNotebookId } from '../structure/route-ids';
  * arrived: the names and the files the body resolves against, a picture, a
  * transclusion, a diagram. Printing before that prints a page with holes.
  *
+ * **The tab is a preview of the print.** The note is drawn off screen, at the
+ * width of the paper less its margins — where a wide table is measured and a
+ * diagram drawn — and then laid into A4 pages (paginate.ts), which are what the
+ * tab shows and what the printer gets. On a phone the pages keep their size and
+ * are scaled down to the width of the screen, as a reader of PDFs shows them.
+ *
  * Paper is white whatever theme the reader chose, so the page turns the light
  * theme on while it is open and gives the choice back when it closes.
  */
@@ -59,8 +77,12 @@ export function PrintNotePage() {
   const noteId = identifierOf(useParams().noteId);
   const setPaper = usePreferences((s) => s.setPaper);
   const client = useQueryClient();
-  const sheet = useRef<HTMLElement>(null);
+  const source = useRef<HTMLDivElement>(null);
+  const preview = useRef<HTMLDivElement>(null);
   const [drawn, setDrawn] = useState(false);
+  /** The pages of the choices in force, or null while they are being laid. */
+  const [pages, setPages] = useState<number | null>(null);
+  const [scale, setScale] = useState(1);
   const [placement, setPlacement] = useState<PropertyPlacement>(propertyPlacement);
   const [fit, setFit] = useState<TableFit>(tableFit);
   const [orientation, setOrientation] = useState<Orientation>(recalledOrientation);
@@ -114,7 +136,7 @@ export function PrintNotePage() {
   useEffect(() => {
     if (!ready) return;
     let alive = true;
-    void whenDrawn(sheet.current, client).then(() => {
+    void whenDrawn(source.current, client).then(() => {
       if (alive) setDrawn(true);
     });
     return () => {
@@ -123,13 +145,48 @@ export function PrintNotePage() {
   }, [ready, client]);
 
   /**
-   * A table that shrinks is measured on the sheet as the screen draws it, and
-   * the sheet is the width of the paper less its margins, in the type the paper
-   * is printed in, so what fits here fits there.
+   * The pages, laid again whenever what they show changes: the note, where its
+   * properties go, how its tables fit, which way the sheet lies. A table that
+   * shrinks is measured on the drawn note first, at the width the pages give it,
+   * so what fits there fits on the page.
    */
-  useLayoutEffect(() => {
-    fitTables(sheet.current, fit);
-  }, [fit, orientation, placement, drawn, note.data]);
+  const revision = note.data?.revision;
+  useEffect(() => {
+    if (!drawn || !source.current || !preview.current) return;
+    let alive = true;
+    setPages(null);
+    const drawnNote = source.current;
+    const target = preview.current;
+    // The choices just made are drawn in the next frame, and laid after it.
+    requestAnimationFrame(() => {
+      if (!alive) return;
+      fitTables(drawnNote, fit);
+      void paginate(drawnNote, target, orientation).then(
+        (total) => alive && setPages(total),
+        () => alive && setPages(0),
+      );
+    });
+    return () => {
+      alive = false;
+    };
+  }, [drawn, placement, fit, orientation, revision]);
+
+  useEffect(() => () => unpaginate(preview.current), []);
+
+  /**
+   * On a screen narrower than the sheet, the pages are scaled down to its
+   * width rather than reflowed: a page of A4 shows what a page of A4 holds.
+   */
+  useEffect(() => {
+    const area = preview.current;
+    if (!area) return;
+    const sheetWidth = (orientation === 'landscape' ? 297 : 210) * (96 / 25.4);
+    const measure = () => setScale(Math.min(1, (area.clientWidth - 16) / sheetWidth));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(area);
+    return () => observer.disconnect();
+  }, [orientation]);
 
   if (failed) return <p className="status">{t('common.notFound')}</p>;
 
@@ -148,11 +205,10 @@ export function PrintNotePage() {
       <PropertiesBox properties={shown} lists={lists} notebookId={notebookId} />
     ) : null;
 
+  const choice = (icon: ReactNode, label: string) => ({ icon, label });
+
   return (
     <NotebookIdProvider notebookId={notebookId}>
-      {/* The sheet the browser lays the page on. It is a rule of the page and
-          not of the stylesheet, because the person turns it. */}
-      <style>{`@page { size: A4 ${orientation}; margin: 18mm 16mm 20mm; }`}</style>
       <div className="print-page" data-orientation={orientation}>
         <div className="print-toolbar" role="toolbar" aria-label={t('print.toolbar')}>
           <div className="print-choice">
@@ -164,12 +220,13 @@ export function PrintNotePage() {
               value={placement}
               onChange={(next) => {
                 setPlacement(next);
+                setPages(null);
                 rememberPropertyPlacement(next);
               }}
               options={[
-                { value: 'cover', label: t('print.placement.cover') },
-                { value: 'end', label: t('print.placement.end') },
-                { value: 'none', label: t('print.placement.none') },
+                { value: 'cover', ...choice(<CoverPageIcon />, t('print.placement.cover')) },
+                { value: 'end', ...choice(<EndPageIcon />, t('print.placement.end')) },
+                { value: 'none', ...choice(<NoPropertiesIcon />, t('print.placement.none')) },
               ]}
             />
           </div>
@@ -182,11 +239,12 @@ export function PrintNotePage() {
               value={fit}
               onChange={(next) => {
                 setFit(next);
+                setPages(null);
                 rememberTableFit(next);
               }}
               options={[
-                { value: 'wrap', label: t('print.fit.wrap') },
-                { value: 'shrink', label: t('print.fit.shrink') },
+                { value: 'wrap', ...choice(<WrapTextIcon />, t('print.fit.wrap')) },
+                { value: 'shrink', ...choice(<ShrinkIcon />, t('print.fit.shrink')) },
               ]}
             />
           </div>
@@ -199,66 +257,91 @@ export function PrintNotePage() {
               value={orientation}
               onChange={(next) => {
                 setOrientation(next);
+                setPages(null);
                 rememberOrientation(next);
               }}
               options={[
-                { value: 'portrait', label: t('print.orient.portrait') },
-                { value: 'landscape', label: t('print.orient.landscape') },
+                { value: 'portrait', ...choice(<PortraitIcon />, t('print.orient.portrait')) },
+                { value: 'landscape', ...choice(<LandscapeIcon />, t('print.orient.landscape')) },
               ]}
             />
           </div>
           <p className="print-hint">{t('print.hint')}</p>
-          <button type="button" className="button is-quiet" onClick={() => window.close()}>
-            {t('common.close')}
-          </button>
-          <button
-            type="button"
-            className="button is-primary"
-            disabled={!drawn}
-            onClick={() => window.print()}
-          >
-            {t('print.print')}
-          </button>
-        </div>
-        {!ready || !data ? (
-          <article className="print-sheet content-pane">
-            <NoteSkeleton />
-          </article>
-        ) : (
-          <>
-            {/* The properties take a sheet of their own: the cover, opening
-                with them and the name of the note below, or the last sheet. */}
-            {placement === 'cover' && box ? (
-              <article className="print-sheet print-properties print-cover content-pane">
-                {box}
-                {title}
-              </article>
-            ) : null}
-            <article
-              className="print-sheet content-pane"
-              ref={sheet}
-              data-placement={placement}
-              data-tables={fit}
-              data-ready={drawn || undefined}
+          <div className="print-actions">
+            <button
+              type="button"
+              className="button is-quiet"
+              title={t('common.close')}
+              onClick={() => window.close()}
             >
-              {placement === 'cover' && box ? null : title}
-              <WritableContent
-                raw={data.raw}
-                notebookId={notebookId}
-                baseRevision={data.revision}
-                writable={false}
-                write={() => Promise.reject(new Error('A page drawn for paper writes nothing.'))}
-                invalidates={queryKeys.note(notebookId, noteId)}
-              />
-            </article>
-            {placement === 'end' && box ? (
-              <article className="print-sheet print-properties print-end content-pane">
-                <h2>{name}</h2>
-                {box}
+              <CloseIcon />
+              <span className="print-action-label">{t('common.close')}</span>
+            </button>
+            <button
+              type="button"
+              className="button is-primary"
+              title={t('print.print')}
+              disabled={pages === null || pages === 0}
+              onClick={() => window.print()}
+            >
+              <PrinterIcon />
+              <span className="print-action-label">{t('print.print')}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* The note as the reading surface draws it, at the width of the
+            paper less its margins: what the pages are laid from, never seen. */}
+        <div className="print-source" ref={source} aria-hidden="true">
+          {data && ready ? (
+            <>
+              {placement === 'cover' && box ? (
+                <article
+                  key="cover"
+                  className="print-part print-properties print-cover content-pane"
+                >
+                  {box}
+                  {title}
+                </article>
+              ) : null}
+              <article
+                key="body"
+                className="print-part content-pane"
+                data-placement={placement}
+                data-tables={fit}
+              >
+                {placement === 'cover' && box ? null : title}
+                <WritableContent
+                  raw={data.raw}
+                  notebookId={notebookId}
+                  baseRevision={data.revision}
+                  writable={false}
+                  write={() => Promise.reject(new Error('A page drawn for paper writes nothing.'))}
+                  invalidates={queryKeys.note(notebookId, noteId)}
+                />
               </article>
-            ) : null}
-          </>
-        )}
+              {placement === 'end' && box ? (
+                <article key="end" className="print-part print-properties print-end content-pane">
+                  <h2>{name}</h2>
+                  {box}
+                </article>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+
+        {pages === null ? (
+          <div className="print-waiting">
+            <NoteSkeleton />
+          </div>
+        ) : null}
+        <div
+          className="print-preview"
+          ref={preview}
+          data-pages={pages ?? undefined}
+          data-ready={pages ? 'true' : undefined}
+          style={{ '--preview-scale': scale } as CSSProperties}
+        />
       </div>
     </NotebookIdProvider>
   );

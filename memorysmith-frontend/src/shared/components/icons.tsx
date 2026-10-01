@@ -279,3 +279,73 @@ export function SharedWithMeIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/* The choices of the page drawn for paper (#258), drawn small enough to stand
+   alone in the bar of a phone. */
+
+export function CoverPageIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="4" y="2" width="16" height="20" rx="2" />
+      <path d="M8 7h8" />
+      <path d="M8 11h5" />
+    </svg>
+  );
+}
+
+export function EndPageIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="4" y="2" width="16" height="20" rx="2" />
+      <path d="M8 13h8" />
+      <path d="M8 17h5" />
+    </svg>
+  );
+}
+
+export function NoPropertiesIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="4" y="2" width="16" height="20" rx="2" />
+      <path d="m3 3 18 18" />
+    </svg>
+  );
+}
+
+export function WrapTextIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M3 6h18" />
+      <path d="M3 12h15a3 3 0 1 1 0 6h-4" />
+      <path d="m16 16-2 2 2 2" />
+      <path d="M3 18h7" />
+    </svg>
+  );
+}
+
+export function ShrinkIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M4 14h6v6" />
+      <path d="M20 10h-6V4" />
+      <path d="m14 10 7-7" />
+      <path d="m3 21 7-7" />
+    </svg>
+  );
+}
+
+export function PortraitIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="6" y="2" width="12" height="20" rx="2" />
+    </svg>
+  );
+}
+
+export function LandscapeIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="2" y="6" width="20" height="12" rx="2" />
+    </svg>
+  );
+}

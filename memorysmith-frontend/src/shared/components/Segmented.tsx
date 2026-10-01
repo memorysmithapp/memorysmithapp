@@ -31,10 +31,13 @@ export function Segmented<V extends string>({
           role={inMenu ? 'menuitemradio' : 'radio'}
           aria-checked={option.value === value}
           disabled={option.disabled}
+          // An option drawn with an icon may stand as the icon alone on a
+          // narrow screen, and then its name is the tooltip.
+          title={option.icon ? option.label : undefined}
           onClick={() => onChange(option.value)}
         >
           {option.icon}
-          <span>{option.label}</span>
+          <span className="segmented-label">{option.label}</span>
         </button>
       ))}
     </div>

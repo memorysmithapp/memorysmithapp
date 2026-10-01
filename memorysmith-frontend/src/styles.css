@@ -6509,26 +6509,30 @@ body.has-sheet .app-main {
 }
 
 /* ── Paper (#258) ─────────────────────────────────────────────────────────────
-   A note alone, drawn for an A4 sheet and printed by the browser, which also
-   saves it as a PDF. On the screen it is the sheet itself, white on Papel, at
-   the width of the paper less its margins and in the type it is printed in,
-   so what the tab shows is what the printer gets; on paper only the sheet goes.
-   The sheet turns (`data-orientation`), and the @page rule that turns the
-   paper is written by the page, because the person chooses it.
+   A note alone, previewed as the pages it prints on and printed by the
+   browser, which also saves it as a PDF. The note is drawn off screen, at the
+   width of the paper less its margins (`.print-source`), and laid into A4
+   pages by the page (features/note/paginate.ts): those pages are what the tab
+   shows and what the printer gets. The sheet turns (`data-orientation`), and
+   on a screen narrower than a page the pages are scaled down, never reflowed.
 
    Colour is spent where it carries meaning and nowhere else: a callout says
    what kind of thing it is by its hue, and a picture is its colours. Every
    other colour of the reading surface — a link, a token of code, a pending
-   link — is taken back to Tinta for the page, by the tokens it is drawn with
-   rather than by chasing each element, so a new one inherits the rule. */
+   link, the fill of a code block — is taken back to ink and paper, by the
+   tokens it is drawn with rather than by chasing each element, so a new one
+   inherits the rule. The preview draws it as the paper will, so the screen
+   and the print never differ. */
 .print-page {
   --sheet-width: 210mm;
   --sheet-height: 297mm;
   /* It scrolls inside the first row of the window, as the shell does, so the
-     banner of the environment keeps the last row and the sheets never run
+     banner of the environment keeps the last row and the pages never run
      under it. */
+  position: relative;
   height: 100%;
   min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   padding: 0 1rem 3rem;
   background: var(--bg);
@@ -6544,7 +6548,7 @@ body.has-sheet .app-main {
   z-index: 1;
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-end;
   justify-content: flex-end;
   gap: 0.5rem 0.75rem;
   max-width: var(--sheet-width);
@@ -6565,21 +6569,85 @@ body.has-sheet .app-main {
 }
 .print-hint {
   flex: 1 1 100%;
+  order: 1;
   margin: 0;
   color: var(--text-soft);
   font-size: 0.875rem;
 }
+.print-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.print-actions .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
 
-.print-sheet.content-pane {
-  max-width: var(--sheet-width);
-  min-height: var(--sheet-height);
-  margin: 0 auto 1.5rem;
-  padding: 18mm 16mm 20mm;
+/* A phone keeps every choice, as icons: each still has its name, for the
+   tooltip and for a screen reader. */
+@media (max-width: 720px) {
+  .print-page {
+    padding: 0 0.5rem 2rem;
+  }
+  .print-toolbar {
+    justify-content: center;
+    align-items: center;
+  }
+  .print-choice-label,
+  .print-hint {
+    display: none;
+  }
+  .print-toolbar :is(.segmented-label, .print-action-label) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* The note as drawn, off screen: what the pages are laid from, and where a
+   table is measured. It keeps its layout, so pictures load and tables have a
+   width, and nobody sees it. */
+.print-source {
+  position: absolute;
+  top: 0;
+  left: -10000px;
+  width: calc(var(--sheet-width) - 32mm);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* The pages, one under the other, each a sheet of paper. */
+.print-preview .pagedjs_pages {
+  zoom: var(--preview-scale, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+.print-preview .pagedjs_page {
   background: #ffffff;
   box-shadow: 0 1px 3px rgba(14, 21, 38, 0.12);
 }
+.print-waiting {
+  max-width: var(--sheet-width);
+  min-height: 60vh;
+  margin: 0 auto;
+  padding: 18mm 16mm;
+  background: #ffffff;
+}
 
-.print-sheet {
+/* A part of the note on paper: the cover, the body, the properties at the end. */
+.print-part.content-pane {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+.print-part {
   font-size: 11pt;
   --accent: var(--text);
   --pending: var(--text-soft);
@@ -6590,25 +6658,57 @@ body.has-sheet .app-main {
   --token-comment: var(--text-soft);
   --token-punctuation: var(--text);
 }
-.print-sheet a {
+.print-part a {
   color: inherit;
   text-decoration: underline;
   text-decoration-thickness: 1px;
 }
+.print-part :is(.properties-box, .markdown pre) {
+  background: none;
+  border: 1px solid var(--border);
+}
 /* What is there for the screen and says nothing on paper. */
-.print-sheet :is(.remote-notice, .copy-action, .attachment-card-actions) {
+.print-part :is(.remote-notice, .copy-action, .attachment-card-actions) {
   display: none;
 }
+/* A block is read whole, never half on one page and half on the next, and a
+   heading is never the last line of a page. A table longer than a page is the
+   exception: it breaks between rows. */
+.print-part
+  :is(
+    pre,
+    tr,
+    figure,
+    img,
+    blockquote,
+    .callout,
+    .embed,
+    .mermaid-diagram,
+    .katex-display,
+    .properties-box,
+    .attachment-card
+  ) {
+  break-inside: avoid;
+}
+.print-part :is(h1, h2, h3, h4, h5, h6) {
+  break-after: avoid;
+}
+.print-part :is(p, li) {
+  orphans: 3;
+  widows: 3;
+}
 
-/* The properties on a sheet of their own, the name of the note above them:
-   the cover before the text, or the last sheet after it. */
+/* The properties on a page of their own: the cover opens with them and the
+   name of the note stands in the middle of what is left of the page; at the
+   end, the name heads them. */
 .print-properties {
   display: flex;
   flex-direction: column;
   gap: 2rem;
 }
-/* The cover opens with the properties, and the name of the note stands in
-   the middle of what is left of the sheet. */
+.print-cover {
+  min-height: calc(var(--sheet-height) - 38mm - 6mm);
+}
 .print-cover h1 {
   margin-block: auto;
   text-align: center;
@@ -6619,7 +6719,7 @@ body.has-sheet .app-main {
 
 /* A wide table is never cut at the margin. It is a table again rather than
    the scrolling block of the screen, and it fits in one of two ways, measured
-   by the page (PrintNotePage, fitTables):
+   on the drawn note (PrintNotePage, fitTables):
 
    - wrapping: the text of a cell wraps between words, and only what has no
      place to break — a code span, a link — breaks inside itself, so a short
@@ -6629,34 +6729,37 @@ body.has-sheet .app-main {
 
    Breaking every word anywhere (`is-broken`) is the last resort, for a table
    still wider than the page after both. */
-.print-sheet .markdown table {
+.print-part .markdown table {
   display: table;
   overflow: visible;
 }
-.print-sheet[data-tables='wrap'] :is(th, td),
-.print-sheet .markdown table.is-wrapped :is(th, td) {
+.print-part[data-tables='wrap'] :is(th, td),
+.print-part .markdown table.is-wrapped :is(th, td) {
   white-space: normal;
   overflow-wrap: break-word;
 }
-.print-sheet[data-tables='wrap'] :is(th, td) :is(code, a),
-.print-sheet .markdown table.is-wrapped :is(th, td) :is(code, a) {
+.print-part[data-tables='wrap'] :is(th, td) :is(code, a),
+.print-part .markdown table.is-wrapped :is(th, td) :is(code, a) {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.print-sheet .markdown table.is-broken :is(th, td) {
+.print-part .markdown table.is-broken :is(th, td) {
   white-space: normal;
   overflow-wrap: anywhere;
 }
-.print-sheet[data-tables='shrink'] .markdown table:not(.is-wrapped, .is-broken) :is(th, td) {
+.print-part[data-tables='shrink'] .markdown table:not(.is-wrapped, .is-broken) :is(th, td) {
   white-space: nowrap;
 }
 
+/* The pages print as they are previewed, one per sheet; the paginator sets the
+   paper and its margins (paginate.ts) and prints colour exactly, which is why
+   every colour that is not meant for paper is taken back above. */
 @media print {
   body,
   .print-page {
     background: #ffffff;
   }
-  /* On paper the window has no rows: the sheets run from page to page. */
+  /* On paper the window has no rows: the pages run from sheet to sheet. */
   #root {
     height: auto;
     display: block;
@@ -6667,58 +6770,17 @@ body.has-sheet .app-main {
     padding: 0;
   }
   .print-toolbar,
+  .print-source,
+  .print-waiting,
   .environment-banner {
     display: none !important;
   }
-  /* The page already has its margins from @page. */
-  .print-sheet.content-pane {
-    max-width: none;
-    min-height: 0;
-    margin: 0;
+  .print-preview .pagedjs_pages {
+    zoom: 1;
+    display: block;
     padding: 0;
+  }
+  .print-preview .pagedjs_page {
     box-shadow: none;
-  }
-  /* Each sheet starts a page, so the properties have one of their own. */
-  .print-sheet + .print-sheet {
-    break-before: page;
-  }
-  .print-properties {
-    min-height: calc(var(--sheet-height) - 38mm - 1px);
-  }
-  .print-sheet .properties-box,
-  .print-sheet .markdown pre {
-    background: none;
-    border: 1px solid var(--border);
-  }
-  /* A block is read whole, never half on one page and half on the next, and a
-     heading is never the last line of a page. A table longer than a page is
-     the exception the browser makes on its own: it breaks between rows. */
-  .print-sheet
-    :is(
-      pre,
-      tr,
-      figure,
-      img,
-      blockquote,
-      .callout,
-      .embed,
-      .mermaid-diagram,
-      .katex-display,
-      .properties-box,
-      .attachment-card
-    ) {
-    break-inside: avoid;
-  }
-  .print-sheet :is(h1, h2, h3, h4, h5, h6) {
-    break-after: avoid;
-  }
-  .print-sheet :is(p, li) {
-    orphans: 3;
-    widows: 3;
-  }
-  /* The two things printed in colour, which a browser leaves out by default. */
-  .print-sheet :is(.callout, .callout *, img, .mermaid-diagram svg) {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
   }
 }
