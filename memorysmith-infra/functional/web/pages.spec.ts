@@ -709,10 +709,13 @@ test.describe('the pages of an account', () => {
     // The PDF is laid out in the media the page emulates, so it is made in
     // print media, and what the sheet looks like is attached beside it.
     const pdfOf = async (name: string) => {
-      await testInfo.attach(`${name}.png`, {
-        body: await paper.screenshot({ fullPage: true }),
-        contentType: 'image/png',
-      });
+      const sheets = paper.locator('article.print-sheet');
+      for (let index = 0; index < (await sheets.count()); index++) {
+        await testInfo.attach(`${name}-${index + 1}.png`, {
+          body: await sheets.nth(index).screenshot(),
+          contentType: 'image/png',
+        });
+      }
       await paper.emulateMedia({ media: 'print' });
       const bytes = await paper.pdf({ preferCSSPageSize: true });
       await paper.emulateMedia({ media: 'screen' });
@@ -730,6 +733,19 @@ test.describe('the pages of an account', () => {
     // the note, and the text starts on the next page.
     await expect(cover.getByRole('heading', { level: 1 })).toHaveText('On paper');
     await expect(cover.locator(status)).toBeVisible();
+    // The cover opens with the properties, and the name comes after them.
+    await expect(cover.locator('> :first-child')).toHaveClass(/properties-box/);
+    // The page scrolls inside itself, so the banner of the environment keeps
+    // the last row of the window and never runs over a sheet.
+    expect(
+      await paper.evaluate(() => {
+        const scope = globalThis as unknown as {
+          document: { documentElement: { scrollHeight: number } };
+          innerHeight: number;
+        };
+        return scope.document.documentElement.scrollHeight <= scope.innerHeight;
+      }),
+    ).toBe(true);
     await expect(body.getByRole('heading', { level: 1 })).toHaveCount(0);
     await paper.emulateMedia({ media: 'print' });
     await expect(paper.locator('.print-toolbar')).toBeHidden();

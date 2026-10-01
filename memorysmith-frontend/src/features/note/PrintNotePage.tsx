@@ -226,12 +226,12 @@ export function PrintNotePage() {
           </article>
         ) : (
           <>
-            {/* The properties take a sheet of their own, before the text or
-                after it, with the name of the note above them. */}
+            {/* The properties take a sheet of their own: the cover, opening
+                with them and the name of the note below, or the last sheet. */}
             {placement === 'cover' && box ? (
               <article className="print-sheet print-properties print-cover content-pane">
-                {title}
                 {box}
+                {title}
               </article>
             ) : null}
             <article
