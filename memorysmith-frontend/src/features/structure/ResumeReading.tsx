@@ -5,6 +5,7 @@ import { noteAddress } from '../../shared/api/note-address';
 import { useLiveSession } from '../../shared/auth/session';
 import { folderTrailForNote } from './trail';
 import { useNotebookId } from './route-ids';
+import { enterNotebook, isInside } from './arrival';
 import { NotebookContextPage } from './NotebookContextPage';
 import type { NotebookOutletContext } from './NotebookLayout';
 
@@ -28,13 +29,6 @@ import type { NotebookOutletContext } from './NotebookLayout';
  * what showed it was wrong: a notebook is shared, accepted and answered from
  * Home, so the reading went to Home and came back to the context every time.
  */
-const arrived = new Set<string>();
-
-/** The notebook was left: the next time somebody enters it, they arrive. */
-export function leaveNotebook(notebookId: string): void {
-  arrived.delete(notebookId);
-}
-
 export function ResumeReading() {
   const notebookId = useNotebookId();
   const personId = useLiveSession((s) => s.session?.userId ?? '');
@@ -45,11 +39,11 @@ export function ResumeReading() {
   // the effect below has marked this notebook as arrived at.
   const target = useRef<string | null | undefined>(undefined);
   if (target.current === undefined) {
-    target.current = arrived.has(notebookId) ? null : resumable(structure, personId, notebookId);
+    target.current = isInside(notebookId) ? null : resumable(structure, personId, notebookId);
   }
 
   useEffect(() => {
-    arrived.add(notebookId);
+    enterNotebook(notebookId);
   }, [notebookId]);
 
   if (target.current) {

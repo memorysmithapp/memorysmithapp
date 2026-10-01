@@ -17,7 +17,7 @@ import { SkeletonBar } from '../../shared/components/Skeleton';
 import { queryState } from '../../shared/api/query-state';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { useNotebookId } from './route-ids';
-import { leaveNotebook } from './ResumeReading';
+import { leaveNotebook } from './arrival';
 import { queryKeys } from '../../shared/api/query-keys';
 
 export interface NotebookOutletContext {
