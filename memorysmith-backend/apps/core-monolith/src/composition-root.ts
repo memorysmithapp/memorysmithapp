@@ -36,6 +36,7 @@ import {
   DynamoPlatformAdmin,
   DynamoSubscriptionRepository,
   DynamoUserLinkRepository,
+  DynamoShareRepository,
 } from '@memorysmith/svc-access/adapters/dynamodb';
 import { NULL_OUTBOX_SINK } from '@memorysmith/svc-access/adapters/items';
 import {
@@ -67,6 +68,7 @@ import { DynamoTransferStore } from '@memorysmith/svc-portability/adapters/dynam
 import type { SubscriptionUsageQuery } from '@memorysmith/svc-access/adapters/http';
 import { ReadStorageUsage } from '@memorysmith/svc-knowledge/application/usage';
 import { noSubscription, SubscriptionUsageReport } from './usage.js';
+import { KnowledgeSharedNotebooks } from './shares.js';
 
 export interface Infrastructure {
   readonly db: DynamoDBDocumentClient;
@@ -315,4 +317,21 @@ export function buildConnectorBindings(
 /** The role the session holds in the subscription, owner above every member. */
 export function roleOf(resolved: ResolvedContext): Role {
   return resolved.isOwner ? Role.OWNER : resolved.role;
+}
+
+/**
+ * The shares of notebooks between subscriptions (RN-ACC-024), and what Access
+ * asks about the notebooks they open, answered from Knowledge. Built from no
+ * context: the owner's side is reached with the owner's own context, and the
+ * grantee's side by the person of the token (architecture-guide.md §8.3).
+ */
+export function buildShares(infra: Infrastructure) {
+  const platform = new DynamoPlatformAdmin(infra.db, infra.accessTable, NULL_OUTBOX_SINK);
+  return {
+    shares: new DynamoShareRepository(infra.db, infra.accessTable, NULL_OUTBOX_SINK),
+    notebooks: new KnowledgeSharedNotebooks(
+      (context) => buildKnowledge(infra, context).notebooks,
+      async (id) => (await platform.findById(id))?.status.name ?? null,
+    ),
+  };
 }

@@ -47,6 +47,10 @@ const HANDLERS: ReadonlyArray<{ entry: string; description: string }> = [
     description: 'Drains the transactional outbox into the event bus.',
   },
   {
+    entry: 'memorysmith-backend/apps/core-monolith/src/access-relay.handler.ts',
+    description: 'Drains the transactional outbox of Access into the event bus.',
+  },
+  {
     entry: 'memorysmith-backend/apps/core-monolith/src/purge.handler.ts',
     description: 'Destroys the content and the items a deletion invalidated.',
   },

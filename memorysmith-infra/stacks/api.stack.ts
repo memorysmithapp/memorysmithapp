@@ -228,6 +228,29 @@ export class ApiStack extends Stack {
     props.data.knowledgeTable.table.grantReadWriteData(relay.function);
     props.data.eventBus.grantPutEventsTo(relay.function);
 
+    // The same relay over mv-access, whose outbox nothing drained until a
+    // share of a notebook had to reach the trail (RN-ACC-024). Access events
+    // move no counter, so it only reads the stream and publishes.
+    const accessRelay = new ServiceLambda(this, 'AccessOutboxRelay', {
+      entry: join(backend, 'apps', 'core-monolith', 'src', 'access-relay.handler.ts'),
+      description: 'Drains the transactional outbox of Access into the event bus.',
+      environment: {
+        ACCESS_TABLE: props.data.accessTable.table.tableName,
+        EVENT_BUS_NAME: props.data.eventBus.eventBusName,
+      },
+      timeout: Duration.seconds(30),
+    });
+
+    accessRelay.function.addEventSource(
+      new DynamoEventSource(props.data.accessTable.table, {
+        startingPosition: StartingPosition.TRIM_HORIZON,
+        batchSize: 25,
+        retryAttempts: 3,
+        onFailure: new SqsDlq(relayDlq),
+      }),
+    );
+    props.data.eventBus.grantPutEventsTo(accessRelay.function);
+
     // The depth of the relay dead-letter queue is one of the four mandatory
     // alarms (section 17): a message sitting there is an event that never
     // reached the trail.

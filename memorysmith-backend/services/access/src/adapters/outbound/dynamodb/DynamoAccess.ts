@@ -8,6 +8,8 @@
  *   S#{s}          / CONNECTOR#TOKEN#{jti}      the connector of an access token
  *   S#{s}          / CONNECTOR#REFRESH#{sha256} the connector a refresh token renews
  *   S#{s}          / AVATAR#{userId}       the face of that person in this subscription
+ *   S#{s}          / SHARE#{n}#USER#{u}    a notebook of this subscription shared with u
+ *   USER#{u}       / SHARED#{n}            the same share, from u's side (exception 1)
  *
  *   GSI2: PLATFORM#{st}   -> REQUESTED#{ts}#{s}                   platform queue
  *
@@ -22,6 +24,7 @@ import {
   AgentIdentity,
   ConcurrencyError,
   Instant,
+  NotebookId,
   ok,
   Role,
   SubscriptionId,
@@ -41,6 +44,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { Subscription } from '../../../domain/subscription/Subscription.js';
 import type { Membership } from '../../../domain/subscription/Subscription.js';
+import { Share, type ShareState } from '../../../domain/share/Share.js';
 import {
   AvatarSource,
   Email,
@@ -54,6 +58,7 @@ import type {
   ConnectorBindingRepository,
   PlatformSubscriptionAdmin,
   PlatformSubscriptionView,
+  ShareRepository,
   SubscriptionLink,
   SubscriptionOnboarding,
   SubscriptionRepository,
@@ -572,3 +577,218 @@ export class DynamoAvatarRepository implements AvatarRepository {
     );
   }
 }
+
+/** The prefix of the shares of one notebook, under the owner's subscription. */
+const sharePrefix = (notebookId: NotebookId | null): string =>
+  notebookId ? `SHARE#${notebookId.value}#USER#` : 'SHARE#';
+
+function ownerKey(share: Share): Item {
+  return {
+    PK: `S#${share.ownerSubscriptionId.value}`,
+    SK: `${sharePrefix(share.notebookId)}${share.granteeUserId.value}`,
+  };
+}
+
+function granteeKey(grantee: UserId, notebookId: NotebookId): Item {
+  return { PK: `USER#${grantee.value}`, SK: `SHARED#${notebookId.value}` };
+}
+
+/** The one fact both items of a share carry, keyed for the side it is written on. */
+function shareItem(share: Share, key: Item, entity: 'SHARE' | 'SHARED'): Item {
+  return {
+    ...key,
+    entity,
+    notebookId: share.notebookId.value,
+    ownerSubscriptionId: share.ownerSubscriptionId.value,
+    ownerUserId: share.ownerUserId.value,
+    ownerEmail: share.ownerEmail.value,
+    granteeUserId: share.granteeUserId.value,
+    granteeEmail: share.granteeEmail.value,
+    access: share.access,
+    state: share.state,
+    sharedAt: share.sharedAt.toISOString(),
+    answeredAt: share.answeredAt?.toISOString() ?? null,
+    notifyOwner: share.notifyOwner,
+    ownerSeenAt: share.ownerSeenAt?.toISOString() ?? null,
+  };
+}
+
+function parseShare(item: Item): Share {
+  return Share.rehydrate({
+    notebookId: need(NotebookId.create(String(item['notebookId']))),
+    ownerSubscriptionId: need(SubscriptionId.fromClaim(String(item['ownerSubscriptionId']))),
+    ownerUserId: need(UserId.create(String(item['ownerUserId']))),
+    ownerEmail: need(Email.create(String(item['ownerEmail']))),
+    granteeUserId: need(UserId.create(String(item['granteeUserId']))),
+    granteeEmail: need(Email.create(String(item['granteeEmail']))),
+    access: item['access'] === 'read-write' ? 'read-write' : 'read',
+    state: String(item['state']) as ShareState,
+    sharedAt: need(Instant.fromISO(String(item['sharedAt']))),
+    answeredAt: item['answeredAt'] ? need(Instant.fromISO(String(item['answeredAt']))) : null,
+    notifyOwner: Boolean(item['notifyOwner']),
+    ownerSeenAt: item['ownerSeenAt'] ? need(Instant.fromISO(String(item['ownerSeenAt']))) : null,
+  });
+}
+
+/**
+ * Exception 1 widened (architecture-guide.md, section 8.3): a share is kept
+ * under the owner's subscription and, in the same transaction, under the
+ * grantee, beside their links to subscriptions.
+ *
+ *   S#{owner}      / SHARE#{notebookId}#USER#{grantee}   the owner's side
+ *   USER#{grantee} / SHARED#{notebookId}                 the grantee's side
+ *
+ * The events of a transition ride in the same transaction, on the outbox of
+ * the owner's subscription, because who could reach a notebook is part of its
+ * life (RN-AUD-011).
+ */
+export class DynamoShareRepository implements ShareRepository {
+  constructor(
+    private readonly db: DynamoDBDocumentClient,
+    private readonly tableName: string,
+    private readonly outbox: OutboxSink,
+  ) {}
+
+  async save(share: Share): Promise<void> {
+    await this.write(share, [
+      { Put: { TableName: this.tableName, Item: shareItem(share, ownerKey(share), 'SHARE') } },
+      {
+        Put: {
+          TableName: this.tableName,
+          Item: shareItem(share, granteeKey(share.granteeUserId, share.notebookId), 'SHARED'),
+        },
+      },
+    ]);
+  }
+
+  async saveRevoked(share: Share): Promise<void> {
+    await this.write(share, [
+      { Delete: { TableName: this.tableName, Key: ownerKey(share) } },
+      {
+        Put: {
+          TableName: this.tableName,
+          Item: shareItem(share, granteeKey(share.granteeUserId, share.notebookId), 'SHARED'),
+        },
+      },
+    ]);
+  }
+
+  async saveClosedByGrantee(share: Share): Promise<void> {
+    await this.write(share, [
+      { Put: { TableName: this.tableName, Item: shareItem(share, ownerKey(share), 'SHARE') } },
+      {
+        Delete: {
+          TableName: this.tableName,
+          Key: granteeKey(share.granteeUserId, share.notebookId),
+        },
+      },
+    ]);
+  }
+
+  async saveOwnerSide(share: Share): Promise<void> {
+    await this.db.send(
+      new PutCommand({
+        TableName: this.tableName,
+        Item: shareItem(share, ownerKey(share), 'SHARE'),
+      }),
+    );
+  }
+
+  async removeOutgoing(share: Share): Promise<void> {
+    await this.db.send(new DeleteCommand({ TableName: this.tableName, Key: ownerKey(share) }));
+  }
+
+  async findOutgoing(
+    owner: SubscriptionContext,
+    notebookId: NotebookId,
+    grantee: UserId,
+  ): Promise<Share | null> {
+    const response = await this.db.send(
+      new GetCommand({
+        TableName: this.tableName,
+        Key: {
+          PK: `S#${owner.subscriptionId.value}`,
+          SK: `${sharePrefix(notebookId)}${grantee.value}`,
+        },
+      }),
+    );
+    return response.Item ? parseShare(response.Item as Item) : null;
+  }
+
+  async listOutgoing(owner: SubscriptionContext, notebookId: NotebookId | null): Promise<Share[]> {
+    return (await this.query(`S#${owner.subscriptionId.value}`, sharePrefix(notebookId))).map(
+      parseShare,
+    );
+  }
+
+  async findIncoming(grantee: UserId, notebookId: NotebookId): Promise<Share | null> {
+    const response = await this.db.send(
+      new GetCommand({ TableName: this.tableName, Key: granteeKey(grantee, notebookId) }),
+    );
+    return response.Item ? parseShare(response.Item as Item) : null;
+  }
+
+  async listIncoming(grantee: UserId): Promise<Share[]> {
+    return (await this.query(`USER#${grantee.value}`, 'SHARED#')).map(parseShare);
+  }
+
+  async dismissIncoming(grantee: UserId, notebookId: NotebookId): Promise<void> {
+    await this.db.send(
+      new DeleteCommand({ TableName: this.tableName, Key: granteeKey(grantee, notebookId) }),
+    );
+  }
+
+  async removeAllOf(owner: SubscriptionContext, notebookId: NotebookId): Promise<void> {
+    for (const share of await this.listOutgoing(owner, notebookId)) {
+      await this.db.send(
+        new TransactWriteCommand({
+          TransactItems: [
+            { Delete: { TableName: this.tableName, Key: ownerKey(share) } },
+            {
+              Delete: {
+                TableName: this.tableName,
+                Key: granteeKey(share.granteeUserId, share.notebookId),
+              },
+            },
+          ],
+        }),
+      );
+    }
+  }
+
+  private async query(partition: string, prefix: string): Promise<Item[]> {
+    const items: Item[] = [];
+    let start: Record<string, unknown> | undefined;
+    do {
+      const response = await this.db.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+          ExpressionAttributeValues: { ':pk': partition, ':prefix': prefix },
+          ExclusiveStartKey: start,
+        }),
+      );
+      items.push(...((response.Items ?? []) as Item[]));
+      start = response.LastEvaluatedKey as Record<string, unknown> | undefined;
+    } while (start);
+    return items;
+  }
+
+  private async write(share: Share, writes: NonNullable<TransactItems>): Promise<void> {
+    const events = share.pullEvents();
+    const partition = `S#${share.ownerSubscriptionId.value}`;
+    await this.db.send(
+      new TransactWriteCommand({
+        TransactItems: [
+          ...writes,
+          ...events.map((event) => ({
+            Put: { TableName: this.tableName, Item: outboxItemFor(event, partition) },
+          })),
+        ],
+      }),
+    );
+    await this.outbox.published(events);
+  }
+}
+
+type TransactItems = ConstructorParameters<typeof TransactWriteCommand>[0]['TransactItems'];

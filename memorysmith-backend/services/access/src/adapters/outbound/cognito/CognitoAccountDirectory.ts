@@ -16,11 +16,11 @@ import {
   AdminUserGlobalSignOutCommand,
   CognitoIdentityProviderClient,
 } from '@aws-sdk/client-cognito-identity-provider';
-import { DomainError, err, ok, type Result } from '@memorysmith/kernel';
-import type { AccountDirectory } from '../../../domain/ports/index.js';
+import { DomainError, err, ok, UserId, type Result } from '@memorysmith/kernel';
+import type { AccountDirectory, AccountLookup } from '../../../domain/ports/index.js';
 import type { AccountLocale, Email, PersonName } from '../../../domain/values.js';
 
-export class CognitoAccountDirectory implements AccountDirectory {
+export class CognitoAccountDirectory implements AccountDirectory, AccountLookup {
   constructor(
     private readonly userPoolId: string,
     /** The app client of the interface, which the current password is proved against. */
@@ -56,6 +56,27 @@ export class CognitoAccountDirectory implements AccountDirectory {
     );
     const name = found.UserAttributes?.find((attribute) => attribute.Name === 'name')?.Value;
     return name && name.trim().length > 0 ? name : null;
+  }
+
+  /**
+   * Who an e-mail belongs to, for a share (RN-ACC-025): the `sub` of the
+   * account the e-mail is an alias of, which is the identifier every token of
+   * that person carries. An e-mail with no account answers null, and the use
+   * case answers the same either way.
+   */
+  async userIdOf(account: Email): Promise<UserId | null> {
+    try {
+      const found = await this.cognito.send(
+        new AdminGetUserCommand({ UserPoolId: this.userPoolId, Username: account.value }),
+      );
+      const sub = found.UserAttributes?.find((attribute) => attribute.Name === 'sub')?.Value;
+      if (!sub) return null;
+      const user = UserId.create(sub);
+      return user.ok ? user.value : null;
+    } catch (error) {
+      if ((error as { name?: string })?.name === 'UserNotFoundException') return null;
+      throw error;
+    }
   }
 
   /**

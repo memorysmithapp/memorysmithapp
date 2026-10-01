@@ -169,7 +169,7 @@ These are the structural decisions of the system, and violating any of them is n
 
 | # | Rule | In full in |
 |---|---|---|
-| 1 | **Every key starts with the subscription**, `S#{subscriptionId}` in DynamoDB and `s/{subscriptionId}/` in S3. The only two exceptions are named in the design, and there is no third | §8.2, §8.3 |
+| 1 | **Every key starts with the subscription**, `S#{subscriptionId}` in DynamoDB and `s/{subscriptionId}/` in S3. The only two exceptions are named in the design — the links of a person, to subscriptions and to notebooks shared with them, and the platform queue — and there is no third. A share its grantee accepted is the one door through the boundary | §8.2, §8.3 |
 | 2 | **The `subscriptionId` comes from the JWT claim, never from the request**, and therefore never from the path, the query, the body or a header | §8.2, §8.5 |
 | 3 | **`domain/` and `application/` do not import the AWS SDK**, without exception, "just to get a type" included | §5.5 |
 | 4 | **The S3 key is opaque**: only a `ContentId`, never a notebook, a folder, a name or a role. Renaming, moving and reordering never write a byte to S3 | §9.2 |

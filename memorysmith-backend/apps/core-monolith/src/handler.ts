@@ -156,6 +156,7 @@ import {
   buildAudit,
   buildDiscovery,
   buildKnowledge,
+  buildShares,
   buildSubscriptionUsage,
   buildTransfers,
   PICTURE_CATALOGUE,
@@ -164,6 +165,13 @@ import {
   type Infrastructure,
 } from './composition-root.js';
 import { KnowledgeNoteCatalog } from './note-catalog.js';
+import {
+  contextThrough,
+  DeleteNotebookAndShares,
+  openShared,
+  openShareOf,
+  shareUseCasesOf,
+} from './shares.js';
 
 function required(name: string): string {
   const value = process.env[name];
@@ -226,6 +234,14 @@ const accountDirectory = new CognitoAccountDirectory(
   required('USER_POOL_ID'),
   required('WEB_CLIENT_ID'),
 );
+
+/** The shares of notebooks between subscriptions, and what they open (RN-ACC-024). */
+const sharing = buildShares(infra);
+
+function notebookIdOf(raw: string): NotebookId | null {
+  const parsed = NotebookId.create(raw);
+  return parsed.ok ? parsed.value : null;
+}
 
 /** The Access use cases, each built from the subscription of this request. */
 const accessUseCases: AccessUseCases = {
@@ -295,6 +311,12 @@ const accessUseCases: AccessUseCases = {
     ),
   // Knowledge, Portability and Access joined where the budget is (#197).
   subscriptionUsage: (request) => buildSubscriptionUsage(infra, request.context),
+  ...shareUseCasesOf({
+    shares: sharing.shares,
+    notebooks: sharing.notebooks,
+    accounts: accountDirectory,
+    subscriptionsOf: (request) => buildAccess(infra, request.context).scoped?.subscriptions ?? null,
+  }),
 };
 
 function scopedOrThrow(request: AccessRequest) {
@@ -312,7 +334,13 @@ const knowledgeUseCases: KnowledgeUseCases = {
   listNotebooks: (request) => new ListNotebooks(buildKnowledge(infra, request.subscription)),
   getNotebook: (request) => new GetNotebook(buildKnowledge(infra, request.subscription)),
   renameNotebook: (request) => new RenameNotebook(buildKnowledge(infra, request.subscription)),
-  deleteNotebook: (request) => new DeleteNotebook(buildKnowledge(infra, request.subscription)),
+  // Deleting a notebook takes its shares, both sides (RN-ACC-028).
+  deleteNotebook: (request) =>
+    new DeleteNotebookAndShares(
+      buildKnowledge(infra, request.subscription),
+      request.subscription,
+      sharing.shares,
+    ),
   putGuidance: (request) => new PutGuidance(buildKnowledge(infra, request.subscription)),
   deleteGuidance: (request) => new DeleteGuidance(buildKnowledge(infra, request.subscription)),
   getNotebookContext: (request) =>
@@ -414,11 +442,25 @@ const portabilityUseCases: PortabilityUseCases = {
         brief: async (notebookId: string) => {
           const parsed = NotebookId.create(notebookId);
           if (!parsed.ok) return null;
-          const knowledge = buildKnowledge(infra, request.subscription);
-          const notebook = await knowledge.notebooks.findById(parsed.value);
+          const own = buildKnowledge(infra, request.subscription);
+          const mine = await own.notebooks.findById(parsed.value);
+          // A notebook of this subscription, or one shared with this person and
+          // accepted: the export is kept here either way, and the share names
+          // where the notebook is read from (RN-ACC-027).
+          const share =
+            mine && !mine.isDeleted
+              ? null
+              : await openShareOf(request.subscription.userId, parsed.value, sharing);
+          if (!share && (!mine || mine.isDeleted)) return null;
+          const knowledge = share ? buildKnowledge(infra, contextThrough(share)) : own;
+          const notebook = share ? await knowledge.notebooks.findById(parsed.value) : mine;
           if (!notebook || notebook.isDeleted) return null;
           const notes = await knowledge.notes.listByNotebook(parsed.value);
-          return { name: notebook.name.value, noteCount: notes.length };
+          return {
+            name: notebook.name.value,
+            noteCount: notes.length,
+            ...(share ? { sourceSubscriptionId: share.ownerSubscriptionId.value } : {}),
+          };
         },
       },
       { current: () => readStorageBudget(infra, request.subscription) },
@@ -571,6 +613,8 @@ const app = createApp({
   },
   notebookWriterFor,
   fileKeeperFor,
+  openSharedNotebook: (request, notebookId) =>
+    openShared(request, notebookId, { ...sharing, parse: notebookIdOf }),
   accessUseCases,
   knowledgeUseCases,
   auditUseCases,

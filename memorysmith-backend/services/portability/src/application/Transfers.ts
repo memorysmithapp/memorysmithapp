@@ -44,6 +44,13 @@ export interface TransferWork {
   readonly uploadKey?: string | undefined;
   readonly name?: string | undefined;
   /**
+   * The subscription that holds the notebook an export reads, when it is not
+   * the one the transfer belongs to: a notebook shared with the person who
+   * asked (RN-ACC-027). The API took it from the accepted share, never from
+   * the request; the archive is kept, and counted, where the transfer is.
+   */
+  readonly sourceSubscriptionId?: string | undefined;
+  /**
    * Who every write of an import is attributed to, carried in the message
    * because the worker serves no request and has no token to read it from
    * (rule 7). The connector travels with it, so an import asked for through a
@@ -59,7 +66,13 @@ export interface TransferQueue {
 
 /** What the notebook is called and how many notes it holds, before any work. */
 export interface NotebookBrief {
-  brief(notebookId: string): Promise<{ name: string; noteCount: number } | null>;
+  /**
+   * `sourceSubscriptionId` names the subscription that holds the notebook when
+   * it is a notebook shared with the person asking (RN-ACC-027).
+   */
+  brief(
+    notebookId: string,
+  ): Promise<{ name: string; noteCount: number; sourceSubscriptionId?: string } | null>;
 }
 
 /** How much the plan still allows, joined where the two halves meet. */
@@ -123,6 +136,7 @@ export class StartExport {
       kind: 'export',
       notebookId: input.notebookId,
       selection: input.selection ?? null,
+      ...(brief.sourceSubscriptionId ? { sourceSubscriptionId: brief.sourceSubscriptionId } : {}),
     });
     return ok(transfer);
   }

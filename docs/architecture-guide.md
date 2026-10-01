@@ -595,14 +595,18 @@ The composition root instantiates the repositories **per request**, with the sub
 
 Two product questions have to cross the boundary. Neither reveals content, and both are declared here, because leaving them implicit would be worse than naming them.
 
-**Exception 1: the links of the user.** Identity is global; a subscription is a link (RN-SUB-011). The `UserId` is the Cognito `sub` and belongs to no subscription:
+**Exception 1: the links of the user.** Identity is global; a subscription is a link (RN-SUB-011), and so is a notebook shared with the person (RN-ACC-024). The `UserId` is the Cognito `sub` and belongs to no subscription:
 
 ```
 Link      PK: USER#{userId}   SK: SUB#{subscriptionId}   { isOwner, joinedAt, isDefault,
                                                           welcomedAt }
+Share     PK: USER#{userId}   SK: SHARED#{notebookId}    { ownerSubscriptionId, state, access,
+                                                          ownerEmail, sharedAt, answeredAt }
 ```
 
-It answers *"which subscriptions do I take part in?"* and nothing else (RN-SUB-003).
+It answers *"which subscriptions do I take part in?"* and *"which notebooks were shared with me?"*, and nothing else (RN-SUB-003).
+
+**The second shape is the one door through the boundary**, and it opens only with two consents (RN-ACC-026): the owner shares, which writes the item under the owner's subscription, `S#{owner} / SHARE#{notebookId}#USER#{grantee}`, and this one beside it **in the same transaction**; the grantee accepts, which moves both to `accepted`. A request whose path addresses a notebook — under `/knowledge`, `/discovery` or `/audit` — reads the grantee's item by the person of its token and the notebook of its path, one `GetItem`. When it finds an accepted share and the owner's subscription grants access (RN-SUB-007), the request is built with `SubscriptionContext.fromAcceptedShare`: the person of the token, in the subscription **the stored item names**, with the `VIEWER` role and the owner's e-mail on the context, so every write is refused by the notebook's own policy (RN-ACC-027). Rule 2 holds because the owner's subscription never comes from the request: it was written by an authenticated act of its owner and is reached by a key taken from the grantee's token — the reasoning of the outbox note of §8.2, one hop across instead of one hop later. When no accepted share is found, the request goes on in the session's own subscription, untouched, and a notebook of another subscription is still indistinguishable from one that does not exist (RN-SUB-004).
 
 `welcomedAt` is the one attribute here that is not about the link: it says when this person was shown what the product is (RN-ACC-019), and it rides on this item because the exception names a KEY SHAPE and adds none. It is written on every link the person holds, because being welcomed happened to them and not to one of their subscriptions, and writing a link never touches it — which is why that write is an update and not a put.
 
@@ -758,6 +762,11 @@ S#{s}              / USER#{userId}          → a user known to the subscription
 S#{s}              / MEMBER#{userId}        → membership: role (EDITOR | VIEWER)
 USER#{userId}      / SUB#{subscriptionId}   → the link (§8.3, exception 1)
 S#{subscriptionId} / AVATAR#{userId}        → the face of that person here (RN-ACC-022)
+S#{s}              / SHARE#{notebookId}#USER#{userId}  → a notebook of s shared with that person
+                                                         (RN-ACC-024): state, access, both e-mails,
+                                                         sharedAt, answeredAt, notifyOwner, ownerSeenAt
+USER#{userId}      / SHARED#{notebookId}    → the same share, from the person's side
+                                              (§8.3, exception 1), written in the same transaction
 S#{s}              / CONNECTOR#TOKEN#{jti}        → the connector an access token was issued to
                                                     (ttl = the expiry of the token)
 S#{s}              / CONNECTOR#REFRESH#{sha256}   → the connector a refresh token renews (ttl = 30 days)
@@ -768,6 +777,8 @@ GSI2:  PLATFORM#{status}     → REQUESTED#{timestamp}#{subscriptionId}  → the
 ```
 
 **The `OWNER` is not a `MEMBER` item.** Ownership lives in `ownerId`, on the `META` item of the subscription: a single field, which is how RN-ACC-001 ("exactly one `OWNER`") stops being a rule to check and becomes the shape of the data. The transfer of ownership is a conditional `Update` on that field plus the `Put` of the `EDITOR` membership of the previous holder, in one transaction (RN-ACC-002).
+
+**A share is two items and one fact.** Both sides carry the same attributes and every transition writes both, with its event on the outbox of the owner's subscription, in one transaction: sharing and accepting write both; a rejection or a departure keeps the owner's line, which says so, and deletes the grantee's; a revocation deletes the owner's line and keeps the grantee's as the notice of it until they dismiss it (RN-ACC-029). Deleting the notebook deletes both sides of every share of it (RN-ACC-028).
 
 **A connector binding is keyed by the token, under the subscription the token names** (§13.3, item 4). An access token is bound once, by a conditional `Put`, so a second attempt to bind it is refused rather than obeyed; of a refresh token only the SHA-256 is stored. Both items carry a TTL, and every read checks the expiry as well, because the TTL removes an item eventually rather than on the second.
 
@@ -845,6 +856,8 @@ Which event moves which counter is one pure function of the envelope (`domain/se
 ### 10.4 The outbox
 
 DynamoDB Streams → a relay Lambda → EventBridge. It guarantees that the state change and the publication are atomic, because without it "I wrote but did not publish" happens and is silent. In a system whose audit trail lives on events, that silence would be a hole in the record.
+
+**Two tables have an outbox, and each has its relay**: `mv-knowledge`, whose relay also moves the counters (§10.3), and `mv-access`, whose relay only publishes, with the source `memorysmith.access`, because no event of Access moves a counter. Until 0.10.0 the stream of `mv-access` existed and nothing drained it, so every event Access wrote was kept and never reached the trail; sharing a notebook, recorded in the trail of that notebook, is what made the gap visible.
 
 The stream hands the relay up to 25 records a batch, and one `PutEvents` call takes ten events, so the relay publishes a batch in calls of at most ten. `PutEvents` reports a refused entry in its answer rather than as an error, so the relay reads the count and fails the batch when any event was refused: the stream then delivers the whole batch again, which makes delivery at least once. An event delivered twice changes nothing: the audit trail keys each entry by the instant and the identifier of its event, so the same entry is written again, the counters are guarded by their `SEEN` item (§10.3), and the projections replace what they derive. A batch still failing after its retries lands in the dead-letter queue of the relay, whose alarm is how a hole in the record is seen.
 
@@ -1330,6 +1343,8 @@ Leaving this implicit is how authz holes are born. Each stage has an explicit ow
 1. **The authorizer (`svc-access`).** It validates the Cognito JWT, confirms the active subscription is in `trial` or `active` (RN-SUB-007), resolves ownership (`isOwner`) and the role of the user in the subscription, and injects all of it into the request context (5 min cache). **It does not know what a notebook is**, nor could it: whoever holds the per-notebook ceiling is Knowledge.
 2. **The service that owns the resource.** The `AuthorizationPolicy`, a domain service and not an infrastructure port (§6.7), decides locally, with no network call.
 
+**Between the two, the door of a share** (§8.3, exception 1). A path that addresses a notebook is checked against the shares of the person, one `GetItem`; an accepted share replaces the context of stage 1 with one in the owner's subscription, `VIEWER`, carrying the owner's e-mail, and stage 2 runs on it unchanged. Portability is not among those paths: an export of a shared notebook is kept where the person asking is, so its use case reads the share itself and the archive lands in the person's own subscription (RN-ACC-027).
+
 **The stage 2 decision, in one expression.** The effective role is the lesser of the subscription role and the notebook ceiling, and ownership overrides both:
 
 ```typescript
@@ -1345,7 +1360,7 @@ The three inputs arrive at no extra cost: `isOwner` and the role come from the c
 
 **A fixed rule:** every Knowledge use case loads the notebook and calls `policy.require(action, notebook)` **before anything else**. And **a resource the requester may not see returns the same `404` as a non-existent one** (RN-SUB-004), because a `403` would confirm the existence of a notebook the requester may not see.
 
-> **One deliberate exception to the `404`: a refusal over a notebook the requester already sees answers a real `403`.** `DomainError.forbiddenVisible` carries it, and `AuthorizationPolicy` raises it in three cases: a write refused because the notebook ceiling lowers the member to `VIEWER`, a write refused because the role in the subscription is `VIEWER`, and administering a notebook without owning the subscription. In all three the member **already knows** the notebook exists, because they see it in the list (RN-ACC-012: the ceiling never hides, and a member sees every notebook of the subscription). Returning a `404` there would protect no information and would produce the worst possible experience: a notebook that shows up on screen and disappears when written to. The `404` rule protects existence; where there is no existence to protect, it does not apply.
+> **One deliberate exception to the `404`: a refusal over a notebook the requester already sees answers a real `403`.** `DomainError.forbiddenVisible` carries it, and `AuthorizationPolicy` raises it in four cases: a write refused because the notebook ceiling lowers the member to `VIEWER`, a write refused because the role in the subscription is `VIEWER`, a write refused because the notebook is shared with the requester with read access — whose message names its owner (RN-ACC-027) — and administering a notebook without owning the subscription. In all four the requester **already knows** the notebook exists, because they see it in the list (RN-ACC-012: the ceiling never hides, and a member sees every notebook of the subscription). Returning a `404` there would protect no information and would produce the worst possible experience: a notebook that shows up on screen and disappears when written to. The `404` rule protects existence; where there is no existence to protect, it does not apply.
 
 **Three clocks, all declared:**
 

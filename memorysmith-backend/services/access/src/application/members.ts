@@ -32,7 +32,7 @@ import type { SubscriptionRepository, UserLinkRepository } from '../domain/ports
  * Loads the subscription and confirms the caller holds it, in one step, so no
  * caller reads it twice for the same question.
  */
-async function requireOwner(
+export async function requireOwner(
   subscriptions: SubscriptionRepository,
   user: UserId,
 ): Promise<Result<Subscription, DomainError>> {

@@ -12,6 +12,7 @@ import {
   type Instant,
   type DomainEvent,
   type EventPublisher,
+  type NotebookId,
   type Result,
   type SubscriptionContext,
   type SubscriptionId,
@@ -19,6 +20,7 @@ import {
   type UserId,
 } from '@memorysmith/kernel';
 import type { Subscription } from '../../../domain/subscription/Subscription.js';
+import { Share } from '../../../domain/share/Share.js';
 import type { AccountLocale, Email, PersonName } from '../../../domain/values.js';
 import type {
   AccountDirectory,
@@ -27,6 +29,8 @@ import type {
   ConnectorBindingRepository,
   PlatformSubscriptionAdmin,
   PlatformSubscriptionView,
+  AccountLookup,
+  ShareRepository,
   SubscriptionLink,
   SubscriptionOnboarding,
   SubscriptionRepository,
@@ -38,8 +42,11 @@ export class InMemoryAccessDatabase {
   readonly links = new Map<string, SubscriptionLink>();
   readonly connectors = new Map<string, { agent: AgentIdentity; expiresAt: Instant }>();
   readonly avatars = new Map<string, MemberAvatar>();
+  /** Both sides of every share, keyed as the table keys them (section 8.3). */
+  readonly shares = new Map<string, Share>();
 
   clear(): void {
+    this.shares.clear();
     this.subscriptions.clear();
     this.links.clear();
     this.connectors.clear();
@@ -281,5 +288,132 @@ export class InMemoryAvatarRepository implements AvatarRepository {
 
   async save(user: UserId, avatar: MemberAvatar): Promise<void> {
     this.db.avatars.set(this.key(user), avatar);
+  }
+}
+
+const ownerSide = (owner: string, notebookId: string, grantee: string): string =>
+  `S#${owner}|SHARE#${notebookId}#USER#${grantee}`;
+const granteeSide = (grantee: string, notebookId: string): string =>
+  `USER#${grantee}|SHARED#${notebookId}`;
+
+/** A copy, so what is kept never changes under a use case still holding it. */
+function copyOf(share: Share): Share {
+  return Share.rehydrate({
+    notebookId: share.notebookId,
+    ownerSubscriptionId: share.ownerSubscriptionId,
+    ownerUserId: share.ownerUserId,
+    ownerEmail: share.ownerEmail,
+    granteeUserId: share.granteeUserId,
+    granteeEmail: share.granteeEmail,
+    access: share.access,
+    state: share.state,
+    sharedAt: share.sharedAt,
+    answeredAt: share.answeredAt,
+    notifyOwner: share.notifyOwner,
+    ownerSeenAt: share.ownerSeenAt,
+  });
+}
+
+/** Both items of a share, under the keys the table uses, and its events published. */
+export class InMemoryShareRepository implements ShareRepository {
+  constructor(
+    private readonly db: InMemoryAccessDatabase,
+    private readonly events: EventPublisher,
+  ) {}
+
+  private owner(share: Share): string {
+    return ownerSide(
+      share.ownerSubscriptionId.value,
+      share.notebookId.value,
+      share.granteeUserId.value,
+    );
+  }
+
+  private grantee(share: Share): string {
+    return granteeSide(share.granteeUserId.value, share.notebookId.value);
+  }
+
+  private async publish(share: Share): Promise<void> {
+    await this.events.publish(share.pullEvents());
+  }
+
+  async save(share: Share): Promise<void> {
+    this.db.shares.set(this.owner(share), copyOf(share));
+    this.db.shares.set(this.grantee(share), copyOf(share));
+    await this.publish(share);
+  }
+
+  async saveRevoked(share: Share): Promise<void> {
+    this.db.shares.delete(this.owner(share));
+    this.db.shares.set(this.grantee(share), copyOf(share));
+    await this.publish(share);
+  }
+
+  async saveClosedByGrantee(share: Share): Promise<void> {
+    this.db.shares.set(this.owner(share), copyOf(share));
+    this.db.shares.delete(this.grantee(share));
+    await this.publish(share);
+  }
+
+  async saveOwnerSide(share: Share): Promise<void> {
+    this.db.shares.set(this.owner(share), copyOf(share));
+  }
+
+  async removeOutgoing(share: Share): Promise<void> {
+    this.db.shares.delete(this.owner(share));
+  }
+
+  async findOutgoing(
+    owner: SubscriptionContext,
+    notebookId: NotebookId,
+    grantee: UserId,
+  ): Promise<Share | null> {
+    const found = this.db.shares.get(
+      ownerSide(owner.subscriptionId.value, notebookId.value, grantee.value),
+    );
+    return found ? copyOf(found) : null;
+  }
+
+  async listOutgoing(owner: SubscriptionContext, notebookId: NotebookId | null): Promise<Share[]> {
+    const prefix = `S#${owner.subscriptionId.value}|SHARE#${notebookId ? `${notebookId.value}#` : ''}`;
+    return [...this.db.shares.entries()]
+      .filter(([key]) => key.startsWith(prefix))
+      .map(([, share]) => copyOf(share));
+  }
+
+  async findIncoming(grantee: UserId, notebookId: NotebookId): Promise<Share | null> {
+    const found = this.db.shares.get(granteeSide(grantee.value, notebookId.value));
+    return found ? copyOf(found) : null;
+  }
+
+  async listIncoming(grantee: UserId): Promise<Share[]> {
+    const prefix = `USER#${grantee.value}|SHARED#`;
+    return [...this.db.shares.entries()]
+      .filter(([key]) => key.startsWith(prefix))
+      .map(([, share]) => copyOf(share));
+  }
+
+  async dismissIncoming(grantee: UserId, notebookId: NotebookId): Promise<void> {
+    this.db.shares.delete(granteeSide(grantee.value, notebookId.value));
+  }
+
+  async removeAllOf(owner: SubscriptionContext, notebookId: NotebookId): Promise<void> {
+    for (const share of await this.listOutgoing(owner, notebookId)) {
+      this.db.shares.delete(this.owner(share));
+      this.db.shares.delete(this.grantee(share));
+    }
+  }
+}
+
+/** Who an e-mail belongs to, as the identity provider would answer it. */
+export class InMemoryAccountLookup implements AccountLookup {
+  readonly accounts = new Map<string, UserId>();
+
+  register(email: Email, user: UserId): void {
+    this.accounts.set(email.value, user);
+  }
+
+  async userIdOf(email: Email): Promise<UserId | null> {
+    return this.accounts.get(email.value) ?? null;
   }
 }

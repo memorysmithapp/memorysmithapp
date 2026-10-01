@@ -19,6 +19,7 @@ import {
   AgentIdentity,
   Authorship,
   Instant,
+  NotebookId,
   SubscriptionContext,
   UserId,
 } from '@memorysmith/kernel';
@@ -51,9 +52,11 @@ import { KeepFile } from '@memorysmith/svc-knowledge/application/files';
 import { ResolveRequestContext } from '@memorysmith/svc-access/application/context';
 import { DynamoTransferStore } from '@memorysmith/svc-portability/adapters/dynamo';
 import { KnowledgeExportSource } from './export-source.js';
+import { contextThrough, openShareOf } from './shares.js';
 import {
   buildAccess,
   buildKnowledge,
+  buildShares,
   parseNotebookDocument,
   serializeNotebookDocument,
   type Infrastructure,
@@ -160,6 +163,29 @@ async function writerFor(context: SubscriptionContext): Promise<KnowledgeNoteboo
   );
 }
 
+/**
+ * Where an export reads its notebook: the subscription of the transfer, or —
+ * for a notebook shared with the person who asked — the one that holds it,
+ * reached only through a share that is still accepted when the work runs
+ * (RN-ACC-027). A share revoked meanwhile fails the export instead of reading
+ * a notebook the person no longer reaches.
+ */
+async function sourceOf(
+  work: TransferWork,
+  context: SubscriptionContext,
+): Promise<SubscriptionContext> {
+  if (!work.sourceSubscriptionId || work.sourceSubscriptionId === work.subscriptionId) {
+    return context;
+  }
+  const notebookId = NotebookId.create(work.notebookId ?? '');
+  if (!notebookId.ok) throw new Error('An export of a shared notebook named no notebook');
+  const share = await openShareOf(context.userId, notebookId.value, buildShares(infra));
+  if (!share || share.ownerSubscriptionId.value !== work.sourceSubscriptionId) {
+    throw new Error('The notebook is no longer shared with the person who asked for its export');
+  }
+  return contextThrough(share);
+}
+
 export async function handler(event: QueueEvent): Promise<void> {
   for (const record of event.Records ?? []) {
     const work = JSON.parse(record.body ?? '{}') as TransferWork;
@@ -192,15 +218,20 @@ export async function handler(event: QueueEvent): Promise<void> {
       continue;
     }
 
+    const source = await sourceOf(work, context);
     const exporter = new ExportNotebook(
-      new KnowledgeExportSource(buildKnowledge(infra, context)),
+      new KnowledgeExportSource(buildKnowledge(infra, source)),
+      // The archive is kept, and counted, where the transfer is: under the
+      // person who asked, whoever holds the notebook (RN-ACC-027).
       new S3ArchiveStore(infra.s3, infra.contentBucket),
       createZip,
       work.subscriptionId,
       serializeNotebookDocument,
       new AuditHistorySource(
-        trail,
-        new S3RevisionReader(context.subscriptionId, infra.s3, infra.contentBucket),
+        source === context
+          ? trail
+          : new DynamoAuditTrail(infra.db, infra.auditTable, source.subscriptionId),
+        new S3RevisionReader(source.subscriptionId, infra.s3, infra.contentBucket),
       ),
     );
     await new RunExport(transfers, exporter).execute(work);

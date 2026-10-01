@@ -103,6 +103,12 @@ export const NOTEBOOK_LIFE_EVENT_TYPES: readonly DomainEventType[] = [
   'NotebookPurged',
   'NotebookRoleLimitSet',
   'NotebookRoleLimitCleared',
+  // Who could reach it from another subscription (RN-ACC-024 to RN-ACC-028).
+  'NotebookShared',
+  'NotebookShareAccepted',
+  'NotebookShareRejected',
+  'NotebookShareRevoked',
+  'NotebookShareLeft',
 ];
 
 export const survivesTheNotebook = (type: DomainEventType): boolean =>

@@ -277,9 +277,9 @@ If a `PLATFORM_ADMIN` is also a user of some subscription, they act there like a
 
 ### 4.8 Business rules: subscription and isolation
 
-- **RN-SUB-001:** Every piece of data in the system belongs to exactly one subscription; there is no data shared between subscriptions.
+- **RN-SUB-001:** Every piece of data in the system belongs to exactly one subscription, and is reached from another subscription only through a **share of a notebook its grantee accepted** (§5.4, RN-ACC-026), which is the one door through the boundary: it moves nothing, copies nothing and changes no key. *(Up to 0.9.0 the rule said there was no data shared between subscriptions at all.)*
 - **RN-SUB-002:** The subscription a request operates under is determined by the authenticated credential, never by a request parameter.
-- **RN-SUB-003:** No query may return data from more than one subscription. Two questions cross the boundary and they are the only ones: *"which subscriptions does this user take part in?"* and the administrative listing of subscriptions by status. Neither reveals content.
+- **RN-SUB-003:** No query may return data from more than one subscription. Three questions cross the boundary and they are the only ones: *"which subscriptions does this user take part in?"*, *"which notebooks were shared with this user?"* (RN-ACC-024) and the administrative listing of subscriptions by status. None of them reveals content: a notebook shared with a person is read through the share, one notebook at a time, never listed beside the person's own.
 - **RN-SUB-004:** A resource of another subscription is indistinguishable from a resource that does not exist: both answer `NOT_FOUND`.
 - **RN-SUB-005:** The `SubscriptionId` is perpetual: issued once, never reissued, immutable across every status transition. Cancellation and reactivation use the same identifier.
 - **RN-SUB-006:** Signup creates only the user account. No subscription is created automatically and no operational access is granted.
@@ -378,6 +378,12 @@ There is only one ceiling value: `VIEWER`. There is no "no access", because **wh
 
 The ceiling does not apply to the `OWNER`: they hold the subscription and reach everything.
 
+### 5.3.1 A notebook shared with another subscription
+
+The other way to open **one** notebook, and the only one that crosses the boundary of a subscription: its `OWNER` shares it with a person who holds a subscription of their own, by the e-mail of their account. It is not a membership — the person joins nothing, pays nothing more and sees no other notebook of the subscription — and it is not a copy: the notebook stays where it is, under its owner's keys, quota and trail, and the person reads it as it is at the moment of reading.
+
+**It takes two consents.** Sharing is the owner's; it waits until the person accepts, and until then the person sees the name and the description of the notebook and nothing else. Accepting opens it for reading, whole: notes and their history, Guidance, Templates, folders, files, graph, search. **Writing is not opened**: the kind of share that would allow it exists in the contract, and no share grants it yet, because two sets of agents writing one notebook under two subscriptions is a question this product has not answered. The door closes when either side withdraws: the owner revokes, the person leaves, or the owner's subscription stops granting access.
+
 ### 5.4 Access business rules
 
 - **RN-ACC-001:** Every subscription has, at any instant, exactly one `OWNER`. Removing the `OWNER` is refused; the only way out is a transfer of ownership.
@@ -403,6 +409,11 @@ The ceiling does not apply to the `OWNER`: they hold the subscription and reach 
 - **RN-ACC-021:** A person edits their **name** and their **picture**; the **e-mail is read-only**, because it is what they sign in with and the key every message goes to, and changing it is another delivery with another rule. **What the person typed wins** over what any provider says about them: the identity provider and Gravatar are what fill an empty field, and neither of them ever overwrites a name that was chosen.
 - **RN-ACC-022:** The picture has one of **three sources**, chosen by the person: **Gravatar**, **initials** drawn by the interface, or **a picture they uploaded**. A URL to a host of their own is not a source, because an avatar renders on every screen without anybody opening anything, and that host would be handed every reader (RN-DSC-040). The profile screen says what Gravatar receives, and that choosing the initials stops it. An uploaded picture is data of the person **inside one subscription**, keyed under it like everything else; it is **bounded rather than budgeted** — the interface draws it down to a square before sending it, anything over the ceiling is refused, and it counts against no quota — and the type it is declared under is checked against the bytes.
 - **RN-ACC-023:** A person changes their own **password** from the product, stating the current one. The current password proves the person in front of the screen, where a code sent to a mailbox proves the mailbox, so the forgotten-password door stays where it is, on the sign-in screen. A refusal never says **which** half failed. The change **ends every other session of the account** at its next refresh, and the screen says so before it happens.
+- **RN-ACC-024:** Only the `OWNER` of a subscription **shares a notebook** of it, with a person named by the e-mail of their account, with **read access**. `read-write` is a kind of share the contract carries and no share grants: asking for it is refused with `VALIDATION`. A notebook is shared with a person once; sharing again a notebook that waits for that person's answer, or that they accepted, changes nothing.
+- **RN-ACC-025:** Sharing answers **the same thing whatever the e-mail is**: one with no account, one already shared with, and one shared with for the first time get the same answer, so the door cannot be used to find out who is a customer. An e-mail with no account keeps nothing and sends nothing.
+- **RN-ACC-026:** A share **takes effect only when its grantee accepts it.** Until then the grantee reaches the name and the description of the notebook and nothing else, through the interface and the connector alike; every other read answers as for a notebook that does not exist (RN-SUB-004). The grantee **accepts or rejects**; a rejection does not prevent the owner from sharing again, which is a new share waiting for a new answer.
+- **RN-ACC-027:** An accepted share lets its grantee **read the whole notebook** — everything a `VIEWER` reaches, history, graph, search and files included — and **write none of it**: a write answers `403`, the one refusal of a notebook the grantee already sees, naming the read access and the owner. The grantee may **export** it; the export is kept in the grantee's Transfers and counts against the subscription that asked for it, while the notebook counts only against its owner's (RN-SUB-021).
+- **RN-ACC-028:** The door closes when **the owner revokes** a share, when **the grantee leaves** a notebook they had accepted — choosing whether the owner is told — and, for as long as it lasts, when **the owner's subscription grants no access** (RN-SUB-007). Deleting the notebook deletes every share of it. Each change of a share — shared, accepted, rejected, revoked, left — is an entry of the trail of the notebook, under the owner's subscription, with its authorship; the trail records no read and no export, for a grantee as for anybody.
 
 ---
 
@@ -485,6 +496,20 @@ set_by_id, set_at
 ```
 
 It lives next to the notebook, not next to the member: whoever knows which notebooks exist is Knowledge, and the authorisation decision has to be local (`architecture-guide.md` §14.2).
+
+#### Entity: `Share`, a notebook opened to another subscription (§5.3.1)
+
+```
+notebook_id, owner_subscription_id, owner_user_id, owner_email,
+grantee_user_id, grantee_email,
+access (read | read-write),  -- only read is granted (RN-ACC-024)
+state (pending | accepted | rejected | left | revoked),
+shared_at, answered_at,
+notify_owner,                -- on a departure: whether the owner is told (RN-ACC-028)
+owner_seen_at                -- when the owner dismissed the notice of an answer
+```
+
+It lives in Access and not next to the notebook, unlike the ceiling, because it is about who crosses the boundary of a subscription, and that boundary is this context's. It knows nothing of notebooks: the composition root answers what a share needs to show of one from Knowledge.
 
 ### 7.2 Business rules
 
