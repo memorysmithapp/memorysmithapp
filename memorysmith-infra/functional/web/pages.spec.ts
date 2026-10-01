@@ -657,6 +657,7 @@ test.describe('the pages of an account', () => {
     notebook,
     words,
   }, testInfo) => {
+    test.setTimeout(300_000);
     const long = 'anIdentifierWithNoPlaceToBreak_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJ';
     const wide = [
       '| Field | Kind | Example | Default | Owner | Since | Notes | Status |',
@@ -912,6 +913,14 @@ test.describe('the pages of an account', () => {
     expect(colours.link).toBe('rgb(14, 21, 38)');
     expect(colours.title).not.toBe('rgb(14, 21, 38)');
     expect(colours.adjust).toBe('exact');
+
+    // And the PDF made by the server, which the browser downloads named after
+    // the note, without its print dialog (#263).
+    await paper.emulateMedia({ media: 'screen' });
+    const downloading = paper.waitForEvent('download', { timeout: 180_000 });
+    await paper.getByRole('button', { name: words.downloadPdf, exact: true }).click();
+    const download = await downloading;
+    expect(download.suggestedFilename()).toBe('On paper.pdf');
   });
 
   test('[page:/notebooks/:notebookId/notes/:noteId] draws the rules of a table inside a callout in the colour of the callout (#259)', async ({

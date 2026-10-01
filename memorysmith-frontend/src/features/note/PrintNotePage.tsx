@@ -8,6 +8,7 @@ import {
   getNotebookNames,
   getNotebookStructure,
 } from '../../shared/api/source';
+import { getPrint, startPrint } from '../../shared/api/backend';
 import { identifierOf } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
 import { usePreferences } from '../../shared/store/preferences';
@@ -36,6 +37,7 @@ import { useNotebookId } from '../structure/route-ids';
 import {
   CloseIcon,
   CoverPageIcon,
+  DownloadIcon,
   EndPageIcon,
   LandscapeIcon,
   NoPropertiesIcon,
@@ -49,11 +51,12 @@ import { paginate, unpaginate } from './paginate';
 /**
  * A note alone, drawn for paper (#258).
  *
- * **The browser prints, and the product draws the paper.** No PDF is made
- * here: the print dialog of every browser already saves one, and what it
- * saves is what the reading surface drew — mathematics, diagrams, highlighted
- * code and callouts — where a generator of our own would have had to draw all
- * of them a second time, and every difference would be a defect.
+ * **The browser prints, and the product draws the paper.** What is printed is
+ * what the reading surface drew — mathematics, diagrams, highlighted code and
+ * callouts — where a generator of our own would have had to draw all of them a
+ * second time, and every difference would be a defect. Even the PDF the server
+ * makes (#263) is THIS page, opened by a browser of the server as the person
+ * who asked: one drawing, whoever prints it.
  *
  * The page opens in a tab of its own, outside the frame of the application,
  * with a bar that is never printed: where the properties of the note go, how a
@@ -72,7 +75,7 @@ import { paginate, unpaginate } from './paginate';
  * theme on while it is open and gives the choice back when it closes.
  */
 export function PrintNotePage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const notebookId = useNotebookId();
   const noteId = identifierOf(useParams().noteId);
   const setPaper = usePreferences((s) => s.setPaper);
@@ -83,6 +86,8 @@ export function PrintNotePage() {
   /** The pages of the choices in force, or null while they are being laid. */
   const [pages, setPages] = useState<number | null>(null);
   const [scale, setScale] = useState(1);
+  /** The PDF made by the server, while it is being made, or why it was not (#263). */
+  const [making, setMaking] = useState<'idle' | 'working' | 'failed'>('idle');
   const [placement, setPlacement] = useState<PropertyPlacement>(propertyPlacement);
   const [fit, setFit] = useState<TableFit>(tableFit);
   const [orientation, setOrientation] = useState<Orientation>(recalledOrientation);
@@ -207,6 +212,39 @@ export function PrintNotePage() {
 
   const choice = (icon: ReactNode, label: string) => ({ icon, label });
 
+  /**
+   * The PDF made by the server, from this very page as the person sees it
+   * (#263, RN-PRT-031): the print starts with the choices in force, and is
+   * asked for until its file is made, which the browser then downloads. A
+   * device whose print dialog has no PDF printer gets the file all the same.
+   */
+  async function downloadPdf() {
+    if (!noteId || making === 'working') return;
+    setMaking('working');
+    try {
+      const started = await startPrint(notebookId, noteId, {
+        placement,
+        tables: fit,
+        orientation,
+        locale: i18n.language === 'pt_BR' ? 'pt_BR' : 'en_US',
+      });
+      const deadline = Date.now() + 3 * 60 * 1000;
+      while (Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        const print = await getPrint(started.printId);
+        if (print.status === 'ready' && print.downloadUrl) {
+          window.location.assign(print.downloadUrl);
+          setMaking('idle');
+          return;
+        }
+        if (print.status === 'failed') break;
+      }
+      setMaking('failed');
+    } catch {
+      setMaking('failed');
+    }
+  }
+
   return (
     <NotebookIdProvider notebookId={notebookId}>
       <div className="print-page" data-orientation={orientation}>
@@ -266,7 +304,9 @@ export function PrintNotePage() {
               ]}
             />
           </div>
-          <p className="print-hint">{t('print.hint')}</p>
+          <p className="print-hint" role={making === 'failed' ? 'alert' : undefined}>
+            {making === 'failed' ? t('print.downloadFailed') : t('print.hint')}
+          </p>
           <div className="print-actions">
             <button
               type="button"
@@ -276,6 +316,18 @@ export function PrintNotePage() {
             >
               <CloseIcon />
               <span className="print-action-label">{t('common.close')}</span>
+            </button>
+            <button
+              type="button"
+              className="button"
+              title={making === 'working' ? t('print.downloading') : t('print.download')}
+              disabled={pages === null || pages === 0 || making === 'working'}
+              onClick={() => void downloadPdf()}
+            >
+              <DownloadIcon />
+              <span className="print-action-label">
+                {making === 'working' ? t('print.downloading') : t('print.download')}
+              </span>
             </button>
             <button
               type="button"

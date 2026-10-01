@@ -5,6 +5,7 @@
  * which is what a script does with the signed address in production.
  */
 
+import type { PrintJob, PrintQueue, PrintState, PrintStore } from '../application/Prints.js';
 import type { PartStore } from '../application/Uploads.js';
 
 export class InMemoryPartStore implements PartStore {
@@ -81,5 +82,27 @@ export class InMemoryPartStore implements PartStore {
   /** How many multipart uploads are still open, for a case to assert nothing leaked. */
   get openMultiparts(): number {
     return this.multiparts.size;
+  }
+}
+
+/** A queue of prints that keeps what it was handed, for a test to read (#263). */
+export class InMemoryPrintQueue implements PrintQueue {
+  readonly sent: PrintJob[] = [];
+  async send(job: PrintJob): Promise<void> {
+    this.sent.push(job);
+  }
+}
+
+/** Prints by subscription and identifier, as the bucket keeps them under the subscription. */
+export class InMemoryPrintStore implements PrintStore {
+  readonly states = new Map<string, PrintState>();
+  set(subscriptionId: string, printId: string, state: PrintState): void {
+    this.states.set(`${subscriptionId}/${printId}`, state);
+  }
+  async state(subscriptionId: string, printId: string): Promise<PrintState> {
+    return this.states.get(`${subscriptionId}/${printId}`) ?? { status: 'running' };
+  }
+  async link(subscriptionId: string, printId: string, name: string, seconds: number) {
+    return `https://files.example.test/s/${subscriptionId}/prints/${printId}.pdf?name=${encodeURIComponent(name)}&ttl=${seconds}`;
   }
 }

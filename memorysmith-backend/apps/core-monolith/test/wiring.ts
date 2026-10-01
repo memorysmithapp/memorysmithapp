@@ -145,7 +145,12 @@ import {
   type TransferWork,
 } from '@memorysmith/svc-portability/application/transfers';
 import { InMemoryTransferStore } from '@memorysmith/svc-portability/adapters/dynamo';
-import { InMemoryPartStore } from '@memorysmith/svc-portability/adapters/memory';
+import {
+  InMemoryPartStore,
+  InMemoryPrintQueue,
+  InMemoryPrintStore,
+} from '@memorysmith/svc-portability/adapters/memory';
+import { GetPrint, StartPrint } from '@memorysmith/svc-portability/application/prints';
 import {
   BeginUpload,
   discardUpload,
@@ -546,6 +551,9 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
    * the archive it keeps is what the test reads back.
    */
   const archives = new Map<string, Buffer>();
+  // A print is handed to a renderer the harness has none of: a case reads the
+  // job it was handed, and sets what the renderer would have left (RN-PRT-031).
+  const prints = { queue: new InMemoryPrintQueue(), store: new InMemoryPrintStore() };
   /**
    * The uploads of an import, in memory. The presigned address is a marker
    * this harness answers to itself: what the tests exercise is what happens
@@ -765,6 +773,9 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
         request.subscription.subscriptionId.value,
         request.subscription.userId.value,
       ),
+    startPrint: (request) =>
+      new StartPrint(prints.queue, request.subscription.subscriptionId.value),
+    getPrint: (request) => new GetPrint(prints.store, request.subscription.subscriptionId.value),
   };
 
   const app = createApp({
@@ -878,6 +889,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     projectNote,
     projectStructure,
     archives,
+    prints,
     uploads,
     transfers,
     parts,

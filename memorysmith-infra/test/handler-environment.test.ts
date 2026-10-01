@@ -59,6 +59,10 @@ const HANDLERS: ReadonlyArray<{ entry: string; description: string }> = [
     description: 'Builds the archive of an export, and records how far it got.',
   },
   {
+    entry: 'memorysmith-backend/apps/core-monolith/src/print.handler.ts',
+    description: 'Opens the print page of a note as the person who asked, and saves it as a PDF.',
+  },
+  {
     entry: 'memorysmith-backend/services/audit/src/main/handler.ts',
     description: 'Appends every event of the bus to the audit trail. Append-only by IAM.',
   },

@@ -21,6 +21,8 @@ import type {
   TransferDto,
   TransferListDto,
   DownloadLinkDto,
+  PrintDto,
+  PrintRequest,
   FolderDto,
   ContentDto,
   NoteDto,
@@ -361,6 +363,25 @@ export async function downloadTransfer(transferId: string): Promise<DownloadLink
   return request<DownloadLinkDto>(`/portability/transfers/${transferId}/download`, {
     method: 'POST',
   });
+}
+
+/**
+ * A note as a PDF made by the server (#263): the print starts, and is asked
+ * for until its file is made.
+ */
+export async function startPrint(
+  notebookId: string,
+  noteId: string,
+  body: PrintRequest,
+): Promise<PrintDto> {
+  return request<PrintDto>(`/portability/notebooks/${notebookId}/notes/${noteId}/pdf`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function getPrint(printId: string): Promise<PrintDto> {
+  return request<PrintDto>(`/portability/prints/${printId}`);
 }
 
 /**

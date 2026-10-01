@@ -7,14 +7,20 @@
  * move (section 24).
  */
 
-import { Duration, Stack, type StackProps } from 'aws-cdk-lib';
+import { Duration, Size, Stack, type StackProps } from 'aws-cdk-lib';
 import { HttpApi, CorsHttpMethod, DomainName, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpIamAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { Rule } from 'aws-cdk-lib/aws-events';
 import { SqsQueue } from 'aws-cdk-lib/aws-events-targets';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
-import { StartingPosition } from 'aws-cdk-lib/aws-lambda';
+import {
+  Architecture,
+  Code,
+  LayerVersion,
+  Runtime,
+  StartingPosition,
+} from 'aws-cdk-lib/aws-lambda';
 import { DynamoEventSource, SqsDlq, SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Alarm, ComparisonOperator, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
@@ -39,12 +45,29 @@ import type { IUserPool } from 'aws-cdk-lib/aws-cognito';
 import type { Construct } from 'constructs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { createRequire } from 'node:module';
 import { ServiceLambda } from '../constructs/service-lambda.js';
 import type { DataStack } from './data.stack.js';
 import { physicalName, type EnvironmentConfig } from '../config/environments.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const backend = join(here, '..', '..', 'memorysmith-backend');
+
+/**
+ * The browser the renderer of prints carries (#263): the compressed Chromium
+ * of `@sparticuz/chromium`, as the portability service depends on it — the
+ * version the lockfile pins, built for x86_64 and for the Amazon Linux of the
+ * runtime. It is a layer, because esbuild bundles code and not a binary.
+ */
+const chromiumBinaries = join(
+  dirname(
+    createRequire(join(backend, 'services', 'portability', 'package.json')).resolve(
+      '@sparticuz/chromium',
+    ),
+  ),
+  '..',
+  'bin',
+);
 
 /**
  * Where the connector proxy records which connector a token belongs to
@@ -116,6 +139,23 @@ export class ApiStack extends Stack {
       deadLetterQueue: { queue: transferDlq, maxReceiveCount: 3 },
     });
 
+    /**
+     * Where a print is handed to its renderer (#263, RN-PRT-031). Starting a
+     * browser and drawing a note does not fit in the 29 seconds of the API
+     * either. A message is never retried: a person is waiting on it, and the
+     * renderer leaves the reason when it cannot make the file.
+     */
+    const printDlq = new Queue(this, 'PrintDeadLetter', {
+      queueName: physicalName(props.environment, 'mv-print-dlq'),
+      retentionPeriod: Duration.days(4),
+    });
+    const printQueue = new Queue(this, 'PrintQueue', {
+      queueName: physicalName(props.environment, 'mv-print'),
+      // Longer than the timeout of the renderer.
+      visibilityTimeout: Duration.minutes(3),
+      deadLetterQueue: { queue: printDlq, maxReceiveCount: 1 },
+    });
+
     const environment = {
       ACCESS_TABLE: props.data.accessTable.table.tableName,
       KNOWLEDGE_TABLE: props.data.knowledgeTable.table.tableName,
@@ -126,6 +166,7 @@ export class ApiStack extends Stack {
       EVENT_BUS_NAME: props.data.eventBus.eventBusName,
       COGNITO_ISSUER: props.cognitoIssuer,
       TRANSFER_QUEUE_URL: transferQueue.queueUrl,
+      PRINT_QUEUE_URL: printQueue.queueUrl,
       CONNECTOR_CLIENT_ID: props.connectorClientId,
       USER_POOL_ID: props.userPool.userPoolId,
       WEB_CLIENT_ID: props.webClientId,
@@ -163,6 +204,7 @@ export class ApiStack extends Stack {
     props.data.discoveryTable.table.grantReadWriteData(api.function);
     props.data.portabilityTable.table.grantReadWriteData(api.function);
     transferQueue.grantSendMessages(api.function);
+    printQueue.grantSendMessages(api.function);
     /**
      * Read and put, and deliberately NOT delete. `grantReadWrite` carries
      * `s3:DeleteObject*`, which includes deleting a version, and only ONE
@@ -433,6 +475,51 @@ export class ApiStack extends Stack {
     new Alarm(this, 'TransferDeadLetterDepth', {
       alarmDescription: 'Transfer worker: messages in the dead-letter queue',
       metric: transferDlq.metricApproximateNumberOfMessagesVisible({ period: Duration.minutes(5) }),
+      threshold: 1,
+      evaluationPeriods: 1,
+      comparisonOperator: ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+      treatMissingData: TreatMissingData.NOT_BREACHING,
+    });
+
+    // ---- The renderer of prints (#263) ---------------------------------------
+
+    const chromium = new LayerVersion(this, 'Chromium', {
+      code: Code.fromAsset(chromiumBinaries),
+      compatibleArchitectures: [Architecture.X86_64],
+      compatibleRuntimes: [Runtime.NODEJS_22_X],
+      description: 'The compressed Chromium the renderer of prints opens pages in.',
+    });
+
+    const printer = new ServiceLambda(this, 'PrintRenderer', {
+      entry: join(backend, 'apps', 'core-monolith', 'src', 'print.handler.ts'),
+      description: 'Opens the print page of a note as the person who asked, and saves it as a PDF.',
+      environment: {
+        CONTENT_BUCKET: props.data.contentBucket.bucketName,
+        // The page is opened on the application, and reaches its API and the
+        // host its pictures are served on — and nothing else.
+        SITE_ORIGIN: props.frontendOrigin,
+        API_ORIGIN: `https://${props.apiDomainName}`,
+        FILES_ORIGIN: `https://${props.filesDomainName}`,
+        CHROMIUM_DIRECTORY: '/opt',
+      },
+      // The binary is built for x86_64 only, and it unpacks into /tmp.
+      architecture: Architecture.X86_64,
+      layers: [chromium],
+      memorySize: 2048,
+      ephemeralStorageSize: Size.mebibytes(1024),
+      timeout: Duration.minutes(2),
+    });
+    // One note at a time: a browser draws one page well, and a batch would
+    // make one long note hold up the others.
+    printer.function.addEventSource(new SqsEventSource(printQueue, { batchSize: 1 }));
+    // It writes the file, or the reason there is none, under `prints/` alone:
+    // it reads nothing of the bucket, and the page reads the note through the
+    // API, as the person who asked.
+    props.data.contentBucket.grantPut(printer.function, 's/*/prints/*');
+
+    new Alarm(this, 'PrintDeadLetterDepth', {
+      alarmDescription: 'Print renderer: messages in the dead-letter queue',
+      metric: printDlq.metricApproximateNumberOfMessagesVisible({ period: Duration.minutes(5) }),
       threshold: 1,
       evaluationPeriods: 1,
       comparisonOperator: ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,

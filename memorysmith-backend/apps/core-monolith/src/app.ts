@@ -220,6 +220,9 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
         authorship: resolved.value.authorship,
         write: deps.notebookWriterFor(resolved.value),
         files: deps.fileKeeperFor(resolved.value),
+        // A print is drawn as the person who asked (RN-PRT-031): the renderer
+        // opens the page with the very token this request was authenticated by.
+        accessToken: (c.req.header('authorization') ?? '').replace(/^Bearer\s+/i, ''),
       });
       await next();
     },

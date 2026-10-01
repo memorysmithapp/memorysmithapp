@@ -170,7 +170,7 @@
     "open": "Imprimir a nota ou salvá-la como PDF, numa folha A4",
     "print": "Imprimir",
     "toolbar": "Impressão",
-    "hint": "Para um PDF, escolha “Salvar como PDF” como destino da impressão.",
+    "hint": "Baixar PDF entrega o arquivo pronto; ao imprimir, “Salvar como PDF” também gera um.",
     "properties": "Propriedades",
     "placement": {
       "cover": "Folha de rosto",
@@ -186,7 +186,10 @@
     "orient": {
       "portrait": "Retrato",
       "landscape": "Paisagem"
-    }
+    },
+    "download": "Baixar PDF",
+    "downloading": "Gerando PDF…",
+    "downloadFailed": "O PDF não pôde ser gerado agora. Tente de novo, ou imprima e escolha “Salvar como PDF”."
   },
   "common": {
     "loading": "Carregando…",

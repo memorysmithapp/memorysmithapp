@@ -123,7 +123,9 @@ import {
   StartExport,
   StartImport,
 } from '@memorysmith/svc-portability/application/transfers';
-import { SqsTransferQueue } from '@memorysmith/svc-portability/adapters/sqs';
+import { SqsPrintQueue, SqsTransferQueue } from '@memorysmith/svc-portability/adapters/sqs';
+import { S3PrintStore } from '@memorysmith/svc-portability/adapters/prints';
+import { GetPrint, StartPrint } from '@memorysmith/svc-portability/application/prints';
 import { SQSClient } from '@aws-sdk/client-sqs';
 import {
   ImportFromExport,
@@ -212,6 +214,8 @@ function partsOf(): S3PartStore {
 
 const sqs = new SQSClient({});
 const transferQueueUrl = required('TRANSFER_QUEUE_URL');
+// Where a print is handed to the renderer, a function of its own (RN-PRT-031).
+const printQueueUrl = required('PRINT_QUEUE_URL');
 
 const verifier = new CognitoTokenVerifier(required('COGNITO_ISSUER'));
 
@@ -569,6 +573,16 @@ const portabilityUseCases: PortabilityUseCases = {
       request.files,
       request.subscription.subscriptionId.value,
       request.subscription.userId.value,
+    ),
+  startPrint: (request) =>
+    new StartPrint(
+      new SqsPrintQueue(sqs, printQueueUrl),
+      request.subscription.subscriptionId.value,
+    ),
+  getPrint: (request) =>
+    new GetPrint(
+      new S3PrintStore(infra.s3, infra.contentBucket, infra.filesOrigin ?? null),
+      request.subscription.subscriptionId.value,
     ),
 };
 

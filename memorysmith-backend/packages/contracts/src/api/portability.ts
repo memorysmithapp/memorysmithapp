@@ -254,6 +254,28 @@ export const importUploadSchema = z.object({
   uploadKey: z.string().min(1),
 });
 
+/**
+ * A note downloaded as a PDF made by the server (#263, RN-PRT-031): the
+ * choices of the print tab, and the language the page is drawn in. The answer
+ * is the print, which is polled until its file is ready.
+ */
+export const printRequestSchema = z.object({
+  placement: z.enum(['cover', 'end', 'none']).default('cover'),
+  tables: z.enum(['wrap', 'shrink']).default('wrap'),
+  orientation: z.enum(['portrait', 'landscape']).default('portrait'),
+  locale: z.enum(['en_US', 'pt_BR']).default('en_US'),
+});
+
+export const printSchema = z.object({
+  printId: ulidSchema,
+  status: z.enum(['running', 'ready', 'failed']),
+  /** Issued when it is ready, at the moment it is asked for, and never stored. */
+  downloadUrl: z.string().url().optional(),
+  expiresAt: instantSchema.optional(),
+  /** Why there is no file: NOT_FOUND, SESSION, TIMED_OUT or FAILED. */
+  failure: z.string().optional(),
+});
+
 export type ExportRequest = z.infer<typeof exportRequestSchema>;
 export type ImportFromExportRequest = z.infer<typeof importFromExportRequestSchema>;
 export type ImportUploadDto = z.infer<typeof importUploadSchema>;
@@ -269,3 +291,5 @@ export type LinkUploadRequest = z.infer<typeof linkUploadRequestSchema>;
 export type FinishedUploadDto = z.infer<typeof finishedUploadSchema>;
 export type TransferRequestDto = z.infer<typeof transferRequestSchema>;
 export type RequestFileRequest = z.infer<typeof requestFileRequestSchema>;
+export type PrintRequest = z.infer<typeof printRequestSchema>;
+export type PrintDto = z.infer<typeof printSchema>;

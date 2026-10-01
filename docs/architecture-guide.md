@@ -1326,6 +1326,9 @@ svc-portability  POST /notebooks/:v/export   starts the job and answers the tran
                  PUT  /uploads/:t/parts/:n   { sha256, contentBase64 } one inline part
                  POST /uploads/:t/finish   the whole becomes a file, or is refused
                  POST /uploads/:t/link   { notebookId } another notebook (RN-PRT-029)
+                 POST /notebooks/:v/notes/:n/pdf   { placement, tables, orientation,
+                    locale } starts a print as the person who asks (§16, RN-PRT-031)
+                 GET  /prints/:p   running, failed with why, or ready with a link
 ```
 
 The authorizer of `svc-access` does not appear here because **it is not a route**: it is a
@@ -1450,13 +1453,15 @@ The domain returns `Result<T, DomainError>`; **exceptions exist only at the edge
 
 **The schema lives in the contracts package and the validation happens at the edge.** `domain/` imports only the kernel and a zod schema is not the kernel, so the document is shaped in the domain, and the composition root is what serialises it through `notebookDocumentSchema` — which is what makes "the export writes nothing the schema does not describe" a fact rather than an intention (RN-PRT-011).
 
+**A note is printed by the server as a job too** (RN-PRT-031). The print tab of the interface lays a note into A4 pages in the browser (Paged.js), and the browser prints them; a PDF made without the dialog of the browser is that same page opened by a Chromium of the server. `POST /portability/notebooks/:v/notes/:n/pdf` checks that the caller reads the notebook, and sends one message to `mv-print` with the note, the choices of the tab and **the access token of the request**: the renderer opens the application's print page with that session in its storage, so the page reads exactly what the person reads and nothing more, and the token lives no longer than it would in their browser. The renderer, `PrintRenderer`, waits for the pages to be laid and saves them as a PDF at `s/{subscriptionId}/prints/{printId}.pdf`, the name of the note as metadata of the object — or, when there is nothing to make, the reason at `{printId}.failed`. Both wear the lifecycle tag the bucket expires in a day, and neither counts towards the storage of the subscription. Nothing records the print: `GET /portability/prints/:p` reads whether the file or the reason is there, under the subscription of the token, and mints a link on the files host, named after the note, when it is. A message is never retried — a person is waiting — and a print with neither after three minutes answers `TIMED_OUT`. **The page of the renderer reaches the product and nothing else**: every request outside the application, its API, the files host and the fonts it loads is refused, so a note pointing a picture at an address inside the network the function runs in reaches nothing.
+
 ---
 
 ## 17. Infrastructure
 
 | Layer | Choice |
 |---|---|
-| Compute | **One Lambda per service** (Node.js 22, ARM64), internal routing with Hono |
+| Compute | **One Lambda per service** (Node.js 22, ARM64), internal routing with Hono; the renderer of prints alone is x86_64, carrying the compressed Chromium of `@sparticuz/chromium` as a layer, because that binary is built for x86_64 only |
 | API | API Gateway HTTP API per service, behind a single CloudFront |
 | Data | One DynamoDB table per service (on-demand, PITR), a versioned S3 bucket with flat opaque keys and an S3 Vectors bucket |
 | Events | EventBridge (the `mv-events` bus) and DynamoDB Streams for the outbox |

@@ -115,6 +115,8 @@ export interface Words {
   readonly historyButton: string;
   /** The action of the bar of a note that opens it on paper (#258). */
   readonly printNote: string;
+  /** The button of the print tab that downloads the PDF the server makes (#263). */
+  readonly downloadPdf: string;
   readonly conflict: string;
 }
 
@@ -186,6 +188,7 @@ export const WORDS: Record<AppLocale, Words> = {
     historyHeading: 'History of this note',
     historyButton: 'History',
     printNote: 'Print',
+    downloadPdf: 'Download PDF',
     conflict: 'Somebody else wrote this note',
   },
   pt_BR: {
@@ -255,6 +258,7 @@ export const WORDS: Record<AppLocale, Words> = {
     historyHeading: 'Histórico desta nota',
     historyButton: 'Histórico',
     printNote: 'Imprimir',
+    downloadPdf: 'Baixar PDF',
     conflict: 'Outra pessoa gravou esta nota',
   },
 };

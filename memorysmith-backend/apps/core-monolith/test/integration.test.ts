@@ -1003,6 +1003,54 @@ describe('Portability answers over the API', () => {
     ).toBe(43);
   });
 
+  it('starts a print as the person who asked, and answers its file once the renderer made it (#263)', async () => {
+    // RN-PRT-031.
+    const { notebookId, notes } = await seed();
+    const started = await call(`/portability/notebooks/${notebookId}/notes/${notes['lei']}/pdf`, {
+      method: 'POST',
+      body: { placement: 'end', tables: 'shrink', orientation: 'landscape', locale: 'pt_BR' },
+    });
+    expect(started.status).toBe(202);
+    const { printId } = (await started.json()) as { printId: string };
+    const job = harness.prints.queue.sent.at(-1);
+    expect(job).toMatchObject({
+      printId,
+      notebookId,
+      accessToken: TOKEN,
+      choices: { placement: 'end', tables: 'shrink', orientation: 'landscape' },
+      locale: 'pt_BR',
+    });
+
+    const polled = async () =>
+      (await (await call(`/portability/prints/${printId}`)).json()) as {
+        status: string;
+        downloadUrl?: string;
+      };
+    expect((await polled()).status).toBe('running');
+    harness.prints.store.set(job?.subscriptionId ?? '', printId, {
+      status: 'ready',
+      name: 'Lei 14.133',
+    });
+    const ready = await polled();
+    expect(ready.status).toBe('ready');
+    expect(ready.downloadUrl).toContain('Lei%2014.133.pdf');
+
+    // A notebook the caller cannot read starts nothing, and says nothing of itself.
+    const refused = await call(
+      `/portability/notebooks/01JBQ2X0000000000000000ZZZ/notes/${notes['lei']}/pdf`,
+      { method: 'POST', body: {} },
+    );
+    expect(refused.status).toBe(404);
+    const refusedChoice = await call(
+      `/portability/notebooks/${notebookId}/notes/${notes['lei']}/pdf`,
+      {
+        method: 'POST',
+        body: { orientation: 'diagonal' },
+      },
+    );
+    expect(refusedChoice.status).toBe(400);
+  });
+
   it('lists the notes of a folder ordered by name, refuses to move one, and carries the order through an export', async () => {
     // RN-KNW-056: Achado 12 was written first, so by hand it comes first.
     const { notebookId, folderId, notes } = await seed();

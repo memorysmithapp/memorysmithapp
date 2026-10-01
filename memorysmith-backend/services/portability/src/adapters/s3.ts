@@ -86,7 +86,7 @@ export class S3ArchiveStore implements ArchiveStore {
     );
   }
 
-  async presign(key: string, expiresInSeconds: number): Promise<string> {
+  async presign(key: string, expiresInSeconds: number, filename?: string): Promise<string> {
     const signed = await getSignedUrl(
       this.s3,
       new GetObjectCommand({
@@ -94,8 +94,9 @@ export class S3ArchiveStore implements ArchiveStore {
         Key: key,
         // The browser is navigating to this URL, so what it does with the
         // response is decided here: a file named after the notebook, saved
-        // rather than rendered.
-        ResponseContentDisposition: `attachment; filename="${filenameOf(key)}"`,
+        // rather than rendered. It was named after the last segment of the
+        // key, an identifier, whatever name the use case asked for.
+        ResponseContentDisposition: attachmentNamed(filename ?? filenameOf(key)),
       }),
       { expiresIn: expiresInSeconds },
     );
@@ -110,13 +111,32 @@ export class S3ArchiveStore implements ArchiveStore {
  * own Host, so S3 checks the very request it signed: only the name the client
  * sees changes.
  */
-function answeredOn(signed: string, publicOrigin: string | null): string {
+export function answeredOn(signed: string, publicOrigin: string | null): string {
   if (!publicOrigin) return signed;
   const url = new URL(signed);
   const origin = new URL(publicOrigin);
   url.protocol = origin.protocol;
   url.host = origin.host;
   return url.toString();
+}
+
+/**
+ * A download named after what it is, in any language. The plain `filename` is
+ * what an old client reads, so it carries the name without its accents; the
+ * `filename*` of RFC 6266 carries it whole, encoded, and every browser prefers
+ * it — *Ata de reunião.pdf* is saved as *Ata de reunião.pdf*.
+ */
+export function attachmentNamed(name: string): string {
+  const plain = name
+    .normalize('NFD')
+    .replace(/\p{M}+/gu, '')
+    .replace(/[^\x20-\x7e]/g, '_')
+    .replace(/["\\]/g, '');
+  const encoded = encodeURIComponent(name).replace(
+    /['()*]/g,
+    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+  return `attachment; filename="${plain}"; filename*=UTF-8''${encoded}`;
 }
 
 function filenameOf(key: string): string {

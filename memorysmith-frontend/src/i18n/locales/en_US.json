@@ -170,7 +170,7 @@
     "open": "Print the note or save it as a PDF, on an A4 page",
     "print": "Print",
     "toolbar": "Printing",
-    "hint": "For a PDF, choose “Save as PDF” as the destination of the print.",
+    "hint": "Download PDF hands you the file; when printing, “Save as PDF” makes one too.",
     "properties": "Properties",
     "placement": {
       "cover": "Cover page",
@@ -186,7 +186,10 @@
     "orient": {
       "portrait": "Portrait",
       "landscape": "Landscape"
-    }
+    },
+    "download": "Download PDF",
+    "downloading": "Making the PDF…",
+    "downloadFailed": "The PDF could not be made just now. Try again, or print and choose “Save as PDF”."
   },
   "common": {
     "loading": "Loading…",

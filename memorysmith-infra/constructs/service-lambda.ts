@@ -10,9 +10,9 @@
  * behind, and without retention it never expires and is billed forever.
  */
 
-import { Duration, RemovalPolicy } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy, type Size } from 'aws-cdk-lib';
 import { Alarm, ComparisonOperator, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
-import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
+import { Architecture, Runtime, type ILayerVersion } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, type NodejsFunctionProps } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
@@ -27,6 +27,14 @@ export interface ServiceLambdaProps {
   /** Alarms are on by default; a projector may opt out of the p99 one. */
   readonly latencyAlarm?: boolean;
   readonly bundling?: NodejsFunctionProps['bundling'];
+  /**
+   * ARM by default. A function that carries a binary built for one
+   * architecture only — the browser of the renderer of prints — says which.
+   */
+  readonly architecture?: Architecture;
+  readonly layers?: ILayerVersion[];
+  /** What `/tmp` holds, for a function that unpacks something there. */
+  readonly ephemeralStorageSize?: Size;
 }
 
 export class ServiceLambda extends Construct {
@@ -50,7 +58,9 @@ export class ServiceLambda extends Construct {
       entry: props.entry,
       handler: 'handler',
       runtime: Runtime.NODEJS_22_X,
-      architecture: Architecture.ARM_64,
+      architecture: props.architecture ?? Architecture.ARM_64,
+      ...(props.layers ? { layers: props.layers } : {}),
+      ...(props.ephemeralStorageSize ? { ephemeralStorageSize: props.ephemeralStorageSize } : {}),
       memorySize: props.memorySize ?? 512,
       timeout: props.timeout ?? Duration.seconds(15),
       description: props.description,

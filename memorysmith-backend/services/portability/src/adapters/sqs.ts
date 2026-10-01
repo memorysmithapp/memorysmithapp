@@ -8,6 +8,7 @@
 
 import { SendMessageCommand, type SQSClient } from '@aws-sdk/client-sqs';
 import type { TransferQueue, TransferWork } from '../application/Transfers.js';
+import type { PrintJob, PrintQueue } from '../application/Prints.js';
 
 export class SqsTransferQueue implements TransferQueue {
   constructor(
@@ -18,6 +19,20 @@ export class SqsTransferQueue implements TransferQueue {
   async send(work: TransferWork): Promise<void> {
     await this.sqs.send(
       new SendMessageCommand({ QueueUrl: this.queueUrl, MessageBody: JSON.stringify(work) }),
+    );
+  }
+}
+
+/** Where a print is handed to the renderer (#263), which opens a browser and draws the note. */
+export class SqsPrintQueue implements PrintQueue {
+  constructor(
+    private readonly sqs: SQSClient,
+    private readonly queueUrl: string,
+  ) {}
+
+  async send(job: PrintJob): Promise<void> {
+    await this.sqs.send(
+      new SendMessageCommand({ QueueUrl: this.queueUrl, MessageBody: JSON.stringify(job) }),
     );
   }
 }

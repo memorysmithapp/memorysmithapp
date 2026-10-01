@@ -66,6 +66,85 @@ async function importedFrom(api: Api, uploadKey: string, name: string): Promise<
   );
 }
 
+interface PrintDto {
+  printId: string;
+  status: 'running' | 'ready' | 'failed';
+  downloadUrl?: string;
+  failure?: string;
+}
+
+/** Starts a print and waits for the renderer to make its file, or say why it did not. */
+async function printed(api: Api, notebookId: string, noteId: string): Promise<PrintDto> {
+  const started = await api.ok<PrintDto>(
+    'POST',
+    `/portability/notebooks/${notebookId}/notes/${noteId}/pdf`,
+    { placement: 'end', tables: 'wrap', orientation: 'landscape', locale: 'pt_BR' },
+  );
+  expect(started.status).toBe('running');
+  return eventually(
+    'the print to end',
+    () => api.ok<PrintDto>('GET', `/portability/prints/${started.printId}`),
+    (print) => print.status !== 'running',
+    // A cold renderer unpacks a browser before it opens the page.
+    { timeoutMs: 180_000, intervalMs: 2_000 },
+  );
+}
+
+test.describe('a note as a PDF made by the server', () => {
+  test('[route:POST /portability/notebooks/:v/notes/:n/pdf] [route:GET /portability/prints/:p] prints a note as the person who asked and answers the file on the files host, named after the note (#263)', async ({
+    owner,
+    notebook,
+    state,
+  }) => {
+    test.setTimeout(240_000);
+    const { noteId } = await owner.ok<{ noteId: string }>(
+      'POST',
+      `/knowledge/notebooks/${notebook.notebookId}/notes`,
+      {
+        folderId: notebook.folderId,
+        content: '---\nname: Ata de reunião\nstatus: draft\n---\n\nWhat was decided.\n',
+      },
+    );
+    const print = await printed(owner, notebook.notebookId, noteId);
+    expect(print.failure ?? null).toBeNull();
+    expect(print.status).toBe('ready');
+
+    const link = new URL(print.downloadUrl ?? '');
+    expect(link.host).toBe(`files.${new URL(state.surfaces.site).host}`);
+    const downloaded = await fetch(link);
+    expect(downloaded.status).toBe(200);
+    expect(downloaded.headers.get('content-type')).toBe('application/pdf');
+    expect(downloaded.headers.get('content-disposition')).toMatch(
+      /^attachment; filename="Ata de reuniao\.pdf"; filename\*=UTF-8''Ata%20de%20reuni%C3%A3o\.pdf$/,
+    );
+    const pdf = Buffer.from(await downloaded.arrayBuffer());
+    expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+    // The note, and a page of its own for its properties at the end, laid
+    // sideways as it was asked.
+    const text = pdf.toString('latin1');
+    const box = /\/MediaBox\s*\[\s*0 0 ([\d.]+) ([\d.]+)\s*\]/.exec(text);
+    expect(Number(box?.[1])).toBeGreaterThan(Number(box?.[2]));
+    expect((text.match(/\/Type\s*\/Page[^s]/g) ?? []).length).toBe(2);
+  });
+
+  test('[route:POST /portability/notebooks/:v/notes/:n/pdf] makes nothing of a note the notebook does not hold, and says why', async ({
+    owner,
+    notebook,
+  }) => {
+    test.setTimeout(240_000);
+    const print = await printed(owner, notebook.notebookId, unknownId());
+    expect(print.status).toBe('failed');
+    expect(print.failure).toBe('NOT_FOUND');
+    // A notebook the caller cannot read starts nothing at all.
+    const refused = await owner.call(
+      'POST',
+      `/portability/notebooks/${unknownId()}/notes/${notebook.noteId}/pdf`,
+      {},
+    );
+    expect(refused.status).toBe(404);
+  });
+});
+
 test.describe('a notebook out and back in', () => {
   test('[route:POST /portability/notebooks/:v/export] [route:GET /portability/transfers/:t] [route:POST /portability/transfers/:t/download] [route:POST /portability/imports] [route:POST /portability/imports/apply] exports a notebook as a job and imports it back as the same notebook', async ({
     owner,
