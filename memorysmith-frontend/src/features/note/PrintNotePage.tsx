@@ -319,7 +319,7 @@ export function PrintNotePage() {
             </button>
             <button
               type="button"
-              className="button"
+              className="button is-quiet"
               title={making === 'working' ? t('print.downloading') : t('print.download')}
               disabled={pages === null || pages === 0 || making === 'working'}
               onClick={() => void downloadPdf()}
