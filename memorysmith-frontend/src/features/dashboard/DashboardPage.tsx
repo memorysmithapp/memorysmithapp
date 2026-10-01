@@ -15,6 +15,15 @@ import { TransferDialogs } from '../portability/StartTransfer';
 import { NotebookActions } from './NotebookActions';
 import { SubscriptionSpace } from './SubscriptionSpace';
 import { byName } from './catalogue';
+import { useIncomingShares, useOwnShares } from '../sharing/shares';
+import { AcceptedShareCard, PendingShareCard } from '../sharing/SharedNotebookCards';
+import type { IncomingShareDto } from '@memorysmith/contracts';
+import type { NotebookSummary } from '../../shared/types/api';
+
+/** One card of the row: a notebook of mine, or one shared with me (#256). */
+type Entry =
+  | { kind: 'own'; name: string; notebook: NotebookSummary }
+  | { kind: 'shared'; name: string; share: IncomingShareDto };
 
 /**
  * Home (#198): the notebooks to open, and under them the space of the
@@ -51,6 +60,37 @@ export function DashboardPage() {
     () => (query.data ? byName(query.data, locale) : undefined),
     [query.data, locale],
   );
+  /**
+   * The notebooks shared with me appear here and nowhere else of the product's
+   * lists — not in the space, which counts what is mine, nor among what an
+   * export chooses from (RN-ACC-030) — among mine, by the same order.
+   */
+  const incoming = useIncomingShares();
+  const isOwner = (notebooks ?? []).some((notebook) => notebook.effectiveRole === 'OWNER');
+  const ownShares = useOwnShares(isOwner);
+  const sharedByMe = useMemo(
+    () =>
+      new Set(
+        (ownShares.data ?? [])
+          .filter((share) => share.state === 'pending' || share.state === 'accepted')
+          .map((share) => share.notebookId),
+      ),
+    [ownShares.data],
+  );
+  const entries = useMemo((): Entry[] | undefined => {
+    if (!notebooks) return undefined;
+    return byName<Entry>(
+      [
+        ...notebooks.map((notebook) => ({ kind: 'own' as const, name: notebook.name, notebook })),
+        ...(incoming.data ?? []).map((share) => ({
+          kind: 'shared' as const,
+          name: share.name,
+          share,
+        })),
+      ],
+      locale,
+    );
+  }, [notebooks, incoming.data, locale]);
 
   return (
     <section className={expanded ? 'page home is-expanded' : 'page home'}>
@@ -63,23 +103,40 @@ export function DashboardPage() {
         expandLabel={t('dashboard.expandNotebooks')}
         collapseLabel={t('dashboard.collapseNotebooks')}
       >
-        {notebooks?.map((notebook, index) => (
-          <NotebookActions
-            key={notebook.id}
-            notebook={notebook}
-            strip={index % 2 === 0 ? 'blue' : 'orange'}
-            onExport={setExporting}
-          />
-        ))}
+        {entries?.map((entry, index) => {
+          const strip = index % 2 === 0 ? 'blue' : 'orange';
+          if (entry.kind === 'own') {
+            return (
+              <NotebookActions
+                key={entry.notebook.id}
+                notebook={entry.notebook}
+                strip={strip}
+                onExport={setExporting}
+                sharedByMe={sharedByMe.has(entry.notebook.id)}
+              />
+            );
+          }
+          return entry.share.state === 'pending' ? (
+            <PendingShareCard key={entry.share.notebookId} share={entry.share} />
+          ) : (
+            <AcceptedShareCard
+              key={entry.share.notebookId}
+              share={entry.share}
+              strip={strip}
+              onExport={setExporting}
+            />
+          );
+        })}
       </CardCarousel>
       {state === 'error' && <p className="status">{t(messageKeyOf(query.error))}</p>}
       {state === 'pending' && <NotebookCatalogueSkeleton />}
-      {notebooks?.length === 0 && <p className="hint home-empty">{t('dashboard.noNotebooks')}</p>}
+      {entries?.length === 0 && <p className="hint home-empty">{t('dashboard.noNotebooks')}</p>}
 
       {expanded ? null : <SubscriptionSpace />}
       <TransferDialogs
         starting={exporting === null ? null : 'export'}
         notebookId={exporting ?? undefined}
+        notebookName={incoming.data?.find((share) => share.notebookId === exporting)?.name}
         onClose={() => setExporting(null)}
       />
     </section>

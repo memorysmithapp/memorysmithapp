@@ -31,6 +31,7 @@ import {
   ListIncomingShares,
   ListNotebookShares,
   ListNotifications,
+  ListSubscriptionShares,
   OpenSharedNotebook,
   RevokeShare,
   ShareNotebook,
@@ -173,6 +174,7 @@ export function shareUseCasesOf(deps: {
   AccessUseCases,
   | 'shareNotebook'
   | 'listNotebookShares'
+  | 'listSubscriptionShares'
   | 'revokeShare'
   | 'dismissShareAnswer'
   | 'listIncomingShares'
@@ -190,6 +192,7 @@ export function shareUseCasesOf(deps: {
   return {
     shareNotebook: (request) => new ShareNotebook(of(request)),
     listNotebookShares: (request) => new ListNotebookShares(of(request)),
+    listSubscriptionShares: (request) => new ListSubscriptionShares(of(request)),
     revokeShare: (request) => new RevokeShare(of(request)),
     dismissShareAnswer: (request) => new DismissShareAnswer(of(request)),
     listIncomingShares: (request) => new ListIncomingShares(of(request)),

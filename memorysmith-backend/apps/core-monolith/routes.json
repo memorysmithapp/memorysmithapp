@@ -18,6 +18,7 @@
   "GET /access/profile",
   "GET /access/session",
   "GET /access/shared",
+  "GET /access/shares",
   "GET /access/usage",
   "GET /audit/notebooks/:v/activity",
   "GET /audit/notebooks/:v/notes/:n/history",

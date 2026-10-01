@@ -375,12 +375,68 @@ a:hover {
   --strip: var(--danger);
   --strip-height: 3px;
 }
-/* The actions of the card (#199), over the link stretched across it. */
+/* The actions of the card (#199), over the link stretched across it, and
+   beside them the mark of whose the notebook is (#256). */
 .notebook-card-corner {
   position: absolute;
   z-index: 2;
   top: 12px;
   right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+/* Whose a notebook is: an icon in the soft text, never a colour of its own,
+   because blue is for an action and this is a fact (#256). */
+.ownership-mark {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-soft);
+}
+.ownership-mark[data-ownership='sharedWithMe'],
+.ownership-mark[data-ownership='sharedByMe'] {
+  color: var(--text);
+}
+.notebook-card-text .notebook-card-byline {
+  margin-top: 6px;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.72rem;
+  color: var(--text);
+  -webkit-line-clamp: 1;
+}
+/* A notebook shared with me that waits for my answer: its body dimmed and
+   nothing opens it, the answer in its footer (RN-ACC-026). */
+.notebook-card.is-pending {
+  border-style: dashed;
+}
+.notebook-card-pending-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  opacity: 0.55;
+}
+.notebook-card-answer {
+  display: inline-flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.share-notify {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--text);
+}
+.share-notify input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--text);
 }
 .notebook-card-more {
   color: var(--text);
@@ -436,7 +492,8 @@ a:hover {
 }
 .notebook-card h2 {
   margin: 0 0 7px;
-  padding-right: 36px;
+  /* Clear of the corner: the mark of whose it is and the ⋯ (#256). */
+  padding-right: 76px;
   font-size: 1.1875rem;
   line-height: 1.2;
   letter-spacing: -0.015em;
@@ -781,6 +838,7 @@ a:hover {
   }
   .notebook-card h2 {
     margin-bottom: 6px;
+    padding-right: 84px;
     font-size: 1.0625rem;
   }
   .notebook-card-text p {
@@ -6288,4 +6346,137 @@ body.has-sheet .app-main {
 .notebook-content,
 .app-main:has(> .notebook-layout) {
   overflow-x: hidden;
+}
+
+/* ---- Sharing a notebook (#256) ------------------------------------------- */
+
+.share-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.share-form .field {
+  margin: 0;
+}
+.share-form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.share-sent,
+.share-failure {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-soft);
+}
+.share-failure {
+  color: var(--danger);
+}
+.share-people {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.share-people h3 {
+  margin: 0 0 10px;
+  font-family: var(--display);
+  font-size: 0.84rem;
+}
+.share-people ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.share-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.share-person-email {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.84rem;
+}
+
+/* The notifications of the top bar: the button of the Controles, and a panel
+   of the width and placement of Transfers (#205, #256). */
+.notifications-menu {
+  position: relative;
+}
+.notifications-trigger {
+  position: relative;
+  color: var(--text-soft);
+}
+.notifications-trigger:hover {
+  color: var(--text);
+}
+.notifications-trigger[aria-expanded='true'] {
+  box-shadow: var(--focus-ring);
+}
+.menu.notifications-panel {
+  top: calc(100% + 8px);
+  right: 0;
+  width: 380px;
+  padding: 0 0 6px;
+}
+@media (max-width: 860px) {
+  .menu.notifications-panel {
+    position: fixed;
+    top: calc(var(--header-h) + 0.4rem);
+    left: auto;
+    right: 1rem;
+    width: min(380px, calc(100vw - 2rem));
+  }
+}
+.notifications-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.notification {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--track);
+}
+.notification-what {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--text-soft);
+  overflow-wrap: anywhere;
+}
+.notification-what strong {
+  font-weight: 600;
+  color: var(--text);
+}
+.notification-failure {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--danger);
+}
+.notification-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* A phone: a card waiting for an answer gives its footer to the answer. */
+@media (max-width: 40rem) {
+  .notebook-card.is-pending .notebook-card-meta {
+    display: none;
+  }
+  .notebook-card.is-pending .notebook-card-answer {
+    flex: 1;
+  }
+  .notebook-card.is-pending .notebook-card-answer .button {
+    flex: 1;
+  }
 }

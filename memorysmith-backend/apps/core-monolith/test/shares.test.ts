@@ -181,6 +181,11 @@ describe('sharing a notebook with a person of another subscription', () => {
       await call(OWNER.token, `/access/notebooks/${notebookId}/shares`),
     );
     expect(lines.map((line) => line.state)).toEqual(['accepted']);
+    const all = await json<Array<{ notebookId: string; state: string }>>(
+      await call(OWNER.token, '/access/shares'),
+    );
+    expect(all).toEqual([expect.objectContaining({ notebookId, state: 'accepted' })]);
+    expect(await json<unknown[]>(await call(GRANTEE.token, '/access/shares'))).toEqual([]);
 
     // Everything a reader reaches (RN-ACC-027).
     const notebook = await call(GRANTEE.token, `/knowledge/notebooks/${notebookId}`);

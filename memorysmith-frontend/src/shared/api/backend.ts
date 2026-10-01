@@ -10,6 +10,10 @@
 import type {
   AccountLocaleDto,
   AvatarSourceDto,
+  IncomingShareDto,
+  NotificationDto,
+  NotificationListDto,
+  OutgoingShareDto,
   TransferSelection,
   BeginUploadRequest,
   FinishedUploadDto,
@@ -547,4 +551,62 @@ export async function noteHistory(notebookId: string, noteId: string): Promise<H
     `/audit/notebooks/${notebookId}/notes/${noteId}/history`,
   );
   return history.entries;
+}
+
+// ---- Shares (#256, RN-ACC-024 to RN-ACC-030) ---------------------------------
+
+/** Every share the owner made, for the cards that say a notebook is shared. */
+export async function listOwnShares(): Promise<OutgoingShareDto[]> {
+  return request<OutgoingShareDto[]>('/access/shares');
+}
+
+/** The people one notebook is shared with, and where each one stands. */
+export async function listNotebookShares(notebookId: string): Promise<OutgoingShareDto[]> {
+  return request<OutgoingShareDto[]>(`/access/notebooks/${notebookId}/shares`);
+}
+
+/** The answer is the same whatever the e-mail is (RN-ACC-025). */
+export async function shareNotebook(notebookId: string, email: string): Promise<void> {
+  await request<void>(`/access/notebooks/${notebookId}/shares`, {
+    method: 'POST',
+    body: { email, access: 'read' },
+  });
+}
+
+export async function revokeShare(notebookId: string, granteeUserId: string): Promise<void> {
+  await request<void>(`/access/notebooks/${notebookId}/shares/${granteeUserId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function dismissShareAnswer(notebookId: string, granteeUserId: string): Promise<void> {
+  await request<void>(`/access/notebooks/${notebookId}/shares/${granteeUserId}/seen`, {
+    method: 'POST',
+  });
+}
+
+/** The notebooks shared with the person, pending and accepted. */
+export async function listIncomingShares(): Promise<IncomingShareDto[]> {
+  return request<IncomingShareDto[]>('/access/shared');
+}
+
+export async function answerShare(notebookId: string, accept: boolean): Promise<void> {
+  await request<void>(`/access/shared/${notebookId}/${accept ? 'accept' : 'reject'}`, {
+    method: 'POST',
+  });
+}
+
+export async function leaveShare(notebookId: string, notifyOwner: boolean): Promise<void> {
+  await request<void>(`/access/shared/${notebookId}/leave`, {
+    method: 'POST',
+    body: { notifyOwner },
+  });
+}
+
+export async function dismissRevokedShare(notebookId: string): Promise<void> {
+  await request<void>(`/access/shared/${notebookId}`, { method: 'DELETE' });
+}
+
+export async function listNotifications(): Promise<NotificationDto[]> {
+  return (await request<NotificationListDto>('/access/notifications')).notifications;
 }

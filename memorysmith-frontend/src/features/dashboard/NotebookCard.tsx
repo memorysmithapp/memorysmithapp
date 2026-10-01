@@ -29,6 +29,7 @@ export function NotebookCard({
   strip,
   corner,
   children,
+  byline,
 }: {
   notebook: NotebookSummary;
   /** The strip on top: the brand, or the red of a card that is asking. */
@@ -37,6 +38,8 @@ export function NotebookCard({
   corner?: ReactNode;
   /** What replaces the body, when the card is asking something. */
   children?: ReactNode;
+  /** A line under the description: whose a notebook shared with me is (#256). */
+  byline?: string;
 }) {
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
@@ -51,6 +54,7 @@ export function NotebookCard({
           <div className="notebook-card-text">
             <h2>{notebook.name}</h2>
             {notebook.description ? <p>{notebook.description}</p> : null}
+            {byline ? <p className="notebook-card-byline">{byline}</p> : null}
           </div>
           <footer>
             <span className="notebook-card-meta">

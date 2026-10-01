@@ -334,6 +334,7 @@ export const shareNotebookRequestSchema = z.object({
 
 /** One person a notebook is shared with, in the owner's Share dialog. */
 export const outgoingShareSchema = z.object({
+  notebookId: ulidSchema,
   granteeUserId: userIdSchema,
   granteeEmail: z.string(),
   access: shareAccessSchema,

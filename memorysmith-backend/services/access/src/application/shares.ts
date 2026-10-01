@@ -125,6 +125,22 @@ export class ListNotebookShares {
   }
 }
 
+/**
+ * Every share of every notebook of the subscription, for the cards of Home,
+ * which say which of the owner's notebooks are shared (RN-ACC-030). Only the
+ * owner shares, so a member is answered an empty list rather than a refusal:
+ * there is nothing of theirs to mark.
+ */
+export class ListSubscriptionShares {
+  constructor(private readonly deps: ShareDependencies) {}
+
+  async execute(input: { context: SubscriptionContext }): Promise<Result<Share[], DomainError>> {
+    const owned = await ownerOf(this.deps, input.context);
+    if (!owned.ok) return ok([]);
+    return ok(await this.deps.shares.listOutgoing(input.context, null));
+  }
+}
+
 /** The owner closes the door; the grantee is told (RN-ACC-028, RN-ACC-029). */
 export class RevokeShare {
   constructor(private readonly deps: ShareDependencies) {}

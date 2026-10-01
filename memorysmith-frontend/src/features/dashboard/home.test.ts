@@ -22,6 +22,18 @@ const notebook = (id: string, name: string): NotebookSummary => ({
 });
 
 describe('the notebooks are listed by name, in the language of the reader', () => {
+  it('puts a notebook shared with the reader among their own, by the same order (#256)', () => {
+    const names = byName(
+      [
+        { kind: 'own', name: 'Zebra' },
+        { kind: 'shared', name: 'Ética' },
+        { kind: 'own', name: 'Estratégia' },
+      ],
+      'pt-BR',
+    ).map((each) => `${each.kind}:${each.name}`);
+    expect(names).toEqual(['own:Estratégia', 'shared:Ética', 'own:Zebra']);
+  });
+
   it('puts an accented name where the language puts it, not after the end of the alphabet', () => {
     const names = byName(
       [

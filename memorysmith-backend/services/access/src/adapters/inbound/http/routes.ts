@@ -60,6 +60,7 @@ import type {
   ListIncomingShares,
   ListNotebookShares,
   ListNotifications,
+  ListSubscriptionShares,
   RevokeShare,
   ShareNotebook,
 } from '../../../application/shares.js';
@@ -121,6 +122,7 @@ export interface AccessUseCases {
   // Sharing a notebook with a person of another subscription (RN-ACC-024 to RN-ACC-030).
   readonly shareNotebook: (request: AccessRequest) => ShareNotebook;
   readonly listNotebookShares: (request: AccessRequest) => ListNotebookShares;
+  readonly listSubscriptionShares: (request: AccessRequest) => ListSubscriptionShares;
   readonly revokeShare: (request: AccessRequest) => RevokeShare;
   readonly dismissShareAnswer: (request: AccessRequest) => DismissShareAnswer;
   readonly listIncomingShares: (request: AccessRequest) => ListIncomingShares;
@@ -133,6 +135,7 @@ export interface AccessUseCases {
 /** One line of the owner's Share dialog. */
 function outgoingOf(share: Share) {
   return outgoingShareSchema.parse({
+    notebookId: share.notebookId.value,
     granteeUserId: share.granteeUserId.value,
     granteeEmail: share.granteeEmail.value,
     access: share.access,
@@ -492,6 +495,19 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
   // The owner's routes are under the notebook, in the owner's own
   // subscription; the grantee's are under /shared, keyed by the grantee's own
   // identifier. No route names the subscription of the other side.
+
+  app.get('/shares', async (c) => {
+    const request = c.get('access');
+    const context = requireContext(request);
+    if (!context.ok) return respond(c, context);
+    const listed = await useCases
+      .listSubscriptionShares(request)
+      .execute({ context: context.value });
+    return respond(
+      c,
+      listed.ok ? { ok: true as const, value: listed.value.map(outgoingOf) } : listed,
+    );
+  });
 
   app.get('/notebooks/:v/shares', async (c) => {
     const request = c.get('access');

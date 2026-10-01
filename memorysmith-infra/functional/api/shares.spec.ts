@@ -38,7 +38,7 @@ async function closeDoor(owner: Api, notebook: NotebookFixture, grantee: string)
 }
 
 test.describe('a notebook shared with another subscription', () => {
-  test('[route:POST /access/notebooks/:v/shares] [route:GET /access/shared] [route:POST /access/shared/:v/accept] [route:GET /access/notebooks/:v/shares] [route:GET /access/notifications] [route:POST /access/notebooks/:v/shares/:user/seen] is read whole once accepted, and never written', async ({
+  test('[route:POST /access/notebooks/:v/shares] [route:GET /access/shared] [route:POST /access/shared/:v/accept] [route:GET /access/notebooks/:v/shares] [route:GET /access/notifications] [route:POST /access/notebooks/:v/shares/:user/seen] [route:GET /access/shares] is read whole once accepted, and never written', async ({
     owner,
     other,
     notebook,
@@ -102,6 +102,18 @@ test.describe('a notebook shared with another subscription', () => {
       expect(notices.notifications).toContainEqual(
         expect.objectContaining({ kind: 'accepted', notebookId: notebook.notebookId }),
       );
+
+      // Home marks the owner's notebook as shared, from one list of every share.
+      const all = await owner.ok<Array<{ notebookId: string; state: string }>>(
+        'GET',
+        '/access/shares',
+      );
+      expect(all).toContainEqual(
+        expect.objectContaining({ notebookId: notebook.notebookId, state: 'accepted' }),
+      );
+      // The grantee owns no share: their list holds none of the owner's.
+      const theirs = await other.ok<Array<{ notebookId: string }>>('GET', '/access/shares');
+      expect(theirs.find((each) => each.notebookId === notebook.notebookId)).toBeUndefined();
 
       // Dismissing the notice takes it away, and only it.
       expect(

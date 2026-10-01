@@ -370,3 +370,18 @@ export function deleteTemplate(notebookId: string, folderId: string): Promise<vo
 export function canWrite(effectiveRole: string): boolean {
   return effectiveRole === 'OWNER' || effectiveRole === 'EDITOR';
 }
+
+// Sharing a notebook with a person of another subscription (#256): straight to
+// the API, because nothing a screen already holds answers any of it.
+export {
+  answerShare,
+  dismissRevokedShare,
+  dismissShareAnswer,
+  leaveShare,
+  listIncomingShares,
+  listNotebookShares,
+  listNotifications,
+  listOwnShares,
+  revokeShare,
+  shareNotebook,
+} from './backend';

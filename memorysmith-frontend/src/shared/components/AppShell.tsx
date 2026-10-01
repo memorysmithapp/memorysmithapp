@@ -2,6 +2,7 @@ import { Link, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { BrandMark } from './BrandMark';
 import { TransfersMenu } from '../../features/portability/TransfersMenu';
+import { NotificationsMenu } from '../../features/sharing/NotificationsMenu';
 import { UserMenu } from './UserMenu';
 import { WriteStatus } from './WriteStatus';
 
@@ -25,6 +26,10 @@ export function AppShell() {
         {/* Files on their way in and out, in the place a browser puts its
             downloads: beside the identity, never as a bell (RN-PRT-019). */}
         <TransfersMenu />
+        {/* What changed in a share, told to the side that did not change it
+            (#256): its own button, because it is news about people and not
+            about files. */}
+        <NotificationsMenu />
         <UserMenu />
       </header>
       <main className="app-main">

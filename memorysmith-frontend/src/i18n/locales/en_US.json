@@ -715,5 +715,66 @@
     "label": "Give a file",
     "hint": "Drag the file here, paste it with Ctrl+V, or",
     "choose": "Choose a file"
+  },
+  "sharing": {
+    "ownership": {
+      "own": "Your notebook",
+      "sharedByMe": "Your notebook, shared by you",
+      "sharedWithMe": "Shared with you by {{owner}}"
+    },
+    "access": {
+      "read": "Read",
+      "readWrite": "Read and write"
+    },
+    "accept": "Accept",
+    "reject": "Decline",
+    "dialog": {
+      "title": "Share notebook",
+      "email": "E-mail of the person",
+      "emailPlaceholder": "name@example.com",
+      "access": "Access",
+      "readWriteLater": "Read and write is not offered yet: the person reads the whole notebook and writes nothing.",
+      "share": "Share",
+      "sharing": "Sharing…",
+      "sent": "Done. If {{email}} has a MemorySmith subscription, the notebook is waiting for their answer.",
+      "people": "Shared with",
+      "nobody": "Not shared with anybody yet.",
+      "revoke": "Revoke",
+      "remove": "Remove"
+    },
+    "state": {
+      "pending": "Waiting",
+      "accepted": "Accepted",
+      "rejected": "Declined",
+      "left": "Left"
+    },
+    "card": {
+      "share": "Share…",
+      "sharedBy": "Shared by {{owner}}",
+      "leave": "Leave notebook…",
+      "leaveTitle": "Leave {{name}}?",
+      "leaveBody": "You stop reading this notebook. Its owner can share it with you again.",
+      "notifyOwner": "Let {{owner}} know",
+      "stay": "Stay",
+      "leaveForGood": "Leave",
+      "pendingLabel": "{{name}}, waiting for your answer",
+      "invitedBy": "{{owner}} shared it with you",
+      "waiting": "Waiting for your answer"
+    }
+  },
+  "notifications": {
+    "heading": "Notifications",
+    "count_one": "{{count}} notification",
+    "count_other": "{{count}} notifications",
+    "empty": "Nothing new.",
+    "aNotebook": "a notebook",
+    "dismiss": "Dismiss",
+    "kind": {
+      "shared": "<b>{{person}}</b> shared <b>{{notebook}}</b> with you, to read.",
+      "revoked": "<b>{{person}}</b> stopped sharing <b>{{notebook}}</b> with you.",
+      "accepted": "<b>{{person}}</b> accepted <b>{{notebook}}</b>.",
+      "rejected": "<b>{{person}}</b> declined <b>{{notebook}}</b>.",
+      "left": "<b>{{person}}</b> left <b>{{notebook}}</b>."
+    }
   }
 }

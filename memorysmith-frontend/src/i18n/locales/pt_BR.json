@@ -718,5 +718,66 @@
     "label": "Dar um arquivo",
     "hint": "Arraste o arquivo para cá, cole com Ctrl+V, ou",
     "choose": "Escolher arquivo"
+  },
+  "sharing": {
+    "ownership": {
+      "own": "Seu caderno",
+      "sharedByMe": "Seu caderno, compartilhado por você",
+      "sharedWithMe": "Compartilhado com você por {{owner}}"
+    },
+    "access": {
+      "read": "Leitura",
+      "readWrite": "Leitura e gravação"
+    },
+    "accept": "Aceitar",
+    "reject": "Recusar",
+    "dialog": {
+      "title": "Compartilhar caderno",
+      "email": "E-mail da pessoa",
+      "emailPlaceholder": "nome@exemplo.com",
+      "access": "Acesso",
+      "readWriteLater": "Leitura e gravação ainda não está disponível: a pessoa lê o caderno inteiro e não escreve nada.",
+      "share": "Compartilhar",
+      "sharing": "Compartilhando…",
+      "sent": "Pronto. Se {{email}} tem uma assinatura do MemorySmith, o caderno está esperando a resposta dessa pessoa.",
+      "people": "Compartilhado com",
+      "nobody": "Ainda não está compartilhado com ninguém.",
+      "revoke": "Revogar",
+      "remove": "Remover"
+    },
+    "state": {
+      "pending": "Aguardando",
+      "accepted": "Aceito",
+      "rejected": "Recusado",
+      "left": "Saiu"
+    },
+    "card": {
+      "share": "Compartilhar…",
+      "sharedBy": "Compartilhado por {{owner}}",
+      "leave": "Sair do caderno…",
+      "leaveTitle": "Sair de {{name}}?",
+      "leaveBody": "Você deixa de ler este caderno. O dono pode compartilhá-lo com você de novo.",
+      "notifyOwner": "Avisar {{owner}}",
+      "stay": "Ficar",
+      "leaveForGood": "Sair",
+      "pendingLabel": "{{name}}, aguardando a sua resposta",
+      "invitedBy": "{{owner}} compartilhou com você",
+      "waiting": "Aguardando a sua resposta"
+    }
+  },
+  "notifications": {
+    "heading": "Notificações",
+    "count_one": "{{count}} notificação",
+    "count_other": "{{count}} notificações",
+    "empty": "Nada novo.",
+    "aNotebook": "um caderno",
+    "dismiss": "Dispensar",
+    "kind": {
+      "shared": "<b>{{person}}</b> compartilhou <b>{{notebook}}</b> com você, para leitura.",
+      "revoked": "<b>{{person}}</b> deixou de compartilhar <b>{{notebook}}</b> com você.",
+      "accepted": "<b>{{person}}</b> aceitou <b>{{notebook}}</b>.",
+      "rejected": "<b>{{person}}</b> recusou <b>{{notebook}}</b>.",
+      "left": "<b>{{person}}</b> saiu de <b>{{notebook}}</b>."
+    }
   }
 }
