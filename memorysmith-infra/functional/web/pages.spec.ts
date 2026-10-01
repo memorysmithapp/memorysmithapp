@@ -776,8 +776,10 @@ test.describe('the pages of an account', () => {
     // By default the properties take a cover of their own, opening with them
     // and the name of the note below, and the text starts on the next page.
     await expect(cover.locator('> :first-child')).toHaveClass(/properties-box/);
-    await expect(cover.getByRole('heading', { level: 1 })).toHaveText('On paper');
-    await expect(body.getByRole('heading', { level: 1 })).toHaveCount(0);
+    // The drawn note is never seen, so it is read by its elements and not by
+    // the roles a reader would be given; the pages are what is seen.
+    await expect(cover.locator('h1')).toHaveText('On paper');
+    await expect(body.locator('h1')).toHaveCount(0);
     expect(await laid()).toBe(2);
     await expect(pages.nth(0)).toContainText('draft');
     await expect(pages.nth(0)).toContainText('On paper');
@@ -850,8 +852,8 @@ test.describe('the pages of an account', () => {
     // At the end the properties take the last page; with none they are not printed.
     await properties.getByRole('radio').nth(1).click();
     await expect(cover).toHaveCount(0);
-    await expect(end.locator(status)).toBeVisible();
-    await expect(body.getByRole('heading', { level: 1 })).toHaveText('On paper');
+    await expect(end.locator(status)).toHaveCount(1);
+    await expect(body.locator('h1')).toHaveText('On paper');
     expect(await laid()).toBe(2);
     await expect(pages.nth(1)).toContainText('draft');
     expect((await pdfOf('landscape-end-shrink')).pages).toBe(2);
