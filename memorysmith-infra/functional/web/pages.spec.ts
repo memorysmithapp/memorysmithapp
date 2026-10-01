@@ -742,13 +742,20 @@ test.describe('the pages of an account', () => {
     // The PDF is laid out in the media the page emulates, so it is made in
     // print media, and what the sheet looks like is attached beside it.
     const pdfOf = async (name: string) => {
+      // Each sheet alone, in a window taller than a sheet, without the bar and
+      // the banner that stand over the page while it scrolls.
+      const viewport = paper.viewportSize();
+      await paper.setViewportSize({ width: 1400, height: 1400 });
       const sheets = paper.locator('article.print-sheet');
       for (let index = 0; index < (await sheets.count()); index++) {
         await testInfo.attach(`${name}-${index + 1}.png`, {
-          body: await sheets.nth(index).screenshot(),
+          body: await sheets.nth(index).screenshot({
+            style: '.print-toolbar, .environment-banner { visibility: hidden !important; }',
+          }),
           contentType: 'image/png',
         });
       }
+      if (viewport) await paper.setViewportSize(viewport);
       await paper.emulateMedia({ media: 'print' });
       const bytes = await paper.pdf({ preferCSSPageSize: true });
       await paper.emulateMedia({ media: 'screen' });
