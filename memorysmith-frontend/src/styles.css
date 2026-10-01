@@ -6663,9 +6663,14 @@ body.has-sheet .app-main {
   text-decoration: underline;
   text-decoration-thickness: 1px;
 }
-.print-part :is(.properties-box, .markdown pre) {
+.print-part .properties-box {
   background: none;
   border: 1px solid var(--border);
+}
+/* A block of code keeps its frame and loses its fill: the frame is drawn by
+   the box around the block, which is where the fill was too. */
+.print-part .markdown :is(.code-block, pre) {
+  background: none;
 }
 /* What is there for the screen and says nothing on paper. */
 .print-part :is(.remote-notice, .copy-action, .attachment-card-actions) {
