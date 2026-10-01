@@ -603,6 +603,25 @@ ${silence()}
   other: the vocabulary belongs to the guidance of the notebook you are writing in.
   Read it before inventing a field.
 
+## Putting one form inside another
+
+Every form has one job: a table compares, a callout makes a rule or a warning
+impossible to miss, a code block shows code. The notation lets you nest one in
+another, and the page draws what you nest — but nesting pays only when the inner
+form serves the job of the outer one. It is your call, and these are the costs
+to weigh.
+
+- **A table inside a callout.** The callout is the one thing a reader must not
+  miss, and a whole table inside it dilutes that. What usually reads better is
+  the callout stating the rule in a sentence or two, and the table right after
+  it. A table belongs inside when the table *is* the warning, such as a short
+  table of limits.
+- **Code inside a table cell.** A short code span — the name of a field, a short
+  command — sits well in a cell. A long one widens its column until the table
+  scrolls sideways. A block of several lines does not fit at all: a cell of a
+  table holds one line, so the block goes after the table, and the row refers to
+  it.
+
 ## What is read, and what is only drawn
 
 The table has two kinds of row and they are easy to run together. Most forms

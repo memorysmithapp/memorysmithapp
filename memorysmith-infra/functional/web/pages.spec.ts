@@ -729,6 +729,30 @@ test.describe('the pages of an account', () => {
     expect(pdf).toMatch(/\/MediaBox\s*\[\s*0 0 595\.\d+ 841\.\d+\s*\]/);
   });
 
+  test('[page:/notebooks/:notebookId/notes/:noteId] draws the rules of a table inside a callout in the colour of the callout (#259)', async ({
+    app,
+    owner,
+    notebook,
+  }) => {
+    const { noteId } = await owner.ok<{ noteId: string }>(
+      'POST',
+      `/knowledge/notebooks/${notebook.notebookId}/notes`,
+      {
+        folderId: notebook.folderId,
+        content:
+          '---\nname: Limits\n---\n\n> [!warning] Limits\n> | Plan | Notes |\n> | --- | --- |\n> | Free | 100 |\n\n| Plan | Notes |\n| --- | --- |\n| Free | 100 |\n',
+      },
+    );
+    await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+    const inside = app.locator('.callout td').first();
+    const outside = app.locator('.markdown > table td').first();
+    await expect(inside).toBeVisible();
+    // The tint of a warning, at the alpha its rules are drawn with; a table
+    // outside a callout keeps the neutral border.
+    await expect(inside).toHaveCSS('border-top-color', 'rgba(158, 71, 0, 0.35)');
+    await expect(outside).toHaveCSS('border-top-color', 'rgb(220, 224, 218)');
+  });
+
   test('renames a note from the editor, and the tree follows without a reload', async ({
     app,
     notebook,

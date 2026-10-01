@@ -1793,6 +1793,19 @@ a:hover {
 .markdown tbody tr:hover {
   background: var(--code-bg);
 }
+/* Inside a callout the rules are drawn in the colour of the callout (#259).
+   The neutral border is visible on the paper and almost the colour of the 10%
+   tint a callout lays under it, in both themes, so a table there lost its
+   rules and read as loose words. It is still a table: only the rules change. */
+.markdown .callout :is(th, td) {
+  border-color: rgba(var(--callout-color), 0.35);
+}
+.markdown .callout th {
+  border-bottom-color: rgba(var(--callout-color), 0.7);
+}
+.markdown .callout tbody tr:hover {
+  background: rgba(var(--callout-color), 0.08);
+}
 
 .markdown hr {
   margin-block: calc(var(--p-spacing) * 2);
