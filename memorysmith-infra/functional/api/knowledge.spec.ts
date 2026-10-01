@@ -441,11 +441,15 @@ test.describe('notes', () => {
 
     expect((await owner.call('DELETE', path)).status).toBe(204);
     expect((await owner.call('GET', path)).status).toBe(404);
-    const listed = await owner.ok<Note[]>(
-      'GET',
-      `${notesPath(notebook)}?folderId=${notebook.folderId}`,
-    );
-    expect(listed.map((note) => note.noteId)).not.toContain(notebook.noteId);
+    // The listing of a folder is an index that converges after a write, so
+    // it is asked until the deletion reaches it, which takes a moment.
+    await expect
+      .poll(async () =>
+        (await owner.ok<Note[]>('GET', `${notesPath(notebook)}?folderId=${notebook.folderId}`)).map(
+          (note) => note.noteId,
+        ),
+      )
+      .not.toContain(notebook.noteId);
 
     // Deleting a note twice is deleting one that is not there (RN-KNW-029),
     // and the route that brought one back is gone.
