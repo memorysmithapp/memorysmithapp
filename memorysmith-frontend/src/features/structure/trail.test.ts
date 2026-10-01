@@ -35,6 +35,7 @@ function folder(
     slug: name.toLowerCase(),
     description: 'a folder',
     position: 1,
+    noteOrder: 'manual',
     hasTemplate: false,
     noteCount: notes.length,
     notes,

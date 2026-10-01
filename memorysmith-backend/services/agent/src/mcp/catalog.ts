@@ -74,6 +74,15 @@ const afterNoteArgument = {
     'notes of this one.',
 };
 
+/** How a folder orders its notes (RN-KNW-056). */
+const noteOrderArgument = {
+  type: 'string',
+  enum: ['manual', 'alphabetical'],
+  description:
+    'Optional: how the folder orders its notes. manual, the default, keeps the order they are ' +
+    'written in; alphabetical orders them by name.',
+};
+
 function object(
   properties: Record<string, unknown>,
   required: string[] = [],
@@ -236,7 +245,10 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'what tells the next agent what belongs in this folder, and it travels in every reading ' +
       'of the notebook context. Pass parent to nest it under another folder. The order of ' +
       'folders is content, and a new folder goes last among its siblings unless you pass ' +
-      'after; reorder_folder changes the order later.',
+      'after; reorder_folder changes the order later. A folder orders its own notes by hand ' +
+      'unless you pass noteOrder: alphabetical, for a folder of records looked up by name — ' +
+      'minutes, decisions, articles — where each note then appears by its name; ' +
+      'set_note_order changes it later.',
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -257,6 +269,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
             'Optional: identifier of the sibling folder this one goes right after, as ' +
             'get_notebook_context prints it. Without it the folder goes last among its siblings.',
         },
+        noteOrder: noteOrderArgument,
       },
       ['notebook', 'name', 'description'],
     ),
@@ -275,6 +288,28 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     inputSchema: object(
       { notebook: notebookArgument, folder: folderArgument, after: afterFolderArgument },
       ['notebook', 'folder', 'after'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+  },
+  {
+    name: 'set_note_order',
+    title: 'Set how a folder orders its notes',
+    description:
+      'Sets how the notes of a folder are ordered. manual keeps the order written into the ' +
+      'folder, which create_note and reorder_note place: right for a folder read in sequence, ' +
+      'such as the chapters of a guide or the steps of a process. alphabetical orders them by ' +
+      'name, numbers by value so Ata 2 comes before Ata 10, a note with no name last: right for ' +
+      'a folder of records looked up by name. In an alphabetical folder a note appears by its ' +
+      'name wherever it is listed, and reorder_note is refused. The places notes had are kept, ' +
+      'so turning a folder back to manual shows the order it had. Answers the folder as it now ' +
+      'is.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        folder: folderArgument,
+        noteOrder: { ...noteOrderArgument, description: 'Required. manual or alphabetical.' },
+      },
+      ['notebook', 'folder', 'noteOrder'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
   },
@@ -378,6 +413,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     description:
       'Index of the notes of a notebook, or of a single folder, in the ORDER DEFINED by whoever ' +
       'authored the notebook. The order is content, not decoration: it says where to start. ' +
+      'A folder that orders its notes by name lists them by name. ' +
       'Each note comes as its identifier, name, folder and position, one page at a time: the ' +
       'answer is { notes, nextCursor }, and while nextCursor is not null pass it back as cursor ' +
       'to read the next page. Read a note with read_note, and find notes by their text with ' +
@@ -440,7 +476,8 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'refused, naming the note that holds it, so a call retried after its answer was lost ' +
       'finds the note it made instead of writing a twin. A note with no name reserves nothing, ' +
       'so retrying one of those writes a second. Another folder may hold a note of the same ' +
-      'name. The note goes last in its folder unless you pass after.',
+      'name. The note goes last in its folder unless you pass after; in a folder that orders ' +
+      'its notes by name it appears by its name, wherever after puts it.',
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -795,7 +832,9 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'Moves a note within its folder. The order is content: list_notes answers the notes in ' +
       'it, and it says where to start reading. Pass after: null to put the note first, or the ' +
       'identifier of the note it goes right after. Only the order changes: the note keeps its ' +
-      'folder, its content and its history. Answers the notes of the folder in their new order.',
+      'folder, its content and its history. Answers the notes of the folder in their new order. ' +
+      'A folder that orders its notes by name refuses it: there a note appears by its name, and ' +
+      'get_notebook_context says which folders do.',
     inputSchema: object(
       {
         notebook: notebookArgument,

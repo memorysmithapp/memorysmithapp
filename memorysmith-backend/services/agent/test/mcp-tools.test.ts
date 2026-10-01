@@ -214,6 +214,8 @@ describe('The tool catalog is the public contract', () => {
       'delete_guidance',
       'create_folder',
       'reorder_folder',
+      // How a folder orders its notes, by hand or by name (#262).
+      'set_note_order',
       'delete_folder',
       'get_template',
       'set_template',
@@ -276,6 +278,7 @@ describe('The tool catalog is the public contract', () => {
       'delete_guidance',
       'create_folder',
       'reorder_folder',
+      'set_note_order',
       'delete_folder',
       'set_template',
       'delete_template',
@@ -1746,6 +1749,93 @@ describe('the path an agent takes passes through the method of its task', () => 
       caller,
     );
     expect(JSON.parse(answer.content[0]?.text ?? '')).not.toHaveProperty('notice');
+  });
+});
+
+describe('a folder orders its notes by hand or by name (#262, RN-AGT-048)', () => {
+  const folder = (noteOrder: string) => ({
+    folderId: '01JBQ2X00000000000000000F1',
+    parentFolderId: null,
+    name: 'Atas',
+    slug: 'atas',
+    description: 'Uma ata por reunião.',
+    position: 'a0',
+    noteOrder,
+  });
+
+  it('creates a folder ordered by name when asked, and by hand when not', async () => {
+    const asked: Array<string | undefined> = [];
+    const adapter = gateways({
+      knowledge: {
+        createFolder: async (_caller: unknown, input: { noteOrder?: string }) => {
+          asked.push(input.noteOrder);
+          return folder(input.noteOrder ?? 'manual');
+        },
+      },
+    });
+    const base = {
+      notebook: '01JBQ2X00000000000000000V1',
+      name: 'Atas',
+      description: 'Uma ata por reunião.',
+    };
+    await adapter.call('create_folder', { ...base, noteOrder: 'alphabetical' }, caller);
+    await adapter.call('create_folder', base, caller);
+    expect(asked).toEqual(['alphabetical', undefined]);
+  });
+
+  it('sets the order of a folder and answers the folder as it now is', async () => {
+    const asked: string[] = [];
+    const adapter = gateways({
+      knowledge: {
+        setNoteOrder: async (_caller: unknown, input: { folderId: string; noteOrder: string }) => {
+          asked.push(`${input.folderId}:${input.noteOrder}`);
+          return folder(input.noteOrder);
+        },
+      },
+    });
+    const result = await adapter.call(
+      'set_note_order',
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        folder: '01JBQ2X00000000000000000F1',
+        noteOrder: 'alphabetical',
+      },
+      caller,
+    );
+    expect(result.isError).toBe(false);
+    expect(asked).toEqual(['01JBQ2X00000000000000000F1:alphabetical']);
+    expect(JSON.parse(result.content[0]?.text ?? '{}')).toMatchObject({
+      noteOrder: 'alphabetical',
+    });
+  });
+
+  it('refuses an order that is neither of the two, saying which they are', async () => {
+    const result = await gateways().call(
+      'set_note_order',
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        folder: '01JBQ2X00000000000000000F1',
+        noteOrder: 'by-date',
+      },
+      caller,
+    );
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('"manual" or "alphabetical"');
+  });
+
+  it('teaches, while designing a notebook, which folders order their notes by name', () => {
+    const body = skillNamed('design-notebook')?.body ?? '';
+    expect(body).toContain('Each folder says how its notes are ordered.');
+    expect(body).toContain('noteOrder: alphabetical');
+    expect(body).toContain('set_note_order');
+  });
+
+  it('tells the agent where a note goes in a folder ordered by name, and that it is not moved', () => {
+    const describe = (name: string) => TOOL_CATALOG.find((tool) => tool.name === name)?.description;
+    expect(describe('reorder_note')).toContain('orders its notes by name refuses it');
+    expect(describe('create_note')).toContain('appears by its name');
+    expect(describe('list_notes')).toContain('lists them by name');
+    expect(describe('set_note_order')).toContain('Ata 2 comes before Ata 10');
   });
 });
 

@@ -30,7 +30,7 @@ import type { RequestContext } from '../domain/access/AuthorizationPolicy.js';
 import type { Notebook } from '../domain/notebook/Notebook.js';
 import { Note } from '../domain/note/Note.js';
 import { NotePlacement, type NoteOrder } from '../domain/services/NotePlacement.js';
-import { NOTEBOOK_LIMITS } from '../domain/values.js';
+import { NOTEBOOK_LIMITS, type FolderNoteOrder } from '../domain/values.js';
 import type { NoteRepository } from '../domain/ports/index.js';
 import { loadAuthorized, type NotebookDependencies } from './notebooks.js';
 import { admitWrite } from '../domain/services/StorageQuota.js';
@@ -158,6 +158,18 @@ async function siblingsWithAnchor(
   });
 }
 
+/**
+ * The notes a listing answers, and how each of their folders orders them
+ * (RN-KNW-056). Within a folder they come in the order written into it; a
+ * folder that orders its notes by name is sorted by whoever presents the list,
+ * with the one comparison of names the published language carries, so this
+ * service, the connector and the screen never disagree about where a note is.
+ */
+export interface NoteListing {
+  readonly notes: Note[];
+  readonly noteOrderOf: (folderId: FolderId) => FolderNoteOrder;
+}
+
 export class ListNotes {
   constructor(private readonly deps: NoteDependencies) {}
 
@@ -165,15 +177,21 @@ export class ListNotes {
     ctx: RequestContext;
     notebookId: NotebookId;
     folderId?: FolderId | undefined;
-  }): Promise<Result<Note[], DomainError>> {
+  }): Promise<Result<NoteListing, DomainError>> {
     const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'read');
     if (!notebook.ok) return notebook;
+    const folders = notebook.value.folders;
+    const noteOrderOf = (folderId: FolderId): FolderNoteOrder =>
+      folders.get(folderId)?.noteOrder ?? 'manual';
 
     if (input.folderId) {
-      if (!notebook.value.folders.has(input.folderId)) {
+      if (!folders.has(input.folderId)) {
         return err(DomainError.notFound('Folder not found in this notebook'));
       }
-      return ok(await this.deps.notes.listByFolder(input.notebookId, input.folderId));
+      return ok({
+        notes: await this.deps.notes.listByFolder(input.notebookId, input.folderId),
+        noteOrderOf,
+      });
     }
     // The notes of a notebook are the notes of its TREE: a note whose folder
     // was removed is invalid and out of every listing, although its item is
@@ -186,14 +204,15 @@ export class ListNotes {
     // whole notebook (#184). `Position.compare` is by code unit, which is what
     // puts `Zz` — the key of a note moved first — before `a0`.
     const notes = await this.deps.notes.listByNotebook(input.notebookId);
-    return ok(
-      notes
-        .filter((note) => notebook.value.folders.has(note.folderId))
+    return ok({
+      notes: notes
+        .filter((note) => folders.has(note.folderId))
         .sort(
           (left, right) =>
             left.position.compare(right.position) || left.id.value.localeCompare(right.id.value),
         ),
-    );
+      noteOrderOf,
+    });
   }
 }
 
@@ -394,6 +413,17 @@ export class ReorderNote {
     const found = await liveNote(this.deps, notebook.value, input.notebookId, input.noteId);
     if (!found.ok) return found;
     const note = found.value;
+
+    // A folder that orders its notes by name shows no position: moving one
+    // would answer a place the note is never seen in (RN-KNW-056).
+    if (notebook.value.folders.get(note.folderId)?.noteOrder === 'alphabetical') {
+      return err(
+        DomainError.preconditionFailed(
+          'This folder orders its notes by name, so a note has no place of its own to move to',
+          { folderId: note.folderId.value, noteOrder: 'alphabetical' },
+        ),
+      );
+    }
 
     const siblings = await siblingsWithAnchor(
       this.deps,

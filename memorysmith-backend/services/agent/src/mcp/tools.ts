@@ -17,6 +17,7 @@ import {
   type Deployment,
   type TransferDto,
   type UploadStatusDto,
+  type NoteOrder,
 } from '@memorysmith/contracts';
 import { argumentsOf, CATALOG_VERSION, TOOL_CATALOG, toolSignature } from './catalog.js';
 import { refreshSteps } from './refresh.js';
@@ -94,6 +95,15 @@ function requireString(args: Record<string, unknown>, name: string, tool: string
     });
   }
   return value;
+}
+
+/** How a folder orders its notes: one of the two, or a refusal saying which they are. */
+function noteOrderArgument(args: Record<string, unknown>, tool: string): NoteOrder {
+  const value = args['noteOrder'];
+  if (value === 'manual' || value === 'alphabetical') return value;
+  throw new GatewayError('VALIDATION', `${tool} takes noteOrder as "manual" or "alphabetical".`, {
+    noteOrder: value ?? null,
+  });
 }
 
 /**
@@ -483,9 +493,21 @@ export class McpToolAdapter {
           description: requireString(args, 'description', 'create_folder'),
           ...(parent === undefined ? {} : { parentFolderId: parent }),
           ...(after === undefined ? {} : { afterFolderId: after }),
+          ...(args['noteOrder'] === undefined
+            ? {}
+            : { noteOrder: noteOrderArgument(args, 'create_folder') }),
         });
         return json(folder);
       }
+
+      case 'set_note_order':
+        return json(
+          await knowledge.setNoteOrder(caller, {
+            notebookId: requireString(args, 'notebook', 'set_note_order'),
+            folderId: requireString(args, 'folder', 'set_note_order'),
+            noteOrder: noteOrderArgument(args, 'set_note_order'),
+          }),
+        );
 
       case 'reorder_folder':
         // The siblings in their new order, so the agent sees the result

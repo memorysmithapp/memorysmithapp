@@ -4,7 +4,10 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { pageOf } from '../src/mcp/note-pages.js';
+import { pageOf, type FolderInOrder } from '../src/mcp/note-pages.js';
+
+const byHand = (...ids: string[]): FolderInOrder[] =>
+  ids.map((folderId) => ({ folderId, noteOrder: 'manual' }));
 
 const note = (noteId: string, folderId: string, position: string) => ({
   noteId,
@@ -24,7 +27,7 @@ describe('the index of a notebook, in pages', () => {
       ...Array.from({ length: 7 }, (_, index) => note(`A${index}`, 'FA', `a${index}`)),
       ...Array.from({ length: 5 }, (_, index) => note(`B${index}`, 'FB', `a${index}`)),
     ];
-    const order = ['FB', 'FA'];
+    const order = byHand('FB', 'FA');
 
     const read: string[] = [];
     let cursor: string | undefined;
@@ -39,7 +42,7 @@ describe('the index of a notebook, in pages', () => {
   });
 
   it('carries the four fields of an index, and nothing else', () => {
-    const page = pageOf([note('A0', 'FA', 'a0')], ['FA'], {});
+    const page = pageOf([note('A0', 'FA', 'a0')], byHand('FA'), {});
     expect(Object.keys(page.notes[0] ?? {}).sort()).toEqual([
       'folderId',
       'name',
@@ -51,10 +54,10 @@ describe('the index of a notebook, in pages', () => {
 
   it('neither repeats nor skips a note when one is written between two pages', () => {
     const before = [note('A1', 'FA', 'b'), note('A2', 'FA', 'd'), note('A3', 'FA', 'f')];
-    const first = pageOf(before, ['FA'], { limit: 2 });
+    const first = pageOf(before, byHand('FA'), { limit: 2 });
     // A note lands before the end of the first page while the agent reads it.
     const after = [...before, note('A0', 'FA', 'a')];
-    const second = pageOf(after, ['FA'], { limit: 2, cursor: first.nextCursor ?? '' });
+    const second = pageOf(after, byHand('FA'), { limit: 2, cursor: first.nextCursor ?? '' });
 
     expect(first.notes.map((each) => each.noteId)).toEqual(['A1', 'A2']);
     expect(second.notes.map((each) => each.noteId)).toEqual(['A3']);
@@ -62,5 +65,34 @@ describe('the index of a notebook, in pages', () => {
 
   it('refuses a cursor it never answered, saying how to start over', () => {
     expect(() => pageOf([], [], { cursor: 'not-a-cursor' })).toThrow('without a cursor');
+  });
+
+  it('pages a folder ordered by name by name, and keeps its place when a note lands before the cursor', () => {
+    // RN-KNW-056: by hand Ata 10 was written first; by name it comes after Ata 2.
+    const named = (noteId: string, name: string | null, position: string) => ({
+      ...note(noteId, 'FA', position),
+      name,
+    });
+    const folders: FolderInOrder[] = [{ folderId: 'FA', noteOrder: 'alphabetical' }];
+    const before = [
+      named('N1', 'Ata 10', 'a'),
+      named('N2', 'Ata 2', 'b'),
+      named('N3', null, 'c'),
+      named('N4', 'Ata 3', 'd'),
+    ];
+    const first = pageOf(before, folders, { limit: 2 });
+    expect(first.notes.map((each) => each.name)).toEqual(['Ata 2', 'Ata 3']);
+
+    const after = [...before, named('N5', 'Ata 1', 'e')];
+    const second = pageOf(after, folders, { limit: 2, cursor: first.nextCursor ?? '' });
+    expect(second.notes.map((each) => each.name)).toEqual(['Ata 10', null]);
+  });
+
+  it('still reads a cursor answered before names were part of it', () => {
+    const notes = [note('A1', 'FA', 'b'), note('A2', 'FA', 'd')];
+    const old = Buffer.from(JSON.stringify(['FA', 'b', 'A1']), 'utf8').toString('base64url');
+    expect(pageOf(notes, byHand('FA'), { cursor: old }).notes.map((each) => each.noteId)).toEqual([
+      'A2',
+    ]);
   });
 });

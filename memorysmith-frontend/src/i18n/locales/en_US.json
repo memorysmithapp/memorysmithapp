@@ -128,7 +128,12 @@
     "templateCardHint": "The suggested layout for the notes of this folder",
     "deleteTemplate": "Delete the Template",
     "deleteTemplateConfirm": "Delete the template of this folder? The folder, its description and its notes stay, and the notes already written keep the shape they have. This cannot be undone.",
-    "empty": "No notes in this folder yet."
+    "empty": "No notes in this folder yet.",
+    "noteOrder": "Order of the notes",
+    "noteOrderManual": "As written",
+    "noteOrderAlphabetical": "Alphabetical",
+    "notesByName": "In alphabetical order",
+    "noteOrderFailed": "The order of the notes was not changed. Try again."
   },
   "note": {
     "propertyTrue": "Yes",

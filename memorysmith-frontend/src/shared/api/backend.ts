@@ -148,6 +148,9 @@ function nest(folders: FolderDto[], notes: NoteSummaryDto[]): FolderNode[] {
       slug: folder.slug,
       description: folder.description,
       position: index,
+      // An API older than the order answers none, and that is every folder
+      // ordered by hand.
+      noteOrder: folder.noteOrder === 'alphabetical' ? 'alphabetical' : 'manual',
       hasTemplate: folder.hasTemplate,
       noteCount: folder.noteCount,
       notes: notes
@@ -438,6 +441,22 @@ export async function createFolder(
   return request<FolderDto>(`/knowledge/notebooks/${notebookId}/folders`, {
     method: 'POST',
     body: input,
+  });
+}
+
+/**
+ * How a folder orders its notes (RN-KNW-056). The notes the structure already
+ * holds come back in the new order with the next read of it, which the caller
+ * asks for: the order is the server's, so the screen and the agent agree.
+ */
+export async function setNoteOrder(
+  notebookId: string,
+  folderId: string,
+  noteOrder: 'manual' | 'alphabetical',
+): Promise<void> {
+  await request<void>(`/knowledge/notebooks/${notebookId}/folders/${folderId}`, {
+    method: 'PATCH',
+    body: { noteOrder },
   });
 }
 

@@ -33,6 +33,7 @@ function folder(id: string, notes: Array<{ id: string; name: string | null }>): 
     slug: id,
     description: '',
     position: 0,
+    noteOrder: 'manual',
     hasTemplate: false,
     noteCount: notes.length,
     notes: notes.map((note) => ({ ...note, folderId: id })),

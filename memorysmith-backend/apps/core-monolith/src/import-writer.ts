@@ -89,6 +89,7 @@ export class KnowledgeNotebookWriter implements NotebookWriter {
     parentFolderId: string | null;
     name: string;
     description: string;
+    noteOrder: 'manual' | 'alphabetical';
     by: Authorship;
   }): Promise<Result<{ folderId: string }, DomainError>> {
     const notebookId = NotebookId.create(input.notebookId);
@@ -103,6 +104,7 @@ export class KnowledgeNotebookWriter implements NotebookWriter {
       name: input.name,
       description: input.description,
       afterFolderId: null,
+      noteOrder: input.noteOrder,
       by: input.by,
     });
     return created.ok ? ok({ folderId: created.value.id.value }) : created;

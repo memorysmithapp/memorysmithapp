@@ -12,6 +12,7 @@
 import type {
   BeginUploadRequest,
   FinishedUploadDto,
+  NoteOrder,
   RequestFileRequest,
   TransferDto,
   UploadStatusDto,
@@ -198,6 +199,8 @@ export interface FolderListing {
   readonly description: string;
   /** The order key among its siblings: content, and never decoration. */
   readonly position: string;
+  /** How it orders its notes: by hand, or by name (RN-KNW-056). */
+  readonly noteOrder: NoteOrder;
 }
 
 /** What a tool asks of the Access context. */
@@ -248,7 +251,13 @@ export interface KnowledgeGateway {
       description: string;
       parentFolderId?: string;
       afterFolderId?: string;
+      noteOrder?: NoteOrder;
     },
+  ): Promise<FolderListing>;
+  /** How a folder orders its notes (RN-KNW-056). Answers the folder as it now is. */
+  setNoteOrder(
+    caller: AgentCaller,
+    input: { notebookId: string; folderId: string; noteOrder: NoteOrder },
   ): Promise<FolderListing>;
   /**
    * First among its siblings with no anchor, or right after one. Answers the

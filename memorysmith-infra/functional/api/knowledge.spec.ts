@@ -26,6 +26,7 @@ interface Folder {
   parentFolderId: string | null;
   name: string;
   position: string;
+  noteOrder?: string;
 }
 
 const notebookPath = (notebook: NotebookFixture) => `/knowledge/notebooks/${notebook.notebookId}`;
@@ -183,6 +184,60 @@ test.describe('folders', () => {
       .filter((folder) => folder.parentFolderId === null)
       .sort((a, b) => (String(a.position) < String(b.position) ? -1 : 1));
     expect(roots.map((folder) => folder.name)).toEqual(['Open questions', 'Findings']);
+  });
+
+  test('[route:PATCH /knowledge/notebooks/:v/folders/:f] orders the notes of a folder by name, refuses to move one there, and gives the order back (#262)', async ({
+    owner,
+    notebook,
+  }) => {
+    const records = await createFolder(owner, notebook, 'Minutes');
+    for (const name of ['Ata 10', 'Ata 2', 'Ata 1']) {
+      await owner.ok('POST', notesPath(notebook), {
+        folderId: records.folderId,
+        content: `---\nname: ${name}\n---\n\nWhat was decided.\n`,
+      });
+    }
+    const names = async () =>
+      (
+        await owner.ok<Array<{ name: string | null }>>(
+          'GET',
+          `${notesPath(notebook)}?folderId=${records.folderId}`,
+        )
+      ).map((note) => note.name);
+    // By hand, the order they were written in. The listing of a folder is an
+    // index that converges after a write, so it is asked until it shows them.
+    await expect.poll(names).toEqual(['Ata 10', 'Ata 2', 'Ata 1']);
+
+    const ordered = await owner.call('PATCH', `${foldersPath(notebook)}/${records.folderId}`, {
+      noteOrder: 'alphabetical',
+    });
+    expect(ordered.status).toBe(204);
+    await expect.poll(names).toEqual(['Ata 1', 'Ata 2', 'Ata 10']);
+    const folder = (
+      await owner.ok<{ folders: Folder[] }>('GET', notebookPath(notebook))
+    ).folders.find((each) => each.folderId === records.folderId);
+    expect(folder?.noteOrder).toBe('alphabetical');
+
+    const listed = await owner.ok<Array<{ noteId: string }>>(
+      'GET',
+      `${notesPath(notebook)}?folderId=${records.folderId}`,
+    );
+    const moved = await owner.call(
+      'POST',
+      `${notesPath(notebook)}/${listed[2]?.noteId ?? ''}/reorder`,
+      { afterNoteId: null },
+    );
+    expect(moved.status).toBe(412);
+
+    // Back by hand, the places they had.
+    await owner.call('PATCH', `${foldersPath(notebook)}/${records.folderId}`, {
+      noteOrder: 'manual',
+    });
+    await expect.poll(names).toEqual(['Ata 10', 'Ata 2', 'Ata 1']);
+    const refused = await owner.call('PATCH', `${foldersPath(notebook)}/${records.folderId}`, {
+      noteOrder: 'by-date',
+    });
+    expect(refused.status).toBe(400);
   });
 
   test('[route:DELETE /knowledge/notebooks/:v/folders/:f] deletes a folder only under the policy it was given', async ({

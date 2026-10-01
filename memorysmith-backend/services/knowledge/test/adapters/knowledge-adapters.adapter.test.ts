@@ -164,6 +164,27 @@ describe('DynamoNotebookRepository: the aggregate in one Query', () => {
     expect(loaded?.folders.get(folder.id)?.description.value).toContain('Uma norma por nota');
   });
 
+  it('keeps how a folder orders its notes, and reads a folder that never said as manual', async () => {
+    // RN-KNW-056: an item written before folders declared an order has none.
+    const context = contextFor();
+    const { notebook, folder } = await seedNotebook(context);
+    const { notebooks } = repositories(context);
+    expect((await notebooks.findById(notebook.id))?.folders.get(folder.id)?.noteOrder).toBe(
+      'manual',
+    );
+
+    const loaded = await notebooks.findById(notebook.id);
+    if (!loaded) throw new Error('The notebook was not read back');
+    const ordered = loaded.orderFolderNotes(folder.id, 'alphabetical', authorshipOf(context));
+    if (!ordered.ok) throw new Error(ordered.error.message);
+    const saved = await notebooks.save(loaded);
+    if (!saved.ok) throw new Error(saved.error.message);
+
+    expect((await notebooks.findById(notebook.id))?.folders.get(folder.id)?.noteOrder).toBe(
+      'alphabetical',
+    );
+  });
+
   it('lists the notebooks of the subscription through GSI1', async () => {
     // The listing the notebook catalogue is built on. The in-memory adapter
     // answered it by scanning a prefix, which is exactly why it never noticed

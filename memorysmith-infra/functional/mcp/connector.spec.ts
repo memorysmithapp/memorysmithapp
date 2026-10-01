@@ -569,6 +569,69 @@ test.describe('the tools', () => {
     );
   });
 
+  test('[tool:create_folder] [tool:set_note_order] [tool:list_notes] orders the notes of a folder by name, says so in the context, and refuses to move one there (#262)', async ({
+    agent,
+    notebook,
+  }) => {
+    const where = { notebook: notebook.notebookId };
+    const minutes = parsed<{ folderId: string; noteOrder: string }>(
+      await callTool(agent, 'create_folder', {
+        ...where,
+        name: 'Minutes',
+        description: 'One note per meeting, looked up by its name.',
+        noteOrder: 'alphabetical',
+      }),
+    );
+    expect(minutes.noteOrder).toBe('alphabetical');
+    const written: string[] = [];
+    for (const name of ['Ata 10', 'Ata 2', 'Ata 1']) {
+      written.push(
+        parsed<{ noteId: string }>(
+          await callTool(agent, 'create_note', {
+            ...where,
+            folder: minutes.folderId,
+            content: `---\nname: ${name}\n---\n\nWhat was decided.\n`,
+          }),
+        ).noteId,
+      );
+    }
+    const names = (answer: { text: string }) =>
+      (JSON.parse(answer.text) as { notes: Array<{ name: string | null }> }).notes
+        .map((note) => note.name)
+        .join();
+    await eventually(
+      'the notes of the folder by name',
+      () => callTool(agent, 'list_notes', { ...where, folder: minutes.folderId }),
+      (answer) => names(answer) === 'Ata 1,Ata 2,Ata 10',
+    );
+
+    const context = await callTool(agent, 'get_notebook_context', where);
+    expect(context.text).toMatch(new RegExp(`${minutes.folderId}\`:[^\n]*notes ordered by name`));
+
+    const moved = await callTool(agent, 'reorder_note', {
+      ...where,
+      note: written[2] ?? '',
+      after: null,
+    });
+    expect(moved.isError).toBe(true);
+    expect(moved.text).toContain('orders its notes by name');
+
+    // Back by hand: the order the notes were written in.
+    const manual = parsed<{ noteOrder: string }>(
+      await callTool(agent, 'set_note_order', {
+        ...where,
+        folder: minutes.folderId,
+        noteOrder: 'manual',
+      }),
+    );
+    expect(manual.noteOrder).toBe('manual');
+    await eventually(
+      'the notes of the folder in the order they were written',
+      () => callTool(agent, 'list_notes', { ...where, folder: minutes.folderId }),
+      (answer) => names(answer) === 'Ata 10,Ata 2,Ata 1',
+    );
+  });
+
   test('[tool:create_note] [tool:list_notes] [tool:read_note] [tool:update_note] [tool:delete_note] writes a note, edits it on the revision it read, and deletes it', async ({
     agent,
     notebook,

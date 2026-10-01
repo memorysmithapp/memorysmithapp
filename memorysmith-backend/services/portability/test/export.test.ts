@@ -32,6 +32,7 @@ const notebook: ExportInput = {
       name: 'Normas',
       description: 'Texto normativo por artigo.',
       position: 'a0',
+      noteOrder: 'manual',
       templateContent: '# {{titulo}}\n\n## Vigencia',
     },
     {
@@ -40,6 +41,7 @@ const notebook: ExportInput = {
       name: 'Achados',
       description: 'Achados de auditoria.',
       position: 'a1',
+      noteOrder: 'alphabetical',
       templateContent: null,
     },
     {
@@ -48,6 +50,7 @@ const notebook: ExportInput = {
       name: '2026',
       description: 'Emitidos neste exercicio.',
       position: 'a0',
+      noteOrder: 'manual',
       templateContent: null,
     },
   ],
@@ -100,6 +103,10 @@ describe('the document carries the notebook whole', () => {
     expect(document.folders.map((folder) => folder.position)).toEqual(['a0', 'a1', 'a0']);
     expect(document.folders[0]?.template).toBe('# {{titulo}}\n\n## Vigencia');
     expect(document.folders[1]?.template).toBeNull();
+    // How a folder orders its notes, said only where it is not the default
+    // (RN-KNW-056), so a document of manual folders reads as it always did.
+    expect(document.folders[1]?.noteOrder).toBe('alphabetical');
+    expect(document.folders[0]).not.toHaveProperty('noteOrder');
   });
 
   it('carries every body byte for byte, frontmatter included', () => {

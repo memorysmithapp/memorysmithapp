@@ -357,6 +357,14 @@ export function deleteGuidance(notebookId: string): Promise<void> {
   return backend.deleteGuidance(notebookId);
 }
 
+export function setNoteOrder(
+  notebookId: string,
+  folderId: string,
+  noteOrder: 'manual' | 'alphabetical',
+): Promise<void> {
+  return backend.setNoteOrder(notebookId, folderId, noteOrder);
+}
+
 export function deleteTemplate(notebookId: string, folderId: string): Promise<void> {
   return backend.deleteTemplate(notebookId, folderId);
 }

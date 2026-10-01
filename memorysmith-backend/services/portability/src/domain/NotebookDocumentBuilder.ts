@@ -90,6 +90,7 @@ export interface NotebookDocument {
     readonly position: string;
     readonly template: string | null;
     readonly lastNumber?: number;
+    readonly noteOrder?: 'alphabetical';
   }>;
   readonly notes: ReadonlyArray<{
     readonly noteId: string;
@@ -115,6 +116,8 @@ export interface ExportFolder {
   readonly templateContent: string | null;
   /** The last number the folder issued, or nothing when it issued none (RN-PRT-016). */
   readonly lastNumber?: number;
+  /** How the folder orders its notes (RN-KNW-056). */
+  readonly noteOrder: 'manual' | 'alphabetical';
 }
 
 export interface ExportNote {
@@ -304,6 +307,10 @@ export function buildNotebookDocument(input: ExportInput, now: string): Notebook
       position: folder.position,
       template: folder.templateContent,
       ...(folder.lastNumber ? { lastNumber: folder.lastNumber } : {}),
+      // Only where it is not the default, as `lastNumber` is said only where
+      // the folder issued one: a reader that knows nothing of it reads the
+      // document it always read.
+      ...(folder.noteOrder === 'alphabetical' ? { noteOrder: 'alphabetical' as const } : {}),
     })),
     notes: input.notes.map((note) => ({
       noteId: note.noteId,

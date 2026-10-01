@@ -18,7 +18,7 @@ import type { RequestContext } from '../domain/access/AuthorizationPolicy.js';
 import { Template } from '../domain/content-slot/Template.js';
 import type { Folder } from '../domain/notebook/Folder.js';
 import type { Notebook } from '../domain/notebook/Notebook.js';
-import { FolderDescription, FolderName, RemovalPolicy } from '../domain/values.js';
+import { FolderDescription, FolderName, FolderNoteOrder, RemovalPolicy } from '../domain/values.js';
 import { guardRevision, loadAuthorized, type NotebookDependencies } from './notebooks.js';
 import type { FolderNumbers } from '../domain/ports/index.js';
 import { admitWrite } from '../domain/services/StorageQuota.js';
@@ -33,6 +33,8 @@ export class CreateFolder {
     name: string;
     description: string;
     afterFolderId: FolderId | null;
+    /** How its notes are ordered, `manual` when absent (RN-KNW-056). */
+    noteOrder?: string | undefined;
     by: Authorship;
   }): Promise<Result<Folder, DomainError>> {
     const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
@@ -43,6 +45,8 @@ export class CreateFolder {
     // Mandatory: it is what steers where the agent writes (RN-KNW-006).
     const description = FolderDescription.create(input.description);
     if (!description.ok) return description;
+    const noteOrder = FolderNoteOrder.create(input.noteOrder ?? FolderNoteOrder.DEFAULT);
+    if (!noteOrder.ok) return noteOrder;
 
     const folder = notebook.value.addFolder(
       input.parentFolderId,
@@ -50,6 +54,7 @@ export class CreateFolder {
       description.value,
       input.afterFolderId,
       input.by,
+      noteOrder.value,
     );
     if (!folder.ok) return folder;
 
@@ -69,6 +74,7 @@ export class PatchFolder {
     description?: string | undefined;
     parentFolderId?: FolderId | null | undefined;
     afterFolderId?: FolderId | null | undefined;
+    noteOrder?: string | undefined;
     by: Authorship;
   }): Promise<Result<void, DomainError>> {
     const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
@@ -85,6 +91,12 @@ export class PatchFolder {
       if (!description.ok) return description;
       const described = notebook.value.describeFolder(input.folderId, description.value, input.by);
       if (!described.ok) return described;
+    }
+    if (input.noteOrder !== undefined) {
+      const noteOrder = FolderNoteOrder.create(input.noteOrder);
+      if (!noteOrder.ok) return noteOrder;
+      const ordered = notebook.value.orderFolderNotes(input.folderId, noteOrder.value, input.by);
+      if (!ordered.ok) return ordered;
     }
     if (input.parentFolderId !== undefined) {
       const moved = notebook.value.moveFolder(

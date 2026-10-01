@@ -85,6 +85,7 @@ export const KNOWLEDGE_EVENT_TYPES = [
   'FolderAdded',
   'FolderRenamed',
   'FolderDescribed',
+  'FolderNotesOrdered',
   'FolderMoved',
   'FolderReordered',
   'FolderRemoved',

@@ -1397,6 +1397,20 @@ a:hover {
   gap: 8px;
   margin-bottom: 14px;
 }
+/* How the notes of the folder are ordered (RN-KNW-056), at the end of the
+   heading of the group it orders. */
+.folder-note-order {
+  margin-left: auto;
+}
+.folder-note-order.is-said {
+  color: var(--text-soft);
+  font-size: 0.8125rem;
+}
+.folder-note-order-error {
+  margin: -6px 0 12px;
+  color: var(--danger);
+  font-size: 0.875rem;
+}
 .folder-page .folder-group-head h2 {
   margin: 0;
   font-family: var(--display);

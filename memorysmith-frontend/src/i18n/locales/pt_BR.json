@@ -128,7 +128,12 @@
     "templateCardHint": "Leiaute sugerido para as notas desta pasta",
     "deleteTemplate": "Apagar o Modelo",
     "deleteTemplateConfirm": "Apagar o Modelo desta pasta? A pasta, a descrição dela e as notas continuam, e as notas já escritas mantêm a forma que têm. Não há como desfazer.",
-    "empty": "Ainda não há notas nesta pasta."
+    "empty": "Ainda não há notas nesta pasta.",
+    "noteOrder": "Ordem das notas",
+    "noteOrderManual": "Do caderno",
+    "noteOrderAlphabetical": "Alfabética",
+    "notesByName": "Em ordem alfabética",
+    "noteOrderFailed": "A ordem das notas não foi alterada. Tente de novo."
   },
   "note": {
     "propertyTrue": "Sim",

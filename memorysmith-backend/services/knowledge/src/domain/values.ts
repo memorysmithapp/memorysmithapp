@@ -146,6 +146,27 @@ export class RemovalPolicy {
   }
 }
 
+/**
+ * How a folder orders its notes (RN-KNW-056): by the position written into it,
+ * `manual`, which is the default, or by the name of each note, `alphabetical`.
+ * The domain holds the order as data of the folder; comparing two names is the
+ * one comparison the published language carries, so every edge that lists
+ * notes — the routes, the connector and the screen — sorts with the same one.
+ */
+export type FolderNoteOrder = 'manual' | 'alphabetical';
+
+export const FolderNoteOrder = {
+  DEFAULT: 'manual' as FolderNoteOrder,
+  create(raw: string): Result<FolderNoteOrder, DomainError> {
+    if (raw === 'manual' || raw === 'alphabetical') return ok(raw);
+    return err(
+      DomainError.validation('A folder orders its notes "manual" or "alphabetical"', {
+        noteOrder: raw,
+      }),
+    );
+  },
+};
+
 /** Product limits, declared so they become tests (software-vision.md, 14). */
 export const NOTEBOOK_LIMITS = {
   maxFolders: 200,

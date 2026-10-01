@@ -35,7 +35,7 @@ import type {
   NotebookNamesDto,
   SearchResultDto,
 } from '@memorysmith/contracts';
-import { likelyMeant } from '@memorysmith/contracts';
+import { likelyMeant, noteOrderOf, type NoteOrder } from '@memorysmith/contracts';
 import {
   GatewayError,
   type AccessGateway,
@@ -89,6 +89,7 @@ function folderListingOf(folder: FolderDto): FolderListing {
     slug: folder.slug,
     description: folder.description,
     position: folder.position,
+    noteOrder: noteOrderOf(folder.noteOrder),
   };
 }
 
@@ -296,6 +297,7 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       description: string;
       parentFolderId?: string;
       afterFolderId?: string;
+      noteOrder?: NoteOrder;
     },
   ): Promise<FolderListing> {
     const created = await callApi<FolderDto>(
@@ -309,10 +311,31 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
           description: input.description,
           parentFolderId: input.parentFolderId ?? null,
           afterFolderId: input.afterFolderId ?? null,
+          ...(input.noteOrder ? { noteOrder: input.noteOrder } : {}),
         },
       },
     );
     return folderListingOf(created);
+  }
+
+  async setNoteOrder(
+    caller: AgentCaller,
+    input: { notebookId: string; folderId: string; noteOrder: NoteOrder },
+  ): Promise<FolderListing> {
+    await callApi<void>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${input.notebookId}/folders/${input.folderId}`,
+      { method: 'PATCH', body: { noteOrder: input.noteOrder } },
+    );
+    const detail = await callApi<NotebookDetailDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${input.notebookId}`,
+    );
+    const folder = detail.folders.find((each) => each.folderId === input.folderId);
+    if (!folder) throw new GatewayError('NOT_FOUND', 'Folder not found in this notebook');
+    return folderListingOf(folder);
   }
 
   async reorderFolder(
@@ -533,17 +556,21 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
         caller,
         `/knowledge/notebooks/${input.notebookId}/notes${query}`,
       ),
-      input.folderId
-        ? Promise.resolve({ folders: [{ folderId: input.folderId }] })
-        : callApi<{ folders: Array<{ folderId: string }> }>(
-            this.origin,
-            caller,
-            `/knowledge/notebooks/${input.notebookId}`,
-          ),
+      // The notebook, for the order of its folders and how each orders its
+      // notes (RN-KNW-056), which a page of one folder needs as much as a page
+      // of all of them.
+      callApi<{ folders: Array<{ folderId: string; noteOrder?: string }> }>(
+        this.origin,
+        caller,
+        `/knowledge/notebooks/${input.notebookId}`,
+      ),
     ]);
     return pageOf(
       notes,
-      detail.folders.map((folder) => folder.folderId),
+      detail.folders.map((folder) => ({
+        folderId: folder.folderId,
+        noteOrder: noteOrderOf(folder.noteOrder),
+      })),
       { limit: input.limit, cursor: input.cursor },
     );
   }

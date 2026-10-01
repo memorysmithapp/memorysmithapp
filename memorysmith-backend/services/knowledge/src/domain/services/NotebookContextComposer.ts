@@ -183,6 +183,10 @@ function describe(folder: Folder, notebook: Notebook, hasChildren: boolean): str
       : `${notes} ${notes === 1 ? 'note' : 'notes'}`,
   ];
   if (notebook.hasTemplate(folder.id)) annotations.push('has TEMPLATE.md');
+  // Said only where it is not the default, so the agent knows before it writes
+  // that a note lands by its name here and that there is no place to move it to
+  // (RN-KNW-056).
+  if (folder.noteOrder === 'alphabetical') annotations.push('notes ordered by name');
   // The identifier is fenced as code so that reading it and copying it into
   // the next call are the same gesture (RN-AGT-020).
   return `**${name}** \`${folder.id.value}\`: ${folder.description.value} (${annotations.join(', ')})`;

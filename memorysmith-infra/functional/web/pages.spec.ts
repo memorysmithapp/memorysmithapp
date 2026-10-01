@@ -523,6 +523,39 @@ test.describe('the pages of an account', () => {
     await expect(app.locator('a.note-row', { hasText: 'Checklist' })).toBeVisible();
   });
 
+  test('[page:/notebooks/:notebookId/folders/:folderId] orders the notes of a folder by name, chosen beside their heading (#262)', async ({
+    app,
+    owner,
+    notebook,
+  }) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const { folderId } = await owner.ok<{ folderId: string }>('POST', `${path}/folders`, {
+      name: 'Minutes',
+      description: 'One note per meeting, looked up by its name.',
+    });
+    for (const name of ['Ata 10', 'Ata 2', 'Ata 1']) {
+      await owner.ok('POST', `${path}/notes`, {
+        folderId,
+        content: `---\nname: ${name}\n---\n\nWhat was decided.\n`,
+      });
+    }
+    await app.goto(notebook.page(`/folders/${folderId.toLowerCase()}`));
+    const rows = app.locator('.folder-page a.note-row');
+    // By hand, the order they were written in; the structure reads again until it shows them.
+    await expect(rows).toHaveText(['Ata 10', 'Ata 2', 'Ata 1'], { timeout: 60_000 });
+
+    const order = app.locator('.folder-note-order').getByRole('radio');
+    await order.nth(1).click();
+    await expect(order.nth(1)).toHaveAttribute('aria-checked', 'true');
+    await expect(rows).toHaveText(['Ata 1', 'Ata 2', 'Ata 10']);
+    // And the tree beside the page agrees.
+    await expect(
+      app.locator('aside#notebook-sidebar .tree-folder', { hasText: 'Minutes' }).first(),
+    ).toBeVisible();
+    await order.nth(0).click();
+    await expect(rows).toHaveText(['Ata 10', 'Ata 2', 'Ata 1']);
+  });
+
   test('[page:/notebooks/:notebookId/notes/:noteId] ticks two boxes whose writes chain, and shows them ticked on coming back', async ({
     app,
     notebook,

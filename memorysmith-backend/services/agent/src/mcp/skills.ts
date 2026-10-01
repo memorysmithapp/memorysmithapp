@@ -235,8 +235,14 @@ reader, and state each convention once.
 - **The order of folders is content**, and it is kept as data: the Notebook
   Context numbers the folders by it, so a folder name needs no number. Create the
   folders in reading order, or place one with \`after\`, and change the order
-  later with \`reorder_folder\`. Notes are ordered the same way, with
-  \`reorder_note\`.
+  later with \`reorder_folder\`.
+- **Each folder says how its notes are ordered.** A folder read in sequence —
+  the chapters of a guide, the steps of a process — keeps the order its notes
+  are written in, placed with \`after\` and \`reorder_note\`. A folder of
+  records looked up by name — minutes, decisions, articles — orders them by
+  name: pass \`noteOrder: alphabetical\` to \`create_folder\`, or set it later
+  with \`set_note_order\`. Choose it when you create the folder, and the
+  numbering of a record then decides where it appears.
 - **A folder is where a note lives, and not part of what identifies it**:
   moving a note keeps every link to it.
 - **The limits:** six levels deep and 200 folders in a notebook. There is no
